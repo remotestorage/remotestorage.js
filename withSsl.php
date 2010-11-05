@@ -50,6 +50,9 @@ class UnhostedProxy {
 		echo ' urlencoded: ';
 		$encrypted = urlencode($encrypted);
 		var_dump($encrypted);
+		while ($msg = openssl_error_string()) {
+		    echo $msg . "<br />\n";
+		}
 		$cmd = "curl http://localhost/git/unhosted/untrustedStore.php?cmd=SET\&channel=$ch\&key=$key\&value=$encrypted";
 		$ret = `$cmd`;
 	}
@@ -62,6 +65,11 @@ class UnhostedProxy {
 	}
 }
 
+//openssl_pkcs7_sign("/path/to/msg.txt", "/path/to/signed.txt", "/path/to/mycert.pem",
+//    array("file:///path/to/mycert.pem", "mypassphrase"),
+//    array()
+//    );
+//die();
 $unhostedProxy = new UnhostedProxy();
 $ch = $unhostedProxy->createChannel();
 $unhostedProxy->send($ch, 'status', 'hoestermee');
