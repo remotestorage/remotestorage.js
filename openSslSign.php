@@ -1,24 +1,37 @@
 <?php
 function genKeyPair() {
-	$pkeyid =  openssl_pkey_new();
-	$keyDetails = openssl_pkey_get_details($pkeyid);
-	$pubkeyAsc = $keyDetails['key'];
-	return array($pkeyid, $pubkeyAsc);
+	$pkeyidWrite =  openssl_pkey_new();
+	$keyDetails = openssl_pkey_get_details($pkeyidWrite);
+	$pubkeyWriteAsc = $keyDetails['key'];
+	return array($pkeyidWrite, $pubkeyWriteAsc);
 }
 
 
 $data = "the data to be signed";
-list($pkeyid, $pubkeyAsc) = genKeyPair();
+list($pkeyidWrite, $pubkeyWriteAsc) = genKeyPair();
+list($pkeyidRead, $pubkeyReadAsc) = genKeyPair();
 
 echo "sign:\n";
-openssl_sign($data, $signature, $pkeyid);
+openssl_sign($data, $signature, $pkeyidWrite);
+while ($msg = openssl_error_string()) {
+    echo $msg . "\n";
+}
+
+echo "encrypt:\n";
+openssl_public_encrypt($data, $encr, $pubkeyReadAsc);
+while ($msg = openssl_error_string()) {
+    echo $msg . "\n";
+}
+
+echo "decrypt:\n";
+openssl_private_decrypt($encr, $data2, $pkeyidRead);
 while ($msg = openssl_error_string()) {
     echo $msg . "\n";
 }
 
 echo "now verify:\n";
 // state whether signature is okay or not
-$ok = openssl_verify($data, $signature, $pubkeyAsc);
+$ok = openssl_verify($data2, $signature, $pubkeyWriteAsc);
 while ($msg = openssl_error_string()) {
     echo $msg . "\n";
 }
@@ -32,7 +45,7 @@ if ($ok == 1) {
 }
 
 echo "free the key from memory:\n";
-openssl_free_key($pkeyid);
+openssl_free_key($pkeyidWrite);
 while ($msg = openssl_error_string()) {
     echo $msg . "\n";
 }
