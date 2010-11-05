@@ -1,11 +1,12 @@
 <?php
+
 function genKeyPair() {
 	$pkeyidWrite =  openssl_pkey_new();
 	$keyDetails = openssl_pkey_get_details($pkeyidWrite);
 	$pubkeyWriteAsc = $keyDetails['key'];
-	return array($pkeyidWrite, $pubkeyWriteAsc);
+	$ses = bin2hex(openssl_random_pseudo_bytes(2));
+	return array($pkeyidWrite, $pubkeyWriteAsc, $ses);
 }
-
 
 $data = "the data to be signed";
 list($pkeyidWrite, $pubkeyWriteAsc) = genKeyPair();
