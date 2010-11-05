@@ -11,18 +11,22 @@ function genKeyTriplet() {
 $data = "the data to be signed";
 list($pri, $pub, $ses) = genKeyTriplet();
 
-echo "sign:\n";
-openssl_sign($data, $signature, $pri);
+//echo "sign:\n";
+openssl_sign($data, $sign, $pri);
 while ($msg = openssl_error_string()) {
-    echo $msg . "\n";
+//    echo $msg . "\n";
 }
 
-echo "encrypt:\n";
+//echo "encrypt:\n";
 $encr = openssl_encrypt($data, 'des-ecb', $ses);
 while ($msg = openssl_error_string()) {
-    echo $msg . "\n";
+//    echo $msg . "\n";
 }
-var_dump($encr);
+echo "<?php\n";
+echo "\$pub = '$pub';\n";
+echo "\$ses = '$ses';\n";
+echo "\$sign = '".base64_encode($sign)."';\n";
+echo "\$encr = '$encr';\n";
 die();
 
 echo "decrypt:\n";
