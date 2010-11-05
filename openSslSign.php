@@ -18,13 +18,13 @@ while ($msg = openssl_error_string()) {
 }
 
 echo "encrypt:\n";
-openssl_public_encrypt($data, $encr, $pubkeyReadAsc);
+$encr = openssl_encrypt($data, 'bf-ecb', 'glop');
 while ($msg = openssl_error_string()) {
     echo $msg . "\n";
 }
 
 echo "decrypt:\n";
-openssl_private_decrypt($encr, $data2, $pkeyidRead);
+$data2 = openssl_decrypt($encr, 'bf-ecb', 'glop');
 while ($msg = openssl_error_string()) {
     echo $msg . "\n";
 }
