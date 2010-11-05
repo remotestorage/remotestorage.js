@@ -18,13 +18,13 @@ while ($msg = openssl_error_string()) {
 }
 
 echo "encrypt:\n";
-$encr = openssl_encrypt($data, 'bf-ecb', 'glop');
+$encr = openssl_encrypt($data, 'des-ecb', 'glop');
 while ($msg = openssl_error_string()) {
     echo $msg . "\n";
 }
 
 echo "decrypt:\n";
-$data2 = openssl_decrypt($encr, 'bf-ecb', 'glop');
+$data2 = openssl_decrypt($encr, 'des-ecb', 'glop');
 while ($msg = openssl_error_string()) {
     echo $msg . "\n";
 }

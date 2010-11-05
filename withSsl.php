@@ -32,6 +32,10 @@ var_dump($privateKey);//something's still going wrong here
 		openssl_public_encrypt($sensitiveData, $encryptedData, $pubKey);
 		return $encryptedData;
 	}
+	function sign($pathToKey, $passphrase, $text) {
+		openssl_sign($text, $sign, $this->getPrivate($pathToKey, $passphrase));
+		return $sign;
+	}
 }
 
 class UnhostedProxy {
@@ -53,8 +57,11 @@ class UnhostedProxy {
 		while ($msg = openssl_error_string()) {
 		    echo $msg . "<br />\n";
 		}
-		$cmd = "curl http://localhost/git/unhosted/untrustedStore.php?cmd=SET\&channel=$ch\&key=$key\&value=$encrypted";
+		$sign = $this->encryptor->sign($ch, $this->pwd, "$ch@/$key=$encrypted");
+		$cmd = "curl http://localhost/git/unhosted/untrustedStore.php?cmd=SET\&channel=$ch\&key=$key\&value=$encrypted\&sign=$sign";
+var_dump($cmd);
 		$ret = `$cmd`;
+var_dump($ret);
 	}
 	function receive($ch, $key) {
 		$cmd = "curl http://localhost/git/unhosted/untrustedStore.php?cmd=GET\&channel=$ch\&key=$key";
