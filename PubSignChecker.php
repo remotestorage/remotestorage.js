@@ -21,26 +21,38 @@ class PubSign {
 	}
 }
 
-class UnhostedStorage implements PubSignBackend {
-	function process($channel, $payload, $sign){
-		return TRUE;//success
-	}
-}
+require_once 'UnhostedStorage.php';
 
 //main:
 function dispatch() {
 	$pubSign = new PubSign();
 	$backend= new UnhostedStorage();
+	$_POST['message']=json_encode(array(
+		'cmd' => $_POST['cmd'],
+		'path' => $_POST['path'],
+		'revision' => $_POST['revision'],
+		'lastRevision' => $_POST['lastRevision'],
+		'payload' => $_POST['payload'],
+		));
 	return $pubSign->parsePost($_POST, $backend);
 }
 
 //test form:
+$pub = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1WItEtjgjP6l7Ri7lD93ybJYh1NHeoDYReVtcQpORq27bC+059z9UxkUlcZDf3nk+34oIXHECPBT76GSdK+XbV+1d0HBE+H7j52T7zPqIi08AcYyX2lPOBwPfCnWSvThLseSHd28iIvq8XKFhV1ofSy62nzfHHs9B+Vl52t3EBQIDAQAB';
+$sign = 'Cn8aAmR6H7/DlfOfh6G2+KsH85GEm+1ZhLH5toESzYVhSMk6umSo4Ec3Djp6CYbCU2BRw9a5JFJc6TGLhLLfwfPwDWVL/0INpOAr+3isB6lo+Fzi+g1C5JR1QyBAC1G7MA4Ql1m7A5CMftZrIrHWbPSSd3x+mEjtYt6C5qhdJyk=';
+
 ?>
 	<html>
 		<form name="input" action="?" method="post">
-			channel <input type='textarea' name='channel' value='MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCdtXVjKxVgosoa/bLOhC7qXD8wco3GX6toDDv8UGp1AihclfU8j6KVIeiKIq0SHKr3IJClgumxw9S1RUmzv1nYZfu43My36+0BXKxtBiA9wsfyG8pulPxs5No2rJcPnIgSgjMI7yqhxrZ17miiNZFE0ehBH0CTmFbdcWsauL08MwIDAQAB'/><br>
-			message <input type='textarea' name='message' value ='the data to be signed'/><br>
-			signature <input type='textarea' name='sign' value='jrTJOFWYOPdfcC8ojbOWcz11QFT4InWRDmH/RUhVy4CuqLJiAJMGVos83uCmfyzOc6Oesouk4mLdvfYG+cG4UIsgQV1Uw2WjomQv22y4392+NuvCJAkfoVFmHq74cz2e+Q5KcCBg4VRpg+1FOY50/TkmgaOiFYHUwsWrXitF5Ks='/><br>
+			channel <input type='textarea' name='channel' value='<?=$pub?>'><br>
+			message <table border='1'>
+				<tr><td>cmd</td><td><input type='textarea' name='cmd' value ='SET'/></td></tr>
+				<tr><td>path</td><td><input type='textarea' name='path' value ='channel+app@cloud.com/path/to/key'/></td></tr>
+				<tr><td>revision</td><td><input type='textarea' name='revision' value ='1234567890'/></td></tr>
+				<tr><td>lastRevision</td><td><input type='textarea' name='lastRevision' value ='1234567000'/></td></tr>
+				<tr><td>payload</td><td><input type='textarea' name='payload' value ='{"hello world!"}'/></td></tr>
+			</table>
+			signature <input type='textarea' name='sign' value='<?=$sign?>'/><br>
 			<input type='submit' value='Test'/>
 		</form>
 	</html>
