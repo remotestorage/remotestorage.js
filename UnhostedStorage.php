@@ -1,5 +1,6 @@
 <?php
 define('CLOUDNAME', 'cloud.com');
+require_once 'PubSign.php';
 class UnhostedStorage implements PubSignBackend {
 	private function parsePath($path) {
 		return array('channel', 'app', 'cloud.com', 'path/to/key');
@@ -9,8 +10,11 @@ class UnhostedStorage implements PubSignBackend {
 	}
 	private function unlockUpdate($path) {
 	}
+	private function pathToFileName($path) {
+		return '/home/michiel/unhostedStore/'.substr(base64_encode($path), 0, 64);
+	}
 	private function update($path, $newValue, $command) {
-		$fileName = '/home/michiel/unhostedStore/'.base64_encode($path);
+		$fileName = $this->pathToFileName($path);
 		file_put_contents($fileName, $newValue);
 		file_put_contents($fileName.'.log', json_encode($command)."\n\n", FILE_APPEND);
 	}
@@ -40,4 +44,17 @@ class UnhostedStorage implements PubSignBackend {
 			return FALSE;
 		}
 	}
+
+	function get($path) {
+		echo "getting path $path<br/>";
+		list($ch, $app, $cloud, $keyPath) = $this->parsePath($command->path);
+		if($cloud != CLOUDNAME) {
+			return 'RELAYING DENIED';
+		}
+		echo "cloud $cloud is ok<br/>";
+		$fileName = $this->pathToFileName($path);
+		echo "getting $fileName from disk<br/>";
+		return file_get_contents($fileName);
+	}
+
 }

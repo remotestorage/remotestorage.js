@@ -21,8 +21,6 @@ class PubSign {
 	}
 }
 
-require_once 'UnhostedStorage.php';
-
 //main:
 class MockBackend implements PubSignBackend { function process($channel, $payload, $sign){return "'$payload' got through the PubSign check and reached the backend.";} }
 

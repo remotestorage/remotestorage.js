@@ -1,65 +1,121 @@
 <?php
-interface PubSignBackend {
-	function process($channel, $payload, $sign);
-}
-class PubSign {
-	function checkSignature($channel, $message, $sign) {
-		$pubKey = "-----BEGIN PUBLIC KEY-----\n".chunk_split($channel, 64, "\n")."-----END PUBLIC KEY-----\n";
-		$ok = openssl_verify($message, base64_decode($sign), $pubKey);
-		return ($ok == 1);//bool success
-	}
-	function parsePost($POST, PubSignBackend $backend) {
-		foreach(array('channel', 'message', 'sign') as $key) {
-			if(!isset($POST[$key])) {
-				return false;//failure
-			}
-		}
-		if(!$this->checkSignature($POST['channel'], $POST['message'], $POST['sign'])) {
-			return false;//failure
-		}
-		return $backend->process($POST['channel'], $POST['message'], $POST['sign']);
-	}
+
+function genKeyTriplet() {
+	$pkeyidWrite =  openssl_pkey_new();
+	$keyDetails = openssl_pkey_get_details($pkeyidWrite);
+	$pubkeyWriteAsc = $keyDetails['key'];
+	$ses = bin2hex(openssl_random_pseudo_bytes(2));
+	openssl_pkey_export($pkeyidWrite , $out);
+	return array($out, makePubSer($pubkeyWriteAsc), $ses);
 }
 
-require_once 'UnhostedStorage.php';
+function makePubSer($pub) {
+	return substr($pub, 27, 64)
+		.substr($pub, 92, 64)
+		.substr($pub, 157, 64)
+		.substr($pub, 222, 24);
+}
 
-//main:
-function dispatch() {
-	$pubSign = new PubSign();
-	$backend= new UnhostedStorage();
-	$_POST['message']=json_encode(array(
-		'cmd' => $_POST['cmd'],
-		'path' => $_POST['path'],
-		'revision' => $_POST['revision'],
-		'lastRevision' => $_POST['lastRevision'],
-		'payload' => $_POST['payload'],
+//echo "encrypt:\n";
+$encr = openssl_encrypt($data, 'des-ecb', $ses);
+while ($msg = openssl_error_string()) {
+//    echo $msg . "\n";
+}
+function makeMessage($POST) {
+	return json_encode(array(
+		'cmd' => $POST['cmd'],
+		'path' => $POST['path'],
+		'revision' => $POST['revision'],
+		'lastRevision' => $POST['lastRevision'],
+		'payload' => $POST['payload'],
 		));
 	return $pubSign->parsePost($_POST, $backend);
 }
 
-//test form:
-$pub = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1WItEtjgjP6l7Ri7lD93ybJYh1NHeoDYReVtcQpORq27bC+059z9UxkUlcZDf3nk+34oIXHECPBT76GSdK+XbV+1d0HBE+H7j52T7zPqIi08AcYyX2lPOBwPfCnWSvThLseSHd28iIvq8XKFhV1ofSy62nzfHHs9B+Vl52t3EBQIDAQAB';
-$sign = 'Cn8aAmR6H7/DlfOfh6G2+KsH85GEm+1ZhLH5toESzYVhSMk6umSo4Ec3Djp6CYbCU2BRw9a5JFJc6TGLhLLfwfPwDWVL/0INpOAr+3isB6lo+Fzi+g1C5JR1QyBAC1G7MA4Ql1m7A5CMftZrIrHWbPSSd3x+mEjtYt6C5qhdJyk=';
+function sign($pri, $message) {
+	openssl_sign($message, $sign, $pri);
+	return base64_encode($sign);
+}
 
+
+//main:
+ini_set('display_errors', TRUE);
+
+//keyset:
+if(!isset($_POST['pri'])) {
+	echo "Generating key triplet<br>";
+	list($_POST['pri'], $_POST['channel'], $_POST['ses']) = genKeyTriplet();
+	?>
+		<table border="1">
+			<tr><td>pri</td><td><?=$_POST['pri']?></td></tr>
+			<tr><td>channel(pub)</td><td><?=$_POST['channel']?></td></tr>
+			<tr><td>ses</td><td><?=$_POST['ses']?></td></tr>
+		</table>
+
+	<?php
+}
+//now we have at least pri, channel, ses in $_POST
+while ($msg = openssl_error_string()) {
+    echo $msg . "<br>\n";
+}
+//test form for making the PubSign packet:
 ?>
 	<html>
 		<form name="input" action="?" method="post">
-			channel <input type='textarea' name='channel' value='<?=$pub?>'><br>
 			message <table border='1'>
 				<tr><td>cmd</td><td><input type='textarea' name='cmd' value ='SET'/></td></tr>
-				<tr><td>path</td><td><input type='textarea' name='path' value ='channel+app@cloud.com/path/to/key'/></td></tr>
+				<tr><td>path</td><td><input type='textarea' name='path' value ='<?=$_POST['channel']?>+myApp@cloud.com/path/to/key'/></td></tr>
 				<tr><td>revision</td><td><input type='textarea' name='revision' value ='1234567890'/></td></tr>
 				<tr><td>lastRevision</td><td><input type='textarea' name='lastRevision' value ='1234567000'/></td></tr>
-				<tr><td>payload</td><td><input type='textarea' name='payload' value ='{"hello world!"}'/></td></tr>
+				<tr><td>payload</td><td><input type='textarea' name='payload' value ='{"What a happy cat!"}'/></td></tr>
 			</table>
-			signature <input type='textarea' name='sign' value='<?=$sign?>'/><br>
+			<input type='submit' value='Test'/>
+			<?foreach(array('pri', 'channel', 'ses') as $field) {//propagate these fields from already created channel ?>
+				<input type='hidden' name='<?=$field?>' value ='<?=$_POST[$field]?>'/>
+			<?}?>
+		</form>
+	</html>
+<?php
+
+//PubSign message:
+if(!isset($_POST['message']) && isset($_POST['cmd'])) {//make UNHOSTED message into PubSign message:
+	echo "Generating message.<br/>";
+	$_POST['message'] = makeMessage($_POST);
+} else {
+	$_POST['message'] = '';
+}
+//now we have at least pri, pub, ses, message in $_POST
+
+if(!isset($_POST['sign']) && isset($_POST['message']) && (strlen($_POST['message']) > 0)) {//sign the message
+	echo "Signing message {$_POST['message']} with signature {$_POST['pri']}<br/>";
+	$_POST['sign'] = sign($_POST['pri'], $_POST['message']);
+} else {
+	$_POST['sign'] = '';
+}
+//now we have at least pri, pub, ses, message, sign in $_POST
+
+//echo "sign:\n";
+while ($msg = openssl_error_string()) {
+    echo $msg . "<br>\n";
+}
+//test form for sending the PubSign packet:
+?>
+	<html>
+		<H2>myCloudSet:</H2>
+		<form name="input" action="myCloudSet.php" method="post">
+			channel <input type='textarea' name='channel' value='<?=$_POST['channel']?>'><br/>
+			message <input type='textarea' name='message' value ='<?=$_POST['message']?>'/><br/>
+			signature <input type='textarea' name='sign' value='<?=$_POST['sign']?>'/><br/>
+			<input type='submit' value='Test'/>
+		</form>
+		<H2>myCloudGet:</H2>
+		<form name="input" action="myCloudGet.php" method="post">
+			path <input type='textarea' name='path' value ='<?=$_POST['channel']?>+myApp@cloud.com/path/to/key'/></td></tr>
 			<input type='submit' value='Test'/>
 		</form>
 	</html>
 <?php
 
-ini_set('display_errors', TRUE);
-var_dump(dispatch());
 echo '<br>';
 while ($msg = openssl_error_string()) {
     echo $msg . "<br>\n";
