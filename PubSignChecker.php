@@ -24,43 +24,33 @@ class PubSign {
 require_once 'UnhostedStorage.php';
 
 //main:
+class MockBackend implements PubSignBackend { function process($channel, $payload, $sign){return "'$payload' got through the PubSign check and reached the backend.";} }
+
 function dispatch() {
 	$pubSign = new PubSign();
-	$backend= new UnhostedStorage();
-	$_POST['message']=json_encode(array(
-		'cmd' => $_POST['cmd'],
-		'path' => $_POST['path'],
-		'revision' => $_POST['revision'],
-		'lastRevision' => $_POST['lastRevision'],
-		'payload' => $_POST['payload'],
-		));
+	$backend= new MockBackend();
 	return $pubSign->parsePost($_POST, $backend);
 }
 
 //test form:
-$pub = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1WItEtjgjP6l7Ri7lD93ybJYh1NHeoDYReVtcQpORq27bC+059z9UxkUlcZDf3nk+34oIXHECPBT76GSdK+XbV+1d0HBE+H7j52T7zPqIi08AcYyX2lPOBwPfCnWSvThLseSHd28iIvq8XKFhV1ofSy62nzfHHs9B+Vl52t3EBQIDAQAB';
-$sign = 'Cn8aAmR6H7/DlfOfh6G2+KsH85GEm+1ZhLH5toESzYVhSMk6umSo4Ec3Djp6CYbCU2BRw9a5JFJc6TGLhLLfwfPwDWVL/0INpOAr+3isB6lo+Fzi+g1C5JR1QyBAC1G7MA4Ql1m7A5CMftZrIrHWbPSSd3x+mEjtYt6C5qhdJyk=';
+$pubser = 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDUDvsSMyWan03u+B8HNqlM7mspFsJ6IlZw88zUbrmd4AsCny2KHh1LJFrAZzq6Pv+59xiSedwj2p7HxE8Gj3j1UO/lTVYu9PmDMKtkQq+yP3DdDWfbh6n1r5fB1Fcv5JpcXkU1MNcQVfSpKxoUgSeOV0FxNBMmmJ6FKOzOOkdXRwIDAQAB';
+$sign = 'bhx3UAaP7YTetPKPDJhV5DKZlzaEnrLxLsXMTr0st7cYQYS2+AvltaGHeLGSzGrH7ZHPN38NSvJaQePCY9IafNYDNoKfe69sS300+51rNOFQ4vq3beo61lRp+VQH3X7WOLqGTzkeyxX+W7iHoM4nZh2pk+ma7FYC39g5bCt8NNU=';
+$message = 'What a happy cat! http://img.example.com/cat_123.jpg';
 
 ?>
 	<html>
 		<form name="input" action="?" method="post">
-			channel <input type='textarea' name='channel' value='<?=$pub?>'><br>
-			message <table border='1'>
-				<tr><td>cmd</td><td><input type='textarea' name='cmd' value ='SET'/></td></tr>
-				<tr><td>path</td><td><input type='textarea' name='path' value ='channel+app@cloud.com/path/to/key'/></td></tr>
-				<tr><td>revision</td><td><input type='textarea' name='revision' value ='1234567890'/></td></tr>
-				<tr><td>lastRevision</td><td><input type='textarea' name='lastRevision' value ='1234567000'/></td></tr>
-				<tr><td>payload</td><td><input type='textarea' name='payload' value ='{"hello world!"}'/></td></tr>
-			</table>
-			signature <input type='textarea' name='sign' value='<?=$sign?>'/><br>
-			<input type='submit' value='Test'/>
+			channel <input type='text' name='channel' value='<?=$pubser?>' size='100'/><br/>
+			message <input type='text' name='message' value ='<?=$message?>' size='100'/><br/>
+			signature <input type='text' name='sign' value='<?=$sign?>' size='100'/><br/>
+			<input type='submit' value='Test'/> If the signature is not correct for the combination of message and channel, it will not get through.<br/>
 		</form>
 	</html>
 <?php
 
 ini_set('display_errors', TRUE);
-var_dump(dispatch());
-echo '<br>';
+$result = dispatch();
+echo "$result<br>";
 while ($msg = openssl_error_string()) {
     echo $msg . "<br>\n";
 }
