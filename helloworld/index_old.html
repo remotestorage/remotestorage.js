@@ -1,0 +1,75 @@
+<html>
+<head>
+<script language="JavaScript" type="text/javascript" src="jsbn/jsbn.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/jsbn2.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/prng4.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/rng.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/rsa.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/rsa2.js"></script>
+<script language="JavaScript" type="text/javascript" src="blencrypt/rijndael.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted.js"></script>
+</head>
+<body>
+<H2> Create new channel </H2>
+<form name="newChannelForm">
+nick <input type="text" name="channelNick" value="mich"/>
+pwd <input type="password" name="channelPwd" value="1234"/>
+</form>
+<input type="submit" onclick="document.getElementById('myDiv').innerHTML='loading...';createNewChannel(document.forms[0].elements[0].value, document.forms[0].elements[1].value);"/><div id="myDiv">hello</div>
+
+<H2>rsatest</H2>
+<form name="rsatest" onsubmit="do_encrypt();return false;">
+Plaintext (string):<br>
+<input name="plaintext" value="test" size="60" type="text"><br>
+<input value="encrypt" onclick="do_encrypt();" type="button"><p>
+Ciphertext (hex):<br>
+<textarea name="ciphertext" rows="4" cols="70"></textarea><br>
+<input value="decrypt" onclick="do_decrypt();" type="button"></p><p>
+Decrypted Plaintext (string):<br>
+<input name="decrypted" size="60" type="text"></p><p>
+Status:<br>
+<input name="status" size="60" type="text"></p><p>
+</p><hr>
+<h2>RSA private key</h2><p>
+<input value="1024 bit" onclick="set_1024f4();" type="button">
+<input value="1024 bit (e=3)" onclick="set_1024e3();" type="button">
+<input value="512 bit" onclick="set_512f4();" type="button">
+<input value="512 bit (e=3)" onclick="set_512e3();" type="button">
+&nbsp; <input value="Generate" onclick="do_genrsa();" type="button">
+bits = <input name="bits" value="512" size="10" type="text">
+</p><p>
+Modulus (hex):<br>
+<textarea name="n" type="text" rows="4" cols="70">a5261939975948bb7a58dffe5ff54e65f0498f9175f5a09288810b8975871e99
+af3b5dd94057b0fc07535f5f97444504fa35169d461d0d30cf0192e307727c06
+5168c788771c561a9400fb49175e9e6aa4e23fe11af69e9412dd23b0cb6684c4
+c2429bce139e848ab26d0829073351f4acd36074eafd036a5eb83359d2a698d3</textarea></p><p>
+Public exponent (hex, F4=0x10001):<br>
+<input name="e" value="10001" size="20" type="text"></p><p>
+Private exponent (hex):<br>
+<textarea name="d" type="text" rows="4" cols="70">8e9912f6d3645894e8d38cb58c0db81ff516cf4c7e5a14c7f1eddb1459d2cded
+4d8d293fc97aee6aefb861859c8b6a3d1dfe710463e1f9ddc72048c09751971c
+4a580aa51eb523357a3cc48d31cfad1d4a165066ed92d4748fb6571211da5cb1
+4bc11b6e2df7c1a559e6d5ac1cd5c94703a22891464fba23d0d965086277a161</textarea></p><p>
+P (hex):<br>
+<textarea name="p" type="text" rows="2" cols="70">d090ce58a92c75233a6486cb0a9209bf3583b64f540c76f5294bb97d285eed33
+aec220bde14b2417951178ac152ceab6da7090905b478195498b352048f15e7d</textarea></p><p>
+Q (hex):<br>
+<textarea name="q" type="text" rows="2" cols="70">cab575dc652bb66df15a0359609d51d1db184750c00c6698b90ef3465c996551
+03edbf0d54c56aec0ce3c4d22592338092a126a0cc49f65a4a30d222b411e58f</textarea></p><p>
+D mod (P-1) (hex):<br>
+<textarea name="dmp1" type="text" rows="2" cols="70">1a24bca8e273df2f0e47c199bbf678604e7df7215480c77c8db39f49b000ce2c
+f7500038acfff5433b7d582a01f1826e6f4d42e1c57f5e1fef7b12aabc59fd25</textarea></p><p>
+D mod (Q-1) (hex):<br>
+<textarea name="dmq1" type="text" rows="2" cols="70">3d06982efbbe47339e1f6d36b1216b8a741d410b0c662f54f7118b27b9a4ec9d
+914337eb39841d8666f3034408cf94f5b62f11c402fc994fe15a05493150d9fd</textarea></p><p>
+1/Q mod P (hex):<br>
+<textarea name="coeff" type="text" rows="2" cols="70">3a3e731acd8960b7ff9eb81a7ff93bd1cfa74cbd56987db58b4594fb09c09084
+914337eb39841d8666f3034408cf94f5b62f11c402fc994fe15a05493150d9fd</textarea></p><p>
+ses (hex):<br>
+<textarea name="ses" type="text" rows="2" cols="70">3a3e731acd8960b7ff9eb81a7ff93bd1cfa74cbd56987db58b4594fb09c09084
+db1734c8143f98b602b981aaa9243ca28deb69b5b280ee8dcee0fd2625e53250</textarea>
+
+    </p><hr>
+    <address><a href="mailto:tom@arcot.com">Tom Wu</a></address>
+</body>
+</html>
