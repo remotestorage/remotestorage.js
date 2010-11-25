@@ -1889,30 +1889,63 @@ function post_handler(request, callback) {
 http.createServer(function(request, response)
 {
     sys.puts('Request for ' + request.url);
-
+    switch (request.method) {
+        case 'OPTIONS': 
+            response.writeHead(200, {
+                'Access-Control-Allow-Origin':'*',
+                'Access-Control-Allow-Methods':'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers':'Content-Type',
+                'Access-Control-Max-Age':'86400'
+                });
+            response.end();
+    }
     switch (request.url) {
 	case '/c':
-	    response.writeHead(200, { 'Content-Type' : 'application/json' });
+	    response.writeHead(200, {
+                'Content-Type' : 'application/json',
+                'Access-Control-Allow-Origin' : '*',
+                'Access-Control-Allow-Methods' : 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers' : 'Content-Type',
+                'Access-Control-Max-Age' : '86400'
+                });
             post_handler(request, function(post) {
                 var res = cloudCreateChannel(post);
                 response.end(res);
 	    });
 	    break;
 	case '/f':
-	    response.writeHead(200, { 'Content-Type' : 'application/json' });
+	    response.writeHead(200, {
+                'Content-Type' : 'application/json',
+                'Access-Control-Allow-Origin' : '*',
+                'Access-Control-Allow-Methods' : 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers' : 'Content-Type',
+                'Access-Control-Max-Age' : '86400'
+                });
             post_handler(request, function(post) {
                 var res = cloudFetchKeys(post);
                 response.end(res);
 	    });
 	    break;
 	case '/s':
-	    response.writeHead(200, { 'Content-Type' : 'application/json' });
+	    response.writeHead(200, {
+                'Content-Type' : 'application/json',
+                'Access-Control-Allow-Origin' : '*',
+                'Access-Control-Allow-Methods' : 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers' : 'Content-Type',
+                'Access-Control-Max-Age' : '86400'
+                });
             post_handler(request, function(post) {
                 response.end(cloudSet(post));
 	    });
 	    break;
 	case '/g':
-	    response.writeHead(200, { 'Content-Type' : 'application/json' });
+	    response.writeHead(200, {
+                'Content-Type' : 'application/json',
+                'Access-Control-Allow-Origin' : '*',
+                'Access-Control-Allow-Methods' : 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers' : 'Content-Type',
+                'Access-Control-Max-Age' : '86400'
+                });
             post_handler(request, function(post) {
                 response.end(cloudGet(post));
 	    });
@@ -1922,10 +1955,14 @@ http.createServer(function(request, response)
               //if (err) return send404(res);
               response.writeHead(200, {
                   'Content-Type': 'text/html',
+                  'Access-Control-Allow-Origin' : '*',
+                  'Access-Control-Allow-Methods' : 'GET, POST, OPTIONS',
+                  'Access-Control-Allow-Headers' : 'Content-Type',
+                  'Access-Control-Max-Age' : '86400',
                   'Content-Length': data.length});
               response.end(data);
               });
           break;
     };
-}).listen(8124);
+}).listen(80);
 console.log('Server running at http://127.0.0.1:8124/');

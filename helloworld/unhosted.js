@@ -52,14 +52,14 @@ function sendCreateCloudCommand(nick, cpri, pub, cses) {
 	  }
 	}
 //	xmlhttp.open("POST","http://locahost:8124/",false);
-	xmlhttp.open("POST","http://localhost:8124/c",true);
+	xmlhttp.open("POST","http://demo.unhosted.fazebook.org/c",true);
 	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 	xmlhttp.send("cmd=createChannel&nick="+nick+"&cpri="+cpri+"&pub="+pub+"&cses="+cses);
 }
 function sendFetchKeysCommand(nick) {
 	xmlhttp=new XMLHttpRequest();
 //	xmlhttp.open("POST","http://locahost:8124/",false);
-	xmlhttp.open("POST","http://localhost:8124/f",false);
+	xmlhttp.open("POST","http://demo.unhosted.fazebook.org/f",false);
 	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 	xmlhttp.send("cmd=fetchKeys&nick="+nick);
 	    document.getElementById("myDiv2").innerHTML=xmlhttp.responseText;
@@ -68,7 +68,7 @@ function sendFetchKeysCommand(nick) {
 function sendSetCommand(pub, cCmd, shcCmd) {
 	xmlhttp=new XMLHttpRequest();
 //	xmlhttp.open("POST","http://locahost:8124/",false);
-	xmlhttp.open("POST","http://localhost:8124/s",false);
+	xmlhttp.open("POST","http://demo.unhosted.fazebook.org/s",false);
 	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 	xmlhttp.send("cmd=PubSign&channel="+pub+"&message="+cCmd+"&sign="+shcCmd);
 	return xmlhttp.responseText;
@@ -76,7 +76,7 @@ function sendSetCommand(pub, cCmd, shcCmd) {
 function sendGetCommand(key) {
 	xmlhttp=new XMLHttpRequest();
 //	xmlhttp.open("POST","http://locahost:8124/",false);
-	xmlhttp.open("POST","http://localhost:8124/g",false);
+	xmlhttp.open("POST","http://demo.unhosted.fazebook.org/g",false);
 	xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 	xmlhttp.send("cmd=GET&key="+key);
 	    document.getElementById("myDiv2").innerHTML=xmlhttp.responseText;
@@ -109,3 +109,4 @@ function retrieveUnhostedData(nick,pwd,key) {
 //function makePubSign(data, cpri, cses, pwd) //returns PubSign post vars
 //function openPubSign(pubSign, pub, ses) //returns original data
 
+//document.domain='fazebook.org'
