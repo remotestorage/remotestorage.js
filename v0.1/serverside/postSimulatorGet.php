@@ -4,7 +4,7 @@ $_POST=array(
 	'protocol' => 'UJ/0.1',
 	'cmd' => json_encode(array(
 		'method' => 'GET',
-		'key' => "helloblog.com+$pubser@demo.unhosted.org/path",
+		'key' => "helloblog.com+$pubser@demo.unhosted.org/myFirstUnhostedBlogPost",
 		)),
 	);
 $_SERVER=array('HTTP_REFERER'=>'helloblog.com');

@@ -13,7 +13,7 @@ $pubser = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCVZl_hiNbNsypM6ktlgJl_jCrE4kl1a
 
 $cmd = json_encode(array(
 	'method' => 'SET',
-	'key' => "helloblog.com+$pubser@demo.unhosted.org/path",
+	'key' => "helloblog.com+$pubser@demo.unhosted.org/myFirstUnhostedBlogPost",
 	'value' => 'DEADBEEF',
 	));
 

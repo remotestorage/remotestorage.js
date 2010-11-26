@@ -58,11 +58,13 @@ class UnhostedJsonParser {
 			if(!isset($cmd['value'])) {
 				throw new Exception('Please specify a value for the key you\'re setting');
 			}
-			if($app != $_SERVER['HTTP_REFERER']) {
-				throw new Exception('You seem to be trying to set a key for a different app than what your document.domain is set to.');
+			$refererParsed = parse_url($_SERVER['HTTP_REFERER']);
+			$refererDomain = $refererParsed['host'];
+			if($app != $refererDomain) {
+				throw new Exception("You seem to be trying to set a key for a different app ($app) than what your document.domain is set to ($refererDomain)");
 			}
 			if($cloud != CLOUD_NAME) {
-				throw new Exception('You seem to be trying to set a key for a different cloud than this one. Relaying denied.');
+				throw new Exception("You seem to be trying to set a key for a different cloud ($cloud) than this one (".CLOUD_NAME."). Relaying denied.");
 			}
 			if(!$this->isPubAllowed($pub)) {
 				throw new Exception('Please add your pub to the PubCrawl before publishing to it.');
@@ -76,11 +78,13 @@ class UnhostedJsonParser {
 				throw new Exception('Please specify which key you\'re getting');
 			}
 			list($app, $pub, $cloud, $path) = $this->parseKey($cmd['key']);
-			if($app != $_SERVER['HTTP_REFERER']) {
-				throw new Exception('You seem to be trying to get a key for a different app than what your document.domain is set to.');
+			$refererParsed = parse_url($_SERVER['HTTP_REFERER']);
+			$refererDomain = $refererParsed['host'];
+			if($app != $refererDomain) {
+				throw new Exception("You seem to be trying to set a key for a different app ($app) than what your document.domain is set to ($refererDomain)");
 			}
 			if($cloud != CLOUD_NAME) {
-				throw new Exception('You seem to be trying to set a key for a different cloud than this one. Relaying denied.');
+				throw new Exception("You seem to be trying to set a key for a different cloud ($cloud) than this one (".CLOUD_NAME."). Relaying denied.");
 			}
 			return $backend->doGET($app, $pub, $path);
 		default:
@@ -109,11 +113,19 @@ class StorageBackend {
 		}
 	}
 }
+
+
+//MAIN:
+header('Content-Type: text/html');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Max-Age: 86400');
 $unhostedJsonParser = new UnhostedJsonParser();
 $storageBackend = new StorageBackend();
 try {
 	$res = $unhostedJsonParser->parseInput($storageBackend);
-	echo "OK\n" . $res . "\n";
+	echo $res;
 } catch (Exception $e) {
 	echo "ERROR\n" . $e->getMessage() . "\n";
 }
