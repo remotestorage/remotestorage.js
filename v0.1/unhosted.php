@@ -1,16 +1,23 @@
 <?php
 define('CLOUD_NAME', 'demo.unhosted.org');
+define('PUB_DEMO_1', 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCVZl_hiNbNsypM6ktlgJl_jCrE4kl1abMmmXQhenAAFd0ISCW5UACgGwMg74fHe0OcbZQWJ5L2-YPwn7wbhmuyFUMdWFQ23LE08sYYSEqggp6n6MQLgfattzWipDGZ3x2CNyh8RwiH5-rq10Biam-AGj4LXQ7z6CaVB3gXIaJhNQIDAQAB');
 
 class UnhostedJsonParser {
+	function isPubAllowed($pub) {
+		$pubCrawl = array(
+			PUB_DEMO_1,
+			);
+		return (in_array($pub, $pubCrawl));
+	}
 	function checkPubSign($pub, $cmd, $PubSign) {
 		$pubR = str_replace(array('_','-'), array('/','+'), $pub);
 		$pubKey = "-----BEGIN PUBLIC KEY-----\n".chunk_split($pubR, 64, "\n")."-----END PUBLIC KEY-----\n";
 		$ok = openssl_verify($cmd, base64_decode($PubSign), $pubKey);
-		echo "\n\nchecking:\n$cmd\n$PubSign\n$pub\n";
+		//echo "\n\nchecking:\n$cmd\n$PubSign\n$pub\n";
 		return ($ok == 1);//bool success
 	}
 	function parseKey($key) {
-		$res = preg_match('/(?P<app>\w+)\+(?P<pub>[\w_-]+)@(?P<cloud>[\w\.]+)\/(?P<path>\w+)/', $key, $matches);
+		$res = preg_match('/(?P<app>[\w.]+)\+(?P<pub>[\w_-]+)@(?P<cloud>[\w\.]+)\/(?P<path>\w+)/', $key, $matches);
 		if(!$res) { // zero (no match) or false (error)
 			throw new Exception("key '$key' not parsable in format app+pub@cloud/path");
 		}
@@ -57,6 +64,9 @@ class UnhostedJsonParser {
 			if($cloud != CLOUD_NAME) {
 				throw new Exception('You seem to be trying to set a key for a different cloud than this one. Relaying denied.');
 			}
+			if(!$this->isPubAllowed($pub)) {
+				throw new Exception('Please add your pub to the PubCrawl before publishing to it.');
+			}
 			if(!$this->checkPubSign($pub, $_POST['cmd'], $_POST['PubSign'])) {
 				throw new Exception('Your PubSign does not correctly sign this command with this pub.');
 			}
@@ -84,10 +94,19 @@ class StorageBackend {
 		return "/tmp/$app.$pub.$path";
 	}
 	function doSET($app, $pub, $path, $value) {
-		file_put_contents($this->makeFileName($app, $pub, $path), $value);
+		$fileName = $this->makeFileName($app, $pub, $path);
+		$res = file_put_contents($fileName, $value);
+		if($res === false) {
+			throw new Exception("Server error - could not write '$fileName'");
+		}
 	}
 	function doGET($app, $pub, $path) {
-		return file_get_contents($this->makeFileName($app, $pub, $path));
+		$fileName = $this->makeFileName($app, $pub, $path);
+		if(is_readable($fileName)) {
+			return file_get_contents($fileName);
+		} else {
+			return 'null';
+		}
 	}
 }
 $unhostedJsonParser = new UnhostedJsonParser();
