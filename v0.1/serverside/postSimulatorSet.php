@@ -25,6 +25,6 @@ $_POST=array(
 	'cmd' => $cmd,
 	'PubSign' => $PubSign,
 	);
-$_SERVER=array('HTTP_REFERER'=>'helloblog.com');
+//$_SERVER=array('HTTP_REFERER'=>'helloblog.com');
 
 require_once 'unhosted.php';

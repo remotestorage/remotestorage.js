@@ -95,7 +95,7 @@ class UnhostedJsonParser {
 
 class StorageBackend {
 	function makeFileName($app, $pub, $path) {
-		return "/tmp/$app.$pub.$path";
+		return "/tmp/unhosted/$app.$pub.$path";
 	}
 	function doSET($app, $pub, $path, $value) {
 		$fileName = $this->makeFileName($app, $pub, $path);
