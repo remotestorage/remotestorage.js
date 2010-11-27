@@ -1,0 +1,80 @@
+<html>
+<head>
+  <title>Hashing test</title>
+<script src="../pidcrypt.js"></script>
+<script src="../pidcrypt_util.js"></script>
+<script src="../md5.js"></script>
+<script src="../sha1.js"></script>
+<script src="../sha256.js"></script>
+<script src="../sha512.js"></script>
+<script>
+
+function passed(testFunction){
+  var span = document.getElementById(testFunction);
+  span.innerHTML = 'passed'
+  span.style.color = '#00C000';
+}
+
+
+function compute(testFunction){
+  var input = 'The quick brown fox jumps over the lazy dog';
+  //value from http://en.wikipedia.org/wiki/Md5
+  var md5 = '9e107d9d372bb6826bd81d3542a419d6';
+  //values from  http://en.wikipedia.org/wiki/Examples_of_SHA_digests
+  var sha1 = '2fd4e1c67a2d28fced849ee1bb76e7391b93eb12';
+  var sha256 = 'd7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592';
+  var sha384 = 'ca737f1014a48f4c0b6dd43cb177b0afd9e5169367544c494011e3317dbf9a509cb1e5dc1e85a941bbee3d7f2afbc9b1';
+  var sha512 = '07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a309d785436bbb642e93a252a954f23912547d1e8a3b5ed6e1bfd7097821233fa0538f3db854fee6';
+  var result ='';
+  var ok = false;
+  switch(testFunction) {
+    case 'md5':
+        result = pidCrypt.MD5(input);
+        ok = (md5 == result);
+      break;
+    case 'sha1':
+        result = pidCrypt.SHA1(input);
+        ok = (sha1 == result);
+      break;
+    case 'sha256':
+        result = pidCrypt.SHA256(input);
+        ok = (sha256 == result);
+      break;
+    case 'sha384':
+        result = pidCrypt.SHA384(input);
+        ok = (sha384 == result);
+      break;
+    case 'sha512':
+        result = pidCrypt.SHA512(input);
+        ok = (sha512 == result);
+      break;
+}
+  if(ok)
+    passed(testFunction);
+}
+
+function testAll(){
+  compute('md5');
+  compute('sha1');
+  compute('sha256');
+  compute('sha384');
+  compute('sha512');
+
+}
+</script>
+</head>
+<BODY ONLOAD="testAll();">
+
+<H2>Hashing test</H2>
+Please visit  <a href="http://www.pidder.com/pidcrypt">pidCrypt Home</a> for actual online demo and latest version!
+<UL>
+  <LI>MD5: <span ID="md5" style="color:#FF0000">failed</span></LI>
+  <LI>SHA-1: <span ID="sha1" style="color:#FF0000">failed</span></LI>
+  <LI>SHA-256: <span ID="sha256" style="color:#FF0000">failed</span></LI>
+  <LI>SHA-384: <span ID="sha384" style="color:#FF0000">failed</span></LI>
+  <LI>SHA-512: <span ID="sha512" style="color:#FF0000">failed</span></LI>
+</UL>
+<H3>Report</H3>
+<DIV id="report"></DIV>
+</BODY>
+</html>

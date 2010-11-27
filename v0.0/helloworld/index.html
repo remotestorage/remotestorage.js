@@ -1,0 +1,38 @@
+<html>
+<head>
+<script language="JavaScript" type="text/javascript" src="jsbn/jsbn.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/jsbn2.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/prng4.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/rng.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/rsa.js"></script>
+<script language="JavaScript" type="text/javascript" src="jsbn/rsa2.js"></script>
+<script language="JavaScript" type="text/javascript" src="blencrypt/rijndael.js"></script>
+<script language="JavaScript" type="text/javascript" src="movable-type/sha1.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted.js"></script>
+</head>
+<body>
+<H2> Create new channel </H2>
+<form name="newChannelForm">
+nick <input type="text" name="channelNick" value="mich"/>
+</form>
+<input type="submit" onclick="document.getElementById('myDiv').innerHTML='loading...';document.forms[2].elements[1].value=document.forms[1].elements[1].value=document.getElementById('myDiv').innerHTML=createNewChannel(document.forms[0].elements[0].value);"/>
+<H2> Unhost some data </H2>
+<form name="unhostDataForm">
+nick <input type="text" name="channelNick" value="mich"/>
+pwd <input type="text" name="channelPwd"/>
+key <input type="text" name="keyName" value="status"/>
+value <input type="text" name="keyValue" value="What a happy cat!"/>
+</form>
+<input type="submit" onclick="document.getElementById('myDiv').innerHTML='loading...';document.getElementById('myDiv').innerHTML=unhostData(document.forms[1].elements[0].value,document.forms[1].elements[1].value,document.forms[1].elements[2].value,document.forms[1].elements[3].value);"/>
+<H2> Now retrieve it back from persistent encrypted cloud storage: </H2>
+<form name="unhostDataForm">
+nick <input type="text" name="channelNick" value="mich"/>
+pwd <input type="text" name="channelPwd"/>
+key <input type="text" name="keyName" value="status"/>
+</form>
+<input type="submit" onclick="document.getElementById('myDiv').innerHTML='loading...';document.getElementById('myDiv').innerHTML=retrieveUnhostedData(document.forms[1].elements[0].value,document.forms[1].elements[1].value,document.forms[1].elements[2].value);"/>
+<div id="myDiv">hello</div>
+<div id="myDiv2">response</div>
+<div id="myDiv3">result</div>
+</body>
+</html>

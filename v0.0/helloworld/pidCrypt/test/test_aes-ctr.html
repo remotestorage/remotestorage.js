@@ -1,0 +1,114 @@
+<HTML>
+<HEAD>
+<SCRIPT src="../pidcrypt.js"></SCRIPT>
+<SCRIPT src="../pidcrypt_util.js"></SCRIPT>
+<SCRIPT src="../md5.js"></SCRIPT><!--needed for key and iv generation-->
+<SCRIPT src="../aes_core.js"></SCRIPT><!--needed block en-/decryption-->
+<SCRIPT src="../aes_ctr.js"></SCRIPT><!--needed for ctr mode-->
+<SCRIPT>
+
+function passed(testFunction){
+  var span = document.getElementById(testFunction);
+  span.innerHTML = 'passed'
+  span.style.color = '#00C000';
+}
+
+
+function compute(testFunction){
+  var password = 'password';
+  var plain = 'Text to encrypt ...';
+  var bits = 256;
+  var aes = new pidCrypt.AES.CTR();
+  var crypted ='PbP+SV5eXl6NNAbHREAubVdZk4nhxmfOXH59';
+  var cryptedRaw = 'e+yw1TEVp/m+w2yUg20Thy7N9T2n2lvV/K0tAV+UQDA=';
+  var result ='';
+  var options = {nBits:bits};
+  var ok = false;
+  switch(testFunction) {
+    case 'init':
+        aes.init(password, options);
+        crypted = aes.encrypt(plain);
+        aes.initDecrypt(crypted, password, options);
+        result = aes.decrypt();
+        ok = (plain == result);
+      break;
+    case 'initDecrypt':
+        aes.initDecrypt(crypted, password, options);
+        result = aes.decrypt();
+        ok = (plain == result);
+      break;
+    case 'initEncrypt':
+        aes.initEncrypt(plain, password, options);
+        crypted = aes.encrypt();
+        aes.initDecrypt(crypted, password, options);
+        result = aes.decrypt();
+        ok = (plain == result);
+      break;
+    case 'encryptRaw':
+    case 'decryptRaw':
+        var plainRaw = pidCryptUtil.toByteArray(plain);
+        aes.init(password);
+        crypted = aes.encryptRaw(plainRaw);
+        aes.initDecrypt(pidCryptUtil.encodeBase64(crypted),password);
+        cryptedRaw = pidCryptUtil.toByteArray(crypted);
+        cryptedRaw = cryptedRaw.slice(8,cryptedRaw.length);
+        result = aes.decryptRaw(cryptedRaw);
+        ok = (plain == result);
+      break;
+    case 'encrypt':
+    case 'decrypt':
+        aes.initEncrypt(plain, password, options);
+        crypted = aes.encrypt();
+        aes.initDecrypt(crypted, password, options);
+        result = aes.decrypt();
+        ok = (plain == result);
+      break;
+    case 'encryptText':
+        crypted = aes.encryptText(plain, password, options);
+        result = aes.decryptText(crypted, password, options);
+        ok = (plain == result);
+      break;
+    case 'decryptText':
+        result = aes.decryptText(crypted, password, options);
+        ok = (plain == result);
+      break;
+  }
+  if(ok)
+    passed(testFunction);
+  else
+    document.getElementById('report').innerHTML += '<P><h4>' + testFunction + '</H4>' + aes.pidcrypt.getAllMessages({lf:'<BR>'}) + '</P>';
+}
+
+function testAll(){
+  compute('init');
+  compute('initEncrypt');
+  compute('initDecrypt');
+  compute('encryptRaw');
+  compute('encrypt');
+  compute('encryptText');
+  compute('decryptRaw');
+  compute('decrypt');
+  compute('decryptText');
+
+}
+</SCRIPT>
+</HEAD>
+<BODY ONLOAD="testAll();">
+
+<H2><A HREF="?page=aes-cbc">AES-CTR</A> En-/Decryption test</H2>
+Please visit  <a href="http://www.pidder.com/pidcrypt">pidCrypt Home</a> for actual online demo and latest version!
+<UL>
+  <LI>init: <span ID="init" style="color:#FF0000">failed</span></LI>
+  <LI>initEncrypt: <span ID="initEncrypt" style="color:#FF0000">failed</span></LI>
+  <LI>initDecrypt: <span ID="initDecrypt" style="color:#FF0000">failed</span></LI>
+  <LI>encryptRaw: <span ID="encryptRaw" style="color:#FF0000">failed</span></LI>
+  <LI>encrypt: <span ID="encrypt" style="color:#FF0000">failed</span></LI>
+  <LI>encryptText: <span ID="encryptText" style="color:#FF0000">failed</span></LI>
+  <LI>decryptRaw: <span ID="decryptRaw" style="color:#FF0000">failed</span></LI>
+  <LI>decrypt: <span ID="decrypt" style="color:#FF0000">failed</span></LI>
+  <LI>decryptText: <span ID="decryptText" style="color:#FF0000">failed</span></LI>
+</UL>
+<H3>Report</H3>
+<DIV id="report"></DIV>
+</BODY>
+</HTML>
