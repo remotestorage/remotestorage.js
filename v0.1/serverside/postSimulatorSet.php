@@ -1,24 +1,49 @@
 <?php
-//to generate a fresh key, uncomment these line instead of the explicit assignments below:
-//$pri =  openssl_pkey_new();
-//$keyDetails = openssl_pkey_get_details($pri);
-//$pub = $keyDetails['key'];
-//$pubser = str_replace(array('/','+'), array('_','-'), substr($pub, 27, 64).substr($pub, 92, 64).substr($pub, 157, 64).substr($pub, 222, 24));
-//openssl_pkey_export($pri, $priE);
-//var_dump($priE);
-//var_dump($pubser);
+function urlify($b64) {
+	for($i = strlen($b64)-1;$b64[$i]=='='; $i--) {}
+	return str_replace(array('/', '+'), array('_','-'), substr($b64, 0, $i+1));
+}
+function genKey() {
+	$pri =  openssl_pkey_new();
+	$keyDetails = openssl_pkey_get_details($pri);
+	$RSAn = base64_encode($keyDetails['rsa']['n']);
+	$RSAe = base64_encode($keyDetails['rsa']['e']);
+	$RSAd = base64_encode($keyDetails['rsa']['d']);
+	openssl_pkey_export($pri, $priE);
+	return array(urlify($RSAn), urlify($RSAd), $priE);
+}
+//list($RSAn, $RSAd, $priE) =genKey();
+//echo "\$RSAn = '$RSAn';\n\$RSAd = '$RSAd';\n\$priE = '$priE';\n";
+//die();
+$RSAn = '5XFDY9ZgrVRCTTXcugUigoheDJU0iBrSa9iZafygS8vtA4H6eUMw70GItFDJ5mTHosD3MWBHg78R6iofKXi2vlLT2zlhcM-w1W2JMAo6P4mxg--1f8vmYpYaX64BDE9A03TXE-WAW1_HtYrZ_q2qhxWQAL8-PhNdwZLSEcowsz8';
+$RSAd = 'baZrZlMVcMBLz0pmah_6FhfFmo3TxRfMZ-3jo1sv4AldA8giQ8FwqWbQRhw14P1YytcdS2OPyc6OaTIoIlGmQvbFMxDovN17A7J6ln5-GyK9HFiML5oPOuNROxAMMmE1LpglfVTOUoMS28OeFpATZENaoBvjCC9JRnEs9p4s6IE';
+$priE = '-----BEGIN RSA PRIVATE KEY-----
+MIICXgIBAAKBgQDlcUNj1mCtVEJNNdy6BSKCiF4MlTSIGtJr2Jlp/KBLy+0Dgfp5
+QzDvQYi0UMnmZMeiwPcxYEeDvxHqKh8peLa+UtPbOWFwz7DVbYkwCjo/ibGD77V/
+y+ZilhpfrgEMT0DTdNcT5YBbX8e1itn+raqHFZAAvz4+E13BktIRyjCzPwIDAQAB
+AoGAbaZrZlMVcMBLz0pmah/6FhfFmo3TxRfMZ+3jo1sv4AldA8giQ8FwqWbQRhw1
+4P1YytcdS2OPyc6OaTIoIlGmQvbFMxDovN17A7J6ln5+GyK9HFiML5oPOuNROxAM
+MmE1LpglfVTOUoMS28OeFpATZENaoBvjCC9JRnEs9p4s6IECQQD9Dyy9dXWFOdAw
+n3bMB8q1RKAz86m8WXIGBkXEw3XJHwAhnFEMrg8G1oR/LjiRbH0MaOXgIxsNkoVO
+XXRcUBmJAkEA6BvUr+AZUblhlqQ04r60HrSx3EBdGr3gQo7qfkT1CHUAqXHntTg+
+/x5R4jLqjBub3VnRpbvUu3/cH/C52RZchwJBAKfj4XLw8r8o1A7uPQqwQLRyizbs
+ebgUP6nvj2ozo3mDr7qc0sju0dlfiRg3uiABMhWBosFJiTE//GE5b3GvUsECQQCl
+RVPfW5mLuI2FXy0NGy9UAeP3aZkh9nudyPetq1oyiGVNQf7z6bXpoGQ7xXd/BhWo
+ulDuSt2CGNvbnmQm8KY3AkEAuI57ntvGTG/mvhWrGEMjr9CWdHgQ4x9bznjCWOXO
+h4egcj3t5FlDGhrOXMQk1OHdapFIT4aOetOysLKzN+Ebew==
+-----END RSA PRIVATE KEY-----
+';
 
-$priE = "-----BEGIN RSA PRIVATE KEY-----\nMIICXAIBAAKBgQCVZl/hiNbNsypM6ktlgJl/jCrE4kl1abMmmXQhenAAFd0ISCW5\nUACgGwMg74fHe0OcbZQWJ5L2+YPwn7wbhmuyFUMdWFQ23LE08sYYSEqggp6n6MQL\ngfattzWipDGZ3x2CNyh8RwiH5+rq10Biam+AGj4LXQ7z6CaVB3gXIaJhNQIDAQAB\nAoGAFwKzldsrqncD9uDHSBTsj3aZR8XKpqjnDPTprBZdlcXIS3RBSy+FSSOf8byy\n3wifO0KtYlQqEJwRtEgGAv9LKuBXUtSt6kYjFouVJHu9PrqgCEVZhaTHKG9ku+jQ\nhwHXViGJ0auppcSovv50LEXufPHZZT8x6xT1GPq49IXxoWkCQQDGpfiiXD0dNerf\njLN1yiRK1heEMNuFb+EMDpkB+C0UVx/7Sk2a2Vnr/OthM+iKM/CGpq1P7rRq3cHM\nRXposDQrAkEAwIh4JoEoXHxwTapNUKhKgzCGHJqeWj4iEowlivtlH6BKkxzybTQQ\nQKWF8tlUIpwqk/0KI98CzV8yFpPEKYwwHwJAb/DpWn0GB2bx00XTf2YI648Xs2tg\n2SIBvKyhNoXmyVaLdC0b7E3dKWneLml0+iRov0g/1BJc4vfSFM12PHZG/wJBAIx3\nhGFjPdUsHKstIrdD8QkBr/bSf9GLH0S05vcdLswCICZwqhYuM+VWXgGtuYp+sTnD\nFVDSdbLsTxjVufouAzUCQBdk56XdIG/il9PgAImO1Ye0eOT9qlP0YHxRJwd9ZAHq\nQC3+w5IDOGOJ+HYH3MOgKH/oCdXMy6QZaGGmkaGS1fQ=\n-----END RSA PRIVATE KEY-----\n";
-$pubser = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCVZl_hiNbNsypM6ktlgJl_jCrE4kl1abMmmXQhenAAFd0ISCW5UACgGwMg74fHe0OcbZQWJ5L2-YPwn7wbhmuyFUMdWFQ23LE08sYYSEqggp6n6MQLgfattzWipDGZ3x2CNyh8RwiH5-rq10Biam-AGj4LXQ7z6CaVB3gXIaJhNQIDAQAB";
-
-$cmd = json_encode(array(//unlike JS's JSON.stringify, this escapes the forward slash!!
-	'method' => 'SET',
-	'key' => "helloblog.com+$pubser@demo.unhosted.org/myFirstUnhostedBlogPost",
-	'value' => 'DEADBEEF',
-	));
-$cmd = '{"method":"SET","key":"helloblog.com+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCVZl_hiNbNsypM6ktlgJl_jCrE4kl1abMmmXQhenAAFd0ISCW5UACgGwMg74fHe0OcbZQWJ5L2-YPwn7wbhmuyFUMdWFQ23LE08sYYSEqggp6n6MQLgfattzWipDGZ3x2CNyh8RwiH5-rq10Biam-AGj4LXQ7z6CaVB3gXIaJhNQIDAQAB@demo.unhosted.org/myFirstUnhostedBlogPost","value":"DEADBEEF"}';
+//unlike JS's JSON.stringify, this escapes the forward slash!!
+//$cmd = json_encode(array(
+//	'method' => 'SET',
+//	'key' => "helloblog.com+$RSAn@demo.unhosted.org/myFirstUnhostedBlogPost",
+//	'value' => 'DEADBEEF',
+//	));
+$cmd = '{"method":"SET","key":"helloblog.com+'.$RSAn.'@demo.unhosted.org/myFirstUnhostedBlogPost","value":"DEADBEEF"}';
 
 openssl_sign($cmd, $sign, $priE);
+//$PubSign = urlify(base64_encode($sign));
 $PubSign = base64_encode($sign);
 
 $_POST=array(
@@ -26,6 +51,8 @@ $_POST=array(
 	'cmd' => $cmd,
 	'PubSign' => $PubSign,
 	);
-//$_SERVER=array('HTTP_REFERER'=>'helloblog.com');
+if(!isset($_SERVER) || !isset($_SERVER['HTTP_REFERER'])) {
+	$_SERVER=array('HTTP_REFERER'=>'http://helloblog.com/index.html');
+}
 //var_dump($_POST);
 require_once 'unhosted.php';

@@ -1,7 +1,60 @@
 <?php
 define('CLOUD_NAME', 'demo.unhosted.org');
-define('PUB_DEMO_1', 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCVZl_hiNbNsypM6ktlgJl_jCrE4kl1abMmmXQhenAAFd0ISCW5UACgGwMg74fHe0OcbZQWJ5L2-YPwn7wbhmuyFUMdWFQ23LE08sYYSEqggp6n6MQLgfattzWipDGZ3x2CNyh8RwiH5-rq10Biam-AGj4LXQ7z6CaVB3gXIaJhNQIDAQAB');
+define('PUB_DEMO_1', '5XFDY9ZgrVRCTTXcugUigoheDJU0iBrSa9iZafygS8vtA4H6eUMw70GItFDJ5mTHosD3MWBHg78R6iofKXi2vlLT2zlhcM-w1W2JMAo6P4mxg--1f8vmYpYaX64BDE9A03TXE-WAW1_HtYrZ_q2qhxWQAL8-PhNdwZLSEcowsz8');
 
+class openSslWrapper {
+	private function makeLengthStr($length) {
+		if($length < 128) {
+			return chr($length);
+		} else if($length < 256) {
+			return chr(129).chr($length);
+		} else {
+			die('TODO: implement lengths >256');
+		}
+	}
+	private function makeDER($type, $rawSeq) {
+		return chr($type).$this->makeLengthStr(strlen($rawSeq)).$rawSeq;
+	}
+	private function makeASN1($ASNn, $ASNe) {
+		return 	$this->makeDER(48, 
+				$this->makeDER(48, 
+					$this->makeDER(6, 
+						chr(42).chr(134).chr(72).chr(134).chr(247).chr(13).chr(1).chr(1).chr(1)
+					)
+					.$this->makeDER(5, 
+						''
+					)
+				)
+				.$this->makeDER(3, 
+					chr(0)
+					.$this->makeDER(48, 
+						$this->makeDER(2, 
+							chr(0)
+							.base64_decode($ASNn)
+						)
+						.$this->makeDER(2, 
+							base64_decode($ASNe)
+						)
+					)
+				)
+			);
+	}
+	private function makePCKS_1($ASNn, $ASNe) {
+		$pubR = base64_encode($this->makeASN1($ASNn, $ASNe));
+		return "-----BEGIN PUBLIC KEY-----\n".chunk_split($pubR, 64, "\n")."-----END PUBLIC KEY-----\n";
+	}
+	public function checkPubSign($pub, $cmd, $PubSign) {
+		$ASNn = str_replace(array('_','-'), array('/','+'), $pub);
+		while(strlen($ASNn) % 4 != 0) {//repad
+			$ASNn .= '=';
+		}
+		$ASNe = 'AQAB';
+		$pcks_1 = $this->makePCKS_1($ASNn, $ASNe);
+		$ok = openssl_verify($cmd, base64_decode($PubSign), $pcks_1);
+		//echo "\n\nchecking:\n$cmd\n$PubSign\n$pub\n";
+		return ($ok == 1);//bool success
+	}
+}
 class UnhostedJsonParser {
 	function isPubAllowed($pub) {
 		$pubCrawl = array(
@@ -9,13 +62,7 @@ class UnhostedJsonParser {
 			);
 		return (in_array($pub, $pubCrawl));
 	}
-	function checkPubSign($pub, $cmd, $PubSign) {
-		$pubR = str_replace(array('_','-'), array('/','+'), $pub);
-		$pubKey = "-----BEGIN PUBLIC KEY-----\n".chunk_split($pubR, 64, "\n")."-----END PUBLIC KEY-----\n";
-		$ok = openssl_verify($cmd, base64_decode($PubSign), $pubKey);
-		//echo "\n\nchecking:\n$cmd\n$PubSign\n$pub\n";
-		return ($ok == 1);//bool success
-	}
+
 	function parseKey($key) {
 		$res = preg_match('/(?P<app>[\w.]+)\+(?P<pub>[\w_-]+)@(?P<cloud>[\w\.]+)\/(?P<path>\w+)/', $key, $matches);
 		if(!$res) { // zero (no match) or false (error)
@@ -69,7 +116,8 @@ class UnhostedJsonParser {
 			if(!$this->isPubAllowed($pub)) {
 				throw new Exception('Please add your pub to the PubCrawl before publishing to it.');
 			}
-			if(!$this->checkPubSign($pub, $_POST['cmd'], $_POST['PubSign'])) {
+			$openSslWrapper = new OpenSslWrapper();
+			if(!$openSslWrapper->checkPubSign($pub, $_POST['cmd'], $_POST['PubSign'])) {
 				throw new Exception('Your PubSign does not correctly sign this command with this pub.');
 			}
 			return $backend->doSET($app, $pub, $path, $cmd['value']);
