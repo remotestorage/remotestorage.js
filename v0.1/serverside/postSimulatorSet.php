@@ -11,11 +11,12 @@
 $priE = "-----BEGIN RSA PRIVATE KEY-----\nMIICXAIBAAKBgQCVZl/hiNbNsypM6ktlgJl/jCrE4kl1abMmmXQhenAAFd0ISCW5\nUACgGwMg74fHe0OcbZQWJ5L2+YPwn7wbhmuyFUMdWFQ23LE08sYYSEqggp6n6MQL\ngfattzWipDGZ3x2CNyh8RwiH5+rq10Biam+AGj4LXQ7z6CaVB3gXIaJhNQIDAQAB\nAoGAFwKzldsrqncD9uDHSBTsj3aZR8XKpqjnDPTprBZdlcXIS3RBSy+FSSOf8byy\n3wifO0KtYlQqEJwRtEgGAv9LKuBXUtSt6kYjFouVJHu9PrqgCEVZhaTHKG9ku+jQ\nhwHXViGJ0auppcSovv50LEXufPHZZT8x6xT1GPq49IXxoWkCQQDGpfiiXD0dNerf\njLN1yiRK1heEMNuFb+EMDpkB+C0UVx/7Sk2a2Vnr/OthM+iKM/CGpq1P7rRq3cHM\nRXposDQrAkEAwIh4JoEoXHxwTapNUKhKgzCGHJqeWj4iEowlivtlH6BKkxzybTQQ\nQKWF8tlUIpwqk/0KI98CzV8yFpPEKYwwHwJAb/DpWn0GB2bx00XTf2YI648Xs2tg\n2SIBvKyhNoXmyVaLdC0b7E3dKWneLml0+iRov0g/1BJc4vfSFM12PHZG/wJBAIx3\nhGFjPdUsHKstIrdD8QkBr/bSf9GLH0S05vcdLswCICZwqhYuM+VWXgGtuYp+sTnD\nFVDSdbLsTxjVufouAzUCQBdk56XdIG/il9PgAImO1Ye0eOT9qlP0YHxRJwd9ZAHq\nQC3+w5IDOGOJ+HYH3MOgKH/oCdXMy6QZaGGmkaGS1fQ=\n-----END RSA PRIVATE KEY-----\n";
 $pubser = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCVZl_hiNbNsypM6ktlgJl_jCrE4kl1abMmmXQhenAAFd0ISCW5UACgGwMg74fHe0OcbZQWJ5L2-YPwn7wbhmuyFUMdWFQ23LE08sYYSEqggp6n6MQLgfattzWipDGZ3x2CNyh8RwiH5-rq10Biam-AGj4LXQ7z6CaVB3gXIaJhNQIDAQAB";
 
-$cmd = json_encode(array(
+$cmd = json_encode(array(//unlike JS's JSON.stringify, this escapes the forward slash!!
 	'method' => 'SET',
 	'key' => "helloblog.com+$pubser@demo.unhosted.org/myFirstUnhostedBlogPost",
 	'value' => 'DEADBEEF',
 	));
+$cmd = '{"method":"SET","key":"helloblog.com+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCVZl_hiNbNsypM6ktlgJl_jCrE4kl1abMmmXQhenAAFd0ISCW5UACgGwMg74fHe0OcbZQWJ5L2-YPwn7wbhmuyFUMdWFQ23LE08sYYSEqggp6n6MQLgfattzWipDGZ3x2CNyh8RwiH5-rq10Biam-AGj4LXQ7z6CaVB3gXIaJhNQIDAQAB@demo.unhosted.org/myFirstUnhostedBlogPost","value":"DEADBEEF"}';
 
 openssl_sign($cmd, $sign, $priE);
 $PubSign = base64_encode($sign);
@@ -26,5 +27,5 @@ $_POST=array(
 	'PubSign' => $PubSign,
 	);
 //$_SERVER=array('HTTP_REFERER'=>'helloblog.com');
-
+//var_dump($_POST);
 require_once 'unhosted.php';
