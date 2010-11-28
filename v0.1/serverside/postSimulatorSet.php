@@ -43,8 +43,8 @@ h4egcj3t5FlDGhrOXMQk1OHdapFIT4aOetOysLKzN+Ebew==
 $cmd = '{"method":"SET","key":"helloblog.com+'.$RSAn.'@demo.unhosted.org/myFirstUnhostedBlogPost","value":"DEADBEEF"}';
 
 openssl_sign($cmd, $sign, $priE);
-//$PubSign = urlify(base64_encode($sign));
-$PubSign = base64_encode($sign);
+$PubSign = urlify(base64_encode($sign));
+//$PubSign = base64_encode($sign);
 
 $_POST=array(
 	'protocol' => 'UJ/0.1',

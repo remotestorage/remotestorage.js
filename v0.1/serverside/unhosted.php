@@ -43,14 +43,19 @@ class openSslWrapper {
 		$pubR = base64_encode($this->makeASN1($ASNn, $ASNe));
 		return "-----BEGIN PUBLIC KEY-----\n".chunk_split($pubR, 64, "\n")."-----END PUBLIC KEY-----\n";
 	}
-	public function checkPubSign($pub, $cmd, $PubSign) {
-		$ASNn = str_replace(array('_','-'), array('/','+'), $pub);
-		while(strlen($ASNn) % 4 != 0) {//repad
-			$ASNn .= '=';
+	private function deUrlify($str) {
+		$ret = str_replace(array('_','-'), array('/','+'), $str);
+		while(strlen($ret) % 4 != 0) {
+			$ret .= '=';
 		}
+		return $ret;
+	}
+	public function checkPubSign($pub, $cmd, $PubSign) {
+		$ASNn = $this->deUrlify($pub);
+		$signature = base64_decode($this->deUrlify($PubSign));
 		$ASNe = 'AQAB';
 		$pcks_1 = $this->makePCKS_1($ASNn, $ASNe);
-		$ok = openssl_verify($cmd, base64_decode($PubSign), $pcks_1);
+		$ok = openssl_verify($cmd, $signature, $pcks_1);
 		//echo "\n\nchecking:\n$cmd\n$PubSign\n$pub\n";
 		return ($ok == 1);//bool success
 	}
