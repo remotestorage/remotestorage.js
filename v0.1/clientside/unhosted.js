@@ -1,8 +1,9 @@
 function Unhosted() {
 	var obj={};
 	//private:
-	function makeKey(app, pub, cloud, path) {
-		return app + encodeURIComponent("+") + pub + "@" + cloud + "/" + path;
+	var keys={};
+	function makeKey(nick, path) {
+		return keys[nick]["app"] + encodeURIComponent("+") + keys[nick]["pubkey"] + "@" + keys[nick]["cloud"] + "/" + path;
 	}
 	function makeSetCommand(key, value) {
 		return JSON.stringify({'method':'SET', 'key':key, 'value':value});
@@ -11,7 +12,7 @@ function Unhosted() {
 		return JSON.stringify({'method':'GET', 'key':key});
 	}
 	function makePubSign(pri, cmd) {//TODO: implement
-		return 'Y8N'+encodeURIComponent("+")+'vV3B92iZvhMEPcfXFOsPDvvSUNU514Oaf'+encodeURIComponent("+")+'oKpCOxdniminxNQB5z/NjEqZPDwZphI7EBD7fbIIJGJsqYLWuraA1HjE3axW8bYw1SZ8dZcCDj6iTX2ZpRS/hMCJ4H5iIzM1RdPHN0p5PGQZMm3nubpZW1THzSakXNA6Qui7g=';
+		return "WUqC429uHktJurDsQJbKY-Pl9KaGYqofygvY0ky1cmOoZjdn9uCIELKvoI2IQzbG5EnBs9HmP1y06RAxVuAYZLgnkn0DsmRckDOeb6yOkWZ5hTXKYPnaDffdhFqM0S2jVfz7wLdotnciUN1MOa_Xc5Tk6hxWKANqivLbbcgz7BA";
 	}
 	function sendPost(post) {
 		xmlhttp=new XMLHttpRequest();
@@ -22,12 +23,15 @@ function Unhosted() {
 		return xmlhttp.responseText;
 	}
 	//public:
-	obj.get = function get(app, pub, cloud, path) {
-		var cmd = makeGetCommand(makeKey(app, pub, cloud, path));
+	obj.importPub = function(writeCaps, nick) {
+		keys[nick]=writeCaps;
+	}
+	obj.get = function get(nick, path) {
+		var cmd = makeGetCommand(makeKey(nick, path));
 		return sendPost("protocol=UJ/0.1&cmd="+cmd);
 	}
-	obj.set = function set(app, pub, cloud, path, value) {
-		var cmd = makeSetCommand(makeKey(app, pub, cloud, path), value);
+	obj.set = function set(nick, path, value) {
+		var cmd = makeSetCommand(makeKey(nick, path), value);
 		var PubSign = makePubSign('pri', cmd);
 		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign);
 	}

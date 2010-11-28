@@ -3,15 +3,20 @@
 <script>
 function loadBlogPost() {
 	var unhosted = Unhosted();
+	var hardCodedPub = {	"app":"helloblog.com",
+				"cloud":"demo.unhosted.org",
+				"pubkey":"5XFDY9ZgrVRCTTXcugUigoheDJU0iBrSa9iZafygS8vtA4H6eUMw70GItFDJ5mTHosD3MWBHg78R6iofKXi2vlLT2zlhcM-w1W2JMAo6P4mxg--1f8vmYpYaX64BDE9A03TXE-WAW1_HtYrZ_q2qhxWQAL8-PhNdwZLSEcowsz8",
+				"prikey":"baZrZlMVcMBLz0pmah_6FhfFmo3TxRfMZ-3jo1sv4AldA8giQ8FwqWbQRhw14P1YytcdS2OPyc6OaTIoIlGmQvbFMxDovN17A7J6ln5-GyK9HFiML5oPOuNROxAMMmE1LpglfVTOUoMS28OeFpATZENaoBvjCC9JRnEs9p4s6IE",
+				"seskey":"AoGAbaZrZlMVcMBLz0pmah/6FhfFmo3TxRfMZ+3jo1sv4AldA8giQ8FwqWbQRhw14P1YytcdS2OPyc6OaTIoIlGmQvbFMxDovN17A7J6ln5+GyK9HFiML5oPOuNROxAM"
+				};
+	unhosted.importPub(hardCodedPub, "hardCodedPub"); 
 	document.getElementById("blogpost").innerHTML= 
 		unhosted.get(
-			"helloblog.com", 
-			"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCVZl_hiNbNsypM6ktlgJl_jCrE4kl1abMmmXQhenAAFd0ISCW5UACgGwMg74fHe0OcbZQWJ5L2-YPwn7wbhmuyFUMdWFQ23LE08sYYSEqggp6n6MQLgfattzWipDGZ3x2CNyh8RwiH5-rq10Biam-AGj4LXQ7z6CaVB3gXIaJhNQIDAQAB",
-			"demo.unhosted.org",
+			"hardCodedPub", 
 			"myFirstUnhostedBlogPost");
 }
 </script>
 <body onload="loadBlogPost();">
-<div id="blogpost">Loading unhosted json...<div/>
+<div id="blogpost">Loading unhosted json...</div>
 </body>
 </html>
