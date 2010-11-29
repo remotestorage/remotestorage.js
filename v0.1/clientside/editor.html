@@ -18,15 +18,15 @@ function saveBlogPost() {
 				"seskey":"27069632223826919491639745776265"
 				};
 	unhosted.importPub(hardCodedPub, "hardCodedPub"); 
-	document.getElementById("status").innerHTML= "key imported"; 
-	var ret = unhosted.set("hardCodedPub", "myFirstUnhostedBlogPost", document.getElementById("blogpost").innerHTML); 
-	//document.getElementById("status").innerHTML= ret; 
-	//return;
+	unhosted.set("hardCodedPub", "myFirstUnhostedBlogPost", document.getElementById("blogpost").value.replace(/\n/g, "<br>")); 
 }
 </script>
-<body onload="saveBlogPost();">
-<div id="blogpost">hello, world!</div>
-<div id="status">Saving unhosted json...</div>
-<div id="debug">debug:</div>
+<body>
+<textarea id="blogpost" rows="20" cols="60"> 
+hello, world! Let me tell you about this great project called Unhosted... bla bla bla
+</textarea>
+<br>
+<input type="submit" name="unhost this blogpost!" onclick="saveBlogPost();"/>
+
 </body>
 </html>

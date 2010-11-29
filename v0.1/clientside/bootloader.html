@@ -18,15 +18,10 @@ function loadBlogPost() {
 				"seskey":"27069632223826919491639745776265"
 				};
 	unhosted.importPub(hardCodedPub, "hardCodedPub"); 
-	document.getElementById("blogpost").innerHTML= 
-		unhosted.get(
-			"hardCodedPub", 
-			"myFirstUnhostedBlogPost");
+	document.getElementById("blogpost").innerHTML= unhosted.get("hardCodedPub", "myFirstUnhostedBlogPost");
 }
 </script>
 <body onload="loadBlogPost();">
 <div id="blogpost">Loading unhosted json...</div>
-<div id="status">status.</div>
-<div id="debug">debug.</div>
 </body>
 </html>
