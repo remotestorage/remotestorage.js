@@ -1,5 +1,11 @@
 <html>
-<script language="JavaScript" type="text/javascript" src="unhosted.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted/sha1.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted/jsbn.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted/prng4.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted/rng.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted/rsa.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted/rsa-sign.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted/unhosted.js"></script>
 <script>
 function saveBlogPost() {
 	var unhosted = Unhosted();
@@ -10,8 +16,10 @@ function saveBlogPost() {
 				"seskey":"AoGAbaZrZlMVcMBLz0pmah/6FhfFmo3TxRfMZ+3jo1sv4AldA8giQ8FwqWbQRhw14P1YytcdS2OPyc6OaTIoIlGmQvbFMxDovN17A7J6ln5+GyK9HFiML5oPOuNROxAM"
 				};
 	unhosted.importPub(hardCodedPub, "hardCodedPub"); 
+	document.getElementById("status").innerHTML= "key imported"; 
 	var ret = unhosted.set("hardCodedPub", "myFirstUnhostedBlogPost", document.getElementById("blogpost").innerHTML); 
-	document.getElementById("status").innerHTML= ret; 
+	//document.getElementById("status").innerHTML= ret; 
+	//return;
 }
 </script>
 <body onload="saveBlogPost();">

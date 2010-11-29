@@ -121,11 +121,14 @@ class UnhostedJsonParser {
 			if(!$this->isPubAllowed($pub)) {
 				throw new Exception('Please add your pub to the PubCrawl before publishing to it.');
 			}
-			$openSslWrapper = new OpenSslWrapper();
-			if(!$openSslWrapper->checkPubSign($pub, $_POST['cmd'], $_POST['PubSign'])) {
-				throw new Exception('Your PubSign does not correctly sign this command with this pub.');
-			}
-			return $backend->doSET($app, $pub, $path, $cmd['value']);
+
+			//MOVING PubSign CHECKING TO THE BROWSER. IN THE END WE WILL ALSO NEED IT HERE, THOUGH, TO PREVENT ROLLBACK ATTACKS BY THIRD PARTIES:
+			//$openSslWrapper = new OpenSslWrapper();
+			//if(!$openSslWrapper->checkPubSign($pub, $_POST['cmd'], $_POST['PubSign'])) {
+			//	throw new Exception('Your PubSign does not correctly sign this command with this pub.');
+			//}
+
+			return $backend->doSET($app, $pub, $path, $cmd, $_POST['PubSign']);
 		case 'GET':
 			if(!isset($cmd['key'])) {
 				throw new Exception('Please specify which key you\'re getting');
@@ -148,11 +151,15 @@ class UnhostedJsonParser {
 
 class StorageBackend {
 	function makeFileName($app, $pub, $path) {
-		return "/tmp/unhosted/$app.$pub.$path";
+		return "/tmp/unhosted_$app.$pub.$path";
 	}
-	function doSET($app, $pub, $path, $value) {
+	function doSET($app, $pub, $path, $cmd, $PubSign) {
 		$fileName = $this->makeFileName($app, $pub, $path);
-		$res = file_put_contents($fileName, $value);
+		$save=json_encode(array(
+			'cmd'=>$cmd,
+			'PubSign'=>$PubSign
+			));
+		$res = file_put_contents($fileName, $save);
 		if($res === false) {
 			throw new Exception("Server error - could not write '$fileName'");
 		}
