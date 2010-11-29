@@ -510,7 +510,6 @@ function bnpIsEven() { return ((this.t>0)?(this[0]&1):this.s) == 0; }
 
 // (protected) this^e, e < 2^32, doing sqr and mul with "r" (HAC 14.79)
 function bnpExp(e,z) {
-document.getElementById("status").innerHTML = "z is "+z+" and e is "+e;
   if(e > 0xffffffff || e < 1) return BigInteger.ONE;
   var r = nbi(), r2 = nbi(), g = z.convert(this), i = nbits(e)-1;
   g.copyTo(r);

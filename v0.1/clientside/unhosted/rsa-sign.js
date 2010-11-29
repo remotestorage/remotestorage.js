@@ -37,7 +37,7 @@ _RSASIGN_DIHEAD['sha256'] = "3031300d060960864801650304020105000420";
 //_RSASIGN_DIHEAD['sha512'] = "3051300d060960864801650304020305000440";
 var _RSASIGN_HASHHEXFUNC = [];
 _RSASIGN_HASHHEXFUNC['sha1'] = sha1.hex;
-//_RSASIGN_HASHHEXFUNC['sha256'] = sha256.hex;
+//not used - Michiel: _RSASIGN_HASHHEXFUNC['sha256'] = sha256.hex;
 
 // ========================================================================
 // Signature Generation
@@ -134,7 +134,6 @@ function _rsasign_verifyHexSignatureForMessage(hSig, sMsg) {
 function _rsasign_verifyString(sMsg, hSig) {
   hSig = hSig.replace(/[ \n]+/g, "");
   var biSig = parseBigInt(hSig, 16);
-	document.getElementById("status").innerHTML = "sigsi"; 
   var biDecryptedSig = this.doPublic(biSig);
   var hDigestInfo = biDecryptedSig.toString(16).replace(/^1f+00/, '');
   var digestInfoAry = _rsasign_getAlgNameAndHashFromHexDisgestInfo(hDigestInfo);
