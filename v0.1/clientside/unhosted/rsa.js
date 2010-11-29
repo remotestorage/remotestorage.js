@@ -145,24 +145,28 @@ function RSASetPrivateEx(N,E,D,P,Q,DP,DQ,C,radix) {
 
 // Generate a new random private key B bits long, using public expt E
 function RSAGenerate(B,E) {
-    var rng = new SecureRandom();
+//    var rng = new SecureRandom();
     var qs = B>>1;
     this.e = parseInt(E,16);
     var ee = new BigInteger(E,16);
-    for(;;) {
-        for(;;) {
-            this.p = new BigInteger(B-qs,1,rng);
-            if(this.p.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && this.p.isProbablePrime(10)) break;
-        }
-        for(;;) {
-            this.q = new BigInteger(qs,1,rng);
-            if(this.q.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && this.q.isProbablePrime(10)) break;
-        }
-        if(this.p.compareTo(this.q) <= 0) {
-            var t = this.p;
-            this.p = this.q;
-            this.q = t;
-        }
+//    for(;;) {
+//        for(;;) {
+//            this.p = new BigInteger(B-qs,1,rng);
+//            if(this.p.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && this.p.isProbablePrime(10)) break;
+//        }
+//        for(;;) {
+//            this.q = new BigInteger(qs,1,rng);
+//            if(this.q.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && this.q.isProbablePrime(10)) break;
+//        }
+//        if(this.p.compareTo(this.q) <= 0) {
+//            var t = this.p;
+//            this.p = this.q;
+//            this.q = t;
+//        }
+this.p = new BigInteger();
+this.q = new BigInteger();
+this.p.fromString("f4f21695f3fb8746d0ccfd34f840d0ab9729bf242cea067d227ea4e26c8d8081", 16);
+this.q.fromString("835f4c07fa0dd982f50fffe8d9f1a125c06536239d9467c9520e1df80a40a7d1", 16);
         var p1 = this.p.subtract(BigInteger.ONE);
         var q1 = this.q.subtract(BigInteger.ONE);
         var phi = p1.multiply(q1);
@@ -172,9 +176,11 @@ function RSAGenerate(B,E) {
             this.dmp1 = this.d.mod(p1);
             this.dmq1 = this.d.mod(q1);
             this.coeff = this.q.modInverse(this.p);
-            break;
+//            break;
         }
-    }
+//    }
+debug(this.p.toString(16));
+debug(this.q.toString(16));
 }
 
 // Perform raw private operation on "x": return x^d (mod n)

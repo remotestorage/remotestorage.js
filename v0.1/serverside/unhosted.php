@@ -1,6 +1,6 @@
 <?php
 define('CLOUD_NAME', 'demo.unhosted.org');
-define('PUB_DEMO_1', '5XFDY9ZgrVRCTTXcugUigoheDJU0iBrSa9iZafygS8vtA4H6eUMw70GItFDJ5mTHosD3MWBHg78R6iofKXi2vlLT2zlhcM-w1W2JMAo6P4mxg--1f8vmYpYaX64BDE9A03TXE-WAW1_HtYrZ_q2qhxWQAL8-PhNdwZLSEcowsz8');
+define('PUB_DEMO_1', '7db310249e140d90e09ab3108a13b4fabf89e9996ef98f43a147dbc312a66a9cf3863ee23d532960f56b693541b569c7a981cf2bb7d2f098617e1608189a1051');
 
 class openSslWrapper {
 	private function makeLengthStr($length) {
@@ -69,7 +69,7 @@ class UnhostedJsonParser {
 	}
 
 	function parseKey($key) {
-		$res = preg_match('/(?P<app>[\w.]+)\+(?P<pub>[\w_-]+)@(?P<cloud>[\w\.]+)\/(?P<path>\w+)/', $key, $matches);
+		$res = preg_match('/(?P<app>[\w.]+)\+(?P<pub>[\w-_]+)@(?P<cloud>[\w\.]+)\/(?P<path>\w+)/', $key, $matches);
 		if(!$res) { // zero (no match) or false (error)
 			throw new Exception("key '$key' not parsable in format app+pub@cloud/path");
 		}

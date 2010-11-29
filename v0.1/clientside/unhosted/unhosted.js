@@ -11,11 +11,28 @@ function Unhosted() {
 	function makeGetCommand(key) {
 		return JSON.stringify({'method':'GET', 'key':key});
 	}
-	function makePubSign(nick, cmd) {
+	function makeRsa(nick) {
 		var rsa = new RSAKey();
-		rsa.n = new BigInteger(keys[nick]["pubkey"]);
-		rsa.d = new BigInteger(keys[nick]["prikey"]);
-		
+    		var qs = 512>>1;
+		rsa.e = parseInt("10001", 16);
+		var ee = new BigInteger("10001", 16);
+		rsa.p = new BigInteger();
+		rsa.q = new BigInteger();
+		rsa.p.fromString(keys[nick]["p"], 16);
+		rsa.q.fromString(keys[nick]["q"], 16);
+	        var p1 = rsa.p.subtract(BigInteger.ONE);
+	        var q1 = rsa.q.subtract(BigInteger.ONE);
+	        var phi = p1.multiply(q1);
+		rsa.n = rsa.p.multiply(rsa.q);
+		rsa.d = ee.modInverse(phi);
+       		rsa.dmp1 = rsa.d.mod(p1);
+		rsa.dmq1 = rsa.d.mod(q1);
+		rsa.coeff = rsa.q.modInverse(rsa.p);
+		return rsa;
+	}
+
+	function makePubSign(nick, cmd) {
+		rsa = makeRsa(nick);
 		var sig = rsa.signString(cmd, "sha1");
 		return sig;
 	}
@@ -28,12 +45,17 @@ function Unhosted() {
 		return xmlhttp.responseText;
 	}
 	function checkPubSign(cmd, PubSign, nick) {
-		var rsa = new RSAKey();
-		rsa.n = new BigInteger(keys[nick]["pubkey"]);
-		rsa.e = new BigInteger("AQAB");
-		
+		var rsa = makeRsa(nick);
 		var sig = rsa.verifyString(cmd, PubSign);
 		return sig;
+	}
+	function myEncrypt(plaintext, nick) {
+		pwd = keys[nick]["seskey"];
+		return byteArrayToHex(rijndaelEncrypt(plaintext, hexToByteArray(pwd), 'ECB'));
+	}
+	function myDecrypt(ciphertext, nick) {
+		pwd = keys[nick]["seskey"];
+		return byteArrayToString(rijndaelDecrypt(hexToByteArray(ciphertext), hexToByteArray(pwd), 'ECB'));
 	}
 	//public:
 	obj.importPub = function(writeCaps, nick) {
@@ -42,15 +64,16 @@ function Unhosted() {
 	obj.get = function(nick, path) {
 		var cmd = makeGetCommand(makeKey(nick, path));
 		var ret = JSON.parse(sendPost("protocol=UJ/0.1&cmd="+cmd));
-		var cmdStr = JSON.stringify(ret.cmd);
-		if(checkPubSign(cmdStr, ret.PubSign, nick) == true) {
-			return ret.cmd.value;
+		var cmdStr = JSON.stringify(ret.cmd).replace("+", "%2B");
+		var sig = ret.PubSign;
+		if(checkPubSign(cmdStr, sig, nick) == true) {
+			return myDecrypt(ret.cmd.value, nick);
 		} else {
-			return "ERROR - PubSign "+ret.PubSign+" does not correctly sign "+cmdStr+" for key "+keys[nick]["pubkey"];
+			return "ERROR - PubSign "+sig+" does not correctly sign "+cmdStr+" for key "+keys[nick]["pubkey"];
 		}
 	}
 	obj.set = function set(nick, path, value) {
-		var cmd = makeSetCommand(makeKey(nick, path), value);
+		var cmd = makeSetCommand(makeKey(nick, path), myEncrypt(value, nick));
 		var PubSign = makePubSign(nick, cmd);
 		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign);
 	}
