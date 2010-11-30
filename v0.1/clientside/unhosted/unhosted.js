@@ -2,19 +2,12 @@ function Unhosted() {
 	var obj={};
 	//private:
 	var keys={};
-	function makeKey(nick, path) {
-		return keys[nick]["app"] + encodeURIComponent("+") + keys[nick]["pubkey"] + "@" + keys[nick]["cloud"] + "/" + path;
+	function makeSetCommand(nick, keyPath, value) {
+		return JSON.stringify({'method':'SET', 'chan':keys[nick]['chan'], 'keyPath':keyPath, 'value':value});
 	}
-	function makeSetCommand(key, value) {
-		return JSON.stringify({'method':'SET', 'key':key, 'value':value});
+	function makeGetCommand(nick, keyPath) {
+		return JSON.stringify({'method':'GET', 'chan':keys[nick]['chan'], 'keyPath':keyPath});
 	}
-	function makeGetCommand(key) {
-		return JSON.stringify({'method':'GET', 'key':key});
-	}
-	function makeCreateCommand(token, app, pub) {
-		return JSON.stringify({'method':'CREATE', 'token':token, 'app':app, 'pub':pub});
-	}
-
 
 	// Perform raw private operation on "x": return x^d (mod n)
 	function RSADoPrivate(x, p, q, n, d, dmp1, dmq1, coeff) {
@@ -113,8 +106,8 @@ function Unhosted() {
 	obj.importPub = function(writeCaps, nick) {
 		keys[nick]=writeCaps;
 	}
-	obj.get = function(nick, path) {
-		var cmd = makeGetCommand(makeKey(nick, path));
+	obj.get = function(nick, keyPath) {
+		var cmd = makeGetCommand(nick, keyPath);
 		var ret = JSON.parse(sendPost("protocol=UJ/0.1&cmd="+cmd));
 		var cmdStr = JSON.stringify(ret.cmd).replace("+", "%2B");
 		var sig = ret.PubSign;
@@ -124,10 +117,10 @@ function Unhosted() {
 			return "ERROR - PubSign "+sig+" does not correctly sign "+cmdStr+" for key "+keys[nick]["pubkey"];
 		}
 	}
-	obj.set = function set(nick, path, value) {
-		var cmd = makeSetCommand(makeKey(nick, path), byteArrayToHex(rijndaelEncrypt(value, hexToByteArray(keys[nick]["seskey"]), 'ECB')));
+	obj.set = function set(nick, keyPath, value) {
+		var cmd = makeSetCommand(nick, keyPath, byteArrayToHex(rijndaelEncrypt(value, hexToByteArray(keys[nick]["seskey"]), 'ECB')));
 		var PubSign = makePubSign(nick, cmd);
-		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign);
+		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign+'&pwdChW='+keys[nick]['pwdChW']);
 	}
 	//
 	return obj;

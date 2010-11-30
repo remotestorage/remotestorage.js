@@ -12,8 +12,10 @@ INSTRUCTIONS:
 	http://demo.unhosted.org/git/unhosted/v0.1/serverside/unhosted.php
  also displays:
 	ERROR please add a "protocol" key to your POST
--create a directory /tmp/unhosted and make it writable for the www-user.
+-make sure /tmp is writable for the www-user.
 -browse to:
+	http://helloblog.com/git/unhosted/v0.1/clientside/genkey.html
+ and generate a key. Make sure you check that the server doesn't return any errors.
 	http://helloblog.com/git/unhosted/v0.1/clientside/editor.html (TODO: really generate the PubSign inside JS)
  and check that a file containing the text 'DEADBEEF' is created inside /tmp/unhosted
 -now have your firebug open, and browse to:
@@ -23,3 +25,10 @@ INSTRUCTIONS:
 	protocol	UJ/0.1
  to http://demo.unhosted.org/git/unhosted/v0.1/serverside/unhosted.php
  and assign the test string 'DEADBEEF' to the <div> tag in bootloader.html (TODO: make this the actual base64-ed encrypted version of some real text, and decode it in JS).
+
+
+TODO:
+- make read- and write-caps be 1 string each, not in textareas
+- prune JS
+- export to file
+- think about how this would be perceived

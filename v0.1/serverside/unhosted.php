@@ -1,105 +1,20 @@
 <?php
-define('CLOUD_NAME', 'demo.unhosted.org');
-
-//$tokens = array('7db31' => FALSE,
-//		'0249e' => FALSE,
-//		'140d9' => FALSE,
-//		'0e09a' => FALSE,
-//		'b3108' => FALSE,
-//		'a13b4' => FALSE,
-//		'fabf8' => FALSE,
-//		'32960' => FALSE,
-//		'f56b6' => FALSE,
-//		'93541' => FALSE,
-//		'b569c' => FALSE,
-//		'7a981' => FALSE,
-//		'cf2bb' => FALSE,
-//		'7d2f0' => FALSE,
-//		'98617' => FALSE,
-//		'e1608' => FALSE,
-//		'189a1' => FALSE,
-//		);
-//file_put_contents('/tmp/unhosted_tokens.txt', serialize($tokens));
-//$chans = array('helloblog.com+7db310249e140d90e09ab3108a13b4fabf89e9996ef98f43a147dbc312a66a9cf3863ee23d532960f56b693541b569c7a981cf2bb7d2f098617e1608189a1051' => TRUE);
-//file_put_contents('/tmp/unhosted_chans.txt', serialize($chans));
-
-class openSslWrapper {
-	private function makeLengthStr($length) {
-		if($length < 128) {
-			return chr($length);
-		} else if($length < 256) {
-			return chr(129).chr($length);
-		} else {
-			die('TODO: implement lengths >256');
-		}
-	}
-	private function makeDER($type, $rawSeq) {
-		return chr($type).$this->makeLengthStr(strlen($rawSeq)).$rawSeq;
-	}
-	private function makeASN1($ASNn, $ASNe) {
-		return 	$this->makeDER(48, 
-				$this->makeDER(48, 
-					$this->makeDER(6, 
-						chr(42).chr(134).chr(72).chr(134).chr(247).chr(13).chr(1).chr(1).chr(1)
-					)
-					.$this->makeDER(5, 
-						''
-					)
-				)
-				.$this->makeDER(3, 
-					chr(0)
-					.$this->makeDER(48, 
-						$this->makeDER(2, 
-							chr(0)
-							.base64_decode($ASNn)
-						)
-						.$this->makeDER(2, 
-							base64_decode($ASNe)
-						)
-					)
-				)
-			);
-	}
-	private function makePCKS_1($ASNn, $ASNe) {
-		$pubR = base64_encode($this->makeASN1($ASNn, $ASNe));
-		return "-----BEGIN PUBLIC KEY-----\n".chunk_split($pubR, 64, "\n")."-----END PUBLIC KEY-----\n";
-	}
-	private function deUrlify($str) {
-		$ret = str_replace(array('_','-'), array('/','+'), $str);
-		while(strlen($ret) % 4 != 0) {
-			$ret .= '=';
-		}
-		return $ret;
-	}
-	public function checkPubSign($pub, $cmd, $PubSign) {
-		$ASNn = $this->deUrlify($pub);
-		$signature = base64_decode($this->deUrlify($PubSign));
-		$ASNe = 'AQAB';
-		$pcks_1 = $this->makePCKS_1($ASNn, $ASNe);
-		$ok = openssl_verify($cmd, $signature, $pcks_1);
-		//echo "\n\nchecking:\n$cmd\n$PubSign\n$pub\n";
-		return ($ok == 1);//bool success
-	}
-}
 class UnhostedJsonParser {
-	function isPubAllowed($app, $pub) {
-		$chans = unserialize(file_get_contents('/tmp/unhosted_chans.txt'));
-//		var_dump($chans[$app.'+'.$pub]));
-		return (isset($chans[$app.'+'.$pub]));
+	function checkWriteCaps($chan, $pwd) {
+		//hard coded read => write caps, for demo:
+		$chans = array(//chan => pwdChW:
+			'7db31' => '0249e',
+			'140d9' => '0e09a',
+			'b3108' => 'a13b4',
+			'fabf8' => '32960',
+			'f56b6' => '93541',
+			'b569c' => '7a981',
+			'cf2bb' => '7d2f0',
+			'98617' => 'e1608',
+			);
+		return ($chans[$chan]==$pwd);
 	}
 
-	function parseKey($key) {
-		$res = preg_match('/(?P<app>[\w.]+)\+(?P<pub>[\w-_]+)@(?P<cloud>[\w\.]+)\/(?P<path>\w+)/', $key, $matches);
-		if(!$res) { // zero (no match) or false (error)
-			throw new Exception("key '$key' not parsable in format app+pub@cloud/path");
-		}
-		return array(
-			$matches['app'],
-			$matches['pub'],
-			$matches['cloud'],
-			$matches['path'],
-			);
-	}
 	function parseInput($backend) {
 		if(!isset($_POST['protocol'])) {
 			throw new Exception('please add a "protocol" key to your POST');
@@ -120,72 +35,38 @@ class UnhostedJsonParser {
 		}
 		switch($cmd['method']) {
 		case 'SET':
-			if(!isset($_POST['PubSign'])) {
-				throw new Exception('The SET command requires a PubSign');
+			if(!isset($cmd['chan'])) {
+				throw new Exception('Please specify which channel you want to publish on');
 			}
-			if(!isset($cmd['key'])) {
-				throw new Exception('Please specify which key you\'re setting');
+			if(!isset($_POST['pwdChW'])) {
+				throw new Exception('The SET command requires a channel write password');
 			}
-			list($app, $pub, $cloud, $path) = $this->parseKey($cmd['key']);
+			if(!$this->checkWriteCaps($cmd['chan'], $_POST['pwdChW'])) {
+				throw new Exception('Channel password is incorrect.');
+			}
+			if(!isset($cmd['keyPath'])) {
+				throw new Exception('Please specify which key path you\'re setting');
+			}
 			if(!isset($cmd['value'])) {
 				throw new Exception('Please specify a value for the key you\'re setting');
 			}
+			if(!isset($_POST['PubSign'])) {
+				throw new Exception('Please provide a PubSign so that your subscriber can check that this set command really comes from you');
+			}
 			$refererParsed = parse_url($_SERVER['HTTP_REFERER']);
-			$refererDomain = $refererParsed['host'];
-			if($app != $refererDomain) {
-				throw new Exception("You seem to be trying to set a key for a different app ($app) than what your document.domain is set to ($refererDomain)");
-			}
-			if($cloud != CLOUD_NAME) {
-				throw new Exception("You seem to be trying to set a key for a different cloud ($cloud) than this one (".CLOUD_NAME."). Relaying denied.");
-			}
-			if(!$this->isPubAllowed($app, $pub)) {
-				throw new Exception('Please add your pub to the PubCrawl before publishing to it.');
-			}
+			$app = $refererParsed['host'];
 
-			//MOVING PubSign CHECKING TO THE BROWSER. IN THE END WE WILL ALSO NEED IT HERE, THOUGH, TO PREVENT ROLLBACK ATTACKS BY THIRD PARTIES:
-			//$openSslWrapper = new OpenSslWrapper();
-			//if(!$openSslWrapper->checkPubSign($pub, $_POST['cmd'], $_POST['PubSign'])) {
-			//	throw new Exception('Your PubSign does not correctly sign this command with this pub.');
-			//}
-
-			return $backend->doSET($app, $pub, $path, $cmd, $_POST['PubSign']);
+			return $backend->doSET($cmd['chan'], $app, $cmd['keyPath'], $cmd, $_POST['PubSign']);
 		case 'GET':
-			if(!isset($cmd['key'])) {
-				throw new Exception('Please specify which key you\'re getting');
+			if(!isset($cmd['chan'])) {
+				throw new Exception('Please specify which channel you want to get a (key, value)-pair from');
 			}
-			list($app, $pub, $cloud, $path) = $this->parseKey($cmd['key']);
+			if(!isset($cmd['keyPath'])) {
+				throw new Exception('Please specify which key path you\'re getting');
+			}
 			$refererParsed = parse_url($_SERVER['HTTP_REFERER']);
-			$refererDomain = $refererParsed['host'];
-			if($app != $refererDomain) {
-				throw new Exception("You seem to be trying to set a key for a different app ($app) than what your document.domain is set to ($refererDomain)");
-			}
-			if($cloud != CLOUD_NAME) {
-				throw new Exception("You seem to be trying to set a key for a different cloud ($cloud) than this one (".CLOUD_NAME."). Relaying denied.");
-			}
-			return $backend->doGET($app, $pub, $path);
-		case 'CREATE':
-			if(!isset($cmd['token'])) {
-				throw new Exception('Please provide a token for creating a new pub');
-			}
-			if(!isset($cmd['app'])) {
-				throw new Exception('Please specify the app you want to create a new pub for');
-			}
-			if(!isset($cmd['pub'])) {
-				throw new Exception('Please specify the pub you want to create for app '.$cmd['app']);
-			}
-			$tokens = unserialize(file_get_contents('/tmp/unhosted_tokens.txt'));
-			if(!isset($tokens[$cmd['token']])) {
-				throw new Exception('Token '.$cmd['token'].' is not a valid channel creation token.');
-			}
-			if($tokens[$cmd['token']] != FALSE) {
-				throw new Exception('Token '.$cmd['token'].' is already in use.');
-			}
-			$chans = unserialize(file_get_contents('/tmp/unhosted_chans.txt'));
-			$tokens[$cmd['token']] = $cmd['app'].'+'.$cmd['pub'];
-			$chans[$cmd['app'].'+'.$cmd['pub']] = TRUE;
-			file_put_contents('/tmp/unhosted_chans.txt', serialize($chans));
-			file_put_contents('/tmp/unhosted_tokens.txt', serialize($tokens));
-			break;
+			$app = $refererParsed['host'];
+			return $backend->doGET($cmd['chan'], $app, $cmd['keyPath']);
 		default:
 			throw new Exception('undefined method');
 		}
@@ -193,11 +74,11 @@ class UnhostedJsonParser {
 }
 
 class StorageBackend {
-	function makeFileName($app, $pub, $path) {
-		return "/tmp/unhosted_$app.$pub.$path";
+	function makeFileName($chan, $app, $keyPath) {
+		return "/tmp/unhosted_{$chan}_{$app}_{$keyPath}_";
 	}
-	function doSET($app, $pub, $path, $cmd, $PubSign) {
-		$fileName = $this->makeFileName($app, $pub, $path);
+	function doSET($chan, $app, $keyPath, $cmd, $PubSign) {
+		$fileName = $this->makeFileName($chan, $app, $keyPath);
 		$save=json_encode(array(
 			'cmd'=>$cmd,
 			'PubSign'=>$PubSign
@@ -207,8 +88,8 @@ class StorageBackend {
 			throw new Exception("Server error - could not write '$fileName'");
 		}
 	}
-	function doGET($app, $pub, $path) {
-		$fileName = $this->makeFileName($app, $pub, $path);
+	function doGET($chan, $app, $keyPath) {
+		$fileName = $this->makeFileName($chan, $app, $keyPath);
 		if(is_readable($fileName)) {
 			return file_get_contents($fileName);
 		} else {
