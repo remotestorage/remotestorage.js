@@ -33,22 +33,28 @@ function Unhosted() {
 
 	function makeRsaFromSubNick(nick) {
 		var rsa = new RSAKey();
-    		var qs = 512>>1;
 		rsa.e = parseInt("10001", 16);
-		var ee = new BigInteger("10001", 16);
 		rsa.p = new BigInteger();
 		rsa.q = new BigInteger();
 		rsa.p.fromString(keys[nick]["p"], 16);
 		rsa.q.fromString(keys[nick]["q"], 16);
-	        var p1 = rsa.p.subtract(BigInteger.ONE);
-	        var q1 = rsa.q.subtract(BigInteger.ONE);
-	        var phi = p1.multiply(q1);
 		rsa.n = rsa.p.multiply(rsa.q);
-		rsa.d = ee.modInverse(phi);
-       		rsa.dmp1 = rsa.d.mod(p1);
-		rsa.dmq1 = rsa.d.mod(q1);
-		rsa.coeff = rsa.q.modInverse(rsa.p);
 		return rsa;
+	}
+
+
+	// Perform raw private operation on "x": return x^d (mod n)
+	function RSADoPrivate(x, p, q, n, d, dmp1, dmq1, coeff) {
+		if(p == null || q == null)
+			return x.modPow(d, n);
+
+		// TODO: re-calculate any missing CRT params
+		var xp = x.mod(p).modPow(dmp1, p);
+		var xq = x.mod(q).modPow(dmq1, q);
+
+		while(xp.compareTo(xq) < 0)
+			xp = xp.add(p);
+		return xp.subtract(xq).multiply(coeff).mod(p).multiply(q).add(xq);
 	}
 
 	function makePubSign(nick, cmd) {
@@ -62,7 +68,7 @@ function Unhosted() {
 		}
 		hPM = "0001" + sMid + "00" + sHashHex;
 		var biPaddedMessage = parseBigInt(hPM, 16);
-		var biSign = rsa.doPrivate(biPaddedMessage);
+		var biSign = RSADoPrivate(biPaddedMessage, rsa.p, rsa.q, rsa.n, rsa.d, rsa.dmp1, rsa.dmq1, rsa.coeff);
 		var hexSign = biSign.toString(16);
 		return hexSign;
 	}
