@@ -1,6 +1,35 @@
 <?php
 define('CLOUD_NAME', 'demo.unhosted.org');
-define('PUB_DEMO_1', '7db310249e140d90e09ab3108a13b4fabf89e9996ef98f43a147dbc312a66a9cf3863ee23d532960f56b693541b569c7a981cf2bb7d2f098617e1608189a1051');
+
+$tokens = array('7db31',
+		'0249e',
+		'140d9',
+		'0e09a',
+		'b3108',
+		'a13b4',
+		'fabf8',
+		'9e999',
+		'6ef98',
+		'f43a1',
+		'47dbc',
+		'312a6',
+		'6a9cf',
+		'3863e',
+		'e23d5',
+		'32960',
+		'f56b6',
+		'93541',
+		'b569c',
+		'7a981',
+		'cf2bb',
+		'7d2f0',
+		'98617',
+		'e1608',
+		'189a1',
+		);
+file_put_contents('/tmp/unhosted_tokens.txt', serialize($tokens));
+//$chans = array('helloblog.com+7db310249e140d90e09ab3108a13b4fabf89e9996ef98f43a147dbc312a66a9cf3863ee23d532960f56b693541b569c7a981cf2bb7d2f098617e1608189a1051' => TRUE);
+//file_put_contents('/tmp/unhosted_chans.txt', serialize($chans));
 
 class openSslWrapper {
 	private function makeLengthStr($length) {
@@ -61,11 +90,10 @@ class openSslWrapper {
 	}
 }
 class UnhostedJsonParser {
-	function isPubAllowed($pub) {
-		$pubCrawl = array(
-			PUB_DEMO_1,
-			);
-		return (in_array($pub, $pubCrawl));
+	function isPubAllowed($app, $pub) {
+		$chans = unserialize(file_get_contents('/tmp/unhosted_chans.txt'));
+//		var_dump($chans[$app.'+'.$pub]));
+		return (isset($chans[$app.'+'.$pub]));
 	}
 
 	function parseKey($key) {
@@ -118,7 +146,7 @@ class UnhostedJsonParser {
 			if($cloud != CLOUD_NAME) {
 				throw new Exception("You seem to be trying to set a key for a different cloud ($cloud) than this one (".CLOUD_NAME."). Relaying denied.");
 			}
-			if(!$this->isPubAllowed($pub)) {
+			if(!$this->isPubAllowed($app, $pub)) {
 				throw new Exception('Please add your pub to the PubCrawl before publishing to it.');
 			}
 
@@ -143,6 +171,28 @@ class UnhostedJsonParser {
 				throw new Exception("You seem to be trying to set a key for a different cloud ($cloud) than this one (".CLOUD_NAME."). Relaying denied.");
 			}
 			return $backend->doGET($app, $pub, $path);
+		case 'CREATE':
+			if(!isset($cmd['token'])) {
+				throw new Exception('Please provide a token for creating a new pub');
+			}
+			if(!isset($cmd['app'])) {
+				throw new Exception('Please specify the app you want to create a new pub for');
+			}
+			if(!isset($cmd['pub'])) {
+				throw new Exception('Please specify the pub you want to create for app '.$cmd['app']);
+			}
+			if(!isset($tokens[$cmd['token']])) {
+				throw new Exception('Token '.$cmd['token'].' is not a valid channel creation token.');
+			}
+			if($tokens[$cmd['token']] != FALSE) {
+				throw new Exception('Token '.$cmd['token'].' is already in use.');
+			}
+			$chans = unserialize(file_get_contents('/tmp/unhosted_chans.txt'));
+			$tokens = unserialize(file_get_contents('/tmp/unhosted_tokens.txt'));
+			$tokens[$cmd['token']] = $cmd['app'].'+'.$cmd['pub'];
+			$chans[$cmd['app'].'+'.$cmd['pub']] = TRUE;
+			file_put_contents('/tmp/unhosted_chans.txt', serialize($chans));
+			file_put_contents('/tmp/unhosted_tokens.txt', serialize($tokens));
 		default:
 			throw new Exception('undefined method');
 		}
