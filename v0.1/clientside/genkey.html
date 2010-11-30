@@ -10,10 +10,10 @@ function setApp() {
 	document.getElementById("app").value = document.domain;
 }
 function createPub() {
-	document.getElementById("p").value = "Generating...";
-	document.getElementById("q").value = "Generating...";
-	document.getElementById("pubkey").value = "Generating...";
-	document.getElementById("seskey").value = "Generating...";
+	document.getElementById("p").value = "Generating, if this takes long, try doing it in Chrome...";
+	document.getElementById("q").value = "Generating, if this takes long, try doing it in Chrome...";
+	document.getElementById("pubkey").value = "Generating, if this takes long, try doing it in Chrome...";
+	document.getElementById("seskey").value = "Generating, if this takes long, try doing it in Chrome...";
 
 	var unhosted = Unhosted();
 	var generatedPub = unhosted.createPub("generatedPub", 
