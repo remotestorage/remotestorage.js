@@ -11,25 +11,6 @@ function Unhosted() {
 	function makeGetCommand(key) {
 		return JSON.stringify({'method':'GET', 'key':key});
 	}
-	function makeRsaFromPubNick(nick) {
-		var rsa = new RSAKey();
-    		var qs = 512>>1;
-		rsa.e = parseInt("10001", 16);
-		var ee = new BigInteger("10001", 16);
-		rsa.p = new BigInteger();
-		rsa.q = new BigInteger();
-		rsa.p.fromString(keys[nick]["p"], 16);
-		rsa.q.fromString(keys[nick]["q"], 16);
-	        var p1 = rsa.p.subtract(BigInteger.ONE);
-	        var q1 = rsa.q.subtract(BigInteger.ONE);
-	        var phi = p1.multiply(q1);
-		rsa.n = rsa.p.multiply(rsa.q);
-		rsa.d = ee.modInverse(phi);
-       		rsa.dmp1 = rsa.d.mod(p1);
-		rsa.dmq1 = rsa.d.mod(q1);
-		rsa.coeff = rsa.q.modInverse(rsa.p);
-		return rsa;
-	}
 
 
 	// Perform raw private operation on "x": return x^d (mod n)
@@ -47,17 +28,30 @@ function Unhosted() {
 	}
 
 	function makePubSign(nick, cmd) {
-		var rsa = makeRsaFromPubNick(nick);
+    		var qs = 512>>1;
+		var e = parseInt("10001", 16);
+		var ee = new BigInteger("10001", 16);
+		var p = new BigInteger();	p.fromString(keys[nick]["p"], 16);
+		var q = new BigInteger();	q.fromString(keys[nick]["q"], 16);
+	        var p1 = p.subtract(BigInteger.ONE);
+	        var q1 = q.subtract(BigInteger.ONE);
+	        var phi = p1.multiply(q1);
+		var n = p.multiply(q);
+		var d = ee.modInverse(phi);
+       		var dmp1 = d.mod(p1);
+		var dmq1 = d.mod(q1);
+		var coeff = q.modInverse(p);i
+
 		var sHashHex = sha1.hex(cmd);
 
 		var sMid = "";
-		var fLen = (rsa.n.bitLength() / 4) - sHashHex.length - 6;
+		var fLen = (n.bitLength() / 4) - sHashHex.length - 6;
 		for (var i = 0; i < fLen; i += 2) {
 			sMid += "ff";
 		}
 		hPM = "0001" + sMid + "00" + sHashHex;
-		var biPaddedMessage = parseBigInt(hPM, 16);
-		var biSign = RSADoPrivate(biPaddedMessage, rsa.p, rsa.q, rsa.n, rsa.d, rsa.dmp1, rsa.dmq1, rsa.coeff);
+		var biPaddedMessage = new BigInteger(hPM, 16);
+		var biSign = RSADoPrivate(biPaddedMessage, p, q, n, d, dmp1, dmq1, coeff);
 		var hexSign = biSign.toString(16);
 		return hexSign;
 	}
@@ -72,7 +66,8 @@ function Unhosted() {
 	function checkPubSign(cmd, PubSign, nick) {
 		p = new BigInteger();	p.fromString(keys[nick]["p"], 16);
 		q = new BigInteger();	q.fromString(keys[nick]["q"], 16);
-		return (parseBigInt(PubSign.replace(/[ \n]+/g, ""), 16).modPowInt(parseInt("10001", 16), p.multiply(q)).toString(16).replace(/^1f+00/, '') == sha1.hex(cmd));
+		x = new BigInteger(PubSign.replace(/[ \n]+/g, ""), 16);
+		return (x.modPowInt(parseInt("10001", 16), p.multiply(q)).toString(16).replace(/^1f+00/, '') == sha1.hex(cmd));
 	}
 	//public:
 	obj.importPub = function(writeCaps, nick) {
