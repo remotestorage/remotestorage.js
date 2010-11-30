@@ -64,10 +64,9 @@ function Unhosted() {
 		return xmlhttp.responseText;
 	}
 	function checkPubSign(cmd, PubSign, nick) {
-		p = new BigInteger();	p.fromString(keys[nick]["p"], 16);
-		q = new BigInteger();	q.fromString(keys[nick]["q"], 16);
+		n = new BigInteger();	n.fromString(keys[nick]["pubkey"], 16);
 		x = new BigInteger(PubSign.replace(/[ \n]+/g, ""), 16);
-		return (x.modPowInt(parseInt("10001", 16), p.multiply(q)).toString(16).replace(/^1f+00/, '') == sha1.hex(cmd));
+		return (x.modPowInt(parseInt("10001", 16), n).toString(16).replace(/^1f+00/, '') == sha1.hex(cmd));
 	}
 	//public:
 	obj.importPub = function(writeCaps, nick) {
