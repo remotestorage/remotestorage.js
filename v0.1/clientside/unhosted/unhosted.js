@@ -75,7 +75,8 @@ function Unhosted() {
 		return xmlhttp.responseText;
 	}
 	function checkPubSign(cmd, PubSign, nick) {
-		return (makeRsaFromSubNick(nick).doPublic(parseBigInt(PubSign.replace(/[ \n]+/g, ""), 16)).toString(16).replace(/^1f+00/, '') == sha1.hex(cmd));
+		var rsa = makeRsaFromSubNick(nick);
+		return (parseBigInt(PubSign.replace(/[ \n]+/g, ""), 16).modPowInt(rsa.e, rsa.n).toString(16).replace(/^1f+00/, '') == sha1.hex(cmd));
 	}
 	//public:
 	obj.importPub = function(writeCaps, nick) {
