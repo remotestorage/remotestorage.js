@@ -11,6 +11,9 @@ function Unhosted() {
 	function makeGetCommand(key) {
 		return JSON.stringify({'method':'GET', 'key':key});
 	}
+	function makeCreateCommand(token, app, pub) {
+		return JSON.stringify({'method':'CREATE', 'token':token, 'app':app, 'pub':pub});
+	}
 
 
 	// Perform raw private operation on "x": return x^d (mod n)
@@ -69,6 +72,18 @@ function Unhosted() {
 		return (x.modPowInt(parseInt("10001", 16), n).toString(16).replace(/^1f+00/, '') == sha1.hex(cmd));
 	}
 	//public:
+	obj.createPub = function(nick, app, cloud, token) {
+		key = {};
+		key.p="f4f21695f3fb8746d0ccfd34f840d0ab9729bf242cea067d227ea4e26c8d8081";
+		key.q="835f4c07fa0dd982f50fffe8d9f1a125c06536239d9467c9520e1df80a40a7d1";
+		key.pubkey="7db310249e140d90e09ab3108a13b4fabf89e9996ef98f43a147dbc312a66a9cf3863ee23d532960f56b693541b569c7a981cf2bb7d2f098617e1608189a1051";
+		key.seskey="27069632223826919491639745776265";
+		keys[nick]=key;
+		var cmd = makeCreateCommand(token, app, key.pubkey);
+		var PubSign = makePubSign(nick, cmd);
+		sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign);
+		return key;
+	}
 	obj.importPub = function(writeCaps, nick) {
 		keys[nick]=writeCaps;
 	}

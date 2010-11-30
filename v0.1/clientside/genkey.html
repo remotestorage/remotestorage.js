@@ -1,0 +1,43 @@
+<html>
+<script language="JavaScript" type="text/javascript" src="unhosted/rijndael.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted/sha1.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted/jsbn.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted/prng4.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted/rng.js"></script>
+<script language="JavaScript" type="text/javascript" src="unhosted/unhosted.js"></script>
+<script>
+function setApp() {
+	document.getElementById("app").value = document.domain;
+}
+function createPub() {
+	document.getElementById("p").value = "Generating...";
+	document.getElementById("q").value = "Generating...";
+	document.getElementById("pubkey").value = "Generating...";
+	document.getElementById("seskey").value = "Generating...";
+
+	var unhosted = Unhosted();
+	var generatedPub = unhosted.createPub("generatedPub", 
+						document.getElementById("app").value, 
+						document.getElementById("cloud").value, 
+						document.getElementById("token").value);
+
+	document.getElementById("p").value = generatedPub["p"];
+	document.getElementById("q").value = generatedPub["q"];
+	document.getElementById("pubkey").value = generatedPub["pubkey"];
+	document.getElementById("seskey").value = generatedPub["seskey"];
+}
+</script>
+<body onload="setApp();">
+app: <textarea id="app" rows="1" cols="80"></textarea><br>
+cloud: <textarea id="cloud" rows="1" cols="80">demo.unhosted.org</textarea><br>
+token: <textarea id="token" rows="1" cols="80">0249e</textarea><br>
+<input type="submit" name="Create pub" onclick="createPub();"/>
+<br><br><br>
+
+
+p: <textarea id="p" rows="1" cols="80">p will show up here...</textarea><br>
+q: <textarea id="q" rows="1" cols="80">q will show up here...</textarea><br>
+n: <textarea id="pubkey" rows="1" cols="80">n will show up here...</textarea><br>
+s: <textarea id="seskey" rows="1" cols="80">s will show up here...</textarea><br>
+</body>
+</html>

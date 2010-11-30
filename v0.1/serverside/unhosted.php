@@ -1,33 +1,25 @@
 <?php
 define('CLOUD_NAME', 'demo.unhosted.org');
 
-$tokens = array('7db31',
-		'0249e',
-		'140d9',
-		'0e09a',
-		'b3108',
-		'a13b4',
-		'fabf8',
-		'9e999',
-		'6ef98',
-		'f43a1',
-		'47dbc',
-		'312a6',
-		'6a9cf',
-		'3863e',
-		'e23d5',
-		'32960',
-		'f56b6',
-		'93541',
-		'b569c',
-		'7a981',
-		'cf2bb',
-		'7d2f0',
-		'98617',
-		'e1608',
-		'189a1',
-		);
-file_put_contents('/tmp/unhosted_tokens.txt', serialize($tokens));
+//$tokens = array('7db31' => FALSE,
+//		'0249e' => FALSE,
+//		'140d9' => FALSE,
+//		'0e09a' => FALSE,
+//		'b3108' => FALSE,
+//		'a13b4' => FALSE,
+//		'fabf8' => FALSE,
+//		'32960' => FALSE,
+//		'f56b6' => FALSE,
+//		'93541' => FALSE,
+//		'b569c' => FALSE,
+//		'7a981' => FALSE,
+//		'cf2bb' => FALSE,
+//		'7d2f0' => FALSE,
+//		'98617' => FALSE,
+//		'e1608' => FALSE,
+//		'189a1' => FALSE,
+//		);
+//file_put_contents('/tmp/unhosted_tokens.txt', serialize($tokens));
 //$chans = array('helloblog.com+7db310249e140d90e09ab3108a13b4fabf89e9996ef98f43a147dbc312a66a9cf3863ee23d532960f56b693541b569c7a981cf2bb7d2f098617e1608189a1051' => TRUE);
 //file_put_contents('/tmp/unhosted_chans.txt', serialize($chans));
 
@@ -181,6 +173,7 @@ class UnhostedJsonParser {
 			if(!isset($cmd['pub'])) {
 				throw new Exception('Please specify the pub you want to create for app '.$cmd['app']);
 			}
+			$tokens = unserialize(file_get_contents('/tmp/unhosted_tokens.txt'));
 			if(!isset($tokens[$cmd['token']])) {
 				throw new Exception('Token '.$cmd['token'].' is not a valid channel creation token.');
 			}
@@ -188,11 +181,11 @@ class UnhostedJsonParser {
 				throw new Exception('Token '.$cmd['token'].' is already in use.');
 			}
 			$chans = unserialize(file_get_contents('/tmp/unhosted_chans.txt'));
-			$tokens = unserialize(file_get_contents('/tmp/unhosted_tokens.txt'));
 			$tokens[$cmd['token']] = $cmd['app'].'+'.$cmd['pub'];
 			$chans[$cmd['app'].'+'.$cmd['pub']] = TRUE;
 			file_put_contents('/tmp/unhosted_chans.txt', serialize($chans));
 			file_put_contents('/tmp/unhosted_tokens.txt', serialize($tokens));
+			break;
 		default:
 			throw new Exception('undefined method');
 		}
