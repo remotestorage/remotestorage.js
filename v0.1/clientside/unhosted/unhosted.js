@@ -31,17 +31,6 @@ function Unhosted() {
 		return rsa;
 	}
 
-	function makeRsaFromSubNick(nick) {
-		var rsa = new RSAKey();
-		rsa.e = parseInt("10001", 16);
-		rsa.p = new BigInteger();
-		rsa.q = new BigInteger();
-		rsa.p.fromString(keys[nick]["p"], 16);
-		rsa.q.fromString(keys[nick]["q"], 16);
-		rsa.n = rsa.p.multiply(rsa.q);
-		return rsa;
-	}
-
 
 	// Perform raw private operation on "x": return x^d (mod n)
 	function RSADoPrivate(x, p, q, n, d, dmp1, dmq1, coeff) {
@@ -81,8 +70,9 @@ function Unhosted() {
 		return xmlhttp.responseText;
 	}
 	function checkPubSign(cmd, PubSign, nick) {
-		var rsa = makeRsaFromSubNick(nick);
-		return (parseBigInt(PubSign.replace(/[ \n]+/g, ""), 16).modPowInt(rsa.e, rsa.n).toString(16).replace(/^1f+00/, '') == sha1.hex(cmd));
+		p = new BigInteger();	p.fromString(keys[nick]["p"], 16);
+		q = new BigInteger();	q.fromString(keys[nick]["q"], 16);
+		return (parseBigInt(PubSign.replace(/[ \n]+/g, ""), 16).modPowInt(parseInt("10001", 16), p.multiply(q)).toString(16).replace(/^1f+00/, '') == sha1.hex(cmd));
 	}
 	//public:
 	obj.importPub = function(writeCaps, nick) {
