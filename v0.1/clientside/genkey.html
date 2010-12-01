@@ -6,38 +6,51 @@
 <script language="JavaScript" type="text/javascript" src="unhosted/rng.js"></script>
 <script language="JavaScript" type="text/javascript" src="unhosted/unhosted.js"></script>
 <script>
-function setApp() {
-	document.getElementById("app").value = document.domain;
-}
 function createPub() {
-	document.getElementById("p").value = "Generating, if this takes long, try doing it in Chrome...";
-	document.getElementById("q").value = "Generating, if this takes long, try doing it in Chrome...";
-	document.getElementById("pubkey").value = "Generating, if this takes long, try doing it in Chrome...";
-	document.getElementById("seskey").value = "Generating, if this takes long, try doing it in Chrome...";
+	document.getElementById("r").value = "Generating, if this takes long, try doing it in Chrome...";
+	document.getElementById("w").value = "Generating, if this takes long, try doing it in Chrome...";
 
 	var unhosted = Unhosted();
 	var generatedPub = unhosted.createPub("generatedPub", 
-						document.getElementById("app").value, 
 						document.getElementById("cloud").value, 
 						document.getElementById("token").value);
-
-	document.getElementById("p").value = generatedPub["p"];
-	document.getElementById("q").value = generatedPub["q"];
-	document.getElementById("pubkey").value = generatedPub["pubkey"];
-	document.getElementById("seskey").value = generatedPub["seskey"];
+	
+	var token = document.getElementById("token").value;
+	var token = JSON.parse(document.getElementById("token").value);
+	document.getElementById("r").value = 'var SubscriptionPassword ='
+			+' {\n\t"cloud":"'+document.getElementById("cloud").value
+			+'",\n\t"r":"'+token["r"]
+			+'",\n\t"w":"'+token["w"]
+			+'",\n\t"pubkey":"'+generatedPub["pubkey"]
+			+'",\n\t"seskey":"'+generatedPub["seskey"]
+			+'"};\n';
+	document.getElementById("w").value = 'var PublishingPassword ='
+			+' {\n\t"cloud":"'+document.getElementById("cloud").value
+			+'",\n\t"r":"'+token["r"]
+			+'",\n\t"w":"'+token["w"]
+			+'",\n\t"pubkey":"'+generatedPub["pubkey"]
+			+'",\n\t"seskey":"'+generatedPub["seskey"]
+			+'",\n\t"p":"'+generatedPub["p"]
+			+'",\n\t"q":"'+generatedPub["q"]
+			+'"};\n';
 }
 </script>
-<body onload="setApp();">
-app: <textarea id="app" rows="1" cols="80"></textarea><br>
-cloud: <textarea id="cloud" rows="1" cols="80">demo.unhosted.org</textarea><br>
-token: <textarea id="token" rows="1" cols="80">0249e</textarea><br>
-<input type="submit" name="Create pub" onclick="createPub();"/>
+<body>
+<div>
+This page will help you set up a simple unhosted blog post. What you need is a token from an unhosted cloud. The easiest way to do this is to host your own unhosted cloud - it's a simple php script that should work out-of-the-box. Make sure to edit its default tokens before putting it live. Also, be aware that both unhosted.php and unhosted.js are in alpha version, so they are likely to still have some bugs and security holes. If you don't want to host your own cloud, you can request a token from demo.unhosted.org and use that cloud instead. Also, if you have the possility to run an unhosted cloud node and are willing to make it available for others to test with, let us know, and we'll add you as a Kind Unhosted Cloud Provider<br>
+Once you have the token, fill in the full URL to the unhosted cloud of your choice, along with the token you want to use for this blogpost, and click 'Create Pub'. This will take about one second in Chrome, and about 10 seconds in FireFox:
+</div>
+cloud: <textarea id="cloud" rows="1" cols="180">demo.unhosted.org/unhosted.php</textarea><br>
+token: <textarea id="token" rows="1" cols="180">{"r":"7db31","w":"0249e"}</textarea><br>
+<input type="submit" name="Create Pub" onclick="createPub();"/>
 <br><br><br>
+<div>
+Your blog will need a CMS area that is only available to you. One easy way would be to publish it first, and then delete the file before anyone finds out about them. The CMS area should contain editor.html, the unhosted/ directory, and the PwdPub_dont_share.js file generated below.<br>
+To display the blogpost you need to use a bit of html code like bootloader.html, combined with the unhosted/ directory, and the PwdSub.js file generated below.<br>
+Hopefully it's all more or less self-explanatory. Have FireBug open while testing, that way you see what commands are being sent to the unhosted cloud, and it helps to understand what's going on. If you have any problems, or there was anything that didn't work the first time for you, please let us know about it so we can improve these instructions.
+</div>
 
-
-p: <textarea id="p" rows="1" cols="80">p will show up here...</textarea><br>
-q: <textarea id="q" rows="1" cols="80">q will show up here...</textarea><br>
-n: <textarea id="pubkey" rows="1" cols="80">n will show up here...</textarea><br>
-s: <textarea id="seskey" rows="1" cols="80">s will show up here...</textarea><br>
+PwdSub.js: <textarea id="r" rows="3" cols="80">PwdPub_dont_share.js will show up here...</textarea><br>
+PwdPub_dont_share.js: <textarea id="w" rows="5" cols="80">PwdSub.js will show up here...</textarea><br>
 </body>
 </html>

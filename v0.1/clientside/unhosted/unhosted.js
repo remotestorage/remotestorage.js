@@ -3,10 +3,10 @@ function Unhosted() {
 	//private:
 	var keys={};
 	function makeSetCommand(nick, keyPath, value) {
-		return JSON.stringify({'method':'SET', 'chan':keys[nick]['chan'], 'keyPath':keyPath, 'value':value});
+		return JSON.stringify({"method":"SET", "chan":keys[nick]["r"], "keyPath":keyPath, "value":value});
 	}
 	function makeGetCommand(nick, keyPath) {
-		return JSON.stringify({'method':'GET', 'chan':keys[nick]['chan'], 'keyPath':keyPath});
+		return JSON.stringify({"method":"GET", "chan":keys[nick]["r"], "keyPath":keyPath});
 	}
 
 	// Perform raw private operation on "x": return x^d (mod n)
@@ -89,18 +89,17 @@ function Unhosted() {
 	        var q1 = q.subtract(BigInteger.ONE);
 	        var phi = p1.multiply(q1);
 	        if(phi.gcd(ee).compareTo(BigInteger.ONE) == 0) {
-		    bnSeskey=new BigInteger(512-qs,1,rng);
+		    bnSeskey=new BigInteger(128,1,rng);//rijndael function we use uses a 128-bit key
 	            return {"p":p.toString(16),"q":q.toString(16),"pubkey":p.multiply(q).toString(16), "seskey":bnSeskey.toString(16)};
 	        }
 	    }
 	}
 	//public:
-	obj.createPub = function(nick, app, cloud, token) {
+	obj.createPub = function(nick, cloud, token) {
 		key = RSAGenerate();
+		key[cloud]=cloud;
+		key[token]=token;
 		keys[nick]=key;
-		var cmd = makeCreateCommand(token, app, key.pubkey);
-		var PubSign = makePubSign(nick, cmd);
-		sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign);
 		return key;
 	}
 	obj.importPub = function(writeCaps, nick) {
@@ -118,9 +117,10 @@ function Unhosted() {
 		}
 	}
 	obj.set = function set(nick, keyPath, value) {
-		var cmd = makeSetCommand(nick, keyPath, byteArrayToHex(rijndaelEncrypt(value, hexToByteArray(keys[nick]["seskey"]), 'ECB')));
+		var encr = byteArrayToHex(rijndaelEncrypt(value, hexToByteArray(keys[nick]["seskey"]), 'ECB'));
+		var cmd = makeSetCommand(nick, keyPath, encr);
 		var PubSign = makePubSign(nick, cmd);
-		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign+'&pwdChW='+keys[nick]['pwdChW']);
+		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign+'&pwdChW='+keys[nick]["w"]);
 	}
 	//
 	return obj;

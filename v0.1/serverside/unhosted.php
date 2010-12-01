@@ -1,4 +1,5 @@
 <?php
+ini_set('display_errors', TRUE);
 class UnhostedJsonParser {
 	function checkWriteCaps($chan, $pwd) {
 		//hard coded read => write caps, for demo:
@@ -14,59 +15,93 @@ class UnhostedJsonParser {
 			);
 		return ($chans[$chan]==$pwd);
 	}
-
+	function checkFieldsPresent($arr, $fields) {
+		foreach($fields as $fieldName => $exceptionText) {
+			if(!isset($arr[$fieldName])) {
+				throw new Exception($exceptionText);
+			}
+		}
+	}
 	function parseInput($backend) {
-		if(!isset($_POST['protocol'])) {
-			throw new Exception('please add a "protocol" key to your POST');
-		}
-		if($_POST['protocol'] != 'UJ/0.1') {
+		$this->checkFieldsPresent($_POST, array(
+			'protocol' => 'please add a "protocol" key to your POST',
+			'cmd' => 'please add "cmd" key to your POST',
+			));
+		if($_POST['protocol'] != 'UJ/0.1') { 
 			throw new Exception('please use "UJ/0.1" as the protocol');
-		}
-		if(!isset($_POST['cmd'])) {
-			throw new Exception('please add "cmd" key to your POST');
 		}
 		try {
 			$cmd = json_decode($_POST['cmd'], TRUE);//in JSON, associative arrays are objects; ", TRUE" is for forcing cast from StdClass to assoc array.
 		} catch(Exception $e) {
 			throw new Exception('the "cmd" key in your POST does not seem to be valid JSON');
 		}
-		if(!isset($cmd['method'])) {
-			throw new Exception('please define a method inside your command');
-		}
+		$this->checkFieldsPresent($cmd, array('method' => 'please define a method inside your command'));
+
 		switch($cmd['method']) {
 		case 'SET':
-			if(!isset($cmd['chan'])) {
-				throw new Exception('Please specify which channel you want to publish on');
-			}
-			if(!isset($_POST['pwdChW'])) {
-				throw new Exception('The SET command requires a channel write password');
-			}
+			$this->checkFieldsPresent($_POST, array(
+				'pwdChW' => 'The SET command requires a channel write password',
+				'PubSign' => 'Please provide a PubSign so that your subscriber can check that this SET command really comes from you'
+				));
+			$this->checkFieldsPresent($cmd, array(
+				'chan' => 'Please specify which channel you want to publish on',
+				'keyPath' => 'Please specify which key path you\'re setting',
+				'value' => 'Please specify a value for the key you\'re setting',
+				));
 			if(!$this->checkWriteCaps($cmd['chan'], $_POST['pwdChW'])) {
 				throw new Exception('Channel password is incorrect.');
 			}
-			if(!isset($cmd['keyPath'])) {
-				throw new Exception('Please specify which key path you\'re setting');
-			}
-			if(!isset($cmd['value'])) {
-				throw new Exception('Please specify a value for the key you\'re setting');
-			}
-			if(!isset($_POST['PubSign'])) {
-				throw new Exception('Please provide a PubSign so that your subscriber can check that this set command really comes from you');
-			}
-			$refererParsed = parse_url($_SERVER['HTTP_REFERER']);
-			$app = $refererParsed['host'];
-
-			return $backend->doSET($cmd['chan'], $app, $cmd['keyPath'], $cmd, $_POST['PubSign']);
+			$referer = parse_url($_SERVER['HTTP_REFERER']);
+			return $backend->doSET(
+				$cmd['chan'], 
+				$referer['host'], 
+				$cmd['keyPath'], 
+				json_encode(array('cmd'=>$cmd, 'PubSign'=>$_POST['PubSign']))
+				);
 		case 'GET':
-			if(!isset($cmd['chan'])) {
-				throw new Exception('Please specify which channel you want to get a (key, value)-pair from');
+			$this->checkFieldsPresent($cmd, array(
+				'chan' => 'Please specify which channel you want to get a (key, value)-pair from',
+				'keyPath' => 'Please specify which key path you\'re getting',
+				));
+			$referer = parse_url($_SERVER['HTTP_REFERER']);
+			return $backend->doGET(
+				$cmd['chan'],
+				$referer['host'],
+				$cmd['keyPath']
+				);
+		case 'SEND':
+			if(!isset($_POST['PubSign'])) {
+				$_POST['PubSign'] = null;
+			}				
+			$this->checkFieldsPresent($cmd, array(
+				'chan' => 'Please specify which channel you want to send your message to',
+				'keyPath' => 'Please specify which key path you\'re setting',
+				'value' => 'Please specify a value for the key you\'re setting',
+				));
+			$referer = parse_url($_SERVER['HTTP_REFERER']);
+			return $backend->doSEND(
+				$cmd['chan'],
+				$referer['host'],
+				$cmd['keyPath'],
+				json_encode(array('cmd'=>$cmd, 'PubSign'=>$_POST['PubSign']))
+				);
+		case 'RECEIVE':
+			$this->checkFieldsPresent($_POST, array(
+				'pwdChW' => 'The RECEIVE command requires a channel write password',
+				));
+			$this->checkFieldsPresent($cmd, array(
+				'chan' => 'Please specify which channel you want to retrieve messages from',
+				'keyPath' => 'Please specify which key path you\'re getting',
+				));
+			if(!$this->checkWriteCaps($cmd['chan'], $_POST['pwdChW'])) {
+				throw new Exception('Channel password is incorrect.');
 			}
-			if(!isset($cmd['keyPath'])) {
-				throw new Exception('Please specify which key path you\'re getting');
-			}
-			$refererParsed = parse_url($_SERVER['HTTP_REFERER']);
-			$app = $refererParsed['host'];
-			return $backend->doGET($cmd['chan'], $app, $cmd['keyPath']);
+			$referer = parse_url($_SERVER['HTTP_REFERER']);
+			return $backend->doRECEIVE(
+				$cmd['chan'],
+				$referer['host'],
+				$cmd['keyPath']
+				);
 		default:
 			throw new Exception('undefined method');
 		}
@@ -74,24 +109,36 @@ class UnhostedJsonParser {
 }
 
 class StorageBackend {
-	function makeFileName($chan, $app, $keyPath) {
-		return "/tmp/unhosted_{$chan}_{$app}_{$keyPath}_";
+	function makeFileName($chan, $app, $keyPath, $forMessages = FALSE) {
+		return "/tmp/unhosted_{$chan}_{$app}_{$keyPath}_".($forMessages?'msg':'key');
 	}
-	function doSET($chan, $app, $keyPath, $cmd, $PubSign) {
+	function doSET($chan, $app, $keyPath, $save) {
 		$fileName = $this->makeFileName($chan, $app, $keyPath);
-		$save=json_encode(array(
-			'cmd'=>$cmd,
-			'PubSign'=>$PubSign
-			));
 		$res = file_put_contents($fileName, $save);
 		if($res === false) {
 			throw new Exception("Server error - could not write '$fileName'");
 		}
+		return '"OK"';
 	}
 	function doGET($chan, $app, $keyPath) {
 		$fileName = $this->makeFileName($chan, $app, $keyPath);
 		if(is_readable($fileName)) {
 			return file_get_contents($fileName);
+		} else {
+			return 'null';
+		}
+	}
+	function doSEND($chan, $app, $keyPath, $cmd, $save) {
+		$fileName = $this->makeFileName($chan, $app, $keyPath, TRUE);
+		$res = file_put_contents($fileName, $save, FILE_APPEND);
+		if($res === false) {
+			throw new Exception("Server error - could not write '$fileName'");
+		}
+	}
+	function doRECEIVE($chan, $app, $keyPath) {
+		$fileName = $this->makeFileName($chan, $app, $keyPath, TRUE);
+		if(is_readable($fileName)) {
+			return file_get_contents($fileName);//delete messages after reading them?
 		} else {
 			return 'null';
 		}
@@ -111,5 +158,5 @@ try {
 	$res = $unhostedJsonParser->parseInput($storageBackend);
 	echo $res;
 } catch (Exception $e) {
-	echo "ERROR\n" . $e->getMessage() . "\n";
+	echo "ERROR:\n" . $e->getMessage() . "\n";
 }

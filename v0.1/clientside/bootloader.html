@@ -1,4 +1,5 @@
 <html>
+<script language="JavaScript" type="text/javascript" src="SubscribingPassword.js"></script>
 <script language="JavaScript" type="text/javascript" src="unhosted/rijndael.js"></script>
 <script language="JavaScript" type="text/javascript" src="unhosted/sha1.js"></script>
 <script language="JavaScript" type="text/javascript" src="unhosted/jsbn.js"></script>
@@ -8,21 +9,11 @@
 <script>
 function loadBlogPost() {
 	var unhosted = Unhosted();
-	var hardCodedPub = {	"app":"helloblog.com",
-				"cloud":"demo.unhosted.org",
-				};
-	hardCodedPub.pubkey= document.getElementById("pubkey").innerHTML;
-	hardCodedPub.seskey= document.getElementById("seskey").innerHTML;
-	hardCodedPub.chan= document.getElementById("chan").innerHTML;
-	unhosted.importPub(hardCodedPub, "hardCodedPub"); 
-	document.getElementById("blogpost").innerHTML= unhosted.get("hardCodedPub", "myFirstUnhostedBlogPost");
+	unhosted.importPub(SubscribingPassword, "hardCodedSub");
+	document.getElementById("blogpost").innerHTML= unhosted.get("hardCodedSub", "myFirstUnhostedBlogPost");
 }
 </script>
 <body onload="loadBlogPost();">
-n: <textarea id="pubkey" rows="1" cols="80">7db310249e140d90e09ab3108a13b4fabf89e9996ef98f43a147dbc312a66a9cf3863ee23d532960f56b693541b569c7a981cf2bb7d2f098617e1608189a1051</textarea><br>
-s: <textarea id="seskey" rows="1" cols="80">27069632223826919491639745776265</textarea><br>
-chan: <textarea id="chan" rows="1" cols="80">7db31</textarea><br>
-<br>
 <div id="blogpost">Loading unhosted json...</div>
 </body>
 </html>
