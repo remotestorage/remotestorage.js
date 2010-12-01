@@ -1,34 +1,29 @@
 INSTRUCTIONS:
 -this assumes you will run both the clientside and serverside on localhost, and that you have a working webserver installed.
--put this dir in your webroot under git/unhosted/
+-put this dir in your webroot under git/unhosted/v0.1/, for instance /var/www/git/unhosted/v0.1/
 -check that 
-	http://localhost/git/unhosted/v0.1/serverside/unhosted.php
+	http://localhost/git/unhosted/v0.1/cloudside/unhosted.php
  displays:
 	ERROR please add a "protocol" key to your POST
 
 -point helloblog.com to 127.0.0.1 in /etc/hosts
 -point demo.unhosted.org to 127.0.0.1 in /etc/hosts
 -check that 
-	http://demo.unhosted.org/git/unhosted/v0.1/serverside/unhosted.php
+	http://demo.unhosted.org/git/unhosted/v0.1/cloudside/unhosted.php
  also displays:
 	ERROR please add a "protocol" key to your POST
 -make sure /tmp is writable for the www-user.
 -browse to:
-	http://helloblog.com/git/unhosted/v0.1/clientside/genkey.html
- and generate a key. Make sure you check that the server doesn't return any errors.
-	http://helloblog.com/git/unhosted/v0.1/clientside/editor.html (TODO: really generate the PubSign inside JS)
- and check that a file containing the text 'DEADBEEF' is created inside /tmp/unhosted
--now have your firebug open, and browse to:
-	http://helloblog.com/git/unhosted/v0.1/clientside/bootloader.html
--in firebug you should see it load bootloader.html and unhosted.js on client side, then make an OPTIONS call, and then POST something like:
-	cmd	{"method":"GET","key":"helloblog.com+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCVZl_hiNbNsypM6ktlgJl_jCrE4kl1abMmmXQhenAAFd0ISCW5UACgGwMg74fHe0OcbZQWJ5L2-YPwn7wbhmuyFUMdWFQ23LE08sYYSEqggp6n6MQLgfattzWipDGZ3x2CNyh8RwiH5-rq10Biam-AGj4LXQ7z6CaVB3gXIaJhNQIDAQAB@demo.unhosted.org/myFirstUnhostedBlogPost"}
-	protocol	UJ/0.1
- to http://demo.unhosted.org/git/unhosted/v0.1/serverside/unhosted.php
- and assign the test string 'DEADBEEF' to the <div> tag in bootloader.html (TODO: make this the actual base64-ed encrypted version of some real text, and decode it in JS).
-
-
-TODO:
-- make read- and write-caps be 1 string each, not in textareas
-- prune JS
-- export to file
-- think about how this would be perceived
+	http://helloblog.com/git/unhosted/v0.1/wappside/genkey/genkey.html
+ and generate a key. Cut-and-paste the .js files that are generated, and save them into /var/www/git/unhosted/v0.1/wappside/examples/wappblog/ or the equivalent path.
+-make sure you have FireBug open and check that the server doesn't return any errors in response to the POST when you browse to:
+	http://helloblog.com/git/unhosted/v0.1/wappside/examples/wappblog/editor.html
+ and hit the 'save' button. This should send a SET command from helloblog.com to demo.unhosted.org
+-now have your firebug still open, and browse to:
+	http://helloblog.com/git/unhosted/v0.1/wappside/examples/wappblog/bootloader.html
+-in firebug you should see it post a GET command to demo.unhosted.org, then the js will check the PubSign signature, decrypt the content,  and assign the blog post text to the <div> tag in bootloader.html.
+-so far you have run this test on localhost, but obviously you would make us very happy if you blog about Unhosted, and what would be more convincing than "an unhosted blogpost about unhosted". Just make sure that you
+	- change the save path in unhosted.php from /tmp to something else, 
+	- change the chans list to something only you know, and not the ones that are in the source code,
+	- do not (obviously) publish the file "PublishingPassword.js"
+-if you have any improvements to make this demo more user-friendly, please contribute! http://groups.google.com/group/unhosted
