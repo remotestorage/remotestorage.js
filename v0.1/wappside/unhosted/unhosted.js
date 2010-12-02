@@ -1,7 +1,7 @@
 function Unhosted() {
 	//private:
-	var keys={};
-	var rng = new SecureRandom();
+	var keys={};//should contain fields r,c,n[,s[,d]] (r,c in ASCII; n,s,d in HEX)
+	var rng = new SecureRandom();//for padding
 
 	function getN(nick) {
 		var p = new BigInteger();	p.fromString(keys[nick]["p"], 16);
