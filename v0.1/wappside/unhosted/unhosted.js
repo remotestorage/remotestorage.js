@@ -90,17 +90,17 @@ function Unhosted() {
 		if(ret==null) {
 			return null;
 		}
-		var res = '["';
+		var res = [];
 		for(msg in ret) {
 			var cmdStr = JSON.stringify(ret[msg].cmd).replace("+", "%2B");
 			var sig = ret[msg].PubSign;
 //			if(checkPubSign(cmdStr, sig, nick) == true) {//this signature is from the sender, who has not been identified yet. work out how to do this. guids?
-				res = res+'","'+byteArrayToString(rijndaelDecrypt(hexToByteArray(ret[msg].cmd.value), hexToByteArray(keys[nick]["seskey"]), 'ECB'));
+				res.push(byteArrayToString(rijndaelDecrypt(hexToByteArray(ret[msg].cmd.value), hexToByteArray(keys[nick]["seskey"]), 'ECB')));
 //			} else {
 //				res = res+'","ERROR - PubSign '+sig+' does not correctly sign '+cmdStr+' for key '+keys[nick]["pubkey"];
 //			}
 		}
-		return JSON.parse(res+'"]');//have to find the proper way of doing foo[] = bar;
+		return res;//have to find the proper way of doing foo[] = bar;
 	}
 	return this;
 }

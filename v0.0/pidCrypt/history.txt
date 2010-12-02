@@ -1,0 +1,119 @@
+Release 005,
+**************   Changes   **************
+- Removed the extending of javascript core classes removed of security issues in some enviroments 
+  (e.g. Firefox AddOns)
+    - String.encodeBase64(utf8encode) -> pidCryptUtil.encodeBase64(str,utf8encode)
+    - String.decodeBase64(utf8decode) -> pidCryptUtil.decodeBase64(str,utf8decode)
+    - String.encodeUTF8() -> pidCryptUtil.encodeUTF8(str)
+    - String.decodeUTF8() -> pidCryptUtil.decodeUTF8(str)
+    - String.convertToHex() -> pidCryptUtil.convertToHex(str)
+    - String.convertFromHex() -> pidCryptUtil.convertFromHex(str)
+    - String.stripLineFeeds() -> pidCryptUtil.stripLineFeeds(str)
+    - String.toByteArray() -> pidCryptUtil.toByteArray(str)
+    - String.fragment(length,lf) -> pidCryptUtil.fragment(str,length,lf)
+    - String.formatHex(length) -> pidCryptUtil.formatHex(str,length)
+  For downward compatibility you can include string_extends.js
+
+**************      New      **************
+String
+  - Extending the javascript string class is now optional (string_extend.js)
+Test
+  - test_hashes.html
+
+
+Release 004, 02.11.2009
+Corrected distribution license to GPL v3 because the original code of the aes-core module is under 
+GNU license.
+
+Release 003, 09.06.2009
+**************   Bug fixes   **************
+- RSA decryption now returns an empty string instead of runtime error in case of
+  decryption failure
+
+**************      New      **************
+RSA
+ - new functions encryptRaw() and decryptRaw(). These functions do not encode
+   or decode the in-/output.
+ - getParameters(): returns the actual parameters as object 
+   (n,e,d,p,q,dmp1,dmq1,c)
+SHA
+ - new SHA-384 and SHA-512 Hash algorithms available
+Test
+ - test: a simple html test page for each modul. Currently
+    - test_aes_cbc.html
+    - test_aes_ctr.html
+    - other test and demo pages visit http://www.pidder.com/pidcrypt
+
+Release 002, 31.03.2009
+**************   Bug fixes   **************
+- init now clears old output from previous operation
+- appendError, appendInfo and appendDebug now return an empty string
+  to avoid runtime errors in the calling function
+- the convert functions for hex strings now use native JS functions (parseInt,
+  toString(16)) making pidCrypt compatible with IE and Opera
+
+**************      New      **************
+pidCrypt
+ - setDefaults(), set all default values
+ - new enviroment parameter params.dataIn: stores input data
+ - new enviroment parameter params.dataOut: stores output data
+ - new enviroment parameter params.encryptIn: stores input data of encrypt
+ - new enviroment parameter params.encryptOut: stores output data of encrypt
+ - new enviroment parameter params.decryptIn: stores input data of decrypt
+ - new enviroment parameter params.decryptOut: stores output data of decrypt function
+ - new enviroment parameter params.clear. If set to false with options
+   the params are not cleared from memory (clear=true is overwritten by debug=true!).
+ - removed obsolete enviroment parameters input and output
+pidCrypt util
+ - String.fragment(length,linefeed): fractionalizes a string into lines with
+   length and appends linefeed at the end of each line.
+ - String.stripLineFeeds: removes line feeds (0x10 und 0x13) from string
+ - String.formatHex: Formats a hex string in two lower case chars + :
+   and lines of given length characters
+AES-CBC
+ - init(password, options), init without input (for decrypt you have to specify
+   the salt in options)
+ - isError() returns true if error messages are set by an operation
+ - new function encryptRaw(byteArray): no coding operations are done (eg. base64)
+ - new function decryptRaw(byteArray): no coding operations are done (eg. base64)
+ - new function encryptText(text,password,options): no init call is needed
+ - new function decryptText(text,password,options): no init call is needed
+AES-CTR
+ - init(password, options), init without input (for decrypt you have to specify
+   the salt in options)
+ - isError() returns true if error messages are set by an operation
+ - new function encryptRaw(byteArray): no coding operations are done (eg. base64)
+ - new function decryptRaw(byteArray): no coding operations are done (eg. base64)
+ - new function encryptText(text,password,options): no init call is needed
+ - new function decryptText(text,password,options): no init call is needed
+
+**************   Changes     **************
+pidCrypt
+ - getAllMessages(options) has a new options parameter: With options.verbose
+   you can set the verbose level of the messages with any combination of 4 bits.
+   1 = Error,2 = Warnings, 4 = Info, 8 = Debug. e.g. 10 (1010) gives you
+   warnings and debugs. options.clr_mes = true clears all previous messages.
+ - setParams(pObj) now sets all pObj parameters as params (eg. pObj.newParam
+   will create params.newParam with value pObj[newParam]
+AES-CBC
+ - encrypt(text) and decrypt(cryptedtext) now understand the parameter input.
+   You can now call init() once and encrypt more than once with same parameters.
+AES-CTR
+ - encrypt(input) and decrypt(input) now understand the parameter input.
+   You can now call init() once and encrypt more than once with same parameters.
+SHA-1, SHA-256
+ - SHA hashing routines without automatic UTF-8 encoding
+
+Release 001, 03.03.2009
+**************      New      **************
+Initial release supporting the following functions:
+ - Base64
+ - UTF-8
+ - MD5
+ - SHA-1
+ - SHA-256
+ - AES CBC Mode
+ - AES CTR Mode
+ - RSA Encryption
+ - RSA encrypted private key files
+ - ASN.1

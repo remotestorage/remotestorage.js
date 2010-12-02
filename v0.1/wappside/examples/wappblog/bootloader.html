@@ -1,5 +1,5 @@
 <html>
-<script language="JavaScript" type="text/javascript" src="SubscribingPassword.js"></script>
+<script language="JavaScript" type="text/javascript" src="SubscribingPasswordMe.js"></script>
 <script language="JavaScript" type="text/javascript" src="../../unhosted/rijndael.js"></script>
 <script language="JavaScript" type="text/javascript" src="../../unhosted/sha1.js"></script>
 <script language="JavaScript" type="text/javascript" src="../../unhosted/jsbn.js"></script>
@@ -7,7 +7,7 @@
 <script>
 function loadBlogPost() {
 	var unhosted = Unhosted();
-	unhosted.importPub(SubscribingPassword, "hardCodedSub");
+	unhosted.importPub(SubscribingPasswordMe, "hardCodedSub");
 	document.getElementById("blogpost").innerHTML= unhosted.get("hardCodedSub", "myFirstUnhostedBlogPost");
 }
 </script>

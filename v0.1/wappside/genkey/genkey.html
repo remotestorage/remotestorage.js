@@ -14,14 +14,13 @@ function genkey() {
 	
 	var token = document.getElementById("token").value;
 	var token = JSON.parse(document.getElementById("token").value);
-	document.getElementById("r").value = 'var SubscribingPassword ='
+	document.getElementById("r").value = 'var SubscribingPasswordMe ='
 			+' {\n\t"cloud":"'+document.getElementById("cloud").value
 			+'",\n\t"r":"'+token["r"]
-			+'",\n\t"w":"'+token["w"]
 			+'",\n\t"pubkey":"'+generatedPub["pubkey"]
 			+'",\n\t"seskey":"'+generatedPub["seskey"]
 			+'"};\n';
-	document.getElementById("w").value = 'var PublishingPassword ='
+	document.getElementById("w").value = 'var PublishingPasswordMe ='
 			+' {\n\t"cloud":"'+document.getElementById("cloud").value
 			+'",\n\t"r":"'+token["r"]
 			+'",\n\t"w":"'+token["w"]
@@ -37,17 +36,17 @@ function genkey() {
 This page will help you set up a simple unhosted blog post. What you need is a token from an unhosted cloud. The easiest way to do this is to host your own unhosted cloud - it's a simple php script that should work out-of-the-box. Make sure to edit its default tokens before putting it live. Also, be aware that both unhosted.php and unhosted.js are in alpha version, so they are likely to still have some bugs and security holes. If you don't want to host your own cloud, you can request a token from demo.unhosted.org and use that cloud instead. Also, if you have the possility to run an unhosted cloud node and are willing to make it available for others to test with, let us know, and we'll add you as a Kind Unhosted Cloud Provider<br>
 Once you have the token, fill in the full URL to the unhosted cloud of your choice, along with the token you want to use for this blogpost, and click 'Create Pub'. This will take about one second in Chrome, and about 10 seconds in FireFox:
 </div>
-cloud: <textarea id="cloud" rows="1" cols="180">demo.unhosted.org/unhosted.php</textarea><br>
+cloud: <textarea id="cloud" rows="1" cols="180">demo.unhosted.org/git/unhosted/v0.1/cloudside/unhosted.php</textarea><br>
 token: <textarea id="token" rows="1" cols="180">{"r":"7db31","w":"0249e"}</textarea><br>
 <input type="submit" name="Create Pub" onclick="genkey();"/>
 <br><br><br>
 <div>
-Your blog will need a CMS area that is only available to you. One easy way would be to publish it first, and then delete the file before anyone finds out about them. The CMS area should contain editor.html, the unhosted/ directory, and the PwdPub_dont_share.js file generated below.<br>
-To display the blogpost you need to use a bit of html code like bootloader.html, combined with the unhosted/ directory, and the PwdSub.js file generated below.<br>
+Your blog will need a CMS area that is only available to you. One easy way would be to publish it first, and then delete the file before anyone finds out about them. The CMS area should contain editor.html, the unhosted/ directory, and the PublishingPasswordMe.js file generated below. This file allows publishing to your pub-sub-channel, so MAKE SURE YOU DON'T PUBLISH PublishingPasswordMe.js<br>
+To display the blogpost you need to use a bit of html code like bootloader.html, combined with the unhosted/ directory, and the SubscribingPasswordMe.js file generated below. This file allows subscribing to your pub-sub-channel.<br>
 Hopefully it's all more or less self-explanatory. Have FireBug open while testing, that way you see what commands are being sent to the unhosted cloud, and it helps to understand what's going on. If you have any problems, or there was anything that didn't work the first time for you, please let us know about it so we can improve these instructions.
 </div>
 
-SubscribingPassword.js: <textarea id="r" rows="3" cols="80">SubscribingPassword.js will show up here...</textarea><br>
-PublishingPassword.js: <textarea id="w" rows="5" cols="80">PublishingPassword.js will show up here...</textarea><br>
+SubscribingPasswordMe.js: <textarea id="r" rows="3" cols="80">SubscribingPasswordMe.js will show up here...</textarea><br>
+PublishingPasswordMe.js: <textarea id="w" rows="5" cols="80">PublishingPasswordMe.js will show up here...</textarea><br>
 </body>
 </html>
