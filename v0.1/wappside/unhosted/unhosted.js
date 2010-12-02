@@ -81,9 +81,10 @@ function Unhosted() {
 
 	// Return the PKCS#1 RSA encryption of "text" as an even-length hex string
 	function RSAEncrypt(text, nick) {//copied from the rsa.js script included in Tom Wu's jsbn library
-		var p = new BigInteger();	p.fromString(keys[nick].p, 16);
-		var q = new BigInteger();	q.fromString(keys[nick].q, 16);
-		var n = p.multiply(q);
+		var n = new BigInteger();	n.fromString(keys[nick].n, 16);
+		//var p = new BigInteger();	p.fromString(keys[nick].p, 16);
+		//var q = new BigInteger();	q.fromString(keys[nick].q, 16);
+		//var n = p.multiply(q);
 		var m = pkcs1pad2(text,(n.bitLength()+7)>>3);	if(m == null) return null;
 		var c = m.modPowInt(parseInt("10001", 16), n);	if(c == null) return null;
 		var h = c.toString(16);	
@@ -157,7 +158,7 @@ function Unhosted() {
 		//Then, we RSA-encrypted var seskey asymmetrically with toNick's public RSA.n, and that encrypted session key goes into 'ses' in the cmd. See also this.receive.
 		var cmd = JSON.stringify({"method":"SEND", "chan":keys[toNick]["r"], "keyPath":keyPath, "value":encr, "ses":encrSes, 
 			"from_r":keys[fromNick].r, "from_c":keys[fromNick].c, "from_n":getN(fromNick).toString(16)});
-		var PubSign = makePubSign(toNick, cmd);
+		var PubSign = makePubSign(fromNick, cmd);
 		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign, keys[toNick].c);
 	}
 	this.receive = function(nick, keyPath) {//execute a UJ/0.1 GET command

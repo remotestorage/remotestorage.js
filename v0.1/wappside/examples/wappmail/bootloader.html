@@ -11,9 +11,7 @@ function setup() {
 	/*global*/ PublishingPasswordMe = {
 		"r":document.getElementById("r").value,
 		"c":document.getElementById("c").value,
-//		"n":document.getElementById("n").value,
 		"w":document.getElementById("w").value,
-//		"s":document.getElementById("s").value,
 		"p":document.getElementById("p").value,
 		"q":document.getElementById("q").value};
 	/*global*/ SubscribingPasswordMe = {
@@ -36,11 +34,17 @@ function receiveMail() {
 	for(msg in messages) {
 		document.getElementById("readMail").innerHTML = document.getElementById("readMail").innerHTML 
 			+ "<tr><td>" + messages[msg].SenderSub.r+"@"+messages[msg].SenderSub.c + "</td><td>" + messages[msg].body + "</td></tr>";
+		unhosted.set("me", "addressbook/"+messages[msg].SenderSub.r+"@"+messages[msg].SenderSub.c, messages[msg].SenderSub.n); 
 	}
 	document.getElementById("readMail").innerHTML = document.getElementById("readMail").innerHTML + "</table>"; 
 }
 function sendMail() {
-	unhosted.send(document.getElementById("senderNick").innerHTML, document.getElementById("recipientNick").innerHTML, "inbox", 
+	recipient= {
+		"r":document.getElementById("to_r").value,
+		"c":document.getElementById("to_c").value,
+		"n":document.getElementById("to_n").value};
+	unhosted.importSub(recipient, "recipient");
+	unhosted.send("me", "recipient", "inbox", 
 		JSON.stringify({"body":document.getElementById("writeMail").value.replace(/\n/g, "<br>"),
 				"SenderSub":SubscribingPasswordMe})); 
 }
@@ -57,25 +61,17 @@ _<textarea id="q" rows="1" cols="64">9cf290ecbd9b1e7626021a5e5acdb6490050108c056
 <input type="submit" value="Login" onclick="setup();receiveMail();"/>
 <table border="1">
 <tr><td><p>
-<H2>Addressbook Nicks:</H2>
-<div id="addressBookNicks">Loading unhosted json...</div>
-<br>
-<H2>Inbox list:</H2>
-<div id="inboxList">Loading unhosted json...</div>
-<br>
 <input type="submit" value="Check mail" onclick="receiveMail();"/>
 <H2>Read mail:</H2>
 <div id="readMail">Loading unhosted json...</div>
 </p></td>
 <td><p>
 <H2>Write mail:</H2>
+to: <textarea id="to_r" rows="1" cols="10">140d9</textarea>@<textarea id="to_c" rows="1" cols="30">demo.unhosted.org</textarea><br>:
+<textarea id="to_n" rows="1" cols="128">6b334f6f2129abd0a1934c660c69c3ebc4b644df2f04f6de868bddd279136ef7520e031b1ba6541b32d3e9f5a9bfa6d9f9e08da0b0fbd82c4baee473009aadb1</textarea>
 <textarea id="writeMail" rows="10" cols="80"> 
 hello, world! Let me tell you about this great project called Unhosted... bla bla bla
 </textarea>
-<br>
-<H2>Recipient Nick:</H2>
-<div id="recipientNick">me</div>
-<div id="senderNick">me</div>
 <br>
 <input type="submit" name="send mail!" onclick="sendMail();"/>
 </p></td></tr>
