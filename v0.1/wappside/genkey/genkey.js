@@ -23,7 +23,7 @@
 	        var q1 = q.subtract(BigInteger.ONE);
 	        var phi = p1.multiply(q1);
 	        if(phi.gcd(ee).compareTo(BigInteger.ONE) == 0) {
-		    bnSeskey=new BigInteger(128,1,rng);//rijndael function we use uses a 128-bit key
+		    var bnSeskey = new BigInteger(128,1,rng);//rijndael function we use uses a 128-bit key
 	            return {"p":p.toString(16),"q":q.toString(16),"pubkey":p.multiply(q).toString(16), "seskey":bnSeskey.toString(16)};
 	        }
 	    }

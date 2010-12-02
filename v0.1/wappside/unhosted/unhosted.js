@@ -1,34 +1,104 @@
 function Unhosted() {
 	//private:
 	var keys={};
+	var rng = new SecureRandom();
 
-	// Perform raw private operation on "x": return x^d (mod n)
-	function RSASign(sHashHex, nick) {//this function copied from the rsa.js script included in Tom Wu's jsbn
+	function getN(nick) {
+		var p = new BigInteger();	p.fromString(keys[nick]["p"], 16);
+		var q = new BigInteger();	q.fromString(keys[nick]["q"], 16);
+		return p.multiply(q);
+	}
+	function prepareRsa(nick) {
 		//generate some interesting numbers from p and q:
 		var qs = 512>>1;	var e = parseInt("10001", 16);	var ee = new BigInteger("10001", 16);
 		var p = new BigInteger();	p.fromString(keys[nick]["p"], 16);
 		var q = new BigInteger();	q.fromString(keys[nick]["q"], 16);
 	        var p1 = p.subtract(BigInteger.ONE);	var q1 = q.subtract(BigInteger.ONE);
 	        var phi = p1.multiply(q1);	var n = p.multiply(q);	var d = ee.modInverse(phi);
-       		var dmp1 = d.mod(p1);	var dmq1 = d.mod(q1);	var coeff = q.modInverse(p);i
+       		var dmp1 = d.mod(p1);	var dmq1 = d.mod(q1);	var coeff = q.modInverse(p);
+		return {"p":p, "q":q, "d": d, "n":n, "dmp1":dmp1, "dmq1":dmq1, "coeff":coeff};
+	}
+	// Perform raw private operation on "x": return x^d (mod n)
+	function RSADoPrivate(x, key) {	
+		if(key.p == null || key.q == null)
+			return x.modPow(key.d, key.n);
 
+		// TODO: re-calculate any missing CRT params
+		var xp = x.mod(key.p).modPow(key.dmp1, key.p);
+		var xq = x.mod(key.q).modPow(key.dmq1, key.q);
 
-		var sMid = "";	var fLen = (n.bitLength() / 4) - sHashHex.length - 6;
+		while(xp.compareTo(xq) < 0)
+			xp = xp.add(key.p);
+		return xp.subtract(xq).multiply(key.coeff).mod(key.p).multiply(key.q).add(xq);
+	}
+
+	function RSASign(sHashHex, nick) {//this function copied from the rsa.js script included in Tom Wu's jsbn library
+		var key=prepareRsa(nick);
+		var sMid = "";	var fLen = (key.n.bitLength() / 4) - sHashHex.length - 6;
 		for (var i = 0; i < fLen; i += 2) {
 			sMid += "ff";
 		}
 		hPM = "0001" + sMid + "00" + sHashHex;//this pads the hash to desired length - not entirely sure whether those 'ff' should be random bytes for security or not
 		var x = new BigInteger(hPM, 16);//turn the padded message into a jsbn BigInteger object
-		if(p == null || q == null)
-			return x.modPow(d, n);
+		return RSADoPrivate(x, key);
+	}
+	// PKCS#1 (type 2, random) pad input string s to n bytes, and return a bigint
+	function pkcs1pad2(s,n) {//copied from the rsa.js script included in Tom Wu's jsbn library
+		if(n < s.length + 11) {
+			alert("Message too long for RSA");
+			return null;
+		}
+		var ba = new Array();
+		var i = s.length - 1;
+		while(i >= 0 && n > 0) ba[--n] = s.charCodeAt(i--);
+		ba[--n] = 0;
+		var x = new Array();
+		while(n > 2) { // random non-zero pad
+			x[0] = 0;
+			while(x[0] == 0) rng.nextBytes(x);
+			ba[--n] = x[0];
+		}
+		ba[--n] = 2;
+		ba[--n] = 0;
+		return new BigInteger(ba);
+	}
 
-		// TODO: re-calculate any missing CRT params
-		var xp = x.mod(p).modPow(dmp1, p);
-		var xq = x.mod(q).modPow(dmq1, q);
+	// Undo PKCS#1 (type 2, random) padding and, if valid, return the plaintext
+	function pkcs1unpad2(d,n) {//copied from the rsa.js script included in Tom Wu's jsbn library
+		var b = d.toByteArray();
+		var i = 0;
+		while(i < b.length && b[i] == 0) ++i;
+		if(b.length-i != n-1 || b[i] != 2)
+			return null;
+		++i;
+		while(b[i] != 0)
+			if(++i >= b.length) return null;
+		var ret = "";
+		while(++i < b.length)
+			ret += String.fromCharCode(b[i]);
+		return ret;
+	}
 
-		while(xp.compareTo(xq) < 0)
-			xp = xp.add(p);
-		return xp.subtract(xq).multiply(coeff).mod(p).multiply(q).add(xq);
+	// Return the PKCS#1 RSA encryption of "text" as an even-length hex string
+	function RSAEncrypt(text, nick) {//copied from the rsa.js script included in Tom Wu's jsbn library
+		var p = new BigInteger();	p.fromString(keys[nick].p, 16);
+		var q = new BigInteger();	q.fromString(keys[nick].q, 16);
+		var n = p.multiply(q);
+		var m = pkcs1pad2(text,(n.bitLength()+7)>>3);	if(m == null) return null;
+		var c = m.modPowInt(parseInt("10001", 16), n);	if(c == null) return null;
+		var h = c.toString(16);	
+		if((h.length & 1) == 0) return h; else return "0" + h;
+	}
+
+	// Return the PKCS#1 RSA decryption of "ctext".
+	// "ctext" is an even-length hex string and the output is a plain string.
+	function RSADecrypt(ctext, nick) {//copied from rsa.js script included in Tom Wu's jsbn library
+		var key=prepareRsa(nick);
+		var c = new BigInteger(ctext, 16);
+		//alert(ctext);
+		var m = RSADoPrivate(c, key);
+		if(m == null) return null;
+		return pkcs1unpad2(m, (key.n.bitLength()+7)>>3);
 	}
 
 	function makePubSign(nick, cmd) {//this function based on the rsa.js script included in Tom Wu's jsbn and rsa-sign.js by [TODO: look up name of Japanese wikitl.jp(?)]
@@ -37,17 +107,17 @@ function Unhosted() {
 		var hexSign = biSign.toString(16);//turn into HEX representation for easy displaying, posting, etcetera. Changing this to base64 would be 33% shorter; worth it?
 		return hexSign;
 	}
-	function sendPost(post) {//this function implements synchronous AJAX to demo.unhosted.org. [TODO: allow for other cloud names]
+	function sendPost(post, cloud) {//this function implements synchronous AJAX to demo.unhosted.org. [TODO: allow for other cloud names]
 		xmlhttp=new XMLHttpRequest();
 		//xmlhttp.open("POST","http://demo.unhosted.org/",false);
-		xmlhttp.open("POST","http://demo.unhosted.org/git/unhosted/v0.1/cloudside/unhosted.php",false);
+		xmlhttp.open("POST","http://"+cloud+"/git/unhosted/v0.1/cloudside/unhosted.php",false);
 		xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 		xmlhttp.send(post);
 		return xmlhttp.responseText;
 	}
-	function checkPubSign(cmd, PubSign, nick) {//check a signature. based on rsa-sign.js. uses Tom Wu's jsbn library.
-		n = new BigInteger();	n.fromString(keys[nick]["pubkey"], 16);
-		x = new BigInteger(PubSign.replace(/[ \n]+/g, ""), 16);
+	function checkPubSign(cmd, PubSign, nick_n) {//check a signature. based on rsa-sign.js. uses Tom Wu's jsbn library.
+		var n = new BigInteger();	n.fromString(nick_n, 16);
+		var x = new BigInteger(PubSign.replace(/[ \n]+/g, ""), 16);
 		return (x.modPowInt(parseInt("10001", 16), n).toString(16).replace(/^1f+00/, '') == sha1.hex(cmd));
 	}
 
@@ -59,46 +129,54 @@ function Unhosted() {
 		keys[nick]=readCaps;
 	}
 	this.get = function(nick, keyPath) {//execute a UJ/0.1 GET command
-		var cmd = JSON.stringify({"method":"GET", "chan":keys[nick]["r"], "keyPath":keyPath});
-		var ret = JSON.parse(sendPost("protocol=UJ/0.1&cmd="+cmd));
+		var cmd = JSON.stringify({"method":"GET", "chan":keys[nick].r, "keyPath":keyPath});
+		var ret = JSON.parse(sendPost("protocol=UJ/0.1&cmd="+cmd, keys[nick].c));
 		if(ret==null) {
 			return null;
 		}
 		var cmdStr = JSON.stringify(ret.cmd).replace("+", "%2B");
 		var sig = ret.PubSign;
-		if(checkPubSign(cmdStr, sig, nick) == true) {
+		if(checkPubSign(cmdStr, sig, keys[nick].n) == true) {
 			return byteArrayToString(rijndaelDecrypt(hexToByteArray(ret.cmd.value), hexToByteArray(keys[nick]["seskey"]), 'ECB'));
 		} else {
-			return "ERROR - PubSign "+sig+" does not correctly sign "+cmdStr+" for key "+keys[nick]["pubkey"];
+			return "ERROR - PubSign "+sig+" does not correctly sign "+cmdStr+" for key "+keys[nick].n;
 		}
 	}
 	this.set = function(nick, keyPath, value) {//execute a UJ/0.1 SET command
 		var encr = byteArrayToHex(rijndaelEncrypt(value, hexToByteArray(keys[nick]["seskey"]), 'ECB'));
 		var cmd = JSON.stringify({"method":"SET", "chan":keys[nick]["r"], "keyPath":keyPath, "value":encr});
 		var PubSign = makePubSign(nick, cmd);
-		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign+'&WriteCaps='+keys[nick]["w"]);
+		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign+'&WriteCaps='+keys[nick].w, keys[nick].c);
 	}
-	this.send = function(nick, keyPath, value) {//execute a UJ/0.1 SEND command
-		var encr = byteArrayToHex(rijndaelEncrypt(value, hexToByteArray(keys[nick]["seskey"]), 'ECB'));
-		var cmd = JSON.stringify({"method":"SEND", "chan":keys[nick]["r"], "keyPath":keyPath, "value":encr});
-		var PubSign = makePubSign(nick, cmd);
-		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign);
+	this.send = function(fromNick, toNick, keyPath, value) {//execute a UJ/0.1 SEND command
+		var bnSeskey = new BigInteger(128,1,rng);//rijndael function we use uses a 128-bit key
+		var seskey = bnSeskey.toString(16);
+		var encr = byteArrayToHex(rijndaelEncrypt(value, hexToByteArray(seskey), 'ECB'));
+		var encrSes = RSAEncrypt(seskey, toNick);
+		//this is two-step encryption. first we Rijndael-encrypted value symmetrically (with the single-use var seskey). The result goes into 'value' in the cmd.
+		//Then, we RSA-encrypted var seskey asymmetrically with toNick's public RSA.n, and that encrypted session key goes into 'ses' in the cmd. See also this.receive.
+		var cmd = JSON.stringify({"method":"SEND", "chan":keys[toNick]["r"], "keyPath":keyPath, "value":encr, "ses":encrSes, 
+			"from_r":keys[fromNick].r, "from_c":keys[fromNick].c, "from_n":getN(fromNick).toString(16)});
+		var PubSign = makePubSign(toNick, cmd);
+		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign, keys[toNick].c);
 	}
 	this.receive = function(nick, keyPath) {//execute a UJ/0.1 GET command
 		var cmd = JSON.stringify({"method":"RECEIVE", "chan":keys[nick]["r"], "keyPath":keyPath});
-		var ret = JSON.parse(sendPost("protocol=UJ/0.1&cmd="+cmd+'&WriteCaps='+keys[nick]["w"]));
+		var ret = JSON.parse(sendPost("protocol=UJ/0.1&cmd="+cmd+'&WriteCaps='+keys[nick].w, keys[nick].c));
 		if(ret==null) {
 			return null;
 		}
 		var res = [];
 		for(msg in ret) {
 			var cmdStr = JSON.stringify(ret[msg].cmd).replace("+", "%2B");
-			var sig = ret[msg].PubSign;
-//			if(checkPubSign(cmdStr, sig, nick) == true) {//this signature is from the sender, who has not been identified yet. work out how to do this. guids?
-				res.push(byteArrayToString(rijndaelDecrypt(hexToByteArray(ret[msg].cmd.value), hexToByteArray(keys[nick]["seskey"]), 'ECB')));
-//			} else {
-//				res = res+'","ERROR - PubSign '+sig+' does not correctly sign '+cmdStr+' for key '+keys[nick]["pubkey"];
-//			}
+			var sig = ret[msg].PubSign;//careful: this PubSign refers to the sender's n (cmd.from), not the receiver's one (keys[nick].n)!
+			if(checkPubSign(cmdStr, sig, ret[msg].cmd.from_n) == true) {
+				//now we first need to RSA-decrypt the session key that will let us Rijdael-decrypt the actual value:
+				var seskey = RSADecrypt(ret[msg].cmd.ses, nick);
+				res.push(JSON.parse(byteArrayToString(rijndaelDecrypt(hexToByteArray(ret[msg].cmd.value), hexToByteArray(seskey), 'ECB'))));
+			} else {
+				res = res+'","ERROR - PubSign '+sig+' does not correctly sign '+cmdStr+' for key '+ret[msg].cmd.from_n;
+			}
 		}
 		return res;//have to find the proper way of doing foo[] = bar;
 	}

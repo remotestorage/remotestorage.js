@@ -1,5 +1,6 @@
 <html>
-<script language="JavaScript" type="text/javascript" src="PublishingPasswordMe.js"></script>
+<script language="JavaScript" type="text/javascript" src="../../unhosted/prng4.js"></script>
+<script language="JavaScript" type="text/javascript" src="../../unhosted/rng.js"></script>
 <script language="JavaScript" type="text/javascript" src="../../unhosted/rijndael.js"></script>
 <script language="JavaScript" type="text/javascript" src="../../unhosted/sha1.js"></script>
 <script language="JavaScript" type="text/javascript" src="../../unhosted/jsbn.js"></script>
@@ -31,13 +32,15 @@ function setup() {
 }
 function receiveMail() {
 	var messages = unhosted.receive("me", "inbox");
-	document.getElementById("readMail").innerHTML = "";
+	document.getElementById("readMail").innerHTML = "<table border='1'><tr><td><b>From</b></td><td><b>Message</b></td></tr>";
 	for(msg in messages) {
-		document.getElementById("readMail").innerHTML = document.getElementById("readMail").innerHTML + "<br>" + messages[msg];
+		document.getElementById("readMail").innerHTML = document.getElementById("readMail").innerHTML 
+			+ "<tr><td>" + messages[msg].SenderSub.r+"@"+messages[msg].SenderSub.c + "</td><td>" + messages[msg].body + "</td></tr>";
 	}
+	document.getElementById("readMail").innerHTML = document.getElementById("readMail").innerHTML + "</table>"; 
 }
 function sendMail() {
-	unhosted.send(document.getElementById("recipientNick").innerHTML, "inbox", 
+	unhosted.send(document.getElementById("senderNick").innerHTML, document.getElementById("recipientNick").innerHTML, "inbox", 
 		JSON.stringify({"body":document.getElementById("writeMail").value.replace(/\n/g, "<br>"),
 				"SenderSub":SubscribingPasswordMe})); 
 }
@@ -54,6 +57,9 @@ _<textarea id="q" rows="1" cols="64">9cf290ecbd9b1e7626021a5e5acdb6490050108c056
 <input type="submit" value="Login" onclick="setup();receiveMail();"/>
 <table border="1">
 <tr><td><p>
+<H2>Addressbook Nicks:</H2>
+<div id="addressBookNicks">Loading unhosted json...</div>
+<br>
 <H2>Inbox list:</H2>
 <div id="inboxList">Loading unhosted json...</div>
 <br>
@@ -63,15 +69,13 @@ _<textarea id="q" rows="1" cols="64">9cf290ecbd9b1e7626021a5e5acdb6490050108c056
 </p></td>
 <td><p>
 <H2>Write mail:</H2>
-<textarea id="writeMail" rows="20" cols="80"> 
+<textarea id="writeMail" rows="10" cols="80"> 
 hello, world! Let me tell you about this great project called Unhosted... bla bla bla
 </textarea>
 <br>
 <H2>Recipient Nick:</H2>
 <div id="recipientNick">me</div>
-<br>
-<H2>Addressbook Nicks:</H2>
-<div id="addressBookNicks">Loading unhosted json...</div>
+<div id="senderNick">me</div>
 <br>
 <input type="submit" name="send mail!" onclick="sendMail();"/>
 </p></td></tr>
