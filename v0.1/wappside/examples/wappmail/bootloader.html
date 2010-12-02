@@ -1,0 +1,50 @@
+<html>
+<script language="JavaScript" type="text/javascript" src="PublishingPasswordMe.js"></script>
+<script language="JavaScript" type="text/javascript" src="../../unhosted/rijndael.js"></script>
+<script language="JavaScript" type="text/javascript" src="../../unhosted/sha1.js"></script>
+<script language="JavaScript" type="text/javascript" src="../../unhosted/jsbn.js"></script>
+<script language="JavaScript" type="text/javascript" src="../../unhosted/unhosted.js"></script>
+<script>
+function setup() {
+	/*global*/ unhosted = Unhosted();
+	unhosted.importPub(PublishingPasswordMe, "me");
+	var addressBook = unhosted.get("me", "addressbook");
+//	foreach(addressBook as nick => sub) {
+//		unhosted.importSub(sub, nick);
+//	}
+	document.getElementById("addressBookNicks").innerHTML= "<b>me</b><br>";
+}
+function receiveMail() {
+	var messages = unhosted.receive("me", "inbox");
+	document.getElementById("readMail").innerHTML = "";
+	for(msg in messages) {
+		document.getElementById("readMail").innerHTML = document.getElementById("readMail").innerHTML + "<br>" + messages[msg];
+	}
+}
+function sendMail() {
+	unhosted.send(document.getElementById("recipientNick").innerHTML, "inbox", document.getElementById("writeMail").value.replace(/\n/g, "<br>")); 
+}
+</script>
+<body onload="setup();receiveMail();">
+<H2>Inbox list:</H2>
+<div id="inboxList">Loading unhosted json...</div>
+<br>
+<input type="submit" name="Receive mail" onclick="receiveMail();"/>
+<H2>Read mail:</H2>
+<div id="readMail">Loading unhosted json...</div>
+<br>
+<H2>Write mail:</H2>
+<textarea id="writeMail" rows="20" cols="80"> 
+hello, world! Let me tell you about this great project called Unhosted... bla bla bla
+</textarea>
+<br>
+<H2>Recipient Nick:</H2>
+<div id="recipientNick">me</div>
+<br>
+<H2>Addressbook Nicks:</H2>
+<div id="addressBookNicks">Loading unhosted json...</div>
+<br>
+<input type="submit" name="send mail!" onclick="sendMail();"/>
+
+</body>
+</html>

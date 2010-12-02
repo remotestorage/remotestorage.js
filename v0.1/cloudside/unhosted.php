@@ -1,5 +1,5 @@
 <?php
-//ini_set('display_errors', TRUE);
+ini_set('display_errors', TRUE);
 class UnhostedJsonParser {
 	function checkWriteCaps($chan, $WriteCaps) {
 		//hard coded read => write caps, change these to codes that only you know!:
@@ -124,17 +124,19 @@ class StorageBackend {
 			return 'null';
 		}
 	}
-	function doSEND($chan, $app, $keyPath, $cmd, $save) {
+	function doSEND($chan, $app, $keyPath, $save) {
 		$fileName = $this->makeFileName($chan, $app, $keyPath, TRUE);
-		$res = file_put_contents($fileName, $save, FILE_APPEND);
+		$res = file_put_contents($fileName, ','.$save, FILE_APPEND);//the comma will help make it into valid JSON efficiently in doRECEIVE
 		if($res === false) {
 			throw new Exception("Server error - could not write '$fileName'");
 		}
+		return '"OK"';
 	}
 	function doRECEIVE($chan, $app, $keyPath) {
 		$fileName = $this->makeFileName($chan, $app, $keyPath, TRUE);
 		if(is_readable($fileName)) {
-			return file_get_contents($fileName);//delete messages after reading them?
+			$asOnDisk = file_get_contents($fileName);//delete messages after reading them?
+			return '['.substr($asOnDisk, 1).']';
 		} else {
 			return 'null';
 		}

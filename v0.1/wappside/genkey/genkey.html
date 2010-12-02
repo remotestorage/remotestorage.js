@@ -14,7 +14,7 @@ function genkey() {
 	
 	var token = document.getElementById("token").value;
 	var token = JSON.parse(document.getElementById("token").value);
-	document.getElementById("r").value = 'var SubscriptionPassword ='
+	document.getElementById("r").value = 'var SubscribingPassword ='
 			+' {\n\t"cloud":"'+document.getElementById("cloud").value
 			+'",\n\t"r":"'+token["r"]
 			+'",\n\t"w":"'+token["w"]
