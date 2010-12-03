@@ -6,27 +6,14 @@
 <script language="JavaScript" type="text/javascript" src="../../unhosted/jsbn.js"></script>
 <script language="JavaScript" type="text/javascript" src="../../unhosted/unhosted.js"></script>
 <script>
-function setup() {
+function login() {
 	/*global*/ unhosted = Unhosted();
-	/*global*/ PublishingPasswordMe = {
+	unhosted.importPub({
 		"r":document.getElementById("r").value,
 		"c":document.getElementById("c").value,
+		"n":document.getElementById("n").value,
 		"w":document.getElementById("w").value,
-		"p":document.getElementById("p").value,
-		"q":document.getElementById("q").value};
-	/*global*/ SubscribingPasswordMe = {
-		"r":document.getElementById("r").value,
-		"c":document.getElementById("c").value,
-		"n":document.getElementById("n").value};
-	unhosted.importPub(PublishingPasswordMe, "me");
-	var addressBook = unhosted.get("me", "addressbook");
-	document.getElementById("addressBookNicks").innerHTML= "<b>me</b><br>";
-	if(addressBook!=null) {
-		for(nick in JSON.parse(addressBook)) {
-			unhosted.importSub(addressbook[nick], nick);
-			document.getElementById("addressBookNicks").innerHTML= document.getElementById("addressBookNicks").innerHTML= nick+"<br>";
-		}
-	}
+		"d":document.getElementById("d").value}, "me");
 }
 function receiveMail() {
 	var messages = unhosted.receive("me", "inbox");
@@ -43,22 +30,23 @@ function sendMail() {
 		"r":document.getElementById("to_r").value,
 		"c":document.getElementById("to_c").value,
 		"n":document.getElementById("to_n").value};
+	mySenderSub= {
+		"r":document.getElementById("r").value,
+		"c":document.getElementById("c").value,
+		"n":document.getElementById("n").value};
 	unhosted.importSub(recipient, "recipient");
 	unhosted.send("me", "recipient", "inbox", 
 		JSON.stringify({"body":document.getElementById("writeMail").value.replace(/\n/g, "<br>"),
-				"SenderSub":SubscribingPasswordMe})); 
+				"SenderSub":mySenderSub})); 
 }
 </script>
 <body>
 <H2>Login:</H2>
 email: <textarea id="r" rows="1" cols="10">7db31</textarea>
 @<textarea id="c" rows="1" cols="30">demo.unhosted.org</textarea><br>
-password: <textarea id="w" rows="1" cols="5">0249e</textarea>
-_<textarea id="n" rows="1" cols="128">967fbd81d13a3ce52fb46e1216f2f15ef3ecb1f5fa0a6c00769c3290dbd6d368834fb87e25b2e53c75b36ac06ee5bf40d7c03e22b0c830e9f925e2f1e47d0e39</textarea>
-_<textarea id="s" rows="1" cols="32">921893d61cf5d362e866f863ab865d2d</textarea>
-_<textarea id="p" rows="1" cols="64">f57b4eb979a3642c7b3135a2ed4fd712342dcf8c221a82274c05d97002e07e31</textarea>
-_<textarea id="q" rows="1" cols="64">9cf290ecbd9b1e7626021a5e5acdb6490050108c056a696e514aa5994ab26689</textarea><br>
-<input type="submit" value="Login" onclick="setup();receiveMail();"/>
+public key: <textarea id="n" rows="1" cols="128">54e8739e86580ee0407150842f060e00b0188cc419c526a0ed921ff71f77e6551ead679dcfc9b47a96a6cbdee5debbdfbfb5e3e31755ec0ff798627d9d8e7341</textarea><br>
+password: <textarea id="w" rows="1" cols="6">0249e</textarea>_<textarea id="d" rows="1" cols="128">a52f956b2c74018d78e908cdc9971f0c90009587b8a2df6c0e95666d1b82886c3b6ae41fd364f1a42b7aff47e1621289e4510a8218285d6fa9448e91849cccaf</textarea><br>
+<input type="submit" value="Login" onclick="login();receiveMail();"/>
 <table border="1">
 <tr><td><p>
 <input type="submit" value="Check mail" onclick="receiveMail();"/>
@@ -73,7 +61,7 @@ to: <textarea id="to_r" rows="1" cols="10">140d9</textarea>@<textarea id="to_c" 
 hello, world! Let me tell you about this great project called Unhosted... bla bla bla
 </textarea>
 <br>
-<input type="submit" name="send mail!" onclick="sendMail();"/>
+<input type="submit" value="Send mail!" onclick="sendMail();"/>
 </p></td></tr>
 </table>
 </body>

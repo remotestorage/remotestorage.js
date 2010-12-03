@@ -1,6 +1,6 @@
 var SubscribingPasswordMe = {
-	"cloud":"demo.unhosted.org/git/unhosted/v0.1/cloudside/unhosted.php",
 	"r":"7db31",
-	"pubkey":"967fbd81d13a3ce52fb46e1216f2f15ef3ecb1f5fa0a6c00769c3290dbd6d368834fb87e25b2e53c75b36ac06ee5bf40d7c03e22b0c830e9f925e2f1e47d0e39",
-	"seskey":"921893d61cf5d362e866f863ab865d2d"};
+	"c":"demo.unhosted.org",
+	"n":"a52f956b2c74018d78e908cdc9971f0c90009587b8a2df6c0e95666d1b82886c3b6ae41fd364f1a42b7aff47e1621289e4510a8218285d6fa9448e91849cccaf",
+	"s":"c1d22798ee5fbd8e157cda538ac2c5a9"};
 
