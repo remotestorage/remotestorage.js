@@ -126,7 +126,7 @@ function Unhosted() {
 		//this is two-step encryption. first we Rijndael-encrypted value symmetrically (with the single-use var seskey). The result goes into 'value' in the cmd.
 		//Then, we RSA-encrypted var seskey asymmetrically with toNick's public RSA.n, and that encrypted session key goes into 'ses' in the cmd. See also this.receive.
 		var cmd = JSON.stringify({"method":"SEND", "chan":keys[toNick].r, "keyPath":keyPath, "value":encr, "ses":encrSes, 
-			"from_r":keys[fromNick].r, "from_c":keys[fromNick].c, "from_n":keys[fromNick].n});
+			"SenderSub":{"r":keys[fromNick].r, "c":keys[fromNick].c, "n":keys[fromNick].n}});
 		var PubSign = makePubSign(fromNick, cmd);
 		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign, keys[toNick].c);
 	}

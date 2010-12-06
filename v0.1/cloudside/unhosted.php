@@ -1,5 +1,6 @@
 <?php
 ini_set('display_errors', TRUE);
+require_once 'config.php';
 class UnhostedJsonParser {
 	function checkWriteCaps($chan, $WriteCaps) {
 		//hard coded read => write caps, change these to codes that only you know!:
@@ -105,41 +106,64 @@ class UnhostedJsonParser {
 }
 
 class StorageBackend {
-	function makeFileName($chan, $app, $keyPath, $forMessages = FALSE) {
-		return "/tmp/unhosted_{$chan}_{$app}_{$keyPath}_".($forMessages?'msg':'key');
+	private $mysql = null;
+	private $dbSpec = array(
+			"CREATE TABLE IF NOT EXISTS `entries` (`chan` blob, `app` blob, `keyPath` blob, `save` blob)",
+			"CREATE TABLE IF NOT EXISTS `messages` (`chan` blob, `app` blob, `keyPath` blob, `save` blob)");
+	private function query($sql) {
+		if($this->mysql === null) {
+			$this->mysql = mysqli_connect($GLOBALS['dbHost'],$GLOBALS['dbUser'],$GLOBALS['dbPwd']);
+			if($this->mysql === FALSE) {
+				throw new Exception("DB CONNECT ERROR");
+			}
+			if($this->mysql->select_db($GLOBALS['dbName']) === FALSE) {
+				$this->mysql->query("CREATE DATABASE IF NOT EXISTS `".$GLOBALS['dbName']."`");
+				if($this->mysql->select_db($GLOBALS['dbName']) === FALSE) {
+					throw new Exception("DB CREATION FAILURE :".$this->mysql->error);
+				}
+				foreach($this->dbSpec as $query) {
+					if($this->mysql->query($query) === FALSE) {
+						throw new Exception("TABLE CREATION FAILURE :".$this->mysql->error);
+					}
+				}
+			}
+		}
+		$r = $this->mysql->query($sql);
+		if($r === FALSE) {
+			throw new Exception("DB ERROR: ".$this->mysql->error);
+		}
+		return $r;
+	}
+	private function queryVal($sql) {
+		$r = $this->query($sql);
+		$ret = array();
+		$row = mysqli_fetch_row($r);
+		if($row) {
+			return $row[0];
+		} else {
+			return null;
+		}
+		return $ret;
+	}
+	private function queryArr($sql) {
+		$r = $this->query($sql);
+		$ret = '[';
+		while($row = mysqli_fetch_row($r)) {
+			$ret .= $row[0].',';
+		}
+		return substr($ret,0,strlen($ret)-1).']';
 	}
 	function doSET($chan, $app, $keyPath, $save) {
-		$fileName = $this->makeFileName($chan, $app, $keyPath);
-		$res = file_put_contents($fileName, $save);
-		if($res === false) {
-			throw new Exception("Server error - could not write '$fileName'");
-		}
-		return '"OK"';
+		$this->query("INSERT INTO `entries` (`chan`, `app`, `keyPath`, `save`) VALUES ('$chan', '$app', '$keyPath', '$save');");
 	}
 	function doGET($chan, $app, $keyPath) {
-		$fileName = $this->makeFileName($chan, $app, $keyPath);
-		if(is_readable($fileName)) {
-			return file_get_contents($fileName);
-		} else {
-			return 'null';
-		}
+		return $this->queryVal("SELECT `save` FROM `entries` WHERE `chan`='$chan' AND `app`='$app' AND `keyPath`='$keyPath';");
 	}
 	function doSEND($chan, $app, $keyPath, $save) {
-		$fileName = $this->makeFileName($chan, $app, $keyPath, TRUE);
-		$res = file_put_contents($fileName, ','.$save, FILE_APPEND);//the comma will help make it into valid JSON efficiently in doRECEIVE
-		if($res === false) {
-			throw new Exception("Server error - could not write '$fileName'");
-		}
-		return '"OK"';
+		$this->query("INSERT INTO `messages` (`chan`, `app`, `keyPath`, `save`) VALUES ('$chan', '$app', '$keyPath', '$save');");
 	}
 	function doRECEIVE($chan, $app, $keyPath) {
-		$fileName = $this->makeFileName($chan, $app, $keyPath, TRUE);
-		if(is_readable($fileName)) {
-			$asOnDisk = file_get_contents($fileName);//delete messages after reading them?
-			return '['.substr($asOnDisk, 1).']';
-		} else {
-			return 'null';
-		}
+		return $this->queryArr("SELECT `save` FROM `messages` WHERE `chan`='$chan' AND `app`='$app' AND `keyPath`='$keyPath';");
 	}
 }
 

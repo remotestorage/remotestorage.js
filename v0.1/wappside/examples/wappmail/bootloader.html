@@ -14,13 +14,16 @@ function login() {
 		"n":document.getElementById("n").value,
 		"w":document.getElementById("w").value,
 		"d":document.getElementById("d").value}, "me");
+replyTo('cf2bb', 'demo.unhosted.org', '59b56aa9f2d048458f2c8c6293fbd063d06dd2d5ee59dfe42916018f0e0e319901db8486b75fbf23185f421ba91c6552d1e6724db6822cbae7716f405a5fdf13 ');
 }
 function receiveMail() {
 	var messages = unhosted.receive("me", "inbox");
 	document.getElementById("readMail").innerHTML = "<table border='1'><tr><td><b>From</b></td><td><b>Message</b></td></tr>";
 	for(msg in messages) {
 		document.getElementById("readMail").innerHTML = document.getElementById("readMail").innerHTML 
-			+ "<tr><td>" + messages[msg].SenderSub.r+"@"+messages[msg].SenderSub.c + "</td><td>" + messages[msg].body + "</td></tr>";
+			+ "<tr><td onclick=\"replyTo('" + messages[msg].SenderSub.r + "', '" + messages[msg].SenderSub.c + "', '" 
+			+ messages[msg].SenderSub.n.substr(0,128) + "');\">"
+			+ messages[msg].SenderSub.r+"@"+messages[msg].SenderSub.c + "</td><td>" + messages[msg].body + "</td></tr>";
 		unhosted.set("me", "addressbook/"+messages[msg].SenderSub.r+"@"+messages[msg].SenderSub.c, messages[msg].SenderSub.n); 
 	}
 	document.getElementById("readMail").innerHTML = document.getElementById("readMail").innerHTML + "</table>"; 
@@ -38,6 +41,11 @@ function sendMail() {
 	unhosted.send("me", "recipient", "inbox", 
 		JSON.stringify({"body":document.getElementById("writeMail").value.replace(/\n/g, "<br>"),
 				"SenderSub":mySenderSub})); 
+}
+function replyTo(r,c,n) {
+	document.getElementById("to_r").value = r;
+	document.getElementById("to_c").value = c;
+	document.getElementById("to_n").value = n;
 }
 </script>
 <body>
