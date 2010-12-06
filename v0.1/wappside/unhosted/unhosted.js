@@ -140,12 +140,12 @@ function Unhosted() {
 		for(msg in ret) {
 			var cmdStr = JSON.stringify(ret[msg].cmd).replace("+", "%2B");
 			var sig = ret[msg].PubSign;//careful: this PubSign refers to the sender's n (cmd.from), not the receiver's one (keys[nick].n)!
-			if(checkPubSign(cmdStr, sig, ret[msg].cmd.from_n) == true) {
+			if(checkPubSign(cmdStr, sig, ret[msg].cmd.SenderSub.n) == true) {
 				//now we first need to RSA-decrypt the session key that will let us Rijdael-decrypt the actual value:
 				var seskey = RSADecrypt(ret[msg].cmd.ses, nick);
 				res.push(JSON.parse(byteArrayToString(rijndaelDecrypt(hexToByteArray(ret[msg].cmd.value), hexToByteArray(seskey), 'ECB'))));
 			} else {
-				res = res+'","ERROR - PubSign '+sig+' does not correctly sign '+cmdStr+' for key '+ret[msg].cmd.from_n;
+				res = res+'","ERROR - PubSign '+sig+' does not correctly sign '+cmdStr+' for key '+ret[msg].cmd.SenderSub.n;
 			}
 		}
 		return res;//have to find the proper way of doing foo[] = bar;

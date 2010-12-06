@@ -14,15 +14,14 @@ function login() {
 		"n":document.getElementById("n").value,
 		"w":document.getElementById("w").value,
 		"d":document.getElementById("d").value}, "me");
-replyTo('cf2bb', 'demo.unhosted.org', '59b56aa9f2d048458f2c8c6293fbd063d06dd2d5ee59dfe42916018f0e0e319901db8486b75fbf23185f421ba91c6552d1e6724db6822cbae7716f405a5fdf13 ');
 }
 function receiveMail() {
 	var messages = unhosted.receive("me", "inbox");
 	document.getElementById("readMail").innerHTML = "<table border='1'><tr><td><b>From</b></td><td><b>Message</b></td></tr>";
 	for(msg in messages) {
 		document.getElementById("readMail").innerHTML = document.getElementById("readMail").innerHTML 
-			+ "<tr><td onclick=\"replyTo('" + messages[msg].SenderSub.r + "', '" + messages[msg].SenderSub.c + "', '" 
-			+ messages[msg].SenderSub.n.substr(0,128) + "');\">"
+			+ "<tr onclick=\"replyTo('" + messages[msg].SenderSub.r + "', '" + messages[msg].SenderSub.c + "', '" 
+			+ messages[msg].SenderSub.n.substr(0,128) + "');\"><td>"
 			+ messages[msg].SenderSub.r+"@"+messages[msg].SenderSub.c + "</td><td>" + messages[msg].body + "</td></tr>";
 		unhosted.set("me", "addressbook/"+messages[msg].SenderSub.r+"@"+messages[msg].SenderSub.c, messages[msg].SenderSub.n); 
 	}
@@ -52,14 +51,14 @@ function replyTo(r,c,n) {
 <H2>Login:</H2>
 email: <textarea id="r" rows="1" cols="10">7db31</textarea>
 @<textarea id="c" rows="1" cols="30">demo.unhosted.org</textarea><br>
-public key: <textarea id="n" rows="1" cols="128">54e8739e86580ee0407150842f060e00b0188cc419c526a0ed921ff71f77e6551ead679dcfc9b47a96a6cbdee5debbdfbfb5e3e31755ec0ff798627d9d8e7341</textarea><br>
+              public key: <textarea id="n" rows="1" cols="128">54e8739e86580ee0407150842f060e00b0188cc419c526a0ed921ff71f77e6551ead679dcfc9b47a96a6cbdee5debbdfbfb5e3e31755ec0ff798627d9d8e7341</textarea><br>
 password: <textarea id="w" rows="1" cols="6">0249e</textarea>_<textarea id="d" rows="1" cols="128">a52f956b2c74018d78e908cdc9971f0c90009587b8a2df6c0e95666d1b82886c3b6ae41fd364f1a42b7aff47e1621289e4510a8218285d6fa9448e91849cccaf</textarea><br>
 <input type="submit" value="Login" onclick="login();receiveMail();"/>
 <table border="1">
 <tr><td><p>
 <input type="submit" value="Check mail" onclick="receiveMail();"/>
-<H2>Read mail:</H2>
-<div id="readMail">Loading unhosted json...</div>
+<H2>Read mail (click to reply):</H2>
+<div id="readMail">Please log in first...</div>
 </p></td>
 <td><p>
 <H2>Write mail:</H2>

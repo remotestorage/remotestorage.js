@@ -149,9 +149,12 @@ class StorageBackend {
 		$r = $this->query($sql);
 		$ret = '[';
 		while($row = mysqli_fetch_row($r)) {
-			$ret .= $row[0].',';
+			if(strlen($ret)>1) {
+				$ret .= ',';
+			}
+			$ret .= $row[0];
 		}
-		return substr($ret,0,strlen($ret)-1).']';
+		return $ret.']';
 	}
 	function doSET($chan, $app, $keyPath, $save) {
 		$this->query("INSERT INTO `entries` (`chan`, `app`, `keyPath`, `save`) VALUES ('$chan', '$app', '$keyPath', '$save');");
