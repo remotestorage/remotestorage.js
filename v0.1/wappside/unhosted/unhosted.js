@@ -145,7 +145,8 @@ function Unhosted() {
 				var seskey = RSADecrypt(ret[msg].cmd.ses, nick);
 				res.push(JSON.parse(byteArrayToString(rijndaelDecrypt(hexToByteArray(ret[msg].cmd.value), hexToByteArray(seskey), 'ECB'))));
 			} else {
-				res = res+'","ERROR - PubSign '+sig+' does not correctly sign '+cmdStr+' for key '+ret[msg].cmd.SenderSub.n;
+//				res.push({"body":'ERROR - PubSign '+sig+' does not correctly sign '+cmdStr+' for key '+ret[msg].cmd.SenderSub.n, 
+//					"SenderSub":{"r":"not valid", "c":"not valid", "n":"not valid"}});
 			}
 		}
 		return res;//have to find the proper way of doing foo[] = bar;

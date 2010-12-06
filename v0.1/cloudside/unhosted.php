@@ -107,8 +107,8 @@ class UnhostedJsonParser {
 
 class StorageBackend {
 	private $mysql = null;
-	private $dbSpec = array(
-			"CREATE TABLE IF NOT EXISTS `entries` (`chan` blob, `app` blob, `keyPath` blob, `save` blob)",
+	private $dbSpec = array(//in real life you would never create the tables from a php-array, nor use three blobs as the primary key of a table, but this is only a demo:
+			"CREATE TABLE IF NOT EXISTS `entries` (`chan` varchar(255), `app` varchar(255), `keyPath` varchar(255), `save` blob, PRIMARY KEY (`chan`, `app`, `keyPath`))",
 			"CREATE TABLE IF NOT EXISTS `messages` (`chan` blob, `app` blob, `keyPath` blob, `save` blob)");
 	private function query($sql) {
 		if($this->mysql === null) {
@@ -157,7 +157,7 @@ class StorageBackend {
 		return $ret.']';
 	}
 	function doSET($chan, $app, $keyPath, $save) {
-		$this->query("INSERT INTO `entries` (`chan`, `app`, `keyPath`, `save`) VALUES ('$chan', '$app', '$keyPath', '$save');");
+		$this->query("INSERT INTO `entries` (`chan`, `app`, `keyPath`, `save`) VALUES ('$chan', '$app', '$keyPath', '$save') ON DUPLICATE KEY UPDATE `save`='$save';");
 	}
 	function doGET($chan, $app, $keyPath) {
 		return $this->queryVal("SELECT `save` FROM `entries` WHERE `chan`='$chan' AND `app`='$app' AND `keyPath`='$keyPath';");
