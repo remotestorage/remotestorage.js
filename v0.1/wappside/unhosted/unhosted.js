@@ -90,41 +90,99 @@ function Unhosted() {
 		var x = new BigInteger(PubSign.replace(/[ \n]+/g, ""), 16);
 		return (x.modPowInt(parseInt("10001", 16), n).toString(16).replace(/^1f+00/, '') == sha1.hex(cmd));
 	}
-
+	function checkND(n, d) {
+		return true;
+	}
+	function addN(nick, locationN) {
+		var n = rawGet(nick, locationN);
+		if(n==null) {
+			return false;
+		}
+		n = n.cmd.value;//unpack UJ/0.1 SET command
+		if(!checkND(n, keys[nick].d)) {//checks plaintext, PubSign-less n against d
+			return false;
+		}
+		keys[nick].n = n;
+		return true;
+	}
+	function addS(nick, locationS) {
+		var ret = unhosted.rawGet(nick, locationS);//decrypts with d instead of with s
+		if(ret==null) {
+			return false;
+		}
+		var cmdStr = JSON.stringify(ret.cmd).replace("+", "%2B");
+		var sig = ret.PubSign;
+		if(checkPubSign(cmdStr, sig, keys[nick].n) == false) {
+			return false;
+		}
+		var ses = RSADecrypt(ret.cmd.ses, nick);//decrypts with d instead of with s
+		var s = byteArrayToString(rijndaelDecrypt(hexToByteArray(ret.cmd.value), hexToByteArray(ses), 'ECB'));
+		if(s == null) {
+			return false;
+		}
+		keys[nick].s = s;
+		return true;
+	}
 	//public:
 	this.importPub = function(writeCaps, nick) {//import a (pub) key to the keys[] variable
 		keys[nick]=writeCaps;//this should contain r,c,n,d.
 	}
+	this.importPubNS = function(writeCaps, nick, locationN, locationS) {
+		keys[nick]=writeCaps;//this should contain r,c,w,d.
+		return (addN(nick, locationN)==true && addS(nick, locationS)==true);
+	}
 	this.importSub = function(readCaps, nick) {//import a (sub) key to the keys[] variable
 		keys[nick]=readCaps;
 	}
-	this.get = function(nick, keyPath) {//execute a UJ/0.1 GET command
+	this.rawGet = function(nick, keyPath) {//used by wappbook login bootstrap to retrieve key.n and key.s
 		var cmd = JSON.stringify({"method":"GET", "chan":keys[nick].r, "keyPath":keyPath});
-		var ret = JSON.parse(sendPost("protocol=UJ/0.1&cmd="+cmd, keys[nick].c));
+		var ret = sendPost("protocol=UJ/0.1&cmd="+cmd, keys[nick].c);
+		if(ret == "") {
+			return null;
+		}
+		return JSON.parse(ret);
+	}
+	this.get = function(nick, keyPath) {//execute a UJ/0.1 GET command
+		var ret = rawGet(nick, keyPath);
 		if(ret==null) {
 			return null;
 		}
 		var cmdStr = JSON.stringify(ret.cmd).replace("+", "%2B");
 		var sig = ret.PubSign;
 		if(checkPubSign(cmdStr, sig, keys[nick].n) == true) {
-			return byteArrayToString(rijndaelDecrypt(hexToByteArray(ret.cmd.value), hexToByteArray(keys[nick].s), 'ECB'));
+			return JSON.parse(byteArrayToString(rijndaelDecrypt(hexToByteArray(ret.cmd.value), hexToByteArray(keys[nick].s), 'ECB')));
 		} else {
 			return "ERROR - PubSign "+sig+" does not correctly sign "+cmdStr+" for key "+keys[nick].n;
 		}
 	}
+	this.rawSet = function(nick, keyPath, value, useN) {
+		var cmd = JSON.stringify({"method":"SET", "chan":keys[nick].r, "keyPath":keyPath, "value":value});
+		var PubSign = '';
+		if(useN) {
+			//this is two-step encryption. first we Rijndael-encrypt value symmetrically (with the single-use var seskey). The result goes into 'value' in the cmd.
+			var bnSeskey = new BigInteger(128,1,rng);//rijndael function we use uses a 128-bit key
+			var seskey = bnSeskey.toString(16);
+			var encr = byteArrayToHex(rijndaelEncrypt(value, hexToByteArray(seskey), 'ECB'));
+			//Then, we RSA-encrypt var seskey asymmetrically with nick's public RSA.n, and that encrypted session key goes into 'ses' in the cmd. See also this.receive.
+			var encrSes = RSAEncrypt(seskey, nick);
+			cmd = JSON.stringify({"method":"SET", "chan":keys[nick].r, "keyPath":keyPath, "value":encr, "ses":encrSes});
+			PubSign = makePubSign(nick, cmd);
+		}
+		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign+'&WriteCaps='+keys[nick].w, keys[nick].c);
+	}
 	this.set = function(nick, keyPath, value) {//execute a UJ/0.1 SET command
-		var encr = byteArrayToHex(rijndaelEncrypt(value, hexToByteArray(keys[nick].s), 'ECB'));
+		var encr = byteArrayToHex(rijndaelEncrypt(JSON.stringify(value), hexToByteArray(keys[nick].s), 'ECB'));
 		var cmd = JSON.stringify({"method":"SET", "chan":keys[nick].r, "keyPath":keyPath, "value":encr});
 		var PubSign = makePubSign(nick, cmd);
 		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign+'&WriteCaps='+keys[nick].w, keys[nick].c);
 	}
 	this.send = function(fromNick, toNick, keyPath, value) {//execute a UJ/0.1 SEND command
+		//this is two-step encryption. first we Rijndael-encrypt value symmetrically (with the single-use var seskey). The result goes into 'value' in the cmd.
 		var bnSeskey = new BigInteger(128,1,rng);//rijndael function we use uses a 128-bit key
 		var seskey = bnSeskey.toString(16);
 		var encr = byteArrayToHex(rijndaelEncrypt(value, hexToByteArray(seskey), 'ECB'));
+		//Then, we RSA-encrypt var seskey asymmetrically with toNick's public RSA.n, and that encrypted session key goes into 'ses' in the cmd. See also this.receive.
 		var encrSes = RSAEncrypt(seskey, toNick);
-		//this is two-step encryption. first we Rijndael-encrypted value symmetrically (with the single-use var seskey). The result goes into 'value' in the cmd.
-		//Then, we RSA-encrypted var seskey asymmetrically with toNick's public RSA.n, and that encrypted session key goes into 'ses' in the cmd. See also this.receive.
 		var cmd = JSON.stringify({"method":"SEND", "chan":keys[toNick].r, "keyPath":keyPath, "value":encr, "ses":encrSes, 
 			"SenderSub":{"r":keys[fromNick].r, "c":keys[fromNick].c, "n":keys[fromNick].n}});
 		var PubSign = makePubSign(fromNick, cmd);
