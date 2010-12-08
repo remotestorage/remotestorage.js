@@ -22,7 +22,6 @@ function receiveMail() {
 			+ "<tr><td onclick=\"replyTo('" + messages[msg].SenderSub.r + "', '" + messages[msg].SenderSub.c + "', '" 
 			+ messages[msg].SenderSub.n.substr(0,128) + "');\">"
 			+ messages[msg].SenderSub.r+"@"+messages[msg].SenderSub.c + "</td><td>" + messages[msg].body + "</td></tr>";
-		unhosted.set("me", "addressbook/"+messages[msg].SenderSub.r+"@"+messages[msg].SenderSub.c, messages[msg].SenderSub.n); 
 	}
 	document.getElementById("readMail").innerHTML = document.getElementById("readMail").innerHTML + "</table>"; 
 }
