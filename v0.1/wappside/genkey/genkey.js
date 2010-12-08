@@ -44,7 +44,6 @@
 		return key;
 	}
 	submitNS = function(key) {
-		var unhosted = new Unhosted();
 		unhosted.importPub(key, "newKey");
 		unhosted.rawSet("newKey", ".n", key.n, false);
 		unhosted.rawSet("newKey", ".s", key.s, true);

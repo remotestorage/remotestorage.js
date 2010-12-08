@@ -8,7 +8,6 @@
 <script language="JavaScript" type="text/javascript" src="../../../unhosted/unhosted.js"></script>
 <script>
 function saveBlogPost() {
-	var unhosted = Unhosted();
 	unhosted.importPub(PublishingPasswordMe, "hardCodedPub");
 	unhosted.set("hardCodedPub", "myFirstUnhostedBlogPost", document.getElementById("blogpost").value.replace(/\n/g, "<br>")); 
 }

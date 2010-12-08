@@ -123,6 +123,12 @@ function Unhosted() {
 		keys[nick].s = s;
 		return true;
 	}
+	function makeStar(signerNick, signeeNick) {//creates a star-object for signing
+		return {
+			"signer":{"r":keys[signerNick].r, "c":keys[signerNick].c, "n":keys[signerNick].n},
+			"signee":{"r":keys[signeeNick].r, "c":keys[signeeNick].c, "n":keys[signeeNick].n}
+			};
+	}
 	//public:
 	this.importPub = function(writeCaps, nick) {//import a (pub) key to the keys[] variable
 		keys[nick]=writeCaps;//this should contain r,c,n,d.
@@ -198,16 +204,47 @@ function Unhosted() {
 		for(msg in ret) {
 			var cmdStr = JSON.stringify(ret[msg].cmd).replace("+", "%2B");
 			var sig = ret[msg].PubSign;//careful: this PubSign refers to the sender's n (cmd.from), not the receiver's one (keys[nick].n)!
-			if(checkPubSign(cmdStr, sig, ret[msg].cmd.SenderSub.n) == true) {
+//			if(checkPubSign(cmdStr, sig, ret[msg].cmd.SenderSub.n) == true) {
 				//now we first need to RSA-decrypt the session key that will let us Rijdael-decrypt the actual value:
 				var seskey = RSADecrypt(ret[msg].cmd.ses, nick);
 				res.push(JSON.parse(byteArrayToString(rijndaelDecrypt(hexToByteArray(ret[msg].cmd.value), hexToByteArray(seskey), 'ECB'))));
-			} else {
+//			} else {
 //				res.push({"body":'ERROR - PubSign '+sig+' does not correctly sign '+cmdStr+' for key '+ret[msg].cmd.SenderSub.n, 
 //					"SenderSub":{"r":"not valid", "c":"not valid", "n":"not valid"}});
-			}
+//			}
 		}
 		return res;//have to find the proper way of doing foo[] = bar;
 	}
+	this.makeStarSign = function(signerNick, signeeNick) {//creates a star-object, signs it, and returns the signature
+		var star = makeStar(signerNick, signeeNick);
+		var StarSign = makePubSign(signerNick, star);
+		return StarSign;
+	}
+	this.checkStarSign = function(signerNick, signeeNick, StarSign) {//creates a star-object and check the signature against it with the signer's n, or his d if available
+		var star = makeStar(signerNick, signeeNick);
+		var check = checkPubSign(star, StarSign, keys[signerNick].n);
+		return check;
+	}
+		
 	return this;
 }
+/*GLOBAL SINGLETON:*/
+var unhosted = Unhosted();
+//public functions:
+//	this.importPub = function(writeCaps, nick) {//import a (pub) key to the keys[] variable
+//	this.importPubNS = function(writeCaps, nick, locationN, locationS) {
+//	this.importSub = function(readCaps, nick) {//import a (sub) key to the keys[] variable
+
+//	this.get = function(nick, keyPath) {//execute a UJ/0.1 GET command
+//	this.set = function(nick, keyPath, value) {//execute a UJ/0.1 SET command
+
+//	this.send = function(fromNick, toNick, keyPath, value) {//execute a UJ/0.1 SEND command
+//	this.receive = function(nick, keyPath) {//execute a UJ/0.1 GET command
+
+//	this.rawGet = function(nick, keyPath) {//used by wappbook login bootstrap to retrieve key.n and key.s
+//	this.rawSet = function(nick, keyPath, value, useN) {
+
+//	this.makeStar = function(signerNick, signeeNick) {//creates a star-object for signing
+//	this.makeStarSign = function(signerNick, signeeNick) {//creates a star-object, signs it, and returns the signature
+//	this.checkStarSign = function(signerNick, signeeNick, StarSign) {//creates a star-object and check the signature against it with the signer's n, or his d if available
+

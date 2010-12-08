@@ -7,7 +7,6 @@
 <script language="JavaScript" type="text/javascript" src="../../unhosted/unhosted.js"></script>
 <script>
 function login() {
-	/*global*/ unhosted = Unhosted();
 	unhosted.importPub({
 		"r":document.getElementById("r").value,
 		"c":document.getElementById("c").value,
@@ -49,10 +48,10 @@ function replyTo(r,c,n) {
 </script>
 <body>
 <H2>Login:</H2>
-email: <textarea id="r" rows="1" cols="10">7db31</textarea>
+your email: <textarea id="r" rows="1" cols="10">7db31</textarea>
 @<textarea id="c" rows="1" cols="30">demo.unhosted.org</textarea><br>
-              public key: <textarea id="n" rows="1" cols="128">54e8739e86580ee0407150842f060e00b0188cc419c526a0ed921ff71f77e6551ead679dcfc9b47a96a6cbdee5debbdfbfb5e3e31755ec0ff798627d9d8e7341</textarea><br>
-password: <textarea id="w" rows="1" cols="6">0249e</textarea>_<textarea id="d" rows="1" cols="128">a52f956b2c74018d78e908cdc9971f0c90009587b8a2df6c0e95666d1b82886c3b6ae41fd364f1a42b7aff47e1621289e4510a8218285d6fa9448e91849cccaf</textarea><br>
+your public key: <textarea id="n" rows="1" cols="128">5957a08616c22d6ffed7df166e9913c9c2bce65c3e5774996d121e27909b829a14dc57509d626e534697128d3e39fb562679fda7df01b8fb667eae2f13184755</textarea><br>
+password: <textarea id="w" rows="1" cols="6">0249e</textarea>_<textarea id="d" rows="1" cols="128">570e5fc8c91c6512208d5140967c6b1fcab62ef1eb7d648cac0f5f7ac61a0263e29f576936d7c74a8a588d29a4e747e15ab7dd3e75f30d9e7afdb9f1695426f1</textarea><br>
 <input type="submit" value="Login" onclick="login();receiveMail();"/>
 <table border="1">
 <tr><td><p>
@@ -62,13 +61,13 @@ password: <textarea id="w" rows="1" cols="6">0249e</textarea>_<textarea id="d" r
 </p></td>
 <td><p>
 <H2>Write mail:</H2>
-to: <textarea id="to_r" rows="1" cols="10">140d9</textarea>@<textarea id="to_c" rows="1" cols="30">demo.unhosted.org</textarea><br>:
-<textarea id="to_n" rows="1" cols="128">6b334f6f2129abd0a1934c660c69c3ebc4b644df2f04f6de868bddd279136ef7520e031b1ba6541b32d3e9f5a9bfa6d9f9e08da0b0fbd82c4baee473009aadb1</textarea>
-<textarea id="writeMail" rows="10" cols="80"> 
-hello, world! Let me tell you about this great project called Unhosted... bla bla bla
+to: <textarea id="to_r" rows="1" cols="10">7db31</textarea>@<textarea id="to_c" rows="1" cols="30">demo.unhosted.org</textarea><br>
+recipient's public key: <textarea id="to_n" rows="1" cols="128">5957a08616c22d6ffed7df166e9913c9c2bce65c3e5774996d121e27909b829a14dc57509d626e534697128d3e39fb562679fda7df01b8fb667eae2f13184755</textarea><br>
+<textarea id="writeMail" rows="10" cols="80">
+hello, me! A message to myself... What a hassle to need to use public keys all the time! Need to think of a solution for that...
 </textarea>
 <br>
-<input type="submit" value="Send mail!" onclick="sendMail();"/>
+<input type="submit" value="Send mail!" onclick="sendMail();receiveMail();"/>
 </p></td></tr>
 </table>
 </body>

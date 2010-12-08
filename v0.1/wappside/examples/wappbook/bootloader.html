@@ -1,0 +1,65 @@
+<html>
+<script language="JavaScript" type="text/javascript" src="../../unhosted/prng4.js"></script>
+<script language="JavaScript" type="text/javascript" src="../../unhosted/rng.js"></script>
+<script language="JavaScript" type="text/javascript" src="../../unhosted/rijndael.js"></script>
+<script language="JavaScript" type="text/javascript" src="../../unhosted/sha1.js"></script>
+<script language="JavaScript" type="text/javascript" src="../../unhosted/jsbn.js"></script>
+<script language="JavaScript" type="text/javascript" src="../../unhosted/unhosted.js"></script>
+<script language="JavaScript" type="text/javascript" src="hutch.js"></script>
+<script>
+function login() {
+	var me = {
+		"r":document.getElementById("r").value,
+		"c":document.getElementById("c").value,
+		"w":document.getElementById("w").value,
+		"d":document.getElementById("d").value};
+	unhosted.importPubNS(me, "me", ".n", ".s");
+}
+function retrieveAddressBook() {
+	var addresses = unhosted.get("me", ".addr");
+	if(addresses==null) {
+		addresses = {};
+	}
+	return addresses;
+}
+function showAddressBook(addresses) {
+	var addrBook = "<table border='1'>";
+	for(i in addresses) {
+		addrBook += "<tr><td>"+i+"</td><td></td></tr>";
+	}
+	addrBook += "</table>";
+	
+	document.getElementById("addrBook").innerHTML = addrBook;
+}
+function addAddress() {
+//	if(!defined(unhosted)) {
+//		alert("Please log in first");
+//	}
+	addresses = retrieveAddressBook();
+	var guid = document.getElementById("r_a").value + '@' + document.getElementById("c_a").value;
+	addresses[guid]=true;
+	unhosted.set("me", ".addr", addresses);
+	showAddressBook(addresses);
+}
+</script>
+<body>
+<H2 style="color:red">UNDER CONSTRUCTION, DOESN'T WORK YET!</H2>
+<H2>UNDER CONSTRUCTION, DOESN'T WORK YET!</H2>
+<H2 style="color:red">UNDER CONSTRUCTION, DOESN'T WORK YET!</H2>
+<H2>Login:</H2>
+email: <textarea id="r" rows="1" cols="10"></textarea>
+@<textarea id="c" rows="1" cols="30">demo.unhosted.org</textarea><br>
+password: <textarea id="w" rows="1" cols="6"></textarea>_<textarea id="d" rows="1" cols="128"></textarea><br>
+<input type="submit" value="Login" onclick="login();showAddressBook(retrieveAddressBook());"/>
+<table border="1">
+<tr><td><p>
+	<H2>Add address:</H2>
+	<textarea id="r_a" rows="1" cols="10"></textarea>@<textarea id="c_a" rows="1" cols="30"></textarea><input type="submit" value="Add" onclick="addAddress();"/><br>
+</p></td></tr>
+<tr><td><p>
+	<H2>Addresses:</H2>
+	<div id="addrBook"/>
+</p></td></tr>
+</table>
+</body>
+</html>
