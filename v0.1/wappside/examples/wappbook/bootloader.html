@@ -31,13 +31,32 @@ function showAddressBook(addresses) {
 	
 	document.getElementById("addrBook").innerHTML = addrBook;
 }
+function receiveStars() {
+	var stars = unhosted.receive("me", "StarSign");
+	var starskey = unhosted.get("me", ".stars");
+	if(starskey==null) {
+		starskey={};
+	}
+	for(var i in stars) {
+		var signerAddress=stars[i].SenderSub.r+"@"+stars[i].SenderSub.c;
+		unhosted.importSub(stars[i].SenderSub, signerAddress);
+		if(unhosted.checkStarSign(signerAddress, "me", stars[i].body)) {
+			starskey[signerAddress]=stars[i].body;
+		}
+		var StarSignReturn = unhosted.makeStarSign("me", signerAddress);
+		unhosted.send("me", signerAddress, "StarSign", StarSignReturn);
+	}
+	unhosted.set("me", ".stars", starskey);
+}
 function addAddress() {
-//	if(!defined(unhosted)) {
-//		alert("Please log in first");
-//	}
 	addresses = retrieveAddressBook();
-	var guid = document.getElementById("r_a").value + '@' + document.getElementById("c_a").value;
+	var hisR = document.getElementById("r_a").value;
+	var hisC = document.getElementById("c_a").value;
+	var guid = hisR+"@"+hisC;
 	addresses[guid]=true;
+	unhosted.importSubN({"r":hisR,"c":hisC}, guid, ".n");
+	var StarSign = unhosted.makeStarSign("me", guid);
+	unhosted.send("me", guid, "StarSign", StarSign);
 	unhosted.set("me", ".addr", addresses);
 	showAddressBook(addresses);
 }
@@ -47,9 +66,9 @@ function addAddress() {
 <H2>UNDER CONSTRUCTION, DOESN'T WORK YET!</H2>
 <H2 style="color:red">UNDER CONSTRUCTION, DOESN'T WORK YET!</H2>
 <H2>Login:</H2>
-email: <textarea id="r" rows="1" cols="10"></textarea>
+email: <textarea id="r" rows="1" cols="10">7db31</textarea>
 @<textarea id="c" rows="1" cols="30">demo.unhosted.org</textarea><br>
-password: <textarea id="w" rows="1" cols="6"></textarea>_<textarea id="d" rows="1" cols="128"></textarea><br>
+password: <textarea id="w" rows="1" cols="6">0249e</textarea>_<textarea id="d" rows="1" cols="128">6365e97c3a33adc0fdba0d50e9ea71c6d7b4716bb254d9422792eaba1c5fddcb30ae9fc1060ed162b4c8007894193a4520e1ba85a94304281e12f19c9dfca5d1</textarea><br>
 <input type="submit" value="Login" onclick="login();showAddressBook(retrieveAddressBook());"/>
 <table border="1">
 <tr><td><p>
@@ -61,5 +80,8 @@ password: <textarea id="w" rows="1" cols="6"></textarea>_<textarea id="d" rows="
 	<div id="addrBook"/>
 </p></td></tr>
 </table>
+<input type="submit" value="update '.stars'-key" onclick="receiveStars();"/> and 
+<input type="submit" value="hutch" onclick="hutch(document.getElementById('r').value+'@'+document.getElementById('c').value, retrieveAddressBook());"/><br>
+
 </body>
 </html>

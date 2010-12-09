@@ -3,13 +3,47 @@ var targets = {};
 var ns = {};
 var user = {};
 
-function calcHammingDistToUser(r, c) {
-	return 12345;
+function hamming(str1, str2) {
+	var dict = {
+		"0":"000000", "1":"000001", "2":"000010", "3":"000011", "4":"000100", "5":"000101", "6":"000110", "7":"000111",
+		"8":"001000", "9":"001001", "a":"001010", "b":"001011", "c":"001100", "d":"001101", "e":"001110", "f":"001111",
+		"g":"010000", "h":"010001", "i":"010010", "j":"010011", "k":"010100", "l":"010101", "m":"010110", "n":"010111",
+		"o":"011000", "p":"011001", "q":"011010", "r":"011011", "s":"011100", "t":"011101", "u":"011110", "v":"011111",
+		"w":"100000", "x":"100001", "y":"100010", "z":"100011", " ":"100100",
+		".":"111101", "@":"111110", "FILL":"111111"
+		}
+	var total = 0;
+	var i=0;
+	var binstr1, binstr2;
+	while(i < str1.length && i < str2.length) {
+		if(i < str1.length) {
+			binstr1 = dict[str1.charAt(i)];
+		} else {
+			binstr1 = dict["FILL"];
+		}
+		if(i < str2.length) {
+			binstr2 = dict[str2.charAt(i)];
+		} else {
+			binstr2 = dict["FILL"];
+		}
+		for(var j=0;j<5;j++) {
+			if(binstr1.charAt(j) != binstr2.charAt(j)) {
+				total++;
+			}
+		}
+		i++;
+	}
+	return total;
 }
-function addTarget(r,c) {
-	targets[r+"@"+c]=true;
-	hutchlist[r+"@"+c]={
-		"distance":calcHammingDistToUser(r, c), 
+
+function calcHammingDistToUser(address) {
+	return hamming(address, makeAddress(user));
+}
+function addTarget(address) {
+	user = parseAddress(address);
+	targets[address]=true;
+	hutchlist[address]={
+		"distance":calcHammingDistToUser(address), 
 		"backtrace":null,
 		"expanded":false
 		};
@@ -22,24 +56,28 @@ function signKey(r, c) {
 	//TODO: call a callback that also adds it directly into your own addressbook.
 	targets[r+"@"+c] = false;
 }
-function expandNode(r, c) {
+function expandNode(address) {
+	var parsedAddress = parseAddress(address);
 	var finished = false;
 	//retrieve starskey:
-	unhosted.importSub({"r":r, "c":c}, r+"@"+c);
-	starskey = unhosted.get(".stars", r+"@"+c);
+	unhosted.importSubN(parsedAddress, address, ".n");
+	starskey = unhosted.get(".stars", address);
 	//add r@c's stars as new nodes:
-	var parentGuid = r+"@"+c;
-	for(star in starskey) {
-		hutchlist[star.r+"@"+star.c]={
-			"distance":calcHammingDistToUser(star.r, star.c), //on duplicate key, don't recalculate
-			"backtrace":{parentGuid:{"r":r, "c":c}},//on duplicate key, add!
-			"expanded":false//on duplicate key, don't change.
-			};
-		if((star.r == user.r) && (star.c == user.c)) {
+	for(starSender in starskey) {
+		if(typeof hutchlist[starSender] == 'undefined') {
+			hutchlist[starSender]={
+				"distance":calcHammingDistToUser(starSender), //on duplicate key, don't recalculate
+				"backtrace":{address:{"r":parsedAddress.r, "c":parsedAddress.c}},//on duplicate key, add
+				"expanded":false//on duplicate key, don't change.
+				};
+		} else {
+			hutchlist[starSender].backtrace.address={"r":parsedAddress.r, "c":parsedAddress.c};//on duplicate key, add
+		}
+		if((parsedAddress.r == user.r) && (parsedAddress.c == user.c)) {
 			finished = true;
 		}
 	}
-	hutchlist[r+"@"+c].expanded = true;
+	hutchlist[address].expanded = true;
 	return finished;
 }
 
@@ -73,12 +111,10 @@ function hutchkey() {
 	for(guid in hutchlist) {
 		if(candidate.guid==null || ((hutchlist[guid].expanded== false) && (hutchlist[guid].distance < candidate.distance))) {
 			candidate.guid = guid;
-			candidate.r = hutchlist[guid].r;
-			candidate.c = hutchlist[guid].c;
 			candidate.distance = hutchlist[guid].distance;
 		}
 	}
-	var finished = expandNode(candidate.r, candidate.c);
+	var finished = expandNode(candidate.guid);
 	if(finished) {
 		traceBack(user.r, user.c);//start with your own key, foreach backtrace, retrieve your signature of them, check it, and traceBack on that node.
 	}
@@ -91,14 +127,20 @@ function haveTargets() {
 	}
 	return false;
 }
-function hutch() {
+function makeAddress(parts) {
+	return parts.r+"@"+parts.c;
+}
+function parseAddress(address) {
+	parts = address.split("@", 2);
+	return {"r":parts[0], "c":parts[1]};
+}
+function hutch(userAddress, addressBook) {
+	user = parseAddress(userAddress);
+	unhosted.importSubN(user, userAddress, ".n");
+	for(contact in addressBook) {
+		addTarget(contact);
+	}
 	while(haveTargets()==true) {
 		hutchkey();
 	}
 }
-//main:
-user.r = "my_r";
-user.c = "demo.unhosted.org";
-ns[user.r+"@"+user.c] = unhosted.get(user.r+"@"+user.c, ".n");
-addTarget("some_r", "demo.unhosted.org");
-hutch();
