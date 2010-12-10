@@ -15,6 +15,7 @@ function login() {
 		"d":document.getElementById("d").value}, "me");
 }
 function receiveMail() {
+	document.getElementById("readMail").innerHTML = "Fetching mail..."; 
 	var messages = unhosted.receive("me", "inbox");
 	document.getElementById("readMail").innerHTML = "<table border='1'><tr><td><b>From</b></td><td><b>Message</b></td></tr>";
 	for(msg in messages) {
@@ -37,25 +38,26 @@ function replyTo(r,c,n) {
 	document.getElementById("to_r").value = r;
 	document.getElementById("to_c").value = c;
 	document.getElementById("to_n").value = n;
+	document.getElementById("writeMail").value = "";
 }
 </script>
 <body>
 <H2>Login:</H2>
 your email: <textarea id="r" rows="1" cols="10">7db31</textarea>
 @<textarea id="c" rows="1" cols="30">demo.unhosted.org</textarea><br>
-your public key: <textarea id="n" rows="1" cols="128">5957a08616c22d6ffed7df166e9913c9c2bce65c3e5774996d121e27909b829a14dc57509d626e534697128d3e39fb562679fda7df01b8fb667eae2f13184755</textarea><br>
-password: <textarea id="w" rows="1" cols="6">0249e</textarea>_<textarea id="d" rows="1" cols="128">570e5fc8c91c6512208d5140967c6b1fcab62ef1eb7d648cac0f5f7ac61a0263e29f576936d7c74a8a588d29a4e747e15ab7dd3e75f30d9e7afdb9f1695426f1</textarea><br>
+your public key: <textarea id="n" rows="1" cols="128"></textarea><br>
+password: <textarea id="w" rows="1" cols="6">0249e</textarea>_<textarea id="d" rows="1" cols="128"></textarea><br>
 <input type="submit" value="Login" onclick="login();receiveMail();"/>
 <table border="1">
 <tr><td><p>
 <input type="submit" value="Check mail" onclick="receiveMail();"/>
-<H2>Read mail (click to reply):</H2>
+<H2>Read mail (click address to reply):</H2>
 <div id="readMail">Please log in first...</div>
 </p></td>
 <td><p>
 <H2>Write mail:</H2>
 to: <textarea id="to_r" rows="1" cols="10">7db31</textarea>@<textarea id="to_c" rows="1" cols="30">demo.unhosted.org</textarea><br>
-recipient's public key: <textarea id="to_n" rows="1" cols="128">5957a08616c22d6ffed7df166e9913c9c2bce65c3e5774996d121e27909b829a14dc57509d626e534697128d3e39fb562679fda7df01b8fb667eae2f13184755</textarea><br>
+recipient's public key: <textarea id="to_n" rows="1" cols="128"></textarea><br>
 <textarea id="writeMail" rows="10" cols="80">
 hello, me! A message to myself... What a hassle to need to use public keys all the time! Need to think of a solution for that...
 </textarea>
