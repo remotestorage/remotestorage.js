@@ -2,4 +2,4 @@
 $GLOBALS['dbHost'] = 'localhost';
 $GLOBALS['dbUser'] = 'root';
 $GLOBALS['dbPwd'] = '';
-$GLOBALS['dbName'] = 'antipodHutch';
+$GLOBALS['dbName'] = 'antipod1';

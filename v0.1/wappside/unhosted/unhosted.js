@@ -1,6 +1,7 @@
 /*GLOBAL SINGLETON:*/
 unhosted = new function() {
 	//private:
+	var that = this;
 	var keys={};//each one should contain fields r,c,n[,s[,d]] (r,c in ASCII; n,s,d in HEX)
 	var rng = new SecureRandom();//for padding
 
@@ -54,6 +55,9 @@ unhosted = new function() {
 
 	// Return the PKCS#1 RSA encryption of "text" as an even-length hex string
 	var RSAEncrypt = function(text, nick) {//copied from the rsa.js script included in Tom Wu's jsbn library
+		if((typeof keys[nick] === 'undefined') || (typeof keys[nick].n === 'undefined')) {
+			alert("user "+nick+" doesn't look like a valid unhosted account");
+		}
 		var n = new BigInteger();	n.fromString(keys[nick].n, 16);
 		var m = pkcs1pad2(text,(n.bitLength()+7)>>3);	if(m == null) return null;
 		var c = m.modPowInt(parseInt("10001", 16), n);	if(c == null) return null;
@@ -95,7 +99,7 @@ unhosted = new function() {
 		return true;
 	}
 	var addN = function(nick, locationN) {
-		var n = rawGet(nick, locationN);
+		var n = that.rawGet(nick, locationN);
 		if(n==null) {
 			return false;
 		}
@@ -107,7 +111,7 @@ unhosted = new function() {
 		return true;
 	}
 	var addS = function(nick, locationS) {
-		var ret = unhosted.rawGet(nick, locationS);//decrypts with d instead of with s
+		var ret = that.rawGet(nick, locationS);//decrypts with d instead of with s
 		if(ret==null) {
 			return false;
 		}
@@ -130,6 +134,12 @@ unhosted = new function() {
 			"signee":{"r":keys[signeeNick].r, "c":keys[signeeNick].c, "n":keys[signeeNick].n}
 			};
 	}
+	var checkNick=function(nick) {
+		if(typeof keys[nick] == 'undefined') {
+			parts=nick.split('@', 2);
+			that.importSubN({"r":parts[0],"c":parts[1]},nick,".n");
+		}
+	}
 	//public:
 	this.importPub = function(writeCaps, nick) {//import a (pub) key to the keys[] variable
 		keys[nick]=writeCaps;//this should contain r,c,n,d.
@@ -145,7 +155,8 @@ unhosted = new function() {
 		keys[nick]=readCaps;//this should contain r,c.
 		return (addN(nick, locationN)==true);
 	}
-	this.rawGet = function(nick, keyPath) {//used by wappbook login bootstrap to retrieve key.n and key.s
+	this.rawGet = function(nick, keyPath) {//used for starskey and by wappbook login bootstrap to retrieve key.n and key.s
+		checkNick(nick);
 		var cmd = JSON.stringify({"method":"GET", "chan":keys[nick].r, "keyPath":keyPath});
 		var ret = sendPost("protocol=UJ/0.1&cmd="+cmd, keys[nick].c);
 		if(ret == "") {
@@ -154,7 +165,8 @@ unhosted = new function() {
 		return JSON.parse(ret);
 	}
 	this.get = function(nick, keyPath) {//execute a UJ/0.1 GET command
-		var ret = rawGet(nick, keyPath);
+		checkNick(nick);
+		var ret = that.rawGet(nick, keyPath);
 		if(ret==null) {
 			return null;
 		}
@@ -167,6 +179,7 @@ unhosted = new function() {
 		}
 	}
 	this.rawSet = function(nick, keyPath, value, useN) {
+		checkNick(nick);
 		var cmd = JSON.stringify({"method":"SET", "chan":keys[nick].r, "keyPath":keyPath, "value":value});
 		var PubSign = '';
 		if(useN) {
@@ -182,12 +195,15 @@ unhosted = new function() {
 		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign+'&WriteCaps='+keys[nick].w, keys[nick].c);
 	}
 	this.set = function(nick, keyPath, value) {//execute a UJ/0.1 SET command
+		checkNick(nick);
 		var encr = byteArrayToHex(rijndaelEncrypt(JSON.stringify(value), hexToByteArray(keys[nick].s), 'ECB'));
 		var cmd = JSON.stringify({"method":"SET", "chan":keys[nick].r, "keyPath":keyPath, "value":encr});
 		var PubSign = makePubSign(nick, cmd);
 		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign+'&WriteCaps='+keys[nick].w, keys[nick].c);
 	}
 	this.send = function(fromNick, toNick, keyPath, value) {//execute a UJ/0.1 SEND command
+		checkNick(fromNick);
+		checkNick(toNick);
 		//this is two-step encryption. first we Rijndael-encrypt value symmetrically (with the single-use var seskey). The result goes into 'value' in the cmd.
 		var bnSeskey = new BigInteger(128,1,rng);//rijndael function we use uses a 128-bit key
 		var seskey = bnSeskey.toString(16);
@@ -200,6 +216,7 @@ unhosted = new function() {
 		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign, keys[toNick].c);
 	}
 	this.receive = function(nick, keyPath) {//execute a UJ/0.1 GET command
+		checkNick(nick);
 		var cmd = JSON.stringify({"method":"RECEIVE", "chan":keys[nick].r, "keyPath":keyPath});
 		var ret = JSON.parse(sendPost("protocol=UJ/0.1&cmd="+cmd+'&WriteCaps='+keys[nick].w, keys[nick].c));
 		if(ret==null) {
@@ -222,17 +239,19 @@ unhosted = new function() {
 		return res;//have to find the proper way of doing foo[] = bar;
 	}
 	this.makeStarSign = function(signerNick, signeeNick) {//creates a star-object, signs it, and returns the signature
+		checkNick(signerNick);
+		checkNick(signeeNick);
 		var star = makeStar(signerNick, signeeNick);
 		var StarSign = makePubSign(signerNick, star);
 		return StarSign;
 	}
 	this.checkStarSign = function(signerNick, signeeNick, StarSign) {//creates a star-object and check the signature against it with the signer's n, or his d if available
+		checkNick(signerNick);
+		checkNick(signeeNick);
 		var star = makeStar(signerNick, signeeNick);
 		var check = checkPubSign(star, StarSign, keys[signerNick].n);
 		return check;
 	}
-		
-	return this;
 }
 //public functions:
 //	this.importPub = function(writeCaps, nick) {//import a (pub) key to the keys[] variable

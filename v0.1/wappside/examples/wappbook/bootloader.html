@@ -8,15 +8,18 @@
 <script language="JavaScript" type="text/javascript" src="hutch.js"></script>
 <script>
 function login() {
-	var me = {
+	var meKey = {
 		"r":document.getElementById("r").value,
 		"c":document.getElementById("c").value,
 		"w":document.getElementById("w").value,
 		"d":document.getElementById("d").value};
-	unhosted.importPubNS(me, "me", ".n", ".s");
+	//me is a global variable in hutch2.js - TODO: should make this nicer!
+	me = meKey.r+"@"+meKey.c;
+	unhosted.importPubNS(meKey, me, ".n", ".s");
+//	unhosted.importSubN(meKey, me, ".n");
 }
 function retrieveAddressBook() {
-	var addresses = unhosted.get("me", ".addr");
+	var addresses = unhosted.get(me, ".addr");
 	if(addresses==null) {
 		addresses = {};
 	}
@@ -25,28 +28,20 @@ function retrieveAddressBook() {
 function showAddressBook(addresses) {
 	var addrBook = "<table border='1'>";
 	for(i in addresses) {
-		addrBook += "<tr><td>"+i+"</td><td></td></tr>";
+		addrBook += "<tr><td>"+i+"</td><td>";
+		if(hutch.hutch(i, me)) {
+			addrBook += "OK";
+		} else {
+			addrBook += "pending...";
+		}
+		addrBook += "</td></tr>";
 	}
 	addrBook += "</table>";
 	
 	document.getElementById("addrBook").innerHTML = addrBook;
 }
 function receiveStars() {
-	var stars = unhosted.receive("me", "StarSign");
-	var starskey = unhosted.get("me", ".stars");
-	if(starskey==null) {
-		starskey={};
-	}
-	for(var i in stars) {
-		var signerAddress=stars[i].SenderSub.r+"@"+stars[i].SenderSub.c;
-		unhosted.importSub(stars[i].SenderSub, signerAddress);
-		if(unhosted.checkStarSign(signerAddress, "me", stars[i].body)) {
-			starskey[signerAddress]=stars[i].body;
-		}
-		var StarSignReturn = unhosted.makeStarSign("me", signerAddress);
-		unhosted.send("me", signerAddress, "StarSign", StarSignReturn);
-	}
-	unhosted.set("me", ".stars", starskey);
+	hutch.receiveRecommendations();
 }
 function addAddress() {
 	addresses = retrieveAddressBook();
@@ -55,9 +50,8 @@ function addAddress() {
 	var guid = hisR+"@"+hisC;
 	addresses[guid]=true;
 	unhosted.importSubN({"r":hisR,"c":hisC}, guid, ".n");
-	var StarSign = unhosted.makeStarSign("me", guid);
-	unhosted.send("me", guid, "StarSign", StarSign);
-	unhosted.set("me", ".addr", addresses);
+	hutch.meet(guid);
+	unhosted.set(me, ".addr", addresses);
 	showAddressBook(addresses);
 }
 </script>
@@ -80,8 +74,7 @@ password: <textarea id="w" rows="1" cols="6">0249e</textarea>_<textarea id="d" r
 	<div id="addrBook"/>
 </p></td></tr>
 </table>
-<input type="submit" value="update '.stars'-key" onclick="receiveStars();"/> and 
-<input type="submit" value="hutch" onclick="hutch(document.getElementById('r').value+'@'+document.getElementById('c').value, retrieveAddressBook());"/><br>
+<input type="submit" value="update '.stars'-key" onclick="receiveStars();"/> 
 
 </body>
 </html>
