@@ -44,14 +44,18 @@ hutch = new function() {
 		return res;
 	}
 	var recommendAntecedentTo = function(recommendation, toWhom) {
-		var candidate = chooseAntecedentByBits(recommendation, toBitString(toWhom));
+		var candidate = chooseAntecedentByBits(recommendation, toBitString(toWhom)), higherAntecedent, maxAntecedent = toBitString(toWhom).length;
 		if(candidate === null) {
 			return;
 		}
-		if(typeof nodes[toWhom] == 'undefined') {
-			document;
-		}
 		if((typeof nodes[toWhom][candidate.bit] == 'undefined') || (candidate.quality > nodes[toWhom][candidate.bit].quality)) {
+			//higher antecedents will want the same lower ones as you. lower ones might prefer the newcomer to you. so recommend to all your current antecedents.
+			for(higherAntecedent = 0; higherAntecedent < maxAntecedent; higherAntecedent++) {
+				if(typeof(nodes[toWhom][higherAntecedent]) != 'undefined') {
+					recommendAntecedentTo(recommendation, nodes[toWhom][higherAntecedent].antipod);
+				}
+			}
+			//and adopt the new antecedent yourself
 			nodes[toWhom][candidate.bit]={"antipod":recommendation, "quality":candidate.quality};
 		}
 	}
@@ -77,7 +81,7 @@ hutch = new function() {
 				return null;
 			}
 			pivot = candidate;
-			if(toBitString(pivot)==toStr) {
+			if(toBitString(pivot)==toBits) {
 				path.push(pivot);//for debugging
 				return pivot;
 			}
@@ -88,17 +92,20 @@ hutch = new function() {
 
 	//public:
 	this.hutch = function(fromStr, toStr) {
-		return hutchByBits(fromStr, toBitString(toStr), toStr);
+		return (hutchByBits(fromStr, toBitString(toStr), toStr) != null);
 	}
 	this.addNode = function(newStr, firstFriend) {
-		var antecedentBit, myBits = toBitString(newStr), candidate, prefix="", suffix=myBits, candidateStr;
 		nodes[newStr] = {};
 		recommendAntecedentTo(newStr, firstFriend);//if you are the second person to join, this is necessary. if not, it can't hurt either.
 		recommendAntecedentTo(firstFriend, newStr);//this is probably not necessary, because for yourself you're going antecedent hunting anyway.
-		for(antecedentBit=0; antecedentBit < myBits.length; antecedentBit++) {//find good antecedents, leveraging your firstFriend's vantage point
+		this.improveAntecedents(newStr, firstFriend);
+	}
+	this.improveAntecedents = function(nodeName, refNode) {
+		var antecedentBit, myBits = toBitString(nodeName), candidate, prefix="", suffix=myBits, candidateStr;
+		for(antecedentBit=0; antecedentBit < myBits.length; antecedentBit++) {//find good antecedents, leveraging refNode's vantage point
 			suffix = suffix.substring(1);
 			candidateStr = prefix + (1 - myBits[antecedentBit]).toString() + suffix;
-			candidate = hutchByBits(firstFriend, candidateStr, newStr);//here, toStr indicates who to recommend to when you reach the end of the path
+			candidate = hutchByBits(refNode, candidateStr, nodeName);//here, toStr indicates who to recommend to when you reach the end of the path
 			if(candidate !== null) {
 				recommendAntecedentTo(candidate, newStr);
 				recommendAntecedentTo(newStr, candidate);
@@ -109,15 +116,8 @@ hutch = new function() {
 }
 hutch.addNode('bla', 'michiel@demo.unhosted.org');
 hutch.addNode('blue', 'bla');
-{//if(false) {
-for(gen = 0; gen < 1; gen++) {
+for(gen = 0; gen < 5; gen++) {
 	hutch.addNode("node"+gen.toString(), 'michiel@demo.unhosted.org');
 	document.write(gen+" ");
 }
-document.write(JSON.stringify(nodes));
-var res = null;
-//while(res === null) {
-	res = hutch.hutch('node42', 'node18');
-//}
-document.write(JSON.stringify(hutch.hutch('node42', 'node18')));
-}
+document.write(JSON.stringify(hutch.hutch('node4', 'node1')));
