@@ -90,6 +90,7 @@ class UnhostedJsonParser {
 			$this->checkFieldsPresent($cmd, array(
 				'chan' => 'Please specify which channel you want to retrieve messages from',
 				'keyPath' => 'Please specify which key path you\'re getting',
+				'delete' => 'Please specify whether you also want to delete the entries you retrieve',
 				));
 			if(!$this->checkWriteCaps($cmd['chan'], $POST['WriteCaps'])) {
 				throw new Exception('Channel password is incorrect.');
@@ -97,7 +98,8 @@ class UnhostedJsonParser {
 			return $backend->doRECEIVE(
 				$cmd['chan'],
 				$referer['host'],
-				$cmd['keyPath']
+				$cmd['keyPath'],
+				$cmd['delete'],
 				);
 		default:
 			throw new Exception('undefined method');
@@ -165,8 +167,12 @@ class StorageBackend {
 	function doSEND($chan, $app, $keyPath, $save) {
 		$this->query("INSERT INTO `messages` (`chan`, `app`, `keyPath`, `save`) VALUES ('$chan', '$app', '$keyPath', '$save');");
 	}
-	function doRECEIVE($chan, $app, $keyPath) {
-		return $this->queryArr("SELECT `save` FROM `messages` WHERE `chan`='$chan' AND `app`='$app' AND `keyPath`='$keyPath';");
+	function doRECEIVE($chan, $app, $keyPath, $andDelete) {
+		$ret = $this->queryArr("SELECT `save` FROM `messages` WHERE `chan`='$chan' AND `app`='$app' AND `keyPath`='$keyPath';");
+		if($andDelete) {
+			$this->query("DELETE FROM `messages` WHERE `chan`='$chan' AND `app`='$app' AND `keyPath`='$keyPath';");
+		}
+		return $ret;
 	}
 }
 

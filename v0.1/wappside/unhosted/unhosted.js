@@ -217,9 +217,14 @@ unhosted = new function() {
 		var PubSign = makePubSign(fromNick, cmd);
 		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign, keys[toNick].c);
 	}
-	this.receive = function(nick, keyPath) {//execute a UJ/0.1 GET command
+	this.receive = function(nick, keyPath, andDelete) {//execute a UJ/0.1 GET command
 		checkNick(nick);
-		var cmd = JSON.stringify({"method":"RECEIVE", "chan":keys[nick].r, "keyPath":keyPath});
+		if(andDelete) {
+			andDeleteBool = true;
+		} else {
+			andDeleteBool = false;
+		}
+		var cmd = JSON.stringify({"method":"RECEIVE", "chan":keys[nick].r, "keyPath":keyPath, "delete":andDeleteBool});
 		var ret = JSON.parse(sendPost("protocol=UJ/0.1&cmd="+cmd+'&WriteCaps='+keys[nick].w, keys[nick].c));
 		if(ret==null) {
 			return null;

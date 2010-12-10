@@ -16,7 +16,7 @@ function login() {
 }
 function receiveMail() {
 	document.getElementById("readMail").innerHTML = "Fetching mail..."; 
-	var messages = unhosted.receive("me", "inbox");
+	var messages = unhosted.receive("me", "inbox", false);
 	document.getElementById("readMail").innerHTML = "<table border='1'><tr><td><b>From</b></td><td><b>Message</b></td></tr>";
 	for(msg in messages) {
 		document.getElementById("readMail").innerHTML = document.getElementById("readMail").innerHTML 

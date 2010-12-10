@@ -57,17 +57,14 @@ function addAddress() {
 }
 </script>
 <body>
-<H2 style="color:red">UNDER CONSTRUCTION, DOESN'T WORK YET!</H2>
-<H2>UNDER CONSTRUCTION, DOESN'T WORK YET!</H2>
-<H2 style="color:red">UNDER CONSTRUCTION, DOESN'T WORK YET!</H2>
 <H2>Login:</H2>
 email: <textarea id="r" rows="1" cols="10">7db31</textarea>
 @<textarea id="c" rows="1" cols="30">demo.unhosted.org</textarea><br>
-password: <textarea id="w" rows="1" cols="6">0249e</textarea>_<textarea id="d" rows="1" cols="128">6365e97c3a33adc0fdba0d50e9ea71c6d7b4716bb254d9422792eaba1c5fddcb30ae9fc1060ed162b4c8007894193a4520e1ba85a94304281e12f19c9dfca5d1</textarea><br>
-<input type="submit" value="Login" onclick="login();showAddressBook(retrieveAddressBook());"/>
+password: <textarea id="w" rows="1" cols="6">0249e</textarea>_<textarea id="d" rows="1" cols="128"></textarea><br>
+<input type="submit" value="Login" onclick="login();receiveStars();showAddressBook(retrieveAddressBook());"/>
 <table border="1">
 <tr><td><p>
-	<H2>Add address:</H2>
+	<H2>Add address (will hutch after they log in):</H2>
 	<textarea id="r_a" rows="1" cols="10"></textarea>@<textarea id="c_a" rows="1" cols="30"></textarea><input type="submit" value="Add" onclick="addAddress();"/><br>
 </p></td></tr>
 <tr><td><p>
@@ -76,7 +73,7 @@ password: <textarea id="w" rows="1" cols="6">0249e</textarea>_<textarea id="d" r
 </p></td></tr>
 </table>
 <input type="submit" value="update '.stars'-key" onclick="receiveStars();"/> 
-and <input type="submit" value="hutch" onclick="showAddressBook(retrieveAddressBook());"/> all addressbook entries<br/>
+and try to <input type="submit" value="hutch" onclick="showAddressBook(retrieveAddressBook());"/> all addressbook entries<br/>
 
 </body>
 </html>
