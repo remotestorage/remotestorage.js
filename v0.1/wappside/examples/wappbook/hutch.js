@@ -64,14 +64,16 @@ var hutch = new function() {
 		recommendationsOutbox = {};
 	}
 	var processRecommendations = function(recommendations) {
-		var candidate, higherAntecedent, maxAntecedent, starskey, StarSign, myBits = toBitString(me), recommendation;
-		starskey = unhosted.rawGet(me, '.stars');
+		var candidate, higherAntecedent, maxAntecedent, starskeyRaw, starskey, StarSign, myBits = toBitString(me), recommendation;
+		starskeyRaw = unhosted.rawGet(me, '.stars');
+		if(starskeyRaw === null) {
+			starskey = {};
+		} else {
+			starskey = starskeyRaw.cmd.value;
+		}
 		for(recommendation in recommendations) {
 			candidate = chooseAntecedentByBits(recommendation, myBits);
 			if(candidate !== null) {
-				if(starskey === null) {
-					starskey = {};
-				}
 				if((typeof starskey[candidate.bit] == 'undefined') || (candidate.quality > starskey[candidate.bit].quality)) {
 					maxAntecedent = myBits.length;
 					//higher antecedents will want the same lower ones as you. 
@@ -91,17 +93,20 @@ var hutch = new function() {
 	}
 	var getAntecedent = function(from, bit) {
 		var starskey = unhosted.rawGet(from, '.stars');
-		if((starskey === null) || (typeof starskey[bit] == 'undefined')) {
-			return {"bit":null,"quality":null,"antipod":null};
+		if((starskey === null) 
+				|| (typeof starskey.cmd == 'undefined') 
+				|| (typeof starskey.cmd.value == 'undefined') 
+				|| (typeof starskey.cmd.value[bit] == 'undefined')) {
+			return null;
 		}
-		return starskey[bit];
+		return starskey.cmd.value[bit];
 	}
 	var hutchByBits = function(fromStr, toBits, toStr) {
 		var path = [], pivot = fromStr, candidate;
 		var antecedentBit = chooseAntecedentByBits(pivot, toBits);
 		while(antecedentBit.bit !== null) {
 			path.push(pivot);//for debugging
-			candidate = getAntecedent(pivot, antecedentBit.bit).bit;
+			candidate = getAntecedent(pivot, antecedentBit.bit);
 			if(candidate === null) {//pivot's off the map!
 				//dead end! this means the current pivot's antecedents aren't optimal.
 				if(typeof toStr !== 'undefined') {
@@ -111,14 +116,10 @@ var hutch = new function() {
 				//TODO: should backtrack one and find alternative routes.
 				return null;
 			}
-			var star = {
-			"signer":{"r":r,"c":c,"n":ns[r+"@"+c]},
-			"signee":{"r":br,"c":bc,"n":ns[br+"@"+bc]},
-			};
-			if(!checkStarSign(pivot, candidate, getAntecedent(pivot, antecedentBit.bit).StarSign)) {
-				return "fabric torn between "+pivot+" and "+candidate;
+			if(!unhosted.checkStarSign(pivot, candidate.antipod, candidate.StarSign)) {
+				return "fabric torn between "+pivot+" and "+candidate.antipod;
 			}
-			pivot = candidate;
+			pivot = candidate.antipod;
 			if(toBitString(pivot)==toBits) {
 				path.push(pivot);//for debugging
 				return pivot;

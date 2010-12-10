@@ -180,8 +180,7 @@ unhosted = new function() {
 	}
 	this.rawSet = function(nick, keyPath, value, useN) {
 		checkNick(nick);
-		var cmd = JSON.stringify({"method":"SET", "chan":keys[nick].r, "keyPath":keyPath, "value":value});
-		var PubSign = '';
+		var cmd, PubSign;
 		if(useN) {
 			//this is two-step encryption. first we Rijndael-encrypt value symmetrically (with the single-use var seskey). The result goes into 'value' in the cmd.
 			var bnSeskey = new BigInteger(128,1,rng);//rijndael function we use uses a 128-bit key
@@ -191,6 +190,9 @@ unhosted = new function() {
 			var encrSes = RSAEncrypt(seskey, nick);
 			cmd = JSON.stringify({"method":"SET", "chan":keys[nick].r, "keyPath":keyPath, "value":encr, "ses":encrSes});
 			PubSign = makePubSign(nick, cmd);
+		} else {
+			cmd = JSON.stringify({"method":"SET", "chan":keys[nick].r, "keyPath":keyPath, "value":value});
+			PubSign = '';
 		}
 		return sendPost("protocol=UJ/0.1&cmd="+cmd+"&PubSign="+PubSign+'&WriteCaps='+keys[nick].w, keys[nick].c);
 	}
