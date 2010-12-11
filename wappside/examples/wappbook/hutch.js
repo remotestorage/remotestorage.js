@@ -1,5 +1,5 @@
-var me = "michiel@demo.unhosted.org";
-var nodes = {"michiel@demo.unhosted.org":{}};
+var me = "michiel@example.unhosted.org";
+var nodes = {"michiel@example.unhosted.org":{}};
 var recommendationsInbox = {};
 var recommendationsOutbox = {};
 var hutch = new function() {
