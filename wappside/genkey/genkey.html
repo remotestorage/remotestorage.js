@@ -26,13 +26,23 @@ function genkey(wapp) {
 	
 	var token = JSON.parse(document.getElementById("token").value);
 	if(wapp=='wappblog') {
-		document.getElementById("r").value = 'var SubscribingPasswordMe ='
+		document.getElementById("r").value = '//r is for Read Caps, and it\'s simply like the username, the part before the \'@\'-sign in an unhosted address'
+				+'\n//c is for Cloud, the domain name of the unhosted server'
+				+'\n//n is RSA\'s name for the public key (e=0x10001). Ever heard of RSA being large primes multiplied? There you go: n=p*q.'
+				+'\n//s is for session key. Again, RSA terminology. It\'s the access token you share to a groud of friends or subscribers'
+				+'\nvar SubscribingPasswordMe ='
 				+' {\n\t"r":"'+pub.r
 				+'",\n\t"c":"'+pub.c
 				+'",\n\t"n":"'+pub.n
 				+'",\n\t"s":"'+pub.s
 				+'"};\n';
-		document.getElementById("w").value = 'var PublishingPasswordMe ='
+		document.getElementById("w").value = '\n//r is for Read Caps, and it\'s simply like the username, the part before the \'@\'-sign in an unhosted address'
+				+'\n//c is for Cloud, the domain name of the unhosted server'
+				+'\n//n is RSA\'s name for the public key (e=0x10001). Ever heard of RSA being large primes multiplied? There you go: n=p*q.'
+				+'\n//s is for session key. Again, RSA terminology. It\'s the access token you share to a groud of friends or subscribers'
+				+'\n//w is for Write Caps, it\'s your (weakish) login password at the unhosted server where you have your account \'r@c\'.'
+				+'\n//d is RSA\'s name for the private key. d is such that d*e=1 in MOD (p-1)(q-1). The maths is done by Tom Wu\'s jsbn lib.'
+				+'\nvar PublishingPasswordMe ='
 				+' {\n\t"r":"'+pub.r
 				+'",\n\t"c":"'+pub.c
 				+'",\n\t"n":"'+pub.n
@@ -69,8 +79,8 @@ To display the blogpost you need to use a bit of html code like bootloader.html,
 Hopefully it's all more or less self-explanatory. Have FireBug open while testing, that way you see what commands are being sent to the unhosted cloud, and it helps to understand what's going on. If you have any problems, or there was anything that didn't work the first time for you, please let us know about it so we can improve these instructions.
 </div>
 <H2>For use with the wappblog blogging example:</H2>
-SubscribingPasswordMe.js: <textarea id="r" rows="5" cols="180">SubscribingPasswordMe.js will show up here...</textarea><br>
-admin/PublishingPasswordMe.js: <textarea id="w" rows="7" cols="180">PublishingPasswordMe.js will show up here...</textarea><br>
+SubscribingPasswordMe.js: <textarea id="r" rows="9" cols="180">SubscribingPasswordMe.js will show up here...</textarea><br>
+admin/PublishingPasswordMe.js: <textarea id="w" rows="13" cols="180">PublishingPasswordMe.js will show up here...</textarea><br>
 <H2>For use with the wappmail messaging example:</H2>
 Your email: <textarea id="rc" rows="3" cols="80">your wappmail address will show up here...</textarea><br>
 Your public key (SAVE TO A FILE AND PUBLISH!): <textarea id="n" rows="3" cols="80">your wappmail public key will show up here...</textarea><br>
