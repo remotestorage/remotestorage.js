@@ -85,7 +85,7 @@ unhosted = new function() {
 	var sendPost = function(post, cloud) {//this function implements synchronous AJAX to a cloud
 		xmlhttp=new XMLHttpRequest();
 		//xmlhttp.open("POST","http://demo.unhosted.org/",false);
-		xmlhttp.open("POST","http://"+cloud+"/git/unhosted/v0.1/cloudside/unhosted.php",false);
+		xmlhttp.open("POST","http://"+cloud+"/unhosted/cloudside/unhosted.php",false);
 		xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 		xmlhttp.send(post);
 		return xmlhttp.responseText;
