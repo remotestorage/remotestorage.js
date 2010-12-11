@@ -1,7 +1,1 @@
-var PublishingPasswordMe = {
-	"r":"7db31",
-	"c":"example.unhosted.org",
-	"n":"cd1d52edc48e125d5f01dbdb38f14796c13cc990363662e71ed9cc988b725e465553fcfcea1ad96d095f31afe16ab617a36ae4f77fc32dd750ef7143806c5635",
-	"s":"bf184d7a9fae58593c36eb46cb09226b",
-	"w":"0249e",
-	"d":"65f46d84426f5c318d481f4098cd560859851dabd146b762aab3183fbb10de4ab35096b72f1ee6c3d9ba75040d45db3908b5d56ce5db7b2f95e4202be66d2f01"};
+var PublishingPasswordMe = {"error":"... please follow the README instructions and generate this file with genkey page before use"};

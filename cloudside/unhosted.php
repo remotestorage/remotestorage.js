@@ -99,7 +99,7 @@ class UnhostedJsonParser {
 				$cmd['chan'],
 				$referer['host'],
 				$cmd['keyPath'],
-				$cmd['delete'],
+				$cmd['delete']
 				);
 		default:
 			throw new Exception('undefined method');
@@ -186,6 +186,9 @@ header('Access-Control-Max-Age: 86400');
 $unhostedJsonParser = new UnhostedJsonParser();
 $storageBackend = new StorageBackend();
 try {
+	if(!isset($_SERVER['HTTP_REFERER'])) {
+		die("This url is an unhosted JSON storage, and only works over CORS-AJAX. Please access using the unhosted JS library (www.unhosted.org).");
+	}
 	$referer = parse_url($_SERVER['HTTP_REFERER']);
 	$res = $unhostedJsonParser->parseInput($storageBackend, $_POST, $referer);
 	echo $res;
