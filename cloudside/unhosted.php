@@ -160,12 +160,14 @@ class StorageBackend {
 	}
 	function doSET($chan, $app, $keyPath, $save) {
 		$this->query("INSERT INTO `entries` (`chan`, `app`, `keyPath`, `save`) VALUES ('$chan', '$app', '$keyPath', '$save') ON DUPLICATE KEY UPDATE `save`='$save';");
+		return '"OK"';
 	}
 	function doGET($chan, $app, $keyPath) {
 		return $this->queryVal("SELECT `save` FROM `entries` WHERE `chan`='$chan' AND `app`='$app' AND `keyPath`='$keyPath';");
 	}
 	function doSEND($chan, $app, $keyPath, $save) {
 		$this->query("INSERT INTO `messages` (`chan`, `app`, `keyPath`, `save`) VALUES ('$chan', '$app', '$keyPath', '$save');");
+		return '"OK"';
 	}
 	function doRECEIVE($chan, $app, $keyPath, $andDelete) {
 		$ret = $this->queryArr("SELECT `save` FROM `messages` WHERE `chan`='$chan' AND `app`='$app' AND `keyPath`='$keyPath';");
