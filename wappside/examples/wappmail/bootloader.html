@@ -7,6 +7,13 @@
 <script language="JavaScript" type="text/javascript" src="../../unhosted/unhosted.js"></script>
 <script>
 function login() {
+	if(document.getElementById("n").value.length != 128) {
+		alert ('public key is '+document.getElementById("n").value.length+' characters long instead of 128.');
+	}
+	if(document.getElementById("d").value.length != 128) {
+		alert ('private key (second part of password) is '+document.getElementById("d").value.length+' characters long instead of 128.');
+	}
+		
 	unhosted.importPub({
 		"r":document.getElementById("r").value,
 		"c":document.getElementById("c").value,
@@ -27,6 +34,9 @@ function receiveMail() {
 	document.getElementById("readMail").innerHTML = document.getElementById("readMail").innerHTML + "</table>"; 
 }
 function sendMail() {
+	if(document.getElementById("to_n").value.length != 128) {
+		alert ('recipient public key is '+document.getElementById("to_n").value.length+' characters long instead of 128.');
+	}
 	recipient= {
 		"r":document.getElementById("to_r").value,
 		"c":document.getElementById("to_c").value,

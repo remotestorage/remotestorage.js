@@ -159,21 +159,36 @@ unhosted = new function() {
 	var checkNick=function(nick) {
 		if(typeof keys[nick] == 'undefined') {
 			parts=nick.split('@', 2);
+			if(parts.length != 2) {
+				alert('attempt to use undefined key nick: '+nick+'. Did you forget to log in?');
+			}
 			that.importSubN({"r":parts[0],"c":parts[1]},nick,".n");
+		}
+	}
+	var checkFields = function(arr, fieldNames) {
+		for(field in fieldNames) {
+			if(typeof arr[fieldNames[field]] == 'undefined') {
+				alert('field '+fieldNames[field]+' missing from key: '+JSON.stringify(arr));
+				return;
+			}
 		}
 	}
 	//public:
 	this.importPub = function(writeCaps, nick) {//import a (pub) key to the keys[] variable
+		checkFields(writeCaps, ['r', 'c', 'n', 'd']);
 		keys[nick]=writeCaps;//this should contain r,c,n,d.
 	}
 	this.importPubNS = function(writeCaps, nick, locationN, locationS) {
+		checkFields(writeCaps, ['r', 'c', 'w', 'd']);
 		keys[nick]=writeCaps;//this should contain r,c,w,d.
 		return (addN(nick, locationN)==true && addS(nick, locationS)==true);
 	}
 	this.importSub = function(readCaps, nick) {//import a (sub) key to the keys[] variable
+		checkFields(readCaps, ['r', 'c']);
 		keys[nick]=readCaps;
 	}
 	this.importSubN = function(readCaps, nick, locationN) {//import a (sub) key to the keys[] variable
+		checkFields(readCaps, ['r', 'c']);
 		keys[nick]=readCaps;//this should contain r,c.
 		return (addN(nick, locationN)==true);
 	}
