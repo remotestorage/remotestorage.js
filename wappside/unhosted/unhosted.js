@@ -1,3 +1,22 @@
+/*
+    Unhosted JS library. Handles comms with unhosted storage node for unhosted web apps.
+    Copyright (C) 2010 Michiel de Jong michiel@unhosted.org
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
 /*GLOBAL SINGLETON:*/
 unhosted = new function() {
 	//private:
@@ -140,21 +159,36 @@ unhosted = new function() {
 	var checkNick=function(nick) {
 		if(typeof keys[nick] == 'undefined') {
 			parts=nick.split('@', 2);
+			if(parts.length != 2) {
+				alert('attempt to use undefined key nick: '+nick+'. Did you forget to log in?');
+			}
 			that.importSubN({"r":parts[0],"c":parts[1]},nick,".n");
+		}
+	}
+	var checkFields = function(arr, fieldNames) {
+		for(field in fieldNames) {
+			if(typeof arr[fieldNames[field]] == 'undefined') {
+				alert('field '+fieldNames[field]+' missing from key: '+JSON.stringify(arr));
+				return;
+			}
 		}
 	}
 	//public:
 	this.importPub = function(writeCaps, nick) {//import a (pub) key to the keys[] variable
+		checkFields(writeCaps, ['r', 'c', 'n', 'd']);
 		keys[nick]=writeCaps;//this should contain r,c,n,d.
 	}
 	this.importPubNS = function(writeCaps, nick, locationN, locationS) {
+		checkFields(writeCaps, ['r', 'c', 'w', 'd']);
 		keys[nick]=writeCaps;//this should contain r,c,w,d.
 		return (addN(nick, locationN)==true && addS(nick, locationS)==true);
 	}
 	this.importSub = function(readCaps, nick) {//import a (sub) key to the keys[] variable
+		checkFields(readCaps, ['r', 'c']);
 		keys[nick]=readCaps;
 	}
 	this.importSubN = function(readCaps, nick, locationN) {//import a (sub) key to the keys[] variable
+		checkFields(readCaps, ['r', 'c']);
 		keys[nick]=readCaps;//this should contain r,c.
 		return (addN(nick, locationN)==true);
 	}

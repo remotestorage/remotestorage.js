@@ -1,22 +1,18 @@
-Copyright (c) 2010 The Unhosted Project.
+------------ FOR unhosted.js, unhosted.php AND EXAMPLES: -----------------------
+    Copyright (C) 2010 Michiel de Jong michiel@unhosted.org
 
-OVERALL LICENSE:
-This software is provided as-is by the Unhosted project, without express or 
-implied warranty. Permission to use, copy, modify, distribute or sell this 
-software, with or without fee, for any non-criminal and non-military purpose 
-and by any individual or organization, is hereby granted, provided that the 
-above copyright notice and this paragraph appear in all copies. Distribution as
-a part of an application or binary must include the above copyright notice in 
-the documentation and/or other materials provided with the application or 
-distribution. 
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
 
-The Unhosted Project reserves the right to condemn specific cases of use of the
-adjective 'unhosted', as well as of the names of the protocols and other 
-intellectual property produced by the Unhosted Project, whenever not condemning
-said cases would be against the interests of end users.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
 
-NOTE: If you think we can improve or should change this license statement for
-the beta release, then say so now, on http://groups.google.com/group/unhosted
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
@@ -111,4 +107,5 @@ the end we didn't use it in the project, but we did learn from looking at it.
 https://www.pidder.com/pidcrypt/
 by www.pidder.com / www.versaneo.de
 GNU General Public License http://www.gnu.org/copyleft/gpl.html
+
 
