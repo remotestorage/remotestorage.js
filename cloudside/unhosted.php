@@ -148,6 +148,14 @@ class StorageBackend {
 			}
 		}
 		$r = $this->mysql->query($sql);
+		if($r === FALSE && $this->mysql->errno==1146) {//table doesn't exist - create it and retry
+			foreach($this->dbSpec as $query) {
+				if($this->mysql->query($query) === FALSE) {
+					throw new Exception("TABLE CREATION FAILURE :".$this->mysql->error);
+				}
+			}
+			$r = $this->mysql->query($sql);
+		}
 		if($r === FALSE) {
 			throw new Exception("DB ERROR: ".$this->mysql->error);
 		}
