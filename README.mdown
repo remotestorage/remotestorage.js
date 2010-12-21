@@ -14,13 +14,11 @@ UNHOSTED
   details are on www.unhosted.org.
 
 - We only wrote the easy bits ourselves. ;) For the important bits, we used Tom
-  Wu's JS Big Numbers library (http://www-cs-students.stanford.edu/~tjw/jsbn/),
-  Fritz Schneider's Rijndael Reference Implementation
-  (http://javascript.about.com/library/blencrypt.htm), and Schwarz
-  Lanzenreiter's SHA1 script (http://user1.matsumoto.ne.jp/~goma/js/sha1.js). We
-  also learned things from reading rsa-sign.js
-  (http://www9.atwiki.jp/kurushima/pub/jsrsa/) and pidCrypt
-  (https://www.pidder.com/pidcrypt/).
+  Wu's [JavaScript Big Numbers library](http://www-cs-students.stanford.edu/~tjw/jsbn/),
+  Fritz Schneider's [Rijndael Reference Implementation](http://javascript.about.com/library/blencrypt.htm),
+  and Schwarz Lanzenreiter's [SHA1 script](http://user1.matsumoto.ne.jp/~goma/js/sha1.js).
+  We also learned things from reading [rsa-sign.js](http://www9.atwiki.jp/kurushima/pub/jsrsa/)
+  and [pidCrypt](https://www.pidder.com/pidcrypt/).
 
 Setting up local server for unhosted web app and storage node
 -----------------------------------------------------------
