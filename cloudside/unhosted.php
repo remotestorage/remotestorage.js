@@ -209,6 +209,11 @@ try {
 		die("This url is an unhosted JSON storage, and only works over CORS-AJAX. Please access using the unhosted JS library (www.unhosted.org).");
 	}
 	$referer = parse_url($_SERVER['HTTP_REFERER']);
+	if(get_magic_quotes_gpc()) {//nuisance magic quotes ;)
+		foreach($_POST as $k => $v) {
+			$POST[$k] = stripslashes($v);
+		}
+	}
 	$res = $unhostedJsonParser->parseInput($storageBackend, $_POST, $referer);
 	echo $res;
 } catch (Exception $e) {
