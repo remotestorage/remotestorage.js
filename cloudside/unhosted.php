@@ -41,8 +41,6 @@ class UnhostedJsonParser {
 		}
 	}
 	function parseInput($backend, $POST, $referer) {
-          //quick fix we came up with during testing; more solid fix coming up:
-	  $POST["cmd"] = stripslashes($POST["cmd"]);
 		$this->checkFieldsPresent($POST, array(
 			'protocol' => 'please add a "protocol" key to your POST',
 			'cmd' => 'please add "cmd" key to your POST',
@@ -216,6 +214,28 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Access-Control-Max-Age: 86400');
+
+//we had 3 different ways to make this script work on servers where magic_quotes_gpc is switched on.
+//in the end i thought it would be cleanest to use this one for fixing v0.1. We can do it differently
+//in other branches if we want, but now priority is fixing the issue in a way that minimizes risk of
+//breaking other things. -Michiel
+//taken literally from http://www.php.net/manual/en/security.magicquotes.disabling.php:
+if (get_magic_quotes_gpc()) {
+    $process = array(&$_GET, &$_POST, &$_COOKIE, &$_REQUEST);
+    while (list($key, $val) = each($process)) {
+        foreach ($val as $k => $v) {
+            unset($process[$key][$k]);
+            if (is_array($v)) {
+                $process[$key][stripslashes($k)] = $v;
+                $process[] = &$process[$key][stripslashes($k)];
+            } else {
+                $process[$key][stripslashes($k)] = stripslashes($v);
+            }
+        }
+    }
+    unset($process);
+}
+
 $unhostedJsonParser = new UnhostedJsonParser();
 $storageBackend = new StorageBackend();
 try {
@@ -223,11 +243,9 @@ try {
 		die("This url is an unhosted JSON storage, and only works over CORS-AJAX. Please access using the unhosted JS library (www.unhosted.org).");
 	}
 	$referer = parse_url($_SERVER['HTTP_REFERER']);
-	if(get_magic_quotes_gpc()) {//nuisance magic quotes ;)
-		foreach($_POST as $k => $v) {
-			$POST[$k] = stripslashes($v);
-		}
-	}
+	// DESIGN ISSUE:
+	// lmartinsantos: Have to think this another way. It I host the app locally (ie, on my phone or on my desktop)... there is no referer!!! 
+	// -> michiel-unhosted: but the desktop of phone app could easily add a referer header in the HTTP request, couldn't it?
 	$res = $unhostedJsonParser->parseInput($storageBackend, $_POST, $referer);
 	echo $res;
 } catch (Exception $e) {
