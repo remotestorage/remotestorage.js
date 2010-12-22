@@ -41,6 +41,7 @@ class UnhostedJsonParser {
 		}
 	}
 	function parseInput($backend, $POST, $referer) {
+	  $POST["cmd"] = stripslashes($POST["cmd"]);
 		$this->checkFieldsPresent($POST, array(
 			'protocol' => 'please add a "protocol" key to your POST',
 			'cmd' => 'please add "cmd" key to your POST',
