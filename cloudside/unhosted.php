@@ -41,6 +41,7 @@ class UnhostedJsonParser {
 		}
 	}
 	function parseInput($backend, $POST, $referer) {
+          //quick fix we came up with during testing; more solid fix coming up:
 	  $POST["cmd"] = stripslashes($POST["cmd"]);
 		$this->checkFieldsPresent($POST, array(
 			'protocol' => 'please add a "protocol" key to your POST',
@@ -132,7 +133,11 @@ class StorageBackend {
 			"CREATE TABLE IF NOT EXISTS `messages` (`chan` text, `app` text, `keyPath` text, `save` text)");
 	private function query($sql) {
 		if($this->mysql === null) {
-			$this->mysql = mysqli_connect($GLOBALS['dbHost'],$GLOBALS['dbUser'],$GLOBALS['dbPwd'],'',ini_get("mysqli.default_port"),$GLOBALS['dbSock']);
+			if(array_key_exists('dbSock', $GLOBALS)) {//this is needed for OSX, see config.php
+				$this->mysql = mysqli_connect($GLOBALS['dbHost'],$GLOBALS['dbUser'],$GLOBALS['dbPwd'],'',ini_get("mysqli.default_port"),$GLOBALS['dbSock']);
+			} else {
+				$this->mysql = mysqli_connect($GLOBALS['dbHost'],$GLOBALS['dbUser'],$GLOBALS['dbPwd']);
+			}
 			if($this->mysql === FALSE) {
 				throw new Exception("DB CONNECT ERROR");
 			}

@@ -2,6 +2,7 @@
 $GLOBALS['dbHost'] = 'localhost';
 $GLOBALS['dbUser'] = 'root';
 $GLOBALS['dbPwd'] = '';
-$GLOBALS['dbName'] = 'antipod1';
+$GLOBALS['dbName'] = 'unhosted1';
+//uncomment this if you're on OSX:
 // $GLOBALS['dbSock'] = '/tmp/mysql.sock';
 ?>
