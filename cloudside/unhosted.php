@@ -132,7 +132,7 @@ class StorageBackend {
 			"CREATE TABLE IF NOT EXISTS `messages` (`chan` text, `app` text, `keyPath` text, `save` text)");
 	private function query($sql) {
 		if($this->mysql === null) {
-			$this->mysql = mysqli_connect($GLOBALS['dbHost'],$GLOBALS['dbUser'],$GLOBALS['dbPwd']);
+			$this->mysql = mysqli_connect($GLOBALS['dbHost'],$GLOBALS['dbUser'],$GLOBALS['dbPwd'],'',ini_get("mysqli.default_port"),$GLOBALS['dbSock']);
 			if($this->mysql === FALSE) {
 				throw new Exception("DB CONNECT ERROR");
 			}
