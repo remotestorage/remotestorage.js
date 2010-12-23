@@ -240,7 +240,9 @@ $unhostedJsonParser = new UnhostedJsonParser();
 $storageBackend = new StorageBackend();
 try {
 	if(!isset($_SERVER['HTTP_REFERER'])) {
-		die("This url is an unhosted JSON storage, and only works over CORS-AJAX. Please access using the unhosted JS library (www.unhosted.org).");
+		die("<H2>This code is only for demonstration and not safe to run in production.</H2>"
+			."<H2>Only run it in a local development environment, never on a public IP or production server.</H2>"
+			."This url is an unhosted JSON storage, and only works over CORS-AJAX. Please access using the unhosted JS library (www.unhosted.org).");
 	}
 	$referer = parse_url($_SERVER['HTTP_REFERER']);
 	// DESIGN ISSUE:

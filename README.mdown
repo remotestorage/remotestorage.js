@@ -1,17 +1,16 @@
 UNHOSTED
 ========
 
-- First of all: This is alpha software so it's likely there are still one or two
-  security holes in it. So please only use it on the localhost of your devbox,
-  and not in production. If you find any of the security holes, then please
-  submit an analysis to our mailing list, and if it's still in 2010, you can
-  maybe even win our Hacky Holidays competition with your bugfix.
+- First of all: This code is only for demonstration and not safe to run in 
+  production. Only run it in a local development environment, never on a public
+  IP or production server.
 
-- Also please submit any unhosted apps you create, big or small, to the Hacky
+- Please submit any unhosted apps you create, big or small, to the Hacky
   Holidays competition. Even if a small app, that maybe only serves to say
-  'hello world' backwards, may not win, it's nice to create a rich showcase, it
-  makes us feel like a popular project. :) The deadline is 1 January 2011,
-  details are on www.unhosted.org.
+  'hello world' backwards, may not win, it's nice to create a rich showcase,
+  and it helps us understand the issues and hurdles involved in developing 
+  unhosted web apps. The deadline is 1 January 2011, details are on
+  [www.unhosted.org](www.unhosted.org).
 
 - We only wrote the easy bits ourselves. ;) For the important bits, we used Tom
   Wu's [JavaScript Big Numbers library](http://www-cs-students.stanford.edu/~tjw/jsbn/),
@@ -50,7 +49,7 @@ instance /var/www/unhosted/. You probably need sudo to write in your webroot:
 - check that `http://localhost/unhosted/cloudside/unhosted.php` displays:
 
     This url is an unhosted JSON storage, and only works over CORS-AJAX. Please
-    access using the unhosted JS library (www.unhosted.org).
+    access using the unhosted JS library ([www.unhosted.org](www.unhosted.org)).
 
 - point helloblog.com and example.unhosted.org to 127.0.0.1 in /etc/hosts:
 
@@ -64,7 +63,7 @@ check that `http://example.unhosted.org/unhosted/cloudside/unhosted.php` also
 displays:
 
     This url is an unhosted JSON storage, and only works over CORS-AJAX. Please
-    access using the unhosted JS library (www.unhosted.org).
+    access using the unhosted JS library ([www.unhosted.org](www.unhosted.org)).
 
 
 ### Configuring your unhosted storage node:
