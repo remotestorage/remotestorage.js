@@ -127,8 +127,8 @@ class UnhostedJsonParser {
 class StorageBackend {
 	private $mysql = null;
 	private $dbSpec = array(//in real life you would never create the tables from a php-array, nor use three blobs as the primary key of a table, but this is only a demo:
-			"CREATE TABLE IF NOT EXISTS `entries` (`chan` varchar(255), `app` varchar(255), `keyPath` varchar(255), `save` text, PRIMARY KEY (`chan`, `app`, `keyPath`))",
-			"CREATE TABLE IF NOT EXISTS `messages` (`chan` text, `app` text, `keyPath` text, `save` text)");
+			"CREATE TABLE IF NOT EXISTS `entries` (`chan` varchar(255), `app` varchar(255), `keyPath` varchar(255), `save` text, PRIMARY KEY (`chan`, `app`, `keyPath`)) DEFAULT CHARACTER SET latin1",
+			"CREATE TABLE IF NOT EXISTS `messages` (`chan` text, `app` text, `keyPath` text, `save` text) DEFAULT CHARACTER SET latin1");
 	private function query($sql) {
 		if($this->mysql === null) {
 			if(array_key_exists('dbSock', $GLOBALS)) {//this is needed for OSX, see config.php
