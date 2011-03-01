@@ -101,7 +101,18 @@ unhosted = new function() {
 		var hexSign = biSign.toString(16);//turn into HEX representation for easy displaying, posting, etcetera. Changing this to base64 would be 33% shorter; worth it?
 		return hexSign;
 	}
-	var sendPost = function(post, cloud) {//this function implements synchronous AJAX to a cloud
+            var sendGet = function(chan, keyPath, cloud) {
+		if(typeof cloud == 'undefined') {
+			return 'error, attempted to connect to an undefined host.';
+		}
+		xmlhttp=new XMLHttpRequest();
+		//xmlhttp.open("GET","http://example.unhosted.org/",false);
+		xmlhttp.open("GET","http://" + cloud + "/unhosted/cloudside/" + 
+                             chan + '/store/' + keyPath + "?protocol=UJ/0.2", false);
+		xmlhttp.send(null);
+		return xmlhttp.responseText;
+	}
+        var sendPost = function(post, cloud) {//this function implements synchronous AJAX to a cloud
 		if(typeof cloud == 'undefined') {
 			return 'error, attempted to connect to an undefined host.';
 		}
@@ -194,8 +205,9 @@ unhosted = new function() {
 	}
 	this.rawGet = function(nick, keyPath) {//used for starskey and by wappbook login bootstrap to retrieve key.n and key.s
 		checkNick(nick);
+                
 		var cmd = JSON.stringify({"method":"GET", "chan":keys[nick].r, "keyPath":keyPath});
-		var ret = sendPost("protocol=UJ/0.1&cmd="+cmd, keys[nick].c);
+		var ret = sendGet(keys[nick].r, keyPath, keys[nick].c);
 		if(ret == "") {
 			return null;
 		}
@@ -206,7 +218,7 @@ unhosted = new function() {
 			return null;
 		}
 	}
-	this.get = function(nick, keyPath) {//execute a UJ/0.1 GET command
+	this.get = function(nick, keyPath) {//execute a UJ/0.2 GET command
 		checkNick(nick);
 		var ret = that.rawGet(nick, keyPath);
 		if(ret==null) {

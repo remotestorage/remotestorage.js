@@ -45,6 +45,8 @@ extracted dir to a subdirectory you call unhosted/, under your webroot, for
 instance /var/www/unhosted/. You probably need sudo to write in your webroot:
 
     sudo mkdir /var/www/unhosted ; sudo mv michiel-unhosted-unhosted-*/* /var/www/unhosted/
+
+    sudo cp /var/www/unhosted/cloudside/htaccess-dist /var/www/unhosted/cloudside/.htaccess
     
 - check that `http://localhost/unhosted/cloudside/unhosted.php` displays:
 

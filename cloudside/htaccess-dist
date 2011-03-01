@@ -1,0 +1,21 @@
+# Place this file in cloudside/.htaccess
+
+# Turn on URL rewriting
+RewriteEngine On
+
+# Installation directory
+RewriteBase /unhosted/cloudside/
+
+# Allow these directories and files to be displayed directly:
+# - index.php (DO NOT FORGET THIS!)
+# - robots.txt
+# - favicon.ico
+# - Any file inside of the media/ directory
+RewriteRule ^(unhosted\.php|robots\.txt|favicon\.ico|media|js|css|img) - [PT,L]
+
+# Protect application and system files from being viewed
+RewriteRule ^config.php - [F,L]
+
+# Rewrite all other URLs to unhosted.php/URL
+RewriteRule .* unhosted.php/$0 [PT,L]
+

@@ -40,24 +40,59 @@ class UnhostedJsonParser {
 			}
 		}
 	}
-	function parseInput($backend, $POST, $referer) {
-		$this->checkFieldsPresent($POST, array(
-			'protocol' => 'please add a "protocol" key to your POST',
-			'cmd' => 'please add "cmd" key to your POST',
-			));
-		if($POST['protocol'] != 'UJ/0.1') { 
-			throw new Exception('please use "UJ/0.1" as the protocol');
-		}
-		try {
-			$cmd = json_decode($POST['cmd'], TRUE);//in JSON, associative arrays are objects; ", TRUE" is for forcing cast from StdClass to assoc array.
-		} catch(Exception $e) {
-			throw new Exception('the "cmd" key in your POST does not seem to be valid JSON');
-		}
-		$this->checkFieldsPresent($cmd, array('method' => 'please define a method inside your command'));
 
-		switch($cmd['method']) {
+        /**
+         * takes apart a Unhosted GET request such as
+         * /{channel}/store/{keyPath} and returns a two element array
+         * [{channel}, {keyPath}
+         *
+         * TODO: This should be done via a library or framework's 
+         *       URL routing / URI templates feature
+         *
+         * @param string $path - Request URI without BASE_URL, querystring, etc
+         * 
+         * @return array - empty if error, else two element array
+         */
+        function parseGetUri($path) {
+            $fields = explode('/', $path);
+            // example: /7db31/store/firstPost -> ['', '7db31', 'store', 'firstPost']
+            if (count($fields) != 4 ||
+                $fields[2] != 'store') {
+              throw new Exception('Please specify which chan and key path you\'re getting');
+            }
+            return array($fields[1], $fields[4]);
+        }
+
+        /**
+         * @param object $backend - backend storage object
+         * @param string $path    - Request URI without BASE_URL, querystring, etc
+         *        Example: http://unhosted.example.com/foo/bar -> $path = '/foo/bar'
+         * @param array  $referer - Compatible with the output from parse_url
+         *
+         * @return string - A JSON response suitable for the request.
+         */
+	function parseInput($backend, $path, $referer) {
+                $payload = $_POST;
+                if ('GET' == $_SERVER['REQUEST_METHOD']) {
+                    $payload = $_GET;
+                } else {
+                    try {
+			$cmd = json_decode($POST['cmd'], TRUE);//in JSON, associative arrays are objects; ", TRUE" is for forcing cast from StdClass to assoc array.
+  		    } catch(Exception $e) {
+			throw new Exception('the "cmd" key in your POST does not seem to be valid JSON');
+  		    }
+                }
+
+		$this->checkFieldsPresent($payload, array(
+			'protocol' => 'please add a "protocol" key to your unhoted request',
+			));
+		if($payload['protocol'] != 'UJ/0.2') { 
+			throw new Exception('please use "UJ/0.2" as the protocol');
+		}
+
+		switch($_SERVER['REQUEST_METHOD']) {
 		case 'SET':
-			$this->checkFieldsPresent($POST, array(
+			$this->checkFieldsPresent($payload, array(
 				'WriteCaps' => 'The SET command requires WriteCaps in the POST',
 				'PubSign' => 'Please provide a PubSign so that your subscriber can check that this SET command really comes from you'
 				));
@@ -66,28 +101,26 @@ class UnhostedJsonParser {
 				'keyPath' => 'Please specify which key path you\'re setting',
 				'value' => 'Please specify a value for the key you\'re setting',
 				));
-			if(!$this->checkWriteCaps($cmd['chan'], $POST['WriteCaps'])) {
+			if(!$this->checkWriteCaps($cmd['chan'], $payload['WriteCaps'])) {
 				throw new Exception('Channel password is incorrect.');
 			}
 			return $backend->doSET(
 				$cmd['chan'], 
 				$referer['host'], 
 				$cmd['keyPath'], 
-				json_encode(array('cmd'=>$cmd, 'PubSign'=>$POST['PubSign']))
+				json_encode(array('cmd'=>$cmd, 'PubSign'=>$payload['PubSign']))
 				);
 		case 'GET':
-			$this->checkFieldsPresent($cmd, array(
-				'chan' => 'Please specify which channel you want to get a (key, value)-pair from',
-				'keyPath' => 'Please specify which key path you\'re getting',
-				));
+                        list($chan, $keyPath) = $this->parseGetUri($path);
+			
 			return $backend->doGET(
-				$cmd['chan'],
+				$chan,
 				$referer['host'],
-				$cmd['keyPath']
+				$keyPath
 				);
 		case 'SEND':
-			if(!isset($POST['PubSign'])) {
-				$POST['PubSign'] = null;
+			if(!isset($payload['PubSign'])) {
+				$payload['PubSign'] = null;
 			}				
 			$this->checkFieldsPresent($cmd, array(
 				'chan' => 'Please specify which channel you want to send your message to',
@@ -98,10 +131,10 @@ class UnhostedJsonParser {
 				$cmd['chan'],
 				$referer['host'],
 				$cmd['keyPath'],
-				json_encode(array('cmd'=>$cmd, 'PubSign'=>$POST['PubSign']))
+				json_encode(array('cmd'=>$cmd, 'PubSign'=>$payload['PubSign']))
 				);
 		case 'RECEIVE':
-			$this->checkFieldsPresent($POST, array(
+			$this->checkFieldsPresent($payload, array(
 				'WriteCaps' => 'The RECEIVE command requires WriteCaps in the POST',
 				));
 			$this->checkFieldsPresent($cmd, array(
@@ -109,7 +142,7 @@ class UnhostedJsonParser {
 				'keyPath' => 'Please specify which key path you\'re getting',
 				'delete' => 'Please specify whether you also want to delete the entries you retrieve',
 				));
-			if(!$this->checkWriteCaps($cmd['chan'], $POST['WriteCaps'])) {
+			if(!$this->checkWriteCaps($cmd['chan'], $payload['WriteCaps'])) {
 				throw new Exception('Channel password is incorrect.');
 			}
 			return $backend->doRECEIVE(
@@ -236,6 +269,18 @@ if (get_magic_quotes_gpc()) {
     unset($process);
 }
 
+/* We should be using a web app framework instead of writing stuff like this... */
+$URI_BASE = '/unhosted/cloudside';
+$path = substr($_SERVER['REQUEST_URI'], strlen($URI_BASE));
+$has_query_string = strpos($path, '?');
+if ($has_query_string != false && $has_query_string > 0) {
+    $path = substr($path, 0, strpos($path, '?'));
+}
+$has_has = strpos($path, '#');
+if ($has_hash != false && $has_hash > 0) {
+    $path = $substr($path, 0, strpos($path, '#'));
+}
+
 $unhostedJsonParser = new UnhostedJsonParser();
 $storageBackend = new StorageBackend();
 try {
@@ -248,7 +293,7 @@ try {
 	// DESIGN ISSUE:
 	// lmartinsantos: Have to think this another way. It I host the app locally (ie, on my phone or on my desktop)... there is no referer!!! 
 	// -> michiel-unhosted: but the desktop of phone app could easily add a referer header in the HTTP request, couldn't it?
-	$res = $unhostedJsonParser->parseInput($storageBackend, $_POST, $referer);
+	$res = $unhostedJsonParser->parseInput($storageBackend, $path, $referer);
 	echo $res;
 } catch (Exception $e) {
 	echo "ERROR:\n" . $e->getMessage() . "\n";
