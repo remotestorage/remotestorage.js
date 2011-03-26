@@ -1,6 +1,39 @@
 UNHOSTED
 ========
 
+*** DEPRECATED - this repository is the pre-decessor of the pre-decessor of http://github.com/michiel-unhosted/myfavouritesandwich (client-side) and http://github.com/michiel-unhosted/DemoRedlibreOrg (server-side) ***
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 - First of all: This code is only for demonstration and not safe to run in 
   production. Only run it in a local development environment, never on a public
   IP or production server.
