@@ -219,6 +219,24 @@ header input[type=text]{
 		color: #aaa;	
 	}
 
+header input[type=password]{
+	background: url('./img/input1.png') no-repeat left top;
+	width: 236px;
+	height: 38px;
+	padding:0 10px;
+	border: none;
+	color: #aaa;
+	
+
+}
+	header input[type=password].formfocus{
+		color: black;	
+	}
+	
+	header input[type=password].formblur{
+		color: #aaa;	
+	}
+
 header p{
 	color: #ddedd2;
 }
@@ -252,6 +270,12 @@ header p{
 			
 
 #register input[type=text]{
+	padding: 3px 5px;
+	width: 180px;
+	
+}
+
+#register input[type=password]{
 	padding: 3px 5px;
 	width: 180px;
 	
