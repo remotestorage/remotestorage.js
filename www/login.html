@@ -22,12 +22,15 @@
 var unhosted = Unhosted();
 
 function unlockUnhostedAccount(userName, password) {
-	unhosted.setWalletService("https://wallet.myfavouritesandwich.org/");
-	unhosted.setHostedWebDAV("https://wallet.myfavouritesandwich.org/");
-	unhosted.setUserName(userName);
-	unhosted.setPassword(password);
-	unhosted.connect();
-	show();
+	if(password == '') {
+		window.location = 'register.html';
+	} else {
+		unhosted.setWalletService("https://wallet.myfavouritesandwich.org/");
+		unhosted.setHostedWebDAV("https://wallet.myfavouritesandwich.org/");
+		unhosted.setPassword(password);
+		unhosted.connect();
+		window.location = 'app.html';
+	}
 }
 function lockUnhostedAccount() {
 	unhosted.setUserName(null);
@@ -41,59 +44,9 @@ function registerUnhostedAccount(userName, password, password2) {
 	return unhosted.register();
 }
 
-function loadSandwich() {
-	var sandwich = unhosted.dav.get("favSandwich.json");
-	if(sandwich) {
-		return sandwich;
-	} else {
-		return {ingredients:["", ""]};
-	}
-}
-function saveSandwich(ingredients) {
-	unhosted.dav.put("favSandwich.json", {"ingredients":ingredients});
-}
-
-
-  /////////////////////
- //  presentation:  //
-/////////////////////
-function showCurrentUser(userName) {
-	document.getElementById('currentUser').innerHTML=
-		'Current user is <strong>'
-		+unhosted.getUserName()
-		+'</strong> [<a onclick="lockUnhostedAccount();show();">Lock</a>]';
-}
-
-function showCurrentSandwich(sandwich) {
-	document.getElementById('showFirstIngredient').innerHTML = sandwich.ingredients[0];
-	document.getElementById('showSecondIngredient').innerHTML = sandwich.ingredients[1];
-	document.getElementById('firstIngredient').value = sandwich.ingredients[0];
-	document.getElementById('secondIngredient').value = sandwich.ingredients[1];
-}
-
-function showLocked() {
-	document.getElementById('unlockedView').style.display='none';
-	document.getElementById('lockedView').style.display='block';
-}
-function showUnlocked() {
-	document.getElementById('lockedView').style.display='none';
-	document.getElementById('unlockedView').style.display='block';
-}
-
-function show() {
-	var userName = unhosted.getUserName();
-	if(userName) {
-		var sandwich = loadSandwich();
-		showCurrentUser(userName);
-		showCurrentSandwich(sandwich);
-		showUnlocked();
-	} else {
-		showLocked();
-	}
-}
 </script>
 </head>
-<body onload="show()">
+<body>
 <div class="preload"></div>
 <div class="preload2"></div>
 <div id="preheader"></div>
@@ -109,8 +62,9 @@ function show() {
 
 		<header>
 			<h1>My Favourite Sandwich</h1>
-			Username:<input id="user" name="unhostedacct" onfocus="if(this.value=='user@provider.org'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='user@provider.org'}" type="text" value="user@provider.org"/>
-			<br>&nbsp;Password:<input id="pwd" name="unhostedacct" type="password"/>
+			Username:&nbsp;&nbsp;&nbsp;<input id="user" name="unhostedacct" onfocus="if(this.value=='user@provider.org'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='user@provider.org'}" type="text" value="user@provider.org"/>&nbsp;
+			<br><form><input type="radio" name="havePwd" value="yes">Password:&nbsp;<input id="pwd" name="unhostedacct" type="password"/>&nbsp;&nbsp;
+			<br><input type="radio" name="havePwd" value="no">&nbsp;I don't have a password yet, help me log in</form>
 			<br><input class="submit" name="submit" type="submit" value="Submit!"
 				 onclick="unlockUnhostedAccount(document.getElementById('user').value, document.getElementById('pwd').value);show();">
 		</header>
@@ -123,32 +77,6 @@ function show() {
 
 
 	</div>
-	<div id="unlockedView" class="hidden">
-
-
-
-		<div id="preheader">
-			<span>
-				<span id="currentUser"></span>
-			</span>
-		</div>
-			
-		<header class="data">
-			<p>My favourite sandwich has <strong><span id="showFirstIngredient"></span></strong> and 
-				<strong><span id="showSecondIngredient"></span></strong> on it</p>
-			<input id="firstIngredient" name="firstIngredient" onfocus="if(this.value=='1st ingredient'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='1st ingredient'}" type="text" value="1st ingredient"/>
-			<input id="secondIngredient" name="secondIngredient" onfocus="if(this.value=='2nd ingredient'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='2nd ingredient'}" type="text" value="2nd ingredient"/>
-					
-			<input class="submitingredients" name="submit" type="submit" value="Submit!" onclick="saveSandwich(
-							[document.getElementById('firstIngredient').value,
-							document.getElementById('secondIngredient').value]);show();"/>
-		</header>
-
-
-
-	</div>
-
-
 
 
 	<div id="footerSpacer"></div>					
