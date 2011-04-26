@@ -187,8 +187,13 @@ var DAV = function() {
 var Unhosted = function() {
 	var unhosted = {};
 	unhosted.dav = DAV();
-	unhosted.processToken = function() {
+	unhosted.indexPage1_OnLoad = function() {
 		OAuth().receiveToken();
+	}
+	unhosted.registerPage1_OnLoad = function() {
+	}
+	unhosted.register = function() {
+		alert('register');
 	}
 	unhosted.setUserName = function(userName) {
 		if(userName == null) {
