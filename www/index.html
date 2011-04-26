@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+<title>Myfavouritesandwich - An Unhosted demo</title>
+<link rel="stylesheet" href="css/uncompressed/reset.css" />
+<link rel="stylesheet" href="css/uncompressed/text.css" />
+<link rel="stylesheet" href="general.css" />
+<link rel="stylesheet" href="css/uncompressed/layout.css" />
+
+<script src="Base64.js"></script>
+<script src="sjcl/sjcl.js"></script>
+<script src="unhosted.js"></script>
+<script>
+
+
+  ////////////////////
+ //  data access:  //
+////////////////////
+
+var unhosted = Unhosted();
+
+unhosted.processToken(); //if we were redirected here from an OAuth dialogue, then this gets the token from the query string, saves it, and removes it. Always call this first thing on the page you configured as the OAuth redirect uri (by default, the main page).
+
+if(unhosted.getUserName()) { //we have a valid session
+	window.location = "app.html";
+} else {
+	window.location = "login.html";
+}
+</script>
+<body>
+Checking your session...
+</body>
+</html>
