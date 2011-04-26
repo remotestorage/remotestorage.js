@@ -99,7 +99,7 @@ var OAuth = function () {
 		window.location = oAuthDomain
 					+"oauth2/auth"
 					+"?client_id="+app
-					+"&redirect_uri="+app
+					+"&redirect_uri="+encodeURIComponent(document.location.href)
 					+"&scope="+document.domain
 					+"&response_type=token"
 					+"&user_name="+userName;
