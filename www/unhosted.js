@@ -128,7 +128,6 @@ var OAuth = function () {
 	}
 	return oAuth;
 }
-OAuth().receiveToken();
 
 
   /////////
@@ -188,7 +187,9 @@ var DAV = function() {
 var Unhosted = function() {
 	var unhosted = {};
 	unhosted.dav = DAV();
-
+	unhosted.processToken = function() {
+		OAuth().receiveToken();
+	}
 	unhosted.setUserName = function(userName) {
 		if(userName == null) {
 			localStorage.removeItem("unhosted::userName");
