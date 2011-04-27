@@ -36,7 +36,7 @@ function showCurrentUser(userName) {
 	document.getElementById('currentUser').innerHTML=
 		'Current user is <strong>'
 		+unhosted.getUserName()
-		+'</strong> [<a onclick="unhosted.close();">Close</a>]';
+		+'</strong> [<a onclick="unhosted.close();show(null, null);">Close</a>]';
 }
 
 function showCurrentSandwich(sandwich) {
@@ -50,7 +50,7 @@ function show(userName, sandwich) {
 	if(sandwich) {
 		showCurrentSandwich(sandwich);
 	} else {
-		showCurrentSandwich(['', '']);
+		showCurrentSandwich({ingredients:['', '']});
 	}
 	showCurrentUser(userName);
 }
@@ -66,7 +66,7 @@ function show(userName, sandwich) {
 <div id="mainWrap">
 
 
-	<div id="unlockedView" class="hidden">
+	<div id="unlockedView">
 
 
 
