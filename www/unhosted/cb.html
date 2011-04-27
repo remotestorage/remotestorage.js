@@ -6,21 +6,40 @@
 <title>Myfavouritesandwich - An Unhosted demo</title>
 <link rel="stylesheet" href="css/uncompressed/reset.css" />
 <link rel="stylesheet" href="css/uncompressed/text.css" />
-<link rel="stylesheet" href="general.css" />
+<link rel="stylesheet" href="css/general.css" />
 <link rel="stylesheet" href="css/uncompressed/layout.css" />
 
-<script src="Base64.js"></script>
-<script src="sjcl/sjcl.js"></script>
-<script src="unhosted.js"></script>
+<script src="unhosted/Base64.js"></script>
 <script>
-var unhosted = Unhosted();
-unhosted.registerPage1_OnLoad();
+var walletUrl = "https://wallet.myfavouritesandwich.org/";
+//var walletUrl = "https://myfavouritesandwich.org/";
+var appBaseUrl = "http://www.myfavouritesandwich.org/";
+//var appBaseUrl = "https://www.myfavouritesandwich.org/";
+var appUrl = appBaseUrl+"";
+var registerUrl = appBaseUrl+"register.html";
+// app state shared with login.html:
+// =================================
+// localStorage::"unhosted".userName
+// localStorage::"unhosted".davAuth
+// localStorage::"unhosted".cryptoPwd
+// localStorage::"unhosted".davBaseUrl
 
-function register(pwd1, pwd2) {
-	if(pwd1 != pwd2) {
-		alert('please enter the same password twice');
+function takeMeIn(userName, pwd, havePwd) {
+	if(havePwd) {
+		xhr = new XMLHttpRequest();
+		xhr.open("GET", walletUrl+"?user_name="+userName+"&pwd="+pwd, true);
+		xhr.onreadystatechange = function() {
+			if(xhr.readyState == 4) {
+				if(xhr.status == 200) {
+					localStorage.setItem("unhosted", JSON.parse(xhr.responseText));
+					window.location = appUrl;
+				}
+			}
+		}
+		xhr.send();
 	} else {
-		unhosted.register(pwd1);
+		localStorage.setItem("unhosted", {"userName": userName});
+		window.location = registerUrl;
 	}
 }
 </script>
@@ -41,11 +60,12 @@ function register(pwd1, pwd2) {
 
 		<header>
 			<h1>My Favourite Sandwich</h1>
-			Username:<input id="user" name="unhostedacct" onfocus="if(this.value=='user@provider.org'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='user@provider.org'}" type="text" value="user@provider.org"/>
-			<br>Password:&nbsp;<input id="pwd1" name="unhostedacct" type="password"/>
-			<br>Repeat:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input id="pwd2" name="unhostedacct" type="password"/>
+			Username:&nbsp;&nbsp;&nbsp;<input id="user" name="unhostedacct" onfocus="if(this.value=='user@provider.org'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='user@provider.org'}" type="text" value="user@provider.org"/>&nbsp;
+			<br><input type="radio" name="havePwd" id="havePwdYes">
+			Password:&nbsp;<input id="pwd" name="unhostedacct" type="password"/>&nbsp;&nbsp;
+			<br><input type="radio" name="havePwd" checked id="havePwdNo">&nbsp;I don't have a password yet, help me log in
 			<br><input class="submit" name="submit" type="submit" value="Submit!"
-				 onclick="register(document.getElementById('pwd1').value, document.getElementById('pwd2').value);">
+				 onclick="takeMeIn(document.getElementById('user').value, document.getElementById('pwd').value, document.getElementById('havePwdYes').checked);">
 		</header>
 			
 		<div id="register">

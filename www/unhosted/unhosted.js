@@ -1,6 +1,6 @@
 var appBaseUrl = "http://www.myfavouritesandwich.org/";
 //var appBaseUrl = "https://www.myfavouritesandwich.org/";
-var loginUrl = appBaseUrl + "login.html";
+var loginUrl = appBaseUrl + "unhosted/login.html";
 
 // app state shared with login.html:
 // =================================

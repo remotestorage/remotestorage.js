@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+<title>Myfavouritesandwich - An Unhosted demo</title>
+<link rel="stylesheet" href="/css/uncompressed/reset.css" />
+<link rel="stylesheet" href="/css/uncompressed/text.css" />
+<link rel="stylesheet" href="/css/general.css" />
+<link rel="stylesheet" href="/css/uncompressed/layout.css" />
+
+<script>
+var unhosted = Unhosted();
+
+function determineDavBaseUrl() {
+	//take the username
+	//look up host-meta
+	//look up webfinger
+	//save davBaseUrl
+}
+function register(pwd1, pwd2) {
+	if(pwd1 != pwd2) {
+		alert('please enter the same password twice');
+	} else {
+		//if the username is hosted, 
+			//send username and wallet pwd to register_local.php script, to:
+				//generate dav password
+				//create dav account
+				//create {userName, cryptoPwd=null, davBaseUrl, davAuth} as wallet and return it
+			//store wallet in localStorage::"unhosted"
+		//else
+			//send username, davBaseUrl, and wallet pwd to register_wallet.php script, to:
+				//generate cryptoPwd
+				//create {userName, cryptoPwd, davBaseUrl, davAuth=null} as wallet and return it
+			//store wallet in localStorage::"unhosted"
+			//redirect to davBaseUrl / oauth... with redirect_uri unhosted/cb.html
+		//
+	}
+}
+</script>
+</head>
+<body onload="determineDavBaseUrl();">
+<div class="preload"></div>
+<div class="preload2"></div>
+<div id="preheader"></div>
+<div id="plateContainer">
+	<figure id="plate"></figure>
+</div>
+<div id="mainWrap">
+
+
+	<div id="lockedView">
+
+
+
+		<header>
+			<h1>My Favourite Sandwich</h1>
+			Username:<input id="user" name="unhostedacct" onfocus="if(this.value=='user@provider.org'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='user@provider.org'}" type="text" value="user@provider.org"/>
+			<br>Password:&nbsp;<input id="pwd1" name="unhostedacct" type="password"/>
+			<br>Repeat:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input id="pwd2" name="unhostedacct" type="password"/>
+			<br><input class="submit" name="submit" type="submit" value="Submit!"
+				 onclick="register(document.getElementById('pwd1').value, document.getElementById('pwd2').value);">
+		</header>
+			
+		<div id="register">
+			&nbsp;
+		</div>
+
+
+
+
+	</div>
+
+
+	<div id="footerSpacer"></div>					
+	<footer>
+		<div class="wrapper">
+		<div id="leftcolumn">
+			<h3>So... what is this all about?</h3>
+			<p>
+				This is a fictional site that demonstrates the unhosted architecture, a tutorial, so you can take a look at the code to understand how unhosted web apps work. View the application source code <a href="http://github.com/michiel-unhosted/myfavouritesandwich/blob/master/index.html" target="_blank">here</a>. The popup that handles the <a href="http://webfinger.org" target="_blank">WebFinger</a> is <a href="http://github.com/michiel-unhosted/myfavouritesandwich/blob/master/popup.html" target="_blank">here</a>, and  <a href="http://github.com/michiel-unhosted/myfavouritesandwich/blob/master/cb.html" target="_blank">here</a> is the <a href="http://code.google.com/apis/accounts/docs/OAuth2.html#CS" target="_blank">OAuth2-cs</a> callback.
+			</p>
+			<p>
+				<strong>myfavouritesandwich.org is not a commercial website, nor is it affiliated with any trademark</strong>
+			</p>
+		</div>
+		<figure id="island"></figure>
+		<div id="rightcolumn">
+			<h3>What is Unhosted?</h3>
+			<p>
+				<strong>Unhosted is a project for strengthening free software against hosted software. 
+				</strong>
+				An unhosted web app is only source code. Dynamic data is encrypted and decentralised, to per-user storage nodes. This benefits <strong>free software</strong>, as well as <strong>scalability</strong>, <strong>robustness</strong>, and <strong>online privacy</strong>.
+			</p>
+			<p>
+				<strong>Check it out at <a href="http://www.unhosted.org">http://www.unhosted.org/</a></strong>
+			</p>
+		</div>
+		<div class="clear">
+		</div>				
+	</footer>
+</div>
+</body>
+</html>
+
+  ///////////////
+ // OAuth2-cs //
+///////////////
+
+var OAuth = function () {
+	var oAuth = {}
+	oAuth.dance = function(oAuthDomain, userName, app) {
+		window.location = oAuthDomain
+					+"oauth2/auth"
+					+"?client_id="+app
+					+"&redirect_uri="+encodeURIComponent(document.location.href)
+					+"&scope="+document.domain
+					+"&response_type=token"
+					+"&user_name="+userName;
+	}
+	oAuth.revoke = function() {
+		localStorage.removeItem("OAuth2-cs::token");
+	}
+	//receive incoming OAuth token, if present:
+	oAuth.receiveToken = function() {
+		var regex = new RegExp("[\\?&]user_name=([^&#]*)");
+		var results = regex.exec(window.location.href);
+		if(results) {
+			localStorage.setItem("unhosted::userName", results[1]);
+			var davDomain = WebFinger().getDavDomain(results[1], 0, 1);
+			if(davDomain != null) {
+				localStorage.setItem("unhosted::davDomain", davDomain);
+				localStorage.setItem("unhosted::isUnhosted", "yes");
+			}
+		}
+		var regex2 = new RegExp("[\\?&]token=([^&#]*)");
+		var results2 = regex2.exec(window.location.href);
+		if(results2) {
+			localStorage.setItem("OAuth2-cs::token", results2[1]);
+			window.location = location.href.split("?")[0];
+		}
+	}
+	return oAuth;
+}
+
+
+
+  /////////
+ // DAV //
+/////////
+
+var DAV = function() {
+	var dav = {}
+	var makeBasicAuth = function(user, password) {
+		var tok = user + ':' + password;
+		var hash = Base64.encode(tok);
+		return "Basic " + hash;
+	}
+	keyToUrl = function(key) {
+		var userNameParts = localStorage.getItem("unhosted::userName").split("@");
+		var resource = document.domain;
+		var url = localStorage.getItem("unhosted::davDomain")
+			+"webdav/"+userNameParts[1]
+			+"/"+userNameParts[0]
+			+"/"+resource
+			+"/"+key;
+		return url;
+	}
+	dav.get = function(key) {
+		var xhr = new XMLHttpRequest();
+		xhr.open("GET", keyToUrl(key), false);
+		xhr.setRequestHeader("Authorization", makeBasicAuth(localStorage.getItem("unhosted::userName"), localStorage.getItem("OAuth2-cs::token")));
+		xhr.withCredentials = "true";
+		xhr.send();
+		if(xhr.status == 200) {
+			return JSON.parse(xhr.responseText);
+		} if(xhr.status == 404) {
+			return null;
+		} else {
+			alert("error: got status "+xhr.status+" when doing basic auth GET on url "+keyToUrl(key));
+		}
+	}
+	dav.put = function(key, value) {
+		var text = JSON.stringify(value);
+		var xhr = new XMLHttpRequest();
+		xhr.open("PUT", keyToUrl(key), false);
+		xhr.setRequestHeader("Authorization", makeBasicAuth(localStorage.getItem("unhosted::userName"), localStorage.getItem("OAuth2-cs::token")));
+		xhr.withCredentials = "true";
+		xhr.send(text);
+		if(xhr.status != 200 && xhr.status != 201 && xhr.status != 204) {
+			alert("error: got status "+xhr.status+" when doing basic auth PUT on url "+keyToUrl(key));
+		}
+	}
+	return dav;
+}
+
+
+  //////////////
+ // Unhosted //
+//////////////
+
+var Unhosted = function() {
+	var unhosted = {};
+	var dav = DAV();
+	var oauth = OAuth();
+
+	unhosted.setUserName = function(userName) {//used on the login page
+		localStorage.setItem("unhosted::userName", userName);
+		var davDomain = WebFinger().getDavDomain(userName, 0, 1);
+		if(davDomain == null) {
+			localStorage.setItem("unhosted::davDomain", localStorage.getItem("unhosted::hostedWebDAV"));
+			localStorage.setItem("unhosted::isUnhosted", "no");
+			localStorage.setItem("unhosted::isConnected", "yes");
+		} else {
+			localStorage.setItem("unhosted::davDomain", davDomain);
+			localStorage.setItem("unhosted::isUnhosted", "yes");
+			localStorage.setItem("unhosted::isConnected", "yes");
+		}
+	}
+
+	unhosted.getUserName = function() {//used by the app
+		if(localStorage.getItem("unhosted::isConnected") == "yes") {
+			if(localStorage.getItem("unhosted::isUnhosted") == "yes") {
+				return localStorage.getItem("unhosted::userName").trim();
+			} else {
+				return localStorage.getItem("unhosted::userName").trim()+" WARNING: YOUR ACCOUNT IS HOSTED AT MYFAVOURITESANDWICH.<BR>PLEASE SEE <a href='https://dev.unhosted.org/register.php?redirect_url=www.myfavouritesandwich.org&scope=www.myfavouritesandwich.org'>HERE</a> ABOUT GETTING AN UNHOSTED ACCOUNT!";
+			}
+		}
+		return null;
+	}
+
+	unhosted.setPassword = function(password) {
+		var xhr = new XMLHttpRequest();
+		xhr.open("GET", 
+			localStorage.getItem("unhosted::walletService")
+			+"?user_name="+localStorage.getItem("unhosted::userName")
+			+"&pwd="+password, false);
+		xhr.send();
+		if(xhr.status == 200) {
+			localStorage.setItem("unhosted::strongPassword", xhr.responseText);
+		}
+	}
+	unhosted.connect = function() {
+		var oauth = OAuth();
+		oauth.receiveToken();
+		var davDomain = localStorage.getItem("unhosted::davDomain");
+		var userName = localStorage.getItem("unhosted::userName");
+		if((davDomain != null) && (localStorage.getItem("unhosted::isUnhosted") == "yes")) {
+			OAuth().dance(davDomain, userName, location.host + location.pathname);
+		}
+	}
+	sha1 = function(str) {
+		return str;
+	}
+	unhosted.get = function(key) {
+		var encrypted = unhosted.dav.get(sha1(key));
+		var decrypted = sjcl.decrypt(localStorage.getItem("unhosted::strongPassword"), encrypted);
+		return JSON.parse(decrypted);
+	}
+	unhosted.set = function(key, value) {
+		var encrypted = sjcl.encrypt(localStorage.getItem("unhosted::strongPassword"), JSON.stringify(value));
+		unhosted.dav.put(sha1(key), encrypted);
+	}
+	unhosted.close = function() {
+			localStorage.removeItem("unhosted::userName");
+			localStorage.removeItem("unhosted::davDomain");
+			localStorage.setItem("unhosted::isConnected", "no");
+			OAuth().revoke();
+	}
+	unhosted.register = function(userName) {
+		var registerUrl = WebFinger().getAdminUrl(userName);
+		if(registerUrl) {
+			window.location = registerUrl;
+		} else {
+			var parts = userName.split("@");
+			if(parts.length == 2) {
+				//alert the sys admin about the error through a 404 message to her website:
+				var xhr = new XMLHttpRequest();
+				var url = "http://www."+parts[1]+"/unhosted-account-failure/?user="+userName;
+				xhr.open("GET", url, true);
+				xhr.send();
+
+				//inform the user:
+				return "Unhosted account not found! Please alert an IT hero at "
+					+parts[1]
+					+" about this. For alternative providers, see http://www.unhosted.org/";
+			} else {
+				return "Please use one '@' symbol in the user name";
+			}
+		}
+	}
+
+	return unhosted;
+}

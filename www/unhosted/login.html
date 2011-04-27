@@ -4,19 +4,18 @@
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 
 <title>Myfavouritesandwich - An Unhosted demo</title>
-<link rel="stylesheet" href="css/uncompressed/reset.css" />
-<link rel="stylesheet" href="css/uncompressed/text.css" />
-<link rel="stylesheet" href="general.css" />
-<link rel="stylesheet" href="css/uncompressed/layout.css" />
+<link rel="stylesheet" href="/css/uncompressed/reset.css" />
+<link rel="stylesheet" href="/css/uncompressed/text.css" />
+<link rel="stylesheet" href="/css/general.css" />
+<link rel="stylesheet" href="/css/uncompressed/layout.css" />
 
 <script>
-var a = {userName:"michiel", cryptoPwd:"NDA2MjAxOTM5", davBaseUrl:"https://myfavouritesandwich.org/webdav/", davAuth:"123456"};
 var walletUrl = "https://wallet.myfavouritesandwich.org/";
 //var walletUrl = "https://myfavouritesandwich.org/";
 var appBaseUrl = "http://www.myfavouritesandwich.org/";
 //var appBaseUrl = "https://www.myfavouritesandwich.org/";
 var appUrl = appBaseUrl+"";
-var registerUrl = appBaseUrl+"register.html";
+var registerUrl = appBaseUrl+"unhosted/register.html";
 // app state shared with login.html:
 // =================================
 // localStorage::"unhosted".userName
@@ -61,11 +60,11 @@ function takeMeIn(userName, pwd, havePwd) {
 		<header>
 			<h1>My Favourite Sandwich</h1>
 			Username:&nbsp;&nbsp;&nbsp;<input id="user" name="unhostedacct" onfocus="if(this.value=='user@provider.org'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='user@provider.org'}" type="text" value="user@provider.org"/>&nbsp;
-			<br><form><input type="radio" name="havePwd" value="yes" id="havePwdYes">
+			<br><input type="radio" name="havePwd" id="havePwdYes">
 			Password:&nbsp;<input id="pwd" name="unhostedacct" type="password"/>&nbsp;&nbsp;
-			<br><input type="radio" name="havePwd" value="no" checked id="havePwdNo">&nbsp;I don't have a password yet, help me log in</form>
+			<br><input type="radio" name="havePwd" checked id="havePwdNo">&nbsp;I don't have a password yet, help me log in
 			<br><input class="submit" name="submit" type="submit" value="Submit!"
-				 onclick="takeMeIn(document.getElementById('user').value, document.getElementById('pwd').value, document.getElementById('havePwdYes').value);">
+				 onclick="takeMeIn(document.getElementById('user').value, document.getElementById('pwd').value, document.getElementById('havePwdYes').checked);">
 		</header>
 			
 		<div id="register">
