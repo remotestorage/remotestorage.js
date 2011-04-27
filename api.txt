@@ -1,0 +1,64 @@
+The app is on index.html and on load, uses:
+
+	var unhosted = Unhosted();
+	unhosted.connect();
+	unhosted.get("favSandwich");
+	unhosted.getUserName();
+
+When you save the sandwich, it uses:
+
+	unhosted.set("favSandwich", value);
+
+
+and when you close the app, it uses:
+
+	unhosted.close();
+
+
+
+If you are happy with the login flow as it is, you can leave this as it is, and just write your own app using get and set for reading and writing to the hosted or unhosted DAV storage. But for completeness we also tell you the other pages that form part of the demo app:
+
+If in index.html, connect() notices you're not logged in, it will redirect you to login.html, where you'll either log in or indicate you want to register. In the first case it will call:
+
+	unhosted.setUserName(userName);
+	unhosted.setPassword(password);
+	unhosted.connect();
+
+In the second case, it will call only unhosted.setUserName(userName), and redirect you to register.html, which on load will call:
+
+	unhosted.connect();
+
+to start looking up the host-meta and webfinger in the background, and have it ready so that once you successfully type in the same password twice and hit register, it will call:
+
+	unhosted.setPassword(password);
+	unhosted.register();
+
+which, if the account is local, will log you right in, and if the account is unhosted at some other domain, will take you to /oauth2/auth/ on that domain. That page will query whether the user is currently logged in (0), logged out (1), or non-existant (2):
+
+	var userState = unhosted.getUserState(userName);
+
+It will display the typical OAuth dialogue, with /userState/ password boxes, and a 'permit', 'log in and permit', or 'register and permit' button respectively. When reading the OAuth spec, it seems that the username cannot be passed in the query string, so the user will have to type that in anew. So in cases 0, this will cause:
+
+	unhosted.authorize();
+
+In case 1 it will be:
+
+	unhosted.setUserName(userName);
+	unhosted.setPassword(password);
+	unhosted.connect();
+	unhosted.authorize();
+
+And in case 2:
+
+	unhosted.setUserName(userName);
+	unhosted.setPassword(password);
+	unhosted.register();
+	unhosted.authorize();
+
+if the user chooses to authorize the request, and:
+
+	unhosted.reject();
+
+instead of the 'unhosted.authorize();' line, if she chooses to reject said request.
+
+
