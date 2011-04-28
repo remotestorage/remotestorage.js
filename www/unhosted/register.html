@@ -9,15 +9,24 @@
 <link rel="stylesheet" href="/css/general.css" />
 <link rel="stylesheet" href="/css/uncompressed/layout.css" />
 
+<script src="/unhosted/wallet.js"></script>
+<script src="/unhosted/webfinger.js"></script>
+
 <script>
-var unhosted = Unhosted();
+
+setWallet({userName:"demo@demo.redlibre.org"});
+
 
 function determineDavBaseUrl() {
-	//take the username
-	//look up host-meta
-	//look up webfinger
-	//save davBaseUrl
+	var webfinger = new Webfinger();
+	var wallet = getWallet();
+	webfinger.getDavBaseUrl(wallet.userName, 0, 1, function(davBaseUrl) {
+		var wallet = getWallet();
+		wallet.davBaseUrl = davBaseUrl;
+		setWallet(wallet);
+	});
 }
+
 function register(pwd1, pwd2) {
 	if(pwd1 != pwd2) {
 		alert('please enter the same password twice');

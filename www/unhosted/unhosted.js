@@ -65,12 +65,12 @@ var Unhosted = function() {
 	var unhosted = {};
 	var dav = DAV();
 	unhosted.connect = function() {
-		if(!localStorage.getItem("unhosted").userName) {
+		if(!getWallet().userName) {
 			window.location = loginUrl;
 		}
 	}
 	unhosted.getUserName = function() {
-		return localStorage.getItem("unhosted").userName;
+		return getWallet().userName;
 	}
 	unhosted.get = function(key) {
 		return JSON.parse(dav.get(key));
@@ -81,7 +81,7 @@ var Unhosted = function() {
 		//dav.put(key, sjcl.encrypt(localStorage.getItem("unhosted").cryptoPwd, JSON.stringify(value)));
 	}
 	unhosted.close = function() {
-		localStorage.removeItem("unhosted").userName;
+		setWallet({});
 	}
 
 	return unhosted;
