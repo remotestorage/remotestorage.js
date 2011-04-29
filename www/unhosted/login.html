@@ -32,6 +32,7 @@ function takeMeIn(userAddress, pwd, havePwd) {
 					} catch(e) {
 						wallet = {};
 					}
+					wallet.userAddress = userAddress;//use userAddress from closure
 					setWallet(wallet);
 					window.location = config.appUrl;
 				}
