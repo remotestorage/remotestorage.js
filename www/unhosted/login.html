@@ -14,15 +14,15 @@
 <script>
 // app state shared with login.html:
 // =================================
-// localStorage::"unhosted".userName
+// localStorage::"unhosted".userAddress
 // localStorage::"unhosted".davAuth
 // localStorage::"unhosted".cryptoPwd
 // localStorage::"unhosted".davBaseUrl
 
-function takeMeIn(userName, pwd, havePwd) {
+function takeMeIn(userAddress, pwd, havePwd) {
 	if(havePwd) {
 		xhr = new XMLHttpRequest();
-		xhr.open("GET", config.walletUrl+"?user_name="+userName+"&pwd="+pwd, true);
+		xhr.open("GET", config.walletUrl+"?user_name="+userAddress+"&pwd="+pwd, true);
 		xhr.onreadystatechange = function() {
 			var wallet;
 			if(xhr.readyState == 4) {
@@ -39,7 +39,7 @@ function takeMeIn(userName, pwd, havePwd) {
 		}
 		xhr.send();
 	} else {
-		setWallet({"userName": userName});
+		setWallet({"userAddress": userAddress});
 		window.location = config.registerUrl;
 	}
 }

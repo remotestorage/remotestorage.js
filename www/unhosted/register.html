@@ -17,7 +17,7 @@
 function determineDavBaseUrl() {
 	var webfinger = new Webfinger();
 	var wallet = getWallet();
-	webfinger.getDavBaseUrl(wallet.userName, 0, 1, function(davBaseUrl) {
+	webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function(davBaseUrl) {
 		var wallet = getWallet();
 		wallet.davBaseUrl = davBaseUrl;
 		setWallet(wallet);
@@ -37,7 +37,7 @@ register = function(pwd1, pwd2) {
 	} else {
 		var wallet = getWallet();
 		xhr = new XMLHttpRequest();
-		xhr.open("GET", config.walletRegisterUrl+"?pwd="+pwd1+"&wallet="+serialize(wallet), true);
+		xhr.open("GET", config.walletRegisterUrl+"?pwd="+pwd1+"&"+serialize(wallet), true);
 		xhr.onreadystatechange = function() {
 			if(xhr.readyState == 4) {
 				if(xhr.status == 200) {
@@ -51,7 +51,7 @@ register = function(pwd1, pwd2) {
 								+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
 								+ "&scope="+encodeURIComponent(config.dataScope)
 								+ "&response_type=token"
-								+ "&user_name="+wallet.userName;
+								+ "&user_address="+wallet.userAddress;
 					}
 				}
 			}

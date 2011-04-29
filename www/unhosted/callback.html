@@ -19,7 +19,7 @@ makeBasicAuthHash = function(user, password) {
 }
 var wallet = getWallet();
 alert(JSON.stringify(wallet));
-wallet.davAuth = makeBasicAuthHash(wallet.userName, gup('token'));
+wallet.davAuth = makeBasicAuthHash(wallet.userAddress, gup('token'));
 setWallet(wallet);
 window.location = config.appUrl;
 </script>

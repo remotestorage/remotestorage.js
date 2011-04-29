@@ -33,7 +33,7 @@ var unhosted = Unhosted();
   /////////////////////
  //  presentation:  //
 /////////////////////
-function showCurrentUser(userName) {
+function showCurrentUser(userAddress) {
 	document.getElementById('currentUser').innerHTML=
 		'Current user is <strong>'
 		+unhosted.getUserName()
@@ -47,13 +47,13 @@ function showCurrentSandwich(sandwich) {
 	document.getElementById('secondIngredient').value = sandwich.ingredients[1];
 }
 
-function show(userName, sandwich) {
+function show(userAddress, sandwich) {
 	if(sandwich) {
 		showCurrentSandwich(sandwich);
 	} else {
 		showCurrentSandwich({ingredients:['', '']});
 	}
-	showCurrentUser(userName);
+	showCurrentUser(userAddress);
 }
 </script>
 </head>

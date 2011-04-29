@@ -1,5 +1,5 @@
 <?php
-require_once('../../unhosted/init.php');
+require_once('init.php');
 
 function registerScope($userAddress, $pwd, $scope) {
 	list($userName, $userDomain) = explode("@", $userAddress);
