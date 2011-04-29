@@ -2,7 +2,7 @@
 require_once('init.php');
 class UnhostedAccount {
 	private $userAddress, $userName, $userDomain, $pwd;
-	function __construct($userAddress) {
+	function __construct($userAddress, $pwd) {
 		$this->userAddress = $userAddress;
 		list($this->userName, $this->userDomain) = explode("@", $userAddress);
 		$this->pwd = $pwd;
@@ -44,7 +44,7 @@ class UnhostedAccount {
 	}
 	public function getWallet($scope) {
 		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$scope;
-		return file_get_content($davDir.'/wallet_'.sha1($this->pwd));
+		return file_get_contents($davDir.'/wallet_'.sha1($this->pwd));
 	
 	}
 	public function registerHosted() {

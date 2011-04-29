@@ -8,6 +8,6 @@ var config = {
 	registerUrl: appBaseUrl + "/unhosted/register.html",
 	callbackUrl: appBaseUrl+ "/unhosted/callback.html",
 	appName: "My Favourite Sandwich",
-	dataScope: "recipes",
+	dataScope: "dev.unhosted.org",
 	homeDomain: "dev.unhosted.org"
 }

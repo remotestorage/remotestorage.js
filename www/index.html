@@ -47,17 +47,18 @@ function showCurrentSandwich(sandwich) {
 	document.getElementById('secondIngredient').value = sandwich.ingredients[1];
 }
 
-function show(userAddress, sandwich) {
+function show() {
+	var sandwich = unhosted.get('favSandwich');
 	if(sandwich) {
 		showCurrentSandwich(sandwich);
 	} else {
 		showCurrentSandwich({ingredients:['', '']});
 	}
-	showCurrentUser(userAddress);
+	showCurrentUser(unhosted.getUserName());
 }
 </script>
 </head>
-<body onload="unhosted.connect(); show(unhosted.getUserName(), unhosted.get('favSandwich'));">
+<body onload="unhosted.connect(); show();">
 <div class="preload"></div>
 <div class="preload2"></div>
 <div id="preheader"></div>

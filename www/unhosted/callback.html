@@ -14,7 +14,7 @@ gup = function(paramName) {
 	
 var wallet = getWallet();
 xhr = new XMLHttpRequest();
-xhr.open("GET", config.doUrl+"?action=register_wallet&"+serialize(wallet), true);
+xhr.open("GET", config.doUrl+"?action=registerWallet&"+serialize(wallet), true);
 xhr.onreadystatechange = function() {
 	if(xhr.readyState == 4) {
 		if(xhr.status == 200) {

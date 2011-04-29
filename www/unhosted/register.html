@@ -48,12 +48,14 @@ register = function(pwd1, pwd2) {
 		var wallet = getWallet();
 		if(wallet.isLocal) {
 			xhr = new XMLHttpRequest();
-			xhr.open("GET", config.doUrl+"?action=register_local&pwd="+pwd1+"&"+serialize(wallet), true);
+			xhr.open("GET", config.doUrl+"?action=registerLocal&pwd="+pwd1+"&"+serialize(wallet), true);
 			xhr.onreadystatechange = function() {
 				if(xhr.readyState == 4) {
 					if(xhr.status == 200) {
 						var wallet = JSON.parse(xhr.responseText);
+						wallet.userAddress = getWallet().userAddress;//copy user address in from existing wallet into new one
 						setWallet(wallet);
+						window.location = config.appUrl;
 					}
 				}
 			}

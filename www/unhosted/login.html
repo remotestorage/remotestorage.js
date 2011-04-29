@@ -22,7 +22,7 @@
 function takeMeIn(userAddress, pwd, havePwd) {
 	if(havePwd) {
 		xhr = new XMLHttpRequest();
-		xhr.open("GET", config.doUrl+"?action=get_wallet&user_adress="+userAddress+"&pwd="+pwd, true);
+		xhr.open("GET", config.doUrl+"?action=getWallet&userAddress="+encodeURIComponent(userAddress)+"&pwd="+pwd+"&scope="+config.dataScope, true);
 		xhr.onreadystatechange = function() {
 			var wallet;
 			if(xhr.readyState == 4) {
