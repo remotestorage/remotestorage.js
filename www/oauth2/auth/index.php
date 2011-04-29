@@ -1,21 +1,10 @@
 <?php
 
-require_once('../../unhosted/init.php');
+require_once('../../unhosted/unhosted.php');
 
 if(count($_POST)) {
-	list($userName, $userDomain) = explode("@", $_POST["user_name"]);
-	$pwdFile = UnhostedSettings::davDir . "$userDomain/$userName/.htpasswd";
-	if(file_exists($pwdFile) && sha1($_POST["pwd"])==file_get_contents($pwdFile)) {
-		$token = base64_encode(mt_rand());
-		$davDir = UnhostedSettings::davDir . "$userDomain/$userName/".$_POST["scope"];
-		`if [ ! -d $davDir ] ; then mkdir $davDir ; fi`;
-		`echo "<LimitExcept OPTIONS HEAD GET>" > $davDir/.htaccess`;
-		`echo "  AuthType Basic" >> $davDir/.htaccess`;
-		`echo "  AuthName \"http://unhosted.org/spec/dav/0.1\"" >> $davDir/.htaccess`;
-		`echo "  Require valid-user" >> $davDir/.htaccess`;
-		`echo "  AuthUserFile $davDir/.htpasswd" >> $davDir/.htaccess`;
-		`echo "</LimitExcept>" >> $davDir/.htaccess`;
-		`htpasswd -bc $davDir/.htpasswd {$_POST["user_name"]} $token`;
+	$token = registerScope($POST["user_address"], $_POST["pwd"], $_POST["scope"]);
+	if($token) {
 		header("Location:".$_POST["redirect_uri"]."?token=".$token);
 		echo "redirecting you back to the application.\n";
 	} else {
@@ -49,7 +38,7 @@ if(count($_POST)) {
 					<form method="POST" action="?">
 					<input type="password" name="pwd" value="" />
 					<input type="submit" name="submit" value="Allow" />
-					<input type="hidden" value="<?=$_GET["user_name"]?>" name="user_name">
+					<input type="hidden" value="<?=$_GET["user_address"]?>" name="user_address">
 					<input type="hidden" value="<?=$_GET["scope"]?>" name="scope">
 					<input type="hidden" value="<?=$_GET["redirect_uri"]?>" name="redirect_uri">
 					</form>
