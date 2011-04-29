@@ -1,6 +1,6 @@
 // app state shared with login.html:
 // =================================
-// localStorage::"unhosted".userName
+// localStorage::"unhosted".userAddress
 // localStorage::"unhosted".davAuth
 // localStorage::"unhosted".cryptoPwd
 // localStorage::"unhosted".davBaseUrl
@@ -13,11 +13,11 @@
 var DAV = function() {
 	var dav = {}
 	keyToUrl = function(key, wallet) {
-		var userNameParts = wallet.userName.split("@");
+		var userAddressParts = wallet.userAddress.split("@");
 		var resource = document.domain;
 		var url = wallet.davBaseUrl
-			+"webdav/"+userNameParts[1]
-			+"/"+userNameParts[0]
+			+"webdav/"+userAddressParts[1]
+			+"/"+userAddressParts[0]
 			+"/"+resource
 			+"/"+key;
 		return url;
@@ -63,7 +63,7 @@ var Unhosted = function() {
 		}
 	}
 	unhosted.getUserName = function() {
-		return getWallet().userName;
+		return getWallet().userAddress;
 	}
 	unhosted.get = function(key) {
 		return JSON.parse(dav.get(key));

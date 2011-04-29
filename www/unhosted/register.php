@@ -14,7 +14,7 @@ function createUser($userName, $userDomain, $pwd) {
 		$token = registerScope($userName, $userDomain, UnhostedSettings::domain);
 		$davAuth = base64_encode($userName . '@' . $userDomain . ':' . $token);
 		return json_encode(array(
-			"userName" => $userName . '@' . $userDomain,
+			"userAddress" => $userName . '@' . $userDomain,
 			"davBaseUrl" => UnhostedSettings::domain,
 			"davAuth" => $davAuth,
 			"cryptoPwd" => null

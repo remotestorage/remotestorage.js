@@ -4,9 +4,9 @@
 
 var Webfinger = function() {
 	var webFinger = {};
-	var getHostMeta = function(userName, linkRel) {
-		//split the userName at the "@" symbol:
-		var parts = userName.split("@");
+	var getHostMeta = function(userAddress, linkRel) {
+		//split the userAddress at the "@" symbol:
+		var parts = userAddress.split("@");
 		if(parts.length == 2) {
 			var user = parts[0];
 			var domain = parts[1];
@@ -50,12 +50,12 @@ var Webfinger = function() {
 			return false;
 		}
 	}
-	webFinger.getDavBaseUrl = function(userName, majorVersion, minMinorVersion, cb) {
+	webFinger.getDavBaseUrl = function(userAddress, majorVersion, minMinorVersion, cb) {
 		//get the WebFinger data for the user and extract the uDAVdomain:
-		var template = getHostMeta(userName, 'lrdd');
+		var template = getHostMeta(userAddress, 'lrdd');
 		if(template) {
 			var xhr = new XMLHttpRequest();
-			var url = template.replace(/{uri}/, "acct:"+userName, true);
+			var url = template.replace(/{uri}/, "acct:"+userAddress, true);
 			xhr.open("GET", url, true);
 			//WebFinger spec allows application/xml+xrd as the mime type, but we need it to be text/xml for xhr.responseXML to be non-null:
 			xhr.overrideMimeType('text/xml');
@@ -82,10 +82,10 @@ var Webfinger = function() {
 			}
 		}
 	}
-	webFinger.getAdminUrl = function(userName) {
-		var template = getHostMeta(userName, 'register');
+	webFinger.getAdminUrl = function(userAddress) {
+		var template = getHostMeta(userAddress, 'register');
 		if(template) {
-			return template.replace("\{uri\}",userName).replace("\{redirect_url\}", window.location);
+			return template.replace("\{uri\}",userAddress).replace("\{redirect_url\}", window.location);
 		}
 		return null;
 	}
