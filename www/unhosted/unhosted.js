@@ -75,6 +75,7 @@ var Unhosted = function() {
 	}
 	unhosted.close = function() {
 		setWallet({});
+		window.location = config.loginUrl;
 	}
 
 	return unhosted;
