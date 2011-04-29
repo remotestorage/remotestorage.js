@@ -13,8 +13,12 @@ class UnhostedAccount {
 		if(is_dir($userDir)) {
 			return false;
 		}
-		mkdir($userDomainDir);
-		mkdir($userDir);
+		if(!file_exists($userDomainDir)) {
+			mkdir($userDomainDir);
+		}
+		if(!file_exists($userDir)) {
+			mkdir($userDir);
+		}
 		file_put_contents($userDir."/.htpasswd", sha1($this->pwd));
 		return true;
 	}
@@ -31,35 +35,35 @@ class UnhostedAccount {
 		`htpasswd -bc $davDir/.htpasswd {{$this->userAddress} $token`;
 		return $token;
 	}
-	private function createWallet($davBaseUrl, $davToken, $cryptoPwd) {
+	private function createWallet($davBaseUrl, $davToken, $cryptoPwd, $dataScope) {
 		$wallet = json_encode(array(
 			"userAddress" => $userAddress,
 			"davBaseUrl" => $davBaseUrl,
 			"davAuth" => base64_encode($userAddress .':'. $davToken),
 			"cryptoPwd" => $cryptoPwd
 			));
-		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".UnhostedSettings::domain;
+		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$dataScope;
 		file_put_contents($davDir.'/wallet_'.sha1($this->pwd), $wallet);
 		return $wallet;
 	}
-	public function getWallet($scope) {
-		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$scope;
+	public function getWallet($dataScope) {
+		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$dataScope;
 		return file_get_contents($davDir.'/wallet_'.sha1($this->pwd));
 	
 	}
 	public function registerHosted() {
 		$this->createUserDir();
 		$davToken = $this->createDav(UnhostedSettings::domain);
-		return $this->createWallet(UnhostedSettings::homeDavBaseUrl, $davToken, null);
+		return $this->createWallet(UnhostedSettings::homeDavBaseUrl, $davToken, null, UnhostedSettings::domain);
 	}
-	public function registerWallet($davBaseUrl, $davToken) {
+	public function registerWallet($davBaseUrl, $davToken, $dataScope) {
 		$cryptoPwd = mtrand();
-		return $this->createWallet($davBaseUrl, $davToken, $cryptoPwd);
+		return $this->createWallet($davBaseUrl, $davToken, $cryptoPwd, $dataScope);
 	}
-	public function addApp($scope) {
+	public function addApp($dataScope) {
 		$pwdFile = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/.htpasswd";
 		if(file_exists($pwdFile) && sha1($this->pwd)==file_get_contents($pwdFile)) {
-			return $this->createDav($scope);
+			return $this->createDav($dataScope);
 		}
 		return null;
 	}
