@@ -61,19 +61,21 @@ var Webfinger = function() {
 			xhr.overrideMimeType('text/xml');
 			xhr.send();
 			xhr.onreadystatechange = function() {
-				if(xhr.status == 200) {
+				if(xhr.readyState == 4) {
+					if(xhr.status == 200) {
 				
-					//HACK
-					var parser=new DOMParser();
-					var responseXML = parser.parseFromString(xhr.responseText, "text/xml");
-					//END HACK
+						//HACK
+						var parser=new DOMParser();
+						var responseXML = parser.parseFromString(xhr.responseText, "text/xml");
+						//END HACK
 
-					var linkElts = responseXML.documentElement.getElementsByTagName('Link');
-					var i;
-					for(i=0; i < linkElts.length; i++) {
-						if(matchLinkRel(linkElts[i].attributes.getNamedItem('rel').value, majorVersion, minMinorVersion)) {
-							cb(linkElts[i].attributes.getNamedItem('href').value);
-							return;
+						var linkElts = responseXML.documentElement.getElementsByTagName('Link');
+						var i;
+						for(i=0; i < linkElts.length; i++) {
+							if(matchLinkRel(linkElts[i].attributes.getNamedItem('rel').value, majorVersion, minMinorVersion)) {
+								cb(linkElts[i].attributes.getNamedItem('href').value);
+								return;
+							}
 						}
 					}
 				}

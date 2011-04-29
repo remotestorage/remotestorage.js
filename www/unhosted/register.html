@@ -13,7 +13,7 @@
 <script src="/unhosted/webfinger.js"></script>
 
 <script>
-
+var walletRegisterUrl = "http://www.myfavouritesandwich.org/unhosted/register.php";
 setWallet({userName:"demo@demo.redlibre.org"});
 
 
@@ -31,19 +31,27 @@ function register(pwd1, pwd2) {
 	if(pwd1 != pwd2) {
 		alert('please enter the same password twice');
 	} else {
-		//if the username is hosted, 
-			//send username and wallet pwd to register_local.php script, to:
-				//generate dav password
-				//create dav account
-				//create {userName, cryptoPwd=null, davBaseUrl, davAuth} as wallet and return it
-			//store wallet in localStorage::"unhosted"
-		//else
-			//send username, davBaseUrl, and wallet pwd to register_wallet.php script, to:
-				//generate cryptoPwd
-				//create {userName, cryptoPwd, davBaseUrl, davAuth=null} as wallet and return it
-			//store wallet in localStorage::"unhosted"
-			//redirect to davBaseUrl / oauth... with redirect_uri unhosted/cb.html
-		//
+		xhr = new XMLHttpRequest();
+		xhr.open("GET", walletRegisterUrl+"?pwd="+pwd1+"&wallet="+wallet, true);
+		xhr.onreadystatechange = function() {
+			if(xhr.readyState == 4) {
+				if(xhr.status == 200) {
+					var wallet = JSON.parse(xhr.responseText);
+					setWallet(wallet);
+					if(!wallet.davAuth) {
+						//if the wallet did not generate the davAuth, we need to redirect the user to the OAuth2-cs dialogue to get it:
+						window.location = wallet.davBaseUrl 
+								+ "/oauth/auth";
+								+ "?client_id="+app
+								+ "&redirect_uri="+encodeURIComponent(callbackUrl)
+								+ "&scope="+document.domain
+								+ "&response_type=token"
+								+ "&user_name="+wallet.userName;
+					}
+				}
+			}
+		}
+		xhr.send();
 	}
 }
 </script>
