@@ -14,14 +14,24 @@
 <script src="/unhosted/webfinger.js"></script>
 
 <script>
+function isLocal(address) {
+	parts = address.split('@');
+	return (parts[1] == config.homeDomain);
+} 
 function determineDavBaseUrl() {
 	var webfinger = new Webfinger();
 	var wallet = getWallet();
-	webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function(davBaseUrl) {
-		var wallet = getWallet();
-		wallet.davBaseUrl = davBaseUrl;
+	if(isLocal(wallet.userAddress)) {
+		wallet.isLocal=true;
 		setWallet(wallet);
-	});
+	} else {
+		webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function(davBaseUrl) {
+			var wallet = getWallet();
+			wallet.davBaseUrl = davBaseUrl;
+			wallet.isLocal=false;
+			setWallet(wallet);
+		});
+	}
 }
 
 serialize = function(obj) {
@@ -36,27 +46,29 @@ register = function(pwd1, pwd2) {
 		alert('please enter the same password twice');
 	} else {
 		var wallet = getWallet();
-		xhr = new XMLHttpRequest();
-		xhr.open("GET", config.walletRegisterUrl+"?pwd="+pwd1+"&"+serialize(wallet), true);
-		xhr.onreadystatechange = function() {
-			if(xhr.readyState == 4) {
-				if(xhr.status == 200) {
-					var wallet = JSON.parse(xhr.responseText);
-					setWallet(wallet);
-					if(!wallet.davAuth) {
-						//if the wallet did not generate the davAuth, we need to redirect the user to the OAuth2-cs dialogue to get it:
-						window.location = wallet.davBaseUrl 
-								+ "/oauth2/auth"
-								+ "?client_id="+encodeURIComponent(config.appName)
-								+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
-								+ "&scope="+encodeURIComponent(config.dataScope)
-								+ "&response_type=token"
-								+ "&user_address="+wallet.userAddress;
+		if(wallet.isLocal) {
+			xhr = new XMLHttpRequest();
+			xhr.open("GET", config.doUrl+"?action=register_local&pwd="+pwd1+"&"+serialize(wallet), true);
+			xhr.onreadystatechange = function() {
+				if(xhr.readyState == 4) {
+					if(xhr.status == 200) {
+						var wallet = JSON.parse(xhr.responseText);
+						setWallet(wallet);
 					}
 				}
 			}
+			xhr.send();
+		} else {
+			wallet.pwd = pwd1;
+			setWallet(wallet);	
+			window.location = wallet.davBaseUrl 
+				+ "/oauth2/auth"
+				+ "?client_id="+encodeURIComponent(config.appName)
+				+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+				+ "&scope="+encodeURIComponent(config.dataScope)
+				+ "&response_type=token"
+				+ "&user_address="+wallet.userAddress;
 		}
-		xhr.send();
 	}
 }
 </script>

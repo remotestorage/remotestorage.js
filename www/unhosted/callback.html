@@ -2,7 +2,6 @@
 <head>
 <script src="/unhosted/config.js"></script>
 <script src="/unhosted/wallet.js"></script>
-<script src="/unhosted/Base64.js"></script>
 <script>
 gup = function(paramName) {
 	var regex = new RegExp("[\\?&]"+paramName+"=([^&#]*)");
@@ -13,15 +12,19 @@ gup = function(paramName) {
 	return null;
 }
 	
-makeBasicAuthHash = function(user, password) {
-	var tok = user + ':' + password;
-	return Base64.encode(tok);
-}
 var wallet = getWallet();
-alert(JSON.stringify(wallet));
-wallet.davAuth = makeBasicAuthHash(wallet.userAddress, gup('token'));
-setWallet(wallet);
-window.location = config.appUrl;
+xhr = new XMLHttpRequest();
+xhr.open("GET", config.doUrl+"?action=register_wallet&"+serialize(wallet), true);
+xhr.onreadystatechange = function() {
+	if(xhr.readyState == 4) {
+		if(xhr.status == 200) {
+			var wallet = JSON.parse(xhr.responseText);
+			setWallet(wallet);                              
+			window.location = config.appUrl;
+		}
+	}
+}
+xhr.send();
 </script>
 </head>
 <body>

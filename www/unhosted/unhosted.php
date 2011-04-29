@@ -1,12 +1,26 @@
 <?php
 require_once('init.php');
-
-function registerScope($userAddress, $pwd, $scope) {
-	list($userName, $userDomain) = explode("@", $userAddress);
-	$pwdFile = UnhostedSettings::davDir . "$userDomain/$userName/.htpasswd";
-	if(file_exists($pwdFile) && sha1($pwd)==file_get_contents($pwdFile)) {
+class UnhostedAccount {
+	private $userAddress, $userName, $userDomain, $pwd;
+	function __construct($userAddress) {
+		$this->userAddress = $userAddress;
+		list($this->userName, $this->userDomain) = explode("@", $userAddress);
+		$this->pwd = $pwd;
+	}
+	private function createUserDir() {
+		$userDomainDir = UnhostedSettings::davDir . $this->userDomain . '/';
+		$userDir = $userDomainDir . strtolower($this->userName);
+		if(is_dir($userDir)) {
+			return false;
+		}
+		mkdir($userDomainDir);
+		mkdir($userDir);
+		file_put_contents($userDir."/.htpasswd", sha1($this->pwd));
+		return true;
+	}
+	private function createDav($scope) {
 		$token = base64_encode(mt_rand());
-		$davDir = UnhostedSettings::davDir . "$userDomain/$userName/".$scope;
+		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$scope;
 		`if [ ! -d $davDir ] ; then mkdir $davDir ; fi`;
 		`echo "<LimitExcept OPTIONS HEAD GET>" > $davDir/.htaccess`;
 		`echo "  AuthType Basic" >> $davDir/.htaccess`;
@@ -14,8 +28,38 @@ function registerScope($userAddress, $pwd, $scope) {
 		`echo "  Require valid-user" >> $davDir/.htaccess`;
 		`echo "  AuthUserFile $davDir/.htpasswd" >> $davDir/.htaccess`;
 		`echo "</LimitExcept>" >> $davDir/.htaccess`;
-		`htpasswd -bc $davDir/.htpasswd {$userAddress} $token`;
+		`htpasswd -bc $davDir/.htpasswd {{$this->userAddress} $token`;
 		return $token;
 	}
-	return null;
+	private function createWallet($davBaseUrl, $davToken, $cryptoPwd) {
+		$wallet = json_encode(array(
+			"userAddress" => $userAddress,
+			"davBaseUrl" => $davBaseUrl,
+			"davAuth" => base64_encode($userAddress .':'. $davToken),
+			"cryptoPwd" => $cryptoPwd
+			));
+		file_put_content($davDir.'/wallet_'.sha1($this->pwd), $wallet);
+		return $wallet;
+	}
+	public function getWallet($scope) {
+		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$scope;
+		return file_get_content($davDir.'/wallet_'.sha1($this->pwd));
+	
+	}
+	public function createHostedUser() {
+		createUserDir();
+		$davToken = createDav(UnhostedSettings::homeScope);
+		return createWallet(UnhostedSettings::homeDavBaseUrl, $davToken, null);
+	}
+	public function createWalletAccount($davBaseUrl, $davToken) {
+		$cryptoPwd = mtrand();
+		return createWallet($davBaseUrl, $davToken, $cryptoPwd);
+	}
+	public function addApp($scope) {
+		$pwdFile = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/.htpasswd";
+		if(file_exists($pwdFile) && sha1($this->pwd)==file_get_contents($pwdFile)) {
+			return createDav($scope);
+		}
+		return null;
+	}
 }

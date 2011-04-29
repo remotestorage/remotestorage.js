@@ -21,7 +21,15 @@ function createUser($userName, $userDomain, $pwd) {
 			));
 	}
 }
-
+function getUserWallet($userAddress) {
+	$token = getToken($userAddress);
+		return json_encode(array(
+			"userAddress" => $userName . '@' . $userDomain,
+			"davBaseUrl" => UnhostedSettings::domain,
+			"davAuth" => $davAuth,
+			"cryptoPwd" => null
+			));
+}
 if($_GET["userAddress"]) {
 	list($userName, $userDomain) = explode("@", $_GET["userAddress"]);
 	echo(createUser($userName, $userDomain, $_GET["pwd"]));
