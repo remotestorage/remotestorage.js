@@ -1,6 +1,10 @@
 function getWallet() {
 	try {
-		return JSON.parse(localStorage.getItem("unhosted"));
+		var ret = JSON.parse(localStorage.getItem("unhosted"));
+		if(ret == null) {
+			return {};
+		}
+		return ret;
 	} catch(e) {
 		return {};
 	}

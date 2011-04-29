@@ -40,7 +40,7 @@ register = function(pwd1, pwd2) {
 	} else {
 		var wallet = getWallet();
 		xhr = new XMLHttpRequest();
-		xhr.open("GET", walletRegisterUrl+"?pwd="+pwd1+"&wallet="+serialize(wallet), true);
+		xhr.open("GET", config.walletRegisterUrl+"?pwd="+pwd1+"&wallet="+serialize(wallet), true);
 		xhr.onreadystatechange = function() {
 			if(xhr.readyState == 4) {
 				if(xhr.status == 200) {
@@ -50,9 +50,9 @@ register = function(pwd1, pwd2) {
 						//if the wallet did not generate the davAuth, we need to redirect the user to the OAuth2-cs dialogue to get it:
 						window.location = wallet.davBaseUrl 
 								+ "/oauth2/auth"
-								+ "?client_id="+encodeURIComponent(appName)
-								+ "&redirect_uri="+encodeURIComponent(callbackUrl)
-								+ "&scope="+encodeURIComponent(dataScope)
+								+ "?client_id="+encodeURIComponent(config.appName)
+								+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+								+ "&scope="+encodeURIComponent(config.dataScope)
 								+ "&response_type=token"
 								+ "&user_name="+wallet.userName;
 					}

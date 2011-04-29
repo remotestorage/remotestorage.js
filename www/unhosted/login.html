@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/css/general.css" />
 <link rel="stylesheet" href="/css/uncompressed/layout.css" />
 
+<script src="/unhosted/config.js"></script>
 <script>
 // app state shared with login.html:
 // =================================
@@ -20,19 +21,19 @@
 function takeMeIn(userName, pwd, havePwd) {
 	if(havePwd) {
 		xhr = new XMLHttpRequest();
-		xhr.open("GET", walletUrl+"?user_name="+userName+"&pwd="+pwd, true);
+		xhr.open("GET", config.walletUrl+"?user_name="+userName+"&pwd="+pwd, true);
 		xhr.onreadystatechange = function() {
 			if(xhr.readyState == 4) {
 				if(xhr.status == 200) {
 					localStorage.setItem("unhosted", JSON.parse(xhr.responseText));
-					window.location = appUrl;
+					window.location = config.appUrl;
 				}
 			}
 		}
 		xhr.send();
 	} else {
 		localStorage.setItem("unhosted", {"userName": userName});
-		window.location = registerUrl;
+		window.location = config.registerUrl;
 	}
 }
 </script>

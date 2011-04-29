@@ -12,7 +12,7 @@ function gup(paramName) {
 	return null;
 }
 var wallet = getWallet();
-wallet.userName = gup('user_name');
+//wallet.userName = gup('user_name');
 wallet.davAuth = gup('token');
 setWallet(wallet);
 window.location = config.appUrl;

@@ -1,7 +1,3 @@
-var appBaseUrl = "http://www.myfavouritesandwich.org/";
-//var appBaseUrl = "https://www.myfavouritesandwich.org/";
-var loginUrl = appBaseUrl + "unhosted/login.html";
-
 // app state shared with login.html:
 // =================================
 // localStorage::"unhosted".userName
@@ -63,7 +59,7 @@ var Unhosted = function() {
 	var dav = DAV();
 	unhosted.connect = function() {
 		if(!getWallet().davAuth) {
-			window.location = loginUrl;
+			window.location = config.loginUrl;
 		}
 	}
 	unhosted.getUserName = function() {
