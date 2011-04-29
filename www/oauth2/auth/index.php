@@ -1,6 +1,6 @@
 <?php
 
-require_once('../../unhosted_includes/init.php');
+require_once('../../unhosted/init.php');
 
 if(count($_POST)) {
 	list($userName, $userDomain) = explode("@", $_POST["user_name"]);

@@ -1,4 +1,5 @@
-var appBaseUrl = "http://www.myfavouritesandwich.org";
+var appBaseUrl = "http://dev.unhosted.org";
+//var appBaseUrl = "http://www.myfavouritesandwich.org";
 
 var config = {
 	appUrl: appBaseUrl + "/",
