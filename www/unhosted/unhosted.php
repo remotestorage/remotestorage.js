@@ -38,7 +38,8 @@ class UnhostedAccount {
 			"davAuth" => base64_encode($userAddress .':'. $davToken),
 			"cryptoPwd" => $cryptoPwd
 			));
-		file_put_content($davDir.'/wallet_'.sha1($this->pwd), $wallet);
+		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".UnhostedSettings::domain;
+		file_put_contents($davDir.'/wallet_'.sha1($this->pwd), $wallet);
 		return $wallet;
 	}
 	public function getWallet($scope) {
@@ -46,19 +47,19 @@ class UnhostedAccount {
 		return file_get_content($davDir.'/wallet_'.sha1($this->pwd));
 	
 	}
-	public function createHostedUser() {
-		createUserDir();
-		$davToken = createDav(UnhostedSettings::homeScope);
-		return createWallet(UnhostedSettings::homeDavBaseUrl, $davToken, null);
+	public function registerHosted() {
+		$this->createUserDir();
+		$davToken = $this->createDav(UnhostedSettings::domain);
+		return $this->createWallet(UnhostedSettings::homeDavBaseUrl, $davToken, null);
 	}
-	public function createWalletAccount($davBaseUrl, $davToken) {
+	public function registerWallet($davBaseUrl, $davToken) {
 		$cryptoPwd = mtrand();
-		return createWallet($davBaseUrl, $davToken, $cryptoPwd);
+		return $this->createWallet($davBaseUrl, $davToken, $cryptoPwd);
 	}
 	public function addApp($scope) {
 		$pwdFile = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/.htpasswd";
 		if(file_exists($pwdFile) && sha1($this->pwd)==file_get_contents($pwdFile)) {
-			return createDav($scope);
+			return $this->createDav($scope);
 		}
 		return null;
 	}
