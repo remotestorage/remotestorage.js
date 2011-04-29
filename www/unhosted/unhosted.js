@@ -16,10 +16,10 @@ var loginUrl = appBaseUrl + "unhosted/login.html";
 
 var DAV = function() {
 	var dav = {}
-	keyToUrl = function(key) {
-		var userNameParts = localStorage.getItem("unhosted").userName.split("@");
+	keyToUrl = function(key, wallet) {
+		var userNameParts = wallet.userName.split("@");
 		var resource = document.domain;
-		var url = localStorage.getItem("unhosted").davBaseUrl
+		var url = wallet.davBaseUrl
 			+"webdav/"+userNameParts[1]
 			+"/"+userNameParts[0]
 			+"/"+resource
@@ -27,13 +27,9 @@ var DAV = function() {
 		return url;
 	}
 	dav.get = function(key) {
-return null;
-return "{ingredients:['', '']}";	
-
-	var xhr = new XMLHttpRequest();
-		xhr.open("GET", keyToUrl(key), false);
-		xhr.setRequestHeader("Authorization", localStorage.getItem("unhosted").davAuth);
-		xhr.withCredentials = "true";
+		var wallet = getWallet();
+		var xhr = new XMLHttpRequest();
+		xhr.open("GET", keyToUrl(key, wallet), false);
 		xhr.send();
 		if(xhr.status == 200) {
 			return xhr.responseText;
@@ -44,9 +40,10 @@ return "{ingredients:['', '']}";
 		}
 	}
 	dav.put = function(key, text) {
+		var wallet = getWallet();
 		var xhr = new XMLHttpRequest();
-		xhr.open("PUT", keyToUrl(key), false);
-		xhr.setRequestHeader("Authorization", localStorage.getItem("unhosted").davAuth);
+		xhr.open("PUT", keyToUrl(key, wallet), false);
+		xhr.setRequestHeader("Authorization", wallet.davAuth);
 		xhr.withCredentials = "true";
 		xhr.send(text);
 		if(xhr.status != 200 && xhr.status != 201 && xhr.status != 204) {
@@ -65,7 +62,7 @@ var Unhosted = function() {
 	var unhosted = {};
 	var dav = DAV();
 	unhosted.connect = function() {
-		if(!getWallet().userName) {
+		if(!getWallet().davAuth) {
 			window.location = loginUrl;
 		}
 	}

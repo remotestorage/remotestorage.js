@@ -1,0 +1,24 @@
+<html>
+<head>
+<script src="/unhosted/config.js"></script>
+<script src="/unhosted/wallet.js"></script>
+<script>
+function gup(paramName) {
+	var regex = new RegExp("[\\?&]"+paramName+"=([^&#]*)");
+	var results = regex.exec(window.location.href);
+	if(results) {
+		return results[1];
+	}
+	return null;
+}
+var wallet = getWallet();
+wallet.userName = gup('user_name');
+wallet.davAuth = gup('token');
+setWallet(wallet);
+window.location = config.appUrl;
+</script>
+</head>
+<body>
+Redirecting...
+</body>
+</html>

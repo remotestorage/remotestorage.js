@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/uncompressed/layout.css" />
 
 <script src="unhosted/sjcl/sjcl.js"></script>
+<script src="unhosted/wallet.js"></script>
 <script src="unhosted/unhosted.js"></script>
 <script>
 
@@ -81,7 +82,7 @@ function show(userName, sandwich) {
 			<input id="firstIngredient" name="firstIngredient" onfocus="if(this.value=='1st ingredient'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='1st ingredient'}" type="text" value="1st ingredient"/>
 			<input id="secondIngredient" name="secondIngredient" onfocus="if(this.value=='2nd ingredient'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='2nd ingredient'}" type="text" value="2nd ingredient"/>
 					
-			<input class="submitingredients" name="submit" type="submit" value="Submit!" onclick="unhosted.set("favSandwich",
+			<input class="submitingredients" name="submit" type="submit" value="Submit!" onclick="unhosted.set('favSandwich',
 						{ingredients:
 							[document.getElementById('firstIngredient').value,
 							document.getElementById('secondIngredient').value]
