@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/css/uncompressed/layout.css" />
 
 <script src="/unhosted/config.js"></script>
+<script src="/unhosted/wallet.js"></script>
 <script>
 // app state shared with login.html:
 // =================================
@@ -23,16 +24,22 @@ function takeMeIn(userName, pwd, havePwd) {
 		xhr = new XMLHttpRequest();
 		xhr.open("GET", config.walletUrl+"?user_name="+userName+"&pwd="+pwd, true);
 		xhr.onreadystatechange = function() {
+			var wallet;
 			if(xhr.readyState == 4) {
 				if(xhr.status == 200) {
-					localStorage.setItem("unhosted", JSON.parse(xhr.responseText));
+					try {
+						wallet = JSON.parse(xhr.responseText);
+					} catch(e) {
+						wallet = {};
+					}
+					setWallet(wallet);
 					window.location = config.appUrl;
 				}
 			}
 		}
 		xhr.send();
 	} else {
-		localStorage.setItem("unhosted", {"userName": userName});
+		setWallet({"userName": userName});
 		window.location = config.registerUrl;
 	}
 }
@@ -55,7 +62,7 @@ function takeMeIn(userName, pwd, havePwd) {
 		<header>
 			<h1>My Favourite Sandwich</h1>
 			<h2>Welcome</h2>
-			Username:&nbsp;&nbsp;&nbsp;&nbsp;<input id="user" name="unhostedacct" onfocus="if(this.value=='user@provider.org'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='user@provider.org'}" type="text" value="user@provider.org"/>&nbsp;
+			Username:&nbsp;&nbsp;&nbsp;&nbsp;<input id="user" name="unhostedacct" onfocus="if(this.value=='user@provider.org'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='user@provider.org'}" type="text" value="demo@dev.unhosted.org"/>&nbsp;
 			<br><input type="radio" name="havePwd" id="havePwdYes" onclick="document.getElementById('pwd').disabled=false;">
 			Password:&nbsp;<input id="pwd" name="unhostedacct" type="password" disabled="true" />&nbsp;&nbsp;
 			<br><input type="radio" name="havePwd" checked id="havePwdNo" onclick="document.getElementById('pwd').disabled=true;">&nbsp;I don't have a password yet, help me log in

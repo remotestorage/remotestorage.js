@@ -1,1 +1,1 @@
-{"userName":"demo@demo.redlibre.org", "cryptoPwd":"asdf", "davBaseUrl":"http://demo.redlibre.org/", "davAuth": null}
+{"userName":"demo@dev.unhosted.org", "cryptoPwd":"asdf", "davBaseUrl":"http://dev.unhosted.org/", "davAuth": null}
