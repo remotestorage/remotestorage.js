@@ -20,27 +20,23 @@ if($_GET["install"] == "install") {
 		."}\n");
 	unlink("init.php");
 	header("Location: /");
-	die();
-}
-
-$apacheModules = apache_get_modules();
-foreach(array('dav', 'dav_fs', 'headers') as $module) {
+} else {
+	$apacheModules = apache_get_modules();
 	$missingModules = array();
-	if(!in_array("mod_$module", $apacheModules)) {
-		$missingModules[] = $module;
-		echo "You don't seem to have mod_$module installed.<br>";
+	foreach(array('dav', 'dav_fs', 'headers') as $module) {
+		if(!in_array("mod_$module", $apacheModules)) {
+			$missingModules[] = $module;
+		}
 	}
-}
-if(count($missingModule)) {
-	echo "Welcome to your new unhosted website. This only works on Apache, so if you're on lighttpd or nginx or something else, then please help us port this install script! If you're on apache, then let's continue...<br>";
-	echo "You're missing a few apache modules. So you need to ssh to your server as root, and activate them:<br><strong>";
-	foreach($missingModules as $missingModule) {
-		echo "a2enmod $missingModule<br>";
-	}
-	echo "/etc/init.d/apache2 restart</strong><br>After that, reload this page.";
-	die();
-}
-?>
+	if(count($missingModules)) {
+		echo "Welcome to your new unhosted website. This only works on Apache, so if you're on lighttpd or nginx or something else, then please help us port this install script! If you're on apache, then let's continue...<br>";
+		echo "You're missing a few apache modules. So you need to ssh to your server as root, and activate them:<br><strong>";
+		foreach($missingModules as $missingModule) {
+			echo "a2enmod $missingModule<br>";
+		}
+		echo "/etc/init.d/apache2 restart</strong><br>After that, reload this page.";
+	} else {
+	?>
 
 <html><head><script>
 function checkHostMeta(cb) {
@@ -76,3 +72,8 @@ function checkHostMeta(cb) {
 <input type="submit" id="install" value="install" name="install" disabled=true>
 </form>
 </body></html>
+
+	<?php
+	}
+}
+?>
