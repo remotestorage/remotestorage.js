@@ -67,7 +67,13 @@ function checkHostMeta(cb) {
 </script></head><body onload="checkHostMeta(function(){document.getElementById('install').disabled=false;})">
 <H2>Great! You're running apache with all the necessary modules.</H2>
 <div id="testing" visibility="hidden">Testing whether you are offering successfully offering host-meta with CORS...</div>
-<div id="cors" visibility="hidden">You did not install the correct CORS headers</div>
+<div id="cors" visibility="hidden">You did not install the correct CORS headers yet. Add the following directives into your apache config (it should also be possible to make this work with a .htaccess file, but i can't get that to work for some reason):<br><strong>
+Header always set Access-Control-Max-Age "86400"<br>
+Header always set Access-Control-Allow-Origin "*"<br>
+Header always set Access-Control-Allow-Methods "GET"<br>
+Header always set Access-Control-Allow-Headers "Content-Type, X-Requested-With, X-HTTP-Method-Override, Accept"<br>
+</strong>
+You can for instance put these into the /var/www/ Directory directive. Make sure you obey indentation. Then restart apache, clear your browser cache, and reload this page.</div>
 <form method="GET" target="?">
 <input type="submit" id="install" value="install" name="install" disabled=true>
 </form>
