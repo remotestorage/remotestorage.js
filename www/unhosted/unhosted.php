@@ -1,5 +1,7 @@
 <?php
-require_once('init.php');
+
+require_once 'config.php';
+
 class UnhostedAccount {
 	private $userAddress, $userName, $userDomain, $pwd;
 	function __construct($userAddress, $pwd) {
