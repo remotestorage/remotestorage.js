@@ -66,7 +66,7 @@ class UnhostedAccount {
 	public function registerHosted() {
 		$this->createUserDir();
 		$davToken = $this->createDav(UnhostedSettings::domain);
-		return $this->createWallet(UnhostedSettings::homeDavBaseUrl, $davToken, null, UnhostedSettings::domain);
+		return $this->createWallet(UnhostedSettings::domain, $davToken, null, UnhostedSettings::domain);
 	}
 	public function registerWallet($davBaseUrl, $davToken, $dataScope) {
 		$cryptoPwd = sha1(mt_rand());
