@@ -30,12 +30,15 @@ function takeMeIn(userAddress, pwd, havePwd) {
 					try {
 						wallet = JSON.parse(xhr.responseText);
 					} catch(e) {
-						wallet = {};
+						wallet = false;
 					}
-					wallet.userAddress = userAddress;//use userAddress from closure
-					setWallet(wallet);
-					window.location = config.appUrl;
-				}
+					if(wallet) {
+						wallet.userAddress = userAddress;//use userAddress from closure
+						setWallet(wallet);
+						window.location = config.appUrl;
+					} else {
+						alert('wrong password!');
+					}
 			}
 		}
 		xhr.send();

@@ -59,9 +59,11 @@ class UnhostedAccount {
 	}
 	public function getWallet($dataScope) {
 		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$dataScope;
-		mkdir($davDir);
-		return file_get_contents($davDir.'/wallet_'.sha1($this->pwd));
-	
+		if(file_exists($davDir.'/wallet_'.sha1($this->pwd)) {
+			return file_get_contents($davDir.'/wallet_'.sha1($this->pwd));
+		} else {
+			return false;
+		}
 	}
 	public function registerHosted() {
 		$this->createUserDir();
