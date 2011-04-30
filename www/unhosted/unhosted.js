@@ -66,12 +66,20 @@ var Unhosted = function() {
 		return getWallet().userAddress;
 	}
 	unhosted.get = function(key) {
-		return JSON.parse(dav.get(key));
-		//return JSON.parse(sjcl.decrypt(localStorage.getItem("unhosted").cryptoPwd, dav.get(key)));
+		var wallet = getWallet();
+		if(wallet.cryptoPwd == null) {
+			return JSON.parse(dav.get(key));
+		} else {
+			return JSON.parse(sjcl.decrypt(wallet.cryptoPwd, dav.get(key)));
+		}
 	}
 	unhosted.set = function(key, value) {
-		dav.put(key, JSON.stringify(value));
-		//dav.put(key, sjcl.encrypt(localStorage.getItem("unhosted").cryptoPwd, JSON.stringify(value)));
+		var wallet = getWallet();
+		if(wallet.cryptoPwd == null) {
+			dav.put(key, JSON.stringify(value));
+		} else {
+			dav.put(key, sjcl.encrypt(wallet.cryptoPwd, JSON.stringify(value)));
+		}
 	}
 	unhosted.close = function() {
 		setWallet({});
