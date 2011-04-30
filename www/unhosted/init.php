@@ -1,7 +1,7 @@
 <?php
 
 if($_GET["install"] == "install") {
-	file_put_contents("settings.php", "<?php\n"
+	file_put_contents("config.php", "<?php\n"
 		."class UnhostedSettings {\n"
 		."\tconst protocol = 'http';\n"
 		."\tconst domain = 'dev.unhosted.org';\n"
@@ -42,8 +42,7 @@ if($_GET["install"] == "install") {
 <html><head><script>
 function checkDav(cb) {
 	var xhr = new XMLHttpRequest();
-	//..
-	cb();	
+	
 }
 function checkHostMeta(cb) {
 	document.getElementById('cors').style.visibility="hidden";
