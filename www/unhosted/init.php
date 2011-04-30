@@ -1,27 +1,46 @@
 <?php
 
 if($_GET["install"] == "install") {
+	$domain = $_SERVER["SERVER_NAME"];
+	$scriptDir = dirname(__file__));
+	$wwwDir = dirname($scriptDir);
+	$virtualHostDir = dirname($wwwDir);
 	file_put_contents("config.php", "<?php\n"
 		."class UnhostedSettings {\n"
 		."\tconst protocol = 'http';\n"
-		."\tconst domain = 'dev.unhosted.org';\n"
-		."\tconst davDir = '/var/www/my-unhosted-website/dav/';\n"
+		."\tconst domain = '$domain';\n"
+		."\tconst davDir = '$wwwDir/dav/';\n"
 		."}\n");
-	file_put_contents("config.js", "var appBaseUrl = 'http://dev.unhosted.org';\n"
+	file_put_contents("config.js", "var appBaseUrl = 'http://$domain';\n"
 		."\n"
 		."\tvar config = {\n"
-		."\t	appUrl: appBaseUrl + '/',\n"
-		."\t	doUrl: appBaseUrl + '/unhosted/do.php',\n"
-		."\t	loginUrl: appBaseUrl + '/unhosted/login.html',\n"
-		."\t	registerUrl: appBaseUrl + '/unhosted/register.html',\n"
-		."\t	callbackUrl: appBaseUrl+ '/unhosted/callback.html',\n"
-		."\t	appName: 'My Favourite Sandwich',\n"
-		."\t	dataScope: 'dev.unhosted.org',\n"
-		."\t	homeDomain: 'dev.unhosted.org'\n"
+		."\tappUrl: appBaseUrl + '/',\n"
+		."\tdoUrl: appBaseUrl + '/unhosted/do.php',\n"
+		."\tloginUrl: appBaseUrl + '/unhosted/login.html',\n"
+		."\tregisterUrl: appBaseUrl + '/unhosted/register.html',\n"
+		."\tcallbackUrl: appBaseUrl+ '/unhosted/callback.html',\n"
+		."\tappName: 'My Favourite Sandwich',\n"
+		."\tdataScope: '$domain',\n"
+		."\thomeDomain: '$domain'\n"
 		."}\n");
+	file_put_contents("../.well-known/host-meta", "<?xml version='1.0' encoding='UTF-8'?>\n"
+		."<XRD xmlns='http://docs.oasis-open.org/ns/xri/xrd-1.0' \n"
+ 		."\t\txmlns:hm='http://host-meta.net/xrd/1.0'>\n"
+ 		."\t<hm:Host xmlns='http://host-meta.net/xrd/1.0'>dev.unhosted.org</hm:Host>\n"
+ 		."\t<Link rel='lrdd' \n"
+ 		."\t\ttemplate='http://$domain/unhosted/webfinger.php?q={uri}'>\n"
+ 		."\t\t<Title>Resource Descriptor</Title>\n"
+ 		."\t</Link>\n"
+ 		."\t<Link rel='register'\n" 
+ 		."\t\ttemplate='http://$domain/unhosted/register.php?user_name={uri}&redirect_url={redirect_url}'>\n"
+ 		."\t\t<Title>Resource Descriptor</Title>\n"
+ 		."\t</Link>\n"
+		."</XRD>\n"
+
 	unlink("init.php");
 	header("Location: /");
 } else {
+	
 	$apacheModules = apache_get_modules();
 	$missingModules = array();
 	foreach(array('dav', 'dav_fs', 'headers') as $module) {
@@ -42,7 +61,8 @@ if($_GET["install"] == "install") {
 <html><head><script>
 function checkDav(cb) {
 	var xhr = new XMLHttpRequest();
-	
+	//...
+	cb();
 }
 function checkHostMeta(cb) {
 	document.getElementById('cors').style.visibility="hidden";
