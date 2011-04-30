@@ -73,7 +73,9 @@ Header always set Access-Control-Allow-Origin "*"<br>
 Header always set Access-Control-Allow-Methods "GET"<br>
 Header always set Access-Control-Allow-Headers "Content-Type, X-Requested-With, X-HTTP-Method-Override, Accept"<br>
 </strong>
-You can for instance put these into the /var/www/ Directory directive. Make sure you obey indentation. Then restart apache, clear your browser cache, and reload this page.</div>
+You can for instance put these into the /var/www/ Directory directive. Make sure you obey indentation. 
+Also, in the virtual host, but outside the Directory directive, add the DAV server's configuration. The apache2.conf file that comes with this project shows how to do this.
+Then restart apache, clear your browser cache, and reload this page.</div>
 <form method="GET" target="?">
 <input type="submit" id="install" value="install" name="install" disabled=true>
 </form>
