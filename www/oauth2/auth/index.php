@@ -3,7 +3,8 @@
 require_once('../../unhosted/unhosted.php');
 
 if(count($_POST)) {
-	$token = registerScope($POST["user_address"], $_POST["pwd"], $_POST["scope"]);
+	$unhostedAccount = new UnhostedAccount($_POST["user_address"], $_POST["pwd"]);
+	$token = $unhostedAccount->addAPP($_POST["scope"]);
 	if($token) {
 		header("Location:".$_POST["redirect_uri"]."?token=".$token);
 		echo "redirecting you back to the application.\n";
