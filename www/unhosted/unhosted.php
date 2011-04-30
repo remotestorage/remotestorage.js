@@ -69,8 +69,8 @@ class UnhostedAccount {
 	}
 	public function registerHosted() {
 		$this->createUserDir();
-		$davToken = $this->createDav(UnhostedSettings::protocol . '://' . UnhostedSettings::domain);
-		return $this->createWallet(UnhostedSettings::protocol . '://' . UnhostedSettings::domain, $davToken, null, UnhostedSettings::domain);
+		$davToken = $this->createDav(UnhostedSettings::protocol . '://' . UnhostedSettings::domain . '/');
+		return $this->createWallet(UnhostedSettings::protocol . '://' . UnhostedSettings::domain . '/', $davToken, null, UnhostedSettings::domain);
 	}
 	public function registerWallet($davBaseUrl, $davToken, $dataScope) {
 		$cryptoPwd = sha1(mt_rand());
