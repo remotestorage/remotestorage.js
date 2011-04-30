@@ -1,9 +1,5 @@
-UNDER TRANSITION
-==========
-
-THIS CODE DOES NOT CURRENTLY WORK.
-
-when the maintenance window is finished (which it is not if you are reading this), you'll be able to install as follows:
+THIS CODE MIGHT NOT CURRENTLY WORK. WE ARE WORKING ON IT RIGHT NOW IN irc://irc.freenode.net/unhosted
+======================
 
 * get a server with apache and php. For instance, you can get debian lenny server at rackspace, ssh to it as root, and run:
   * apt-get update
@@ -15,5 +11,6 @@ when the maintenance window is finished (which it is not if you are reading this
 * restart apache
 * open the website in your browser.
 * follow instructions from there.
+* you still need to manually edit /.well-known/host-meta, /unhosted/config.js and /unhosted/config.php, to point to your own domain.
 
 Please see [http://github.com/michiel-unhosted/myfavouritesandwich](http://github.com/michiel-unhosted/myfavouritesandwich) (client-side) and [http://github.com/michiel-unhosted/DemoRedlibreOrg](http://github.com/michiel-unhosted/DemoRedlibreOrg) (server-side) while we refurbish this repository to contain the latest version of App, The Data, and Everything.
