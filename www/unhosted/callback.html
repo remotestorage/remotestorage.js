@@ -11,14 +11,22 @@ gup = function(paramName) {
 	}
 	return null;
 }
+
+serialize = function(obj) {
+  var str = [];
+  for(var p in obj)
+     str.push(p + "=" + encodeURIComponent(obj[p]));
+  return str.join("&");
+}
 	
 var wallet = getWallet();
 xhr = new XMLHttpRequest();
-xhr.open("GET", config.doUrl+"?action=registerWallet&"+serialize(wallet), true);
+xhr.open("GET", config.doUrl+"?action=registerWallet&dataScope="+config.dataScope+"&"+serialize(wallet), true);
 xhr.onreadystatechange = function() {
 	if(xhr.readyState == 4) {
 		if(xhr.status == 200) {
 			var wallet = JSON.parse(xhr.responseText);
+			wallet.userAddress = getWallet().userAddress;
 			setWallet(wallet);                              
 			window.location = config.appUrl;
 		}

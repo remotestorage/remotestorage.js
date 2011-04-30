@@ -1,6 +1,6 @@
 <?php
 
-require_once('init.php');
+require_once('../unhosted_includes/init.php');
 
 if(isset($_GET['q'])) {
 	header('Content-Type: application/xml+xrd');
