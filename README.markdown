@@ -13,4 +13,4 @@ THIS CODE MIGHT NOT CURRENTLY WORK. WE ARE WORKING ON IT RIGHT NOW IN irc://irc.
 * follow instructions from there.
 * you still need to manually edit /.well-known/host-meta, /unhosted/config.js and /unhosted/config.php, to point to your own domain.
 
-Please see [http://github.com/michiel-unhosted/myfavouritesandwich](http://github.com/michiel-unhosted/myfavouritesandwich) (client-side) and [http://github.com/michiel-unhosted/DemoRedlibreOrg](http://github.com/michiel-unhosted/DemoRedlibreOrg) (server-side) while we refurbish this repository to contain the latest version of App, The Data, and Everything.
+Any bugs or problems, please report them straight into the irc channel and we'll fix them right here and now.
