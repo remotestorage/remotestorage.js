@@ -3,6 +3,8 @@ THIS CODE MIGHT NOT CURRENTLY WORK.
 
 PLEASE LOG INTO irc://irc.freenode.net/unhosted SO WE CAN HELP YOU TO GET IT WORKING ON YOUR SERVER
 
+This code is published unde the AGPL license.
+
 * get a server with apache and php. For instance, you can get debian lenny server at rackspace, ssh to it as root, and run:
   * apt-get update
   * apt-get upgrade
