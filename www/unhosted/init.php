@@ -9,7 +9,7 @@ if($_GET["install"] == "install") {
 		."class UnhostedSettings {\n"
 		."\tconst protocol = 'http';\n"
 		."\tconst domain = '$domain';\n"
-		."\tconst davDir = '$wwwDir/dav/';\n"
+		."\tconst davDir = '$virtualHostDir/dav/';\n"
 		."}\n");
 	file_put_contents("config.js", "var appBaseUrl = 'http://$domain';\n"
 		."\n"
