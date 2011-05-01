@@ -74,9 +74,9 @@ function checkHostMeta(cb) {
 				var responseHeaders = xhr.getAllResponseHeaders().split("\n");
 				var i;
 				for(i=0; i < responseHeaders.length; i++) {
-					if (responseHeaders[i].length > 1 && if (responseHeaders[i][ responseHeaders[i].length-1 ] == "\r"))
+					if ((responseHeaders[i].length > 1) && (responseHeaders[i][ responseHeaders[i].length-1 ] == "\r")) {
 						responseHeaders[i] = responseHeaders[i].slice (0,-1); // remove \r if any
-							
+					}
 					if(responseHeaders[i] == "Access-Control-Allow-Origin: *") {
 						document.getElementById('testing').style.visibility="hidden";
 						checkDav(cb);
