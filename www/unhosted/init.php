@@ -2,7 +2,7 @@
 
 if($_GET["install"] == "install") {
 	$domain = $_SERVER["SERVER_NAME"];
-	$scriptDir = dirname(__file__));
+	$scriptDir = dirname(__file__);
 	$wwwDir = dirname($scriptDir);
 	$virtualHostDir = dirname($wwwDir);
 	file_put_contents("config.php", "<?php\n"
@@ -35,7 +35,7 @@ if($_GET["install"] == "install") {
  		."\t\ttemplate='http://$domain/unhosted/register.php?user_name={uri}&redirect_url={redirect_url}'>\n"
  		."\t\t<Title>Resource Descriptor</Title>\n"
  		."\t</Link>\n"
-		."</XRD>\n"
+		."</XRD>\n");
 
 	unlink("init.php");
 	header("Location: /");

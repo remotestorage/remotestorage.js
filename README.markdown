@@ -9,22 +9,20 @@ PLEASE LOG INTO irc://irc.freenode.net/unhosted SO WE CAN HELP YOU TO GET IT WOR
   * apt-get install libapache2-mod-php5
 * point a domain name (sub-domains are OK) to the server, which will be the domain of your unhosted web app.
 * do the following, or equivalent:
-
-	mkdir /var/www/my-unhosted-website
-	cd /var/www/my-unhosted-website
-	wget --no-check-certificate https://github.com/michiel-unhosted/unhosted/tarball/master
-	tar -xzvf master
-	mv michiel-unhosted-unhosted-*/www .
-	mkdir dav
-	mv michiel-unhosted-unhosted-*/apache2.conf /etc/apache2/sites-available/my-unhosted-website
-	vim /etc/apache2/sites-available/my-unhosted-website
-	a2ensite my-unhosted-website
-	a2enmod dav
-	a2enmod dav_fs
-	a2enmod headers
-	/etc/init.d/apache2 reload
-	chown -R www-data /var/www/my-unhosted-website
-
+  * mkdir /var/www/my-unhosted-website
+  * cd /var/www/my-unhosted-website
+  * wget --no-check-certificate https://github.com/michiel-unhosted/unhosted/tarball/master
+  * tar -xzvf master
+  * mv michiel-unhosted-unhosted-*/www .
+  * mkdir dav
+  * mv michiel-unhosted-unhosted-*/apache2.conf /etc/apache2/sites-available/my-unhosted-website
+  * vim /etc/apache2/sites-available/my-unhosted-website
+  * a2ensite my-unhosted-website
+  * a2enmod dav
+  * a2enmod dav_fs
+  * a2enmod headers
+  * /etc/init.d/apache2 restart
+  * chown -R www-data /var/www/my-unhosted-website
 * open the website in your browser.
 * follow instructions from there.
 
