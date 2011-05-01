@@ -26,7 +26,7 @@ if($_GET["install"] == "install") {
 	file_put_contents("../.well-known/host-meta", "<?xml version='1.0' encoding='UTF-8'?>\n"
 		."<XRD xmlns='http://docs.oasis-open.org/ns/xri/xrd-1.0' \n"
  		."\t\txmlns:hm='http://host-meta.net/xrd/1.0'>\n"
- 		."\t<hm:Host xmlns='http://host-meta.net/xrd/1.0'>dev.unhosted.org</hm:Host>\n"
+ 		."\t<hm:Host xmlns='http://host-meta.net/xrd/1.0'>$domain</hm:Host>\n"
  		."\t<Link rel='lrdd' \n"
  		."\t\ttemplate='http://$domain/unhosted/webfinger.php?q={uri}'>\n"
  		."\t\t<Title>Resource Descriptor</Title>\n"
