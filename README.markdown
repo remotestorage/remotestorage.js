@@ -5,7 +5,7 @@ This code is published under the AGPL license. It is an unhosted website which y
 own unhosted web app. This code is still quite young, and should be considered 'alpha'. We welcome your suggestions
 and improvements! Here's how you install it:
 
-Get a server with apache and php. For instance, you can get debian lenny server at rackspace, ssh to it as root, and run:
+Get a server with apache and php. For instance, you can get a debian lenny server at rackspace, ssh to it as root, and run:
 
 	apt-get update
 	apt-get upgrade
@@ -20,10 +20,11 @@ Now point a domain name (sub-domains are OK) to the server, which will be the do
 	chown -R www-data /var/www/my-unhosted-website
 	rm master
 
-Now configure apache to correctly serve this new website on your server:
+Edit line 3 of apache2.conf to replace 'www.example.com' with your own domain name.
+
+Now configure apache:
 
 	mv my-unhosted-website/apache2.conf /etc/apache2/sites-available/my-unhosted-website
-	vim /etc/apache2/sites-available/my-unhosted-website
 	a2ensite my-unhosted-website
 	a2enmod dav
 	a2enmod dav_fs
