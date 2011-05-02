@@ -15,7 +15,7 @@ Now point a domain name (sub-domains are OK) to the server, which will be the do
 
 	mkdir /var/www/my-unhosted-website
 	cd /var/www/my-unhosted-website
-	wget --no-check-certificate https://github.com/michiel-unhosted/unhosted/tarball/master
+	wget --no-check-certificate https://github.com/unhosted/unhosted/tarball/master
 	tar -xzvf master
 	mv michiel-unhosted-unhosted-*/www .
 	mkdir dav
