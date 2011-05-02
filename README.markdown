@@ -17,9 +17,9 @@ Now point a domain name (sub-domains are OK) to the server, which will be the do
 	cd /var/www/my-unhosted-website
 	wget --no-check-certificate https://github.com/unhosted/unhosted/tarball/master
 	tar -xzvf master
-	mv michiel-unhosted-unhosted-*/www .
+	mv unhosted-unhosted-*/www .
 	mkdir dav
-	mv michiel-unhosted-unhosted-*/apache2.conf /etc/apache2/sites-available/my-unhosted-website
+	mv unhosted-unhosted-*/apache2.conf /etc/apache2/sites-available/my-unhosted-website
 	vim /etc/apache2/sites-available/my-unhosted-website
 	a2ensite my-unhosted-website
 	a2enmod dav
