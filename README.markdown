@@ -11,22 +11,24 @@ Get a server with apache and php. For instance, you can get debian lenny server 
 	apt-get upgrade
 	apt-get install libapache2-mod-php5
 
-Now point a domain name (sub-domains are OK) to the server, which will be the domain of your unhosted web app, and do the following (or equivalent):
+Now point a domain name (sub-domains are OK) to the server, which will be the domain of your unhosted web app, and put the contents of this tar ball on your server as a directory under the web root, owned by www-data. For instance like this (when ssh'ed into your server as root):
 
-	mkdir /var/www/my-unhosted-website
-	cd /var/www/my-unhosted-website
+	cd /var/www
 	wget --no-check-certificate https://github.com/unhosted/unhosted/tarball/master
 	tar -xzvf master
-	mv unhosted-unhosted-*/www .
-	mkdir dav
-	mv unhosted-unhosted-*/apache2.conf /etc/apache2/sites-available/my-unhosted-website
+	mv unhosted-unhosted-* my-unhosted-website
+	chown -R www-data /var/www/my-unhosted-website
+	rm master
+
+Now configure apache to correctly serve this new website on your server:
+
+	mv my-unhosted-website/apache2.conf /etc/apache2/sites-available/my-unhosted-website
 	vim /etc/apache2/sites-available/my-unhosted-website
 	a2ensite my-unhosted-website
 	a2enmod dav
 	a2enmod dav_fs
 	a2enmod headers
 	/etc/init.d/apache2 restart
-	chown -R www-data /var/www/my-unhosted-website
 
 After that, open the website in your browser and follow instructions from there.
 
