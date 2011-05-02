@@ -5,14 +5,13 @@ This code is published under the AGPL license. It is an unhosted website which y
 own unhosted web app. This code is still quite young, and should be considered 'alpha'. We welcome your suggestions
 and improvements! Here's how you install it:
 
-* get a server with apache and php. For instance, you can get debian lenny server at rackspace, ssh to it as root, and run:
+Get a server with apache and php. For instance, you can get debian lenny server at rackspace, ssh to it as root, and run:
 
 	apt-get update
 	apt-get upgrade
 	apt-get install libapache2-mod-php5
 
-* point a domain name (sub-domains are OK) to the server, which will be the domain of your unhosted web app.
-* do the following, or equivalent:
+Now point a domain name (sub-domains are OK) to the server, which will be the domain of your unhosted web app, and do the following (or equivalent):
 
 	mkdir /var/www/my-unhosted-website
 	cd /var/www/my-unhosted-website
@@ -29,8 +28,7 @@ and improvements! Here's how you install it:
 	/etc/init.d/apache2 restart
 	chown -R www-data /var/www/my-unhosted-website
 
-* open the website in your browser.
-* follow instructions from there.
+After that, open the website in your browser and follow instructions from there.
 
 Any bugs or problems, please report them straight into the irc channel and if it is during the daytime in either
 Europe or the US while you read this, then we'll probably fix them right here and now.
