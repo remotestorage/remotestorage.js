@@ -31,14 +31,18 @@ class UnhostedAccount {
 		}
 		$token = base64_encode(mt_rand());
 		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$scope;
-		`if [ ! -d $davDir ] ; then mkdir $davDir ; fi`;
-		`echo "<LimitExcept OPTIONS HEAD GET>" > $davDir/.htaccess`;
-		`echo "  AuthType Basic" >> $davDir/.htaccess`;
-		`echo "  AuthName \"http://unhosted.org/spec/dav/0.1\"" >> $davDir/.htaccess`;
-		`echo "  Require valid-user" >> $davDir/.htaccess`;
-		`echo "  AuthUserFile $davDir/.htpasswd" >> $davDir/.htaccess`;
-		`echo "</LimitExcept>" >> $davDir/.htaccess`;
-		`htpasswd -bc $davDir/.htpasswd {{$this->userAddress} $token`;
+		if(!file_exists($davDir)) {
+			mkdir($davDir, 0600);
+		}
+		file_put_contents("<LimitExcept OPTIONS HEAD GET>\n"
+			."  AuthType Basic"
+			."  AuthName \"http://unhosted.org/spec/dav/0.1\""
+			."  Require valid-user"
+			."  AuthUserFile $davDir/.htpasswd"
+			."</LimitExcept>"
+			."Header always set Access-Control-Allow-Origin \"http://$scope\"", $davDir/.htaccess);
+		$htpasswd = $this->userAddress .':'. crypt($token, base64_encode($token));
+		file_put_contents($htpasswd, $davDir/.htpasswd);
 		return $token;
 	}
 	private function createWallet($davBaseUrl, $davToken, $cryptoPwd, $dataScope) {
@@ -48,25 +52,25 @@ class UnhostedAccount {
 			"davAuth" => base64_encode($userAddress .':'. $davToken),
 			"cryptoPwd" => $cryptoPwd
 			));
-		$davDomainDir = UnhostedSettings::davDir . $this->userDomain ."/";
-		$davUserDir = $davDomainDir . $this->userName . "/";
-		$davDir = $davUserDir . $dataScope;
-		if(!file_exists($davDomainDir)) {
-			mkdir($davDomainDir);
+		$walletDomainDir = UnhostedSettings::walletDir . $this->userDomain ."/";
+		$walletUserDir = $walletDomainDir . $this->userName . "/";
+		$walletDir = $walletUserDir . $dataScope;
+		if(!file_exists($walletDomainDir)) {
+			mkdir($walletDomainDir);
 		}
-		if(!file_exists($davUserDir)) {
-			mkdir($davUserDir);
+		if(!file_exists($walletUserDir)) {
+			mkdir($walletUserDir);
 		}
-		if(!file_exists($davDir)) {
-			mkdir($davDir);
+		if(!file_exists($walletDir)) {
+			mkdir($walletDir);
 		}
-		file_put_contents($davDir.'/wallet_'.sha1($this->pwd), $wallet);
+		file_put_contents($walletDir.'/'.sha1($this->pwd), $wallet);
 		return $wallet;
 	}
 	public function getWallet($dataScope) {
-		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$dataScope;
-		if(file_exists($davDir.'/wallet_'.sha1($this->pwd))) {
-			return file_get_contents($davDir.'/wallet_'.sha1($this->pwd));
+		$walletDir = UnhostedSettings::walletDir . "{$this->userDomain}/{$this->userName}/".$dataScope;
+		if(file_exists($walletDir.'/'.sha1($this->pwd))) {
+			return file_get_contents($walletDir.'/'.sha1($this->pwd));
 		} else {
 			return false;
 		}

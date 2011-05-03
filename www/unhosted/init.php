@@ -10,6 +10,7 @@ if($_GET["install"] == "install") {
 		."\tconst protocol = 'http';\n"
 		."\tconst domain = '$domain';\n"
 		."\tconst davDir = '$virtualHostDir/dav/';\n"
+		."\tconst walletDir = '$virtualHostDir/wallet/';\n"
 		."}\n");
 	file_put_contents("config.js", "var appBaseUrl = 'http://$domain';\n"
 		."\n"
