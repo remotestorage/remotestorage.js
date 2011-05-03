@@ -25,6 +25,10 @@ class UnhostedAccount {
 		return true;
 	}
 	private function createDav($scope) {
+		$scope = ereg_replace("[^A-Za-z0-9\.]", "", $scope);
+		if($scope[0] == '.') {
+				return "invalid-scope";
+		}
 		$token = base64_encode(mt_rand());
 		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$scope;
 		`if [ ! -d $davDir ] ; then mkdir $davDir ; fi`;
