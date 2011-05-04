@@ -24,7 +24,7 @@ class UnhostedAccount {
 		if(!file_exists($userDir)) {
 			mkdir($userDir);
 		}
-		file_put_contents($userDir."/.htpasswd", sha1($this->pwd));
+		file_put_contents($userDir."/.pwd", sha1($this->pwd));
 		return true;
 	}
 	private function createDav($scope) {
@@ -88,7 +88,7 @@ class UnhostedAccount {
 		return $this->createWallet($davBaseUrl, $davToken, $cryptoPwd, $dataScope);
 	}
 	public function addApp($dataScope) {
-		$pwdFile = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/.htpasswd";
+		$pwdFile = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/.pwd";
 		if(file_exists($pwdFile) && sha1($this->pwd)==file_get_contents($pwdFile)) {
 			return $this->createDav($dataScope);
 		}
