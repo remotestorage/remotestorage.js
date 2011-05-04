@@ -10,7 +10,7 @@ people's unhosted websites.
 This code is still quite young, and should be considered 'alpha'. We welcome your suggestions
 and improvements! Here's how you install it:
 
-Get a server with apache and php. For instance, you can get a debian lenny server at rackspace, ssh to it as root, and run:
+Get a server with apache and php. For instance, you can get a debian lenny server at rackspace, ssh to it as root, and run (hitting enter to pick default options where necessary):
 
 	apt-get update
 	apt-get upgrade
@@ -18,12 +18,9 @@ Get a server with apache and php. For instance, you can get a debian lenny serve
 
 Now point a domain name (sub-domains are OK) to the server, which will be the domain of your unhosted web app, and put the contents of this tar ball on your server as a directory under the web root, owned by www-data. For instance like this (when ssh'ed into your server as root):
 
-	cd /var/www
-	wget --no-check-certificate https://github.com/unhosted/unhosted/tarball/master
-	tar -xzvf master
-	mv unhosted-unhosted-* my-unhosted-website
+	wget --no-check-certificate -qO- https://github.com/unhosted/unhosted/tarball/devel | tar -xz
+	mv unhosted-unhosted-* /var/www/my-unhosted-website
 	chown -R www-data /var/www/my-unhosted-website
-	rm master
 
 Edit line 3 of my-unhosted-website/apache2.conf to replace 'www.example.com' with your own domain name.
 
@@ -31,12 +28,11 @@ Now configure apache:
 
 	mv my-unhosted-website/apache2.conf /etc/apache2/sites-available/my-unhosted-website
 	a2ensite my-unhosted-website
-	a2enmod dav
 	a2enmod dav_fs
 	a2enmod headers
 	/etc/init.d/apache2 restart
 
-After that, open the website in your browser and follow instructions from there.
+After that, open the website in your browser and follow instructions from there. You may have to run 'a2dissite default' as well if you don't get a page with an install button on it.
 
 Any bugs or problems, please report them straight into the irc channel and if it is during the daytime in either
 Europe or the US while you read this, then we'll probably fix them right here and now.
