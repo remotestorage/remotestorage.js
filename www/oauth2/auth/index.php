@@ -1,10 +1,31 @@
 <?php
-
 require_once('../../unhosted/unhosted.php');
 
+function getString($paramName) {
+        if(!isset($_POST[$paramName])) {
+                die("Parameter $paramName not specified");
+        }
+        return $_POST[$paramName];
+}
+function getDomain($paramName) {
+        $domain = getString($paramName);
+        if(!preg_match('|^[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i', $domain)) {
+                die("Parameter $paramName should be a valid domain");
+        }
+	return $domain;
+}
+function getUserAddress($paramName) {
+        $userAddress = getString($paramName);
+        if(!preg_match('|^[a-z0-9-]+(.[a-z0-9-]+)*@[a-z0-9-]+(.[a-z0-9-]+)*$|i', $userAddress)) {
+                die("Parameter $paramName should be a valid user address");
+        }
+	return $userAddress;
+}
+
+
 if(count($_POST)) {
-	$unhostedAccount = new UnhostedAccount($_POST["user_address"], $_POST["pwd"]);
-	$token = $unhostedAccount->addAPP($_POST["scope"]);
+	$unhostedAccount = new UnhostedAccount(getUserAddress("user_address"), getString("pwd"));
+	$token = $unhostedAccount->addAPP(getDomain("scope"));
 	if($token) {
 		header("Location:".$_POST["redirect_uri"]."?token=".$token);
 		echo "redirecting you back to the application.\n";

@@ -24,32 +24,30 @@ class UnhostedAccount {
 		file_put_contents($userDir."/.pwd", sha1($this->pwd));
 		return true;
 	}
-	private function createDav($davProtocol, $davDomain) {
-		$scope = ereg_replace("[^A-Za-z0-9\.]", "", $davDomain);
-		if($scope[0] == '.') {
-				return "invalid-scope";
-		}
+	private function createDav($dataScope) {
 		$token = base64_encode(mt_rand());
-		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$scope;
+		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$dataScope;
 		if(!file_exists($davDir)) {
 			mkdir($davDir, 0700);
 		}
-		file_put_contents($davDir.'/.htaccess', "<LimitExcept OPTIONS HEAD GET>\n"
-			."  AuthType Basic\n"
-			."  AuthName \"http://unhosted.org/spec/dav/0.1\"\n"
-			."  Require valid-user\n"
-			."  AuthUserFile $davDir/.htpasswd\n"
-			."</LimitExcept>\n"
-			."Header always set Access-Control-Allow-Origin \"http://$scope\"\n");
+		file_put_contents($davDir.'/.htaccess',
+//having some trouble getting this to work. will fix tomorrow. come to #unhosted channel on freenode irc if you have ideas about this
+//			"<LimitExcept OPTIONS HEAD GET>\n"
+//			."  AuthType Basic\n"
+//			."  AuthName \"http://unhosted.org/spec/dav/0.1\"\n"
+//			."  Require valid-user\n"
+//			."  AuthUserFile $davDir/.htpasswd\n"
+//			."</LimitExcept>\n"
+""			."Header always set Access-Control-Allow-Origin \"http://$dataScope\"\n");
 		//file_put_contents($davDir.'/.htpasswd', $this->userAddress .':'. crypt($token, base64_encode($token)));
 		`htpasswd -bc $davDir/.htpasswd {$this->userAddress} $token`;
-		echo "htpasswd -bc $davDir/.htpasswd {$this->userAddress} $token";
 		return $token;
 	}
 	private function createWallet($davProtocol, $davDomain, $davToken, $cryptoPwd, $dataScope) {
 		$wallet = json_encode(array(
 			"userAddress" => $userAddress,
 			"davBaseUrl" => $davProtocol.'://'.$davDomain,
+			"davToken" => $davToken,
 			"davAuth" => base64_encode($userAddress .':'. $davToken),
 			"cryptoPwd" => $cryptoPwd
 			));
@@ -78,7 +76,7 @@ class UnhostedAccount {
 	}
 	public function registerHosted() {
 		$this->createUserDir();
-		$davToken = $this->createDav(UnhostedSettings::protocol, UnhostedSettings::domain . '/');
+		$davToken = $this->createDav(UnhostedSettings::domain);
 		return $this->createWallet(UnhostedSettings::protocol, UnhostedSettings::domain . '/', $davToken, null, UnhostedSettings::domain);
 	}
 	public function registerWallet($davBaseUrl, $davToken, $dataScope) {

@@ -6,12 +6,12 @@ function getString($paramName) {
         }
         return $_GET[$paramName];
 }
-function getUrl($paramName) {
-        $url = getString($paramName);
-        if(!preg_match('|^http(s)?://[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i', $url)) {
-                die("Parameter $paramName should be a valid URL");
+function getDomain($paramName) {
+        $domain = getString($paramName);
+        if(!preg_match('|^[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i', $domain)) {
+                die("Parameter $paramName should be a valid domain");
         }
-	return $url;
+	return $domain;
 }
 function getUserAddress($paramName) {
         $userAddress = getString($paramName);
@@ -25,16 +25,16 @@ $unhostedAccount = new UnhostedAccount(getUserAddress("userAddress"), getString(
 
 switch(getString("action")) {
         case "getWallet":
-                echo $unhostedAccount->getWallet(getUrl("dataScope"));
+                echo $unhostedAccount->getWallet(getDomain("dataScope"));
                 break;
         case "registerLocal":
                 echo $unhostedAccount->registerHosted();
                 break;
         case "registerWallet":
-                echo $unhostedAccount->registerWallet(getUrl("davBaseUrl"), getString("davToken"), getUrl("dataScope"));
+                echo $unhostedAccount->registerWallet(getString("davBaseUrl"), getString("davToken"), getDomain("dataScope"));
                 break;
         case "addApp":
-                echo $unhostedAccount->addApp(getUrl("dataScope"));
+                echo $unhostedAccount->addApp(getDomain("dataScope"));
                 break;
 }
 
