@@ -63,7 +63,11 @@ register = function(pwd1, pwd2) {
 			xhr.onreadystatechange = function() {
 				if(xhr.readyState == 4) {
 					if(xhr.status == 200) {
-						var wallet = JSON.parse(xhr.responseText);
+						try {
+							var wallet = JSON.parse(xhr.responseText);
+						} catch(e) {
+							alert('oops! wallet contains non-JSON: "'+xhr.responseText+'"');
+						}
 						wallet.userAddress = getWallet().userAddress;//copy user address in from existing wallet into new one
 						setWallet(wallet);
 						window.location = config.appUrl;
