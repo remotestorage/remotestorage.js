@@ -1,5 +1,7 @@
 <?php
-
+if(file_exists("config.js") && file_exists("config.php") && file_exists("../.well-known/host-meta")) {
+	die("Looks like the installation was already successfully completed");
+}
 if($_GET["install"] == "install") {
 	$domain = $_SERVER["SERVER_NAME"];
 	$scriptDir = dirname(__file__);
@@ -38,7 +40,6 @@ if($_GET["install"] == "install") {
  		."\t</Link>\n"
 		."</XRD>\n");
 
-	unlink("init.php");
 	header("Location: /");
 } else {
 	
