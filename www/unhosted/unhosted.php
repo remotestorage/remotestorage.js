@@ -7,8 +7,6 @@ class UnhostedAccount {
 	function __construct($userAddress, $pwd) {
 		$this->userAddress = $userAddress;
 		list($this->userName, $this->userDomain) = explode('@', $userAddress);
-echo($this->userName." is username");
-echo($this->userDomain." is userdomain");
 		$this->pwd = $pwd;
 	}
 	private function createUserDir() {
@@ -18,13 +16,12 @@ echo($this->userDomain." is userdomain");
 			return false;
 		}
 		if(!file_exists($userDomainDir)) {
-			mkdir($userDomainDir);
+			mkdir($userDomainDir, 0700);
 		}
 		if(!file_exists($userDir)) {
-			mkdir($userDir);
+			mkdir($userDir, 0700);
 		}
 		file_put_contents($userDir."/.pwd", sha1($this->pwd));
-echo "userDir $userDir created";
 		return true;
 	}
 	private function createDav($davProtocol, $davDomain) {
@@ -35,7 +32,7 @@ echo "userDir $userDir created";
 		$token = base64_encode(mt_rand());
 		$davDir = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/".$scope;
 		if(!file_exists($davDir)) {
-			mkdir($davDir, 0600);
+			mkdir($davDir, 0700);
 		}
 		file_put_contents($davDir.'/.htaccess', "<LimitExcept OPTIONS HEAD GET>\n"
 			."  AuthType Basic\n"
@@ -44,9 +41,9 @@ echo "userDir $userDir created";
 			."  AuthUserFile $davDir/.htpasswd\n"
 			."</LimitExcept>\n"
 			."Header always set Access-Control-Allow-Origin \"http://$scope\"\n");
-		$htpasswd = $this->userAddress .':'. crypt($token, base64_encode($token));
-		file_put_contents($htpasswd, $davDir.'/.htpasswd');
-echo "davDir $davDir created";
+		//file_put_contents($davDir.'/.htpasswd', $this->userAddress .':'. crypt($token, base64_encode($token)));
+		`htpasswd -bc $davDir/.htpasswd {$this->userAddress} $token`;
+		echo "htpasswd -bc $davDir/.htpasswd {$this->userAddress} $token";
 		return $token;
 	}
 	private function createWallet($davProtocol, $davDomain, $davToken, $cryptoPwd, $dataScope) {
@@ -60,16 +57,15 @@ echo "davDir $davDir created";
 		$walletUserDir = $walletDomainDir . $this->userName . "/";
 		$walletDir = $walletUserDir . $dataScope;
 		if(!file_exists($walletDomainDir)) {
-			mkdir($walletDomainDir);
+			mkdir($walletDomainDir, 0700);
 		}
 		if(!file_exists($walletUserDir)) {
-			mkdir($walletUserDir);
+			mkdir($walletUserDir, 0700);
 		}
 		if(!file_exists($walletDir)) {
-			mkdir($walletDir);
+			mkdir($walletDir, 0700);
 		}
 		file_put_contents($walletDir.'/'.sha1($this->pwd), $wallet);
-echo "walletDir $walletDir created";
 		return $wallet;
 	}
 	public function getWallet($dataScope) {
