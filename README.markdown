@@ -1,8 +1,13 @@
-Please log in to irc://irc.freenode.net/unhosted so we can help you get this working on your server.
+Please log in to #unhosted on irc.freenode.net so we can help you get this working on your server.
 ======================
 
-This code is published under the AGPL license. It is an unhosted website which you can change to turn it into your 
-own unhosted web app. This code is still quite young, and should be considered 'alpha'. We welcome your suggestions
+This code is published under the AGPL license. It's what you need to build your own unhosted website, which means it consists of two halves:
+
+* a 'hello world' unhosted web app which you can change to turn it into your own unhosted web app.
+* an unhosted storage node: any user accounts you create on here automatically become usable as unhosted accounts on other 
+people's unhosted websites.
+
+This code is still quite young, and should be considered 'alpha'. We welcome your suggestions
 and improvements! Here's how you install it:
 
 Get a server with apache and php. For instance, you can get a debian lenny server at rackspace, ssh to it as root, and run:
@@ -20,7 +25,7 @@ Now point a domain name (sub-domains are OK) to the server, which will be the do
 	chown -R www-data /var/www/my-unhosted-website
 	rm master
 
-Edit line 3 of apache2.conf to replace 'www.example.com' with your own domain name.
+Edit line 3 of my-unhosted-website/apache2.conf to replace 'www.example.com' with your own domain name.
 
 Now configure apache:
 
