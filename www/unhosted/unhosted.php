@@ -7,6 +7,9 @@ class UnhostedAccount {
 	function __construct($userAddress, $pwd) {
 		$this->userAddress = $userAddress;
 		list($this->userName, $this->userDomain) = explode("@", $userAddress);
+		if((!strlen($this->userName)) || (!strlen($this->userDomain))) {
+			die("'$userAddress' not a valid user address");
+		}
 		$this->pwd = $pwd;
 	}
 	private function createUserDir() {
