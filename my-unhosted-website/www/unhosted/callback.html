@@ -20,6 +20,7 @@ serialize = function(obj) {
 }
 	
 var wallet = getWallet();
+wallet.davToken = gup("token");
 xhr = new XMLHttpRequest();
 xhr.open("GET", config.doUrl+"?action=registerWallet&dataScope="+config.dataScope+"&"+serialize(wallet), true);
 xhr.onreadystatechange = function() {
