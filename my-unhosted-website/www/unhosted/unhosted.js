@@ -35,11 +35,17 @@ var DAV = function() {
 			alert("error: got status "+xhr.status+" when doing basic auth GET on url "+keyToUrl(key));
 		}
 	}
+	
 	dav.put = function(key, text) {
 		var wallet = getWallet();
 		var xhr = new XMLHttpRequest();
-		xhr.open("PUT", keyToUrl(key, wallet), false, wallet.userAddress, wallet.davToken);
-		//xhr.setRequestHeader("Authorization", wallet.davAuth);
+		
+		//xhr.open("PUT", keyToUrl(key, wallet), false, wallet.userAddress, wallet.davToken);
+		//HACK:
+		xhr.open("PUT", keyToUrl(key, wallet), false);
+		xhr.setRequestHeader("Authorization", "Basic "+Base64.encode(wallet.userAddress +':'+ wallet.davToken));
+		//END HACK.
+
 		xhr.withCredentials = "true";
 		xhr.send(text);
 		if(xhr.status != 200 && xhr.status != 201 && xhr.status != 204) {

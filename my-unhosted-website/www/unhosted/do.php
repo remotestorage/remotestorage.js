@@ -8,14 +8,14 @@ function getString($paramName) {
 }
 function getDomain($paramName) {
         $domain = getString($paramName);
-        if(!preg_match('|^[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i', $domain)) {
+        if(!preg_match('|^[a-z0-9-]+(\.[a-z0-9-]+)*$|i', $domain)) {
                 die("Parameter $paramName should be a valid domain");
         }
 	return $domain;
 }
 function getUserAddress($paramName) {
         $userAddress = getString($paramName);
-        if(!preg_match('|^[a-z0-9-]+(.[a-z0-9-]+)*@[a-z0-9-]+(.[a-z0-9-]+)*$|i', $userAddress)) {
+        if(!preg_match('|^[a-z0-9-]+(\.[a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*$|i', $userAddress)) {
                 die("Parameter $paramName should be a valid user address");
         }
 	return $userAddress;
