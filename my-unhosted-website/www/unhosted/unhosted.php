@@ -31,9 +31,10 @@ class UnhostedAccount {
 			mkdir($davDir, 0700);
 		}
 		file_put_contents($davDir.'/.htaccess',
-			."AuthType Basic\n"
+			"AuthType Basic\n"
+			"AuthName \"your unhosted data\"\n"
 			."AuthUserFile $davDir/.htpasswd\n"
-			"<LimitExcept OPTIONS HEAD GET>\n"
+			."<LimitExcept OPTIONS HEAD GET>\n"
 			."  Require valid-user\n"
 			."</LimitExcept>\n"
 			."Header always set Access-Control-Allow-Origin \"http://$dataScope\"\n");
