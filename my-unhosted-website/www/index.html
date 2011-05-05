@@ -18,48 +18,59 @@
 
 
   ////////////////////
- //  data access:  //
+ //  global vars:  //
 ////////////////////
 
 var unhosted = Unhosted();
+var currentUser;
+var sandwich;
 
-//sequence of functions used by the demo app:
-//
-// unhosted.connect();
-// unhosted.getUserName();
-// unhosted.get(key);
-// unhosted.set(key, value);
-// unhosted.close(); 
+  //////////////////
+ // data access: //
+//////////////////
+
+function onload() {
+	unhosted.connect();			//if you get past this, it means the user is logged in.
+	currentUser = unhosted.getUserName();	//see the user address that's logged in.
+	sandwich = unhosted.get('favSandwich');	//retrieve current sandwich ingredients.
+	show();					//put values into the DOM.
+}
+
+function onsave() {
+	sandwich = {ingredients:
+			[document.getElementById('firstIngredient').value,
+			document.getElementById('secondIngredient').value]
+		});
+	unhosted.set('favSandwich', sandwich);	//save newly set ingredients.
+	sandwich = unhosted.get('favSandwich');	//double check that it was saved successfully.
+	show();					//update the DOM.
+}
+
+function onclose() {
+	unhosted.close();			//after this, the user is logged out.
+}
 
   /////////////////////
  //  presentation:  //
 /////////////////////
-function showCurrentUser(userAddress) {
-	document.getElementById('currentUser').innerHTML=
-		'Current user is <strong>'
-		+unhosted.getUserName()
-		+'</strong> [<a onclick="unhosted.close();">Close</a>]';
-}
 
-function showCurrentSandwich(sandwich) {
+function show() {
+	if(!sandwich) {
+		sandwich = {ingredients:['', '']};
+	}
 	document.getElementById('showFirstIngredient').innerHTML = sandwich.ingredients[0];
 	document.getElementById('showSecondIngredient').innerHTML = sandwich.ingredients[1];
 	document.getElementById('firstIngredient').value = sandwich.ingredients[0];
 	document.getElementById('secondIngredient').value = sandwich.ingredients[1];
+	document.getElementById('currentUser').innerHTML=
+		'Current user is <strong>'
+		+current
+		+'</strong> [<a onclick="onclose();">Close</a>]';
 }
 
-function show() {
-	var sandwich = unhosted.get('favSandwich');
-	if(sandwich) {
-		showCurrentSandwich(sandwich);
-	} else {
-		showCurrentSandwich({ingredients:['', '']});
-	}
-	showCurrentUser(unhosted.getUserName());
-}
 </script>
 </head>
-<body onload="unhosted.connect(); show();">
+<body onload="onload();">
 <div class="preload"></div>
 <div class="preload2"></div>
 <div id="preheader"></div>
@@ -67,12 +78,7 @@ function show() {
 	<figure id="plate"></figure>
 </div>
 <div id="mainWrap">
-
-
 	<div id="unlockedView">
-
-
-
 		<div id="preheader">
 			<span>
 				<span id="currentUser"></span>
@@ -85,20 +91,9 @@ function show() {
 			<input id="firstIngredient" name="firstIngredient" onfocus="if(this.value=='1st ingredient'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='1st ingredient'}" type="text" value="1st ingredient"/>
 			<input id="secondIngredient" name="secondIngredient" onfocus="if(this.value=='2nd ingredient'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='2nd ingredient'}" type="text" value="2nd ingredient"/>
 					
-			<input class="submitingredients" name="submit" type="submit" value="Submit!" onclick="unhosted.set('favSandwich',
-						{ingredients:
-							[document.getElementById('firstIngredient').value,
-							document.getElementById('secondIngredient').value]
-						});show();"/>
+			<input class="submitingredients" name="submit" type="submit" value="Submit!" onclick="onsave();"/>
 		</header>
-
-
-
 	</div>
-
-
-
-
 	<div id="footerSpacer"></div>					
 	<footer>
 		<div class="wrapper">
