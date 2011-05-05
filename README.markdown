@@ -24,7 +24,7 @@ Disabling the default site should not be necessary, but I've found that it is. N
 	mv my-unhosted-website /var/www
 	chown -R www-data /var/www/my-unhosted-website
 
-Edit line 3 of apache2.conf to replace 'www.example.com' with your own domain name.
+Edit line 2 of apache2.conf to replace 'www.example.com' with your own domain name.
 
 Now configure apache:
 

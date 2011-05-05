@@ -32,7 +32,7 @@ class UnhostedAccount {
 		}
 		file_put_contents($davDir.'/.htaccess',
 			"AuthType Basic\n"
-			"AuthName \"your unhosted data\"\n"
+			."AuthName \"your unhosted data\"\n"
 			."AuthUserFile $davDir/.htpasswd\n"
 			."<LimitExcept OPTIONS HEAD GET>\n"
 			."  Require valid-user\n"
