@@ -40,7 +40,7 @@ function onsave() {
 	sandwich = {ingredients:
 			[document.getElementById('firstIngredient').value,
 			document.getElementById('secondIngredient').value]
-		});
+		};
 	unhosted.set('favSandwich', sandwich);	//save newly set ingredients.
 	sandwich = unhosted.get('favSandwich');	//double check that it was saved successfully.
 	show();					//update the DOM.
@@ -62,9 +62,9 @@ function show() {
 	document.getElementById('showSecondIngredient').innerHTML = sandwich.ingredients[1];
 	document.getElementById('firstIngredient').value = sandwich.ingredients[0];
 	document.getElementById('secondIngredient').value = sandwich.ingredients[1];
-	document.getElementById('currentUser').innerHTML=
+	document.getElementById('currentUser').innerHTML =
 		'Current user is <strong>'
-		+current
+		+currentUser
 		+'</strong> [<a onclick="onclose();">Close</a>]';
 }
 

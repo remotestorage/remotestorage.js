@@ -19,7 +19,7 @@ Get a server with apache and php. For instance, you can get a debian lenny serve
 
 Disabling the default site should not be necessary, but I've found that it is. Now point a domain name (sub-domains are OK) to the server, which will be the domain of your unhosted web app, and put the contents of this tar ball on your server as a directory under the web root, owned by www-data. For instance like this (when ssh'ed into your server as root):
 
-	wget --no-check-certificate -qO- https://github.com/unhosted/unhosted/tarball/devel | tar -xz
+	wget --no-check-certificate -qO- https://github.com/unhosted/unhosted/tarball/master | tar -xz
 	cd unhosted-unhosted-*
 	mv my-unhosted-website /var/www
 	chown -R www-data /var/www/my-unhosted-website

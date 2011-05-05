@@ -38,8 +38,7 @@ class UnhostedAccount {
 			."  Require valid-user\n"
 			."</LimitExcept>\n"
 			."Header always set Access-Control-Allow-Origin \"http://$dataScope\"\n");
-		//file_put_contents($davDir.'/.htpasswd', $this->userAddress .':'. crypt($token, base64_encode($token)));
-		`htpasswd -bc $davDir/.htpasswd {$this->userAddress} $token`;
+		file_put_contents($davDir.'/.htpasswd', $this->userAddress .':'. crypt($token, base64_encode($token))."\n");
 		return $token;
 	}
 	private function createWallet($davProtocol, $davDomain, $davToken, $cryptoPwd, $dataScope) {
