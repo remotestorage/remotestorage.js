@@ -15,25 +15,25 @@ Get a server with apache and php. For instance, you can get a debian lenny serve
 	apt-get update
 	apt-get upgrade
 	apt-get install libapache2-mod-php5
+	a2dissite default
 
-Now point a domain name (sub-domains are OK) to the server, which will be the domain of your unhosted web app, and put the contents of this tar ball on your server as a directory under the web root, owned by www-data. For instance like this (when ssh'ed into your server as root):
+Disabling the default site should not be necessary, but I've found that it is. Now point a domain name (sub-domains are OK) to the server, which will be the domain of your unhosted web app, and put the contents of this tar ball on your server as a directory under the web root, owned by www-data. For instance like this (when ssh'ed into your server as root):
 
 	wget --no-check-certificate -qO- https://github.com/unhosted/unhosted/tarball/devel | tar -xz
 	mv unhosted-unhosted-* /var/www/my-unhosted-website
 	chown -R www-data /var/www/my-unhosted-website
 
-Edit line 3 of my-unhosted-website/apache2.conf to replace 'www.example.com' with your own domain name.
+Edit line 3 of /var/www/my-unhosted-website/apache2.conf to replace 'www.example.com' with your own domain name.
 
 Now configure apache:
 
-	mv my-unhosted-website/apache2.conf /etc/apache2/sites-available/my-unhosted-website
+	mv /var/www/my-unhosted-website/apache2.conf /etc/apache2/sites-available/my-unhosted-website
 	a2ensite my-unhosted-website
 	a2enmod dav_fs
 	a2enmod headers
 	/etc/init.d/apache2 restart
 
-After that, open the website in your browser and follow instructions from there. You may have to run 'a2dissite default' as well if you don't get a page with an install button on it.
-
+After that, open the website in your browser and follow instructions from there.
 Any bugs or problems, please report them straight into the irc channel and if it is during the daytime in either
 Europe or the US while you read this, then we'll probably fix them right here and now.
 The app should be easy to edit to do something more useful than store sandwich ingredients. The app code is on index.html 

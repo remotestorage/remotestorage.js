@@ -31,14 +31,12 @@ class UnhostedAccount {
 			mkdir($davDir, 0700);
 		}
 		file_put_contents($davDir.'/.htaccess',
-//having some trouble getting this to work. will fix tomorrow. come to #unhosted channel on freenode irc if you have ideas about this
-//			"<LimitExcept OPTIONS HEAD GET>\n"
-//			."  AuthType Basic\n"
-//			."  AuthName \"http://unhosted.org/spec/dav/0.1\"\n"
-//			."  Require valid-user\n"
-//			."  AuthUserFile $davDir/.htpasswd\n"
-//			."</LimitExcept>\n"
-""			."Header always set Access-Control-Allow-Origin \"http://$dataScope\"\n");
+			."AuthType Basic\n"
+			."AuthUserFile $davDir/.htpasswd\n"
+			"<LimitExcept OPTIONS HEAD GET>\n"
+			."  Require valid-user\n"
+			."</LimitExcept>\n"
+			."Header always set Access-Control-Allow-Origin \"http://$dataScope\"\n");
 		//file_put_contents($davDir.'/.htpasswd', $this->userAddress .':'. crypt($token, base64_encode($token)));
 		`htpasswd -bc $davDir/.htpasswd {$this->userAddress} $token`;
 		return $token;
