@@ -43,10 +43,10 @@ class UnhostedAccount {
 	}
 	private function createWallet($davProtocol, $davDomain, $davToken, $cryptoPwd, $dataScope) {
 		$wallet = json_encode(array(
-			"userAddress" => $userAddress,
+			"userAddress" => $this->userAddress,
 			"davBaseUrl" => $davProtocol.'://'.$davDomain,
 			"davToken" => $davToken,
-			"davAuth" => base64_encode($userAddress .':'. $davToken),
+			"davAuth" => base64_encode($this->userAddress .':'. $davToken),
 			"cryptoPwd" => $cryptoPwd
 			));
 		$walletDomainDir = UnhostedSettings::walletDir . $this->userDomain ."/";
