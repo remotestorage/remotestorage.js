@@ -30,10 +30,15 @@ var sandwich;
 //////////////////
 
 function onload() {
-	unhosted.connect();			//if you get past this, it means the user is logged in.
-	currentUser = unhosted.getUserName();	//see the user address that's logged in.
-	sandwich = unhosted.get('favSandwich');	//retrieve current sandwich ingredients.
-	show();					//put values into the DOM.
+	unhosted.connect();				//if you get past this, it means the user is logged in.
+	currentUser = unhosted.getUserName();		//see the user address that's logged in.
+	unhosted.get(
+		'favSandwich', 				//key
+		alert('please put in your password'),	//requirePwd 
+		function(ret) {				//cb
+			sandwich = ret;
+			show();				//put values into the DOM.
+		});
 }
 
 function onsave() {
@@ -41,9 +46,17 @@ function onsave() {
 			[document.getElementById('firstIngredient').value,
 			document.getElementById('secondIngredient').value]
 		};
-	unhosted.set('favSandwich', sandwich);	//save newly set ingredients.
-	sandwich = unhosted.get('favSandwich');	//double check that it was saved successfully.
-	show();					//update the DOM.
+	unhosted.set(
+		'favSandwich', 
+		sandwich,//
+		function() {//cb
+			unhosted.get(//double check that it was saved successfully.
+				'favSandwich',
+				function() {
+					sandwich = ret;
+					show();		//update the DOM.
+				});
+		});	//save newly set ingredients.
 }
 
 function onclose() {
