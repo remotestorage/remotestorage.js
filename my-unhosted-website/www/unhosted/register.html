@@ -42,39 +42,26 @@ serialize = function(obj) {
   return str.join("&");
 }
 
-register = function(pwd1, pwd2) {
+register = function(userName, userDomain, pwd1, pwd2) {
 	if(pwd1 != pwd2) {
 		alert('please enter the same password twice');
 	} else {
 		var wallet = getWallet();
-		if(wallet.isLocal == false) {
-			wallet.pwd = pwd1;
-			setWallet(wallet);	
-			window.location = wallet.davBaseUrl 
-				+ "/oauth2/auth"
-				+ "?client_id="+encodeURIComponent(config.appName)
-				+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
-				+ "&scope="+encodeURIComponent(config.dataScope)
-				+ "&response_type=token"
-				+ "&user_address="+wallet.userAddress;
-		} else {
-			xhr = new XMLHttpRequest();
-			xhr.open("GET", config.doUrl+"?action=registerLocal&pwd="+pwd1+"&"+serialize(wallet), true);
-			xhr.onreadystatechange = function() {
-				if(xhr.readyState == 4) {
-					if(xhr.status == 200) {
-						try {
-							var wallet = JSON.parse(xhr.responseText);
-						} catch(e) {
-							alert('oops! wallet contains non-JSON: "'+xhr.responseText+'"');
-						}
-						wallet.userAddress = getWallet().userAddress;//copy user address in from existing wallet into new one
-						setWallet(wallet);
-						window.location = config.appUrl;
+		xhr = new XMLHttpRequest();
+		xhr.open("GET", config.doUrl+"?action=registerLocal&userAddress="+encodeURIComponent(userName+"@"+userDomain)+"&pwd="+encodeURIComponent(pwd1), true);
+		xhr.onreadystatechange = function() {
+			if(xhr.readyState == 4) {
+				if(xhr.status == 200) {
+					try {
+						var wallet = JSON.parse(xhr.responseText);
+					} catch(e) {
+						alert('oops! wallet contains non-JSON: "'+xhr.responseText+'"');
 					}
+					setWallet(wallet);
+					window.location = config.appUrl;
 				}
+				xhr.send();
 			}
-			xhr.send();
 		}
 	}
 }
@@ -97,7 +84,7 @@ register = function(pwd1, pwd2) {
 		<header>
 			<h1>My Favourite Sandwich</h1>
 			<h2>Register</h2>
-			Username:<input id="user" disabled=true type="text"/>
+			User address:<input id="user" disabled=true type="text"/>@dev.unhosted.org
 			<br>Password:&nbsp;<input id="pwd1" type="password"/>
 			<br>Repeat:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input id="pwd2" type="password"/>
 			<br><input class="submit" name="submit" type="submit" value="Submit!"

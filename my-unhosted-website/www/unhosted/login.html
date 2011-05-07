@@ -19,7 +19,12 @@ function takeMeIn(userAddress, haveAccount) {
 				"userAddress": userAddress,
 				"davBaseUrl": davBaseUrl
 				});
-			window.location = davBaseUrl + "/oauth/auth";
+			window.location = davBaseUrl + "/oauth/auth"
+				+ "?client_id="+encodeURIComponent(config.appName)
+				+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+				+ "&scope="+encodeURIComponent(config.dataScope)
+				+ "&response_type=token"
+				+ "&user_address="+userAddress;
 		});
 	} else {
 		setWallet({
