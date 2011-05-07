@@ -1,11 +1,3 @@
-// app state shared with login.html:
-// =================================
-// localStorage::"unhosted".userAddress
-// localStorage::"unhosted".davAuth
-// localStorage::"unhosted".cryptoPwd
-// localStorage::"unhosted".davBaseUrl
-
-
   /////////
  // DAV //
 /////////
@@ -64,7 +56,7 @@ var Unhosted = function() {
 	var unhosted = {};
 	var dav = DAV();
 	unhosted.connect = function() {
-		if(!getWallet().davAuth) {
+		if(!getWallet().davToken) {
 			window.location = config.loginUrl;
 		}
 	}
