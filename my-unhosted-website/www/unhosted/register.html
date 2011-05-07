@@ -14,34 +14,6 @@
 <script src="/unhosted/webfinger.js"></script>
 
 <script>
-function isLocal(address) {
-	parts = address.split('@');
-	return (parts[1] == config.homeDomain);
-} 
-function determineDavBaseUrl() {
-	var webfinger = new Webfinger();
-	var wallet = getWallet();
-	document.getElementById('user').value = wallet.userAddress;
-	if(isLocal(wallet.userAddress)) {
-		wallet.isLocal=true;
-		setWallet(wallet);
-	} else {
-		webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function(davBaseUrl) {
-			var wallet = getWallet();
-			wallet.davBaseUrl = davBaseUrl;
-			wallet.isLocal=false;
-			setWallet(wallet);
-		});
-	}
-}
-
-serialize = function(obj) {
-  var str = [];
-  for(var p in obj)
-     str.push(p + "=" + encodeURIComponent(obj[p]));
-  return str.join("&");
-}
-
 register = function(userName, userDomain, pwd1, pwd2) {
 	if(pwd1 != pwd2) {
 		alert('please enter the same password twice');
@@ -60,14 +32,14 @@ register = function(userName, userDomain, pwd1, pwd2) {
 					setWallet(wallet);
 					window.location = config.appUrl;
 				}
-				xhr.send();
 			}
 		}
+		xhr.send();
 	}
 }
 </script>
 </head>
-<body onload="determineDavBaseUrl();">
+<body>
 <div class="preload"></div>
 <div class="preload2"></div>
 <div id="preheader"></div>
@@ -84,11 +56,15 @@ register = function(userName, userDomain, pwd1, pwd2) {
 		<header>
 			<h1>My Favourite Sandwich</h1>
 			<h2>Register</h2>
-			User address:<input id="user" disabled=true type="text"/>@dev.unhosted.org
+			User address:<input id="user" type="text" size="10"/>@dev.unhosted.org
 			<br>Password:&nbsp;<input id="pwd1" type="password"/>
 			<br>Repeat:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input id="pwd2" type="password"/>
 			<br><input class="submit" name="submit" type="submit" value="Submit!"
-				 onclick="register(document.getElementById('pwd1').value, document.getElementById('pwd2').value);">
+				 onclick="register(
+					document.getElementById('user').value,
+					'dev.unhosted.org',
+					document.getElementById('pwd1').value,
+					document.getElementById('pwd2').value);">
 		</header>
 			
 		<div id="register">
