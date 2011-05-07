@@ -10,41 +10,21 @@
 <link rel="stylesheet" href="/css/uncompressed/layout.css" />
 
 <script src="/unhosted/config.js"></script>
-<script src="/unhosted/wallet.js"></script>
+<script src="/unhosted/webfinger.js"></script>
 <script>
-// app state shared with login.html:
-// =================================
-// localStorage::"unhosted".userAddress
-// localStorage::"unhosted".davAuth
-// localStorage::"unhosted".cryptoPwd
-// localStorage::"unhosted".davBaseUrl
-
-function takeMeIn(userAddress, pwd, havePwd) {
-	if(havePwd) {
-		xhr = new XMLHttpRequest();
-		xhr.open("GET", config.doUrl+"?action=getWallet&userAddress="+encodeURIComponent(userAddress)+"&pwd="+pwd+"&dataScope="+config.dataScope, true);
-		xhr.onreadystatechange = function() {
-			var wallet;
-			if(xhr.readyState == 4) {
-				if(xhr.status == 200) {
-					try {
-						wallet = JSON.parse(xhr.responseText);
-					} catch(e) {
-						wallet = false;
-					}
-					if(wallet) {
-						wallet.userAddress = userAddress;//use userAddress from closure
-						setWallet(wallet);
-						window.location = config.appUrl;
-					} else {
-						alert('wrong password!');
-					}
-				}
-			}
-		}
-		xhr.send();
+function takeMeIn(userAddress, haveAccount) {
+	if(haveAccount) {
+		Webfinger().getDavBaseUrl(userAddress, 0, 1, function(davBaseUrl) {
+			setWallet({
+				"userAddress": userAddress,
+				"davBaseUrl": davBaseUrl
+				});
+			window.location = davBaseUrl + "/oauth/auth";
+		});
 	} else {
-		setWallet({"userAddress": userAddress});
+		setWallet({
+			"userAddress": userAddress
+			});
 		window.location = config.registerUrl;
 	}
 }
@@ -67,12 +47,11 @@ function takeMeIn(userAddress, pwd, havePwd) {
 		<header>
 			<h1>My Favourite Sandwich</h1>
 			<h2>Welcome</h2>
-			Username:&nbsp;&nbsp;&nbsp;&nbsp;<input id="user" name="unhostedacct" onfocus="if(this.value=='user@provider.org'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='user@provider.org'}" type="text" value="user@provider.org"/>&nbsp;
-			<br><input type="radio" name="havePwd" id="havePwdYes" onclick="document.getElementById('pwd').disabled=false;">
-			Password:&nbsp;<input id="pwd" name="unhostedacct" type="password" disabled="true" />&nbsp;&nbsp;
-			<br><input type="radio" name="havePwd" checked id="havePwdNo" onclick="document.getElementById('pwd').disabled=true;">&nbsp;I don't have a password yet, help me log in
+			<input type="radio" name="haveAccount" id="haveAccountYes" onclick="document.getElementById('pwd').disabled=false;">
+			User address:&nbsp;&nbsp;&nbsp;&nbsp;<input id="user" name="unhostedacct" onfocus="if(this.value=='user@provider.org'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='user@provider.org'}" type="text" value="user@provider.org"/>&nbsp;
+			<br><input type="radio" name="haveAccount" checked id="haveAccountNo" onclick="document.getElementById('pwd').disabled=true;">&nbsp;I don't have an account, help me log in
 			<br><input class="submit" name="submit" type="submit" value="Submit!"
-				 onclick="takeMeIn(document.getElementById('user').value, document.getElementById('pwd').value, document.getElementById('havePwdYes').checked);">
+				 onclick="takeMeIn(document.getElementById('user').value, document.getElementById('haveAccountYes').checked);">
 		</header>
 			
 		<div id="register">
