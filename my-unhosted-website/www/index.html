@@ -63,6 +63,14 @@ function onclose() {
 	unhosted.close();			//after this, the user is logged out.
 }
 
+function goCrypto() {
+	unhosted.goCrypto(
+		document.getElementById('pwd1').value,
+		function() {//callback in case this is the first time
+			document.getElementById('pwd2').visible=true;
+			return (document.getElementById('pwd1').value == document.getElementById('pwd2').value);
+			});
+}
   /////////////////////
  //  presentation:  //
 /////////////////////
@@ -78,7 +86,9 @@ function show() {
 	document.getElementById('currentUser').innerHTML =
 		'Current user is <strong>'
 		+currentUser
-		+'</strong> [<a onclick="onclose();">Close</a>]';
+		+'</strong> [<a onclick="onclose();">Close</a>]'
+		+' <input type="password" id="pwd1">'
+		+' <input type="submit" value="Go crypto" onclick="goCrypto();">';
 }
 
 </script>

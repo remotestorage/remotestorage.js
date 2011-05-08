@@ -53,11 +53,10 @@ function takeMeIn(userAddress, haveAccount) {
 		<header>
 			<h1>My Favourite Sandwich</h1>
 			<h2>Welcome</h2>
-			<input type="radio" name="haveAccount" id="haveAccountYes" onclick="document.getElementById('pwd').disabled=false;">
-			User address:&nbsp;&nbsp;&nbsp;&nbsp;<input id="user" name="unhostedacct" onfocus="if(this.value=='user@provider.org'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='user@provider.org'}" type="text" value="user@provider.org"/>&nbsp;
-			<br><input type="radio" name="haveAccount" checked id="haveAccountNo" onclick="document.getElementById('pwd').disabled=true;">&nbsp;I don't have an account, help me log in
-			<br><input class="submit" name="submit" type="submit" value="Submit!"
-				 onclick="takeMeIn(document.getElementById('user').value, document.getElementById('haveAccountYes').checked);">
+			<img src="logo.png"> User address:&nbsp;&nbsp;&nbsp;&nbsp;<input id="user" name="unhostedacct" onfocus="if(this.value=='user@provider.org'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='user@provider.org'}" type="text" value="user@provider.org"/>&nbsp;
+			<input class="submit" name="submit" type="submit" value="Submit!"
+				 onclick="takeMeIn(document.getElementById('user').value, true);">
+			<br><a href="register.html">I don't have an account, help me log in</a>
 		</header>
 			
 		<div id="register">

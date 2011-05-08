@@ -73,9 +73,14 @@ var Unhosted = function() {
 	unhosted.getUserName = function() {
 		return getWallet().userAddress;
 	}
+	unhosted.setCryptoPwd = function(cryptoPwd) {
+		var wallet = getWallet();
+		wallet.cryptoPwd = cryptoPwd;
+		setWallet(wallet);
+	}
 	unhosted.get = function(key, requirePwd, cb) {
 		var wallet = getWallet();
-		if(wallet.cryptoPwd == null) {
+		if(wallet.cryptoPwd == undefined) {
 			dav.get(key, function(str) {
 				try {
 					cb(JSON.parse(str));
@@ -91,7 +96,7 @@ var Unhosted = function() {
 	}
 	unhosted.set = function(key, value, cb) {
 		var wallet = getWallet();
-		if(wallet.cryptoPwd == null) {
+		if(wallet.cryptoPwd == undefined) {
 			dav.put(key, JSON.stringify(value), cb);
 		} else {
 			dav.put(key, sjcl.encrypt(wallet.cryptoPwd, JSON.stringify(value)), cb);
