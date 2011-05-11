@@ -9,15 +9,15 @@ function getString($paramName) {
 }
 function getDomain($paramName) {
         $domain = getString($paramName);
-        if(!preg_match('|^[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i', $domain)) {
+        if(!preg_match('|^[a-z0-9-]+(\.[a-z0-9-]+)*$|i', $domain)) {
                 die("Parameter $paramName should be a valid domain");
         }
 	return $domain;
 }
 function getUserAddress($paramName) {
         $userAddress = getString($paramName);
-        if(!preg_match('|^[a-z0-9-]+(.[a-z0-9-]+)*@[a-z0-9-]+(.[a-z0-9-]+)*$|i', $userAddress)) {
-                die("Parameter $paramName should be a valid user address");
+        if(!preg_match('|^[a-z0-9-]+(\.[a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*$|i', $userAddress)) {
+                die("Parameter $paramName is '$userAddress' but should be a valid user address");
         }
 	return $userAddress;
 }
@@ -54,7 +54,7 @@ if(count($_POST)) {
 		<div class="content">
 			<h2>The app '<?=$_GET["client_id"] ?>' wants to read and write the <?=$_GET["scope"]?> data in your unhosted account</h2>
 			<form method="post" action="">
-				<label>Username:</label><span class="username"><?=$_GET["user_name"]?></span>	
+				<label>User address:</label><span class="username"><?=$_GET["user_address"]?></span>	
 				<label for="password">Password:</label>
 				<div id="passAllow">
 					<form method="POST" action="?">

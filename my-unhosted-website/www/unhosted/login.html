@@ -25,7 +25,7 @@ function takeMeIn(userAddress, haveAccount) {
 				+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
 				+ "&scope="+encodeURIComponent(config.dataScope)
 				+ "&response_type=token"
-				+ "&user_address="+userAddress;
+				+ "&user_address="+encodeURIComponent(userAddress);
 		});
 	} else {
 		setWallet({
