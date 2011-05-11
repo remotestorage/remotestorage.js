@@ -51,7 +51,8 @@ function onsave() {
 		function() {//cb
 			unhosted.get(//double check that it was saved successfully.
 				'favSandwich',
-				function() {
+				function() {alert('failed to save!');},
+				function(ret) {
 					sandwich = ret;
 					show();				//update the DOM.
 				});
