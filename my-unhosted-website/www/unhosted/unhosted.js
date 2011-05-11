@@ -73,6 +73,15 @@ var Unhosted = function() {
 	unhosted.getUserName = function() {
 		return getWallet().userAddress;
 	}
+	unhosted.getMode = function() {
+		if(getWallet().userAddress.split('@')[1] == config.homeDomain) {
+			return 'home';
+		} else if(getWallet().cryptoPwd == undefined) {
+			return 'clear';
+		} else {
+			return 'crypto';
+		}
+	}
 	unhosted.setCryptoPwd = function(cryptoPwd, onDoesntExist, onOtherError, onSuccess) {
 		if(onDoesntExist == null) {
 			allowCreation = "true";
