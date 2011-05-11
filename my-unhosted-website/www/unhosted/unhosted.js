@@ -22,10 +22,10 @@ var DAV = function() {
 			if(xhr.readyState == 4) {
 				if(xhr.status == 200) {
 					cb(xhr.responseText);
-				} if(xhr.status == 404) {
+				} else if(xhr.status == 404) {
 					cb(null);
 				} else {
-					alert("error: got status "+xhr.status+" when doing basic auth GET on url "+keyToUrl(key));
+					alert("error: got status "+xhr.status+" when doing basic auth GET on url "+keyToUrl(key, wallet));
 				}
 			}
 		}
@@ -45,7 +45,7 @@ var DAV = function() {
 		xhr.onreadystatechange = function() {
 			if(xhr.readyState == 4) {
 				if(xhr.status != 200 && xhr.status != 201 && xhr.status != 204) {
-					alert("error: got status "+xhr.status+" when doing basic auth PUT on url "+keyToUrl(key));
+					alert("error: got status "+xhr.status+" when doing basic auth PUT on url "+keyToUrl(key, wallet));
 				} else {
 					cb();
 				}
@@ -90,8 +90,8 @@ var Unhosted = function() {
 			});
 		} else {
 			dav.get(key, function(str) {
-				cb(JSON.parse(sjcl.decrypt(wallet.cryptoPwd, str));
-			}
+				cb(JSON.parse(sjcl.decrypt(wallet.cryptoPwd, str)));
+			});
 		}
 	}
 	unhosted.set = function(key, value, cb) {

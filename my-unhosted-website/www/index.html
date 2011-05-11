@@ -16,7 +16,6 @@
 <script src="unhosted/unhosted.js"></script>
 <script>
 
-
   ////////////////////
  //  global vars:  //
 ////////////////////
@@ -30,14 +29,14 @@ var sandwich;
 //////////////////
 
 function onload() {
-	unhosted.connect();				//if you get past this, it means the user is logged in.
-	currentUser = unhosted.getUserName();		//see the user address that's logged in.
+	unhosted.connect();						//if you get past this, it means the user is logged in.
+	currentUser = unhosted.getUserName();				//see the user address that's logged in.
 	unhosted.get(
-		'favSandwich', 				//key
-		alert('please put in your password'),	//requirePwd 
-		function(ret) {				//cb
+		'favSandwich', 						//key
+		function(){alert('please put in your password');},	//requirePwd 
+		function(ret) {						//cb
 			sandwich = ret;
-			show();				//put values into the DOM.
+			show();						//put values into the DOM.
 		});
 }
 
@@ -54,13 +53,13 @@ function onsave() {
 				'favSandwich',
 				function() {
 					sandwich = ret;
-					show();		//update the DOM.
+					show();				//update the DOM.
 				});
-		});	//save newly set ingredients.
+		});							//save newly set ingredients.
 }
 
 function onclose() {
-	unhosted.close();			//after this, the user is logged out.
+	unhosted.close();						//after this, the user is logged out.
 }
 
 function goCrypto() {
