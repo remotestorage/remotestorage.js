@@ -25,8 +25,13 @@ $unhostedAccount = new UnhostedAccount(getUserAddress("userAddress"), getString(
 
 switch(getString("action")) {
         case "getWallet":
-                echo $unhostedAccount->getWallet(getDomain("dataScope"), getString("pwd"), getString("allowCreation"));
-                break;
+                $wallet = $unhostedAccount->getWallet(getDomain("dataScope"), getString("allowCreation")=="true");
+                if($wallet === false) {	
+			header("HTTP/1.0 404 Not Found");
+		} else {
+			echo $wallet;
+		}
+		break;
         case "registerLocal":
                 echo $unhostedAccount->registerLocal();
                 break;
