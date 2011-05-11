@@ -39,7 +39,7 @@ register = function(userName, userDomain, pwd1, pwd2) {
 }
 </script>
 </head>
-<body>
+<body onload="document.getElementById('atHomeDomain').innerHTML='@'+config.homeDomain;">
 <div class="preload"></div>
 <div class="preload2"></div>
 <div id="preheader"></div>
@@ -56,7 +56,9 @@ register = function(userName, userDomain, pwd1, pwd2) {
 		<header>
 			<h1>My Favourite Sandwich</h1>
 			<h2>Register</h2>
-			User address:<input id="user" type="text" size="10"/>@dev.unhosted.org
+			User address:
+			<input id="user" type="text" size="10"/>
+			<div id="atHomeDomain"></div>
 			<img src="logo.png">
 			<br>Password:&nbsp;<input id="pwd1" type="password"/>
 			<br>Repeat:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input id="pwd2" type="password"/>
