@@ -91,7 +91,9 @@ var Unhosted = function() {
 			if(xhr.readyState == 4) {
 				if(xhr.status == 200) {
 					try {
-						var wallet = JSON.parse(xhr.responseText);
+						
+						var wallet2 = JSON.parse(xhr.responseText);
+						wallet.cryptoPwd = wallet2.cryptoPwd;
 						setWallet(wallet);
 						onSuccess(); 
 					} catch(e) {

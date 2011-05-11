@@ -25,7 +25,7 @@ $unhostedAccount = new UnhostedAccount(getUserAddress("userAddress"), getString(
 
 switch(getString("action")) {
         case "getWallet":
-                echo $unhostedAccount->getWallet(getDomain("dataScope"), getString("pwd"), getString("allowCreation");
+                echo $unhostedAccount->getWallet(getDomain("dataScope"), getString("pwd"), getString("allowCreation"));
                 break;
         case "registerLocal":
                 echo $unhostedAccount->registerLocal();
