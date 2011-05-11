@@ -64,23 +64,21 @@ class UnhostedAccount {
 		file_put_contents($walletDir.'/'.sha1($this->pwd), $wallet);
 		return $wallet;
 	}
-	public function getWallet($dataScope) {
+	public function getWallet($dataScope, $allowCreation) {
 		$walletDir = UnhostedSettings::walletDir . "{$this->userDomain}/{$this->userName}/".$dataScope;
 		if(file_exists($walletDir.'/'.sha1($this->pwd))) {
 			return file_get_contents($walletDir.'/'.sha1($this->pwd));
+		} else if($allowCreation) {
+			$cryptoPwd = sha1(mt_rand());
+			return $this->createWallet('', '', '', $cryptoPwd, $dataScope);
 		} else {
 			return false;
 		}
 	}
-	public function registerHosted() {
+	public function registerLocal() {
 		$this->createUserDir();
 		$davToken = $this->createDav(UnhostedSettings::domain);
 		return $this->createWallet(UnhostedSettings::protocol, UnhostedSettings::domain . '/', $davToken, null, UnhostedSettings::domain);
-	}
-	public function registerWallet($davBaseUrl, $davToken, $dataScope) {
-		list($davProtocol, $davDomain) = explode('://', $davBaseUrl);
-		$cryptoPwd = sha1(mt_rand());
-		return $this->createWallet($davProtocol, $davDomain, $davToken, $cryptoPwd, $dataScope);
 	}
 	public function addApp($dataScope) {
 		$pwdFile = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/.pwd";

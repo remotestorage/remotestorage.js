@@ -73,10 +73,38 @@ var Unhosted = function() {
 	unhosted.getUserName = function() {
 		return getWallet().userAddress;
 	}
-	unhosted.setCryptoPwd = function(cryptoPwd) {
+	unhosted.setCryptoPwd = function(cryptoPwd, onDoesntExist, onOtherError, onSuccess) {
+		if(onDoesntExist == null) {
+			allowCreation = "true";
+		} else {
+			allowCreation = "false";
+		}
 		var wallet = getWallet();
-		wallet.cryptoPwd = cryptoPwd;
-		setWallet(wallet);
+		xhr = new XMLHttpRequest();
+		xhr.open("GET", config.doUrl
+			+"?action=getWallet&userAddress="
+			+encodeURIComponent(wallet.userAddress)
+			+"&pwd="+encodeURIComponent(cryptoPwd)
+			+"&dataScope="+encodeURIComponent(config.dataScope)
+			+"&allowCreation="+allowCreation, true);
+		xhr.onreadystatechange = function() {
+			if(xhr.readyState == 4) {
+				if(xhr.status == 200) {
+					try {
+						var wallet = JSON.parse(xhr.responseText);
+						setWallet(wallet);
+						onSuccess(); 
+					} catch(e) {
+						onOtherError();
+					}
+				} else if(xhr.status == 404) {
+					onDoesntExist();
+				} else {
+					onOtherError();
+				}
+			}
+		}
+		xhr.send();
 	}
 	unhosted.get = function(key, requirePwd, cb) {
 		var wallet = getWallet();

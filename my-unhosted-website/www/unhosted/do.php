@@ -25,13 +25,10 @@ $unhostedAccount = new UnhostedAccount(getUserAddress("userAddress"), getString(
 
 switch(getString("action")) {
         case "getWallet":
-                echo $unhostedAccount->getWallet(getDomain("dataScope"));
+                echo $unhostedAccount->getWallet(getDomain("dataScope"), getString("pwd"), getString("allowCreation");
                 break;
         case "registerLocal":
-                echo $unhostedAccount->registerHosted();
-                break;
-        case "registerWallet":
-                echo $unhostedAccount->registerWallet(getString("davBaseUrl"), getString("davToken"), getDomain("dataScope"));
+                echo $unhostedAccount->registerLocal();
                 break;
         case "addApp":
                 echo $unhostedAccount->addApp(getDomain("dataScope"));
