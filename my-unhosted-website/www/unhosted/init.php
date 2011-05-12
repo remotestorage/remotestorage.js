@@ -4,6 +4,7 @@ if(file_exists("config.js") && file_exists("config.php") && file_exists("../.wel
 }
 if($_GET["install"] == "install") {
 	$domain = $_SERVER["SERVER_NAME"];
+	$protocol = "https";
 	$scriptDir = dirname(__file__);
 	$wwwDir = dirname($scriptDir);
 	$virtualHostDir = dirname($wwwDir);
@@ -14,9 +15,12 @@ if($_GET["install"] == "install") {
 		."\tconst davDir = '$virtualHostDir/dav/';\n"
 		."\tconst walletDir = '$virtualHostDir/wallet/';\n"
 		."}\n");
-	file_put_contents("config.js", "var appBaseUrl = 'http://$domain';\n"
+	file_put_contents("config.js", "var appBaseUrl = '$protocol://$domain';\n"
 		."\n"
-		."\tvar config = {\n"
+		."if(window.location.origin != appBaseUrl) {\n"
+		."\twindow.location = appBaseUrl;\n"
+		."}\n"
+		."var config = {\n"
 		."\tappUrl: appBaseUrl + '/',\n"
 		."\tdoUrl: appBaseUrl + '/unhosted/do.php',\n"
 		."\tloginUrl: appBaseUrl + '/unhosted/login.html',\n"
