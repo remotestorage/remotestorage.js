@@ -1,0 +1,5 @@
+Get a server with apache and php. For instance, you can get a debian lenny server at rackspace, ssh to it as root, and run (hitting enter to pick default options where necessary):
+
+	apt-get update
+	apt-get upgrade
+	apt-get install libapache2-mod-php5
