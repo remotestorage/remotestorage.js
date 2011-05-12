@@ -3,19 +3,24 @@ if(file_exists("config.js") && file_exists("config.php") && file_exists("../.wel
 	die("Looks like the installation was already successfully completed");
 }
 if($_GET["install"] == "install") {
-	$domain = $_SERVER["SERVER_NAME"];
-	$protocol = "https";
+	$domain = $_GET["domain"];
+	$protocol = $_GET["protocol"];
+	$installationType = $_GET["installation_type"];
+
 	$scriptDir = dirname(__file__);
 	$wwwDir = dirname($scriptDir);
 	$virtualHostDir = dirname($wwwDir);
 	file_put_contents("config.php", "<?php\n"
 		."class UnhostedSettings {\n"
-		."\tconst protocol = 'http';\n"
+		."\tconst installationType = '$installationType';\n"
+		."\tconst protocol = '$protocol';\n"
 		."\tconst domain = '$domain';\n"
 		."\tconst davDir = '$virtualHostDir/dav/';\n"
 		."\tconst walletDir = '$virtualHostDir/wallet/';\n"
 		."}\n");
-	file_put_contents("config.js", "var appBaseUrl = '$protocol://$domain';\n"
+	file_put_contents("config.js", 
+		"var appBaseUrl = '$protocol://$domain';\n"
+		."var installationType = '$installationType';\n"
 		."\n"
 		."if(window.location.origin != appBaseUrl) {\n"
 		."\twindow.location = appBaseUrl;\n"
@@ -71,7 +76,9 @@ function checkDav(cb) {
 	cb();
 }
 function checkHostMeta(cb) {
-	document.getElementById('cors').style.visibility="hidden";
+	document.getElementById("installationType").value = "flower";
+	document.getElementById("protocol").value = window.location.protocol.substring(0, window.location.protocol.length-1);
+	document.getElementById("cors").style.visibility="hidden";
 	var xhr = new XMLHttpRequest();
 	xhr.open("GET", "/.well-known/host-meta", true);
 	xhr.onreadystatechange = function() {
@@ -110,6 +117,10 @@ Header always set Access-Control-Allow-Headers "Content-Type, X-Requested-With, 
 You can for instance put these into the /var/www/ Directory directive. Make sure you obey indentation. Then restart apache, clear your browser cache, and reload this page.</div>
 <form method="GET" target="?">
 <input type="submit" id="install" value="install" name="install" disabled=true>
+<br>Protocol: 
+<input type="text" id="protocol" name="protocol">
+<br>Installation type: 
+<input type="text" id="installationType" name="installationType">
 </form>
 </body></html>
 
