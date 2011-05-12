@@ -2,11 +2,23 @@
 if(file_exists("config.js") && file_exists("config.php") && file_exists("../.well-known/host-meta")) {
 	die("Looks like the installation was already successfully completed");
 }
-if($_GET["install"] == "install") {
-	$domain = $_GET["domain"];
-	$protocol = $_GET["protocol"];
-	$installationType = $_GET["installation_type"];
-
+if($_POST["install"] == "install") {
+	$domain = $_POST["domain"];
+	$protocol = $_POST["protocol"];
+	$installationType = $_POST["installationType"];
+	if($installationType == "hive") {
+		@unlink("base64.js");
+		@unlink("callback.html"); 
+		@unlink("login.html");
+		@unlink("register.html");
+		@unlink("sjcl/sjcl.js");
+		@rmdir("sjcl");
+		@unlink("unhosted.js");
+		@unlink("wallet.js");
+		@unlink("wallet.php");
+		@unlink("webfinger.js");
+		@file_put_contents("../index.html", "This the unhosted hive for $protocol://$domain. Please contact superman@$domain for more info about your unhosted account.");
+	}
 	$scriptDir = dirname(__file__);
 	$wwwDir = dirname($scriptDir);
 	$virtualHostDir = dirname($wwwDir);
@@ -49,7 +61,7 @@ if($_GET["install"] == "install") {
  		."\t</Link>\n"
 		."</XRD>\n");
 
-	header("Location: /");
+	header("Location: /?refresh");
 } else {
 	
 	$apacheModules = apache_get_modules();
@@ -77,10 +89,11 @@ function checkDav(cb) {
 }
 function checkHostMeta(cb) {
 	document.getElementById("installationType").value = "flower";
+	document.getElementById("domain").value = window.location.host;
 	document.getElementById("protocol").value = window.location.protocol.substring(0, window.location.protocol.length-1);
 	document.getElementById("cors").style.visibility="hidden";
 	var xhr = new XMLHttpRequest();
-	xhr.open("GET", "/.well-known/host-meta", true);
+	xhr.open("POST", "/.well-known/host-meta", true);
 	xhr.onreadystatechange = function() {
 		if(xhr.readyState == 4) {
 			if(xhr.status == 200) {
@@ -111,16 +124,21 @@ function checkHostMeta(cb) {
 <div id="cors" visibility="hidden">You did not install the correct CORS headers yet. Add the following directives into your apache config (it should also be possible to make this work with a .htaccess file, but i can't get that to work for some reason):<br><strong>
 Header always set Access-Control-Max-Age "86400"<br>
 Header always set Access-Control-Allow-Origin "*"<br>
-Header always set Access-Control-Allow-Methods "GET"<br>
+Header always set Access-Control-Allow-Methods "POST"<br>
 Header always set Access-Control-Allow-Headers "Content-Type, X-Requested-With, X-HTTP-Method-Override, Accept"<br>
 </strong>
 You can for instance put these into the /var/www/ Directory directive. Make sure you obey indentation. Then restart apache, clear your browser cache, and reload this page.</div>
-<form method="GET" target="?">
+<form method="POST" target="?">
 <input type="submit" id="install" value="install" name="install" disabled=true>
+<br>Domain: 
+<input type="text" id="domain" name="domain">
+(the domain that will appear behind the @ symbol in all unhosted accounts created here. At the same time, the URL the app will be served from)
 <br>Protocol: 
-<input type="text" id="protocol" name="protocol"> ('https' is the preferred option! you can always remove /var/www/my-unhosted-website/www/unhosted/config.js to correct this later)
+<input type="text" id="protocol" name="protocol">
+('https' is the preferred option! you can always remove /var/www/my-unhosted-website/www/unhosted/config.js to correct this later)
 <br>Installation type: 
-<input type="text" id="installationType" name="installationType"> (for now, 'flower' is the only valid install type)
+<input type="text" id="installationType" name="installationType">
+(leave as 'flower' if you will be offering an app on this domain. If the domain is only to be used as a storage node, then fill in 'hive' here)
 </form>
 </body></html>
 
