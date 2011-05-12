@@ -118,9 +118,9 @@ You can for instance put these into the /var/www/ Directory directive. Make sure
 <form method="GET" target="?">
 <input type="submit" id="install" value="install" name="install" disabled=true>
 <br>Protocol: 
-<input type="text" id="protocol" name="protocol">
+<input type="text" id="protocol" name="protocol"> ('https' is the preferred option! you can always remove /var/www/my-unhosted-website/www/unhosted/config.js to correct this later)
 <br>Installation type: 
-<input type="text" id="installationType" name="installationType">
+<input type="text" id="installationType" name="installationType"> (for now, 'flower' is the only valid install type)
 </form>
 </body></html>
 
