@@ -2,21 +2,22 @@ If you have apache and php installed on your server, confirm that you see 'It wo
 
 	a2dissite default
 
-Disabling the default site should not be necessary, but I've found that it is. Now point a domain name (sub-domains are OK) to the server, which will be the domain of your unhosted web app, and put the contents of this tar ball on your server as a directory under the web root, owned by www-data. For instance like this (when ssh'ed into your server as root):
+Disabling the default site should not be necessary, but I've found that it is. Now point your preferred domain name (sub-domains are OK) to the server, which will be the domain of your unhosted web app, and put the contents of this tar ball on your server as a directory under the web root, owned by www-data. For instance like this (when ssh'ed into your server as root):
 
 	wget --no-check-certificate -qO- https://github.com/unhosted/unhosted/tarball/master | tar -xz
 	cd unhosted-unhosted-*
 	mv my-unhosted-website /var/www
 	chown -R www-data /var/www/my-unhosted-website
 
-If you want to use this in production, then you should install an SSL certificate. The easiest way is through www.startssl.com. It's free of charge (does not cost any money) and works in all browsers. Startssl will give you three files, which you should store as:
+If you want to use this in production, then you should install an SSL certificate. The easiest way is through www.startssl.com. It's free of charge (does not cost any money) and works in all browsers. Startssl will give you three files, which you should upload as:
 
 	/root/ssl.crt
 	/root/ssl.key
 	/root/sub.class1.server.ca.pem
 
-While your cert is being requested at startssl, you can continue configuring your server.
-Edit lines 2, 3, 16 and 17 of apache2.conf to replace [www.]'example.com' with your own domain name.
+While your cert is being requested at startssl, you can continue configuring your server, possible postponing SSL activation until you have your cert.
+Edit lines 2, 3, 16 and 17 of apache2.conf to replace [www.]'example.com' with your own domain name. If you don't care about offering the [www.] prefix,
+then you can also remove both 'ServerAlias' lines.
 
 Now configure apache (if you want to try it without SSL first, skip the 'a2enmod ssl' line):
 
@@ -27,6 +28,14 @@ Now configure apache (if you want to try it without SSL first, skip the 'a2enmod
 	a2enmod ssl
 	/etc/init.d/apache2 restart
 
-After that, open the website in your browser and follow instructions from there.
+After that, open the website in your browser and follow instructions from there. It should hopefully be self-explanatory.
+
 Any bugs or problems, please report them straight into the irc channel and if it is during the day- or evening-time in
-Europe while you read this, then we'll probably fix them right here and now. If you can't find anyone on IRC at the time, you can always open an issue on https://github.com/unhosted/unhosted/ and we'll usually address it within 10 hours.
+Europe while you read this, then we'll probably fix them right here and now. If you can't find anyone on IRC at the time, 
+you can always open an issue on https://github.com/unhosted/unhosted/ and we'll usually address it within 10 hours.
+
+If at any point, you want to reconfigure something (for instance if you have received your SSL cert and want to use it now), all you do is:
+
+	rm /var/www/my-unhosted-website/config.js
+
+that will force /unhosted/install.php to appear again.
