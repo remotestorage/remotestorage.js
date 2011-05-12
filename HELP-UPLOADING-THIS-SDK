@@ -1,4 +1,4 @@
-If you have apache and php installed on your server, you will see 'It works!' on your domain when you browse to it. If you're at this stage, then ssh to your server and do the following:
+If you have apache and php installed on your server, confirm that you see 'It works!' on your domain when you browse to it. If you're at this stage, then ssh to your server and do the following:
 
 	a2dissite default
 

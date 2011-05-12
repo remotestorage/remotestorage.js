@@ -1,5 +1,17 @@
-Get a server with apache and php. For instance, you can get a debian lenny server at rackspace, ssh to it as root, and run (hitting enter to pick default options where necessary):
+To get a server with apache and php, for instance, you can get a debian lenny server at rackspace.
+
+RACKSPACE
+---
+Now ssh to it as root, and run (hitting enter to pick default options where necessary):
 
 	apt-get update
 	apt-get upgrade
 	apt-get install libapache2-mod-php5
+
+AMAZON EC2
+---
+You can also get a server at Amazon EC2, but it's a lot more complicated to operate. It seems there is a free tier, but it seems you cannot run Debian on there. Please edit this document if you know how to set up an EC2 server - I tried and failed to get it working.
+
+OTHER OPTIONS
+---
+Although Rackspace and EC2 seem to be hard to beat, there are also other hosting providers. If you have any experience with them, please add instructions for each one here.
