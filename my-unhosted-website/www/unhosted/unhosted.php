@@ -37,7 +37,8 @@ class UnhostedAccount {
 			."<LimitExcept OPTIONS HEAD GET>\n"
 			."  Require valid-user\n"
 			."</LimitExcept>\n"
-			."Header always set Access-Control-Allow-Origin \"http://$dataScope\"\n");
+			."SetEnvIf Origin \"(.+)\" ORIGIN=\$1\n"
+			."Header always set Access-Control-Allow-Origin %{ORIGIN}e\n");
 		file_put_contents($davDir.'/.htpasswd', $this->userAddress .':'. crypt($token, base64_encode($token))."\n");
 		return $token;
 	}
