@@ -62,7 +62,9 @@ register = function(userName, userDomain, pwd1, pwd2) {
 			
 			<form class="register">
 				<label>User address</label>
-				<input id="user" type="text" size="10" value="you"/>
+				<input id="user" type="text" value="you"
+					onfocus="if(this.value=='you'){this.className='formfocus';this.value='';}"
+					onblur="if(this.value==''){this.className='formblur';this.value='you';}"/>
 				<label id="atHomeDomain"></label>
 				<label>Password</label></label><input id="pwd1" type="password"/>
 				<label>Repeat password</label><input id="pwd2" type="password"/>
