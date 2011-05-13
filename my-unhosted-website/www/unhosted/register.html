@@ -41,7 +41,7 @@ register = function(userName, userDomain, pwd1, pwd2) {
 </head>
 <body onload="document.getElementById('atHomeDomain').innerHTML='@'+config.homeDomain;">
 <div class="preload"></div>
-<div class="preload2"></div>
+<div class="preload2 register"></div>
 <div id="preheader"></div>
 <div id="plateContainer">
 	<figure id="plate"></figure>
@@ -55,28 +55,24 @@ register = function(userName, userDomain, pwd1, pwd2) {
 
 		<header>
 			<h1>My Favourite Sandwich</h1>
-			<h2>Register</h2>
-			User address:
-			<input id="user" type="text" size="10"/>
-			<div id="atHomeDomain"></div>
-			<img src="logo.png">
-			<br>Password:&nbsp;<input id="pwd1" type="password"/>
-			<br>Repeat:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input id="pwd2" type="password"/>
-			<br><input class="submit" name="submit" type="submit" value="Submit!"
-				 onclick="register(
-					document.getElementById('user').value,
-					config.homeDomain,
-					document.getElementById('pwd1').value,
-					document.getElementById('pwd2').value);">
-		</header>
 			
+			<form class="register">
+				<label>User address</label>
+				<input id="user" type="text" size="10"/>
+				<label id="atHomeDomain"></label>
+				<label>Password</label></label><input id="pwd1" type="password"/>
+				<label>Repeat password</label><input id="pwd2" type="password"/>
+				<input class="submit" name="submit" type="submit" value="Submit!"
+					 onclick="register(
+						document.getElementById('user').value,
+						config.homeDomain,
+						document.getElementById('pwd1').value,
+						document.getElementById('pwd2').value);">
+			</form>
+			<div class="clear"></div>
+		</header>	
 		<div id="register">
-			&nbsp;
 		</div>
-
-
-
-
 	</div>
 
 
