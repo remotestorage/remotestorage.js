@@ -15,6 +15,12 @@
 
 <script>
 register = function(userName, userDomain, pwd1, pwd2) {
+	if((!userName.length) || (userName == 'you')) {
+		alert('Please choose a user address');
+	}
+	if(!pwd1.length) {
+		alert('Please choose a password');
+	}
 	if(pwd1 != pwd2) {
 		alert('please enter the same password twice');
 	} else {
@@ -58,7 +64,7 @@ register = function(userName, userDomain, pwd1, pwd2) {
 			
 			<form class="register">
 				<label>User address</label>
-				<input id="user" type="text" size="10"/>
+				<input id="user" type="text" size="10" value="you"/>
 				<label id="atHomeDomain"></label>
 				<label>Password</label></label><input id="pwd1" type="password"/>
 				<label>Repeat password</label><input id="pwd2" type="password"/>
