@@ -386,9 +386,10 @@ footer {
 		clear: both;
 		margin-right: 12px;
 		margin-top: 7px;
+		width: 185px;
 		}
 		form.register input[type=password], form.register input[type=text]{
-			width: 220px;
+			width: 278px;
 			float: left;
 			background: white;
 			background-image: none;
@@ -398,24 +399,28 @@ footer {
 			margin-bottom: 10px;
 			top: 0;
 			}
+		form.register input[type=text]{
+			width: 135px;
+			}
+		
 		form.register input[type=submit]{
 		background: url('./img/createaccount.png') no-repeat left top;
 		margin-bottom: 0px;
 		margin-top: 21px;
 		float: right;
-		margin-right: 55px;
+		margin-right: 26px;
 		}
 			form.register input[type=submit]:hover{
 			background: url('./img/createaccounthover.png') no-repeat left top;
 			}
 		form.register label#atHomeDomain{
-		clear: both;
-		margin-bottom: 30px;
-		margin-top: 0px;
+		margin-top: 6px;
+		margin-bottom: 38px;
 		float: right;
-		margin-right: 80px;
+		margin-right: 130px;
 		display: block;
-		width: 500px;
+		width: 55px;
+		clear: none;
 		
 		}
 			
