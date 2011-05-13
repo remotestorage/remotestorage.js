@@ -91,6 +91,7 @@ function checkHostMeta(cb) {
 	document.getElementById("installationType").value = "flower";
 	document.getElementById("domain").value = window.location.host;
 	document.getElementById("protocol").value = window.location.protocol.substring(0, window.location.protocol.length-1);
+	document.getElementById("installationDetails").style.visibility="hidden";
 	document.getElementById("cors").style.visibility="hidden";
 	var xhr = new XMLHttpRequest();
 	xhr.open("POST", "/.well-known/host-meta", true);
@@ -130,15 +131,17 @@ Header always set Access-Control-Allow-Headers "Content-Type, X-Requested-With, 
 You can for instance put these into the /var/www/ Directory directive. Make sure you obey indentation. Then restart apache, clear your browser cache, and reload this page.</div>
 <form method="POST" target="?">
 <input type="submit" id="install" value="install" name="install" disabled=true>
-<br>Domain: 
-<input type="text" id="domain" name="domain">
-(the domain that will appear behind the @ symbol in all unhosted accounts created here. At the same time, the URL the app will be served from)
-<br>Protocol: 
-<input type="text" id="protocol" name="protocol">
-('https' is the preferred option! you can always remove /var/www/my-unhosted-website/www/unhosted/config.js to correct this later)
-<br>Installation type: 
-<input type="text" id="installationType" name="installationType">
-(leave as 'flower' if you will be offering an app on this domain. If the domain is only to be used as a storage node, then fill in 'hive' here)
+<div id="installationDetails">
+	<br>Domain: 
+	<input type="text" id="domain" name="domain">
+	(the domain that will appear behind the @ symbol in all unhosted accounts created here. At the same time, the URL the app will be served from)
+	<br>Protocol: 
+	<input type="text" id="protocol" name="protocol">
+	('https' is the preferred option! you can always remove /var/www/my-unhosted-website/www/unhosted/config.js to correct this later)
+	<br>Installation type: 
+	<input type="text" id="installationType" name="installationType">
+	(leave as 'flower' if you will be offering an app on this domain. If the domain is only to be used as a storage node, then fill in 'hive' here)
+</div>
 </form>
 </body></html>
 
