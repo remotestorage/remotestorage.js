@@ -16,12 +16,10 @@
 <script>
 register = function(userName, userDomain, pwd1, pwd2) {
 	if((!userName.length) || (userName == 'you')) {
-		alert('Please choose a user address');
-	}
-	if(!pwd1.length) {
+		alert('Please choose a user address, for instance joe.bloggs@myfavouritesandwich.org');
+	} else if(!pwd1.length) {
 		alert('Please choose a password');
-	}
-	if(pwd1 != pwd2) {
+	} else if(pwd1 != pwd2) {
 		alert('please enter the same password twice');
 	} else {
 		var wallet = getWallet();
