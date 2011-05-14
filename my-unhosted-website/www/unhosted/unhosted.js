@@ -4,7 +4,7 @@
 
 var DAV = function() {
 	var dav = {}
-	keyToUrl = function(key, wallet) {
+	var keyToUrl = function(key, wallet) {
 		var userAddressParts = wallet.userAddress.split("@");
 		var resource = document.domain;
 		var url = wallet.davBaseUrl
