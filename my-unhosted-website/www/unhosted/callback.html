@@ -12,16 +12,19 @@ gup = function(paramName) {
 	return null;
 }
 
-onload = function() {	
+start = function() {	
 	var wallet = getWallet();
 	wallet.davToken = gup("token");
 	setWallet(wallet);                              
 	window.location = config.appUrl;
 }
-onload();//no idea why this is necessary, i'm obviously overlooking something here.
+
 </script>
 </head>
-<body onload="onload();">
+<body>
 Redirecting...
+<script>
+start ();
+</script>
 </body>
 </html>
