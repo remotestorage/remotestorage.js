@@ -10,7 +10,10 @@ people's unhosted websites.
 This code is still quite young, and should be considered 'alpha'. We welcome your suggestions
 and improvements! Here's how you install it:
 
-	upload this package to a webserver where you have root access, and browse to it.
+	Unless you already have one, follow HELP-GETTING-A-SERVER to get a server with:
+		- apache
+		- php
+		- root access
+		- a (sub-)domain pointing to it, e.g. http://server.acme.com/, which you can use.
+	Follow HELP-UPLOADING-THIS-SDK to upload this SDK to it.
 
-If you don't have a server, read 'HELP-GETTING-A-SERVER' in this directory.
-If you have a server, but don't now how to upload this packages, read 'HELP-UPLOADING-THIS-SDK'

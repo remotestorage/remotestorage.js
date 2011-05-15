@@ -2,11 +2,12 @@ To get a server with apache and php, for instance, you can get a debian lenny se
 
 RACKSPACE
 ---
-Now ssh to it as root, and run (hitting enter to pick default options where necessary):
+Now ssh to it, and run (hitting enter to pick default options where necessary):
 
-	apt-get update
-	apt-get upgrade
-	apt-get install libapache2-mod-php5
+	sudo apt-get update
+	sudo apt-get upgrade
+	sudo apt-get install libapache2-mod-php5
+	sudo /etc/init.d/apache2 restart
 
 AMAZON EC2
 ---
