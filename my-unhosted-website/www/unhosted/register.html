@@ -24,7 +24,6 @@ register = function(userName, userDomain, pwd1, pwd2) {
 	} else {
 		var wallet = getWallet();
 		xhr = new XMLHttpRequest();
-//		xhr.open("GET", config.doUrl+"?action=registerLocal&userAddress="+encodeURIComponent(userName+"@"+userDomain)+"&pwd="+encodeURIComponent(pwd1), true);
 		xhr.open('POST', config.doUrl, true);
 		xhr.onreadystatechange = function() {
 			if(xhr.readyState == 4) {
