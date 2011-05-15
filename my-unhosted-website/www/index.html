@@ -32,7 +32,7 @@ var sandwich;
  // data access: //
 //////////////////
 
-function onload() {
+function start() {
 	unhosted.connect();						//if you get past this, it means the user is logged in.
 	currentUser = unhosted.getUserName();				//see the user address that's logged in.
 	unhosted.get(
@@ -86,7 +86,7 @@ function goCrypto() {
 			function() {
 				document.getElementById('pwd1').type = "hidden"; 
 				document.getElementById('goCrypto').type = "hidden"; 
-				onload();
+				start();
 			});
 	} else {
 		if (document.getElementById('pwd1').value == document.getElementById('pwd2').value) {
@@ -134,7 +134,7 @@ function show() {
 
 </script>
 </head>
-<body onload="onload();">
+<body onload="start();">
 <div class="preload"></div>
 <div class="preload2"></div>
 <div id="preheader"></div>
