@@ -1,10 +1,10 @@
 <?php
 require_once 'unhosted.php';
 function getString($paramName) {
-        if(!isset($_GET[$paramName])) {
+        if(!isset($_POST[$paramName])) {
                 die("Parameter $paramName not specified");
         }
-        return $_GET[$paramName];
+        return $_POST[$paramName];
 }
 function getDomain($paramName) {
         $domain = getString($paramName);

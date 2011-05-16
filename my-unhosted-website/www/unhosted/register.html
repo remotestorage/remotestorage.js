@@ -24,7 +24,7 @@ register = function(userName, userDomain, pwd1, pwd2) {
 	} else {
 		var wallet = getWallet();
 		xhr = new XMLHttpRequest();
-		xhr.open("GET", config.doUrl+"?action=registerLocal&userAddress="+encodeURIComponent(userName+"@"+userDomain)+"&pwd="+encodeURIComponent(pwd1), true);
+		xhr.open('POST', config.doUrl, true);
 		xhr.onreadystatechange = function() {
 			if(xhr.readyState == 4) {
 				if(xhr.status == 200) {
@@ -38,7 +38,8 @@ register = function(userName, userDomain, pwd1, pwd2) {
 				}
 			}
 		}
-		xhr.send();
+		xhr.setRequestHeader ('Content-Type', 'application/x-www-form-urlencoded; charset=utf-8');
+		xhr.send("action=registerLocal&userAddress="+encodeURIComponent(userName+"@"+userDomain)+"&pwd="+encodeURIComponent(pwd1));
 	}
 }
 </script>

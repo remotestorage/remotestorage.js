@@ -90,12 +90,7 @@ var Unhosted = function() {
 		}
 		var wallet = getWallet();
 		xhr = new XMLHttpRequest();
-		xhr.open("GET", config.doUrl
-			+"?action=getWallet&userAddress="
-			+encodeURIComponent(wallet.userAddress)
-			+"&pwd="+encodeURIComponent(cryptoPwd)
-			+"&dataScope="+encodeURIComponent(config.dataScope)
-			+"&allowCreation="+allowCreation, true);
+		xhr.open ('POST', config.doUrl, true);
 		xhr.onreadystatechange = function() {
 			if(xhr.readyState == 4) {
 				if(xhr.status == 200) {
@@ -115,7 +110,12 @@ var Unhosted = function() {
 				}
 			}
 		}
-		xhr.send();
+		xhr.setRequestHeader ('Content-Type', 'application/x-www-form-urlencoded; charset=utf-8');
+		xhr.send("action=getWallet&userAddress="
+		+encodeURIComponent(wallet.userAddress)
+		+"&pwd="+encodeURIComponent(cryptoPwd)
+		+"&dataScope="+encodeURIComponent(config.dataScope)
+		+"&allowCreation="+allowCreation);
 	}
 	unhosted.get = function(key, requirePwd, cb) {
 		var wallet = getWallet();
