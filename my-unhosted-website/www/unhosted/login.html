@@ -15,18 +15,22 @@
 <script>
 function takeMeIn(userAddress, haveAccount) {
 	if(haveAccount) {
-		Webfinger().getDavBaseUrl(userAddress, 0, 1, function(davBaseUrl) {
-			setWallet({
-				"userAddress": userAddress,
-				"davBaseUrl": davBaseUrl
-				});
-			window.location = davBaseUrl + "oauth2/auth"
-				+ "?client_id="+encodeURIComponent(config.clientId)
-				+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
-				+ "&scope="+encodeURIComponent(config.dataScope)
-				+ "&response_type=token"
-				+ "&user_address="+encodeURIComponent(userAddress);
-		});
+		Webfinger().getDavBaseUrl(userAddress, 0, 1, 
+			function() {
+				alert(userAddress+' does not seem to be a valid unhosted account');
+			},
+			function(davBaseUrl) {
+				setWallet({
+					"userAddress": userAddress,
+					"davBaseUrl": davBaseUrl
+					});
+				window.location = davBaseUrl + "oauth2/auth"
+					+ "?client_id="+encodeURIComponent(config.clientId)
+					+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+					+ "&scope="+encodeURIComponent(config.dataScope)
+					+ "&response_type=token"
+					+ "&user_address="+encodeURIComponent(userAddress);
+			});
 	} else {
 		setWallet({
 			"userAddress": userAddress

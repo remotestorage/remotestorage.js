@@ -4,7 +4,7 @@
 
 var Webfinger = function() {
 	var webFinger = {};
-	var getHostMeta = function(userAddress, linkRel) {
+	var getHostMeta = function(userAddress, linkRel, onError, cb) {
 		//split the userAddress at the "@" symbol:
 		var parts = userAddress.split("@");
 		if(parts.length == 2) {
@@ -17,24 +17,32 @@ var Webfinger = function() {
 			xhr.open("GET", url, false);	
 			//WebFinger spec allows application/xml+xrd as the mime type, but we need it to be text/xml for xhr.responseXML to be non-null:
 			xhr.overrideMimeType('text/xml');
-			xhr.send();
-			if(xhr.status == 200) {
-				
-				//HACK
-				var parser=new DOMParser();
-				var responseXML = parser.parseFromString(xhr.responseText, "text/xml");
-				//END HACK
+			xhr.onreadystatechange = function() {
+				if(xhr.readyState == 4) {
+					if(xhr.status == 200) {
+						try {
+							//HACK
+							var parser=new DOMParser();
+							var responseXML = parser.parseFromString(xhr.responseText, "text/xml");
+							//END HACK
 
-				var hostMetaLinks = responseXML.documentElement.getElementsByTagName('Link');
-				var i;
-				for(i=0; i<hostMetaLinks.length; i++) {
-					if(hostMetaLinks[i].attributes.getNamedItem('rel').value == linkRel) {
-						return hostMetaLinks[i].attributes.getNamedItem('template').value;
+							var hostMetaLinks = responseXML.documentElement.getElementsByTagName('Link');
+							var i;
+							for(i=0; i<hostMetaLinks.length; i++) {
+								if(hostMetaLinks[i].attributes.getNamedItem('rel').value == linkRel) {
+									cb(hostMetaLinks[i].attributes.getNamedItem('template').value);
+									return;
+								}
+							}
+						} catch(e) {
+							onError();
+						}
 					}
+					onError();
 				}
 			}
+			xhr.send();
 		}
-		return null;
 	}
 	var matchLinkRel = function(linkRel, majorDavVersion, minMinorDavVersion) {
 		//TODO: do some real reg exp...
@@ -50,44 +58,50 @@ var Webfinger = function() {
 			return false;
 		}
 	}
-	webFinger.getDavBaseUrl = function(userAddress, majorVersion, minMinorVersion, cb) {
+	var processLrrd = function(lrrdXml, majorVersion, minMinorVersion, onError, cb) {
+		try {
+			var linkElts = lrrdXml.documentElement.getElementsByTagName('Link');
+			var i;
+			for(i=0; i < linkElts.length; i++) {
+				if(matchLinkRel(linkElts[i].attributes.getNamedItem('rel').value, majorVersion, minMinorVersion)) {
+					cb(linkElts[i].attributes.getNamedItem('href').value);
+					return;
+				}
+			}
+		} catch(e) {
+			onError();
+		}
+	}
+	webFinger.getDavBaseUrl = function(userAddress, majorVersion, minMinorVersion, onError, cb) {
 		//get the WebFinger data for the user and extract the uDAVdomain:
-		var template = getHostMeta(userAddress, 'lrdd');
-		if(template) {
-			var xhr = new XMLHttpRequest();
-			var url = template.replace(/{uri}/, "acct:"+userAddress, true);
-			xhr.open("GET", url, true);
-			//WebFinger spec allows application/xml+xrd as the mime type, but we need it to be text/xml for xhr.responseXML to be non-null:
-			xhr.overrideMimeType('text/xml');
-			xhr.send();
-			xhr.onreadystatechange = function() {
-				if(xhr.readyState == 4) {
-					if(xhr.status == 200) {
-				
-						//HACK
-						var parser=new DOMParser();
-						var responseXML = parser.parseFromString(xhr.responseText, "text/xml");
-						//END HACK
-
-						var linkElts = responseXML.documentElement.getElementsByTagName('Link');
-						var i;
-						for(i=0; i < linkElts.length; i++) {
-							if(matchLinkRel(linkElts[i].attributes.getNamedItem('rel').value, majorVersion, minMinorVersion)) {
-								cb(linkElts[i].attributes.getNamedItem('href').value);
-								return;
+		getHostMeta(userAddress, 'lrdd', onError, function(template) {
+			try {
+				var xhr = new XMLHttpRequest();
+				var url = template.replace(/{uri}/, "acct:"+userAddress, true);
+				xhr.open("GET", url, true);
+				//WebFinger spec allows application/xml+xrd as the mime type,
+				//but we need it to be text/xml for xhr.responseXML to be non-null:
+				xhr.overrideMimeType('text/xml');
+				xhr.onreadystatechange = function() {
+					if(xhr.readyState == 4) {
+						if(xhr.status == 200) {
+							try {
+								//HACK
+								var parser = new DOMParser();
+								var responseXML = parser.parseFromString(xhr.responseText, "text/xml");
+								//END HACK
+								processLrrd(responseXML, majorVersion, minMinorVersion, onError, cb);
+							} catch(e) {
+								onError();
 							}
 						}
 					}
 				}
+				xhr.send();
+			} catch(e) {
+				onError();
 			}
-		}
-	}
-	webFinger.getAdminUrl = function(userAddress) {
-		var template = getHostMeta(userAddress, 'register');
-		if(template) {
-			return template.replace("\{uri\}",userAddress).replace("\{redirect_url\}", window.location);
-		}
-		return null;
+		});
 	}
 	return webFinger;
 }
