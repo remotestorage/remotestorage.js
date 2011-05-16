@@ -4,8 +4,8 @@
 
 var DAV = function() {
 	var dav = {}
-	var keyToUrl = function(key, wallet) {
-		var userAddressParts = wallet.userAddress.split("@");
+	var keyToUrl = function(userAddress, key, wallet) {
+		var userAddressParts = userAddress.split("@");
 		var resource = document.domain;
 		var url = wallet.davBaseUrl
 			+"webdav/"+userAddressParts[1]
@@ -14,10 +14,10 @@ var DAV = function() {
 			+"/"+key;
 		return url;
 	}
-	dav.get = function(key, cb) {
+	dav.get = function(userAddress, key, cb) {
 		var wallet = getWallet();
 		var xhr = new XMLHttpRequest();
-		xhr.open("GET", keyToUrl(key, wallet), true);
+		xhr.open("GET", keyToUrl(userAddress, key, wallet), true);
 		xhr.onreadystatechange = function() {
 			if(xhr.readyState == 4) {
 				if(xhr.status == 200) {
@@ -119,8 +119,12 @@ var Unhosted = function() {
 	}
 	unhosted.get = function(key, requirePwd, cb) {
 		var wallet = getWallet();
+		return unhosted.getOther(wallet.userAddress, key, requirePwd, cb);
+	}
+	unhosted.getOther = function(userAddress, key, requirePwd, cb) {
+		var wallet = getWallet();
 		if(wallet.cryptoPwd == undefined) {
-			dav.get(key, function(str) {
+			dav.get(userAddress, key, function(str) {
 				try {
 					cb(JSON.parse(str));
 				} catch(e) {
@@ -128,7 +132,7 @@ var Unhosted = function() {
 				}
 			});
 		} else {
-			dav.get(key, function(str) {
+			dav.get(userAddress, key, function(str) {
 				cb(JSON.parse(sjcl.decrypt(wallet.cryptoPwd, str)));
 			});
 		}

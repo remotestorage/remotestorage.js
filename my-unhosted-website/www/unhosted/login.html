@@ -21,7 +21,7 @@ function takeMeIn(userAddress, haveAccount) {
 				"davBaseUrl": davBaseUrl
 				});
 			window.location = davBaseUrl + "oauth2/auth"
-				+ "?client_id="+encodeURIComponent(config.appName)
+				+ "?client_id="+encodeURIComponent(config.clientId)
 				+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
 				+ "&scope="+encodeURIComponent(config.dataScope)
 				+ "&response_type=token"

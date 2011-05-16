@@ -39,8 +39,8 @@ if($_POST["install"] == "install") {
 		."\tdoUrl: appBaseUrl + '/unhosted/do.php',\n"
 		."\tloginUrl: appBaseUrl + '/unhosted/login.html',\n"
 		."\tregisterUrl: appBaseUrl + '/unhosted/register.html',\n"
-		."\tcallbackUrl: appBaseUrl+ '/unhosted/callback.html',\n"
-		."\tappName: 'My Favourite Sandwich',\n"
+		."\tcallbackUrl: appBaseUrl + '/unhosted/callback.html',\n"
+		."\tclientId: '$domain',\n"
 		."\tdataScope: '$domain',\n"
 		."\thomeDomain: '$domain'\n"
 		."}\n");
