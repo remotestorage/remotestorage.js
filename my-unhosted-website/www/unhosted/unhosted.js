@@ -25,7 +25,7 @@ var DAV = function() {
 				} else if(xhr.status == 404) {
 					cb(null);
 				} else {
-					alert("error: got status "+xhr.status+" when doing basic auth GET on url "+keyToUrl(key, wallet));
+					alert("error: got status "+xhr.status+" when doing basic auth GET on url "+keyToUrl(userAddress, key, wallet));
 				}
 			}
 		}
@@ -36,9 +36,9 @@ var DAV = function() {
 		var wallet = getWallet();
 		var xhr = new XMLHttpRequest();
 		
-		//xhr.open("PUT", keyToUrl(key, wallet), true, wallet.userAddress, wallet.davToken);
+		//xhr.open("PUT", keyToUrl(wallet.userAddress, key, wallet), true, wallet.userAddress, wallet.davToken);
 		//HACK:
-		xhr.open("PUT", keyToUrl(key, wallet), true);
+		xhr.open("PUT", keyToUrl(wallet.userAddress, key, wallet), true);
 		xhr.setRequestHeader("Authorization", "Basic "+Base64.encode(wallet.userAddress +':'+ wallet.davToken));
 		//END HACK.
 
