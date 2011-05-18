@@ -16,7 +16,8 @@ var Webfinger = function() {
 			var url = "http://"+domain+"/.well-known/host-meta";
 			xhr.open("GET", url, false);	
 			//WebFinger spec allows application/xml+xrd as the mime type, but we need it to be text/xml for xhr.responseXML to be non-null:
-			xhr.overrideMimeType('text/xml');
+			if (xhr.overrideMimeType)
+				xhr.overrideMimeType('text/xml');
 			xhr.onreadystatechange = function() {
 				if(xhr.readyState == 4) {
 					if(xhr.status == 200) {
@@ -81,7 +82,8 @@ var Webfinger = function() {
 				xhr.open("GET", url, true);
 				//WebFinger spec allows application/xml+xrd as the mime type,
 				//but we need it to be text/xml for xhr.responseXML to be non-null:
-				xhr.overrideMimeType('text/xml');
+				if (xhr.overrideMimeType)
+					xhr.overrideMimeType('text/xml');
 				xhr.onreadystatechange = function() {
 					if(xhr.readyState == 4) {
 						if(xhr.status == 200) {
