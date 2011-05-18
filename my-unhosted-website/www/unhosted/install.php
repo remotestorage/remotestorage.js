@@ -58,7 +58,16 @@ if($_POST["install"] == "install") {
  		."\t\t<Title>Resource Descriptor</Title>\n"
  		."\t</Link>\n"
 		."</XRD>\n");
-
+	file_put_contents("../../dav/.htaccess",
+		"AuthType Basic\n"
+		."AuthName \"choose a subdir please\"\n"
+		."AuthUserFile /home/mich/Code/unhosted/my-unhosted-website/dav/.htpasswd\n"
+		."require valid-user\n"
+		."Header always set Access-Control-Allow-Methods \"GET, POST, DELETE, OPTIONS, PUT\"\n"
+		."Header always set Access-Control-Allow-Headers \"Content-Type, X-Requested-With, X-HTTP-Method-Override, Accept, Authorization\"\n"
+		."Header always set Access-Control-Allow-Credentials \"true\"\n"
+		."Header always set Cache-Control \"max-age=0\"\n"
+		."Header always set Access-Control-Allow-Origin \"http://%{FAVOURITE}e\"\n");
 	header("Location: /?refresh");
 } else {
 	
