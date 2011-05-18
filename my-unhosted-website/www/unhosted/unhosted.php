@@ -10,18 +10,19 @@ class UnhostedAccount {
 		$this->pwd = $pwd;
 	}
 	private function createUserDir() {
-		$userDomainDir = UnhostedSettings::davDir . $this->userDomain . '/';
-		$userDir = $userDomainDir . strtolower($this->userName);
-		if(is_dir($userDir)) {
+		$userPwdDomainDir = UnhostedSettings::pwdDir . $this->userDomain . '/';
+		$userPwdDir = $userDomainDir . strtolower($this->userName);
+		$userDavDomainDir = UnhostedSettings::davDir . $this->userDomain . '/';
+		$userDavDir = $userDomainDir . strtolower($this->userName);
+		if(is_dir($userDavDir)) {
 			return false;
 		}
-		if(!file_exists($userDomainDir)) {
-			mkdir($userDomainDir, 0700);
+		foreach(array($userPwdDomainDir, $userPwdDir, $userDavDomainDir $userDavDir) as $dir) {
+			if(!file_exists($dir)) {
+				mkdir($userDomainDir, 0700);
+			}
 		}
-		if(!file_exists($userDir)) {
-			mkdir($userDir, 0700);
-		}
-		file_put_contents($userDir."/.pwd", sha1($this->pwd));
+		file_put_contents($userPwdDir."/.pwd", sha1($this->pwd));
 		return true;
 	}
 	private function createDav($dataScope) {
@@ -82,7 +83,7 @@ class UnhostedAccount {
 		return $this->createWallet(UnhostedSettings::protocol, UnhostedSettings::domain . '/', $davToken, null, UnhostedSettings::domain);
 	}
 	public function addApp($dataScope) {
-		$pwdFile = UnhostedSettings::davDir . "{$this->userDomain}/{$this->userName}/.pwd";
+		$pwdFile = UnhostedSettings::pwdDir . "{$this->userDomain}/{$this->userName}/.pwd";
 		if(file_exists($pwdFile) && sha1($this->pwd)==file_get_contents($pwdFile)) {
 			return $this->createDav($dataScope);
 		}

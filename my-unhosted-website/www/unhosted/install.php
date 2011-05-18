@@ -28,6 +28,7 @@ if($_POST["install"] == "install") {
 		."\tconst protocol = '$protocol';\n"
 		."\tconst domain = '$domain';\n"
 		."\tconst davDir = '$virtualHostDir/dav/';\n"
+		."\tconst pwdDir = '$virtualHostDir/pwd/';\n"
 		."\tconst walletDir = '$virtualHostDir/wallet/';\n"
 		."}\n");
 	file_put_contents("config.js", 
