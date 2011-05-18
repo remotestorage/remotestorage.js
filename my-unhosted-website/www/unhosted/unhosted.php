@@ -11,15 +11,15 @@ class UnhostedAccount {
 	}
 	private function createUserDir() {
 		$userPwdDomainDir = UnhostedSettings::pwdDir . $this->userDomain . '/';
-		$userPwdDir = $userDomainDir . strtolower($this->userName);
+		$userPwdDir = $userPwdDomainDir . strtolower($this->userName);
 		$userDavDomainDir = UnhostedSettings::davDir . $this->userDomain . '/';
-		$userDavDir = $userDomainDir . strtolower($this->userName);
+		$userDavDir = $userDavDomainDir . strtolower($this->userName);
 		if(is_dir($userDavDir)) {
 			return false;
 		}
-		foreach(array($userPwdDomainDir, $userPwdDir, $userDavDomainDir $userDavDir) as $dir) {
+		foreach(array($userPwdDomainDir, $userPwdDir, $userDavDomainDir, $userDavDir) as $dir) {
 			if(!file_exists($dir)) {
-				mkdir($userDomainDir, 0700);
+				mkdir($dir, 0700);
 			}
 		}
 		file_put_contents($userPwdDir."/.pwd", sha1($this->pwd));

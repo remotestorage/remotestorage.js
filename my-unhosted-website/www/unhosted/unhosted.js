@@ -45,7 +45,7 @@ var DAV = function() {
 		xhr.onreadystatechange = function() {
 			if(xhr.readyState == 4) {
 				if(xhr.status != 200 && xhr.status != 201 && xhr.status != 204 && xhr.status != 1223) { // ie9 says 1223 if 204/No Content is returned
-					alert("error: got status "+xhr.status+" when doing basic auth PUT on url "+keyToUrl(key, wallet));
+					alert("error: got status "+xhr.status+" when doing basic auth PUT on url "+keyToUrl(wallet.userAddress, key, wallet));
 				} else {
 					cb();
 				}
