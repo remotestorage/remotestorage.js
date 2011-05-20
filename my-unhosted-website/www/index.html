@@ -16,10 +16,12 @@
 <script src="unhosted/base64.js"></script>
 <script src="unhosted/unhosted.js"></script>
 <script>
-
-if (window.location != config.appUrl) {
-	window.location = config.appUrl;
-}
+$(document).ready(function() {
+	if (window.location != config.appUrl) {
+		window.location = config.appUrl;
+	}
+	start();
+});
 
   ////////////////////
  //  global vars:  //
@@ -135,7 +137,7 @@ function show() {
 
 </script>
 </head>
-<body onload="start();">
+<body>
 <div class="preload"></div>
 <div class="preload2"></div>
 <div id="preheader"></div>
