@@ -1,38 +1,47 @@
 <?php
 require_once('../../unhosted/unhosted.php');
 
-function getString($paramName) {
-        if(!isset($_POST[$paramName])) {
+function getString($paramName, $from) {
+        if(!isset($from[$paramName])) {
                 die("Parameter $paramName not specified");
         }
-        return $_POST[$paramName];
+        return $from[$paramName];
 }
-function getDomain($paramName) {
-        $domain = getString($paramName);
+function getDomain($paramName, $from) {
+        $domain = getString($paramName, $from);
         if(!preg_match('|^[a-z0-9-]+(\.[a-z0-9-]+)*$|i', $domain)) {
                 die("Parameter $paramName should be a valid domain");
         }
 	return $domain;
 }
-function getUserAddress($paramName) {
-        $userAddress = getString($paramName);
+function getUri($paramName, $from) {
+        $uri = getString($paramName, $from);
+        if(!preg_match('|^[a-z0-9-]+\:\/\/[a-z0-9-]+(\.[a-z0-9-\/]+)*$|i', $uri)) {
+                die("Parameter $paramName should be a valid uri");
+        }
+	return $uri;
+}
+function getUserAddress($paramName, $from) {
+        $userAddress = getString($paramName, $from);
         if(!preg_match('|^[a-z0-9-]+(\.[a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*$|i', $userAddress)) {
                 die("Parameter $paramName is '$userAddress' but should be a valid user address");
         }
 	return $userAddress;
 }
 
-
 if(count($_POST)) {
-	$unhostedAccount = new UnhostedAccount(getUserAddress("user_address"), getString("pwd"));
-	$token = $unhostedAccount->addAPP(getDomain("scope"));
+	$unhostedAccount = new UnhostedAccount(getUserAddress("user_address", $_POST), getString("pwd", $_POST));
+	$token = $unhostedAccount->addAPP(getDomain("scope", $_POST));
 	if($token) {
-		header("Location:".$_POST["redirect_uri"]."?token=".$token);
+		header("Location:".getUri("redirect_uri", $_POST)."?token=".$token);
 		echo "redirecting you back to the application.\n";
 	} else {
 		echo "Wrong password!";
 	}
 } else {
+	$userAddress = getUserAddress('user_address', $_GET);
+	$clientId = getDomain('client_id', $_GET);
+	$redirectUri = getUri('redirect_uri', $_GET);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -52,17 +61,17 @@ if(count($_POST)) {
 	</header>
 	<body>
 		<div class="content">
-			<h2>The app '<?=$_GET["client_id"] ?>' wants to read and write the <?=$_GET["scope"]?> data in your unhosted account</h2>
+			<h2>The app '<?=$clientId ?>' wants to read and write the <?=$dataScope ?> data in your unhosted account</h2>
 			<form method="post" action="">
-				<label>User address:</label><span class="username"><?=$_GET["user_address"]?></span>	
+				<label>User address:</label><span class="username"><?=$userAddress ?></span>	
 				<label for="password">Password:</label>
 				<div id="passAllow">
 					<form method="POST" action="?">
 					<input type="password" name="pwd" value="" />
 					<input type="submit" name="submit" value="Allow" />
-					<input type="hidden" value="<?=$_GET["user_address"]?>" name="user_address">
-					<input type="hidden" value="<?=$_GET["scope"]?>" name="scope">
-					<input type="hidden" value="<?=$_GET["redirect_uri"]?>" name="redirect_uri">
+					<input type="hidden" value="<?=$userAddress ?>" name="user_address">
+					<input type="hidden" value="<?=$dataScope ?>" name="scope">
+					<input type="hidden" value="<?=$redirectUri ?>" name="redirect_uri">
 					</form>
 				</div>
 			</form>	
