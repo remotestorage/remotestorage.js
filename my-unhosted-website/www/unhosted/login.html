@@ -50,7 +50,7 @@ function errorCallback(result) {
 function install() {
 	if(navigator && navigator.apps) {
 		navigator.apps.install({
-			url: "http://example.com/mozilla.webapp",
+			url: "http://example.com/app/mozilla.webapp",
 			onsuccess: installCallback,
 			onerror: errorCallback
 		});
