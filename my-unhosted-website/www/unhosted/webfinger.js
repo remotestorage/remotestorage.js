@@ -11,38 +11,26 @@ var Webfinger = function() {
 			var user = parts[0];
 			var domain = parts[1];
 
-			//get the host-meta data for the domain:
-			var xhr = new XMLHttpRequest();
-			var url = "http://"+domain+"/.well-known/host-meta";
-			xhr.open("GET", url, false);	
-			//WebFinger spec allows application/xml+xrd as the mime type, but we need it to be text/xml for xhr.responseXML to be non-null:
-			if (xhr.overrideMimeType)
-				xhr.overrideMimeType('text/xml');
-			xhr.onreadystatechange = function() {
-				if(xhr.readyState == 4) {
-					if(xhr.status == 200) {
-						try {
-							//HACK
-							var parser=new DOMParser();
-							var responseXML = parser.parseFromString(xhr.responseText, "text/xml");
-							//END HACK
-
-							var hostMetaLinks = responseXML.documentElement.getElementsByTagName('Link');
-							var i;
-							for(i=0; i<hostMetaLinks.length; i++) {
-								if(hostMetaLinks[i].attributes.getNamedItem('rel').value == linkRel) {
-									cb(hostMetaLinks[i].attributes.getNamedItem('template').value);
-									return;
-								}
+			$.ajax({
+				url: "http://"+domain+"/.well-known/host-meta",
+				cache: false,
+				dataType: "xml",
+				success: function(xml){
+					try {
+						$(xml).find('Link').each(function() {
+							var rel = $(this).attr('rel');
+							if(rel == linkRel) {
+								cb($(this).attr('template'));
 							}
-						} catch(e) {
-							onError();
-						}
+						});
+					} catch(e) {
+						onError();
 					}
-					onError();
-				}
-			}
-			xhr.send();
+				},
+				error: onError
+			});
+		} else {
+			onError();
 		}
 	}
 	var matchLinkRel = function(linkRel, majorDavVersion, minMinorDavVersion) {
