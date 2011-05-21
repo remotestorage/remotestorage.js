@@ -16,20 +16,21 @@ var DAV = function() {
 	}
 	dav.get = function(userAddress, key, cb) {
 		var wallet = getWallet();
-		var xhr = new XMLHttpRequest();
-		xhr.open("GET", keyToUrl(userAddress, key, wallet) + '?ts'+new Date ().getTime ()+'=0', true);
-		xhr.onreadystatechange = function() {
-			if(xhr.readyState == 4) {
-				if(xhr.status == 200) {
-					cb(xhr.responseText);
-				} else if(xhr.status == 404) {
+		$.ajax({
+			url: keyToUrl(userAddress, key, wallet) + '?ts'+new Date ().getTime ()+'=0',
+			cache: false,
+			dataType: "text",
+			success: function(text){
+				cb(text);
+			},
+			error: function(xhr) {
+				if(xhr.status == 404) {
 					cb(null);
 				} else {
 					alert("error: got status "+xhr.status+" when doing basic auth GET on url "+keyToUrl(userAddress, key, wallet));
 				}
 			}
-		}
-		xhr.send();
+		});
 	}
 	
 	dav.put = function(key, text, cb) {
