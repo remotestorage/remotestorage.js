@@ -10,7 +10,7 @@ function getString($paramName, $from) {
 function getDomain($paramName, $from) {
         $domain = getString($paramName, $from);
         if(!preg_match('|^[a-z0-9-]+(\.[a-z0-9-]+)*$|i', $domain)) {
-                die("Parameter $paramName should be a valid domain");
+                die("Parameter $paramName should be a valid domain, '$domain' given");
         }
 	return $domain;
 }
@@ -41,6 +41,7 @@ if(count($_POST)) {
 } else {
 	$userAddress = getUserAddress('user_address', $_GET);
 	$clientId = getDomain('client_id', $_GET);
+	$dataScope = getDomain('scope', $_GET);
 	$redirectUri = getUri('redirect_uri', $_GET);
 ?>
 <!DOCTYPE html>
@@ -48,12 +49,12 @@ if(count($_POST)) {
 <head>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 
-<script src="/html5.js"></script><!-- this is the javascript allowing html5 to run in older browsers -->
+<script src="/css/html5.js"></script><!-- this is the javascript allowing html5 to run in older browsers -->
 
 <title>My Unhosted node</title>
 <link rel="stylesheet" href="/css/uncompressed/reset.css" />
 <link rel="stylesheet" href="/css/uncompressed/text.css" />
-<link rel="stylesheet" href="/general.css" />
+<link rel="stylesheet" href="/css/general.css" />
 <link rel="stylesheet" href="/css/uncompressed/login.css" />
 </head>
 	<header>
