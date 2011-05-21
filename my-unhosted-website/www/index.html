@@ -113,7 +113,7 @@ function goCrypto() {
 
 function show() {
 	if(!sandwich) {
-		sandwich = {ingredients:['1st ingredient', '2nd ingredient']};
+		sandwich = {ingredients:['', '']};
 	}
 	document.getElementById('showFirstIngredient').innerHTML = sandwich.ingredients[0];
 	document.getElementById('showSecondIngredient').innerHTML = sandwich.ingredients[1];
@@ -152,10 +152,9 @@ function show() {
 		<header class="data">
 			<p>My favourite sandwich has <strong><span id="showFirstIngredient"></span></strong> and 
 				<strong><span id="showSecondIngredient"></span></strong> on it</p>
-			<input id="firstIngredient" name="firstIngredient" onfocus="if(this.value=='1st ingredient'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='1st ingredient'}" type="text" value="1st ingredient"/>
-			<input id="secondIngredient" name="secondIngredient" onfocus="if(this.value=='2nd ingredient'){this.className='formfocus'; this.value=''}" onblur="if(!this.value){this.className='formblur'; this.value='2nd ingredient'}" type="text" value="2nd ingredient"/>
-					
-			<input class="submitingredients" name="submit" type="submit" value="Submit!" onclick="onsave();"/>
+			<input id="firstIngredient" placeholder='1st ingredient' type="text"/>
+			<input id="secondIngredient" placeholder='2nd ingredient' type="text"/>	
+			<input class="submitingredients" type="submit" value="Submit!" onclick="onsave();"/>
 		</header>
 	</div>
 	<div id="footerSpacer"></div>					
