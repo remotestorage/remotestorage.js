@@ -35,25 +35,17 @@ var DAV = function() {
 	
 	dav.put = function(key, text, cb) {
 		var wallet = getWallet();
-		var xhr = new XMLHttpRequest();
-		
-		//xhr.open("PUT", keyToUrl(wallet.userAddress, key, wallet), true, wallet.userAddress, wallet.davToken);
-		//HACK:
-		xhr.open("PUT", keyToUrl(wallet.userAddress, key, wallet), true);
-		xhr.setRequestHeader("Authorization", "Basic "+Base64.encode(wallet.userAddress +':'+ wallet.davToken));
-		//END HACK.
-
-		xhr.onreadystatechange = function() {
-			if(xhr.readyState == 4) {
-				if(xhr.status != 200 && xhr.status != 201 && xhr.status != 204 && xhr.status != 1223) { // ie9 says 1223 if 204/No Content is returned
-					alert("error: got status "+xhr.status+" when doing basic auth PUT on url "+keyToUrl(wallet.userAddress, key, wallet));
-				} else {
-					cb();
-				}
+		$.ajax({
+			url: keyToUrl(wallet.userAddress, key, wallet),
+			type: "PUT",
+			headers: {Authorization: "Basic "+Base64.encode(wallet.userAddress +':'+ wallet.davToken)},
+			fields: {withCredentials: "true"},
+			data: text,
+			success: cb,
+			error: function(xhr) {
+				alert("error: got status "+xhr.status+" when doing basic auth PUT on url "+keyToUrl(wallet.userAddress, key, wallet));
 			}
-		}
-		xhr.withCredentials = "true";
-		xhr.send(text);
+		});
 	}
 	return dav;
 }
