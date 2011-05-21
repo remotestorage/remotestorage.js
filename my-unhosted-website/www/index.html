@@ -71,7 +71,7 @@ function onsave() {
 		});							//save newly set ingredients.
 }
 
-function onclose() {
+function onlogout() {
 	unhosted.close();						//after this, the user is logged out.
 }
 
@@ -125,7 +125,7 @@ function show() {
 	document.getElementById('currentUser').innerHTML =
 		'Current user is <strong>'
 		+currentUser
-		+'</strong> [<a onclick="onclose();">Close</a>]'
+		+'</strong> [<a onclick="onlogout();">Log out</a>]'
 		+'<br> <input type="hidden" id="pwd1">'
 		+' <input type="hidden" id="pwd2">'
 		+' <input type="hidden" id="goCrypto" value="Go crypto" onclick="goCrypto();">';
