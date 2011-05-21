@@ -49,6 +49,7 @@ if(count($_POST)) {
 <head>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 
+<script src="/jQuery/jquery-1.6.1.min.js"></script>
 <script src="/css/html5.js"></script><!-- this is the javascript allowing html5 to run in older browsers -->
 
 <title>My Unhosted node</title>

@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 <head>
+<script src="/jQuery/jquery-1.6.1.min.js"></script>
 <script src="/unhosted/config.js"></script>
 <script src="/unhosted/wallet.js"></script>
 <script>
@@ -13,19 +14,16 @@ gup = function(paramName) {
 	return null;
 }
 
-start = function() {	
+$(document).ready(function() {	
 	var wallet = getWallet();
 	wallet.davToken = gup("token");
 	setWallet(wallet);                              
 	window.location = config.appUrl;
-}
+});
 
 </script>
 </head>
 <body>
 Redirecting...
-<script>
-start ();
-</script>
 </body>
 </html>
