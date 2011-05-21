@@ -82,33 +82,34 @@ var Unhosted = function() {
 			allowCreation = "false";
 		}
 		var wallet = getWallet();
-		xhr = new XMLHttpRequest();
-		xhr.open ('POST', config.doUrl, true);
-		xhr.onreadystatechange = function() {
-			if(xhr.readyState == 4) {
-				if(xhr.status == 200) {
-					try {
-						
-						var wallet2 = JSON.parse(xhr.responseText);
-						wallet.cryptoPwd = wallet2.cryptoPwd;
-						setWallet(wallet);
-						onSuccess(); 
-					} catch(e) {
-						onOtherError();
-					}
-				} else if(xhr.status == 404) {
+		$.ajax({
+			url: config.doUrl,
+			type: "POST",
+			data: {
+				action: "getWallet",
+				userAddress: wallet.userAddress,
+				pwd: cryptoPwd,
+				dataScope: config.dataScope,
+				allowCreation: allowCreation
+			},
+			success: function(text) {
+				try {	
+					var wallet2 = JSON.parse(text);
+					wallet.cryptoPwd = wallet2.cryptoPwd;
+					setWallet(wallet);
+					onSuccess();
+				} catch(e) {
+					onOtherError();
+				}
+			},
+			error: function(xhr) {
+				if(xhr.status == 404) {
 					onDoesntExist();
 				} else {
 					onOtherError();
 				}
 			}
-		}
-		xhr.setRequestHeader ('Content-Type', 'application/x-www-form-urlencoded; charset=utf-8');
-		xhr.send("action=getWallet&userAddress="
-		+encodeURIComponent(wallet.userAddress)
-		+"&pwd="+encodeURIComponent(cryptoPwd)
-		+"&dataScope="+encodeURIComponent(config.dataScope)
-		+"&allowCreation="+allowCreation);
+		});
 	}
 	unhosted.get = function(key, requirePwd, cb) {
 		var wallet = getWallet();
@@ -126,7 +127,11 @@ var Unhosted = function() {
 			});
 		} else {
 			dav.get(userAddress, key, function(str) {
-				cb(JSON.parse(sjcl.decrypt(wallet.cryptoPwd, str)));
+				if(str == null) {
+					cb(null);
+				} else {
+					cb(JSON.parse(sjcl.decrypt(wallet.cryptoPwd, str)));
+				}
 			});
 		}
 	}
