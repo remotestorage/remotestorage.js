@@ -38,6 +38,26 @@ function takeMeIn(userAddress, haveAccount) {
 		window.location = config.registerUrl;
 	}
 }
+
+function installCallback(result) {
+	alert('great - display a message, or redirect to a launch page');
+}
+
+function errorCallback(result) {
+	alert('whoops - result.code and result.message have details');
+}
+
+function install() {
+	if(navigator && navigator.apps) {
+		navigator.apps.install({
+			url: "http://example.com/mozilla.webapp",
+			onsuccess: installCallback,
+			onerror: errorCallback
+		});
+	} else {
+		alert('please install the mozilla open web apps extension in your browser first');
+	}
+}
 </script>
 </head>
 <body>

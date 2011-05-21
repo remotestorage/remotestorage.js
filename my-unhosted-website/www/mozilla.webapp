@@ -1,0 +1,22 @@
+{
+  "version": "0.1.10",
+  "name": "My Favourite Sandwich",
+  "description": "The mozilla web app for My Favourite Sandwich",
+  "icons": {
+    "16": "/img/icon-16.png",
+    "128": "/img/icon-128.png"
+  },
+  "widget": {
+    "path": "/widget.html",
+    "width": 100,
+    "height": 200
+  },
+  "developer": {
+    "name": "The Unhosted Dev Community",
+    "url": "http://unhosted.org/"
+  },
+  "installs_allowed_from": [
+    "http://example.com"
+  ],
+  "default_locale": "en"
+}
