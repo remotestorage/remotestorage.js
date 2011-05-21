@@ -15,7 +15,6 @@ if($_POST["install"] == "install") {
 		@rmdir("sjcl");
 		@unlink("unhosted.js");
 		@unlink("wallet.js");
-		@unlink("wallet.php");
 		@unlink("webfinger.js");
 		@file_put_contents("../index.html", "This the unhosted hive for $protocol://$domain. Please contact superman@$domain for more info about your unhosted account.");
 	}
