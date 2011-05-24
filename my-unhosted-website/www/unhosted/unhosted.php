@@ -77,10 +77,10 @@ class UnhostedAccount {
 			return false;
 		}
 	}
-	public function registerLocal() {
+	public function registerLocal($dataScope) {
 		$this->createUserDir();
-		$davToken = $this->createDav(UnhostedSettings::domain);
-		return $this->createWallet(UnhostedSettings::protocol, UnhostedSettings::domain . '/', $davToken, null, UnhostedSettings::domain);
+		$davToken = $this->createDav($dataScope);
+		return $this->createWallet(UnhostedSettings::protocol, UnhostedSettings::domain . '/', $davToken, null, $dataScope);
 	}
 	public function addApp($dataScope) {
 		$pwdFile = UnhostedSettings::pwdDir . "{$this->userDomain}/{$this->userName}/.pwd";

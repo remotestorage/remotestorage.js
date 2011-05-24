@@ -33,7 +33,7 @@ switch(getString("action")) {
 		}
 		break;
         case "registerLocal":
-                echo $unhostedAccount->registerLocal();
+                echo $unhostedAccount->registerLocal(getDomain("dataScope"));
                 break;
         case "addApp":
                 echo $unhostedAccount->addApp(getDomain("dataScope"));
