@@ -53,7 +53,7 @@ if($_POST["install"] == "install") {
  		."\t\t<Title>Resource Descriptor</Title>\n"
  		."\t</Link>\n"
  		."\t<Link rel='register'\n" 
- 		."\t\ttemplate='http://$domain/unhosted/register.php?user_name={uri}&amp;redirect_url={redirect_url}'>\n"
+ 		."\t\ttemplate='http://$domain/unhosted/register.html?user_name={uri}&amp;redirect_url={redirect_url}'>\n"
  		."\t\t<Title>Resource Descriptor</Title>\n"
  		."\t</Link>\n"
 		."</XRD>\n");
