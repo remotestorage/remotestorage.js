@@ -49,11 +49,11 @@ if($_POST["install"] == "install") {
  		."\t\txmlns:hm='http://host-meta.net/xrd/1.0'>\n"
  		."\t<hm:Host xmlns='http://host-meta.net/xrd/1.0'>$domain</hm:Host>\n"
  		."\t<Link rel='lrdd' \n"
- 		."\t\ttemplate='http://$domain/unhosted/webfinger.php?q={uri}'>\n"
+ 		."\t\ttemplate='$protocol://$domain/unhosted/webfinger.php?q={uri}'>\n"
  		."\t\t<Title>Resource Descriptor</Title>\n"
  		."\t</Link>\n"
  		."\t<Link rel='register'\n" 
- 		."\t\ttemplate='http://$domain/unhosted/register.html?user_name={uri}&amp;redirect_url={redirect_url}'>\n"
+ 		."\t\ttemplate='$protocol://$domain/unhosted/register.html?user_name={uri}&amp;redirect_url={redirect_url}'>\n"
  		."\t\t<Title>Resource Descriptor</Title>\n"
  		."\t</Link>\n"
 		."</XRD>\n");
