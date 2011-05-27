@@ -19,26 +19,28 @@ if($_POST["install"] == "install") {
 		@file_put_contents("../index.html", "This the unhosted hive for $protocol://$domain. Please contact superman@$domain for more info about your unhosted account.");
 	}
 	$scriptDir = dirname(__file__);
-	$wwwDir = dirname($scriptDir);
-	$virtualHostDir = dirname($wwwDir);
+	$appDir = dirname($scriptDir);
+	$flowerDir = dirname($appDir);
+	$installDir = dirname($flowerDir);
 	file_put_contents("config.php", "<?php\n"
 		."class UnhostedSettings {\n"
 		."\tconst installationType = '$installationType';\n"
 		."\tconst protocol = '$protocol';\n"
 		."\tconst domain = '$domain';\n"
-		."\tconst davDir = '$virtualHostDir/dav/';\n"
-		."\tconst pwdDir = '$virtualHostDir/pwd/';\n"
-		."\tconst walletDir = '$virtualHostDir/wallet/';\n"
+		."\tconst davDir = '$installDir/hive/storage/dav/';\n"
+		."\tconst pwdDir = '$installDir/hive/storage/pwd/';\n"
+		."\tconst walletDir = '$installDir/hive/identity/wallet/';\n"
 		."}\n");
 	file_put_contents("config.js", 
-		"var appBaseUrl = '$protocol://$domain';\n"
+		"var appBaseUrl = '$protocol://$domain/unhosted/flower/app';\n"
+		"var homeHiveUrl = '$protocol://$domain/unhosted/hive';\n"
 		."var installationType = '$installationType';\n"
 		."\n"
 		."var config = {\n"
 		."\tappUrl: appBaseUrl + '/',\n"
 		."\tdoUrl: appBaseUrl + '/unhosted/do.php',\n"
 		."\tloginUrl: appBaseUrl + '/unhosted/login.html',\n"
-		."\tregisterUrl: appBaseUrl + '/unhosted/register.html',\n"
+		."\tregisterUrl: homeHiveUrl + '/control-panel/register.html',\n"
 		."\tcallbackUrl: appBaseUrl + '/unhosted/callback.html',\n"
 		."\tclientId: '$domain',\n"
 		."\tdataScope: '$domain',\n"
