@@ -44,7 +44,7 @@ if($_POST["install"] == "install") {
 		."\tdataScope: '$domain',\n"
 		."\thomeDomain: '$domain'\n"
 		."}\n");
-	file_put_contents("../.well-known/host-meta", "<?xml version='1.0' encoding='UTF-8'?>\n"
+	file_put_contents("../../hive/identity/.well-known/host-meta", "<?xml version='1.0' encoding='UTF-8'?>\n"
 		."<XRD xmlns='http://docs.oasis-open.org/ns/xri/xrd-1.0' \n"
  		."\t\txmlns:hm='http://host-meta.net/xrd/1.0'>\n"
  		."\t<hm:Host xmlns='http://host-meta.net/xrd/1.0'>$domain</hm:Host>\n"
