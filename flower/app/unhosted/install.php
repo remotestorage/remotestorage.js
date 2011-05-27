@@ -67,7 +67,7 @@ if($_POST["install"] == "install") {
 		."Header always set Access-Control-Allow-Credentials \"true\"\n"
 		."Header always set Cache-Control \"max-age=0\"\n"
 		."Header always set Access-Control-Allow-Origin \"http://%{FAVOURITE}e\"\n");
-	header("Location: /?refresh");
+	header("Location: ..?refresh");
 } else {
 	
 	$apacheModules = apache_get_modules();
