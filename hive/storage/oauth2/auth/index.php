@@ -49,14 +49,14 @@ if(count($_POST)) {
 <head>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 
-<script src="/jQuery/jquery-1.6.1.min.js"></script>
-<script src="/css/html5.js"></script><!-- this is the javascript allowing html5 to run in older browsers -->
+<script src="../../jQuery/jquery-1.6.1.min.js"></script>
+<script src="../../css/html5.js"></script><!-- this is the javascript allowing html5 to run in older browsers -->
 
 <title>My Unhosted node</title>
-<link rel="stylesheet" href="/css/uncompressed/reset.css" />
-<link rel="stylesheet" href="/css/uncompressed/text.css" />
-<link rel="stylesheet" href="/css/general.css" />
-<link rel="stylesheet" href="/css/uncompressed/login.css" />
+<link rel="stylesheet" href="../../css/uncompressed/reset.css" />
+<link rel="stylesheet" href="../../css/uncompressed/text.css" />
+<link rel="stylesheet" href="../../css/uncompressed/general.css" />
+<link rel="stylesheet" href="../../css/uncompressed/login.css" />
 </head>
 	<header>
 		<h1><strong><?php echo UnhostedSettings::domain ?> </strong>Unhosted storage node</h1>
