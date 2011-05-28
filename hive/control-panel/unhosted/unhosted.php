@@ -43,10 +43,10 @@ class UnhostedAccount {
 		file_put_contents($davDir.'/.htpasswd', $this->userAddress .':'. crypt($token, base64_encode($token))."\n");
 		return $token;
 	}
-	private function createWallet($davProtocol, $davDomain, $davToken, $cryptoPwd, $dataScope) {
+	private function createWallet($davBaseUrl, $davToken, $cryptoPwd, $dataScope) {
 		$wallet = json_encode(array(
 			"userAddress" => $this->userAddress,
-			"davBaseUrl" => $davProtocol.'://'.$davDomain,
+			"davBaseUrl" => $davBaseUrl,
 			"davToken" => $davToken,
 			"davAuth" => base64_encode($this->userAddress .':'. $davToken),
 			"cryptoPwd" => $cryptoPwd
@@ -72,7 +72,7 @@ class UnhostedAccount {
 			return file_get_contents($walletDir.'/'.sha1($this->pwd));
 		} else if($allowCreation) {
 			$cryptoPwd = sha1(mt_rand());
-			return $this->createWallet('', '', '', $cryptoPwd, $dataScope);
+			return $this->createWallet('', '', $cryptoPwd, $dataScope);
 		} else {
 			return false;
 		}
@@ -80,7 +80,7 @@ class UnhostedAccount {
 	public function registerLocal($dataScope) {
 		$this->createUserDir();
 		$davToken = $this->createDav($dataScope);
-		return $this->createWallet(UnhostedSettings::protocol, UnhostedSettings::domain . '/', $davToken, null, $dataScope);
+		return $this->createWallet(UnhostedSettings::protocol . '://' . UnhostedSettings::domain . '/unhosted/hive/storage/', $davToken, null, $dataScope);
 	}
 	public function addApp($dataScope) {
 		$pwdFile = UnhostedSettings::pwdDir . "{$this->userDomain}/{$this->userName}/.pwd";
