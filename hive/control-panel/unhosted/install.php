@@ -38,7 +38,7 @@ if($_POST["install"] == "install") {
 		."\n"
 		."var config = {\n"
 		."\tappUrl: appBaseUrl + '/',\n"
-		."\tdoUrl: homeHiveUrl + '/control-panel/unhosted/do.php',\n"
+		."\tdoUrl: appBaseUrl + '/unhosted/do.php',\n"
 		."\tloginUrl: appBaseUrl + '/unhosted/login.html',\n"
 		."\tregisterUrl: homeHiveUrl + '/control-panel/register.html',\n"
 		."\tcallbackUrl: appBaseUrl + '/unhosted/callback.html',\n"
