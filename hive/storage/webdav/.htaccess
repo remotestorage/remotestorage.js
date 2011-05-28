@@ -1,6 +1,6 @@
 AuthType Basic
 AuthName "choose a subdir please"
-AuthUserFile /home/mich/Code/.htpasswd
+AuthUserFile /home/mich/Code/unhosted/hive/storage/webdav/.htpasswd
 require valid-user
 Header always set Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS, PUT"
 Header always set Access-Control-Allow-Headers "Content-Type, X-Requested-With, X-HTTP-Method-Override, Accept, Authorization"

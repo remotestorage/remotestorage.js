@@ -1,6 +1,0 @@
-AuthType Basic
-AuthName "no dav here"
-AuthUserFile /home/mich/Code/.htpasswd
-<LimitExcept OPTIONS HEAD GET>
-  Require valid-user
-</LimitExcept>
