@@ -3,11 +3,11 @@
 		xmlns:hm='http://host-meta.net/xrd/1.0'>
 	<hm:Host xmlns='http://host-meta.net/xrd/1.0'>example.com</hm:Host>
 	<Link rel='lrdd' 
-		template='http://example.com/unhosted/webfinger.php?q={uri}'>
+		template='http://example.com/unhosted/hive/identity/webfinger.php?q={uri}'>
 		<Title>Resource Descriptor</Title>
 	</Link>
 	<Link rel='register'
-		template='http://example.com/unhosted/register.php?user_name={uri}&amp;redirect_url={redirect_url}'>
+		template='http://example.com/unhosted/hive/control-panel/register.php?user_name={uri}&amp;redirect_url={redirect_url}'>
 		<Title>Resource Descriptor</Title>
 	</Link>
 </XRD>

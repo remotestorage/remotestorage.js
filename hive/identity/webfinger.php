@@ -11,7 +11,7 @@ if(isset($_GET['q'])) {
 	echo "      xmlns:hm='http://host-meta.net/xrd/1.0'>\n";
 	echo "  <hm:Host xmlns='http://host-meta.net/xrd/1.0'>" . UnhostedSettings::domain . "</hm:Host>\n";
 	echo "  <Link rel='http://unhosted.org/spec/dav/0.1'\n";
-	echo "      href='http://" . UnhostedSettings::domain . "/'>\n";
+	echo "      href='http://" . UnhostedSettings::domain . "/unhosted/hive/storage/'>\n";
 	echo "  </Link>\n";
 	echo "</XRD>\n";
 }
