@@ -36,6 +36,6 @@ you can always open an issue on https://github.com/unhosted/unhosted/ and we'll 
 
 If at any point, you want to reconfigure something (for instance if you have received your SSL cert and want to use it now), all you do is:
 
-	rm /var/www/my-unhosted-website/config.js
+	rm /var/www/my-unhosted-website/www/unhosted/config.js
 
 that will force /unhosted/install.php to appear again.
