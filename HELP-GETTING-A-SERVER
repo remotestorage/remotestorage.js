@@ -11,7 +11,20 @@ Now ssh to it, and run (hitting enter to pick default options where necessary):
 
 AMAZON EC2
 ---
-You can also get a server at Amazon EC2, but it's a lot more complicated to operate. It seems there is a free tier, but it seems you cannot run Debian on there. Please edit this document if you know how to set up an EC2 server - I tried and failed to get it working.
+You can set up an Amazon EC2 instance that is eligible for the free tier the following way. These instructions use a Debian Lenny but it should be adaptable to different flavors fairly easily.
+In your AWS Management Console, start a new instance and select AMI ami-9a6b9af3. This is a base installation of Debian Lenny that is eligible for the free tier. (see AWS website for details)
+
+Once started, ssh into it and run the following commands: (apt-get can be used instead of aptitude, also depending on the user you log in with, you might need to add sudo in front of all of them)
+	aptitude update
+	aptitude upgrade
+	aptitude install apache2
+	aptitude install php5
+	/etc/init.d/apache2 restart
+
+If you go to the public DNS name of your server, you should see "It works!".
+You can now continue with the SDK installation described in HELP-UPLOADING-THIS-SDK.
+
+Note that this will use the EC2 instance as storage, not S3. At this point, this is mostly for testing purposes.
 
 OTHER OPTIONS
 ---
