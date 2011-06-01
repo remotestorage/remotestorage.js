@@ -4,7 +4,7 @@ function getString($paramName) {
         if(!isset($_POST[$paramName])) {
                 die("Parameter $paramName not specified");
         }
-        return $_POST[$paramName];
+        return strtolower($_POST[$paramName]);
 }
 function getDomain($paramName) {
         $domain = getString($paramName);
