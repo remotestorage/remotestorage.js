@@ -1,0 +1,9 @@
+AuthType Basic
+AuthName "choose a subdir please"
+AuthUserFile /home/mich/Code/unhosted/my-unhosted-website/dav/.htpasswd
+require valid-user
+Header always set Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS, PUT"
+Header always set Access-Control-Allow-Headers "Content-Type, X-Requested-With, X-HTTP-Method-Override, Accept, Authorization"
+Header always set Access-Control-Allow-Credentials "true"
+Header always set Cache-Control "max-age=0"
+Header always set Access-Control-Allow-Origin "http://%{FAVOURITE}e"
