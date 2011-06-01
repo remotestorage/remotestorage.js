@@ -78,9 +78,12 @@ class UnhostedAccount {
 		}
 	}
 	public function registerLocal($dataScope) {
-		$this->createUserDir();
-		$davToken = $this->createDav($dataScope);
-		return $this->createWallet(UnhostedSettings::protocol, UnhostedSettings::domain . '/', $davToken, null, $dataScope);
+		if($this->createUserDir()) {
+			$davToken = $this->createDav($dataScope);
+			return $this->createWallet(UnhostedSettings::protocol, UnhostedSettings::domain . '/', $davToken, null, $dataScope);
+		} else {
+			return 'user exists';
+		}
 	}
 	public function addApp($dataScope) {
 		$pwdFile = UnhostedSettings::pwdDir . "{$this->userDomain}/{$this->userName}/.pwd";

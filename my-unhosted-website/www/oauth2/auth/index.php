@@ -8,7 +8,7 @@ function getString($paramName, $from) {
         return $from[$paramName];
 }
 function getDomain($paramName, $from) {
-        $domain = getString($paramName, $from);
+        $domain = strtolower(getString($paramName, $from));
         if(!preg_match('|^[a-z0-9-]+(\.[a-z0-9-]+)*$|i', $domain)) {
                 die("Parameter $paramName should be a valid domain, '$domain' given");
         }
@@ -22,7 +22,7 @@ function getUri($paramName, $from) {
 	return $uri;
 }
 function getUserAddress($paramName, $from) {
-        $userAddress = getString($paramName, $from);
+        $userAddress = strtolower(getString($paramName, $from));
         if(!preg_match('|^[a-z0-9-]+(\.[a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*$|i', $userAddress)) {
                 die("Parameter $paramName is '$userAddress' but should be a valid user address");
         }
