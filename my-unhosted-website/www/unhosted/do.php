@@ -24,7 +24,7 @@ function getUserAddress($paramName) {
 $unhostedAccount = new UnhostedAccount(getUserAddress("userAddress"), getString("pwd"));
 
 switch(getString("action")) {
-        case "getWallet":
+        case "getwallet":
                 $wallet = $unhostedAccount->getWallet(getDomain("dataScope"), getString("allowCreation")=="true");
                 if($wallet === false) {	
 			header("HTTP/1.0 404 Not Found");
@@ -32,10 +32,10 @@ switch(getString("action")) {
 			echo $wallet;
 		}
 		break;
-        case "registerLocal":
+        case "registerlocal":
                 echo $unhostedAccount->registerLocal(getDomain("dataScope"));
                 break;
-        case "addApp":
+        case "addapp":
                 echo $unhostedAccount->addApp(getDomain("dataScope"));
                 break;
 }

@@ -5,7 +5,7 @@ function getString($paramName, $from) {
         if(!isset($from[$paramName])) {
                 die("Parameter $paramName not specified");
         }
-        return $from[$paramName];
+        return strtolower($from[$paramName]);
 }
 function getDomain($paramName, $from) {
         $domain = getString($paramName, $from);
