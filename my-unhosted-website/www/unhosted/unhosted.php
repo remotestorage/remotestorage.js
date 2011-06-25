@@ -35,7 +35,7 @@ class UnhostedAccount {
 			"AuthType Basic\n"
 			."AuthName \"your unhosted data\"\n"
 			."AuthUserFile $davDir/.htpasswd\n"
-			."<LimitExcept OPTIONS HEAD GET>\n"
+			."<LimitExcept OPTIONS GET>\n"
 			."  Require valid-user\n"
 			."</LimitExcept>\n"
 			."SetEnvIf Origin \"(.+)\" ORIGIN=\$1\n"
