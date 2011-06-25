@@ -33,7 +33,7 @@ if(count($_POST)) {
 	$unhostedAccount = new UnhostedAccount(getUserAddress("user_address", $_POST), getString("pwd", $_POST));
 	$token = $unhostedAccount->addAPP(getDomain("scope", $_POST));
 	if($token) {
-		header("Location:".getUri("redirect_uri", $_POST)."?token=".$token);
+		header("Location:".getUri("redirect_uri", $_POST)."#access_token=".$token."&token_type=unhosted");
 		echo "redirecting you back to the application.\n";
 	} else {
 		echo "Wrong password!";
