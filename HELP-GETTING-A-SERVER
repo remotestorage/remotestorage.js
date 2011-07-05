@@ -11,7 +11,39 @@ Now ssh to it, and run (hitting enter to pick default options where necessary):
 
 AMAZON EC2
 ---
-You can also get a server at Amazon EC2, but it's a lot more complicated to operate. It seems there is a free tier, but it seems you cannot run Debian on there. Please edit this document if you know how to set up an EC2 server - I tried and failed to get it working.
+A public AMI is setup to get you started fast:
+- go to AWS, in the EC2 tab click "Instances" and "Launch instance" 
+- under the "Community AMIs" tab, search for "ami-5a15ed33" (or 
+"unhosted" for that matter but let's be precise) 
+- Select the one that shows up there and continue through the step to 
+launch an instance. (check AWS doc if necessary) Just make sure to 
+select a micro instance if you want to take advantage of the free 
+tier. 
+(NB: for safety reason, you might want to ssh to the machine and remove the line in /root/.ssh/authorized_keys that doesn't correspond to *your* key. Make sure not to delete your own key, you wouldn't be able to log back in! Not doing that won't change anything, but it could technically leave a backdoor to the author of that AMI (Timothee). Unlikely but it needs to be noted.)
+Once you go to the public DNS for that instance, you should see the 
+install.php page and be ready to go.
+
+-o-
+
+If you want to do the installation yourself, do the following:
+
+You can set up an Amazon EC2 instance that is eligible for the free tier the following way. These instructions use a Debian Lenny but it should be adaptable to different flavors fairly easily.
+In your AWS Management Console, start a new instance and select AMI ami-9a6b9af3. This is a base installation of Debian Lenny that is eligible for the free tier. (see AWS website for details)
+
+Once started, ssh into it and run the following commands: (apt-get can be used instead of aptitude, also depending on the user you log in with, you might need to add sudo in front of all of them)
+	aptitude update
+	aptitude upgrade
+	aptitude install apache2
+	aptitude install php5
+	/etc/init.d/apache2 restart
+
+If you go to the public DNS name of your server, you should see "It works!".
+You can now continue with the SDK installation described in HELP-UPLOADING-THIS-SDK.
+
+
+In both cases, you need to make sure you start the instance with a security group that allows for HTTP requests.
+
+Note that this will use the EC2 instance as storage, not S3. At this point, this is mostly for testing purposes.
 
 OTHER OPTIONS
 ---
