@@ -4,7 +4,7 @@
 
 var DAV = function() {
 	var dav = {}
-	var keyToUrl = function(userAddress, key, wallet) {
+	dav.keyToUrl = function(userAddress, key, wallet) {
 		var userAddressParts = userAddress.split("@");
 		var resource = config.dataScope;
 		var url = wallet.davBaseUrl
@@ -17,8 +17,9 @@ var DAV = function() {
 	dav.get = function(userAddress, key, cb) {
 		var wallet = getWallet();
 		$.ajax({
-			url: keyToUrl(userAddress, key, wallet) + '?ts'+new Date ().getTime ()+'=0',
-			cache: false,
+			url: dav.keyToUrl(userAddress, key, wallet), 
+				//+ '?ts'+new Date ().getTime ()+'=0', //not compatible with owncloud
+			//cache: false, //not compatible with owncloud
 			dataType: "text",
 			success: function(text){
 				cb(text);
@@ -27,7 +28,7 @@ var DAV = function() {
 				if(xhr.status == 404) {
 					cb(null);
 				} else {
-					alert("error: got status "+xhr.status+" when doing basic auth GET on url "+keyToUrl(userAddress, key, wallet));
+					alert("error: got status "+xhr.status+" when doing basic auth GET on url "+dav.keyToUrl(userAddress, key, wallet));
 				}
 			}
 		});
@@ -36,14 +37,14 @@ var DAV = function() {
 	dav.put = function(key, text, cb) {
 		var wallet = getWallet();
 		$.ajax({
-			url: keyToUrl(wallet.userAddress, key, wallet),
+			url: dav.keyToUrl(wallet.userAddress, key, wallet),
 			type: "PUT",
 			headers: {Authorization: "Basic "+Base64.encode(wallet.userAddress +':'+ wallet.davToken)},
 			fields: {withCredentials: "true"},
 			data: text,
 			success: cb,
 			error: function(xhr) {
-				alert("error: got status "+xhr.status+" when doing basic auth PUT on url "+keyToUrl(wallet.userAddress, key, wallet));
+				alert("error: got status "+xhr.status+" when doing basic auth PUT on url "+dav.keyToUrl(wallet.userAddress, key, wallet));
 			}
 		});
 	}
@@ -65,6 +66,10 @@ var Unhosted = function() {
 	}
 	unhosted.getUserName = function() {
 		return getWallet().userAddress;
+	}
+	unhosted.getUrl = function(key) {
+		var wallet = getWallet();
+		return dav.keyToUrl(wallet.userAddress, key, wallet);
 	}
 	unhosted.getMode = function() {
 		if(getWallet().userAddress.split('@')[1] == config.homeDomain) {
@@ -115,6 +120,19 @@ var Unhosted = function() {
 		var wallet = getWallet();
 		return unhosted.getOther(wallet.userAddress, key, requirePwd, cb);
 	}
+	unhosted.getRaw = function(key, requirePwd, cb) {
+		var wallet = getWallet();
+		return unhosted.getOtherRaw(wallet.userAddress, key, requirePwd, cb);
+	}
+	unhosted.getOtherRaw = function(userAddress, key, fail, cb) {
+		dav.get(userAddress, key, function(str) {
+			try {
+				cb(str);
+			} catch(e) {
+				fail();
+			}
+		});
+	}
 	unhosted.getOther = function(userAddress, key, requirePwd, cb) {
 		var wallet = getWallet();
 		if(wallet.cryptoPwd == undefined) {
@@ -135,7 +153,13 @@ var Unhosted = function() {
 			});
 		}
 	}
+	unhosted.setRaw = function(key, value, cb) {
+		dav.put(key, value, cb);
+	}
 	unhosted.set = function(key, value, cb) {
+		//avoid JSON-ing circular object if coming from caja:
+		value.TAMED_TWIN___ =  undefined;
+
 		var wallet = getWallet();
 		if(wallet.cryptoPwd == undefined) {
 			dav.put(key, JSON.stringify(value), cb);

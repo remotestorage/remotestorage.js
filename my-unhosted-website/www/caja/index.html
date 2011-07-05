@@ -1,0 +1,93 @@
+<DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"> 
+<!--
+ - Use this code however you want. But provided as-is, with no warranty.
+ - Based on Apache-licensed Caja interaction example by Google.
+ - The original is here:
+ - http://code.google.com/p/google-caja/wiki/InteractingModulesExample
+-->
+<html> 
+	<head>
+
+		<link rel="stylesheet" href="/css/uncompressed/reset.css" />
+		<link rel="stylesheet" href="/css/uncompressed/text.css" />
+		<link rel="stylesheet" href="/css/uncompressed/general.css" />
+		<link rel="stylesheet" href="/css/uncompressed/layout.css" />
+ 
+		<script src="http://caja.appspot.com/caja.js" type="text/javascript" > 
+		</script> 
+		<script src="../jQuery/jquery-1.6.1.min.js" type="text/javascript" ></script> 
+		<script src="../unhosted/config.js" type="text/javascript" ></script> 
+		<script src="../unhosted/base64.js" type="text/javascript" ></script> 
+		<script src="../unhosted/wallet.js" type="text/javascript" ></script> 
+		<script src="../unhosted/unhosted.js" type="text/javascript" ></script> 
+	</head> 
+	<body> 
+		<script type="text/javascript"> 
+			var unhosted = Unhosted();
+			unhosted.connect();
+			var cajaSourceUrl = unhosted.getUrl('mfs.html');
+			unhosted.getRaw("mfs.html", function() {}, function(src) {
+				document.getElementById("edit").value = src;
+			});
+			function saveSrc() {
+				unhosted.setRaw("mfs.html", document.getElementById("edit").value, function() {
+					window.location = "";
+				});
+			}
+			caja.configure({cajaServer: "http://caja.appspot.com/"}, function (frameGroup) {
+				var shared = (function (x) {
+					return { 
+						unhostedConnect: frameGroup.markFunction(unhosted.connect),
+						unhostedSet: frameGroup.markFunction(unhosted.set),
+						unhostedGet: frameGroup.markFunction(unhosted.get)
+					};
+				})("");
+ 
+				frameGroup.makeES5Frame(document.getElementById("gadget1"), {}, function (frame) {
+					frame.url(cajaSourceUrl).run({
+						unhostedConnect: frameGroup.tame(shared.unhostedConnect),
+						unhostedSet: frameGroup.tame(shared.unhostedSet),
+						unhostedGet: frameGroup.tame(shared.unhostedGet)
+					});
+				});
+			});
+		</script> 
+
+		<div class="preload"></div>
+		<div class="preload2"></div>
+		<div id="preheader"></div>
+		<div id="plateContainer">
+			<figure id="plate"></figure>
+		</div>
+		<div id="mainWrap">
+			<div id="unlockedView">
+				<div id="preheader">
+					<span>
+						<span id="currentUser">
+							<input id="edit">
+							<strong>[<a onclick="saveSrc();">Save</a>]</strong>
+						</span>
+					</span>
+				</div>
+				<header class="data" id="gadget1"></header>
+			</div>
+			<div id="footerSpacer"></div>
+			<footer>
+				<div class="wrapper">
+					<div id="leftcolumn">
+						<h3>So... what is this all about?</h3>
+						<p>This is a fictional site that demonstrates the unhosted architecture, a tutorial, so you can take a look at the code to understand how to change this app into something more interesting. View the application source code <a href="https://github.com/unhosted/unhosted/blob/master/my-unhosted-website/www/index.html" target="_blank">here</a>.</p>
+						<p><strong>myfavouritesandwich.org is not a commercial website, nor is it affiliated with any trademark</strong></p>
+					</div>
+				<figure id="island"></figure>
+				<div id="rightcolumn">
+					<h3>What is Unhosted?</h3>
+					<p><strong>Unhosted is a project for strengthening free software against hosted software.</strong> An unhosted web app is only source code. Dynamic data is encrypted and decentralised, to per-user storage nodes. This benefits <strong>free software</strong>, as well as <strong>scalability</strong>, <strong>robustness</strong>, and <strong>online privacy</strong>.</p>
+					<p><strong>Check it out at <a href="http://www.unhosted.org">http://www.unhosted.org/</a></strong></p>
+				</div>
+				<div class="clear"></div>
+			</footer>
+		</div>
+	</body> 
+</html>
+

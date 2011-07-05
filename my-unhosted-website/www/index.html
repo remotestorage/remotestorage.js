@@ -110,6 +110,16 @@ function goCrypto() {
 	}
 }
 
+function onfork() {
+	unhosted.getOtherRaw('mich@myfavouritesandwich.org', 'mfs.html', function() {alert('Oops');}, function(michSnippet) {
+		unhosted.setRaw('mfs.html', michSnippet, function() {
+			window.location = '/caja/';
+		});
+	});
+}
+
+
+
   /////////////////////
  //  presentation:  //
 /////////////////////
@@ -126,6 +136,7 @@ function show() {
 		'Current user is <strong>'
 		+currentUser
 		+'</strong> [<a onclick="onlogout();">Log out</a>]'
+		+' [<a onclick="onfork();">Fork me on the web</a>]'
 		+'<br> <input type="hidden" id="pwd1">'
 		+' <input type="hidden" id="pwd2">'
 		+' <input type="hidden" id="goCrypto" value="Go crypto" onclick="goCrypto();">';

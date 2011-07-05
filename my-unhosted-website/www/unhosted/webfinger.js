@@ -35,8 +35,13 @@ var Webfinger = function() {
 	}
 	var matchLinkRel = function(linkRel, majorDavVersion, minMinorDavVersion) {
 		//TODO: do some real reg exp...
-		var davVersion = {major:0, minor:1};
-		
+		var davVersion;
+		if(linkRel == 'http://unhosted.org/spec/dav/0.1') {
+			davVersion = {major:0, minor:1};
+		} else {
+			davVersion = {major:0, minor:0};
+		}
+
 		if(davVersion.major == majorDavVersion) {
 			if(majorDavVersion == 0) {//pre-1.0.0, every minor version is breaking, see http://semver.org/
 				return (davVersion.minor == minMinorDavVersion);
