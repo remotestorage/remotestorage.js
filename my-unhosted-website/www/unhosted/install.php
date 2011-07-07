@@ -41,7 +41,7 @@ if($_POST["install"] == "install") {
 		."\tregisterUrl: appBaseUrl + '/unhosted/register.html',\n"
 		."\tcallbackUrl: appBaseUrl + '/unhosted/callback.html',\n"
 		."\tclientId: '$domain',\n"
-		."\tdataScope: '$domain',\n"
+		."\tdataScope: 'sandwiches',\n"
 		."\thomeDomain: '$domain'\n"
 		."}\n");
 	file_put_contents("../.well-known/host-meta", "<?xml version='1.0' encoding='UTF-8'?>\n"
