@@ -6,11 +6,13 @@
 <title>Myfavouritesandwich - An Unhosted demo</title>
 <link rel="stylesheet" href="css/uncompressed/reset.css" />
 <link rel="stylesheet" href="css/uncompressed/text.css" />
-<link rel="stylesheet" href="css/uncompressed/general.css" />
+:<link rel="stylesheet" href="css/uncompressed/general.css" />
 <link rel="stylesheet" href="css/uncompressed/layout.css" />
 
+<script src="https://browserid.org/include.js" type="text/javascript"></script>
 <script src="jquery-1.6.1.min.js"></script>
 <script src="syncStorage.js"></script>
+<script src="webfinger.js"></script>
 <script src="config.js"></script>
 <script>
 $(document).ready(function() {
@@ -32,6 +34,48 @@ function onsave() {
 		};
 	syncStorage.setItem('favSandwich', JSON.stringify(sandwich));
 	show();
+}
+
+
+//unfingered wallet contains: userAddress, dataScope, cryptoPwd
+//  fingered wallet contains: userAddress, dataScope, cryptoPwd, davUrl, davToken
+function login() {
+	navigator.id.getVerifiedEmail(function(assertion) {
+		if(assertion) {
+			$.ajax({
+				type: "POST",
+				url: config.walletServiceUrl,
+				data: {browserIdAssertion: assertion, dataScope: "sandwiches"},
+				dataType: "text",
+				success: function(walletStr) {
+					sessionStorage.setItem("wallet", walletStr);
+					wallet = JSON.parse(walletStr);
+					if(wallet.davToken) {
+						window.syncStorage.connect(wallet);
+					} else if(wallet.davUrl) {
+						window.location = wallet.davUrl + "oauth2/auth"
+							+ "?client_id="+encodeURIComponent(config.clientId)
+							+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+							+ "&scope="+encodeURIComponent(wallet.dataScope)
+							+ "&response_type=token"
+							+ "&user_address="+encodeURIComponent(wallet.userAddress);
+					} else {
+						webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function(){
+								//offer hosted storage.
+							}, function(davUrl) {
+							wallet.davUrl = dataFromWebfinger.davUrl;
+							window.location = wallet.davUrl + "oauth2/auth"
+								+ "?client_id="+encodeURIComponent(config.clientId)
+								+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+								+ "&scope="+encodeURIComponent(wallet.dataScope)
+								+ "&response_type=token"
+								+ "&user_address="+encodeURIComponent(wallet.userAddress);
+						});
+					}
+				}
+			});
+		}
+	});
 }
 
   /////////////////////
@@ -62,7 +106,7 @@ function show() {
 	<div id="unlockedView">
 		<div id="preheader">
 			<span>
-				<span id="currentUser"></span>
+				<input value="log in" type="submit" onclick="login();">
 			</span>
 		</div>
 			
