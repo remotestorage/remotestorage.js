@@ -50,6 +50,51 @@ function deleteBar() {
 </script>
 </head>
 <body onload="start();">
+Status: - not synced - [sign in]
+Status: mich@dev.unhosted.org [take offline safely] [logout]
+Status: mich@dev.unhosted.org -you can go offline now- [logout]
+->until connection fails->
+Status: mich@dev.unhosted.org -offline-
+->until something changed->
+Status: mich@dev.unhosted.org -unsaved- [try now]
+->until connection is back->
+Status: - working -
+Status: mich@dev.unhosted.org [take offline safely] [logout]
+Status: - offline, read-only -
+       --locked elsewhere\      -----<-----unlock---------------
+      /                   \    /                                \
+NotSynced  ---sign in--->  Online  ---take offline safely---> Locked ---connection fails---> LockedOffline ---change something---> Unsaved
+       \                    / \ \                                / \                               /                                   /
+        <------logout------/-- \ \ -----------------------------/   <-----connection back---------/---  Working <---connection back---/
+                                \ \
+                                 \ *-connection fails---> ReadOnly
+                                  ---connection back-------/					
+actions:
+connect()
+disconnect()
+lock()
+unlock()
+set()
+get()
+delete()
+
+onItem: array of functions
+onStatus() -> object {lock: me/other/false, connected: true/false, userAddress:..., sync:"idle"/"sending"/"receiving", error:false}
+
+data format:
+- UTF8 JSON {"..":".."}
+- lock
+
+local: as-is, plus "lock". setting "lock" key will give error
+
+---
+ -- -
+- -
+ -
+
+
+</body>
+</html>
 SyncStorage test app. This app uses 2 keys: foo and bar. you can set values into each of them, and delete them if you want:
 <hr>
 Sync:
@@ -68,5 +113,3 @@ Bar:
 	<input type="text" id="bar">
 	<input type="submit" onclick="setBar();" value="set">
 	<input type="submit" onclick="deleteBar();" value="del">
-</body>
-</html>

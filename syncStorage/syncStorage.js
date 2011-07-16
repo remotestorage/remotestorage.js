@@ -1,5 +1,24 @@
+-offline app
+-browserid login button
+-it would let you into your wallet, or create one
+-it would look up your webfinger, and find storage
+-if no storage is available, it would offer hosted storage
+
+-while offline, if local is master, sets are queued. gets too. split universe theory. add _revision when saving to webdav.
+
+- build in rewind.
+
+syncStorage.setItem
+.back
+.forward
+
+- use explicit checkout
+
+- remote lock: "go offline"
+- set remote master (checkin, unlock):
+
 //
-// syncStorage.onStatus = function('offline'/'readonly'/'sending'/'receiving'/'ready')
+// syncStorage.onStatus = function('offline (remote is locked)'/'readonly (offline without lock on remote)'/'working'/'ready')
 // syncStorage.onUserAddress = function('user@host')
 // syncStorage.onItem = function('key', 'val')
 // syncStorage.setUserAddress('user@host','token'/'user@host'/null/)
