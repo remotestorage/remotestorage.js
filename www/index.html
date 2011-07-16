@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/uncompressed/layout.css" />
 
 <script src="jquery-1.6.1.min.js"></script>
+<script src="syncStorage.js"></script>
 <script src="config.js"></script>
 <script>
 $(document).ready(function() {
@@ -17,7 +18,7 @@ $(document).ready(function() {
 		window.location = config.appUrl;
 	}
 	$(window).bind('storage', function(e) {
-		if(e.originalEvent.storageArea == localStorage) {
+		if(e.originalEvent.storageArea == syncStorage) {
 			show();
 		}
 	});
@@ -29,7 +30,7 @@ function onsave() {
 			[document.getElementById('firstIngredient').value,
 			document.getElementById('secondIngredient').value]
 		};
-	localStorage.setItem('favSandwich', JSON.stringify(sandwich));
+	syncStorage.setItem('favSandwich', JSON.stringify(sandwich));
 	show();
 }
 
@@ -38,7 +39,7 @@ function onsave() {
 /////////////////////
 
 function show() {
-	var sandwich = JSON.parse(localStorage.getItem('favSandwich'));
+	var sandwich = JSON.parse(syncStorage.getItem('favSandwich'));
 	if(!sandwich) {
 		sandwich = {ingredients:['', '']};
 	}

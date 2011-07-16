@@ -1,0 +1,1 @@
+window.syncStorage = window.localStorage;
