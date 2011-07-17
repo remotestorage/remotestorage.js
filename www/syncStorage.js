@@ -23,7 +23,8 @@
 //if set a key, whether cached or not, it's write-through
 //if logged in but offline, changes are queued and will be pushed (write-through) when you come back online
 
-function SyncStorage() {
+function SyncStorage(onStatus) {
+	var numConns = 0;
 	var remoteStorage = null;
 	var keys = {};
 	function cacheGet(key) {
@@ -41,6 +42,24 @@ function SyncStorage() {
 		e.initStorageEvent('storage', false, false, key, oldValue, newValue, window.location.href, window.syncStorage);
 		dispatchEvent(e);
 	}
+	var reportStatus = function(deltaConns) {
+		if(onStatus) {
+			numConns+= deltaConns;
+			var userAddress;
+			if(remoteStorage) {
+				userAddress = remoteStorage.getUserAddress();
+			} else {
+				userAddress = null;
+			}
+			onStatus({
+				userAddress: userAddress,
+				online: true,
+				lock: true,
+				working: (numConns > 0)
+			});
+		}
+	}
+			
 	var prefetch = function(keysArg) {
 		var i;
 		for(i=0;i<keysArg.length;i++) {
@@ -48,7 +67,9 @@ function SyncStorage() {
 			keys[key] = true;
 			var cachedVal = cacheGet(key);
 			if(cachedVal === false) {
+				reportStatus(+1);
 				remoteStorage.get(key, function(result) {
+					reportStatus(-1);
 					if(result.success) {
 						cacheSet(key, result.value);
 						triggerStorageEvent(key, false, result.value);
@@ -62,7 +83,9 @@ function SyncStorage() {
 		}
 	};
 	var writeThrough = function(key, oldValue, newValue) {
+		reportStatus(+1);
 		remoteStorage.set(key, newValue, function(result) {
+			reportStatus(-1);
 			if(result.success) {
 				//...
 			} else {
@@ -78,11 +101,7 @@ function SyncStorage() {
 			return "return keys[i]";//need to find array_keys() function in js
 		},
 		getItem: function(key) {
-			localVal = cacheGet(key);
-			if(localVal == null) {//cache miss
-				syncKey(key, null);
-			}
-			return localVal;
+			return cacheGet(key);
 		},
 		setItem: function(key, val) {
 			keys[key] = true;
@@ -105,6 +124,7 @@ function SyncStorage() {
 		pullFrom: function(params) {
 			if(params.storageType == "http://unhosted.org/spec/dav/0.1") {
 				remoteStorage = UnhostedDav_0_1(params);
+				reportStatus(0);
 			} else {
 				syncStorage.error = "unsupported remote storage type "+remoteStorageType;
 			}
@@ -113,6 +133,6 @@ function SyncStorage() {
 			prefetch(keys);
 		}
 	};
+	reportStatus(0);
 	return syncStorage;
 }
-window.syncStorage = SyncStorage();

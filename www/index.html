@@ -22,6 +22,7 @@ $(document).ready(function() {
 		window.location = config.appUrl;
 	}
 	addEventListener('storage', storage_event, false);
+	window.syncStorage = SyncStorage(onStatus);
 	var walletStr = sessionStorage.getItem("wallet");
 	if(walletStr) {
 		var wallet = JSON.parse(walletStr);
@@ -33,17 +34,35 @@ $(document).ready(function() {
 	show();
 });
 
+function onStatus(status) {
+	if(status.userAddress) {
+		text = "Logged in as "+status.userAddress;
+		if(status.online) {
+			text +=" [online]";
+		}
+		if(status.lock) {
+			text +="[local is master]";
+		}
+		if(status.working) {
+			text +=" [working]";
+		}
+	} else {
+		text = "Log in for cloud sync";
+	}
+	document.getElementById('status').innerHTML = text; 
+}
+
 function storage_event(e) {
-	if(e.storageArea == null) {
+	if(e.storageArea == null) {//i'm trying to set e.storageArea to window.syncStorage, but it comes out null
 		show();
 	}
 }
 
 function onsave() {
 	var sandwich = {ingredients:
-			[document.getElementById('firstIngredient').value,
-			document.getElementById('secondIngredient').value]
-		};
+		[document.getElementById('firstIngredient').value,
+		document.getElementById('secondIngredient').value]
+	};
 	syncStorage.setItem('favSandwich', JSON.stringify(sandwich));
 	show();
 }
@@ -121,7 +140,7 @@ function show() {
 	<div id="unlockedView">
 		<div id="preheader">
 			<span>
-				<input value="log in" type="submit" onclick="login();">
+				<div id="status">status</div><input value="log in" type="submit" onclick="login();">
 			</span>
 		</div>
 			

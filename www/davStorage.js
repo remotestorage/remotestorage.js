@@ -1,7 +1,7 @@
 
 function UnhostedDav_0_1(params) {
 	var dav = params;
-	dav.keyToUrl = function(userAddress, key) {
+	function keyToUrl(userAddress, key) {
 		var userAddressParts = userAddress.split("@");
 		var resource = dav.dataScope;
 		var url = dav.davUrl
@@ -11,9 +11,12 @@ function UnhostedDav_0_1(params) {
 			+"/"+key;
 		return url;
 	}
+	dav.getUserAddress = function() {
+		return dav.userAddress;
+	};
 	dav.get = function(key, cb) {
 		$.ajax({
-			url: dav.keyToUrl(dav.userAddress, key), 
+			url: keyToUrl(dav.userAddress, key), 
 				//+ '?ts'+new Date ().getTime ()+'=0', //not compatible with owncloud
 			//cache: false, //not compatible with owncloud
 			dataType: "text",
@@ -28,11 +31,11 @@ function UnhostedDav_0_1(params) {
 				}
 			}
 		});
-	}
+	};
 	
 	dav.set = function(key, text, cb) {
 		$.ajax({
-			url: dav.keyToUrl(dav.userAddress, key),
+			url: keyToUrl(dav.userAddress, key),
 			type: "PUT",
 			headers: {Authorization: "Basic "+Base64.encode(dav.userAddress +':'+ dav.davToken)},
 			fields: {withCredentials: "true"},
@@ -42,6 +45,6 @@ function UnhostedDav_0_1(params) {
 				cb({success:false, error: xhr.status});
 			}
 		});
-	}
+	};
 	return dav;
 }
