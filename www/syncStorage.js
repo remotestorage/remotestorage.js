@@ -70,7 +70,7 @@ function SyncStorage() {
 			remoteStorage.syncKey(key);
 		}
 	};
-	$(window).bind('storage', function(e) {//if this window is synced, and another window updates localStorage, then send to remote, or change it back:
+	var _storageEvent = function(e) {//if this window is synced, and another window updates localStorage, then send to remote, or change it back:
 		if(e.originalEvent.storageArea == window.localStorage) {
 			syncKey(e.originalEvent.key);
 			$(window).trigger(jQuery.Event('storage', {
@@ -83,7 +83,8 @@ function SyncStorage() {
 					}
 				}));
 		}
-	});
+	}
+	addEventListener('storage', _storageEvent, false);
 	return syncStorage;
 }
 window.syncStorage = SyncStorage();

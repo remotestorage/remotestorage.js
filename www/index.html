@@ -19,13 +19,15 @@ $(document).ready(function() {
 	if (window.location != config.appUrl) {
 		window.location = config.appUrl;
 	}
-	$(window).bind('storage', function(e) {
-		if(e.originalEvent.storageArea == syncStorage) {
-			show();
-		}
-	});
+	addEventListener('storage', storageEvent, false);
 	show();
 });
+
+function storageEvent(e) {
+	if(e.storageArea == syncStorage) {
+		show();
+	}
+}
 
 function onsave() {
 	var sandwich = {ingredients:
