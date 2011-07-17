@@ -53,10 +53,9 @@ function start() {
 }
 
 function onsave() {
-	sandwich = {ingredients:
+	sandwich.ingredients = //in case of CouchDb-based storage, there might be a sandwich._rev in there which we should not remove
 			[document.getElementById('firstIngredient').value,
-			document.getElementById('secondIngredient').value]
-		};
+			document.getElementById('secondIngredient').value];
 	unhosted.set(
 		'favSandwich', 
 		sandwich,//
