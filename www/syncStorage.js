@@ -87,11 +87,11 @@ function SyncStorage() {
 		setItem: function(key, val) {
 			keys[key] = true;
 			localVal = localStorage.getItem("_syncStorage_"+key);
-			if(localVal == value) {
+			if(localVal == val) {
 				return;
 			} else {
 				cacheSet(key, val);
-				writeThrough(key, localVal, value);
+				writeThrough(key, localVal, val);
 			}
 		},
 		removeItem: function(key) {

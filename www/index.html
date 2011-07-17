@@ -22,6 +22,14 @@ $(document).ready(function() {
 		window.location = config.appUrl;
 	}
 	addEventListener('storage', storage_event, false);
+	var walletStr = sessionStorage.getItem("wallet");
+	if(walletStr) {
+		var wallet = JSON.parse(walletStr);
+		if(wallet.davToken) {
+			window.syncStorage.pullFrom(wallet);
+			window.syncStorage.syncKeys(["favSandwich"]);
+		}
+	}
 	show();
 });
 

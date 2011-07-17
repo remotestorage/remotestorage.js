@@ -30,7 +30,7 @@ function UnhostedDav_0_1(params) {
 		});
 	}
 	
-	dav.put = function(key, text, cb) {
+	dav.set = function(key, text, cb) {
 		$.ajax({
 			url: dav.keyToUrl(dav.userAddress, key),
 			type: "PUT",
