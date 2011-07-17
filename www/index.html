@@ -25,27 +25,10 @@ $(document).ready(function() {
 	show();
 });
 
-function val(v) {
-  if (v === null) return "[null]";
-  if (v === '') return "[the empty string]";
-  if ('string' == typeof v) return '"'+ v +'"';
-  if ('undefined' == typeof v) return '[undefined]';
-  return '['+ typeof v + ': '+ v + ']';;
-}
-
-function log(msg) {
-  var text = $('#log').val();
-  $('#log').val(text + msg + "\n");
-}
-
 function storage_event(e) {
-  log('Got '+ e.type +' event for '+ val(e.key) +' key; new value: '+ val(e.newValue) +'.');
-	if(e.storageArea == syncStorage) {
+	if(e.storageArea == null) {
 		show();
 	}
-}
-
-function storageEvent(e) {
 }
 
 function onsave() {
@@ -58,8 +41,9 @@ function onsave() {
 }
 
 
-//unfingered wallet contains: userAddress, dataScope, cryptoPwd
-//  fingered wallet contains: userAddress, dataScope, cryptoPwd, davUrl, davToken
+//freshly created wallet contains:	userAddress, dataScope, cryptoPwd
+//webfingered wallet contains:		userAddress, dataScope, cryptoPwd, davUrl
+//oauthed wallet contains:		userAddress, dataScope, cryptoPwd, davUrl, davToken
 function login() {
 	var walletStr = sessionStorage.getItem("wallet");
 	if(walletStr) {
@@ -100,9 +84,6 @@ function login() {
 		});
 	}
 }
-function handleWalletStr(walletStr) {
-			
-}
 
   /////////////////////
  //  presentation:  //
@@ -142,26 +123,6 @@ function show() {
 			<input id="firstIngredient" placeholder='1st ingredient' type="text"/>
 			<input id="secondIngredient" placeholder='2nd ingredient' type="text"/>	
 			<input class="submitingredients" type="submit" value="Submit!" onclick="onsave();"/>
-    <h1>Load this document into two or more tabs/windows</h1>
-
-    Then click these buttons to see what happens in the other window:<br>
-
-<input type="button" id="x5" value="Set x=5" />
-<input type="button" id="x12" value="Set x=12" />
-<input type="button" id="y17" value="Set y=17" />
-<input type="button" id="y99" value="Set y=99" />
-<input type="button" id="dex" value="Delete x" />
-<input type="button" id="dey" value="Delete y" />
-<input type="button" id="clr" value="Clear" />
-
-<br>
-When setting a key in this window, only other windows should see the event.<br>
-Deleting a key should show that key get set to [null] in all other windows.<br>
-
-Clearing all should show a [null] key get set to [null] in all other windows.
-
-<textarea id="log" style="width:100%; height: 400px"></textarea>
-
 		</header>
 	</div>
 	<div id="footerSpacer"></div>					

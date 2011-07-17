@@ -37,20 +37,27 @@ function SyncStorage() {
 		localStorage.setItem("_syncStorage_"+key, value);
 	}
 	function triggerStorageEvent(key, oldValue, newValue) {
+		var e = document.createEvent("StorageEvent");
+		e.initStorageEvent('storage', false, false, key, oldValue, newValue, window.location.href, window.syncStorage);
+		dispatchEvent(e);
 	}
-	var prefetch = function(keys) {
+	var prefetch = function(keysArg) {
 		var i;
-		for(i=0;i<keys.length;i++) {
-			var key = keys[i];
-			if(cacheGet(key) === false) {
+		for(i=0;i<keysArg.length;i++) {
+			var key = keysArg[i];
+			keys[key] = true;
+			var cachedVal = cacheGet(key);
+			if(cachedVal === false) {
 				remoteStorage.get(key, function(result) {
 					if(result.success) {
 						cacheSet(key, result.value);
-						triggerStorageEvent(key, result.value, false);
+						triggerStorageEvent(key, false, result.value);
 					} else {
-						//...
+						//report sync error
 					}
 				});
+			} else {
+				triggerStorageEvent(key, false, cachedVal);
 			}
 		}
 	};
