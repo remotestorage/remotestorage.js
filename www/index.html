@@ -23,16 +23,52 @@ $(document).ready(function() {
 	}
 	addEventListener('storage', storage_event, false);
 	window.syncStorage = SyncStorage(onStatus);
+	connect(false, false, false);
+	show();
+});
+
+function connect(allowBrowserid, allowWebfinger, allowOAuth) {
 	var walletStr = sessionStorage.getItem("wallet");
 	if(walletStr) {
 		var wallet = JSON.parse(walletStr);
 		if(wallet.davToken) {
 			window.syncStorage.pullFrom(wallet);
 			window.syncStorage.syncKeys(["favSandwich"]);
+		} else if(wallet.davUrl && allowOAuth) {
+			window.location = wallet.davUrl + "oauth2/auth"
+				+ "?client_id="+encodeURIComponent(config.clientId)
+				+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+				+ "&scope="+encodeURIComponent(wallet.dataScope)
+				+ "&response_type=token"
+				+ "&user_address="+encodeURIComponent(wallet.userAddress);
+		} else if(allowWebfinger) {
+			webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function(){
+				debug = "offer hosted storage.";
+			}, function(davUrl) {
+				wallet.davUrl = davUrl;
+				wallet.storageType = "http://unhosted.org/spec/dav/0.1";
+				wallet.dataScope = config.dataScope;
+				sessionStorage.setItem("wallet", JSON.stringify(wallet));
+				connect(false, false, true);
+			});
 		}
+	} else if(allowBrowserid) {
+		navigator.id.getVerifiedEmail(function(assertion) {
+			if(assertion) {
+				$.ajax({
+					type: "POST",
+					url: config.walletServiceUrl,
+					data: {browserIdAssertion: assertion, dataScope: "sandwiches"},
+					dataType: "text",
+					success: function(walletStr) {
+						sessionStorage.setItem("wallet", walletStr);
+						connect(false, true, true);
+					}
+				});
+			}
+		});
 	}
-	show();
-});
+}
 
 function onStatus(status) {
 	if(status.userAddress) {
@@ -72,44 +108,7 @@ function onsave() {
 //webfingered wallet contains:		userAddress, dataScope, cryptoPwd, davUrl
 //oauthed wallet contains:		userAddress, dataScope, cryptoPwd, davUrl, davToken
 function login() {
-	var walletStr = sessionStorage.getItem("wallet");
-	if(walletStr) {
-		var wallet = JSON.parse(walletStr);
-		if(wallet.davToken) {
-			window.syncStorage.pullFrom(wallet);
-			window.syncStorage.syncKeys(["favSandwich"]);
-		} else if(wallet.davUrl) {
-			window.location = wallet.davUrl + "oauth2/auth"
-				+ "?client_id="+encodeURIComponent(config.clientId)
-				+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
-				+ "&scope="+encodeURIComponent(wallet.dataScope)
-				+ "&response_type=token"
-				+ "&user_address="+encodeURIComponent(wallet.userAddress);
-		} else {
-			webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function(){
-				debug = "offer hosted storage.";
-			}, function(davUrl) {
-				wallet.davUrl = dataFromWebfinger.davUrl;
-				sessionStorage.setItem("wallet", JSON.stringify(wallet));
-				login();
-			});
-		}
-	} else {
-		navigator.id.getVerifiedEmail(function(assertion) {
-			if(assertion) {
-				$.ajax({
-					type: "POST",
-					url: config.walletServiceUrl,
-					data: {browserIdAssertion: assertion, dataScope: "sandwiches"},
-					dataType: "text",
-					success: function(walletStr) {
-						sessionStorage.setItem("wallet", walletStr);
-						login();
-					}
-				});
-			}
-		});
-	}
+	connect(true, true, true);
 }
 
   /////////////////////

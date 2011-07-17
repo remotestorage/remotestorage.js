@@ -1,11 +1,11 @@
 <?php
 //hard-coded for debugging:
 echo json_encode(array(
-	"storageType" => "http://unhosted.org/spec/dav/0.1",
-	"davUrl" => "http://myfavouritesandwich.org/",
 	"userAddress" => "mich@myfavouritesandwich.org",
-	"dataScope" => "sandwiches",
-	"davToken" => "Njg4OTk3MjQw"
+	//"storageType" => "http://unhosted.org/spec/dav/0.1",
+	//"davUrl" => "http://myfavouritesandwich.org/",
+	//"dataScope" => "sandwiches",
+	//"davToken" => "Njg4OTk3MjQw"
 	));
 die();
 require_once 'config.php';
