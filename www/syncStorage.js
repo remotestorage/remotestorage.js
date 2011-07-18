@@ -23,7 +23,7 @@
 //if set a key, whether cached or not, it's write-through
 //if logged in but offline, changes are queued and will be pushed (write-through) when you come back online
 
-function SyncStorage(onStatus) {
+function initSyncStorage(onStatus) {
 	var numConns = 0;
 	var remoteStorage = null;
 	var keys = {};
@@ -134,5 +134,5 @@ function SyncStorage(onStatus) {
 		}
 	};
 	reportStatus(0);
-	return syncStorage;
+	window.syncStorage = syncStorage;
 }

@@ -21,7 +21,7 @@ $(document).ready(function() {
 		window.location = config.appUrl;
 	}
 	addEventListener('storage', storage_event, false);
-	window.syncStorage = SyncStorage(onStatus);
+	initSyncStorage(onStatus);
 	connect(true, false);
 	show();
 });
