@@ -1,4 +1,10 @@
 CACHE MANIFEST
+
+#version:  
+
+NETWORK:
+*
+
 CACHE:
 index.html
 config.js

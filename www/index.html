@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="css/uncompressed/general.css" />
 <link rel="stylesheet" href="css/uncompressed/layout.css" />
 
-<script src="https://browserid.org/include.js" type="text/javascript"></script>
 <script src="jquery-1.6.1.min.js"></script>
 <script src="base64.js"></script>
 <script src="davStorage.js"></script>
@@ -23,11 +22,11 @@ $(document).ready(function() {
 	}
 	addEventListener('storage', storage_event, false);
 	window.syncStorage = SyncStorage(onStatus);
-	connect(false, false, false);
+	connect(true, false);
 	show();
 });
 
-function connect(allowBrowserid, allowWebfinger, allowOAuth) {
+function connect(allowWebfinger, allowOAuth) {
 	var walletStr = sessionStorage.getItem("wallet");
 	if(walletStr) {
 		var wallet = JSON.parse(walletStr);
@@ -49,11 +48,13 @@ function connect(allowBrowserid, allowWebfinger, allowOAuth) {
 				wallet.storageType = "http://unhosted.org/spec/dav/0.1";
 				wallet.dataScope = config.dataScope;
 				sessionStorage.setItem("wallet", JSON.stringify(wallet));
-				connect(false, false, true);
+				connect(false, true);
 			});
 		}
-	} else if(allowBrowserid) {
-		navigator.id.getVerifiedEmail(function(assertion) {
+	} else {
+		var assertionStr = sessionStorage.getItem("browserid-assertion");
+		if(assertionStr) {
+			var assertion = JSON.parse(assertionStr);
 			if(assertion) {
 				$.ajax({
 					type: "POST",
@@ -62,11 +63,11 @@ function connect(allowBrowserid, allowWebfinger, allowOAuth) {
 					dataType: "text",
 					success: function(walletStr) {
 						sessionStorage.setItem("wallet", walletStr);
-						connect(false, true, true);
+						connect(true, true);
 					}
 				});
 			}
-		});
+		}
 	}
 }
 
@@ -108,7 +109,7 @@ function onsave() {
 //webfingered wallet contains:		userAddress, dataScope, cryptoPwd, davUrl
 //oauthed wallet contains:		userAddress, dataScope, cryptoPwd, davUrl, davToken
 function login() {
-	connect(true, true, true);
+	window.location = "login.html";//hack to make cross-origin non-cached https script work with appcache in chrome
 }
 
   /////////////////////
