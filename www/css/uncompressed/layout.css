@@ -154,7 +154,6 @@ header form{
 	
 }
 header input[type=submit]{
-	background: url('./img/takemein.png') no-repeat left top;
 	border: none;
 	width: 266px;
 	height: 38px;
@@ -181,12 +180,10 @@ header input[type=submit]{
 	}
 	
 header input[type=submit]:hover{
-	background: url('./img/takemeinhover.png') no-repeat left top;
 	cursor: pointer;
 }
 
 header input[type=submit]:active{
-	background: url('./img/takemein.png') no-repeat left top;
 	cursor: pointer;
 }
 	header input.submitingredients:hover{
