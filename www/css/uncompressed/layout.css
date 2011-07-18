@@ -7,7 +7,7 @@ body{
 	
 }
 
-.preload2, .preload{
+.preload{
 	position: absolute;
 	overflow: hidden;
 	width: 1px;
@@ -15,17 +15,9 @@ body{
 	left: -5000px;
 }
 
-.preload2{
+.preload{
 	background-image: url('./img/changehover.png');
 }
-
-.preload2.register{
-	background-image: url('./img/createaccounthover.png');
-}
-.preload{
-	background-image: url('./img/takemeinhover.png');
-}
-
 
 #footerSpacer {
 	padding-bottom: 200px; /* bottom padding for footer */
