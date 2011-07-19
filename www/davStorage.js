@@ -19,9 +19,9 @@ function UnhostedDav_0_1(params) {
 			url: keyToUrl(dav.userAddress, key), 
 				//+ '?ts'+new Date ().getTime ()+'=0', //not compatible with owncloud
 			//cache: false, //not compatible with owncloud
-			dataType: "text",
-			success: function(text){
-				cb({success:true, value: text});
+			dataType: "json",
+			success: function(obj){
+				cb({success:true, value: obj.data});
 			},
 			error: function(xhr) {
 				if(xhr.status == 404) {
@@ -39,7 +39,7 @@ function UnhostedDav_0_1(params) {
 			type: "PUT",
 			headers: {Authorization: "Basic "+Base64.encode(dav.userAddress +':'+ dav.davToken)},
 			fields: {withCredentials: "true"},
-			data: text,
+			data: JSON.stringify({data: text}),
 			success: function() {cb({success:true});},
 			error: function(xhr) {
 				cb({success:false, error: xhr.status});

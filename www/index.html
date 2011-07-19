@@ -33,7 +33,7 @@ function connect(allowWebfinger, allowOAuth) {
 		var wallet = JSON.parse(walletStr);
 		if(wallet.davToken) {
 			window.syncStorage.pullFrom(wallet);
-			window.syncStorage.syncKeys(["favSandwich"]);
+			window.syncStorage.syncItems(["favSandwich"]);
 		} else if(wallet.davUrl && allowOAuth) {
 			window.location = wallet.davUrl + "oauth2/auth"
 				+ "?client_id="+encodeURIComponent(config.clientId)
@@ -108,13 +108,13 @@ function onsave() {
 	var cryptoPwd;
 	try {
 		cryptoPwd = (JSON.parse(sessionStorage.getItem("wallet"))).cryptoPwd;
+		try {
+			syncStorage.setItem('favSandwich', sjcl.encrypt(cryptoPwd, clearText));
+		} catch(e) {
+			alert("could not encrypt for some reason");
+		}
 	} catch(e) {
 		alert("could not get crypto password. you lost all your data.");
-	}
-	try {
-		syncStorage.setItem('favSandwich', sjcl.encrypt(cryptoPwd, clearText));
-	} catch(e) {
-		alert("could not encrypt for some reason");
 	}
 	show();
 }
@@ -137,13 +137,16 @@ function show() {
 		var cryptoPwd;
 		try {
 			cryptoPwd = (JSON.parse(sessionStorage.getItem("wallet"))).cryptoPwd;
+			try {
+				sandwich = JSON.parse(sjcl.decrypt(cryptoPwd, cryptoStr));
+			} catch(e) {
+				alert("could not decrypt for some reason. flushing cache, for what it's worth.");
+				syncStorage.flushItems(['favSandwich']);
+				sandwich = {ingredients:['', '']};
+			}
 		} catch(e) {
 			alert("could not get crypto password. you lost all your data.");
-		}
-		try {
-			sandwich = JSON.parse(sjcl.decrypt(cryptoPwd, cryptoStr));
-		} catch(e) {
-			alert("could not decrypt for some reason");
+			sandwich = {ingredients:['', '']};
 		}
 	} else {
 		sandwich = {ingredients:['', '']};

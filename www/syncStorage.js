@@ -1,27 +1,8 @@
-//taken from html web storage interface:
-//length
-//keys
-//getItem -> will only work for synced items. there is no way to access items that you didn't sync first.
-//setItem -> will automatically add item to synced items and overwrite remote value, if any
-//removeItem -> will keep item synced, but with negative caching entry indicating the fact that this key is not present in remote
-//not offering clear() in case people confuse it with flush. to clear, loop through keys() and do removeItem() one-by-one
-
-//adding:
-//syncItems(keys) -> adds items to synced items. will trigger one storage event per item when value becomes available. after that, getItem will work on them
-//flushItems(keys) -> per-item flush gives more control over the caching/garbage collection strategy, but stay connected. 
-//pushTo(storageParams) -> will change the remote storage, then push out local cache contents (all synced items). pushTo(null) will disconnect but keep a local copy. not sure when you would want to disconnect but leave local copy of the data, unless the local copy were encrypted (which currently it's not)
-//pullFrom(storageParams) -> will flushAll(), then change the remote storage. pullFrom(null) will disconnect and flush all cache. this is the way to log out and leave a shared computer.
-
-
-
-//not logged in -> local-only copy. effect is the same as localStorage, except flush is a synonym for clear, and no events from other windows come in.
-//logging in -> whatever is the current local copy is flushed (so if it was a local-only copy, it's cleared as well. sorry. :)
-//at first nothing happens, but the app can do a prefetch of a list of keys to force loading some stuff in and getting some storage events triggered as data arrives
-//automatically set lock, overwritting any lock that may be there. in the future we might make this more usable and less aggressive.
-//if get a key that's not cached, it will return false, but still trigger a prefetch. negative caching is done with a special value.
-//flush will set all keys to not cached (false), and only in the cache. clear will set all keys to null (remove them), with write-through.
-//if set a key, whether cached or not, it's write-through
-//if logged in but offline, changes are queued and will be pushed (write-through) when you come back online
+//in JS app, you have an object. you stringify it
+//in sjcl, you encrypt a string to a string
+//you pass a string to syncStorage.
+//syncStorage puts that string inside an object, possibly adds couch-attributes stringifies it again.
+//syncStorage 
 
 function initSyncStorage(onStatus) {
 	var numConns = 0;
@@ -29,14 +10,20 @@ function initSyncStorage(onStatus) {
 	var keys = {};
 	var error = false;
 	function cacheGet(key) {
+		var obj = {};
 		if(keys[key]) {
-			return localStorage.getItem("_syncStorage_"+key);
-		} else {
-			return null;
+			obj = JSON.parse(localStorage.getItem("_syncStorage_"+key));
+			if(obj === null) {
+				obj = {};
+			}
 		}
+		return obj;
 	}
-	function cacheSet(key, value) {
-		localStorage.setItem("_syncStorage_"+key, value);
+	function cacheSet(key, obj) {
+		if(obj === null) {//negative caching.
+			obj = {value: null};
+		}
+		localStorage.setItem("_syncStorage_"+key, JSON.strinfigy(obj));
 	}
 	function triggerStorageEvent(key, oldValue, newValue) {
 		var e = document.createEvent("StorageEvent");
@@ -67,35 +54,35 @@ function initSyncStorage(onStatus) {
 		for(i=0;i<keysArg.length;i++) {
 			var key = keysArg[i];
 			keys[key] = true;
-			var cachedVal = cacheGet(key);
-			if(cachedVal === null) {
+			var cachedObj = cacheGet(key);
+			if(cachedObj === null) {
 				reportStatus(+1);
 				remoteStorage.get(key, function(result) {
 					if(result.success) {
 						error = false;
-						cacheSet(key, result.value);
-						triggerStorageEvent(key, false, result.value);
+						cacheSet(key, result.obj);
+						triggerStorageEvent(key, false, result.obj.value);
 					} else {
 						error = report.error;
 					}
 					reportStatus(-1);
 				});
 			} else {
-				triggerStorageEvent(key, false, cachedVal);
+				triggerStorageEvent(key, false, cachedObj);
 			}
 		}
 	};
-	var writeThrough = function(key, oldValue, newValue) {
+	var writeThrough = function(key, oldObj, newObj) {
 		reportStatus(+1);
-		remoteStorage.set(key, newValue, function(result) {
-			reportStatus(-1);
+		remoteStorage.set(key, newObj, function(result) {
 			if(result.success) {
 				error = false;
 			} else {
 				error = result.error;
-				cacheSet(key, oldValue);
-				triggerStorageEvent(key, newValue, oldValue);
+				cacheSet(key, oldObj);
+				triggerStorageEvent(key, newObj.value, oldObj.value);
 			}
+			reportStatus(-1);
 		});
 	};
 	var syncStorage = {
@@ -105,25 +92,29 @@ function initSyncStorage(onStatus) {
 			return "return keys[i]";//need to find array_keys() function in js
 		},
 		getItem: function(key) {
-			return cacheGet(key);
+			return cacheGet(key).value;
 		},
 		setItem: function(key, val) {
 			keys[key] = true;
-			localVal = localStorage.getItem("_syncStorage_"+key);
-			if(localVal == val) {
+			localObj = cacheGet(key);
+			if(localObj.value == val) {
 				return;
 			} else {
-				cacheSet(key, val);
-				writeThrough(key, localVal, val);
+				//the following trick, putting the value into an object which may have
+				//other fields present than just .value, may in the future be necessary
+				//for maintaining CouchDb metadata:
+				var newObj = localObj;
+				newObj.value = val;
+				cacheSet(key, newObj);
+				writeThrough(key, localObj, newObj);
 			}
 		},
-		removeItem: function(key) {
-			window.localStorage.removeItem(key);
-			syncStorage.length = window.localStorage.length;
-			syncStorage.remoteStorage.syncKey(key);
-		},
-		flush: function() {
-			window.localStorage.clear();
+		flushItems: function(keys) {
+			var i;
+			for(i=0; i<keys.length; i++) {
+				var key = keys[i];
+				window.localStorage.removeItem("_syncStorage_"+key);
+			}
 		},
 		pullFrom: function(params) {
 			if(params.storageType == "http://unhosted.org/spec/dav/0.1") {
@@ -133,7 +124,7 @@ function initSyncStorage(onStatus) {
 				syncStorage.error = "unsupported remote storage type "+remoteStorageType;
 			}
 		},
-		syncKeys: function(keys) {
+		syncItems: function(keys) {
 			prefetch(keys);
 		}
 	};
