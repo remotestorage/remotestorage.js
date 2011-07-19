@@ -30,7 +30,14 @@ $(document).ready(function() {
 function connect(allowWebfinger, allowOAuth) {
 	var walletStr = sessionStorage.getItem("wallet");
 	if(walletStr) {
-		var wallet = JSON.parse(walletStr);
+		document.getElementById('browserIdLoginButton').style.display = "none";
+		document.getElementById('logoutButton').style.display = "block";
+		var wallet = {};
+		try {
+			wallet = JSON.parse(walletStr);
+		} catch (e) {
+			sessionStorage.removeItem("wallet");
+		}
 		if(wallet.davToken) {
 			window.syncStorage.pullFrom(wallet);
 			window.syncStorage.syncItems(["favSandwich"]);
@@ -55,7 +62,11 @@ function connect(allowWebfinger, allowOAuth) {
 	} else {
 		var assertionStr = sessionStorage.getItem("browserid-assertion");
 		if(assertionStr) {
-			var assertion = JSON.parse(assertionStr);
+			var assertion;
+			try {
+				assertion = JSON.parse(assertionStr);
+			} catch(e) {
+			}
 			if(assertion) {
 				$.ajax({
 					type: "POST",
@@ -63,8 +74,14 @@ function connect(allowWebfinger, allowOAuth) {
 					data: {browserIdAssertion: assertion, dataScope: "sandwiches"},
 					dataType: "text",
 					success: function(walletStr) {
-						sessionStorage.setItem("wallet", walletStr);
-						connect(true, true);
+						try {
+							var walletParseTest = JSON.parse(walletStr);
+							sessionStorage.setItem("wallet", walletStr);
+							connect(true, true);
+						} catch(e) {
+							//got unparseable wallet with this assertion. flush:
+							sessionStorage.removeItem("browserid-assertion");
+						}
 					}
 				});
 			}
@@ -123,8 +140,10 @@ function onsave() {
 //freshly created wallet contains:	userAddress, dataScope, cryptoPwd
 //webfingered wallet contains:		userAddress, dataScope, cryptoPwd, davUrl
 //oauthed wallet contains:		userAddress, dataScope, cryptoPwd, davUrl, davToken
-function login() {
-	window.location = "login.html";//hack to make cross-origin non-cached https script work with appcache in chrome
+function logout() {
+	sessionStorage.removeItem('wallet');
+	sessionStorage.removeItem('browserid-asertion');
+	window.location = ".";
 }
 
   /////////////////////
@@ -169,7 +188,10 @@ function show() {
 	<div id="unlockedView">
 		<div id="preheader">
 			<span>
-				<div id="status">status</div><input value="log in" type="submit" onclick="login();">
+				<div id="status">status</div>
+				<iframe id="browserIdLoginButton" src="login.html"></iframe>
+				<input type="submit" style="display:none" value="logout" id="logoutButton"	
+					onclick="logout();">
 			</span>
 		</div>
 			
