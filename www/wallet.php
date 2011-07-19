@@ -1,20 +1,21 @@
 <?php
-//hard-coded for debugging:
-echo json_encode(array(
-	"userAddress" => "mich@myfavouritesandwich.org",
-	//"storageType" => "http://unhosted.org/spec/dav/0.1",
-	//"davUrl" => "http://myfavouritesandwich.org/",
-	//"dataScope" => "sandwiches",
-	//"davToken" => "Njg4OTk3MjQw"
-	));
-die();
+////hard-coded for debugging:
+//echo json_encode(array(
+//	"userAddress" => "mich@federoni.org",
+//	//"userAddress" => "mich@myfavouritesanwich.org",
+//	//"storageType" => "http://unhosted.org/spec/dav/0.1",
+//	//"davUrl" => "http://myfavouritesandwich.org/",
+//	//"dataScope" => "sandwiches",
+//	//"davToken" => "Njg4OTk3MjQw"
+//	));
+//die();
 require_once 'config.php';
 
 function createWallet($walletPath, $userAddress, $dataScope, $cryptoPwd) {
 	$wallet = json_encode(array(
 		"userAddress" => $userAddress,
 		"dataScope" => $dataScope,
-		"cryptoPwd" => $cryptoPwd
+		"cryptoPwd" => $cryptoPwd,
 		));
 	file_put_contents($walletPath, $wallet); 
 	return $wallet;
@@ -38,10 +39,15 @@ function verifyBrowserId($assertion){
 	$ch = curl_init();
 	curl_setopt($ch, CURLOPT_URL, $url);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-	$output = json_decode(curl_exec($ch), true);
+	$outputStr = curl_exec($ch);
+	$output = json_decode($outputStr, true);
 	curl_close($ch);
  	if($output["status"] == "okay") {
 		return $output["email"];
+	} else {
+		var_export($outputStr);
+		var_export($output);
+		var_export($output["status"]);
 	}
 	return false;
 }
@@ -49,4 +55,6 @@ function verifyBrowserId($assertion){
 
 if($verifiedEmail = verifyBrowserId($_POST["browserIdAssertion"])) {
 	echo getWallet($verifiedEmail, $_POST["dataScope"]);
+} else {
+	echo "fail";	
 }

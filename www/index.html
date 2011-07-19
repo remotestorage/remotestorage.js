@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="css/uncompressed/layout.css" />
 
 <script src="jquery-1.6.1.min.js"></script>
+<script src="sjcl.js"></script>
 <script src="base64.js"></script>
 <script src="davStorage.js"></script>
 <script src="syncStorage.js"></script>
@@ -100,7 +101,9 @@ function onsave() {
 		[document.getElementById('firstIngredient').value,
 		document.getElementById('secondIngredient').value]
 	};
-	syncStorage.setItem('favSandwich', JSON.stringify(sandwich));
+	var clearText = JSON.stringify(sandwich);
+	var cryptoPwd = (JSON.parse(sessionStorage.getItem("wallet"))).cryptoPwd;
+	syncStorage.setItem('favSandwich', sjcl.encrypt(cryptoPwd, clearText));
 	show();
 }
 
@@ -117,8 +120,11 @@ function login() {
 /////////////////////
 
 function show() {
-	var sandwich = JSON.parse(syncStorage.getItem('favSandwich'));
-	if(!sandwich) {
+	var cryptoStr = syncStorage.getItem('favSandwich');
+	if(cryptoStr) {
+		var cryptoPwd = (JSON.parse(sessionStorage.getItem("wallet"))).cryptoPwd;
+		sandwich = JSON.parse(sjcl.decrypt(cryptoPwd, cryptoStr));
+	} else {
 		sandwich = {ingredients:['', '']};
 	}
 	document.getElementById('showFirstIngredient').innerHTML = sandwich.ingredients[0];

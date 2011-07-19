@@ -31,7 +31,7 @@ function initSyncStorage(onStatus) {
 		if(keys[key]) {
 			return localStorage.getItem("_syncStorage_"+key);
 		} else {
-			return false;
+			return null;
 		}
 	}
 	function cacheSet(key, value) {
@@ -66,7 +66,7 @@ function initSyncStorage(onStatus) {
 			var key = keysArg[i];
 			keys[key] = true;
 			var cachedVal = cacheGet(key);
-			if(cachedVal === false) {
+			if(cachedVal === null) {
 				reportStatus(+1);
 				remoteStorage.get(key, function(result) {
 					reportStatus(-1);
