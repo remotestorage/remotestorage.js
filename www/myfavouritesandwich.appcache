@@ -1,7 +1,11 @@
 CACHE MANIFEST
 
 NETWORK:
+login.html
 *
+
+FALLBACK:
+login.html workOffline.html
 
 CACHE:
 index.html

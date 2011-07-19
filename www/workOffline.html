@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://browserid.org/include.js" type="text/javascript"></script>
+<script>
+function callBrowserId() {
+	sessionStorage.setItem("wallet", JSON.stringify({
+		userAddress: "(offline user)",
+		dataScope: "sandwiches",
+		cryptoPwd: "bla",
+		storageType: "local"
+	}));
+	window.top.location=".";
+}
+</script></head><body><input type="submit" value="Work offline" onclick="workoffline();"></body></html>
