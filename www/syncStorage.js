@@ -12,9 +12,13 @@ function initSyncStorage(onStatus) {
 	function cacheGet(key) {
 		var obj = {};
 		if(keys[key]) {
-			obj = JSON.parse(localStorage.getItem("_syncStorage_"+key));
-			if(obj === null) {
-				obj = {};
+			try {
+				obj = JSON.parse(localStorage.getItem("_syncStorage_"+key));
+				if(obj === null) {
+					obj = {};
+				}
+			} catch(e) {//unparseable. remove.
+				localStorage.removeItem("_syncStorage_"+key);
 			}
 		}
 		return obj;
@@ -23,7 +27,7 @@ function initSyncStorage(onStatus) {
 		if(obj === null) {//negative caching.
 			obj = {value: null};
 		}
-		localStorage.setItem("_syncStorage_"+key, JSON.strinfigy(obj));
+		localStorage.setItem("_syncStorage_"+key, JSON.stringify(obj));
 	}
 	function triggerStorageEvent(key, oldValue, newValue) {
 		var e = document.createEvent("StorageEvent");
@@ -55,13 +59,13 @@ function initSyncStorage(onStatus) {
 			var key = keysArg[i];
 			keys[key] = true;
 			var cachedObj = cacheGet(key);
-			if(cachedObj === null) {
+			if(cachedObj.value == undefined) {
 				reportStatus(+1);
 				remoteStorage.get(key, function(result) {
 					if(result.success) {
 						error = false;
-						cacheSet(key, result.obj);
-						triggerStorageEvent(key, false, result.obj.value);
+						cacheSet(key, result);
+						triggerStorageEvent(key, false, result.value);
 					} else {
 						error = report.error;
 					}
@@ -77,6 +81,12 @@ function initSyncStorage(onStatus) {
 		remoteStorage.set(key, newObj, function(result) {
 			if(result.success) {
 				error = false;
+				//the following is not required for current spec, but might be for future versions:
+				if(result.rev) {
+					var cacheObj = cacheGet(key);
+					cacheObj._rev = result.rev;
+					cacheSet(key, cacheObj);
+				}
 			} else {
 				error = result.error;
 				cacheSet(key, oldObj);

@@ -21,7 +21,8 @@ function UnhostedDav_0_1(params) {
 			//cache: false, //not compatible with owncloud
 			dataType: "json",
 			success: function(obj){
-				cb({success:true, value: obj.data});
+				obj.success=true;
+				cb(obj);
 			},
 			error: function(xhr) {
 				if(xhr.status == 404) {
@@ -33,14 +34,22 @@ function UnhostedDav_0_1(params) {
 		});
 	};
 	
-	dav.set = function(key, text, cb) {
+	dav.set = function(key, obj, cb) {
 		$.ajax({
 			url: keyToUrl(dav.userAddress, key),
 			type: "PUT",
 			headers: {Authorization: "Basic "+Base64.encode(dav.userAddress +':'+ dav.davToken)},
 			fields: {withCredentials: "true"},
-			data: JSON.stringify({data: text}),
-			success: function() {cb({success:true});},
+			data: JSON.stringify(obj),
+			success: function(text) {
+				try {//this is not necessary for current version of protocol, but might be in future:
+					var obj = JSON.parse(text);
+					obj.success = true;
+					cb(obj);
+				} catch(e) {
+					cb({success:true});
+				}
+			},
 			error: function(xhr) {
 				cb({success:false, error: xhr.status});
 			}
