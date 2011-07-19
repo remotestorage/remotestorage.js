@@ -1,8 +1,7 @@
 var config = {
-	//appUrl: "https://myfavouritesandwich.org"
-	appUrl: "http://example.com/unhosted/www/",
-	walletServiceUrl: "http://example.com/unhosted/www/wallet.php",
-	callbackUrl: "http://example.com/unhosted/www/cb.html",
+	appUrl: "https://myfavouritesandwich.org/",
+	walletServiceUrl: "https://myfavouritesandwich.org/wallet.php",
+	callbackUrl: "https://myfavouritesandwich.org/cb.html",
 	dataScope: "sandwiches",
 	clientId: "mfs"
 	};

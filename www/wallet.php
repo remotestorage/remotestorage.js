@@ -1,14 +1,4 @@
 <?php
-////hard-coded for debugging:
-//echo json_encode(array(
-//	"userAddress" => "mich@federoni.org",
-//	//"userAddress" => "mich@myfavouritesanwich.org",
-//	//"storageType" => "http://unhosted.org/spec/dav/0.1",
-//	//"davUrl" => "http://myfavouritesandwich.org/",
-//	//"dataScope" => "sandwiches",
-//	//"davToken" => "Njg4OTk3MjQw"
-//	));
-//die();
 require_once 'config.php';
 
 function createWallet($walletPath, $userAddress, $dataScope, $cryptoPwd) {
@@ -30,7 +20,7 @@ function getWallet($userAddress, $dataScope) {
 	}
 }
 function verifyBrowserId($assertion){
-	$url= 'https://browserid.org/verify?assertion='.urlencode($assertion).'&audience=example.com';
+	$url= 'https://browserid.org/verify?assertion='.urlencode($assertion).'&audience=myfavouritesandwich.org';
 	// is cURL installed yet?
 	if (!function_exists('curl_init')){
 		die('Sorry cURL is not installed!');
