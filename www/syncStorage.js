@@ -27,6 +27,7 @@ function initSyncStorage(onStatus) {
 	var numConns = 0;
 	var remoteStorage = null;
 	var keys = {};
+	var error = false;
 	function cacheGet(key) {
 		if(keys[key]) {
 			return localStorage.getItem("_syncStorage_"+key);
@@ -55,7 +56,8 @@ function initSyncStorage(onStatus) {
 				userAddress: userAddress,
 				online: true,
 				lock: true,
-				working: (numConns > 0)
+				working: (numConns > 0),
+				error: error
 			});
 		}
 	}
@@ -69,13 +71,14 @@ function initSyncStorage(onStatus) {
 			if(cachedVal === null) {
 				reportStatus(+1);
 				remoteStorage.get(key, function(result) {
-					reportStatus(-1);
 					if(result.success) {
+						error = false;
 						cacheSet(key, result.value);
 						triggerStorageEvent(key, false, result.value);
 					} else {
-						//report sync error
+						error = report.error;
 					}
+					reportStatus(-1);
 				});
 			} else {
 				triggerStorageEvent(key, false, cachedVal);
@@ -87,8 +90,9 @@ function initSyncStorage(onStatus) {
 		remoteStorage.set(key, newValue, function(result) {
 			reportStatus(-1);
 			if(result.success) {
-				//...
+				error = false;
 			} else {
+				error = result.error;
 				cacheSet(key, oldValue);
 				triggerStorageEvent(key, newValue, oldValue);
 			}
