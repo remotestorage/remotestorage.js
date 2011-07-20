@@ -16,7 +16,7 @@ function getDomain($paramName, $from) {
 }
 function getUri($paramName, $from) {
         $uri = getString($paramName, $from);
-        if(!preg_match('|^[a-z0-9-]+\:\/\/[a-z0-9-]+(\.[a-z0-9-\/]+)*$|i', $uri)) {
+        if(!preg_match('|^[a-z0-9-]+\:\/\/[a-z0-9\-]+(\.[a-z0-9\-]+)*(?::\d+)?\/[^#]*$|i', $uri)) {
                 die("Parameter $paramName should be a valid uri");
         }
 	return $uri;
