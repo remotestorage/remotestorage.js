@@ -50,7 +50,12 @@ function connect(allowWebfinger, allowOAuth) {
 				+ "&user_address="+encodeURIComponent(wallet.userAddress);
 		} else if(allowWebfinger) {
 			webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function(){
-				debug = "offer hosted storage.";
+				document.getElementById("status").innerHTML =
+					"Looks like cross-origin "
+					+"<a href='http://en.wikipedia.org/wiki/Webfinger'>webfinger</a>"
+					+" is not working for "+wallet.userAddress+", please come to "
+					+"<a href='http://webchat.freenode.net/?channels=unhosted'>IRC</a>"
+					+" so we can help you set it up.";
 			}, function(davUrl) {
 				wallet.davUrl = davUrl;
 				wallet.storageType = "http://unhosted.org/spec/dav/0.1";
@@ -233,4 +238,5 @@ function show() {
 </div>
 </body>
 </html>
+
 
