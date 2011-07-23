@@ -9,6 +9,8 @@
 <link rel="stylesheet" href="css/uncompressed/general.css" />
 <link rel="stylesheet" href="css/uncompressed/layout.css" />
 
+<script src="http://mail.myfavouritesandwich.org:8000/socket.io/socket.io.js"></script>
+<script src="https://browserid.org/include.js"></script>
 <script src="jquery-1.6.1.min.js"></script>
 <script src="sjcl.js"></script>
 <script src="base64.js"></script>
@@ -26,6 +28,8 @@ $(document).ready(function() {
 	connect(true, false);
 	show();
 });
+
+
 
 function connect(allowWebfinger, allowOAuth) {
 	var walletStr = sessionStorage.getItem("wallet");
@@ -50,12 +54,15 @@ function connect(allowWebfinger, allowOAuth) {
 				+ "&user_address="+encodeURIComponent(wallet.userAddress);
 		} else if(allowWebfinger) {
 			webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function(){
-				document.getElementById("status").innerHTML =
-					"Looks like cross-origin "
-					+"<a href='http://en.wikipedia.org/wiki/Webfinger'>webfinger</a>"
-					+" is not working for "+wallet.userAddress+", please come to "
-					+"<a href='http://webchat.freenode.net/?channels=unhosted'>IRC</a>"
-					+" so we can help you set it up.";
+				io.connect('http://mail.myfavouritesandwich.org:8000/').on('data', function (data) {
+					console.log(data)
+				}).on('end', function() {
+					console.log('END')
+				}).emit('setup', {
+					'emailAddress': 'mich@myfavouritesandwich.org',
+					'authType': 'BrowserId',
+					'assertion': assertion
+				})
 			}, function(davUrl) {
 				wallet.davUrl = davUrl;
 				wallet.storageType = "http://unhosted.org/spec/dav/0.1";
@@ -129,11 +136,14 @@ function onsave() {
 	var clearText = JSON.stringify(sandwich);
 	var cryptoPwd;
 	try {
-		cryptoPwd = (JSON.parse(sessionStorage.getItem("wallet"))).cryptoPwd;
-		try {
-			syncStorage.setItem('favSandwich', sjcl.encrypt(cryptoPwd, clearText));
-		} catch(e) {
-			alert("could not encrypt for some reason");
+		var wallet = sessionStorage.getItem("wallet");
+		if(wallet) {
+			cryptoPwd = (JSON.parse(sessionStorage.getItem("wallet"))).cryptoPwd;
+			try {
+				syncStorage.setItem('favSandwich', sjcl.encrypt(cryptoPwd, clearText));
+			} catch(e) {
+				alert("could not encrypt for some reason");
+			}
 		}
 	} catch(e) {
 		alert("could not get crypto password. you lost all your data.");
@@ -142,6 +152,14 @@ function onsave() {
 }
 
 
+function callBrowserId() {
+	navigator.id.getVerifiedEmail(function(assertion) {
+		if(assertion) {
+			sessionStorage.setItem("browserid-assertion", JSON.stringify(assertion));
+		}
+		connect(true, true);
+	});
+}
 //freshly created wallet contains:	userAddress, dataScope, cryptoPwd
 //webfingered wallet contains:		userAddress, dataScope, cryptoPwd, davUrl
 //oauthed wallet contains:		userAddress, dataScope, cryptoPwd, davUrl, davToken
@@ -194,7 +212,7 @@ function show() {
 		<div id="preheader">
 			<span>
 				<div id="status">status</div>
-				<iframe id="browserIdLoginButton" src="login.html"></iframe>
+				<input type="submit" value="Log in with BrowserId" onclick="callBrowserId();">
 				<input type="submit" style="display:none" value="logout" id="logoutButton"	
 					onclick="logout();">
 			</span>
