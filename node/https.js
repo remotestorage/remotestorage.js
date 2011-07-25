@@ -59,11 +59,17 @@ var webdav = (function() {
         res.end()
       } else if(req.method == 'PUT') {
         if(credentials.check(req)) {
-          redis.put('storage_'+req.path, function(err, data) {
-            res.writeHead(204, {
-              'Access-Control-Allow-Origin': req.headers.Origin,
+          var content = ''
+          req.addListener('data', function(chunk) {
+            content += chunk
+          })
+          req.addListener('end', function() {
+            redis.set('storage_'+req.path, content, function(err, data) {
+              res.writeHead(204, {
+                'Access-Control-Allow-Origin': req.headers.Origin,
+              })
+              res.end(data)
             })
-            res.end(data)
           })
         } else {
           res.writeHead(401, {
@@ -100,6 +106,7 @@ wallet = (function() {
       res.end(
         JSON.stringify({
           'userAddress': 'mich@myfavouritesandwich.org',
+          'dataScope': 'sandwiches',
           'storageType': 'http://unhosted.org/spec/dav/0.1',
           'davUrl': 'https://myfavouritesandwich.org/',
           'davToken': 'abcd',
