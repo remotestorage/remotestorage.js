@@ -1,0 +1,13 @@
+<html manifest="test.appcache"><head>
+
+<script src="https://browserid.org/include.js"></script>
+<script>
+function test() {
+	if(navigator.id){
+		alert('OK!');
+	} else {
+		alert('Oops!');
+	}
+}
+</script>
+</head><body onload="test();">test</body></html>

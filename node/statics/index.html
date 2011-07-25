@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" manifest="myfavouritesandwich.appcache">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+<title>Myfavouritesandwich - An Unhosted demo</title>
+<link rel="stylesheet" href="css/uncompressed/reset.css" />
+<link rel="stylesheet" href="css/uncompressed/text.css" />
+<link rel="stylesheet" href="css/uncompressed/general.css" />
+<link rel="stylesheet" href="css/uncompressed/layout.css" />
+
+<script src="http://mail.myfavouritesandwich.org:8000/socket.io/socket.io.js"></script>
+<script src="https://browserid.org/include.js"></script>
+<script src="jquery-1.6.1.min.js"></script>
+<script src="sjcl.js"></script>
+<script src="base64.js"></script>
+<script src="davStorage.js"></script>
+<script src="syncStorage.js"></script>
+<script src="webfinger.js"></script>
+<script src="config.js"></script>
+<script>
+$(document).ready(function() {
+	if (window.location.href != config.appUrl) {
+		window.location = config.appUrl;
+	}
+	addEventListener('storage', storage_event, false);
+	initSyncStorage(onStatus);
+	connect(true, false);
+	show();
+});
+
+
+
+function connect(allowWebfinger, allowOAuth) {
+	var walletStr = sessionStorage.getItem("wallet");
+	if(walletStr) {
+		var wallet = {};
+		try {
+			wallet = JSON.parse(walletStr);
+		} catch (e) {
+			sessionStorage.removeItem("wallet");
+		}
+		if(wallet.davToken) {
+			window.syncStorage.pullFrom(wallet);
+			window.syncStorage.syncItems(["favSandwich"]);
+		} else if(wallet.davUrl && allowOAuth) {
+			window.location = wallet.davUrl + "oauth2/auth"
+				+ "?client_id="+encodeURIComponent(config.clientId)
+				+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+				+ "&scope="+encodeURIComponent(wallet.dataScope)
+				+ "&response_type=token"
+				+ "&user_address="+encodeURIComponent(wallet.userAddress);
+		} else if(allowWebfinger) {
+			webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function(){
+				io.connect('http://mail.myfavouritesandwich.org:8000/').on('data', function (data) {
+					console.log(data)
+				}).on('end', function() {
+					console.log('END')
+				}).emit('setup', {
+					'emailAddress': 'mich@myfavouritesandwich.org',
+					'authType': 'BrowserId',
+					'assertion': assertion
+				})
+			}, function(davUrl) {
+				wallet.davUrl = davUrl;
+				wallet.storageType = "http://unhosted.org/spec/dav/0.1";
+				wallet.dataScope = config.dataScope;
+				sessionStorage.setItem("wallet", JSON.stringify(wallet));
+				connect(false, true);
+			});
+		}
+	} else {
+		var assertionStr = sessionStorage.getItem("browserid-assertion");
+		if(assertionStr) {
+			var assertion;
+			try {
+				assertion = JSON.parse(assertionStr);
+			} catch(e) {
+			}
+			if(assertion) {
+				$.ajax({
+					type: "POST",
+					url: config.walletServiceUrl,
+					data: {browserIdAssertion: assertion, dataScope: "sandwiches"},
+					dataType: "text",
+					success: function(walletStr) {
+						try {
+							var walletParseTest = JSON.parse(walletStr);
+							sessionStorage.setItem("wallet", walletStr);
+							connect(true, true);
+						} catch(e) {
+							//got unparseable wallet with this assertion. flush:
+							sessionStorage.removeItem("browserid-assertion");
+						}
+					}
+				});
+			}
+		}
+	}
+}
+
+function onStatus(status) {
+	if(status.userAddress) {
+		text = "Logged in as "+status.userAddress;
+		if(status.online) {
+			text +=" [online]";
+		}
+		if(status.lock) {
+			text +="[local is master]";
+		}
+		if(status.working) {
+			text +=" [working]";
+		}
+		if(status.error) {
+			text +=" [ERROR: "+status.error+"]";
+		}
+	} else {
+		text = "Log in for cloud sync";
+	}
+	document.getElementById('status').innerHTML = text; 
+}
+
+function storage_event(e) {
+	if(e.storageArea == null) {//i'm trying to set e.storageArea to window.syncStorage, but it comes out null
+		show();
+	}
+}
+
+function onsave() {
+	var sandwich = {ingredients:
+		[document.getElementById('firstIngredient').value,
+		document.getElementById('secondIngredient').value]
+	};
+	var clearText = JSON.stringify(sandwich);
+	var cryptoPwd;
+	try {
+		var wallet = sessionStorage.getItem("wallet");
+		if(wallet) {
+			cryptoPwd = (JSON.parse(sessionStorage.getItem("wallet"))).cryptoPwd;
+			try {
+				syncStorage.setItem('favSandwich', sjcl.encrypt(cryptoPwd, clearText));
+			} catch(e) {
+				alert("could not encrypt for some reason");
+			}
+		}
+	} catch(e) {
+		alert("could not get crypto password. you lost all your data.");
+	}
+	show();
+}
+
+
+function callBrowserId() {
+	navigator.id.getVerifiedEmail(function(assertion) {
+		if(assertion) {
+			sessionStorage.setItem("browserid-assertion", JSON.stringify(assertion));
+		}
+		connect(true, true);
+	});
+}
+//freshly created wallet contains:	userAddress, dataScope, cryptoPwd
+//webfingered wallet contains:		userAddress, dataScope, cryptoPwd, davUrl
+//oauthed wallet contains:		userAddress, dataScope, cryptoPwd, davUrl, davToken
+function logout() {
+	sessionStorage.removeItem('wallet');
+	sessionStorage.removeItem('browserid-asertion');
+	window.location = ".";
+}
+
+  /////////////////////
+ //  presentation:  //
+/////////////////////
+
+function show() {
+	var cryptoStr = syncStorage.getItem('favSandwich');
+	if(cryptoStr) {
+		var cryptoPwd;
+		try {
+			cryptoPwd = (JSON.parse(sessionStorage.getItem("wallet"))).cryptoPwd;
+			try {
+				sandwich = JSON.parse(sjcl.decrypt(cryptoPwd, cryptoStr));
+			} catch(e) {
+				alert("could not decrypt for some reason. flushing cache, for what it's worth.");
+				syncStorage.flushItems(['favSandwich']);
+				sandwich = {ingredients:['', '']};
+			}
+		} catch(e) {
+			alert("could not get crypto password. you lost all your data.");
+			sandwich = {ingredients:['', '']};
+		}
+	} else {
+		sandwich = {ingredients:['', '']};
+	}
+	document.getElementById('showFirstIngredient').innerHTML = sandwich.ingredients[0];
+	document.getElementById('showSecondIngredient').innerHTML = sandwich.ingredients[1];
+	document.getElementById('firstIngredient').value = sandwich.ingredients[0];
+	document.getElementById('secondIngredient').value = sandwich.ingredients[1];
+}
+
+</script>
+</head>
+<body>
+<div class="preload"></div>
+<div id="preheader"></div>
+<div id="plateContainer">
+	<figure id="plate"></figure>
+</div>
+<div id="mainWrap">
+	<div id="unlockedView">
+		<div id="preheader">
+			<span>
+				<div id="status">status</div>
+				<input type="submit" value="Log in with BrowserId" onclick="callBrowserId();">
+				<input type="submit" style="display:none" value="logout" id="logoutButton"	
+					onclick="logout();">
+			</span>
+		</div>
+			
+		<header class="data">
+			<p>My favourite sandwich has <strong><span id="showFirstIngredient"></span></strong> and 
+				<strong><span id="showSecondIngredient"></span></strong> on it</p>
+			<input id="firstIngredient" placeholder='1st ingredient' type="text"/>
+			<input id="secondIngredient" placeholder='2nd ingredient' type="text"/>	
+			<input class="submitingredients" type="submit" value="Submit!" onclick="onsave();"/>
+		</header>
+	</div>
+	<div id="footerSpacer"></div>					
+	<footer>
+		<div class="wrapper">
+		<div id="leftcolumn">
+			<h3>So... what is this all about?</h3>
+			<p>
+				This is a fictional site that demonstrates the unhosted architecture, a tutorial, so you can take a look at the code to understand how to change this app into something more interesting. View the application source code <a href="https://github.com/unhosted/unhosted/blob/master/my-unhosted-website/www/index.html" target="_blank">here</a>.
+			</p>
+			<p>
+				<strong>myfavouritesandwich.org is not a commercial website, nor is it affiliated with any trademark</strong>
+			</p>
+		</div>
+		<figure id="island"></figure>
+		<div id="rightcolumn">
+			<h3>What is Unhosted?</h3>
+			<p>
+				<strong>Unhosted is a project for strengthening free software against hosted software. 
+				</strong>
+				An unhosted web app is only source code. Dynamic data is encrypted and decentralised, to per-user storage nodes. This benefits <strong>free software</strong>, as well as <strong>scalability</strong>, <strong>robustness</strong>, and <strong>online privacy</strong>.
+			</p>
+			<p>
+				<strong>Check it out at <a href="http://www.unhosted.org">http://www.unhosted.org/</a></strong>
+			</p>
+		</div>
+		<div class="clear">
+		</div>				
+	</footer>
+</div>
+</body>
+</html>
+
+

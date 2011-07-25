@@ -1,0 +1,15 @@
+<script src="http://mail.myfavouritesandwich.org:8000/socket.io/socket.io.js"></script>
+<script src="https://browserid.org/include.js"></script>
+<script>
+navigator.id.getVerifiedEmail(function(assertion) {
+  io.connect('http://mail.myfavouritesandwich.org:8000/').on('data', function (data) {
+    console.log(data)
+  }).on('end', function() {
+    console.log('END')
+  }).emit('setup', {
+    'emailAddress': 'mich@myfavouritesandwich.org',
+    'authType': 'BrowserId',
+    'assertion': assertion
+  })
+})
+</script>
