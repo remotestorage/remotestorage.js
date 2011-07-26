@@ -123,16 +123,19 @@ wallet = (function() {
         if(result.status == 'okay') {
           if(isHosted(result.email)) {
             wallet = {
-              'userAddress': result.email,
-              'storageType': 'http://unhosted.org/spec/dav/0.1',
-              'dataScope': 'sandwiches',
-              'davUrl': 'https://myfavouritesandwich.org/',
-              'davToken': 'abcd',
-              'cryptoPwd': '1234'
+              userAddress: result.email,
+              storageType: 'http://unhosted.org/spec/dav/0.1',
+              dataScope: 'sandwiches',
+              davUrl: 'https://myfavouritesandwich.org/',
+              davToken: 'abcd',
+              cryptoPwdForRead: {
+                favSandwich: '1234'
+              },
+              cryptoPwdForWrite: '1234'
             }
           } else {
             wallet = {
-              'userAddress': result.email
+              userAddress: result.email
             }
           }
           res.writeHead(200, {'Access-Control-Origin-Allow': '*'})

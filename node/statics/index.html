@@ -39,6 +39,8 @@ function connectSyncStorage() {//this will only happen when a logged-in wallet e
       sessionStorage.removeItem("wallet");
     }
     if(wallet.davToken) {
+      document.getElementById('loginButton').style.display = 'none';
+      document.getElementById('logoutButton').style.display = 'block';
       window.syncStorage.pullFrom(wallet);
       window.syncStorage.syncItems(["favSandwich"]);
     }
@@ -76,23 +78,24 @@ function onsave() {
   var sandwich = {ingredients:
     [document.getElementById('firstIngredient').value,
     document.getElementById('secondIngredient').value]
-  };
-  var clearText = JSON.stringify(sandwich);
-  var cryptoPwd;
+  }
+  var clearText = JSON.stringify(sandwich)
   try {
-    var wallet = sessionStorage.getItem("wallet");
-    if(wallet) {
-      cryptoPwd = (JSON.parse(sessionStorage.getItem("wallet"))).cryptoPwd;
-      try {
-        syncStorage.setItem('favSandwich', sjcl.encrypt(cryptoPwd, clearText));
-      } catch(e) {
-        alert("could not encrypt for some reason");
-      }
+    var wallet = sessionStorage.getItem('wallet')
+    if(wallet.cryptoPwdForRead['favSandwich'] != wallet.cryptoPwdForWrite) {
+      wallet.cryptoPwdForRead['favSandwich'] = wallet.cryptoPwdForWrite
+      sessionStorage.setItem('wallet', JSON.stringify(wallet))
+      saveWallet()
+    }
+    try {
+      syncStorage.setItem('favSandwich', sjcl.encrypt(newCryptoPwd, clearText))
+    } catch(e) {
+      alert('could not encrypt for some reason')
     }
   } catch(e) {
-    alert("could not get crypto password. you lost all your data.");
+    alert("could not get crypto password. you lost all your data.")
   }
-  show();
+  show()
 }
 
 function login() {
@@ -189,9 +192,8 @@ function show() {
     <div id="preheader">
       <span>
         <div id="status">status</div>
-        <input type="submit" value="Log in with BrowserId" onclick="login();">
-        <input type="submit" style="display:none" value="logout" id="logoutButton"  
-          onclick="logout();">
+        <input type="submit" value="Log in with BrowserId" id="loginButton" onclick="login();">
+        <input type="submit" style="display:none" value="logout" id="logoutButton" onclick="logout();">
       </span>
     </div>
       
