@@ -104,8 +104,9 @@ function login() {
         data: {browserIdAssertion: assertion, dataScope: "sandwiches"},
         dataType: "text",
         success: function(walletStr) {
-          wallet = JSON.parse(walletStr)
+          var wallet = JSON.parse(walletStr)
           if(wallet.userAddress && wallet.davUrl && wallet.davToken && wallet.cryptoPwd) {//coming back
+            sessionStorage.setItem('wallet', walletStr)
             connectSyncStorage()
           } else {//if webfinger succeeds, oauth. if not, register:
             webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, register, function(davUrl) {

@@ -2,7 +2,8 @@ var fs = require('fs'),
   https = require('https'),
   redis = require('redis').createClient(),
   http = require('http'),
-  url = require('url')
+  url = require('url'),
+  querystring = require('querystring')
 
 var statics = {
   '/index.html':'text/html',
@@ -111,41 +112,37 @@ wallet = (function() {
     return true
   }
 
-  return {
-    handle: function(req, res) {
-      var content = ''
-      req.on('data', function(chunk) {
-        content += chunk
-      })
-      req.on('end', function() {
-        postData = querystring.parse(content)
-        browserIdVerify(postData.assertion, function(result) {
-          if(result.status == 'okay') {
-            if(isHosted(result.email)) {
-              wallet = {
-                'userAddress': result.email,
-                'storageType': 'http://unhosted.org/spec/dav/0.1',
-                'dataScope': 'sandwiches',
-                'davUrl': 'https://myfavouritesandwich.org/',
-                'davToken': 'abcd',
-                'cryptoPwd': '1234'
-              }
-            } else {
-              wallet = {
-                'userAddress': result.email
-              }
+  var handle = function(req, res) {
+    var content = ''
+    req.on('data', function(chunk) {
+      content += chunk
+    })
+    req.on('end', function() {
+      var postData = querystring.parse(content)
+      browserIdVerify(postData.assertion, function(result) {
+        if(result.status == 'okay') {
+          if(isHosted(result.email)) {
+            wallet = {
+              'userAddress': result.email,
+              'storageType': 'http://unhosted.org/spec/dav/0.1',
+              'dataScope': 'sandwiches',
+              'davUrl': 'https://myfavouritesandwich.org/',
+              'davToken': 'abcd',
+              'cryptoPwd': '1234'
             }
-            res.writeHead(200, {
-              'Access-Control-Origin-Allow': '*'
-            })
-            res.end(
-              JSON.stringify({
-              })
-            )
+          } else {
+            wallet = {
+              'userAddress': result.email
+            }
           }
-        })
+          res.writeHead(200, {'Access-Control-Origin-Allow': '*'})
+          res.end(JSON.stringify(wallet))
+        }
       })
-    }
+    })
+  }
+  return {
+    handle: handle
   }
 })()
 
@@ -171,6 +168,7 @@ https.createServer({
   } else if(path.substring(0,8) == '/oauth2/') { 
     oauth.handle(req, res)
   } else if(path.substring(0,7) == '/wallet') { 
+    debugger
     wallet.handle(req, res)
   } else {
     console.log('404: '+path)
