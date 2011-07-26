@@ -81,14 +81,14 @@ function onsave() {
   }
   var clearText = JSON.stringify(sandwich)
   try {
-    var wallet = sessionStorage.getItem('wallet')
+    var wallet = JSON.parse(sessionStorage.getItem('wallet'))
     if(wallet.cryptoPwdForRead['favSandwich'] != wallet.cryptoPwdForWrite) {
       wallet.cryptoPwdForRead['favSandwich'] = wallet.cryptoPwdForWrite
       sessionStorage.setItem('wallet', JSON.stringify(wallet))
       saveWallet()
     }
     try {
-      syncStorage.setItem('favSandwich', sjcl.encrypt(newCryptoPwd, clearText))
+      syncStorage.setItem('favSandwich', sjcl.encrypt(wallet.cryptoPwdForWrite, clearText))
     } catch(e) {
       alert('could not encrypt for some reason')
     }
@@ -108,7 +108,7 @@ function login() {
         dataType: "text",
         success: function(walletStr) {
           var wallet = JSON.parse(walletStr)
-          if(wallet.userAddress && wallet.davUrl && wallet.davToken && wallet.cryptoPwd) {//coming back
+          if(wallet.userAddress && wallet.davUrl && wallet.davToken && wallet.cryptoPwdForRead) {//coming back
             sessionStorage.setItem('wallet', walletStr)
             connectSyncStorage()
           } else {//if webfinger succeeds, oauth. if not, register:
@@ -132,6 +132,8 @@ function login() {
 }
 
 function register() {
+  alert('support for non-webfinger user addresses still under construction')
+  return
   io.connect('https://myfavouritesandwich.org:8000/').on('data', function (data) {
     console.log(data)
   }).on('end', function() {
@@ -158,7 +160,7 @@ function show() {
   if(cryptoStr) {
     var cryptoPwd;
     try {
-      cryptoPwd = (JSON.parse(sessionStorage.getItem("wallet"))).cryptoPwd;
+      cryptoPwd = (JSON.parse(sessionStorage.getItem("wallet"))).cryptoPwdForRead['favSandwich'];
       try {
         sandwich = JSON.parse(sjcl.decrypt(cryptoPwd, cryptoStr));
       } catch(e) {

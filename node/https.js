@@ -35,7 +35,8 @@ var statics = {
 var credentials = (function() {
   return {
     check: function(req) {
-      return true
+      debugger
+      return (req.headers.authorization == 'Basic bWljaEBteWZhdm91cml0ZXNhbmR3aWNoLm9yZzphYmNk')
     }
   }
 })()
@@ -60,6 +61,7 @@ var webdav = (function() {
           'Access-Control-Allow-Credentials': true,
           'Access-Control-Allow-Headers': 'Authorization'
           })
+        console.log('OPTIONS 200')
         res.end()
       } else if(req.method == 'PUT') {
         if(credentials.check(req)) {
@@ -72,14 +74,16 @@ var webdav = (function() {
               res.writeHead(204, {
                 'Access-Control-Allow-Origin': req.headers.Origin,
               })
-              res.end(data)
+              console.log('PUT 204')
+              res.end()
             })
           })
         } else {
           res.writeHead(401, {
             'Access-Control-Allow-Origin': req.headers.Origin,
           })
-          res.end(data)
+          console.log('PUT 401')
+          res.end()
         }
       } else if(req.method == 'DELETE') {
         if(credentials.check(req)) {
@@ -122,7 +126,7 @@ wallet = (function() {
       browserIdVerify(postData.assertion, function(result) {
         if(result.status == 'okay') {
           if(isHosted(result.email)) {
-            wallet = {
+            var wallet = {
               userAddress: result.email,
               storageType: 'http://unhosted.org/spec/dav/0.1',
               dataScope: 'sandwiches',
@@ -134,7 +138,7 @@ wallet = (function() {
               cryptoPwdForWrite: '1234'
             }
           } else {
-            wallet = {
+            var wallet = {
               userAddress: result.email
             }
           }
@@ -143,6 +147,16 @@ wallet = (function() {
         }
       })
     })
+  }
+  return {
+    handle: handle
+  }
+})()
+
+oauth = (function() {
+  function handle(req, res) {
+    res.writeHead(301, {Location: querystring.parse(req.url).redirect_uri+'#access_token=asdf'})
+    res.end()
   }
   return {
     handle: handle
