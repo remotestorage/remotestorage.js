@@ -14,6 +14,7 @@ var statics = {
   '/sjcl.js':'application/javascript',
   '/syncStorage.js':'application/javascript',
   '/webfinger.js':'application/javascript',
+  '/socket.io.js':'application/javascript',
   '/myfavouritesandwich.appcache':'text/cache-manifest',
   '/favicon.ico':'image/x-icon',
   '/css/uncompressed/reset.css':'text/css',
