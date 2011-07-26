@@ -27,8 +27,8 @@ var statics = {
   '/css/uncompressed/img/footerback.png':'image/png',
   '/css/uncompressed/img/change.png':'image/png',
   '/css/uncompressed/img/changehover.png':'image/png',
-  '/.well-known/host-meta',
-  '/webfinger'
+  '/.well-known/host-meta':'application/xml+xrd',
+  '/webfinger':'application/xml+xrd'
 }
 
 var credentials = (function() {
@@ -101,22 +101,50 @@ var webdav = (function() {
 })()
 
 wallet = (function() {
+  function browserIdVerify(assertion, cb) {
+    cb({
+      status: 'okay',
+      email: 'mich@myfavouritesandwich.org'
+    })
+  }
+  function isHosted(userAddress) {
+    return true
+  }
+
   return {
     handle: function(req, res) {
-      res.writeHead(200, {
-        'Access-Control-Origin-Allow': '*'
+      var content = ''
+      req.on('data', function(chunk) {
+        content += chunk
       })
-      res.end(
-        JSON.stringify({
-          'userAddress': 'mich@myfavouritesandwich.org'
-//          'userAddress': 'mich@myfavouritesandwich.org',
-//          'dataScope': 'sandwiches',
-//          'storageType': 'http://unhosted.org/spec/dav/0.1',
-//          'davUrl': 'https://myfavouritesandwich.org/',
-//          'davToken': 'abcd',
-//          'cryptoPwd': '1234'
+      req.on('end', function() {
+        postData = querystring.parse(content)
+        browserIdVerify(postData.assertion, function(result) {
+          if(result.status == 'okay') {
+            if(isHosted(result.email)) {
+              wallet = {
+                'userAddress': result.email,
+                'storageType': 'http://unhosted.org/spec/dav/0.1',
+                'dataScope': 'sandwiches',
+                'davUrl': 'https://myfavouritesandwich.org/',
+                'davToken': 'abcd',
+                'cryptoPwd': '1234'
+              }
+            } else {
+              wallet = {
+                'userAddress': result.email
+              }
+            }
+            res.writeHead(200, {
+              'Access-Control-Origin-Allow': '*'
+            })
+            res.end(
+              JSON.stringify({
+              })
+            )
+          }
         })
-      )
+      })
     }
   }
 })()
@@ -134,6 +162,7 @@ https.createServer({
   if(contentType) {
     console.log('200: '+path)
     res.writeHead(200, {
+      'Access-Control-Origin-Allow': '*',
       'Content-Type': contentType
       })
     fs.createReadStream('/root/statics'+path).pipe(res)
