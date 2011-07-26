@@ -26,7 +26,9 @@ var statics = {
   '/css/uncompressed/img/island.png':'image/png',
   '/css/uncompressed/img/footerback.png':'image/png',
   '/css/uncompressed/img/change.png':'image/png',
-  '/css/uncompressed/img/changehover.png':'image/png'
+  '/css/uncompressed/img/changehover.png':'image/png',
+  '/.well-known/host-meta',
+  '/webfinger'
 }
 
 var credentials = (function() {
@@ -106,12 +108,13 @@ wallet = (function() {
       })
       res.end(
         JSON.stringify({
-          'userAddress': 'mich@myfavouritesandwich.org',
-          'dataScope': 'sandwiches',
-          'storageType': 'http://unhosted.org/spec/dav/0.1',
-          'davUrl': 'https://myfavouritesandwich.org/',
-          'davToken': 'abcd',
-          'cryptoPwd': '1234'
+          'userAddress': 'mich@myfavouritesandwich.org'
+//          'userAddress': 'mich@myfavouritesandwich.org',
+//          'dataScope': 'sandwiches',
+//          'storageType': 'http://unhosted.org/spec/dav/0.1',
+//          'davUrl': 'https://myfavouritesandwich.org/',
+//          'davToken': 'abcd',
+//          'cryptoPwd': '1234'
         })
       )
     }
