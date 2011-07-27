@@ -5,8 +5,7 @@ var fs = require('fs')
   , url = require('url')
   , querystring = require('querystring')
 
-var statics = 
-  { '/index.html': 'text/html'
+var statics =  { '/index.html': 'text/html'
   , '/cb.html': 'text/html'
   , '/base64.js': 'application/javascript'
   , '/config.js': 'application/javascript'
@@ -16,7 +15,6 @@ var statics =
   , '/syncStorage.js': 'application/javascript'
   , '/webfinger.js': 'application/javascript'
   , '/socket.io.js': 'application/javascript'
-  , '/myfavouritesandwich.appcache': 'text/cache-manifest'
   , '/favicon.ico': 'image/x-icon'
   , '/css/uncompressed/reset.css': 'text/css'
   , '/css/uncompressed/text.css': 'text/css'
@@ -32,15 +30,27 @@ var statics =
   , '/webfinger': 'application/xml+xrd'
 }
 
-var credentials = (function() {
-  function getDavToken(userAddress) {
+var autoAppCache = (function( appCacheTime ){
+  return {
+    handle: function( req, res ){
+      res.writeHead(200, {'Content-Type': 'text/cache-manifest'})
+      res.write('CACHE MANIFEST\n\n#version: '+ appCacheTime +'\nNETWORK:\n\n*\nCACHE:\n')
+      for( var i in statics ){
+         res.write( i.substr(1) +'\n')
+      }
+      res.end()
+    }
+  }
+})(new Date().getTime())
+var credentials = (function( ){
+  function getDavToken( userAddress ){
     return 'asdf'
   }
 
   return {
-    check: function(req, userAddress) {
+    check: function( req, userAddress ){
       debugger
-      return (req.headers.authorization == 'Basic '+(new Buffer(userAddress +':'+ getDavToken(userAddress)).toString('base64'))
+      return (req.headers.authorization == 'Basic '+ (new Buffer( userAddress +':'+ getDavToken( userAddress )).toString('base64')))
                                          //'Basic bWljaEBteWZhdm91cml0ZXNhbmR3aWNoLm9yZzphYmNk')
     }
   }
@@ -133,11 +143,11 @@ wallet = (function() {
         if(result.status == 'okay') {
           if(isHosted(result.email)) {
             var wallet =
-              { userAddress: result.email,
-              , storageType: 'http://unhosted.org/spec/dav/0.1',
-              , dataScope: 'sandwiches',
-              , hostedDavUrl: 'https://myfavouritesandwich.org/',
-              , hostedDavToken: 'abcd',
+              { userAddress: result.email
+              , storageType: 'http://unhosted.org/spec/dav/0.1'
+              , dataScope: 'sandwiches'
+              , hostedDavUrl: 'https://myfavouritesandwich.org/'
+              , hostedDavToken: 'abcd'
               , cryptoPwdForRead: {favSandwich: '1234'}
               , cryptoPwdForWrite: '1234'
               }
@@ -183,6 +193,8 @@ https.createServer( { ca:fs.readFileSync('/root/sub.class1.server.ca.pem')
                    }
                  )
     fs.createReadStream('/root/statics'+path).pipe(res)
+  } else if(path == '/.appcache') {
+    autoAppCache.handle(req, res)
   } else if(path.substring(0,8) == '/webdav/') {
     webdav.handle(req, res)
   } else if(path.substring(0,8) == '/oauth2/') { 
