@@ -47,13 +47,18 @@ function connectSyncStorage() {//this will only happen when a logged-in wallet e
   }
 }
 
-function onStatus(status) {
-  if(status.userAddress) {
-    text = "Logged in as "+status.userAddress
-    if(status.isHosted) {
-      text +=" (hosted)"
-    } else {
-      text +=" (unhosted)"
+function onStatus( status ){
+  if( status.userAddress ){
+    text = "Logged in as "+ status.userAddress
+    try {
+      wallet = sessionStorage.getItem('wallet')
+      if(JSON.parse(wallet).isHosted) {
+        text +=" (hosted)"
+      } else {
+        text +=" (unhosted)"
+      }
+    } catch( e ){
+      text +=' (no wallet)'
     }
     if(status.online) {
       text +=" [online]"
@@ -107,27 +112,34 @@ function login() {
   navigator.id.getVerifiedEmail(function(assertion) {
     if(assertion) {
       $.ajax({ type: 'POST'
-             , url: config.walletServiceUrl
-             , data: { browserIdAssertion: assertion, dataScope: 'sandwiches' }
-             , dataType: "text"
-             , success: function(walletStr) {
-        var wallet = JSON.parse(walletStr)
-        if(wallet.userAddress && wallet.davUrl && wallet.davToken && wallet.cryptoPwdForRead) {//coming back
-          sessionStorage.setItem('wallet', walletStr)
-          connectSyncStorage()
-        } else {//if webfinger succeeds, oauth. if not, register:
-          webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, register, function(davUrl) {
-            wallet.davUrl = davUrl
-            wallet.storageType = 'http://unhosted.org/spec/dav/0.1'
-            wallet.dataScope = config.dataScope
-            sessionStorage.setItem('wallet', JSON.stringify(wallet))
-            window.location =   wallet.davUrl
-                              + "oauth2/auth"
-                              + "?client_id="+encodeURIComponent(config.clientId)
-                              + "&redirect_uri="+encodeURIComponent(config.callbackUrl)
-                              + "&scope="+encodeURIComponent(wallet.dataScope)
-                              + "&response_type=token"
-                              + "&user_address="+encodeURIComponent(wallet.userAddress)
+        , url: config.walletServiceUrl
+        , data: { browserIdAssertion: assertion, dataScope: 'sandwiches' }
+        , dataType: "text"
+        , success: function(walletStr) {
+          var wallet = JSON.parse(walletStr)
+          if(wallet.userAddress && wallet.davUrl && wallet.davToken && wallet.cryptoPwdForRead) {//coming back
+            sessionStorage.setItem('wallet', walletStr)
+            connectSyncStorage()
+          } else {//if webfinger succeeds, oauth. if not, register:
+            webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function() {
+              wallet.storageType = 'http://syncStorage.org/spec/JSON-REST'// put UTF8-JSON, keep ._ fields
+              wallet.dataScope = config.dataScope
+              wallet.davUrl = wallet.hostedDavUrl
+              wallet.davToken = wallet.hostedDavToken
+              wallet.isHosted = true
+            }, function(davUrl) {
+              wallet.davUrl = davUrl
+              wallet.storageType = 'http://unhosted.org/spec/dav/0.1'
+              wallet.dataScope = config.dataScope
+              wallet.isHosted = false
+              sessionStorage.setItem('wallet', JSON.stringify(wallet))
+              window.location = wallet.davUrl
+                + "oauth2/auth"
+                + "?client_id="+encodeURIComponent(config.clientId)
+                + "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+                + "&scope="+encodeURIComponent(wallet.dataScope)
+                + "&response_type=token"
+                + "&user_address="+encodeURIComponent(wallet.userAddress)
             })
           }
         }

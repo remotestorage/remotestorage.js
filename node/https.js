@@ -136,8 +136,8 @@ wallet = (function() {
               { userAddress: result.email,
               , storageType: 'http://unhosted.org/spec/dav/0.1',
               , dataScope: 'sandwiches',
-              , davUrl: 'https://myfavouritesandwich.org/',
-              , davToken: 'abcd',
+              , hostedDavUrl: 'https://myfavouritesandwich.org/',
+              , hostedDavToken: 'abcd',
               , cryptoPwdForRead: {favSandwich: '1234'}
               , cryptoPwdForWrite: '1234'
               }
