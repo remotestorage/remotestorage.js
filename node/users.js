@@ -1,6 +1,6 @@
-var redis = require('redis').createClient(),
-  https = require('https'),
-  querystring = require('querystring')
+var redis = require('redis').createClient()
+  , https = require('https')
+  , querystring = require('querystring')
 
 var users = (function() {
   function checkUser(userName, otherEmailAddress, createIfNotExists, cb) {
@@ -34,16 +34,15 @@ var users = (function() {
         'assertion': data.assertion,
         'audience': 'mail.myfavouritesandwich.org'
       })
-      https.request({
-        host: 'browserid.org',
-        port: 443,
-        path: '/verify',
-        method: 'POST',
-        headers: {
-          'Content-Length': postData.length,
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      }, function(res) {
+      https.request( { host: 'browserid.org'
+                     , port: 443
+                     , path: '/verify'
+                     , method: 'POST'
+                     , headers: { 'Content-Length': postData.length
+                                , 'Content-Type': 'application/x-www-form-urlencoded'
+                                }
+                     }
+                   , function(res) {
         console.log('STATUS: '+res.statusCode)
         console.log('HEADERS: '+JSON.stringify(res.headers))
         res.setEncoding('utf8')

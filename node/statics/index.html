@@ -21,64 +21,69 @@
 <script>
 $(document).ready(function() {
   if (window.location.href != config.appUrl) {
-    window.location = config.appUrl;
+    window.location = config.appUrl
   }
-  addEventListener('storage', storage_event, false);
-  initSyncStorage(onStatus);
-  connectSyncStorage();
-  show();
-});
+  addEventListener('storage', storage_event, false)
+  initSyncStorage(onStatus)
+  connectSyncStorage()
+  show()
+})
 
 function connectSyncStorage() {//this will only happen when a logged-in wallet exists in sessionStorage
-  var walletStr = sessionStorage.getItem("wallet");
+  var walletStr = sessionStorage.getItem("wallet")
   if(walletStr) {
-    var wallet = {};
+    var wallet = {}
     try {
-      wallet = JSON.parse(walletStr);
+      wallet = JSON.parse(walletStr)
     } catch (e) {
-      sessionStorage.removeItem("wallet");
+      sessionStorage.removeItem("wallet")
     }
     if(wallet.davToken) {
-      document.getElementById('loginButton').style.display = 'none';
-      document.getElementById('logoutButton').style.display = 'block';
-      window.syncStorage.pullFrom(wallet);
-      window.syncStorage.syncItems(["favSandwich"]);
+      document.getElementById('loginButton').style.display = 'none'
+      document.getElementById('logoutButton').style.display = 'block'
+      window.syncStorage.pullFrom(wallet)
+      window.syncStorage.syncItems(["favSandwich"])
     }
   }
 }
 
 function onStatus(status) {
   if(status.userAddress) {
-    text = "Logged in as "+status.userAddress;
+    text = "Logged in as "+status.userAddress
+    if(status.isHosted) {
+      text +=" (hosted)"
+    } else {
+      text +=" (unhosted)"
+    }
     if(status.online) {
-      text +=" [online]";
+      text +=" [online]"
     }
     if(status.lock) {
-      text +="[local is master]";
+      text +="[local is master]"
     }
     if(status.working) {
-      text +=" [working]";
+      text +=" [working]"
     }
     if(status.error) {
-      text +=" [ERROR: "+status.error+"]";
+      text +=" [ERROR: "+status.error+"]"
     }
   } else {
-    text = "Log in for cloud sync";
+    text = "Log in to save your ingredients to your hosted or unhosted account"
   }
-  document.getElementById('status').innerHTML = text; 
+  document.getElementById('status').innerHTML = text;
 }
 
 function storage_event(e) {
   if(e.storageArea == null) {//i'm trying to set e.storageArea to window.syncStorage, but it comes out null
-    show();
+    show()
   }
 }
 
 function onsave() {
-  var sandwich = {ingredients:
-    [document.getElementById('firstIngredient').value,
-    document.getElementById('secondIngredient').value]
-  }
+  var sandwich = { ingredients: [ document.getElementById('firstIngredient').value
+                                , document.getElementById('secondIngredient').value
+                                ]
+                 }
   var clearText = JSON.stringify(sandwich)
   try {
     var wallet = JSON.parse(sessionStorage.getItem('wallet'))
@@ -101,54 +106,44 @@ function onsave() {
 function login() {
   navigator.id.getVerifiedEmail(function(assertion) {
     if(assertion) {
-      $.ajax({
-        type: "POST",
-        url: config.walletServiceUrl,
-        data: {browserIdAssertion: assertion, dataScope: "sandwiches"},
-        dataType: "text",
-        success: function(walletStr) {
-          var wallet = JSON.parse(walletStr)
-          if(wallet.userAddress && wallet.davUrl && wallet.davToken && wallet.cryptoPwdForRead) {//coming back
-            sessionStorage.setItem('wallet', walletStr)
-            connectSyncStorage()
-          } else {//if webfinger succeeds, oauth. if not, register:
-            webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, register, function(davUrl) {
-              wallet.davUrl = davUrl;
-              wallet.storageType = "http://unhosted.org/spec/dav/0.1";
-              wallet.dataScope = config.dataScope;
-              sessionStorage.setItem("wallet", JSON.stringify(wallet));
-              window.location = wallet.davUrl + "oauth2/auth"
-                + "?client_id="+encodeURIComponent(config.clientId)
-                + "&redirect_uri="+encodeURIComponent(config.callbackUrl)
-                + "&scope="+encodeURIComponent(wallet.dataScope)
-                + "&response_type=token"
-                + "&user_address="+encodeURIComponent(wallet.userAddress);
+      $.ajax({ type: 'POST'
+             , url: config.walletServiceUrl
+             , data: { browserIdAssertion: assertion, dataScope: 'sandwiches' }
+             , dataType: "text"
+             , success: function(walletStr) {
+        var wallet = JSON.parse(walletStr)
+        if(wallet.userAddress && wallet.davUrl && wallet.davToken && wallet.cryptoPwdForRead) {//coming back
+          sessionStorage.setItem('wallet', walletStr)
+          connectSyncStorage()
+        } else {//if webfinger succeeds, oauth. if not, register:
+          webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, register, function(davUrl) {
+            wallet.davUrl = davUrl
+            wallet.storageType = 'http://unhosted.org/spec/dav/0.1'
+            wallet.dataScope = config.dataScope
+            sessionStorage.setItem('wallet', JSON.stringify(wallet))
+            window.location =   wallet.davUrl
+                              + "oauth2/auth"
+                              + "?client_id="+encodeURIComponent(config.clientId)
+                              + "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+                              + "&scope="+encodeURIComponent(wallet.dataScope)
+                              + "&response_type=token"
+                              + "&user_address="+encodeURIComponent(wallet.userAddress)
             })
           }
         }
-      });
+      })
     }
-  });
-}
-
-function register() {
-  alert('support for non-webfinger user addresses still under construction')
-  return
-  io.connect('https://myfavouritesandwich.org:8000/').on('data', function (data) {
-    console.log(data)
-  }).on('end', function() {
-    console.log('END')
-  }).emit('setup', {
-    'emailAddress': 'mich@myfavouritesandwich.org',
-    'authType': 'BrowserId',
-    'assertion': assertion
   })
 }
 
+function register() {
+  window.location = 'http://myfavouritesandwich.org/register.html'
+}
+
 function logout() {
-  sessionStorage.removeItem('wallet');
-  sessionStorage.removeItem('browserid-asertion');
-  show();
+  sessionStorage.removeItem('wallet')
+  sessionStorage.removeItem('browserid-asertion')
+  show()
 }
 
   /////////////////////
@@ -156,29 +151,29 @@ function logout() {
 /////////////////////
 
 function show() {
-  var cryptoStr = syncStorage.getItem('favSandwich');
+  var cryptoStr = syncStorage.getItem('favSandwich')
   if(cryptoStr) {
-    var cryptoPwd;
+    var cryptoPwd
     try {
-      cryptoPwd = (JSON.parse(sessionStorage.getItem("wallet"))).cryptoPwdForRead['favSandwich'];
+      cryptoPwd = (JSON.parse(sessionStorage.getItem('wallet'))).cryptoPwdForRead['favSandwich']
       try {
-        sandwich = JSON.parse(sjcl.decrypt(cryptoPwd, cryptoStr));
+        sandwich = JSON.parse(sjcl.decrypt(cryptoPwd, cryptoStr))
       } catch(e) {
-        alert("could not decrypt for some reason. flushing cache, for what it's worth.");
-        syncStorage.flushItems(['favSandwich']);
-        sandwich = {ingredients:['', '']};
+        alert("could not decrypt for some reason. flushing cache, for what it's worth.")
+        syncStorage.flushItems([ 'favSandwich' ])
+        sandwich = { ingredients: [ '', '' ] }
       }
     } catch(e) {
-      alert("could not get crypto password. you lost all your data.");
-      sandwich = {ingredients:['', '']};
+      alert('could not get crypto password. you lost all your data.')
+      sandwich = { ingredients: [ '', '' ] }
     }
   } else {
-    sandwich = {ingredients:['', '']};
+    sandwich = { ingredients: [ '', '' ] }
   }
-  document.getElementById('showFirstIngredient').innerHTML = sandwich.ingredients[0];
-  document.getElementById('showSecondIngredient').innerHTML = sandwich.ingredients[1];
-  document.getElementById('firstIngredient').value = sandwich.ingredients[0];
-  document.getElementById('secondIngredient').value = sandwich.ingredients[1];
+  document.getElementById('showFirstIngredient').innerHTML = sandwich.ingredients[0]
+  document.getElementById('showSecondIngredient').innerHTML = sandwich.ingredients[1]
+  document.getElementById('firstIngredient').value = sandwich.ingredients[0]
+  document.getElementById('secondIngredient').value = sandwich.ingredients[1]
 }
 
 </script>
@@ -194,8 +189,8 @@ function show() {
     <div id="preheader">
       <span>
         <div id="status">status</div>
-        <input type="submit" value="Log in with BrowserId" id="loginButton" onclick="login();">
-        <input type="submit" style="display:none" value="logout" id="logoutButton" onclick="logout();">
+        <input type="submit" value="Log in with BrowserId" id="loginButton" onclick="login()">
+        <input type="submit" style="display:none" value="logout" id="logoutButton" onclick="logout()">
       </span>
     </div>
       
@@ -204,7 +199,7 @@ function show() {
         <strong><span id="showSecondIngredient"></span></strong> on it</p>
       <input id="firstIngredient" placeholder='1st ingredient' type="text"/>
       <input id="secondIngredient" placeholder='2nd ingredient' type="text"/>  
-      <input class="submitingredients" type="submit" value="Submit!" onclick="onsave();"/>
+      <input class="submitingredients" type="submit" value="Submit!" onclick="onsave()"/>
     </header>
   </div>
   <div id="footerSpacer"></div>          

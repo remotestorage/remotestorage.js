@@ -5,26 +5,26 @@
 <script src="config.js"></script>
 <script>
 gup = function(paramName) {
-	var regex = new RegExp("[\\?&#]"+paramName+"=([^&#]*)");
-	var results = regex.exec(window.location.href);
-	if(results) {
-		return results[1];
-	}
-	return null;
+  var regex = new RegExp("[\\?&#]"+paramName+"=([^&#]*)")
+  var results = regex.exec(window.location.href)
+  if(results) {
+    return results[1]
+  }
+  return null
 }
 
-$(document).ready(function() {	
-	var walletStr = sessionStorage.getItem("wallet");
-	var wallet;
-	if(walletStr) {
-		wallet = JSON.parse(walletStr);
-	} else {
-		//fail
-	}
-	wallet.davToken = gup("access_token");
-	sessionStorage.setItem("wallet", JSON.stringify(wallet));
-	window.location = config.appUrl;
-});
+$(document).ready(function() {  
+  var walletStr = sessionStorage.getItem("wallet")
+  var wallet
+  if(walletStr) {
+    wallet = JSON.parse(walletStr)
+  } else {
+    //fail
+  }
+  wallet.davToken = gup("access_token")
+  sessionStorage.setItem("wallet", JSON.stringify(wallet))
+  window.location = config.appUrl
+})
 
 </script>
 </head>

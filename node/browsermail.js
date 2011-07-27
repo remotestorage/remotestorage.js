@@ -1,9 +1,9 @@
-var io = require('socket.io'),
-  smtp = require('smtp')
+var io = require('socket.io')
+  , smtp = require('smtp')
 
 var browsermail = (function() {
   var sockets = {}
-  require('smtp').createServer(function(connection) {
+  smtp.createServer(function(connection) {
     connection.on('DATA', function(message) {
       for(var i = 0; i < message.recipients.length; i++) {
         var emailAddress = message.recipients[i].address.match(/([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)/g)[0]
