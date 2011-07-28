@@ -1,11 +1,15 @@
-var webapp = require('./webapp.js')
-  , wallet = require('./wallet.js')
-  , identity = require('./identity.js')
-  , storage = require('./storage.js')
-  , config = require('./config.js')
-  , https = require('https')
+var https = require('https')
   , http = require('http')
+  , url = require('url')
   , fs = require('fs')
+  , redis = require('redis').createClient()
+  , querystring = require('querystring')
+
+var webapp = require('./lib/webapp.js')
+  , wallet = require('./lib/wallet.js')
+  , identity = require('./lib/identity.js')
+  , storage = require('./lib/storage.js')
+  , config = require('./config.js')
 
 https.createServer({ ca:fs.readFileSync(config.sslDir +'sub.class1.server.ca.pem')
                    , key:fs.readFileSync(config.sslDir +'ssl.key')
@@ -13,16 +17,16 @@ https.createServer({ ca:fs.readFileSync(config.sslDir +'sub.class1.server.ca.pem
                    }
                  , function(req, res) {
   var path = url.parse(req.url).pathname
-  if(path.substring(0,12) == '/oauth2/auth') {
+  if(path == '/oauth2/auth') {
     storage.handleOAuth(req, res)
   } else if(path.substring(0,8) == '/webdav') {
     storage.handleWebdav(req, res)
-  } else if(path.substring(0,7) == '/wallet') {
+  } else if(path == '/wallet') {
     wallet.handle(req, res)
-  } else if(path.substring(0,22) == '/.well-known/host-meta') {
+  } else if(path == '/.well-known/host-meta') {
     //identity.handleHostmeta(req, res)
     identity.handle(req, res)
-  } else if (path.substring(0,10) == '/webfinger') {
+  } else if (path == '/webfinger') {
     //identity.handleWebfinger(req, res)
     identity.handle(req, res)
   } else {

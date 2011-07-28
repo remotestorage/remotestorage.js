@@ -1,6 +1,6 @@
 (function() {
-  var fs = require('fs')
-    , url = require('url')
+  var url = require('url')
+    , fs = require('fs')
 
   var files = {'/.well-known/host-meta': 'application/xml+xrd'
     , '/webfinger': 'application/xml+xrd'

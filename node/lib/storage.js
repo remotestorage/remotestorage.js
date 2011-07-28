@@ -1,7 +1,5 @@
 (function() {
-  var fs = require('fs')
-    , redis = require('redis').createClient()
-    , url = require('url')
+  var redis = require('redis').createClient()
     , querystring = require('querystring')
 
   function getDavToken(userAddress, cb) {

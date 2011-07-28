@@ -1,7 +1,5 @@
 (function() {
-  var fs = require('fs')
-    , redis = require('redis').createClient()
-    , url = require('url')
+  var https = require('https')
     , querystring = require('querystring')
 
   function browserIdVerify(assertion, cb) {

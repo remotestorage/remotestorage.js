@@ -1,6 +1,8 @@
 (function() {
-  var fs = require('fs')
-    , url = require('url')
+  var url = require('url')
+    , fs = require('fs')
+
+  var config = require('../config.js')
 
   var files =  { '/index.html': 'text/html'
     , '/cb.html': 'text/html'
@@ -27,8 +29,8 @@
 
   function serveAppCache(req, res) {
     res.writeHead(200, {'Content-Type': 'text/cache-manifest'})
-    res.write('CACHE MANIFEST\n\n#version: '+ appCacheTime +'\nNETWORK:\n\n*\nCACHE:\n')
-    for(var i in statics) {
+    res.write('CACHE MANIFEST\n\n#version: '+ config.appCacheTimestamp +'\nNETWORK:\n\n*\nCACHE:\n')
+    for(var i in files) {
        res.write(i.substr(1) +'\n')
     }
     res.end()
