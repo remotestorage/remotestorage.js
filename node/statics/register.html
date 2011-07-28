@@ -1,0 +1,29 @@
+<html>
+<script>
+function register(){
+ $.ajax(
+   { method: 'POST'
+   , url: 'https://myfavouritesandwich.org/register'
+   , success: function(data) {
+       
+     }
+ })
+ alert('support for non-webfinger user addresses still under construction')
+  return
+  io.connect('https://myfavouritesandwich.org:8000/').on('data', function( data ){
+    console.log( data )
+  }).on('end', function(){
+    console.log('END')
+  }).emit('setup', { 'emailAddress': 'mich@myfavouritesandwich.org'
+                   , 'authType': 'BrowserId'
+                   , 'assertion': assertion
+                   } )
+}
+</script>
+</head>
+<body>
+The account you're logging in with does not support unhosted storage. Please try one of your other accounts, or choose a username so we can create a hosted account for you.
+<input type="text">
+<input type="submit" onclick="register()">
+</body>
+</html>
