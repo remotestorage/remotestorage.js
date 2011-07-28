@@ -1,3 +1,10 @@
+//crypto layer: take care to keep one cryptoPwdForRead per key, so that you can update it to the session's cryptoPwdForWrite each time you write to a key
+//    if(wallet.cryptoPwdForRead['favSandwich'] != wallet.cryptoPwdForWrite) {
+//      wallet.cryptoPwdForRead['favSandwich'] = wallet.cryptoPwdForWrite
+//      sessionStorage.setItem('wallet', JSON.stringify(wallet))
+//      saveWallet()
+//    }
+//sjcl.encrypt(wallet.cryptoPwdForWrite, clearText))
 
 function UnhostedDav_0_1( params ){
   var dav = params

@@ -12,7 +12,6 @@
 <script src="socket.io.js"></script>
 <script src="https://browserid.org/include.js"></script>
 <script src="jquery-1.6.1.min.js"></script>
-<script src="sjcl.js"></script>
 <script src="base64.js"></script>
 <script src="davStorage.js"></script>
 <script src="syncStorage.js"></script>
@@ -89,22 +88,7 @@ function onsave() {
                                 , document.getElementById('secondIngredient').value
                                 ]
                  }
-  var clearText = JSON.stringify(sandwich)
-  try {
-    var wallet = JSON.parse(sessionStorage.getItem('wallet'))
-    if(wallet.cryptoPwdForRead['favSandwich'] != wallet.cryptoPwdForWrite) {
-      wallet.cryptoPwdForRead['favSandwich'] = wallet.cryptoPwdForWrite
-      sessionStorage.setItem('wallet', JSON.stringify(wallet))
-      saveWallet()
-    }
-    try {
-      syncStorage.setItem('favSandwich', sjcl.encrypt(wallet.cryptoPwdForWrite, clearText))
-    } catch(e) {
-      alert('could not encrypt for some reason')
-    }
-  } catch(e) {
-    alert("could not get crypto password. you lost all your data.")
-  }
+  syncStorage.setItem('favSandwich', JSON.stringify(sandwich))
   show()
 }
 
@@ -163,23 +147,10 @@ function logout() {
 /////////////////////
 
 function show() {
-  var cryptoStr = syncStorage.getItem('favSandwich')
-  if(cryptoStr) {
-    var cryptoPwd
-    try {
-      cryptoPwd = (JSON.parse(sessionStorage.getItem('wallet'))).cryptoPwdForRead['favSandwich']
-      try {
-        sandwich = JSON.parse(sjcl.decrypt(cryptoPwd, cryptoStr))
-      } catch(e) {
-        alert("could not decrypt for some reason. flushing cache, for what it's worth.")
-        syncStorage.flushItems([ 'favSandwich' ])
-        sandwich = { ingredients: [ '', '' ] }
-      }
-    } catch(e) {
-      alert('could not get crypto password. you lost all your data.')
-      sandwich = { ingredients: [ '', '' ] }
-    }
-  } else {
+  try {
+    sandwich = JSON.parse(syncStorage.getItem('favSandwich'))
+  } catch(e) {
+    syncStorage.flushItems([ 'favSandwich' ])
     sandwich = { ingredients: [ '', '' ] }
   }
   document.getElementById('showFirstIngredient').innerHTML = sandwich.ingredients[0]

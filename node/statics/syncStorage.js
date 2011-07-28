@@ -8,12 +8,12 @@ function initSyncStorage( onStatus ){
     var obj = {}
     if( keys[key] ){
       try {
-        obj = JSON.parse( localStorage.getItem('_syncStorage_'+ key ) )
+        obj = JSON.parse( sessionStorage.getItem('_syncStorage_'+ key ) )
         if( obj === null ){
           obj = {}
         }
       } catch(e) {//unparseable. remove.
-        localStorage.removeItem('_syncStorage_'+ key )
+        sessionStorage.removeItem('_syncStorage_'+ key )
       }
     }
     return obj
@@ -22,7 +22,7 @@ function initSyncStorage( onStatus ){
     if( obj === null ){//negative caching.
       obj = { value: null }
     }
-    localStorage.setItem('_syncStorage_'+ key, JSON.stringify( obj ) )
+    sessionStorage.setItem('_syncStorage_'+ key, JSON.stringify( obj ) )
   }
   function triggerStorageEvent( key, oldValue, newValue ){
     var e = document.createEvent('StorageEvent')
