@@ -92,6 +92,22 @@ function onsave() {
   show()
 }
 
+function registerHosted(assertion) {
+  //info to user: this site accepts hosted and unhosted accounts.
+  //the user address you're logging in with is not usable as an unhosted account, we will create a hosted data store for you.
+  //soon, we hope to offer unhosted accounts @myfavouritesandwich.org, for use elsewhere.
+  $.ajax({ type: 'POST'
+    , url: config.registerUrl
+    , data: {browserIdAssertion: assertion, dataScope: 'sandwiches'}
+    , error: function() {
+        alert('oops')
+      }
+    , success: function(data) {
+        alert(JSON.stringify(data))
+      }
+  })
+}
+
 function login() {
   navigator.id.getVerifiedEmail(function(assertion) {
     if(assertion) {
@@ -106,11 +122,7 @@ function login() {
             connectSyncStorage()
           } else {//if webfinger succeeds, oauth. if not, register:
             webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function() {
-              wallet.storageType = 'http://syncStorage.org/spec/JSON-REST'// put UTF8-JSON, keep ._ fields
-              wallet.dataScope = config.dataScope
-              wallet.davUrl = wallet.hostedDavUrl
-              wallet.davToken = wallet.hostedDavToken
-              wallet.isHosted = true
+              registerHosted()
             }, function(davUrl) {
               wallet.davUrl = davUrl
               wallet.storageType = 'http://unhosted.org/spec/dav/0.1'

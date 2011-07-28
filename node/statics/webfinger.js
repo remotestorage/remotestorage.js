@@ -15,6 +15,7 @@ var webfinger = (function() {
       $.ajax(
         { url: 'https://'+ domain +'/.well-known/host-meta'
         , cache: false
+        , timeout: 1000
         , dataType: 'xml'
         , success: function( xml ){
           try {
@@ -28,7 +29,27 @@ var webfinger = (function() {
             onError()
           }
         }
-        , error: onError
+        , error: function() {//retry with http:
+          $.ajax(
+            { url: 'http://'+ domain +'/.well-known/host-meta'
+            , cache: false
+            , timeout: 1000
+            , dataType: 'xml'
+            , success: function( xml ){
+              try {
+                $(xml).find('Link').each(function(){
+                  var rel = $(this).attr('rel')
+                  if( rel == linkRel ){
+                    cb( $(this).attr('template') )
+                  }
+                })
+              } catch(e) {
+                onError()
+              }
+            }
+            , error: onError
+            } )
+          }
         } )
     } else {
       onError()
@@ -64,6 +85,7 @@ var webfinger = (function() {
     getHostMeta( userAddress, 'lrdd', onError, function( template ){
       $.ajax(
         { url: template.replace( /{uri}/, 'acct:'+ userAddress, true )
+        , timeout: 10000
         , cache: false
         , dataType: 'xml'
         , success: function(xml){
