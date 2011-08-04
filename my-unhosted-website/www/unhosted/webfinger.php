@@ -12,6 +12,7 @@ if(isset($_GET['q'])) {
 	echo "  <hm:Host xmlns='http://host-meta.net/xrd/1.0'>" . UnhostedSettings::domain . "</hm:Host>\n";
 	echo "  <Link rel='http://unhosted.org/spec/dav/0.1'\n";
 	echo "      href='http://" . UnhostedSettings::domain . "/'>\n";
+	//echo "      href='http://" . UnhostedSettings::domain . "/owncloud/apps/unhosted_web/compat.php/mich/unhosted/'>\n";
 	echo "  </Link>\n";
 	echo "</XRD>\n";
 }
