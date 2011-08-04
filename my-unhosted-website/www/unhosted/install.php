@@ -2,7 +2,7 @@
 if(file_exists("config.js") && file_exists("config.php") && file_exists("../.well-known/host-meta")) {
 	die("Looks like the installation was already successfully completed");
 }
-if($_POST["install"] == "install") {
+if(isset($_POST["install"])) {
 	$domain = $_POST["domain"];
 	$protocol = $_POST["protocol"];
 	$installationType = $_POST["installationType"];
@@ -67,7 +67,7 @@ if($_POST["install"] == "install") {
 		."Header always set Access-Control-Allow-Credentials \"true\"\n"
 		."Header always set Cache-Control \"max-age=0\"\n"
 		."Header always set Access-Control-Allow-Origin \"http://%{FAVOURITE}e\"\n");
-	header("Location: /?refresh");
+	header("Location: ../?refresh");
 } else {
 	
 	$apacheModules = apache_get_modules();
@@ -128,7 +128,7 @@ function checkHostMeta(cb) {
 </script></head><body onload="checkHostMeta(function(){document.getElementById('install').disabled=false;})">
 <H2>Great! You're running apache with all the necessary modules.</H2>
 <div id="testing" visibility="hidden">Testing whether you are offering successfully offering host-meta with CORS...</div>
-<div id="cors" visibility="hidden">You did not install the correct CORS headers yet. Add the following directives into your apache config (it should also be possible to make this work with a .htaccess file, but i can't get that to work for some reason):<br><strong>
+<div id="cors" visibility="hidden">You did not install the correct CORS headers yet. Add the following directives into your apache config, or add the right 'AllowOverride' in the apache config and then put these in a .htaccess file:<br><strong>
 Header always set Access-Control-Max-Age "86400"<br>
 Header always set Access-Control-Allow-Origin "*"<br>
 Header always set Access-Control-Allow-Methods "POST"<br>

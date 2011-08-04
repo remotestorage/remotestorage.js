@@ -1,1 +1,4 @@
-Header add MasdirrorID "mirrorasdf 12"
+Header always set Access-Control-Max-Age "86400"
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "POST"
+Header always set Access-Control-Allow-Headers "Content-Type, X-Requested-With, X-HTTP-Method-Override, Accept"
