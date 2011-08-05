@@ -6,7 +6,7 @@ var https = require('https')
   , querystring = require('querystring')
 
 var webapp = require('./lib/webapp.js')
-  , wallet = require('./lib/wallet.js')
+  , session = require('./lib/session.js')
   , identity = require('./lib/identity.js')
   , storage = require('./lib/storage.js')
   , config = require('./config.js')
@@ -21,8 +21,12 @@ https.createServer({ ca:fs.readFileSync(config.sslDir +'sub.class1.server.ca.pem
     storage.handleOAuth(req, res)
   } else if(path.substring(0,8) == '/webdav') {
     storage.handleWebdav(req, res)
-  } else if(path == '/wallet') {
-    wallet.handle(req, res)
+  } else if(path == '/session/init') {
+    session.init(req, res)
+  } else if(path == '/session/update') {
+    session.update(req, res)
+  } else if(path == '/session/requestHosting') {
+    session.requestHosting(req, res)
   } else if(path == '/.well-known/host-meta') {
     //identity.handleHostmeta(req, res)
     identity.handle(req, res)

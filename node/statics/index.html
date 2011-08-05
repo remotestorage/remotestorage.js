@@ -24,57 +24,11 @@ $(document).ready(function() {
   }
   addEventListener('storage', storage_event, false)
   initSyncStorage(onStatus)
-  connectSyncStorage()
   show()
 })
 
-function connectSyncStorage() {//this will only happen when a logged-in wallet exists in sessionStorage
-  var walletStr = sessionStorage.getItem("wallet")
-  if(walletStr) {
-    var wallet = {}
-    try {
-      wallet = JSON.parse(walletStr)
-    } catch (e) {
-      sessionStorage.removeItem("wallet")
-    }
-    if(wallet.davToken) {
-      document.getElementById('loginButton').style.display = 'none'
-      document.getElementById('logoutButton').style.display = 'block'
-      window.syncStorage.pullFrom(wallet)
-      window.syncStorage.syncItems(["favSandwich"])
-    }
-  }
-}
-
 function onStatus( status ){
-  if( status.userAddress ){
-    text = "Logged in as "+ status.userAddress
-    try {
-      wallet = sessionStorage.getItem('wallet')
-      if(JSON.parse(wallet).isHosted) {
-        text +=" (hosted)"
-      } else {
-        text +=" (unhosted)"
-      }
-    } catch( e ){
-      text +=' (no wallet)'
-    }
-    if(status.online) {
-      text +=" [online]"
-    }
-    if(status.lock) {
-      text +="[local is master]"
-    }
-    if(status.working) {
-      text +=" [working]"
-    }
-    if(status.error) {
-      text +=" [ERROR: "+status.error+"]"
-    }
-  } else {
-    text = "Log in to save your ingredients to your hosted or unhosted account"
-  }
-  document.getElementById('status').innerHTML = text;
+  document.getElementById('status').innerHTML = status.asHtml;
 }
 
 function storage_event(e) {
@@ -91,86 +45,6 @@ function onsave() {
   syncStorage.setItem('favSandwich', JSON.stringify(sandwich))
   show()
 }
-
-function registerHosted(assertion) {
-  //info to user: this site accepts hosted and unhosted accounts.
-  //the user address you're logging in with is not usable as an unhosted account, we will create a hosted data store for you.
-  //soon, we hope to offer unhosted accounts @myfavouritesandwich.org, for use elsewhere.
-  $.ajax({ type: 'POST'
-    , url: config.hostedOwncloudBase+'/apps/unhosted_web/ajax/link.php'
-    , data: {browserIdAssertion: assertion, dataScope: 'sandwiches'}
-    , error: function() {
-        alert('oops')
-      }
-    , success: function(retObj) {
-        if(retObj.error) {
-          alert('que?')
-        }
-        var walletStr = sessionStorage.getItem('wallet')
-        var wallet = JSON.parse(walletStr)
-        if(!wallet) {
-          wallet = {}
-        }
-        wallet.storageType = "http://unhosted.org/spec/dav/0.1"
-        wallet.userAddress = retObj.data.userAddress
-        wallet.davToken = retObj.data.authToken
-        wallet.dataScope = 'sandwiches'
-        wallet.davUrl = config.hostedOwncloudBase+'/apps/unhosted_web/compat.php/'+retObj.data.userAddress+'/unhosted/'
-        sessionStorage.setItem('wallet', JSON.stringify(wallet))
-        connectSyncStorage()
-      }
-  })
-}
-
-function login() {
-  navigator.id.getVerifiedEmail(function(assertion) {
-    if(assertion) {
-      $.ajax({ type: 'POST'
-        , url: config.walletServiceUrl
-        , data: { browserIdAssertion: assertion, dataScope: 'sandwiches' }
-        , dataType: "text"
-        , success: function(walletStr) {
-          var wallet = JSON.parse(walletStr)
-          if(wallet.userAddress && wallet.davUrl && wallet.davToken && wallet.cryptoPwdForRead) {//coming back
-            sessionStorage.setItem('wallet', walletStr)
-            connectSyncStorage()
-          } else {//if webfinger succeeds, oauth. if not, register:
-            webfinger.getDavBaseUrl(wallet.userAddress, 0, 1, function() {
-              registerHosted()
-            }, function(davUrl) {
-              wallet.davUrl = davUrl
-              wallet.storageType = 'http://unhosted.org/spec/dav/0.1'
-              wallet.dataScope = config.dataScope
-              wallet.isHosted = false
-              sessionStorage.setItem('wallet', JSON.stringify(wallet))
-              window.location = wallet.davUrl
-                + "oauth2/auth"
-                + "?client_id="+encodeURIComponent(config.clientId)
-                + "&redirect_uri="+encodeURIComponent(config.callbackUrl)
-                + "&scope="+encodeURIComponent(wallet.dataScope)
-                + "&response_type=token"
-                + "&user_address="+encodeURIComponent(wallet.userAddress)
-            })
-          }
-        }
-      })
-    }
-  })
-}
-
-function register() {
-  window.location = 'http://myfavouritesandwich.org/register.html'
-}
-
-function logout() {
-  sessionStorage.removeItem('wallet')
-  sessionStorage.removeItem('browserid-asertion')
-  show()
-}
-
-  /////////////////////
- //  presentation:  //
-/////////////////////
 
 function show() {
   try {
@@ -198,8 +72,8 @@ function show() {
     <div id="preheader">
       <span>
         <div id="status">status</div>
-        <input type="submit" value="Log in with BrowserId" id="loginButton" onclick="login()">
-        <input type="submit" style="display:none" value="logout" id="logoutButton" onclick="logout()">
+        <input type="submit" value="Log in with BrowserId" id="loginButton" onclick="syncStorage.signIn()">
+        <input type="submit" style="display:none" value="logout" id="logoutButton" onclick="syncStorage.signOut()">
       </span>
     </div>
       

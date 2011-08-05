@@ -14,15 +14,16 @@ gup = function(paramName) {
 }
 
 $(document).ready(function() {  
-  var walletStr = sessionStorage.getItem("wallet")
-  var wallet
-  if(walletStr) {
-    wallet = JSON.parse(walletStr)
+  var sessionStr = sessionStorage.getItem("session")
+  var session
+  if(sessionStr) {
+    session = JSON.parse(sessionStr)
   } else {
     //fail
   }
-  wallet.davToken = gup("access_token")
-  sessionStorage.setItem("wallet", JSON.stringify(wallet))
+  session.davToken = gup("access_token")
+  session.unsaved = true
+  sessionStorage.setItem("session", JSON.stringify(session))
   window.location = config.appUrl
 })
 
