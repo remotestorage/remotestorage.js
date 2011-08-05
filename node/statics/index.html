@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" manifest=".appcache">
+<html lang="en" manifest="no.appcache">
 <head>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 
@@ -97,13 +97,27 @@ function registerHosted(assertion) {
   //the user address you're logging in with is not usable as an unhosted account, we will create a hosted data store for you.
   //soon, we hope to offer unhosted accounts @myfavouritesandwich.org, for use elsewhere.
   $.ajax({ type: 'POST'
-    , url: config.registerUrl
+    , url: config.hostedOwncloudBase+'/apps/unhosted_web/ajax/link.php'
     , data: {browserIdAssertion: assertion, dataScope: 'sandwiches'}
     , error: function() {
         alert('oops')
       }
-    , success: function(data) {
-        alert(JSON.stringify(data))
+    , success: function(retObj) {
+        if(retObj.error) {
+          alert('que?')
+        }
+        var walletStr = sessionStorage.getItem('wallet')
+        var wallet = JSON.parse(walletStr)
+        if(!wallet) {
+          wallet = {}
+        }
+        wallet.storageType = "http://unhosted.org/spec/dav/0.1"
+        wallet.userAddress = retObj.data.userAddress
+        wallet.davToken = retObj.data.authToken
+        wallet.dataScope = 'sandwiches'
+        wallet.davUrl = config.hostedOwncloudBase+'/apps/unhosted_web/compat.php/'+retObj.data.userAddress+'/unhosted/'
+        sessionStorage.setItem('wallet', JSON.stringify(wallet))
+        connectSyncStorage()
       }
   })
 }

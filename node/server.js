@@ -35,6 +35,6 @@ https.createServer({ ca:fs.readFileSync(config.sslDir +'sub.class1.server.ca.pem
 }).listen(443)
 
 http.createServer(function(req, res) {
-  res.writeHead(301, {'Location': appUrl})
+  res.writeHead(301, {'Location': config.appUrl})
   res.end()
 }).listen(80)
