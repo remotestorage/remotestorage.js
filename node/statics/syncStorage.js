@@ -125,10 +125,10 @@ function initSyncStorage( onStatus ){
 			} catch (e) {
 				sessionStorage.removeItem("session")
 			}
-			if(session.davToken) {
+			if(session.storage) {
 				document.getElementById('loginButton').style.display = 'none'
 				document.getElementById('logoutButton').style.display = 'block'
-				window.syncStorage.pullFrom(session)
+				window.syncStorage.pullFrom(session.storage)
 				window.syncStorage.syncItems(["favSandwich"])
 			}
 		}
@@ -141,21 +141,8 @@ function initSyncStorage( onStatus ){
 			, error: function() {
 					alert('oops')
 				}
-			, success: function(retObj) {
-					if(retObj.error) {
-						alert('que?')
-					}
-					var sessionStr = sessionStorage.getItem('session')
-					var session = JSON.parse(sessionStr)
-					if(!session) {
-						session = {}
-					}
-					session.storageType = "http://unhosted.org/spec/dav/0.1"
-					session.userAddress = retObj.data.userAddress
-					session.davToken = retObj.data.authToken
-					session.dataScope = 'sandwiches'
-					session.davUrl = config.hostedOwncloudBase+'/apps/unhosted_web/compat.php/'+retObj.data.userAddress+'/unhosted/'
-					sessionStorage.setItem('session', JSON.stringify(session))
+			, success: function(sessionStr) {
+					sessionStorage.setItem('session', sessionStr)
 					connectSyncStorage()
 				}
 		})
@@ -253,4 +240,5 @@ function initSyncStorage( onStatus ){
   }
   reportStatus(0)
   window.syncStorage = syncStorage
+  connectSyncStorage()
 }

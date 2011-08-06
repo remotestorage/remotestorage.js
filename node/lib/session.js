@@ -135,7 +135,10 @@
                   resultStr += chunk
                 })
                 postRes.on('end', function() {
-                  session.storage=JSON.parse(resultStr)
+                  result=JSON.parse(resultStr)
+                  console.log(resultStr)
+                  session.storage=result.storage
+                  session.ownCloudDetails=result.ownCloudDetails
                   setSession(session, res)
                 })
               }).on('error', function(e) {

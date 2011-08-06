@@ -47,16 +47,29 @@ function onsave() {
 }
 
 function show() {
+  var sandwich
   try {
     sandwich = JSON.parse(syncStorage.getItem('favSandwich'))
   } catch(e) {
     syncStorage.flushItems([ 'favSandwich' ])
+  }
+  if(!sandwich) {
     sandwich = { ingredients: [ '', '' ] }
   }
   document.getElementById('showFirstIngredient').innerHTML = sandwich.ingredients[0]
   document.getElementById('showSecondIngredient').innerHTML = sandwich.ingredients[1]
   document.getElementById('firstIngredient').value = sandwich.ingredients[0]
   document.getElementById('secondIngredient').value = sandwich.ingredients[1]
+}
+
+function showOwnCloudDetails() {
+  ownCloudDetails = JSON.parse(sessionStorage.getItem('session')).ownCloudDetails
+  alert
+    ( 'Your data is hosted on our ownCloud instance,\n'
+    + 'url: '+ownCloudDetails.url+'\n'
+    + 'usr: '+ownCloudDetails.usr+'\n'
+    + 'pwd: '+ownCloudDetails.pwd+'\n'
+    )
 }
 
 </script>
@@ -72,6 +85,7 @@ function show() {
     <div id="preheader">
       <span>
         <div id="status">status</div>
+        <input type="submit" value="(hosted)" onclick="showOwnCloudDetails()">
         <input type="submit" value="Log in with BrowserId" id="loginButton" onclick="syncStorage.signIn()">
         <input type="submit" style="display:none" value="logout" id="logoutButton" onclick="syncStorage.signOut()">
       </span>
