@@ -8,4 +8,10 @@
                                     , path: '/verify'
                                     , method: 'POST'}
   module.exports.browserIdAudience = 'myfavouritesandwich.org'
+  module.exports.ownCloudLink = {host: 'localhost'
+                                    , port: 444
+                                    , path: '/apps/unhosted_web/ajax/link.php'
+                                    , method: 'POST'
+                                    , secret: 'XRlc2FuZHdpY2gub3JnIiwiZW1haWwiOiJhc2RmYXNkZkB1b'
+                                    }
 })()

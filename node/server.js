@@ -18,19 +18,26 @@ https.createServer({ ca:fs.readFileSync(config.sslDir +'sub.class1.server.ca.pem
                  , function(req, res) {
   var path = url.parse(req.url).pathname
   if(path == '/oauth2/auth') {
+    console.log('oauth')
     storage.handleOAuth(req, res)
   } else if(path.substring(0,8) == '/webdav') {
+    console.log('webdav')
     storage.handleWebdav(req, res)
   } else if(path == '/session/init') {
+    console.log('session/init')
     session.init(req, res)
   } else if(path == '/session/update') {
+    console.log('session/update')
     session.update(req, res)
   } else if(path == '/session/requestHosting') {
+    console.log('session/requestHosting')
     session.requestHosting(req, res)
   } else if(path == '/.well-known/host-meta') {
+    console.log('host-meta`')
     //identity.handleHostmeta(req, res)
     identity.handle(req, res)
   } else if (path == '/webfinger') {
+    console.log('webfinger')
     //identity.handleWebfinger(req, res)
     identity.handle(req, res)
   } else {

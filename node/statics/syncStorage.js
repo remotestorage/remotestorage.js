@@ -134,13 +134,10 @@ function initSyncStorage( onStatus ){
 		}
 	}
 
-	function registerHosted(assertion) {
-		//info to user: this site accepts hosted and unhosted accounts.
-		//the user address you're logging in with is not usable as an unhosted account, we will create a hosted data store for you.
-		//soon, we hope to offer unhosted accounts @myfavouritesandwich.org, for use elsewhere.
+	function registerHosted(session) {
 		$.ajax({ type: 'POST'
-			, url: config.hostedOwncloudBase+'/apps/unhosted_web/ajax/link.php'
-			, data: {browserIdAssertion: assertion, dataScope: 'sandwiches'}
+			, url: '/session/requestHosting'
+			, data: session
 			, error: function() {
 					alert('oops')
 				}
@@ -178,7 +175,7 @@ function initSyncStorage( onStatus ){
 							connectSyncStorage()
 						} else {//if webfinger succeeds, oauth. if not, register:
 							webfinger.getDavBaseUrl(session.userAddress, 0, 1, function() {
-								registerHosted()
+								registerHosted(session)
 							}, function(davUrl) {
 								session.davUrl = davUrl
 								session.storageType = 'http://unhosted.org/spec/dav/0.1'
