@@ -3,6 +3,7 @@ function initSyncStorage( onStatus ){
   var numConns = 0
   var remoteStorage = null
   var keys = {}
+  var pendingPush = {}
   var error = false
   function cacheGet( key ){
     var obj = {}
@@ -98,102 +99,106 @@ function initSyncStorage( onStatus ){
     }
   }
   var writeThrough = function( key, oldObj, newObj ){
-    reportStatus( +1 )
-    remoteStorage.set( key, newObj, function( result ){
-      if( result.success ){
-        error = false
-        //the following is not required for current spec, but might be for future versions:
-        if( result.rev ){
-          var cacheObj = cacheGet( key )
-          cacheObj._rev = result.rev
-          cacheSet( key, cacheObj )
+    if(remoteStorage && online) {
+      reportStatus( +1 )
+      remoteStorage.set( key, newObj, function( result ){
+        if( result.success ){
+          error = false
+          //the following is not required for current spec, but might be for future versions:
+          if( result.rev ){
+            var cacheObj = cacheGet( key )
+            cacheObj._rev = result.rev
+            cacheSet( key, cacheObj )
+          }
+        } else {
+          error = result.error
+          cacheSet( key, oldObj )
+          triggerStorageEvent( key, newObj.value, oldObj.value )
         }
-      } else {
-        error = result.error
-        cacheSet( key, oldObj )
-        triggerStorageEvent( key, newObj.value, oldObj.value )
+        reportStatus( -1 )
+      })
+    } else {
+      pendingPush[key]=true
+    }
+  }
+  function connectSyncStorage() {//this will only happen when a logged-in session exists in sessionStorage
+    var sessionStr = sessionStorage.getItem("session")
+    if(sessionStr) {
+      var session = {}
+      try {
+        session = JSON.parse(sessionStr)
+      } catch (e) {
+        sessionStorage.removeItem("session")
       }
-      reportStatus( -1 )
+      if(session.storage) {
+        document.getElementById('loginButton').style.display = 'none'
+        document.getElementById('logoutButton').style.display = 'block'
+        window.syncStorage.pullFrom(session.storage)
+        window.syncStorage.syncItems(["favSandwich"])
+      }
+    }
+  }
+
+  function registerHosted(session) {
+    $.ajax({ type: 'POST'
+      , url: '/session/requestHosting'
+      , data: session
+      , error: function() {
+          alert('oops')
+        }
+      , success: function(sessionStr) {
+          sessionStorage.setItem('session', sessionStr)
+          connectSyncStorage()
+        }
     })
   }
-	function connectSyncStorage() {//this will only happen when a logged-in session exists in sessionStorage
-		var sessionStr = sessionStorage.getItem("session")
-		if(sessionStr) {
-			var session = {}
-			try {
-				session = JSON.parse(sessionStr)
-			} catch (e) {
-				sessionStorage.removeItem("session")
-			}
-			if(session.storage) {
-				document.getElementById('loginButton').style.display = 'none'
-				document.getElementById('logoutButton').style.display = 'block'
-				window.syncStorage.pullFrom(session.storage)
-				window.syncStorage.syncItems(["favSandwich"])
-			}
-		}
-	}
 
-	function registerHosted(session) {
-		$.ajax({ type: 'POST'
-			, url: '/session/requestHosting'
-			, data: session
-			, error: function() {
-					alert('oops')
-				}
-			, success: function(sessionStr) {
-					sessionStorage.setItem('session', sessionStr)
-					connectSyncStorage()
-				}
-		})
-	}
+  function signIn() {
+    navigator.id.getVerifiedEmail(function(assertion) {
+      if(assertion) {
+        $.ajax({ type: 'POST'
+          , url: config.sessionServiceUrl+'/init'
+          , data: { browserIdAssertion: assertion, dataScope: 'sandwiches' }
+          , dataType: "text"
+          , success: function(sessionStr) {
+            var session = JSON.parse(sessionStr)
+            if(session.userAddress && session.davUrl && session.davToken && session.cryptoPwdForRead) {//coming back
+              sessionStorage.setItem('session', sessionStr)
+              connectSyncStorage()
+            } else {//if webfinger succeeds, oauth. if not, register:
+              webfinger.getDavBaseUrl(session.userAddress, 0, 1, function() {
+                registerHosted(session)
+              }, function(davUrl) {
+                session.davUrl = davUrl
+                session.storageType = 'http://unhosted.org/spec/dav/0.1'
+                session.dataScope = config.dataScope
+                session.isHosted = false
+                sessionStorage.setItem('session', JSON.stringify(session))
+                window.location = session.davUrl
+                  + "oauth2/auth"
+                  + "?client_id="+encodeURIComponent(config.clientId)
+                  + "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+                  + "&scope="+encodeURIComponent(session.dataScope)
+                  + "&response_type=token"
+                  + "&user_address="+encodeURIComponent(session.userAddress)
+              })
+            }
+          }
+        })
+      }
+    })
+  }
 
-	function signIn() {
-		navigator.id.getVerifiedEmail(function(assertion) {
-			if(assertion) {
-				$.ajax({ type: 'POST'
-					, url: config.sessionServiceUrl+'/init'
-					, data: { browserIdAssertion: assertion, dataScope: 'sandwiches' }
-					, dataType: "text"
-					, success: function(sessionStr) {
-						var session = JSON.parse(sessionStr)
-						if(session.userAddress && session.davUrl && session.davToken && session.cryptoPwdForRead) {//coming back
-							sessionStorage.setItem('session', sessionStr)
-							connectSyncStorage()
-						} else {//if webfinger succeeds, oauth. if not, register:
-							webfinger.getDavBaseUrl(session.userAddress, 0, 1, function() {
-								registerHosted(session)
-							}, function(davUrl) {
-								session.davUrl = davUrl
-								session.storageType = 'http://unhosted.org/spec/dav/0.1'
-								session.dataScope = config.dataScope
-								session.isHosted = false
-								sessionStorage.setItem('session', JSON.stringify(session))
-								window.location = session.davUrl
-									+ "oauth2/auth"
-									+ "?client_id="+encodeURIComponent(config.clientId)
-									+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
-									+ "&scope="+encodeURIComponent(session.dataScope)
-									+ "&response_type=token"
-									+ "&user_address="+encodeURIComponent(session.userAddress)
-							})
-						}
-					}
-				})
-			}
-		})
-	}
+  function register() {
+    window.location = 'http://myfavouritesandwich.org/register.html'
+  }
 
-	function register() {
-		window.location = 'http://myfavouritesandwich.org/register.html'
-	}
-
-	function signOut() {
-		sessionStorage.removeItem('session')
-		sessionStorage.removeItem('browserid-asertion')
-		//show()
-		onStatus({})
-	}
+  function signOut() {
+    sessionStorage.removeItem('session')
+    sessionStorage.removeItem('browserid-asertion')
+    //show()
+    onStatus({})
+  }
   var syncStorage =
     { error: null
     , length: keys.length

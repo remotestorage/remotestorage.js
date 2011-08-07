@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" manifest="no.appcache">
+<html lang="en" manifest=".appcache">
 <head>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 
@@ -60,17 +60,19 @@ function show() {
   document.getElementById('showSecondIngredient').innerHTML = sandwich.ingredients[1]
   document.getElementById('firstIngredient').value = sandwich.ingredients[0]
   document.getElementById('secondIngredient').value = sandwich.ingredients[1]
+
+  try {
+    session = JSON.parse(sessionStorage.getItem('session'))
+    ownCloudDetails = session.ownCloudDetails
+    document.getElementById('ownCloudForm').action= ownCloudDetails.url
+    document.getElementById('ownCloudUser').value= ownCloudDetails.usr
+    document.getElementById('ownCloudPassword').value= ownCloudDetails.pwd
+    document.getElementById('ownCloudButton').style.display= 'block'
+  } catch (e){
+    document.getElementById('ownCloudButton').style.display= 'none'
+  }
 }
 
-function showOwnCloudDetails() {
-  ownCloudDetails = JSON.parse(sessionStorage.getItem('session')).ownCloudDetails
-  alert
-    ( 'Your data is hosted on our ownCloud instance,\n'
-    + 'url: '+ownCloudDetails.url+'\n'
-    + 'usr: '+ownCloudDetails.usr+'\n'
-    + 'pwd: '+ownCloudDetails.pwd+'\n'
-    )
-}
 
 </script>
 </head>
@@ -85,13 +87,20 @@ function showOwnCloudDetails() {
     <div id="preheader">
       <span>
         <div id="status">status</div>
-        <input type="submit" value="(hosted)" onclick="showOwnCloudDetails()">
+		<form id="ownCloudForm" method="post">
+			<input type="hidden" name="user" id="ownCloudUser"/>
+			<input type="password" name="password" id="ownCloudPassword"/>
+		        <input type="submit" value="(hosted)" id="ownCloudButton">
+		</form>
+</div>
+
         <input type="submit" value="Log in with BrowserId" id="loginButton" onclick="syncStorage.signIn()">
         <input type="submit" style="display:none" value="logout" id="logoutButton" onclick="syncStorage.signOut()">
       </span>
     </div>
       
     <header class="data">
+      <p>Tip: try disconnecting from the internet, then updating ingredients, then refreshing the page, then reconnecting. It will work!</p>
       <p>My favourite sandwich has <strong><span id="showFirstIngredient"></span></strong> and 
         <strong><span id="showSecondIngredient"></span></strong> on it</p>
       <input id="firstIngredient" placeholder='1st ingredient' type="text"/>
@@ -129,5 +138,3 @@ function showOwnCloudDetails() {
 </div>
 </body>
 </html>
-
-
