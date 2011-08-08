@@ -95,10 +95,8 @@ if(count($pathParts) >= 8 && $pathParts[0] == '' && $pathParts[2] == 'unhosted' 
 				$dataScope=$v;
 			}
 		}
-		if(OC_UnhostedWeb::loggedInAs($ownCloudUser)) {
-			//TODO: where does $userAddress come from in this case? are we assuming it's $ownCloudUser at this host?
-			//	if not, then are we adding user address to the OAuth spec? We should get rid of the userName here,
-			//	and use http bearer auth
+		if(OC_User::getUser() == $ownCloudUser) {
+			//TODO: check if this can be faked by editing the cookie in firebug!
 			$token=OC_UnhostedWeb::createDataScope($appUrl, $userAddress, $dataScope);
 			header('Location: '.$_GET['redirect_uri'].'#access_token=asdf&token_type=unhosted');
 		} else {

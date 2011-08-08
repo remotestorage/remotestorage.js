@@ -2,9 +2,6 @@
 
 class OC_UnhostedWeb {
 	public static function getValidTokens($userAddress, $dataScope) {
-		//return array(
-		//	"9f3q34gokzsrg" => "https://myfavouritesandwich.org/",
-		//);
 		$user=OC_User::getUser();
 		$userAddress=OC_DB::escape($userAddress);
 		$dataScope=OC_DB::escape($dataScope);
@@ -23,14 +20,6 @@ class OC_UnhostedWeb {
 	}
 
 	public static function getAllTokens() {
-		//return array(
-		//	array(
-		//		"userAdress" => "mich@myfavouritesandwich.org",
-		//		"dataScope" => "myfavouritesandwich.org",
-		//		"token" => "9f3q34gokzsrg",
-		//		"appUrl" => "https://myfavouritesandwich.org/",
-		//	),
-		//);
 		$user=OC_User::getUser();
 		$query=OC_DB::prepare("SELECT token,appUrl,userAddress,dataScope FROM *PREFIX*authtoken WHERE user=? LIMIT 100");
 		$result=$query->execute(array($user));
@@ -77,9 +66,6 @@ class OC_UnhostedWeb {
 			error_log( $entry );
 			die( $entry );
 		}
-	}
-	public static function loggedInAs($ownCloudUser){
-		return ($ownCloudUser=='mich');
 	}
 	public static function createDataScope($appUrl, $userAddress, $dataScope){
 		$token=uniqid();

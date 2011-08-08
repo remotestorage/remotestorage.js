@@ -6,6 +6,7 @@ require_once '../../../lib/base.php';
 require_once '../lib_unhosted.php';
 
 $token=$_GET['token'];
-
-OC_UnhostedWeb::deleteToken($token);
+if(OC_User::isLoggedIn()) {
+	OC_UnhostedWeb::deleteToken($token);
+}
 ?>

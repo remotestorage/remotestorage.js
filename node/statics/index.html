@@ -89,10 +89,10 @@ function show() {
         <div id="status">status</div>
 		<form id="ownCloudForm" method="post">
 			<input type="hidden" name="user" id="ownCloudUser"/>
-			<input type="password" name="password" id="ownCloudPassword"/>
-		        <input type="submit" value="(hosted)" id="ownCloudButton">
+			<input type="hidden" name="password" id="ownCloudPassword"/>
+		        <input type="submit" value="see your data" style="display:none" id="ownCloudButton">
 		</form>
-</div>
+	</div>
 
         <input type="submit" value="Log in with BrowserId" id="loginButton" onclick="syncStorage.signIn()">
         <input type="submit" style="display:none" value="logout" id="logoutButton" onclick="syncStorage.signOut()">

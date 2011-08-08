@@ -28,12 +28,11 @@ require_once('../../lib/base.php');
 require_once( 'lib_unhosted.php' );
 require( 'template.php' );
 
-
 // Check if we are a user
 if( !OC_USER::isLoggedIn()){
-var_export($_COOKIE);
-var_export($_SESSION);
-die('get a cookie!');
+//var_export($_COOKIE);
+//var_export($_SESSION);
+//die('get a cookie!');
 	header( "Location: ".OC_HELPER::linkTo( "index.php" ));
 	exit();
 }
@@ -42,14 +41,6 @@ OC_APP::setActiveNavigationEntry( "unhosted_web_administration" );
 
 OC_UTIL::addStyle( 'unhosted_web', 'admin' );
 OC_UTIL::addScript( 'unhosted_web', 'admin' );
-
-if(isset($_SERVER['HTTPS'])) {
-	$baseUrl= "https://". $_SERVER['SERVER_NAME'] . OC_HELPER::linkTo('unhosted_web','compat.php');
-}else{
-	$baseUrl= "http://". $_SERVER['SERVER_NAME'] . OC_HELPER::linkTo('unhosted_web','compat.php');
-}
-
-//display app, user address, token, keys
 
 // return template
 $tmpl = new OC_TEMPLATE( "unhosted_web", "admin", "admin" );
