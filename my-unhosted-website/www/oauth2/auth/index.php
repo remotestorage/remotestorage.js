@@ -80,6 +80,6 @@ if(count($_POST)) {
 		</div>
 	</body>
 </html>
-<?
+<?php
 }
 ?>
