@@ -63,17 +63,17 @@ if(count($_POST)) {
 	</header>
 	<body>
 		<div class="content">
-			<h2>The app '<?=$clientId ?>' wants to read and write the <?=$dataScope ?> data in your unhosted account</h2>
+			<h2>The app '<?php echo $clientId; ?>' wants to read and write the <?php echo $dataScope; ?> data in your unhosted account</h2>
 			<form method="post" action="">
-				<label>User address:</label><span class="username"><?=$userAddress ?></span>	
+				<label>User address:</label><span class="username"><?php echo $userAddress; ?></span>	
 				<label for="password">Password:</label>
 				<div id="passAllow">
 					<form method="POST" action="?">
 					<input type="password" name="pwd" value="" />
 					<input type="submit" name="submit" value="Allow" />
-					<input type="hidden" value="<?=$userAddress ?>" name="user_address">
-					<input type="hidden" value="<?=$dataScope ?>" name="scope">
-					<input type="hidden" value="<?=$redirectUri ?>" name="redirect_uri">
+					<input type="hidden" value="<?php echo $userAddress; ?>" name="user_address">
+					<input type="hidden" value="<?php echo $dataScope; ?>" name="scope">
+					<input type="hidden" value="<?php echo $redirectUri; ?>" name="redirect_uri">
 					</form>
 				</div>
 			</form>	
