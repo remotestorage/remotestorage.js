@@ -70,7 +70,7 @@ if(count($pathParts) >= 8 && $pathParts[0] == '' && $pathParts[2] == 'unhosted' 
 	$server->setBaseUri("$WEBROOT/apps/core_unhosted/compat.php/$ownCloudUser");
 
 	// Auth backend
-	$authBackend = new OC_Connector_Sabre_Auth_ro_oauth(OC_UnhostedWeb::getValidTokens($ownCloudUser, $userHost, $userName, $dataScope));
+	$authBackend = new OC_Connector_Sabre_Auth_ro_oauth(OC_UnhostedWeb::getValidTokens($ownCloudUser, $userName.'@'.$userHost, $dataScope));
 
 	$authPlugin = new Sabre_DAV_Auth_Plugin($authBackend,'ownCloud');//should use $validTokens here
 	$server->addPlugin($authPlugin);

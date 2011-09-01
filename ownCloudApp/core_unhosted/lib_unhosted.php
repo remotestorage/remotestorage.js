@@ -1,8 +1,8 @@
 <?php
 
 class OC_UnhostedWeb {
-	public static function getValidTokens($userAddress, $dataScope) {
-		$user=OC_User::getUser();
+	public static function getValidTokens($ownCloudUser, $userAddress, $dataScope) {
+		$user=OC_DB::escape($ownCloudUser);
 		$userAddress=OC_DB::escape($userAddress);
 		$dataScope=OC_DB::escape($dataScope);
 		$query=OC_DB::prepare("SELECT token,appUrl FROM *PREFIX*authtoken WHERE user=? AND userAddress=? AND dataScope=? LIMIT 100");
@@ -15,10 +15,8 @@ class OC_UnhostedWeb {
 		}
 		$ret = array();
 		while($row=$result->fetchRow()){
-var_export($row);
-			$ret[$row['token']]=array('appUrl'=>$row['appUrl']);
+			$ret[$row['token']]=$userAddress;
 		}
-$ret['4e5fe495e8138']='mich@myfavouritesandwich.org';
 		return $ret;
 	}
 
