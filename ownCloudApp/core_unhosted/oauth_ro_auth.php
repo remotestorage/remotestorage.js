@@ -52,7 +52,7 @@ die('not getting in with "'.$username.'"/"'.$password.'"!');
 		$auth->setRealm($realm);
 		$userpass = $auth->getUserPass();
 		if (!$userpass) {
-			if(in_array($_SERVER['request_method'], array('GET', 'HEAD', 'OPTIONS'))) {
+			if(in_array($_SERVER['REQUEST_METHOD'], array('GET', 'HEAD', 'OPTIONS'))) {
 				$userpass = array('', '');
 			} else {
 				$auth->requireLogin();
