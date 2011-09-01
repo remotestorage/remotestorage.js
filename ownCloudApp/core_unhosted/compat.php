@@ -98,7 +98,7 @@ if(count($pathParts) >= 8 && $pathParts[0] == '' && $pathParts[2] == 'unhosted' 
 		if(OC_User::getUser() == $ownCloudUser) {
 			//TODO: check if this can be faked by editing the cookie in firebug!
 			$token=OC_UnhostedWeb::createDataScope($appUrl, $userAddress, $dataScope);
-			header('Location: '.$_GET['redirect_uri'].'#access_token=asdf&token_type=unhosted');
+			header('Location: '.$_GET['redirect_uri'].'#access_token='.$token.'&token_type=unhosted');
 		} else {
 			die('not logged in: '.var_export($pathParts, true));
 		}

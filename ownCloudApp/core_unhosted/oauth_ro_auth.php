@@ -30,15 +30,15 @@ class OC_Connector_Sabre_Auth_ro_oauth extends Sabre_DAV_Auth_Backend_AbstractBa
 	 */
 	protected function validateUserPass($username, $password){
 		//always give read-only:
-		if(in_array($_SERVER['request_method'], array('GET', 'HEAD', 'OPTIONS'))) {
+		if(in_array($_SERVER['REQUEST_METHOD'], array('GET', 'HEAD', 'OPTIONS'))) {
 			OC_Util::setUpFS();
 			return true;
-		} else if(isset(self::$validTokens[$username]) && self::$validTokens[$username] == $password) {
+		} else if(isset($this->validTokens[$password]) && $this->validTokens[$password] == $username) {
 			OC_Util::setUpFS();
 			return true;
 		} else {
 var_export($_SERVER);
-var_export(self::$validTokens);
+var_export($this->validTokens);
 die('not getting in with "'.$username.'"/"'.$password.'"!');
 			return false;	
 		}

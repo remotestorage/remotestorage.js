@@ -15,8 +15,11 @@ class OC_UnhostedWeb {
 		}
 		$ret = array();
 		while($row=$result->fetchRow()){
+var_export($row);
 			$ret[$row['token']]=array('appUrl'=>$row['appUrl']);
 		}
+$ret['4e5fe495e8138']='mich@myfavouritesandwich.org';
+		return $ret;
 	}
 
 	public static function getAllTokens() {
@@ -72,7 +75,7 @@ class OC_UnhostedWeb {
 		self::addToken($token, $appUrl, $userAddress, $dataScope);
 		//TODO: input checking on $userAddress and $dataScope
 		list($userName, $userHost) = explode('@', $userAddress);
-		OC_Util::setupFS($userAddress);
+		OC_Util::setupFS(OC_User::getUser());
 		$scopePathParts = array('unhosted', 'webdav', $userHost, $userName, $dataScope);
 		for($i=0;$i<=count($scopePathParts);$i++){
 			$thisPath = '/'.implode('/', array_slice($scopePathParts, 0, $i));
