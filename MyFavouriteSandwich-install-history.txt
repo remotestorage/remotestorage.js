@@ -64,7 +64,7 @@ Set up ownCloud
        29  git pull
        30  git checkout devel
     [not sure which one of these worked!]
-       31  cp -r ownCloudApp/unhosted_web/ /var/www/owncloud/apps/core_unhosted
+       31  cp -r ownCloudApp/core_unhosted/ /var/www/owncloud/apps/core_unhosted
     [go into ownCloud as admin and activate the 'Unhosted Web' app]
 
 
