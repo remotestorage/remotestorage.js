@@ -5,6 +5,7 @@
   var config = require('../config.js')
 
   var files =  { '/index.html': 'text/html'
+    , '/preview.html': 'text/html'
     , '/cb.html': 'text/html'
     , '/base64.js': 'application/javascript'
     , '/config.js': 'application/javascript'

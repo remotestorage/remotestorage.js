@@ -38,7 +38,8 @@ Set up app server
        25  cd unhosted/
        26  git checkout devel
        27  cd node
-       28  node server.js
+       28  npm -g install forever
+       29  forever start server.js
 
 
 
