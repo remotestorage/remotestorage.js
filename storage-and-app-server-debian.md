@@ -46,8 +46,8 @@ Set up app server
 [...]
 
 
-Set up https
-------------
+Set up apache https on port 444
+-------------------------------
 
         6 mkdir /var/www/no-ssl
         7 vim /var/www/no-ssl/index.html
