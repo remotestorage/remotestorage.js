@@ -41,46 +41,38 @@ Set up app server
        28  npm -g install forever
        29  forever start server.js
 
-
-
-[...]
-
-
 Set up apache https on port 444
 -------------------------------
-
-        6 mkdir /var/www/no-ssl
-        7 vim /var/www/no-ssl/index.html
-    [edit:]
-    <html>
-    <script>
-    document.location="https://myfavouritesandwich.org"
-    </script>
-    </html>
+       30  apt-get install libapache2-mod-php5 php5-sqlite
     scp ~/ssl-cert/* root@myfavouritesandwich.org:
-        8  a2ensite default-ssl
+        8  a2enmod ssl
+        9  a2dissite default
+        9  a2ensite default-ssl
+        9  vim /etc/apaches2/ports.conf
+    [comment out:]
+    #NameVirtualHost *:80
+    #Listen 80
+    [edit (twice):]
+               Listen 444
         9  vim /etc/apache2/sites-enabled/default-ssl
+    [edit:]
+           <VirtualHost _default_:444>
     [edit:]
             SSLCertificateFile    /root/ssl.crt
             SSLCertificateKeyFile /root/ssl.key
     [and:]
             SSLCertificateChainFile /root/sub.class1.server.ca.pem
-    [and while you have the file open, this is needed for both ownCloud and WordPress:]
+    [and this is needed for ownCloud:]
         AllowOverride All
-       10  vim /etc/apache2/sites-enabled/000-default
-    [edit:]
-            DocumentRoot /var/www/no-ssl
        11  /etc/init.d/apache2 restart
+    [confirm that https://myfavouritesandwich.org:444/ shows It Works!]
+    [confirm https://myfavouritesandwich.org/ still shows the app server]
 
 Set up ownCloud
 ---------------
 
-       12  apt-get install libapache2-mod-php5
-       13  apt-get install mysql-server
-    [choose mysql root password]
-       14  apt-get install git
-       15  git clone git://anongit.kde.org/owncloud
-       16  mv owncloud/ /var/www
+       15  git clone git://gitorious.org/owncloud/owncloud.git
+       16  mv owncloud/* /var/www
        17  apt-get install php5-mysql
        18  /etc/init.d/apache2 restart
        19  chown www-data /var/www/owncloud/

@@ -45,7 +45,7 @@ Set up ownCloud
        13  apt-get install mysql-server
     [choose mysql root password]
        14  apt-get install git
-       15  git clone git://anongit.kde.org/owncloud
+       15  git clone git://gitorious.org/owncloud/owncloud.git
        16  mv owncloud/ /var/www
        17  apt-get install php5-mysql
        18  /etc/init.d/apache2 restart
