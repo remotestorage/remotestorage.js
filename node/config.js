@@ -1,6 +1,6 @@
 (function() {
   module.exports.sslDir = '/root/ssl-cert/'
-  module.exports.staticsPath = '/root/mfs/statics/'
+  module.exports.staticsPath = '/root/unhosted/node/statics/'
   module.exports.appUrl = 'https://myfavouritesandwich.org/'
   module.exports.appCacheTimestamp = new Date().getTime()//whenever the server restarts, browsers will be told to flush their appcache. good for development mode.
   module.exports.browserIdVerifier = {host: 'browserid.org'

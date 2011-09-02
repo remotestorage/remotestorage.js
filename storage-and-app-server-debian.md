@@ -13,9 +13,33 @@ First setup
 
 Set up node
 -----------
-       5 apt-get install git python g++ libssl-dev make curl
+       5  apt-get install git python g++ libssl-dev make curl
     [follow instructions on https://github.com/joyent/node/wiki/Installation step 3a]
-      17 curl http://npmjs.org/install.sh | sh
+      17  curl http://npmjs.org/install.sh | sh
+
+Set up redis
+------------
+      18  wget http://redis.googlecode.com/files/redis-2.2.12.tar.gz
+      19  tar -xzvf redis-2.2.12.tar.gz 
+      20  cd redis-2.2.12
+      21  make
+      22  echo daemonize yes >> redis.conf
+      23  src/redis-server redis.conf
+
+Set up app server
+-----------------
+       18  npm install redis
+    scp node/ssl-cert/* root@myfavouritesandwich.org:ssl-cert/
+    [you can also clone git://github.com/unhosted/unhosted.git as a read-only copy. but for read/write:]
+       22  ssh-keygen -t rsa -C "root@myfavouritesandwich.org"
+       23  cat .ssh/id_rsa.pub 
+    [paste it into ssh-keys tab of your github account settings]
+       24  git clone git@github.com:unhosted/unhosted.git
+       25  cd unhosted/
+       26  git checkout devel
+       27  cd node
+       28  node server.js
+
 
 
 [...]
