@@ -1,0 +1,14 @@
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  var socket = io.connect('http://myfavouritesandwich.org:8000');
+  socket.on('data', function (data) {
+    console.log('DATA:');
+    console.log(data);
+    document.write(data);
+  });
+  socket.on('end', function () {
+    console.log('END.');
+    console.log();
+  });
+</script>
+Incoming email will appear here in raw MIME. to follow links, manually converting MIME to ASCII, make sure to remove the '3D' after any '=' symbol:
