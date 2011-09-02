@@ -21,7 +21,7 @@ $(document).ready(function() {
   } else {
     //fail
   }
-  session.davToken = gup("access_token")
+  session.storage.davToken = gup("access_token")
   session.unsaved = true
   sessionStorage.setItem("session", JSON.stringify(session))
   window.location = config.appUrl
