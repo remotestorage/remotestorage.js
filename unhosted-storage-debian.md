@@ -73,7 +73,7 @@ Set up WordPress
     [visit https://myfavouritesandwich.org/wp-admin/options-permalink.php and choose a format with no '?' in it]
     [visit https://myfavouritesandwich.org/wp-admin/options-general.php and change the site url and WordPress url to https://myfavouritesandwich.org/]
     [visit https://myfavouritesandwich.org/wp-admin/plugin-editor.php?file=webfinger/plugin.php and just above 'echo "\n</XRD>";', if 'mich' is your username, paste:]
-        echo '<Link rel="http://unhosted.org/spec/dav/0.1" href="https://myfavouritesandwich.org/owncloud/apps/core_unhosted/compat.php/mich/unhosted/"/>';
+        echo '<Link rel="http://unhosted.org/spec/dav/0.1" href="https://myfavouritesandwich.org/owncloud/apps/unhosted/compat.php/mich/unhosted/"/>';
 
 Set up node
 -----------

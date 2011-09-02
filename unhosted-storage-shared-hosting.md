@@ -20,7 +20,7 @@ Configuring WordPress
 - add the host-meta plugin
 - add the webfinger plugin
 - visit https://yourdomain.com/wp-admin/plugin-editor.php?file=webfinger/plugin.php and just above 'echo "\n</XRD>";' (about 40% down), if 'mich' is your username, paste:
-        echo '<Link rel="http://unhosted.org/spec/dav/0.1" href="https://yourdomain.com/owncloud/apps/core_unhosted/compat.php/mich/unhosted/"/>';
+        echo '<Link rel="http://unhosted.org/spec/dav/0.1" href="https://yourdomain.com/owncloud/apps/unhosted/compat.php/mich/unhosted/"/>';
 
 Setting up BrowserId
 ---------------------

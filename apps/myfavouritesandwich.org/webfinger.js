@@ -14,7 +14,6 @@ var webfinger = (function() {
 
       $.ajax(
         { url: 'https://'+ domain +'/.well-known/host-meta'
-        , cache: false
         , timeout: 1000
         , dataType: 'xml'
         , success: function( xml ){
@@ -32,7 +31,6 @@ var webfinger = (function() {
         , error: function() {//retry with http:
           $.ajax(
             { url: 'http://'+ domain +'/.well-known/host-meta'
-            , cache: false
             , timeout: 1000
             , dataType: 'xml'
             , success: function( xml ){

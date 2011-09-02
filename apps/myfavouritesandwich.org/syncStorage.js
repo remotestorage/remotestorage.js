@@ -162,19 +162,22 @@ function initSyncStorage( onStatus ){
           , dataType: "text"
           , success: function(sessionStr) {
             var session = JSON.parse(sessionStr)
-            if(session.userAddress && session.davUrl && session.davToken && session.cryptoPwdForRead) {//coming back
+            if(session.userAddress && session.storage && session.storage.davToken && session.cryptoPwdForRead) {//coming back
               sessionStorage.setItem('session', sessionStr)
               connectSyncStorage()
             } else {//if webfinger succeeds, oauth. if not, register:
               webfinger.getDavBaseUrl(session.userAddress, 0, 1, function() {
                 registerHosted(session)
               }, function(davUrl) {
-                session.davUrl = davUrl
-                session.storageType = 'http://unhosted.org/spec/dav/0.1'
+                session.storage =
+                  { userAddress: session.userAddress
+                  , davUrl: davUrl
+                  , storageType: 'http://unhosted.org/spec/dav/0.1'
+                  }
                 session.dataScope = config.dataScope
                 session.isHosted = false
                 sessionStorage.setItem('session', JSON.stringify(session))
-                window.location = session.davUrl
+                window.location = session.storage.davUrl
                   + "oauth2/auth"
                   + "?client_id="+encodeURIComponent(config.clientId)
                   + "&redirect_uri="+encodeURIComponent(config.callbackUrl)
