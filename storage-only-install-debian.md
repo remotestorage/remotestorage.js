@@ -52,42 +52,36 @@ Set up ownCloud
        19  chown www-data /var/www/owncloud/
        20  chown www-data /var/www/owncloud/config/
     [browse to http://myfavouritesandwich.org/owncloud/ and follow setup wizard]
-       21  git clone git@github.com:unhosted/unhosted.git
-       22  ssh-keygen -t rsa -C "root@myfavouritesandwich.org"
-       23  cat .ssh/id_rsa.pub 
+       21  ssh-keygen -t rsa -C "root@myfavouritesandwich.org"
+       22  cat .ssh/id_rsa.pub 
     [paste it into ssh-keys tab of github account settings]
-       24  git clone git@github.com:unhosted/unhosted.git
-       25  cd unhosted/
-       26  git checkout devel
-       27  git branch devel
-       28  git pull devel
-       29  git pull
-       30  git checkout devel
-    [not sure which one of these worked!]
-       31  cp -r ownCloudApp/core_unhosted/ /var/www/owncloud/apps/core_unhosted
+       23  git clone git@github.com:unhosted/unhosted.git
+       24  cd unhosted/
+       25  git checkout devel
+       26  cp -r ownCloudApp/core_unhosted/ /var/www/owncloud/apps/core_unhosted
     [go into ownCloud as admin and activate the 'Unhosted Web' app]
 
 
 Set up WordPress
 ----------------
 
-       32  cd
-       33  wget http://wordpress.org/latest.tar.gz
-       34  tar -xzvf latest.tar.gz 
-       35  mv wordpress/* /var/www/
-       36  cd /var/www
-       37  mysql -p
+       27  cd
+       28  wget http://wordpress.org/latest.tar.gz
+       29  tar -xzvf latest.tar.gz 
+       30  mv wordpress/* /var/www/
+       31  cd /var/www
+       32  mysql -p
     create database wordpress;
     exit;
     [browse to http://myfavouritesandwich.org/index.php and follow setup wizard]
-       38  vim wp-config.php
+       33  vim wp-config.php
     [paste config from setup wizard]
-       39  mv index.html maintenance.html
+       34  mv index.html maintenance.html
     [in wordpress dashboard, add a wordpress blogpost explaining maintenance]
     [in wordpress dashboard, install and activate plugins: well-known, host-meta, webfinger]
-       40  touch /var/www/.htaccess
-       41  chown www-data /var/www/.htaccess
-       42  /etc/init.d/apache2 restart
+       35  touch /var/www/.htaccess
+       36  chown www-data /var/www/.htaccess
+       37  /etc/init.d/apache2 restart
     [visit https://myfavouritesandwich.org/wp-admin/options-permalink.php and choose a format with no '?' in it]
     [visit https://myfavouritesandwich.org/wp-admin/options-general.php and change the site url and WordPress url to https://myfavouritesandwich.org/]
     [visit https://myfavouritesandwich.org/wp-admin/plugin-editor.php?file=webfinger/plugin.php and just above 'echo "\n</XRD>";', if 'mich' is your username, paste:]
@@ -95,19 +89,19 @@ Set up WordPress
 
 Set up node
 -----------
-       43 apt-get install python g++ libssl-dev make
+       38 apt-get install python g++ libssl-dev make
     [follow instructions on https://github.com/joyent/node/wiki/Installation step 3a]
-       55 apt-get install curl
-       56 curl http://npmjs.org/install.sh | sh
+       50 apt-get install curl
+       51 curl http://npmjs.org/install.sh | sh
 
 Set up BrowserMail
 ------------------
-       58 npm install smtp
-       59 npm install socket.io
-       60 cd /root/unhosted/browsermail
-       61 vim server.js
+       52 npm install smtp
+       53 npm install socket.io
+       54 cd /root/unhosted/browsermail
+       55 vim server.js
      [replace hard-coded 'mich@myfavouritesandwich.org' with your own user address]
-       62 node server.js
+       56 node server.js
 
 Set up BrowserId
 ----------------
