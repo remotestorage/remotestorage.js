@@ -99,7 +99,8 @@ function initSyncStorage( onStatus ){
     }
   }
   var writeThrough = function( key, oldObj, newObj ){
-    if(remoteStorage && online) {
+    //if(remoteStorage && online) {
+    if(remoteStorage) {
       reportStatus( +1 )
       remoteStorage.set( key, newObj, function( result ){
         if( result.success ){
@@ -172,6 +173,7 @@ function initSyncStorage( onStatus ){
                 session.storage =
                   { userAddress: session.userAddress
                   , davUrl: davUrl
+                  , dataScope: config.dataScope
                   , storageType: 'http://unhosted.org/spec/dav/0.1'
                   }
                 session.dataScope = config.dataScope
