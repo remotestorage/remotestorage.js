@@ -41,16 +41,11 @@ Set up https
 Set up ownCloud
 ---------------
 
-       12  apt-get install libapache2-mod-php5
-       13  apt-get install mysql-server
-    [choose mysql root password]
-       14  apt-get install git
+       12  apt-get install git libapache2-mod-php5 php5-sqlite
        15  git clone git://gitorious.org/owncloud/owncloud.git
        16  mv owncloud/ /var/www
-       17  apt-get install php5-mysql
-       18  /etc/init.d/apache2 restart
-       19  chown www-data /var/www/owncloud/
-       20  chown www-data /var/www/owncloud/config/
+       18  chown -R www-data /var/www/owncloud
+       19  /etc/init.d/apache2 restart
     [browse to http://myfavouritesandwich.org/owncloud/ and follow setup wizard]
     [go into ownCloud as admin and activate the 'Unhosted Web' app]
 
