@@ -13,9 +13,9 @@ First setup
 
 Set up node
 -----------
-       43 apt-get install python g++ libssl-dev make
+       5 apt-get install git python g++ libssl-dev make curl
     [follow instructions on https://github.com/joyent/node/wiki/Installation step 3a]
-
+      17 curl http://npmjs.org/install.sh | sh
 
 
 [...]

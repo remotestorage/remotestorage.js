@@ -97,13 +97,20 @@ Set up node
 -----------
        43 apt-get install python g++ libssl-dev make
     [follow instructions on https://github.com/joyent/node/wiki/Installation step 3a]
+       55 apt-get install curl
+       56 curl http://npmjs.org/install.sh | sh
+
+Set up BrowserMail
+------------------
+       58 npm install smtp
+       59 npm install socket.io
+       60 cd /root/unhosted/browsermail
+       61 vim server.js
+     [replace hard-coded 'mich@myfavouritesandwich.org' with your own user address]
+       62 node server.js
 
 Set up BrowserId
 ----------------
-       44 cd /root/unhosted/browsermail
-       45 vim server.js
-     [replace hard-coded 'mich@myfavouritesandwich.org' with your own user address]
-       45 node server.js
     [browse to http://myfavouritesandwich.org:8001 - you should see a message like 'raw MIME emails will appear here'.]
     [browse to http://myfavoritebeer.org and register your user address]
-    [go back to your browsermail tab, copy the link from the email, and paste it, carefully removing the '3D' from '?token=3D...' bit]
+    [go back to your browsermail tab, copy the link from the email, and open it, *BUT* carefully removing the '3D' from the '?token=3D...' bit]
