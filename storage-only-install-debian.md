@@ -52,13 +52,6 @@ Set up ownCloud
        19  chown www-data /var/www/owncloud/
        20  chown www-data /var/www/owncloud/config/
     [browse to http://myfavouritesandwich.org/owncloud/ and follow setup wizard]
-       21  ssh-keygen -t rsa -C "root@myfavouritesandwich.org"
-       22  cat .ssh/id_rsa.pub 
-    [paste it into ssh-keys tab of github account settings]
-       23  git clone git@github.com:unhosted/unhosted.git
-       24  cd unhosted/
-       25  git checkout devel
-       26  cp -r ownCloudApp/core_unhosted/ /var/www/owncloud/apps/core_unhosted
     [go into ownCloud as admin and activate the 'Unhosted Web' app]
 
 
