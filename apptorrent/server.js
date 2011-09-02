@@ -10,6 +10,16 @@ var webapp = require('./lib/webapp.js')
   , identity = require('./lib/identity.js')
   , storage = require('./lib/storage.js')
   , config = require('./config.js')
+  , mfs = require('apps/mfs.js')
+
+var appList =
+  [ 'myfavouritesandwich.org'
+//  , 'jacks-todo-app.dev.unhosted.org'
+  ]
+
+for(i in appList) {
+  webapp.addApp(appList[i], require('apps/'+appList[i]+'/.apptorrent').getApp())
+}
 
 https.createServer({ ca:fs.readFileSync(config.sslDir +'sub.class1.server.ca.pem')
                    , key:fs.readFileSync(config.sslDir +'ssl.key')
