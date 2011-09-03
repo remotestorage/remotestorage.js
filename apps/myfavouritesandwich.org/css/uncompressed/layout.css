@@ -168,6 +168,7 @@ header input[type=submit]{
 }
 	header input.submitingredients{
 		background: url('./img/change.png') no-repeat left top;
+		left: 50px;
 	}
 
 	header.data input{
