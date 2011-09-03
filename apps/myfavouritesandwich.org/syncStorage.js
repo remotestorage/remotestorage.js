@@ -141,17 +141,7 @@ function initSyncStorage( onStatus ){
   }
 
   function registerHosted(session) {
-    $.ajax({ type: 'POST'
-      , url: '/session/requestHosting'
-      , data: session
-      , error: function() {
-          alert('oops')
-        }
-      , success: function(sessionStr) {
-          sessionStorage.setItem('session', sessionStr)
-          connectSyncStorage()
-        }
-    })
+    alert("We couldn't find any unhosted storage connected with user address "+session.userAddress+". If you come to #unhosted on irc.freenode.net, we can set up a test user for you.");
   }
 
   function signIn() {
