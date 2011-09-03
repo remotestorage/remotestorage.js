@@ -1,4 +1,5 @@
 (function() {
+  module.exports.useAppCache = false
   module.exports.sslDir = '/root/ssl-cert/'
   module.exports.appsPath = '/root/unhosted/apps/'
   module.exports.appUrl = 'https://myfavouritesandwich.org/'

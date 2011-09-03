@@ -45,7 +45,7 @@
                      }
                    )
       fs.createReadStream(config.appsPath+urlObj.hostname+urlObj.pathname).pipe(res)
-    } else if(urlObj.pathname == '/.appcache') {
+    } else if((urlObj.pathname == '/.appcache') && (config.useAppCache)) {
       serveAppCache(req, res)
     } else {
       console.log('404: '+urlObj.pathname)
