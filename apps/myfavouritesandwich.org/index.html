@@ -53,11 +53,16 @@ function show() {
   } catch(e) {
     syncStorage.flushItems([ 'favSandwich' ])
   }
-  if(!sandwich) {
+  if(sandwich) {
+    document.getElementById('showIngredients').innerHTML = 'My favourite sandwich has <strong>'
+      +sandwich.ingredients[0]
+      +'</strong> and <strong>'
+      +sandwich.ingredients[1]
+      +'</strong> on it';
+  } else {
+    document.getElementById('showIngredients').innerHTML = 'My favourite sandwich has'
     sandwich = { ingredients: [ '', '' ] }
   }
-  document.getElementById('showFirstIngredient').innerHTML = sandwich.ingredients[0]
-  document.getElementById('showSecondIngredient').innerHTML = sandwich.ingredients[1]
   document.getElementById('firstIngredient').value = sandwich.ingredients[0]
   document.getElementById('secondIngredient').value = sandwich.ingredients[1]
 
@@ -101,8 +106,7 @@ function show() {
       
     <header class="data">
       <p>WARNING: We're messing around with stuff <br> so you're likely to get errors right now - come to the <a href="http://webchat.freenode.net/?channels=unhosted">IRC channel</a> if you want to help.</p>
-      <p>My favourite sandwich has <strong><span id="showFirstIngredient"></span></strong> and 
-        <strong><span id="showSecondIngredient"></span></strong> on it</p>
+      <p id="showIngredients"></p>
       <input id="firstIngredient" placeholder='1st ingredient' type="text"/>
       <input id="secondIngredient" placeholder='2nd ingredient' type="text"/>  
       <input class="submitingredients" type="submit" value="Submit!" onclick="onsave()"/>
