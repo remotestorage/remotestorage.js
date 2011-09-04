@@ -31,6 +31,7 @@ function initSyncStorage( onStatus ){
     dispatchEvent(e)
   }
   var reportStatus = function( deltaConns ){
+    var userAddress
     if( onStatus ){
       numConns += deltaConns
       if( remoteStorage ){
@@ -177,7 +178,7 @@ function initSyncStorage( onStatus ){
     sessionStorage.removeItem('session')
     sessionStorage.removeItem('browserid-asertion')
     //show()
-    onStatus({})
+    onStatus({asHtml:''})
   }
   var syncStorage =
     { error: null
