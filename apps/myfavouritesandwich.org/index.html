@@ -9,7 +9,6 @@
 <link rel="stylesheet" href="css/uncompressed/general.css" />
 <link rel="stylesheet" href="css/uncompressed/layout.css" />
 
-<script src="socket.io.js"></script>
 <script src="https://browserid.org/include.js"></script>
 <script src="jquery-1.6.1.min.js"></script>
 <script src="base64.js"></script>
@@ -65,20 +64,7 @@ function show() {
   }
   document.getElementById('firstIngredient').value = sandwich.ingredients[0]
   document.getElementById('secondIngredient').value = sandwich.ingredients[1]
-
-  try {
-    session = JSON.parse(sessionStorage.getItem('session'))
-    ownCloudDetails = session.ownCloudDetails
-    document.getElementById('ownCloudForm').action= ownCloudDetails.url
-    document.getElementById('ownCloudUser').value= ownCloudDetails.usr
-    document.getElementById('ownCloudPassword').value= ownCloudDetails.pwd
-    document.getElementById('ownCloudButton').style.display= 'block'
-  } catch (e){
-    document.getElementById('ownCloudButton').style.display= 'none'
-  }
 }
-
-
 </script>
 </head>
 <body>
