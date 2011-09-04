@@ -33,35 +33,20 @@ function initSyncStorage( onStatus ){
   var reportStatus = function( deltaConns ){
     if( onStatus ){
       numConns += deltaConns
-      var userAddress
       if( remoteStorage ){
         userAddress = remoteStorage.getUserAddress()
       } else {
         userAddress = null
       }
-      if( status.userAddress ){
-        text = "Logged in as "+ status.userAddress
+      if( userAddress ){
+        text = "Logged in as "+ userAddress
         try {
           session = sessionStorage.getItem('session')
-//        if(JSON.parse(session).isHosted) {
-            text +=" (hosted: <a href='https://myfavouritesandwich.org:444/'>see your data</a>, <a href='https://myfavouritesandwich.org:444/apps/unhosted_web/admin.php'>control panel</a>)"
-//        } else {
-//          text +=" (unhosted)"
-//        }
         } catch( e ){
           text +=' (no session)'
         }
-        if(status.online) {
-          text +=" [online]"
-        }
-        if(status.lock) {
-          text +="[local is master]"
-        }
-        if(status.working) {
+        if(numConns) {
           text +=" [working]"
-        }
-        if(status.error) {
-          text +=" [ERROR: "+status.error+"]"
         }
       } else {
         text = ""
