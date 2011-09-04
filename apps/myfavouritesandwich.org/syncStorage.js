@@ -64,7 +64,7 @@ function initSyncStorage( onStatus ){
           text +=" [ERROR: "+status.error+"]"
         }
       } else {
-        text = "Log in to save your ingredients to your hosted or unhosted account"
+        text = ""
       }
       onStatus( { userAddress: userAddress
                 , online: true
