@@ -82,9 +82,8 @@ var webfinger = (function() {
     //get the WebFinger data for the user and extract the uDAVdomain:
     getHostMeta( userAddress, 'lrdd', onError, function( template ){
       $.ajax(
-        { url: template.replace( /{uri}/, 'acct:'+ userAddress, true )
+        { url: template.replace( /{uri}/, userAddress, true )
         , timeout: 10000
-        , cache: false
         , dataType: 'xml'
         , success: function(xml){
           try {
