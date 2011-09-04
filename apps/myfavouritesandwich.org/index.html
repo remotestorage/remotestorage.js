@@ -29,12 +29,6 @@
     <div id="preheader">
       <span>
         <div id="status">status</div>
-		<form id="ownCloudForm" method="post">
-			<input type="hidden" name="user" id="ownCloudUser"/>
-			<input type="hidden" name="password" id="ownCloudPassword"/>
-		        <input type="submit" value="see your data" style="display:none" id="ownCloudButton">
-		</form>
-	</div>
 
         <input type="submit" value="sync it up" id="loginButton" onclick="syncStorage.signIn()">
         <input type="submit" style="display:none" value="logout" id="logoutButton" onclick="syncStorage.signOut()">
@@ -44,9 +38,8 @@
     <header class="data">
       <p>WARNING: We're messing around with stuff <br> so you're likely to get errors right now - come to the <a href="http://webchat.freenode.net/?channels=unhosted">IRC channel</a> if you want to help.</p>
       <p id="showIngredients"></p>
-      <input id="firstIngredient" placeholder='1st ingredient' type="text"/>
-      <input id="secondIngredient" placeholder='2nd ingredient' type="text"/>  
-      <input class="submitingredients" type="submit" value="Submit!" onclick="onsave()"/>
+      <input id="firstIngredient" placeholder="1st ingredient" type="text" onblur="onsave()"/>
+      <input id="secondIngredient" placeholder="2nd ingredient" type="text" onblur="onsave()"/>  
     </header>
   </div>
   <div id="footerSpacer"></div>          
