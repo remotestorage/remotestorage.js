@@ -55,9 +55,9 @@ function show() {
   } catch(e) {
     syncStorage.flushItems([ 'favSandwich' ])
   }
-  document.getElementById('firstIngredient').value = sandwich.ingredients[0]
-  document.getElementById('secondIngredient').value = sandwich.ingredients[1]
   if(sandwich) {
+    document.getElementById('firstIngredient').value = sandwich.ingredients[0]
+    document.getElementById('secondIngredient').value = sandwich.ingredients[1]
     for(var i=0;i < 2; i++) {
       if(!(sandwich.ingredients[i])) {
         sandwich.ingredients[i]='...'
@@ -70,6 +70,7 @@ function show() {
       +'</strong> on it';
   } else {
     document.getElementById('showIngredients').innerHTML = 'My favourite sandwich has'
-    sandwich = { ingredients: [ '', '' ] }
+    document.getElementById('firstIngredient').value = ''
+    document.getElementById('secondIngredient').value = ''
   }
 }
