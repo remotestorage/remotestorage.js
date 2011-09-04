@@ -1,4 +1,17 @@
 $(document).ready(function() {
+  var tokenReceived = gup("access_token")
+  if(tokenReceived) {
+    var sessionStr = sessionStorage.getItem("session")
+    var session
+    if(sessionStr) {
+      session = JSON.parse(sessionStr)
+    } else {
+      //fail
+    }
+    session.storage.davToken = gup("access_token")
+    session.unsaved = true
+    sessionStorage.setItem("session", JSON.stringify(session))
+  }
   if (window.location.href != config.appUrl) {
     window.location = config.appUrl
   }
@@ -6,6 +19,15 @@ $(document).ready(function() {
   initSyncStorage(onStatus)
   show()
 })
+
+gup = function(paramName) {
+  var regex = new RegExp("[\\?&#]"+paramName+"=([^&#]*)")
+  var results = regex.exec(window.location.href)
+  if(results) {
+    return results[1]
+  }
+  return null
+}
 
 function onStatus( status ){
   document.getElementById('status').innerHTML = status.asHtml;
