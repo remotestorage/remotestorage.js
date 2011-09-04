@@ -39,7 +39,7 @@ function initSyncStorage( onStatus ){
         userAddress = null
       }
       if( userAddress ){
-        text = "Logged in as "+ userAddress
+        text = "Synced to "+ userAddress
         try {
           session = sessionStorage.getItem('session')
         } catch( e ){
