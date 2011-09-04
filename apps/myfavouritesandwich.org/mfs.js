@@ -31,6 +31,13 @@ gup = function(paramName) {
 
 function onStatus( status ){
   document.getElementById('status').innerHTML = status.asHtml;
+  if(status.userAddress) {
+    document.getElementById('loginButton').style.display = 'none';
+    document.getElementById('logoutButton').style.display = 'block';
+  } else {
+    document.getElementById('loginButton').style.display = 'block';
+    document.getElementById('logoutButton').style.display = 'none';
+  }
 }
 
 function storage_event(e) {
