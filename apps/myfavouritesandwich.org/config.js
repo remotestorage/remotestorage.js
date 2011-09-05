@@ -1,4 +1,4 @@
-var config = { appUrl: 'http://localhost/unhosted/'
+var config = { appUrl: 'https://myfavouritesandwich.org/'
              , sessionServiceUrl: 'https://myfavouritesandwich.org/session'
              , hostedOwncloudBase: 'https://myfavouritesandwich.org:444'
              , callbackUrl: 'https://myfavouritesandwich.org/'
