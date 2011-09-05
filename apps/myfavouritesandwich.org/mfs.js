@@ -12,11 +12,12 @@ $(document).ready(function() {
     session.unsaved = true
     sessionStorage.setItem("session", JSON.stringify(session))
   }
-  if (window.location.href != config.appUrl) {
+  if (window.location.href != config.appUrl + window.location.hash) {
     window.location = config.appUrl
   }
   addEventListener('storage', storage_event, false)
   initSyncStorage(onStatus)
+  syncStorage.syncItems(['favSandwich'])
   show()
 })
 

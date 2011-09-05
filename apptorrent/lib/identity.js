@@ -20,6 +20,14 @@
         )
     } else if(path == '/webfinger') {
       user = url.parse(req.url).search.substring(3) //TODO: parse this a bit more nicely
+      if(user.substring(0, 5)=='acct:') {
+        user = user.substring(5)
+      }
+      var atSignPos = user.indexOf('@')
+      if(atSignPos) {
+        user = user.substring(0, atSignPos)
+      }
+      console.log('webfinger '+url.parse(req.url).search+' -> '+user)
       res.write('<?xml version="1.0" encoding="UTF-8"?>\n'
         + '<XRD xmlns="http://docs.oasis-open.org/ns/xri/xrd-1.0" xmlns:hm="http://host-meta.net/xrd/1.0">\n'
         + '\t<hm:Host xmlns="http://host-meta.net/xrd/1.0">myfavouritesandwich.org</hm:Host>\n'
