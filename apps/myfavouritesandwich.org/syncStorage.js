@@ -127,7 +127,7 @@ function initSyncStorage( onStatus ){
   }
 
   function registerHosted(session) {
-    alert("We couldn't find any unhosted storage connected with user address "+session.userAddress+". If you come to #unhosted on irc.freenode.net, we can set up a test user for you.");
+    alert("We looked for your remote storage at "+session.userAddress+", but couldn't find it there. Don't be sad though! Because if you stop by in our chat room, we can set up a test user for you. [http://webchat.freenode.net/?channels=unhosted] Probably you can even keep "+session.userAddress+" as your user address");
   }
 
   function signIn() {

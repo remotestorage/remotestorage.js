@@ -31,12 +31,12 @@
         <div id="status">status</div>
 
         <input type="submit" value="sync it up" id="loginButton" onclick="syncStorage.signIn()">
-        <input type="submit" style="display:none" value="logout" id="logoutButton" onclick="syncStorage.signOut()">
+        <input type="submit" style="display:none" value="disconnect" id="logoutButton" onclick="syncStorage.signOut()">
       </span>
     </div>
       
     <header class="data">
-      <p>We're messing around with stuff right now.<br />Come to the <a href="http://webchat.freenode.net/?channels=unhosted">chat room</a> if you want to help.</p>
+      <p>This app is still in alpha, so expect bugs.<br />Come to the <a href="http://webchat.freenode.net/?channels=unhosted">chat room</a> if you want to help.</p>
       <p id="showIngredients"></p>
       <input id="firstIngredient" placeholder="1st ingredient" type="text" onchange="onsave()"/>
       <input id="secondIngredient" placeholder="2nd ingredient" type="text" onchange="onsave()"/>  
