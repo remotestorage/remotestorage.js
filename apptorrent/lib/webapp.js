@@ -40,7 +40,7 @@
     if(contentType) {
       console.log('200: '+urlObj.pathname)
       res.writeHead( 200
-                   , { 'Access-Control-Origin-Allow': '*'
+                   , { 'Access-Control-Allow-Origin': '*'
                      , 'Content-Type': contentType
                      }
                    )

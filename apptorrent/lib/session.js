@@ -89,7 +89,7 @@
             setSession(session, res)
           })
         } else {
-          res.writeHead(200, {'Access-Control-Origin-Allow': '*'})
+          res.writeHead(200, {'Access-Control-Allow-Origin': '*'})
           res.end(JSON.stringify({}))
         }
       })
@@ -147,11 +147,11 @@
             }
           } catch(e) {
             console.log('ERROR:'+JSON.stringify(e))
-            res.writeHead(200, {'Access-Control-Origin-Allow': '*'})
+            res.writeHead(200, {'Access-Control-Allow-Origin': '*'})
             res.end(JSON.stringify({}))
           }
         } else {
-          res.writeHead(200, {'Access-Control-Origin-Allow': '*'})
+          res.writeHead(200, {'Access-Control-Allow-Origin': '*'})
           res.end(JSON.stringify({}))
         }
       })
@@ -179,7 +179,7 @@
               setSession(session, res)
             }
           } catch(e) {
-            res.writeHead(200, {'Access-Control-Origin-Allow': '*'})
+            res.writeHead(200, {'Access-Control-Allow-Origin': '*'})
             res.end(JSON.stringify({}))
           }
         }
@@ -191,7 +191,7 @@
     storeSession(session, function(err, data) {
       console.log('redis err:'+JSON.stringify(err))
       console.log('redis data:'+JSON.stringify(data))
-      res.writeHead(200, {'Access-Control-Origin-Allow': '*'})
+      res.writeHead(200, {'Access-Control-Allow-Origin': '*'})
       res.end(JSON.stringify(session))
     })
   }

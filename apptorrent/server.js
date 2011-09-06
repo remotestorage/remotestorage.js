@@ -41,7 +41,7 @@ https.createServer({ ca:fs.readFileSync(config.sslDir +'sub.class1.server.ca.pem
   } else if(path == '/session/requestHosting') {
     console.log('session/requestHosting')
     session.requestHosting(req, res)
-  } else if(path == '/.well-known/host-meta') {
+  } else if(path.substring(0, 22) == '/.well-known/host-meta') {
     console.log('host-meta`')
     //identity.handleHostmeta(req, res)
     identity.handle(req, res)
@@ -55,6 +55,7 @@ https.createServer({ ca:fs.readFileSync(config.sslDir +'sub.class1.server.ca.pem
 }).listen(443)
 
 http.createServer(function(req, res) {
-  res.writeHead(301, {'Location': config.appUrl})
-  res.end()
+    identity.handle(req, res)
+  //res.writeHead(301, {'Location': config.appUrl+url.parse(req.url).pathname.substring(1)})
+  //res.end()
 }).listen(80)

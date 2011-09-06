@@ -5,7 +5,7 @@
     var path = url.parse(req.url).pathname
     console.log('200: '+path)
     res.writeHead( 200
-                 , { 'Access-Control-Origin-Allow': '*'
+                 , { 'Access-Control-Allow-Origin': '*'
                  , 'Content-Type': 'application/xml+xrd'
                  }
     )
