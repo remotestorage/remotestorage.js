@@ -168,8 +168,7 @@ function initSyncStorage( onStatus ){
   function signOut() {
     sessionStorage.removeItem('session')
     sessionStorage.removeItem('browserid-asertion')
-    //show()
-    onStatus({asHtml:''})
+    onStatus({sync:'unsynced'})
   }
   var syncStorage =
     { error: null

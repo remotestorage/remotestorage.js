@@ -9,6 +9,7 @@ a:hover { color:#b7ed58; }
 a:focus { outline:1px dotted; }
 hr { border:0 #ccc solid; border-top-width:1px; clear:both; height:0; }
 p { line-height:21px; }
+p { padding:0; margin:43px 0 14px 0; text-shadow:0 1px 0 rgb(42,57,28); -webkit-text-shadow:0 1px 0 rgb(42,57,28); -moz-text-shadow:0 1px 0 rgb(42,57,28); }
 
 /* Headings --------------------------------------------------------------------------------*/
 h1 { font-size:25px; }
