@@ -80,7 +80,7 @@
               try {
                var existingSession = JSON.parse(data)
                 console.log('Found session for '+verifiedUserAddress+', scope '+postData.dataScope+'.')
-                session.storage = existingSession.storage
+      //          session.storage = existingSession.storage
                 session.cryptoPwdForRead = existingSession.cryptoPwdForRead
               } catch(e) {
                 console.log(JSON.stringify(e))

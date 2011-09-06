@@ -24,6 +24,7 @@
         user = user.substring(5)
       }
       var atSignPos = user.indexOf('@')
+      console.log('atSignPos: '+atSignPos)
       if(atSignPos) {
         user = user.substring(0, atSignPos)
       }
