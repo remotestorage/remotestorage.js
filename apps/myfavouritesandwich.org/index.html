@@ -27,8 +27,12 @@
 <div id="mainWrap">
   <div id="unlockedView">
     <div id="preheader">
-      <p><input type="submit" id="syncButton" onclick="syncButtonClick()" onmouseover="syncButtonMouseOver()" onmouseout="syncButtonMouseOut()">
-      <span id="status">status</span></p>    </div>
+      <p>
+        <input type="submit" id="syncButton" onclick="syncButtonClick()" onmouseover="syncButtonMouseOver()" onmouseout="syncButtonMouseOut()">
+        <span id="status">status</span>
+        <input type="submit" id="flushButton" onclick="flushButtonClick()" value="remove local data">
+      </p>
+    </div>
       
     <header class="data">
       <p>This app is still in alpha, so expect bugs.<br />Come to the <a href="http://webchat.freenode.net/?channels=unhosted">chat room</a> if you want to help.</p>

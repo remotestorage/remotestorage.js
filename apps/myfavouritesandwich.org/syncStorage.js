@@ -165,6 +165,12 @@ function initSyncStorage( onStatus ){
     window.location = 'http://myfavouritesandwich.org/register.html'
   }
 
+  function disconnect() {
+    onStatus({sync:'offline', userAddress: remoteStorage.getUserAddress()})
+  }
+  function reconnect() {
+    onStatus({sync:'synced', userAddress: remoteStorage.getUserAddress()})
+  }
   function signOut() {
     sessionStorage.removeItem('session')
     sessionStorage.removeItem('browserid-asertion')
@@ -212,6 +218,8 @@ function initSyncStorage( onStatus ){
       prefetch(keys)
     }
     , signIn: signIn
+    , disconnect: disconnect
+    , reconnect: reconnect
     , signOut: signOut
   }
   reportStatus(0)

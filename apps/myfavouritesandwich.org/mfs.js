@@ -33,22 +33,35 @@ function onStatus( status ){
     document.getElementById('syncButton').value = 'sync'
     document.getElementById('syncButton').syncStatus = status
     document.getElementById('status').innerHTML = 'with your remote storage'
+    document.getElementById('flushButton').style.display = 'none'
    } else if(status.sync == 'working') {
     document.getElementById('syncButton').value = 'syncing'
     document.getElementById('syncButton').syncStatus = status
     document.getElementById('status').innerHTML = 'with '+status.userAddress
-  } else if(status.sync == 'synced'){
+    document.getElementById('flushButton').style.display = 'none'
+  } else if(status.sync == 'synced') {
     document.getElementById('syncButton').value = 'synced'
     document.getElementById('syncButton').syncStatus = status
     document.getElementById('status').innerHTML = 'with '+status.userAddress
+    document.getElementById('flushButton').style.display = 'none'
+  } else if(status.sync == 'offline') {
+    document.getElementById('syncButton').value = 'reconnect'
+    document.getElementById('syncButton').syncStatus = status
+    document.getElementById('status').innerHTML = 'with '+status.userAddress+' or '
+    document.getElementById('flushButton').style.display = 'inline'
   }
 }
 function syncButtonClick() {
   if(document.getElementById('syncButton').syncStatus.sync == 'synced') {
-    syncStorage.signOut()
+    syncStorage.disconnect()
   } else if(document.getElementById('syncButton').syncStatus.sync == 'unsynced') {
     syncStorage.signIn()
+  } else if(document.getElementById('syncButton').syncStatus.sync == 'offline') {
+    syncStorage.reconnect()
   }
+}
+function flushButtonClick() {
+  syncStorage.signOut()
 }
 function syncButtonMouseOver() {
   if(document.getElementById('syncButton').syncStatus.sync == 'synced') {
