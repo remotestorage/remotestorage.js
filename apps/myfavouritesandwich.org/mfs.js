@@ -12,9 +12,9 @@ $(document).ready(function() {
     session.unsaved = true
     sessionStorage.setItem("session", JSON.stringify(session))
   }
-  if (window.location.href != config.appUrl + window.location.hash) {
-    window.location = config.appUrl
-  }
+//  if (window.location.href != config.appUrl + window.location.hash) {
+//    window.location = config.appUrl
+//  }
   addEventListener('storage', storage_event, false)
   initSyncStorage(onStatus)
   syncStorage.syncItems(['favSandwich'])
@@ -31,13 +31,37 @@ gup = function(paramName) {
 }
 
 function onStatus( status ){
-  document.getElementById('status').innerHTML = status.asHtml;
-  if(status.userAddress) {
-    document.getElementById('loginButton').style.display = 'none';
-    document.getElementById('logoutButton').style.display = 'block';
-  } else {
-    document.getElementById('loginButton').style.display = 'block';
-    document.getElementById('logoutButton').style.display = 'none';
+  if(status.sync == 'unsynced') {
+    document.getElementById('syncButton').value = 'sync'
+    document.getElementById('syncButton').syncStatus = status
+    document.getElementById('status').innerHTML = 'with your remote storage'
+   } else if(status.sync == 'working') {
+    document.getElementById('syncButton').value = 'syncing'
+    document.getElementById('syncButton').syncStatus = status
+    document.getElementById('status').innerHTML = 'with '+status.userAddress
+  } else if(status.sync == 'synced'){
+    document.getElementById('syncButton').value = 'synced'
+    document.getElementById('syncButton').syncStatus = status
+    document.getElementById('status').innerHTML = 'with '+status.userAddress
+  }
+}
+function syncButtonClick() {
+  if(document.getElementById('syncButton').syncStatus.sync == 'synced') {
+    syncStorage.signOut()
+  } else if(document.getElementById('syncButton').syncStatus.sync == 'unsynced') {
+    syncStorage.signIn()
+  }
+}
+function syncButtonMouseOver() {
+  if(document.getElementById('syncButton').syncStatus.sync == 'synced') {
+    document.getElementById('syncButton').value = 'disconnect'
+    document.getElementById('status').innerHTML = 'from '+document.getElementById('syncButton').syncStatus.userAddress
+  }
+}
+function syncButtonMouseOut() {
+  if(document.getElementById('syncButton').syncStatus.sync == 'synced') {
+    document.getElementById('syncButton').value = 'synced'
+    document.getElementById('status').innerHTML = 'with '+document.getElementById('syncButton').syncStatus.userAddress
   }
 }
 

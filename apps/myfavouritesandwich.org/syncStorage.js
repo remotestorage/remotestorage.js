@@ -32,6 +32,7 @@ function initSyncStorage( onStatus ){
   }
   var reportStatus = function( deltaConns ){
     var userAddress
+    var syncStatus = 'unsynced'
     if( onStatus ){
       numConns += deltaConns
       if( remoteStorage ){
@@ -40,24 +41,14 @@ function initSyncStorage( onStatus ){
         userAddress = null
       }
       if( userAddress ){
-        text = "Synced to "+ userAddress
-        try {
-          session = sessionStorage.getItem('session')
-        } catch( e ){
-          text +=' (no session)'
-        }
         if(numConns) {
-          text +=" [working]"
+          syncStatus = 'syncing'
+        } else {
+          syncStatus = 'synced'
         }
-      } else {
-        text = ""
       }
       onStatus( { userAddress: userAddress
-                , online: true
-                , lock: true
-                , working: (numConns > 0)
-                , error: error
-                , asHtml: text
+                , sync: syncStatus
                 } )
     }
   }
@@ -67,20 +58,22 @@ function initSyncStorage( onStatus ){
       var key = keysArg[i]
       keys[key] = true
       var cachedObj = cacheGet( key )
-      if( cachedObj.value == undefined ){
-        reportStatus( +1 )
-        remoteStorage.get( key, function( result ){
-          if( result.success ){
-            error = false
-            cacheSet( key, result )
-            triggerStorageEvent( key, false, result.value )
-          } else {
-            error = result.error
-          }
-          reportStatus( -1 )
-        })
-      } else {
-        triggerStorageEvent( key, false, cachedObj )
+      if(remoteStorage) {
+        if( cachedObj.value == undefined ){
+          reportStatus( +1 )
+          remoteStorage.get( key, function( result ){
+            if( result.success ){
+              error = false
+              cacheSet( key, result )
+              triggerStorageEvent( key, false, result.value )
+            } else {
+              error = result.error
+            }
+            reportStatus( -1 )
+          })
+        } else {
+          triggerStorageEvent( key, false, cachedObj )
+        }
       }
     }
   }
@@ -118,8 +111,6 @@ function initSyncStorage( onStatus ){
         sessionStorage.removeItem("session")
       }
       if(session.storage) {
-        document.getElementById('loginButton').style.display = 'none'
-        document.getElementById('logoutButton').style.display = 'block'
         window.syncStorage.pullFrom(session.storage)
         window.syncStorage.syncItems(["favSandwich"])
       }
