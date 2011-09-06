@@ -27,12 +27,8 @@
 <div id="mainWrap">
   <div id="unlockedView">
     <div id="preheader">
-      <span>
-        <div id="status">status</div>
-
-        <input type="submit" value="sync to storage" id="loginButton" onclick="syncStorage.signIn()">
-        <input type="submit" style="display:none" value="disconnect" id="logoutButton" onclick="syncStorage.signOut()">
-      </span>
+      <input type="submit" id="syncButton" onclick="syncButtonClick()" onmouseover="syncButtonMouseOver()" onmouseout="syncButtonMouseOut()">
+      <span id="status">status</span>
     </div>
       
     <header class="data">
