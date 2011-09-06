@@ -149,7 +149,7 @@ function initSyncStorage( onStatus ){
                 window.location = session.storage.davUrl
                   + "oauth2/auth"
                   + "?client_id="+encodeURIComponent(config.clientId)
-                  + "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+                  + "&redirect_uri="+encodeURIComponent(window.location)
                   + "&scope="+encodeURIComponent(session.dataScope)
                   + "&response_type=token"
                   + "&user_address="+encodeURIComponent(session.userAddress)

@@ -1,20 +1,18 @@
 $(document).ready(function() {
   var tokenReceived = gup("access_token")
   if(tokenReceived) {
+    document.location='#'
     var sessionStr = sessionStorage.getItem("session")
     var session
     if(sessionStr) {
       session = JSON.parse(sessionStr)
     } else {
-      //fail
+      alert('fail')
     }
-    session.storage.davToken = gup("access_token")
+    session.storage.davToken = tokenReceived
     session.unsaved = true
     sessionStorage.setItem("session", JSON.stringify(session))
   }
-//  if (window.location.href != config.appUrl + window.location.hash) {
-//    window.location = config.appUrl
-//  }
   addEventListener('storage', storage_event, false)
   initSyncStorage(onStatus)
   syncStorage.syncItems(['favSandwich'])
