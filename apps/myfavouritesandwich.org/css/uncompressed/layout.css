@@ -21,7 +21,6 @@ header { position:relative; top:100px; background:#465f30; display:block; width:
 
 header.data { width:600px; margin-bottom:220px; }
 header.data form { width:450px; margin:0 auto; margin-bottom:0px; }
-header p { padding:0; margin:43px 0 14px 0; text-shadow:0 1px 0 rgb(42,57,28); -webkit-text-shadow:0 1px 0 rgb(42,57,28); -moz-text-shadow:0 1px 0 rgb(42,57,28); }
 header.data p { margin-bottom:40px; margin-top:20px; }
 
 header form { padding-bottom:20px; }
