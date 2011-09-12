@@ -13,6 +13,8 @@ var webapp = require('./lib/webapp.js')
 
 var appsList =
   [ 'myfavouritesandwich.org'
+  , 'syncstorage.org'
+  , 'useraddress.net'
 //  , 'jacks-todo-app.dev.unhosted.org'
   ]
 
@@ -55,7 +57,11 @@ https.createServer({ ca:fs.readFileSync(config.sslDir +'sub.class1.server.ca.pem
 }).listen(443)
 
 http.createServer(function(req, res) {
-    identity.handle(req, res)
-  //res.writeHead(301, {'Location': config.appUrl+url.parse(req.url).pathname.substring(1)})
-  //res.end()
+  var path = url.parse(req.url).pathname
+  if((path == '/syncStorage.js') || (path == '/webfinger.js')) {
+    webapp.handle(req, res)
+  } else {
+    res.writeHead(301, {'Location': config.appUrl+url.parse(req.url).pathname.substring(1)})
+    res.end()
+  }
 }).listen(80)

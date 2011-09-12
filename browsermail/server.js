@@ -27,7 +27,7 @@ var Browsermail = function() {
 var b = Browsermail()
 
 require('socket.io').listen(8000).sockets.on('connection', function(socket) {
-  b.addForward('mich@myfavouritesandwich.org', socket)
+  b.addForward('advance38@myfavouritesandwich.org', socket)
 })
 
 var app = require('http').createServer(handler)

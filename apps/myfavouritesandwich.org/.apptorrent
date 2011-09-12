@@ -9,8 +9,6 @@
     , '/davStorage.js': 'application/javascript'
     , '/jquery-1.6.1.min.js': 'application/javascript'
     , '/sjcl.js': 'application/javascript'
-    , '/syncStorage.js': 'application/javascript'
-    , '/webfinger.js': 'application/javascript'
     , '/socket.io.js': 'application/javascript'
     , '/favicon.ico': 'image/x-icon'
     , '/css/uncompressed/reset.css': 'text/css'
