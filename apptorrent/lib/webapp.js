@@ -10,30 +10,28 @@
     apps[hostName] = files
   }
 
-  function serveAppCache(req, res) {
+  function serveAppCache(req, res, hostname) {
     res.writeHead(200, {'Content-Type': 'text/cache-manifest'})
     res.write('CACHE MANIFEST\n\n#version: '+ config.appCacheTimestamp +'\nNETWORK:\n\n*\nCACHE:\n')
     var urlObj = url.parse(req.url)
-    if(apps[urlObj.hostname]){
-      for(var i in apps[urlObj.hostname]) {
+    if(apps[hostname]){
+      for(var i in apps[hostname]) {
         res.write(i.substr(1) +'\n')
       }
     }
     res.end()
   }
 
-  function handle(req, res) {
+  function handle(req, res, hostname) {
     var urlObj = url.parse(req.url)
-
-    urlObj.hostname = 'myfavouritesandwich.org'
 
     var contentType
     if(urlObj.pathname == '/') {
       urlObj.pathname = '/index.html'
     }
-    if(apps[urlObj.hostname]) {
-      contentType = apps[urlObj.hostname][urlObj.pathname]
-       console.log('host: '+urlObj.hostname)
+    if(apps[hostname]) {
+      contentType = apps[hostname][urlObj.pathname]
+       console.log('host: '+hostname)
     } else {
        console.log('unknown host '+JSON.stringify(req))
     }
@@ -44,9 +42,9 @@
                      , 'Content-Type': contentType
                      }
                    )
-      fs.createReadStream(config.appsPath+urlObj.hostname+urlObj.pathname).pipe(res)
+      fs.createReadStream(config.appsPath+hostname+urlObj.pathname).pipe(res)
     } else if((urlObj.pathname == '/.appcache') && (config.useAppCache)) {
-      serveAppCache(req, res)
+      serveAppCache(req, res, hostname)
     } else {
       console.log('404: '+urlObj.pathname)
       res.writeHead(404)

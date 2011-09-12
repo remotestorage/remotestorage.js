@@ -52,14 +52,18 @@ https.createServer({ ca:fs.readFileSync(config.sslDir +'sub.class1.server.ca.pem
     //identity.handleWebfinger(req, res)
     identity.handle(req, res)
   } else {
-    webapp.handle(req, res)
+    webapp.handle(req, res, 'myfavouritesandwich.org')
   }
 }).listen(443)
 
 http.createServer(function(req, res) {
   var path = url.parse(req.url).pathname
-  if((path == '/syncStorage.js') || (path == '/webfinger.js')) {
-    webapp.handle(req, res)
+  if(path == '/syncStorage.js') {
+    console.log('yes')
+    webapp.handle(req, res, 'syncstorage.org')
+  } else if(path == '/webfinger.js') {
+    console.log('yes')
+    webapp.handle(req, res, 'useraddress.net')
   } else {
     res.writeHead(301, {'Location': config.appUrl+url.parse(req.url).pathname.substring(1)})
     res.end()
