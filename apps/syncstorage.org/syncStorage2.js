@@ -48,6 +48,7 @@ function initSyncStorage( onStatus ){
               }, function(davUrl) {
                 var session =
                   { userAddress: data.email
+                  , dataScope: 'simpleplanner'
                   , storage:
                     { userAddress: data.email
                     , davUrl: davUrl
@@ -94,16 +95,42 @@ function initSyncStorage( onStatus ){
     , signOut: signOut
   }
 
+  function pull() {
+    remoteStorage.get( 'index', function( result ){
+      var keys
+      if(result.value){
+        keys = result.value
+        for(var i=0; i<keys.length; i++) {
+          var key = keys[i]
+          remoteStorage.get( key, function( result ){
+            localStorage.setItem(key, result.value)
+          })
+        }
+      }
+    })
+  }
+
   function push() {
-    for(var i=0; i<localStorage.length; i++) {
-      var key = localStorage.key(i)
-      remoteStorage.set( key, localStorage.getItem(key), function( result ){
-        var a=1
-      })
-    }
+    remoteStorage.get( 'index', function( result ){
+      var keys
+      if(result.value){
+        keys = result.value
+      }else{
+        keys = []
+      }
+      
+      for(var i=0; i<localStorage.length; i++) {
+        var key = localStorage.key(i)
+        remoteStorage.set( key, localStorage.getItem(key), function( result ){
+        })
+        keys.push(key)
+      }
+      remoteStorage.set( 'index', keys, function( result ){})
+    })
   }
 
   //set it up:
+  reportStatus( 0 )
   var sessionStr = sessionStorage.getItem("session")
   if(sessionStr) {
     var session = {}
@@ -116,6 +143,7 @@ function initSyncStorage( onStatus ){
       if( session.storage.storageType == 'http://unhosted.org/spec/dav/0.1' ){
         remoteStorage = UnhostedDav_0_1( session.storage )
         reportStatus( 0 )
+        pull()
         push()
       } else {
         syncStorage.error = 'unsupported remote storage type '+ remoteStorageType
