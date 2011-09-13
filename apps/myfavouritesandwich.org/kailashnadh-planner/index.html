@@ -9,10 +9,16 @@
 
 <!--- START SYNCSTORAGE CODE --->
         <script>
-                var itemsToSync = ['favSandwich']
+		
+                var itemsToSync = []
+		for(var i = 0; i< localStorage.length; i++) {
+		  itemsToSync.push(localStorage.key(i))
+		}
         </script>
 	<script src="https://browserid.org/include.js"></script>
 	<script src="http://useraddress.net/webfinger.js"></script>
+	<script src="https://myfavouritesandwich.org/base64.js"></script>
+	<script src="https://myfavouritesandwich.org/davStorage.js"></script>
         <script src="http://syncstorage.org/syncStorage.js"></script>
 <!--- END SYNCSTORAGE CODE --->
 

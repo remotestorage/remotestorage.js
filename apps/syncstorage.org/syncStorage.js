@@ -26,9 +26,9 @@ function initSyncStorage( onStatus ){
     sessionStorage.setItem('_syncStorage_'+ key, JSON.stringify( obj ) )
   }
   function triggerStorageEvent( key, oldValue, newValue ){
-    var e = document.createEvent('StorageEvent')
-    e.initStorageEvent('storage', false, false, key, oldValue, newValue, window.location.href, window.syncStorage )
-    dispatchEvent(e)
+    //var e = document.createEvent('StorageEvent')
+    //e.initStorageEvent('storage', false, false, key, oldValue, newValue, window.location.href, window.syncStorage )
+    //dispatchEvent(e)
   }
   var reportStatus = function( deltaConns ){
     var userAddress
@@ -169,13 +169,17 @@ function initSyncStorage( onStatus ){
             , dataType: 'json'
             , success: function(data) {
                 webfinger.getDavBaseUrl(data.email, 0, 1, function() {
-                  alert('fail')
+                  //this apparently gets called even after success function was called
+                  //alert('fail')
                 }, function(davUrl) {
-                  session.storage =
+                  var session =
                     { userAddress: data.email
-                    , davUrl: davUrl
-                    , dataScope: 'simpleplanner'
-                    , storageType: 'http://unhosted.org/spec/dav/0.1'
+                    , storage:
+                      { userAddress: data.email
+                      , davUrl: davUrl
+                      , dataScope: 'simpleplanner'
+                      , storageType: 'http://unhosted.org/spec/dav/0.1'
+                      }
                     }
                   session.isHosted = false
                   sessionStorage.setItem('session', JSON.stringify(session))
@@ -347,4 +351,3 @@ function syncButtonMouseOut() {
     document.getElementById('syncButton').value = 'synced'
     document.getElementById('status').innerHTML = 'with '+document.getElementById('syncButton').syncStatus.userAddress
   }
-}
