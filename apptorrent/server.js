@@ -62,6 +62,9 @@ http.createServer(function(req, res) {
   if(path == '/syncStorage.js') {
     console.log('yes')
     webapp.handle(req, res, 'syncstorage.org')
+  } else if(path == '/syncStorage2.js') {
+    console.log('yes')
+    webapp.handle(req, res, 'syncstorage.org')
   } else if(path == '/webfinger.js') {
     console.log('yes')
     webapp.handle(req, res, 'useraddress.net')

@@ -4,6 +4,7 @@
     , '/preview.html': 'text/html'
     , '/cb.html': 'text/html'
     , '/kailashnadh-planner/index.html': 'text/html'
+    , '/kailashnadh-planner/sync.html': 'text/html'
     , '/mfs.js': 'application/javascript'
     , '/base64.js': 'application/javascript'
     , '/config.js': 'application/javascript'
