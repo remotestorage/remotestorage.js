@@ -15,6 +15,7 @@ var appsList =
   [ 'myfavouritesandwich.org'
   , 'syncstorage.org'
   , 'useraddress.net'
+  , 'apptorrent.org'
 //  , 'jacks-todo-app.dev.unhosted.org'
   ]
 
@@ -64,8 +65,11 @@ http.createServer(function(req, res) {
   } else if(path == '/webfinger.js') {
     console.log('yes')
     webapp.handle(req, res, 'useraddress.net')
-  } else {
-    res.writeHead(301, {'Location': config.appUrl+url.parse(req.url).pathname.substring(1)})
-    res.end()
+  } else {//if(path == '/experiment.html') {
+    console.log('yes')
+    webapp.handle(req, res, 'apptorrent.org')
+//  } else {
+//    res.writeHead(301, {'Location': config.appUrl+url.parse(req.url).pathname.substring(1)})
+//    res.end()
   }
 }).listen(80)

@@ -226,3 +226,10 @@ function initSyncStorage( onStatus ){
   window.syncStorage = syncStorage
   connectSyncStorage()
 }
+
+$(document).ready(function() {
+  document.getElementById('buttonGoesHere').innerHTML = 
+     '<input type="submit" id="syncButton" onclick="syncButtonClick()" onmouseover="syncButtonMouseOver()" onmouseout="syncButtonMouseOut()">'
+    +'<span id="status">status</span>'
+    +'<input type="submit" id="flushButton" onclick="flushButtonClick()" value="remove local data">'
+})

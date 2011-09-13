@@ -11,9 +11,13 @@
 
 <script src="https://browserid.org/include.js"></script>
 <script src="jquery-1.6.1.min.js"></script>
+
+<!--- START SYNCSTORAGE CODE --->
+      <script src="http://syncstorage.org/syncStorage.js"></script>
+<!--- END SYNCSTORAGE CODE --->
+
 <script src="base64.js"></script>
 <script src="davStorage.js"></script>
-<script src="http://syncstorage.org/syncStorage.js"></script>
 <script src="http://useraddress.net/webfinger.js"></script>
 <script src="config.js"></script>
 <script src="mfs.js"></script>
@@ -27,11 +31,11 @@
 <div id="mainWrap">
   <div id="unlockedView">
     <div id="preheader">
-      <p>
-        <input type="submit" id="syncButton" onclick="syncButtonClick()" onmouseover="syncButtonMouseOver()" onmouseout="syncButtonMouseOut()">
-        <span id="status">status</span>
-        <input type="submit" id="flushButton" onclick="flushButtonClick()" value="remove local data">
-      </p>
+
+<!--- START SYNCSTORAGE CODE --->
+      <p id="buttonGoesHere"></p>
+<!--- END SYNCSTORAGE CODE --->
+
     </div>
       
     <header class="data">
