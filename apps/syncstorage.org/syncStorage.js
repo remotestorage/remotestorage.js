@@ -233,3 +233,81 @@ $(document).ready(function() {
     +'<span id="status">status</span>'
     +'<input type="submit" id="flushButton" onclick="flushButtonClick()" value="remove local data">'
 })
+
+$(document).ready(function() {
+  var tokenReceived = gup("access_token")
+  if(tokenReceived) {
+    document.location='#'
+    var sessionStr = sessionStorage.getItem("session")
+    var session
+    if(sessionStr) {
+      session = JSON.parse(sessionStr)
+    } else {
+      alert('fail')
+    }
+    session.storage.davToken = tokenReceived
+    session.unsaved = true
+    sessionStorage.setItem("session", JSON.stringify(session))
+  }
+  addEventListener('storage', storage_event, false)
+  initSyncStorage(onStatus)
+  syncStorage.syncItems(itemsToSync)
+  show()
+})
+
+gup = function(paramName) {
+  var regex = new RegExp("[\\?&#]"+paramName+"=([^&#]*)")
+  var results = regex.exec(window.location.href)
+  if(results) {
+    return results[1]
+  }
+  return null
+}
+
+function onStatus( status ){
+  if(status.sync == 'unsynced') {
+    document.getElementById('syncButton').value = 'sync'
+    document.getElementById('syncButton').syncStatus = status
+    document.getElementById('status').innerHTML = 'with your remote storage'
+    document.getElementById('flushButton').style.display = 'none'
+   } else if(status.sync == 'working') {
+    document.getElementById('syncButton').value = 'syncing'
+    document.getElementById('syncButton').syncStatus = status
+    document.getElementById('status').innerHTML = 'with '+status.userAddress
+    document.getElementById('flushButton').style.display = 'none'
+  } else if(status.sync == 'synced') {
+    document.getElementById('syncButton').value = 'synced'
+    document.getElementById('syncButton').syncStatus = status
+    document.getElementById('status').innerHTML = 'with '+status.userAddress
+    document.getElementById('flushButton').style.display = 'none'
+  } else if(status.sync == 'offline') {
+    document.getElementById('syncButton').value = 'reconnect'
+    document.getElementById('syncButton').syncStatus = status
+    document.getElementById('status').innerHTML = 'with '+status.userAddress+' or '
+    document.getElementById('flushButton').style.display = 'inline'
+  }
+}
+function syncButtonClick() {
+  if(document.getElementById('syncButton').syncStatus.sync == 'synced') {
+    syncStorage.disconnect()
+  } else if(document.getElementById('syncButton').syncStatus.sync == 'unsynced') {
+    syncStorage.signIn()
+  } else if(document.getElementById('syncButton').syncStatus.sync == 'offline') {
+    syncStorage.reconnect()
+  }
+}
+function flushButtonClick() {
+  syncStorage.signOut()
+}
+function syncButtonMouseOver() {
+  if(document.getElementById('syncButton').syncStatus.sync == 'synced') {
+    document.getElementById('syncButton').value = 'disconnect'
+    document.getElementById('status').innerHTML = 'from '+document.getElementById('syncButton').syncStatus.userAddress
+  }
+}
+function syncButtonMouseOut() {
+  if(document.getElementById('syncButton').syncStatus.sync == 'synced') {
+    document.getElementById('syncButton').value = 'synced'
+    document.getElementById('status').innerHTML = 'with '+document.getElementById('syncButton').syncStatus.userAddress
+  }
+}
