@@ -28,8 +28,7 @@ function UnhostedDav_0_1( params ){
       { url: keyToUrl( dav.userAddress, key )
       ,  dataType: 'json'
       ,  success: function(obj){
-          obj.success=true
-          cb(obj)
+          cb({success: true, value: obj})
         }
       , error: function(xhr) {
           if(xhr.status == 404) {
