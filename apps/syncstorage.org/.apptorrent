@@ -1,6 +1,7 @@
 (function() {
   var files =
     { '/syncStorage.js': 'application/javascript'
+    , '/syncStorage2.js': 'application/javascript'
     }
   module.exports.getApp = function() {
     return files

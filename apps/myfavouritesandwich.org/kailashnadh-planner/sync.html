@@ -1,0 +1,49 @@
+<html>
+<head>
+	<script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.6.2.min.js"></script>
+	<script src="https://browserid.org/include.js"></script>
+	<script src="http://useraddress.net/webfinger.js"></script>
+	<script src="https://myfavouritesandwich.org/base64.js"></script>
+	<script src="https://myfavouritesandwich.org/davStorage.js"></script>
+<script src="http://syncStorage.org/syncStorage2.js"></script>
+<script>
+function log(text) {
+  document.getElementById('log').innerHTML=document.getElementById('log').innerHTML+text+'<br>'
+}
+function displayContents() {
+  for(var i=0; i<localStorage.length; i++) {  
+    log(localStorage.key(i)+':'+localStorage.getItem(localStorage.key(i)))
+  }
+}
+
+document.ready=function() {
+  if(window.addEventListener){
+    window.addEventListener('storage', handle_storage, false)
+  }else{
+    window.attachEvent('onstorage', handle_storage)
+  }
+  displayContents()
+  log('ready')
+}
+
+function handle_storage(e) {
+  if(!e) {
+    e = window.event
+  }
+  if(e.storageArea == window.localStorage) {
+    log('localStorage event:')
+  } else if(e.storageArea == window.sessionStorage) {
+    log('sessionStorage event:')
+  } else {
+    log('unknown storage event:')
+  }
+  log('key '+e.key+' was changed from '+e.oldValue+' to '+e.newValue)
+  syncStorage.pushKey(e.key)
+}
+</script>
+</head>
+<body>
+<p id="syncStorage"></p>
+<div id="log"></div>
+</body>
+</html>
