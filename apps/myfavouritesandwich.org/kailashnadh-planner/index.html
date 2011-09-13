@@ -6,6 +6,16 @@
 	<link href="style.css" rel="stylesheet" type="text/css" />
 	<script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.6.2.min.js"></script>
 	<script src="lib.js"></script>
+
+<!--- START SYNCSTORAGE CODE --->
+        <script>
+                var itemsToSync = ['favSandwich']
+        </script>
+	<script src="https://browserid.org/include.js"></script>
+	<script src="http://useraddress.net/webfinger.js"></script>
+        <script src="http://syncstorage.org/syncStorage.js"></script>
+<!--- END SYNCSTORAGE CODE --->
+
 </head>
 
 <body class="dark">
@@ -13,6 +23,12 @@
 <div id="calendar-wrap" class="box">
 	<div id="calendar">
 		<h1 id="calendar-title"> </h1>
+
+<!--- START SYNCSTORAGE CODE --->
+      <p id="buttonGoesHere"></p>
+<!--- END SYNCSTORAGE CODE --->
+
+
 		<ul id="controls">
 			<li><a href="#" id="btn-theme">light</a></li>
 			<li class="sep"><a href="#" id="btn-ical">iCal</a></li>
