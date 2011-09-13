@@ -124,39 +124,76 @@ function initSyncStorage( onStatus ){
   function signIn() {
     navigator.id.getVerifiedEmail(function(assertion) {
       if(assertion) {
-        $.ajax({ type: 'POST'
-          , url: config.sessionServiceUrl+'/init'
-          , data: { browserIdAssertion: assertion, dataScope: 'sandwiches' }
-          , dataType: "text"
-          , success: function(sessionStr) {
-            var session = JSON.parse(sessionStr)
-            if(session.userAddress && session.storage && session.storage.davToken && session.cryptoPwdForRead) {//coming back
-              sessionStorage.setItem('session', sessionStr)
-              connectSyncStorage()
-            } else {//if webfinger succeeds, oauth. if not, register:
-              webfinger.getDavBaseUrl(session.userAddress, 0, 1, function() {
-                registerHosted(session)
-              }, function(davUrl) {
-                session.storage =
-                  { userAddress: session.userAddress
-                  , davUrl: davUrl
-                  , dataScope: config.dataScope
-                  , storageType: 'http://unhosted.org/spec/dav/0.1'
-                  }
-                session.dataScope = config.dataScope
-                session.isHosted = false
-                sessionStorage.setItem('session', JSON.stringify(session))
-                window.location = session.storage.davUrl
-                  + "oauth2/auth"
-                  + "?client_id="+encodeURIComponent(config.clientId)
-                  + "&redirect_uri="+encodeURIComponent(window.location)
-                  + "&scope="+encodeURIComponent(session.dataScope)
-                  + "&response_type=token"
-                  + "&user_address="+encodeURIComponent(session.userAddress)
-              })
+        if(undefined != window.config) {// a sessionService exists
+          $.ajax({ type: 'POST'
+            , url: config.sessionServiceUrl+'/init'
+            , data: { browserIdAssertion: assertion, dataScope: 'sandwiches' }
+            , dataType: "text"
+            , success: function(sessionStr) {
+              var session = JSON.parse(sessionStr)
+              if(session.userAddress && session.storage && session.storage.davToken && session.cryptoPwdForRead) {//coming back
+                sessionStorage.setItem('session', sessionStr)
+                connectSyncStorage()
+              } else {//if webfinger succeeds, oauth. if not, register:
+                webfinger.getDavBaseUrl(session.userAddress, 0, 1, function() {
+                  registerHosted(session)
+                }, function(davUrl) {
+                  session.storage =
+                    { userAddress: session.userAddress
+                    , davUrl: davUrl
+                    , dataScope: config.dataScope
+                    , storageType: 'http://unhosted.org/spec/dav/0.1'
+                    }
+                  session.dataScope = config.dataScope
+                  session.isHosted = false
+                  sessionStorage.setItem('session', JSON.stringify(session))
+                  window.location = session.storage.davUrl
+                    + "oauth2/auth"
+                    + "?client_id="+encodeURIComponent(config.clientId)
+                    + "&redirect_uri="+encodeURIComponent(window.location)
+                    + "&scope="+encodeURIComponent(session.dataScope)
+                    + "&response_type=token"
+                    + "&user_address="+encodeURIComponent(session.userAddress)
+                })
+              }
             }
-          }
-        })
+          })
+        } else {//no session storage, so use BrowserId only to locate storage, not to log in.
+          $.ajax(
+            { type: 'POST'
+            , url: 'https://browserid.org/verify'
+            , data: 
+              { assertion: assertion
+              , audience: 'myfavouritesandwich.org'
+              }
+            , dataType: 'json'
+            , success: function(data) {
+                webfinger.getDavBaseUrl(data.email, 0, 1, function() {
+                  alert('fail')
+                }, function(davUrl) {
+                  session.storage =
+                    { userAddress: data.email
+                    , davUrl: davUrl
+                    , dataScope: 'simpleplanner'
+                    , storageType: 'http://unhosted.org/spec/dav/0.1'
+                    }
+                  session.isHosted = false
+                  sessionStorage.setItem('session', JSON.stringify(session))
+                  window.location = session.storage.davUrl
+                    + "oauth2/auth"
+                    + "?client_id="+encodeURIComponent('clientId')
+                    + "&redirect_uri="+encodeURIComponent(window.location)
+                    + "&scope="+encodeURIComponent(session.dataScope)
+                    + "&response_type=token"
+                    + "&user_address="+encodeURIComponent(session.userAddress)
+                })
+              }
+            , error: function(data) {
+                alert(data)
+              }
+            }
+          )
+        }
       }
     })
   }
@@ -249,10 +286,10 @@ $(document).ready(function() {
     session.unsaved = true
     sessionStorage.setItem("session", JSON.stringify(session))
   }
-  addEventListener('storage', storage_event, false)
+//  addEventListener('storage', storage_event, false)
   initSyncStorage(onStatus)
   syncStorage.syncItems(itemsToSync)
-  show()
+//  show()
 })
 
 gup = function(paramName) {
