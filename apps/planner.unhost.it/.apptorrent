@@ -1,0 +1,11 @@
+(function() {
+  var files =
+    { '/planner.html': 'text/html'
+    , '/sync.html': 'text/html'
+    , '/kailashnadh.js': 'text/javascript'
+    , '/kailashnadh.css': 'text/css'
+    }
+  module.exports.getApp = function() {
+    return files
+  }
+})()

@@ -16,6 +16,7 @@ var appsList =
   , 'syncstorage.org'
   , 'useraddress.net'
   , 'apptorrent.org'
+  , 'planner.unhost.it'
 //  , 'jacks-todo-app.dev.unhosted.org'
   ]
 
@@ -59,12 +60,16 @@ https.createServer({ ca:fs.readFileSync(config.sslDir +'sub.class1.server.ca.pem
 
 http.createServer(function(req, res) {
   var path = url.parse(req.url).pathname
-  if(path == '/syncStorage.js') {
+  if((path == '/syncStorage.js')
+  || (path == '/syncStorage2.js')) {
     console.log('yes')
     webapp.handle(req, res, 'syncstorage.org')
-  } else if(path == '/syncStorage2.js') {
+  } else if((path == '/kailashnadh.js') 
+         || (path == '/kailashnadh.css')
+         || (path == '/planner.html')
+         || (path == '/sync.html')) {
     console.log('yes')
-    webapp.handle(req, res, 'syncstorage.org')
+    webapp.handle(req, res, 'planner.unhost.it')
   } else if(path == '/webfinger.js') {
     console.log('yes')
     webapp.handle(req, res, 'useraddress.net')
