@@ -62,6 +62,7 @@ http.createServer(function(req, res) {
   var path = url.parse(req.url).pathname
   if((path == '/syncStorage.js')
   || (path == '/syncStorage2.js')
+  || (path == '/syncStorage.css')
   || (path == '/tester.html')) {
     console.log('yes')
     webapp.handle(req, res, 'syncstorage.org')
