@@ -61,7 +61,8 @@ https.createServer({ ca:fs.readFileSync(config.sslDir +'sub.class1.server.ca.pem
 http.createServer(function(req, res) {
   var path = url.parse(req.url).pathname
   if((path == '/syncStorage.js')
-  || (path == '/syncStorage2.js')) {
+  || (path == '/syncStorage2.js')
+  || (path == '/tester.html')) {
     console.log('yes')
     webapp.handle(req, res, 'syncstorage.org')
   } else if((path == '/kailashnadh.js') 
