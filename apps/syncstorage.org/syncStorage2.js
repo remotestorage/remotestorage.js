@@ -32,7 +32,7 @@ function initSyncStorage( onStatus ){
     alert("We looked for your remote storage at "+session.userAddress+", but couldn't find it there. Don't be sad though! Because if you stop by in our chat room, we can set up a test user for you. [http://webchat.freenode.net/?channels=unhosted] Probably you can even keep "+session.userAddress+" as your user address");
   }
 
-  function signIn() {
+  function signIn(audience) {
     navigator.id.getVerifiedEmail(function(assertion) {
       if(assertion) {
         $.ajax(//we only use BrowserId to avoid nascar here, not to authenticate. the audience is the current client-side app, which has not interest in who you are.
@@ -40,7 +40,7 @@ function initSyncStorage( onStatus ){
           , url: 'https://browserid.org/verify'
           , data: 
             { assertion: assertion
-            , audience: 'myfavouritesandwich.org'
+            , audience: audience
             }
           , dataType: 'json'
           , success: function(data) {
@@ -85,6 +85,7 @@ function initSyncStorage( onStatus ){
   }
   window.syncStorage =
     { pushKey: function(key) {
+        log('PUSH: '+key)
         remoteStorage.set( key, localStorage.getItem(key), function( result ){
           var a=1
         }) 
@@ -96,12 +97,12 @@ function initSyncStorage( onStatus ){
   }
 
   function pull() {
+    log('PULL INDEX')
     remoteStorage.get( 'index', function( result ){
-      var keys
       if(result.value){
-        keys = result.value
-        for(var i=0; i<keys.length; i++) {
-          var key = keys[i]
+        var keys = result.value
+        for(key in keys) {
+          log('PULL: '+key)
           remoteStorage.get( key, function( result ){
             localStorage.setItem(key, result.value)
           })
@@ -111,20 +112,23 @@ function initSyncStorage( onStatus ){
   }
 
   function push() {
+    log('PULL INDEX')
     remoteStorage.get( 'index', function( result ){
       var keys
       if(result.value){
         keys = result.value
       }else{
-        keys = []
+        keys = {}
       }
       
       for(var i=0; i<localStorage.length; i++) {
         var key = localStorage.key(i)
+        log('PUSH: '+key)
         remoteStorage.set( key, localStorage.getItem(key), function( result ){
         })
-        keys.push(key)
+        keys['key']= getTime()
       }
+      log('PUSH INDEX')
       remoteStorage.set( 'index', keys, function( result ){})
     })
   }
@@ -210,7 +214,7 @@ function syncButtonClick() {
   if(document.getElementById('syncButton').syncStatus.sync == 'synced') {
     syncStorage.disconnect()
   } else if(document.getElementById('syncButton').syncStatus.sync == 'unsynced') {
-    syncStorage.signIn()
+    syncStorage.signIn(window.location.host)
   } else if(document.getElementById('syncButton').syncStatus.sync == 'offline') {
     syncStorage.reconnect()
   }
