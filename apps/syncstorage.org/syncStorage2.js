@@ -190,21 +190,25 @@ gup = function(paramName) {
 function onStatus( status ){
   if(status.sync == 'unsynced') {
     document.getElementById('syncButton').value = 'sync'
+    document.getElementById('syncButton').className = 'sync'
     document.getElementById('syncButton').syncStatus = status
     document.getElementById('status').innerHTML = 'with your remote storage'
     document.getElementById('flushButton').style.display = 'none'
    } else if(status.sync == 'working') {
     document.getElementById('syncButton').value = 'syncing'
+    document.getElementById('syncButton').className = 'syncing'
     document.getElementById('syncButton').syncStatus = status
     document.getElementById('status').innerHTML = 'with '+status.userAddress
     document.getElementById('flushButton').style.display = 'none'
   } else if(status.sync == 'synced') {
     document.getElementById('syncButton').value = 'synced'
+    document.getElementById('syncButton').className = 'synced'
     document.getElementById('syncButton').syncStatus = status
     document.getElementById('status').innerHTML = 'with '+status.userAddress
     document.getElementById('flushButton').style.display = 'none'
   } else if(status.sync == 'offline') {
     document.getElementById('syncButton').value = 'reconnect'
+    document.getElementById('syncButton').className = 'disconnected'
     document.getElementById('syncButton').syncStatus = status
     document.getElementById('status').innerHTML = 'with '+status.userAddress+' or '
     document.getElementById('flushButton').style.display = 'inline'
