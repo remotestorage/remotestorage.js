@@ -26,12 +26,12 @@ function test(){
     }
   }
 }
-function afterHttpsHostmetaSuccess(text) {
+function afterHttpsHostmetaSuccess(data) {
   document.getElementById('result').innerHTML = 'Https Host-meta found.'
-  continueWithHostMeta(text)
+  continueWithHostMeta(data)
 }
 
-function afterHttpsHostmetaError(text) {
+function afterHttpsHostmetaError(data) {
       document.getElementById('result').innerHTML = 'Https Host-meta error. Trying http.'
       $.ajax(
         { url: 'http://'+host+'/.well-known/host-meta'
@@ -40,12 +40,12 @@ function afterHttpsHostmetaError(text) {
         })
 }
 
-function afterHttpHostmetaSuccess(text) {
+function afterHttpHostmetaSuccess(data) {
   document.getElementById('result').innerHTML = 'Http Host-meta found.'
-  continueWithHostmeta(text)
+  continueWithHostmeta(data)
 }
 
-function afterHttpHostmetaError(text) {
+function afterHttpHostmetaError(data) {
   document.getElementById('result').innerHTML = 'Cross-origin host-meta failed. Trying through proxy'
   //$.ajax(
   //  { url: 'http://useraddress.net/single-origin-webfinger...really?'+ua
@@ -54,8 +54,8 @@ function afterHttpHostmetaError(text) {
   //  })
 }
 
-function continueWithHostmeta(text) {
-  var linkTags = text.getElementsByTagName('Link')
+function continueWithHostmeta(data) {
+  var linkTags = data.getElementsByTagName('Link')
   if(linkTags.length == 0) {
     document.getElementById('result').innerHTML = 'no Link tags found in host-meta'
   } else {
@@ -74,7 +74,7 @@ function continueWithHostmeta(text) {
               if(templateParts.length == 2) {
                 $.ajax(
                   { url: templateParts[0]+ua+templateParts[1]
-                  , success: afterLrddNoAcctSuccess
+                  , success: afterLrddSuccess
                   , error: afterLrddNoAcctError
                   })
               } else {
@@ -92,6 +92,56 @@ function continueWithHostmeta(text) {
     }
   }
 }
+function afterLrddNoAcctError() {
+  document.getElementById('result').innerHTML = 'the template doesn\'t contain "{uri}"'
+  $.ajax(
+    { url: templateParts[0]+'acct:'+ua+templateParts[1]
+    , success: afterLrddSuccess
+    , error: afterLrddAcctError
+    })
+}
+function afterLrddSuccess(data) {
+  var linkTags = data.getElementsByTagName('Link')
+  if(linkTags.length == 0) {
+    document.getElementById('result').innerHTML = 'no Link tags found in lrdd'
+  } else {
+    var davFound = false
+    document.getElementById('result').innerHTML = 'none of the Link tags have a http://unhosted.org/spec/dav/0.1 rel-attribute'
+    for(var linkTagI in linkTags) {
+      for(var attrI in linkTags[linkTagI].attributes) {
+        var attr = linkTags[linkTagI].attributes[attrI]
+        if((attr.name=='rel') && (attr.value=='http://unhosted.org/spec/dav/0.1')) {
+          davFound = true
+          document.getElementById('result').innerHTML = 'the first Link tag with a dav rel-attribute has no href-attribute'
+          for(var attrJ in linkTags[linkTagI].attributes) {
+            var attr2 = linkTags[linkTagI].attributes[attrJ]
+            davUrl = attr2.value
+            if(attr2.name=='href') {
+              $.ajax(
+                { url: davUrl+'/oauth2/auth'
+                , success: afterOAuthUrlSuccess
+                , error: afterOAuthUrlError
+                })
+              break
+            }
+          }
+          break
+        }
+      }
+      if(davFound) {
+        break
+      }
+    }
+  }
+}
+function afterOAuthUrlSuccess() {
+  document.getElementById('result').innerHTML = 'found your remote storage ('+ua+') to be present at '+davUrl
+}
+
+function afterOAuthUrlError() {
+  document.getElementById('result').innerHTML = 'found your remote storage ('+ua+') to be missing at '+davUrl
+}
+
 </script></head><body>
 
 <H2>Test your remote storage:</H2>
