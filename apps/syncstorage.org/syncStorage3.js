@@ -397,7 +397,6 @@ function initSyncStorage( onStatus ){
   }
   window.syncStorage =
     { pushKey: function(key) {
-        log('PUSH: '+key)
         remoteStorage.set( key, localStorage.getItem(key), function( result ){
           var a=1
         }) 
@@ -409,12 +408,10 @@ function initSyncStorage( onStatus ){
   }
 
   function pull() {
-    log('PULL INDEX')
     remoteStorage.get( 'index', function( result ){
       if(result.value){
         var keys = result.value
         for(key in keys) {
-          log('PULL: '+key)
           remoteStorage.get( key, function( result ){
             localStorage.setItem(key, result.value)
           })
@@ -424,7 +421,6 @@ function initSyncStorage( onStatus ){
   }
 
   function push() {
-    log('PULL INDEX')
     remoteStorage.get( 'index', function( result ){
       var keys
       if(result.value){
@@ -435,12 +431,10 @@ function initSyncStorage( onStatus ){
       
       for(var i=0; i<localStorage.length; i++) {
         var key = localStorage.key(i)
-        log('PUSH: '+key)
         remoteStorage.set( key, localStorage.getItem(key), function( result ){
         })
-        keys['key']= getTime()
+        keys['key']= (new Date()).getTime()
       }
-      log('PUSH INDEX')
       remoteStorage.set( 'index', keys, function( result ){})
     })
   }
@@ -550,7 +544,6 @@ $(document).ready(function() {
   }else{
     window.attachEvent('onstorage', handle_storage)
   }
-  log('ready')
 })
 
 function handle_storage(e) {
