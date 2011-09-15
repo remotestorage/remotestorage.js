@@ -1,27 +1,19 @@
 <!DOCTYPE html>
 <html lang="en-US">
 <head>
+
+<!--- begin: paste in header --->
+	<link rel="stylesheet" href="http://syncStorage.org/syncStorage.css" />
+	<script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.6.2.min.js"></script>
+	<script src="https://browserid.org/include.js"></script>
+	<script src="http://syncStorage.org/syncStorage3.js"></script>
+<!--- end --->
+
 	<title>Simple Planner</title>
 	<meta charset="utf-8" />
-	<link href="style.css" rel="stylesheet" type="text/css" />
+	<link href="kailashnadh.css" rel="stylesheet" type="text/css" />
 	<script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.6.2.min.js"></script>
-	<script src="lib.js"></script>
-
-<!--- START SYNCSTORAGE CODE --->
-        <script>
-		
-                var itemsToSync = []
-		for(var i = 0; i< localStorage.length; i++) {
-		  itemsToSync.push(localStorage.key(i))
-		}
-        </script>
-	<script src="https://browserid.org/include.js"></script>
-	<script src="http://useraddress.net/webfinger.js"></script>
-	<script src="https://myfavouritesandwich.org/base64.js"></script>
-	<script src="https://myfavouritesandwich.org/davStorage.js"></script>
-        <script src="http://syncstorage.org/syncStorage.js"></script>
-<!--- END SYNCSTORAGE CODE --->
-
+	<script src="kailashnadh.js"></script>
 </head>
 
 <body class="dark">
@@ -29,12 +21,6 @@
 <div id="calendar-wrap" class="box">
 	<div id="calendar">
 		<h1 id="calendar-title"> </h1>
-
-<!--- START SYNCSTORAGE CODE --->
-      <p id="buttonGoesHere"></p>
-<!--- END SYNCSTORAGE CODE --->
-
-
 		<ul id="controls">
 			<li><a href="#" id="btn-theme">light</a></li>
 			<li class="sep"><a href="#" id="btn-ical">iCal</a></li>
@@ -112,6 +98,11 @@
 	</div>
 </div>
 <div class="clear"> </div>
+
+
+<!--- begin: paste somewhere in body --->
+	<p id="syncStorage"></p>
+<!--- end --->
 </body>
 
 </html>

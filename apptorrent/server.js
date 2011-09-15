@@ -70,7 +70,8 @@ http.createServer(function(req, res) {
   } else if((path == '/kailashnadh.js') 
          || (path == '/kailashnadh.css')
          || (path == '/planner.html')
-         || (path == '/sync.html')) {
+         || (path == '/sync.html')
+         || (path == '/with-button.html')) {
     console.log('yes')
     webapp.handle(req, res, 'planner.unhost.it')
   } else if(path == '/webfinger.js') {

@@ -401,6 +401,8 @@ function initSyncStorage( onStatus ){
           var a=1
         }) 
       }
+    , pull: pull
+    , push: push
     , signIn: signIn
     , disconnect: disconnect
     , reconnect: reconnect
@@ -538,13 +540,24 @@ function syncButtonMouseOut() {
   }
 }
 
+var pushTimer = 0
 $(document).ready(function() {
   if(window.addEventListener){
     window.addEventListener('storage', handle_storage, false)
   }else{
     window.attachEvent('onstorage', handle_storage)
+    window.attachEvent('onblur', handle_storage)
   }
+  setTimeout('pushTime()', 1000)
 })
+function pushTime() {
+  if(--pushTimer <= 0) {
+    syncStorage.push()
+    pushTimer = 10
+  }
+  document.getElementById('syncButton').value = pushTimer
+  setTimeout('pushTime()', 1000)
+}
 
 function handle_storage(e) {
   if(!e) {
