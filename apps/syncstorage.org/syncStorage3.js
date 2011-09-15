@@ -433,7 +433,7 @@ function initSyncStorage( onStatus ){
         var key = localStorage.key(i)
         remoteStorage.set( key, localStorage.getItem(key), function( result ){
         })
-        keys['key']= (new Date()).getTime()
+        keys[key]= (new Date()).getTime()
       }
       remoteStorage.set( 'index', keys, function( result ){})
     })
