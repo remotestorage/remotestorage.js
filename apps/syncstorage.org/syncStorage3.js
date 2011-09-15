@@ -543,3 +543,19 @@ function syncButtonMouseOut() {
     document.getElementById('status').innerHTML = 'with '+document.getElementById('syncButton').syncStatus.userAddress
   }
 }
+
+$(document).ready(function() {
+  if(window.addEventListener){
+    window.addEventListener('storage', handle_storage, false)
+  }else{
+    window.attachEvent('onstorage', handle_storage)
+  }
+  log('ready')
+})
+
+function handle_storage(e) {
+  if(!e) {
+    e = window.event
+  }
+  syncStorage.pushKey(e.key)
+}
