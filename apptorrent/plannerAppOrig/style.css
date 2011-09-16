@@ -1,0 +1,419 @@
+html {
+	height: 100%;
+}
+body {
+	background: #eee;
+	font-family: Helvetica Neue, Helvetica, Arial;
+	font-size: 1em;
+	color: #333;
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+
+.box {
+	background: #fff;
+	box-shadow: 0 0 30px #ddd;
+}
+
+#calendar-wrap {
+	padding-right: 35px;
+	float: left;
+	z-index: 1;
+	overflow: hidden;
+}
+	#calendar {
+		position: relative;
+		margin: 15px;
+	}
+	#stats {
+		color: #aaa;
+		margin-top: 15px;
+	}
+	#calendar-title {
+		text-transform: lowercase;
+		margin-bottom: 10px;
+		float: left;
+		width: 40%;
+	}
+	#time {
+		color: #aaa;
+	}
+	
+table {
+	width: 100%;
+	height: 80%;
+	margin-top: 30px;
+	border-spacing: 0;
+}
+thead td {
+	font-size: 18px;
+	text-align: center;
+	height: 40px;
+}
+tbody td {
+	border-width: 0 1px 1px 0;
+	border-style: solid;
+	border-color: #ddd;
+	padding: 10px;
+	overflow: hidden;
+}
+thead td {
+	border-bottom: 1px solid #ddd;
+}
+tbody tr td:nth-child(1) {
+	border-left: 1px solid #ddd;
+}
+
+.day {
+	background: #fff url('w.png') repeat-x bottom left;
+	overflow: hidden;
+	cursor: pointer;
+}
+.day div {
+	position: relative;
+}
+.day:hover {
+	background: #fff;
+}
+.day .d {
+	position: absolute;
+	top: 0;
+	right: 0;
+}
+.selected .d {
+	text-decoration: underline;
+}
+.today  {
+	background: #feffb9;
+}
+	.marked .d {
+		font-weight: bold;
+	}
+
+.day .add {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	line-height: 16px;
+	width: 15px;
+	height: 15px;
+	opacity: 0;
+}
+	.day ul {
+		position: absolute;
+		font-size: 11px;
+		top: 25px;
+		width: 100%;
+	}
+		.day li {
+			padding: 2px;
+			width: 100%;
+			margin-bottom: 1px;
+			overflow: hidden;
+			height: 14px;
+		}
+	.day ul .time {
+		margin-right: 5px;
+	}
+
+	
+#diary-wrap {
+	border-left: 1px solid #ddd;
+	float: left;
+	width: 30%;
+	display: none;
+}
+	#diary-title {
+		float: left;
+	}
+	#diary-close {
+		float: left;
+		margin: 1px 15px 10px 0;
+	}
+
+	#diary-wrap .content {
+		margin: 15px;
+	}
+	.compact #diary-wrap {
+		position: absolute;
+		top: 0;
+		right: 0;
+		z-index: 5;
+		margin-left: 40px;
+	}
+	.compact #calendar-title {
+		float: none;
+	}
+	.compact #controls {
+		float: none;
+	}
+#diary {
+	font-size: 12px;
+	margin: 15px;
+}
+	#diary li {
+		margin-bottom: 3px;
+	}
+	#diary .time {
+		background: #bbb;
+		color: #fff;
+		padding: 2px;
+		display: block;
+		width: 100px;
+		float: left;
+		margin-right: 15px;
+		border-radius: 5px;
+	}
+		#diary .time:hover {
+			background: #000;
+		}
+	#diary .desc {
+		display: inline-block;
+		padding: 0 0 3px 0;
+		overflow: hidden;
+		border-bottom: 1px solid #ddd;
+	}
+	
+#dialog {
+	background: #fff url('w.png') repeat-x bottom left;
+	display: none;
+	padding: 15px 25px;
+	position: absolute;
+	z-index: 10;
+
+	box-shadow: 0 0 30px #aaa;
+	border-radius: 10px;
+}
+	#dialog-close {
+		float: right;
+		margin: -5px -15px 10px 10px;
+	}
+	#dialog .target {
+		display: none;
+	}
+	
+
+	#add #event-description {
+		width: 90%;
+	}
+	#add label {
+		display: block;
+		font-weight: bold;
+		margin-bottom: 5px;
+	}
+	#add p.time {
+		margin-bottom: 10px;
+	}
+	#add .label {
+		font-size: 11px;
+		font-weight: normal;
+		display: inline-block;
+		margin-right: 10px;
+	}
+	#add #event-label input {
+		padding: 0;
+	}
+	#add .buttons {
+		margin-top: 30px;
+	}
+	#event-tweet,
+	#event-delete {
+		float: right;
+		display: none;
+		margin-left: 5px;
+	}
+	#event-tweet {
+		background-image: url('t.png');
+		background-repeat: no-repeat;
+		background-position: 3px 9px;
+		padding-left: 22px;
+	}
+	
+	#ical-data {
+		margin-top: 15px;
+		width: 100%;
+		font-size: 11px;
+		height: 250px;
+	}
+
+#controls {
+	float: right;
+	margin-top: 8px;
+}
+	#controls li {
+		display: inline-block;
+		margin-left: 5px;
+	}
+	#controls .sep {
+		margin-right: 35px;
+	}
+	.button, 
+	#controls a {
+		background: #000;
+		font-size: 12px;
+		color: #fff;
+		display: inline-block;
+		padding: 5px 12px;
+		border-radius: 5px;
+	}
+	.button {
+		border: 0;
+		margin: 0;
+		font-weight: bold;
+		font-size: 15px;
+		cursor: pointer;
+	}
+	#controls a:hover {
+		background: #3366cc;
+	}
+	
+#credit {
+	background: #eee;
+	border-radius: 3px;
+	padding: 3px 5px;
+	margin-top: 15px;
+	display: inline-block;
+}
+
+/* ____________ */
+.label {
+	padding: 3px;
+	color: #fff !important;
+	border-radius: 3px;
+}
+.important {
+	background: #ff0000 !important;
+}
+.todo {
+	background: #3366cc !important;
+}
+.personal {
+	background: #35A200 !important;
+}
+.work {
+	background: #D89700 !important;
+}
+.misc {
+	background: #48BFF2 !important;
+}
+
+.clear {
+	clear: both;
+}
+
+.info {
+	font-size: 12px;
+	color: #666;
+}
+
+.round {
+	display: block;
+	width: 20px;
+	height: 20px;
+	
+	border: 3px solid #000;
+	border-radius: 20px;
+	font-weight: bold;
+	text-align: center;
+	overflow: hidden;
+}
+	.round:hover {
+		border-color: #3366cc;
+		color: #3366cc;
+	}
+	
+h1, h2, h3, h4 {
+	margin: 0 0 25px 0;
+	font-weight: normal;
+}
+a {
+	color: #000;
+	text-decoration: none;
+}
+input, select {
+	padding: 10px;
+}
+ul {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+}
+
+
+
+/* ___________ colour schemes */
+.dark {
+	background: #333;
+	color: #ccc;
+}
+.dark #time {
+	color: #ccc;
+}
+.dark #stats {
+	color: #666;
+}
+.dark .box {
+	background: #212121;
+	box-shadow: 0 0 30px #111;
+}
+.dark #dialog {
+	background: #212121;
+	border: 1px solid #444;
+	box-shadow: 0 0 30px #000;
+}
+.dark #diary-wrap {
+	border: 0;
+	border-right: 1px solid #1e1e1e;
+}
+.dark #controls a {
+	background: #ff4800;
+}
+	.dark #controls a:hover {
+		background: #cc0000;
+	}
+.dark .round {
+	border-color: #ff4800;
+	color: #ff4800;
+}
+	.dark .round:hover {
+		border-color: #aaa;
+		color: #aaa;
+	}
+.dark .day {
+	background: #191919;
+}
+.dark tbody td,
+.dark thead td,
+.dark tbody tr td:nth-child(1) {
+	border-color: #2e2e2e;
+}
+.dark  #diary .time {
+	background: #444;
+	color: #ccc;
+}
+.dark #diary .desc {
+	border-color: #444;
+}
+
+.dark #credit {
+	background: #111;
+}
+.dark #credit a {
+	color: #ddd;
+}
+.dark .today  {
+	background: #333;
+}
+.dark .info {
+	color: #999;
+}
+.dark #ical-data {
+	background: #222;
+	color: #aaa;
+	border: 1px solid #333;
+}
+.dark .button {
+	background: #666;
+}

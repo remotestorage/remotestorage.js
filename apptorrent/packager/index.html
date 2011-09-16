@@ -1,5 +1,8 @@
 <html><head>
 <script src="../runTimeEnv/plannerApp.apptorrent"></script>
+<script src="http://webtoolkit.info/djs/webtoolkit.sha1.js"></script>
+<script src="http://ejohn.org/files/htmlparser.js"></script>
+<script src="jQuery.js"></script>
 <script>
 function fillFields() {
   document.getElementById('html').innerHTML=appTorrent.html
@@ -8,16 +11,52 @@ function fillFields() {
   }
   document.getElementById('js').innerHTML=appTorrent.js
 }
+
+function package() {
+  fetchApp(document.getElementById('original').value)
+}
+
+function fetchApp(url) {
+  $.ajax(
+    { url: 'http://example.com/unhosted/apptorrent/plannerAppOrig/index.html'
+    , success: parseOpa
+    })
+}
+function parseOpa(data) {
+  var xml
+  try {
+    xmlText = HTMLtoXML(data)
+    var parser = new DOMParser()
+    var xmlTree = parser.parseFromString(xmlText, 'text/xml')
+    var pkg = {}
+    finishPackage(pkg)
+  } catch(e) {
+    alert('html parse fail! sorry...')
+  }
+}
+
+function finishPackage(pkg) {
+  pkg.title = document.getElementById('title').value
+  pkg.description = document.getElementById('description').value
+  pkg.author = document.getElementById('author').value
+  pkg.original = document.getElementById('original').value
+  pkg.license = document.getElementById('license').value
+  pkg.packager = document.getElementById('packager').value
+  var sausage = JSON.stringify(pkg)
+  var sha1 = SHA1(sausage)
+  localStorage.setItem(sha1, sausage)
+  document.getElementById('result').innerHTML = "Unhosted web app packaged as <strong>apptorrent://"+sha1+"/</strong>"
+}
 </script></head><body onload="fillFields()">
 <H1>Package a localStorage-based HTML app, and unhost it on apptorrent!</H1>
 Fill in stuff here:
 <H2>Basic Info:</H2>
 <label>Title:</label><input id="title" type="text" size="100"  value="Simple Planner">
-<br><label>Description:</label><input id="title" size="100" type="text" value="A localStorage based personal planner prototype. Made for 10K Apart">
-<br><label>Author:</label><input id="title" type="text" size="100"  value="Kailash Nadh, http://kailashnadh.name (August 2011)">
-<br><label>Original:</label><input id="title" type="text" size="100"  value="http://10k.aneventapart.com/2/Uploads/526/">
-<br><label>License:</label><input id="title" type="text" size="100"  value="GPL">
-<br><label>Packager:</label><input id="title" type="text" size="100"  value="Michiel de Jong">
+<br><label>Description:</label><input id="description" size="100" type="text" value="A localStorage based personal planner prototype. Made for 10K Apart">
+<br><label>Author:</label><input id="author" type="text" size="100"  value="Kailash Nadh, http://kailashnadh.name (August 2011)">
+<br><label>Original:</label><input id="original" type="text" size="100"  value="http://10k.aneventapart.com/2/Uploads/526/">
+<br><label>License:</label><input id="license" type="text" size="100"  value="GPL">
+<br><label>Packager:</label><input id="packager" type="text" size="100"  value="Michiel de Jong">
 
 <H2>HTML5 Body:</H2>
 <textarea id="html"></textarea>
@@ -25,4 +64,9 @@ Fill in stuff here:
 <textarea id="css"></textarea>
 <H2>JavaScript:</H2>
 <textarea id="js"></textarea>
+<H2>Libs:</H2>
+<textarea id="libs"></textarea>
+<H2>Package it!</H2>
+<input type="submit" onclick="fetchApp(package)">
+<div id="result"></div>
 </body></html>
