@@ -1,0 +1,28 @@
+<html><head>
+<script src="../runTimeEnv/plannerApp.apptorrent"></script>
+<script>
+function fillFields() {
+  document.getElementById('html').innerHTML=appTorrent.html
+  for(var i=0; i< appTorrent.css.length; i++) {
+    document.getElementById('css').innerHTML+=appTorrent.css[i]
+  }
+  document.getElementById('js').innerHTML=appTorrent.js
+}
+</script></head><body onload="fillFields()">
+<H1>Package a localStorage-based HTML app, and unhost it on apptorrent!</H1>
+Fill in stuff here:
+<H2>Basic Info:</H2>
+<label>Title:</label><input id="title" type="text" size="100"  value="Simple Planner">
+<br><label>Description:</label><input id="title" size="100" type="text" value="A localStorage based personal planner prototype. Made for 10K Apart">
+<br><label>Author:</label><input id="title" type="text" size="100"  value="Kailash Nadh, http://kailashnadh.name (August 2011)">
+<br><label>Original:</label><input id="title" type="text" size="100"  value="http://10k.aneventapart.com/2/Uploads/526/">
+<br><label>License:</label><input id="title" type="text" size="100"  value="GPL">
+<br><label>Packager:</label><input id="title" type="text" size="100"  value="Michiel de Jong">
+
+<H2>HTML5 Body:</H2>
+<textarea id="html"></textarea>
+<H2>CSS3 Rules:</H2>
+<textarea id="css"></textarea>
+<H2>JavaScript:</H2>
+<textarea id="js"></textarea>
+</body></html>
