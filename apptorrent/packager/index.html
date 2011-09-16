@@ -12,9 +12,10 @@ function fillFields() {
   document.getElementById('js').innerHTML=appTorrent.js
 }
 
+var pkg = {}
 var pendingFiles = 0
 function globalDone() {
-  alert('no more getFile jobs pending')
+  finishPackage(pkg)
 }
 function getFile(fileName, cb) {
   pendingFiles++
@@ -51,7 +52,6 @@ function parseOpa(data) {
     //get OPA and parse HTML into <head> and <body>:
     xmlText = HTMLtoXML(data)
     var xmlTree = (new DOMParser()).parseFromString(xmlText, 'text/xml')
-    var pkg = {}
     //get pkg.html:
     pkg.html = (new XMLSerializer()).serializeToString(xmlTree.getElementsByTagName('body')[0])
     //hack 2b: put &...; html tags back:
@@ -96,7 +96,6 @@ function parseOpa(data) {
         }
       }
     }
-    finishPackage(pkg)
   } catch(e) {
     alert('html parse fail! sorry...')
   }
