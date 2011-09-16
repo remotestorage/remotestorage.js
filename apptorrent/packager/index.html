@@ -1,8 +1,9 @@
 <html><head>
 <script src="../runTimeEnv/plannerApp.apptorrent"></script>
-<script src="http://webtoolkit.info/djs/webtoolkit.sha1.js"></script>
-<script src="http://ejohn.org/files/htmlparser.js"></script>
+<script src="webtoolkit.sha1.js"></script>
+<script src="htmlparser.js"></script>
 <script src="jQuery.js"></script>
+<script src="testInput.js"></script>
 <script>
 function fillFields() {
   document.getElementById('html').innerHTML=appTorrent.html
@@ -13,7 +14,8 @@ function fillFields() {
 }
 
 function package() {
-  fetchApp(document.getElementById('original').value)
+  //fetchApp(document.getElementById('original').value)
+  parseOpa(testInput)
 }
 
 function fetchApp(url) {
@@ -49,6 +51,8 @@ function finishPackage(pkg) {
 }
 </script></head><body onload="fillFields()">
 <H1>Package a localStorage-based HTML app, and unhost it on apptorrent!</H1>
+<input type="submit" onclick="package()">
+<div id="result"></div>
 Fill in stuff here:
 <H2>Basic Info:</H2>
 <label>Title:</label><input id="title" type="text" size="100"  value="Simple Planner">
@@ -66,7 +70,4 @@ Fill in stuff here:
 <textarea id="js"></textarea>
 <H2>Libs:</H2>
 <textarea id="libs"></textarea>
-<H2>Package it!</H2>
-<input type="submit" onclick="fetchApp(package)">
-<div id="result"></div>
 </body></html>
