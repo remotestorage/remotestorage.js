@@ -3,7 +3,6 @@
 <script src="webtoolkit.sha1.js"></script>
 <script src="htmlparser.js"></script>
 <script src="jQuery.js"></script>
-<script src="testInput.js"></script>
 <script>
 function fillFields() {
   document.getElementById('html').innerHTML=appTorrent.html
@@ -13,24 +12,90 @@ function fillFields() {
   document.getElementById('js').innerHTML=appTorrent.js
 }
 
-function package() {
-  //fetchApp(document.getElementById('original').value)
-  parseOpa(testInput)
+var pendingFiles = 0
+function globalDone() {
+  alert('no more getFile jobs pending')
+}
+function getFile(fileName, cb) {
+  pendingFiles++
+  $.ajax(
+    { url: document.getElementById('original').value + fileName
+    , success: function(data) {
+        cb(data)
+        pendingFiles--
+        if(pendingFiles == 0) {
+          globalDone()
+        }
+      }
+    }
+  )
 }
 
-function fetchApp(url) {
-  $.ajax(
-    { url: 'http://example.com/unhosted/apptorrent/plannerAppOrig/index.html'
-    , success: parseOpa
-    })
+function package() {
+  getFile('index.html', parseOpa)
 }
+
 function parseOpa(data) {
-  var xml
   try {
+    //hack 1: get rid of DOCTYPE:
+    data = data.substring(17)
+    //hack 2a: get rid of &...; html tags:
+    dataBits = data.split('&')
+    data = ''
+    for(var i in dataBits) {
+      data += dataBits[i]
+      if(i < (dataBits.length-1)) {
+        data +='_AMPERSAND_'
+      }
+    }
+    //get OPA and parse HTML into <head> and <body>:
     xmlText = HTMLtoXML(data)
-    var parser = new DOMParser()
-    var xmlTree = parser.parseFromString(xmlText, 'text/xml')
+    var xmlTree = (new DOMParser()).parseFromString(xmlText, 'text/xml')
     var pkg = {}
+    //get pkg.html:
+    pkg.html = (new XMLSerializer()).serializeToString(xmlTree.getElementsByTagName('body')[0])
+    //hack 2b: put &...; html tags back:
+    var bits = pkg.html.split('_AMPERSAND_')
+    pkg.html = ''
+    for(var i in bits) {
+      pkg.html += bits[i]
+      if(i < (bits.length-1)) {
+        pkg.html +='&'
+      }
+    }
+    //get pkg.css:
+    var links = xmlTree.getElementsByTagName('link')
+    pkg.css = ''
+    for(var i in links) {
+      var attr = links[i].attributes
+      for(var j in attr) {
+        if(attr[j].name == 'rel' && attr[j].value == 'stylesheet') { 
+          for(var k in attr) {
+            if(attr[k].name == 'href') {
+              getFile(attr[k].value, function(data) {
+                pkg.css += data 
+              })
+              break
+            }
+          }
+          break
+        }
+      }
+    }
+    //get pkg.js:
+    var scriptTags = xmlTree.getElementsByTagName('script')
+    pkg.js = ''
+    for(var i in scriptTags) {
+      var attr = scriptTags[i].attributes
+      for(var j in attr) {
+        if(attr[j].name == 'src') { 
+          getFile(attr[j].value, function(data) {
+            pkg.js += data
+          })
+          break
+        }
+      }
+    }
     finishPackage(pkg)
   } catch(e) {
     alert('html parse fail! sorry...')
@@ -58,7 +123,7 @@ Fill in stuff here:
 <label>Title:</label><input id="title" type="text" size="100"  value="Simple Planner">
 <br><label>Description:</label><input id="description" size="100" type="text" value="A localStorage based personal planner prototype. Made for 10K Apart">
 <br><label>Author:</label><input id="author" type="text" size="100"  value="Kailash Nadh, http://kailashnadh.name (August 2011)">
-<br><label>Original:</label><input id="original" type="text" size="100"  value="http://10k.aneventapart.com/2/Uploads/526/">
+<br><label>Original:</label><input id="original" type="text" size="100"  value="http://example.com/unhosted/apptorrent/plannerAppOrig/">
 <br><label>License:</label><input id="license" type="text" size="100"  value="GPL">
 <br><label>Packager:</label><input id="packager" type="text" size="100"  value="Michiel de Jong">
 
