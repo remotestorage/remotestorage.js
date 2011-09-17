@@ -10,9 +10,11 @@ var appTorrent = JSON.parse(syncStorage.getItem('a80bbb1b6496bba00681cc01eff3a7d
 var cssRulesNoClosingAccolade = appTorrent.css.replace(new RegExp( '[\\n\\r]', 'g' ), '').split('}')
 
 for(var i in cssRulesNoClosingAccolade) {
-  document.getElementsByTagName('style')[0].sheet.insertRule(cssRulesNoClosingAccolade[i] + '}', i)
+  if(cssRulesNoClosingAccolade[i].length) {
+    document.getElementsByTagName('style')[0].sheet.insertRule(cssRulesNoClosingAccolade[i] + '}', i)
+  }
 }
-
 document.write(appTorrent.html)
+appTorrent.js = appTorrent.js.replace('localStorage', 'syncStorage')
 eval(appTorrent.js)
 </script></head><body></body></html>
