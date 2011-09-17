@@ -18,7 +18,7 @@ var syncStorage = (function(){
   ret['setItem'] = function(key, val) {
       var ret = localStorage.setItem(key, val)
       this.length = localStorage.length
-      syncer.pushKey(e.key)
+      syncer.pushKey(key)
       return ret
     }
   return ret
@@ -33,7 +33,7 @@ if(navigator.id) {
   document.addEventListener('login', function(event) {
     navigator.id.getVerifiedEmail(function(assertion) {
       if (assertion) {
-        syncer.signIn('example.com')
+        syncer.signIn(assertion, 'example.com')
         navigator.id.sessions = [{email: 'mich@yourremotestorage.com'}]
       } else {
         navigator.id.sessions = [{email: 'n@o.pe'}]
@@ -365,44 +365,40 @@ function UnhostedDav_0_1( params ){
 function initSyncStorage(){
   var remoteStorage = null
 
-  function signIn(audience) {
-    navigator.id.getVerifiedEmail(function(assertion) {
-      if(assertion) {
-        $.ajax(//we only use BrowserId to avoid nascar here, not to authenticate. the audience is the current client-side app, which has not interest in who you are.
-          { type: 'POST'
-          , url: 'https://browserid.org/verify'
-          , data: 
-            { assertion: assertion
-            , audience: audience
-            }
-          , dataType: 'json'
-          , success: function(data) {
-              webfinger.getDavBaseUrl(data.email, 0, 1, function() {
-              }, function(davUrl) {
-                var session =
-                  { userAddress: data.email
-                  , dataScope: 'simpleplanner'
-                  , storage:
-                    { userAddress: data.email
-                    , davUrl: davUrl
-                    , dataScope: 'simpleplanner'
-                    , storageType: 'http://unhosted.org/spec/dav/0.1'
-                    }
-                  }
-                sessionStorage.setItem('session', JSON.stringify(session))
-                window.location = session.storage.davUrl
-                  + "oauth2/auth"
-                  + "?client_id="+encodeURIComponent('clientId')
-                  + "&redirect_uri="+encodeURIComponent(window.location)
-                  + "&scope="+encodeURIComponent(session.dataScope)
-                  + "&response_type=token"
-                  + "&user_address="+encodeURIComponent(session.userAddress)
-              })
-            }
-          }
-        )
+  function signIn(assertion, audience) {
+    $.ajax(//we only use BrowserId to avoid nascar here, not to authenticate. the audience is the current client-side app, which has not interest in who you are.
+      { type: 'POST'
+      , url: 'https://browserid.org/verify'
+      , data: 
+        { assertion: assertion
+        , audience: audience
+        }
+      , dataType: 'json'
+      , success: function(data) {
+          webfinger.getDavBaseUrl(data.email, 0, 1, function() {
+          }, function(davUrl) {
+            var session =
+              { userAddress: data.email
+              , dataScope: 'simpleplanner'
+              , storage:
+                { userAddress: data.email
+                , davUrl: davUrl
+                , dataScope: 'simpleplanner'
+                , storageType: 'http://unhosted.org/spec/dav/0.1'
+                }
+              }
+            sessionStorage.setItem('session', JSON.stringify(session))
+            window.location = session.storage.davUrl
+              + "oauth2/auth"
+              + "?client_id="+encodeURIComponent('clientId')
+              + "&redirect_uri="+encodeURIComponent(window.location)
+              + "&scope="+encodeURIComponent(session.dataScope)
+              + "&response_type=token"
+              + "&user_address="+encodeURIComponent(session.userAddress)
+          })
+        }
       }
-    })
+    )
   }
 
   function pull() {
@@ -449,7 +445,6 @@ function initSyncStorage(){
     if(session.storage) {
       if( session.storage.storageType == 'http://unhosted.org/spec/dav/0.1' ){
         remoteStorage = UnhostedDav_0_1( session.storage )
-        reportStatus( 0 )
         pull()
         push()
       } else {
