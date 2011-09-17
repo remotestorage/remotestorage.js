@@ -15,6 +15,33 @@ for(var i in cssRulesNoClosingAccolade) {
   }
 }
 document.write(appTorrent.html)
+//appTorrent.js = appTorrent.js
+//appTorrent.js = appTorrent.js
+//appTorrent.js = appTorrent.js
+
+//localStorage['events'] = JSON.stringify(this.EVENTS);
+appTorrent.js = appTorrent.js.replace(
+  new RegExp('localStorage.\'([A-Za-z0-9\.]+)\'.([\ ]+)=([\ ]+)([A-Za-z0-9\.\(\)]+)','g')
+  , 'localStorage.setItem(\'$1\', $4)')
+
+//localStorage.setup = 1
+appTorrent.js = appTorrent.js.replace(
+  new RegExp('localStorage\.'
+    +'(?!setItem\()(?!getItem\()(?!clear\()(?!length)'
+    +'([A-Za-z0-9\.]+)([\ ]+)=([\ ]+)([A-Za-z0-9\.]+)','g')
+  , 'localStorage.setItem(\'$1\', $4)')
+
+//this.EVENTS = localStorage['events']
+appTorrent.js = appTorrent.js.replace(
+  new RegExp('localStorage.\'([A-Za-z0-9\.]+)\'.','g')
+  , 'localStorage.getItem(\'$2\')')
+
+//if(localStorage.setup) {
+appTorrent.js = appTorrent.js.replace(
+  new RegExp('localStorage\.'
+    +'(?!setItem\()(?!getItem\()(?!clear\()(?!length)'
+    +'([A-Za-z0-9\.]+)','g')
+  , 'localStorage.getItem(\'$1\')')
 appTorrent.js = appTorrent.js.replace('localStorage', 'syncStorage')
 eval(appTorrent.js)
 </script></head><body></body></html>
