@@ -1,10 +1,10 @@
-  ///////////////////////////////////
+  //////////////////////////////////
  // interface: syncStorage object //
 ///////////////////////////////////
 
+var syncer = initSyncStorage()
 var syncStorage = (function(){
   var ret = {}
-  var syncer = initSyncStorage()
   ret['length'] = localStorage.length
   ret['clear'] = function() {
       return localStorage.clear()
@@ -33,6 +33,7 @@ if(navigator.id) {
   document.addEventListener('login', function(event) {
     navigator.id.getVerifiedEmail(function(assertion) {
       if (assertion) {
+        syncer.signIn('example.com')
         navigator.id.sessions = [{email: 'mich@yourremotestorage.com'}]
       } else {
         navigator.id.sessions = [{email: 'n@o.pe'}]
@@ -361,38 +362,8 @@ function UnhostedDav_0_1( params ){
  // oauth //
 ///////////
 
-function initSyncStorage( onStatus ){
-  var numConns = 0
+function initSyncStorage(){
   var remoteStorage = null
-  var keys = {}
-  var pendingPush = {}
-  var error = false
-  var reportStatus = function( deltaConns ){
-    var userAddress
-    var syncStatus = 'unsynced'
-    if( onStatus ){
-      numConns += deltaConns
-      if( remoteStorage ){
-        userAddress = remoteStorage.getUserAddress()
-      } else {
-        userAddress = null
-      }
-      if( userAddress ){
-        if(numConns) {
-          syncStatus = 'syncing'
-        } else {
-          syncStatus = 'synced'
-        }
-      }
-      onStatus( { userAddress: userAddress
-                , sync: syncStatus
-                } )
-    }
-  }
-      
-  function registerHosted(session) {
-    alert("We looked for your remote storage at "+session.userAddress+", but couldn't find it there. Don't be sad though! Because if you stop by in our chat room, we can set up a test user for you. [http://webchat.freenode.net/?channels=unhosted] Probably you can even keep "+session.userAddress+" as your user address");
-  }
 
   function signIn(audience) {
     navigator.id.getVerifiedEmail(function(assertion) {
@@ -434,18 +405,6 @@ function initSyncStorage( onStatus ){
     })
   }
 
-  function disconnect() {
-    onStatus({sync:'offline', userAddress: remoteStorage.getUserAddress()})
-  }
-  function reconnect() {
-    onStatus({sync:'synced', userAddress: remoteStorage.getUserAddress()})
-  }
-  function signOut() {
-    sessionStorage.removeItem('session')
-    sessionStorage.removeItem('browserid-asertion')
-    onStatus({sync:'unsynced'})
-  }
-
   function pull() {
     remoteStorage.get( 'index', function( result ){
       if(result.value){
@@ -479,7 +438,6 @@ function initSyncStorage( onStatus ){
   }
 
   //set it up:
-  reportStatus( 0 )
   var sessionStr = sessionStorage.getItem("session")
   if(sessionStr) {
     var session = {}
@@ -499,18 +457,14 @@ function initSyncStorage( onStatus ){
       }
     }
   }
-  return
-    { pushKey: function(key) {
+  return { pushKey: function(key) {
         remoteStorage.set( key, localStorage.getItem(key), function( result ){
           var a=1
         }) 
       }
-//    , pull: pull
-//    , push: push
-//    , signIn: signIn
-//    , disconnect: disconnect
-//    , reconnect: reconnect
-//    , signOut: signOut
+    , pull: pull
+    , push: push
+    , signIn: signIn
     }
 }
 

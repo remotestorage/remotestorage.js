@@ -1,17 +1,11 @@
 <html><head>
 <script src="../runTimeEnv/plannerApp.apptorrent"></script>
+<script src="https://browserid.org/include.js"></script>
 <script src="jQuery.js"></script>
 <script src="syncStorage4.js"></script>
 <script src="webtoolkit.sha1.js"></script>
 <script src="htmlparser.js"></script>
 <script>
-function fillFields() {
-  document.getElementById('html').innerHTML=appTorrent.html
-  for(var i=0; i< appTorrent.css.length; i++) {
-    document.getElementById('css').innerHTML+=appTorrent.css[i]
-  }
-  document.getElementById('js').innerHTML=appTorrent.js
-}
 
 var pkg = {}
 var pendingFiles = 0
@@ -103,36 +97,20 @@ function parseOpa(data) {
 }
 
 function finishPackage(pkg) {
-  pkg.title = document.getElementById('title').value
-  pkg.description = document.getElementById('description').value
-  pkg.author = document.getElementById('author').value
+//  pkg.title = document.getElementById('title').value
+//  pkg.description = document.getElementById('description').value
+//  pkg.author = document.getElementById('author').value
+//  pkg.license = document.getElementById('license').value
+//  pkg.packager = document.getElementById('packager').value
   pkg.original = document.getElementById('original').value
-  pkg.license = document.getElementById('license').value
-  pkg.packager = document.getElementById('packager').value
   var sausage = JSON.stringify(pkg)
   var sha1 = SHA1(sausage)
-  localStorage.setItem(sha1, sausage)
+  syncStorage.setItem(sha1, sausage)//this will set the sausage into localStorage, and sync it to remote storage if one is connected
   document.getElementById('result').innerHTML = "Unhosted web app packaged as <strong>apptorrent://"+sha1+"/</strong>"
 }
-</script></head><body onload="fillFields()">
+</script></head><body>
 <H1>Package a localStorage-based HTML app, and unhost it on apptorrent!</H1>
 <input type="submit" onclick="package()">
 <div id="result"></div>
-Fill in stuff here:
-<H2>Basic Info:</H2>
-<label>Title:</label><input id="title" type="text" size="100"  value="Simple Planner">
-<br><label>Description:</label><input id="description" size="100" type="text" value="A localStorage based personal planner prototype. Made for 10K Apart">
-<br><label>Author:</label><input id="author" type="text" size="100"  value="Kailash Nadh, http://kailashnadh.name (August 2011)">
 <br><label>Original:</label><input id="original" type="text" size="100"  value="http://example.com/unhosted/apptorrent/plannerAppOrig/">
-<br><label>License:</label><input id="license" type="text" size="100"  value="GPL">
-<br><label>Packager:</label><input id="packager" type="text" size="100"  value="Michiel de Jong">
-
-<H2>HTML5 Body:</H2>
-<textarea id="html"></textarea>
-<H2>CSS3 Rules:</H2>
-<textarea id="css"></textarea>
-<H2>JavaScript:</H2>
-<textarea id="js"></textarea>
-<H2>Libs:</H2>
-<textarea id="libs"></textarea>
 </body></html>
