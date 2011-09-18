@@ -80,7 +80,7 @@ for(var i in cssFiles) {
 for(var i in jsFiles) {
   textarea.value +='<script type="application/javascript" src="'+jsFiles[i]+'"></script>\n'
 }
-textarea.value+='<head>\n'+appTorrent.html+'\n</html>\n'
+textarea.value+='</head>\n'+appTorrent.html+'\n</html>\n'
 var label= document.createElement('label')
 label.innerHTML='<br>index.html:'
 document.getElementsByTagName('body')[0].appendChild(label)

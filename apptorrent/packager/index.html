@@ -32,31 +32,27 @@ function package() {
 
 function parseOpa(fileName, data) {
   try {
-    //hack 1: get rid of DOCTYPE:
+    //hack 1a: get rid of DOCTYPE:
     data = data.substring(17)
-    //hack 2a: get rid of &...; html tags:
+    //hack 2a: get rid of &...; html tags, and prevent things like '<h2 id="dyn"></h2>' from collapsing to '<h2 id="dyn"/>':
     dataBits = data.split('&')
-    data = ''
-    for(var i in dataBits) {
-      data += dataBits[i]
-      if(i < (dataBits.length-1)) {
-        data +='_AMPERSAND_'
-      }
-    }
+    data = data
+      .replace(new RegExp('&', 'g'), '_AMPERSAND_')
+      .replace(new RegExp('\<([A-Za-z0-9\ -=\"]+)\>\</([A-Za-z0-9\ =\"]+)\>', 'g'), '<$1>_DONTCOLLAPSME_</$2>')
+
     //get OPA and parse HTML into <head> and <body>:
     xmlText = HTMLtoXML(data)
     var xmlTree = (new DOMParser()).parseFromString(xmlText, 'text/xml')
     //get pkg.html:
     pkg.html = (new XMLSerializer()).serializeToString(xmlTree.getElementsByTagName('body')[0])
-    //hack 2b: put &...; html tags back:
-    var bits = pkg.html.split('_AMPERSAND_')
-    pkg.html = ''
-    for(var i in bits) {
-      pkg.html += bits[i]
-      if(i < (bits.length-1)) {
-        pkg.html +='&'
-      }
-    }
+
+    //hack 1b: put DOCTYPE back
+    data = '<!DOCTYPE html>\n'+data
+    //hack 2b: put &...; html tags back and remove _DONTCOLLAPSEME_ placeholders:
+    data = data
+      .replace(new RegExp('_AMPERSAND_', 'g'), '&')
+      .replace(new RegExp('_DONTCOLLAPSEME_', 'g'), '')
+
     //get pkg.css:
     var links = xmlTree.getElementsByTagName('link')
     pkg.css = {}
