@@ -35,11 +35,15 @@ for(var fileName in appTorrent.js) {
   var textarea= document.createElement('textarea')
   textarea.id = 'js_'+fileName
   textarea.value = appTorrent.js[fileName]
-    .replace(new RegExp('localStorage.\'([A-Za-z0-9\.]+)\'.([\ ]+)=([\ ]+)([A-Za-z0-9\.\(\)]+)','g'), 'localStorage.setItem(\'$1\', $4)')
-    .replace(new RegExp('localStorage\.(?!setItem)(?!getItem)(?!clear)(?!length)([A-Za-z0-9\.]+)([\ ]+)=([\ ]+)([A-Za-z0-9\.]+)','g'), 'localStorage.setItem(\'$1\', $4)')
-    .replace(new RegExp('localStorage.\'([A-Za-z0-9\.]+)\'.','g'), 'localStorage.getItem(\'$2\')')
-    .replace(new RegExp('localStorage\.(?!setItem)(?!getItem)(?!clear)(?!length)([A-Za-z0-9\.]+)','g'), 'localStorage.getItem(\'$1\')')
-    .replace('localStorage', 'syncStorage')
+//    .replace(new RegExp('localStorage.\'([A-Za-z0-9\.]+)\'.([\ ]+)=([\ ]+)([A-Za-z0-9\.\(\)]+)','g'), 'localStorage.setItem($1, $4)')
+//    .replace(new RegExp('localStorage\.(?!setItem)(?!getItem)(?!clear)(?!length)([A-Za-z0-9\.]+)([\ ]+)=([\ ]+)([A-Za-z0-9\.]+)','g'), 'localStorage.setItem($1, $4)')
+//    .replace(new RegExp('localStorage.\'([A-Za-z0-9\.]+)\'.','g'), 'localStorage.getItem($1)')
+//    .replace(new RegExp('localStorage\.(?!setItem)(?!getItem)(?!clear)(?!length)([A-Za-z0-9\.]+)','g'), 'localStorage.getItem($1)')
+    .replace('localStorage\.getItem', 'syncStorage.getItem')
+    .replace('localStorage\.setItem', 'syncStorage.setItem')
+    .replace('localStorage\.length', 'syncStorage.length')
+    .replace('localStorage\.key', 'syncStorage.key')
+    .replace('localStorage\.clear', 'syncStorage.clear')
   var label= document.createElement('label')
   label.innerHTML='<br>'+fileName+':'
   document.getElementsByTagName('body')[0].appendChild(label)
