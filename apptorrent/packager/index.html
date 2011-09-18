@@ -66,6 +66,7 @@ function parseOpa(fileName, data) {
         if(attr[j].name == 'rel' && attr[j].value == 'stylesheet') { 
           for(var k in attr) {
             if(attr[k].name == 'href') {
+              pkg.css[attr[k].value] = false//reserve place in sheets order
               getFile(attr[k].value, function(fileName, data) {
                 pkg.css[fileName] = data 
               })
@@ -83,6 +84,7 @@ function parseOpa(fileName, data) {
       var attr = scriptTags[i].attributes
       for(var j in attr) {
         if(attr[j].name == 'src') { 
+          pkg.js[attr[j].value] = false//reserve place in scripts order
           getFile(attr[j].value, function(fileName, data) {
             pkg.js[fileName] = data
           })
