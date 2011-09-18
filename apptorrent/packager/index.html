@@ -59,7 +59,7 @@ function parseOpa(fileName, data) {
     }
     //get pkg.css:
     var links = xmlTree.getElementsByTagName('link')
-    pkg.css = ''
+    pkg.css = {}
     for(var i in links) {
       var attr = links[i].attributes
       for(var j in attr) {
@@ -67,7 +67,7 @@ function parseOpa(fileName, data) {
           for(var k in attr) {
             if(attr[k].name == 'href') {
               getFile(attr[k].value, function(fileName, data) {
-                pkg.css += data 
+                pkg.css[fileName] = data 
               })
               break
             }
@@ -78,13 +78,13 @@ function parseOpa(fileName, data) {
     }
     //get pkg.js:
     var scriptTags = xmlTree.getElementsByTagName('script')
-    pkg.js = ''
+    pkg.js = {}
     for(var i in scriptTags) {
       var attr = scriptTags[i].attributes
       for(var j in attr) {
         if(attr[j].name == 'src') { 
           getFile(attr[j].value, function(fileName, data) {
-            pkg.js += data
+            pkg.js[fileName] = data
           })
           break
         }
