@@ -38,13 +38,13 @@ function parseOpa(fileName, data) {
     dataBits = data.split('&')
     data = data
       .replace(new RegExp('&', 'g'), '_AMPERSAND_')
-      .replace(new RegExp('\<([A-Za-z0-9\ -=\"]+)\>\</([A-Za-z0-9\ =\"]+)\>', 'g'), '<$1>_DONTCOLLAPSME_</$2>')
+      .replace(new RegExp('\<([A-Za-z0-9\ -=\"]+)\>\</([A-Za-z0-9\ =\"]+)\>', 'g'), '<$1>_DONTCOLLAPSEME_</$2>')
 
     //get OPA and parse HTML into <head> and <body>:
     xmlText = HTMLtoXML(data)
     var xmlTree = (new DOMParser()).parseFromString(xmlText, 'text/xml')
     //get pkg.html:
-    pkg.html = (new XMLSerializer()).serializeToString(xmlTree.getElementsByTagName('body')[0])
+    data = (new XMLSerializer()).serializeToString(xmlTree.getElementsByTagName('body')[0])
 
     //hack 1b: put DOCTYPE back
     data = '<!DOCTYPE html>\n'+data
@@ -52,6 +52,8 @@ function parseOpa(fileName, data) {
     data = data
       .replace(new RegExp('_AMPERSAND_', 'g'), '&')
       .replace(new RegExp('_DONTCOLLAPSEME_', 'g'), '')
+
+    pkg.html = data
 
     //get pkg.css:
     var links = xmlTree.getElementsByTagName('link')
@@ -103,7 +105,9 @@ function finishPackage(pkg) {
   var sausage = JSON.stringify(pkg)
   var sha1 = SHA1(sausage)
   syncStorage.setItem(sha1, sausage)//this will set the sausage into localStorage, and sync it to remote storage if one is connected
-  document.getElementById('result').innerHTML = "Unhosted web app packaged as <strong>apptorrent://"+sha1+"/</strong>"
+  document.getElementById('result').innerHTML = 
+    'Unhosted web app packaged as <strong><a href="http://example.com/unhosted/apptorrent/player/extractor.html#'
+    +sha1+'">apptorrent://'+sha1+'/</a></strong>'
 }
 </script></head><body>
 <H1>Package a localStorage-based HTML app, and unhost it on apptorrent!</H1>

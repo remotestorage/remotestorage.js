@@ -6,7 +6,7 @@ $(document).ready(function(){
   ///////////////
  // fetch app //
 ///////////////
-var appTorrent = JSON.parse(syncStorage.getItem('6357e12835d77eb3b627690e6ba70811dcf7821a'))
+var appTorrent = JSON.parse(syncStorage.getItem(location.hash.substring(1)))
 
   /////////////////
  // extract css //
