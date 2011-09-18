@@ -16,7 +16,7 @@ function getFile(fileName, cb) {
   $.ajax(
     { url: document.getElementById('original').value + fileName
     , success: function(data) {
-        cb(data)
+        cb(fileName, data)
         pendingFiles--
         if(pendingFiles == 0) {
           globalDone()
@@ -30,7 +30,7 @@ function package() {
   getFile('index.html', parseOpa)
 }
 
-function parseOpa(data) {
+function parseOpa(fileName, data) {
   try {
     //hack 1: get rid of DOCTYPE:
     data = data.substring(17)
@@ -66,7 +66,7 @@ function parseOpa(data) {
         if(attr[j].name == 'rel' && attr[j].value == 'stylesheet') { 
           for(var k in attr) {
             if(attr[k].name == 'href') {
-              getFile(attr[k].value, function(data) {
+              getFile(attr[k].value, function(fileName, data) {
                 pkg.css += data 
               })
               break
@@ -83,7 +83,7 @@ function parseOpa(data) {
       var attr = scriptTags[i].attributes
       for(var j in attr) {
         if(attr[j].name == 'src') { 
-          getFile(attr[j].value, function(data) {
+          getFile(attr[j].value, function(fileName, data) {
             pkg.js += data
           })
           break
