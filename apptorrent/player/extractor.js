@@ -1,6 +1,6 @@
 /* bootloader.js for appTorrent player. AGPL-licensed by the Unhosted project */
 var makeCssNice = false
-var shimSyncStorage = false
+var shimSyncStorage = true
 
 $(document).ready(function(){
   ///////////////
@@ -69,16 +69,17 @@ for(var fileName in appTorrent.js) {
 //////////////////
 var textarea= document.createElement('textarea')
 textarea.id = 'html'
-textarea.value = '<html><head>\n'
+textarea.value = '<!DOCTYPE html>\n<html>\n<head>\n'
+textarea.value += '\t<title>'+appTorrent.title+'</title>\n'
 if(shimSyncStorage) {
-  textarea.value +='<script type="application/javascript" src="../jQuery.js"></script>\n'//shim in syncStorage
-  textarea.value +='<script type="application/javascript" src="../syncStorage4.js"></script>\n'//shim in syncStorage
+  textarea.value +='\t<script type="application/javascript" src="../jQuery.js"></script>\n'//shim in syncStorage
+  textarea.value +='\t<script type="application/javascript" src="../syncStorage4.js"></script>\n'//shim in syncStorage
 }
 for(var i in cssFiles) {
-  textarea.value +='<link rel="stylesheet" type="text/css" href="'+cssFiles[i]+'">\n'
+  textarea.value +='\t<link rel="stylesheet" type="text/css" href="'+cssFiles[i]+'">\n'
 }
 for(var i in jsFiles) {
-  textarea.value +='<script type="application/javascript" src="'+jsFiles[i]+'"></script>\n'
+  textarea.value +='\t<script type="application/javascript" src="'+jsFiles[i]+'"></script>\n'
 }
 textarea.value+='</head>\n'+appTorrent.html+'\n</html>\n'
 var label= document.createElement('label')

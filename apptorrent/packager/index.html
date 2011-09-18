@@ -46,14 +46,14 @@ function parseOpa(fileName, data) {
     //get pkg.html:
     data = (new XMLSerializer()).serializeToString(xmlTree.getElementsByTagName('body')[0])
 
-    //hack 1b: put DOCTYPE back
-    data = '<!DOCTYPE html>\n'+data
     //hack 2b: put &...; html tags back and remove _DONTCOLLAPSEME_ placeholders:
     data = data
       .replace(new RegExp('_AMPERSAND_', 'g'), '&')
       .replace(new RegExp('_DONTCOLLAPSEME_', 'g'), '')
 
     pkg.html = data
+
+    pkg.title = xmlTree.getElementsByTagName('title')[0].childNodes[0].nodeValue
 
     //get pkg.css:
     var links = xmlTree.getElementsByTagName('link')
