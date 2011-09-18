@@ -36,11 +36,11 @@ for(var fileName in appTorrent.js) {
   textarea.id = 'js_'+fileName
   textarea.value = appTorrent.js[fileName]
     //dot-notation, set and get:
-    .replace(new RegExp('localStorage\\\.(?!setItem)(?!getItem)(?!clear)(?!length)([A-Za-z0-9\.]+)([\ ]+)=([\ ]+)([A-Za-z0-9\.]+)','g'), 'localStorage.setItem($1, $4)')
-    .replace(new RegExp('localStorage\\\.(?!setItem)(?!getItem)(?!clear)(?!length)([A-Za-z0-9\.]+)','g'), 'localStorage.getItem($1)')
+    .replace(new RegExp('localStorage\\\.(?!setItem)(?!getItem)(?!clear)(?!length)([A-Za-z0-9\.]+)([\ ]+)=([\ ]+)([A-Za-z0-9\.]+)','g'), 'localStorage.setItem(\'$1\', $4)')
+    .replace(new RegExp('localStorage\\\.(?!setItem)(?!getItem)(?!clear)(?!length)([A-Za-z0-9\.]+)','g'), 'localStorage.getItem(\'$1\')')
     //bracket-notation, set and get:
-//    .replace(new RegExp('localStorage.\'([A-Za-z0-9\.]+)\'.([\ ]+)=([\ ]+)([A-Za-z0-9\.\(\)]+)','g'), 'localStorage.setItem($1, $4)')
-//    .replace(new RegExp('localStorage.\'([A-Za-z0-9\.]+)\'.','g'), 'localStorage.getItem($1)')
+    .replace(new RegExp('localStorage\\\[\\\'([A-Za-z0-9\.]+)\\\'\\\]([\ ]+)=([\ ]+)([A-Za-z0-9\.\(\)]+)','g'), 'localStorage.setItem(\'$1\', $4)')
+    .replace(new RegExp('localStorage\\\[\\\'([A-Za-z0-9\.]+)\\\'\\\]','g'), 'localStorage.getItem(\'$1\')')
     //normal class methods:
     .replace('localStorage\.getItem', 'syncStorage.getItem')
     .replace('localStorage\.setItem', 'syncStorage.setItem')
