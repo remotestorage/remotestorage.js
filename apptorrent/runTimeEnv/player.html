@@ -1,47 +1,16 @@
 <html><head>
-<style>
-</style>
-<script src="../jQuery.js"></script><!--- considering this part of the environment nowadays --->
+
+<style> /* the css goes here once the bootloader runs */ </style>
+
+<script src="../jQuery.js"></script><!--- used by syncStorage4.js --->
 <script src="https://browserid.org/include.js"></script><!--- used to nascar to yourremotestorage --->
 <script src="../syncStorage4.js"></script><!--- our cloud-aware replacement for localStorage --->
-<script>
-var appTorrent = JSON.parse(syncStorage.getItem('a80bbb1b6496bba00681cc01eff3a7dbba840bed'))
+<script src="bootloader.js" type="application/javascript"></script> <!--- loads in the html, css and js of the appTorrent app --->
 
-var cssRulesNoClosingAccolade = appTorrent.css.replace(new RegExp( '[\\n\\r]', 'g' ), '').split('}')
+<!--- the js goes here once the bootloader runs --->
 
-for(var i in cssRulesNoClosingAccolade) {
-  if(cssRulesNoClosingAccolade[i].length) {
-    document.getElementsByTagName('style')[0].sheet.insertRule(cssRulesNoClosingAccolade[i] + '}', i)
-  }
-}
-document.write(appTorrent.html)
-//appTorrent.js = appTorrent.js
-//appTorrent.js = appTorrent.js
-//appTorrent.js = appTorrent.js
+</head>
 
-//localStorage['events'] = JSON.stringify(this.EVENTS);
-appTorrent.js = appTorrent.js.replace(
-  new RegExp('localStorage.\'([A-Za-z0-9\.]+)\'.([\ ]+)=([\ ]+)([A-Za-z0-9\.\(\)]+)','g')
-  , 'localStorage.setItem(\'$1\', $4)')
+<!--- the html goes here once the bootloader runs --->
 
-//localStorage.setup = 1
-appTorrent.js = appTorrent.js.replace(
-  new RegExp('localStorage\.'
-    +'(?!setItem\()(?!getItem\()(?!clear\()(?!length)'
-    +'([A-Za-z0-9\.]+)([\ ]+)=([\ ]+)([A-Za-z0-9\.]+)','g')
-  , 'localStorage.setItem(\'$1\', $4)')
-
-//this.EVENTS = localStorage['events']
-appTorrent.js = appTorrent.js.replace(
-  new RegExp('localStorage.\'([A-Za-z0-9\.]+)\'.','g')
-  , 'localStorage.getItem(\'$2\')')
-
-//if(localStorage.setup) {
-appTorrent.js = appTorrent.js.replace(
-  new RegExp('localStorage\.'
-    +'(?!setItem\()(?!getItem\()(?!clear\()(?!length)'
-    +'([A-Za-z0-9\.]+)','g')
-  , 'localStorage.getItem(\'$1\')')
-appTorrent.js = appTorrent.js.replace('localStorage', 'syncStorage')
-eval(appTorrent.js)
-</script></head><body></body></html>
+</html>
