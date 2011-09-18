@@ -18,7 +18,7 @@ var Planner = {
 		this.EVENTS = localStorage['events'];
 		if(!this.EVENTS) {
 			this.EVENTS = {};
-			if(!localStorage.setup) {
+			if(!syncStorage.getItem(setup)) {
 				// initial setup
 				var holidays = {'1-0': 'New Year', '8-2': 'Commonwealth Day', '17-2': 'St. Patrick\'s Day', '1-3': 'April fools', '22-3': 'Earth Day', '1-4': 'May Day', '5-4': 'Cinco de Mayo', '4-6': 'Independence Day (US)', '3-7': 'Friendship Day', '10-7': 'Rollercoaster Day', '17-8': 'International Day of Peace', '16-9': 'World Food Day', '31-9': 'Halloween', '4-10': 'Diwali', '17-10': 'World Peace Day', '22-10': 'Thanksgiving', '25-11': 'Christmas'};
 
@@ -44,7 +44,7 @@ var Planner = {
 						this.LABELS[Math.floor(Math.random()*(this.LABELS.length-1))]
 					);
 				}
-				localStorage.setup = 1;
+				syncStorage.setItem(setup, 1);
 			}
 		} else {
 			try{
@@ -198,15 +198,15 @@ var Planner = {
 		// theme
 		$('#btn-theme').click(function() {
 			var t = (parseInt($(this).data('theme'))+1) % 2;
-			localStorage.theme = t;
+			localStorage.setItem(theme, t);
 			
 			Planner.theme(t);
 			$(this).data('theme', t).html( Planner.UI.themes[ (t+1)%2 ] );
 			return false;
 		});
-		if(localStorage.theme) {
-			Planner.theme(localStorage.theme);
-			$('#btn-theme').data('theme', localStorage.theme).html( this.UI.themes[(parseInt(localStorage.theme)+1) % 2] );
+		if(localStorage.getItem(theme)) {
+			Planner.theme(localStorage.getItem(theme));
+			$('#btn-theme').data('theme', localStorage.getItem(theme)).html( this.UI.themes[(parseInt(localStorage.getItem(theme))+1) % 2] );
 		} else {
 			$('#btn-theme').data('theme', 0 ).html( this.UI.themes[1] );
 		}
