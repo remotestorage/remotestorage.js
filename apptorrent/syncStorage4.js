@@ -2,6 +2,12 @@
  // interface: syncStorage object //
 ///////////////////////////////////
 
+if(window.syncStorageOnSync === undefined) {//test with 'window.' in front to avoid exception
+  syncStorageOnSync = function(){}
+}
+if(window.syncStorageScope === undefined) {
+  syncStorageScope = location.host
+}
 var syncer = initSyncStorage()
 var syncStorage = (function(){
   var ret = {}
@@ -24,6 +30,7 @@ var syncStorage = (function(){
   ret['onready'] = function() {/*overwrite me */}
   return ret
 })()
+syncStorageOnSync()
 
   ////////////////////////////
  // interface: session api //
@@ -366,7 +373,6 @@ function initSyncStorage(){
   var remoteStorage = null
 
   function signIn(assertion, audience) {
-    //syncStorageScope = syncStorageScope | location.host
     $.ajax(//we only use BrowserId to avoid nascar here, not to authenticate. the audience is the current client-side app, which has not interest in who you are.
       { type: 'POST'
       , url: 'https://browserid.org/verify'
