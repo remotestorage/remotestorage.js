@@ -30,11 +30,11 @@ function getFile(fileName, cb) {
 function package() {
   if(/Firefox[\/\s](\d+\.\d+)/.test(navigator.userAgent)) {
     if(navigator.id.sessions) {
-      if(navigator.id.sessions.length) {
+//      if(navigator.id.sessions.length) {
         getFile('index.html', parseOpa)
-      } else {
-        alert('please sign in first')
-      }
+//      } else {
+//        alert('please sign in first')
+//      }
     } else {
       alert('please install https://github.com/mozilla/browserid_addon/raw/develop/addon/dist/browserid_addon.xpi first to make this demo work')
     }
@@ -43,34 +43,24 @@ function package() {
   }
 }
 
+function createDocument(html, title) {
+  var doc = document.implementation.createHTMLDocument (title)
+  doc.documentElement.innerHTML = html
+  return doc
+}
+
 function parseOpa(fileName, data) {
   try {
-    //hack 1a: get rid of DOCTYPE:
-    data = data.substring(17)
-    //hack 2a: get rid of &...; html tags, and prevent things like '<h2 id="dyn"></h2>' from collapsing to '<h2 id="dyn"/>':
-    dataBits = data.split('&')
-    data = data
-      .replace(new RegExp('&', 'g'), '_AMPERSAND_')
-      .replace(new RegExp('\<([A-Za-z0-9\ -=\"]+)\>\</([A-Za-z0-9\ =\"]+)\>', 'g'), '<$1>_DONTCOLLAPSEME_</$2>')
 
     //get OPA and parse HTML into <head> and <body>:
-    xmlText = HTMLtoXML(data)
-    var xmlTree = (new DOMParser()).parseFromString(xmlText, 'text/xml')
-    //get pkg.html:
-    data = (new XMLSerializer()).serializeToString(xmlTree.getElementsByTagName('body')[0])
+    var d = createDocument(data)
+    pkg.html = d.getElementsByTagName('body')[0].innerHTML
 
-    //hack 2b: put &...; html tags back and remove _DONTCOLLAPSEME_ placeholders:
-    data = data
-      .replace(new RegExp('_AMPERSAND_', 'g'), '&')
-      .replace(new RegExp('_DONTCOLLAPSEME_', 'g'), '')
-
-    pkg.html = data
-
-    pkg.title = xmlTree.getElementsByTagName('title')[0].childNodes[0].nodeValue
-    //pkg.author = xmlTree.getElementsByTagName('author')[0].childNodes[0].nodeValue - should automatically add flattr button
+    pkg.title = d.getElementsByTagName('title')[0].childNodes[0].nodeValue
+    //pkg.author = d.getElementsByTagName('author')[0].childNodes[0].nodeValue - should automatically add flattr button
 
     //get pkg.css:
-    var links = xmlTree.getElementsByTagName('link')
+    var links = d.getElementsByTagName('link')
     pkg.css = {}
     for(var i in links) {
       var attr = links[i].attributes
@@ -90,7 +80,7 @@ function parseOpa(fileName, data) {
       }
     }
     //get pkg.js:
-    var scriptTags = xmlTree.getElementsByTagName('script')
+    var scriptTags = d.getElementsByTagName('script')
     pkg.js = {}
     for(var i in scriptTags) {
       var attr = scriptTags[i].attributes
@@ -123,5 +113,5 @@ function finishPackage(pkg) {
 <H1>Package a localStorage-based HTML app, and unhost it on apptorrent!</H1>
 <input type="submit" onclick="package()">
 <div id="result"></div>
-<br><label>Original:</label><input id="original" type="text" size="100"  value="http://example.com/unhosted/apptorrent/plannerAppBeforeTeleport/">
+<br><label>Original:</label><input id="original" type="text" size="100"  value="http://example.com/unhosted/apptorrent/backboneTodoBeforeMarshall/">
 </body></html>
