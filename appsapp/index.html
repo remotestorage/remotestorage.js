@@ -1,0 +1,50 @@
+
+<html><head>
+<script src="https://browserid.org/include.js"></script>
+<script src="../apptorrent/jQuery.js"></script>
+<script>
+$(document).ready(function() {
+  showApps()
+})
+syncStorageScope = 'apptorrent'
+syncStorageOnSync = function() {
+}
+function addApp() {
+  var appHash = document.getElementById('appToAdd').value
+  $.ajax(
+    { url: 'http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/'+appHash
+    , success: function(data) {
+        syncStorage.setItem(appHash, data)
+        var newApp = JSON.parse(data)
+        var appsList = syncStorage.setItem('appsList')
+        if(!appsList) {
+          appsList = {}
+        }
+        appsList[appHash] =
+          { title: newApp.title
+          , peers: ['mich@yourremotestorage.com']
+          }
+        syncStorage.setItem('appsList', JSON.stringify(appsList))
+        showApps()
+      }
+    })
+}
+
+function showApps() {
+  var appsList = JSON.parse(syncStorage.getItem('appsList'))
+  var str = '<ul>'
+  for(var i in appsList) {
+    str += '<li><a target="_blank" href="http://'+i+'.apptorrent.net/unhosted/apptorrent/player/player.html?peer='+appsList[i].peers[0]+'">'
+      +appsList[i].title+'</a></li>'
+  }
+  str += '</ul>'
+  $('#apps').html(str)
+}
+</script>
+<script src="../apptorrent/syncStorage4.js"></script>
+</head><body>
+This is appsapp. Your home page for accessing unhosted web apps. These are your apps:
+<div id="apps"></div>
+<input type="submit" onclick="addApp()" value="Add">
+ apptorrent://mich@yourremotestorage.com/<input type="text" size="40" id="appToAdd" value="3dc2f8bddceb7b0f5877031ac5ffebc06241058f">
+</body></html>
