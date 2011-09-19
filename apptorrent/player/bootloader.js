@@ -4,17 +4,16 @@ $(document).ready(function(){
   ///////////////
  // fetch app //
 ///////////////
-var appTorrent = JSON.parse(syncStorage.getItem(location.hash.substring(1)))
-if(location.hash.length < 2) {
-  alert('please specify a hash in the hash, e.g. ')
-} else if(appTorrent == null) {
-  alert('please sign in first')
+if(/([a-f0-9]+).apptorrent.net/.test(location.host)) {
+  var appTorrent = JSON.parse(localStorage.getItem(location.host.substring(0,40)))
+  if(appTorrent == null) {
+    alert('please sign in, let it load, then refresh the page')
+    return
+  }
+} else {
+  alert('please use this player on an apptorrent url, e.g. http://dc2f8bddceb7b0f5877031ac5ffebc06241058f.apptorrent.net/unhosted/apptorrent/player/player.html')
+  return
 }
-
-  //////////////////
- // extract html //
-//////////////////
-document.write(appTorrent.html)
 
   /////////////////
  // extract css //
@@ -38,5 +37,10 @@ for(var fileName in appTorrent.js) {
    script.innerHTML = localToSync(appTorrent.js[fileName])
    document.getElementsByTagName('head')[0].appendChild(script)
 }
+
+  //////////////////
+ // extract html //
+//////////////////
+//document.write(appTorrent.html)
 
 })

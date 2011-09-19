@@ -21,6 +21,7 @@ var syncStorage = (function(){
       syncer.pushKey(key)
       return ret
     }
+  ret['onready'] = function() {/*overwrite me */}
   return ret
 })()
 
@@ -33,7 +34,7 @@ if(navigator.id) {
   document.addEventListener('login', function(event) {
     navigator.id.getVerifiedEmail(function(assertion) {
       if (assertion) {
-        syncer.signIn(assertion, 'example.com')
+        syncer.signIn(assertion, location.host)
       } else {
         navigator.id.sessions = [{email: 'n@o.pe'}]
       }
@@ -378,11 +379,11 @@ function initSyncStorage(){
           }, function(davUrl) {
             var session =
               { userAddress: data.email
-              , dataScope: 'simpleplanner'
+              , dataScope: location.host
               , storage:
                 { userAddress: data.email
                 , davUrl: davUrl
-                , dataScope: 'simpleplanner'
+                , dataScope: location.host
                 , storageType: 'http://unhosted.org/spec/dav/0.1'
                 }
               }
