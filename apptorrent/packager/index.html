@@ -27,7 +27,19 @@ function getFile(fileName, cb) {
 }
 
 function package() {
-  getFile('index.html', parseOpa)
+  if(/Firefox[\/\s](\d+\.\d+)/.test(navigator.userAgent)) {
+    if(navigator.id.sessions) {
+      if(navigator.id.sessions.length) {
+        getFile('index.html', parseOpa)
+      } else {
+        alert('please sign in first')
+      }
+    } else {
+      alert('please install https://github.com/mozilla/browserid_addon/raw/develop/addon/dist/browserid_addon.xpi first to make this demo work')
+    }
+  } else {
+    alert('please use firefox for now, other browsers coming soon')
+  }
 }
 
 function parseOpa(fileName, data) {
@@ -106,7 +118,7 @@ function finishPackage(pkg) {
   var sha1 = SHA1(sausage)
   syncStorage.setItem(sha1, sausage)//this will set the sausage into localStorage, and sync it to remote storage if one is connected
   document.getElementById('result').innerHTML = 
-    'Unhosted web app packaged as <strong><a href="http://example.com/unhosted/apptorrent/player/extractor.html#'
+    'Unhosted web app packaged as <strong><a href="http://example.com/unhosted/apptorrent/player/player.html#'
     +sha1+'">apptorrent://'+sha1+'/</a></strong>'
 }
 </script></head><body>
