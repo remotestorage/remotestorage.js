@@ -52,6 +52,6 @@ for(var fileName in appTorrent.js) {
   //////////////////
  // extract html //
 //////////////////
-document.write(appTorrent.html)
+document.body.innerHTML = appTorrent.html
 
 })
