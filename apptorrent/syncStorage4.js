@@ -366,6 +366,7 @@ function initSyncStorage(){
   var remoteStorage = null
 
   function signIn(assertion, audience) {
+    //syncStorageScope = syncStorageScope | location.host
     $.ajax(//we only use BrowserId to avoid nascar here, not to authenticate. the audience is the current client-side app, which has not interest in who you are.
       { type: 'POST'
       , url: 'https://browserid.org/verify'
@@ -379,11 +380,11 @@ function initSyncStorage(){
           }, function(davUrl) {
             var session =
               { userAddress: data.email
-              , dataScope: location.host
+              , dataScope: syncStorageScope
               , storage:
                 { userAddress: data.email
                 , davUrl: davUrl
-                , dataScope: location.host
+                , dataScope: syncStorageScope
                 , storageType: 'http://unhosted.org/spec/dav/0.1'
                 }
               }
@@ -464,10 +465,10 @@ function initSyncStorage(){
 }
 
 $(document).ready(function() {
-  var tokenReceived = gup("access_token")
+  var tokenReceived = gup('access_token')
   if(tokenReceived) {
     document.location='#'
-    var sessionStr = sessionStorage.getItem("session")
+    var sessionStr = sessionStorage.getItem('session')
     var session
     if(sessionStr) {
       session = JSON.parse(sessionStr)
@@ -476,9 +477,16 @@ $(document).ready(function() {
     }
     session.storage.davToken = tokenReceived
     session.unsaved = true
-    sessionStorage.setItem("session", JSON.stringify(session))
+    sessionStorage.setItem('session', JSON.stringify(session))
     if(navigator.id.sessions) {
-      navigator.id.sessions = [{email: session.userAddress}]
+      navigator.id.sessions = 
+        [ { email: session.userAddress
+          , bound_to:
+            { type: 'cookie'
+            , cookie_name: 'SID'
+            }
+          }
+        ]
     }
   }
 })

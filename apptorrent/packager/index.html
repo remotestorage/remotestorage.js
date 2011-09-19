@@ -1,4 +1,5 @@
 <html><head>
+<script>syncStorageScope='apptorrent'</script>
 <script src="https://browserid.org/include.js"></script>
 <script src="../jQuery.js"></script>
 <script src="../syncStorage4.js"></script>
@@ -118,7 +119,7 @@ function finishPackage(pkg) {
   var sha1 = SHA1(sausage)
   syncStorage.setItem(sha1, sausage)//this will set the sausage into localStorage, and sync it to remote storage if one is connected
   document.getElementById('result').innerHTML = 
-    'Unhosted web app packaged as <strong><a href="http://'+sha1+'apptorrent.net/unhosted/apptorrent/player/player.html">'
+    'Unhosted web app packaged as <strong><a href="http://'+sha1+'.apptorrent.net/unhosted/apptorrent/player/player.html?peer=mich@yourremotestorage.com">'
     +'apptorrent://'+sha1+'/</a></strong>'
 }
 </script></head><body>

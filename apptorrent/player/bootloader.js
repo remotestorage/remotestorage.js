@@ -6,9 +6,20 @@ $(document).ready(function(){
 ///////////////
 if(/([a-f0-9]+).apptorrent.net/.test(location.host)) {
   var appTorrent = JSON.parse(localStorage.getItem(location.host.substring(0,40)))
-  if(appTorrent == null) {
-    alert('please sign in, let it load, then refresh the page')
-    return
+  var appTorrent = JSON.parse(appTorrent)
+  if(!appTorrent) {
+    if(gup('peer') == null) {
+      alert('please specify a peer to retrieve this app from')
+      return
+    } else{
+      $.ajax(
+         { url: 'http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/'
+            +location.host.substring(0,40)
+        , success: function(data) {
+          localStorage.setItem(location.host.substring(0,40), data)
+          }
+        })
+    }
   }
 } else {
   alert('please use this player on an apptorrent url, e.g. http://dc2f8bddceb7b0f5877031ac5ffebc06241058f.apptorrent.net/unhosted/apptorrent/player/player.html')
@@ -41,6 +52,6 @@ for(var fileName in appTorrent.js) {
   //////////////////
  // extract html //
 //////////////////
-//document.write(appTorrent.html)
+document.write(appTorrent.html)
 
 })
