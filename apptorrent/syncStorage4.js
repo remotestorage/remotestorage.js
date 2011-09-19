@@ -34,7 +34,6 @@ if(navigator.id) {
     navigator.id.getVerifiedEmail(function(assertion) {
       if (assertion) {
         syncer.signIn(assertion, 'example.com')
-        navigator.id.sessions = [{email: 'mich@yourremotestorage.com'}]
       } else {
         navigator.id.sessions = [{email: 'n@o.pe'}]
       }
@@ -477,6 +476,9 @@ $(document).ready(function() {
     session.storage.davToken = tokenReceived
     session.unsaved = true
     sessionStorage.setItem("session", JSON.stringify(session))
+    if(navigator.id.sessions) {
+      navigator.id.sessions = [{email: session.userAddress}]
+    }
   }
 })
 
