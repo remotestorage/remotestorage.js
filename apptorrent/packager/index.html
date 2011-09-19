@@ -67,6 +67,7 @@ function parseOpa(fileName, data) {
     pkg.html = data
 
     pkg.title = xmlTree.getElementsByTagName('title')[0].childNodes[0].nodeValue
+    //pkg.author = xmlTree.getElementsByTagName('author')[0].childNodes[0].nodeValue - should automatically add flattr button
 
     //get pkg.css:
     var links = xmlTree.getElementsByTagName('link')
@@ -109,17 +110,13 @@ function parseOpa(fileName, data) {
 }
 
 function finishPackage(pkg) {
-//  pkg.title = document.getElementById('title').value
-//  pkg.description = document.getElementById('description').value
-//  pkg.author = document.getElementById('author').value
-//  pkg.license = document.getElementById('license').value
-//  pkg.packager = document.getElementById('packager').value
   pkg.original = document.getElementById('original').value
   var sausage = JSON.stringify(pkg)
   var sha1 = SHA1(sausage)
   syncStorage.setItem(sha1, sausage)//this will set the sausage into localStorage, and sync it to remote storage if one is connected
   document.getElementById('result').innerHTML = 
-    'Unhosted web app packaged as <strong><a href="http://'+sha1+'.apptorrent.net/unhosted/apptorrent/player/player.html?peer=mich@yourremotestorage.com">'
+    'Unhosted web app packaged as <strong><a target="_blank" '
+    +'href="http://'+sha1+'.apptorrent.net/unhosted/apptorrent/player/player.html?peer=mich@yourremotestorage.com">'
     +'apptorrent://'+sha1+'/</a></strong>'
 }
 </script></head><body>

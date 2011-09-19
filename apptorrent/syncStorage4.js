@@ -334,13 +334,13 @@ function UnhostedDav_0_1( params ){
       } )
   }
   
-  dav.set = function( key, obj, cb ){
+  dav.set = function( key, jsonStr, cb ){
     $.ajax( 
       { url: keyToUrl( dav.userAddress, key )
       , type: 'PUT'
       , headers: { Authorization: 'Basic '+ Base64.encode( dav.userAddress +':'+ dav.davToken ) }
       , fields: { withCredentials: 'true'}
-      , data: JSON.stringify( obj )
+      , data: jsonStr
       , success: function( text ){
           try {//this is not necessary for current version of protocol, but might be in future:
             var obj = JSON.parse( text )

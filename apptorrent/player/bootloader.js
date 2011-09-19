@@ -6,7 +6,6 @@ $(document).ready(function(){
 ///////////////
 if(/([a-f0-9]+).apptorrent.net/.test(location.host)) {
   var appTorrent = JSON.parse(localStorage.getItem(location.host.substring(0,40)))
-  var appTorrent = JSON.parse(appTorrent)
   if(!appTorrent) {
     if(gup('peer') == null) {
       alert('please specify a peer to retrieve this app from')
