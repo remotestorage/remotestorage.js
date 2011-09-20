@@ -1,50 +1,77 @@
 
 <html><head>
-<script src="https://browserid.org/include.js"></script>
-<script src="../apptorrent/jQuery.js"></script>
 <script>
-$(document).ready(function() {
-  showApps()
-})
-syncStorageScope = 'apptorrent'
-syncStorageOnSync = function() {
-}
-function addApp() {
-  var appHash = document.getElementById('appToAdd').value
-  $.ajax(
-    { url: 'http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/'+appHash
-    , success: function(data) {
-        syncStorage.setItem(appHash, data)
-        var newApp = JSON.parse(data)
-        var appsList = syncStorage.setItem('appsList')
-        if(!appsList) {
-          appsList = {}
+var appsapp = (function() {
+  //avoid using jQuery so that this code stays small in case we want to
+  //put it into a bookmarklet some time
+  function ajax(params) {
+    var xhr = new XMLHttpRequest()
+    if(!params.method) {
+      params.method='GET'
+    }
+    if(!params.data) {
+      params.data = null
+    }
+    xhr.open(params.method, params.url, true)
+    if(params.headers) {
+      for(var header in params.headers) {
+        xhr.setRequestHeader(header, params.headers[header])
+      }
+    }
+    xhr.onreadystatechange = function() {
+      if(xhr.readyState == 4) {
+        if(xhr.status == 0) {
+          alert('looks like '+params.url+' has no CORS headers on it! try copying this scraper and that file both onto your localhost')
         }
-        appsList[appHash] =
+        params.success(xhr.responseText)
+      }
+    }
+    xhr.send(params.data)
+  }
+  function el(id) {
+    return document.getElementById(id)
+  }
+
+  function addApp() {
+    var appHash = el('appToAdd').value
+    ajax(
+      { url: 'http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/'+appHash
+      , success: function(data) {
+          localStorage.setItem(appHash, data)
+          var newApp = JSON.parse(data)
+          var appsList = localStorage.setItem('appsList')
+          if(!appsList) {
+            appsList = {}
+          }
+          appsList[appHash] =
           { title: newApp.title
           , peers: ['mich@yourremotestorage.com']
           }
-        syncStorage.setItem('appsList', JSON.stringify(appsList))
+        localStorage.setItem('appsList', JSON.stringify(appsList))
         showApps()
       }
     })
 }
 
 function showApps() {
-  var appsList = JSON.parse(syncStorage.getItem('appsList'))
+  var appsList = JSON.parse(localStorage.getItem('appsList'))
   var str = '<ul>'
   for(var i in appsList) {
     str += '<li><a target="_blank" href="http://'+i+'.apptorrent.net/unhosted/apptorrent/player/player.html?peer='+appsList[i].peers[0]+'">'
       +appsList[i].title+'</a></li>'
   }
   str += '</ul>'
-  $('#apps').html(str)
+  el('apps').innerHTML = str
 }
+  return (
+    { addApp: addApp
+    })
+})()
 </script>
-<script src="../apptorrent/syncStorage4.js"></script>
+<script src="../apptorrent/localStorage4.js"></script>
 </head><body>
 This is appsapp. Your home page for accessing unhosted web apps. These are your apps:
 <div id="apps"></div>
-<input type="submit" onclick="addApp()" value="Add">
+<input type="submit" onclick="appsApp.addApp()" value="Add">
  apptorrent://mich@yourremotestorage.com/<input type="text" size="40" id="appToAdd" value="3dc2f8bddceb7b0f5877031ac5ffebc06241058f">
 </body></html>
