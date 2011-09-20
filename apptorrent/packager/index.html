@@ -29,6 +29,9 @@ var packager = (function() {
     }
     xhr.onreadystatechange = function() {
       if(xhr.readyState == 4) {
+        if(xhr.status == 0) {
+          alert('looks like '+params.url+' has no CORS headers on it! try copying this scraper and that file both onto your localhost')
+        }
         params.success(xhr.responseText)
       }
     }
@@ -40,8 +43,13 @@ var packager = (function() {
 
   function getFile(fileName, cb) {
     pendingFiles++
+    if(fileName.substring(0, 4) == 'http') {
+      url = fileName
+    } else {
+      url = el('original').value+fileName
+    }
     ajax(
-      { url: el('original').value + fileName
+      { url: url
       , success: function(data) {
           cb(fileName, data)
           pendingFiles--
@@ -141,7 +149,7 @@ var packager = (function() {
 })()
 </script></head><body>
 <H1>Package a localStorage-based HTML app, and unhost it on apptorrent!</H1>
-<br><label>Original:</label><input id="original" type="text" size="100"  value="http://example.com/unhosted/localStorageApps/backboneTodo/">
+<br><label>Original:</label><input id="original" type="text" size="100"  value="http://example.com/unhosted/localStorageApps/ram/">
 <input type="submit" onclick="packager.scrape()" value="scrape">
 <div id="result"></div>
 
