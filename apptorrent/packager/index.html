@@ -121,10 +121,8 @@ var packager = (function() {
     sha1 = SHA1(sausage)
     localStorage.setItem(sha1, sausage)//this will set the sausage into localStorage, and sync it to remote storage if one is connected
     el('result').innerHTML = 
-      'Unhosted web app packaged as <strong><a target="_blank" '
-      + 'href="http://'+sha1+'.apptorrent.net/unhosted/apptorrent/player/player.html?peer=mich@yourremotestorage.com">'
-      + 'apptorrent://mich@yourremotestorage.com/'+sha1+'</a></strong><br>'
-      + '<ul>'+log+'</ul>'
+      '<ul>'+log+'</ul>'
+      + 'Web app packaged into JSON sausage: <strong>'+sha1+'</strong>. Now seed it:<br>'
     el('seeding').style.display='block'
   }
   function seed() {
@@ -133,7 +131,7 @@ var packager = (function() {
      , method: 'PUT'
      , data: sausage
      , headers: {'Authorization': el('oxoAuth').value}
-     , success: function(){alert('done!')}
+     , success: function(){el('seedingResult').innerHTML = '<strong>seeded as apptorrent://mich@yourremotestorage.com/'+sha1+'</strong>'}
      })
   }
   return (
@@ -143,11 +141,13 @@ var packager = (function() {
 })()
 </script></head><body>
 <H1>Package a localStorage-based HTML app, and unhost it on apptorrent!</H1>
-<br><label>Original:</label><input id="original" type="text" size="100"  value="http://example.com/unhosted/apptorrent/backboneTodoBeforeMarshall/">
+<br><label>Original:</label><input id="original" type="text" size="100"  value="http://example.com/unhosted/localStorageApps/backboneTodo/">
 <input type="submit" onclick="packager.scrape()" value="scrape">
 <div id="result"></div>
-<div id="seeding" style="display:none"><br><label>Seed on oxo storage:</label><input id="oxo" type="text" size="100"  value="http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/">
-<br><label>oxo storage auth:</label><input id="oxoAuth" type="text" size="100"  value="Basic bWljaEB5b3VycmVtb3Rlc3RvcmFnZS5jb206NGU3N2E0NDUyMGRkOA==">
-<input type="submit" onclick="packager.seed()" value="seed">
+
+<div id="seeding" style="display:none"><p>Seed on <strong>mich@yourremotestorage.com</strong> oxo storage:<br><label>url:</label><input id="oxo" type="text" size="100"  value="http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/">
+<br><label>auth:</label><input id="oxoAuth" type="text" size="100"  value="Basic bWljaEB5b3VycmVtb3Rlc3RvcmFnZS5jb206NGU3N2E0NDUyMGRkOA==">
+<input type="submit" onclick="packager.seed()" value="seed"></p>
+<div id="seedingResult"></div>
 </div>
 </body></html>
