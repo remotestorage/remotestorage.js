@@ -1,117 +1,151 @@
 <html><head>
-<script>syncStorageScope='apptorrent'</script>
-<script src="https://browserid.org/include.js"></script>
-<script src="../jQuery.js"></script>
-<script src="../syncStorage4.js"></script>
 <script src="webtoolkit.sha1.js"></script>
-<script src="htmlparser.js"></script>
 <script>
+var packager = (function() {
+  var log
+  var pkg = {}
+  var sausage
+  var sha1
+  var pendingFiles = 0
+  function globalDone() {
+    finishPackage(pkg)
+  }
 
-var pkg = {}
-var pendingFiles = 0
-function globalDone() {
-  finishPackage(pkg)
-}
-function getFile(fileName, cb) {
-  pendingFiles++
-  $.ajax(
-    { url: document.getElementById('original').value + fileName
-    , success: function(data) {
-        cb(fileName, data)
-        pendingFiles--
-        if(pendingFiles == 0) {
-          globalDone()
-        }
+  //avoid using jQuery so that this code stays small in case we want to
+  //put it into a bookmarklet some time
+  function ajax(params) {
+    var xhr = new XMLHttpRequest()
+    if(!params.method) {
+      params.method='GET'
+    }
+    xhr.open(params.method, params.url, true)
+    if(params.headers) {
+      for(var header in params.headers) {
+        xhr.setRequestHeader(header, params.headers[header])
       }
     }
-  )
-}
-
-function package() {
-  if(/Firefox[\/\s](\d+\.\d+)/.test(navigator.userAgent)) {
-    if(navigator.id.sessions) {
-//      if(navigator.id.sessions.length) {
-        getFile('index.html', parseOpa)
-//      } else {
-//        alert('please sign in first')
-//      }
-    } else {
-      alert('please install https://github.com/mozilla/browserid_addon/raw/develop/addon/dist/browserid_addon.xpi first to make this demo work')
+    xhr.onreadystatechange = function() {
+      if(xhr.readyState == 4) {
+        params.success(xhr.responseText)
+      }
     }
-  } else {
-    alert('please use firefox for now, other browsers coming soon')
+    xhr.send()
   }
-}
+  function el(id) {
+    return document.getElementById(id)
+  }
 
-function createDocument(html, title) {
-  var doc = document.implementation.createHTMLDocument (title)
-  doc.documentElement.innerHTML = html
-  return doc
-}
-
-function parseOpa(fileName, data) {
-  try {
-
-    //get OPA and parse HTML into <head> and <body>:
-    var d = createDocument(data)
-    pkg.html = d.getElementsByTagName('body')[0].innerHTML
-
-    pkg.title = d.getElementsByTagName('title')[0].childNodes[0].nodeValue
-    //pkg.author = d.getElementsByTagName('author')[0].childNodes[0].nodeValue - should automatically add flattr button
-
-    //get pkg.css:
-    var links = d.getElementsByTagName('link')
-    pkg.css = {}
-    for(var i in links) {
-      var attr = links[i].attributes
-      for(var j in attr) {
-        if(attr[j].name == 'rel' && attr[j].value == 'stylesheet') { 
-          for(var k in attr) {
-            if(attr[k].name == 'href') {
-              pkg.css[attr[k].value] = false//reserve place in sheets order
-              getFile(attr[k].value, function(fileName, data) {
-                pkg.css[fileName] = data 
-              })
-              break
-            }
+  function getFile(fileName, cb) {
+    pendingFiles++
+    ajax(
+      { url: el('original').value + fileName
+      , success: function(data) {
+          cb(fileName, data)
+          pendingFiles--
+          if(pendingFiles == 0) {
+            globalDone()
           }
-          break
         }
       }
-    }
-    //get pkg.js:
-    var scriptTags = d.getElementsByTagName('script')
-    pkg.js = {}
-    for(var i in scriptTags) {
-      var attr = scriptTags[i].attributes
-      for(var j in attr) {
-        if(attr[j].name == 'src') { 
-          pkg.js[attr[j].value] = false//reserve place in scripts order
-          getFile(attr[j].value, function(fileName, data) {
-            pkg.js[fileName] = data
-          })
-          break
-        }
-      }
-    }
-  } catch(e) {
-    alert('html parse fail! sorry...')
+    )
   }
-}
 
-function finishPackage(pkg) {
-  pkg.original = document.getElementById('original').value
-  var sausage = JSON.stringify(pkg)
-  var sha1 = SHA1(sausage)
-  syncStorage.setItem(sha1, sausage)//this will set the sausage into localStorage, and sync it to remote storage if one is connected
-  document.getElementById('result').innerHTML = 
-    'Unhosted web app packaged as <strong><a target="_blank" '
-    +'href="http://'+sha1+'.apptorrent.net/unhosted/apptorrent/player/player.html?peer=mich@yourremotestorage.com">'
-    +'apptorrent://mich@yourremotestorage.com/'+sha1+'</a></strong>'
-}
+  function scrape() {
+    log = ''
+    getFile('index.html', parseOpa)
+  }
+
+  function createDocument(html, title) {
+    var doc = document.implementation.createHTMLDocument (title)
+    doc.documentElement.innerHTML = html
+    return doc
+  }
+
+  function parseOpa(fileName, data) {
+    try {
+      //get OPA and parse HTML into <head> and <body>:
+      var d = createDocument(data)
+      pkg.html = d.getElementsByTagName('body')[0].innerHTML
+      log += '<li>html set from "<strong>'+fileName+'</strong>" body</li>'
+
+      pkg.title = d.getElementsByTagName('title')[0].childNodes[0].nodeValue
+      log += '<li>title set to "<strong>'+pkg.title+'</strong>"</li>'
+
+      //pkg.author = d.getElementsByTagName('author')[0].childNodes[0].nodeValue - should automatically add flattr button
+      log += '<li>app author not found! please specify manually</li>'
+
+      //get pkg.css:
+      var links = d.getElementsByTagName('link')
+      pkg.css = {}
+      for(var i in links) {
+        var attr = links[i].attributes
+        for(var j in attr) {
+          if(attr[j].name == 'rel' && attr[j].value == 'stylesheet') { 
+            for(var k in attr) {
+              if(attr[k].name == 'href') {
+                pkg.css[attr[k].value] = false//reserve place in sheets order
+                getFile(attr[k].value, function(fileName, data) {
+                  pkg.css[fileName] = data 
+                  log += '<li>adding stylesheet "<strong>'+fileName+'</strong>"</li>'
+                })
+                break
+              }
+            }
+            break
+          }
+        }
+      }
+      //get pkg.js:
+      var scriptTags = d.getElementsByTagName('script')
+      pkg.js = {}
+      for(var i in scriptTags) {
+        var attr = scriptTags[i].attributes
+        for(var j in attr) {
+          if(attr[j].name == 'src') { 
+            pkg.js[attr[j].value] = false//reserve place in scripts order
+            getFile(attr[j].value, function(fileName, data) {
+              pkg.js[fileName] = data
+              log += '<li>adding javascript requirement "<strong>'+fileName+'</strong>"</li>'
+            })
+            break
+          }
+        }
+      }
+    } catch(e) {
+      alert('html parse fail! sorry...')
+    }
+  }
+
+  function finishPackage(pkg) {
+    pkg.original = el('original').value
+    sausage = JSON.stringify(pkg)
+    sha1 = SHA1(sausage)
+    localStorage.setItem(sha1, sausage)//this will set the sausage into localStorage, and sync it to remote storage if one is connected
+    el('result').innerHTML = 
+      'Unhosted web app packaged as <strong><a target="_blank" '
+      + 'href="http://'+sha1+'.apptorrent.net/unhosted/apptorrent/player/player.html?peer=mich@yourremotestorage.com">'
+      + 'apptorrent://mich@yourremotestorage.com/'+sha1+'</a></strong><br>'
+      + '<ul>'+log+'</ul>'
+  }
+  function seed() {
+    ajax(
+     { url: el('oxo').value+sha1
+     , method: 'PUT'
+     , headers: {'Authorization': el('oxoAuth').value}
+     , success: function(){}
+     })
+  }
+  return (
+    { scrape: scrape
+    , seed: seed
+    })
+})()
 </script></head><body>
 <H1>Package a localStorage-based HTML app, and unhost it on apptorrent!</H1>
-<input type="submit" onclick="package()">
-<div id="result"></div>
 <br><label>Original:</label><input id="original" type="text" size="100"  value="http://example.com/unhosted/apptorrent/backboneTodoBeforeMarshall/">
+<input type="submit" onclick="packager.scrape()" value="scrape">
+<div id="result"></div>
+<br><label>Seed on oxo storage:</label><input id="oxo" type="text" size="100"  value="http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/">
+<br><label>oxo storage auth:</label><input id="oxoAuth" type="text" size="100"  value="Basic asdfalsdkfj">
+<input type="submit" onclick="packager.seed()" value="seed">
 </body></html>
