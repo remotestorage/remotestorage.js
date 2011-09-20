@@ -68,8 +68,8 @@ function showApps() {
   var appsList = JSON.parse(localStorage.getItem('appsList'))
   var str = '<ul>'
   for(var i in appsList) {
-    str += '<li><a target="_blank" href="http://'+i+'.apptorrent.net/unhosted/apptorrent/player/player.html?peer='+appsList[i].peers[0]+'">'
-      +appsList[i].title+'</a><ul>'
+    var playerUrl = el('playerUrl').value.replace('{hash}', i).replace('{seed}',appsList[i].peers[0])
+    str += '<li><a target="_blank" href="'+playerUrl+'">'+appsList[i].title+'</a><ul>'
       +'<li>author: <a target="_blank" href="'+appsList[i].link.author+'">'+appsList[i].meta.author+'</a></li>'
       +'<li>license: <a target="_blank" href="'+appsList[i].link.license+'">'+appsList[i].link.license+'</a></li>'
       +'<li>peer funding: <a target="_blank" href="'+appsList[i].link.payment+'">tipjar</a></li></ul></li>'
@@ -84,7 +84,8 @@ function showApps() {
 })()
 </script>
 </head><body onload="appsApp.showApps()">
-<p><h3>A dream within a dream...</h3>This is appsapp. Customize it as your home page for accessing unhosted web apps. It is itself a forkable app - the apptorrent hash for this version is: apptorrent://mich@yourremotestorage.com/0ea337c2eb6d1730e14da371953c29f2782ce073</p>
+<p><h3>A dream within a dream...</h3>This is appsapp. Customize it as your home page for accessing unhosted web apps. It is itself a forkable app - the apptorrent hash for this version is: apptorrent://mich@yourremotestorage.com/ad21727f50ae8e7807eba72d7d308c39321afcac</p>
 <p>These are your apps:<div id="apps"></div></p>
+<p>Apptorrent player to use:<input type="text" id="playerUrl" size="100" value="http://{hash}.apptorrent.local/unhosted/apptorrent/player/player.html?seed={seed}"></p>
 <p><input type="submit" onclick="appsApp.addApp()" value="Add"><input type="text" size="100" id="appToAdd"></p>
 </body></html>

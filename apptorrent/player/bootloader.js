@@ -4,7 +4,7 @@ $(document).ready(function(){
   ///////////////
  // fetch app //
 ///////////////
-if(/([a-f0-9]+).apptorrent.net/.test(location.host)) {
+if(/([a-f0-9]+).apptorrent/.test(location.host)) {
   var appTorrent = JSON.parse(localStorage.getItem(location.host.substring(0,40)))
   if(!appTorrent) {
     if(gup('peer') == null) {
@@ -21,7 +21,7 @@ if(/([a-f0-9]+).apptorrent.net/.test(location.host)) {
     }
   }
 } else {
-  alert('please use this player on an apptorrent url, e.g. http://dc2f8bddceb7b0f5877031ac5ffebc06241058f.apptorrent.net/unhosted/apptorrent/player/player.html')
+  alert('please use this player on a <hash>.apptorrent.something url, e.g. http://dc2f8bddceb7b0f5877031ac5ffebc06241058f.apptorrent.net/unhosted/apptorrent/player/player.html')
   return
 }
 
