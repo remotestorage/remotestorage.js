@@ -18,6 +18,9 @@ var packager = (function() {
     if(!params.method) {
       params.method='GET'
     }
+    if(!params.data) {
+      params.data = null
+    }
     xhr.open(params.method, params.url, true)
     if(params.headers) {
       for(var header in params.headers) {
@@ -29,7 +32,7 @@ var packager = (function() {
         params.success(xhr.responseText)
       }
     }
-    xhr.send()
+    xhr.send(params.data)
   }
   function el(id) {
     return document.getElementById(id)
@@ -55,24 +58,20 @@ var packager = (function() {
     getFile('index.html', parseOpa)
   }
 
-  function createDocument(html, title) {
-    var doc = document.implementation.createHTMLDocument (title)
-    doc.documentElement.innerHTML = html
-    return doc
-  }
-
   function parseOpa(fileName, data) {
     try {
       //get OPA and parse HTML into <head> and <body>:
-      var d = createDocument(data)
-      pkg.html = d.getElementsByTagName('body')[0].innerHTML
-      log += '<li>html set from "<strong>'+fileName+'</strong>" body</li>'
+      var d = document.implementation.createHTMLDocument(null)
+      d.documentElement.innerHTML = data
 
       pkg.title = d.getElementsByTagName('title')[0].childNodes[0].nodeValue
       log += '<li>title set to "<strong>'+pkg.title+'</strong>"</li>'
 
       //pkg.author = d.getElementsByTagName('author')[0].childNodes[0].nodeValue - should automatically add flattr button
       log += '<li>app author not found! please specify manually</li>'
+
+      pkg.html = d.getElementsByTagName('body')[0].innerHTML
+      log += '<li>html set from "<strong>'+fileName+'</strong>" body</li>'
 
       //get pkg.css:
       var links = d.getElementsByTagName('link')
@@ -126,13 +125,15 @@ var packager = (function() {
       + 'href="http://'+sha1+'.apptorrent.net/unhosted/apptorrent/player/player.html?peer=mich@yourremotestorage.com">'
       + 'apptorrent://mich@yourremotestorage.com/'+sha1+'</a></strong><br>'
       + '<ul>'+log+'</ul>'
+    el('seeding').style.display='block'
   }
   function seed() {
     ajax(
      { url: el('oxo').value+sha1
      , method: 'PUT'
+     , data: sausage
      , headers: {'Authorization': el('oxoAuth').value}
-     , success: function(){}
+     , success: function(){alert('done!')}
      })
   }
   return (
@@ -145,7 +146,8 @@ var packager = (function() {
 <br><label>Original:</label><input id="original" type="text" size="100"  value="http://example.com/unhosted/apptorrent/backboneTodoBeforeMarshall/">
 <input type="submit" onclick="packager.scrape()" value="scrape">
 <div id="result"></div>
-<br><label>Seed on oxo storage:</label><input id="oxo" type="text" size="100"  value="http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/">
-<br><label>oxo storage auth:</label><input id="oxoAuth" type="text" size="100"  value="Basic asdfalsdkfj">
+<div id="seeding" style="display:none"><br><label>Seed on oxo storage:</label><input id="oxo" type="text" size="100"  value="http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/">
+<br><label>oxo storage auth:</label><input id="oxoAuth" type="text" size="100"  value="Basic bWljaEB5b3VycmVtb3Rlc3RvcmFnZS5jb206NGU3N2E0NDUyMGRkOA==">
 <input type="submit" onclick="packager.seed()" value="seed">
+</div>
 </body></html>
