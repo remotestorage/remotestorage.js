@@ -1,7 +1,15 @@
-
-<html><head>
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+	<title>AppsApp</title>
+	<meta charset="utf-8" />
+	<meta name="author" content="Michiel de Jong for Unhosted e.V." />
+	<meta name="description" content="A localStorage-based app that allows you to maintain a list of bookmarks to other apps.">
+	<link rel="author" href="http://unhosted.org/" />
+	<link rel="payment" type="tipjar" href="https://flattr.com/profile/unhosted" />
+	<link rel="license" href="http://www.gnu.org/licenses/agpl.html" />
 <script>
-var appsapp = (function() {
+var appsApp = (function() {
   //avoid using jQuery so that this code stays small in case we want to
   //put it into a bookmarklet some time
   function ajax(params) {
@@ -33,18 +41,21 @@ var appsapp = (function() {
   }
 
   function addApp() {
-    var appHash = el('appToAdd').value
+    var appHash = el('appToAdd').value.substring('apptorrent://mich@yourremotestorage.com/'.length)
     ajax(
       { url: 'http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/'+appHash
       , success: function(data) {
           localStorage.setItem(appHash, data)
           var newApp = JSON.parse(data)
-          var appsList = localStorage.setItem('appsList')
+          var appsList = JSON.parse(localStorage.getItem('appsList'))
           if(!appsList) {
             appsList = {}
           }
           appsList[appHash] =
           { title: newApp.title
+          , meta: newApp.meta
+          , link: newApp.link
+          //, : newApp.
           , peers: ['mich@yourremotestorage.com']
           }
         localStorage.setItem('appsList', JSON.stringify(appsList))
@@ -58,20 +69,22 @@ function showApps() {
   var str = '<ul>'
   for(var i in appsList) {
     str += '<li><a target="_blank" href="http://'+i+'.apptorrent.net/unhosted/apptorrent/player/player.html?peer='+appsList[i].peers[0]+'">'
-      +appsList[i].title+'</a></li>'
+      +appsList[i].title+'</a><ul>'
+      +'<li>author: <a target="_blank" href="'+appsList[i].link.author+'">'+appsList[i].meta.author+'</a></li>'
+      +'<li>license: <a target="_blank" href="'+appsList[i].link.license+'">'+appsList[i].link.license+'</a></li>'
+      +'<li>peer funding: <a target="_blank" href="'+appsList[i].link.payment+'">tipjar</a></li></ul></li>'
   }
   str += '</ul>'
   el('apps').innerHTML = str
 }
   return (
     { addApp: addApp
+    , showApps: showApps
     })
 })()
 </script>
-<script src="../apptorrent/localStorage4.js"></script>
-</head><body>
-This is appsapp. Your home page for accessing unhosted web apps. These are your apps:
-<div id="apps"></div>
-<input type="submit" onclick="appsApp.addApp()" value="Add">
- apptorrent://mich@yourremotestorage.com/<input type="text" size="40" id="appToAdd" value="3dc2f8bddceb7b0f5877031ac5ffebc06241058f">
+</head><body onload="appsApp.showApps()">
+<p><h3>A dream within a dream...</h3>This is appsapp. Customize it as your home page for accessing unhosted web apps. It is itself a forkable app - the apptorrent hash for this version is: [ZOMG recursion!]</p>
+<p>These are your apps:<div id="apps"></div></p>
+<p><input type="submit" onclick="appsApp.addApp()" value="Add"><input type="text" size="100" id="appToAdd"></p>
 </body></html>

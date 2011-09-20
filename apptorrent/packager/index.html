@@ -75,30 +75,57 @@ var packager = (function() {
       pkg.title = d.getElementsByTagName('title')[0].childNodes[0].nodeValue
       log += '<li>title set to "<strong>'+pkg.title+'</strong>"</li>'
 
-      //pkg.author = d.getElementsByTagName('author')[0].childNodes[0].nodeValue - should automatically add flattr button
-      log += '<li>app author not found! please specify manually</li>'
-
       pkg.html = d.getElementsByTagName('body')[0].innerHTML
       log += '<li>html set from "<strong>'+fileName+'</strong>" body</li>'
 
-      //get pkg.css:
+      //get pkg.meta:
+      pkg.meta = {}
+      var metaTags = d.getElementsByTagName('meta')
+      for(var i in metaTags) {
+        var name=undefined
+        var content=undefined
+        for(var j in metaTags[i].attributes) {
+          if(metaTags[i].attributes[j].name=='name') {
+            name = metaTags[i].attributes[j].value
+          } else if(metaTags[i].attributes[j].name=='content') {
+            content = metaTags[i].attributes[j].value
+          }
+        }
+        if(name) {
+          pkg.meta[name]=content
+          log += '<li>adding meta tag "<strong>'+name+'</strong>:"'+content+'"</li>'
+        }
+      }
+
+      //get pkg.css and pkg.links:
       var links = d.getElementsByTagName('link')
       pkg.css = {}
+      pkg.link = {}
       for(var i in links) {
         var attr = links[i].attributes
         for(var j in attr) {
-          if(attr[j].name == 'rel' && attr[j].value == 'stylesheet') { 
-            for(var k in attr) {
-              if(attr[k].name == 'href') {
-                pkg.css[attr[k].value] = false//reserve place in sheets order
-                getFile(attr[k].value, function(fileName, data) {
-                  pkg.css[fileName] = data 
-                  log += '<li>adding stylesheet "<strong>'+fileName+'</strong>"</li>'
-                })
-                break
+          if(attr[j].name == 'rel') {
+            if(attr[j].value == 'stylesheet') { 
+              for(var k in attr) {
+                if(attr[k].name == 'href') {
+                  pkg.css[attr[k].value] = false//reserve place in sheets order
+                  getFile(attr[k].value, function(fileName, data) {
+                    pkg.css[fileName] = data 
+                    log += '<li>adding stylesheet "<strong>'+fileName+'</strong>"</li>'
+                  })
+                  break //href found
+                }
+              }
+            } else {//any links that are not stylesheets (author, license, predecessor-version, payment...), just convert them into attributes of the package
+              for(var k in attr) {
+                if(attr[k].name == 'href') {
+                  pkg.link[attr[j].value] = attr[k].value
+                  log += '<li>adding <strong>link.'+attr[j].value+'</strong> '+attr[k].value+'</li>'
+                  break //href found
+                }
               }
             }
-            break
+            break // rel found
           }
         }
       }
