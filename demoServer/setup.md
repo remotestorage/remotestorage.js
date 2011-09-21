@@ -29,6 +29,7 @@ Set up redis
 Set up demo server
 ------------------
        npm install redis
+       npm install http-proxy
     scp node/ssl-cert/* root@myfavouritesandwich.org:ssl-cert/
     [you can also clone git://github.com/unhosted/unhosted.git as a read-only copy. but for read/write:]
        ssh-keygen -t rsa -C "root@myfavouritesandwich.org"
