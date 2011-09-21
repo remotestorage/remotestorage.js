@@ -1,26 +1,14 @@
-
-function storage_event(e) {
-  if(e.storageArea == null) {//i'm trying to set e.storageArea to window.syncStorage, but it comes out null
-    show()
-  }
-}
-
 function onsave() {
   var sandwich = { ingredients: [ document.getElementById('firstIngredient').value
                                 , document.getElementById('secondIngredient').value
                                 ]
                  }
-  syncStorage.setItem('favSandwich', JSON.stringify(sandwich))
+  localStorage.setItem('favSandwich', JSON.stringify(sandwich))
   show()
 }
 
 function show() {
-  var sandwich
-  try {
-    sandwich = JSON.parse(syncStorage.getItem('favSandwich'))
-  } catch(e) {
-    syncStorage.flushItems([ 'favSandwich' ])
-  }
+  var sandwich = JSON.parse(localStorage.getItem('favSandwich'))
   if(sandwich) {
     document.getElementById('firstIngredient').value = sandwich.ingredients[0]
     document.getElementById('secondIngredient').value = sandwich.ingredients[1]
