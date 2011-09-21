@@ -1,0 +1,73 @@
+<html>
+<head>
+<title>Save URL</title>
+<script src="/jQuery/jquery-1.6.1.min.js"></script>
+<script src="unhosted/config.js" onerror="window.location='/unhosted/install.php';"></script>
+<script src="unhosted/wallet.js"></script>
+<script src="unhosted/sjcl/sjcl.js"></script>
+<script src="unhosted/base64.js"></script>
+<script src="unhosted/unhosted.js"></script>
+<script src="unhosted/gocrypto.js"></script>
+
+<script>
+$(document).ready(function() {
+  unhosted.connect();
+  currentUser = unhosted.getUserName();
+
+  var hash = window.location.hash.substring(1).split("#");
+  var title = decodeURIComponent(hash[0]);
+  var url = decodeURIComponent(hash[1]);
+  //alert(title);
+  //alert(url);
+  var data = {};
+  if (window.location.hash.length && !(url === undefined || title === undefined)) {
+    unhosted.get(
+        '_master_',
+        function() {
+            alert('please put in your password');
+        },
+        function(ret) {
+            data['_master_'] = ret;
+            if (!data['_master_']) {
+              data['_master_'] = { used_ids: {0: true}, root_id: 0 };
+            }
+            var folder = '_folder_'+data._master_.root_id;
+            unhosted.get(
+              folder,
+              function() {
+                 alert('error in start ');
+              },
+              function(ret) {
+                data[folder] = ret;
+    data[folder].bmarks.push({url: url, title: title,
+                              date_added: (new Date()).getTime()});
+    unhosted.set(folder, data[folder], function() {
+      document.write(
+"<pre>"
++"Note: This window will close automatically.\n"
++"Added bookmark for\n"
++title+"\n"
++"at url: "+url+"\n"
++"for user: "+currentUser+"\n"
++"</pre>");
+      setTimeout("self.close();", 5000);
+            });
+
+        });
+    });
+  }
+});
+
+var unhosted = Unhosted();
+var currentUser;
+
+</script>
+</head>
+<body>
+Drag this link to your bookmark toolbar: <a href='
+javascript:window.open("http://bm.jack-bowman.com/save.html#"+
+encodeURIComponent(document.title)+"#"+
+encodeURIComponent(window.location), "_newtab");
+'>Add Bookmark</a>
+</body>
+</html>
