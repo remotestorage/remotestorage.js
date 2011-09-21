@@ -64,7 +64,7 @@
             var rule = (cssRulesNoClosingAccolade[i]+'}')
               //can't seem to parse this line with the comment - pull requests welcome:
               .replace('/* ** ** custom select color ** ** */::selection { background:#525252; /* Safari */ }', '')
-            //console.log(fileName+'('+i+'): '+rule)
+            console.log(fileName+'('+i+'): '+rule)
             style.sheet.insertRule(rule, style.sheet.cssRules.length)
           }
         }
