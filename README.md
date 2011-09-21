@@ -1,17 +1,13 @@
-This repository contains various things:
+This repository contains various things and changes over time. Right now, it contains:
 
+* the code of all the domains we host on our demo server
 
 
 Setting up unhosted storage for your own user address
 =============================
+If you want to get started with Unhosted, try installing ownCloud on your domain. If your domain is me.com and your ownCloud user is called 'admin', then 'admin@me.com' will be your remote storage.
 
-This repository contains everything you need to set up your own unhosted storage node.
-It assumes you take a freshly formatted debian squeeze server, and set up WordPress, ownCloud and BrowserMail on there.
-Just follow unhosted-storage-debian.md.
-If you can't get it work, please drop by in our [chat room](http://webchat.freenode.net/?channels=unhosted).
-We also have shared hosting setup instructions, but they are still quite experimental: unhosted-storage-shared-hosting.md. 
 
-Setting up your own app server
-==============================
-
-We're working towards a sort of apptorrent app-mirroring servers. The first parts of it are here, to use them follow app-server-debian.md. If you want, you can add a default storage node into your app server. That way, people that reach your app server, but don't have an unhosted account yet, can get an account at your domain name. To do this, you can make ownCloud run on port 444. It's described in hosted-storage-debian.md
+Converting your web app to Unhosted
+=============================
+With our packager, you can easily take any localStorage-based app, and make it into an unhosted app. So if you have an application, then write it so that it stores all user data in localStorage. Then follow the steps in http://unhosted.org/teaser
