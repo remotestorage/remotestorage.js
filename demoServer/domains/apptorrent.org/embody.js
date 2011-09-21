@@ -21,16 +21,18 @@ var hash ='7996ff45cf4d140398d729accc6c6c0a6b66fb89'
     }
   }
   function embodyCss(css) {
-    //var style= document.createElement('link')
-    //style.type= 'stylesheet'
-    //style.id= 'embodiedStyle'
-    //document.getElementsByTagName('head')[0].appendChild(style)
     for(var fileName in css) {
+      var style= document.createElement('style')
+      document.getElementsByTagName('head')[0].appendChild(style)
       var cssRulesNoClosingAccolade = css[fileName].replace(new RegExp( '[\\n\\r]', 'g' ), '').split('}')
       for(var i in cssRulesNoClosingAccolade) {
         if(cssRulesNoClosingAccolade[i].length) {
-          document.getElementsByTagName('style')[0].sheet.insertRule(cssRulesNoClosingAccolade[i] + '}', i)
-        }
+          console.log(fileName+'('+i+'): '+cssRulesNoClosingAccolade[i]+'}')
+          //document.getElementsByTagName('style')[1].sheet.insertRule(cssRulesNoClosingAccolade[i] + '}', i)
+          if((fileName != 'css/uncompressed/general.css')) {
+            style.sheet.insertRule(cssRulesNoClosingAccolade[i] + '}', i)
+  }
+      }
       }
     }
   }
