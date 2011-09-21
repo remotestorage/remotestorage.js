@@ -10,7 +10,6 @@ First setup
         apt-get update
         apt-get upgrade
 
-
 Set up node
 -----------
        apt-get install git python g++ libssl-dev make curl
@@ -38,6 +37,6 @@ Set up demo server
        git clone git@github.com:unhosted/unhosted.git
        cd unhosted/
        git checkout devel
-       cd node
        npm -g install forever
+       cd demoServer
        forever start server.js
