@@ -1,0 +1,7 @@
+<FilesMatch \.webapp>
+	Header always set Content-type "application/x-web-app-manifest+json"
+</FilesMatch>
+Header always set Access-Control-Max-Age "86400"
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "GET"
+Header always set Access-Control-Allow-Headers "Content-Type, X-Requested-With, X-HTTP-Method-Override, Accept"

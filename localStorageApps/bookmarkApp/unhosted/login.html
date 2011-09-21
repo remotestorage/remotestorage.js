@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+<title>Bookmarks Login</title>
+<link rel="stylesheet" href="/css/uncompressed/reset.css" />
+<link rel="stylesheet" href="/css/uncompressed/text.css" />
+<link rel="stylesheet" href="/css/uncompressed/general.css" />
+<link rel="stylesheet" href="/css/todologin.css" />
+
+<script src="/jQuery/jquery-1.6.1.min.js"></script>
+<script src="/unhosted/config.js"></script>
+<script src="/unhosted/wallet.js"></script>
+<script src="/unhosted/webfinger.js"></script>
+<script>
+function takeMeIn(userAddress, haveAccount) {
+	if(haveAccount) {
+		Webfinger().getDavBaseUrl(userAddress, 0, 1, 
+			function() {
+				alert(userAddress+' does not seem to be a valid unhosted account');
+			},
+			function(davBaseUrl) {
+				setWallet({
+					"userAddress": userAddress,
+					"davBaseUrl": davBaseUrl
+					});
+				window.location = davBaseUrl + "oauth2/auth"
+					+ "?client_id="+encodeURIComponent(config.clientId)
+					+ "&redirect_uri="+encodeURIComponent(config.callbackUrl)
+					+ "&scope="+encodeURIComponent(config.dataScope)
+					+ "&response_type=token"
+					+ "&user_address="+encodeURIComponent(userAddress);
+			});
+	} else {
+		setWallet({
+			"userAddress": userAddress
+			});
+		window.location = config.registerUrl;
+	}
+}
+
+function installCallback(result) {
+	alert('great - display a message, or redirect to a launch page');
+}
+
+function errorCallback(result) {
+	alert('whoops - result.code and result.message have details');
+}
+
+function install() {
+	if(navigator && navigator.apps) {
+		navigator.apps.install({
+			url: "http://example.com/app/mozilla.webapp",
+			onsuccess: installCallback,
+			onerror: errorCallback
+		});
+	} else {
+		alert('please install the mozilla open web apps extension in your browser first');
+	}
+}
+</script>
+</head>
+<body>
+<div class="preload"></div>
+<div class="preload2"></div>
+<div id="mainWrap">
+
+
+	<div id="lockedView">
+
+
+
+		<header>
+		    <h1>Bookmarks</h1>
+			<input id="user" placeholder="user@provider.org" type="text"/>&nbsp;
+			<input class="submit" type="submit" value="Login!"
+				 onclick="takeMeIn(document.getElementById('user').value, true);">
+			<!--<a href="register.html">I don't have an account, help me log in</a>-->
+		</header>
+			
+		<div id="register">
+		</div>
+
+
+
+
+	</div>
+
+
+	<div id="footerSpacer"></div>					
+	<footer>
+			<h3>What is Unhosted?</h3>
+			<p>
+				<strong>Unhosted is a project for strengthening free software against hosted software. 
+				</strong>
+				An unhosted web app is only source code. Dynamic data is encrypted and decentralised, to per-user storage nodes. This benefits <strong>free software</strong>, as well as <strong>scalability</strong>, <strong>robustness</strong>, and <strong>online privacy</strong>.
+			</p>
+			<p>
+				<strong>Check it out at <a href="http://www.unhosted.org">http://www.unhosted.org/</a></strong>
+			</p>
+			<p>
+			This software is published under the <a href="http://www.gnu.org/licenses/agpl.html">AGPL</a>.
+			</p>
+		<div class="clear">
+		</div>				
+	</footer>
+</div>
+</body>
+</html>
