@@ -38,7 +38,7 @@
     }
     function fetchApp(cb) {
       //var hash ='7996ff45cf4d140398d729accc6c6c0a6b66fb89'
-      var hash = findLocator().url.replace('apptorrent://mich@yourremotestorage.com/', '')
+      var hash = findLocator().locator.replace('apptorrent://mich@yourremotestorage.com/', '')
       if(localStorage.getItem(hash)) {
         cb(JSON.parse(localStorage.getItem(hash)))
       } else {
@@ -55,14 +55,18 @@
       for(var fileName in css) {
         var style= document.createElement('style')
         document.getElementsByTagName('head')[0].appendChild(style)
-        var cssRulesNoClosingAccolade = css[fileName].replace(new RegExp( '[\\n\\r]', 'g' ), '').split('}')
+        var cssRulesNoClosingAccolade = css[fileName]
+          .replace(new RegExp( '[\\n\\r]', 'g' ), '')
+          .split('}')
+        var j=0
         for(var i in cssRulesNoClosingAccolade) {
           if(cssRulesNoClosingAccolade[i].length) {
-            //console.log(fileName+'('+i+'): '+cssRulesNoClosingAccolade[i]+'}')
-            if((fileName != 'css/uncompressed/general.css')) {
-              style.sheet.insertRule(cssRulesNoClosingAccolade[i] + '}', i)
-    }
-        }
+            var rule = (cssRulesNoClosingAccolade[i]+'}')
+              //can't seem to parse this line with the comment - pull requests welcome:
+              .replace('/* ** ** custom select color ** ** */::selection { background:#525252; /* Safari */ }', '')
+            //console.log(fileName+'('+i+'): '+rule)
+            style.sheet.insertRule(rule, style.sheet.cssRules.length)
+          }
         }
       }
     }
