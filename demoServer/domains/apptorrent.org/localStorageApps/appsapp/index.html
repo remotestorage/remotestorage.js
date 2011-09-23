@@ -63,9 +63,24 @@ var appsApp = (function() {
       }
     })
 }
-
+function joinHands() {
+  localStorage.setItem('peersList', JSON.stringify(
+    [ 'you@island'
+    , 'jan@yourremotestorage.com'
+    ]))
+  el('appToAdd').value = 'apptorrent://mich@yourremotestorage.com/7996ff45cf4d140398d729accc6c6c0a6b66fb89'
+  addApp()
+  showApps()
+}
 function showApps() {
   var appsList = JSON.parse(localStorage.getItem('appsList'))
+  if(!appsList) {
+    el('appsListDiv').style.display='none'
+    el('addAppDiv').style.display='none'
+  } else {
+    el('noAppsDiv').style.display='none'
+    //return
+  }
   var str = '<ul>'
   for(var i in appsList) {
     var playerUrl = el('playerUrl').value.replace('{hash}', i).replace('{seed}',appsList[i].peers[0])
@@ -79,13 +94,22 @@ function showApps() {
 }
   return (
     { addApp: addApp
+    , joinHands: joinHands
     , showApps: showApps
     })
 })()
 </script>
 </head><body onload="appsApp.showApps()">
-<p><h3>A dream within a dream...</h3>This is appsapp. Customize it as your home page for accessing unhosted web apps. It is itself a forkable app - the apptorrent hash for this version is: apptorrent://mich@yourremotestorage.com/ad21727f50ae8e7807eba72d7d308c39321afcac</p>
-<p>These are your apps:<div id="apps"></div></p>
+<div id="noAppsDiv">
+<h3>Get started</h3>
+<p>To become a part of this, join hands with a peer:
+</p>
+<input id="peerToAdd" value="jan@yourremotestorage.com"><input type="submit" value="join hands" onclick="appsApp.joinHands()">
+</div>
+<div id="appsListDiv">
+<p>These are your apps:<div id="apps"></p></div>
+<div id="addAppDiv">
 <p>Apptorrent player to use:<input type="text" id="playerUrl" size="100" value="http://{hash}.apptorrent.local/unhosted/apptorrent/player/player.html?seed={seed}"></p>
 <p><input type="submit" onclick="appsApp.addApp()" value="Add"><input type="text" size="100" id="appToAdd"></p>
+</div>
 </body></html>
