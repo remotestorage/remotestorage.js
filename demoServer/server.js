@@ -17,14 +17,16 @@ function serve(req, res) {
   var filename = path.join(domainsDir, req.headers.host, uri)
   if(filename.substring(0, domainsDir.length) != domainsDir) {
     res.writeHead(403, {'Content-Type': 'text/plain'})
-    res.end('403 Naughty!\n')
+    res.write('403 Naughty!\n')
+    res.end()
     return
   }
 
   path.exists(filename, function(exists) { 
     if(!exists) { 
       res.writeHead(404, {'Content-Type': 'text/plain'})
-      res.end('404 Not Found\n')
+      res.write('404 Not Found\n')
+      res.end()
       return
     } 
  
@@ -36,7 +38,8 @@ function serve(req, res) {
       }
 
       res.writeHead(200)
-      res.end(file, 'binary')
+      res.write(file, 'binary')
+      res.end()
     })
   })
 }
