@@ -55,12 +55,16 @@
       var style= document.createElement('style')
       document.getElementsByTagName('head')[0].appendChild(style)
       var cssRulesNoClosingAccolade = css[fileName]
-        .replace(new RegExp( '[\\n\\r]', 'g' ), '')
+        .replace(/[\r\n]/g, '')
         .split('}')
       var j=0
       for(var i in cssRulesNoClosingAccolade) {
         if(cssRulesNoClosingAccolade[i].length) {
           var rule = (cssRulesNoClosingAccolade[i]+'}')
+            //this works on the console, but not in code:
+            //.replace(/\/\*([^\/]*)*\*\//g, '')
+            //this avoids the 'too complex' warning, but doesn't work:
+            //.replace(/$([\s\S]*)\/\*([^\/]*)*\*\/([\s\S]*)([\s\S]*)^/g, '$1$3')
             //can't seem to parse this line with the comment - pull requests welcome:
             .replace('/* ** ** custom select color ** ** */::selection { background:#525252; /* Safari */ }', '')
           console.log(fileName+'('+i+'): '+rule)
