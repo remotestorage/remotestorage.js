@@ -7,11 +7,11 @@ var http = require('http')
   , path = require('path')
   , fs = require('fs')
  
-var ssl =
-  { ca:fs.readFileSync(sslDir +'sub.class1.server.ca.pem')
-  , key:fs.readFileSync(sslDir +'ssl.key')
-  , cert:fs.readFileSync(sslDir +'ssl.crt')
-  }
+//var ssl =
+//  { ca:fs.readFileSync(sslDir +'sub.class1.server.ca.pem')
+//  , key:fs.readFileSync(sslDir +'ssl.key')
+//  , cert:fs.readFileSync(sslDir +'ssl.crt')
+//  }
 function serve(req, res) {
   var uri = url.parse(req.url).pathname.replace(new RegExp('/$', 'g'), '/index.html')
   var filename = path.join(domainsDir, req.headers.host, uri)
@@ -45,5 +45,6 @@ function serve(req, res) {
 }
 
 http.createServer(serve).listen(80)
-https.createServer(ssl, serve).listen(443)
-console.log('Server running at ports 80 and 443') 
+//https.createServer(ssl, serve).listen(443)
+//console.log('Server running at ports 80 and 443') 
+console.log('Server running at port 80') 
