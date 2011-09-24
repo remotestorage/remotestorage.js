@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+	<title>Simple Planner</title>
+	<meta charset="utf-8" />
+	<meta name="author" content="Kailash Nadh" />
+	<meta name="description" content="A prototype personal event planner app that uses localStorage. Features include: - Calendar month view - Day view - Add/edit/delete events - Event types/labels (personal, work..) - Tweet events - Export calendar to iCal - Dark / Light themes - Keyboard navigation - Device/resolution awareness External libraries used: jQuery 1.6" />
+
+	<link href="style.css" rel="stylesheet" type="text/css" />
+
+	<link rel="author" href="http://kailashnadh.name/" />
+	<link rel="payment" type="tipjar" href="https://flattr.com/profile/knadh" />
+	<link rel="license" href="http://www.gnu.org/licenses/gpl.html" />
+
+	<script src="jquery-1.6.2.min.js"></script>
+	<script src="lib.js"></script>
+</head>
+<body class="dark">
+
+<div id="calendar-wrap" class="box">
+	<div id="calendar">
+		<h1 id="calendar-title"> </h1>
+		<ul id="controls">
+			<li><a href="#" id="btn-theme">light</a></li>
+			<li class="sep"><a href="#" id="btn-ical">iCal</a></li>
+			<li><a href="#" id="btn-previous">&laquo;</a></li>
+			<li><a href="#" id="btn-today">today</a></li>
+			<li><a href="#" id="btn-next">&raquo;</a></li>
+		</ul>
+		<div class="clear"> </div>
+		<h3 id="time"> </h3>
+		<table id="table">
+			<thead>
+			</thead>
+			<tbody>
+			</tbody>
+		</table>
+		<div class="clear"> </div>
+		<h2 id="stats"></h2>
+		<p class="info">
+			Click on a date to view events. Use arrow keys to browser the calendar.
+			<span class="info" id="credit">
+				localStorage based personal planner by <a href="http://kailashnadh.name">Kailash Nadh</a> for <a href="http://10k.aneventapart.com">10k Apart</a>
+			</span>
+		</p>
+		<div class="clear"> </div>
+	</div>
+	<div class="clear"> </div>
+</div>
+
+<div id="diary-wrap" class="box">
+	<div class="content">
+		<a href="#" id="diary-close" class="round">&lt;</a>
+		<h2 id="diary-title">&nbsp;</h2>
+		<div class="clear"> </div>
+		
+		<ul id="diary"></ul>
+		<p class="info">Click on a time to add an event</p>
+	</div>
+</div>
+
+<div id="dialog">
+	<a href="#" id="dialog-close" class="round">x</a>
+	<form id="add" class="target">
+		<h2 id="event-date"></h2>
+		<p class="time">
+			<label>Event time</label>
+			Hour <select id="event-hour"></select>
+			Minute <select id="event-minute"></select>
+		</p>
+		<p>
+			<label>Event description</label>
+			<input type="text" id="event-description" maxlength="100" />
+		</p>
+		<div id="event-label">
+		</div>
+		<p class="buttons">
+			<input type="submit" id="event-create" value="ok" class="button" />
+			<input type="button" id="event-close" value="cancel" class="button" />
+			<input type="button" id="event-delete" value="delete" class="button" />
+			<input type="button" id="event-tweet" value="tweet" class="button" />
+		</p>
+	</form>
+	
+	<div id="ical" class="target">
+		Copy the text and save it as  calendar.ics file.<br />
+		<small>You can then import the file to Google Calendar, iCal etc.</small>
+		<textarea id="ical-data"> </textarea>
+	</div>
+</div>
+<div class="clear"> </div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<script src="/jQuery/jquery-1.6.1.min.js"></script>
+<script src="/unhosted/config.js"></script>
+<script src="/unhosted/wallet.js"></script>
+<script>
+gup = function(paramName) {
+	var regex = new RegExp("[\\?&#]"+paramName+"=([^&#]*)");
+	var results = regex.exec(window.location.href);
+	if(results) {
+		return results[1];
+	}
+	return null;
+}
+
+$(document).ready(function() {	
+	var wallet = getWallet();
+	wallet.davToken = gup("access_token");
+	setWallet(wallet);                              
+	window.location = config.appUrl;
+});
+
+</script>
+</head>
+<body>
+Redirecting...
+</body>
+</html>

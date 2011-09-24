@@ -1,4 +1,4 @@
-var domainsDir = '/root/unhosted/demoServer/domains/'
+var domainsDir = 'domains/'
 var sslDir = '/root/ssl-cert/'
 
 var http = require('http')
@@ -17,7 +17,7 @@ function serve(req, res) {
   var filename = path.join(domainsDir, req.headers.host, uri)
   if(filename.substring(0, domainsDir.length) != domainsDir) {
     res.writeHead(403, {'Content-Type': 'text/plain'})
-    res.write('403 Naughty!\n')
+    res.write('403 Naughty!\n'+filename)
     res.end()
     return
   }
@@ -25,7 +25,7 @@ function serve(req, res) {
   path.exists(filename, function(exists) { 
     if(!exists) { 
       res.writeHead(404, {'Content-Type': 'text/plain'})
-      res.write('404 Not Found\n')
+      res.write('404 Not Found\n'+filename)
       res.end()
       return
     } 

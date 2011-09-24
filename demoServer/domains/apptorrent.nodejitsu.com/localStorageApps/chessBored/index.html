@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <title>Chess</title>
+  <link rel="stylesheet" href="chess.css" />
+  <link rel="predecessor-version" href="http://10k.aneventapart.com/2/Uploads/571/" />
+  <link rel="describedby" href="http://10k.aneventapart.com/Entry/Details/571" />
+  <link rel="author" href="http://twitter.com/#!/Bend_Boy" />
+  <meta charset="utf-8" />
+  <meta name="author" content="Hans" /> 
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" /> 
+  <meta name="apple-mobile-web-app-capable" content="yes" /> 
+  <script src="jquery-1.6.2.min.js"></script>
+  <script src="chess.js"></script>
+  <script> 
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-15791185-1']);
+    _gaq.push(['_trackPageview']);
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script> 
+</head>
+<body>
+  <div id="boardEdge" class="boardEdge">
+    <div id="board" class="board"></div>
+  </div>
+  <div class="edge">
+    <h1>Chess<br /> Bored</h1>
+    <div class="btn">
+      <span>New Game</span>
+      <div class="info none">
+        <input type="button" value="Yes"  onclick="set_board('rnbqkbnrpppppppp00000000000000000000000000000000PPPPPPPPRNBQKBNR');" />
+        <input type="button" value="No" />
+      </div>
+    </div>
+    <div class="btn" id="send">
+      <span>Send or Load</span>
+      <div class="info none">
+        <input type="text" class="positions" id="positions" />
+        <input type="button" value="Load" onclick="set_board($('#positions').val());" />
+        <p>Copy the above string and send the board to a friend. Or paste a string from a friend above and load their game.</p>
+      </div>
+    </div>
+    <div class="btn" id="edit">
+      <span>Edit Board</span>
+      <div class="info none">
+        <p>Select a piece and then click the square to move to.</p>
+        <ul class="half">
+          <li><strong>Black</strong></li>
+          <li class="pieces q">Queen</li>
+          <li class="pieces r">Rook</li>
+          <li class="pieces n">Knight</li>
+          <li class="pieces b">Bishop</li>
+          <li class="pieces p">Pawn</li>
+          <li class="pieces k">King</li>
+        </ul>
+        <ul class="half">
+          <li><strong>White</strong></li>
+          <li class="pieces Q">Queen</li>
+          <li class="pieces R">Rook</li>
+          <li class="pieces N">Knight</li>
+          <li class="pieces B">Bishop</li>
+          <li class="pieces P">Pawn</li>
+          <li class="pieces K">King</li>
+        </ul>
+        <ul class="c">
+          <li class="pieces 0">Blank Square</li>
+          <li id="clear" class="clear-board">Clear Board</li>
+        </ul>
+        <br class="c" />
+      </div>
+    </div>
+  </div>
+</bdoy>
+</html>

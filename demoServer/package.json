@@ -1,8 +1,8 @@
 {
   "name": "demoServer",
-  "subdomain": "unhosted",
+  "subdomain": "apptorrent",
   "scripts": {
     "start": "server.js"
   },
-  "version": "0.0.0-2"
+  "version": "0.0.0-15"
 }

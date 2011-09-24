@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="description" content="RAM is simple TODO list manager. Data are stored in your browser using localStorage. To add task click on empty cell, enter text and hit "enter" (submit key / outer area). In open task you can change color of cell or delete note. To add/delete cell click on last cell marked with plus/minus icon. Click logo to access help section. http://10k.aneventapart.com/Entry/Details/540" />
+		<meta name="author" content="Jan Pomaha&#269;" />
+
+		<title>RAM - random access memory notepad</title>
+		<link rel="stylesheet" href="style.css"	media="screen" />
+
+		<link rel="author" href="http://www.nepplication.cz/" />
+		<link rel="payment" type="tipjar" href="http://flattr.com/profile/pomas" />
+		<link rel="license" href="http://www.gnu.org/licenses/agpl.html" />
+		<!--[if lt IE 9]>
+			<script>
+			document.createElement('header');
+			document.createElement('article');
+			document.createElement('footer');
+			</script>
+		<![endif]-->
+	</head>
+	<body>
+		<div id="tools">
+			<header>
+				<div id="wrapper">
+					<div id="hinfo">
+						<h1>RAM</h1>
+						<h2>random<br/> access<br/> memory</h2>
+						<p><a href="http://www.nepplication.cz">&copy; 2011 Jan Pomahac</a></p>
+					</div>
+					<div id="info">
+						<p>RAM is simple TODO list manager. Data are stored in your browser using localStorage.</p>
+						<p>To add task click on empty cell, enter text and hit "enter" (submit key / outer area). In open task you can change color of cell or delete note.</p>
+						<p>To add/delete cell click on last cell marked with plus/minus icon.</p>
+						<p>Click logo to access help section.</p>
+					</div>
+				</div>
+			</header>
+			<section id="block-start"><h1 id="button-start" style="text-align:right;">let me in!</h1></section>
+			
+		</div>
+		<div id="nojs">This application requires enabled JavaScrip!</div>
+		<ul id="board">
+			<li style="display:none;"><article class="empty adder"><span class="no"></span><span class="info"></span><span class="text">
+				<span id="adderAdd" class="rb">+</span>
+				<span id="adderDel"  class="rb">&minus;</span>
+			</span></article></li>
+		</ul>
+		<div id="temp"><ul></ul></div>
+		
+		<script  src="jquery-1.6.2.min.js"></script>
+		<script  src="script.js"></script>
+	</body>
+</html>
