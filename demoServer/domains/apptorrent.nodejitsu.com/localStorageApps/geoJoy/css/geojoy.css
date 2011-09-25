@@ -1,0 +1,63 @@
+/*
+geoJoy by Claim Soluciones, S.C.P. is licensed under a GNU General Public License, version 3 (GPL v3).
+Permissions beyond the scope of this license may be available at http://www.claimsoluciones.com.
+License Info: http://www.opensource.org/licenses/gpl-3.0.html
+*/
+.ui-icon-map-mark {
+	background: url('../img/map_icon.png') center no-repeat #929292;
+}
+
+#content {
+	margin: 0;
+}
+
+#mapImage {
+	width: 264px;
+	position: relative;
+	margin: 15px auto;
+}
+
+#mapImage img {
+	padding: 2px;
+	border: 1px solid #488ECF;
+}
+
+#locationItems li, .itemList_li {
+	padding: 5px 10px;
+	border-bottom: 1px solid #E0E0E0;
+	font-weight: bold;
+}
+
+#locationItems li a{
+	text-decoration: none;
+	color: #4F4F4F;
+}
+
+#list_header {
+	border: none;
+	background: #E0E0E0;
+	color: #606060;
+	text-shadow: none;
+}
+
+#toolbar {
+	margin-top: 0;
+	padding-top: 0;
+	margin-bottom: 30px;
+}
+
+.toolbar_link {
+	font-size: 0.8em;
+}
+
+.itemsTitle {
+	display: none;
+}
+
+#itemListMap {
+	margin-top: 20px;
+}
+
+#itemsMessage {
+	color: #FF3333;
+}
