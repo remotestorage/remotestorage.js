@@ -63,6 +63,8 @@ var packager = (function() {
   }
 
   function scrape() {
+    el('scrapeButton').value = 'wait...'
+    el('result').innerHTML = 'wait...'
     log = ''
     getFile('index.html', parseOpa)
   }
@@ -152,6 +154,7 @@ var packager = (function() {
   }
 
   function finishPackage(pkg) {
+    el('scrapeButton').value = 'scrape'
     pkg.original = el('original').value
     sausage = JSON.stringify(pkg)
     sha1 = SHA1(sausage)
@@ -178,7 +181,7 @@ var packager = (function() {
 </script></head><body>
 <h1>Package a localStorage-based HTML app, and unhost it on apptorrent!</h1>
 <br><label>Original:</label><input id="original" type="text" size="100"  value="http://apptorrent.nodejitsu.com/localStorageApps/myFavouriteSandwich/">
-<input type="submit" onclick="packager.scrape()" value="scrape">
+<input type="submit" id="scrapeButton" onclick="packager.scrape()" value="scrape">
 <p><h2>Apps you can package:</h2><ul>
 <li>http://apptorrent.nodejitsu.com/localStorageApps/myFavouriteSandwich/</li>
 <li>http://apptorrent.nodejitsu.com/localStorageApps/todoListApp/</li>
