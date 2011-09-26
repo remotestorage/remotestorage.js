@@ -1,0 +1,58 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <title>My Google Data API Application</title>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    <script type="text/javascript">
+    window.onload=function(){
+      if(window.location.hash.length) {
+
+$(function () {
+  $.ajax(
+    //{ url: 'https://docs.google.com/feeds/default/private/full?v=3'
+    { url: 'https://docs.google.com/feeds/default/private/full?access_token='
+            + window.location.hash.substring(14,73)
+            + '&v=3'
+    , success: function(response) {
+        $.each(response.data.items, function(index, item) {
+          $('#results').append('<li>' + item.title + '</li>')
+        })
+      }
+    , beforeSend: function(jqXHR, options){
+//        jqXHR.setRequestHeader('Authorization', 'Bearer '+window.location.hash.substring(14,73))
+//        jqXHR.setRequestHeader('Authorization', 'AuthSub token='+window.location.hash.substring(14,73))
+//        alert('here we go')
+      }
+    //, headers: {'Authorization': 'Bearer '+window.location.hash.substring(14,73)}
+    })
+})
+//        xhr=new XMLHttpRequest()
+
+  //      xhr.open('POST', 'https://docs.google.com/feeds/default/private/full/?convert=false', false)
+    //    xhr.setRequestHeader('GData-Version', '3.0')
+        //xhr.setRequestHeader('Content-Length', '123456')
+      //  xhr.setRequestHeader('Content-Type', 'text/plain')
+        //xhr.setRequestHeader('Slug', 'Example Title')
+//        xhr.setRequestHeader('Authorization', 'Bearer '+window.location.hash.substring(14,74))
+  //      xhr.send('de rapen zijn gaar')
+    //    document.getElementById('panel').innerHTML= xhr.responseText
+      } else {
+        document.getElementById('panel').innerHTML = '<a href="'
+          + 'https://accounts.google.com/o/oauth2/auth?'
+          //+ 'client_id=709507725318-br8hd7fcbhsbtusruudrn83hnvjj8ui9@developer.gserviceaccount.com&'
+          + 'client_id=709507725318-4h19nag3k4hv5osj1jvao0j3an3bu43t@developer.gserviceaccount.com&'
+          + 'redirect_uri=http://apptorrent.org/gdata.html&'
+          //+ 'scope=https://www.google.com/m8/feeds/&'
+          + 'scope=https://docs.google.com/feeds/&'
+          + 'response_type=token'
+          + '">click</a>'
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <div id="panel"/>
+<ol id='results'/>
+  </body>
+</html>
