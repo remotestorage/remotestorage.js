@@ -3,7 +3,7 @@
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
     <title>My Google Data API Application</title>
-    <script src="http://www.google.com/jsapi?key=ABQIAAAAek_R_uL8wT5vPPdUdal3YRRMvcvlO-ZQ_OZzREuIaWQlB8hbFxS4-uFLQYy9otlsvfMWs2I68t7cZg" type="text/javascript"></script>
+    <script src="http://www.google.com/jsapi?key=ABQIAAAAek_R_uL8wT5vPPdUdal3YRTjxqqyHmPK0GRABjjGEi9I04-0pxQdbW23BM8rWOMq9-2aywD6uxYsNQ" type="text/javascript"></script>
     <script type="text/javascript">
     //<![CDATA[
 
@@ -12,10 +12,12 @@
 
     function getMyFeed() {
       var scope = 'http://www.google.com/calendar/feeds/'
-      if(google.accounts.user.checkLogin(scope)) {
-        //ok
+      if(!google.accounts) {
+//http://yourremotestorage.com/oauth2callback#access_token=ya29.AHES6ZTc5IAAxG071wT8eWCqapdjTbzIKQVfFYft2Wrh0bf0APW-RA&token_type=Bearer&expires_in=3600
+      } else if(!google.accounts.user.checkLogin(scope)) {
+        google.account.user.login()
       } else {
-        google.accounts.user.login()
+        //ok
       }
     }
 
