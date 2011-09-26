@@ -22,7 +22,7 @@
           + 'https://accounts.google.com/o/oauth2/auth?'
           + 'client_id=709507725318-4h19nag3k4hv5osj1jvao0j3an3bu43t@developer.gserviceaccount.com&'
           + 'redirect_uri=http://apptorrent.org/gdata.html&'
-          + 'scope=https://docs.google.com/feeds/&'
+          + 'scope=http://docs.google.com/feeds/&'
           + 'response_type=token'
           + '">click</a>'
       }
@@ -30,7 +30,9 @@
     function post() {
       $(function () {
         $.ajax(
-          { url: 'https://docs.google.com/feeds/default/private/full/?convert=false&access_token='
+          //{ url: 'https://docs.google.com/feeds/default/private/full/?convert=false&access_token='
+          //{ url: 'http://gd-proxy.nodejitsu.com/feeds/default/private/full/?convert=false&access_token='
+          { url: 'http://apptorrent.org:8080/feeds/default/private/full/?convert=false&access_token='
                  + window.location.hash.substring(14,73)
                  + '&v=3'
           , type: 'POST'

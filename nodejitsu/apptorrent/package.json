@@ -1,0 +1,8 @@
+{
+  "name": "demoServer",
+  "subdomain": "apptorrent",
+  "scripts": {
+    "start": "server.js"
+  },
+  "version": "0.0.0-38"
+}

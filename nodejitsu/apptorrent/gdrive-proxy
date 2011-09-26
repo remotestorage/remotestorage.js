@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <title>My Google Data API Application</title>
+    <script type="text/javascript">
+    window.onload=function(){
+      if(window.location.hash.length) {
+        xhr=new XMLHttpRequest()
+
+        xhr.open('POST', 'https://docs.google.com/feeds/default/private/full/?convert=false', false)
+        xhr.setRequestHeader('GData-Version', '3.0')
+        //xhr.setRequestHeader('Content-Length', '123456')
+        xhr.setRequestHeader('Content-Type', 'text/plain')
+        xhr.setRequestHeader('Slug', 'Example Title')
+        xhr.setRequestHeader('Authorization', 'Bearer '+window.location.hash.substring(14,74))
+        xhr.send('de rapen zijn gaar')
+        document.getElementById('panel').innerHTML= xhr.responseText
+      } else {
+        document.getElementById('panel').innerHTML = '<a href="'
+          + 'https://accounts.google.com/o/oauth2/auth?'
+          + 'client_id=709507725318-br8hd7fcbhsbtusruudrn83hnvjj8ui9@developer.gserviceaccount.com&'
+          + 'redirect_uri=http://apptorrent.nodejitsu.com/oauth2callback&'
+          + 'scope=https://www.google.com/m8/feeds/&'
+          + 'response_type=token'
+          + '">click</a>'
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <div id="panel"/>
+  </body>
+</html>
