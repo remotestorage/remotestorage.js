@@ -1,0 +1,1 @@
+alert(window.location.href)

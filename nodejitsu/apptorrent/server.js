@@ -14,13 +14,14 @@ var http = require('http')
 //  }
 function serve(req, res) {
   var uri = url.parse(req.url).pathname.replace(new RegExp('/$', 'g'), '/index.html')
-  var filename = path.join(domainsDir, req.headers.host, uri)
-  if(filename.substring(0, domainsDir.length) != domainsDir) {
-    res.writeHead(403, {'Content-Type': 'text/plain'})
-    res.write('403 Naughty!\n'+filename)
-    res.end()
-    return
-  }
+  //var filename = path.join(domainsDir, req.headers.host, uri)
+  var filename = path.join('.', uri)
+//  if(filename.substring(0, domainsDir.length) != domainsDir) {
+//    res.writeHead(403, {'Content-Type': 'text/plain'})
+//    res.write('403 Naughty!\n'+filename)
+//    res.end()
+//    return
+//  }
 
   path.exists(filename, function(exists) { 
     if(!exists) { 
