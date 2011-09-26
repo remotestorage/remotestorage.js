@@ -3,7 +3,7 @@
   <head>
     <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
     <title>My Google Data API Application</title>
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
     <script type="text/javascript">
     window.onload=function(){
       if(window.location.hash.length) {
@@ -13,7 +13,7 @@
                    + window.location.hash.substring(14,73)
                    + '&v=3'
             , success: function(response) {
-                document.getElementById('panel').innerHTML = JSON.stringify(response)
+                document.getElementById('panel').innerHTML = JSON.stringify(response) + '<input value="test" type="submit" onclick="post()" />'
               }
             })
         })
@@ -26,6 +26,23 @@
           + 'response_type=token'
           + '">click</a>'
       }
+    }
+    function post() {
+      $(function () {
+        $.ajax(
+          { url: 'https://docs.google.com/feeds/default/private/full/?convert=false&access_token='
+                 + window.location.hash.substring(14,73)
+                 + '&v=3'
+          , type: 'POST'
+          , beforeSend: function(jqXHR) {
+              jqXHR.setRequestHeader('Slug', 'Lets Ride')
+            }
+          , data: 'one two three microphone check'
+          , success: function(response) {
+              document.getElementById('panel').innerHTML = JSON.stringify(response)
+            }
+          })
+      })
     }
     </script>
   </head>
