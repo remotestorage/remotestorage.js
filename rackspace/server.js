@@ -37,7 +37,7 @@ function serve(req, res) {
         return
       }
 
-      res.writeHead(200)
+      res.writeHead(200, {'Access-Control-Allow-Origin': '*'})
       res.write(file, 'binary')
       res.end()
     })
