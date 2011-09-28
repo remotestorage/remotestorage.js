@@ -1,8 +1,12 @@
 (function() {
+  //scrape the current page into a sausage:
   var sausage = {'body': document.body.innerHTML}
-  var hash='7996ff45cf4d140398d729accc6c6c0a6b66fb89'
-  var url= 'http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/'+hash
 
+  //calculate the sha1 of the sausage:
+  var hash='7996ff45cf4d140398d729accc6c6c0a6b66fb89'
+
+  //store it on your remoteStorage:
+  var url= 'http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/'+hash
   var x = new XMLHttpRequest()
   x.open('PUT', url, true)
   x.setRequestHeader('Authorization', 'Basic bWljaEB5b3VycmVtb3Rlc3RvcmFnZS5jb206NGU3N2E0NDUyMGRkOA==')
@@ -10,20 +14,29 @@
   x.onreadystatechange = function() {
     if(x.readyState == 4) {
       if((x.status == 200) || (x.status == 201)) {
-        //become a script that creates a link and then clicks it:
+
+        //leave current document and enter empty-host origin:
         document.write('<script>'
           + 'document.write(\'<a id="resetMyScriptParent" href="'
           +'javascript:\\\'<script>'
             + '(function(){'
             + escape
+
+              //add a link to the sausage we just unhosted:
               ( 'localStorage.setItem(\\\'7996ff45cf4d140398d729accc6c6c0a6b66fb89\\\',\\\'bla\\\');'
+
+              //display the links view:
               + 'location=\\\'javascript:'
               + escape
                 ( '\'<script>'
 //                  + 'alert(\\\'hi\\\')'
                   + 'for(var i=0;i<localStorage.length;i++){'
                     + 'var key=localStorage.key(i);'
-                    + 'document.write(\\\'<a>\\\'+key+\\\'</a><br>\\\')'
+                    + 'document.write(\\\'<a href="'
+
+                      //use a wildcard subdomain as the runtime origin for the unhosted app:
+                      + 'http://\\\'+key+\\\'.apptorrent.net/'
+                      + '">\\\'+key+\\\'</a><br>\\\')'
                   + '}'   
                 + '</\'+\'script>'
                 + '\''
