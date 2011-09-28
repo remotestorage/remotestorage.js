@@ -19,7 +19,10 @@
               ( 'localStorage.setItem(\\\'7996ff45cf4d140398d729accc6c6c0a6b66fb89\\\',\\\'bla\\\');'
               + 'location=\\\'javascript:'
               + escape
-                ( '\'here\''
+                ( '\'<script>'
+                  + 'alert(\\\'hi\\\')'
+                + '</\'+\'script>'
+                + '\''
                 )
               + '\\\';'
             )
