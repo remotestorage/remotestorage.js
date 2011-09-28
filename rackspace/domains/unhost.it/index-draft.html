@@ -1,0 +1,35 @@
+//step 1: user reads about apptorrent
+// * user installs the bookmarklet.
+//step 2: on a website.
+// * user clicks on 'unhost it!'
+// - scrape,
+// - push it,
+// - become a link,
+// * browser redirects
+//step 3: you are a link on a javascript url but with scope of the website.
+// - click yourself.
+// * browser redirects a second time
+//step 4: on a javascript url but with global scope
+// - download the sausage
+// - store it
+// - display all apps as links
+// * user clicks the app link
+//step 5: on http://deadbeef.apptorrent.net/#!/installer
+// - run installer code in the hashbang
+// * browser redirects
+//step 6: on http://deadbeef.apptorrent.net/#!/eval(localStorage.getItem('app'))
+// - it's the app
+
+var sausage = {'body': document.body.innerHTML}
+var hash='7996ff45cf4d140398d729accc6c6c0a6b66fb89'
+ajax(
+ { url: 'http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/'+hash
+ , method: 'PUT'
+ , data: sausage
+ , success: function() {
+      //become a link:
+      document.write('<a id="resetMyScriptParent" href="javascript:ajax(\'http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/7996ff45cf4d140398d729accc6c6c0a6b66fb89\')"></a>')
+      //click yourself:
+      document.write('<script>document.getElementById(\'resetMyScriptParent\')</script>')
+    }
+  })

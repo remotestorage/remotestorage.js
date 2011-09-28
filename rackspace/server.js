@@ -15,8 +15,12 @@ var ssl =
 function serve(req, res) {
   var uri = url.parse(req.url).pathname
     .replace(new RegExp('/$', 'g'), '/index.html')
+  var host = req.headers.host
+console.log(host)
+  host = host
     .replace(new RegExp('([a-f0-9]+)\.apptorrent\.net', 'g'), 'apptorrent.net')//wildcard hosting
-  var filename = path.join(domainsDir, req.headers.host, uri)
+console.log('>:'+host)
+  var filename = path.join(domainsDir, host, uri)
   if(filename.substring(0, domainsDir.length) != domainsDir) {
     res.writeHead(403, {'Content-Type': 'text/plain'})
     res.write('403 Naughty!\n'+filename)
