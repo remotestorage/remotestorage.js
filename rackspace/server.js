@@ -27,7 +27,12 @@ console.log('>:'+host)
     res.end()
     return
   }
-
+  var contentType
+  if(/\.appcache$/g.test(uri)) {
+    contentType='text/cache-manifest'
+  } else {
+    contentType='text/html'
+  }
   path.exists(filename, function(exists) { 
     if(!exists) { 
       res.writeHead(404, {'Content-Type': 'text/plain'})
@@ -43,7 +48,7 @@ console.log('>:'+host)
         return
       }
 
-      res.writeHead(200, {'Access-Control-Allow-Origin': '*'})
+      res.writeHead(200, {'Access-Control-Allow-Origin': '*', 'Content-Type': contentType})
       res.write(file, 'binary')
       res.end()
     })
