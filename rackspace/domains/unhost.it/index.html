@@ -14,11 +14,14 @@
         document.write('<script>'
           + 'document.write(\'<a id="resetMyScriptParent" href="'
           +'javascript:\\\'<script>'
-//            + '(function(){'
-//              + 'localStorage.setItem(\\\'7996ff45cf4d140398d729accc6c6c0a6b66fb89\\\', \\\'bla\\\')'
-//            + '})()'
+            + '(function(){'
+              + 'localStorage.setItem(\\\\\\\'7996ff45cf4d140398d729accc6c6c0a6b66fb89\\\\\\\',\\\\\\\'bla\\\\\\\');'
+              + 'location=\\\\\\\'javascript:\\\\\\\\\\\\\\\''
+                 + 'here'
+              + '\\\\\\\\\\\\\\\'\\\\\\\';'
+            + '})()'
           + '</\\\'+\\\'script>\\\''
-          + '">reset my script parent and add link into the empty hostname</a>\');'
+          + '"></a>\');'
           + 'document.getElementById(\'resetMyScriptParent\').click()'
           + '</script>')
       }
