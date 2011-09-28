@@ -29,21 +29,20 @@
               + 'location=\\\'javascript:'
               + escape
                 ( '\'<script>'
-//                  + 'alert(\\\'hi\\\')'
                   + 'for(var i=0;i<localStorage.length;i++){'
                     + 'var key=localStorage.key(i);'
                     + 'document.write(\\\'<a href="'
 
                       //use a wildcard subdomain as the runtime origin for the unhosted app:
                       + 'http://\\\'+key+\\\'.apptorrent.net/#!/(function(){'
-//
-//                        //fetch and install (todo: skip this if already installed):
-//                        + 'var x=new XMLHttpRequest();'
+
+                        //fetch and install (todo: skip this if already installed):
+                        + 'var x=new XMLHttpRequest();'
 //                        + 'x.open(\\\'GET\\\',\\\'+localStorage.getItem(key)+\\\',false);'
-//                        + 'x.send();'
+                        + 'x.send();'
 //                        + 'localStorage.setItem(\\\'apptorrent\\\',x.responseText);'
-//
-//                        //redirect to apptorrent player:
+
+                        //redirect to apptorrent player:
 //                        + 'location=\\\'#!/eval(localStorage.getItem(\\\\\\\'apptorrent\\\\\\\'))\\\''
                       + '})()'
                       + '">\\\'+key+\\\'</a><br>\\\')'
