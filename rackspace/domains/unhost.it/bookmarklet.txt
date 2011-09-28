@@ -1,1 +1,1 @@
-javascript:(function(u){var x=new XMLHttpRequest();x.open('GET',u,true);x.onreadystatechange=function(){if(x.readyState==4){eval(x.responseText)}};x.send()})('http://unhost.it/')
+javascript:(function(u){var x=new XMLHttpRequest();x.open('GET',u,true);x.onreadystatechange=function(){if(x.readyState==4){eval(x.responseText)}};x.send()})('http://unhost.it/!')
