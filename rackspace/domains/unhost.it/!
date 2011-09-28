@@ -1,10 +1,8 @@
 (function() {
   //scrape the current page into a sausage (under construction):
   var sausage =
-    { body: 'document.body.innerHTML'
-    , autoexec: 'document.addEventListener(\'d\',function(){document.removeEventListener(\'d\',arguments.callee,false);'
-         + 'document.body.innerHTML=apptorrent.body;'
-       + '}, false)'
+    { body: document.body.innerHTML
+    , autoexec: 'document.write(apptorrent.body)'
     }
        //document.write(\'<script>document.body.innerHTML=apptorrent.body;</'+'script>\')'
 
