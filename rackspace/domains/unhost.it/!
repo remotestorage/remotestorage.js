@@ -1,6 +1,9 @@
 (function() {
   //scrape the current page into a sausage (under construction):
-  var sausage = {'body': document.body.innerHTML}
+  var sausage =
+    { body:document.body.innerHTML
+    , autoexec: 'document.write(\'<script>document.body.innerHTML=apptorrent.body;</'+'script>\')'
+    }
 
   //calculate the sha1 of the sausage (under construction):
   var hash='7996ff45cf4d140398d729accc6c6c0a6b66fb89'
@@ -44,7 +47,10 @@
                         + 'localStorage.setItem(\\\\\\\'apptorrent\\\\\\\',x.responseText);'
 
                         //push apptorrent player url onton history and play:
-                        + 'location=\\\\\\\'#!/eval(localStorage.getItem(\\\\\\\\\\\\\\\'apptorrent\\\\\\\\\\\\\\\'))\\\\\\\';'
+                        + 'location=\\\\\\\'#!/(function(){'
+                          + 'window.apptorrent=JSON.parse(localStorage.getItem(\\\\\\\\\\\\\\\'apptorrent\\\\\\\\\\\\\\\'));'
+                          + 'eval(apptorrent.autoexec);'
+                        + '})()\\\\\\\';'
                         + 'eval(location.hash.substring(3));'
                       + '})()'
                       + '">\\\'+key+\\\'</a><br>\\\')'
