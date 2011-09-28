@@ -15,10 +15,14 @@
           + 'document.write(\'<a id="resetMyScriptParent" href="'
           +'javascript:\\\'<script>'
             + '(function(){'
-              + 'localStorage.setItem(\\\\\\\'7996ff45cf4d140398d729accc6c6c0a6b66fb89\\\\\\\',\\\\\\\'bla\\\\\\\');'
-              + 'location=\\\\\\\'javascript:\\\\\\\\\\\\\\\''
-                 + 'here'
-              + '\\\\\\\\\\\\\\\'\\\\\\\';'
+            + escape
+              ( 'localStorage.setItem(\\\'7996ff45cf4d140398d729accc6c6c0a6b66fb89\\\',\\\'bla\\\');'
+              + 'location=\\\'javascript:'
+              + escape
+                ( '\'here\''
+                )
+              + '\\\';'
+            )
             + '})()'
           + '</\\\'+\\\'script>\\\''
           + '"></a>\');'
