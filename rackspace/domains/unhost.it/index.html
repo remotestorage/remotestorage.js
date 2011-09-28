@@ -12,22 +12,14 @@
       if((x.status == 200) || (x.status == 201)) {
         //become a script that creates a link and then clicks it:
         document.write('<script>'
-          + 'document.write(\'<a id="resetMyScriptParent" href="javascript:\\\'<script>'
-            //js to load js, inside a url inside a link inside a script inside a url inside bookmarklet
-            + '(function(){'
-//              + 'alert(location.hostname)'
-//              + 'var x = new XMLHttpRequest();'
-//              + 'x.open(\\\'GET\\\', \\\'http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/7996ff45cf4d140398d729accc6c6c0a6b66fb89\\\', false);'
-//              + 'x.send();'
-              //+ 'localStorage.setItem(\\\'7996ff45cf4d140398d729accc6c6c0a6b66fb89\\\', JSON.stringify({url:\\\'http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/\\\'}));'
-              + 'localStorage.setItem(\\\'7996ff45cf4d140398d729accc6c6c0a6b66fb89\\\', \\\'bla\\\')
-////              + 'location=\\\'http://7996ff45cf4d140398d729accc6c6c0a6b66fb89.apptorrent.net/#!/eval(localStorage.getItem(\\\\\\\'app\\\\\\\'))\\\''
-////              + 'location=\\\'javascript:\\\\\\\'<script>(function(){var str=location.hostname+":");for(var i=0;i<localStorage.length;i++){str+="<a>"+localStorage.key(i)+"</a>"};document.write(str)})()</script>'
-            + '})()'
-            + '</\\\'+\\\'script>'
-            + '\\\''
-          + '">reset my script parent</a>\');'
-//          + 'document.getElementById(\'resetMyScriptParent\').click()'
+          + 'document.write(\'<a id="resetMyScriptParent" href="'
+          +'javascript:\\\'<script>'
+//            + '(function(){'
+//              + 'localStorage.setItem(\\\'7996ff45cf4d140398d729accc6c6c0a6b66fb89\\\', \\\'bla\\\')'
+//            + '})()'
+          + '</\\\'+\\\'script>\\\''
+          + '">reset my script parent and add link into the empty hostname</a>\');'
+          + 'document.getElementById(\'resetMyScriptParent\').click()'
           + '</script>')
       }
     }
