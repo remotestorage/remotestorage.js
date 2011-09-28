@@ -1,9 +1,12 @@
 (function() {
   //scrape the current page into a sausage (under construction):
   var sausage =
-    { body:document.body.innerHTML
-    , autoexec: 'document.write(\'<script>document.body.innerHTML=apptorrent.body;</'+'script>\')'
+    { body: 'document.body.innerHTML'
+    , autoexec: 'document.addEventListener(\'d\',function(){document.removeEventListener(\'d\',arguments.callee,false);'
+         + 'document.body.innerHTML=apptorrent.body;'
+       + '}, false)'
     }
+       //document.write(\'<script>document.body.innerHTML=apptorrent.body;</'+'script>\')'
 
   //calculate the sha1 of the sausage (under construction):
   var hash='7996ff45cf4d140398d729accc6c6c0a6b66fb89'
