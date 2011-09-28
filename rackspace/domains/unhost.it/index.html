@@ -20,7 +20,11 @@
               + 'location=\\\'javascript:'
               + escape
                 ( '\'<script>'
-                  + 'alert(\\\'hi\\\')'
+//                  + 'alert(\\\'hi\\\')'
+                  + 'for(var i=0;i<localStorage.length;i++){'
+                    + 'var key=localStorage.key(i);'
+                    + 'document.write(\\\'<a>\\\'+key+\\\'</a><br>\\\')'
+                  + '}'   
                 + '</\'+\'script>'
                 + '\''
                 )
