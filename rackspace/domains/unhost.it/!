@@ -29,6 +29,7 @@
               + 'location=\\\'javascript:'
               + escape
                 ( '\'<script>'
+                  + 'document.write(\\\'These are your apptorrent apps:<br>\\\');'
                   + 'for(var i=0;i<localStorage.length;i++){'
                     + 'var key=localStorage.key(i);'
                     + 'document.write(\\\'<a href="'
@@ -38,12 +39,13 @@
 
                         //fetch and install (todo: skip this if already installed):
                         + 'var x=new XMLHttpRequest();'
-//                        + 'x.open(\\\'GET\\\',\\\'+localStorage.getItem(key)+\\\',false);'
+                        + 'x.open(\\\\\\\'GET\\\\\\\',\\\\\\\'\\\'+localStorage.getItem(key)+\\\'\\\\\\\',false);'
                         + 'x.send();'
-//                        + 'localStorage.setItem(\\\'apptorrent\\\',x.responseText);'
+                        + 'localStorage.setItem(\\\\\\\'apptorrent\\\\\\\',x.responseText);'
 
-                        //redirect to apptorrent player:
-//                        + 'location=\\\'#!/eval(localStorage.getItem(\\\\\\\'apptorrent\\\\\\\'))\\\''
+                        //push apptorrent player url onton history and play:
+                        + 'location=\\\\\\\'#!/eval(localStorage.getItem(\\\\\\\\\\\\\\\'apptorrent\\\\\\\\\\\\\\\'))\\\\\\\';'
+                        + 'eval(location.hash.substring(3));'
                       + '})()'
                       + '">\\\'+key+\\\'</a><br>\\\')'
                   + '}'
