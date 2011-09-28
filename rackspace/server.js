@@ -13,7 +13,9 @@ var ssl =
   , cert:fs.readFileSync(sslDir +'ssl.crt')
   }
 function serve(req, res) {
-  var uri = url.parse(req.url).pathname.replace(new RegExp('/$', 'g'), '/index.html')
+  var uri = url.parse(req.url).pathname
+    .replace(new RegExp('/$', 'g'), '/index.html')
+    .replace(new RegExp('([a-f0-9]+)\.apptorrent\.net', 'g'), 'apptorrent.net')//wildcard hosting
   var filename = path.join(domainsDir, req.headers.host, uri)
   if(filename.substring(0, domainsDir.length) != domainsDir) {
     res.writeHead(403, {'Content-Type': 'text/plain'})
