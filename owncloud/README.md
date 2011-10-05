@@ -1,7 +1,7 @@
 set up your own remoteStorage-compatible ownCloud instance on the indy web:
 -----------------
 
-Current time record for this setup: [6 minutes 21 seconds](screencast.mpeg) (if you practice a little bit). ;)
+Current time record for this setup: [6 minutes 21 seconds](http://unhosted.org/screencastOwncloud.ogg) (if you practice a little bit). ;)
 
 1. get a debian server
 2. do:
