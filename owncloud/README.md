@@ -6,19 +6,19 @@ Current time record for this setup: [4 minutes 53 seconds](screencast.mpeg) (if 
 1. get a debian server
 2. do:
 
-    apt-get update
-    apt-get upgrade
-    apt-get install git libapache2-mod-php5 php5-sqlite
-    git clone git://gitorious.org/owncloud/owncloud.git
-    rm -rf /var/www/
-    mv owncloud/ /var/www
-    chown -R www-data /var/www
-    a2enmod rewrite
+   * apt-get update
+   * apt-get upgrade
+   * apt-get install git libapache2-mod-php5 php5-sqlite
+   * git clone git://gitorious.org/owncloud/owncloud.git
+   * rm -rf /var/www/
+   * mv owncloud/ /var/www
+   * chown -R www-data /var/www
+   * a2enmod rewrite
 
 3. edit /etc/apache2/sites-enabled/000-default 
 4. do:
 
-    /etc/init.d/apache2 restart
+   * /etc/init.d/apache2 restart
 
 5. visit http://yourremotestorage.com/
 6. enable webfinger and remoteStorage apps
