@@ -15,7 +15,7 @@ Current time record for this setup: [4 minutes 53 seconds](screencast.mpeg) (if 
    * chown -R www-data /var/www
    * a2enmod rewrite
 
-3. edit /etc/apache2/sites-enabled/000-default 
+3. edit /etc/apache2/sites-enabled/000-default to set 'AllowOverride All' on /var/www
 4. do:
 
    * /etc/init.d/apache2 restart
