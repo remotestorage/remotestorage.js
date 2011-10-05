@@ -23,4 +23,4 @@ Current time record for this setup: [4 minutes 53 seconds](screencast.mpeg) (if 
 5. visit http://yourremotestorage.com/
 6. enable webfinger and remoteStorage apps
 7. visit http://yourremotestorage.com/apps/user_webfinger/activate.php
-8. test it on http://todo.jack-bowman.com/
+8. test it on http://unhosted.org/demo
