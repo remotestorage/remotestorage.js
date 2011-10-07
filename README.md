@@ -2,6 +2,7 @@ This repository contains various things and changes over time. Right now, it con
 
 * in /ownCloud, a demo of how to get started with your own server.
 * in /rackspace, the code of all the demo domains we host at rackspace
+* in /gd-data, an experiment with GoogleDrive (now still called GoogleDocs-any-file) compatibility
 
 Setting up unhosted storage for your own user address
 =============================
