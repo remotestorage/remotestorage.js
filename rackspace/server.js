@@ -30,8 +30,16 @@ console.log('>:'+host)
   var contentType
   if(/\.appcache$/g.test(uri)) {
     contentType='text/cache-manifest'
-  } else {
+  } else if(/\.html$/g.test(uri)) {
     contentType='text/html'
+  } else if(/\.css$/g.test(uri)) {
+    contentType='text/css'
+  } else if(/\.js$/g.test(uri)) {
+    contentType='text/javascript'
+  } else if(/\.png$/g.test(uri)) {
+    contentType='image/png'
+  } else {
+    contentType='text/plain'
   }
   path.exists(filename, function(exists) { 
     if(!exists) { 
@@ -51,7 +59,7 @@ console.log('>:'+host)
       res.writeHead(200, 
         { 'Access-Control-Allow-Origin': '*'
         , 'Access-Control-Allow-Headers': 'Content-Type'
-        //, 'Content-Type': contentType
+        , 'Content-Type': contentType
         })
       res.write(file, 'binary')
       res.end()
