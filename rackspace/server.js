@@ -48,7 +48,11 @@ console.log('>:'+host)
         return
       }
 
-      res.writeHead(200, {'Access-Control-Allow-Origin': '*', 'Content-Type': contentType})
+      res.writeHead(200, 
+        { 'Access-Control-Allow-Origin': '*'
+        , 'Access-Control-Allow-Headers': 'Content-Type'
+        //, 'Content-Type': contentType
+        })
       res.write(file, 'binary')
       res.end()
     })
