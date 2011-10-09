@@ -1,14 +1,18 @@
+$(document).ready(function() {
+  show();
+});
+
 function onsave() {
   var sandwich = { ingredients: [ document.getElementById('firstIngredient').value
                                 , document.getElementById('secondIngredient').value
                                 ]
                  }
-  localStorage.setItem('favSandwich', JSON.stringify(sandwich))
+  remoteStorage.setItem('favSandwich', JSON.stringify(sandwich))
   show()
 }
 
 function show() {
-  var sandwich = JSON.parse(localStorage.getItem('favSandwich'))
+  var sandwich = JSON.parse(remoteStorage.getItem('favSandwich'))
   if(sandwich) {
     document.getElementById('firstIngredient').value = sandwich.ingredients[0]
     document.getElementById('secondIngredient').value = sandwich.ingredients[1]

@@ -1,9 +1,76 @@
-<html><head>
-<script type="text/javascript" src="jQuery.js"></script>
-<script type="text/javascript" src="https://browserid.org/include.js"></script>
-<script type="text/javascript" src="http://syncstorage.org/include.js"></script>
-<script type="text/javascript" src="http://apptorrent.org/embody.js">(
-  {
-    locator: 'apptorrent://mich@yourremotestorage.com/7996ff45cf4d140398d729accc6c6c0a6b66fb89'
-  }
-)</script></head></html>
+<!DOCTYPE html>
+<html lang="en" manifest=".appcache">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+<title>Myfavouritesandwich - An Unhosted demo</title>
+<link rel="stylesheet" href="css/uncompressed/reset.css" />
+<link rel="stylesheet" href="css/uncompressed/text.css" />
+<link rel="stylesheet" href="css/uncompressed/general.css" />
+<link rel="stylesheet" href="css/uncompressed/layout.css" />
+
+<script src="jquery-1.6.1.min.js"></script>
+<script src="mfs.js"></script>
+</head>
+<body>
+
+
+
+<div id="remoteStorage">
+  <script type="text/javascript" src="http://unhosted.org/remoteStorage.js"></script><link rel="stylesheet" href="http://unhosted.org/remoteStorage.css" />
+  <input id="userAddressInput" type="text" placeholder="you@yourremotestorage" onkeyup="InputKeyUp(this);">
+  <span id="userAddress" style="display:none" onmouseover="SpanMouseOver(this);" onmouseout="SpanMouseOut(this);" onclick="SpanClick(this)"></span>
+  <input id="userButton" type="submit" value="Sign in" onclick="ButtonClick(this,
+
+    'sandwiches'
+
+  )">
+</div>
+
+<div class="preload"></div>
+<div id="preheader"></div>
+<div id="plateContainer">
+  <figure id="plate"></figure>
+</div>
+<div id="mainWrap">
+  <div id="unlockedView">
+    <div id="preheader">
+    </div>
+      
+    <header class="data">
+      <p>Try logging in with 'test@yourremotestorage.com'/'unhosted'.<br />Come to the <a href="http://webchat.freenode.net/?channels=unhosted">chat room</a> if you want to help.</p>
+      <p id="showIngredients"></p>
+      <input id="firstIngredient" placeholder="1st ingredient" type="text" onchange="onsave()"/>
+      <input id="secondIngredient" placeholder="2nd ingredient" type="text" onchange="onsave()"/>  
+    </header>
+  </div>
+  <div id="footerSpacer"></div>          
+  <footer>
+    <div class="wrapper">
+    <div id="leftcolumn">
+      <h3>So... what is this all about?</h3>
+      <p>
+        This is a fictional site that demonstrates the unhosted architecture, a tutorial, so you can take a look at the code to understand how to change this app into something more interesting. View the application source code <a href="https://github.com/unhosted/unhosted" target="_blank">here</a>.
+      </p>
+      <p>
+        <strong>myfavouritesandwich.org is not a commercial website, nor is it affiliated with any trademark</strong>
+      </p>
+    </div>
+    <figure id="island"></figure>
+    <div id="rightcolumn">
+      <h3>What is Unhosted?</h3>
+      <p>
+        <strong>Unhosted is a project for strengthening free software against hosted software. 
+        </strong>
+        An unhosted web app is only source code. Dynamic data is encrypted and decentralised, to per-user storage nodes. This benefits <strong>free software</strong>, as well as <strong>scalability</strong>, <strong>robustness</strong>, and <strong>online privacy</strong>.
+      </p>
+      <p>
+        <strong>Check it out at <a href="http://unhosted.org">unhosted.org</a></strong>
+      </p>
+    </div>
+    <div class="clear">
+    </div>        
+  </footer>
+</div>
+</body>
+</html>
