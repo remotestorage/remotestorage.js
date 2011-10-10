@@ -1,0 +1,108 @@
+<html manifest="html5.appcache">
+<head>
+<script>
+var knightRiderIndex=0;
+var knightRiderDirection=1;
+var demoMode = 'stopped';
+var demoType = 'none';
+var syncQueue = [];
+var working = false;
+
+function saCall() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'oneSec.php', false);
+  xhr.send();
+  alert(xhr.responseText);
+}
+function aaCall() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'oneSec.php', true);
+  xhr.onreadystatechange = function() {
+    if(xhr.readyState == 4) {
+      alert(xhr.responseText);
+    }
+  }
+  xhr.send();
+}
+function asCall() {
+  syncQueue.push('oneSec.php');
+  alert('done. (will sync when connected)');
+}
+function work() {
+  if(syncQueue.length) {
+    var thisTask = syncQueue.pop();
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', thisTask, true);
+    xhr.onreadystatechange = function() {
+      if(xhr.readyState == 4) {
+        working = false;
+      }
+    }
+    xhr.send();
+    working = true;
+  }
+}
+    
+function knightRider() {
+  if(demoMode == 'running') {
+    var str = '<input type="submit" value="'+demoType+'"onclick="'+demoType+'Call();">';
+    for(var i = 0; i< knightRiderIndex; i++) {
+      str += '=';
+    }
+    str += '*';
+    for(var i = knightRiderIndex+1; i< 10; i++) {
+      str += '=';
+    }
+    knightRiderIndex += knightRiderDirection;
+    if(knightRiderIndex % 10 == 0) {
+      knightRiderDirection = -knightRiderDirection;
+    }
+    if(working) {
+      str += ' [WORKING]';
+    } else {
+      work();
+    }
+    document.getElementById('show').innerHTML=str;
+  }
+}
+function sa() {
+  demoMode = 'running';
+  demoType = 'sa';
+}
+function aa() {
+  demoMode = 'running';
+  demoType = 'aa';
+}
+function as() {
+  demoMode = 'running';
+  demoType = 'as';
+}
+function ls() {
+  demoMode = 'running';
+  demoType = 'ls';
+}
+setInterval('knightRider();', 100);
+</script>
+</head>
+<body>
+<div class="deadAlive">
+OO/RPC is dead. long live REST.
+</div>
+<div class="topic">
+demo
+<div id="show"></div>
+<ul>
+<li onclick="sa();">synchronous ajax</li>
+<li onclick="aa();">asynchronous ajax</li>
+<li onclick="as();">asynchronous synchronization</li>
+<li onclick="ls();">localStorage</li>
+<li onclick="cm();">cache manifest</li>
+</ul>
+</div>
+<div class="cloudTypeSubApp">
+IaaS - flexible IaaS - PaaS
+</div>
+<div class="cloudTypeApp">
+SaaS - storage - sync
+</div>
+</html>
