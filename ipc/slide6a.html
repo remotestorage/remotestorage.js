@@ -1,0 +1,54 @@
+<html>
+<head>
+<script>
+var knightRiderIndex=0;
+var knightRiderDirection=1;
+
+function saCall() {
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'oneSec.php', false);
+  xhr.send();
+}
+
+function knightRider() {
+  var str = '<input type="submit" onclick="saCall();"';
+  for(var i = 0; i< knightRiderIndex; i++) {
+    str += '=';
+  }
+  str += '*';
+  for(var i = knightRiderIndex+1; i< 10; i++) {
+    str += '=';
+  }
+  document.getElementById('show').innerHTML=str;
+  knightRiderIndex += knightRiderDirection;
+  if(knightRiderIndex % 10 == 0) {
+    knightRiderDirection = -knightRiderDirection;
+  }
+}
+function sa() {
+  setInterval('knightRider();', 100);
+}
+</script>
+</head>
+<body>
+<div class="deadAlive">
+OO/RPC is dead. long live REST.
+</div>
+<div class="topic">
+demo
+<div id="show"></div>
+<ul>
+<li onclick="sa();">synchronous ajax</li>
+<li onclick="aa();">asynchronous ajax</li>
+<li onclick="as();">asynchronous synchronization</li>
+<li onclick="ls();">localStorage</li>
+<li onclick="cm();">cache manifest</li>
+</ul>
+</div>
+<div class="cloudTypeSubApp">
+IaaS - flexible IaaS - PaaS
+</div>
+<div class="cloudTypeApp">
+SaaS - storage - sync
+</div>
+</html>
