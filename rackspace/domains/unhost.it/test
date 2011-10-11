@@ -1,0 +1,6 @@
+<script>
+var x=new XMLHttpRequest();
+x.open('GET','http://yourremotestorage.com/apps/unhosted/compat.php/mich/unhosted/webdav/yourremotestorage.com/mich/apptorrent/7996ff45cf4d140398d729accc6c6c0a6b66fb8a', false);
+x.send();
+alert(x.responseText);
+</script>
