@@ -1,6 +1,0 @@
-<?php
-header('Content-Type: application/manifest');
-?>
-CACHE MANIFEST
-
-slide6b.html
