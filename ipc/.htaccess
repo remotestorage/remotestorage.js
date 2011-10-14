@@ -1,0 +1,2 @@
+#Header set always foo: "bar"
+AddType .appcache application/cache-manifest
