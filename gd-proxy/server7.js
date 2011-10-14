@@ -72,7 +72,9 @@ http.createServer(function (req, res) {
     responseHeaders['Access-Control-Allow-Origin'] = '*';
     responseHeaders['Access-Control-Allow-Methods'] = 'GET, PUT, DELETE';
     responseHeaders['Access-Control-Allow-Headers'] = 'Origin, Content-Type, Authorization';
-    res.writeHead(res2.statusCode, responseHeaders);
+    //res.writeHead(res2.statusCode, responseHeaders);
+    responseHeaders['x-status'] = res2.statusCode;
+    res.writeHead(200, responseHeaders);
     res2.setEncoding('utf8');
     res2.on('data', function (chunk) {
       res.write(chunk);
