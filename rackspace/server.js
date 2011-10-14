@@ -16,7 +16,13 @@ function serve(req, res) {
   var uri = url.parse(req.url).pathname
     .replace(new RegExp('/$', 'g'), '/index.html')
   var host = req.headers.host
-console.log(host)
+  if(host.substring(0, 4) == 'www.') {
+    res.writeHead(302, {'Location': 'http://'+host.substring(4)});
+    res.write('302 Location: http://'+host.substring(4)+'\n');
+    res.end()
+    return
+  }
+  console.log(host)
   host = host
     .replace(new RegExp('([a-f0-9]+)\.apptorrent\.net', 'g'), 'apptorrent.net')//wildcard hosting
 console.log('>:'+host)
