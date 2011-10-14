@@ -6,12 +6,13 @@ var http = require('http')
 //////////////
 
 http.createServer(function (req, res) {
+  console.log('WEB HIT');
   res.writeHead(200);
   res.end
     ( '<html>\n'
     + '<script>\n'
     + 'function testPut() {\n'
-    + '  var token = window.location.hash.substring(15, 74);\n'
+    + '  var token = window.location.hash.substring(14, 74);\n'
     + '  var xhr = new XMLHttpRequest();\n'
     + '  xhr.open(\'PUT\', \'http://myfavouritesandwich.org:9002/\', true);\n'
     + '  xhr.onreadystatechange=function() {\n'
@@ -21,11 +22,11 @@ http.createServer(function (req, res) {
     + '      \n'
     + '    }\n'
     + '  };\n'
-    + '  xhr.setRequestheader(\'Authorization: Bearer \'+token);\n'
+    + '  xhr.setRequestHeader(\'Authorization\', \'Bearer \'+token);\n'
     + '  xhr.send(\'blabla\');\n'
     + '}\n'
     + '</script>\n'
-    + '<a onclick="testPut();">test PUT</a>\n'
+    + '<a href="" onclick="testPut();">test PUT</a>\n'
     + '<a href="'
     + 'https://accounts.google.com/o/oauth2/auth?'
     + 'client_id=709507725318-4h19nag3k4hv5osj1jvao0j3an3bu43t@developer.gserviceaccount.com&'
@@ -33,7 +34,7 @@ http.createServer(function (req, res) {
     + 'scope=http://docs.google.com/feeds/&'
     + 'response_type=token'
     + '">click</a>\n'
-    + '</html>\n);
+    + '</html>\n');
 }).listen(9000);
 
   ////////////////////////////////
@@ -43,7 +44,12 @@ http.createServer(function (req, res) {
 http.createServer(function (req, res) {
   console.log('REQ.URL:'+req.url);
   console.log('REQ.HEADERS:'+JSON.stringify(req.headers));
-  var token = req.headers['authorization'];
+  var token;
+  if(req.headers['authorization']) {
+    token = req.headers['authorization'].substring(7);
+  } else if(req.headers['Authorization']) {
+    token = req.headers['Authorization'].substring(7);
+  }
   console.log('TOKEN:'+token);
   var options =
     { 'host': 'docs.google.com'
@@ -61,7 +67,12 @@ http.createServer(function (req, res) {
        }
     };
   var req2 = https.request(options, function(res2) {
-    res.writeHead(200, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*'});
+    res.writeHead(200,
+      { 'Content-Type': 'text/plain'
+      , 'Access-Control-Allow-Origin': '*'
+      , 'Access-Control-Allow-Methods': 'GET, PUT, DELETE'
+      , 'Access-Control-Allow-Headers': 'Origin, Content-Type, Authorization'
+      });
     res.write('request successfully proxied: ' + req.url +'\n' + JSON.stringify(req.headers, true, 2));
     res.write('\nSTATUS: ' + res2.statusCode);
     res.write('\nHEADERS: ' + JSON.stringify(res2.headers));
@@ -72,4 +83,5 @@ http.createServer(function (req, res) {
     });
   });
   req2.end();
+  console.log(JSON.stringify(options.headers));
 }).listen(9002);
