@@ -67,18 +67,15 @@ http.createServer(function (req, res) {
        }
     };
   var req2 = https.request(options, function(res2) {
-    res.writeHead(200,
-      { 'Content-Type': 'text/plain'
-      , 'Access-Control-Allow-Origin': '*'
-      , 'Access-Control-Allow-Methods': 'GET, PUT, DELETE'
-      , 'Access-Control-Allow-Headers': 'Origin, Content-Type, Authorization'
-      });
-    res.write('request successfully proxied: ' + req.url +'\n' + JSON.stringify(req.headers, true, 2));
-    res.write('\nSTATUS: ' + res2.statusCode);
-    res.write('\nHEADERS: ' + JSON.stringify(res2.headers));
+    var responseHeaders = res2.headers;
+    //add CORS to response:
+    responseHeaders['Access-Control-Allow-Origin'] = '*';
+    responseHeaders['Access-Control-Allow-Methods'] = 'GET, PUT, DELETE';
+    responseHeaders['Access-Control-Allow-Headers'] = 'Origin, Content-Type, Authorization';
+    res.writeHead(res2.statusCode, responseHeaders);
     res2.setEncoding('utf8');
     res2.on('data', function (chunk) {
-      res.write('\nBODY: ' + chunk);
+      res.write(chunk);
       res.end();
     });
   });
