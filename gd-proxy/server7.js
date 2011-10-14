@@ -55,7 +55,7 @@ http.createServer(function (req, res) {
     { 'host': 'docs.google.com'
     , 'port': 443
     , 'method': 'POST'
-    , 'path': '/feeds/default/private/full'
+    , 'path': '/feeds/default/private/full?alt=json'
     , 'headers':
        { 'GData-Version': '3.0'
        , 'Authorization': 'Bearer '+token
@@ -72,11 +72,13 @@ http.createServer(function (req, res) {
     responseHeaders['Access-Control-Allow-Origin'] = '*';
     responseHeaders['Access-Control-Allow-Methods'] = 'GET, PUT, DELETE';
     responseHeaders['Access-Control-Allow-Headers'] = 'Origin, Content-Type, Authorization';
+    //replace status with 200:
     //res.writeHead(res2.statusCode, responseHeaders);
-    responseHeaders['x-status'] = res2.statusCode;
+    responseHeaders['X-Status'] = res2.statusCode;
     res.writeHead(200, responseHeaders);
     res2.setEncoding('utf8');
     res2.on('data', function (chunk) {
+      console.log(chunk);
       res.write(chunk);
       res.end();
     });
