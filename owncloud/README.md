@@ -7,7 +7,6 @@ Current time record for this setup: [6 minutes 21 seconds](http://unhosted.org/s
 2. do:
 
    * apt-get update
-   * apt-get upgrade
    * apt-get install git libapache2-mod-php5 php5-sqlite
    * git clone git://gitorious.org/owncloud/owncloud.git
    * rm -rf /var/www/
@@ -22,5 +21,4 @@ Current time record for this setup: [6 minutes 21 seconds](http://unhosted.org/s
 
 5. visit http://yourremotestorage.com/
 6. enable webfinger and remoteStorage apps
-7. visit http://yourremotestorage.com/apps/user_webfinger/activate.php
-8. test it on http://unhosted.org/demo
+8. test it on http://unhosted.org/demo/
