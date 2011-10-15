@@ -19,19 +19,32 @@ http.createServer(function (req, res) {
   var req2 = https.request(options, function(res2) {
     var responseHeaders = res2.headers;
     //add CORS to response:
-    responseHeaders['Access-Control-Allow-Origin'] = '*';
-    responseHeaders['Access-Control-Allow-Methods'] = 'GET, PUT, DELETE';
-    responseHeaders['Access-Control-Allow-Headers'] = 'Origin, Content-Type, Authorization';
+    if(req.headers['origin']) {
+      responseHeaders['Access-Control-Allow-Origin'] = req.headers['origin'];
+    } else {
+      responseHeaders['Access-Control-Allow-Origin'] = '*';
+    }
+
+    if(req.headers['access-control-request-method']) {
+      responseHeaders['Access-Control-Allow-Methods'] = req.headers['access-control-request-method'];
+    } else {
+      responseHeaders['Access-Control-Allow-Methods'] = 'GET, PUT, DELETE';
+    }
+    if(req.headers['access-control-request-headers']) {
+      responseHeaders['Access-Control-Allow-Headers'] = req.headers['access-control-request-headers'];
+    } else {
+      responseHeaders['Access-Control-Allow-Headers'] = 'Origin, Content-Type, Authorization';
+    }
     responseHeaders['Access-Control-Allow-Credentials'] = 'true';
     //replace status with 200:
     responseHeaders['X-Status'] = res2.statusCode;
+    console.log('\nRES.HEADERS:'+JSON.stringify(responseHeaders));
     res.writeHead(200, responseHeaders);
-    res.write('responding:');
     res2.setEncoding('utf8');
     res2.on('data', function (chunk) {
       console.log(chunk);
       res.write(chunk);
-      res.end(':responding');
+      //res.end();
     });
   });
   req2.end();
