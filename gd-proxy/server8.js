@@ -20,15 +20,7 @@ http.createServer(function (req, res) {
     , 'port': 443
     , 'method': 'POST'
     , 'path': '/feeds/default/private/full?alt=json'
-    , 'headers':
-       { 'GData-Version': '3.0'
-       , 'Authorization': 'Bearer '+token
-       , 'Content-Length': '0'
-       , 'Content-Type': 'text/plain'
-       , 'Slug': 'LetsRide'
-       , 'X-Upload-Content-Length': '30'
-       , 'X-Upload-Content-Type': 'text/plain'
-       }
+    , 'headers': req.headers
     };
   var req2 = https.request(options, function(res2) {
     var responseHeaders = res2.headers;
