@@ -4,7 +4,7 @@
     <script>
       function doSet(token, value, cb) {
           var xhr = new XMLHttpRequest();
-          xhr.open('POST', 'http://myfavouritesandwich.org:9002/feeds/default/private/full?alt=json', false);
+          xhr.open('POST', 'http://myfavouritesandwich.org:9002/feeds/default/private/full?alt=json&convert=false', false);
           xhr.setRequestHeader('Authorization', 'Bearer '+token);
           xhr.setRequestHeader('GData-Version', '3.0');
           //xhr.setRequestHeader('Content-Length', '0');
@@ -18,7 +18,7 @@
 
       function continuePut(token, key, value, cb) {
           var xhr = new XMLHttpRequest();
-          xhr.open('POST', 'http://myfavouritesandwich.org:9002/feeds/default/private/full/'+key+'?alt=json', false);
+          xhr.open('POST', 'http://myfavouritesandwich.org:9002/feeds/default/private/full/document:'+key+'?alt=json', false);
           xhr.setRequestHeader('Authorization', 'Bearer '+token);
           xhr.setRequestHeader('GData-Version', '3.0');
           //xhr.setRequestHeader('Content-Length', '0');
