@@ -2,9 +2,7 @@
 <html lang="en-us">
   <head>
     <script>
-      function onbodyload() {
-        var token = window.location.hash.substring(14, 74);
-        if(token.length == 60) {
+      function doPut(token, value, cb) {
           var xhr = new XMLHttpRequest();
           xhr.open('PUT', 'http://myfavouritesandwich.org:9002/feeds/default/private/full?alt=json', false);
           xhr.setRequestHeader('Authorization', 'Bearer '+token);
@@ -12,11 +10,36 @@
           xhr.setRequestHeader('Content-Length', '0');
           xhr.setRequestHeader('Content-Type', 'text/plain');
           xhr.setRequestHeader('Slug', 'LetsRide');
-          xhr.setRequestHeader('X-Upload-Content-Length', '30');
+          xhr.setRequestHeader('X-Upload-Content-Length', value.length);
           xhr.setRequestHeader('X-Upload-Content-Type', 'text/plain');
-          xhr.send('blabla');
-          document.write(JSON.stringify(xhr.getAllResponseHeaders()));
-          document.write(JSON.stringify(xhr.responseText));
+          xhr.send();
+          continuePut(token, xhr.getResponseHeader('Location'), value, cb);
+      }
+
+      function continuePut(token, key, value, cb) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('PUT', 'http://myfavouritesandwich.org:9002/feeds/default/private/full/'+key+'?alt=json', false);
+          xhr.setRequestHeader('Authorization', 'Bearer '+token);
+          xhr.setRequestHeader('GData-Version', '3.0');
+          xhr.setRequestHeader('Content-Length', '0');
+          xhr.setRequestHeader('Content-Type', 'text/plain');
+          xhr.setRequestHeader('Slug', 'LetsRide');
+          xhr.setRequestHeader('X-Upload-Content-Length', value.length);
+          xhr.setRequestHeader('X-Upload-Content-Type', 'text/plain');
+          xhr.send(value);
+          cb(key);
+      }
+      function doGet(token, key, cb) {
+        cb('nah');
+      }
+      function onbodyload() {
+        var token = window.location.hash.substring(14, 74);
+        if(token.length == 60) {
+          doPut(token, 'de rapen zijn gaar', function(key) {
+            doGet(token, key, function(value) {
+              alert(value);
+            });
+          });
         } else {
           alert('Lets get you authed up first');
           window.location = "https://accounts.google.com/o/oauth2/auth?client_id=709507725318-4h19nag3k4hv5osj1jvao0j3an3bu43t@developer.gserviceaccount.com&redirect_uri=http://example.com/unhosted/gd-proxy/static.html&scope=http://docs.google.com/feeds/&response_type=token";
