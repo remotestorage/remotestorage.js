@@ -3,7 +3,7 @@ var google = http.createClient(80, 'docs.google.com')
 var request = google.request('POST', '/feeds/default/private/full',
   { 'host': 'docs.google.com'
   , 'GData-Version': '3.0'
-  , 'Authorization': 'Bearer ya29.AHES6ZQIUliUulhSSuDLMv9XcHw6U1PHMoAYCfMFI2dU7kVXGxjt19A'
+  , 'Authorization': 'Bearer TOKEN'
   , 'Content-Length': '0'
   , 'Content-Type': 'text/plain'
   , 'Slug': 'LetsRide'
