@@ -40,12 +40,11 @@ http.createServer(function (req, res) {
     responseHeaders['X-Status'] = res2.statusCode;
     console.log('\nRES.HEADERS:'+JSON.stringify(responseHeaders));
     res.writeHead(200, responseHeaders);
-    res.write('responding:');
     res2.setEncoding('utf8');
     res2.on('data', function (chunk) {
       console.log(chunk);
       res.write(chunk);
-      res.end(':responding');
+      //res.end();
     });
   });
   req2.end();
