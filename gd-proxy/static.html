@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <script>
+      function testPut() {
+        var token = window.location.hash.substring(14, 74);
+        var xhr = new XMLHttpRequest();
+        xhr.open('PUT', 'http://myfavouritesandwich.org:9002/', true);
+        xhr.onreadystatechange=function() {
+          if (xhr.status=200) {
+            alert(xhr.getResponseHeader('Location'));
+          }
+        };
+        xhr.setRequestHeader('Authorization', 'Bearer '+token);
+        xhr.send('blabla');
+      }
+    </script>
+  </head>
+  <body>
+    <a href="https://accounts.google.com/o/oauth2/auth?client_id=709507725318-4h19nag3k4hv5osj1jvao0j3an3bu43t@developer.gserviceaccount.com&redirect_uri=http://myfavouritesandwich.org:9000/&scope=http://docs.google.com/feeds/&response_type=token">get token</a>
+    <br>
+    <a href="" onclick="testPut();">test PUT</a>
+  </body>
+</html>
