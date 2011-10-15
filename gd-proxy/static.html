@@ -8,6 +8,14 @@
           var xhr = new XMLHttpRequest();
           xhr.open('PUT', 'http://myfavouritesandwich.org:9002/', false);
           xhr.setRequestHeader('Authorization', 'Bearer '+token);
+          xhr.setRequestHeader('GData-Version': '3.0'
+       , 'Authorization': 'Bearer '+token
+       , 'Content-Length': '0'
+       , 'Content-Type': 'text/plain'
+       , 'Slug': 'LetsRide'
+       , 'X-Upload-Content-Length': '30'
+       , 'X-Upload-Content-Type': 'text/plain'
+       }
           xhr.send('blabla');
           document.write(JSON.stringify(xhr.getAllResponseHeaders()));
           document.write(JSON.stringify(xhr.responseText));
