@@ -2,23 +2,22 @@
 <html lang="en-us">
   <head>
     <script>
-      function testPut() {
+      function onbodyload() {
         var token = window.location.hash.substring(14, 74);
-        var xhr = new XMLHttpRequest();
-        xhr.open('PUT', 'http://myfavouritesandwich.org:9002/', true);
-        xhr.onreadystatechange=function() {
-          if (xhr.status=200) {
-            alert(xhr.getResponseHeader('Location'));
-          }
-        };
-        xhr.setRequestHeader('Authorization', 'Bearer '+token);
-        xhr.send('blabla');
+        if(token.length == 60) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('PUT', 'http://myfavouritesandwich.org:9002/', false);
+          xhr.setRequestHeader('Authorization', 'Bearer '+token);
+          xhr.send('blabla');
+          document.write(JSON.stringify(xhr.getAllResponseHeaders()));
+          document.write(JSON.stringify(xhr.responseText));
+        } else {
+          alert('Lets get you authed up first');
+          window.location = "https://accounts.google.com/o/oauth2/auth?client_id=709507725318-4h19nag3k4hv5osj1jvao0j3an3bu43t@developer.gserviceaccount.com&redirect_uri=http://example.com/unhosted/gd-proxy/static.html&scope=http://docs.google.com/feeds/&response_type=token";
+        }
       }
     </script>
   </head>
-  <body>
-    <a href="https://accounts.google.com/o/oauth2/auth?client_id=709507725318-4h19nag3k4hv5osj1jvao0j3an3bu43t@developer.gserviceaccount.com&redirect_uri=http://myfavouritesandwich.org:9000/&scope=http://docs.google.com/feeds/&response_type=token">get token</a>
-    <br>
-    <a href="" onclick="testPut();">test PUT</a>
+  <body onload="onbodyload();">
   </body>
 </html>
