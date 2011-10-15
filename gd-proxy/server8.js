@@ -28,6 +28,7 @@ http.createServer(function (req, res) {
     options.headers.origin = 'http://myfavouritesandwich.org';
     options.headers['access-control-request-method'] = undefined;
     options.headers['access-control-request-headers'] = undefined;
+    options.headers.host = undefined;
 
     console.log('\nB:'+JSON.stringify(options));
     var req2 = https.request(options, function(res2) {
@@ -48,6 +49,7 @@ http.createServer(function (req, res) {
         res2Data += chunk;
         res.write(chunk);
         res.write('DATA!');
+        res.end();
       });
       res2.on('end', function() {
         console.log('\nC.DATA:'+res2Data);
