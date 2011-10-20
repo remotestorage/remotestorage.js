@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>The Opentabs Net</title>
+  </head>
+  <body>
+    <h2>The Opentabs Net</h2>
+    <p>The Opentabs net is an alternative to banking among friends and peers. Here are some screenshots:</p>
+    <img src="/Opentabsscreenshot1.png">
+    <img src="/Opentabsscreenshot2.png">
+    <h2>How it works</h2>
+    <p>There are four types of messages you can send through the Opentabs net:
+    <ul>
+    <li>IOUs: "I owe you a beer"</li>
+    <li>Invoices: "You owe me a beer"</li>
+    <li>Receipts: "Thanks, now you no longer owe me that beer"</li>
+    <li>[what do you call this?]: "There you go, now I no longer owe you that beer"</li>
+    </ul>
+    </p>
+    <p>All of these categories use the same data format:
+      <pre>
+        <em>&lt;IOU>
+          &lt;ower></em>user@host<em>&lt;/ower>
+          &lt;owee></em>user@host<em>&lt;/owee>
+          &lt;amount></em>123.45<em>&lt;/amount>
+          &lt;currency></em>BitCoin<em>&lt;/currency>
+          &lt;timestamp></em>1234567890.123<em>&lt;/timestamp>
+          &lt;asap></em>false<em>&lt;/asap>
+          &lt;reason></em>Whatever we owe you for those cinema tickets<em>&lt;/reason>
+       &lt;/IOU></em>
+      </pre>
+     And all the app does is send these messages back and forth, with cryptographic signatures on them. Simple, but sufficient to replace a lot of what banks currently get rich with.
+    </p>
+  </body>
+</html>
