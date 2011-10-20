@@ -1,3 +1,32 @@
+
+
+//INBOX:
+//proposed in
+//declined out
+//requested out
+//sent in
+
+//MAIN:
+//accepted in
+//accepted out
+//proposed out
+//requested in
+
+//HISTORY:
+//declined in
+//closed in
+//closed out
+//sent out
+//received in
+//received out
+
+
+
+
+
+
+
+
 //tab fields:
 // payer, payee, timestamp, amount, currency,
 //and optionally:
@@ -48,25 +77,3 @@ function markAsPaid(tabId, byWhom, signature) {
   tab.signatures.push(signature);
   localStorage.setItem(tabId, JSON.stringify(tab));
 }
-
-//INBOX:
-//proposed in
-//declined in
-//sent in
-
-//MAIN+'*':
-//requested in
-//requested out
-
-//MAIN:
-//proposed out
-//accepted in
-//accepted out
-
-//HISTORY:
-//declined out
-//closed in
-//closed out
-//sent out
-//received in
-//received out
