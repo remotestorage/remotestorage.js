@@ -1,24 +1,21 @@
 
 
 //INBOX:
-//proposed in
-//declined out
-//requested out
-//sent in
+//proposed (rcv)
+//declined (snd)
+//requested (payer)
+//sent (payee)
 
 //MAIN:
-//accepted in
-//accepted out
-//proposed out
-//requested in
+//accepted (both)
+//proposed (snd)
+//requested (payee)
 
 //HISTORY:
-//declined in
-//closed in
-//closed out
-//sent out
-//received in
-//received out
+//declined (rcv)
+//closed (both)
+//sent (payer)
+//received (both)
 
 
 
