@@ -1,4 +1,5 @@
 span.button {border: 1px solid; padding: 2px margin: 2px;}
-span.iou {border: 1px solid; padding: 2px margin: 2px; background-color:pink;}
+span.iouRed {border: 1px solid; padding: 2px margin: 2px; background-color:pink;}
+span.iouGreen {border: 1px solid; padding: 2px margin: 2px; background-color:green;}
 div.bevel {border: 1px solid; padding: 2px; margin: 2px;}
 div.main {border: 4px solid; margin: 4px; height:480px; width: 320px;}
