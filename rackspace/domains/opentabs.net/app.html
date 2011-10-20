@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Opentabs.net app</title>
+    <link rel="stylesheet" type="text/css" href="app.css">
+    <script src="app.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="bevel">
+        <div>
+          <span>Your Open Tabs:</span>
+          <span class="button" onclick="clickOat();">Open a Tab</span>
+        </div>
+        <div id="addDialog" class="bevel" style="display:none">
+          <div class="bevel">
+            Who:<input>
+          </div>
+          <div class="bevel">
+            <div>
+              <input type="radio">I owe you
+            </div>
+            <div>
+              <input type="radio">You owe me
+            </div>
+          </div>
+          <div class="bevel">
+            <div>
+              <input size="3"> <input size="10">
+            </div>
+          </div>
+          <div class="bevel">
+            <div>
+              <div>
+                Reason: <input type="checkbox">urgent
+              </div>
+              <div>
+                <input size="30">
+              </div>
+            </div>
+          </div>
+          <input type="submit" value="Send" onclick="sendNewTab();">
+        </div>
+        <div class="bevel">
+          <div>
+            <span>mich@unhosted.org</span>
+            <span class="iou" onclick="clickIou(0);">10 EUR</span> 
+          </div>
+          <div>
+            <span>mich@unhosted.org</span>
+            <span class="iou" onclick="clickIou(1);">10 EUR</span> 
+          </div>
+          <div>
+            <span>mich@unhosted.org</span>
+            <span class="iou" onclick="clickIou(2);">10 EUR</span> 
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
