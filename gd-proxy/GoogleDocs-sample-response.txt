@@ -1,0 +1,77 @@
+request successfully proxied: /?access_token=ya29.AHES6ZReLBeoahV-c1U-vk1R8oYvITCgoJl1lWrGC90yOJu9gMYH2g&token_type=Bearer&expires_in=3600
+{
+  "host": "myfavouritesandwich.org:9000",
+  "user-agent": "Mozilla/5.0 (X11; Linux i686; rv:7.0.1) Gecko/20100101 Firefox/7.0.1",
+  "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "accept-language": "en-us,en;q=0.5",
+  "accept-encoding": "gzip, deflate",
+  "accept-charset": "ISO-8859-1,utf-8;q=0.7,*;q=0.7",
+  "connection": "keep-alive",
+  "referer": "http://myfavouritesandwich.org:9000/",
+  "cookie": "token=t.riiSw96s9MH3OdmIWeo2",
+  "cache-control": "max-age=0"
+}
+STATUS: 201
+HEADERS: {"content-type":"application/atom+xml; charset=UTF-8; type=entry","expires":"Fri, 14 Oct 2011 09:46:01 GMT","date":"Fri, 14 Oct 2011 09:46:01 GMT","cache-control":"private, max-age=0, must-revalidate, no-transform","vary":"Accept, X-GData-Authorization, GData-Version","gdata-version":"3.0","etag":"\"HVcZUwwJHyt7ImBr\"","location":"https://docs.google.com/feeds/default/private/full/document%3A1-dDUcI0-L4cPDPX3lmfTp7Q3EaKx5ejrJ-UBcovYpb4","content-location":"https://docs.google.com/feeds/default/private/full/document%3A1-dDUcI0-L4cPDPX3lmfTp7Q3EaKx5ejrJ-UBcovYpb4","x-content-type-options":"nosniff","x-frame-options":"SAMEORIGIN","x-xss-protection":"1; mode=block","server":"GSE","connection":"close"}
+
+BODY: <?xml version='1.0' encoding='UTF-8'?>
+<entry
+	xmlns='http://www.w3.org/2005/Atom'
+	xmlns:docs='http://schemas.google.com/docs/2007'
+	xmlns:batch='http://schemas.google.com/gdata/batch'
+	xmlns:gd='http://schemas.google.com/g/2005'
+	gd:etag='&quot;HVcZUwwJHyt7ImBr&quot;'>
+	<id>https://docs.google.com/feeds/id/document%3A1-dDUcI0-L4cPDPX3lmfTp7Q3EaKx5ejrJ-UBcovYpb4</id>
+	<published>2011-10-14T09:45:59.827Z</published>
+	<updated>2011-10-14T09:46:00.587Z</updated>
+	<app:edited xmlns:app='http://www.w3.org/2007/app'>2011-10-14T09:46:00.605Z</app:edited>
+	<category
+		scheme='http://schemas.google.com/g/2005#kind'
+		term='http://schemas.google.com/docs/2007#document'
+		label='document'/>
+	<category
+		scheme='http://schemas.google.com/g/2005/labels'
+		term='http://schemas.google.com/g/2005/labels#viewed'
+		label='viewed'/>
+	<title>LetsRide</title>
+	<content
+		type='text/html'
+		src='https://docs.google.com/feeds/download/documents/export/Export?id=1-dDUcI0-L4cPDPX3lmfTp7Q3EaKx5ejrJ-UBcovYpb4'/>
+	<link
+		rel='alternate'
+		type='text/html'
+		href='https://docs.google.com/a/unhosted.org/document/d/1-dDUcI0-L4cPDPX3lmfTp7Q3EaKx5ejrJ-UBcovYpb4/edit?hl=en_US'/>
+	<link
+		rel='http://schemas.google.com/g/2005#resumable-edit-media'
+		type='application/atom+xml'
+		href='https://docs.google.com/feeds/upload/create-session/default/private/full/document%3A1-dDUcI0-L4cPDPX3lmfTp7Q3EaKx5ejrJ-UBcovYpb4'/>
+	<link
+		rel='self'
+		type='application/atom+xml'
+		href='https://docs.google.com/feeds/default/private/full/document%3A1-dDUcI0-L4cPDPX3lmfTp7Q3EaKx5ejrJ-UBcovYpb4'/>
+	<link	rel='edit'
+		type='application/atom+xml'
+		href='https://docs.google.com/feeds/default/private/full/document%3A1-dDUcI0-L4cPDPX3lmfTp7Q3EaKx5ejrJ-UBcovYpb4'/>
+	<link
+		rel='edit-media'
+		type='text/html'
+		href='https://docs.google.com/feeds/default/media/document%3A1-dDUcI0-L4cPDPX3lmfTp7Q3EaKx5ejrJ-UBcovYpb4'/>
+	<author>
+		<name>michiel</name>
+		<email>michiel@unhosted.org</email>
+	</author>
+	<gd:resourceId>document:1-dDUcI0-L4cPDPX3lmfTp7Q3EaKx5ejrJ-UBcovYpb4</gd:resourceId>
+	<gd:lastModifiedBy>
+		<name>michiel</name>
+		<email>michiel@unhosted.org</email>
+	</gd:lastModifiedBy>
+	<gd:lastViewed>2011-10-14T09:46:00.587Z</gd:lastViewed>
+	<gd:quotaBytesUsed>0</gd:quotaBytesUsed>
+	<docs:writersCanInvite value='true'/>
+	<gd:feedLink
+		rel='http://schemas.google.com/acl/2007#accessControlList'
+		href='https://docs.google.com/feeds/default/private/full/document%3A1-dDUcI0-L4cPDPX3lmfTp7Q3EaKx5ejrJ-UBcovYpb4/acl'/>
+	<gd:feedLink
+		rel='http://schemas.google.com/docs/2007/revisions'
+		href='https://docs.google.com/feeds/default/private/full/document%3A1-dDUcI0-L4cPDPX3lmfTp7Q3EaKx5ejrJ-UBcovYpb4/revisions'/>
+</entry>
