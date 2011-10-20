@@ -290,6 +290,9 @@ for(var peer in peers) {
     if((iou.payer == peer) && (iou.status == 'sent')) {
       document.write('<li style="background-color:green">[got it?] [X]'+iou.amount+iou.currency+'</li>');
     }
+    if((iou.payer == peer) && (iou.status == 'requested')) {
+      document.write('<li style="background-color:green">[you said hurry] [!]'+iou.amount+iou.currency+'</li>');
+    }
   }
   document.write('</ul><hr><ul>');
   for(i in sampleData) {
@@ -302,9 +305,6 @@ for(var peer in peers) {
     }
     if((iou.payee == peer) && (iou.status == 'proposed')) {
       document.write('<li style="background-color:pink">[you proposed] [?]'+iou.amount+iou.currency+'</li>');
-    }
-    if((iou.payer == peer) && (iou.status == 'requested')) {
-      document.write('<li style="background-color:green">[you said hurry] [!]'+iou.amount+iou.currency+'</li>');
     }
   }
   document.write('</ul>');
