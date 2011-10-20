@@ -268,13 +268,13 @@ for(i in sampleData) {
     document.write('<li style="background-color:yellow">[incoming invoice:] [?]'+iou.payee+' '+iou.amount+iou.currency+'</li>');
   }
   if((iou.proposer != 'you') && (iou.status == 'proposed') && (iou.payee == 'you')) {
-    document.write('<li style="background-color:yellow">[incoming IOU:] [?]'+iou.payee+' '+iou.amount+iou.currency+'</li>');
+    document.write('<li style="background-color:yellow">[incoming IOU:] [?]'+iou.payer+' '+iou.amount+iou.currency+'</li>');
   }
   if((iou.proposer == 'you') && (iou.status == 'declined') && (iou.payer == 'you')) {
     document.write('<li style="background-color:yellow">[declined your IOU:] [NO]'+iou.payee+' '+iou.amount+iou.currency+'</li>');
   }
   if((iou.proposer == 'you') && (iou.status == 'declined') && (iou.payee == 'you')) {
-    document.write('<li style="background-color:yellow">[declined your invoice:] [NO]'+iou.payee+' '+iou.amount+iou.currency+'</li>');
+    document.write('<li style="background-color:yellow">[declined your invoice:] [NO]'+iou.payer+' '+iou.amount+iou.currency+'</li>');
   }
 }
 document.write('</ul>');
@@ -313,7 +313,10 @@ for(var peer in peers) {
 document.write('<h2>HISTORY</h2><ul>');
 for(i in sampleData) {
   var iou = sampleData[i];
-  if((iou.proposer != 'you') && (iou.status == 'declined')) {
+  if((iou.proposer != 'you') && (iou.status == 'declined') && (iou.payee=='you')) {
+    document.write('<li style="background-color:yellow">[you declined] [NO]'+iou.payer+' '+iou.amount+iou.currency+'</li>');
+  }
+  if((iou.proposer != 'you') && (iou.status == 'declined') && (iou.payer=='you')) {
     document.write('<li style="background-color:yellow">[you declined] [NO]'+iou.payee+' '+iou.amount+iou.currency+'</li>');
   }
   if((iou.payer == 'you') &&(iou.status == 'closed')) {
