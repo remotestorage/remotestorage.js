@@ -15,25 +15,23 @@
         </div>
         <div id="addDialog" class="bevel" style="display:none">
           <div class="bevel">
+            <form>
+              <input type="radio" checked>I owe you
+              <input type="radio">Invoice
+            </form>
+          </div>
+          <div class="bevel">
             Who:<input>
           </div>
           <div class="bevel">
             <div>
-              <input type="radio">I owe you
-            </div>
-            <div>
-              <input type="radio">You owe me
-            </div>
-          </div>
-          <div class="bevel">
-            <div>
-              <input size="3"> <input size="10">
+              <input size="3"> <input size="10" value="EUR">
             </div>
           </div>
           <div class="bevel">
             <div>
               <div>
-                Reason: <input type="checkbox">urgent
+                Reason (optional): <input type="checkbox" checked>add location
               </div>
               <div>
                 <input size="30">
@@ -43,23 +41,36 @@
           <input type="submit" value="Send" onclick="sendNewTab();">
         </div>
         <div class="bevel">
+          <h2>outbox:</h2>
           <div>
             <span>mich@unhosted.org</span>
-            <span class="iouRed" onclick="clickIou(0);">10 EUR</span> 
+            <span class="iouRed" onclick="clickIou(0);">10 EUR</span><input type="submit" value="Cancel">
             <form id="iouActions0" style="display:none">
               <input type="submit" value="Mark paid" onclick="markPaid(0);">
             </form>
           </div>
+          <h2>inbox:</h2>
           <div>
             <span>mich@unhosted.org</span>
-            <span class="iouGreen" onclick="clickIou(1);">1 BEER</span> 
+            <span class="iouGreen" onclick="clickIou(1);">1 BEER</span>
+<input type="submit" value="Decline"><input type="submit" value="Accept">
             <form id="iouActions1" style="display:none">
               <input type="submit" value="Mark paid" onclick="markPaid(1);">
             </form>
           </div>
+          <h2>outstanding:</h2>
           <div>
             <span>mich@unhosted.org</span>
-            <span class="iouGreen" onclick="clickIou(2);">12 Bitcoins</span> 
+            <span class="iouGreen" onclick="clickIou(2);">12 Bitcoins</span>
+<input type="submit" value="Mark as paid">
+            <form id="iouActions2" style="display:none">
+              <input type="submit" value="Mark paid" onclick="markPaid(2);">
+            </form>
+          </div>
+          <h2>history:</h2>
+          <div>
+            <span>mich@unhosted.org</span>
+            <span class="iouGreen" onclick="clickIou(2);">12 Bitcoins</span>
             <form id="iouActions2" style="display:none">
               <input type="submit" value="Mark paid" onclick="markPaid(2);">
             </form>
