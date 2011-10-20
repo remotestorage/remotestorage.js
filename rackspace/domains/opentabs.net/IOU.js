@@ -1,17 +1,19 @@
 
 
-//INBOX:
+//MODAL:
 //proposed (rcv)
 //declined (snd)
+
+//PER PEER, STARRED:
 //requested (payer)
 //sent (payee)
 
-//MAIN:
+//PER PEER, NORMAL:
 //accepted (both)
 //proposed (snd)
 //requested (payee)
 
-//HISTORY:
+//PER PEER, GREYED OUT:
 //declined (rcv)
 //closed (both)
 //sent (payer)
