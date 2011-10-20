@@ -45,15 +45,24 @@
         <div class="bevel">
           <div>
             <span>mich@unhosted.org</span>
-            <span class="iou" onclick="clickIou(0);">10 EUR</span> 
+            <span class="iouRed" onclick="clickIou(0);">10 EUR</span> 
+            <form id="iouActions0" style="display:none">
+              <input type="submit" value="Mark paid" onclick="markPaid(0);">
+            </form>
           </div>
           <div>
             <span>mich@unhosted.org</span>
-            <span class="iou" onclick="clickIou(1);">10 EUR</span> 
+            <span class="iouGreen" onclick="clickIou(1);">1 BEER</span> 
+            <form id="iouActions1" style="display:none">
+              <input type="submit" value="Mark paid" onclick="markPaid(1);">
+            </form>
           </div>
           <div>
             <span>mich@unhosted.org</span>
-            <span class="iou" onclick="clickIou(2);">10 EUR</span> 
+            <span class="iouGreen" onclick="clickIou(2);">12 Bitcoins</span> 
+            <form id="iouActions2" style="display:none">
+              <input type="submit" value="Mark paid" onclick="markPaid(2);">
+            </form>
           </div>
         </div>
       </div>

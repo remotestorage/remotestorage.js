@@ -1,5 +1,5 @@
 function clickIou(i) {
-  window.location="/app-iou-clicked.html#"+i;
+  document.getElementById('iouActions'+i).style.display="block";
 }
 function clickOat() {
   document.getElementById('addDialog').style.display="block";
