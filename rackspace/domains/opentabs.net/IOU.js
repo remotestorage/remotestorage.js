@@ -1,4 +1,4 @@
-var sampleData = [
+var sampleData =[
   {
     payer: 'you',
     payee: 'mich@unhosted.org',
@@ -260,7 +260,6 @@ for(i in sampleData) {
 }
 delete peers['you'];
 
-
 document.write('<h2>IMPORTANT</h2><ul>');
 for(i in sampleData) {
   var iou = sampleData[i];
@@ -277,7 +276,7 @@ for(i in sampleData) {
     document.write('<li style="background-color:yellow">[declined your invoice:] [X]'+iou.payer+' '+iou.amount+iou.currency+'</li>');
   }
 }
-document.write('</ul>');
+document.write('</ul><h2>Contacts:</h2><table id="contacts"></table>');
 
 for(var peer in peers) {
   document.write('<h2>'+peer+'</h2><ul>');
