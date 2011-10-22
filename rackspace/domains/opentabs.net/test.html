@@ -5,7 +5,100 @@
     <title>Opentabs.net app</title>
     <link rel="stylesheet" type="text/css" href="app.css">
     <script src="IOU.js"></script>
+  <script>
+    var IOUs = {}
+    var contacts = ['jan@unhosted.org', 'thad@guidry.com', 'melvin@carvalho.com', 'jan@wildeboer.com'];
+    var timestamp;
+    function sign(digest, keyPair) {
+      return "yours truly";
+    }
+    function sha1(orig) {
+      return 'sha1-asdfasdfasdfasdf';
+    }
+
+    function createTab(payer, payee, amount, currency, timestamp, otherFields, keyPair) {
+      var obj = {
+        payer: payer,
+        payee: payee,
+        amount: amount,
+	currency: currency};
+      obj.statement = "At timestamp "+timestamp+", "+payer+" starts owing "+payee+" an additional "+amount+" "+currency;
+      obj.signatures = {};
+      obj.signatures[keyPair.userAddress] = sign(obj.statement, keyPair);
+      for(var fieldName in otherFields) {
+        obj[fieldName] = otherFields[fieldName];
+      }
+      return obj;
+    }
+    function val(el) {
+      return document.getElementById(el).value;
+    }
+
+    function owe(i) {
+      timestamp = (new Date().getTime());
+      document.getElementById(i).innerHTML = '<td id="'+i+'">&quot;At timestamp '+timestamp+', '
+        +'mich@unhosted.org starts owing '+contacts[i]
+        +' an additional <input id="amount'+i+'" value="10" size="3">'
+        +'<input id="currency'+i+'" value="bitcoins" size="10">&quot;'
+        +'<input type="submit" id="cancel'+i+'" value="cancel" onclick="'
+          +'cancel('+i+');'
+	+'"><input type="submit" id="sign'+i+'" value="sign" onclick="'
+          +'sign(\'mich@unhosted.org\', \''+contacts[i]+'\', '+i+');'
+        +'"></td>';
+    }
+
+    function claim(i) {
+      timestamp = (new Date().getTime());
+      document.getElementById(i).innerHTML = '<td id="'+i+'">&quot;At timestamp 1235467890.123, '
+        +contacts[i]+' starts owing mich@unhosted.org'
+        +' an additional <input id="amount'+i+'" value="10" size="3">'
+        +'<input id="currency'+i+'" value="bitcoins" size="10">&quot;'
+        +'<input type="submit" id="cancel'+i+'" value="cancel" onclick="'
+          +'cancel('+i+');'
+        +'"><input type="submit" id="sign'+i+'" value="sign" onclick="'
+          +'sign(\''+contacts[i]+'\', \'mich@unhosted.org\', '+i+');'
+        +'"></td>';
+    }
+    function cancel(i) {
+      document.getElementById(i).innerHTML = '<td id="'+i+'">'+contacts[i]
+        +'<input type="submit" id="owe'+i+'" value="owe" onclick="owe('+i+');">'
+        +'<input type="submit" id="claim'+i+'" value="claim" onclick="claim('+i+');">'
+        +'</td>';
+    }
+    function sign(payer, payee, i) {
+      cancel(i);
+      var keyPair = {n: 1, d:1, p:1, q:1, userAddress:'mich@unhosted.org'};
+      var tab = createTab(payer, payee, val('amount'+i), val('currency'+i), timestamp,
+        {
+          description: 'testing',
+          location: 'Berlin'
+        },
+	keyPair);
+      var tabs = JSON.parse(localStorage.getItem('tabs'));
+      if(tabs == null) {
+        tabs = [];
+      }
+      tabs.push(tab);   
+      localStorage.setItem('tabs', JSON.stringify(tabs));
+    }
+    function bodyonload() {
+      for(var i in contacts) {
+	 var tr = document.createElement('tr');
+	 tr.innerHTML = '<td id="'+i+'">'+contacts[i]
+           +'<input type="submit" id="owe'+i+'" value="owe" onclick="owe('+i+');">'
+           +'<input type="submit" id="claim'+i+'" value="claim" onclick="claim('+i+');">'
+           +'</td>';
+         document.getElementById('contacts').appendChild(tr);
+      }
+    }
+  </script>
   </head>
-  <body>
+  <body onload="bodyonload();">
+    <div>
+      <h2>Contacts:</h2>
+      <table id="contacts">
+      </table>
+     </div> 
   </body>
 </html>
+
