@@ -1,6 +1,0 @@
-<?php
-header('Content-Type: text/cache-manifest');
-?>
-CACHE MANIFEST
-
-ipc/slide6b.html

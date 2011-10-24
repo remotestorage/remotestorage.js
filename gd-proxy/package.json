@@ -1,8 +1,0 @@
-{
-  "name": "gd-proxy",
-  "subdomain": "gdproxy",
-  "scripts": {
-    "start": "server.js"
-  },
-  "version": "0.0.0-5"
-}
