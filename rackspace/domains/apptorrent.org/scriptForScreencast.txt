@@ -1,9 +1,0 @@
-this requires a bit more explanation.
-
-- we're going to teleport an app into apptorrent, and shim syncStorage into it in the process.
-- first of all, we use the packager to scrape the app. just log in to appTorrent.org, put the url in, and it will scrape the app and add it to your collection
-- now go to appsapp, where you can easily view your collection of appTorrent apps, and click the hash of the app you just added.
-- it opens it on a hash-sub of appTorrent.net.
-- the app works
-- log into it so that localStorage is synced to your remote storage.
-- see your data on yourremotestorage, on CouchDb.
