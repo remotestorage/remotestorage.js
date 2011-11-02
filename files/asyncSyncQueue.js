@@ -11,17 +11,18 @@
         var time = 1;
         var dirties = JSON.parse(localStorage.getItem('_remoteStorageDirties'));
         for(dirty in dirties) {
-          var alreadyWorking = localStorage.getItem('_remoteStorageWorking_'+dirty);
-          if(!alreadyWorking) {
-            localStorage.setItem('_remoteStorageWorking_'+dirty, time);
+          //var alreadyWorking = localStorage.getItem('_remoteStorageWorking_'+dirty);
+          //if(!alreadyWorking) {
+          if(true) {
+            //localStorage.setItem('_remoteStorageWorking_'+dirty, time);
             localStorage.setItem('_remoteStorageDirties', JSON.stringify(dirties));
             if(dirties[dirty]) {
               backend.tryOutbound(dirty, function() {
-                localStorage.removeItem('_remoteStorageWorking_'+dirty);
+                //localStorage.removeItem('_remoteStorageWorking_'+dirty);
               });
             } else {
               backend.tryInbound(dirty, function() {
-                localStorage.removeItem('_remoteStorageWorking_'+dirty);
+                //localStorage.removeItem('_remoteStorageWorking_'+dirty);
               });
             }
             delete dirties[dirty];
