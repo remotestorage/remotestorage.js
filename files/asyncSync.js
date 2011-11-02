@@ -21,7 +21,7 @@
             localStorage.setItem('remoteStorageIndex', JSON.stringify(index));
           }
           if((!index[key]) || (index[key]<revision)) {
-            doCall('PUT', key, value, revision, function() {
+            doCall('PUT', key, value, function() {
               index[key]=revision;
               localStorage.setItem('remoteStorageIndex', JSON.stringify(index));
               doCall('PUT', 'remoteStorageIndex', index, cb);
@@ -82,7 +82,7 @@
                   }
                   localIndex[i]=data.revision;
                   localStorage.setItem('remoteStorageIndex', JSON.stringify(localIndex));
-                  var oldValue = localStorage.getItem('_remoteStorage+'+i);
+                  var oldValue = localStorage.getItem('_remoteStorage_'+i);
                   if(window.remoteStorage.options.onChange) {
                     window.remoteStorage.options.onChange(i, oldValue, data.value);
                   }
