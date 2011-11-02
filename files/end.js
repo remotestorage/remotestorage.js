@@ -21,28 +21,28 @@
           return null;
         },
         setItem: function(k,v) {
-          var cacheObj = localStorage.getItem('_remoteStorage_'+k);
-          if(cacheObj) {
+          var cacheObj = {};
+          var cacheStr = localStorage.getItem('_remoteStorage_'+k);
+          if(cacheStr) {
             try {
-              var oldValue = JSON.parse(cacheObj).value;
+              var cacheObj = JSON.parse(cacheStr);
+              var oldValue = cacheObj.value;
               if(v == oldValue) {
                 return;
               }
             }catch(e) {}
           }
           cacheObj.value=v;
-          var ret = localStorage.setItem('_remoteStorage_'+k, JSON.stringify(cacheObj));
+          localStorage.setItem('_remoteStorage_'+k, JSON.stringify(cacheObj));
           window.remoteStorage.length = calcLength();
           markDirty(k);
           work();
-          return ret;
         },
         removeItem: function(k) {
-          var ret = localStorage.removeItem('_remoteStorage_'+k);
+          localStorage.removeItem('_remoteStorage_'+k);
           window.remoteStorage.length = calcLength();
           markDirty(k);
           work();
-          return ret;
         },
         clear: function() {
           for(var i=0;i<localStorage.length;i++) {

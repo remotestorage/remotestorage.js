@@ -14,13 +14,17 @@
           var alreadyWorking = localStorage.getItem('_remoteStorageWorking_'+dirty);
           if(!alreadyWorking) {
             localStorage.setItem('_remoteStorageWorking_'+dirty, time);
-            dirties[dirty]=undefined;
             localStorage.setItem('_remoteStorageDirties', JSON.stringify(dirties));
             if(dirties[dirty]) {
-              backend.tryOutbound(dirty);
+              backend.tryOutbound(dirty, function() {
+                localStorage.removeItem('_remoteStorageWorking_'+dirty);
+              });
             } else {
-              backend.tryInbound(dirty);
+              backend.tryInbound(dirty, function() {
+                localStorage.removeItem('_remoteStorageWorking_'+dirty);
+              });
             }
+            delete dirties[dirty];
           }
         }
       }

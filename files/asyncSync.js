@@ -4,21 +4,23 @@
     ////////////////////////////////////////
 
       return {
-        tryOutbound: function(key) {//presumably we don't have to re-check versions here
+        tryOutbound: function(key, cb) {//presumably we don't have to re-check versions here
           var value=JSON.parse(localStorage.getItem('_remoteStorage_'+key));
           doCall('PUT', key, value, function() {
-            index[key]=revision;
-            localStorage.setItem('remoteStorageIndex', JSON.stringify(index));
-            doCall('PUT', 'remoteStorageIndex', index, cb);
+            //index[key]=revision;
+            //localStorage.setItem('remoteStorageIndex', JSON.stringify(index));
+            //doCall('PUT', 'remoteStorageIndex', index, cb);
+            cb();
           });
         },
         removeItem: function(key, revision, cb) {
           var index = JSON.parse(localStorage.getItem('remoteStorageIndex'));
           if((!index[key]) || (index[key]<revision)) {
             doCall('DELETE', key, null, function() {
-              index[keys]=revision;
-              localStorage.setItem('remoteStorageIndex', JSON.stringify(index));
-              doCall('PUT', 'remoteStorageIndex', index, cb);
+              //index[keys]=revision;
+              //localStorage.setItem('remoteStorageIndex', JSON.stringify(index));
+              //doCall('PUT', 'remoteStorageIndex', index, cb);
+              cb();
             });
           }
         },
