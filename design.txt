@@ -9,12 +9,10 @@ _remoteStorageAuthAddress
 
 actions:
 ========
-_remoteStorageActionQueue = [
-  { action: 'inbound'/'outbound'/'clear',
-    key: [key]
-  },
-  ...
-  ]
+_remoteStorageDirties = [
+  { key: [key]: true/false outbound?
+  }
+_remoteStorageWorking_[key] = timestamp/undefined
 
 data:
 =====

@@ -33,36 +33,31 @@
           cacheObj.value=v;
           var ret = localStorage.setItem('_remoteStorage_'+k, JSON.stringify(cacheObj));
           window.remoteStorage.length = calcLength();
-          pushAction({action: 'outbound', key: k});
-          if(this.isConnected()) {
-            work(0);
-          }
+          markDirty(k);
+          work();
           return ret;
         },
         removeItem: function(k) {
           var ret = localStorage.removeItem('_remoteStorage_'+k);
           window.remoteStorage.length = calcLength();
-          pushAction({action: 'outbound', key: k});
-          if(this.isConnected()) {
-            work(0);
-          }
+          markDirty(k);
+          work();
           return ret;
         },
         clear: function() {
           for(var i=0;i<localStorage.length;i++) {
             if(localStorage.key(i).substring(0,15)=='_remoteStorage_') {
               localStorage.removeItem(localStorage.key(i));
+              localStorage.removeItem('_remoteStorageWorking_'+localStorage.key(i));
+              markDirty(localStorage.key(i));
             }
           }
           window.remoteStorage.length = 0;
-          localStorage.setItem('_remoteStorageActionQueue', '[{"action": "clear"}]');
-          if(this.isConnected()) {
-            work(0);
-          }
+          work();
         },
         connect: function(userAddress, dataScope) {
           backend.connect(userAddress, dataScope, function() {
-            work(0);
+            work();
           })
         },
         isConnected: function() {
@@ -78,7 +73,7 @@
           localStorage.removeItem('_remoteStorageAPI');
           localStorage.removeItem('_remoteStorageAuthAddress');
           localStorage.removeItem('_remoteStorageOauthToken');
-          localStorage.removeItem('_remoteStorageActionQueue');
+          localStorage.removeItem('_remoteStorageDirties');
           localStorage.removeItem('remoteStorageIndex');
           for(var i=0; i<localStorage.length; i++) {
             if(localStorage.key(i).substring(0,15)=='_remoteStorage_') {
