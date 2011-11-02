@@ -10,19 +10,23 @@
         var address = localStorage.getItem('_remoteStorageKV') + key
         return address
       }
-      function doCall(method, key, value, revision, cb) {
+      function doCall(method, key, obj, cb) {
         var ajaxObj = {
           url: keyToAddress(key),
           method: method,
           success: function(text){
-            var obj={};
+            var retObj={};
             try {//this is not necessary for current version of protocol, but might be in future:
-              obj = JSON.parse(text);
-              obj.success = true;
+              retObj = JSON.parse(text);
+              retObj.success = true;
+              if(retObj.rev) {//store rev as _rev in localStorage
+                obj._rev = retObj.rev;
+                localStorage.setItem('_remoteStorage_'+key, JSON.stringify(obj));
+              }
             } catch(e){
-              obj.success = false;
+              retObj.success = false;
             }
-            cb(obj);
+            cb(retObj);
           },
           error: function(xhr) {
             cb({
@@ -34,10 +38,7 @@
         ajaxObj.headers= {Authorization: 'Bearer '+localStorage.getItem('_remoteStorageOauthToken')};
         ajaxObj.fields={withCredentials: 'true'};
         if(method!='GET') {
-          ajaxObj.data=JSON.stringify({
-            value: value,
-            revision: revision
-          });
+          ajaxObj.data=JSON.stringify(obj);
         }
         ajax(ajaxObj);
       }
