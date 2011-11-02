@@ -12,38 +12,52 @@
           }
         },
         getItem: function(k) {
-          return localStorage.getItem('_remoteStorage_'+k);
+          var cacheObj = localStorage.getItem('_remoteStorage_'+k);
+          if(cacheObj) {
+            try {
+              return JSON.parse(cacheObj).value;
+            }catch(e) {}
+          }
+          return null;
         },
         setItem: function(k,v) {
-          if(v == localStorage.getItem('_remoteStorage_'+k)) {
-            return;
+          var cacheObj = localStorage.getItem('_remoteStorage_'+k);
+          if(cacheObj) {
+            try {
+              var oldValue = JSON.parse(cacheObj).value;
+              if(v == oldValue) {
+                return;
+              }
+            }catch(e) {}
           }
-          pushAction({action: 'setItem', key: k, value: v});
+          cacheObj.value=v;
+          var ret = localStorage.setItem('_remoteStorage_'+k, JSON.stringify(cacheObj));
+          window.remoteStorage.length = calcLength();
+          pushAction({action: 'outbound', key: k});
           if(this.isConnected()) {
             work(0);
           }
-          var ret = localStorage.setItem('_remoteStorage_'+k, v);
-          this.length = calcLength();
           return ret;
         },
         removeItem: function(k) {
-          pushAction({action: 'removeItem', key: k});
+          var ret = localStorage.removeItem('_remoteStorage_'+k);
+          window.remoteStorage.length = calcLength();
+          pushAction({action: 'outbound', key: k});
           if(this.isConnected()) {
             work(0);
           }
-          var ret = localStorage.removeItem('_remoteStorage_'+k);
-          window.remoteStorage.length = calcLength();
           return ret;
         },
         clear: function() {
-          localStorage.setItem('_remoteStorageActionQueue', '[{"action": "clear"}]');
-          if(this.isConnected()) {
-            work(0);
-          }
           for(var i=0;i<localStorage.length;i++) {
             if(localStorage.key(i).substring(0,15)=='_remoteStorage_') {
               localStorage.removeItem(localStorage.key(i));
             }
+          }
+          window.remoteStorage.length = 0;
+          localStorage.setItem('_remoteStorageActionQueue', '[{"action": "clear"}]');
+          if(this.isConnected()) {
+            work(0);
           }
         },
         connect: function(userAddress, dataScope) {
@@ -64,6 +78,7 @@
           localStorage.removeItem('_remoteStorageAPI');
           localStorage.removeItem('_remoteStorageAuthAddress');
           localStorage.removeItem('_remoteStorageOauthToken');
+          localStorage.removeItem('_remoteStorageActionQueue');
           localStorage.removeItem('remoteStorageIndex');
           for(var i=0; i<localStorage.length; i++) {
             if(localStorage.key(i).substring(0,15)=='_remoteStorage_') {

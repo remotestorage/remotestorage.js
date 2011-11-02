@@ -7,6 +7,15 @@ _remoteStorageOauthToken
 _remoteStorageAPI
 _remoteStorageAuthAddress
 
+actions:
+========
+_remoteStorageActionQueue = [
+  { action: 'inbound'/'outbound'/'clear',
+    key: [key]
+  },
+  ...
+  ]
+
 data:
 =====
 _remoteStorage_[key] = {
