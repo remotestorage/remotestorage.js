@@ -1,0 +1,23 @@
+control keys:
+=============
+_remoteStorageUserAddress
+_remoteStorageDataScope
+_remoteStorageKV
+_remoteStorageOauthToken
+_remoteStorageAPI
+_remoteStorageAuthAddress
+
+data:
+=====
+_remoteStorage_[key] = {
+  value: [userValueAsString],
+  _rev: CouchDB-revision,
+  }
+
+local cache index:
+==================
+remoteStorageIndex = [
+  [key]: timestamp
+  ...
+  ]
+
