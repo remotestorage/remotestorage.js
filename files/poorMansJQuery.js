@@ -45,7 +45,7 @@
         if(xhr.readyState == 4) {
           if(xhr.status == 0) {
             //alert('looks like '+params.url+' has no CORS headers on it! try copying this scraper and that file both onto your localhost')
-            params.error(xhr.responseText);
+            params.error(xhr);
           } else {
             params.success(xhr.responseText);
           }

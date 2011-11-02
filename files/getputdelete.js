@@ -29,10 +29,18 @@
             cb(retObj);
           },
           error: function(xhr) {
-            cb({
-              success:false,
-              error: xhr.status
-            });
+            if(xhr.status==409) {//resolve CouchDB conflict:
+              doCall('GET', key, null, function(text) {
+                var correctVersion=JSON.parse(text);
+                correctVersion.value=obj.value;
+                doCall('PUT', key, correctVersion, cb);
+              });
+            } else {
+              cb({
+                success:false,
+                error: xhr.status
+              });
+            }
           },
         }
         ajaxObj.headers= {Authorization: 'Bearer '+localStorage.getItem('_remoteStorageOauthToken')};
