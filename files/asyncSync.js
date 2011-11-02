@@ -4,31 +4,13 @@
     ////////////////////////////////////////
 
       return {
-        clear: function(cb) {
-          var revision = 0;
-          var index = JSON.parse(localStorage.getItem('remoteStorageIndex'));
-          for(var i in index) {
-            doCall('DELETE', i, null, function() {});
-          }
-          index={};
-          localStorage.setItem('remoteStorageIndex', JSON.stringify(index));
-          doCall('PUT', 'remoteStorageIndex', index, cb);
-        },
-        setItem: function(key, value, revision, cb) {
-          var index = JSON.parse(localStorage.getItem('remoteStorageIndex'));
-          if(!index) {//first use
-            index={};
+        tryOutbound: function(key) {//presumably we don't have to re-check versions here
+          var value=JSON.parse(localStorage.getItem('_remoteStorage_'+key));
+          doCall('PUT', key, value, function() {
+            index[key]=revision;
             localStorage.setItem('remoteStorageIndex', JSON.stringify(index));
-          }
-          if((!index[key]) || (index[key]<revision)) {
-            doCall('PUT', key, value, function() {
-              index[key]=revision;
-              localStorage.setItem('remoteStorageIndex', JSON.stringify(index));
-              doCall('PUT', 'remoteStorageIndex', index, cb);
-            });
-          } else {//shouldn't happen!
-            cb(revision+1);
-          }
+            doCall('PUT', 'remoteStorageIndex', index, cb);
+          });
         },
         removeItem: function(key, revision, cb) {
           var index = JSON.parse(localStorage.getItem('remoteStorageIndex'));
