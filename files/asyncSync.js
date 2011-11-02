@@ -33,7 +33,7 @@
         removeItem: function(key, revision, cb) {
           var index = JSON.parse(localStorage.getItem('remoteStorageIndex'));
           if((!index[key]) || (index[key]<revision)) {
-            doCall('DELETE', key, null, revision, function() {
+            doCall('DELETE', key, null, function() {
               index[keys]=revision;
               localStorage.setItem('remoteStorageIndex', JSON.stringify(index));
               doCall('PUT', 'remoteStorageIndex', index, cb);
@@ -65,7 +65,7 @@
           if(!localIndex) {
             localIndex = {};
           }
-          doCall('GET', 'remoteStorageIndex', null, null, function(data) {
+          doCall('GET', 'remoteStorageIndex', null, function(data) {
             var remoteIndex;
             try {
               remoteIndex = JSON.parse(data.value);
@@ -74,7 +74,7 @@
             }
             for(var i in remoteIndex) {
               if((localIndex[i] == undefined) || (remoteIndex[i] > localIndex[i])) {//need to pull it
-                doCall('GET', i, null, null, function(data) {
+                doCall('GET', i, null, function(data) {
                   localStorage.setItem('_remoteStorage_'+i, data.value);
                   var localIndex = JSON.parse(localStorage.getItem('remoteStorageIndex'));
                   if(!localIndex) {
