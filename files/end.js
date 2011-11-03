@@ -45,13 +45,17 @@
           work();
         },
         clear: function() {
+          var keysToRemove = [];
           for(var i=0;i<localStorage.length;i++) {
             if(localStorage.key(i).substring(0,15)=='_remoteStorage_') {
-              localStorage.removeItem(localStorage.key(i));
-              localStorage.removeItem('_remoteStorageWorking_'+localStorage.key(i));
+              keysToRemove.push(localStorage.key(i));
+              keysToRemove.push('_remoteStorageWorking_'+localStorage.key(i));
               markDirty(localStorage.key(i));
             }
           }
+          keysToRemove.forEach(function(key){
+            localStorage.removeItem(key);
+          });
           window.remoteStorage.length = 0;
           work();
         },
@@ -74,17 +78,19 @@
           localStorage.removeItem('_remoteStorageAuthAddress');
           localStorage.removeItem('_remoteStorageOauthToken');
           localStorage.removeItem('_remoteStorageDirties');
-          localStorage.removeItem('remoteStorageIndex');
+          localStorage.removeItem('remoteStorageIndex');debugger
+          var keysToRemove = [];
           for(var i=0; i<localStorage.length; i++) {
             if(localStorage.key(i).substring(0,15)=='_remoteStorage_') {
-              var keyName = localStorage.key(i);
-              localStorage.removeItem(keyName);
-              if(window.remoteStorage.options.onChange) {
-                remoteStorage.options.onChange(keyName.substring(15), localStorage.getItem(keyName), null);
-              }
-              localStorage.removeItem(keyName);
+              keysToRemove.push(localStorage.key(i));
             }
           }
+          keysToRemove.forEach(function(key){
+            if(window.remoteStorage.options.onChange) {
+              remoteStorage.options.onChange(key.substring(15), localStorage.getItem(key), null);
+            }
+            localStorage.removeItem(key);
+          });
         },
         _init: function() {
           backend.sync();
