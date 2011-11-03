@@ -78,7 +78,7 @@
           localStorage.removeItem('_remoteStorageAuthAddress');
           localStorage.removeItem('_remoteStorageOauthToken');
           localStorage.removeItem('_remoteStorageDirties');
-          localStorage.removeItem('remoteStorageIndex');debugger
+          localStorage.removeItem('remoteStorageIndex');
           var keysToRemove = [];
           for(var i=0; i<localStorage.length; i++) {
             if(localStorage.key(i).substring(0,15)=='_remoteStorage_') {
