@@ -88,7 +88,8 @@
         },
         _init: function() {
           backend.sync();
-        }
+        },
+        cssFilePath: cssFilePath
       }
     })()
   }
@@ -161,7 +162,7 @@ window.remoteStorage.init = function(options) {
   }
   var divEl = document.createElement('div');
   divEl.id = 'remoteStorageDiv';
-  divEl.innerHTML = '<link rel="stylesheet" href="'+cssFilePath+'" />'
+  divEl.innerHTML = '<link rel="stylesheet" href="'+remoteStorage.cssFilePath+'" />'
     +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage" onkeyup="InputKeyUp(this);">'
     +'<span id="userAddress" style="display:none" onmouseover="SpanMouseOver(this);" onmouseout="SpanMouseOut(this);" onclick="SpanClick(this)"></span>'
     +'<input id="userButton" type="submit" value="Sign in" onclick="ButtonClick(this,'
