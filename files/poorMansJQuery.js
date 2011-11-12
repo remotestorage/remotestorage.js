@@ -8,7 +8,7 @@
       {
         var scripts = document.getElementsByTagName('script');
         for(i in scripts) {
-          if(/remoteStorage-future.js$/.test(scripts[i].src)) {
+          if((new RegExp(jsFileName+'$')).test(scripts[i].src)) {
             var options = (new Function('return ' + scripts[i].innerHTML.replace(/\n|\r/g, '')))();
             window.remoteStorage.init(options);
           }

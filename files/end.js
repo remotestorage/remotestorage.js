@@ -15,7 +15,7 @@
           var cacheObj = localStorage.getItem('_remoteStorage_'+k);
           if(cacheObj) {
             try {
-              return JSON.parse(cacheObj).value;
+              return JSON.stringify(JSON.parse(cacheObj).value);
             }catch(e) {}
           }
           return null;
@@ -161,7 +161,7 @@ window.remoteStorage.init = function(options) {
   }
   var divEl = document.createElement('div');
   divEl.id = 'remoteStorageDiv';
-  divEl.innerHTML = '<link rel="stylesheet" href="../../remoteStorage.css" />'
+  divEl.innerHTML = '<link rel="stylesheet" href="'+cssFilePath+'" />'
     +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage" onkeyup="InputKeyUp(this);">'
     +'<span id="userAddress" style="display:none" onmouseover="SpanMouseOver(this);" onmouseout="SpanMouseOut(this);" onclick="SpanClick(this)"></span>'
     +'<input id="userButton" type="submit" value="Sign in" onclick="ButtonClick(this,'
