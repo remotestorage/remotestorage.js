@@ -158,24 +158,35 @@ function ButtonClick(el, dataScope) {
   }
 }
 
-window.remoteStorage.init = function(options) {
-  if(!options) {
-    options = {};
+functionNeedLoginBox() {
+  return 'legacy';
+}
+
+window.remoteStorage.configure = function(setOptions) {
+  window.remoteStorage.options = {//set defaults
+    category: location.host,
+    onChange: function() {},
+    preferBrowserSessionIfNative: true,
+    preferBrowserIdIfNative: true,
+    preferBrowserIdAlways: false
+  };
+  if(setOptions) {
+    for(var option in setOptions) {
+      window.remoteStorage.options[option] = setOptions[option];
+    }
   }
-  if (!(options.dataScope)) {
-    options.dataScope = location.host;
+  if(NeedLoginBox()=='legacy') {
+    var divEl = document.createElement('div');
+    divEl.id = 'remoteStorageDiv';
+    divEl.innerHTML = '<link rel="stylesheet" href="'+remoteStorage.cssFilePath+'" />'
+      +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage" onkeyup="InputKeyUp(this);">'
+      +'<span id="userAddress" style="display:none" onmouseover="SpanMouseOver(this);" onmouseout="SpanMouseOut(this);" onclick="SpanClick(this)"></span>'
+      +'<input id="userButton" type="submit" value="Sign in" onclick="ButtonClick(this,'
+      +'\''+options.dataScope+'\')">';
+    document.body.insertBefore(divEl, document.body.firstChild);
   }
-  var divEl = document.createElement('div');
-  divEl.id = 'remoteStorageDiv';
-  divEl.innerHTML = '<link rel="stylesheet" href="'+remoteStorage.cssFilePath+'" />'
-    +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage" onkeyup="InputKeyUp(this);">'
-    +'<span id="userAddress" style="display:none" onmouseover="SpanMouseOver(this);" onmouseout="SpanMouseOut(this);" onclick="SpanClick(this)"></span>'
-    +'<input id="userButton" type="submit" value="Sign in" onclick="ButtonClick(this,'
-    +'\''+options.dataScope+'\')">';
-  document.body.insertBefore(divEl, document.body.firstChild);
   if(window.remoteStorage.isConnected()) {
     window.remoteStorage._init();
   }
   DisplayConnectionState();
-  window.remoteStorage.options = options;
 }
