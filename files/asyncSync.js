@@ -24,20 +24,20 @@
             });
           }
         },
-        connect: function(userAddress, dataScope, cb) {
+        connect: function(userAddress, category, cb) {
           var onError = function(errorMsg) {
             alert(errorMsg);
           }
           var callback = function(rsAuth, rStemplate, rSapi) {
             cb();
             var rSkvParts = rStemplate.split('{scope}');
-            var rSkv = rSkvParts[0]+dataScope+rSkvParts[1];
+            var rSkv = rSkvParts[0]+category+rSkvParts[1];
             localStorage.setItem('_remoteStorageUserAddress', userAddress);
-            localStorage.setItem('_remoteStorageDataScope', dataScope);
+            localStorage.setItem('_remoteStorageCategory', category);
             localStorage.setItem('_remoteStorageKV', rSkv)
             localStorage.setItem('_remoteStorageAPI', rSapi)
             localStorage.setItem('_remoteStorageAuthAddress', rSauth)
-            oauth.go(rSauth, dataScope, userAddress);
+            oauth.go(rSauth, category, userAddress);
           }
           webfinger.getDavBaseAddress(userAddress, onError, callback);
         },

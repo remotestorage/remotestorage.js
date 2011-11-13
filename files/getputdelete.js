@@ -6,7 +6,7 @@
     var backend = (function(){
       function keyToAddress(key) {
         var userAddressParts = localStorage.getItem('_remoteStorageUserAddress').split('@')
-        var resource = localStorage.getItem('_remoteStorageDataScope');
+        var resource = localStorage.getItem('_remoteStorageCategory');
         var address = localStorage.getItem('_remoteStorageKV') + key
         return address
       }

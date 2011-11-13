@@ -58,8 +58,8 @@
           window.remoteStorage.length = 0;
           work();
         },
-        connect: function(userAddress, dataScope) {
-          backend.connect(userAddress, dataScope, function() {
+        connect: function(userAddress, category) {
+          backend.connect(userAddress, category, function() {
             work();
           })
         },
@@ -71,7 +71,7 @@
         },
         disconnect: function() {
           localStorage.removeItem('_remoteStorageUserAddress');
-          localStorage.removeItem('_remoteStorageDataScope');
+          localStorage.removeItem('_remoteStorageCategory');
           localStorage.removeItem('_remoteStorageKV');
           localStorage.removeItem('_remoteStorageAPI');
           localStorage.removeItem('_remoteStorageAuthAddress');
@@ -146,19 +146,19 @@ function SpanMouseOut(el) {
 function SpanClick(el) {
   window.remoteStorage.disconnect();
 }
-function ButtonClick(el, dataScope) {
+function ButtonClick(el, category) {
   if(window.remoteStorage.isConnected()) {
     window.remoteStorage.disconnect();
     DisplayConnectionState();
   } else {
     if(document.getElementById('userAddressInput').value!='') {
-      window.remoteStorage.connect(document.getElementById('userAddressInput').value, dataScope);
+      window.remoteStorage.connect(document.getElementById('userAddressInput').value, category);
       DisplayConnectionState();
     }
   }
 }
 
-functionNeedLoginBox() {
+function NeedLoginBox() {
   return 'legacy';
 }
 
@@ -182,7 +182,7 @@ window.remoteStorage.configure = function(setOptions) {
       +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage" onkeyup="InputKeyUp(this);">'
       +'<span id="userAddress" style="display:none" onmouseover="SpanMouseOver(this);" onmouseout="SpanMouseOut(this);" onclick="SpanClick(this)"></span>'
       +'<input id="userButton" type="submit" value="Sign in" onclick="ButtonClick(this,'
-      +'\''+options.dataScope+'\')">';
+      +'\''+options.category+'\')">';
     document.body.insertBefore(divEl, document.body.firstChild);
   }
   if(window.remoteStorage.isConnected()) {

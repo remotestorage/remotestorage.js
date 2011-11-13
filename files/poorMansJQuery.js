@@ -10,14 +10,12 @@
         for(i in scripts) {
           if((new RegExp(jsFileName+'$')).test(scripts[i].src)) {
             var options = (new Function('return ' + scripts[i].innerHTML.replace(/\n|\r/g, '')))();
-            window.remoteStorage.init(options);
+            window.remoteStorage.configure(options);
           }
         }
         oauth.harvestToken(function(token) {
           backend.setToken(token);
-          //backend.sync();
         });
-        //remoteStorage.init('sandwiches');
       }
     }, false)
 

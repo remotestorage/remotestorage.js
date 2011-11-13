@@ -3,12 +3,12 @@
     ///////////////////////////
 
     var oauth = (function() {
-      function go(address, dataScope, userAddress) {
+      function go(address, category, userAddress) {
         var loc = encodeURIComponent((''+window.location).split('#')[0]);
         window.location = address
           + '?client_id=' + loc
           + '&redirect_uri=' + loc
-          + '&scope=' + dataScope
+          + '&scope=' + category
           + '&user_address=' + userAddress
           + '&response_type=token';
       }
