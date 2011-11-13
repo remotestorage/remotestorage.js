@@ -189,4 +189,6 @@ window.remoteStorage.configure = function(setOptions) {
     window.remoteStorage._init();
   }
   DisplayConnectionState();
+
+  return window.remoteStorage.options;
 }
