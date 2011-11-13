@@ -182,7 +182,7 @@ window.remoteStorage.configure = function(setOptions) {
       +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage" onkeyup="InputKeyUp(this);">'
       +'<span id="userAddress" style="display:none" onmouseover="SpanMouseOver(this);" onmouseout="SpanMouseOut(this);" onclick="SpanClick(this)"></span>'
       +'<input id="userButton" type="submit" value="Sign in" onclick="ButtonClick(this,'
-      +'\''+options.category+'\')">';
+      +'\''+window.remoteStorage.options.category+'\')">';
     document.body.insertBefore(divEl, document.body.firstChild);
   }
   if(window.remoteStorage.isConnected()) {
