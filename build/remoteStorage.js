@@ -683,6 +683,12 @@ window.remoteStorage.configure = function(setOptions) {
       window.remoteStorage.options[option] = setOptions[option];
     }
   }
+  if(window.remoteStorage.options.userAddress) {
+    localStorage.setItem('_remoteStorageUserAddress', window.remoteStorage.options.userAddress);
+  }
+  if(window.remoteStorage.options.token) {
+    localStorage.setItem('_remoteStorageOauthToken', window.remoteStorage.options.token);
+  }
   if(NeedLoginBox()=='legacy') {
     var divEl = document.createElement('div');
     divEl.id = 'remoteStorageDiv';
