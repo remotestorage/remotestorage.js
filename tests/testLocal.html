@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script>
+      localStorage.clear();
+      localStorage.setItem('a', 'b');
+      var ret = localStorage.getItem('a');
+      var len = localStorage.length;
+      if(ret !=  'b') {
+        alert('got back '+ret);
+      }
+      if(len != 1) {
+        alert('len is not 1 but '+len);
+      }
+      localStorage.setItem('a', JSON.stringify({b:'c'}));
+      var ret = localStorage.getItem('a');
+      var len = localStorage.length;
+      if(ret !=  JSON.stringify({b:'c'})) {
+        alert('got back '+ret);
+      }
+      if(len != 1) {
+        alert('len is not 1 but '+len);
+      }
+      localStorage.removeItem('a');
+      var ret = localStorage.getItem('a');
+      var len = localStorage.length;
+      if(ret !=  null) {
+        alert('ret is not null but '+ret);
+      }
+      if(len != 0) {
+        alert('len is not 0 but '+len);
+      }
+      alert('done!');
+    </script>
+  </head>
+  <body>
+    running tests...
+  </body>
+</html>
