@@ -14,7 +14,7 @@
           var cacheObj = localStorage.getItem('_remoteStorage_'+k);
           if(cacheObj) {
             try {
-              return JSON.stringify(JSON.parse(cacheObj).value);
+              return JSON.parse(cacheObj).value;
             }catch(e) {}
           }
           return null;
