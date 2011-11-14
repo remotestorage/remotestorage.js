@@ -159,7 +159,11 @@ function ButtonClick(el, category) {
 }
 
 function NeedLoginBox() {
-  return 'legacy';
+  if(window.remoteStorage.options.suppressDialog) {
+    return 'none';
+  } else {
+    return 'legacy';
+  }
 }
 
 window.remoteStorage.configure = function(setOptions) {
@@ -188,7 +192,8 @@ window.remoteStorage.configure = function(setOptions) {
   if(window.remoteStorage.isConnected()) {
     window.remoteStorage._init();
   }
-  DisplayConnectionState();
-
+  if(NeedLoginBox()=='legacy') {
+    DisplayConnectionState();
+  }
   return window.remoteStorage.options;
 }
