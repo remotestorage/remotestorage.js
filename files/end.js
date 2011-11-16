@@ -1,5 +1,6 @@
       return {
         length: calcLength(),
+        _tryConnect: _tryConnect,
         key: function(req) {
           for(var i=0; i<localStorage.length; i++) {
             if(localStorage.key(i).substring(0,15)=='_remoteStorage_') {
@@ -57,11 +58,6 @@
           });
           window.remoteStorage.length = 0;
           work();
-        },
-        connect: function(userAddress, category) {
-          backend.connect(userAddress, category, function() {
-            work();
-          })
         },
         isConnected: function() {
           return (localStorage.getItem('_remoteStorageOauthToken') != null);
@@ -152,7 +148,11 @@ function ButtonClick(el, category) {
     DisplayConnectionState();
   } else {
     if(document.getElementById('userAddressInput').value!='') {
-      window.remoteStorage.connect(document.getElementById('userAddressInput').value, category);
+      window.remoteStorage._tryConnect();
+      window.remoteStorage.configure({
+        userAddress: document.getElementById('userAddressInput').value,
+        category: category
+      });
       DisplayConnectionState();
     }
   }
@@ -185,6 +185,7 @@ window.remoteStorage.configure = function(setOptions) {
   if(window.remoteStorage.options.token) {
     localStorage.setItem('_remoteStorageOauthToken', window.remoteStorage.options.token);
   }
+
   if(NeedLoginBox()=='legacy') {
     var divEl = document.createElement('div');
     divEl.id = 'remoteStorageDiv';
@@ -195,6 +196,7 @@ window.remoteStorage.configure = function(setOptions) {
       +'\''+window.remoteStorage.options.category+'\')">';
     document.body.insertBefore(divEl, document.body.firstChild);
   }
+  window.remoteStorage._tryConnect();
   if(window.remoteStorage.isConnected()) {
     window.remoteStorage._init();
   }

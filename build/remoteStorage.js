@@ -24,6 +24,17 @@
   if(!window.remoteStorage) {//shim switch
 var jsFileName = 'remoteStorage.js';
 var cssFilePath = '../style/remoteStorage.css';
+      function _tryConnect() {
+        oauth.harvestToken(function(token) {
+          backend.setToken(token);
+        });
+        var configuration = remoteStorage.configure();
+        backend.connect(configuration.userAddress, configuration.category, function() {
+          work();
+        });
+      }
+
+
       ///////////////////////
      // poor man's jQuery //
     ///////////////////////
@@ -39,9 +50,7 @@ var cssFilePath = '../style/remoteStorage.css';
             window.remoteStorage.configure(options);
           }
         }
-        oauth.harvestToken(function(token) {
-          backend.setToken(token);
-        });
+        _tryConnect();
       }
     }, false)
 
@@ -504,6 +513,7 @@ var cssFilePath = '../style/remoteStorage.css';
 
       return {
         length: calcLength(),
+        _tryConnect: _tryConnect,
         key: function(req) {
           for(var i=0; i<localStorage.length; i++) {
             if(localStorage.key(i).substring(0,15)=='_remoteStorage_') {
@@ -561,11 +571,6 @@ var cssFilePath = '../style/remoteStorage.css';
           });
           window.remoteStorage.length = 0;
           work();
-        },
-        connect: function(userAddress, category) {
-          backend.connect(userAddress, category, function() {
-            work();
-          })
         },
         isConnected: function() {
           return (localStorage.getItem('_remoteStorageOauthToken') != null);
@@ -656,7 +661,11 @@ function ButtonClick(el, category) {
     DisplayConnectionState();
   } else {
     if(document.getElementById('userAddressInput').value!='') {
-      window.remoteStorage.connect(document.getElementById('userAddressInput').value, category);
+      window.remoteStorage._tryConnect();
+      window.remoteStorage.configure({
+        userAddress: document.getElementById('userAddressInput').value,
+        category: category
+      });
       DisplayConnectionState();
     }
   }
@@ -689,6 +698,7 @@ window.remoteStorage.configure = function(setOptions) {
   if(window.remoteStorage.options.token) {
     localStorage.setItem('_remoteStorageOauthToken', window.remoteStorage.options.token);
   }
+
   if(NeedLoginBox()=='legacy') {
     var divEl = document.createElement('div');
     divEl.id = 'remoteStorageDiv';
@@ -699,6 +709,7 @@ window.remoteStorage.configure = function(setOptions) {
       +'\''+window.remoteStorage.options.category+'\')">';
     document.body.insertBefore(divEl, document.body.firstChild);
   }
+  window.remoteStorage._tryConnect();
   if(window.remoteStorage.isConnected()) {
     window.remoteStorage._init();
   }

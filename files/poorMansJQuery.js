@@ -1,3 +1,14 @@
+      function _tryConnect() {
+        oauth.harvestToken(function(token) {
+          backend.setToken(token);
+        });
+        var configuration = remoteStorage.configure();
+        backend.connect(configuration.userAddress, configuration.category, function() {
+          work();
+        });
+      }
+
+
       ///////////////////////
      // poor man's jQuery //
     ///////////////////////
@@ -13,9 +24,7 @@
             window.remoteStorage.configure(options);
           }
         }
-        oauth.harvestToken(function(token) {
-          backend.setToken(token);
-        });
+        _tryConnect();
       }
     }, false)
 
