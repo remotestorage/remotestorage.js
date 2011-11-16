@@ -1,1 +1,4 @@
-var _remoteStorage_modules = (function() {
+(function(import) {
+  var exports = {};
+
+// start modules wrapper...

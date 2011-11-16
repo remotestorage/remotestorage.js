@@ -1,11 +1,12 @@
-  return {
-    FrontendObj: FrontendObj
-  };
-})();
-//shim switch:
-if(!window.remoteStorage) {
-  window.remoteStorage = _remoteStorage_modules.FrontendObj();
-}
+//... end modules wrapper
+
+  import(exports);
+})(function(modules) {
+  //shim switch:
+  if(!window.remoteStorage) {
+    window.remoteStorage = modules.frontendObj;
+  }
+});
 
   ////////
  // UI //
