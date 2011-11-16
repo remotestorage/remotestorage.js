@@ -3,7 +3,6 @@
      // asynchronous synchronization queue //
     ////////////////////////////////////////
 
-    window.remoteStorage = (function(){
       function work() {
         if(!(localStorage.getItem('_remoteStorageOauthToken'))) {
           return;

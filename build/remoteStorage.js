@@ -1,27 +1,4 @@
-// INTERFACE:
-//
-// 1) interface for data is the same as localStorage and sessionStorage, namely:
-//
-// window.remoteStorage.length
-// window.remoteStorage.key(i)
-// window.remoteStorage.getItem(key)
-// window.remoteStorage.setItem(key, value);
-// window.remoteStorage.removeItem(key);
-// window.remoteStorage.clear();
-//
-// Note: we don't support syntactic sugar like localStorage.key or localStorage['key'] - please stick to getItem()/setItem()
-//
-//
-// 2) additional interface to connect/check/disconnect backend:
-//
-// window.remoteStorage.connect('user@host', 'sandwiches');
-// window.remoteStorage.isConnected();//boolean
-// window.remoteStorage.getUserAddress();//'user@host'
-// window.remoteStorage.disconnect();
-
-
-(function() {
-  if(!window.remoteStorage) {//shim switch
+var _remoteStorage_modules = (function() {
 var jsFileName = 'remoteStorage.js';
 var cssFilePath = '../style/remoteStorage.css';
       function _tryConnect() {
@@ -452,7 +429,6 @@ var cssFilePath = '../style/remoteStorage.css';
      // asynchronous synchronization queue //
     ////////////////////////////////////////
 
-    window.remoteStorage = (function(){
       function work() {
         if(!(localStorage.getItem('_remoteStorageOauthToken'))) {
           return;
@@ -511,7 +487,47 @@ var cssFilePath = '../style/remoteStorage.css';
         return len;
       }
 
+    function FrontendObj() {
       return {
+        configure: function(setOptions) {
+          window.remoteStorage.options = {//set defaults
+            category: location.host,
+            onChange: function() {},
+            preferBrowserSessionIfNative: true,
+            preferBrowserIdIfNative: true,
+            preferBrowserIdAlways: false
+          };
+          if(setOptions) {
+            for(var option in setOptions) {
+              window.remoteStorage.options[option] = setOptions[option];
+            }
+          }
+          if(window.remoteStorage.options.userAddress) {
+            localStorage.setItem('_remoteStorageUserAddress', window.remoteStorage.options.userAddress);
+          }
+          if(window.remoteStorage.options.token) {
+            localStorage.setItem('_remoteStorageOauthToken', window.remoteStorage.options.token);
+          }
+
+          if(NeedLoginBox()=='legacy') {
+            var divEl = document.createElement('div');
+            divEl.id = 'remoteStorageDiv';
+            divEl.innerHTML = '<link rel="stylesheet" href="'+remoteStorage.cssFilePath+'" />'
+              +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage" onkeyup="InputKeyUp(this);">'
+              +'<span id="userAddress" style="display:none" onmouseover="SpanMouseOver(this);" onmouseout="SpanMouseOut(this);" onclick="SpanClick(this)"></span>'
+              +'<input id="userButton" type="submit" value="Sign in" onclick="ButtonClick(this,'
+              +'\''+window.remoteStorage.options.category+'\')">';
+            document.body.insertBefore(divEl, document.body.firstChild);
+          }
+          window.remoteStorage._tryConnect();
+          if(window.remoteStorage.isConnected()) {
+            window.remoteStorage._init();
+          }
+          if(NeedLoginBox()=='legacy') {
+            DisplayConnectionState();
+          }
+          return window.remoteStorage.options;
+        },
         length: calcLength(),
         _tryConnect: _tryConnect,
         key: function(req) {
@@ -605,9 +621,15 @@ var cssFilePath = '../style/remoteStorage.css';
         },
         cssFilePath: cssFilePath
       }
-    })()
-  }
-})()
+    }
+  return {
+    FrontendObj: FrontendObj
+  };
+})();
+//shim switch:
+if(!window.remoteStorage) {
+  window.remoteStorage = _remoteStorage_modules.FrontendObj();
+}
 
   ////////
  // UI //
@@ -677,44 +699,4 @@ function NeedLoginBox() {
   } else {
     return 'legacy';
   }
-}
-
-window.remoteStorage.configure = function(setOptions) {
-  window.remoteStorage.options = {//set defaults
-    category: location.host,
-    onChange: function() {},
-    preferBrowserSessionIfNative: true,
-    preferBrowserIdIfNative: true,
-    preferBrowserIdAlways: false
-  };
-  if(setOptions) {
-    for(var option in setOptions) {
-      window.remoteStorage.options[option] = setOptions[option];
-    }
-  }
-  if(window.remoteStorage.options.userAddress) {
-    localStorage.setItem('_remoteStorageUserAddress', window.remoteStorage.options.userAddress);
-  }
-  if(window.remoteStorage.options.token) {
-    localStorage.setItem('_remoteStorageOauthToken', window.remoteStorage.options.token);
-  }
-
-  if(NeedLoginBox()=='legacy') {
-    var divEl = document.createElement('div');
-    divEl.id = 'remoteStorageDiv';
-    divEl.innerHTML = '<link rel="stylesheet" href="'+remoteStorage.cssFilePath+'" />'
-      +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage" onkeyup="InputKeyUp(this);">'
-      +'<span id="userAddress" style="display:none" onmouseover="SpanMouseOver(this);" onmouseout="SpanMouseOut(this);" onclick="SpanClick(this)"></span>'
-      +'<input id="userButton" type="submit" value="Sign in" onclick="ButtonClick(this,'
-      +'\''+window.remoteStorage.options.category+'\')">';
-    document.body.insertBefore(divEl, document.body.firstChild);
-  }
-  window.remoteStorage._tryConnect();
-  if(window.remoteStorage.isConnected()) {
-    window.remoteStorage._init();
-  }
-  if(NeedLoginBox()=='legacy') {
-    DisplayConnectionState();
-  }
-  return window.remoteStorage.options;
 }
