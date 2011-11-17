@@ -1,0 +1,14 @@
+- use proxy instead of multiple APIs
+- you will need search, because lazy loading of B-tree chunks into client-side will always be slow
+- finish the bloody example apps! backbone-js like code example (2-column). then people will write apps
+- listen to localStorage from an iframe - possible?
+- unhosted day as hackathon
+- personal information manager (pim) - calendar, address book
+- bearer token to email address
+- offer proxying hosting: webfinger (email-relay?), oauth, cors.
+- user chooses their own storage and links it into bearstech control panel
+- deltacloud - abstraction proxy
+- focus on private data, forget about public data. it's a separate problem with its own issues
+- readcaps are persistent tokens, not one-time tokens. avoid them
+- automate unhosting of localStorage app completely.
+- make autocomplete work on our login-div
