@@ -1,3 +1,29 @@
+module structure:
+
+div
+window.remoteStorage.configure()
+  controller
+    modules:
+      cache
+      webfinger
+      oauth
+      backend
+        - simple
+        - CouchDB
+        - GoogleDocs
+window.remoteStorage
+StorageEvents
+
+default demo now: sync-mode with browserid
+syncLocalStorage: true
+syncInterval: 10
+preferBrowserIdAlways: true
+category: location.host
+
+- include with these params. it creates modules inside closures, inside controller closure, that exports only configure function (for now)
+- configure function knows when to call init functions
+- inside closure that creates poorMansJQuery, reads in-tag options, calls configure
+
 control keys:
 =============
 _remoteStorageUserAddress
