@@ -165,4 +165,4 @@ exports.webfinger = (function(){
     }
   }
   return {getDavBaseAddress: getDavBaseAddress};
-})()
+})();

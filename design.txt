@@ -24,6 +24,15 @@ category: location.host
 - configure function knows when to call init functions
 - inside closure that creates poorMansJQuery, reads in-tag options, calls configure
 
+button:
+- when not logged in: browserid logo
+- when logged in, logout button
+- when disconnected, orange logout button and spinner maybe
+
+what should happen if someone logs in with an account that useraddress.net can't make chocolate from?
+- call a callback; libredocs.org should refer to yourremotestorage.com
+- if callback not implemented, show alert or red error that disappears and return to browserid button.
+
 control keys:
 =============
 _remoteStorageUserAddress
