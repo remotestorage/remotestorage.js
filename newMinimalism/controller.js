@@ -1,6 +1,28 @@
 exports.controller = (function() {
+  function onError(str) {
+    alert(str);
+  }
   function connect(userAddress) {
-    exports.webfinger.getAuthAddress(userAddress, exports.oauth.go);
+    exports.webfinger.getAttributes(userAddress, onError, function(attributes) {
+      exports.oauth.go(attributes.auth);
+    });
+/*
+    var category = location.host;
+    if(window.remoteStorage.isConnected()) {
+      window.remoteStorage.disconnect();
+      DisplayConnectionState();
+    } else {
+      if(document.getElementById('userAddressInput').value!='') {
+        window.remoteStorage._tryConnect();
+        window.remoteStorage.configure({
+          userAddress: document.getElementById('userAddressInput').value,
+          category: category
+        });
+        DisplayConnectionState();
+      }
+    }
+*/
+
   }
   function disconnect() {
   }

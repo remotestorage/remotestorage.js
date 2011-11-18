@@ -5,7 +5,7 @@
 
 exports.webfinger = (function(){
   var userAddress, userName, host, templateParts;//this is all a bit messy, but there are a lot of callbacks here, so globals help us with that.
-  function getDavBaseAddress(ua, error, cb){
+  function getAttributes(ua, error, cb){
     userAddress = ua;
     var parts = ua.split('@');
     if(parts.length < 2) {
@@ -21,7 +21,7 @@ exports.webfinger = (function(){
         userName = parts[0];
         host = parts[1];
         //error('So far so good. Looking up https host-meta for '+host);
-        ajax({
+        exports.ajax({
           //url: 'https://'+host+'/.well-known/host-meta',
           url: 'http://'+host+'/.well-known/host-meta',
           success: function(data) {
@@ -41,7 +41,7 @@ exports.webfinger = (function(){
 
   function afterHttpsHostmetaError(data, error, cb) {
         //error('Https Host-meta error. Trying http.');
-        ajax({
+        exports.ajax({
           url: 'http://'+host+'/.well-known/host-meta',
           success: function(data) {
             afterHttpHostmetaSuccess(data, error, cb);
@@ -89,7 +89,7 @@ exports.webfinger = (function(){
               if(attr2.name=='template') {
                 templateParts = attr2.value.split('{uri}');
                 if(templateParts.length == 2) {
-                  ajax({
+                  exports.ajax({
                     url: templateParts[0]+userAddress+templateParts[1],
                     success: function(data) {afterLrddSuccess(data, error, cb);},
                     error: function(data){afterLrddNoAcctError(data, error, cb);},
@@ -114,7 +114,7 @@ exports.webfinger = (function(){
   }
   function afterLrddNoAcctError() {
     error('the template doesn\'t contain "{uri}"');
-    ajax({
+    exports.ajax({
       url: templateParts[0]+'acct:'+ua+templateParts[1],
       success: function() {afterLrddSuccess(error, cb);},
       error: function() {afterLrddAcctError(error, cb);}
@@ -133,29 +133,29 @@ exports.webfinger = (function(){
       var linkFound = false;
       var errorStr = 'none of the Link tags have a remoteStorage rel-attribute';
       for(var linkTagI in linkTags) {
+        var attributes = {};
         for(var attrI in linkTags[linkTagI].attributes) {
           var attr = linkTags[linkTagI].attributes[attrI];
           if((attr.name=='rel') && (attr.value=='remoteStorage')) {
             linkFound = true;
             errorStr = 'the first Link tag with a dav rel-attribute has no template-attribute';
-            var authAddress, kvAddress, api;
             for(var attrJ in linkTags[linkTagI].attributes) {
               var attr2 = linkTags[linkTagI].attributes[attrJ];
               if(attr2.name=='template') {
-                rStemplate = attr2.value;
+                attributes.template = attr2.value;
               }
               if(attr2.name=='auth') {
-                rSauth = attr2.value;
+                attributes.auth = attr2.value;
               }
               if(attr2.name=='api') {
-                rSapi = attr2.value;
+                attributes.api = attr2.value;
               }
             }
             break;
           }
         }
         if(linkFound) {
-          cb(rSauth, rStemplate, rSapi);
+          cb(attributes);
           break;
         }
       }
@@ -164,5 +164,6 @@ exports.webfinger = (function(){
       }
     }
   }
-  return {getDavBaseAddress: getDavBaseAddress};
+  return {
+    getAttributes: getAttributes};
 })();

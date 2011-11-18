@@ -49,21 +49,6 @@ exports.button = (function() {
   }
   function ButtonClick(el) {
     handlers['connect'](document.getElementById('userAddressInput').value);
-
-    var category = location.host;
-    if(window.remoteStorage.isConnected()) {
-      window.remoteStorage.disconnect();
-      DisplayConnectionState();
-    } else {
-      if(document.getElementById('userAddressInput').value!='') {
-        window.remoteStorage._tryConnect();
-        window.remoteStorage.configure({
-          userAddress: document.getElementById('userAddressInput').value,
-          category: category
-        });
-        DisplayConnectionState();
-      }
-    }
   }
 
   function NeedLoginBox() {
