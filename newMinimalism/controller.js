@@ -1,4 +1,5 @@
 exports.controller = (function() {
+  var intervalTimer;
   function onError(str) {
     alert(str);
   }
@@ -6,23 +7,6 @@ exports.controller = (function() {
     exports.webfinger.getAttributes(userAddress, onError, function(attributes) {
       exports.oauth.go(attributes.auth, location.host, userAddress);
     });
-/*
-    var category = location.host;
-    if(window.remoteStorage.isConnected()) {
-      window.remoteStorage.disconnect();
-      DisplayConnectionState();
-    } else {
-      if(document.getElementById('userAddressInput').value!='') {
-        window.remoteStorage._tryConnect();
-        window.remoteStorage.configure({
-          userAddress: document.getElementById('userAddressInput').value,
-          category: category
-        });
-        DisplayConnectionState();
-      }
-    }
-*/
-
   }
   function disconnect() {
   }
@@ -32,13 +16,19 @@ exports.controller = (function() {
     exports.button.on('disconnect', disconnect);
     exports.button.show();
   }
-  function harvestToken() {
+  function onLoad(setOptions) {
+    configure(setOptions); 
     exports.oauth.harvestToken(function(token) {
       exports.session.setToken(token);
     });
+    intervalTimer = setInterval("exports.controller.trigger('timer');", 10000);
+  }
+  function trigger(event) {
+    console.log(event);
   }
   return {
     configure: configure,
-    harvestToken: harvestToken
+    onLoad: onLoad,
+    trigger: trigger
   };
 })();

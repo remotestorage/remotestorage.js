@@ -48,7 +48,8 @@ exports.button = (function() {
     window.remoteStorage.disconnect();
   }
   function ButtonClick(el) {
-    handlers['connect'](document.getElementById('userAddressInput').value);
+    //handlers['connect'](document.getElementById('userAddressInput').value);
+    handlers['connect']('test@yourremotestorage.net');
   }
 
   function NeedLoginBox() {
