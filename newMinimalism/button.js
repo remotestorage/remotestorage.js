@@ -45,7 +45,8 @@ exports.button = (function() {
   function SpanClick(el) {
     window.remoteStorage.disconnect();
   }
-  function ButtonClick(el, category) {
+  function ButtonClick(el) {
+    var category = location.host;
     if(window.remoteStorage.isConnected()) {
       window.remoteStorage.disconnect();
       DisplayConnectionState();
@@ -79,8 +80,8 @@ exports.button = (function() {
         +' onmouseover="exports.button.trigger(\'SpanMouseOver\', this);"'
         +' onmouseout="exports.button.trigger(\'SpanMouseOut\', this);"'
         +' onclick="exports.button.trigger(\'SpanClick\', this)"></span>'
-        +'<input id="userButton" type="submit" value="Sign in" onclick="ButtonClick(this,'
-        +'\''+location.host+'\')">';
+        +'<input id="userButton" type="submit" value="Sign in"'
+        +' onclick="exports.button.triggger(\'ButtonClick\', this)">';
       document.body.insertBefore(divEl, document.body.firstChild);
     }
   }
