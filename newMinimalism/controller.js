@@ -32,7 +32,13 @@ exports.controller = (function() {
     exports.button.on('disconnect', disconnect);
     exports.button.show();
   }
+  function harvestToken() {
+    exports.oauth.harvestToken(function(token) {
+      exports.session.setToken(token);
+    });
+  }
   return {
-    configure: configure
+    configure: configure,
+    harvestToken: harvestToken
   };
 })();

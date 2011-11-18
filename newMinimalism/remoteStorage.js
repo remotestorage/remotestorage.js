@@ -11,6 +11,7 @@
   require('http://unhost.it/ajax.js');
   require('http://unhost.it/webfinger.js');
   require('http://unhost.it/oauth.js');
+  require('http://unhost.it/session.js');
   require('http://unhost.it/controller.js');
 
   function whenReady() {
@@ -19,6 +20,7 @@
       if((new RegExp(exports.config.jsFileName+'$')).test(scripts[i].src)) {
         var options = (new Function('return ' + scripts[i].innerHTML.replace(/\n|\r/g, '')))();
         exports.controller.configure(options);
+        exports.controller.harvestToken(location.hash);
       }
     }
   }
@@ -28,6 +30,7 @@
       && exports.ajax
       && exports.webfinger
       && exports.oauth
+      && exports.session
       && exports.controller) {
       whenReady();
     } else {
