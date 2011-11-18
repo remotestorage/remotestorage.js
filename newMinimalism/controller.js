@@ -4,7 +4,7 @@ exports.controller = (function() {
   }
   function connect(userAddress) {
     exports.webfinger.getAttributes(userAddress, onError, function(attributes) {
-      exports.oauth.go(attributes.auth);
+      exports.oauth.go(attributes.auth, location.host, userAddress);
     });
 /*
     var category = location.host;
