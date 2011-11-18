@@ -7,6 +7,7 @@
   window.exports = {};
   //require('http://browserid.org/include.js');
   require('http://unhost.it/config.js');
+  require('http://unhost.it/button.js');
   require('http://unhost.it/webfinger.js');
   require('http://unhost.it/oauth.js');
   require('http://unhost.it/controller.js');
@@ -22,6 +23,7 @@
   }
   window.exports.checkReady = function() {
     if(exports.config
+      && exports.button
       && exports.webfinger
       && exports.oauth
       && exports.controller) {
