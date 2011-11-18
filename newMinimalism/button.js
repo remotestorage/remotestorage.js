@@ -1,4 +1,6 @@
 exports.button = (function() {
+  var handlers = {};
+
     ////////
    // UI //
   ////////
@@ -46,6 +48,8 @@ exports.button = (function() {
     window.remoteStorage.disconnect();
   }
   function ButtonClick(el) {
+    handlers['connect'](document.getElementById('userAddressInput').value);
+
     var category = location.host;
     if(window.remoteStorage.isConnected()) {
       window.remoteStorage.disconnect();
@@ -81,7 +85,7 @@ exports.button = (function() {
         +' onmouseout="exports.button.trigger(\'SpanMouseOut\', this);"'
         +' onclick="exports.button.trigger(\'SpanClick\', this)"></span>'
         +'<input id="userButton" type="submit" value="Sign in"'
-        +' onclick="exports.button.triggger(\'ButtonClick\', this)">';
+        +' onclick="exports.button.trigger(\'ButtonClick\', this)">';
       document.body.insertBefore(divEl, document.body.firstChild);
     }
   }
@@ -101,6 +105,7 @@ exports.button = (function() {
     }
   }
   function on(what, cb) {
+    handlers[what] = cb;
   }
   return {
     show: show,
