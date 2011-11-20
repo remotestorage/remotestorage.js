@@ -42,7 +42,7 @@ exports.controller = (function() {
     linkButtonToSession();
     exports.oauth.harvestToken(function(token) {
       exports.session.setToken(token);
-      sync.start();
+      exports.sync.start();
     });
     exports.sync.setBackend(exports[localStorage.getItem('_shadowBackendModuleName')]);
     initTimer();
@@ -60,7 +60,9 @@ exports.controller = (function() {
       }
     }
     if(exports.session.isConnected()) {
-      exports.sync.work(exports.config.autosaveIntervalMilliseconds);
+      exports.sync.work((exports.config.autoSaveMilliseconds * 9)/10, function() {
+        console.log('back in controller after work.');
+      });
     }
   }
   return {

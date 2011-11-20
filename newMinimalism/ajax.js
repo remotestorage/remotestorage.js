@@ -20,11 +20,10 @@ exports.ajax = function(params) {
   }
   xhr.onreadystatechange = function() {
     if(xhr.readyState == 4) {
-      if(xhr.status == 0) {
-        //alert('looks like '+params.url+' has no CORS headers on it! try copying this scraper and that file both onto your localhost')
-        params.error(xhr);
-      } else {
+      if(xhr.status == 200 || xhr.status == 201) {
         params.success(xhr.responseText);
+      } else {
+        params.error(xhr.status);
       }
     }
   }

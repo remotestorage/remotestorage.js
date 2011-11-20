@@ -3,7 +3,7 @@ exports.couch = (function() {
   function keyToAddress(key) {
     return localStorage.getItem('_shadowBackendAddress') + key;
   }
-  function doCall(method, key, obj, cb) {
+  function doCall(method, key, obj, err, cb, timeout) {
     var ajaxObj = {
       url: keyToAddress(key),
       method: method,
@@ -21,43 +21,31 @@ exports.couch = (function() {
         }
         cb(retObj);
       },
-      error: function(xhr) {
-        if(xhr.status==409) {//resolve CouchDB conflict:
-          doCall('GET', key, null, function(text) {
-            var correctVersion=JSON.parse(text);
-            correctVersion.value=obj.value;
-            doCall('PUT', key, correctVersion, cb);
-          });
-        } else {
-          cb({
-            success:false,
-            error: xhr.status
-          });
-        }
-      },
+      error: err,
+      timeout: timeout
     }
     ajaxObj.headers= {Authorization: 'Bearer '+localStorage.getItem('_remoteStorageOauthToken')};
     ajaxObj.fields={withCredentials: 'true'};
     if(method!='GET') {
       ajaxObj.data=JSON.stringify(obj);
     }
-    ajax(ajaxObj);
+    exports.ajax(ajaxObj);
   }
   function init(api, address) {
     localStorage.setItem('_shadowBackendApi', api);
     localStorage.setItem('_shadowBackendAddress', address);
   }
   function get(key, err, cb, timeout) {
-    console.log('couch.get("'+key+'", "'+value+'", err, cb, '+timeout+');');
-    doCall('GET', key, null, cb);
+    console.log('couch.get("'+key+'", err, cb, '+timeout+');');
+    doCall('GET', key, null, err, cb, timeout);
   }
   function set(key, value, err, cb, timeout) {
     console.log('couch.set("'+key+'", "'+value+'", err, cb, '+timeout+');');
-    doCall('PUT', key, value, cb);
+    doCall('PUT', key, value, err, cb, timeout);
   }
   function remove(key, err, cb, timeout) {
-    console.log('couch.remove("'+key+'", "'+value+'", err, cb, '+timeout+');');
-    doCall('DELETE', key, null, cb);
+    console.log('couch.remove("'+key+'", err, cb, '+timeout+');');
+    doCall('DELETE', key, null, err, cb, timeout);
   }
   return {
     init: init,

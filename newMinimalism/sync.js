@@ -23,7 +23,7 @@ exports.sync = (function() {
       console.log('error retrieving _shadowLatestRevision');
     }, function(value) {
       localStorage.setItem('_shadowRemote', value);
-      localStorage.setItem('_shadowSyncStatus') == 'idle';
+      localStorage.setItem('_shadowSyncStatus', 'idle');
       cb();
     }, timeout);
   }
@@ -67,6 +67,7 @@ exports.sync = (function() {
   }
 
   function resumePushing(timeout, cb) {
+    var startTime = (new Date().getTime());
     console.log('resume pushing');
     var itemToPush = getItemToPush(false);
     backend.set(itemToPush, localStorage.getItem(itemToPush), function(msg) {
@@ -76,13 +77,12 @@ exports.sync = (function() {
         var timeElapsed = (new Date().getTime()) - startTime;
         work(timeout - timeElapsed, cb);
       } else {
-        localStorage.setItem('_shadowSyncStatus') == 'idle';
+        localStorage.setItem('_shadowSyncStatus', 'idle');
         cb();
       }
     }, timeout);
   }
   function work(timeout, cb) {
-    var startTime = (new Date().getTime());
     console.log('sync working for '+timeout+' milliseconds:');
     if(localStorage.getItem('_shadowSyncStatus') == 'pulling') {
       resumePulling(timeout, cb);
