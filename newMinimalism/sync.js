@@ -1,12 +1,12 @@
 exports.sync = (function() {
   var backend = {
-    function get(key, err, cb, timeout) {
+    get: function(key, err, cb, timeout) {
       console.log('backend.get("'+key+'", "'+value+'", err, cb, '+timeout+');');
-    }
-    function set(key, value, err, cb, timeout) {
+    },
+    set: function(key, value, err, cb, timeout) {
       console.log('backend.set("'+key+'", "'+value+'", err, cb, '+timeout+');');
-    }
-    function remove(key, err, cb, timeout) {
+    },
+    remove: function(key, err, cb, timeout) {
       console.log('backend.remove("'+key+'", "'+value+'", err, cb, '+timeout+');');
     }
   };
@@ -36,6 +36,24 @@ exports.sync = (function() {
       cb();
     }, timeout);
   }
+  function objLength(obj) {//FIXME: look up javascript lang ref when connected
+    var i = 0;
+    for(var j in obj) {
+      i++;
+    }
+    return i;
+  }
+  function objKey(obj, i) {//FIXME: look up javascript lang ref when connected
+    var j = 0;
+    for(var k in obj) {
+      if(i==j) {
+        return k;
+      }
+      j++;
+    }
+    return undefined;
+  }
+
   function getItemToPush(next) {
     var pushRev = localStorage.getItem('_shadowSyncPushRev');
     var index = JSON.parse(localStorage.getItem('_shadowRevision_'+pushRev));
@@ -47,9 +65,9 @@ exports.sync = (function() {
       entryToPush++;
       localStorage.setItem('_shadowSyncCurrEntry', entryToPush);
     }
-    if(entryToPush < index.length) {
-      return index[entryToPush];
-    } else if(entryToPush == index.length) {
+    if(entryToPush < objLength(index)) {
+      return objKey(index, entryToPush);
+    } else if(entryToPush == objLength(index)) {
       return '_shadowRevision_'+pushRev;
     } else {
       localStorage.removeItem('_shadowSyncCurrEntry');
@@ -60,7 +78,7 @@ exports.sync = (function() {
   function resumePushing(timeout, cb) {
     console.log('resume pushing');
     var itemToPush = getItemToPush(false);
-    backend.set(nextItemToPush, localStorage.getItem(itemToPush), function(msg) {
+    backend.set(itemToPush, localStorage.getItem(itemToPush), function(msg) {
       console.log('error putting '+itemToPush);
     }, function() {
       if(getItemToPush(true)) {
