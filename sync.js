@@ -20,7 +20,13 @@ exports.sync = (function() {
   function resumePulling(timeout, cb) {
     console.log('resume pulling');
     backend.get('_shadowLatestRevision', function(msg) {
-      console.log('error retrieving _shadowLatestRevision');
+      console.log('error retrieving _shadowLatestRevision:'+msg);
+      if(msg==404) {
+        console.log('virgin remote');
+        localStorage.setItem('_shadowRemote', '0');
+        localStorage.setItem('_shadowSyncStatus', 'idle');
+        cb();
+      }
     }, function(value) {
       localStorage.setItem('_shadowRemote', value);
       localStorage.setItem('_shadowSyncStatus', 'idle');
