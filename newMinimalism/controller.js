@@ -8,7 +8,12 @@ exports.controller = (function() {
     var dataCategory = location.host;
     exports.webfinger.getAttributes(userAddress, onError, function(attributes) {
       var backendAddress = exports.webfinger.resolveTemplate(attributes.template, dataCategory);
-      exports.backend.init(attributes.api, backendAddress);
+      if(attributes.api == 'CouchDB') {
+        localStorage.setItem('_shadowBackendModuleName', 'couch');
+      } else {
+        console.log('API "'+attributes.api+'" not supported! please try setting api="CouchDB" in webfinger');
+      }
+      exports[localStorage.getItem('_shadowBackendModuleName')].init(backendAddress);
       exports.oauth.go(attributes.auth, dataCategory, userAddress);
     });
   }
@@ -30,7 +35,7 @@ exports.controller = (function() {
     exports.button.show(isConnected, userAddress);
   }
   function initTimer() {
-    intervalTimer = setInterval("exports.controller.trigger('timer');", 10000);
+    intervalTimer = setInterval("exports.controller.trigger('timer');", exports.config.autoSaveMilliseconds);
   }
   function onLoad(setOptions) {
     configure(setOptions); 
@@ -39,7 +44,7 @@ exports.controller = (function() {
       exports.session.setToken(token);
       sync.start();
     });
-    exports.sync.setBackend(exports.backend);
+    exports.sync.setBackend(exports[localStorage.getItem('_shadowBackendModuleName')]);
     initTimer();
   }
   function trigger(event) {
@@ -54,7 +59,9 @@ exports.controller = (function() {
         console.log('not connected');
       }
     }
-    exports.sync.work(9000);
+    if(exports.session.isConnected()) {
+      exports.sync.work(exports.config.autosaveIntervalMilliseconds);
+    }
   }
   return {
     configure: configure,

@@ -7,7 +7,8 @@
     'oauth',
     'session',
 
-    'backend',
+    'couch',
+
     'sync',
     'versioning',
 
