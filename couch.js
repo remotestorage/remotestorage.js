@@ -1,6 +1,13 @@
 exports.couch = (function() {
   
   function keyToAddress(key) {
+    var i = 0;
+    while(i < key.length && key[i] =='u') {
+     i++;
+    }
+    if((i < key.length) && (key[i] == '_')) {
+      key = 'u'+key;
+    }
     return localStorage.getItem('_shadowBackendAddress') + key;
   }
   function doCall(method, key, obj, err, cb, timeout) {
