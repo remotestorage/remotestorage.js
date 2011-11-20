@@ -33,7 +33,7 @@ exports.couch = (function() {
     console.log('couch.get("'+key+'", err, cb, '+timeout+');');
     doCall('GET', key, null, err, function(str) {
       var obj = JSON.parse(str);
-      localStorage.setItem('_shadowCouchRev_'+key, obj.revision);
+      localStorage.setItem('_shadowCouchRev_'+key, obj._rev);
       cb(obj.value);
     }, timeout);
   }
@@ -44,7 +44,7 @@ exports.couch = (function() {
       value: value
     };
     if(revision) {
-      obj._revision = revision;
+      obj._rev = revision;
     }
     doCall('PUT', key, JSON.stringify(obj), err, function(str) {
       var obj = JSON.parse(str);
