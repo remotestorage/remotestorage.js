@@ -31,11 +31,22 @@ exports.couch = (function() {
   }
   function get(key, err, cb, timeout) {
     console.log('couch.get("'+key+'", err, cb, '+timeout+');');
-    doCall('GET', key, null, err, cb, timeout);
+    doCall('GET', key, null, err, function(str) {
+      var obj = JSON.parse(str);
+      localStorage.setItem('_shadowCouchRev_'+key, obj.revision);
+      cb(obj.value);
+    }, timeout);
   }
   function set(key, value, err, cb, timeout) {
     console.log('couch.set("'+key+'", "'+value+'", err, cb, '+timeout+');');
-    doCall('PUT', key, value, err, cb, timeout);
+    var revision = localStorage.getItem('_shadowCouchRev_'+key);
+    var obj = {
+      value: value
+    };
+    if(revision) {
+      obj.revision = revision;
+    }
+    doCall('PUT', key, JSON.stringify(obj), err, cb, timeout);
   }
   function remove(key, err, cb, timeout) {
     console.log('couch.remove("'+key+'", err, cb, '+timeout+');');
