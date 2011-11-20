@@ -44,9 +44,15 @@ exports.couch = (function() {
       value: value
     };
     if(revision) {
-      obj.revision = revision;
+      obj._revision = revision;
     }
-    doCall('PUT', key, JSON.stringify(obj), err, cb, timeout);
+    doCall('PUT', key, JSON.stringify(obj), err, function(str) {
+      var obj = JSON.parse(str);
+      if(obj.rev) {
+        localStorage.setItem('_shadowCouchRev_'+key, obj.rev);
+      }
+      cb();
+    }, timeout);
   }
   function remove(key, err, cb, timeout) {
     console.log('couch.remove("'+key+'", err, cb, '+timeout+');');
