@@ -5,7 +5,7 @@ exports.controller = (function() {
     alert(str);
   }
   function connect(userAddress) {
-    var dataCategory = location.host;
+    var dataCategory = location.host.replace('.', '_');
     exports.webfinger.getAttributes(userAddress, onError, function(attributes) {
       var backendAddress = exports.webfinger.resolveTemplate(attributes.template, dataCategory);
       if(attributes.api == 'CouchDB') {
