@@ -9,7 +9,6 @@ exports.controller = (function() {
     exports.webfinger.getAttributes(userAddress, onError, function(attributes) {
       var backendAddress = exports.webfinger.resolveTemplate(attributes.template, dataCategory);
       exports.backend.init(attributes.api, backendAddress);
-      exports.sync.setBackend(exports.backend);
       exports.oauth.go(attributes.auth, dataCategory, userAddress);
     });
   }
@@ -40,6 +39,7 @@ exports.controller = (function() {
       exports.session.setToken(token);
       sync.start();
     });
+    exports.sync.setBackend(exports.backend);
     initTimer();
   }
   function trigger(event) {

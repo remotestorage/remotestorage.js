@@ -1,4 +1,4 @@
-var backend = (function() {
+exports.backend = (function() {
   function init(api, address) {
     localStorage.setItem('_shadowBackendApi', api);
     localStorage.setItem('_shadowBackendAddress', address);

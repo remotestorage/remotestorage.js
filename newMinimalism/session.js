@@ -18,7 +18,6 @@ exports.session = (function() {
     setUserAddress: setUserAddress,
     setToken: setToken,
     getUserAddress: getUserAddress,
-    getApi: getApi,
     isConnected: isConnected,
     disconnect: disconnect
   };
