@@ -1,15 +1,6 @@
 exports.sync = (function() {
-  var backend = {
-    get: function(key, err, cb, timeout) {
-      console.log('backend.get("'+key+'", "'+value+'", err, cb, '+timeout+');');
-    },
-    set: function(key, value, err, cb, timeout) {
-      console.log('backend.set("'+key+'", "'+value+'", err, cb, '+timeout+');');
-    },
-    remove: function(key, err, cb, timeout) {
-      console.log('backend.remove("'+key+'", "'+value+'", err, cb, '+timeout+');');
-    }
-  };
+  var backend;
+  
   function setBackend(backendToSet) {
     backend = backendToSet;
   }
