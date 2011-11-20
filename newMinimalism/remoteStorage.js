@@ -1,4 +1,15 @@
 (function() {
+  var modules = [
+    'config',
+    'button',
+    'ajax',
+    'webfinger',
+    'oauth',
+    'session',
+    'versioning',
+    'sync',
+    'controller'
+  ];
   function require(script) {
     var s = document.createElement('script');
     s.setAttribute('src', script);
@@ -6,14 +17,9 @@
   }
   window.exports = {};
   //require('http://browserid.org/include.js');
-  require('http://unhost.it/config.js');
-  require('http://unhost.it/button.js');
-  require('http://unhost.it/ajax.js');
-  require('http://unhost.it/webfinger.js');
-  require('http://unhost.it/oauth.js');
-  require('http://unhost.it/session.js');
-  require('http://unhost.it/versioning.js');
-  require('http://unhost.it/controller.js');
+  for(var i in modules) {
+    require('http://unhost.it/'+modules[i]+'.js');
+  }
 
   function whenReady() {
     var scripts = document.getElementsByTagName('script');
@@ -25,19 +31,20 @@
     }
   }
   window.exports.checkReady = function() {
-    if(exports.config
-      && exports.button
-      && exports.ajax
-      && exports.webfinger
-      && exports.oauth
-      && exports.session
-      && exports.versioning
-      && exports.controller) {
-      whenReady();
-    } else {
-      setTimeout("window.exports.checkReady();", 1000);
+    for(var i in modules) {
+      if(typeof(exports[modules[i]]) == 'undefined') {
+        setTimeout("window.exports.checkReady();", 1000);
+        console.log(modules[i]+': not ready');
+        console.log('all systems: not go');
+        return;
+      } else {
+        console.log(modules[i]+': ready');
+      }
     }
+    console.log('all systems: go');
+    whenReady();
   }
+
   //FIXME: not use a timer here to wait for the scripts to load :)
   setTimeout("window.exports.checkReady();", 0);
 })();

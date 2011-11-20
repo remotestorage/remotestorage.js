@@ -25,7 +25,14 @@ exports.controller = (function() {
   }
   function trigger(event) {
     console.log(event);
-    exports.versioning.takeLocalSnapshot();
+    if(exports.versioning.takeLocalSnapshot()) {
+      console.log('changes detected');
+      if(exports.session.isConnected()) {
+        console.log('pushing');
+      } else {
+        console.log('not connected');
+      }
+    }
   }
   return {
     configure: configure,
