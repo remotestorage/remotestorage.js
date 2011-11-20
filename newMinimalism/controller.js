@@ -25,6 +25,7 @@ exports.controller = (function() {
   }
   function trigger(event) {
     console.log(event);
+    exports.versioning.takeLocalSnapshot();
   }
   return {
     configure: configure,

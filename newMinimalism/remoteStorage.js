@@ -12,6 +12,7 @@
   require('http://unhost.it/webfinger.js');
   require('http://unhost.it/oauth.js');
   require('http://unhost.it/session.js');
+  require('http://unhost.it/versioning.js');
   require('http://unhost.it/controller.js');
 
   function whenReady() {
@@ -30,6 +31,7 @@
       && exports.webfinger
       && exports.oauth
       && exports.session
+      && exports.versioning
       && exports.controller) {
       whenReady();
     } else {
