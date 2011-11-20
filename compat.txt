@@ -1,0 +1,2 @@
+check whether standard states that data category may not contain '.' (i think it does). this is needed for CouchDB db names
+keynames with underscores should be changed: _something -> u_something, uuu_shadow -> uuuu_something, etc.
