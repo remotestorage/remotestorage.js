@@ -21,7 +21,7 @@ exports.versioning = (function() {
       localStorage.setItem('_shadowIndex', JSON.stringify(shadowIndex));
       console.log('storing local snapshot '+now);
       return now;
-    } elseshadowI{
+    } else {
       return false;
     }
   }
