@@ -164,6 +164,15 @@ exports.webfinger = (function(){
       }
     }
   }
+  function resolveTemplate(template, dataCategory) {
+    var parts = template.split('{category}');
+    if(parts.length != 2) {
+      return 'cannot-resolve-template:'+template;
+    }
+    return parts[0]+dataCategory+parts[1];
+  }
   return {
-    getAttributes: getAttributes};
+    getAttributes: getAttributes,
+    resolveTemplate: resolveTemplate
+  };
 })();

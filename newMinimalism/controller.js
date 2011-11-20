@@ -5,8 +5,12 @@ exports.controller = (function() {
     alert(str);
   }
   function connect(userAddress) {
+    var dataCategory = location.host;
     exports.webfinger.getAttributes(userAddress, onError, function(attributes) {
-      exports.oauth.go(attributes.auth, location.host, userAddress);
+      var backendAddress = exports.webfinger.resolveTemplate(attributes.template, dataCategory);
+      exports.backend.init(attributes.api, backendAddress);
+      exports.sync.setBackend(exports.backend);
+      exports.oauth.go(attributes.auth, dataCategory, userAddress);
     });
   }
   function disconnect() {

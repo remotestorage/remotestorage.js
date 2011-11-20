@@ -1,14 +1,18 @@
 (function() {
   var modules = [
     'config',
-    'button',
     'ajax',
+
     'webfinger',
     'oauth',
     'session',
-    'versioning',
+
+    'backend',
     'sync',
-    'controller'
+    'versioning',
+
+    'controller',
+    'button'
   ];
   function require(script) {
     var s = document.createElement('script');
