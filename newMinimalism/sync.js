@@ -17,7 +17,7 @@ exports.sync = (function() {
     if(localStorage.getItem('_shadowSyncStatus') == 'pulling') {
       console.log('resume pulling');
     } else if(localStorage.getItem('_shadowSyncStatus') == 'pushing') {
-      console.log('resume pulling');
+      console.log('resume pushing');
     } else {
       console.log('nothing to work on.');
     }
