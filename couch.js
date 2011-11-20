@@ -7,32 +7,20 @@ exports.couch = (function() {
     var ajaxObj = {
       url: keyToAddress(key),
       method: method,
-      success: function(text){
-        var retObj={};
-        try {//this is not necessary for current version of protocol, but might be in future:
-          retObj = JSON.parse(text);
-          retObj.success = true;
-          if(retObj.rev) {//store rev as _rev in localStorage
-            obj._rev = retObj.rev;
-            localStorage.setItem('_remoteStorage_'+key, JSON.stringify(obj));
-          }
-        } catch(e){
-          retObj.success = false;
-        }
-        cb(retObj);
-      },
       error: err,
+      success: cb,
       timeout: timeout
     }
-    ajaxObj.headers= {Authorization: 'Bearer '+localStorage.getItem('_remoteStorageOauthToken')};
+    ajaxObj.headers= {Authorization: 'Bearer '+localStorage.getItem('_shadowBackendToken')};
     ajaxObj.fields={withCredentials: 'true'};
     if(method!='GET') {
       ajaxObj.data=JSON.stringify(obj);
     }
     exports.ajax(ajaxObj);
   }
-  function init(address) {
+  function init(address, bearerToken) {
     localStorage.setItem('_shadowBackendAddress', address);
+    localStorage.setItem('_shadowBackendToken', bearerToken);
   }
   function get(key, err, cb, timeout) {
     console.log('couch.get("'+key+'", err, cb, '+timeout+');');

@@ -13,14 +13,14 @@ exports.controller = (function() {
       } else {
         console.log('API "'+attributes.api+'" not supported! please try setting api="CouchDB" in webfinger');
       }
-      exports[localStorage.getItem('_shadowBackendModuleName')].init(backendAddress);
+      exports.session.set('backendAddress', backendAddress);
       exports.oauth.go(attributes.auth, dataCategory, userAddress);
     });
   }
   function disconnect() {
     exports.session.disconnect();
     var isConnected = exports.session.isConnected();
-    var userAddress = exports.session.getUserAddress();
+    var userAddress = exports.session.get('userAddress');
     exports.button.show(isConnected, userAddress);
   }
   function configure(setOptions) {
@@ -29,7 +29,7 @@ exports.controller = (function() {
   }
   function linkButtonToSession () {
     var isConnected = exports.session.isConnected();
-    var userAddress = exports.session.getUserAddress();
+    var userAddress = exports.session.get('userAddress');
     exports.button.on('connect', connect);
     exports.button.on('disconnect', disconnect);
     exports.button.show(isConnected, userAddress);
@@ -41,7 +41,10 @@ exports.controller = (function() {
     configure(setOptions); 
     linkButtonToSession();
     exports.oauth.harvestToken(function(token) {
-      exports.session.setToken(token);
+      exports.session.set('token', token);
+      exports[localStorage.getItem('_shadowBackendModuleName')].init(
+        exports.session.get('backendAddress'),
+        token);
       exports.sync.start();
     });
     exports.sync.setBackend(exports[localStorage.getItem('_shadowBackendModuleName')]);
