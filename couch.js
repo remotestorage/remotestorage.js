@@ -31,7 +31,7 @@ exports.couch = (function() {
     }
     exports.ajax(ajaxObj);
   }
-  function init(api, address) {
+  function init(address) {
     localStorage.setItem('_shadowBackendApi', api);
     localStorage.setItem('_shadowBackendAddress', address);
   }

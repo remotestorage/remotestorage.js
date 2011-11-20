@@ -1,2 +1,5 @@
-var jsFileName = 'remoteStorage.js';
-var cssFilePath = '../style/remoteStorage.css';
+exports.config = {
+  jsFileName: 'remoteStorage.js',
+  cssFilePath: 'http://unhost.it/remoteStorage.css',
+  autoSaveMilliseconds: 5000
+};
