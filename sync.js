@@ -42,7 +42,7 @@ exports.sync = (function() {
   }
 
   function getItemToPush(next) {
-    var index = JSON.parse(localStorage.getItem('_shadowLocal'));
+    var index = JSON.parse(localStorage.getItem('_shadowIndex'));
     var entryToPush = localStorage.getItem('_shadowSyncCurrEntry');
     if(entryToPush == null) {
       entryToPush = 0;//leave as null in localStorage, no use updating that
