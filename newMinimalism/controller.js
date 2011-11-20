@@ -25,9 +25,6 @@ exports.controller = (function() {
     exports.button.on('connect', connect);
     exports.button.on('disconnect', disconnect);
     exports.button.show(isConnected, userAddress);
-    exports.oauth.harvestToken(function(token) {
-      exports.session.setToken(token);
-    });
   }
   function initTimer() {
     intervalTimer = setInterval("exports.controller.trigger('timer');", 10000);
@@ -35,18 +32,25 @@ exports.controller = (function() {
   function onLoad(setOptions) {
     configure(setOptions); 
     linkButtonToSession();
+    exports.oauth.harvestToken(function(token) {
+      exports.session.setToken(token);
+      sync.start();
+    });
     initTimer();
   }
   function trigger(event) {
     console.log(event);
-    if(exports.versioning.takeLocalSnapshot()) {
+    var newTimestamp = exports.versioning.takeLocalSnapshot()
+    if(newTimestamp) {
       console.log('changes detected');
       if(exports.session.isConnected()) {
         console.log('pushing');
+        exports.sync.push(newTimestamp);
       } else {
         console.log('not connected');
       }
     }
+    exports.sync.work(9000);
   }
   return {
     configure: configure,

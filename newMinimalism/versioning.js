@@ -60,8 +60,10 @@ exports.versioning = (function() {
       localStorage.setItem('_shadowState', JSON.stringify(state));
       localStorage.setItem('_shadowRevision_'+now, JSON.stringify(index));
       console.log('storing local snapshot '+now);
+      return now;
+    } else {
+      return false;
     }
-    return hasChanges;
   }
   return {
     takeLocalSnapshot: takeLocalSnapshot
