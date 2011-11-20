@@ -66,7 +66,7 @@ exports.button = (function() {
 //    }
   }
   function show(isConnected, userAddress) {
-    if(NeedLoginBox()=='legacy') {
+    if(NeedLoginBox()=='legacy' && !document.getElementById('remoteStorageDiv')) {
       var divEl = document.createElement('div');
       divEl.id = 'remoteStorageDiv';
       divEl.innerHTML = '<link rel="stylesheet" href="'+exports.config.cssFilePath+'" />'
@@ -79,8 +79,8 @@ exports.button = (function() {
         +'<input id="userButton" type="submit" value="Sign in"'
         +' onclick="exports.button.trigger(\'ButtonClick\', this)">';
       document.body.insertBefore(divEl, document.body.firstChild);
-      DisplayConnectionState(isConnected, userAddress);
     }
+    DisplayConnectionState(isConnected, userAddress);
   }
   function trigger(what, el) {
     if(what == 'InputKeyUp') {
