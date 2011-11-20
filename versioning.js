@@ -2,7 +2,7 @@ exports.versioning = (function() {
   function takeLocalSnapshot() {
     var hasChanges = false;
     var now = ((new Date()).getTime())/1000;
-    var shadowLocal = JSON.parse(localStorage.getItem('_shadowLocal')) || {};
+    var shadowIndex = JSON.parse(localStorage.getItem('_shadowIndex')) || {};
     var shadowRemote = JSON.parse(localStorage.getItem('_shadowRemote')) || {};
     for(var i = 0; i<localStorage.length; i++) {
       var thisKey = localStorage.key(i);
@@ -18,7 +18,7 @@ exports.versioning = (function() {
       }
     }
     if(hasChanges) {
-      localStorage.setItem('_shadowLocal', JSON.stringify(index));
+      localStorage.setItem('_shadowIndex', JSON.stringify(index));
       console.log('storing local snapshot '+now);
       return now;
     } else {

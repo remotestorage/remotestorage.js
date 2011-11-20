@@ -8,22 +8,21 @@ exports.sync = (function() {
     localStorage.setItem('_shadowSyncStatus', 'pulling');
     console.log('setting sync status to pulling');
   }
-  function push(timestamp) {
+  function push() {
     if(localStorage.getItem('_shadowSyncStatus') == 'pulling') {
       console.log('will push after pulling is completed');
     } else {
       localStorage.setItem('_shadowSyncStatus', 'pushing');
-      localStorage.setItem('_shadowSyncPushRev', timestamp);
-      console.log('setting sync status to pushing revision '+timestamp);
+      console.log('setting sync status to pushing');
     }
   }
   function resumePulling(timeout, cb) {
     console.log('resume pulling');
-    backend.get('_shadowLatestRevision', function(msg) {
-      console.log('error retrieving _shadowLatestRevision:'+msg);
+    backend.get('_shadowIndex', function(msg) {
+      console.log('error retrieving _shadowIndex:'+msg);
       if(msg==404) {
         console.log('virgin remote');
-        localStorage.setItem('_shadowRemote', '0');
+        localStorage.setItem('_shadowRemote', JSON.stringify({}));
         localStorage.setItem('_shadowSyncStatus', 'idle');
         cb();
       }
@@ -33,27 +32,15 @@ exports.sync = (function() {
       cb();
     }, timeout);
   }
-  function objLength(obj) {//FIXME: look up javascript lang ref when connected
-    var i = 0;
-    for(var j in obj) {
-      i++;
-    }
-    return i;
+  function objLength(obj) {
+    return keys(obj).length;
   }
-  function objKey(obj, i) {//FIXME: look up javascript lang ref when connected
-    var j = 0;
-    for(var k in obj) {
-      if(i==j) {
-        return k;
-      }
-      j++;
-    }
-    return undefined;
+  function objKey(obj, i) {
+    return (keys(obj))[i];
   }
 
   function getItemToPush(next) {
-    var pushRev = localStorage.getItem('_shadowSyncPushRev');
-    var index = JSON.parse(localStorage.getItem('_shadowRevision_'+pushRev));
+    var index = JSON.parse(localStorage.getItem('_shadowLocal'));
     var entryToPush = localStorage.getItem('_shadowSyncCurrEntry');
     if(entryToPush == null) {
       entryToPush = 0;//leave as null in localStorage, no use updating that
@@ -65,7 +52,7 @@ exports.sync = (function() {
     if(entryToPush < objLength(index)) {
       return objKey(index, entryToPush);
     } else if(entryToPush == objLength(index)) {
-      return '_shadowRevision_'+pushRev;
+      return '_shadowIndex';
     } else {
       localStorage.removeItem('_shadowSyncCurrEntry');
       return false;
