@@ -32,11 +32,13 @@ exports.sync = (function() {
       cb();
     }, timeout);
   }
-  function objLength(obj) {
-    return keys(obj).length;
-  }
-  function objKey(obj, i) {
-    return (keys(obj))[i];
+  //FIXME
+  function keys(obj) {
+    var keysArr = [];
+    for(var i in obj) {
+      keysArr.push(i);
+    }
+    return keysArr;
   }
 
   function getItemToPush(next) {
@@ -49,9 +51,10 @@ exports.sync = (function() {
       entryToPush++;
       localStorage.setItem('_shadowSyncCurrEntry', entryToPush);
     }
-    if(entryToPush < objLength(index)) {
-      return objKey(index, entryToPush);
-    } else if(entryToPush == objLength(index)) {
+    var keysArr = keys(index);
+    if(entryToPush < keysArr.length) {
+      return keysArr[entryToPush];
+    } else if(entryToPush == keysArr.length) {
       return '_shadowIndex';
     } else {
       localStorage.removeItem('_shadowSyncCurrEntry');

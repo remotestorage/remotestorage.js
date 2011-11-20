@@ -12,16 +12,16 @@ exports.versioning = (function() {
         if(val != shadowVal) {
           localStorage.setItem('_shadowItem_'+thisKey, val);
           console.log('storing local version of item "'+thisKey+'" @'+now);
-          index[thisKey] = now;
+          shadowIndex[thisKey] = now;
           hasChanges = true;
         }
       }
     }
     if(hasChanges) {
-      localStorage.setItem('_shadowIndex', JSON.stringify(index));
+      localStorage.setItem('_shadowIndex', JSON.stringify(shadowIndex));
       console.log('storing local snapshot '+now);
       return now;
-    } else {
+    } elseshadowI{
       return false;
     }
   }
