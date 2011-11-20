@@ -1,4 +1,27 @@
+LOCAL:
+======
+_shadowLocal: {
+    (key): (timestamp)
+  }
+_shadowRemote: {
+    (key): (timestamp)
+  }
+_shadowItem_(key): (value) -> for detecting changes; only in autosave mode.
+(key): (value)
+
+local is never behind on remote, except when logging in, when it's still busy pulling in all the keys. it might be ahead on some keys though, when working offline, or when not logged in, or when still busy pushing out all latest changed keys.
+
+REMOTE:
+=======
+_shadowIndex: {
+  (key): (timestamp)
+}
+(key)_(timestamp): (value) -> the timestamp is added so that you can pre-upload new content, and then atomically PUT the index
+
+
+
 module structure:
+
 
 div
 window.remoteStorage.configure()
