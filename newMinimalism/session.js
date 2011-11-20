@@ -5,12 +5,20 @@ exports.session = (function() {
   function setToken(token) {
     sessionStorage.setItem('_remoteStorageToken', token);
   }
+  function getUserAddress() {
+    return sessionStorage.getItem('_remoteStorageUserAddress');
+  }
   function isConnected() {
     return (sessionStorage.getItem('_remoteStorageToken') != null);
+  }
+  function disconnect() {
+    sessionStorage.clear();
   }
   return {
     setUserAddress: setUserAddress,
     setToken: setToken,
-    isConnected: isConnected
+    getUserAddress: getUserAddress,
+    isConnected: isConnected,
+    disconnect: disconnect
   };
 })();

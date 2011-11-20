@@ -1,19 +1,20 @@
 exports.button = (function() {
   var handlers = {};
-
+  var buttonState;
     ////////
    // UI //
   ////////
-  function DisplayConnectionState() {
-    if(remoteStorage.isConnected()) {
+  function DisplayConnectionState(isConnected, userAddress) {
+    if(isConnected) {
       //button to disconnect:
       document.getElementById('userButton').value='Disconnect';
       //display span:
       document.getElementById('userAddress').style.display='inline';
-      document.getElementById('userAddress').innerHTML=remoteStorage.getUserAddress();
+      document.getElementById('userAddress').innerHTML=userAddress;
       //hide input:
       document.getElementById('userAddressInput').style.display='none';
       document.getElementById('userAddressInput').disabled='disabled';
+      buttonState = 'connected';
     } else {
       //button to Sign in:
       document.getElementById('userButton').value='Sign in';
@@ -24,6 +25,7 @@ exports.button = (function() {
       //hide input:
       document.getElementById('userAddress').style.display='none';
       document.getElementById('userAddress').disabled='disabled';
+      buttonState = 'disconnected';
     }
   }
 
@@ -45,11 +47,15 @@ exports.button = (function() {
     el.className='';
   }
   function SpanClick(el) {
-    window.remoteStorage.disconnect();
+    console.log('You are clicking the span man. Click the button instead!');
   }
   function ButtonClick(el) {
     //handlers['connect'](document.getElementById('userAddressInput').value);
-    handlers['connect']('test@yourremotestorage.net');
+    if(buttonState == 'connected') {
+      handlers['disconnect']('test@yourremotestorage.net');
+    } else {
+      handlers['connect']('test@yourremotestorage.net');
+    }
   }
 
   function NeedLoginBox() {
@@ -59,7 +65,7 @@ exports.button = (function() {
       return 'legacy';
 //    }
   }
-  function show() {
+  function show(isConnected, userAddress) {
     if(NeedLoginBox()=='legacy') {
       var divEl = document.createElement('div');
       divEl.id = 'remoteStorageDiv';
@@ -73,6 +79,7 @@ exports.button = (function() {
         +'<input id="userButton" type="submit" value="Sign in"'
         +' onclick="exports.button.trigger(\'ButtonClick\', this)">';
       document.body.insertBefore(divEl, document.body.firstChild);
+      DisplayConnectionState(isConnected, userAddress);
     }
   }
   function trigger(what, el) {
