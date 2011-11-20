@@ -10,7 +10,7 @@ exports.couch = (function() {
     }
     return localStorage.getItem('_shadowBackendAddress') + key;
   }
-  function doCall(method, key, obj, err, cb, timeout) {
+  function doCall(method, key, value, err, cb, timeout) {
     var ajaxObj = {
       url: keyToAddress(key),
       method: method,
@@ -21,7 +21,7 @@ exports.couch = (function() {
     ajaxObj.headers= {Authorization: 'Bearer '+localStorage.getItem('_shadowBackendToken')};
     ajaxObj.fields={withCredentials: 'true'};
     if(method!='GET') {
-      ajaxObj.data=JSON.stringify(obj);
+      ajaxObj.data=value;
     }
     exports.ajax(ajaxObj);
   }
