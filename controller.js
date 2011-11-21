@@ -25,7 +25,11 @@ exports.controller = (function() {
   }
   function configure(setOptions) {
     console.log(setOptions);
-    options = setOptions;
+    if(setOptions) {
+      for(var i in setOptions) {
+        options[i] = setOptions[i];
+      }
+    }
   }
   function linkButtonToSession () {
     var isConnected = exports.session.isConnected();
