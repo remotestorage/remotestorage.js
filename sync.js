@@ -66,7 +66,11 @@ exports.sync = (function() {
     var startTime = (new Date().getTime());
     console.log('resume pushing');
     var itemToPush = getItemToPush(false);
-    backend.set(itemToPush, localStorage.getItem(itemToPush), function(msg) {
+    var remoteKeyName = itemToPush;
+    if(itemToPush != '_shadowIndex') {
+      remoteKeyName += '_'+JSON.parse(localStorage.getItem('_shadowIndex'))[itemToPush];
+    }
+    backend.set(remoteKeyName, localStorage.getItem(itemToPush), function(msg) {
       console.log('error putting '+itemToPush);
     }, function() {
       if(getItemToPush(true)) {
