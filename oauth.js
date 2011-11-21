@@ -18,25 +18,27 @@ exports.oauth = (function() {
     }
     var params = location.hash.split('&');
     var paramsToStay = [];
-    for(param in params){
-      if(params[param].length && params[param][0] =='#') {
-        params[param] = params[param].substring(1);
-      }
-      var kv = params[param].split('=');
-      if(kv.length >= 2) {
-        if(kv[0]=='access_token') {
-          var token = kv[1];
-          for(var i = 2; i < kv.length; i++) {
-            token += '='+kv[i];
+    for(var param in params){
+      if(typeof(params[param]) == "string") {
+        if(params[param].length && params[param][0] =='#') {
+          params[param] = params[param].substring(1);
+        }
+        var kv = params[param].split('=');
+        if(kv.length >= 2) {
+          if(kv[0]=='access_token') {
+            var token = kv[1];
+            for(var i = 2; i < kv.length; i++) {
+              token += '='+kv[i];
+            }
+            cb(token);
+          } else if(kv[0]=='token_type') {
+            //ignore silently
+          } else {
+            paramsToStay.push(params[param]);
           }
-          cb(token);
-        } else if(kv[0]=='token_type') {
-          //ignore silently
         } else {
           paramsToStay.push(params[param]);
         }
-      } else {
-        paramsToStay.push(params[param]);
       }
     }
     if(paramsToStay.length) {
