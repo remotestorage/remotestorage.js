@@ -63,8 +63,9 @@ exports.controller = (function() {
       }
     }
     if(exports.session.isConnected()) {
-      exports.sync.work((exports.config.autoSaveMilliseconds * 9)/10, function() {
-        console.log('back in controller after work.');
+      exports.sync.work((exports.config.autoSaveMilliseconds * 9)/10, function(incomingKey, incomingValue) {
+        console.log('incoming value "'+incomingValue+'" for key "'+incomingKey+'".');
+        exports.versioning.incomingChange(incomingKey, incomingValue);
       });
     }
   }
