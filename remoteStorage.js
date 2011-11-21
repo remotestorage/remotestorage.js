@@ -22,10 +22,8 @@
   }
   window.exports = {};
   //require('http://browserid.org/include.js');
-  for(var i in modules) 
-    if(typeof(i) == "number") {//necessary for compatibility with UNG?/dojo?/jquery? contamination of the array prototype
-      require('http://unhost.it/'+modules[i]+'.js');
-    }
+  for(var i in modules) { 
+    require('http://unhost.it/'+modules[i]+'.js');
   }
 
   function whenReady() {
@@ -39,7 +37,7 @@
   }
   window.exports.checkReady = function() {
     for(var i in modules) {
-      if(typeof(i) == "number") {//necessary for compatibility with UNG?/dojo?/jquery? contamination of the array prototype
+      if(typeof(modules[i]) == "string") {//necessary for compatibility with UNG?/dojo?/jquery? contamination of the array prototype
         if(typeof(exports[modules[i]]) == 'undefined') {
           setTimeout("window.exports.checkReady();", 1000);
           console.log(modules[i]+': not ready');
