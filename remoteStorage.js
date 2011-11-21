@@ -54,7 +54,7 @@
 
   window.remoteStorage = {
     syncNow: function() {
-      exports.controller.trigger('event');
+      exports.controller.trigger('syncNow');
     }
   }
   //FIXME: not use a timer here to wait for the scripts to load :)

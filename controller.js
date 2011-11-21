@@ -46,12 +46,6 @@ exports.controller = (function() {
     exports.button.on('disconnect', disconnect);
     exports.button.show(isConnected, userAddress);
   }
-  function initTimer() {
-    var now = (new Date()).getTime();
-    deadLine = now + exports.config.autoSaveMilliseconds;
-    exports.controller.trigger('timer');
-    setTimeout("initTimer();", exports.config.autoSaveMilliseconds);
-  }
   function onLoad(setOptions) {
     configure(setOptions); 
     linkButtonToSession();
@@ -63,11 +57,17 @@ exports.controller = (function() {
       exports.sync.start();
     });
     exports.sync.setBackend(exports[localStorage.getItem('_shadowBackendModuleName')]);
-    initTimer();
+    trigger('timer');
   }
   function trigger(event) {
+    console.log(event);
+    if(event == 'timer') {
+      //if timer-triggered, update deadLine and immediately schedule next time
+      var now = (new Date()).getTime();
+      deadLine = now + exports.config.autoSaveMilliseconds;
+      setTimeout("exports.controller.trigger('timer');", exports.config.autoSaveMilliseconds);
+    }
     if(!working) {
-      console.log(event);
       working = true;
       var newTimestamp = exports.versioning.takeLocalSnapshot()
       if(newTimestamp) {
