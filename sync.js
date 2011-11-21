@@ -75,7 +75,7 @@ exports.sync = (function() {
           localStorage.setItem('_shadowSyncStatus', 'idle');
           whenDone();
         }
-      }, timeout);
+      }, deadLine);
     }
   }
   //FIXME
@@ -127,14 +127,14 @@ exports.sync = (function() {
         localStorage.setItem('_shadowSyncStatus', 'idle');
         whenDone();
       }
-    }, timeout);
+    }, deadLine);
   }
   function work(deadLine, cbIncomingChange, whenDone) {
     var now = (new Date().getTime());
     if(deadLine < now) {
       return;
     }
-    console.log('sync working for '+timeout+' milliseconds:');
+    console.log('sync working, '+(deadLine - now)+' milliseconds left:');
     if(localStorage.getItem('_shadowSyncStatus') == 'pulling') {
       resumePulling(deadLine, cbIncomingChange, whenDone);
     } else if(localStorage.getItem('_shadowSyncStatus') == 'pushing') {

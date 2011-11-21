@@ -1,5 +1,6 @@
 exports.controller = (function() {
   var deadLine;
+  var working=false;
   var intervalTimer;
   var options = {
     onChange: function(key, oldValue, newValue) {
