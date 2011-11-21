@@ -44,8 +44,7 @@ exports.sync = (function() {
       return (keys(JSON.parse(localStorage.getItem('_shadowRemote'))))[itemToPull];
     }
   }
-  function resumePulling(timeout, cb) {
-    var startTime = (new Date().getTime());
+  function resumePulling(deadLine, cb, whenDone) {
     console.log('resume pulling');
     itemToPull = getItemToPull(false);
     if(!itemToPull) {
@@ -62,6 +61,7 @@ exports.sync = (function() {
           localStorage.setItem('_shadowRemote', JSON.stringify({}));
           localStorage.setItem('_shadowSyncStatus', 'idle');
         }
+        whenDone();
       }, function(value) {
         if(itemToPull == '_shadowIndex') {
           localStorage.setItem('_shadowRemote', value);
@@ -70,10 +70,10 @@ exports.sync = (function() {
         }
         var nextItem = getItemToPull(true);
         if(nextItem) {
-          var timeElapsed = (new Date().getTime()) - startTime;
-          work(timeout - timeElapsed, cb);
+          work(deadLine, cb, whenDone);
         } else {
           localStorage.setItem('_shadowSyncStatus', 'idle');
+          whenDone();
         }
       }, timeout);
     }
@@ -108,8 +108,7 @@ exports.sync = (function() {
     }
   }
 
-  function resumePushing(timeout) {
-    var startTime = (new Date().getTime());
+  function resumePushing(deadLine, whenDone) {
     console.log('resume pushing');
     var itemToPush = getItemToPush(false);
     var remoteKeyName = itemToPush;
@@ -118,28 +117,31 @@ exports.sync = (function() {
     }
     backend.set(remoteKeyName, localStorage.getItem(itemToPush), function(msg) {
       console.log('error putting '+itemToPush);
+      whenDone();
     }, function() {
       if(getItemToPush(true)) {
-        var timeElapsed = (new Date().getTime()) - startTime;
-        work(timeout - timeElapsed, function() {
+        work(deadLine, function() {
           console.log('incoming changes should not happen when pushing!');
-        });
+        }, whenDone);
       } else {
         localStorage.setItem('_shadowSyncStatus', 'idle');
+        whenDone();
       }
     }, timeout);
   }
-  function work(timeout, cbIncomingChange) {
-    if(timeout < 0) {
+  function work(deadLine, cbIncomingChange, whenDone) {
+    var now = (new Date().getTime());
+    if(deadLine < now) {
       return;
     }
     console.log('sync working for '+timeout+' milliseconds:');
     if(localStorage.getItem('_shadowSyncStatus') == 'pulling') {
-      resumePulling(timeout, cbIncomingChange);
+      resumePulling(deadLine, cbIncomingChange, whenDone);
     } else if(localStorage.getItem('_shadowSyncStatus') == 'pushing') {
-      resumePushing(timeout);
+      resumePushing(deadLine, whenDone);
     } else {
       console.log('nothing to work on.');
+      whenDone();
     }
   }
   return {

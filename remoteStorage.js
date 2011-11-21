@@ -52,6 +52,11 @@
     whenReady();
   }
 
+  window.remoteStorage = {
+    syncNow: function() {
+      exports.controller.trigger('event');
+    }
+  }
   //FIXME: not use a timer here to wait for the scripts to load :)
   setTimeout("window.exports.checkReady();", 0);
 })();

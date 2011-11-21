@@ -1,4 +1,5 @@
 exports.controller = (function() {
+  var deadLine;
   var intervalTimer;
   var options = {
     onChange: function(key, oldValue, newValue) {
@@ -43,7 +44,10 @@ exports.controller = (function() {
     exports.button.show(isConnected, userAddress);
   }
   function initTimer() {
-    intervalTimer = setInterval("exports.controller.trigger('timer');", exports.config.autoSaveMilliseconds);
+    var now = (new Date()).getTime();
+    deadLine = now + exports.config.autoSaveMilliseconds;
+    exports.controller.trigger('timer');
+    setTimeout("initTimer();", exports.config.autoSaveMilliseconds);
   }
   function onLoad(setOptions) {
     configure(setOptions); 
@@ -59,24 +63,31 @@ exports.controller = (function() {
     initTimer();
   }
   function trigger(event) {
-    console.log(event);
-    var newTimestamp = exports.versioning.takeLocalSnapshot()
-    if(newTimestamp) {
-      console.log('changes detected');
-      if(exports.session.isConnected()) {
-        console.log('pushing');
-        exports.sync.push(newTimestamp);
-      } else {
-        console.log('not connected');
+    if(!working) {
+      console.log(event);
+      working = true;
+      var newTimestamp = exports.versioning.takeLocalSnapshot()
+      if(newTimestamp) {
+        console.log('changes detected');
+        if(exports.session.isConnected()) {
+          console.log('pushing');
+          exports.sync.push(newTimestamp);
+        } else {
+          console.log('not connected');
+        }
       }
-    }
-    if(exports.session.isConnected()) {
-      exports.sync.work((exports.config.autoSaveMilliseconds * 9)/10, function(incomingKey, incomingValue) {
-        console.log('incoming value "'+incomingValue+'" for key "'+incomingKey+'".');
-        var oldValue = localStorage.getItem(incomingKey);
-        exports.versioning.incomingChange(incomingKey, incomingValue);
-        options.onChange(incomingKey, oldValue, incomingValue);
-      });
+      if(exports.session.isConnected()) {
+        exports.sync.work(deadLine, function(incomingKey, incomingValue) {
+          console.log('incoming value "'+incomingValue+'" for key "'+incomingKey+'".');
+          var oldValue = localStorage.getItem(incomingKey);
+          exports.versioning.incomingChange(incomingKey, incomingValue);
+          options.onChange(incomingKey, oldValue, incomingValue);
+        }, function() {
+          working = false;
+        });
+      }
+    } else {
+      console.log('still working?');
     }
   }
   return {
