@@ -50,9 +50,13 @@ exports.sync = (function() {
     if(!itemToPull) {
       localStorage.setItem('_shadowSyncStatus', 'idle');
     } else {
-      backend.get(itemToPull, function(msg) {
-        console.log('error retrieving "'+itemToPull+'":'+msg);
-        if((itemToPull == '_shadowIndex') && (msg==404)) {
+      var remoteKeyName = itemToPull;
+      if(itemToPull != '_shadowIndex') {
+        remoteKeyName += '_'+JSON.parse(localStorage.getItem('_shadowIndex'))[itemToPull];
+      }
+      backend.get(remoteKeyName, function(msg) {
+        console.log('error retrieving "'+remoteKeyName+'":'+msg);
+        if((remoteKeyName == '_shadowIndex') && (msg==404)) {
           console.log('virgin remote');
           localStorage.setItem('_shadowRemote', JSON.stringify({}));
           localStorage.setItem('_shadowSyncStatus', 'idle');
