@@ -50,11 +50,12 @@ exports.button = (function() {
     console.log('You are clicking the span man. Click the button instead!');
   }
   function ButtonClick(el) {
-    //handlers['connect'](document.getElementById('userAddressInput').value);
     if(buttonState == 'connected') {
-      handlers['disconnect']('test@yourremotestorage.net');
+      handlers['disconnect'](document.getElementById('userAddressInput').value);
+      //handlers['disconnect']('test@yourremotestorage.net');
     } else {
-      handlers['connect']('test@yourremotestorage.net');
+      handlers['connect'](document.getElementById('userAddressInput').value);
+      //handlers['connect']('test@yourremotestorage.net');
     }
   }
 

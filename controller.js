@@ -4,22 +4,24 @@ exports.controller = (function() {
   var options = {
     onChange: function(key, oldValue, newValue) {
       console.log('item "'+key+'" changed from "'+oldValue+'" to "'+newValue+'"');
-    }
+      console.log('WARNING: Please configure an onChange function! Forcing full page refresh instead');
+      window.location = '';
+    },
+    category: location.host.replace('.', '_')
   };
   function onError(str) {
     alert(str);
   }
   function connect(userAddress) {
-    var dataCategory = location.host.replace('.', '_');
     exports.webfinger.getAttributes(userAddress, onError, function(attributes) {
-      var backendAddress = exports.webfinger.resolveTemplate(attributes.template, dataCategory);
+      var backendAddress = exports.webfinger.resolveTemplate(attributes.template, options.category);
       if(attributes.api == 'CouchDB') {
         localStorage.setItem('_shadowBackendModuleName', 'couch');
       } else {
         console.log('API "'+attributes.api+'" not supported! please try setting api="CouchDB" in webfinger');
       }
       exports.session.set('backendAddress', backendAddress);
-      exports.oauth.go(attributes.auth, dataCategory, userAddress);
+      exports.oauth.go(attributes.auth, options.category, userAddress);
     });
   }
   function disconnect() {
