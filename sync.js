@@ -52,7 +52,7 @@ exports.sync = (function() {
     } else {
       var remoteKeyName = itemToPull;
       if(itemToPull != '_shadowIndex') {
-        remoteKeyName += '_'+JSON.parse(localStorage.getItem('_shadowIndex'))[itemToPull];
+        remoteKeyName += '_'+JSON.parse(localStorage.getItem('_shadowRemote'))[itemToPull];
       }
       backend.get(remoteKeyName, function(msg) {
         console.log('error retrieving "'+remoteKeyName+'":'+msg);
