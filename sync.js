@@ -32,7 +32,8 @@ exports.sync = (function() {
            localStorage.setItem('_shadowSyncCurrEntry', itemToPull);
            return thisKey;
         }
-        if(itemToPull == keysArr.length) {
+        //if(itemToPull >= keysArr.length) { - this gets into an infinite loop with polluted array prototype
+        if(typeof(keysArr[itemToPull]) == "undefined") {
           return false;
         }
       }
