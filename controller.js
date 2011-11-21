@@ -1,6 +1,10 @@
 exports.controller = (function() {
   var intervalTimer;
-  var options = {};
+  var options = {
+    onChange: function(key, oldValue, newValue) {
+      console.log('item "'+key+'" changed from "'+oldValue+'" to "'+newValue+'"');
+    }
+  };
   function onError(str) {
     alert(str);
   }
