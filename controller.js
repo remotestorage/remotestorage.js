@@ -65,7 +65,9 @@ exports.controller = (function() {
     if(exports.session.isConnected()) {
       exports.sync.work((exports.config.autoSaveMilliseconds * 9)/10, function(incomingKey, incomingValue) {
         console.log('incoming value "'+incomingValue+'" for key "'+incomingKey+'".');
+        var oldValue = localStorage.getItem(incomingKey);
         exports.versioning.incomingChange(incomingKey, incomingValue);
+        options.onChange(incomingKey, oldValue, incomingValue);
       });
     }
   }

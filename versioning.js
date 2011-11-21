@@ -1,4 +1,11 @@
 exports.versioning = (function() {
+  function incomingChange(key, value) {
+    var now = ((new Date()).getTime())/1000;
+    var shadowIndex = JSON.parse(localStorage.getItem('_shadowIndex')) || {};
+    shadowIndex[key] = now;
+    localStorage.setItem('_shadowIndex', JSON.stringify(shadowIndex));
+    localStorage.setItem(key, value);
+  }
   function takeLocalSnapshot() {
     var hasChanges = false;
     var now = ((new Date()).getTime())/1000;
@@ -26,6 +33,7 @@ exports.versioning = (function() {
     }
   }
   return {
+    incomingChange: incomingChange,
     takeLocalSnapshot: takeLocalSnapshot
   };
 })();

@@ -20,28 +20,27 @@ exports.sync = (function() {
     var itemToPull = localStorage.getItem('_shadowSyncCurrEntry');
     if(next) {
       if(itemToPull == null) {
-        itemToPull = 0;
-      } else {
-        var remoteIndex =JSON.parse(localStorage.getItem('_remoteIndex'));
-        var shadowIndex =JSON.parse(localStorage.getItem('_shadowIndex'));
-        var keysArr = keys(remoteIndex);
-        while(true) {
-          itemToPull += 1;
-          var thisKey = keysArr[itemToPull];
-          if(remoteIndex[thisKey] > localStorage[thisKey]) {
-             localStorage.setItem('_shadowSyncCurrEntry', itemToPull);
-             return thisKey;
-          }
-          if(itemToPull == keysArr.length) {
-            return false;
-          }
+        itemToPull = -1;
+      }
+      var shadowRemote =JSON.parse(localStorage.getItem('_shadowRemote'));
+      var shadowIndex =JSON.parse(localStorage.getItem('_shadowIndex'));
+      var keysArr = keys(shadowRemote);
+      while(true) {
+        itemToPull += 1;
+        var thisKey = keysArr[itemToPull];
+        if(shadowRemote[thisKey] > localStorage[thisKey]) {
+           localStorage.setItem('_shadowSyncCurrEntry', itemToPull);
+           return thisKey;
+        }
+        if(itemToPull == keysArr.length) {
+          return false;
         }
       }
     }
     if(itemToPull == null) {
         return '_shadowIndex';
     } else {
-      return (keys(JSON.parse(localStorage.getItem('_remoteIndex'))))[itemToPull];
+      return (keys(JSON.parse(localStorage.getItem('_shadowRemote'))))[itemToPull];
     }
   }
   function resumePulling(timeout, cb) {
@@ -126,6 +125,9 @@ exports.sync = (function() {
     }, timeout);
   }
   function work(timeout, cbIncomingChange) {
+    if(timeout < 0) {
+      return;
+    }
     console.log('sync working for '+timeout+' milliseconds:');
     if(localStorage.getItem('_shadowSyncStatus') == 'pulling') {
       resumePulling(timeout, cbIncomingChange);
