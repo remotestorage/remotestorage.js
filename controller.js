@@ -14,7 +14,11 @@ exports.controller = (function() {
     alert(str);
   }
   function connect(userAddress) {
-    exports.webfinger.getAttributes(userAddress, onError, function(attributes) {
+    exports.webfinger.getAttributes(userAddress, {
+      allowHttpWebfinger: true,
+      allowSingleOriginWebfinger: false,
+      allowFakefinger: true
+    }, onError, function(attributes) {
       var backendAddress = exports.webfinger.resolveTemplate(attributes.template, options.category);
       if(attributes.api == 'CouchDB') {
         localStorage.setItem('_shadowBackendModuleName', 'couch');

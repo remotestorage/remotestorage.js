@@ -1,5 +1,2 @@
-#- add saveNow()
-#- add chosing of category in options
-#- default onchange: refresh page
 - handle couch conflicts
 - unit tests

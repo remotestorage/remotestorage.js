@@ -4,8 +4,9 @@
 ///////////////
 
 exports.webfinger = (function(){
-  var userAddress, userName, host, templateParts;//this is all a bit messy, but there are a lot of callbacks here, so globals help us with that.
-  function getAttributes(ua, error, cb){
+  var options, userAddress, userName, host, templateParts;//this is all a bit messy, but there are a lot of callbacks here, so globals help us with that.
+  function getAttributes(ua, setOptions, error, cb){
+    options = setOptions;
     userAddress = ua;
     var parts = ua.split('@');
     if(parts.length < 2) {
@@ -25,7 +26,7 @@ exports.webfinger = (function(){
           //url: 'https://'+host+'/.well-known/host-meta',
           url: 'http://'+host+'/.well-known/host-meta',
           success: function(data) {
-            afterHttpsHostmetaSuccess(data, error, cb);
+            afterHostmetaSuccess(data, error, cb);
           },
           error: function(data) {
             afterHttpsHostmetaError(data, error, cb);
@@ -34,39 +35,57 @@ exports.webfinger = (function(){
       }
     }
   }
-  function afterHttpsHostmetaSuccess(data, error, cb) {
-    //error('Https Host-meta found.');
-    continueWithHostmeta(data, error, cb);
-  }
 
   function afterHttpsHostmetaError(data, error, cb) {
-        //error('Https Host-meta error. Trying http.');
-        exports.ajax({
-          url: 'http://'+host+'/.well-known/host-meta',
-          success: function(data) {
-            afterHttpHostmetaSuccess(data, error, cb);
-          },
-          error: function(data) {
-            afterHttpHostmetaError(data, error, cb);
-          },
-        })
-  }
-
-  function afterHttpHostmetaSuccess(data, error, cb) {
-    //error('Http Host-meta found.');
-    continueWithHostmeta(data, error, cb);
+    if(options.allowHttpWebfinger) {
+      console.log('Https Host-meta error. Trying http.');
+      exports.ajax({
+        url: 'http://'+host+'/.well-known/host-meta',
+        success: function(data) {
+          afterHostmetaSuccess(data, error, cb);
+        },
+        error: function(data) {
+          afterHttpHostmetaError(data, error, cb);
+        },
+      })
+    } else {
+       afterHttpHostmetaError(data, error, cb);
+    }
   }
 
   function afterHttpHostmetaError(data, error, cb) {
-    error('Cross-origin host-meta failed. Trying through proxy');
-    //$.ajax(
-    //  { url: 'http://useraddress.net/single-origin-webfinger...really?'+ua
-    //   , success: afterWebfingerSuccess
-    //   , error: afterProxyError
-    //  })
+    if(options.allowSingleOriginWebfinger) {
+      console.log('Trying single origin webfinger through proxy');
+      exports.ajax({
+        url: 'http://useraddress.net/single-origin-webfinger...really?'+userAddress,
+        success: afterLrddSuccess,
+        error: function(data) {
+          afterProxyError(data, error, cb);
+        }
+      });
+    } else {
+      afterProxyError(data, error, cb);
+    }
   }
-
-  function continueWithHostmeta(data, error, cb) {
+    
+  function afterProxyError(data, error, cb) {
+    if(options.allowFakefinger) {
+      console.log('Trying Fakefinger');
+      exports.ajax({
+        url: 'http://useraddress.net/fakefinger?'+userAddress,
+        success: afterLrddSuccess,
+        error: function(data) {
+          afterFakefingerError(data, error, cb);
+        }
+      });
+    } else {
+      afterFakefingerError(data, error, cb);
+    }
+  }
+  function afterFakefingerError() {
+    alert('user address "'+userAddress+'" doesn\'t seem to have remoteStorage linked to it');
+  }
+  function afterHostmetaSuccess(data, error, cb) {
     data = (new DOMParser()).parseFromString(data, 'text/xml');
     if(!data.getElementsByTagName) {
       error('Host-meta is not an XML document, or doesnt have xml mimetype.');
@@ -115,7 +134,7 @@ exports.webfinger = (function(){
   function afterLrddNoAcctError() {
     error('the template doesn\'t contain "{uri}"');
     exports.ajax({
-      url: templateParts[0]+'acct:'+ua+templateParts[1],
+      url: templateParts[0]+'acct:'+userAddress+templateParts[1],
       success: function() {afterLrddSuccess(error, cb);},
       error: function() {afterLrddAcctError(error, cb);}
     })
