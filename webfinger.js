@@ -58,7 +58,9 @@ exports.webfinger = (function(){
       console.log('Trying single origin webfinger through proxy');
       exports.ajax({
         url: 'http://useraddress.net/single-origin-webfinger...really?'+userAddress,
-        success: afterLrddSuccess,
+        success: function(data) {
+          afterLrddSuccess(data, error, cb);
+        },
         error: function(data) {
           afterProxyError(data, error, cb);
         }
@@ -72,8 +74,10 @@ exports.webfinger = (function(){
     if(options.allowFakefinger) {
       console.log('Trying Fakefinger');
       exports.ajax({
-        url: 'http://useraddress.net/fakefinger?'+userAddress,
-        success: afterLrddSuccess,
+        url: 'http://useraddress.net/fakefinger?userAddress='+userAddress,
+        success: function(data) {
+          afterLrddSuccess(data, error, cb);
+        },
         error: function(data) {
           afterFakefingerError(data, error, cb);
         }
@@ -133,11 +137,6 @@ exports.webfinger = (function(){
   }
   function afterLrddNoAcctError() {
     error('the template doesn\'t contain "{uri}"');
-    exports.ajax({
-      url: templateParts[0]+'acct:'+userAddress+templateParts[1],
-      success: function() {afterLrddSuccess(error, cb);},
-      error: function() {afterLrddAcctError(error, cb);}
-    })
   }
   function afterLrddSuccess(data, error, cb) {
     data = (new DOMParser()).parseFromString(data, 'text/xml');

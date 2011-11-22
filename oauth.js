@@ -6,7 +6,8 @@ exports.oauth = (function() {
   function go(address, category, userAddress) {
     var loc = encodeURIComponent((''+window.location).split('#')[0]);
     window.location = address
-      + '?client_id=' + loc
+      + ((address.indexOf('?') == -1)?'?':'&')
+      + 'client_id=' + loc
       + '&redirect_uri=' + loc
       + '&scope=' + category
       + '&user_address=' + userAddress
