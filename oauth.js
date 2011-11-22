@@ -27,7 +27,7 @@ exports.oauth = (function() {
         var kv = params[param].split('=');
         if(kv.length >= 2) {
           if(kv[0]=='access_token') {
-            var token = kv[1];
+            var token = unescape(kv[1]);//unescaping is needed in chrome, otherwise you get %3D%3D at the end instead of ==
             for(var i = 2; i < kv.length; i++) {
               token += '='+kv[i];
             }
