@@ -43,16 +43,27 @@ exports.controller = (function() {
       }
     }
   }
+  function needLoginBox() {
+    if(options.suppressDialog) {
+      return 'none';
+    } else {
+      return 'legacy';
+    }
+  }
   function linkButtonToSession () {
     var isConnected = exports.session.isConnected();
     var userAddress = exports.session.get('userAddress');
-    exports.button.on('connect', connect);
-    exports.button.on('disconnect', disconnect);
-    exports.button.show(isConnected, userAddress);
+    if(needLoginBox()) {
+      exports.button.on('connect', connect);
+      exports.button.on('disconnect', disconnect);
+      exports.button.show(isConnected, userAddress);
+    }
   }
   function onLoad(setOptions) {
     configure(setOptions); 
-    linkButtonToSession();
+    if(needLoginBox()) {
+      linkButtonToSession();
+    }
     exports.oauth.harvestToken(function(token) {
       exports.session.set('token', token);
       exports[localStorage.getItem('_shadowBackendModuleName')].init(

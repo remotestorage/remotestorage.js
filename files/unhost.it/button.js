@@ -59,15 +59,8 @@ exports.button = (function() {
     }
   }
 
-  function NeedLoginBox() {
-//    if(window.remoteStorage.options.suppressDialog) {
-//      return 'none';
-//    } else {
-      return 'legacy';
-//    }
-  }
   function show(isConnected, userAddress) {
-    if(NeedLoginBox()=='legacy' && !document.getElementById('remoteStorageDiv')) {
+    if(!document.getElementById('remoteStorageDiv')) {
       var divEl = document.createElement('div');
       divEl.id = 'remoteStorageDiv';
       divEl.innerHTML = '<link rel="stylesheet" href="'+exports.config.cssFilePath+'" />'
