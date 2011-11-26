@@ -1,5 +1,7 @@
 exports.config = {
-  jsFileName: 'remoteStorage.js',
-  cssFilePath: 'http://unhost.it/remoteStorage.css',
-  autoSaveMilliseconds: 5000
+  backends: { statics: 80 },
+  redirect: {
+    "unhosted.nodejitsu.com": "unhost.it"
+  },
+  domainsDir: 'files/'
 };

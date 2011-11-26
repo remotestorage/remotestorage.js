@@ -1,0 +1,11 @@
+{
+  "name": "remoteStorage.js",
+  "subdomain": "unhost-it",
+  "domains": [
+    "unhost.it"
+  ],
+  "scripts": {
+    "start": "server.js"
+  },
+  "version": "0.0.0-9"
+}
