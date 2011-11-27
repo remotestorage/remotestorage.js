@@ -1,2 +1,0 @@
-- handle couch conflicts
-- unit tests
