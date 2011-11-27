@@ -45,9 +45,9 @@ exports.controller = (function() {
   }
   function needLoginBox() {
     if(options.suppressDialog) {
-      return 'none';
+      return false;
     } else {
-      return 'legacy';
+      return true;
     }
   }
   function linkButtonToSession () {
