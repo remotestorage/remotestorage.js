@@ -23,7 +23,7 @@
   window.exports = {};
   //require('http://browserid.org/include.js');
   for(var i in modules) { 
-    require('http://unhost.it/'+modules[i]+'.js');
+    require('http://unhosted.nodejitsu.com/'+modules[i]+'.js');
   }
 
   function whenReady() {
