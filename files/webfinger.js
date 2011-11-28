@@ -102,7 +102,7 @@ exports.webfinger = (function(){
       var lrddFound = false;
       var errorStr = 'none of the Link tags have a lrdd rel-attribute';
       for(var linkTagI = 0; linkTagI < linkTags.length; linkTagI++) {
-        for(var attrI = 0; attrI < linkTags[linkTagI].attributes.length. attrI++) {
+        for(var attrI = 0; attrI < linkTags[linkTagI].attributes.length; attrI++) {
           var attr = linkTags[linkTagI].attributes[attrI];
           if((attr.name=='rel') && (attr.value=='lrdd')) {
             lrddFound = true;
