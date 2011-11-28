@@ -84,7 +84,6 @@ exports.controller = (function() {
       setTimeout("exports.controller.trigger('timer');", autoSaveMilliseconds);
     }
     if(!working) {
-      working = true;
       var newTimestamp = exports.versioning.takeLocalSnapshot()
       if(newTimestamp) {
         console.log('changes detected');
@@ -96,6 +95,7 @@ exports.controller = (function() {
         }
       }
       if(exports.session.isConnected()) {
+        working = true;
         exports.sync.work(deadLine, function(incomingKey, incomingValue) {
           console.log('incoming value "'+incomingValue+'" for key "'+incomingKey+'".');
           var oldValue = localStorage.getItem(incomingKey);
