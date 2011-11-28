@@ -1,5 +1,0 @@
-exports.config = (function() {
-  return {
-
-  };
-})();

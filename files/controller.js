@@ -79,8 +79,9 @@ exports.controller = (function() {
     if(event == 'timer') {
       //if timer-triggered, update deadLine and immediately schedule next time
       var now = (new Date()).getTime();
-      deadLine = now + exports.config.autoSaveMilliseconds;
-      setTimeout("exports.controller.trigger('timer');", exports.config.autoSaveMilliseconds);
+      var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
+      deadLine = now + autoSaveMilliseconds;
+      setTimeout("exports.controller.trigger('timer');", autoSaveMilliseconds);
     }
     if(!working) {
       working = true;

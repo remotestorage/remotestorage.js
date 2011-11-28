@@ -4,16 +4,13 @@
 
   var config = {
     jsFileName: 'remoteStorage.js',
-    modulesFilePath: 'http://unhosted.nodejitsu.com/',
-    cssFilePath: 'http://unhosted.nodejitsu.com/remoteStorage.css',
-    autoSaveMilliseconds: 5000
+    modulesFilePath: 'http://unhosted.nodejitsu.com/'
   };
 
 
 
 
   var modules = [
-    'config',
     'ajax',
 
     'webfinger',
@@ -42,7 +39,7 @@
   function whenReady() {
     var scripts = document.getElementsByTagName('script');
     for(var i=0; i < scripts.length; i++) {
-      if((new RegExp(exports.config.jsFileName+'$')).test(scripts[i].src)) {
+      if((new RegExp(config.jsFileName+'$')).test(scripts[i].src)) {
         var options = (new Function('return ' + scripts[i].innerHTML.replace(/\n|\r/g, '')))();
         exports.controller.onLoad(options);
       }
