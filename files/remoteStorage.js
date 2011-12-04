@@ -31,7 +31,7 @@
     document.head.appendChild(s);
   }
   window.exports = {};
-  //require('http://browserid.org/include.js');
+  require('http://browserid.org/include.js');
   for(var i = 0; i < modules.length; i++) { 
     require(config.modulesFilePath + modules[i]+'.js');
   }

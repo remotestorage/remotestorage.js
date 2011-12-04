@@ -14,6 +14,31 @@ exports.controller = (function() {
     alert(str);
   }
   function connect(userAddress) {
+    //if(false) {
+    if(true) {
+      connectTo(userAddress);
+    } else {
+      navigator.id.getVerifiedEmail(function(assertion) {
+        console.log(assertion);
+        exports.ajax({
+          //url: 'https://browserid.org/verify',
+          //url: 'http://unhosted.org/browserid-verifier',
+          //url: 'http://unhosted.nodejitsu.com/browserid-verifier',
+          url: 'http://myfavouritesandwich.org/browserid-verifier',
+          method: 'POST',
+          data: 'assertion='+assertion+'&audience='+window.location,
+          success: function(data) {
+            console.log(data);
+            connectTo(JSON.parse(data).email);
+          },
+          error: function(status) {
+            console.log('error status '+status);
+          }
+        });
+      });
+    }
+  }
+  function connectTo(userAddress) {
     exports.webfinger.getAttributes(userAddress, {
       allowHttpWebfinger: true,
       allowSingleOriginWebfinger: false,
