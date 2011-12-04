@@ -64,15 +64,23 @@ exports.button = (function() {
       var divEl = document.createElement('div');
       divEl.id = 'remoteStorageDiv';
       var cssFilePath = 'http://unhosted.nodejitsu.com/remoteStorage.css';//FIXME: move this to some sort of config
-      divEl.innerHTML = '<link rel="stylesheet" href="'+cssFilePath+'" />'
-        +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage"'
-        +' onkeyup="exports.button.trigger(\'InputKeyUp\', this);">'
-        +'<span id="userAddress" style="display:none"'
-        +' onmouseover="exports.button.trigger(\'SpanMouseOver\', this);"'
-        +' onmouseout="exports.button.trigger(\'SpanMouseOut\', this);"'
-        +' onclick="exports.button.trigger(\'SpanClick\', this)"></span>'
-        +'<input id="userButton" type="submit" value="Sign in"'
-        +' onclick="exports.button.trigger(\'ButtonClick\', this)">';
+      //if(true) {
+      if(false) {
+        divEl.innerHTML = '<link rel="stylesheet" href="'+cssFilePath+'" />'
+          +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage"'
+          +' onkeyup="exports.button.trigger(\'InputKeyUp\', this);">'
+          +'<span id="userAddress" style="display:none"'
+          +' onmouseover="exports.button.trigger(\'SpanMouseOver\', this);"'
+          +' onmouseout="exports.button.trigger(\'SpanMouseOut\', this);"'
+          +' onclick="exports.button.trigger(\'SpanClick\', this)"></span>'
+          +'<input id="userButton" type="submit" value="Sign in"'
+          +' onclick="exports.button.trigger(\'ButtonClick\', this)">';
+      } else {
+        divEl.innerHTML = '<input id="userAddressInput" type="hidden">'
+          +'<input id="userAddress" type="hidden">'
+          +'<link rel="stylesheet" href="'+cssFilePath+'" />'
+          +'<img id="userButton" src="https://browserid.org/i/sign_in_blue.png" onclick="exports.button.trigger(\'ButtonClick\', this);">';
+      }
       document.body.insertBefore(divEl, document.body.firstChild);
     }
     DisplayConnectionState(isConnected, userAddress);

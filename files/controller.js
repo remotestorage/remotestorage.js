@@ -14,8 +14,8 @@ exports.controller = (function() {
     alert(str);
   }
   function connect(userAddress) {
-    //if(false) {
-    if(true) {
+    //if(true) {
+    if(false) {
       connectTo(userAddress);
     } else {
       navigator.id.getVerifiedEmail(function(assertion) {
