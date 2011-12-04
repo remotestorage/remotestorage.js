@@ -64,8 +64,8 @@ exports.button = (function() {
       var divEl = document.createElement('div');
       divEl.id = 'remoteStorageDiv';
       var cssFilePath = 'http://unhosted.nodejitsu.com/remoteStorage.css';//FIXME: move this to some sort of config
-      //if(true) {
-      if(false) {
+      if(true) {
+      //if(false) {
         divEl.innerHTML = '<link rel="stylesheet" href="'+cssFilePath+'" />'
           +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage"'
           +' onkeyup="exports.button.trigger(\'InputKeyUp\', this);">'
