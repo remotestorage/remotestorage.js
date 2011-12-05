@@ -101,7 +101,7 @@ define(function(require, exports, module) {
         linkButtonToSession();
       }
       modules.oauth.harvestToken(function(token) {
-        exports.session.set('token', token);
+        require('session').session.set('token', token);
         modules[localStorage.getItem('_shadowBackendModuleName')].init(
           modules.session.get('backendAddress'),
           token);
