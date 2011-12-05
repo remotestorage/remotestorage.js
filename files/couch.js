@@ -25,7 +25,7 @@ define(function(require, exports, module) {
       if(method!='GET') {
         ajaxObj.data=value;
       }
-      exports.ajax(ajaxObj);
+      require('ajax').ajax(ajaxObj);
     }
     function init(address, bearerToken) {
       localStorage.setItem('_shadowBackendAddress', address);

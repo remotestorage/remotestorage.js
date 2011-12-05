@@ -1,5 +1,5 @@
 define(function(require, exports, module) {
-  exports.button = (function() {
+  require('button').button = (function() {
 
     var handlers = {};
     var buttonState;
@@ -70,18 +70,18 @@ define(function(require, exports, module) {
         //if(false) {
           divEl.innerHTML = '<link rel="stylesheet" href="'+cssFilePath+'" />'
             +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage"'
-            +' onkeyup="exports.button.trigger(\'InputKeyUp\', this);">'
+            +' onkeyup="require(\'button\').button.trigger(\'InputKeyUp\', this);">'
             +'<span id="userAddress" style="display:none"'
-            +' onmouseover="exports.button.trigger(\'SpanMouseOver\', this);"'
-            +' onmouseout="exports.button.trigger(\'SpanMouseOut\', this);"'
-            +' onclick="exports.button.trigger(\'SpanClick\', this)"></span>'
+            +' onmouseover="require(\'button\').button.trigger(\'SpanMouseOver\', this);"'
+            +' onmouseout="require(\'button\').button.trigger(\'SpanMouseOut\', this);"'
+            +' onclick="require(\'button\').button.trigger(\'SpanClick\', this)"></span>'
             +'<input id="userButton" type="submit" value="Sign in"'
-            +' onclick="exports.button.trigger(\'ButtonClick\', this)">';
+            +' onclick="require(\'button\').button.trigger(\'ButtonClick\', this)">';
         } else {
           divEl.innerHTML = '<input id="userAddressInput" type="hidden">'
             +'<input id="userAddress" type="hidden">'
             +'<link rel="stylesheet" href="'+cssFilePath+'" />'
-            +'<img id="userButton" src="https://browserid.org/i/sign_in_blue.png" onclick="exports.button.trigger(\'ButtonClick\', this);">';
+            +'<img id="userButton" src="https://browserid.org/i/sign_in_blue.png" onclick="require(\'button\').button.trigger(\'ButtonClick\', this);">';
         }
         document.body.insertBefore(divEl, document.body.firstChild);
       }

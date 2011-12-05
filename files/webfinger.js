@@ -23,7 +23,7 @@ define(function(require, exports, module) {
           userName = parts[0];
           host = parts[1];
           //error('So far so good. Looking up https host-meta for '+host);
-          exports.ajax({
+          require('ajax').ajax({
             //url: 'https://'+host+'/.well-known/host-meta',
             url: 'http://'+host+'/.well-known/host-meta',
             success: function(data) {
@@ -40,7 +40,7 @@ define(function(require, exports, module) {
     function afterHttpsHostmetaError(data, error, cb) {
       if(options.allowHttpWebfinger) {
         console.log('Https Host-meta error. Trying http.');
-        exports.ajax({
+        require('ajax').ajax({
           url: 'http://'+host+'/.well-known/host-meta',
           success: function(data) {
             afterHostmetaSuccess(data, error, cb);
@@ -57,7 +57,7 @@ define(function(require, exports, module) {
     function afterHttpHostmetaError(data, error, cb) {
       if(options.allowSingleOriginWebfinger) {
         console.log('Trying single origin webfinger through proxy');
-        exports.ajax({
+        require('ajax').ajax({
           url: 'http://useraddress.net/single-origin-webfinger...really?'+userAddress,
           success: function(data) {
             afterLrddSuccess(data, error, cb);
@@ -74,7 +74,7 @@ define(function(require, exports, module) {
     function afterProxyError(data, error, cb) {
       if(options.allowFakefinger) {
         console.log('Trying Fakefinger');
-        exports.ajax({
+        require('ajax').ajax({
           url: 'http://useraddress.net/fakefinger?userAddress='+userAddress,
           success: function(data) {
             afterLrddSuccess(data, error, cb);
@@ -113,7 +113,7 @@ define(function(require, exports, module) {
                 if(attr2.name=='template') {
                   templateParts = attr2.value.split('{uri}');
                   if(templateParts.length == 2) {
-                    exports.ajax({
+                    require('ajax').ajax({
                       url: templateParts[0]+userAddress+templateParts[1],
                       success: function(data) {afterLrddSuccess(data, error, cb);},
                       error: function(data){afterLrddNoAcctError(data, error, cb);},
