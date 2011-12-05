@@ -60,7 +60,7 @@ define(function(require, exports, module) {
           if((remoteKeyName == '_shadowIndex') && (msg==404)) {
             console.log('virgin remote');
             localStorage.setItem('_shadowRemote', JSON.stringify({}));
-            localStorage.setItem('_shadowSyncStatus', 'idle');
+            localStorage.setItem('_shadowSyncStatus', 'pushing');
           }
           whenDone();
         }, function(value) {
@@ -73,7 +73,7 @@ define(function(require, exports, module) {
           if(nextItem) {
             work(deadLine, cb, whenDone);
           } else {
-            localStorage.setItem('_shadowSyncStatus', 'idle');
+            localStorage.setItem('_shadowSyncStatus', 'pushing');
             whenDone();
           }
         }, deadLine);
