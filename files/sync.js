@@ -120,6 +120,10 @@ define(function(require, exports, module) {
         console.log('error putting '+itemToPush);
         whenDone();
       }, function() {
+        if(itemToPush == '_shadowIndex') {
+          //pushing was successful; prime cache:
+          localStorage.setItem('_shadowRemote', localStorage.getItem('_shadowIndex'));
+        }
         if(getItemToPush(true)) {
           work(deadLine, function() {
             console.log('incoming changes should not happen when pushing!');
@@ -129,6 +133,19 @@ define(function(require, exports, module) {
           whenDone();
         }
       }, deadLine);
+    }
+    function compareIndices() {
+      var remote = JSON.parse(localStorage.getItem('_shadowRemote'));
+      var local = JSON.parse(localStorage.getItem('_shadowIndex'));
+      if(remote.length != local.length) {
+        return false;
+      }
+      for(var i = 0; i<remote.length; i++) {
+        if(remote[i] != local[i]) {
+          return false;
+        }
+      }
+      return true;
     }
     function work(deadLine, cbIncomingChange, whenDone) {
       var now = (new Date().getTime());
@@ -141,7 +158,11 @@ define(function(require, exports, module) {
       } else if(localStorage.getItem('_shadowSyncStatus') == 'pushing') {
         resumePushing(deadLine, whenDone);
       } else {
-        console.log('nothing to work on.');
+        if(compareIndices()) {//this is necessary for instance if operating state was lost with a page refresh, bug, or network problem
+          console.log('found differences between the indexes. bug?');
+        } else {
+          console.log('nothing to work on.');
+        }
         whenDone();
       }
     }
