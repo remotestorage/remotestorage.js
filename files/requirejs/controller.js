@@ -1,5 +1,15 @@
 define(function(require, exports, module) {
   exports.controller = (function() {
+    var modules = {
+      versioning: require('versioning').versioning,
+      session: require('session').session,
+      sync: require('sync').sync,
+      ajax: require('ajax').ajax,
+      webfinger: require('webfinger').webfinger,
+      oauth: require('oauth').oauth,
+      couch: require('couch').couch,
+      button: require('button').button
+    };
     var deadLine;
     var working=false;
     var intervalTimer;
@@ -14,7 +24,7 @@ define(function(require, exports, module) {
     function onError(str) {
       alert(str);
     }
-    function connect(userAddress, modules) {
+    function connect(userAddress) {
       if(true) {
       //if(false) {
         connectTo(userAddress);
@@ -39,7 +49,7 @@ define(function(require, exports, module) {
         });
       }
     }
-    function connectTo(userAddress, modules) {
+    function connectTo(userAddress) {
       modules.webfinger.getAttributes(userAddress, {
         allowHttpWebfinger: true,
         allowSingleOriginWebfinger: false,
@@ -55,13 +65,13 @@ define(function(require, exports, module) {
         modules.oauth.go(attributes.auth, options.category, userAddress);
       });
     }
-    function disconnect(modules) {
+    function disconnect() {
       modules.session.disconnect();
       var isConnected = modules.session.isConnected();
       var userAddress = modules.session.get('userAddress');
       modules.button.show(isConnected, userAddress);
     }
-    function configure(setOptions, modules) {
+    function configure(setOptions) {
       console.log(setOptions);
       if(setOptions) {
         for(var i in setOptions) {
@@ -76,7 +86,7 @@ define(function(require, exports, module) {
         return true;
       }
     }
-    function linkButtonToSession (modules) {
+    function linkButtonToSession() {
       var isConnected = modules.session.isConnected();
       var userAddress = modules.session.get('userAddress');
       if(needLoginBox()) {
@@ -85,10 +95,10 @@ define(function(require, exports, module) {
         modules.button.show(isConnected, userAddress);
       }
     }
-    function onLoad(setOptions, modules) {
+    function onLoad(setOptions) {
       configure(setOptions); 
       if(needLoginBox()) {
-        linkButtonToSession(modules);
+        linkButtonToSession();
       }
       modules.oauth.harvestToken(function(token) {
         exports.session.set('token', token);
@@ -100,14 +110,18 @@ define(function(require, exports, module) {
       modules.sync.setBackend(modules[localStorage.getItem('_shadowBackendModuleName')]);
       trigger('timer');
     }
-    function trigger(event, modules) {
+    function trigger(event) {
       console.log(event);
       if(event == 'timer') {
         //if timer-triggered, update deadLine and immediately schedule next time
         var now = (new Date()).getTime();
         var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
         deadLine = now + autoSaveMilliseconds;
-        setTimeout("modules.controller.trigger('timer', modules);", autoSaveMilliseconds);
+        setTimeout(function() {
+          require(['controller'], function(controller) {
+            controller.controller.trigger('timer');
+          })
+        }, autoSaveMilliseconds);
       }
       if(!working) {
         var newTimestamp = modules.versioning.takeLocalSnapshot()

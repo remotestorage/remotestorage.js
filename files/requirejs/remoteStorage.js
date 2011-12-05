@@ -15,8 +15,8 @@
     'controller',
     'button'
   ];
-  require(modules, function(main, ajax, webfinger, oauth, session, couch, sync, versioning, controller, button) {
-    var exports = {
+  require(modules, function(main) {//, ajax, webfinger, oauth, session, couch, sync, versioning, controller, button) {
+/*    var exports = {
       main: main,
       ajax: ajax.ajax,
       webfinger: webfinger.webfinger,
@@ -27,7 +27,7 @@
       versioning: versioning.versioning,
       controller: controller.controller,
       button: button.button
-    };
-    main.go(exports);
+    };*/
+    main.go();
   });
 })();

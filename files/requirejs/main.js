@@ -1,5 +1,5 @@
 define(function(require, exports, module) {
-  exports.go = function(modules) {
+  exports.go = function() {
     var config = {
       jsFileName: 'remoteStorage.js',
       modulesFilePath: 'http://unhosted.nodejitsu.com/'
@@ -11,16 +11,16 @@ define(function(require, exports, module) {
     for(var i=0; i < scripts.length; i++) {
       if((new RegExp(config.jsFileName+'$')).test(scripts[i].src)) {
         var options = (new Function('return ' + scripts[i].innerHTML.replace(/\n|\r/g, '')))();
-        modules.controller.onLoad(options, modules);
+        require('controller').controller.onLoad(options);
       }
     }
 
     window.remoteStorage = {
       syncNow: function() {
-        return modules.controller.trigger('syncNow', modules);
+        return require('controller').controller.trigger('syncNow');
       },
       configure: function(obj) {
-        return modules.controller.configure(obj, modules);
+        return require('controller').controller.configure(obj);
       }
     }
   };
