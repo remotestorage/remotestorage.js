@@ -17,7 +17,9 @@
     }</script>
     <script>
       function partOne() {
+        var runId = localStorage.getItem('runId');
         localStorage.clear();
+        localStorage.setItem('runId', runId);
         localStorage.setItem('foo', 'bar');
       }
       function partTwo() {
@@ -25,7 +27,9 @@
       
       }
       function partThree() {
+        var runId = localStorage.getItem('runId');
         localStorage.clear();
+        localStorage.setItem('runId', runId);
       }
       function partFour() {
         if(localStorage.getItem('foo') != 'bar') {
@@ -40,7 +44,9 @@
         }
       }
       function startOver() {
+        var runId = localStorage.getItem('runId');
         localStorage.clear();
+        localStorage.setItem('runId', runId);
         sessionStorage.clear();
         window.location='';
       }
