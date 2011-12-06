@@ -114,7 +114,7 @@ define(function(require, exports, module) {
                   templateParts = attr2.value.split('{uri}');
                   if(templateParts.length == 2) {
                     require('ajax').ajax({
-                      url: templateParts[0]+userAddress+templateParts[1],
+                      url: templateParts[0]+'acct:'+userAddress+templateParts[1],
                       success: function(data) {afterLrddSuccess(data, error, cb);},
                       error: function(data){afterLrddNoAcctError(data, error, cb);},
                     })
