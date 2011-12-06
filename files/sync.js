@@ -23,21 +23,22 @@ define(function(require, exports, module) {
         if(itemToPull == null) {
           itemToPull = -1;
         }
-        var shadowRemote =JSON.parse(localStorage.getItem('_shadowRemote'));
-        var shadowIndex =JSON.parse(localStorage.getItem('_shadowIndex'));
-        var keysArr = keys(shadowRemote);
-        while(true) {
-          itemToPull += 1;
-          var thisKey = keysArr[itemToPull];
-          if(shadowRemote[thisKey] > localStorage[thisKey]) {
+        var remote =JSON.parse(localStorage.getItem('_shadowRemote'));
+        var local =JSON.parse(localStorage.getItem('_shadowIndex'));
+        var keysArr = keys(remote);
+        if(!local) {
+          local = {};
+        }
+        // loop through keysArr, but starting at itemToPull + 1
+        for(var i = parseInt(itemToPull)+1; i < keysArr.length; i++) {
+          var thisKey = keysArr[i];
+          if((!local[thisKey]) || (remote[thisKey] > local[thisKey])) {
+             itemToPull = i;
              localStorage.setItem('_shadowSyncCurrEntry', itemToPull);
              return thisKey;
           }
-          //if(itemToPull >= keysArr.length) { - this gets into an infinite loop with polluted array prototype
-          if(typeof(keysArr[itemToPull]) == "undefined") {
-            return false;
-          }
         }
+        return false;
       }
       if(itemToPull == null) {
           return '_shadowIndex';
