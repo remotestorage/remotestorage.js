@@ -2,24 +2,20 @@
 <html lang="en">
   <head>
     <script>
-      var runId = localStorage.getItem('runId');
-      if(!runId) {
-        runId = (new Date()).getTime();
+      if(location.search == '') {
+        location='?test-run'+(new Date()).getTime();
       }
-      localStorage.setItem('runId', runId);
     </script>
 
     <script src="http://unhosted.org/remoteStorage.js">{
-      category: 'test-app'+runId,
+      category: location.search.substring(1),
       onChange: function(key, oldValue, newValue) {
         console.info('key '+key+' was '+oldValue+' but updated from remote to '+newValue);
       }
     }</script>
     <script>
       function partOne() {
-        var runId = localStorage.getItem('runId');
         localStorage.clear();
-        localStorage.setItem('runId', runId);
         localStorage.setItem('foo', 'bar');
       }
       function partTwo() {
@@ -27,9 +23,7 @@
       
       }
       function partThree() {
-        var runId = localStorage.getItem('runId');
         localStorage.clear();
-        localStorage.setItem('runId', runId);
       }
       function partFour() {
         if(localStorage.getItem('foo') != 'bar') {
@@ -46,7 +40,7 @@
       function startOver() {
         localStorage.clear();
         sessionStorage.clear();
-        window.location='';
+        location='?test-run'+(new Date()).getTime();
       }
     </script>
   </head>

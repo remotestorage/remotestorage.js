@@ -48,12 +48,15 @@ define(function(require, exports, module) {
     function updateLocalIndex(itemPulled) {
       var remote = JSON.parse(localStorage.getItem('_shadowRemote'));
       var local = JSON.parse(localStorage.getItem('_shadowIndex'));
+      if(!local) {
+        local = {};
+      }
       local[itemPulled] = remote[itemPulled];
       localStorage.setItem('_shadowItem', JSON.stringify(local));
     }
     function resumePulling(deadLine, cb, whenDone) {
       console.log('resume pulling');
-      itemToPull = getItemToPull(false);
+      var itemToPull = getItemToPull(false);
       if(!itemToPull) {
         localStorage.setItem('_shadowSyncStatus', 'idle');
       } else {
