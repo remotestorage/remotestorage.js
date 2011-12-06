@@ -45,6 +45,12 @@ define(function(require, exports, module) {
         return (keys(JSON.parse(localStorage.getItem('_shadowRemote'))))[itemToPull];
       }
     }
+    function updateLocalIndex(itemPulled) {
+      var remote = JSON.parse(localStorage.getItem('_shadowRemote'));
+      var local = JSON.parse(localStorage.getItem('_shadowIndex'));
+      local[itemPulled] = remote[itemPulled];
+      localStorage.setItem('_shadowItem', JSON.stringify(local));
+    }
     function resumePulling(deadLine, cb, whenDone) {
       console.log('resume pulling');
       itemToPull = getItemToPull(false);
@@ -67,6 +73,7 @@ define(function(require, exports, module) {
           if(itemToPull == '_shadowIndex') {
             localStorage.setItem('_shadowRemote', value);
           } else {
+             updateLocalIndex(itemToPull);
              cb(itemToPull, value);
           }
           var nextItem = getItemToPull(true);
@@ -89,7 +96,8 @@ define(function(require, exports, module) {
     }
 
     function getItemToPush(next) {
-      var index = JSON.parse(localStorage.getItem('_shadowIndex'));
+      var local = JSON.parse(localStorage.getItem('_shadowIndex'));
+      var remote = JSON.parse(localStorage.getItem('_shadowRemote'));
       var entryToPush = localStorage.getItem('_shadowSyncCurrEntry');
       if(entryToPush == null) {
         entryToPush = 0;//leave as null in localStorage, no use updating that
@@ -98,7 +106,14 @@ define(function(require, exports, module) {
         entryToPush++;
         localStorage.setItem('_shadowSyncCurrEntry', entryToPush);
       }
-      var keysArr = keys(index);
+      var localKeys = keys(local);
+      var remoteKeys = keys(remote);
+      var keysArr = [];
+      for(var i = 0; i < localKeys.length; i++) {
+        if((!remote[remoteKeys[i]]) || (local[localKeys[i]] > remote[remoteKeys[i]])) {
+          keysArr.push(localKeys[i]);
+        }
+      }
       if(entryToPush < keysArr.length) {
         return keysArr[entryToPush];
       } else if(entryToPush == keysArr.length) {
@@ -159,9 +174,9 @@ define(function(require, exports, module) {
         resumePushing(deadLine, whenDone);
       } else {
         if(compareIndices()) {//this is necessary for instance if operating state was lost with a page refresh, bug, or network problem
-          console.log('found differences between the indexes. bug?');
-        } else {
           console.log('nothing to work on.');
+        } else {
+          console.log('found differences between the indexes. bug?');
         }
         whenDone();
       }

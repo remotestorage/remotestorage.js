@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <script src="http://unhosted.org/remoteStorage.js">{
-      category: 'test-app',
+      category: 'test-app'+(new Date()).getTime(),
       onChange: function(key, oldValue, newValue) {
         console.info('key '+key+' was '+oldValue+' but updated from remote to '+newValue);
       }
@@ -31,6 +31,11 @@
           console.log('test 2 pass');
         }
       }
+      function startOver() {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location='';
+      }
     </script>
   </head>
   <body>
@@ -41,5 +46,6 @@
     <input type="submit" onclick="partThree();" value="then click me">
     then log in again
     <input type="submit" onclick="partFour();" value="then click me">
+    <br><input type="submit" onclick="startOver();" value="start over">
   </body>
 </html>
