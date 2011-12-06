@@ -108,21 +108,15 @@ define(function(require, exports, module) {
         modules.sync.start();
       });
       modules.sync.setBackend(modules[localStorage.getItem('_shadowBackendModuleName')]);
-      trigger('timer');
+      var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
+      setInterval(function() {
+        require(['controller'], function(controller) {
+          controller.controller.trigger('timer');
+        })
+      }, autoSaveMilliseconds);
     }
     function trigger(event) {
       console.log(event);
-      if(event == 'timer') {
-        //if timer-triggered, update deadLine and immediately schedule next time
-        var now = (new Date()).getTime();
-        var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
-        deadLine = now + autoSaveMilliseconds;
-        setTimeout(function() {
-          require(['controller'], function(controller) {
-            controller.controller.trigger('timer');
-          })
-        }, autoSaveMilliseconds);
-      }
       if(!working) {
         var newTimestamp = modules.versioning.takeLocalSnapshot()
         if(newTimestamp) {

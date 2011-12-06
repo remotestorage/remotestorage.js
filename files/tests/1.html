@@ -1,8 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <script>
+      var runId = localStorage.getItem('runId');
+      if(!runId) {
+        runId = (new Date()).getTime();
+      }
+      localStorage.setItem('runId', runId);
+    </script>
+
     <script src="http://unhosted.org/remoteStorage.js">{
-      category: 'test-app'+(new Date()).getTime(),
+      category: 'test-app'+runId,
       onChange: function(key, oldValue, newValue) {
         console.info('key '+key+' was '+oldValue+' but updated from remote to '+newValue);
       }
