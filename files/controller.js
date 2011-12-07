@@ -25,6 +25,7 @@ define(function(require, exports, module) {
       alert(str);
     }
     function connect(userAddress) {
+      document.getElementById('remoteStorageSpinner').style.display='inline';
       if(true) {
       //if(false) {
         connectTo(userAddress);
@@ -44,6 +45,7 @@ define(function(require, exports, module) {
             },
             error: function(status) {
               console.log('error status '+status);
+              document.getElementById('remoteStorageSpinner').style.display='none';
             }
           });
         });
@@ -114,8 +116,10 @@ define(function(require, exports, module) {
           controller.controller.trigger('timer');
         })
       }, autoSaveMilliseconds);
+      document.getElementById('remoteStorageSpinner').style.display='none';
     }
     function trigger(event) {
+      document.getElementById('remoteStorageSpinner').style.display='inline';
       console.log(event);
       if(!working) {
         var newTimestamp = modules.versioning.takeLocalSnapshot()
@@ -138,6 +142,8 @@ define(function(require, exports, module) {
           }, function() {
             working = false;
           });
+        } else {
+          document.getElementById('remoteStorageSpinner').style.display='none';
         }
       } else {
         console.log('still working?');

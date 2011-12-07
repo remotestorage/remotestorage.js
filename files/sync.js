@@ -179,6 +179,7 @@ define(function(require, exports, module) {
       } else {
         if(compareIndices()) {//this is necessary for instance if operating state was lost with a page refresh, bug, or network problem
           console.log('nothing to work on.');
+          document.getElementById('remoteStorageSpinner').style.display='none';
         } else {
           console.log('found differences between the indexes. bug?');
         }

@@ -1,5 +1,13 @@
 define(function(require, exports, module) {
   exports.go = function() {
+    //before doing anything else, display a spinner:
+    (function() {
+      var spinner = document.createElement('img');
+      spinner.setAttribute('id', 'remoteStorageSpinner');
+      spinner.setAttribute('src', 'http://unhosted.nodejitsu.com/spinner.gif');
+      document.body.insertBefore(spinner, document.body.firstChild);
+    })();
+
     var config = {
       jsFileName: 'remoteStorage.js',
       modulesFilePath: 'http://unhosted.nodejitsu.com/'
@@ -27,23 +35,7 @@ define(function(require, exports, module) {
 });
 
 (function() {
-  var modules = [
-    'main',
-    'ajax',
-
-    'webfinger',
-    'oauth',
-    'session',
-
-    'couch',
-
-    'sync',
-    'versioning',
-
-    'controller',
-    'button'
-  ];
-  require(modules, function(main) {
+  require(['main'], function(main) {
     main.go();
   });
 })();
