@@ -111,6 +111,7 @@ define(function(require, exports, module) {
       });
       modules.sync.setBackend(modules[localStorage.getItem('_shadowBackendModuleName')]);
       var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
+      trigger('timer');
       setInterval(function() {
         require(['controller'], function(controller) {
           controller.controller.trigger('timer');
