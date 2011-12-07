@@ -1,5 +1,5 @@
 define(function(require, exports, module) {
-  exports.session = (function() {
+  exports = (function() {
     function set(key, value) {
       sessionStorage.setItem('_remoteStorage_'+key, value);
     }

@@ -1,5 +1,5 @@
 define(function(require, exports, module) {
-  exports.versioning = (function() {
+  exports = (function() {
     function incomingChange(key, value) {
       var now = ((new Date()).getTime())/1000;
       var shadowIndex = JSON.parse(localStorage.getItem('_shadowIndex')) || {};

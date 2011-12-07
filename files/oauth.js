@@ -3,7 +3,7 @@ define(function(require, exports, module) {
    // OAuth2 implicit grant //
   ///////////////////////////
 
-  exports.oauth = (function() {
+  exports = (function() {
     function go(address, category, userAddress) {
       var loc = encodeURIComponent((''+window.location).split('#')[0]);
       window.location = address

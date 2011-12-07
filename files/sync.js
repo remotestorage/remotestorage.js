@@ -1,5 +1,5 @@
 define(function(require, exports, module) {
-  exports.sync = (function() {
+  exports = (function() {
     var backend;
     
     function setBackend(backendToSet) {

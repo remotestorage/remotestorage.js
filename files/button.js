@@ -1,5 +1,5 @@
 define(function(require, exports, module) {
-  require('button').button = (function() {
+  exports = (function() {
 
     var handlers = {};
     var buttonState;

@@ -1,15 +1,5 @@
 define(function(require, exports, module) {
-  exports.controller = (function() {
-    var modules = {
-      versioning: require('versioning').versioning,
-      session: require('session').session,
-      sync: require('sync').sync,
-      ajax: require('ajax').ajax,
-      webfinger: require('webfinger').webfinger,
-      oauth: require('oauth').oauth,
-      couch: require('couch').couch,
-      button: require('button').button
-    };
+  exports = (function() {
     var deadLine;
     var working=false;
     var intervalTimer;
@@ -32,10 +22,7 @@ define(function(require, exports, module) {
       } else {
         navigator.id.getVerifiedEmail(function(assertion) {
           console.log(assertion);
-          modules.ajax({
-            //url: 'https://browserid.org/verify',
-            //url: 'http://unhosted.org/browserid-verifier',
-            //url: 'http://unhosted.nodejitsu.com/browserid-verifier',
+          require('ajax').ajax({
             url: 'http://myfavouritesandwich.org/browserid-verifier',
             method: 'POST',
             data: 'assertion='+assertion+'&audience='+window.location,
@@ -52,26 +39,26 @@ define(function(require, exports, module) {
       }
     }
     function connectTo(userAddress) {
-      modules.webfinger.getAttributes(userAddress, {
+      require('webfinger').getAttributes(userAddress, {
         allowHttpWebfinger: true,
         allowSingleOriginWebfinger: false,
         allowFakefinger: true
       }, onError, function(attributes) {
-        var backendAddress = modules.webfinger.resolveTemplate(attributes.template, options.category);
+        var backendAddress = require('webfinger').resolveTemplate(attributes.template, options.category);
         if(attributes.api == 'CouchDB') {
           localStorage.setItem('_shadowBackendModuleName', 'couch');
         } else {
           console.log('API "'+attributes.api+'" not supported! please try setting api="CouchDB" in webfinger');
         }
-        modules.session.set('backendAddress', backendAddress);
-        modules.oauth.go(attributes.auth, options.category, userAddress);
+        require('session').set('backendAddress', backendAddress);
+        require('oauth').go(attributes.auth, options.category, userAddress);
       });
     }
     function disconnect() {
-      modules.session.disconnect();
-      var isConnected = modules.session.isConnected();
-      var userAddress = modules.session.get('userAddress');
-      modules.button.show(isConnected, userAddress);
+      require('session').disconnect();
+      var isConnected = require('session').isConnected();
+      var userAddress = require('session').get('userAddress');
+      require('button').show(isConnected, userAddress);
     }
     function configure(setOptions) {
       console.log(setOptions);
@@ -89,12 +76,12 @@ define(function(require, exports, module) {
       }
     }
     function linkButtonToSession() {
-      var isConnected = modules.session.isConnected();
-      var userAddress = modules.session.get('userAddress');
+      var isConnected = require('session').isConnected();
+      var userAddress = require('session').get('userAddress');
       if(needLoginBox()) {
-        modules.button.on('connect', connect);
-        modules.button.on('disconnect', disconnect);
-        modules.button.show(isConnected, userAddress);
+        require('button').on('connect', connect);
+        require('button').on('disconnect', disconnect);
+        require('button').show(isConnected, userAddress);
       }
     }
     function onLoad(setOptions) {
@@ -102,20 +89,20 @@ define(function(require, exports, module) {
       if(needLoginBox()) {
         linkButtonToSession();
       }
-      modules.oauth.harvestToken(function(token) {
+      require('oauth').harvestToken(function(token) {
         require('session').session.set('token', token);
-        modules[localStorage.getItem('_shadowBackendModuleName')].init(
-          modules.session.get('backendAddress'),
+        require(localStorage.getItem('_shadowBackendModuleName')).init(
+          require('session').get('backendAddress'),
           token);
-        modules.sync.start();
+        require('sync').start();
       });
-      modules.sync.setBackend(modules[localStorage.getItem('_shadowBackendModuleName')]);
+      require('sync').setBackend(require(localStorage.getItem('_shadowBackendModuleName')));
       var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
       trigger('timer');
       setInterval(function() {
         require(['controller'], function(controller) {
           controller.controller.trigger('timer');
-        })
+        });
       }, autoSaveMilliseconds);
       document.getElementById('remoteStorageSpinner').style.display='none';
     }
@@ -123,22 +110,22 @@ define(function(require, exports, module) {
       document.getElementById('remoteStorageSpinner').style.display='inline';
       console.log(event);
       if(!working) {
-        var newTimestamp = modules.versioning.takeLocalSnapshot()
+        var newTimestamp = require('versioning').takeLocalSnapshot()
         if(newTimestamp) {
           console.log('changes detected');
-          if(modules.session.isConnected()) {
+          if(require('session').isConnected()) {
             console.log('pushing');
-            modules.sync.push(newTimestamp);
+            require('sync').push(newTimestamp);
           } else {
             console.log('not connected');
           }
         }
-        if(modules.session.isConnected()) {
+        if(require('session').isConnected()) {
           working = true;
-          modules.sync.work(deadLine, function(incomingKey, incomingValue) {
+          require('sync').work(deadLine, function(incomingKey, incomingValue) {
             console.log('incoming value "'+incomingValue+'" for key "'+incomingKey+'".');
             var oldValue = localStorage.getItem(incomingKey);
-            modules.versioning.incomingChange(incomingKey, incomingValue);
+            require('versioning').incomingChange(incomingKey, incomingValue);
             options.onChange(incomingKey, oldValue, incomingValue);
           }, function() {
             working = false;

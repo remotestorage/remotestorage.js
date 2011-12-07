@@ -1,6 +1,6 @@
 
 define(function(require, exports, module) {
-  exports.couch = (function() {
+  exports = (function() {
     
     function keyToAddress(key) {
       var i = 0;

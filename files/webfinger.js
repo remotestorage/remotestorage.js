@@ -4,7 +4,7 @@ define(function(require, exports, module) {
    // Webfinger //
   ///////////////
 
-  exports.webfinger = (function(){
+  exports = (function(){
     var options, userAddress, userName, host, templateParts;//this is all a bit messy, but there are a lot of callbacks here, so globals help us with that.
     function getAttributes(ua, setOptions, error, cb){
       options = setOptions;
