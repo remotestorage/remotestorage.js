@@ -120,7 +120,7 @@ define(function(require, exports, module) {
       afterLoadingBackend(null);
     }
   }
-  function trigger(event) {
+  function trigger(event, cb) {
     document.getElementById('remoteStorageSpinner').style.display='inline';
     console.log(event);
     if(!working) {
@@ -144,6 +144,9 @@ define(function(require, exports, module) {
             options.onChange(incomingKey, oldValue, incomingValue);
           }, function() {
             working = false;
+            if(cb) {
+              cb();
+              }
           });
         } else {
           document.getElementById('remoteStorageSpinner').style.display='none';

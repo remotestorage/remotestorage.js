@@ -18,7 +18,8 @@ define(function(require, exports, module) {
         success: cb,
         deadLine: deadLine
       }
-      ajaxObj.headers= {Authorization: 'Bearer '+localStorage.getItem('_shadowBackendToken')};
+      //ajaxObj.headers= {Authorization: 'Bearer '+localStorage.getItem('_shadowBackendToken')};
+      ajaxObj.headers= {Authorization: 'Basic '+localStorage.getItem('_shadowBackendToken')};
       ajaxObj.fields={withCredentials: 'true'};
       if(method!='GET') {
         ajaxObj.data=value;
