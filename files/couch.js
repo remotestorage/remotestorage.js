@@ -1,7 +1,5 @@
 
 define(function(require, exports, module) {
-  exports = (function() {
-    
     function keyToAddress(key) {
       var i = 0;
       while(i < key.length && key[i] =='u') {
@@ -60,11 +58,8 @@ define(function(require, exports, module) {
       console.log('couch.remove("'+key+'", err, cb, '+deadLine+');');
       doCall('DELETE', key, null, err, cb, deadLine);
     }
-    return {
-      init: init,
-      set: set,
-      get: get,
-      remove: remove
-    };
-  })();
+  exports.init = init;
+  exports.set = set;
+  exports.get = get;
+  exports.remove = remove;
 });

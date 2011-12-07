@@ -1,22 +1,14 @@
 define(function(require, exports, module) {
-  exports = (function() {
-    function set(key, value) {
-      sessionStorage.setItem('_remoteStorage_'+key, value);
-    }
-    function get(key) {
-      return sessionStorage.getItem('_remoteStorage_'+key);
-    }
-    function isConnected() {
-      return (get('token') != null);
-    }
-    function disconnect() {
-      sessionStorage.clear();
-    }
-    return {
-      set: set,
-      get: get,
-      isConnected: isConnected,
-      disconnect: disconnect
-    };
-  })();
+  exports.set = function(key, value) {
+    sessionStorage.setItem('_remoteStorage_'+key, value);
+  }
+  exports.get function(key) {
+    return sessionStorage.getItem('_remoteStorage_'+key);
+  }
+  exports.isConnected = function() {
+    return (get('token') != null);
+  }
+  exports.disconnect = function() {
+    sessionStorage.clear();
+  }
 });
