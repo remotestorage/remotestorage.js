@@ -5,6 +5,7 @@ define(function(require, exports, module) {
       var spinner = document.createElement('img');
       spinner.setAttribute('id', 'remoteStorageSpinner');
       spinner.setAttribute('src', 'http://unhosted.nodejitsu.com/spinner.gif');
+      spinner.setAttribute('style', 'position:fixed;right:3em;top:1em;z-index:99999;');
       document.body.insertBefore(spinner, document.body.firstChild);
     })();
     require(['controller'], function(controller) {

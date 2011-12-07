@@ -46,8 +46,12 @@ define(function(require, exports, module) {
       var backendAddress = require('webfinger').resolveTemplate(attributes.template, options.category);
       if(attributes.api == 'CouchDB') {
         localStorage.setItem('_shadowBackendModuleName', 'couch');
+      } else if(attributes.api == 'WebDAV') {
+        localStorage.setItem('_shadowBackendModuleName', 'dav');
+      } else if(attributes.api == 'simple') {
+        localStorage.setItem('_shadowBackendModuleName', 'dav');
       } else {
-        console.log('API "'+attributes.api+'" not supported! please try setting api="CouchDB" in webfinger');
+        console.log('API "'+attributes.api+'" not supported! please try setting api="CouchDB" or "WebDAV" or "simple" in webfinger');
       }
       require('session').set('backendAddress', backendAddress);
       require('oauth').go(attributes.auth, options.category, userAddress);
@@ -83,41 +87,38 @@ define(function(require, exports, module) {
       require('button').show(isConnected, userAddress);
     }
   }
+  function afterLoadingBackend(backend) {
+    require(['ajax', 'oauth', 'session', 'sync'], function(ajax, oauth, session, sync) {
+      oauth.harvestToken(function(token) {
+        session.set('token', token);
+        if(backend) {
+          backend.init(session.get('backendAddress'), token);
+          sync.setBackend(backend);
+          console.log('set backend');
+        }
+        sync.start();
+      });
+      trigger('timer');
+      var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
+      setInterval(function() {
+        require('controller').trigger('timer');
+      }, autoSaveMilliseconds);
+      document.getElementById('remoteStorageSpinner').style.display='none';
+    });
+  }
+  
   function onLoad(setOptions) {
     configure(setOptions); 
     if(needLoginBox()) {
       linkButtonToSession();
     }
-    require(['ajax', 'oauth', 'session', 'sync'], function(ajax, oauth, session, sync) {
-      oauth.harvestToken(function(token) {
-        session.set('token', token);
-        backend.init(
-        session.get('backendAddress'),
-        token);
-        sync.start();
-      });
-      var backendName = localStorage.getItem('_shadowBackendModuleName')
-      if(backendName) {
-        require([backendName], function(backend) {
-          sync.setBackend(backendrequire(backend));
-          console.log('set backend '+backendName);
-          trigger('timer');
-          var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
-          setInterval(function() {
-            require('controller').trigger('timer');
-          }, autoSaveMilliseconds);
-          document.getElementById('remoteStorageSpinner').style.display='none';
-        });
-      } else {
-        console.log('no backend for sync');
-        trigger('timer');
-        var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
-        setInterval(function() {
-          require('controller').trigger('timer');
-        }, autoSaveMilliseconds);
-        document.getElementById('remoteStorageSpinner').style.display='none';
-      }
-    });
+    var backendName = localStorage.getItem('_shadowBackendModuleName')
+    if(backendName) {
+      require([backendName], afterLoadingBackend);
+    } else {
+      console.log('no backend for sync');
+      afterLoadingBackend(null);
+    }
   }
   function trigger(event) {
     document.getElementById('remoteStorageSpinner').style.display='inline';
