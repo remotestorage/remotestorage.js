@@ -1,5 +1,5 @@
 
-define(function(require, exports, module) {
+define(['./ajax'], function(ajax) {
     function keyToAddress(key) {
       var i = 0;
       while(i < key.length && key[i] =='u') {
@@ -24,7 +24,7 @@ define(function(require, exports, module) {
       if(method!='GET') {
         ajaxObj.data=value;
       }
-      require('ajax').ajax(ajaxObj);
+      ajax.ajax(ajaxObj);
     }
     function init(address, bearerToken) {
       localStorage.setItem('_shadowBackendAddress', address);
@@ -50,8 +50,10 @@ define(function(require, exports, module) {
       console.log('couch.remove("'+key+'", err, cb, '+deadLine+');');
       doCall('DELETE', key, null, err, cb, deadLine);
     }
-  exports.init = init;
-  exports.set = set;
-  exports.get = get;
-  exports.remove = remove;
+    return {
+      init: init,
+      set: set,
+      get: get,
+      remove: remove
+    };
 });

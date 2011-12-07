@@ -1,4 +1,13 @@
-define(function(require, exports, module) {
+define([
+  './ajax',
+  './oauth',
+  './session',
+  './sync',
+  './versioning',
+  './webfinger',
+  './button',
+  './couch'
+], function(ajax, oauth, session, sync, versioning, webfinger, button, couchDbBackend) {
   var deadLine;
   var working=false;
   var intervalTimer;
@@ -21,7 +30,7 @@ define(function(require, exports, module) {
     } else {
       navigator.id.getVerifiedEmail(function(assertion) {
         console.log(assertion);
-        require('ajax').ajax({
+        ajax.ajax({
           url: 'http://myfavouritesandwich.org/browserid-verifier',
           method: 'POST',
           data: 'assertion='+assertion+'&audience='+window.location,
@@ -38,12 +47,12 @@ define(function(require, exports, module) {
     }
   }
   function connectTo(userAddress) {
-    require('webfinger').getAttributes(userAddress, {
+    webfinger.getAttributes(userAddress, {
       allowHttpWebfinger: true,
       allowSingleOriginWebfinger: false,
       allowFakefinger: true
     }, onError, function(attributes) {
-      var backendAddress = require('webfinger').resolveTemplate(attributes.template, options.category);
+      var backendAddress = webfinger.resolveTemplate(attributes.template, options.category);
       if(attributes.api == 'CouchDB') {
         localStorage.setItem('_shadowBackendModuleName', 'couch');
       } else if(attributes.api == 'WebDAV') {
@@ -53,15 +62,15 @@ define(function(require, exports, module) {
       } else {
         console.log('API "'+attributes.api+'" not supported! please try setting api="CouchDB" or "WebDAV" or "simple" in webfinger');
       }
-      require('session').set('backendAddress', backendAddress);
-      require('oauth').go(attributes.auth, options.category, userAddress);
+      session.set('backendAddress', backendAddress);
+      oauth.go(attributes.auth, options.category, userAddress);
     });
   }
   function disconnect() {
-    require('session').disconnect();
-    var isConnected = require('session').isConnected();
-    var userAddress = require('session').get('userAddress');
-    require('button').show(isConnected, userAddress);
+    session.disconnect();
+    var isConnected = session.isConnected();
+    var userAddress = session.get('userAddress');
+    button.show(isConnected, userAddress);
   }
   function configure(setOptions) {
     console.log(setOptions);
@@ -79,32 +88,30 @@ define(function(require, exports, module) {
     }
   }
   function linkButtonToSession() {
-    var isConnected = require('session').isConnected();
-    var userAddress = require('session').get('userAddress');
+    var isConnected = session.isConnected();
+    var userAddress = session.get('userAddress');
     if(needLoginBox()) {
-      require('button').on('connect', connect);
-      require('button').on('disconnect', disconnect);
-      require('button').show(isConnected, userAddress);
+      button.on('connect', connect);
+      button.on('disconnect', disconnect);
+      button.show(isConnected, userAddress);
     }
   }
   function afterLoadingBackend(backendObj) {
-    require(['ajax', 'oauth', 'session', 'sync'], function(ajax, oauth, session, sync) {
-      oauth.harvestToken(function(token) {
-        session.set('token', token);
-        if(backendObj) {
-          backendObj.init(session.get('backendAddress'), token);
-          console.log('set backendObj');
-        }
-        sync.start();
-      });
-      sync.setBackend(backendObj);
-      trigger('timer');
-      var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
-      setInterval(function() {
-        require('controller').trigger('timer');
-      }, autoSaveMilliseconds);
-      document.getElementById('remoteStorageSpinner').style.display='none';
+    oauth.harvestToken(function(token) {
+      session.set('token', token);
+      if(backendObj) {
+        backendObj.init(session.get('backendAddress'), token);
+        console.log('set backendObj');
+      }
+      sync.start();
     });
+    sync.setBackend(backendObj);
+    trigger('timer');
+    var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
+    setInterval(function() {
+      trigger('timer');
+    }, autoSaveMilliseconds);
+    document.getElementById('remoteStorageSpinner').style.display='none';
   }
   
   function onLoad(setOptions) {
@@ -112,51 +119,53 @@ define(function(require, exports, module) {
     if(needLoginBox()) {
       linkButtonToSession();
     }
-    var backendName = localStorage.getItem('_shadowBackendModuleName')
-    if(backendName) {
-      require([backendName], afterLoadingBackend);
-    } else {
-      console.log('no backend for sync');
-      afterLoadingBackend(null);
-    }
+//    var backendName = localStorage.getItem('_shadowBackendModuleName')
+//    if(backendName) {
+//      require([backendName], afterLoadingBackend);
+//    } else {
+//      console.log('no backend for sync');
+//      afterLoadingBackend(null);
+//    }
+    afterLoadingBackend(couchDbBackend);
   }
   function trigger(event, cb) {
     document.getElementById('remoteStorageSpinner').style.display='inline';
     console.log(event);
     if(!working) {
-      require(['versioning', 'session', 'sync'], function(versioning, session, sync) {
-        var newTimestamp = versioning.takeLocalSnapshot()
-        if(newTimestamp) {
-          console.log('changes detected');
-          if(session.isConnected()) {
-            console.log('pushing');
-            sync.push(newTimestamp);
-          } else {
-            console.log('not connected');
-          }
-        }
+      var newTimestamp = versioning.takeLocalSnapshot()
+      if(newTimestamp) {
+        console.log('changes detected');
         if(session.isConnected()) {
-          working = true;
-          sync.work(deadLine, function(incomingKey, incomingValue) {
-            console.log('incoming value "'+incomingValue+'" for key "'+incomingKey+'".');
-            var oldValue = localStorage.getItem(incomingKey);
-            versioning.incomingChange(incomingKey, incomingValue);
-            options.onChange(incomingKey, oldValue, incomingValue);
-          }, function() {
-            working = false;
-            if(cb) {
-              cb();
-              }
-          });
+          console.log('pushing');
+          sync.push(newTimestamp);
         } else {
-          document.getElementById('remoteStorageSpinner').style.display='none';
+          console.log('not connected');
         }
-      });
+      }
+      if(session.isConnected()) {
+        working = true;
+        sync.work(deadLine, function(incomingKey, incomingValue) {
+          console.log('incoming value "'+incomingValue+'" for key "'+incomingKey+'".');
+          var oldValue = localStorage.getItem(incomingKey);
+          versioning.incomingChange(incomingKey, incomingValue);
+          options.onChange(incomingKey, oldValue, incomingValue);
+        }, function() {
+          working = false;
+          if(cb) {
+            cb();
+            }
+        });
+      } else {
+        document.getElementById('remoteStorageSpinner').style.display='none';
+      }
     } else {
       console.log('still working?');
     }
   }
-  exports.configure = configure;
-  exports.onLoad = onLoad;
-  exports.trigger = trigger;
+  return {
+    configure: configure,
+    onLoad: onLoad,
+    trigger: trigger
+  };
+
 });
