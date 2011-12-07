@@ -34,24 +34,15 @@ define(function(require, exports, module) {
       console.log('couch.get("'+key+'", err, cb, '+deadLine+');');
       doCall('GET', key, null, err, function(str) {
         var obj = JSON.parse(str);
-        localStorage.setItem('_shadowCouchRev_'+key, obj._rev);
         cb(obj.value);
       }, deadLine);
     }
     function set(key, value, err, cb, deadLine) {
       console.log('couch.set("'+key+'", "'+value+'", err, cb, '+deadLine+');');
-      var revision = localStorage.getItem('_shadowCouchRev_'+key);
       var obj = {
         value: value
       };
-      if(revision) {
-        obj._rev = revision;
-      }
       doCall('PUT', key, JSON.stringify(obj), err, function(str) {
-        var obj = JSON.parse(str);
-        if(obj.rev) {
-          localStorage.setItem('_shadowCouchRev_'+key, obj.rev);
-        }
         cb();
       }, deadLine);
     }

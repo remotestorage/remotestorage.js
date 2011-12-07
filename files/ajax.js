@@ -21,7 +21,7 @@ define(function(require, exports, module) {
     }
     xhr.onreadystatechange = function() {
       if(xhr.readyState == 4) {
-        if(xhr.status == 200 || xhr.status == 201) {
+        if(xhr.status == 200 || xhr.status == 201 || xhr.status == 204) {
           params.success(xhr.responseText);
         } else {
           params.error(xhr.status);
