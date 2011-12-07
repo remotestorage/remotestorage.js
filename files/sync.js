@@ -156,6 +156,12 @@ define(function(require, exports, module) {
     function compareIndices() {
       var remote = JSON.parse(localStorage.getItem('_shadowRemote'));
       var local = JSON.parse(localStorage.getItem('_shadowIndex'));
+      if(!remote) {
+        remote = {};
+      }
+      if(!local) {
+        local = {};
+      }
       if(remote.length != local.length) {
         return false;
       }
