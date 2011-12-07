@@ -68,7 +68,8 @@ define(function(require, exports, module) {
       //if(false) {
         divEl.innerHTML = '<link rel="stylesheet" href="'+cssFilePath+'" />'
           +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage"'
-          +' onkeyup="require(\'button\').trigger(\'InputKeyUp\', this);">'
+          +' onkeyup="if (event.keyCode == 13) {require(\'button\').trigger(\'ButtonClick\');'
+          +'  } else { require(\'button\').trigger(\'InputKeyUp\', this);}">'
           +'<span id="userAddress" style="display:none"'
           +' onmouseover="require(\'button\').trigger(\'SpanMouseOver\', this);"'
           +' onmouseout="require(\'button\').trigger(\'SpanMouseOut\', this);"'

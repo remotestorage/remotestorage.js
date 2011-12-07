@@ -87,14 +87,14 @@ define(function(require, exports, module) {
       require('button').show(isConnected, userAddress);
     }
   }
-  function afterLoadingBackend(backend) {
+  function afterLoadingBackend(backendObj) {
     require(['ajax', 'oauth', 'session', 'sync'], function(ajax, oauth, session, sync) {
       oauth.harvestToken(function(token) {
         session.set('token', token);
         if(backend) {
           backend.init(session.get('backendAddress'), token);
-          sync.setBackend(backend);
-          console.log('set backend');
+          sync.setBackend(backendObj);
+          console.log('set backendObj');
         }
         sync.start();
       });
