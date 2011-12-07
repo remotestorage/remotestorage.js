@@ -88,50 +88,66 @@ define(function(require, exports, module) {
     if(needLoginBox()) {
       linkButtonToSession();
     }
-    require('oauth').harvestToken(function(token) {
-      require('session').set('token', token);
-      require(localStorage.getItem('_shadowBackendModuleName')).init(
-        require('session').get('backendAddress'),
+    require(['ajax', 'oauth', 'session', 'sync'], function(ajax, oauth, session, sync) {
+      oauth.harvestToken(function(token) {
+        session.set('token', token);
+        backend.init(
+        session.get('backendAddress'),
         token);
-      require('sync').start();
-    });
-    require('sync').setBackend(require(localStorage.getItem('_shadowBackendModuleName')));
-    var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
-    trigger('timer');
-    setInterval(function() {
-      require(['controller'], function(controller) {
-        controller.controller.trigger('timer');
+        sync.start();
       });
-    }, autoSaveMilliseconds);
-    document.getElementById('remoteStorageSpinner').style.display='none';
+      var backendName = localStorage.getItem('_shadowBackendModuleName')
+      if(backendName) {
+        require([backendName], function(backend) {
+          sync.setBackend(backendrequire(backend));
+          console.log('set backend '+backendName);
+          trigger('timer');
+          var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
+          setInterval(function() {
+            require('controller').trigger('timer');
+          }, autoSaveMilliseconds);
+          document.getElementById('remoteStorageSpinner').style.display='none';
+        });
+      } else {
+        console.log('no backend for sync');
+        trigger('timer');
+        var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
+        setInterval(function() {
+          require('controller').trigger('timer');
+        }, autoSaveMilliseconds);
+        document.getElementById('remoteStorageSpinner').style.display='none';
+      }
+    });
   }
   function trigger(event) {
     document.getElementById('remoteStorageSpinner').style.display='inline';
     console.log(event);
     if(!working) {
-      var newTimestamp = require('versioning').takeLocalSnapshot()
-      if(newTimestamp) {
-        console.log('changes detected');
-        if(require('session').isConnected()) {
-          console.log('pushing');
-          require('sync').push(newTimestamp);
-        } else {
-          console.log('not connected');
+      require(['versioning', 'session', 'sync'], function(versioning, session, sync) {
+        var newTimestamp = versioning.takeLocalSnapshot()
+        if(newTimestamp) {
+          console.log('changes detected');
+          if(session.isConnected()) {
+            console.log('pushing');
+            sync.push(newTimestamp);
+          } else {
+            console.log('not connected');
+          }
         }
-      }
-      if(require('session').isConnected()) {
-        working = true;
-        require('sync').work(deadLine, function(incomingKey, incomingValue) {
-          console.log('incoming value "'+incomingValue+'" for key "'+incomingKey+'".');
-          var oldValue = localStorage.getItem(incomingKey);
-          require('versioning').incomingChange(incomingKey, incomingValue);
-          options.onChange(incomingKey, oldValue, incomingValue);
-        }, function() {
-          working = false;
-        });
-      } else {
-        document.getElementById('remoteStorageSpinner').style.display='none';
-      }
+        if(session.isConnected()) {
+          working = true;
+          sync.work(deadLine, function(incomingKey, incomingValue) {
+            console.log('incoming value "'+incomingValue+'" for key "'+incomingKey+'".');
+            var oldValue = localStorage.getItem(incomingKey);
+            versioning.incomingChange(incomingKey, incomingValue);
+            options.onChange(incomingKey, oldValue, incomingValue);
+          }, function() {
+            working = false;
+          });
+        } else {
+          document.getElementById('remoteStorageSpinner').style.display='none';
+        }
+      });
     } else {
       console.log('still working?');
     }
