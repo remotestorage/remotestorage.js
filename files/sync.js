@@ -1,8 +1,8 @@
 define(function(require, exports, module) {
-  var backend;
+  var syncBackend;
   
   function setBackend(backendToSet) {
-    backend = backendToSet;
+    syncBackend = backendToSet;
   }
   function start() {
     localStorage.setItem('_shadowSyncStatus', 'pulling');
@@ -64,7 +64,7 @@ define(function(require, exports, module) {
       if(itemToPull != '_shadowIndex') {
         remoteKeyName += '_'+JSON.parse(localStorage.getItem('_shadowRemote'))[itemToPull];
       }
-      backend.get(remoteKeyName, function(msg) {
+      syncBackend.get(remoteKeyName, function(msg) {
         console.log('error retrieving "'+remoteKeyName+'":'+msg);
         if((remoteKeyName == '_shadowIndex') && (msg==404)) {
           console.log('virgin remote');
@@ -134,7 +134,7 @@ define(function(require, exports, module) {
     if(itemToPush != '_shadowIndex') {
       remoteKeyName += '_'+JSON.parse(localStorage.getItem('_shadowIndex'))[itemToPush];
     }
-    backend.set(remoteKeyName, localStorage.getItem(itemToPush), function(msg) {
+    syncBackend.set(remoteKeyName, localStorage.getItem(itemToPush), function(msg) {
       console.log('error putting '+itemToPush);
       whenDone();
     }, function() {

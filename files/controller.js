@@ -91,13 +91,13 @@ define(function(require, exports, module) {
     require(['ajax', 'oauth', 'session', 'sync'], function(ajax, oauth, session, sync) {
       oauth.harvestToken(function(token) {
         session.set('token', token);
-        if(backend) {
-          backend.init(session.get('backendAddress'), token);
-          sync.setBackend(backendObj);
+        if(backendObj) {
+          backendObj.init(session.get('backendAddress'), token);
           console.log('set backendObj');
         }
         sync.start();
       });
+      sync.setBackend(backendObj);
       trigger('timer');
       var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
       setInterval(function() {
