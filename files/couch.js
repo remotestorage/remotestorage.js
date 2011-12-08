@@ -1,7 +1,5 @@
 
-define([
-  './ajax'
-], function(ajax) {
+define(['./ajax'], function(ajax) {
     function keyToAddress(key) {
       var i = 0;
       while(i < key.length && key[i] =='u') {

@@ -1,13 +1,13 @@
 define([
+  'require',
   './ajax',
   './oauth',
   './session',
   './sync',
   './versioning',
   './webfinger',
-  './button',
-  './couch'
-], function(ajax, oauth, session, sync, versioning, webfinger, button, couchDbBackend) {
+  './button'
+], function(require, ajax, oauth, session, sync, versioning, webfinger, button) {
   var deadLine;
   var working=false;
   var intervalTimer;
@@ -119,14 +119,13 @@ define([
     if(needLoginBox()) {
       linkButtonToSession();
     }
-//    var backendName = localStorage.getItem('_shadowBackendModuleName')
-//    if(backendName) {
-//      require([backendName], afterLoadingBackend);
-//    } else {
-//      console.log('no backend for sync');
-//      afterLoadingBackend(null);
-//    }
-    afterLoadingBackend(couchDbBackend);
+    var backendName = localStorage.getItem('_shadowBackendModuleName')
+    if(backendName) {
+      require(['./' + backendName], afterLoadingBackend);
+    } else {
+      console.log('no backend for sync');
+      afterLoadingBackend(null);
+    }
   }
   function trigger(event, cb) {
     document.getElementById('remoteStorageSpinner').style.display='inline';

@@ -1,4 +1,4 @@
-define(['./controller'], function(controller) {
+define(function(require) {
 
   //before doing anything else, display a spinner:
   (function() {
@@ -8,27 +8,30 @@ define(['./controller'], function(controller) {
     spinner.setAttribute('style', 'position:fixed;right:3em;top:1em;z-index:99999;');
     document.body.insertBefore(spinner, document.body.firstChild);
   })();
-  var config = {
-    jsFileName: 'remoteStorage.js'
-  };
+  require(['./controller'], function(controller) {
+    var config = {
+      jsFileName: 'remoteStorage.js',
+      modulesFilePath: 'http://unhosted.nodejitsu.com/'
+    };
 
-  //require('http://browserid.org/include.js');
+    //require('http://browserid.org/include.js');
 
-  var scripts = document.getElementsByTagName('script');
-  for(var i=0; i < scripts.length; i++) {
-    if((new RegExp(config.jsFileName+'$')).test(scripts[i].src)) {
-      var options = (new Function('return ' + scripts[i].innerHTML.replace(/\n|\r/g, '')))();
-      controller.onLoad(options);
+    var scripts = document.getElementsByTagName('script');
+    for(var i=0; i < scripts.length; i++) {
+      if((new RegExp(config.jsFileName+'$')).test(scripts[i].src)) {
+        var options = (new Function('return ' + scripts[i].innerHTML.replace(/\n|\r/g, '')))();
+        break;
+      }
     }
-  }
-controller.onLoad();
+    controller.onLoad(options);
 
-  window.remoteStorage = {
-    syncNow: function() {
-      return controller.trigger('syncNow');
-    },
-    configure: function(obj) {
-      return controller.configure(obj);
-    }
-  };
+    window.remoteStorage = {
+      syncNow: function() {
+        return controller.trigger('syncNow');
+      },
+      configure: function(obj) {
+        return controller.configure(obj);
+      }
+    };
+  });
 });
