@@ -1,12 +1,12 @@
-define(function(require, exports, module) {
-  exports.incomingChange = function(key, value) {
+define({
+  incomingChange: function(key, value) {
     var now = ((new Date()).getTime())/1000;
     var shadowIndex = JSON.parse(localStorage.getItem('_shadowIndex')) || {};
     shadowIndex[key] = now;
     localStorage.setItem('_shadowIndex', JSON.stringify(shadowIndex));
     localStorage.setItem(key, value);
-  }
-  exports.takeLocalSnapshot = function() {
+  },
+  takeLocalSnapshot: function() {
     var hasChanges = false;
     var now = ((new Date()).getTime())/1000;
     var shadowIndex = JSON.parse(localStorage.getItem('_shadowIndex')) || {};

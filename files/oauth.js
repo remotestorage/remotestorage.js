@@ -1,9 +1,9 @@
-define(function(require, exports, module) {
+define({
     ///////////////////////////
    // OAuth2 implicit grant //
   ///////////////////////////
 
-  function go(address, category, userAddress) {
+  go: function(address, category, userAddress) {
     var loc = encodeURIComponent((''+window.location).split('#')[0]);
     window.location = address
       + ((address.indexOf('?') == -1)?'?':'&')
@@ -12,8 +12,8 @@ define(function(require, exports, module) {
       + '&scope=' + category
       + '&user_address=' + userAddress
       + '&response_type=token';
-  }
-  function harvestToken(cb) {
+  },
+  harvestToken: function(cb) {
     if(location.hash.length == 0) {
       return;
     }
@@ -46,6 +46,4 @@ define(function(require, exports, module) {
       window.location='';
     }
   }
-  exports.go = go;
-  exports.harvestToken = harvestToken;
 });

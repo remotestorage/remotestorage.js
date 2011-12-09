@@ -1,4 +1,4 @@
-define(function(require, exports, module) {
+define(['./ajax'], function(ajax) {
 
     ///////////////
    // Webfinger //
@@ -22,7 +22,7 @@ define(function(require, exports, module) {
         userName = parts[0];
         host = parts[1];
         //error('So far so good. Looking up https host-meta for '+host);
-        require('ajax').ajax({
+        ajax.ajax({
           //url: 'https://'+host+'/.well-known/host-meta',
           url: 'http://'+host+'/.well-known/host-meta',
           success: function(data) {
@@ -39,7 +39,7 @@ define(function(require, exports, module) {
   function afterHttpsHostmetaError(data, error, cb) {
     if(options.allowHttpWebfinger) {
       console.log('Https Host-meta error. Trying http.');
-      require('ajax').ajax({
+      ajax.ajax({
         url: 'http://'+host+'/.well-known/host-meta',
         success: function(data) {
           afterHostmetaSuccess(data, error, cb);
@@ -56,7 +56,7 @@ define(function(require, exports, module) {
   function afterHttpHostmetaError(data, error, cb) {
     if(options.allowSingleOriginWebfinger) {
       console.log('Trying single origin webfinger through proxy');
-      require('ajax').ajax({
+      ajax.ajax({
         url: 'http://useraddress.net/single-origin-webfinger...really?'+userAddress,
         success: function(data) {
           afterLrddSuccess(data, error, cb);
@@ -73,7 +73,7 @@ define(function(require, exports, module) {
   function afterProxyError(data, error, cb) {
     if(options.allowFakefinger) {
       console.log('Trying Fakefinger');
-      require('ajax').ajax({
+      ajax.ajax({
         url: 'http://useraddress.net/fakefinger?userAddress='+userAddress,
         success: function(data) {
           afterLrddSuccess(data, error, cb);
@@ -112,7 +112,7 @@ define(function(require, exports, module) {
               if(attr2.name=='template') {
                 templateParts = attr2.value.split('{uri}');
                 if(templateParts.length == 2) {
-                  require('ajax').ajax({
+                  ajax.ajax({
                     url: templateParts[0]+'acct:'+userAddress+templateParts[1],
                     success: function(data) {afterLrddSuccess(data, error, cb);},
                     error: function(data){afterLrddNoAcctError(data, error, cb);},
@@ -189,6 +189,8 @@ define(function(require, exports, module) {
     }
     return parts[0]+dataCategory+parts[1];
   }
-  exports.getAttributes = getAttributes;
-  exports.resolveTemplate = resolveTemplate;
+  return {
+    getAttributes: getAttributes,
+    resolveTemplate: resolveTemplate
+  }
 });

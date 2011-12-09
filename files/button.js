@@ -1,4 +1,4 @@
-define(function(require, exports, module) {
+define(function() {
   var handlers = {};
   var buttonState;
     ////////
@@ -64,23 +64,25 @@ define(function(require, exports, module) {
       var divEl = document.createElement('div');
       divEl.id = 'remoteStorageDiv';
       var cssFilePath = 'http://unhosted.nodejitsu.com/remoteStorage.css';//FIXME: move this to some sort of config
+      // Make button global as we need it from inline code.
+      window.rsButton = this;
       if(true) {
       //if(false) {
         divEl.innerHTML = '<link rel="stylesheet" href="'+cssFilePath+'" />'
           +'<input id="userAddressInput" type="text" placeholder="you@yourremotestorage"'
-          +' onkeyup="if (event.keyCode == 13) {require(\'button\').trigger(\'ButtonClick\');'
-          +'  } else { require(\'button\').trigger(\'InputKeyUp\', this);}">'
+          +' onkeyup="if (event.keyCode == 13) {rsButton.trigger(\'ButtonClick\');'
+          +'  } else { rsButton.trigger(\'InputKeyUp\', this);}">'
           +'<span id="userAddress" style="display:none"'
-          +' onmouseover="require(\'button\').trigger(\'SpanMouseOver\', this);"'
-          +' onmouseout="require(\'button\').trigger(\'SpanMouseOut\', this);"'
-          +' onclick="require(\'button\').trigger(\'SpanClick\', this)"></span>'
+          +' onmouseover="rsButton.trigger(\'SpanMouseOver\', this);"'
+          +' onmouseout="rsButton.trigger(\'SpanMouseOut\', this);"'
+          +' onclick="rsButton.trigger(\'SpanClick\', this)"></span>'
           +'<input id="userButton" type="submit" value="Sign in"'
-          +' onclick="require(\'button\').trigger(\'ButtonClick\', this)">';
+          +' onclick="rsButton.trigger(\'ButtonClick\', this)">';
       } else {
         divEl.innerHTML = '<input id="usesInput" type="hidden">'
           +'<input id="userAddress" type="hidden">'
           +'<link rel="stylesheet" href="'+cssFilePath+'" />'
-          +'<img id="userButton" src="https://browserid.org/i/sign_in_blue.png" onclick="require(\'button\').trigger(\'ButtonClick\', this);">';
+          +'<img id="userButton" src="https://browserid.org/i/sign_in_blue.png" onclick="rsButton.trigger(\'ButtonClick\', this);">';
       }
       document.body.insertBefore(divEl, document.body.firstChild);
     }
@@ -104,7 +106,9 @@ define(function(require, exports, module) {
   function on(what, cb) {
     handlers[what] = cb;
   }
-  exports.show = show;
-  exports.trigger = trigger;
-  exports.on = on;
+  return {
+    show: show,
+    trigger: trigger,
+    on: on
+  };
 });

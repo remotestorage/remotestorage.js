@@ -4,8 +4,8 @@
      // ajax //
     //////////
 
-define(function(require, exports, module) {
-  exports.ajax = function(params) {
+define({
+  ajax: function(params) {
     var xhr = new XMLHttpRequest();
     if(!params.method) {
       params.method='GET';
