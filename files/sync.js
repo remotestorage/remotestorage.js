@@ -1,4 +1,4 @@
-define(function(require, exports, module) {
+define(function() {
   var syncBackend;
   
   function setBackend(backendToSet) {
@@ -191,8 +191,10 @@ define(function(require, exports, module) {
       whenDone();
     }
   }
-  exports.setBackend = setBackend;
-  exports.start = start;
-  exports.push = push;
-  exports.work = work;
+  return {
+    setBackend: setBackend,
+    start: start,
+    push: push,
+    work: work
+  };
 });
