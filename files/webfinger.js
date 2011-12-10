@@ -30,8 +30,8 @@ define(['./ajax'], function(ajax) {
           },
           error: function(data) {
             afterHttpsHostmetaError(data, error, cb);
-          },
-        })
+          }
+        });
       }
     }
   }
@@ -46,8 +46,8 @@ define(['./ajax'], function(ajax) {
         },
         error: function(data) {
           afterHttpHostmetaError(data, error, cb);
-        },
-      })
+        }
+      });
     } else {
        afterHttpHostmetaError(data, error, cb);
     }
@@ -115,8 +115,8 @@ define(['./ajax'], function(ajax) {
                   ajax.ajax({
                     url: templateParts[0]+'acct:'+userAddress+templateParts[1],
                     success: function(data) {afterLrddSuccess(data, error, cb);},
-                    error: function(data){afterLrddNoAcctError(data, error, cb);},
-                  })
+                    error: function(data){afterLrddNoAcctError(data, error, cb);}
+                  });
                 } else {
                   errorStr = 'the template doesn\'t contain "{uri}"';
                 }
