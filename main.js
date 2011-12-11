@@ -4,14 +4,13 @@ define(function(require) {
   (function() {
     var spinner = document.createElement('img');
     spinner.setAttribute('id', 'remoteStorageSpinner');
-    spinner.setAttribute('src', 'http://unhosted.nodejitsu.com/spinner.gif');
+    spinner.setAttribute('src', require.toUrl('./spinner.gif'));
     spinner.setAttribute('style', 'position:fixed;right:3em;top:1em;z-index:99999;');
     document.body.insertBefore(spinner, document.body.firstChild);
   })();
   require(['./controller'], function(controller) {
     var config = {
-      jsFileName: 'remoteStorage.js',
-      modulesFilePath: 'http://unhosted.nodejitsu.com/'
+      jsFileName: 'remoteStorage.js'
     };
 
     //require('http://browserid.org/include.js');
