@@ -57,9 +57,9 @@ define(['./ajax'], function(ajax) {
     if(options.allowSingleOriginWebfinger) {
       console.log('Trying single origin webfinger through proxy');
       ajax.ajax({
-        url: 'http://useraddress.net/single-origin-webfinger...really?'+userAddress,
+        url: 'http://yourremotestorage.net/CouchDB/proxy/'+host+'/.well-known/host-meta',
         success: function(data) {
-          afterLrddSuccess(data, error, cb);
+          afterHostmetaSuccess(data, error, cb);
         },
         error: function(data) {
           afterProxyError(data, error, cb);
@@ -71,6 +71,23 @@ define(['./ajax'], function(ajax) {
   }
     
   function afterProxyError(data, error, cb) {
+    if(options.allowFakefinger) {
+      console.log('Trying without the dot and couchy');
+      ajax.ajax({
+        url: 'http://'+host+'/well-known/_design/CORS/_show/CORS/host-meta',
+        success: function(data) {
+          afterHostmetaSuccess(data, error, cb);
+        },
+        error: function(data) {
+          afterProxyNoDotError(data, error, cb);
+        }
+      });
+    } else {
+      afterProxyNoDotError(data, error, cb);
+    }
+  }
+    
+  function afterProxyNoDotError(data, error, cb) {
     if(options.allowFakefinger) {
       console.log('Trying Fakefinger');
       ajax.ajax({
@@ -89,15 +106,39 @@ define(['./ajax'], function(ajax) {
   function afterFakefingerError() {
     alert('user address "'+userAddress+'" doesn\'t seem to have remoteStorage linked to it');
   }
+  function continueWithTemplate(template, error, cb) {
+    templateParts = template.split('{uri}');
+    if(templateParts.length == 2) {
+      ajax.ajax({
+        url: templateParts[0]+'acct:'+userAddress+templateParts[1],
+        success: function(data) {afterLrddSuccess(data, error, cb);},
+        error: function(data){
+          console.log('trying single-origin lrdd');
+          ajax.ajax({
+            url: 'http://yourremotestorage.net/CouchDB/proxy/'+templateParts[0].substring(7)+'acct:'+userAddress+templateParts[1],
+            success: function(data) {afterLrddSuccess(data, error, cb);},
+            error: function(data){afterLrddNoAcctError(data, error, cb);}
+          });
+        }
+      });
+    } else {
+      errorStr = 'the template doesn\'t contain "{uri}"';
+    }
+  }
   function afterHostmetaSuccess(data, error, cb) {
-    data = (new DOMParser()).parseFromString(data, 'text/xml');
-    if(!data.getElementsByTagName) {
+    dataXml = (new DOMParser()).parseFromString(data, 'text/xml');
+    if(!dataXml.getElementsByTagName) {
       error('Host-meta is not an XML document, or doesnt have xml mimetype.');
       return;
     }
-    var linkTags = data.getElementsByTagName('Link');
+    var linkTags = dataXml.getElementsByTagName('Link');
     if(linkTags.length == 0) {
-      error('no Link tags found in host-meta');
+      console.log('no Link tags found in host-meta, trying as JSON');
+      try{
+        continueWithTemplate(JSON.parse(data).links.lrdd[0].template, error, cb);
+      } catch(e) {
+        error('JSON parsing failed - '+data);
+      }
     } else {
       var lrddFound = false;
       var errorStr = 'none of the Link tags have a lrdd rel-attribute';
@@ -110,16 +151,7 @@ define(['./ajax'], function(ajax) {
             for(var attrJ = 0; attrJ < linkTags[linkTagI].attributes.length; attrJ++) {
               var attr2 = linkTags[linkTagI].attributes[attrJ];
               if(attr2.name=='template') {
-                templateParts = attr2.value.split('{uri}');
-                if(templateParts.length == 2) {
-                  ajax.ajax({
-                    url: templateParts[0]+'acct:'+userAddress+templateParts[1],
-                    success: function(data) {afterLrddSuccess(data, error, cb);},
-                    error: function(data){afterLrddNoAcctError(data, error, cb);}
-                  })
-                } else {
-                  errorStr = 'the template doesn\'t contain "{uri}"';
-                }
+                continueWithTemplate(attr2.value, error, cb);
                 break;
               }
             }
@@ -139,14 +171,19 @@ define(['./ajax'], function(ajax) {
     error('the template doesn\'t contain "{uri}"');
   }
   function afterLrddSuccess(data, error, cb) {
-    data = (new DOMParser()).parseFromString(data, 'text/xml');
-    if(!data.getElementsByTagName) {
+    dataXml = (new DOMParser()).parseFromString(data, 'text/xml');
+    if(!dataXml.getElementsByTagName) {
       error('Lrdd is not an XML document, or doesnt have xml mimetype.');
       return;
     }
-    var linkTags = data.getElementsByTagName('Link');
+    var linkTags = dataXml.getElementsByTagName('Link');
     if(linkTags.length == 0) {
-      error('no Link tags found in lrdd');
+      console.log('trying to pars lrdd as jrd');
+      try {
+        cb(JSON.parse(data).links.remoteStorage[0]);
+      } catch(e) {
+        error('no Link tags found in lrdd');
+      }
     } else {
       var linkFound = false;
       var errorStr = 'none of the Link tags have a remoteStorage rel-attribute';
