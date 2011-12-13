@@ -74,7 +74,7 @@ define(['./ajax'], function(ajax) {
     if(options.allowFakefinger) {
       console.log('Trying without the dot and couchy');
       ajax.ajax({
-        url: 'http://'+host+'/well-known/_design/CORS/_show/CORS/host-meta',
+        url: 'http://'+host+'/cors/_design/well-known/_show/host-meta',
         success: function(data) {
           afterHostmetaSuccess(data, error, cb);
         },
