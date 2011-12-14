@@ -17,7 +17,7 @@ define([
       console.log('WARNING: Please configure an onChange function! Forcing full page refresh instead');
       window.location = '';
     },
-    category: location.host.replace('.', '_')
+    category: location.host.replace(/\./g, '_')
   };
   function onError(str) {
     alert(str);
