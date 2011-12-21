@@ -78,6 +78,9 @@ define([
       for(var i in setOptions) {
         options[i] = setOptions[i];
       }
+      if(setOptions.userAddress) {
+        connectTo(setOptions.userAddress);
+      }
     }
   }
   function needLoginBox() {
