@@ -85,6 +85,7 @@ define([
   }
   function needLoginBox() {
     if(options.suppressDialog) {
+      console.log('suppressing dialog');
       return false;
     } else {
       return true;
@@ -109,11 +110,15 @@ define([
       sync.start();
     });
     sync.setBackend(backendObj);
-    trigger('timer');
-    var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
-    setInterval(function() {
+    if(options.suppressAutoSave) {
+      console.log('suppressing autosave');
+    } else {
       trigger('timer');
-    }, autoSaveMilliseconds);
+      var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
+      setInterval(function() {
+        trigger('timer');
+      }, autoSaveMilliseconds);
+    }
     document.getElementById('remoteStorageSpinner').style.display='none';
   }
   
