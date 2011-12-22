@@ -17,6 +17,9 @@ define([
       console.log('WARNING: Please configure an onChange function! Forcing full page refresh instead');
       window.location = '';
     },
+    onStatus: function(oldStatus, newStatus) {
+      console.log('remoteStorage status changed from '+oldStatus+' to '+newStatus);
+    },
     category: location.host.replace(/\./g, '_')
   };
   function onError(str) {
@@ -68,6 +71,7 @@ define([
   }
   function disconnect() {
     session.disconnect();
+    options.onStatus({name: 'online'}, {name: 'disconnected'});
     var isConnected = session.isConnected();
     var userAddress = session.get('userAddress');
     button.show(isConnected, userAddress);
@@ -107,6 +111,7 @@ define([
         backendObj.init(session.get('backendAddress'), token);
         console.log('set backendObj');
       }
+      options.onStatus({name: 'disconnected'}, {name: 'online'});
       sync.start();
     });
     sync.setBackend(backendObj);
@@ -169,10 +174,22 @@ define([
       console.log('still working?');
     }
   }
+  function getStatus() {
+    if(session.isConnected()) {
+      return {
+        name: 'online'
+      };
+    } else {
+      return {
+        name: 'disconnected'
+      };
+    }
+  }
   return {
     configure: configure,
     onLoad: onLoad,
-    trigger: trigger
+    trigger: trigger,
+    getStatus: getStatus
   };
 
 });

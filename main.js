@@ -30,6 +30,9 @@ define(function(require) {
       },
       configure: function(obj) {
         return controller.configure(obj);
+      },
+      getStatus: function() {
+        return controller.getStatus();
       }
     };
   });

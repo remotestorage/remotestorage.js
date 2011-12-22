@@ -30,7 +30,7 @@ Options:
 
 * category: the category to sync localStorage to [will probably be deprecated if we switch to BrowserAuth]
 * onChange: a callback, function(key, oldValue, newValue) that will be called when connecting results in incoming changes
-* onStatus: a callback, function(oldStatus, newStatus) that will be called when remoteStorage changes status. For now, there's only 'disconnected', 'online', but more intermediate statuses should be added soon.
+* onStatus: a callback, function(oldStatus, newStatus) that will be called when remoteStorage changes status. For now, there's only {name: 'disconnected'} and {name: 'online'}, but more intermediate statuses should be added soon.
 * suppressDialog: if false, a dialog is displayed. if true, you should call configure() with userAddress yourself to initiate connection.
 * userAddress: when you do your own login interface, use this with configure() to initiate connection.
 * suppressAutoSave: if false, localStorage is diffed and synced every 5 seconds. if true, you should call remoteStorage.syncNow() each time you want changes to be pushed
@@ -39,5 +39,5 @@ Methods:
 
 * remoteStorage.configure(optionsObj) - change some option(s) during runtime (for setting options during page load, use the options object that goes inside the script tag)
 * syncNow() - sync now
-
+* getStatus() - returns a status object, currently either {name: 'disconnected'} or {name: 'online'}
 
