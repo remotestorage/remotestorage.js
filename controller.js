@@ -49,11 +49,19 @@ define([
       });
     }
   }
+  function getBrowseridAccess(url, assertion, audience, cb) {
+    ajax.ajax({
+      url: url,
+      method: 'POST',
+      data: 'assertion='+encodeURIComponent(assertion)+'&audience='+audience,
+      success: cb
+    });
+  }
   function connectTo(userAddress) {
     webfinger.getAttributes(userAddress, {
       allowHttpWebfinger: true,
       allowSingleOriginWebfinger: false,
-      allowFakefinger: true
+      allowFakefinger: false
     }, onError, function(attributes) {
       var backendAddress = webfinger.resolveTemplate(attributes.template, options.category);
       if(attributes.api == 'CouchDB') {
@@ -66,7 +74,21 @@ define([
         console.log('API "'+attributes.api+'" not supported! please try setting api="CouchDB" or "WebDAV" or "simple" in webfinger');
       }
       session.set('backendAddress', backendAddress);
-      oauth.go(attributes.auth, options.category, userAddress);
+      if(options.requestBrowseridAccess && options.assertion && options.audience && attributes.browseridAccess) {
+        console.log('going with browserid access');
+        //set backend
+        var backendName = localStorage.getItem('_shadowBackendModuleName')
+        if(backendName) {
+          require(['./' + backendName], function(backendObj) {
+            afterLoadingBackend(backendObj);
+            getBrowseridAccess(attributes.browseridAccess, options.assertion, options.audience, withToken);
+          });
+        } else {
+          console.log('we got no backend');
+        }
+      } else {
+        oauth.go(attributes.auth, options.category, userAddress);
+      }
     });
   }
   function disconnect() {
@@ -104,16 +126,22 @@ define([
       button.show(isConnected, userAddress);
     }
   }
-  function afterLoadingBackend(backendObj) {
-    oauth.harvestToken(function(token) {
-      session.set('token', token);
-      if(backendObj) {
+  function withToken(token) {
+    session.set('token', token);
+    var backendName = localStorage.getItem('_shadowBackendModuleName')
+    if(backendName) {
+      require(['./' + backendName], function(backendObj) {
         backendObj.init(session.get('backendAddress'), token);
         console.log('set backendObj');
-      }
-      options.onStatus({name: 'disconnected'}, {name: 'online'});
-      sync.start();
-    });
+      });
+    } else {
+      console.log('got no backend in withToken');
+    }
+    options.onStatus({name: 'disconnected'}, {name: 'online'});
+    sync.start();
+  }
+  function afterLoadingBackend(backendObj) {
+    oauth.harvestToken(withToken);
     sync.setBackend(backendObj);
     if(options.suppressAutoSave) {
       console.log('suppressing autosave');

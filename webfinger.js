@@ -205,6 +205,9 @@ define(['./ajax'], function(ajax) {
               if(attr2.name=='api') {
                 attributes.api = attr2.value;
               }
+              if(attr2.name=='browseridaccess') {
+                attributes.browseridAccess = attr2.value;
+              }
             }
             break;
           }

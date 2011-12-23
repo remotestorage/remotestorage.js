@@ -11,12 +11,12 @@ The following options can be passed either as a js object inside the script tag,
         <meta charset="utf-8">
         <title>example</title>
         <script src="http://unhosted.org/remoteStorage.js">{
-          foo: 'bar'
+          someKey: 'someValue'
         }</script>
         <script>
           function changeFoo() {
             remoteStorage.configure({
-              foo: 'baz'
+              someKey: 'someNewValue'
             });
           }
         </script>
@@ -34,6 +34,7 @@ Options:
 * suppressDialog: if false, a dialog is displayed. if true, you should call configure() with userAddress yourself to initiate connection.
 * userAddress: when you do your own login interface, use this with configure() to initiate connection.
 * suppressAutoSave: if false, localStorage is diffed and synced every 5 seconds. if true, you should call remoteStorage.syncNow() each time you want changes to be pushed
+* requestBrowseridAccess: experimental; see http://groups.google.com/group/unhosted/browse\_thread/thread/8665a5913ccbd965
 
 Methods:
 
