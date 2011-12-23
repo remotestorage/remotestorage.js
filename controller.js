@@ -20,7 +20,7 @@ define([
     onStatus: function(oldStatus, newStatus) {
       console.log('remoteStorage status changed from '+oldStatus+' to '+newStatus);
     },
-    category: location.host.replace(/\./g, '_')
+    category: (location.protocol+'__'+location.host).replace(/\./g, '_').replace(/:/g, '_')
   };
   function onError(str) {
     alert(str);
@@ -54,7 +54,17 @@ define([
       url: url,
       method: 'POST',
       data: 'assertion='+encodeURIComponent(assertion)+'&audience='+audience,
-      success: cb
+      success: function(data) {
+        try {
+          var responseObj = JSON.parse(data);
+          cb(responseObj.token);
+        } catch(e) {
+          console.log('something wrong with the browserid2couch token');
+        }
+      },
+      error: function() {
+        console.log('error in getBrowseridAccess call');
+      }
     });
   }
   function connectTo(userAddress) {
