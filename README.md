@@ -41,4 +41,5 @@ Methods:
 * remoteStorage.configure(optionsObj) - change some option(s) during runtime (for setting options during page load, use the options object that goes inside the script tag)
 * syncNow() - sync now
 * getStatus() - returns a status object, currently either {name: 'disconnected'} or {name: 'online'}
-
+* share(key, cb) - push said key to public and call cb with the hash created
+* receive(senderAddress, hash, cb) - fetch said hash from senderAddress's remoteStorage and call cb with the content fetched

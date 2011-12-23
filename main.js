@@ -33,6 +33,12 @@ define(function(require) {
       },
       getStatus: function() {
         return controller.getStatus();
+      },
+      share: function(key, cb) {
+        return controller.share(key, cb);
+      },
+      receive: function(senderAddress, hash, cb) {
+        return controller.receive(senderAddress, hash, cb);
       }
     };
   });

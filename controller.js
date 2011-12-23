@@ -223,11 +223,18 @@ define([
       };
     }
   }
+  function share(key, cb) {
+    cb('not implemented');
+  }
+  function receive (senderAddress, hash, cb) {
+    cb('not implemented');
+  }
   return {
     configure: configure,
     onLoad: onLoad,
     trigger: trigger,
-    getStatus: getStatus
+    getStatus: getStatus,
+    share: share,
+    receive: receive
   };
-
 });
