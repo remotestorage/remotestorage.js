@@ -40,6 +40,7 @@ define({
         paramsToStay.push(params[i]);
       }
     }
+    sessionStorage.setItem('onlineEventPending', 'true');
     if(paramsToStay.length) {
       window.location='#'+paramsToStay.join('&');
     } else {

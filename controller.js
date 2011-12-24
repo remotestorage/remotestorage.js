@@ -151,6 +151,10 @@ define([
     sync.start();
   }
   function afterLoadingBackend(backendObj) {
+    if(sessionStorage.getItem('onlineEventPending')) {
+      sessionStorage.removeItem('onlineEventPending');
+      options.onStatus({name: 'disconnected'}, {name: 'online'});
+    }
     oauth.harvestToken(withToken);
     sync.setBackend(backendObj);
     if(options.suppressAutoSave) {
@@ -224,10 +228,34 @@ define([
     }
   }
   function share(key, cb) {
-    cb('not implemented');
+    var backendName = localStorage.getItem('_shadowBackendModuleName')
+    if(backendName) {
+      require(['./' + backendName, 'sha1'], function(backend, sha1) {
+        var hash=sha1.hash(localStorage.getItem(key));
+        backend.set(hash, localStorage.getItem(key), function() {
+          cb('something went wrong');
+        }, function() {
+           cb(hash);
+        }, NaN);
+      });
+    } else {
+      console.log('no backend for sync');
+      afterLoadingBackend(null);
+    }
+  }
+  function getPublicBackend(userAddress, cb) {
+    cb({
+      get: function() { alert('not implemented'); }
+    });
   }
   function receive (senderAddress, hash, cb) {
-    cb('not implemented');
+    getPublicBackend(senderAddress, function(backend) {
+      backend.get(hash, function() {
+        cb('something went wrong');
+      }, function(value) {
+        cb(value);
+      }, NaN);
+    });
   }
   return {
     configure: configure,
