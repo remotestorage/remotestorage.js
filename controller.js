@@ -71,7 +71,7 @@ define([
     webfinger.getAttributes(userAddress, {
       allowHttpWebfinger: true,
       allowSingleOriginWebfinger: false,
-      allowFakefinger: false
+      allowFakefinger: true
     }, onError, function(attributes) {
       var backendAddress = webfinger.resolveTemplate(attributes.template, options.category);
       if(attributes.api == 'CouchDB') {
