@@ -245,7 +245,20 @@ define([
   }
   function getPublicBackend(userAddress, cb) {
     cb({
-      get: function() { alert('not implemented'); }
+      get: function(key, err, cb) {
+        ajax.ajax({
+          url: 'http://yourremotestorage.net/CouchDB/proxy/michiel.iriscouch.com/public/'+key,
+          error: err,
+          success: function(data) {
+            try {
+              var obj = JSON.parse(data);
+              cb(obj.value);
+            } catch(e) {
+              err(e);
+            }
+          }
+        });
+      }
     });
   }
   function receive (senderAddress, hash, cb) {
