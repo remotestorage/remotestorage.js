@@ -5,20 +5,19 @@ define({
 
   go: function(address, category, userAddress) {
     var loc = encodeURIComponent((''+window.location).split('#')[0]);
-    window.location = address
+    window.open(address
       + ((address.indexOf('?') == -1)?'?':'&')
       + 'client_id=' + loc
       + '&redirect_uri=' + loc
       + '&scope=' + category
       + '&user_address=' + userAddress
-      + '&response_type=token';
+      + '&response_type=token');
   },
   harvestToken: function(cb) {
     if(location.hash.length == 0) {
       return;
     }
     var params = location.hash.split('&');
-    var paramsToStay = [];
     for(var i = 0; i < params.length; i++){
       if(params[i].length && params[i][0] =='#') {
         params[i] = params[i].substring(1);
@@ -31,20 +30,9 @@ define({
             token += '='+kv[i];
           }
           cb(token);
-        } else if(kv[0]=='token_type') {
-          //ignore silently
-        } else {
-          paramsToStay.push(params[i]);
+          window.close();
         }
-      } else {
-        paramsToStay.push(params[i]);
       }
-    }
-    sessionStorage.setItem('onlineEventPending', 'true');
-    if(paramsToStay.length) {
-      window.location='#'+paramsToStay.join('&');
-    } else {
-      window.location='';
     }
   }
 });

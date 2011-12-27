@@ -108,7 +108,7 @@ define([
     var userAddress = session.get('userAddress');
     button.show(isConnected, userAddress);
   }
-  function configure(setOptions) {
+  function configure(setOptions, cb) {
     console.log(setOptions);
     if(setOptions) {
       for(var i in setOptions) {
@@ -116,6 +116,15 @@ define([
       }
       if(setOptions.userAddress) {
         connectTo(setOptions.userAddress);
+        if(cb) {//oauth token would come here by StorageEvent from the oauth modal
+          window.addEventListener('storage', function(e) {
+            if(e.key == '_shadowBackendToken') {
+              cb();//will scope get here?
+            }
+          }, false);
+        }
+      } else if(cb) {
+        cb();
       }
     }
   }
@@ -158,7 +167,7 @@ define([
     oauth.harvestToken(withToken);
     sync.setBackend(backendObj);
     if(options.suppressAutoSave) {
-      console.log('suppressing autosave');
+      //console.log('suppressing autosave');
     } else {
       trigger('timer');
       var autoSaveMilliseconds = 5000;//FIXME: move this to some sort of config
@@ -166,7 +175,7 @@ define([
         trigger('timer');
       }, autoSaveMilliseconds);
     }
-    document.getElementById('remoteStorageSpinner').style.display='none';
+    //document.getElementById('remoteStorageSpinner').style.display='none';
   }
   
   function onLoad(setOptions) {
