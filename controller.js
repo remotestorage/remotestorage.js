@@ -108,7 +108,7 @@ define([
     var userAddress = session.get('userAddress');
     button.show(isConnected, userAddress);
   }
-  function configure(setOptions, cb) {
+  function configure(setOptions, onToken) {
     console.log(setOptions);
     if(setOptions) {
       for(var i in setOptions) {
@@ -116,15 +116,16 @@ define([
       }
       if(setOptions.userAddress) {
         connectTo(setOptions.userAddress);
-        if(cb) {//oauth token would come here by StorageEvent from the oauth modal
+        if(onToken) {//oauth token would come here by StorageEvent from the oauth modal
           window.addEventListener('storage', function(e) {
+            console.log('detected a change in key '+e.key);
             if(e.key == '_shadowBackendToken') {
-              cb();//will scope get here?
+              onToken();//will scope get here?
             }
           }, false);
         }
-      } else if(cb) {
-        cb();
+      } else if(onToken) {
+        onToken();
       }
     }
   }

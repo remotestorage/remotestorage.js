@@ -28,8 +28,8 @@ define(function(require) {
       syncNow: function() {
         return controller.trigger('syncNow');
       },
-      configure: function(obj) {
-        return controller.configure(obj);
+      configure: function(obj, onToken) {
+        return controller.configure(obj, onToken);
       },
       getStatus: function() {
         return controller.getStatus();
