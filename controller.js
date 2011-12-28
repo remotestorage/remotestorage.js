@@ -120,7 +120,17 @@ define([
           window.addEventListener('storage', function(e) {
             console.log('detected a change in key '+e.key);
             if(e.key == '_shadowBackendToken') {
-              onToken();//will scope get here?
+              var backendName = localStorage.getItem('_shadowBackendModuleName')
+              if(backendName) {
+                require(['./' + backendName], function(backend) {
+                  afterLoadingBackend(backend);
+                  onToken();
+                });
+              } else {
+                console.log('no backend for sync');
+                afterLoadingBackend(null);
+                onToken();//will scope get here?
+              }
             }
           }, false);
         }
