@@ -247,66 +247,10 @@ define([
       };
     }
   }
-  function share(key, cb) {
-    var backendName = localStorage.getItem('_shadowBackendModuleName')
-    if(backendName) {
-      require(['./' + backendName, 'sha1'], function(backend, sha1) {
-        var hash=sha1.hash(localStorage.getItem(key));
-        backend.set(hash, localStorage.getItem(key), function() {
-          cb('something went wrong');
-        }, function() {
-           cb(hash);
-        }, NaN);
-      });
-    } else {
-      console.log('no backend for sync');
-      afterLoadingBackend(null);
-    }
-  }
-  function getPublicBackend(userAddress, err, cb) {
-    webfinger.getAttributes(userAddress, {
-      allowHttpWebfinger: true,
-      allowSingleOriginWebfinger: false,
-      allowFakefinger: true
-    }, err, function(attributes) {
-      if(attributes.api == 'CouchDB') {
-        var publicCategoryUrl = webfinger.resolveTemplate(attributes.template, 'public');
-        cb({
-          get: function(key, err, cb) {
-            ajax.ajax({
-              url: publicCategoryUrl+key,
-              error: err,
-              success: function(data) {
-                try {
-                  var obj = JSON.parse(data);
-                  cb(obj.value);
-                } catch(e) {
-                  err(e);
-                }
-              }
-            });
-          }
-        });
-      } else {
-        err('dont know api '+attributes.api);
-      }
-    });
-  }
-  function receive (senderAddress, hash, cb) {
-    getPublicBackend(senderAddress, function() { cb('no good backend'); }, function(backend) {
-      backend.get(hash, function() {
-        cb('something went wrong');
-      }, function(value) {
-        cb(value);
-      }, NaN);
-    });
-  }
   return {
     configure: configure,
     onLoad: onLoad,
     trigger: trigger,
-    getStatus: getStatus,
-    share: share,
-    receive: receive
+    getStatus: getStatus
   };
 });
