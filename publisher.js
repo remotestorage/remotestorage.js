@@ -1,12 +1,17 @@
 define([
   'require',
+  './sha1',
   './ajax',
   './oauth',
   './webfinger'
-], function(require, ajax, oauth, webfinger) {
+], function(require, sha1, ajax, oauth, webfinger) {
   var status = 'nobody';
   onHandlers = {};
   var webfingerAttr = null;
+  if(localStorage.getItem('_shadowBackendToken')) {
+    status = 'idle';
+    webfingerAttr = JSON.parse(localStorage.getItem('_shadowWebfingerAttr'));
+  }
   function on(eventName, handler) {
     if(typeof(onHandlers[eventName]) == 'undefined') {
       onHandlers[eventName] = [];
@@ -35,6 +40,9 @@ define([
     trigger('fail', msg);
   }
   function setUserAddress(userAddress) {
+    if(status != 'nobody') {
+      return;
+    }
     setStatus('checking');
     webfinger.getAttributes(userAddress, {
       allowHttpWebfinger: true,
@@ -45,7 +53,29 @@ define([
       setStatus('nobody');
     }, function(attributes) {
       webfingerAttr = attributes;
+      localStorage.setItem('_shadowWebfingerAttr', JSON.stringify(webfingerAttr));
+      localStorage.setItem('_shadowBackendAddress', webfinger.resolveTemplate(webfingerAttr.template, 'public'));
       setStatus('noauth-');
+    });
+  }
+  function getBackend(cb) {
+    if(webfingerAttr.api=='CouchDB') {
+      require(['couch'], cb);
+    } else if((webfingerAttr.api=='WebDAV') || (webfingerAttr.api=='WebDAV')) {
+      require(['dav'], cb);
+    }
+  }
+  function doPublish(content, cb) {
+    setStatus('pushing');
+    getBackend(function(backend) {
+      var hash = sha1.hash(content);
+
+      backend.set(hash, content, function(msg) {
+        fail(msg);
+      }, function() {
+        cb(hash);
+        setStatus('idle');
+      }, NaN);
     });
   }
   function publish(content, loc, cb) {
@@ -61,16 +91,12 @@ define([
         + '&response_type=token');
       window.addEventListener('storage', function(e) {
         if(e.key=='_shadowBackendToken') {
-          trigger('status', 'pushing');
-          getBackend(function(backend) {
-            var hash = sha1.sha1(content);
-            backend.put(hash, content, function() {
-              cb(hash);
-            });
-          });
+          doPublish(content, cb);
         }
       });
       trigger('status', 'authing');
+    } else if(status == 'idle') {
+      doPublish(content, cb);
     }
   }
   return {
