@@ -3,15 +3,14 @@ define({
    // OAuth2 implicit grant //
   ///////////////////////////
 
-  go: function(address, category, userAddress) {
+  go: function(address, category) {
     var loc = encodeURIComponent((''+window.location).split('#')[0]);
-    window.open(address
+    window.location = address
       + ((address.indexOf('?') == -1)?'?':'&')
       + 'client_id=' + loc
       + '&redirect_uri=' + loc
       + '&scope=' + category
-      + '&user_address=' + userAddress
-      + '&response_type=token');
+      + '&response_type=token';
   },
   harvestToken: function(cb) {
     if(location.hash.length == 0) {
@@ -30,7 +29,7 @@ define({
             token += '='+kv[i];
           }
           cb(token);
-          window.close();
+          return;
         }
       }
     }
