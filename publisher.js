@@ -18,13 +18,13 @@ define([
     }
     onHandlers[eventName].push(handler);
   }
-  function trigger(eventName, arg0) {
+  function trigger(eventName, arg) {
     if(typeof(onHandlers[eventName]) == 'undefined') {
       return;
     }
     var i;
     for(i=0;i<onHandlers[eventName].length;i++) {
-      onHandlers[eventName][i](arg0);
+      onHandlers[eventName][i](arg);
     }
   }
   function setStatus(newStatus) {
@@ -36,8 +36,8 @@ define([
       console.log('unknown status '+newStatus);
     }
   }
-  function fail(msg) {
-    trigger('fail', msg);
+  function fail(code, msg) {
+    trigger('fail', {code: code, msg: msg});
   }
   function setUserAddress(userAddress) {
     if(status != 'nobody') {
@@ -47,7 +47,10 @@ define([
     webfinger.getAttributes(userAddress, {
       allowHttpWebfinger: true,
       allowSingleOriginWebfinger: false,
-      allowFakefinger: false
+      allowFakefinger: true,
+      onError: function(code, msg) {
+        fail(code, msg);
+      }
     }, function(err) {
       fail(err);
       setStatus('nobody');
@@ -102,6 +105,7 @@ define([
   return {
     on: on,
     setUserAddress: setUserAddress,
-    publish: publish
+    publish: publish,
+    ERR_NO_STORAGE: 5
   };
 });

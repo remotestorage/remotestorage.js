@@ -5,19 +5,26 @@ define(['./ajax'], function(ajax) {
   ///////////////
 
   var options, userAddress, userName, host, templateParts;//this is all a bit messy, but there are a lot of callbacks here, so globals help us with that.
+  function error(code, msg) {
+    if (options.onError) {
+      options.onError(code, msg);
+    } else {
+      alert(msg);
+    }
+  }
   function getAttributes(ua, setOptions, error, cb){
     options = setOptions;
     userAddress = ua;
     var parts = ua.split('@');
     if(parts.length < 2) {
-      error('That is not a user address. There is no @-sign in it');
+      error(1, 'That is not a user address. There is no @-sign in it');
     } else if(parts.length > 2) {
-      error('That is not a user address. There is more than one @-sign in it');
+      error(2, 'That is not a user address. There is more than one @-sign in it');
     } else {
       if(!(/^[\.0-9A-Za-z]+$/.test(parts[0]))) {
-        error('That is not a user address. There are non-dotalphanumeric symbols before the @-sign: "'+parts[0]+'"');
+        error(3, 'That is not a user address. There are non-dotalphanumeric symbols before the @-sign: "'+parts[0]+'"');
       } else if(!(/^[\.0-9A-Za-z\-]+$/.test(parts[1]))) {
-        error('That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
+        error(4, 'That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
       } else {
         userName = parts[0];
         host = parts[1];
@@ -104,7 +111,7 @@ define(['./ajax'], function(ajax) {
     }
   }
   function afterFakefingerError() {
-    alert('user address "'+userAddress+'" doesn\'t seem to have remoteStorage linked to it');
+    error(5, 'user address "'+userAddress+'" doesn\'t seem to have remoteStorage linked to it');
   }
   function continueWithTemplate(template, error, cb) {
     templateParts = template.split('{uri}');
@@ -128,7 +135,7 @@ define(['./ajax'], function(ajax) {
   function afterHostmetaSuccess(data, error, cb) {
     dataXml = (new DOMParser()).parseFromString(data, 'text/xml');
     if(!dataXml.getElementsByTagName) {
-      error('Host-meta is not an XML document, or doesnt have xml mimetype.');
+      error(6, 'Host-meta is not an XML document, or doesnt have xml mimetype.');
       return;
     }
     var linkTags = dataXml.getElementsByTagName('Link');
@@ -137,7 +144,7 @@ define(['./ajax'], function(ajax) {
       try{
         continueWithTemplate(JSON.parse(data).links.lrdd[0].template, error, cb);
       } catch(e) {
-        error('JSON parsing failed - '+data);
+        error(7, 'JSON parsing failed - '+data);
       }
     } else {
       var lrddFound = false;
@@ -163,17 +170,17 @@ define(['./ajax'], function(ajax) {
         }
       }
       if(!lrddFound) {
-        error(errorStr);//todo: make this error flow nicer
+        error(8, errorStr);//todo: make this error flow nicer
       }
     }
   }
   function afterLrddNoAcctError() {
-    error('the template doesn\'t contain "{uri}"');
+    error(9, 'the template doesn\'t contain "{uri}"');
   }
   function afterLrddSuccess(data, error, cb) {
     dataXml = (new DOMParser()).parseFromString(data, 'text/xml');
     if(!dataXml.getElementsByTagName) {
-      error('Lrdd is not an XML document, or doesnt have xml mimetype.');
+      error(10, 'Lrdd is not an XML document, or doesnt have xml mimetype.');
       return;
     }
     var linkTags = dataXml.getElementsByTagName('Link');
@@ -182,7 +189,7 @@ define(['./ajax'], function(ajax) {
       try {
         cb(JSON.parse(data).links.remoteStorage[0]);
       } catch(e) {
-        error('no Link tags found in lrdd');
+        error(11, 'no Link tags found in lrdd');
       }
     } else {
       var linkFound = false;
@@ -218,13 +225,14 @@ define(['./ajax'], function(ajax) {
         }
       }
       if(!linkFound) {
-        error(errorStr);
+        error(12, errorStr);
       }
     }
   }
   function resolveTemplate(template, dataCategory) {
     var parts = template.split('{category}');
     if(parts.length != 2) {
+      error(13, 'cannot resolve template '+template);
       return 'cannot-resolve-template:'+template;
     }
     return parts[0]+dataCategory+parts[1];

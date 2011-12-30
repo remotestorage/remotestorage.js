@@ -7,7 +7,7 @@ define([
     webfinger.getAttributes(userAddress, {
       allowHttpWebfinger: true,
       allowSingleOriginWebfinger: false,
-      allowFakefinger: false
+      allowFakefinger: true
     }, err, function(attributes) {
       if(attributes.api == 'CouchDB') {
         var publicCategoryUrl = webfinger.resolveTemplate(attributes.template, 'public');
