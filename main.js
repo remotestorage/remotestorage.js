@@ -1,13 +1,13 @@
 define(function(require) {
 
   //before doing anything else, display a spinner:
-  (function() {
-    var spinner = document.createElement('img');
-    spinner.setAttribute('id', 'remoteStorageSpinner');
-    spinner.setAttribute('src', require.toUrl('./spinner.gif'));
-    spinner.setAttribute('style', 'position:fixed;right:3em;top:1em;z-index:99999;');
-    document.body.insertBefore(spinner, document.body.firstChild);
-  })();
+  //(function() {
+    //var spinner = document.createElement('img');
+    //spinner.setAttribute('id', 'remoteStorageSpinner');
+    //spinner.setAttribute('src', require.toUrl('./spinner.gif'));
+    //spinner.setAttribute('style', 'position:fixed;right:3em;top:1em;z-index:99999;');
+    //document.body.insertBefore(spinner, document.body.firstChild);
+  //})();
   require(['./controller'], function(controller) {
     var config = {
       jsFileName: 'remoteStorage.js'
@@ -16,12 +16,15 @@ define(function(require) {
     //require('http://browserid.org/include.js');
 
     var scripts = document.getElementsByTagName('script');
+    var options = {};
     for(var i=0; i < scripts.length; i++) {
       if((new RegExp(config.jsFileName+'$')).test(scripts[i].src)) {
-        var options = (new Function('return ' + scripts[i].innerHTML.replace(/\n|\r/g, '')))();
+        options = (new Function('return ' + scripts[i].innerHTML.replace(/\n|\r/g, '')))();
         break;
       }
     }
+    options.suppressDialog = true;
+    options.suppresAutoSave = true;
     controller.onLoad(options);
 
     window.remoteStorage = {
