@@ -24,7 +24,7 @@ define(function(require) {
       }
     }
     options.suppressDialog = true;
-    options.suppresAutoSave = true;
+    options.suppressAutoSave = true;
     controller.onLoad(options);
 
     window.remoteStorage = {
