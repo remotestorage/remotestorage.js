@@ -15,6 +15,12 @@
           token += '='+kv[i];
         }
         localStorage.setItem('_shadowBackendToken', token);
+        try {
+          var sessionObj = JSON.parse(localStorage.getItem('sessionObj'));
+          sessionObj.bearerToken = token;
+          localStorage.setItem('sessionObj', JSON.stringify(sessionObj));
+        } catch(e) {
+        }
         window.close();
       }
     }
