@@ -59,8 +59,8 @@ getScope(baseUrl) ->
       var favouriteFoodIndex = {
         sandwich: id
       };
-      window.remoteStorage.getScope('/public').publish(favouriteFoodIndex, function(id) {
-
+      window.remoteStorage.getScope('/public').store(favouriteFoodIndex, function(id) {
+        //do something with id
       };
     });
   }
