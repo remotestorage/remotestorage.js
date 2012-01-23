@@ -7,6 +7,7 @@
 define({
   ajax: function(params) {
     var xhrTimeout;
+    var timeExpired=false;
     var xhr = new XMLHttpRequest();
     if(!params.method) {
       params.method='GET';
@@ -21,11 +22,11 @@ define({
       }
     }
     xhr.onreadystatechange = function() {
-      if(xhr.readyState == 4) {
+      if(xhr.readyState == 4 && !timeExpired) {
+        if(params.timeout!=null) {
+          clearTimeout(xhrTimeout);
+        }
         if(xhr.status == 200 || xhr.status == 201 || xhr.status == 204) {
-          if(params.timeout!=null) {
-            clearTimeout(xhrTimeout);
-          }
           params.success(xhr.responseText);
         } else {
           params.error(xhr.status);
@@ -34,7 +35,11 @@ define({
     }
     xhr.send(params.data);
     if(params.timeout!=null) {
-      xhrTimeout=setTimeout(params.timeout, params.time || 10000);
+      xhrTimeout=setTimeout(function() {
+        timeExpired=true;
+        xhr.abort();
+        params.timeout();
+      }, params.time || 10000);
     }
   }
 });
