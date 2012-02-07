@@ -1,8 +1,8 @@
 define([
   'require',
-  'js/unhosted/ajax',
-  'js/unhosted/oauth',
-  'js/unhosted/webfinger'
+  '0.2.0/ajax',
+  '0.2.0/oauth',
+  '0.2.0/webfinger'
 ], function(require, ajax, oauth, webfinger) {
   function onError(code, msg) {
     alert(msg);
