@@ -10,10 +10,11 @@ define(['./ajax'], function(ajax) {
       }
       return key;
     }
-    function doCall(method, key, value, token, cb, deadLine) {
+    function doCall(method, key, value, token, cb) {
       var ajaxObj = {
         url: key,
         method: method,
+        error: cb,
         success: cb
       }
       ajaxObj.headers= {Authorization: 'Bearer '+token};
@@ -24,10 +25,14 @@ define(['./ajax'], function(ajax) {
       ajax.ajax(ajaxObj);
     }
     function get(storageAddress, token, key, cb) {
-      doCall('GET', storageAddress+normalizeKey(key), null, token, function(str) {
-        var obj = JSON.parse(str);
-        localStorage.setItem('_shadowCouchRev_'+key, obj._rev);
-        cb(obj.value);
+      doCall('GET', storageAddress+normalizeKey(key), null, token, function(err, data) {
+        if(err) {
+          cb(err, data);
+        } else {
+          var obj = JSON.parse(data);
+          localStorage.setItem('_shadowCouchRev_'+key, obj._rev);
+          cb(null, obj.value);
+        }
       });
     }
     function put(storageAddress, token, key, value, cb) {
@@ -38,20 +43,24 @@ define(['./ajax'], function(ajax) {
       if(revision) {
         obj._rev = revision;
       }
-      doCall('PUT', storageAddress+normalizeKey(key), JSON.stringify(obj), token, function(str) {
-        var obj = JSON.parse(str);
-        if(obj.rev) {
-          localStorage.setItem('_shadowCouchRev_'+key, obj.rev);
+      doCall('PUT', storageAddress+normalizeKey(key), JSON.stringify(obj), token, function(err, data) {
+        if(err) {
+          cb(err, data);
+        } else {
+          var obj = JSON.parse(data);
+          if(obj.rev) {
+            localStorage.setItem('_shadowCouchRev_'+key, obj.rev);
+          }
+          cb(null, null);
         }
-        cb();
       });
     }
-    function delete(storageAddress, token, key, cb) {
+    function delete_(storageAddress, token, key, cb) {
       doCall('DELETE', storageAddress+normalizeKey(key), null, token, cb);
     }
     return {
       get: get,
       put: put,
-      delete: delete
-    }
+      delete: delete_
+    };
 });

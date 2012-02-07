@@ -28,9 +28,9 @@ define([
   }
   function getDriver(api, cb) {
     if(api == 'CouchDB') {
-      require(['couch'], cb);
+      require(['0.2.0/couch'], cb);
     } else {//'simple', 'WebDAV'
-      require(['dav'], cb);
+      require(['0.2.0/dav'], cb);
     }
   }
   function createClient(storageAddress, api, token) {
