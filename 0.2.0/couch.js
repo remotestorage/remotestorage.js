@@ -17,7 +17,9 @@ define(['./ajax'], function(ajax) {
         error: cb,
         success: cb
       }
-      ajaxObj.headers= {Authorization: 'Bearer '+token};
+      if(token) {
+        ajaxObj.headers= {Authorization: 'Bearer '+token};
+      }
       ajaxObj.fields={withCredentials: 'true'};
       if(method!='GET') {
         ajaxObj.data=value;

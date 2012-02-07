@@ -12,12 +12,14 @@ define([
       allowHttpWebfinger: true,
       allowSingleOriginWebfinger: false,
       allowFakefinger: true
-    }, onError, function(attributes) {
+    }, function(err, data) {
+      cb(err, null, null, []);
+    }, function(attributes) {
       var storageAddresses = {};
       for(i in categories) {
         storageAddresses[categories[i]] = webfinger.resolveTemplate(attributes.template, categories[i]);
       }
-      cb(attributes.api,
+      cb(0, attributes.api,
         attributes.auth
           +'?redirect_uri='+encodeURIComponent(receiverPageAddress)
           +'&scope'+encodeURIComponent(categories.join(','))
@@ -52,9 +54,15 @@ define([
       }
     };
   }
+  function getPublic(userAddress, key, cb) {
+    getInfo(userAddress, ['public'], '', function(err, api, auth, addresses) {
+      var client = createClient(addresses[0], api, null);
+      client.get(key, cb);
+    });
+  }
   return {
     getInfo: getInfo,
     createClient: createClient,
-    getPublic: function() { alert('not implemented'); }
+    getPublic: getPublic
   };
 });
