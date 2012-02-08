@@ -1,9 +1,8 @@
 define([
   'require',
-  '0.2.0/ajax',
-  '0.2.0/oauth',
-  '0.2.0/webfinger'
-], function(require, ajax, oauth, webfinger) {
+  'lib/ajax-0.1.0',
+  'lib/webfinger-0.1.0'
+], function(require, ajax, webfinger) {
   function onError(code, msg) {
     alert(msg);
   }
@@ -28,9 +27,9 @@ define([
   }
   function getDriver(api, cb) {
     if(api == 'CouchDB') {
-      require(['0.2.0/couch'], cb);
+      require(['lib/couch-0.1.0'], cb);
     } else {//'simple', 'WebDAV'
-      require(['0.2.0/dav'], cb);
+      require(['lib/dav-0.1.0'], cb);
     }
   }
   function createClient(storageInfo, category, token) {
