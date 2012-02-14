@@ -1,8 +1,10 @@
 define([
   'require',
   'http://unhosted.org/lib/ajax-0.4.2.js',
+  'http://unhosted.org/lib/couch-0.4.2.js',
+  'http://unhosted.org/lib/dav-0.4.2.js',
   'http://unhosted.org/lib/webfinger-0.4.2.js'
-], function(require, ajax, webfinger) {
+], function(require, ajax, couch, dav, webfinger) {
   function onError(code, msg) {
     alert(msg);
   }
