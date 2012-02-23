@@ -1,9 +1,9 @@
 define([
   'require',
-  './lib/ajax-0.4.2',
-  './lib/couch-0.4.2',
-  './lib/dav-0.4.2',
-  './lib/webfinger-0.4.2'
+  './lib/ajax',
+  './lib/couch',
+  './lib/dav',
+  './lib/webfinger'
 ], function(require, ajax, couch, dav, webfinger) {
   function onError(code, msg) {
     alert(msg);
@@ -21,17 +21,22 @@ define([
     });
   }
   function createOAuthAddress(storageInfo, categories, redirectUri) {
-     return storageInfo.auth
-          +'?redirect_uri='+encodeURIComponent(redirectUri)
-          +'&scope='+encodeURIComponent(categories.join(','))
-          +'&response_type=token'
-          +'&client_id='+encodeURIComponent(redirectUri);
+     var terms =
+          ['redirect_uri='+encodeURIComponent(redirectUri),
+          'scope='+encodeURIComponent(categories.join(',')),
+          'response_type=token',
+          'client_id='+encodeURIComponent(redirectUri)];
+     if(storageInfo.auth.indexOf('?') == -1) {
+       return storageInfo.auth+'?'+terms.join('&');
+     } else {
+       return storageInfo.auth+'&'+terms.join('&');
+     }
   }
   function getDriver(api, cb) {
     if(api == 'CouchDB') {
-      require(['./lib/couch-0.4.2'], cb);
+      require(['./lib/couch'], cb);
     } else {//'simple', 'WebDAV'
-      require(['./lib/dav-0.4.2'], cb);
+      require(['./lib/dav'], cb);
     }
   }
   function createClient(storageInfo, category, token) {
