@@ -1,9 +1,9 @@
 define([
   'require',
-  'http://unhosted.org/lib/ajax-0.4.2.js',
-  'http://unhosted.org/lib/couch-0.4.2.js',
-  'http://unhosted.org/lib/dav-0.4.2.js',
-  'http://unhosted.org/lib/webfinger-0.4.2.js'
+  './lib/ajax-0.4.2',
+  './lib/couch-0.4.2',
+  './lib/dav-0.4.2',
+  './lib/webfinger-0.4.2'
 ], function(require, ajax, couch, dav, webfinger) {
   function onError(code, msg) {
     alert(msg);
@@ -34,9 +34,9 @@ define([
   }
   function getDriver(api, cb) {
     if(api == 'CouchDB') {
-      require(['http://unhosted.org/lib/couch-0.4.2.js'], cb);
+      require(['./lib/couch-0.4.2'], cb);
     } else {//'simple', 'WebDAV'
-      require(['http://unhosted.org/lib/dav-0.4.2.js'], cb);
+      require(['./lib/dav-0.4.2'], cb);
     }
   }
   function createClient(storageInfo, category, token) {
