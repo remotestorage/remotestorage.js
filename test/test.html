@@ -6,13 +6,13 @@
     <script>
       var ajaxResponses;
       var ajaxCalls;
-      function test1() {
-        ajaxResponses = [{
-          success: true,
-          data: 'asdf'
-        }];
-        ajaxCalls = [];
-        require(['./remoteStorage'], function(remoteStorage) {
+      require(['./remoteStorage'], function(remoteStorage) {
+        function test1() {
+          ajaxResponses = [{
+            success: true,
+            data: 'asdf'
+          }];
+          ajaxCalls = [];
           remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
             if(err=='JSON parsing failed - asdf' && storageInfo==null && ajaxCalls.length==1 && ajaxCalls[0].url=='https://b.c/.well-known/host-meta' && ajaxCalls[0].timeout == 3000) {
               test2();
@@ -20,22 +20,20 @@
               alert(JSON.stringify(ajaxCalls));
             }
           });
-        });
-      }
-      function test2() {
-        ajaxResponses = [{
-          success: false,
-          err: 403
-        }, {
-          success: true,
-          data: '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
-            +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\'\n'
-            +'     xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
-            +'          <Link rel=\'lrdd\''
-            +' template=\'http://unhosted.org/.well-known/{uri}.webfinger\'></Link></XRD>'
-        }];
-        ajaxCalls = [];
-        require(['./remoteStorage'], function(remoteStorage) {
+        }
+        function test2() {
+          ajaxResponses = [{
+            success: false,
+            err: 403
+          }, {
+            success: true,
+            data: '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
+              +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\'\n'
+              +'     xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
+              +'          <Link rel=\'lrdd\''
+              +' template=\'http://unhosted.org/.well-known/{uri}.webfinger\'></Link></XRD>'
+          }];
+          ajaxCalls = [];
           remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
             if(err=='the template doesn\'t contain "{uri}"' 
                 && storageInfo==null 
@@ -47,27 +45,25 @@
               alert(JSON.stringify(ajaxCalls));
             }
           });
-        });
-      }
-      function test3() {
-        ajaxResponses = [{
-          success: false,
-          err: 403
-        }, {
-          success: true,
-          data: '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\' xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
-            +'<Link rel=\'remoteStorage\' api=\'simple\' auth=\'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org\''
-            +' template=\'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/\'></Link></XRD>'
-        }, {
-          success: true,
-          data: '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
-            +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\'\n'
-            +'     xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
-            +'          <Link rel=\'lrdd\''
-            +' template=\'http://unhosted.org/.well-known/{uri}.webfinger\'></Link></XRD>'
-        }];
-        ajaxCalls = [];
-        require(['./remoteStorage'], function(remoteStorage) {
+        }
+        function test3() {
+          ajaxResponses = [{
+            success: false,
+            err: 403
+          }, {
+            success: true,
+            data: '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\' xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
+              +'<Link rel=\'remoteStorage\' api=\'simple\' auth=\'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org\''
+              +' template=\'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/\'></Link></XRD>'
+          }, {
+            success: true,
+            data: '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
+              +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\'\n'
+              +'     xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
+              +'          <Link rel=\'lrdd\''
+              +' template=\'http://unhosted.org/.well-known/{uri}.webfinger\'></Link></XRD>'
+          }];
+          ajaxCalls = [];
           remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
             if(err==0
                 && storageInfo.api=='simple' 
@@ -81,26 +77,24 @@
               alert(JSON.stringify(ajaxCalls));
             }
           });
-        });
-      }
-      function test4() {
-        require(['./remoteStorage'], function(remoteStorage) {
-          var redirectUri = 'http://unhosted.org/asdf/qwer.html';
-          var oauthAddress = remoteStorage.createOAuthAddress({auth:'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org'}, ['asdf'], redirectUri);
-          if(oauthAddress=='http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org?redirect_uri='+encodeURIComponent(redirectUri)+'&scope=asdf&response_type=token&client_id='+encodeURIComponent(redirectUri)) {
-            test5();
-          } else {
-            alert(oauthAddress);
-          }
-        });
-      }
-      function test5() {
-        ajaxResponses=[{
-          success:false,
-          err:404
-        }];
-        ajaxCalls=[];
-        require(['./remoteStorage'], function(remoteStorage) {
+        }
+        function test4() {
+          require(['./remoteStorage'], function(remoteStorage) {
+            var redirectUri = 'http://unhosted.org/asdf/qwer.html';
+            var oauthAddress = remoteStorage.createOAuthAddress({auth:'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org'}, ['asdf'], redirectUri);
+            if(oauthAddress=='http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org?redirect_uri='+encodeURIComponent(redirectUri)+'&scope=asdf&response_type=token&client_id='+encodeURIComponent(redirectUri)) {
+              test5();
+            } else {
+              alert(oauthAddress);
+            }
+          });
+        }
+        function test5() {
+          ajaxResponses=[{
+            success:false,
+            err:404
+          }];
+          ajaxCalls=[];
           var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
           client.get('foo', function(err, data) {
             if(err==404 && data==null && ajaxCalls[0].fields.withCredentials=='true' && ajaxCalls[0].headers.Authorization=='Bearer qwer'
@@ -110,15 +104,13 @@
               alert(JSON.stringify(ajaxCalls));
             }
           });
-        });
-      }
-      function test6() {
-        ajaxResponses=[{
-          success:true,
-          data:'bar'
-        }];
-        ajaxCalls=[];
-        require(['./remoteStorage'], function(remoteStorage) {
+        }
+        function test6() {
+          ajaxResponses=[{
+            success:true,
+            data:'bar'
+          }];
+          ajaxCalls=[];
           var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
           client.get('foo', function(err, data) {
             if(err==null && data=='bar' && ajaxCalls[0].fields.withCredentials=='true' && ajaxCalls[0].headers.Authorization=='Bearer qwer'
@@ -128,15 +120,13 @@
               alert(JSON.stringify(ajaxCalls));
             }
           });
-        });
-      }
-      function test7() {
-        ajaxResponses=[{
-          success:true,
-          data:'bar'
-        }];
-        ajaxCalls=[];
-        require(['./remoteStorage'], function(remoteStorage) {
+        }
+        function test7() {
+          ajaxResponses=[{
+            success:true,
+            data:'bar'
+          }];
+          ajaxCalls=[];
           var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
           client.put('foo', 'bar', function(err, data) {
             if(err==null && data=='bar' && ajaxCalls[0].fields.withCredentials=='true' && ajaxCalls[0].headers.Authorization=='Bearer qwer'
@@ -147,31 +137,57 @@
               alert(JSON.stringify(ajaxCalls));
             }
           });
-        });
-      }
-      function test8() {
-        ajaxResponses=[{
-          success:true,
-          data:'bar'
-        }];
-        ajaxCalls=[];
-        require(['./remoteStorage'], function(remoteStorage) {
-          var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
-          client.delete('foo', function(err, data) {
-            if(err==null && data=='bar' && ajaxCalls[0].fields.withCredentials=='true' && ajaxCalls[0].headers.Authorization=='Bearer qwer'
-                && ajaxCalls[0].method=='DELETE' && ajaxCalls[0].timeout==3000 && ajaxCalls[0].url=='http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo') {
-              test9();
-            } else {
-              alert(JSON.stringify(ajaxCalls));
-            }
-          });
-        });
-      }
-      function test9() {
-        alert('done');
-      }
+        }
+        function test8() {
+          ajaxResponses=[{
+            success:true,
+            data:'bar'
+          }];
+          ajaxCalls=[];
+            var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+            client.delete('foo', function(err, data) {
+              if(err==null && data=='bar' && ajaxCalls[0].fields.withCredentials=='true' && ajaxCalls[0].headers.Authorization=='Bearer qwer'
+                  && ajaxCalls[0].method=='DELETE' && ajaxCalls[0].timeout==3000 && ajaxCalls[0].url=='http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo') {
+                test9();
+              } else {
+                alert(JSON.stringify(ajaxCalls));
+              }
+            });
+        }
+        function test9() {
+          location.hash='#access_token=asdf&bla';
+          var token = remoteStorage.receiveToken();
+          if(token == 'asdf') {
+            test10();
+          } else {
+            alert(token);
+          }
+        }
+        function test10() {
+          location.hash='#a=b&access_token=asdf&bla=wa';
+          var token = remoteStorage.receiveToken();
+          if(token == 'asdf') {
+            test11();
+          } else {
+            alert(token);
+          }
+        }
+        function test11() {
+          location.hash='#foo=bar&access_token=asdf';
+          var token = remoteStorage.receiveToken();
+          if(token == 'asdf') {
+            test12();
+          } else {
+            alert(token);
+          }
+        }
+        function test12() {
+          alert('done');
+        }
+      
+        test1();
+      });
 
-      test1();
     </script>
   </head>
   <body>
