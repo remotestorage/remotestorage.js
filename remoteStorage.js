@@ -1,5 +1,5 @@
 define(
-  ['require', './lib/ajax', './lib/couch', './lib/dav', './lib/webfinger'], 
+  ['require', './lib/ajax', './lib/couch', './lib/dav', './lib/webfinger'],
   function (require, ajax, couch, dav, webfinger) {
     var onError = function (code, msg) {
         console.log(msg);
@@ -10,16 +10,16 @@ define(
             allowHttpWebfinger: true,
             allowSingleOriginWebfinger: false,
             allowFakefinger: true
-          }, 
+          },
           function (err, data) {
             cb(err, null);
-          }, 
+          },
           function (attributes) {
             cb(0, attributes);
             var storageAddresses = {};
           }
         );
-      }, 
+      },
       createOAuthAddress = function (storageInfo, categories, redirectUri) {
         var terms = [
           'redirect_uri='+encodeURIComponent(redirectUri),
@@ -57,10 +57,10 @@ define(
         /**
           this needs more attention.
         **/
-        if(location.hash.length > 0) { 
+        if(location.hash.length > 0) {
           params = location.hash.split('&');
-          for(var i = 0, il = params.length; i < il; i++) {
-            if(params[i].length && params[i][0] ==='#') {
+          for(var i = 0; i < params.length; i++) {
+            if(params[i].length && params[i][0] === '#') {
               params[i] = params[i].substring(1);
             }
             kv = params[i].split('=');
@@ -68,8 +68,8 @@ define(
               if(kv[0]==='access_token') {
                 ///XXX: ok im guessing its a base64 string and you somehow adding an = sign to the end of it ok, why?
                 var token = unescape(kv[1]);//unescaping is needed in chrome, otherwise you get %3D%3D at the end instead of ==
-                for(var j = 2,jl = kv.length; i < jl; i++) {
-                  token += '='+kv[i]; 
+                for(var i = 2; i < kv.length; i++) {
+                  token += '='+kv[i];
                 }
                 return token;
               }
