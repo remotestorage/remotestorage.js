@@ -37,7 +37,11 @@
         ajaxCalls = [];
         require(['./remoteStorage'], function(remoteStorage) {
           remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
-            if(err=='JSON parsing failed - 0' && storageInfo==null && ajaxCalls.length==1 && ajaxCalls[0].url=='https://b.c/.well-known/host-meta' && ajaxCalls[0].timeout == 3000) {
+            if(err=='the template doesn\'t contain "{uri}"' 
+                && storageInfo==null 
+                && ajaxCalls.length==2 
+                && ajaxCalls[0].url=='https://b.c/.well-known/host-meta' && ajaxCalls[0].timeout == 3000
+                && ajaxCalls[1].url=='http://unhosted.org/.well-known/acct:a@b.c.webfinger' && ajaxCalls[1].timeout == 3000) {
               test3();
             } else {
               alert(JSON.stringify(ajaxCalls));

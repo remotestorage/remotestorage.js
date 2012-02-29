@@ -154,7 +154,7 @@ define(['./ajax'], function(ajax) {
       }
     }
   }
-  function afterLrddNoAcctError() {
+  function afterLrddNoAcctError(error, cb) {
     error('the template doesn\'t contain "{uri}"');
   }
   function afterLrddSuccess(data, error, cb) {
