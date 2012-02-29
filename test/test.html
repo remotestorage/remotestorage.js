@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+  <head>
+    <meta charset="utf-8">
+    <title>remoteStorage.js test suite</title>
+    <script src="../require.js"></script>
+    <script>
+      var ajaxResponses;
+      var ajaxCalls;
+      function test1() {
+        ajaxResponses = [{
+          success: true,
+          data: 'asdf'
+        }];
+        ajaxCalls = [];
+        require(['./remoteStorage'], function(remoteStorage) {
+          remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
+            if(err=='JSON parsing failed - asdf' && storageInfo==null && ajaxCalls.length==1 && ajaxCalls[0].url=='https://b.c/.well-known/host-meta' && ajaxCalls[0].timeout == 3000) {
+              test2();
+            } else {
+              alert(JSON.stringify(ajaxCalls));
+            }
+          });
+        });
+      }
+      function test2() {
+        ajaxResponses = [{
+          success: false,
+          err: 403
+        }, {
+          success: true,
+          data: '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
+            +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\'\n'
+            +'     xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
+            +'          <Link rel=\'lrdd\''
+            +' template=\'http://unhosted.org/.well-known/{uri}.webfinger\'></Link></XRD>'
+        }];
+        ajaxCalls = [];
+        require(['./remoteStorage'], function(remoteStorage) {
+          remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
+            if(err=='JSON parsing failed - 0' && storageInfo==null && ajaxCalls.length==1 && ajaxCalls[0].url=='https://b.c/.well-known/host-meta' && ajaxCalls[0].timeout == 3000) {
+              test3();
+            } else {
+              alert(JSON.stringify(ajaxCalls));
+            }
+          });
+        });
+      }
+      function test3() {
+        alert('done');
+      }
+      test1();
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
