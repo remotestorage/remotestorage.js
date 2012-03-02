@@ -72,20 +72,9 @@
                 && ajaxCalls.length==2 
                 && ajaxCalls[0].url=='https://b.c/.well-known/host-meta' && ajaxCalls[0].timeout == 3000
                 && ajaxCalls[1].url=='http://unhosted.org/.well-known/acct:a@b.c.webfinger' && ajaxCalls[1].timeout == 3000) {
-              test4();
-            } else {
-              alert(JSON.stringify(ajaxCalls));
-            }
-          });
-        }
-        function test4() {
-          require(['./remoteStorage'], function(remoteStorage) {
-            var redirectUri = 'http://unhosted.org/asdf/qwer.html';
-            var oauthAddress = remoteStorage.createOAuthAddress({auth:'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org'}, ['asdf'], redirectUri);
-            if(oauthAddress=='http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org?redirect_uri='+encodeURIComponent(redirectUri)+'&scope=asdf&response_type=token&client_id='+encodeURIComponent(redirectUri)) {
               test5();
             } else {
-              alert(oauthAddress);
+              alert(JSON.stringify(ajaxCalls));
             }
           });
         }
@@ -148,38 +137,11 @@
             client.delete('foo', function(err, data) {
               if(err==null && data=='bar' && ajaxCalls[0].fields.withCredentials=='true' && ajaxCalls[0].headers.Authorization=='Bearer qwer'
                   && ajaxCalls[0].method=='DELETE' && ajaxCalls[0].timeout==3000 && ajaxCalls[0].url=='http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo') {
-                test9();
+                test12();
               } else {
                 alert(JSON.stringify(ajaxCalls));
               }
             });
-        }
-        function test9() {
-          location.hash='#access_token=asdf&bla';
-          var token = remoteStorage.receiveToken();
-          if(token == 'asdf') {
-            test10();
-          } else {
-            alert(token);
-          }
-        }
-        function test10() {
-          location.hash='#a=b&access_token=asdf&bla=wa';
-          var token = remoteStorage.receiveToken();
-          if(token == 'asdf') {
-            test11();
-          } else {
-            alert(token);
-          }
-        }
-        function test11() {
-          location.hash='#foo=bar&access_token=asdf';
-          var token = remoteStorage.receiveToken();
-          if(token == 'asdf') {
-            test12();
-          } else {
-            alert(token);
-          }
         }
         function test12() {
           alert('done');
