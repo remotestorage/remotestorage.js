@@ -102,5 +102,46 @@ require(['./test/remoteStorage'], function(remoteStorage){
       expect(token).toEqual('asdf');
     });
   });
-
+  describe("REST client", function() {
+    it("should report 404s as 404s", function() {
+      runs(function() {
+        ajaxResponses=[{
+          success:false,
+          err:404
+        }];
+        ajaxCalls=[];
+        var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+        client.get('foo', function(err, data) {
+          expect(err).toEqual(404);
+          expect(data).toEqual(null);
+          expect(ajaxCalls[0].fields.withCredentials).toEqual('true');
+          expect(ajaxCalls[0].headers.Authorization).toEqual('Bearer qwer');
+          expect(ajaxCalls[0].method).toEqual('GET');
+          expect(ajaxCalls[0].timeout).toEqual(3000);
+          expect(ajaxCalls[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
+        });
+        waits(100);
+      });
+    });
+    it("should GET foo", function() {
+      runs(function() {
+        ajaxResponses=[{
+          success:true,
+          data:'bar'
+        }];
+        ajaxCalls=[];
+        var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+        client.get('foo', function(err, data) {
+          expect(err).toEqual(null);
+          expect(data).toEqual('bar');
+          expect(ajaxCalls[0].fields.withCredentials).toEqual('true');
+          expect(ajaxCalls[0].headers.Authorization).toEqual('Bearer qwer');
+          expect(ajaxCalls[0].method).toEqual('GET');
+          expect(ajaxCalls[0].timeout).toEqual(3000);
+          expect(ajaxCalls[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
+        });
+      });
+      waits(100);
+    });
+  });
 });

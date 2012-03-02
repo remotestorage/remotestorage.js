@@ -7,38 +7,6 @@
       var ajaxResponses;
       var ajaxCalls;
       require(['./remoteStorage'], function(remoteStorage) {
-        function test5() {
-          ajaxResponses=[{
-            success:false,
-            err:404
-          }];
-          ajaxCalls=[];
-          var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
-          client.get('foo', function(err, data) {
-            if(err==404 && data==null && ajaxCalls[0].fields.withCredentials=='true' && ajaxCalls[0].headers.Authorization=='Bearer qwer'
-                && ajaxCalls[0].method=='GET' && ajaxCalls[0].timeout==3000 && ajaxCalls[0].url=='http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo') {
-              test6();
-            } else {
-              alert(JSON.stringify(ajaxCalls));
-            }
-          });
-        }
-        function test6() {
-          ajaxResponses=[{
-            success:true,
-            data:'bar'
-          }];
-          ajaxCalls=[];
-          var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
-          client.get('foo', function(err, data) {
-            if(err==null && data=='bar' && ajaxCalls[0].fields.withCredentials=='true' && ajaxCalls[0].headers.Authorization=='Bearer qwer'
-                && ajaxCalls[0].method=='GET' && ajaxCalls[0].timeout==3000 && ajaxCalls[0].url=='http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo') {
-              test7();
-            } else {
-              alert(JSON.stringify(ajaxCalls));
-            }
-          });
-        }
         function test7() {
           ajaxResponses=[{
             success:true,
@@ -76,7 +44,7 @@
           alert('done');
         }
       
-        test5();
+        test7();
       });
 
     </script>
