@@ -7,63 +7,6 @@
       var ajaxResponses;
       var ajaxCalls;
       require(['./remoteStorage'], function(remoteStorage) {
-        function test2() {
-          ajaxResponses = [{
-            success: false,
-            err: 403
-          }, {
-            success: true,
-            data: '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
-              +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\'\n'
-              +'     xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
-              +'          <Link rel=\'lrdd\''
-              +' template=\'http://unhosted.org/.well-known/{uri}.webfinger\'></Link></XRD>'
-          }];
-          ajaxCalls = [];
-          remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
-            if(err=='the template doesn\'t contain "{uri}"' 
-                && storageInfo==null 
-                && ajaxCalls.length==2 
-                && ajaxCalls[0].url=='https://b.c/.well-known/host-meta' && ajaxCalls[0].timeout == 3000
-                && ajaxCalls[1].url=='http://unhosted.org/.well-known/acct:a@b.c.webfinger' && ajaxCalls[1].timeout == 3000) {
-              test3();
-            } else {
-              alert(JSON.stringify(ajaxCalls));
-            }
-          });
-        }
-        function test3() {
-          ajaxResponses = [{
-            success: false,
-            err: 403
-          }, {
-            success: true,
-            data: '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\' xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
-              +'<Link rel=\'remoteStorage\' api=\'simple\' auth=\'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org\''
-              +' template=\'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/\'></Link></XRD>'
-          }, {
-            success: true,
-            data: '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
-              +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\'\n'
-              +'     xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
-              +'          <Link rel=\'lrdd\''
-              +' template=\'http://unhosted.org/.well-known/{uri}.webfinger\'></Link></XRD>'
-          }];
-          ajaxCalls = [];
-          remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
-            if(err==0
-                && storageInfo.api=='simple' 
-                && storageInfo.template=='http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/' 
-                && storageInfo.auth=='http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org' 
-                && ajaxCalls.length==2 
-                && ajaxCalls[0].url=='https://b.c/.well-known/host-meta' && ajaxCalls[0].timeout == 3000
-                && ajaxCalls[1].url=='http://unhosted.org/.well-known/acct:a@b.c.webfinger' && ajaxCalls[1].timeout == 3000) {
-              test5();
-            } else {
-              alert(JSON.stringify(ajaxCalls));
-            }
-          });
-        }
         function test5() {
           ajaxResponses=[{
             success:false,
@@ -133,7 +76,7 @@
           alert('done');
         }
       
-        test2();
+        test5();
       });
 
     </script>
