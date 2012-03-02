@@ -14,7 +14,7 @@ define({
         } else {
           params.error(response.err);
         }
-      }, 100);
+      }, 10);
     } else {
       alert('ran out of responses!');
     }
