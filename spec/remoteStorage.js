@@ -1,5 +1,7 @@
-require(['./remoteStorage'], function(remoteStorage){
-
+require(['./test/remoteStorage'], function(remoteStorage){
+  describe("webfinger functions", function() {
+    
+  });
   describe("OAuth helpers", function() {
     it("should create an OAuth address", function() {//test 4
       var redirectUri = 'http://unhosted.org/asdf/qwer.html';
