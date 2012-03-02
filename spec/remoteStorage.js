@@ -32,7 +32,7 @@ require(['./test/remoteStorage'], function(remoteStorage){
         expect(storageInfo).toEqual(null);
         expect(ajaxCalls.length).toEqual(2); 
         expect(ajaxCalls[0].url).toEqual('https://b.c/.well-known/host-meta');
-        expect(ajaxCalls[0].timeout ).toEqual(3000);
+        expect(ajaxCalls[0].timeout).toEqual(3000);
         expect(ajaxCalls[1].url).toEqual('http://unhosted.org/.well-known/acct:a@b.c.webfinger');
         expect(ajaxCalls[1].timeout).toEqual(3000);
       });
