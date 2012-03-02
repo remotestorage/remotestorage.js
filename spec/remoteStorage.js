@@ -120,8 +120,8 @@ require(['./test/remoteStorage'], function(remoteStorage){
           expect(ajaxCalls[0].timeout).toEqual(3000);
           expect(ajaxCalls[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
         });
-        waits(100);
       });
+      waits(100);
     });
     it("should GET foo", function() {
       runs(function() {
@@ -137,6 +137,47 @@ require(['./test/remoteStorage'], function(remoteStorage){
           expect(ajaxCalls[0].fields.withCredentials).toEqual('true');
           expect(ajaxCalls[0].headers.Authorization).toEqual('Bearer qwer');
           expect(ajaxCalls[0].method).toEqual('GET');
+          expect(ajaxCalls[0].timeout).toEqual(3000);
+          expect(ajaxCalls[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
+        });
+      });
+      waits(100);
+    });
+    it("should PUT foo bar", function() {
+      runs(function() {
+        ajaxResponses=[{
+          success:true,
+          data:'bar'
+        }];
+        ajaxCalls=[];
+        var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+        client.put('foo', 'bar', function(err, data) {
+          expect(err).toEqual(null);
+          expect(data).toEqual('bar');
+          expect(ajaxCalls[0].fields.withCredentials).toEqual('true');
+          expect(ajaxCalls[0].headers.Authorization).toEqual('Bearer qwer');
+          expect(ajaxCalls[0].method).toEqual('PUT');
+          expect(ajaxCalls[0].timeout).toEqual(3000);
+          expect(ajaxCalls[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
+          expect(ajaxCalls[0].data).toEqual('bar');
+        });
+      });
+      waits(100);
+    });
+    it("should DELETE foo", function() {
+      runs(function() {
+        ajaxResponses=[{
+          success:true,
+          data:'bar'
+        }];
+        ajaxCalls=[];
+        var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+        client.delete('foo', function(err, data) {
+          expect(err).toEqual(null);
+          expect(data).toEqual('bar');
+          expect(ajaxCalls[0].fields.withCredentials).toEqual('true');
+          expect(ajaxCalls[0].headers.Authorization).toEqual('Bearer qwer');
+          expect(ajaxCalls[0].method).toEqual('DELETE');
           expect(ajaxCalls[0].timeout).toEqual(3000);
           expect(ajaxCalls[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
         });
