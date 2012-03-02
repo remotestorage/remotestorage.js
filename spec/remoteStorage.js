@@ -1,6 +1,19 @@
 require(['./test/remoteStorage'], function(remoteStorage){
   describe("webfinger functions", function() {
-    
+    it("should fail to parse a bogus host-meta", function() {
+      ajaxResponses = [{
+        success: true,
+        data: 'asdf'
+      }];
+      ajaxCalls = [];
+      remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
+        expect(err).toEqual('JSON parsing failed - asdf');
+        expect(storageInfo).toEqual(null);
+        expect(ajaxCalls.length).toEqual(1);
+        expect(ajaxCalls[0].url).toEqual('https://b.c/.well-known/host-meta');
+        expect(ajaxCalls[0].timeout).toEqual(3000);
+      });
+    });
   });
   describe("OAuth helpers", function() {
     it("should create an OAuth address", function() {//test 4

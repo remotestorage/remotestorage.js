@@ -7,20 +7,6 @@
       var ajaxResponses;
       var ajaxCalls;
       require(['./remoteStorage'], function(remoteStorage) {
-        function test1() {
-          ajaxResponses = [{
-            success: true,
-            data: 'asdf'
-          }];
-          ajaxCalls = [];
-          remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
-            if(err=='JSON parsing failed - asdf' && storageInfo==null && ajaxCalls.length==1 && ajaxCalls[0].url=='https://b.c/.well-known/host-meta' && ajaxCalls[0].timeout == 3000) {
-              test2();
-            } else {
-              alert(JSON.stringify(ajaxCalls));
-            }
-          });
-        }
         function test2() {
           ajaxResponses = [{
             success: false,
@@ -147,7 +133,7 @@
           alert('done');
         }
       
-        test1();
+        test2();
       });
 
     </script>
