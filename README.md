@@ -11,20 +11,22 @@ Code example
 =========
 
     require(['./js/remoteStorage'], function(remoteStorage) {
-      var bearerToken = remoteStorage.receiveToken();
-      if(!bearerToken) {//when you first hit the page
-        remoteStorage.getStorageInfo('user@example.com', function(err, storageInfo) {
-          localStorage.storageInfo=JSON.stringify(storageInfo);
-          window.location = remoteStorage.createOAuthAddress(storageInfo, ['sandwiches'], window.location.href);
-        });
-      } else {//after you come back from the OAuth dance
-        var client = remoteStorage.createClient(JSON.parse(localStorage.storageInfo), 'sandwiches', bearerToken);
-        client.put('foo', 'bar', function(err) {
-          client.get('foo', function(err, data) {
-            alert(data);
+      remoteStorage.getStorageInfo('user@example.com', function(err, storageInfo) {
+        var token = remoteStorage.receiveToken();
+        if(token) {
+          //we can access the 'sandwiches' category on the remoteStorage of user@example.com:
+          var client = remoteStorage.createClient(storageInfo, 'sandwiches', bearerToken);
+          client.put('foo', 'bar', function(err) {
+            client.get('foo', function(err, data) {
+              client.delete('foo', function(err) {
+              });
+            });
           });
-        });
-      }
+        } else {
+          //get an access token for 'sandwiches' by dancing OAuth with the remoteStorage of user@example.com:
+          window.location = remoteStorage.createOAuthAddress(storageInfo, ['sandwiches'], window.location.href);
+        }
+      });
     });
 
 
