@@ -41,26 +41,26 @@ remoteStorage.getStorageInfo(userAddress, callback)
     -err: null, or a string describing what went wrong
     -storageInfo: an object describing some details of the user's remoteStorage
 
-remoteStorage.createOAuthAddress(storageInfo, categories, redirectUri) {}
+remoteStorage.createOAuthAddress(storageInfo, categories, redirectUri)
 -------
 
     storageInfo: the object you got from the getStorageInfo call
     categories: an array of strings describing categories of data you will be accessing. See https://github.com/unhosted/website/wiki/categories for a list.
     @returns: string, the url you should go to for the OAuth dance
 
-remoteStorage.receiveToken() {}
+remoteStorage.receiveToken()
 -------
 
     @returns: when coming back from the OAuth dance, a string containing the bearer token. Otherwise, null.
 
-remoteStorage.createClient(storageInfo, category, bearerToken) {}
+remoteStorage.createClient(storageInfo, category, bearerToken)
 -------
 
     storageInfo: the object you got from the getStorageInfo call
     category: one of the strings from the array you passed to createOAuthAddress earlier
     @returns: a Client
 
-Client.get(key, callback) {}
+Client.get(key, callback)
 -------
     
     key: a string, identifying which element you want to retrieve
@@ -68,7 +68,7 @@ Client.get(key, callback) {}
     -err: null, or a string describing what went wrong
     -data: undefined, or a string, that is the current value of 'key' within 'category' on the user's remoteStorage
 
-Client.put(key, value, callback) {}
+Client.put(key, value, callback)
 -------
 
     key: a string, identifying which element you want to assign value to
@@ -77,7 +77,7 @@ Client.put(key, value, callback) {}
     callback: function(err)
     -err: null, or a string describing what went wrong
 
-Client.delete(key, callback) {}
+Client.delete(key, callback)
 -------
 
     key: a string, identifying which element you want to reset to undefined
