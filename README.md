@@ -25,8 +25,8 @@ Your `app.js`:
       remoteStorage.getStorageInfo('user@example.com', function(err, storageInfo) {
         var token = remoteStorage.receiveToken();
         if(token) {
-          //we can access the 'sandwiches' category on the remoteStorage of user@example.com:
-          var client = remoteStorage.createClient(storageInfo, 'documents', bearerToken);
+          //we can access the 'contacts' category on the remoteStorage of user@example.com:
+          var client = remoteStorage.createClient(storageInfo, 'contacts', bearerToken);
           client.put('foo', 'bar', function(err) {
             client.get('foo', function(err, data) {
               client.delete('foo', function(err) {
@@ -35,7 +35,7 @@ Your `app.js`:
           });
         } else {
           //get an access token for 'sandwiches' by dancing OAuth with the remoteStorage of user@example.com:
-          window.location = remoteStorage.createOAuthAddress(storageInfo, ['documents'], window.location.href);
+          window.location = remoteStorage.createOAuthAddress(storageInfo, ['contacts'], window.location.href);
         }
       });
     });
