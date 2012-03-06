@@ -36,19 +36,33 @@ define(
         var storageAddress = webfinger.resolveTemplate(storageInfo.template, category);
         return {
           get: function (key, cb) {
-            getDriver(storageInfo.api, function (d) {
-              d.get(storageAddress, token, key, cb);
-            });
+            if(typeof('key') != 'string') {
+              cb('argument "key" should be a string');
+            } else {
+              getDriver(storageInfo.api, function (d) {
+                d.get(storageAddress, token, key, cb);
+              });
+            }
           },
           put: function (key, value, cb) {
-            getDriver(storageInfo.api, function (d) {
-              d.put(storageAddress, token, key, value, cb);
-            });
+            if(typeof('key') != 'string') {
+              cb('argument "key" should be a string');
+            } else if(typeof('value') != 'string') {
+              cb('argument "value" should be a string');
+            } else {
+              getDriver(storageInfo.api, function (d) {
+                d.put(storageAddress, token, key, value, cb);
+              });
+            }
           },
           'delete': function (key, cb) {
-            getDriver(storageInfo.api, function (d) {
-              d['delete'](storageAddress, token, key, cb);
-            });
+            if(typeof('key') != 'string') {
+              cb('argument "key" should be a string');
+            } else {
+              getDriver(storageInfo.api, function (d) {
+                d['delete'](storageAddress, token, key, cb);
+              });
+            }
           }
         };
       },
