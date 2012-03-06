@@ -6,21 +6,27 @@ This is version 0.4.5 of the library, and you can use it under AGPL or MIT licen
 
 #Code example
 Minimal HTML:
+
+```html
     <!DOCTYPE html>
     <html>
       <head>
-        <script src="/path/to/require.js"></script>
-        <script src="/path/to/your/app.js"></script>
+        <script src="./path/to/require.js"></script>
+        <script src="./path/to/your/app.js"></script>
       </head>
       <body></body>
     </html>
+```
+
 Your `app.js`:
+
+```js
     require(['./path/to/remoteStorage'], function(remoteStorage) {
       remoteStorage.getStorageInfo('user@example.com', function(err, storageInfo) {
         var token = remoteStorage.receiveToken();
         if(token) {
           //we can access the 'sandwiches' category on the remoteStorage of user@example.com:
-          var client = remoteStorage.createClient(storageInfo, 'sandwiches', bearerToken);
+          var client = remoteStorage.createClient(storageInfo, 'documents', bearerToken);
           client.put('foo', 'bar', function(err) {
             client.get('foo', function(err, data) {
               client.delete('foo', function(err) {
@@ -29,10 +35,11 @@ Your `app.js`:
           });
         } else {
           //get an access token for 'sandwiches' by dancing OAuth with the remoteStorage of user@example.com:
-          window.location = remoteStorage.createOAuthAddress(storageInfo, ['sandwiches'], window.location.href);
+          window.location = remoteStorage.createOAuthAddress(storageInfo, ['documents'], window.location.href);
         }
       });
     });
+```
 
 #Function reference
 ### remoteStorage.getStorageInfo(userAddress, callback)
