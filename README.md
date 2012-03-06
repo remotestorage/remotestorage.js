@@ -45,8 +45,10 @@ remoteStorage.createOAuthAddress(storageInfo, categories, redirectUri)
 -------
 
     storageInfo: the object you got from the getStorageInfo call
-    categories: an array of strings describing categories of data you will be accessing. See https://github.com/unhosted/website/wiki/categories for a list.
+    categories: an array of strings describing categories of data you will be accessing.
     @returns: string, the url you should go to for the OAuth dance
+
+See https://github.com/unhosted/website/wiki/categories for a list of categories you might want to access.
 
 remoteStorage.receiveToken()
 -------
