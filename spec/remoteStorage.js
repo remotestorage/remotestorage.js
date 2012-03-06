@@ -103,7 +103,7 @@ require(['./test/remoteStorage'], function(remoteStorage){
     });
   });
   describe("REST client", function() {
-    it("should report 404s as 404s", function() {
+    it("should report 404s as undefined", function() {
       runs(function() {
         ajaxResponses=[{
           success:false,
@@ -111,9 +111,9 @@ require(['./test/remoteStorage'], function(remoteStorage){
         }];
         ajaxCalls=[];
         var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
-        client.get('foo', function(err, data) {
-          expect(err).toEqual(404);
-          expect(data).toEqual(null);
+        client.get('foo', function(err,  data) {
+          expect(err).toEqual(null);
+          expect(data).toEqual(undefined);
           expect(ajaxCalls[0].fields.withCredentials).toEqual('true');
           expect(ajaxCalls[0].headers.Authorization).toEqual('Bearer qwer');
           expect(ajaxCalls[0].method).toEqual('GET');
