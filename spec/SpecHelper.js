@@ -1,9 +1,12 @@
-beforeEach(function() {
-  // this.addMatchers({
-  //   toBePlaying: function(expectedSong) {
-  //     var player = this.actual;
-  //     return player.currentlyPlayingSong === expectedSong && 
-  //            player.isPlaying;
-  //   }
-  // });
-});
+(function() {
+  beforeEach(function() {
+    sinonXhr = sinon.useFakeXMLHttpRequest();
+    sinonRequests = [];
+    sinonXhr.onCreate = function (xhr) {
+      sinonRequests.push(xhr);
+    };
+  });
+  afterEach(function() {
+    sinonXhr.restore();
+  });
+})();
