@@ -6,8 +6,11 @@ This is version 0.4.5 of the library, and you can use it under AGPL or MIT licen
 
 # Browser support
 This library relies heavily on [cors](http://caniuse.com/#search=cors).
+
 Known to work: Firefox, Chrome, Safari, Safari-iOS.
+
 Might work: Firefox-mobile, Android-native, Opera 12+, Opera-mobile 12+, IE 10+.
+
 Coming soon: IE 8 & 9 (please help with this!).
 
 
