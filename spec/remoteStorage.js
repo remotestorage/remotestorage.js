@@ -237,18 +237,18 @@ require(['./remoteStorage'], function(remoteStorage){
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
           expect(sinonRequests[0].requestBody).toEqual('{"value":"bar","_rev":"123"}');
         });
-        sinonRequests[0].respond(200, {}, '{"ok":"true","rev":"123"}');
+        sinonRequests[0].respond(200, {}, '{"ok":"true","rev":"456"}');
       });
       waits(100);
     });
     it("should DELETE foo", function() {
       runs(function() {
         var client = remoteStorage.createClient({api:'CouchDB', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
-        client.delete('foo', function(err) {
+        client.delete('foo', function(err) { 
           expect(err).toEqual(null);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('DELETE');
-          expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo?rev=123');
+          expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo?rev=456');
         });
         sinonRequests[0].respond(200, {}, 'bar');
       });
