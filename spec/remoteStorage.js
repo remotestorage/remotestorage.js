@@ -91,6 +91,7 @@ require(['./remoteStorage'], function(remoteStorage){
         client.get('foo', function(err,  data) {
           expect(err).toEqual(null);
           expect(data).toEqual(undefined);
+          expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('GET');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
@@ -105,6 +106,7 @@ require(['./remoteStorage'], function(remoteStorage){
         client.get('foo', function(err, data) {
           expect(err).toEqual(null);
           expect(data).toEqual('bar');
+          expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('GET');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
@@ -118,6 +120,7 @@ require(['./remoteStorage'], function(remoteStorage){
         var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
         client.put('foo', 'bar', function(err) {
           expect(err).toEqual(null);
+          expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('PUT');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
@@ -132,6 +135,7 @@ require(['./remoteStorage'], function(remoteStorage){
         var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
         client.delete('foo', function(err) {
           expect(err).toEqual(null);
+          expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('DELETE');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
@@ -148,6 +152,7 @@ require(['./remoteStorage'], function(remoteStorage){
         client.get('foo', function(err,  data) {
           expect(err).toEqual(null);
           expect(data).toEqual(undefined);
+          expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('GET');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
@@ -162,6 +167,7 @@ require(['./remoteStorage'], function(remoteStorage){
         client.get('foo', function(err, data) {
           expect(err).toEqual(null);
           expect(data).toEqual('bar');
+          expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('GET');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
@@ -175,6 +181,7 @@ require(['./remoteStorage'], function(remoteStorage){
         var client = remoteStorage.createClient({api:'WebDAV', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
         client.put('foo', 'bar', function(err) {
           expect(err).toEqual(null);
+          expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('PUT');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
@@ -189,6 +196,7 @@ require(['./remoteStorage'], function(remoteStorage){
         var client = remoteStorage.createClient({api:'WebDAV', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
         client.delete('foo', function(err) {
           expect(err).toEqual(null);
+          expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('DELETE');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
@@ -202,9 +210,10 @@ require(['./remoteStorage'], function(remoteStorage){
     it("should report 404s as undefined", function() {
       runs(function() {
         var client = remoteStorage.createClient({api:'CouchDB', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
-        client.get('foo', function(err,  data) {
+        client.get('foo', function(err,  data) { 
           expect(err).toEqual(null);
           expect(data).toEqual(undefined);
+          expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('GET');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
@@ -219,6 +228,7 @@ require(['./remoteStorage'], function(remoteStorage){
         client.get('foo', function(err, data) {
           expect(err).toEqual(null);
           expect(data).toEqual('bar');
+          expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('GET');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
@@ -232,6 +242,7 @@ require(['./remoteStorage'], function(remoteStorage){
         var client = remoteStorage.createClient({api:'CouchDB', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
         client.put('foo', 'bar', function(err) {
           expect(err).toEqual(null);
+          expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('PUT');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
@@ -241,16 +252,63 @@ require(['./remoteStorage'], function(remoteStorage){
       });
       waits(100);
     });
+    it("should overcome a 409 on PUT", function() {
+      runs(function() {
+        var client = remoteStorage.createClient({api:'CouchDB', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+        client.put('foo', 'bar', function(err) {
+          expect(err).toEqual(null);
+          expect(sinonRequests.length).toEqual(3);
+          expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
+          expect(sinonRequests[0].method).toEqual('PUT');
+          expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
+          expect(sinonRequests[0].requestBody).toEqual('{"value":"bar","_rev":"456"}');
+          expect(sinonRequests[1].requestHeaders.Authorization).toEqual('Bearer qwer');
+          expect(sinonRequests[1].method).toEqual('GET');
+          expect(sinonRequests[1].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
+          expect(sinonRequests[2].requestHeaders.Authorization).toEqual('Bearer qwer');
+          expect(sinonRequests[2].method).toEqual('PUT');
+          expect(sinonRequests[2].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
+          expect(sinonRequests[2].requestBody).toEqual('{"value":"bar","_rev":"789"}');
+        });
+        sinonRequests[0].respond(409, {}, 'say the magic word!');
+        sinonRequests[0].respond(200, {}, '{"_rev":"789", "value":"bla"}');
+        sinonRequests[0].respond(200, {}, '{"ok":"true"}');
+      });
+      waits(100);
+    });
     it("should DELETE foo", function() {
       runs(function() {
         var client = remoteStorage.createClient({api:'CouchDB', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
         client.delete('foo', function(err) { 
           expect(err).toEqual(null);
+          expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('DELETE');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo?rev=456');
         });
         sinonRequests[0].respond(200, {}, 'bar');
+      });
+      waits(100);
+    });
+    it("should overcome a 409 on DELETE", function() {
+      runs(function() {
+        var client = remoteStorage.createClient({api:'CouchDB', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+        client.delete('foo', function(err) { 
+          expect(err).toEqual(null);
+          expect(sinonRequests.length).toEqual(3);
+          expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
+          expect(sinonRequests[0].method).toEqual('DELETE');
+          expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo?rev=789');
+          expect(sinonRequests[1].requestHeaders.Authorization).toEqual('Bearer qwer');
+          expect(sinonRequests[1].method).toEqual('GET');
+          expect(sinonRequests[1].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
+          expect(sinonRequests[2].requestHeaders.Authorization).toEqual('Bearer qwer');
+          expect(sinonRequests[2].method).toEqual('DELETE');
+          expect(sinonRequests[2].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo?rev=xyz');
+        });
+        sinonRequests[0].respond(409, {}, '{"ok":"false"}');
+        sinonRequests[0].respond(200, {}, '{"_rev":"abc", "value"foo"}');
+        sinonRequests[0].respond(200, {}, '');
       });
       waits(100);
     });
