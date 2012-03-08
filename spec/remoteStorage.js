@@ -7,7 +7,6 @@ require(['./remoteStorage'], function(remoteStorage){
           expect(storageInfo).toEqual(null);
           expect(sinonRequests.length).toEqual(1);
           expect(sinonRequests[0].url).toEqual('https://b.c/.well-known/host-meta');
-          expect(sinonRequests[0].timeout).toEqual(3000);
         });
         sinonRequests[0].respond(404, {}, 'asdf');
       });
@@ -20,9 +19,7 @@ require(['./remoteStorage'], function(remoteStorage){
           expect(storageInfo).toEqual(null);
           expect(sinonRequests.length).toEqual(2); 
           expect(sinonRequests[0].url).toEqual('https://b.c/.well-known/host-meta');
-          expect(sinonRequests[0].timeout).toEqual(3000);
           expect(sinonRequests[1].url).toEqual('http://unhosted.org/.well-known/acct:a@b.c.webfinger');
-          expect(sinonRequests[1].timeout).toEqual(3000);
         });
         sinonRequests[0].respond(200, {}, '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
             +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\'\n'
@@ -42,16 +39,14 @@ require(['./remoteStorage'], function(remoteStorage){
           expect(storageInfo.auth).toEqual('http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org');
           expect(sinonRequests.length).toEqual(2);
           expect(sinonRequests[0].url).toEqual('https://b.c/.well-known/host-meta');
-          expect(sinonRequests[0].timeout).toEqual(3000);
           expect(sinonRequests[1].url).toEqual('http://unhosted.org/.well-known/acct:a@b.c.webfinger');
-          expect(sinonRequests[1].timeout).toEqual(3000);
         });
         sinonRequests[0].respond(200, {}, '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
             +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\'\n'
             +'     xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
             +'          <Link rel=\'lrdd\''
             +' template=\'http://unhosted.org/.well-known/{uri}.webfinger\'></Link></XRD>');
-        sinonRequests[1].respond(200, {}, ''<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
+        sinonRequests[1].respond(200, {}, '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
             +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\' xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
             +'<Link rel=\'remoteStorage\' api=\'simple\' auth=\'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org\''
             +' template=\'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/\'></Link></XRD>');
@@ -94,10 +89,8 @@ require(['./remoteStorage'], function(remoteStorage){
         client.get('foo', function(err,  data) {
           expect(err).toEqual(null);
           expect(data).toEqual(undefined);
-          expect(sinonRequests[0].fields.withCredentials).toEqual('true');
-          expect(sinonRequests[0].headers.Authorization).toEqual('Bearer qwer');
+          expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('GET');
-          expect(sinonRequests[0].timeout).toEqual(3000);
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
         });
         sinonRequests[0].respond(404, {}, '');
@@ -110,10 +103,8 @@ require(['./remoteStorage'], function(remoteStorage){
         client.get('foo', function(err, data) {
           expect(err).toEqual(null);
           expect(data).toEqual('bar');
-          expect(sinonRequests[0].fields.withCredentials).toEqual('true');
-          expect(sinonRequests[0].headers.Authorization).toEqual('Bearer qwer');
+          expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('GET');
-          expect(sinonRequests[0].timeout).toEqual(3000);
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
         });
         sinonRequests[0].respond(200, {}, 'bar');
@@ -126,12 +117,10 @@ require(['./remoteStorage'], function(remoteStorage){
         client.put('foo', 'bar', function(err, data) {
           expect(err).toEqual(null);
           expect(data).toEqual('bar');
-          expect(sinonRequests[0].fields.withCredentials).toEqual('true');
-          expect(sinonRequests[0].headers.Authorization).toEqual('Bearer qwer');
+          expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('PUT');
-          expect(sinonRequests[0].timeout).toEqual(3000);
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
-          expect(sinonRequests[0].data).toEqual('bar');
+          expect(sinonRequests[0].requestBody).toEqual('bar');
         });
         sinonRequests[0].respond(200, {}, 'bar');
       });
@@ -143,10 +132,8 @@ require(['./remoteStorage'], function(remoteStorage){
         client.delete('foo', function(err, data) {
           expect(err).toEqual(null);
           expect(data).toEqual('bar');
-          expect(sinonRequests[0].fields.withCredentials).toEqual('true');
-          expect(sinonRequests[0].headers.Authorization).toEqual('Bearer qwer');
+          expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('DELETE');
-          expect(sinonRequests[0].timeout).toEqual(3000);
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
         });
         sinonRequests[0].respond(200, {}, 'bar');
