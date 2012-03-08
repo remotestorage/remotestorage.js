@@ -1,20 +1,7 @@
 # remoteStorage.js
 This is a library for adding remoteStorage support to your client-side app. See http://tutorial.unhosted.5apps.com/ for example usage.
 
-# Version and license
-This is version 0.4.5 of the library, and you can use it under AGPL or MIT license - whatever floats your boat. Pull requests are very welcome (if you're not on github you can email them to michiel at unhosted.org).
-
-# Browser support
-This library relies heavily on [cors](http://caniuse.com/#search=cors).
-
-Known to work: Firefox, Chrome, Safari, Safari-iOS.
-
-Might work: Firefox-mobile, Android-native, Opera 12+, Opera-mobile 12+, IE 10+.
-
-Coming soon: IE 8 & 9 (please [help with this](https://groups.google.com/d/topic/unhosted/Xk1hJMr9i9c/discussion)!).
-
-
-#Code example
+## Code example
 Minimal HTML:
 
 ```html
@@ -51,7 +38,7 @@ require(['./path/to/remoteStorage'], function(remoteStorage) {
 });
 ```
 
-#Function reference
+## Function reference
 ### remoteStorage.getStorageInfo(userAddress, callback)
 
     userAddress: string of the form 'user@host'
@@ -96,3 +83,15 @@ See https://github.com/unhosted/website/wiki/categories for a list of categories
     key: a string, identifying which element you want to reset to undefined
     callback: function(err)
     -err: null, or a string describing what went wrong
+
+## Browser support
+This library relies heavily on [CORS](http://caniuse.com/#search=cors).
+
+Known to work: Firefox, Chrome, Safari, Safari iOS.
+
+Might work: Firefox Mobile, Android stock browser, Opera 12+, Opera Mobile 12+, IE 10+.
+
+Planned: IE 8 & 9 (please [help with this](https://groups.google.com/d/topic/unhosted/Xk1hJMr9i9c/discussion)!).
+
+## Version and license
+This is version 0.4.5 of the library, and you can use it under AGPL or MIT license - whatever floats your boat. Pull requests are very welcome (if you're not on github you can email them to michiel at unhosted.org).
