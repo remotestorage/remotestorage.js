@@ -9,6 +9,8 @@ require(['./remoteStorage'], function(remoteStorage){
           expect(sinonRequests[0].url).toEqual('https://b.c/.well-known/host-meta');
         });
         sinonRequests[0].respond(404, {}, 'asdf');
+        sinonRequests[1].respond(404, {}, 'asdf');
+
       });
       waits(100);
     });
@@ -233,7 +235,7 @@ require(['./remoteStorage'], function(remoteStorage){
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('PUT');
           expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
-          expect(sinonRequests[0].requestBody).toEqual('{"value":"bar"}');
+          expect(sinonRequests[0].requestBody).toEqual('{"value":"bar","_rev":"123"}');
         });
         sinonRequests[0].respond(200, {}, '{"ok":"true","rev":"123"}');
       });
@@ -246,7 +248,7 @@ require(['./remoteStorage'], function(remoteStorage){
           expect(err).toEqual(null);
           expect(sinonRequests[0].requestHeaders.Authorization).toEqual('Bearer qwer');
           expect(sinonRequests[0].method).toEqual('DELETE');
-          expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo');
+          expect(sinonRequests[0].url).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo?rev=123');
         });
         sinonRequests[0].respond(200, {}, 'bar');
       });
