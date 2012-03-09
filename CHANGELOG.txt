@@ -1,3 +1,7 @@
+0.4.7
+=====
+* added r.js build script
+
 0.4.6
 =====
 * moved tests to sinonjs, fixed some significant bugs in couch 409 handling
