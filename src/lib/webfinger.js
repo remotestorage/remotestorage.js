@@ -1,4 +1,4 @@
-define(['./lib/ajax'], function(ajax) {
+define(['./ajax'], function(ajax) {
 
     ///////////////
    // Webfinger //

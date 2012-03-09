@@ -1,36 +1,40 @@
 var fs=require('fs'),
+  path=require('path'),
   requirejs = require('requirejs');
 
 var compiler = (function() {
   var files={};
   function fetchModule(name) {
-    if(name == 'require') {
+    if(name == path.normalize(config.baseUrl+'/require')) {
       return;
     }
     if(files[name]) {
       console.log('duplicate '+name);
       return false;
     } else {
-      files[name] = fs.readFileSync(config.baseUrl+'/'+name+'.js', 'utf8');
-      console.log('fetched '+config.baseUrl+'/'+name+'.js');
+      files[name] = fs.readFileSync(name+'.js', 'utf8');
+      console.log('fetched '+name+'.js');
       return true;
     }
   }
   function compile(name) {
-    if(fetchModule(name)) {
+    var currName = path.normalize(config.baseUrl+'/'+name);
+    var currDir = path.dirname(currName);
+    console.log('compiling '+name+', currName='+currName+', currDir= '+currDir);
+    if(fetchModule(currName)) {
       (function(moduleCode) {
         function define(listOfDependencies, functionReturningObject) {
           console.log('in our define mock, dependencies are: ');
           console.log(listOfDependencies);
           for(var i in listOfDependencies) {
-            compile(listOfDependencies[i]);
+            compile(currDir+'/'+listOfDependencies[i]);
           }
           //eval(functionReturningObject); we only look at which modules the current file requires in its own define, we don't go inside it.
         }
         console.log('evaluating module code for '+name+'...');
         //console.log(files);
         eval(moduleCode);
-      })(files[name]);
+      })(files[currName]);
     }
   }
   function writeOut(fileName, objName) {

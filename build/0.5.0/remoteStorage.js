@@ -1,8 +1,8 @@
 var remoteStorage = (function() {
   var deps={}, code={};  (function() {
     function define(deps, code){
-      exports["remoteStorage"]=code;
-      deps["remoteStorage"]=deps;
+      exports["../src/remoteStorage"]=code;
+      deps["../src/remoteStorage"]=deps;
     }
 //////////////////
 // remoteStorage
@@ -103,11 +103,11 @@ define(['require', './lib/ajax', './lib/couch', './lib/dav', './lib/webfinger'],
 // remoteStorage
 //////////////////
   })();
-  var remoteStorage = exports["remoteStorage"].apply(deps["remoteStorage"]);
+  var remoteStorage = exports["../src/remoteStorage"].apply(deps["../src/remoteStorage"]);
   (function() {
     function define(deps, code){
-      exports["./lib/ajax"]=code;
-      deps["./lib/ajax"]=deps;
+      exports["../src/lib/ajax"]=code;
+      deps["../src/lib/ajax"]=deps;
     }
 //////////////////
 // ajax
@@ -166,17 +166,17 @@ define([], function() {
 // ajax
 //////////////////
   })();
-  var ajax = exports["./lib/ajax"].apply(deps["./lib/ajax"]);
+  var ajax = exports["../src/lib/ajax"].apply(deps["../src/lib/ajax"]);
   (function() {
     function define(deps, code){
-      exports["./lib/couch"]=code;
-      deps["./lib/couch"]=deps;
+      exports["../src/lib/couch"]=code;
+      deps["../src/lib/couch"]=deps;
     }
 //////////////////
 // couch
 //
 
-define(['./lib/ajax'], function(ajax) {
+define(['./ajax'], function(ajax) {
   var shadowCouchRev=null;
   function getShadowCouchRev(key) {
     if(!shadowCouchRev) {
@@ -359,17 +359,17 @@ define(['./lib/ajax'], function(ajax) {
 // couch
 //////////////////
   })();
-  var couch = exports["./lib/couch"].apply(deps["./lib/couch"]);
+  var couch = exports["../src/lib/couch"].apply(deps["../src/lib/couch"]);
   (function() {
     function define(deps, code){
-      exports["./lib/dav"]=code;
-      deps["./lib/dav"]=deps;
+      exports["../src/lib/dav"]=code;
+      deps["../src/lib/dav"]=deps;
     }
 //////////////////
 // dav
 //
 
-define(['./lib/ajax'], function(ajax) {
+define(['./ajax'], function(ajax) {
   function normalizeKey(key) {
     var i = 0;
     while(i < key.length && key[i] == 'u') {
@@ -435,17 +435,17 @@ define(['./lib/ajax'], function(ajax) {
 // dav
 //////////////////
   })();
-  var dav = exports["./lib/dav"].apply(deps["./lib/dav"]);
+  var dav = exports["../src/lib/dav"].apply(deps["../src/lib/dav"]);
   (function() {
     function define(deps, code){
-      exports["./lib/webfinger"]=code;
-      deps["./lib/webfinger"]=deps;
+      exports["../src/lib/webfinger"]=code;
+      deps["../src/lib/webfinger"]=deps;
     }
 //////////////////
 // webfinger
 //
 
-define(['./lib/ajax'], function(ajax) {
+define(['./ajax'], function(ajax) {
 
     ///////////////
    // Webfinger //
@@ -648,6 +648,6 @@ define(['./lib/ajax'], function(ajax) {
 // webfinger
 //////////////////
   })();
-  var webfinger = exports["./lib/webfinger"].apply(deps["./lib/webfinger"]);
+  var webfinger = exports["../src/lib/webfinger"].apply(deps["../src/lib/webfinger"]);
   return remoteStorage;
 })();

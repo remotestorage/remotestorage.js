@@ -1,4 +1,4 @@
-define(['./lib/ajax'], function(ajax) {
+define(['./ajax'], function(ajax) {
   function normalizeKey(key) {
     var i = 0;
     while(i < key.length && key[i] == 'u') {
