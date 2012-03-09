@@ -1,4 +1,4 @@
-var couch = (function(ajax) {
+define(['./lib/ajax'], function(ajax) {
   var shadowCouchRev=null;
   function getShadowCouchRev(key) {
     if(!shadowCouchRev) {
@@ -174,4 +174,4 @@ var couch = (function(ajax) {
     put: put,
     delete: delete_
   };
-})(ajax);
+});

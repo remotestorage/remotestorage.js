@@ -1,4 +1,4 @@
-var remoteStorage = (function(couch, dav, webfinger) {
+define(['require', './lib/ajax', './lib/couch', './lib/dav', './lib/webfinger'], function(require, ajax, couch, dav, webfinger) {
   var onError = function (code, msg) {
       console.log(msg);
     },
@@ -86,4 +86,4 @@ var remoteStorage = (function(couch, dav, webfinger) {
     createClient       : createClient,
     receiveToken       : receiveToken
   };
-})(couch, dav, webfinger);
+});

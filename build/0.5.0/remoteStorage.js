@@ -1,11 +1,125 @@
 var remoteStorage = (function() {
+  var deps={}, code={};  (function() {
+    function define(deps, code){
+      exports["remoteStorage"]=code;
+      deps["remoteStorage"]=deps;
+    }
+//////////////////
+// remoteStorage
+//
+
+define(['require', './lib/ajax', './lib/couch', './lib/dav', './lib/webfinger'], function(require, ajax, couch, dav, webfinger) {
+  var onError = function (code, msg) {
+      console.log(msg);
+    },
+    getStorageInfo = function (userAddress, cb) {
+      webfinger.getAttributes(
+        userAddress, {
+          allowHttpWebfinger: true,
+          allowSingleOriginWebfinger: false,
+          allowFakefinger: true
+        },
+        function (err, data) {
+          cb(err, null);
+        },
+        function (attributes) {
+          cb(0, attributes);
+          var storageAddresses = {};
+        }
+      );
+    },
+    createOAuthAddress = function (storageInfo, categories, redirectUri) {
+      var terms = [
+        'redirect_uri='+encodeURIComponent(redirectUri),
+        'scope='+encodeURIComponent(categories.join(',')),
+        'response_type=token',
+        'client_id='+encodeURIComponent(redirectUri)
+      ];
+      return storageInfo.auth + (storageInfo.auth.indexOf('?') === -1?'?':'&') + terms.join('&');
+    },
+    getDriver = function (api, cb) {
+      cb(api === 'CouchDB'?couch:dav);
+    },
+    createClient = function (storageInfo, category, token) {
+      var storageAddress = webfinger.resolveTemplate(storageInfo.template, category);
+      return {
+        get: function (key, cb) {
+          if(typeof('key') != 'string') {
+            cb('argument "key" should be a string');
+          } else {
+            getDriver(storageInfo.api, function (d) {
+              d.get(storageAddress, token, key, cb);
+            });
+          }
+        },
+        put: function (key, value, cb) {
+          if(typeof('key') != 'string') {
+            cb('argument "key" should be a string');
+          } else if(typeof('value') != 'string') {
+            cb('argument "value" should be a string');
+          } else {
+            getDriver(storageInfo.api, function (d) {
+              d.put(storageAddress, token, key, value, cb);
+            });
+          }
+        },
+        'delete': function (key, cb) {
+          if(typeof('key') != 'string') {
+            cb('argument "key" should be a string');
+          } else {
+            getDriver(storageInfo.api, function (d) {
+              d['delete'](storageAddress, token, key, cb);
+            });
+          }
+        }
+      };
+    },
+    receiveToken = function () {
+      var params, kv;
+      if(location.hash.length > 0) {
+        params = location.hash.split('&');
+        for(var i = 0; i < params.length; i++) {
+          if(params[i][0]=='#') {
+            params[i] = params[i].substring(1);
+          }
+          if(params[i].substring(0, 'access_token='.length)=='access_token=') {
+            return params[i].substring('access_token='.length);
+          }
+        }
+      }
+      return null;
+    };
+
+  return {
+    getStorageInfo     : getStorageInfo,
+    createOAuthAddress : createOAuthAddress,
+    createClient       : createClient,
+    receiveToken       : receiveToken
+  };
+});
+
+
+//
+// remoteStorage
+//////////////////
+  })();
+  var remoteStorage = exports["remoteStorage"].apply(deps["remoteStorage"]);
+  (function() {
+    function define(deps, code){
+      exports["./lib/ajax"]=code;
+      deps["./lib/ajax"]=deps;
+    }
+//////////////////
+// ajax
+//
+
 //implementing $.ajax() like a poor man's jQuery:
 
       //////////
      // ajax //
     //////////
 
-var ajax = (function() {
+define([], function() {
   var ajax = function(params) {
     var timedOut = false;
     var timer;
@@ -45,8 +159,24 @@ var ajax = (function() {
   return {
     ajax: ajax
   };
-})();
-var couch = (function(ajax) {
+});
+
+
+//
+// ajax
+//////////////////
+  })();
+  var ajax = exports["./lib/ajax"].apply(deps["./lib/ajax"]);
+  (function() {
+    function define(deps, code){
+      exports["./lib/couch"]=code;
+      deps["./lib/couch"]=deps;
+    }
+//////////////////
+// couch
+//
+
+define(['./lib/ajax'], function(ajax) {
   var shadowCouchRev=null;
   function getShadowCouchRev(key) {
     if(!shadowCouchRev) {
@@ -222,8 +352,24 @@ var couch = (function(ajax) {
     put: put,
     delete: delete_
   };
-})(ajax);
-var dav = (function(ajax) {
+});
+
+
+//
+// couch
+//////////////////
+  })();
+  var couch = exports["./lib/couch"].apply(deps["./lib/couch"]);
+  (function() {
+    function define(deps, code){
+      exports["./lib/dav"]=code;
+      deps["./lib/dav"]=deps;
+    }
+//////////////////
+// dav
+//
+
+define(['./lib/ajax'], function(ajax) {
   function normalizeKey(key) {
     var i = 0;
     while(i < key.length && key[i] == 'u') {
@@ -282,8 +428,24 @@ var dav = (function(ajax) {
     put:    put,
     delete: delete_
   }
-})(ajax);
-var webfinger = (function(ajax) {
+});
+
+
+//
+// dav
+//////////////////
+  })();
+  var dav = exports["./lib/dav"].apply(deps["./lib/dav"]);
+  (function() {
+    function define(deps, code){
+      exports["./lib/webfinger"]=code;
+      deps["./lib/webfinger"]=deps;
+    }
+//////////////////
+// webfinger
+//
+
+define(['./lib/ajax'], function(ajax) {
 
     ///////////////
    // Webfinger //
@@ -479,95 +641,13 @@ var webfinger = (function(ajax) {
     getAttributes: getAttributes,
     resolveTemplate: resolveTemplate
   }
-})(ajax);
-var remoteStorage = (function(couch, dav, webfinger) {
-  var onError = function (code, msg) {
-      console.log(msg);
-    },
-    getStorageInfo = function (userAddress, cb) {
-      webfinger.getAttributes(
-        userAddress, {
-          allowHttpWebfinger: true,
-          allowSingleOriginWebfinger: false,
-          allowFakefinger: true
-        },
-        function (err, data) {
-          cb(err, null);
-        },
-        function (attributes) {
-          cb(0, attributes);
-          var storageAddresses = {};
-        }
-      );
-    },
-    createOAuthAddress = function (storageInfo, categories, redirectUri) {
-      var terms = [
-        'redirect_uri='+encodeURIComponent(redirectUri),
-        'scope='+encodeURIComponent(categories.join(',')),
-        'response_type=token',
-        'client_id='+encodeURIComponent(redirectUri)
-      ];
-      return storageInfo.auth + (storageInfo.auth.indexOf('?') === -1?'?':'&') + terms.join('&');
-    },
-    getDriver = function (api, cb) {
-      cb(api === 'CouchDB'?couch:dav);
-    },
-    createClient = function (storageInfo, category, token) {
-      var storageAddress = webfinger.resolveTemplate(storageInfo.template, category);
-      return {
-        get: function (key, cb) {
-          if(typeof('key') != 'string') {
-            cb('argument "key" should be a string');
-          } else {
-            getDriver(storageInfo.api, function (d) {
-              d.get(storageAddress, token, key, cb);
-            });
-          }
-        },
-        put: function (key, value, cb) {
-          if(typeof('key') != 'string') {
-            cb('argument "key" should be a string');
-          } else if(typeof('value') != 'string') {
-            cb('argument "value" should be a string');
-          } else {
-            getDriver(storageInfo.api, function (d) {
-              d.put(storageAddress, token, key, value, cb);
-            });
-          }
-        },
-        'delete': function (key, cb) {
-          if(typeof('key') != 'string') {
-            cb('argument "key" should be a string');
-          } else {
-            getDriver(storageInfo.api, function (d) {
-              d['delete'](storageAddress, token, key, cb);
-            });
-          }
-        }
-      };
-    },
-    receiveToken = function () {
-      var params, kv;
-      if(location.hash.length > 0) {
-        params = location.hash.split('&');
-        for(var i = 0; i < params.length; i++) {
-          if(params[i][0]=='#') {
-            params[i] = params[i].substring(1);
-          }
-          if(params[i].substring(0, 'access_token='.length)=='access_token=') {
-            return params[i].substring('access_token='.length);
-          }
-        }
-      }
-      return null;
-    };
+});
 
-  return {
-    getStorageInfo     : getStorageInfo,
-    createOAuthAddress : createOAuthAddress,
-    createClient       : createClient,
-    receiveToken       : receiveToken
-  };
-})(couch, dav, webfinger);
+
+//
+// webfinger
+//////////////////
+  })();
+  var webfinger = exports["./lib/webfinger"].apply(deps["./lib/webfinger"]);
   return remoteStorage;
 })();

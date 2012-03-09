@@ -1,4 +1,4 @@
-var dav = (function(ajax) {
+define(['./lib/ajax'], function(ajax) {
   function normalizeKey(key) {
     var i = 0;
     while(i < key.length && key[i] == 'u') {
@@ -57,4 +57,4 @@ var dav = (function(ajax) {
     put:    put,
     delete: delete_
   }
-})(ajax);
+});

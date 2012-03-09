@@ -1,4 +1,4 @@
-var webfinger = (function(ajax) {
+define(['./lib/ajax'], function(ajax) {
 
     ///////////////
    // Webfinger //
@@ -194,4 +194,4 @@ var webfinger = (function(ajax) {
     getAttributes: getAttributes,
     resolveTemplate: resolveTemplate
   }
-})(ajax);
+});

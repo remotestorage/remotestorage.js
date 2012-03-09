@@ -4,7 +4,7 @@
      // ajax //
     //////////
 
-var ajax = (function() {
+define([], function() {
   var ajax = function(params) {
     var timedOut = false;
     var timer;
@@ -44,4 +44,4 @@ var ajax = (function() {
   return {
     ajax: ajax
   };
-})();
+});
