@@ -4,8 +4,8 @@
      // ajax //
     //////////
 
-define([], function() {
-  var ajax = function(params) {
+define({
+  ajax: function(params) {
     var timedOut = false;
     var timer;
     if(params.timeout) {
@@ -40,8 +40,5 @@ define([], function() {
       }
     }
     xhr.send(params.data);
-  };
-  return {
-    ajax: ajax
-  };
+  }
 });
