@@ -1,5 +1,5 @@
 # remoteStorage.js
-This is a library for adding remoteStorage support to your client-side app. See http://tutorial.unhosted.5apps.com/ for example usage. [[Download](https://github.com/unhosted/remoteStorage.js/raw/master/builds/latest/remoteStorage.js)]
+This is a library for adding remoteStorage support to your client-side app. See http://tutorial.unhosted.5apps.com/ for example usage. [[Download](https://github.com/unhosted/remoteStorage.js/raw/master/build/latest/remoteStorage.js)]
 
 ## Code example
 Minimal HTML:
