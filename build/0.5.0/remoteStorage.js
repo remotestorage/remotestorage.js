@@ -646,40 +646,40 @@ define(['./ajax'], function(ajax) {
   })();
 //////////////////
   var ajax = exports["../src/lib/ajax"].apply({},(function(){
-  var depMods={};
-  for(var i=0;i<deps["../src/lib/ajax"].length;i++) {
-    depMods[i]=deps["../src/lib/ajax"][i];
-  }
-  return depMods;
-})());
+    var depMods={};
+    for(var i=0;i<deps["../src/lib/ajax"].length;i++) {
+      depMods[i]=deps["../src/lib/ajax"][i];
+    }
+    return depMods;
+  })());
   var couch = exports["../src/lib/couch"].apply({},(function(){
-  var depMods={};
-  for(var i=0;i<deps["../src/lib/couch"].length;i++) {
-    depMods[i]=deps["../src/lib/couch"][i];
-  }
-  return depMods;
-})());
+    var depMods={};
+    for(var i=0;i<deps["../src/lib/couch"].length;i++) {
+      depMods[i]=deps["../src/lib/couch"][i];
+    }
+    return depMods;
+  })());
   var dav = exports["../src/lib/dav"].apply({},(function(){
-  var depMods={};
-  for(var i=0;i<deps["../src/lib/dav"].length;i++) {
-    depMods[i]=deps["../src/lib/dav"][i];
-  }
-  return depMods;
-})());
+    var depMods={};
+    for(var i=0;i<deps["../src/lib/dav"].length;i++) {
+      depMods[i]=deps["../src/lib/dav"][i];
+    }
+    return depMods;
+  })());
   var webfinger = exports["../src/lib/webfinger"].apply({},(function(){
-  var depMods={};
-  for(var i=0;i<deps["../src/lib/webfinger"].length;i++) {
-    depMods[i]=deps["../src/lib/webfinger"][i];
-  }
-  return depMods;
-})());
+    var depMods={};
+    for(var i=0;i<deps["../src/lib/webfinger"].length;i++) {
+      depMods[i]=deps["../src/lib/webfinger"][i];
+    }
+    return depMods;
+  })());
   var remoteStorage = exports["../src/remoteStorage"].apply({},(function(){
-  var depMods={};
-  for(var i=0;i<deps["../src/remoteStorage"].length;i++) {
-    depMods[i]=deps["../src/remoteStorage"][i];
-  }
-  return depMods;
-})());
+    var depMods={};
+    for(var i=0;i<deps["../src/remoteStorage"].length;i++) {
+      depMods[i]=deps["../src/remoteStorage"][i];
+    }
+    return depMods;
+  })());
 //////////////////
   return remoteStorage;
 })();

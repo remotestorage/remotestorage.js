@@ -66,7 +66,7 @@ var compiler = (function() {
        str += '  var '+moduleName+' = exports["'+i+'"].apply({},(function(){\n'
          +'    var depMods={};\n'
          +'    for(var i=0;i<deps["'+i+'"].length;i++) {\n'
-         +'      depMods[i]=deps["'+i+'"][i];\n'
+         +'      depMods[i]=deps["'+i+'"][i];\n'//FIXME: the list of dependency names here will be relative to this module's dir, so that's a nightmare. aborting.
          +'    }\n'
          +'    return depMods;\n'
          +'  })());\n';
