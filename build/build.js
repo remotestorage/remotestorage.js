@@ -4,6 +4,7 @@ var fs=require('fs'),
 
 var compiler = (function() {
   var files={};
+  var ordered={};
   function fetchModule(name) {
     if(name == path.normalize(config.baseUrl+'/require')) {
       return;
@@ -35,17 +36,18 @@ var compiler = (function() {
         //console.log(files);
         eval(moduleCode);
       })(files[currName]);
+      ordered[currName]=true;
     }
   }
   function writeOut(fileName, objName) {
-     var str='var '+objName+' = (function() {\n  var deps={}, code={};';
+     var str='var '+objName+' = (function() {\n  var deps={}, exports={};';
      for(var i in files) {
        var moduleNameParts = i.split('/');
        var moduleName = moduleNameParts[moduleNameParts.length-1];
        str += '  (function() {\n'
-         +'    function define(deps, code){\n'
-         +'      exports["'+i+'"]=code;\n'
-         +'      deps["'+i+'"]=deps;\n'
+         +'    function define(thisDeps, thisExports){\n'
+         +'      exports["'+i+'"]=thisExports;\n'
+         +'      deps["'+i+'"]=thisDeps;\n'
          +'    }\n'
          +'//////////////////\n'
          +'// '+moduleName+'\n'
@@ -54,9 +56,22 @@ var compiler = (function() {
          +'\n\n//\n'
          +'// '+moduleName+'\n'
          +'//////////////////\n'
-         +'  })();\n'
-         +'  var '+moduleName+' = exports["'+i+'"].apply(deps["'+i+'"]);\n';
+         +'  })();\n';
      }
+
+     str +='//////////////////\n'
+     for(var i in ordered) {
+       var moduleNameParts = i.split('/');
+       var moduleName = moduleNameParts[moduleNameParts.length-1];
+       str += '  var '+moduleName+' = exports["'+i+'"].apply({},(function(){\n'
+         +'    var depMods={};\n'
+         +'    for(var i=0;i<deps["'+i+'"].length;i++) {\n'
+         +'      depMods[i]=deps["'+i+'"][i];\n'
+         +'    }\n'
+         +'    return depMods;\n'
+         +'  })());\n';
+     }
+     str +='//////////////////\n'
      str += '  return '+objName+';\n'
        +'})();\n';
      fs.writeFileSync(fileName, str, 'utf8');

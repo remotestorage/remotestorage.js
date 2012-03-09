@@ -1,8 +1,8 @@
 var remoteStorage = (function() {
-  var deps={}, code={};  (function() {
-    function define(deps, code){
-      exports["../src/remoteStorage"]=code;
-      deps["../src/remoteStorage"]=deps;
+  var deps={}, exports={};  (function() {
+    function define(thisDeps, thisExports){
+      exports["../src/remoteStorage"]=thisExports;
+      deps["../src/remoteStorage"]=thisDeps;
     }
 //////////////////
 // remoteStorage
@@ -103,11 +103,10 @@ define(['require', './lib/ajax', './lib/couch', './lib/dav', './lib/webfinger'],
 // remoteStorage
 //////////////////
   })();
-  var remoteStorage = exports["../src/remoteStorage"].apply(deps["../src/remoteStorage"]);
   (function() {
-    function define(deps, code){
-      exports["../src/lib/ajax"]=code;
-      deps["../src/lib/ajax"]=deps;
+    function define(thisDeps, thisExports){
+      exports["../src/lib/ajax"]=thisExports;
+      deps["../src/lib/ajax"]=thisDeps;
     }
 //////////////////
 // ajax
@@ -166,11 +165,10 @@ define([], function() {
 // ajax
 //////////////////
   })();
-  var ajax = exports["../src/lib/ajax"].apply(deps["../src/lib/ajax"]);
   (function() {
-    function define(deps, code){
-      exports["../src/lib/couch"]=code;
-      deps["../src/lib/couch"]=deps;
+    function define(thisDeps, thisExports){
+      exports["../src/lib/couch"]=thisExports;
+      deps["../src/lib/couch"]=thisDeps;
     }
 //////////////////
 // couch
@@ -359,11 +357,10 @@ define(['./ajax'], function(ajax) {
 // couch
 //////////////////
   })();
-  var couch = exports["../src/lib/couch"].apply(deps["../src/lib/couch"]);
   (function() {
-    function define(deps, code){
-      exports["../src/lib/dav"]=code;
-      deps["../src/lib/dav"]=deps;
+    function define(thisDeps, thisExports){
+      exports["../src/lib/dav"]=thisExports;
+      deps["../src/lib/dav"]=thisDeps;
     }
 //////////////////
 // dav
@@ -435,11 +432,10 @@ define(['./ajax'], function(ajax) {
 // dav
 //////////////////
   })();
-  var dav = exports["../src/lib/dav"].apply(deps["../src/lib/dav"]);
   (function() {
-    function define(deps, code){
-      exports["../src/lib/webfinger"]=code;
-      deps["../src/lib/webfinger"]=deps;
+    function define(thisDeps, thisExports){
+      exports["../src/lib/webfinger"]=thisExports;
+      deps["../src/lib/webfinger"]=thisDeps;
     }
 //////////////////
 // webfinger
@@ -648,6 +644,42 @@ define(['./ajax'], function(ajax) {
 // webfinger
 //////////////////
   })();
-  var webfinger = exports["../src/lib/webfinger"].apply(deps["../src/lib/webfinger"]);
+//////////////////
+  var ajax = exports["../src/lib/ajax"].apply({},(function(){
+  var depMods={};
+  for(var i=0;i<deps["../src/lib/ajax"].length;i++) {
+    depMods[i]=deps["../src/lib/ajax"][i];
+  }
+  return depMods;
+})());
+  var couch = exports["../src/lib/couch"].apply({},(function(){
+  var depMods={};
+  for(var i=0;i<deps["../src/lib/couch"].length;i++) {
+    depMods[i]=deps["../src/lib/couch"][i];
+  }
+  return depMods;
+})());
+  var dav = exports["../src/lib/dav"].apply({},(function(){
+  var depMods={};
+  for(var i=0;i<deps["../src/lib/dav"].length;i++) {
+    depMods[i]=deps["../src/lib/dav"][i];
+  }
+  return depMods;
+})());
+  var webfinger = exports["../src/lib/webfinger"].apply({},(function(){
+  var depMods={};
+  for(var i=0;i<deps["../src/lib/webfinger"].length;i++) {
+    depMods[i]=deps["../src/lib/webfinger"][i];
+  }
+  return depMods;
+})());
+  var remoteStorage = exports["../src/remoteStorage"].apply({},(function(){
+  var depMods={};
+  for(var i=0;i<deps["../src/remoteStorage"].length;i++) {
+    depMods[i]=deps["../src/remoteStorage"][i];
+  }
+  return depMods;
+})());
+//////////////////
   return remoteStorage;
 })();
