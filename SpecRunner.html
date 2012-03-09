@@ -12,12 +12,14 @@
 
   <script type="text/javascript" src="lib/sinon/sinon-1.3.1.js"></script>
   <script type="text/javascript" src="require.js"></script>
+  <!-- the file we are testing... -->
+  <script type="text/javascript" src="builds/latest/remoteStorage.js"></script>
   <!-- include spec files here... -->
   <script type="text/javascript" src="spec/SpecHelper.js"></script>
   <script type="text/javascript" src="spec/remoteStorage.js"></script>
 
   <script type="text/javascript">
-    require(['./builds/latest/remoteStorage'], function(remoteStorage){
+    require(['./build'], function(buildScript){//TODO: remove this fake require
 
       var jasmineEnv = jasmine.getEnv();
       jasmineEnv.updateInterval = 1000;

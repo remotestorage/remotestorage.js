@@ -1,4 +1,4 @@
-require(['./remoteStorage'], function(remoteStorage){
+(function(){
   describe("webfinger functions", function() {
     it("should fail to parse a bogus host-meta", function() {
       specHelper.setUpXhr();
@@ -281,4 +281,4 @@ require(['./remoteStorage'], function(remoteStorage){
       specHelper.tearDownServer();
     });
   });
-});
+})();
