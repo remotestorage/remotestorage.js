@@ -4,10 +4,10 @@ var fs=require('fs'),
 var config = {
   baseUrl: '../src',
   name: 'remoteStorage',
-  out: 'minified/latest/remoteStorage.js',
+  out: 'latest/remoteStorage.js',
   wrap: {
-    startFile: '../src/require.js',
-    endFile:'../src/drop.js'
+    startFile: 'start.frag',
+    endFile:'end.frag'
   }
 };
 

@@ -1,0 +1,3 @@
+
+  remoteStorage = loadModule('remoteStorage');
+})();
