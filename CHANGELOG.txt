@@ -1,3 +1,7 @@
+0.5.0
+=====
+* got rid of require. to build, run 'sh build.sh'
+
 0.4.7
 =====
 * added r.js build script
