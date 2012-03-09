@@ -97,4 +97,4 @@ Planned: IE 8 & 9 (please [help with this](https://groups.google.com/d/topic/unh
 This is version 0.4.6 of the library, and you can use it under AGPL or MIT license - whatever floats your boat. Pull requests are very welcome (if you're not on github you can email them to michiel at unhosted.org).
 
 ## Download
-https://github.com/unhosted/remoteStorage.js/blob/master/downloads/remoteStorage-0.4.6.tgz
+https://github.com/unhosted/remoteStorage.js/raw/master/downloads/remoteStorage-0.4.6.tar.gz
