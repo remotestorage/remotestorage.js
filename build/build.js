@@ -6,8 +6,8 @@ var config = {
   name: 'remoteStorage',
   out: 'minified/latest/remoteStorage.js',
   wrap: {
-    startFile: baseUrl+'require.js',
-    endFile: baseUrl+'drop.js'
+    startFile: '../src/require.js',
+    endFile:'../src/drop.js'
   }
 };
 
