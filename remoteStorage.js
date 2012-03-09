@@ -30,7 +30,7 @@ define(
         return storageInfo.auth + (storageInfo.auth.indexOf('?') === -1?'?':'&') + terms.join('&');
       },
       getDriver = function (api, cb) {
-        require([api === 'CouchDB'?'./lib/couch':'./lib/dav'], cb);
+        cb(api === 'CouchDB'?couch:dav);
       },
       createClient = function (storageInfo, category, token) {
         var storageAddress = webfinger.resolveTemplate(storageInfo.template, category);
