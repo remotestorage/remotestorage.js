@@ -23,7 +23,7 @@ require(['./path/to/remoteStorage'], function(remoteStorage) {
     var token = remoteStorage.receiveToken();
     if(token) {
       //we can access the 'notes' category on the remoteStorage of user@example.com:
-      var client = remoteStorage.createClient(storageInfo, 'notes', bearerToken);
+      var client = remoteStorage.createClient(storageInfo, 'notes', token);
       client.put('foo', 'bar', function(err) {
         client.get('foo', function(err, data) {
           client.delete('foo', function(err) {
