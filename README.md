@@ -1,5 +1,5 @@
 # remoteStorage.js
-This is a library for adding remoteStorage support to your client-side app. See http://tutorial.unhosted.5apps.com/ for example usage. [[Download](https://github.com/unhosted/remoteStorage.js/raw/master/builds/minified/remoteStorage.js)]
+This is a library for adding remoteStorage support to your client-side app. See http://tutorial.unhosted.5apps.com/ for example usage. [[Download](https://github.com/unhosted/remoteStorage.js/raw/master/builds/latest/remoteStorage.js)]
 
 ## Code example
 Minimal HTML:
@@ -94,6 +94,6 @@ Planned: IE 8 & 9 (please [help with this](https://groups.google.com/d/topic/unh
 ## Version and license
 This is version 0.5.0 of the library, and you can use it under AGPL or MIT license - whatever floats your boat. Pull requests are very welcome (if you're not on github you can email them to michiel at unhosted.org). To build:
 
-    npm install uglifyjs
-    sh build/build.sh
+    cd build
+    node build.js
 
