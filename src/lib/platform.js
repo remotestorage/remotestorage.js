@@ -39,37 +39,50 @@ define([], function() {
     params.error('not implemented');
   }
   function ajaxNode(params) {
-    var http=require('http');
+    var http=require('http'),
+      https=require('https'),
+      url=require('url');
     if(!params.method) {
       params.method='GET';
     }
     if(!params.data) {
       params.data = null;
     }
+    var urlObj = url.parse(params.url);
+    console.log(urlObj);
     var options = {
       method: params.method,
-      url: params.url,
+      host: urlObj.hostname,
+      path: urlObj.path,
+      port: (urlObj.port?port:(urlObj.protocol=='https:'?443:80)),
       headers: params.headers
     };
     var timer, timedOut;
     console.log(params);
     console.log(options);
-    var request = http.request(options, function(response) {
+    var lib = (urlObj.protocol=='https:'?https:http);
+    var request = lib.request(options, function(response) {
       var str='';
+      response.setEncoding('utf8');
       response.on('data', function(chunk) {
         str+=chunk;
       });
       response.on('end', function() {
+        console.log('reply came:');
+        console.log(response.status);
+        console.log(str);
         if(timer) {
           clearTimeout(timer);
         }
         if(!timedOut) {
-          if(response.status==200 || response.status==201 || response.status==204) {
+          if(response.statusCode==200 || response.statusCode==201 || response.statusCode==204) {
             console.log(str);
+            console.log('it is a success');
             params.success(str);
           } else {
-            params.error(response.status);
-            console.log(response.status);
+            console.log(response.statusCode);
+            console.log('it is an error');
+            params.error(response.statusCode);
           }
         }
       });
@@ -81,6 +94,7 @@ define([], function() {
       }, params.timeout);
     }
     if(params.data) {
+      console.log('it is a timeout');
       request.end(params.data);
     } else {
       request.end();
