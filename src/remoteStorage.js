@@ -1,24 +1,8 @@
 define(
   ['require', './lib/ajax', './lib/couch', './lib/dav', './lib/webfinger'],
   function (require, ajax, couch, dav, webfinger) {
-    var onError = function (code, msg) {
-        console.log(msg);
-      },
-      getStorageInfo = function (userAddress, cb) {
-        webfinger.getAttributes(
-          userAddress, {
-            allowHttpWebfinger: true,
-            allowSingleOriginWebfinger: false,
-            allowFakefinger: true
-          },
-          function (err, data) {
-            cb(err, null);
-          },
-          function (attributes) {
-            cb(0, attributes);
-            var storageAddresses = {};
-          }
-        );
+    var getStorageInfo = function (userAddress, cb) {
+        webfinger.getStorageInfo(userAddress, {timeout: 3000}, cb);
       },
       createOAuthAddress = function (storageInfo, categories, redirectUri) {
         var terms = [

@@ -6,184 +6,119 @@ define(
      // Webfinger //
     ///////////////
 
-    var options, userAddress, userName, host, templateParts;//this is all a bit messy, but there are a lot of callbacks here, so globals help us with that.
-    function getAttributes(ua, setOptions, error, cb){
-      options = setOptions;
-      userAddress = ua;
-      var parts = ua.split('@');
+    function userAddress2hostMetas(userAddress, cb) {
+      var parts = userAddress.split('@');
       if(parts.length < 2) {
-        error('That is not a user address. There is no @-sign in it');
+        cb('That is not a user address. There is no @-sign in it');
       } else if(parts.length > 2) {
-        error('That is not a user address. There is more than one @-sign in it');
+        cb('That is not a user address. There is more than one @-sign in it');
       } else {
         if(!(/^[\.0-9A-Za-z]+$/.test(parts[0]))) {
-          error('That is not a user address. There are non-dotalphanumeric symbols before the @-sign: "'+parts[0]+'"');
+          cb('That is not a user address. There are non-dotalphanumeric symbols before the @-sign: "'+parts[0]+'"');
         } else if(!(/^[\.0-9A-Za-z\-]+$/.test(parts[1]))) {
-          error('That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
+          cb('That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
         } else {
-          userName = parts[0];
-          host = parts[1];
-          //error('So far so good. Looking up https host-meta for '+host);
-          ajax.ajax({
-            url: 'https://'+host+'/.well-known/host-meta',
-            success: function(data) {
-              afterHostmetaSuccess(data, error, cb);
-            },
-            error: function(data) {
-              afterHttpsHostmetaError(error, cb);
-            },
-            timeout: 3000
-          })
+          cb(null, [
+            'https://'+parts[1]+'/.well-known/host-meta.json',
+            'https://'+parts[1]+'/.well-known/host-meta',
+            'http://'+parts[1]+'/.well-known/host-meta.json',
+            'http://'+parts[1]+'/.well-known/host-meta'
+            ]);
         }
       }
     }
-
-    function afterHttpsHostmetaError(error, cb) {
-      if(options.allowHttpWebfinger) {
-        //console.log('Https Host-meta error. Trying http.');
+    function fetchXrd(addresses, timeout, cb) {
+      var firstAddress = addresses.shift();
+      if(firstAddress) {
         ajax.ajax({
-          url: 'http://'+host+'/.well-known/host-meta',
+          url: firstAddress,
           success: function(data) {
-            afterHostmetaSuccess(data, error, cb);
+            cb(null, data);
           },
-          error: function(err) {
-            afterHttpHostmetaError(error, cb);
+          error: function(data) {
+            fetchXrd(addresses, timeout, cb);
           },
-          timeout: 3000
-        })
-      } else {
-         afterHttpHostmetaError(error, cb);
-      }
-    }
-
-    function afterHttpHostmetaError(error, cb) {
-      if(options.allowFakefinger) {
-        //console.log('Trying Fakefinger');
-        ajax.ajax({
-          url: 'http://proxy.unhosted.org/lookup?q='+encodeURIComponent('acct:'+userAddress),
-          success: function(data) {
-            cb(JSON.parse(data));
-          },
-          error: function(err) {
-            afterFakefingerError(error, cb);
-          },
-          timeout: 3000
+          timeout: timeout
         });
       } else {
-        afterFakefingerError(error, cb);
+        cb('could not fetch xrd');
       }
     }
-    function afterFakefingerError(error, cb) {
-      error(5, 'user address "'+userAddress+'" doesn\'t seem to have remoteStorage linked to it');
-    }
-    function continueWithTemplate(template, error, cb) {
-      var templateParts = template.split('{uri}');
-      if(templateParts.length == 2) {
-        ajax.ajax({
-          url: templateParts[0]+'acct:'+userAddress+templateParts[1],
-          success: function(data) {afterLrddSuccess(data, error, cb);},
-          error: function(err){
-            afterLrddNoAcctError(error, cb);
-          },
-          timeout: 3000
-        });
-      } else {
-        errorStr = 'the template doesn\'t contain "{uri}"';
+    function getElements(dataXml, tagName) {
+      var elts=[];
+      var nodes = dataXml.getElementsByTagName(tagName);
+      for(var i=0; i < nodes.length; i++) {
+        var elt={};
+        for(var j=0; j<nodes[i].attributes.length; j++) {
+          var attr = nodes[i].attributes[j];
+          elt[attr.name]=attr.value;
+        }
+        elts.push(elt);
       }
+      return elts;
     }
-    function afterHostmetaSuccess(data, error, cb) {
-      var dataXml = (new DOMParser()).parseFromString(data, 'text/xml');
+    function parseProperties(properties) {
+      return [];
+    }
+    function xrd2jrd(xrd) {
+      dataXml = (new DOMParser()).parseFromString(xrd, 'text/xml');
       if(!dataXml.getElementsByTagName) {
-        error('Host-meta is not an XML document, or doesnt have xml mimetype.');
-        return;
-      }
-      var linkTags = dataXml.getElementsByTagName('Link');
-      if(linkTags.length == 0) {
-        //console.log('no Link tags found in host-meta, trying as JSON');
-        try{
-          continueWithTemplate(JSON.parse(data).links.lrdd[0].template, error, cb);
-        } catch(e) {
-          error('JSON parsing failed - '+data);
-        }
-      } else {
-        var lrddFound = false;
-        var errorStr = 'none of the Link tags have a lrdd rel-attribute';
-        for(var linkTagI = 0; linkTagI < linkTags.length; linkTagI++) {
-          for(var attrI = 0; attrI < linkTags[linkTagI].attributes.length; attrI++) {
-            var attr = linkTags[linkTagI].attributes[attrI];
-            if((attr.name=='rel') && (attr.value=='lrdd')) {
-              lrddFound = true;
-              errorStr = 'the first Link tag with a lrdd rel-attribute has no template-attribute';
-              for(var attrJ = 0; attrJ < linkTags[linkTagI].attributes.length; attrJ++) {
-                var attr2 = linkTags[linkTagI].attributes[attrJ];
-                if(attr2.name=='template') {
-                  continueWithTemplate(attr2.value, error, cb);
-                  break;
-                }
-              }
-              break;
-            }
-          }
-          if(lrddFound) {
-            break;
-          }
-        }
-        if(!lrddFound) {
-          error(errorStr);//todo: make this error flow nicer
-        }
-      }
-    }
-    function afterLrddNoAcctError(error, cb) {
-      error('the template doesn\'t contain "{uri}"');
-    }
-    function afterLrddSuccess(data, error, cb) {
-      var dataXml = (new DOMParser()).parseFromString(data, 'text/xml');
-      if(!dataXml.getElementsByTagName) {
-        error('Lrdd is not an XML document, or doesnt have xml mimetype.');
-        return;
-      }
-      var linkTags = dataXml.getElementsByTagName('Link');
-      if(linkTags.length == 0) {
-        //console.log('trying to pars lrdd as jrd');
         try {
-          cb(JSON.parse(data).links.remoteStorage[0]);
+          return JSON.parse(xrd);
         } catch(e) {
-          error('no Link tags found in lrdd');
-        }
-      } else {
-        var linkFound = false;
-        var errorStr = 'none of the Link tags have a remoteStorage rel-attribute';
-        for(var linkTagI = 0; linkTagI < linkTags.length; linkTagI++) {
-          var attributes = {};
-          for(var attrI = 0; attrI < linkTags[linkTagI].attributes.length; attrI++) {
-            var attr = linkTags[linkTagI].attributes[attrI];
-            if((attr.name=='rel') && (attr.value=='remoteStorage')) {
-              linkFound = true;
-              errorStr = 'the first Link tag with a dav rel-attribute has no template-attribute';
-              for(var attrJ = 0; attrJ < linkTags[linkTagI].attributes.length; attrJ++) {
-                var attr2 = linkTags[linkTagI].attributes[attrJ];
-                if(attr2.name=='template') {
-                  attributes.template = attr2.value;
-                }
-                if(attr2.name=='auth') {
-                  attributes.auth = attr2.value;
-                }
-                if(attr2.name=='api') {
-                  attributes.api = attr2.value;
-                }
-              }
-              break;
-            }
-          }
-          if(linkFound) {
-            cb(attributes);
-            break;
-          }
-        }
-        if(!linkFound) {
-          error(errorStr);
+          return xrd;
         }
       }
+      return {
+        subject: getElements(dataXml, 'Subject')[0],
+        expires: getElements(dataXml, 'Expires')[0],
+        aliases:getElements(dataXml, 'aliases'),
+        properties:parseProperties(getElements(dataXml, 'Property')),
+        links:getElements(dataXml, 'Link')
+      };
+    }
+    function parseXrd(xrd, cb) {
+      var jrd = xrd2jrd(xrd);
+      var obj = {};
+      if(jrd && jrd.links) {
+        for(var i=0; i<jrd.links.length;i++) {
+          obj[jrd.links[i].rel]=jrd.links[i];
+        }
+      }
+      return obj;
+    }
+    function getStorageInfo(userAddress, options, cb){
+      userAddress2hostMetas(userAddress, function(err1, hostMetaAddresses) {
+        if(err1) {
+          cb(err);
+        } else {
+          fetchXrd(hostMetaAddresses, options.timeout, function(err2, hostMeta) {
+            if(err2) {
+              cb('could not fetch host-meta for '+userAddress);
+            } else {
+              var links = parseXrd(hostMeta);
+              if(links['lrdd'] && links['lrdd'].template) {
+                var parts = links['lrdd'].template.split('{uri}');
+                var lrddAddresses=[parts.join('acct:'+userAddress), parts.join(userAddress)];
+                fetchXrd(lrddAddresses, options.timeout, function(err4, lrdd) {
+                  if(err4) {
+                    cb('could not fetch lrdd for '+userAddress);
+                  } else {
+                    var links = parseXrd(lrdd);
+                    if(links['remoteStorage']) {
+                      cb(null, links['remoteStorage']);
+                    } else {
+                      cb('could not extract storageInfo from lrdd');
+                    }
+                  }
+                });
+              } else {
+                cb('could not extract lrdd template from host-meta');
+              }
+            }
+          });
+        }
+      });
     }
     function resolveTemplate(template, dataCategory) {
       var parts = template.split('{category}');
@@ -193,7 +128,7 @@ define(
       return parts[0]+dataCategory+parts[1];
     }
     return {
-      getAttributes: getAttributes,
+      getStorageInfo: getStorageInfo,
       resolveTemplate: resolveTemplate
     }
 });

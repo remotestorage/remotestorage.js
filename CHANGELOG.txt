@@ -1,3 +1,7 @@
+0.5.1
+=====
+* got rid of fakefinger again, and made webfinger code nicer
+
 0.5.0
 =====
 * got rid of require. to build, run 'sh build.sh'
