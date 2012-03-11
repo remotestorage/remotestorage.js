@@ -40,26 +40,36 @@ define([], function() {
   }
   function ajaxNode(params) {
     var http=require('http');
+    if(!params.method) {
+      params.method='GET';
+    }
+    if(!params.data) {
+      params.data = null;
+    }
     var options = {
       method: params.method,
       url: params.url,
-      header: params.headers
+      headers: params.headers
     };
     var timer, timedOut;
+    console.log(params);
+    console.log(options);
     var request = http.request(options, function(response) {
       var str='';
       response.on('data', function(chunk) {
         str+=chunk;
-      }
-      response.on('end'), function() {
+      });
+      response.on('end', function() {
         if(timer) {
           clearTimeout(timer);
         }
         if(!timedOut) {
           if(response.status==200 || response.status==201 || response.status==204) {
+            console.log(str);
             params.success(str);
           } else {
-            params.error(xhr.status);
+            params.error(response.status);
+            console.log(response.status);
           }
         }
       });
