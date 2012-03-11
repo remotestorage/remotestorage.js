@@ -1,6 +1,6 @@
 define(
-  ['./ajax'],
-  function (ajax) {
+  ['./platform'],
+  function (platform) {
     var shadowCouchRev=null;
     function getShadowCouchRev(key) {
       if(!shadowCouchRev) {
@@ -36,7 +36,7 @@ define(
       return key;
     }
     function doCall(method, key, value, token, cb) {
-      var ajaxObj = {
+      var platformObj = {
         url: key,
         method: method,
         error: function(err) {
@@ -52,13 +52,13 @@ define(
         timeout: 3000
       };
       if(token) {
-        ajaxObj.headers= {Authorization: 'Bearer '+token};
+        platformObj.headers= {Authorization: 'Bearer '+token};
       }
-      ajaxObj.fields={withCredentials: 'true'};
+      platformObj.fields={withCredentials: 'true'};
       if(method!='GET') {
-        ajaxObj.data=value;
+        platformObj.data=value;
       }
-      ajax.ajax(ajaxObj);
+      platform.ajax(platformObj);
     }
     function get(storageAddress, token, key, cb) {
       doCall('GET', storageAddress+normalizeKey(key), null, token, function(err, data) {

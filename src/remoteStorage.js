@@ -1,6 +1,6 @@
 define(
-  ['require', './lib/ajax', './lib/couch', './lib/dav', './lib/webfinger'],
-  function (require, ajax, couch, dav, webfinger) {
+  ['require', './lib/platform', './lib/couch', './lib/dav', './lib/webfinger'],
+  function (require, platform, couch, dav, webfinger) {
     var getStorageInfo = function (userAddress, cb) {
         webfinger.getStorageInfo(userAddress, {timeout: 3000}, cb);
       },

@@ -1,6 +1,6 @@
 define(
-  ['./ajax'],
-  function (ajax) {
+  ['./'],
+  function (platform) {
     function normalizeKey(key) {
       var i = 0;
       while(i < key.length && key[i] == 'u') {
@@ -13,7 +13,7 @@ define(
     }
 
     function doCall(method, key, value, token, cb, deadLine) {
-      var ajaxObj = {
+      var platformObj = {
         url: key,
         method: method,
         error: function(err) {
@@ -29,17 +29,17 @@ define(
         timeout: 3000
       }
 
-      ajaxObj.headers = {
+      platformObj.headers = {
         'Authorization': 'Bearer ' + token,
         'Content-Type':  'text/plain;charset=UTF-8'
       };
 
-      ajaxObj.fields = {withCredentials: 'true'};
+      platformObj.fields = {withCredentials: 'true'};
       if(method != 'GET') {
-        ajaxObj.data =value;
+        platformObj.data =value;
       }
 
-      ajax.ajax(ajaxObj);
+      platform.ajax(platformObj);
     }
 
     function get(storageAddress, token, key, cb) {

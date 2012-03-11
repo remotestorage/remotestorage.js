@@ -1,6 +1,6 @@
 define(
-  ['./ajax'],
-  function (ajax) {
+  ['./platform'],
+  function (platform) {
 
       ///////////////
      // Webfinger //
@@ -30,7 +30,7 @@ define(
     function fetchXrd(addresses, timeout, cb) {
       var firstAddress = addresses.shift();
       if(firstAddress) {
-        ajax.ajax({
+        platform.ajax({
           url: firstAddress,
           success: function(data) {
             cb(null, data);
@@ -61,7 +61,7 @@ define(
       return [];
     }
     function xrd2jrd(xrd) {
-      dataXml = (new DOMParser()).parseFromString(xrd, 'text/xml');
+      dataXml = platform.parseXml(xrd);
       if(!dataXml.getElementsByTagName) {
         try {
           return JSON.parse(xrd);
