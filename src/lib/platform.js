@@ -44,7 +44,12 @@ define([], function() {
   function parseXml(str) {
     return (new DOMParser()).parseFromString(str, 'text/xml');
   }
-  if(window) {
+  if(typeof(window) === 'undefined') {
+    return {
+      ajax: ajaxNode,
+      parseXml: parseXml
+    }
+  } else {
     if(window.XDomainRequest) {
       return {
         ajax: ajaxExplorer,
@@ -55,11 +60,6 @@ define([], function() {
         ajax: ajaxBrowser,
         parseXml: parseXml
       }
-    }
-  } else {
-    return {
-      ajax: ajaxNode,
-      parseXml: parseXml
     }
   }
 });

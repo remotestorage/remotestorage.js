@@ -4,7 +4,10 @@ var configNode = {
   baseUrl: '../src',
   name: 'remoteStorage',
   out: 'latest/remoteStorage-node.js',
-  wrap: true
+  wrap: {
+    startFile: 'start.frag',
+    endFile:'endNode.frag'
+  }
 };
 requirejs.optimize(configNode);
 
