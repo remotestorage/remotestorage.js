@@ -1,5 +1,5 @@
 define(
-  ['./'],
+  ['./platform'],
   function (platform) {
     function normalizeKey(key) {
       var i = 0;

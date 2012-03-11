@@ -1,3 +1,7 @@
+0.5.2
+=====
+* restructured code to make room for multi-platform
+
 0.5.1
 =====
 * got rid of fakefinger again, and made webfinger code nicer
