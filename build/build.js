@@ -1,26 +1,18 @@
 var fs=require('fs'),
   requirejs = require('requirejs');
-var configNode = {
+var config = {
   baseUrl: '../src',
   name: 'remoteStorage',
-  out: 'latest/remoteStorage-node.js',
+  out: 'latest/remoteStorage.js',
   wrap: {
     startFile: 'start.frag',
-    endFile:'endNode.frag'
+    endFile:'end.frag'
   }
 };
-requirejs.optimize(configNode);
 
-var configBrowser = configNode;
-configBrowser.out='latest/remoteStorage.js';
-configBrowser.wrap={
-  startFile: 'start.frag',
-  endFile:'end.frag'
-};
-
-requirejs.optimize(configBrowser, function (buildResponse) {
+requirejs.optimize(config, function (buildResponse) {
   //buildResponse is just a text output of the modules
   //included. Load the built file for the contents.
   //Use config.out to get the optimized file contents.
-  var contents = fs.readFileSync(configBrowser.out, 'utf8');
+  var contents = fs.readFileSync(config.out, 'utf8');
 });
