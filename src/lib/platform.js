@@ -22,11 +22,11 @@ define([], function() {
       }
     }
     xhr.onreadystatechange = function() {
-      if((xhr.readyState == 4) && (!timedOut)) {
+      if((xhr.readyState==4) && (!timedOut)) {
         if(timer) {
           window.clearTimeout(timer);
         }
-        if(xhr.status == 200 || xhr.status == 201 || xhr.status == 204) {
+        if(xhr.status==200 || xhr.status==201 || xhr.status==204) {
           params.success(xhr.responseText);
         } else {
           params.error(xhr.status);
@@ -39,8 +39,42 @@ define([], function() {
     params.error('not implemented');
   }
   function ajaxNode(params) {
-    console.log(params);
-    params.error('not implemented');
+    var http=require('http');
+    var options = {
+      method: params.method,
+      url: params.url,
+      header: params.headers
+    };
+    var timer, timedOut;
+    var request = http.request(options, function(response) {
+      var str='';
+      response.on('data', function(chunk) {
+        str+=chunk;
+      }
+      response.on('end'), function() {
+        if(timer) {
+          clearTimeout(timer);
+        }
+        if(!timedOut) {
+          if(response.status==200 || response.status==201 || response.status==204) {
+            params.success(str);
+          } else {
+            params.error(xhr.status);
+          }
+        }
+      });
+    });
+    if(params.timeout) {
+      timer = setTimeout(function() {
+        params.error('timeout');
+        timedOut=true;
+      }, params.timeout);
+    }
+    if(params.data) {
+      request.end(params.data);
+    } else {
+      request.end();
+    }
   }
   function parseXml(str) {
     return (new DOMParser()).parseFromString(str, 'text/xml');
