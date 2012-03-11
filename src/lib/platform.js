@@ -39,6 +39,7 @@ define([], function() {
     params.error('not implemented');
   }
   function ajaxNode(params) {
+    console.log(params);
     params.error('not implemented');
   }
   function parseXml(str) {
