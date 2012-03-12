@@ -1,8 +1,14 @@
 define(
-  ['require', './lib/platform', './lib/couch', './lib/dav', './lib/webfinger'],
-  function (require, platform, couch, dav, webfinger) {
+  ['require', './lib/platform', './lib/couch', './lib/dav', './lib/webfinger', './lib/hardcoded'],
+  function (require, platform, couch, dav, webfinger, hardcoded) {
     var getStorageInfo = function (userAddress, cb) {
-        webfinger.getStorageInfo(userAddress, {timeout: 3000}, cb);
+        webfinger.getStorageInfo(userAddress, {timeout: 3000}, function(err, storageInfo) {
+          if(err) {
+            hardcoded.guessStorageInfo(userAddress, {timeout: 3000}, cb);
+          } else {
+            cb(err, storageInfo);
+          }
+        });
       },
       createOAuthAddress = function (storageInfo, categories, redirectUri) {
         var terms = [

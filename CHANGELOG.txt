@@ -1,6 +1,10 @@
 0.5.3
 =====
+* added guessStorageInfo fallback
+* added temporary migration code for 160 users who are still on deprecated fakefinger
+* works in combination with http://proxy.unhosted.org/checkIrisCouch
 * added nodejs support
+* added (non-functional) straw man code for IE
 
 0.5.2
 =====
@@ -9,10 +13,12 @@
 0.5.1
 =====
 * got rid of fakefinger again, and made webfinger code nicer
+* to build, run 'cd build; node build.js'
 
 0.5.0
 =====
-* got rid of require. to build, run 'sh build.sh'
+* BREAKING CHANGE in how you include the library: got rid of require. 
+* to build, run 'sh build.sh'
 
 0.4.7
 =====
