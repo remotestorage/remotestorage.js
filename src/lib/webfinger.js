@@ -107,7 +107,7 @@ define(
               cb('could not fetch host-meta for '+userAddress);
             } else {
               if(hostMetaLinks['lrdd'] && hostMetaLinks['lrdd'].template) {
-                var parts = links['lrdd'].template.split('{uri}');
+                var parts = hostMetaLinks['lrdd'].template.split('{uri}');
                 var lrddAddresses=[parts.join('acct:'+userAddress), parts.join(userAddress)];
                 fetchXrd(lrddAddresses, options.timeout, function(err4, lrddLinks) {
                   if(err4) {
@@ -119,7 +119,7 @@ define(
                       cb('could not extract storageInfo from lrdd');
                     }
                   }
-                });
+                }); 
               } else {
                 cb('could not extract lrdd template from host-meta');
               }
