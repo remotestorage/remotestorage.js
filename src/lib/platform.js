@@ -49,7 +49,6 @@ define([], function() {
       params.data = null;
     }
     var urlObj = url.parse(params.url);
-    console.log(urlObj);
     var options = {
       method: params.method,
       host: urlObj.hostname,
@@ -58,8 +57,6 @@ define([], function() {
       headers: params.headers
     };
     var timer, timedOut;
-    console.log(params);
-    console.log(options);
     var lib = (urlObj.protocol=='https:'?https:http);
     var request = lib.request(options, function(response) {
       var str='';
@@ -68,20 +65,13 @@ define([], function() {
         str+=chunk;
       });
       response.on('end', function() {
-        console.log('reply came:');
-        console.log(response.status);
-        console.log(str);
         if(timer) {
           clearTimeout(timer);
         }
         if(!timedOut) {
           if(response.statusCode==200 || response.statusCode==201 || response.statusCode==204) {
-            console.log(str);
-            console.log('it is a success');
             params.success(str);
           } else {
-            console.log(response.statusCode);
-            console.log('it is an error');
             params.error(response.statusCode);
           }
         }
@@ -94,30 +84,34 @@ define([], function() {
       }, params.timeout);
     }
     if(params.data) {
-      console.log('it is a timeout');
       request.end(params.data);
     } else {
       request.end();
     }
   }
-  function parseXml(str) {
-    return (new DOMParser()).parseFromString(str, 'text/xml');
+  function parseXmlBrowser(str, cb) {
+    var tree=(new DOMParser()).parseFromString(str, 'text/xml')
+    cb(null, {});
+  }
+  function parseXmlNode(str, cb) {
+    var xml2js=require('xml2js');
+    new xml2js.Parser().parseString(str, cb);
   }
   if(typeof(window) === 'undefined') {
     return {
       ajax: ajaxNode,
-      parseXml: parseXml
+      parseXml: parseXmlNode
     }
   } else {
     if(window.XDomainRequest) {
       return {
         ajax: ajaxExplorer,
-        parseXml: parseXml
+        parseXml: parseXmlBrowser
       }
     } else {
       return {
         ajax: ajaxBrowser,
-        parseXml: parseXml
+        parseXml: parseXmlBrowser
       }
     }
   }

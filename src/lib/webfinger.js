@@ -33,7 +33,19 @@ define(
         platform.ajax({
           url: firstAddress,
           success: function(data) {
-            cb(null, data);
+            parseAsJrd(data, function(err, obj){
+              if(err) {
+                parseAsXrd(data, function(err, obj){
+                  if(err) {
+                    fetchXrd(addresses, timeout, cb);
+                  } else {
+                    cb(null, obj);
+                  }
+                });
+              } else {
+                cb(null, obj);
+              }
+            });
           },
           error: function(data) {
             fetchXrd(addresses, timeout, cb);
@@ -44,69 +56,65 @@ define(
         cb('could not fetch xrd');
       }
     }
-    function getElements(dataXml, tagName) {
-      var elts=[];
-      var nodes = dataXml.getElementsByTagName(tagName);
-      for(var i=0; i < nodes.length; i++) {
-        var elt={};
-        for(var j=0; j<nodes[i].attributes.length; j++) {
-          var attr = nodes[i].attributes[j];
-          elt[attr.name]=attr.value;
+    function parseAsXrd(str, cb) {
+      platform.parseXml(str, function(err, obj) {
+        if(err) {
+          cb(err);
+        } else {
+          if(obj && obj.Link) {
+            var links = {};
+            if(obj.Link && obj.Link['@']) {//obj.Link is one element
+              if(obj.Link['@'].rel) {
+                links[obj.Link['@'].rel]=obj.Link['@'];
+              }
+            } else {//obj.Link is an array
+              for(var i=0; i<obj.Link.length; i++) {
+                if(obj.Link[i]['@'] && obj.Link[i]['@'].rel) {
+                  links[obj.Link[i]['@'].rel]=obj.Link[i]['@'];
+                }
+              }
+            }
+            cb(null, links);
+          } else {
+            cb('found valid xml but with no Link elements in there');
+          }
         }
-        elts.push(elt);
+      });
+    }
+    function parseAsJrd(str, cb) {
+      var obj;
+      try {
+        obj = JSON.parse(str);
+      } catch(e) {
+        cb('not valid JSON');
+        return;
       }
-      return elts;
-    }
-    function parseProperties(properties) {
-      return [];
-    }
-    function xrd2jrd(xrd) {
-      dataXml = platform.parseXml(xrd);
-      if(!dataXml.getElementsByTagName) {
-        try {
-          return JSON.parse(xrd);
-        } catch(e) {
-          return xrd;
-        }
-      }
-      return {
-        subject: getElements(dataXml, 'Subject')[0],
-        expires: getElements(dataXml, 'Expires')[0],
-        aliases:getElements(dataXml, 'aliases'),
-        properties:parseProperties(getElements(dataXml, 'Property')),
-        links:getElements(dataXml, 'Link')
-      };
-    }
-    function parseXrd(xrd, cb) {
-      var jrd = xrd2jrd(xrd);
-      var obj = {};
-      if(jrd && jrd.links) {
-        for(var i=0; i<jrd.links.length;i++) {
-          obj[jrd.links[i].rel]=jrd.links[i];
+      var links = {};
+      if(obj && obj.links) {
+        for(var i=0; i<obj.links.length;i++) {
+          links[obj.links[i].rel]=obj.links[i];
         }
       }
-      return obj;
+      cb(null, links);
     }
-    function getStorageInfo(userAddress, options, cb){
+    function getStorageInfo(userAddress, options, cb) {
       userAddress2hostMetas(userAddress, function(err1, hostMetaAddresses) {
         if(err1) {
           cb(err);
         } else {
-          fetchXrd(hostMetaAddresses, options.timeout, function(err2, hostMeta) {
+          fetchXrd(hostMetaAddresses, options.timeout, function(err2, hostMetaLinks) {
             if(err2) {
               cb('could not fetch host-meta for '+userAddress);
             } else {
-              var links = parseXrd(hostMeta);
-              if(links['lrdd'] && links['lrdd'].template) {
+              if(hostMetaLinks['lrdd'] && hostMetaLinks['lrdd'].template) {
                 var parts = links['lrdd'].template.split('{uri}');
                 var lrddAddresses=[parts.join('acct:'+userAddress), parts.join(userAddress)];
-                fetchXrd(lrddAddresses, options.timeout, function(err4, lrdd) {
+                fetchXrd(lrddAddresses, options.timeout, function(err4, lrddLinks) {
                   if(err4) {
                     cb('could not fetch lrdd for '+userAddress);
                   } else {
-                    var links = parseXrd(lrdd);
-                    if(links['remoteStorage']) {
-                      cb(null, links['remoteStorage']);
+                    if(lrddLinks['remoteStorage']) {
+                      cb(null, lrddLinks['remoteStorage']);
                     } else {
                       cb('could not extract storageInfo from lrdd');
                     }
