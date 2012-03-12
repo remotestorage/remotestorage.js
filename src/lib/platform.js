@@ -12,9 +12,6 @@ define([], function() {
     if(!params.method) {
       params.method='GET';
     }
-    if(!params.data) {
-      params.data = null;
-    }
     xhr.open(params.method, params.url, true);
     if(params.headers) {
       for(var header in params.headers) {
@@ -33,10 +30,35 @@ define([], function() {
         }
       }
     }
-    xhr.send(params.data);
+    if(typeof(params.data) === 'string') {
+      xhr.send(params.data);
+    } else {
+      xhr.send();
+    }
   }
   function ajaxExplorer(params) {
-    params.error('not implemented');
+    //this won't work, because we have no way of sending the Authorization header. It might work for GET to the 'public' category, though.
+    var xdr=new XDomainRequest();
+    xdr.timeout=params.timeout || 3000;//is this milliseconds? documentation doesn't say
+    xdr.open(params.method, params.url);
+    xdr.onload=function() {
+      if(xdr.status==200 || xdr.status==201 || xdr.status==204) {
+        params.success(xhr.responseText);
+      } else {
+        params.error(xhr.status);
+      }
+    };
+    xdr.onerror = function() {
+      err('unknown error');//See http://msdn.microsoft.com/en-us/library/ms536930%28v=vs.85%29.aspx
+    };
+    xdr.ontimeout = function() {
+      err(timeout);
+    };
+    if(params.data) {
+      xdr.send(params.data);
+    } else {
+      xdr.send();
+    }
   }
   function ajaxNode(params) {
     var http=require('http'),
