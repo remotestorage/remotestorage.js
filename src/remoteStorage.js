@@ -4,7 +4,9 @@ define(
     var getStorageInfo = function (userAddress, cb) {
         webfinger.getStorageInfo(userAddress, {timeout: 3000}, function(err, storageInfo) {
           if(err) {
-            hardcoded.guessStorageInfo(userAddress, {timeout: 3000}, cb);
+            hardcoded.guessStorageInfo(userAddress, {timeout: 3000}, function(err2, data) {
+              cb(err2, data);
+            });
           } else {
             cb(err, storageInfo);
           }

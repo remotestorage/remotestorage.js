@@ -9,9 +9,9 @@ var config = {
     endFile:'end.frag'
   }
 };
+requirejs.optimize(config);
 var nodeConfig = config;
 nodeConfig.out='latest/remoteStorage-node.js';
 nodeConfig.wrap.endFile='endNode.frag';
 
-requirejs.optimize(config);
 requirejs.optimize(nodeConfig);

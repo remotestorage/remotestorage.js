@@ -19,8 +19,10 @@ define(
         try {
           shadowCouchRev=JSON.parse(localStorage.getItem('_shadowCouchRev'));
         } catch(e) {
-          shadowCouchRev={};
         }
+      }
+      if(!shadowCouchRev) {
+        shadowCouchRev={};
       }
       shadowCouchRev[key]=rev;
       localStorage.setItem('_shadowCouchRev', JSON.stringify(shadowCouchRev));

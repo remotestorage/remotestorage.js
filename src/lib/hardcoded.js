@@ -25,32 +25,42 @@ define(
       }
     };
     (function() {
-      var surfnet: {
+      var surfnet= {
         api: 'simple',
         authPrefix: 'http://surf.unhosted.org:4000/_oauth/',
         authSuffix: '',
         templatePrefix: 'http://surf.unhosted.org:4000/',
         templateSuffix: '/{category}/'
       };
-      var dutchUniversities= 'leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
+      var dutchUniversities= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
         'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'wur.nl',
-        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl';
+        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl'];
       for(var i=0;i<dutchUniversities.length;i++) {
         guesses[dutchUniversities[i]]=surfnet;
       }
     })();
 
-    function testIrisCouch(userName, cb) {
+    function testIrisCouch(userAddress, options, cb) {
       platform.ajax({
-        url: 'http://proxy.unhosted.org/irisCouchCheck',
+        //url: 'http://proxy.unhosted.org/irisCouchCheck',
+        url: 'http://proxy.unhosted.org/lookup?q=acct:'+userAddress,
         success: function(data) {
-          cb(null, obj);
+          var obj;
+          try {
+            obj=JSON.parse(data);
+          } catch(e) {
+          }
+          if(!obj) {
+            cb('err: unparsable response from IrisCouch check');
+          } else {
+            cb(null, obj);
+          }
         },
         error: function(err) {
           cb('err: during IrisCouch test:'+err);
         },
-        timeout: timeout,
-        data: userName
+        timeout: options.timeout,
+        //data: userName
       });
     }
     function mapToIrisCouch(userAddress) {
@@ -61,7 +71,7 @@ define(
         return parts[2].substring(0, parts[2].indexOf('.'))+'@iriscouch.com';
       }
     }
-    function guessStorageInfo(userAddress, cb) {
+    function guessStorageInfo(userAddress, options, cb) {
       var parts=userAddress.split('@');
       if(parts.length < 2) {
         cb('That is not a user address. There is no @-sign in it');
@@ -86,7 +96,8 @@ define(
             parts[1]=parts[1].substring(parts[1].indexOf('.')+1);
           }
           if(new Date() < new Date('9/9/2012')) {//temporary measure to help our 160 fakefinger users migrate learn to use their @iriscouch.com user addresses
-            testIrisCouch(mapToIrisCouch(userAddress), cb);
+            //testIrisCouch(mapToIrisCouch(userAddress), cb);
+            testIrisCouch(userAddress, options, cb);
           } else {
             cb('err: not a guessable domain, and fakefinger-migration has ended');
           }
