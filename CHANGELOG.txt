@@ -5,6 +5,7 @@
 * works in combination with http://proxy.unhosted.org/checkIrisCouch
 * added nodejs support
 * added (non-functional) straw man code for IE
+* pushing this version only for temp use in Libre Docs, don't use this at home until we test the new stuff some more
 
 0.5.2
 =====
