@@ -1,5 +1,6 @@
 # remoteStorage.js
-This is a library for adding remoteStorage support to your client-side app. See http://tutorial.unhosted.5apps.com/ for example usage. [[Download](https://github.com/unhosted/remoteStorage.js/raw/master/build/latest/remoteStorage.js)]
+
+A library for adding remoteStorage support to your client-side app. See [the tutorial](http://tutorial.unhosted.5apps.com) for example usage and [download](https://github.com/unhosted/remoteStorage.js/raw/master/build/latest/remoteStorage.js) the library.
 
 ## Code example
 
@@ -18,9 +19,9 @@ remoteStorage.getStorageInfo('user@example.com', function(err, storageInfo) {
   if(token) {
     //we can access the 'notes' category on the remoteStorage of user@example.com:
     var client = remoteStorage.createClient(storageInfo, 'notes', token);
-    client.put('foo', 'bar', function(err) {
-      client.get('foo', function(err, data) {
-        client.delete('foo', function(err) {
+    client.put('key', 'value', function(err) {
+      client.get('key', function(err, data) {
+        client.delete('key', function(err) {
         });
       });
     });
@@ -44,7 +45,7 @@ remoteStorage.getStorageInfo('user@example.com', function(err, storageInfo) {
     storageInfo: the object you got from the getStorageInfo call
     categories: an array of strings describing categories of data you will be accessing.
     @returns: string, the url you should go to for the OAuth dance
-See https://github.com/unhosted/website/wiki/categories for a list of categories you might want to access.
+See [the list of categories](https://github.com/unhosted/website/wiki/categories) you might want to access.
 
 ### remoteStorage.receiveToken()
 
@@ -78,7 +79,7 @@ See https://github.com/unhosted/website/wiki/categories for a list of categories
     -err: null, or a string describing what went wrong
 
 ## Browser support
-This library relies heavily on [CORS](http://caniuse.com/#search=cors).
+This library relies heavily on [CORS (Cross-Origin Resource Sharing)](http://caniuse.com/#search=cors).
 
 Known to work: Firefox, Chrome, Safari, Safari iOS.
 
