@@ -113,7 +113,22 @@ define([], function() {
   }
   function parseXmlBrowser(str, cb) {
     var tree=(new DOMParser()).parseFromString(str, 'text/xml')
-    cb(null, {});
+    var nodes=tree.getElementsByTagName('Link');
+    var obj={
+      Link: []
+    };
+    for(var i=0; i<nodes.length; i++) {
+      var link={};
+      for(var j=0; j<nodes[i].attributes.length;j++) {
+        link[nodes[i].attributes[j].name]=nodes[i].attributes[j].value;
+      }
+      if(link['rel']) {
+        obj.Link.push({
+          '@': link
+        });
+      }
+    }
+    cb(null, obj);
   }
   function parseXmlNode(str, cb) {
     var xml2js=require('xml2js');

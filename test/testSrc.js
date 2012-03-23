@@ -1,3 +1,3 @@
 require(['../src/remoteStorage'], function(remoteStorage) {
-  remoteStorage.getStorageInfo('dejong.michiel@gmail.com', function(err, lrdd){console.log(lrdd);});
+  remoteStorage.getStorageInfo('michiel@owncube.com', function(err, storageInfo){console.log(storageInfo);});
 });
