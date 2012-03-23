@@ -37,17 +37,15 @@
         expect(storageInfo.template).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/');
         expect(storageInfo.auth).toEqual('http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org');
         expect(sinonRequests.length).toEqual(3);
-        expect(sinonRequests[0].url).toEqual('https://b.c/.well-known/host-meta.json');
-        expect(sinonRequests[1].url).toEqual('https://b.c/.well-known/host-meta');
-        expect(sinonRequests[2].url).toEqual('http://unhosted.org/.well-known/acct:a@b.c.webfinger');
+        expect(sinonRequests[0].url).toEqual('https://b.c/.well-known/host-meta');
+        expect(sinonRequests[1].url).toEqual('http://unhosted.org/.well-known/acct:a@b.c.webfinger');
       });
-      sinonRequests[0].respond(404, {}, '');
-      sinonRequests[1].respond(200, {}, '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
+      sinonRequests[0].respond(200, {}, '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
           +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\'\n'
           +'     xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
           +'          <Link rel=\'lrdd\''
           +' template=\'http://unhosted.org/.well-known/{uri}.webfinger\'></Link></XRD>');
-      sinonRequests[2].respond(200, {}, '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
+      sinonRequests[1].respond(200, {}, '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
           +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\' xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
           +'<Link rel=\'remoteStorage\' api=\'simple\' auth=\'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org\''
           +' template=\'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/\'></Link></XRD>');
