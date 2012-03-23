@@ -36,7 +36,7 @@
         expect(storageInfo.api).toEqual('simple');
         expect(storageInfo.template).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/');
         expect(storageInfo.auth).toEqual('http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org');
-        expect(sinonRequests.length).toEqual(3);
+        expect(sinonRequests.length).toEqual(2);
         expect(sinonRequests[0].url).toEqual('https://b.c/.well-known/host-meta');
         expect(sinonRequests[1].url).toEqual('http://unhosted.org/.well-known/acct:a@b.c.webfinger');
       });
