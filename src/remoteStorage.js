@@ -28,7 +28,7 @@ define(
         var storageAddress = webfinger.resolveTemplate(storageInfo.template, category);
         return {
           get: function (key, cb) {
-            if(typeof('key') != 'string') {
+            if(typeof(key) != 'string') {
               cb('argument "key" should be a string');
             } else {
               getDriver(storageInfo.api, function (d) {
@@ -37,9 +37,9 @@ define(
             }
           },
           put: function (key, value, cb) {
-            if(typeof('key') != 'string') {
+            if(typeof(key) != 'string') {
               cb('argument "key" should be a string');
-            } else if(typeof('value') != 'string') {
+            } else if(typeof(value) != 'string') {
               cb('argument "value" should be a string');
             } else {
               getDriver(storageInfo.api, function (d) {
@@ -48,7 +48,7 @@ define(
             }
           },
           'delete': function (key, cb) {
-            if(typeof('key') != 'string') {
+            if(typeof(key) != 'string') {
               cb('argument "key" should be a string');
             } else {
               getDriver(storageInfo.api, function (d) {
