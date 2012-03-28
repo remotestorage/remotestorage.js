@@ -99,6 +99,9 @@ define([], function() {
         }
       });
     });
+    request.on('error', function(e) {
+      params.error(e.message);
+    });
     if(params.timeout) {
       timer = setTimeout(function() {
         params.error('timeout');
