@@ -1,3 +1,11 @@
+0.5.6
+=====
+* fix missing error handler in ajaxNode(). only affects remoteStorage-node.js
+
+0.5.5
+=====
+* fix input typeof() checks. no big impact
+
 0.5.4
 =====
 * fix a problem in xrd parsing. upgrading highly recommended
