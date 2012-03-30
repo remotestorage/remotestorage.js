@@ -33,7 +33,7 @@
       specHelper.setUpXhr();
       remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
         expect(err).toEqual(null);
-        expect(storageInfo.api).toEqual('simple');
+        expect(storageInfo.api).toEqual('simple-2011.10');
         expect(storageInfo.template).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/');
         expect(storageInfo.auth).toEqual('http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org');
         expect(sinonRequests.length).toEqual(2);
@@ -83,7 +83,7 @@
   describe("'simple' client", function() {
     it("should report 404s as undefined", function() {
       specHelper.setUpXhr();
-      var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'simple-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       client.get('foo', function(err,  data) {
         expect(err).toEqual(null);
         expect(data).toEqual(undefined);
@@ -97,7 +97,7 @@
     });
     it("should GET foo", function() {
       specHelper.setUpXhr();
-      var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'simple-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       client.get('foo', function(err, data) {
         expect(err).toEqual(null);
         expect(data).toEqual('bar');
@@ -111,7 +111,7 @@
     });
     it("should PUT foo bar", function() {
       specHelper.setUpXhr();
-      var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'simple-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       client.put('foo', 'bar', function(err) {
         expect(err).toEqual(null);
         expect(sinonRequests.length).toEqual(1);
@@ -125,7 +125,7 @@
     });
     it("should DELETE foo", function() {
       specHelper.setUpXhr();
-      var client = remoteStorage.createClient({api:'simple', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'simple-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       client.delete('foo', function(err) {
         expect(err).toEqual(null);
         expect(sinonRequests.length).toEqual(1);
@@ -140,7 +140,7 @@
   describe("'WebDAV' client", function() {
     it("should report 404s as undefined", function() {
       specHelper.setUpXhr();
-      var client = remoteStorage.createClient({api:'WebDAV', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'webdav-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       client.get('foo', function(err,  data) {
         expect(err).toEqual(null);
         expect(data).toEqual(undefined);
@@ -154,7 +154,7 @@
     });
     it("should GET foo", function() {
       specHelper.setUpXhr();
-      var client = remoteStorage.createClient({api:'WebDAV', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'webdav-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       client.get('foo', function(err, data) {
         expect(err).toEqual(null);
         expect(data).toEqual('bar');
@@ -168,7 +168,7 @@
     });
     it("should PUT foo bar", function() {
       specHelper.setUpXhr();
-      var client = remoteStorage.createClient({api:'WebDAV', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'webdav-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       client.put('foo', 'bar', function(err) {
         expect(err).toEqual(null);
         expect(sinonRequests.length).toEqual(1);
@@ -182,7 +182,7 @@
     });
     it("should DELETE foo", function() {
       specHelper.setUpXhr();
-      var client = remoteStorage.createClient({api:'WebDAV', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'webdav-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       client.delete('foo', function(err) {
         expect(err).toEqual(null);
         expect(sinonRequests.length).toEqual(1);
@@ -197,7 +197,7 @@
   describe("'CouchDB' client", function() {
     it("should report 404s as undefined", function() {
       specHelper.setUpXhr();
-      var client = remoteStorage.createClient({api:'CouchDB', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'couchdb-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       client.get('foo', function(err,  data) { 
         expect(err).toEqual(null);
         expect(data).toEqual(undefined);
@@ -211,7 +211,7 @@
     });
     it("should GET foo", function() {
       specHelper.setUpXhr();
-      var client = remoteStorage.createClient({api:'CouchDB', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'couchdb-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       client.get('foo', function(err, data) {
         expect(err).toEqual(null);
         expect(data).toEqual('bar');
@@ -225,7 +225,7 @@
     });
     it("should PUT foo bar", function() {
       specHelper.setUpXhr();
-      var client = remoteStorage.createClient({api:'CouchDB', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'couchdb-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       client.put('foo', 'bar', function(err) {
         expect(err).toEqual(null);
         expect(sinonRequests.length).toEqual(1);
@@ -239,7 +239,7 @@
     });
     it("should overcome a 409 on PUT", function() {
       specHelper.setUpServer();
-      var client = remoteStorage.createClient({api:'CouchDB', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'couchdb-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       sinonServer.respondWith('PUT', 'http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo', [409, {}, 'say the magic word!']);
       sinonServer.respondWith('GET', 'http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo',
         [200, {}, '{"_rev":"789", "value":"bla"}']);
@@ -253,7 +253,7 @@
     });
     it("should DELETE foo", function() {
       specHelper.setUpXhr();
-      var client = remoteStorage.createClient({api:'CouchDB', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'couchdb-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       client.delete('foo', function(err) { 
         expect(err).toEqual(null);
         expect(sinonRequests.length).toEqual(1);
@@ -266,7 +266,7 @@
     });
     it("should overcome a 409 on DELETE", function() {
       specHelper.setUpServer();
-      var client = remoteStorage.createClient({api:'CouchDB', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
+      var client = remoteStorage.createClient({api:'couchdb-2011.10', template:'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/'}, 'asdf', 'qwer');
       sinonServer.respondWith('DELETE', 'http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo', [409, {}, 'say the magic word!']);
       sinonServer.respondWith('DELETE', 'http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo?rev=456', [409, {}, 'say the magic word!']);
       sinonServer.respondWith('DELETE', 'http://surf.unhosted.org:4000/michiel@unhosted.org/asdf/foo?rev=789', [409, {}, 'see how you react to a 2nd one']);

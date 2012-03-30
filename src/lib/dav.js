@@ -1,20 +1,9 @@
 define(
   ['./platform'],
   function (platform) {
-    function normalizeKey(key) {
-      var i = 0;
-      while(i < key.length && key[i] == 'u') {
-       i++;
-      }
-      if((i < key.length) && (key[i] == '_')) {
-        key = 'u'+key;
-      }
-      return key;
-    }
-
-    function doCall(method, key, value, token, cb, deadLine) {
+    function doCall(method, url, value, token, cb, deadLine) {
       var platformObj = {
-        url: key,
+        url: url,
         method: method,
         error: function(err) {
           if(err == 404) {
@@ -42,16 +31,16 @@ define(
       platform.ajax(platformObj);
     }
 
-    function get(storageAddress, token, key, cb) {
-      doCall('GET', storageAddress+normalizeKey(key), null, token, cb);
+    function get(url, token, cb) {
+      doCall('GET', url, null, token, cb);
     }
 
-    function put(storageAddress, token, key, value, cb) {
-      doCall('PUT', storageAddress+normalizeKey(key), value, token, cb);
+    function put(url, value, token, cb) {
+      doCall('PUT', url, value, token, cb);
     }
 
-    function delete_(storageAddress, token, key, cb) {
-      doCall('DELETE', storageAddress+normalizeKey(key), null, token, cb);
+    function delete_(url, token, cb) {
+      doCall('DELETE', url, null, token, cb);
     }
 
     return {

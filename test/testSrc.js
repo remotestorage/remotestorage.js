@@ -1,22 +1,31 @@
 require(['../src/remoteStorage'], function(remoteStorage) {
   var tests = {
     'michiel@5apps.com': {
-      api: 'simple',
-      auth: 'https://5apps.com/oauth/michiel',
-      template: 'https://5apps.com/storage/michiel/{category}/'
+      type: 'pds-remotestorage-00#simple',
+      auth: {
+        type: 'pds-oauth2-00',
+        href: 'https://5apps.com/oauth/michiel'
+      },
+      href: 'https://5apps.com/storage/michiel'
     },
     'michiel@owncube.com': {
-      api: 'WebDAV',
-      auth: 'https://owncube.com/apps/remoteStorage/auth.php/michiel',
-      template: 'https://owncube.com/apps/remoteStorage/WebDAV.php/michiel/remoteStorage/{category}/'
+      type: 'pds-remotestorage-00#webdav',
+      auth: {
+        type: 'pds-oauth2-00',
+        href: 'https://owncube.com/apps/remoteStorage/auth.php/michiel'
+      },
+      href: 'https://owncube.com/apps/remoteStorage/WebDAV.php/michiel/remoteStorage'
     },
     'dejong.michiel@iriscouch.com': {
-      api: 'CouchDB',
-      auth: 'http://proxy.unhosted.org/OAuth.html?userAddress=dejong.michiel@iriscouch.com',
-      template: 'http://proxy.unhosted.org/IrisCouch/dejong.michiel@iriscouch.com/{category}/'
+      type: 'pds-remotestorage-00#couchdb',
+      auth: {
+        type: 'pds-oauth2-00',
+        href: 'http://proxy.unhosted.org/OAuth.html?userAddress=dejong.michiel@iriscouch.com'
+      },
+      href: 'http://proxy.unhosted.org/IrisCouch/dejong.michiel@iriscouch.com'
     },
     'dejong.michiel@gmail.com': {
-      api: 'CouchDB',
+      type: 'pds-remotestorage-00#couchdb',
       auth: 'http://proxy.unhosted.org/OAuth.html?userAddress=dejong.michiel@iriscouch.com',
       template: 'http://proxy.unhosted.org/IrisCouch/dejong.michiel@iriscouch.com/{category}/'
     }
@@ -26,12 +35,12 @@ require(['../src/remoteStorage'], function(remoteStorage) {
       console.log(storageInfo);
       if(!storageInfo) {
         document.write(i+' ERR ('+JSON.stringify(storageInfo)+')<br>');
-      } else if (storageInfo.api != tests[i].api) {
-        document.write(i+' ERR (api: '+JSON.stringify(storageInfo.api)+')<br>');
-      } else if (storageInfo.auth != tests[i].auth) {
-        document.write(i+' ERR (auth: '+JSON.stringify(storageInfo.auth)+')<br>');
-      } else if (storageInfo.template != tests[i].template) {
-        document.write(i+' ERR (template: '+JSON.stringify(storageInfo.template)+')<br>');
+      } else if (storageInfo.type != tests[i].type) {
+        document.write(i+' ERR (type: '+JSON.stringify(storageInfo.type)+')<br>');
+      } else if (storageInfo.auth.href != tests[i].auth.href) {
+        document.write(i+' ERR (auth.href: '+JSON.stringify(storageInfo.auth.href)+')<br>');
+      } else if (storageInfo.href != tests[i].href) {
+        document.write(i+' ERR (href: '+JSON.stringify(storageInfo.href)+')<br>');
       } else {
         document.write(i+' OK<br>');
       }

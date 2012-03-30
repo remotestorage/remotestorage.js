@@ -109,12 +109,53 @@ define(
               if(hostMetaLinks['lrdd'] && hostMetaLinks['lrdd'].template) {
                 var parts = hostMetaLinks['lrdd'].template.split('{uri}');
                 var lrddAddresses=[parts.join('acct:'+userAddress), parts.join(userAddress)];
-                fetchXrd(lrddAddresses, options.timeout, function(err4, lrddLinks) {
+                 fetchXrd(lrddAddresses, options.timeout, function(err4, lrddLinks) {
                   if(err4) {
                     cb('could not fetch lrdd for '+userAddress);
                   } else {
-                    if(lrddLinks['remoteStorage']) {
-                      cb(null, lrddLinks['remoteStorage']);
+                     //FROM:
+                    //{
+                    //  api: 'WebDAV',
+                    //  template: 'http://host/foo/{category}/bar',
+                    //  auth: 'http://host/auth'
+                    //}
+                    //TO:
+                    //{
+                    //  type: 'pds-remotestorage-00#webdav',
+                    //  href: 'http://host/foo/',
+                    //  legacySuffix: '/bar'
+                    //  auth: {
+                    //    type: 'pds-oauth2-00',
+                    //    href: 'http://host/auth'
+                    //  }
+                    //}
+                    if(lrddLinks['remoteStorage'] && lrddLinks['remoteStorage']['auth'] && lrddLinks['remoteStorage']['api'] && lrddLinks['remoteStorage']['template']) {
+                      var storageInfo = {};
+                      if(lrddLinks['remoteStorage']['api'] == 'simple') {
+                        storageInfo['type'] = 'pds-remotestorage-00#simple';
+                      } else if(lrddLinks['remoteStorage']['api'] == 'WebDAV') {
+                        storageInfo['type'] = 'pds-remotestorage-00#webdav';
+                      } else if(lrddLinks['remoteStorage']['api'] == 'CouchDB') {
+                        storageInfo['type'] = 'pds-remotestorage-00#couchdb';
+                      } else {
+                        cb('api not recognized');
+                        return;
+                      }
+
+                      var templateParts = lrddLinks['remoteStorage']['template'].split('{category}');
+                      if(templateParts[0].substring(templateParts[0].length-1)=='/') {
+                        storageInfo['href'] = templateParts[0].substring(0, templateParts[0].length-1);
+                      } else {
+                        storageInfo['href'] = templateParts[0];
+                      }
+                      if(templateParts.length == 2 && templateParts[1] != '/') {
+                        storageInfo['legacySuffix'] = templateParts[1];
+                      }
+                      storageInfo['auth'] = {
+                        type: 'pds-oauth2-00',
+                        href: lrddLinks['remoteStorage']['auth']
+                      };
+                      cb(null, storageInfo);
                     } else {
                       cb('could not extract storageInfo from lrdd');
                     }
@@ -128,15 +169,7 @@ define(
         }
       });
     }
-    function resolveTemplate(template, dataCategory) {
-      var parts = template.split('{category}');
-      if(parts.length != 2) {
-        return 'cannot-resolve-template:'+template;
-      }
-      return parts[0]+dataCategory+parts[1];
-    }
     return {
-      getStorageInfo: getStorageInfo,
-      resolveTemplate: resolveTemplate
+      getStorageInfo: getStorageInfo
     }
 });

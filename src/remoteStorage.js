@@ -13,26 +13,48 @@ define(
         });
       },
       createOAuthAddress = function (storageInfo, categories, redirectUri) {
+        if(storageInfo.type.split('#')[0]=='pds-remotestorage-00') {
+          scopeParts = categories;
+        } else {
+          scopeParts=[];
+          for(category in categories) {
+            if(category=='public') {
+              scopeParts.push('legacy:full');
+            } else {
+              scopeParts.push(category+':full');
+            }
+          }
+        }
         var terms = [
           'redirect_uri='+encodeURIComponent(redirectUri),
-          'scope='+encodeURIComponent(categories.join(',')),
+          'scope='+encodeURIComponent(scopeParts.join(',')),
           'response_type=token',
           'client_id='+encodeURIComponent(redirectUri)
         ];
-        return storageInfo.auth + (storageInfo.auth.indexOf('?') === -1?'?':'&') + terms.join('&');
+        return storageInfo.auth.href + (storageInfo.auth.href.indexOf('?') === -1?'?':'&') + terms.join('&');
       },
-      getDriver = function (api, cb) {
-        cb(api === 'CouchDB'?couch:dav);
+      getDriver = function (type, cb) {
+        cb(type === 'pds-remotestorage-00#couchdb'?couch:dav);
+      },
+      resolveKey = function(storageInfo, zone, category, item) {
+        return storageInfo.href + '/' + zone + '/' + category
+          + storageInfo.legacySuffix ? storageInfo.legacySuffix : ''
+          + '/' + (item[0] == '_' ? 'u' : '') + item;
       },
       createClient = function (storageInfo, category, token) {
-        var storageAddress = webfinger.resolveTemplate(storageInfo.template, category);
+        if(category == 'public') {
+          zone = 'public';
+          category = 'legacy';
+        } else {
+          zone = 'private';
+        }
         return {
           get: function (key, cb) {
             if(typeof(key) != 'string') {
               cb('argument "key" should be a string');
             } else {
-              getDriver(storageInfo.api, function (d) {
-                d.get(storageAddress, token, key, cb);
+              getDriver(storageInfo.type, function (d) {
+                d.get(resolveKey(storageInfo, zone, category, key), token, cb);
               });
             }
           },
@@ -42,8 +64,8 @@ define(
             } else if(typeof(value) != 'string') {
               cb('argument "value" should be a string');
             } else {
-              getDriver(storageInfo.api, function (d) {
-                d.put(storageAddress, token, key, value, cb);
+              getDriver(storageInfo.type, function (d) {
+                d.put(resolveKey(storageInfo, zone, category, key), value, token, cb);
               });
             }
           },
@@ -51,8 +73,8 @@ define(
             if(typeof(key) != 'string') {
               cb('argument "key" should be a string');
             } else {
-              getDriver(storageInfo.api, function (d) {
-                d['delete'](storageAddress, token, key, cb);
+              getDriver(storageInfo.type, function (d) {
+                d['delete'](resolveKey(storageInfo, zone, category, key), token, cb);
               });
             }
           }
