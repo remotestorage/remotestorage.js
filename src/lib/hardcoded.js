@@ -17,20 +17,16 @@ define(
       //  templateSuffix: '/{category}/'
       //},
       'iriscouch.com': {
-        api: 'CouchDB',
+        api: 'couchdb',
         authPrefix: 'http://proxy.unhosted.org/OAuth.html?userAddress=',
-        authSuffix: '',
-        templatePrefix: 'http://proxy.unhosted.org/IrisCouch/',
-        templateSuffix: '/{category}/'
+        templatePrefix: 'http://proxy.unhosted.org/IrisCouch/'
       }
     };
     (function() {
       var surfnet= {
         api: 'simple',
         authPrefix: 'http://surf.unhosted.org:4000/_oauth/',
-        authSuffix: '',
-        templatePrefix: 'http://surf.unhosted.org:4000/',
-        templateSuffix: '/{category}/'
+        templatePrefix: 'http://surf.unhosted.org:4000/'
       };
       var dutchUniversities= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
         'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'wur.nl',
@@ -87,9 +83,12 @@ define(
             if(guesses[parts[1]]) {
               blueprint=guesses[parts[1]];
               cb(null, {
-                api: blueprint.api,
-                auth: blueprint.authPrefix+userAddress+blueprint.authSuffix,
-                template: blueprint.templatePrefix+userAddress+blueprint.templateSuffix
+                type: 'pds-remotestorage-00#'+blueprint.api,
+                auth: {
+                  type: 'pds-oauth2-00',
+                  href: blueprint.authPrefix+userAddress
+                },
+                href: blueprint.templatePrefix+userAddress
               });
               return;
             }
