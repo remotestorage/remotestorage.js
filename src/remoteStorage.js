@@ -38,7 +38,7 @@ define(
       },
       resolveKey = function(storageInfo, zone, category, item) {
         return storageInfo.href + '/' + zone + '/' + category
-          + storageInfo.legacySuffix ? storageInfo.legacySuffix : ''
+          + (storageInfo.legacySuffix ? storageInfo.legacySuffix : '')
           + '/' + (item[0] == '_' ? 'u' : '') + item;
       },
       createClient = function (storageInfo, category, token) {
