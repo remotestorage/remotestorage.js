@@ -36,25 +36,19 @@ define(
       getDriver = function (type, cb) {
         cb(type === 'pds-remotestorage-00#couchdb'?couch:dav);
       },
-      resolveKey = function(storageInfo, zone, category, item) {
-        return storageInfo.href + '/' + zone + '/' + category
+      resolveKey = function(storageInfo, category, item) {
+        return storageInfo.href + '/' + category
           + (storageInfo.legacySuffix ? storageInfo.legacySuffix : '')
           + '/' + (item[0] == '_' ? 'u' : '') + item;
       },
       createClient = function (storageInfo, category, token) {
-        if(category == 'public') {
-          zone = 'public';
-          category = 'legacy';
-        } else {
-          zone = 'private';
-        }
         return {
           get: function (key, cb) {
             if(typeof(key) != 'string') {
               cb('argument "key" should be a string');
             } else {
               getDriver(storageInfo.type, function (d) {
-                d.get(resolveKey(storageInfo, zone, category, key), token, cb);
+                d.get(resolveKey(storageInfo, category, key), token, cb);
               });
             }
           },
@@ -65,7 +59,7 @@ define(
               cb('argument "value" should be a string');
             } else {
               getDriver(storageInfo.type, function (d) {
-                d.put(resolveKey(storageInfo, zone, category, key), value, token, cb);
+                d.put(resolveKey(storageInfo, category, key), value, token, cb);
               });
             }
           },
@@ -74,7 +68,7 @@ define(
               cb('argument "key" should be a string');
             } else {
               getDriver(storageInfo.type, function (d) {
-                d['delete'](resolveKey(storageInfo, zone, category, key), token, cb);
+                d['delete'](resolveKey(storageInfo, category, key), token, cb);
               });
             }
           }
