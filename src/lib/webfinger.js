@@ -90,9 +90,10 @@ define(
         return;
       }
       var links = {};
-      if(obj && obj.links) {
-        for(var i=0; i<obj.links.length;i++) {
-          links[obj.links[i].rel]=obj.links[i];
+      for(var rel in obj.links) {
+        //just take the first one of each rel:
+        if(obj.links[rel].length >= 1) {
+          links[rel]=obj.links[rel][0];
         }
       }
       cb(null, links);
@@ -156,6 +157,19 @@ define(
                         href: lrddLinks['remoteStorage']['auth']
                       };
                       cb(null, storageInfo);
+                    } else if(lrddLinks['remotestorage']
+                        && lrddLinks['remotestorage']['href']
+                        && lrddLinks['remotestorage']['type']
+                        && lrddLinks['remotestorage']['links']
+                        && lrddLinks['remotestorage']['links']['auth']
+                        && lrddLinks['remotestorage']['links']['auth'][0]//although parseAsJrd takes out the first link of each rel, it leaves nested links in a list
+                        && lrddLinks['remotestorage']['links']['auth'][0]['href']
+                        && lrddLinks['remotestorage']['links']['auth'][0]['type']
+                        && lrddLinks['remotestorage']['links']['auth'][0]['type'] == 'oauth2-ig'
+                        ) {
+                      lrddLinks['remotestorage']['auth']= lrddLinks['remotestorage']['links']['auth'][0];
+                      delete lrddLinks['remotestorage']['links'];
+                      cb(null, lrddLinks['remotestorage']);
                     } else {
                       cb('could not extract storageInfo from lrdd');
                     }
