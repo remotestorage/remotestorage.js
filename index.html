@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="remoteStorage.js : Javascript library to make apps remoteStorage-compatible." />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>remoteStorage.js</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/unhosted/remoteStorage.js">Fork Me on GitHub</a>
+
+          <h1 id="project_title">remoteStorage.js</h1>
+          <h2 id="project_tagline">Javascript library to make apps remoteStorage-compatible.</h2>
+
+          <section id="downloads">
+            <a class="zip_download_link" href="https://github.com/unhosted/remoteStorage.js/zipball/master">Download this project as a .zip file</a>
+            <a class="tar_download_link" href="https://github.com/unhosted/remoteStorage.js/tarball/master">Download this project as a tar.gz file</a>
+          </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <p>See <a href="http://tutorial.unhosted.5apps.com">the tutorial</a> for example usage and <a href="https://github.com/unhosted/remoteStorage.js/raw/master/build/latest/remoteStorage.js">download</a> the library.</p>
+
+<h2>Code example</h2>
+
+<p>Include remoteStorage.js in your HTML (before the app.js which calls it):</p>
+
+<div class="highlight">
+<pre><span class="nt">&lt;script </span><span class="na">src=</span><span class="s">"path/to/remoteStorage.js"</span><span class="nt">&gt;&lt;/script&gt;</span>
+<span class="nt">&lt;script </span><span class="na">src=</span><span class="s">"path/to/your/app.js"</span><span class="nt">&gt;&lt;/script&gt;</span>
+</pre>
+</div>
+
+
+<p>Your <code>app.js</code>:</p>
+
+<div class="highlight">
+<pre><span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">getStorageInfo</span><span class="p">(</span><span class="s1">'user@example.com'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">storageInfo</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">token</span> <span class="o">=</span> <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">receiveToken</span><span class="p">();</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">token</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">//we can access the 'notes' category on the remoteStorage of user@example.com:</span>
+    <span class="kd">var</span> <span class="nx">client</span> <span class="o">=</span> <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">createClient</span><span class="p">(</span><span class="nx">storageInfo</span><span class="p">,</span> <span class="s1">'notes'</span><span class="p">,</span> <span class="nx">token</span><span class="p">);</span>
+    <span class="nx">client</span><span class="p">.</span><span class="nx">put</span><span class="p">(</span><span class="s1">'key'</span><span class="p">,</span> <span class="s1">'value'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">client</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'key'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">client</span><span class="p">.</span><span class="k">delete</span><span class="p">(</span><span class="s1">'key'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="c1">//get an access token for 'notes' by dancing OAuth with the remoteStorage of user@example.com:</span>
+    <span class="nb">window</span><span class="p">.</span><span class="nx">location</span> <span class="o">=</span> <span class="nx">remoteStorage</span><span class="p">.</span><span class="nx">createOAuthAddress</span><span class="p">(</span><span class="nx">storageInfo</span><span class="p">,</span> <span class="p">[</span><span class="s1">'notes'</span><span class="p">],</span> <span class="nb">window</span><span class="p">.</span><span class="nx">location</span><span class="p">.</span><span class="nx">href</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+</pre>
+</div>
+
+
+<h2>Function reference</h2>
+
+<h3>remoteStorage.getStorageInfo(userAddress, callback)</h3>
+
+<pre><code>userAddress: string of the form 'user@host'
+callback: function(err, storageInfo)
+-err: null, or a string describing what went wrong
+-storageInfo: an object describing some details of the user's remoteStorage
+</code></pre>
+
+<h3>remoteStorage.createOAuthAddress(storageInfo, categories, redirectUri)</h3>
+
+<pre><code>storageInfo: the object you got from the getStorageInfo call
+categories: an array of strings describing categories of data you will be accessing.
+@returns: string, the url you should go to for the OAuth dance
+</code></pre>
+
+<p>See <a href="https://github.com/unhosted/website/wiki/categories">the list of categories</a> you might want to access.</p>
+
+<h3>remoteStorage.receiveToken()</h3>
+
+<pre><code>@returns: when coming back from the OAuth dance, a string containing the bearer token. Otherwise, null.
+</code></pre>
+
+<h3>remoteStorage.createClient(storageInfo, category, bearerToken)</h3>
+
+<pre><code>storageInfo: the object you got from the getStorageInfo call
+category: one of the strings from the array you passed to createOAuthAddress earlier
+@returns: a Client
+</code></pre>
+
+<h3>Client.get(key, callback)</h3>
+
+<pre><code>key: a string, identifying which element you want to retrieve
+callback: function(err, data)
+-err: null, or a string describing what went wrong
+-data: undefined, or a string, that is the current value of 'key' within 'category' on the user's remoteStorage
+</code></pre>
+
+<h4>Client.put(key, value, callback)</h4>
+
+<pre><code>key: a string, identifying which element you want to assign value to
+value: a string you want to assign to the element identified by key
+data: a string that, if successful, will be the new value of 'key' within 'category' on the user's remoteStorage
+callback: function(err)
+-err: null, or a string describing what went wrong
+</code></pre>
+
+<h3>Client.delete(key, callback)</h3>
+
+<pre><code>key: a string, identifying which element you want to reset to undefined
+callback: function(err)
+-err: null, or a string describing what went wrong
+</code></pre>
+
+<h2>Browser support</h2>
+
+<p>This library relies heavily on <a href="http://caniuse.com/#search=cors">CORS (Cross-Origin Resource Sharing)</a>.</p>
+
+<p>Known to work: Firefox, Chrome, Safari, Safari iOS.</p>
+
+<p>Might work: Firefox Mobile, Android stock browser, Opera 12+, Opera Mobile 12+, IE 10+.</p>
+
+<p>Planned: IE 8 &amp; 9 (please <a href="https://groups.google.com/d/topic/unhosted/Xk1hJMr9i9c/discussion">help with this</a>!).</p>
+
+<h2>Version and license</h2>
+
+<p>This is version 0.5.6 of the library, and you can use it under AGPL or MIT license - whatever floats your boat. Pull requests are very welcome (if you're not on github you can email them to michiel at unhosted.org). To build:</p>
+
+<pre><code>cd build
+node build.js
+</code></pre>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">remoteStorage.js maintained by <a href="https://github.com/unhosted">unhosted</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
