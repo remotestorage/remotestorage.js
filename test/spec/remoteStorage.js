@@ -24,9 +24,9 @@
           expect(sinonRequests[0].url).toEqual('https://b.c/.well-known/host-meta');
           expect(sinonRequests[1].url).toEqual('http://unhosted.org/.well-known/acct:a@b.c.webfinger');
         });
+        sinonRequests[0].respond(403, {}, '');//https host-meta
+        sinonRequests[1].respond(403, {}, '');//http host-meta
       });
-      sinonRequests[0].respond(403, {}, '');//https host-meta
-      sinonRequests[1].respond(403, {}, '');//http host-meta
       specHelper.tearDownXhr();
     });
     it("should succeed in getting a valid xml-based webfinger record", function() {
