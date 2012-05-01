@@ -38,8 +38,8 @@ define(
 
     function testIrisCouch(userAddress, options, cb) {
       platform.ajax({
-        //url: 'http://proxy.unhosted.org/irisCouchCheck',
-        url: 'http://proxy.unhosted.org/lookup?q=acct:'+userAddress,
+        url: 'http://proxy.unhosted.org/irisCouchCheck?q=acct:'+userAddress,
+        //url: 'http://proxy.unhosted.org/lookup?q=acct:'+userAddress,
         success: function(data) {
           var obj;
           try {
