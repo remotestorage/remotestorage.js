@@ -77,10 +77,10 @@ callback: function(err, storageInfo)
 -storageInfo: an object describing some details of the user's remoteStorage
 </code></pre>
 
-<h3>remoteStorage.createOAuthAddress(storageInfo, categories, redirectUri)</h3>
+<h3>remoteStorage.createOAuthAddress(storageInfo, scopes, redirectUri)</h3>
 
 <pre><code>storageInfo: the object you got from the getStorageInfo call
-categories: an array of strings describing categories of data you will be accessing.
+scopes: an array of strings of form path+':r' or path+':rw', describing scopes you will be accessing.
 @returns: string, the url you should go to for the OAuth dance
 </code></pre>
 
@@ -91,33 +91,33 @@ categories: an array of strings describing categories of data you will be access
 <pre><code>@returns: when coming back from the OAuth dance, a string containing the bearer token. Otherwise, null.
 </code></pre>
 
-<h3>remoteStorage.createClient(storageInfo, category, bearerToken)</h3>
+<h3>remoteStorage.createClient(storageInfo, basePath, bearerToken)</h3>
 
 <pre><code>storageInfo: the object you got from the getStorageInfo call
-category: one of the strings from the array you passed to createOAuthAddress earlier
+basePath: string, should be a (sub-)directory from the scopes-array you passed to createOAuthAddress earlier
 @returns: a Client
 </code></pre>
 
-<h3>Client.get(key, callback)</h3>
+<h3>Client.get(relPath, callback)</h3>
 
-<pre><code>key: a string, identifying which element you want to retrieve
+<pre><code>relPath: string, such that basePath+'/'+relPath is the element you want to retrieve
 callback: function(err, data)
 -err: null, or a string describing what went wrong
 -data: undefined, or a string, that is the current value of 'key' within 'category' on the user's remoteStorage
 </code></pre>
 
-<h4>Client.put(key, value, callback)</h4>
+<h4>Client.put(relPath, value, callback)</h4>
 
-<pre><code>key: a string, identifying which element you want to assign value to
+<pre><code>relPath: string, such that basePath+'/'+relPath is the element you want to assign value to
 value: a string you want to assign to the element identified by key
 data: a string that, if successful, will be the new value of 'key' within 'category' on the user's remoteStorage
 callback: function(err)
 -err: null, or a string describing what went wrong
 </code></pre>
 
-<h3>Client.delete(key, callback)</h3>
+<h3>Client.delete(relPath, callback)</h3>
 
-<pre><code>key: a string, identifying which element you want to reset to undefined
+<pre><code>relPath: string, such that basePath+'/'+relPath is the element you want to reset to undefined
 callback: function(err)
 -err: null, or a string describing what went wrong
 </code></pre>
