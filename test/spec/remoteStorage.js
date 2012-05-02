@@ -62,13 +62,32 @@
             href: 'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org'
           }
         },
-        ['asd', 'qwer'],
+        ['asdf:rw', 'qw/er:r', 'public/asdf:r'],
         redirectUri
         );
       expect(oauthAddress).toEqual(
-        'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org?redirect_uri='+encodeURIComponent(redirectUri)+'&scope=asdf&response_type=token&client_id='+encodeURIComponent(redirectUri)
+        'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org?redirect_uri='+encodeURIComponent(redirectUri)
+          +'&scope='+encodeURIComponent('asdf:rw qw/er:r public/asdf:r')+'&response_type=token&client_id='+encodeURIComponent(redirectUri)
+      );
+    });
+    it("should create a legacy OAuth address", function() {//test 4
+      var remoteStorage = specHelper.getRemoteStorage();
+      var redirectUri = 'http://unhosted.org/asdf/qwer.html';
+      var oauthAddress = remoteStorage.createOAuthAddress(
+        {
+          type: 'WebDAV',
+          auth: {
+            href: 'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org'
+          }
+        },
+        ['asdf:rw', 'qw/er:r', 'public/asdf:r'],
+        redirectUri
         );
-      });
+      expect(oauthAddress).toEqual(
+        'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org?redirect_uri='+encodeURIComponent(redirectUri)
+          +'&scope='+encodeURIComponent('asdf,qw,public')+'&response_type=token&client_id='+encodeURIComponent(redirectUri)
+      );
+    });
     it("should receive a token from the fragment, first position", function() {//test 9
       var remoteStorage = specHelper.getRemoteStorage();
       location.hash='#access_token=asdf&bla';
