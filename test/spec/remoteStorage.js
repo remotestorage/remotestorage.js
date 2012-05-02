@@ -57,7 +57,7 @@
       var redirectUri = 'http://unhosted.org/asdf/qwer.html';
       var oauthAddress = remoteStorage.createOAuthAddress(
         {
-          type: 'pds-remotestorage-00#something',
+          type: 'http://www.w3.org/community/rww/wiki/Simple',
           auth: {
             href: 'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org'
           }
@@ -75,7 +75,7 @@
       var redirectUri = 'http://unhosted.org/asdf/qwer.html';
       var oauthAddress = remoteStorage.createOAuthAddress(
         {
-          type: 'WebDAV',
+          type: 'pds-remotestorage-00#webdav',
           auth: {
             href: 'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org'
           }

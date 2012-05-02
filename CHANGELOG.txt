@@ -1,3 +1,18 @@
+0.6.2
+=====
+* fix legacy detection for OAuth scopes format
+
+0.6.1
+=====
+* fix the tests again
+* add ':rw' or ':r' to OAuth scopes
+* DON'T USE: the legacy format detection is broken in this revision
+
+0.6.0
+=====
+* losen the requirement that the basePath you OAuth to should be a category, so now instead of 'category/key' we use 'basePath/relPath'
+* DON'T USE: I later found out that the tests were not being run in this revision, so there are some bugs in it.
+
 0.5.6
 =====
 * fix missing error handler in ajaxNode(). only affects remoteStorage-node.js

@@ -49,4 +49,13 @@ require(['../src/remoteStorage'], function(remoteStorage) {
   for(test in tests) {
     check(test);
   }
+  remoteStorage.getStorageInfo('michiel@owncube.com', function(err, storageInfo) {
+    var response = remoteStorage.createOAuthAddress(storageInfo, ['a:rw'], 'http://localhost/asdf.html');
+    if(response == 'https://owncube.com/apps/remoteStorage/auth.php/michiel?redirect_uri=http%3A%2F%2Flocalhost%2Fasdf.html&scope='
+        +encodeURIComponent('a')+'&response_type=token&client_id=http%3A%2F%2Flocalhost%2Fasdf.html') {
+      document.write('Legacy OAuth OK<br>');
+    } else {
+      document.write('Legacy OAuth ERR:'+response+'<br>');
+    }
+  });
 });

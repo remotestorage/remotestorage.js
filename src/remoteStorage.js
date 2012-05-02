@@ -13,7 +13,7 @@ define(
         });
       },
       createOAuthAddress = function (storageInfo, scopes, redirectUri) {
-        if(storageInfo.type.split('#')[0]=='pds-remotestorage-00') {
+        if(storageInfo.type=='https://www.w3.org/community/rww/wiki/Simple') {
           scopesStr = scopes.join(' ');
         } else {
           var legacyScopes = [];
