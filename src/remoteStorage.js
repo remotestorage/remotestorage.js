@@ -12,22 +12,19 @@ define(
           }
         });
       },
-      createOAuthAddress = function (storageInfo, categories, redirectUri) {
+      createOAuthAddress = function (storageInfo, scopes, redirectUri) {
         if(storageInfo.type.split('#')[0]=='pds-remotestorage-00') {
-          scopeParts = categories;
+          scopesStr = scopes.join(' ');
         } else {
-          scopeParts=[];
-          for(category in categories) {
-            if(category=='public') {
-              scopeParts.push('legacy:full');
-            } else {
-              scopeParts.push(category+':full');
-            }
+          var legacyScopes = [];
+          for(var i=0; i<scopes.length; i++) {
+            legacyScopes.push(scopes[i].split(':')[0].split('/')[0]);
           }
+          scopesStr = legacyScopes.join(',');          
         }
         var terms = [
           'redirect_uri='+encodeURIComponent(redirectUri),
-          'scope='+encodeURIComponent(scopeParts.join(',')),
+          'scope='+encodeURIComponent(scopesStr),
           'response_type=token',
           'client_id='+encodeURIComponent(redirectUri)
         ];
@@ -41,14 +38,14 @@ define(
           + (storageInfo.legacySuffix ? storageInfo.legacySuffix : '')
           + '/' + (item[0] == '_' ? 'u' : '') + item;
       },
-      createClient = function (storageInfo, category, token) {
+      createClient = function (storageInfo, basePath, token) {
         return {
           get: function (key, cb) {
             if(typeof(key) != 'string') {
               cb('argument "key" should be a string');
             } else {
               getDriver(storageInfo.type, function (d) {
-                d.get(resolveKey(storageInfo, category, key), token, cb);
+                d.get(resolveKey(storageInfo, basePath, key), token, cb);
               });
             }
           },
@@ -59,7 +56,7 @@ define(
               cb('argument "value" should be a string');
             } else {
               getDriver(storageInfo.type, function (d) {
-                d.put(resolveKey(storageInfo, category, key), value, token, cb);
+                d.put(resolveKey(storageInfo, basePath, key), value, token, cb);
               });
             }
           },
@@ -68,7 +65,7 @@ define(
               cb('argument "key" should be a string');
             } else {
               getDriver(storageInfo.type, function (d) {
-                d['delete'](resolveKey(storageInfo, category, key), token, cb);
+                d['delete'](resolveKey(storageInfo, basePath, key), token, cb);
               });
             }
           }
