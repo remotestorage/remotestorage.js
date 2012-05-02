@@ -43,7 +43,7 @@
           +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\'\n'
           +'     xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
           +'          <Link rel=\'lrdd\''
-          +' href=\'http://unhosted.org/.well-known/{uri}.webfinger\'></Link></XRD>');
+          +' template=\'http://unhosted.org/.well-known/{uri}.webfinger\'></Link></XRD>');
       sinonRequests[1].respond(200, {}, '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
           +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\' xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
           +'<Link rel=\'remoteStorage\' api=\'simple\' auth=\'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org\''
