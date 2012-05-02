@@ -1,6 +1,8 @@
 0.6.2
 =====
 * fix legacy detection for OAuth scopes format
+* add client.put('path/') to mean MKCOL path/ in WebDAV and equivalent in simple-rww and CouchDB
+* deal with non-string user addresses in getStorageInfo
 
 0.6.1
 =====
