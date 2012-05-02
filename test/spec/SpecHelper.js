@@ -16,10 +16,8 @@ var specHelper = (function() {
     tearDownServer: function() {
       sinonServer.restore();
     },
-    getRemoteStorage: function(cb) {
-      require(['../src/remoteStorage.js'], function(drop) {
-        cb(drop);
-      });
+    getRemoteStorage: function() {
+      return jasmine.currentEnv_.remoteStorage;
     }
   };
 })();
