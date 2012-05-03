@@ -1,8 +1,11 @@
 0.6.2
 =====
 * fix legacy detection for OAuth scopes format
-* add client.put('path/') to mean MKCOL path/ in WebDAV and equivalent in simple-rww and CouchDB
+* on legacy storage, change all slashes to underscores except for the one between category and item
 * deal with non-string user addresses in getStorageInfo
+* allow hyphens and underscores in user part of user addresses
+* revert all user addresses to lower case
+* correct new rel to https://www.w3.org/community/rww/wiki/simple-00
 
 0.6.1
 =====

@@ -18,7 +18,7 @@ define(
         }
       },
       createOAuthAddress = function (storageInfo, scopes, redirectUri) {
-        if(storageInfo.type=='https://www.w3.org/community/rww/wiki/Simple') {
+        if(storageInfo.type=='https://www.w3.org/community/rww/wiki/simple-00') {
           scopesStr = scopes.join(' ');
         } else {
           var legacyScopes = [];
@@ -38,8 +38,10 @@ define(
       getDriver = function (type, cb) {
         cb(type === 'pds-remotestorage-00#couchdb'?couch:dav);
       },
-      resolveKey = function(storageInfo, category, item) {
-        return storageInfo.href + '/' + category
+      resolveKey = function(storageInfo, basePath, relPath) {
+        var itemPathParts = (basePath + '/' + relPath).split('/');
+        var item = itemPathParts.splice(1).join('_');
+        return storageInfo.href + '/' + itemPathParts[0]
           + (storageInfo.legacySuffix ? storageInfo.legacySuffix : '')
           + '/' + (item[0] == '_' ? 'u' : '') + item;
       },

@@ -7,15 +7,15 @@ define(
     ///////////////
 
     function userAddress2hostMetas(userAddress, cb) {
-      var parts = userAddress.split('@');
+      var parts = userAddress.toLowerCase().split('@');
       if(parts.length < 2) {
         cb('That is not a user address. There is no @-sign in it');
       } else if(parts.length > 2) {
         cb('That is not a user address. There is more than one @-sign in it');
       } else {
-        if(!(/^[\.0-9A-Za-z]+$/.test(parts[0]))) {
+        if(!(/^[\.0-9a-z\-\_]+$/.test(parts[0]))) {
           cb('That is not a user address. There are non-dotalphanumeric symbols before the @-sign: "'+parts[0]+'"');
-        } else if(!(/^[\.0-9A-Za-z\-]+$/.test(parts[1]))) {
+        } else if(!(/^[\.0-9a-z\-]+$/.test(parts[1]))) {
           cb('That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
         } else {
           cb(null, [

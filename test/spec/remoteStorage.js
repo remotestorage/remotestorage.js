@@ -57,7 +57,7 @@
       var redirectUri = 'http://unhosted.org/asdf/qwer.html';
       var oauthAddress = remoteStorage.createOAuthAddress(
         {
-          type: 'http://www.w3.org/community/rww/wiki/Simple',
+          type: 'https://www.w3.org/community/rww/wiki/simple-00',
           auth: {
             href: 'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org'
           }
