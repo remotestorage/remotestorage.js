@@ -39,7 +39,7 @@ define(
         cb(type === 'pds-remotestorage-00#couchdb'?couch:dav);
       },
       resolveKey = function(storageInfo, basePath, relPath) {
-        var itemPathParts = (basePath + '/' + relPath).split('/');
+        var itemPathParts = ((basePath.length?(basePath + '/'):'') + relPath).split('/');
         var item = itemPathParts.splice(1).join('_');
         return storageInfo.href + '/' + itemPathParts[0]
           + (storageInfo.legacySuffix ? storageInfo.legacySuffix : '')

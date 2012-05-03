@@ -1,3 +1,7 @@
+0.6.3
+=====
+* no trailing slash after empty base path
+
 0.6.2
 =====
 * fix legacy detection for OAuth scopes format
