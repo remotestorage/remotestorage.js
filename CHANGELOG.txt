@@ -1,3 +1,7 @@
+0.6.4
+=====
+* fix JRD syntax
+
 0.6.3
 =====
 * no trailing slash after empty base path
