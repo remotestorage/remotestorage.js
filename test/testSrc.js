@@ -1,5 +1,13 @@
 require(['../src/remoteStorage'], function(remoteStorage) {
   var tests = {
+    'admin@mich.oc': {
+      type: 'pds-remotestorage-00#webdav',
+      auth: {
+        type: 'pds-oauth2-00',
+        href: 'http://mich.oc/?app=remoteStorage&getfile=auth.php&userid=admin'
+      },
+      href: 'http://mich.oc/apps/remoteStorage/WebDAV.php/admin/remoteStorage'
+    },
     'michiel@5apps.com': {
       type: 'pds-remotestorage-00#simple',
       auth: {

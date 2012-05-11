@@ -90,10 +90,10 @@ define(
         return;
       }
       var links = {};
-      for(var rel in obj.links) {
+      for(var i=0; i<obj.links.length; i++) {
         //just take the first one of each rel:
-        if(obj.links[rel].length >= 1) {
-          links[rel]=obj.links[rel][0];
+        if(obj.links[i].rel) {
+          links[obj.links[i].rel]=obj.links[i];
         }
       }
       cb(null, links);
