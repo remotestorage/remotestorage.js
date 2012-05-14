@@ -86,11 +86,11 @@ define(
                 rel: 'https://www.w3.org/community/unhosted/wiki/personal-data-service-00',
                 type: 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple',
                 href: blueprint.templatePrefix+'/'+parts[1]+'/'+parts[0],
-                "properties": [
-                  "access-methods": ["http://oauth.net/core/1.0/parameters/auth-header"],
-                  "auth-methods": ["http://oauth.net/discovery/1.0/consumer-identity/static"],
-                  "http://oauth.net/core/1.0/endpoint/request": blueprint.authPrefix+userAddress
-                ]
+                properties: {
+                  'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
+                  'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
+                  'http://oauth.net/core/1.0/endpoint/request': blueprint.authPrefix+userAddress
+                }
               });
               return;
             }
