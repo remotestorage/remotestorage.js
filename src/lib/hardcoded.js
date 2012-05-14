@@ -19,17 +19,17 @@ define(
       'iriscouch.com': {
         api: 'couchdb',
         authPrefix: 'http://proxy.unhosted.org/OAuth.html?userAddress=',
-        templatePrefix: 'http://proxy.unhosted.org/IrisCouch/'
+        templatePrefix: 'http://proxy.unhosted.org/IrisCouch'
       }
     };
     (function() {
       var surfnet= {
         api: 'simple',
-        authPrefix: 'http://surf.unhosted.org:4000/_oauth/',
-        templatePrefix: 'http://surf.unhosted.org:4000/'
+        authPrefix: 'https://storage.surfnetlabs.nl/oauth/authorize?user_address=',
+        templatePrefix: 'https://storage.surfnetlabs.nl/storage'
       };
       var dutchUniversities= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
-        'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'wur.nl',
+        'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'uvt.n', 'wur.nl',
         'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl'];
       for(var i=0;i<dutchUniversities.length;i++) {
         guesses[dutchUniversities[i]]=surfnet;
@@ -83,12 +83,14 @@ define(
             if(guesses[parts[1]]) {
               blueprint=guesses[parts[1]];
               cb(null, {
-                type: 'pds-remotestorage-00#'+blueprint.api,
-                auth: {
-                  type: 'pds-oauth2-00',
-                  href: blueprint.authPrefix+userAddress
-                },
-                href: blueprint.templatePrefix+userAddress
+                rel: 'https://www.w3.org/community/unhosted/wiki/personal-data-service-00',
+                type: 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple',
+                href: blueprint.templatePrefix+'/'+parts[1]+'/'+parts[0],
+                "properties": [
+                  "access-methods": ["http://oauth.net/core/1.0/parameters/auth-header"],
+                  "auth-methods": ["http://oauth.net/discovery/1.0/consumer-identity/static"],
+                  "http://oauth.net/core/1.0/endpoint/request": blueprint.authPrefix+userAddress
+                ]
               });
               return;
             }
