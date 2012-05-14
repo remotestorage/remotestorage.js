@@ -152,11 +152,11 @@ define(
                       if(templateParts.length == 2 && templateParts[1] != '/') {
                         storageInfo['legacySuffix'] = templateParts[1];
                       }
-                      storageInfo.properties = [
+                      storageInfo.properties = {
                         "access-methods": ["http://oauth.net/core/1.0/parameters/auth-header"],
                         "auth-methods": ["http://oauth.net/discovery/1.0/consumer-identity/static"],
                         "http://oauth.net/core/1.0/endpoint/request": lrddLinks['remoteStorage']['auth']
-                      ];
+                      };
                       cb(null, storageInfo);
                     } else if(lrddLinks['remotestorage']
                         && lrddLinks['remotestorage']['href']

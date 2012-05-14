@@ -50,8 +50,9 @@ require(['../src/remoteStorage'], function(remoteStorage) {
         document.write(i+' ERR ('+JSON.stringify(storageInfo)+')<br>');
       } else if (storageInfo.type != tests[i].type) {
         document.write(i+' ERR (type: '+JSON.stringify(storageInfo.type)+')<br>');
-      } else if (storageInfo.auth.href != tests[i].auth.href) {
-        document.write(i+' ERR (auth.href: '+JSON.stringify(storageInfo.auth.href)+')<br>');
+      } else if (storageInfo.properties['http://oauth.net/core/1.0/endpoint/request'] 
+                 != tests[i].properties['http://oauth.net/core/1.0/endpoint/request']) {
+        document.write(i+' ERR (authorize end-point: '+JSON.stringify(storageInfo.auth.href)+')<br>');
       } else if (storageInfo.href != tests[i].href) {
         document.write(i+' ERR (href: '+JSON.stringify(storageInfo.href)+')<br>');
       } else {
