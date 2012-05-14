@@ -1,41 +1,46 @@
 require(['../src/remoteStorage'], function(remoteStorage) {
   var tests = {
     'admin@mich.oc': {
-      type: 'pds-remotestorage-00#webdav',
-      auth: {
-        type: 'pds-oauth2-00',
-        href: 'http://mich.oc/?app=remoteStorage&getfile=auth.php&userid=admin'
-      },
-      href: 'http://mich.oc/apps/remoteStorage/WebDAV.php/admin/remoteStorage'
+      type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav',
+      href: 'http://mich.oc/apps/remoteStorage/WebDAV.php/admin/remoteStorage',
+      properties: {
+        'http://oauth.net/core/1.0/endpoint/request': 'http://mich.oc/?app=remoteStorage&getfile=auth.php&userid=admin'
+      }
     },
     'michiel@5apps.com': {
-      type: 'pds-remotestorage-00#simple',
-      auth: {
-        type: 'pds-oauth2-00',
-        href: 'https://5apps.com/oauth/michiel'
-      },
-      href: 'https://5apps.com/storage/michiel'
+      type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple',
+      href: 'https://5apps.com/storage/michiel',
+      properties: {
+        'http://oauth.net/core/1.0/endpoint/request': 'https://5apps.com/oauth/michiel'
+      }
+    },
+    'francois@surfnet.nl': {
+      type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple',
+      href: 'https://storage.surfnetlabs.nl/storage/surfnet.nl/francois',
+      properties: {
+        'http://oauth.net/core/1.0/endpoint/request': 'https://storage.surfnetlabs.nl/oauth/authorize?user_address=francois@surfnet.nl'
+      }
     },
     'michiel@owncube.com': {
-      type: 'pds-remotestorage-00#webdav',
-      auth: {
-        type: 'pds-oauth2-00',
-        href: 'https://owncube.com/apps/remoteStorage/auth.php/michiel'
-      },
-      href: 'https://owncube.com/apps/remoteStorage/WebDAV.php/michiel/remoteStorage'
+      type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav',
+      href: 'https://owncube.com/apps/remoteStorage/WebDAV.php/michiel/remoteStorage',
+      properties: {
+        'http://oauth.net/core/1.0/endpoint/request': 'https://owncube.com/apps/remoteStorage/auth.php/michiel'
+      }
     },
     'dejong.michiel@iriscouch.com': {
-      type: 'pds-remotestorage-00#couchdb',
-      auth: {
-        type: 'pds-oauth2-00',
-        href: 'http://proxy.unhosted.org/OAuth.html?userAddress=dejong.michiel@iriscouch.com'
-      },
-      href: 'http://proxy.unhosted.org/IrisCouch/dejong.michiel@iriscouch.com'
+      type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb',
+      href: 'http://proxy.unhosted.org/IrisCouch/dejong.michiel@iriscouch.com',
+      properties: {
+        'http://oauth.net/core/1.0/endpoint/request': 'http://proxy.unhosted.org/OAuth.html?userAddress=dejong.michiel@iriscouch.com'
+      }
     },
     'dejong.michiel@gmail.com': {
-      type: 'pds-remotestorage-00#couchdb',
-      auth: 'http://proxy.unhosted.org/OAuth.html?userAddress=dejong.michiel@iriscouch.com',
-      template: 'http://proxy.unhosted.org/IrisCouch/dejong.michiel@iriscouch.com/{category}/'
+      type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb',
+      href: 'http://proxy.unhosted.org/IrisCouch/dejong.michiel@iriscouch.com',
+      properties: {
+        'http://oauth.net/core/1.0/endpoint/request': 'http://proxy.unhosted.org/OAuth.html?userAddress=dejong.michiel@iriscouch.com'
+      }
     }
   }
   function check(i) {
