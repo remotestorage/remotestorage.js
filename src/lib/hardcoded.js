@@ -17,20 +17,20 @@ define(
       //  templateSuffix: '/{category}/'
       //},
       'iriscouch.com': {
-        api: 'couchdb',
+        type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb',
         authPrefix: 'http://proxy.unhosted.org/OAuth.html?userAddress=',
-        hrefPrefix: 'http://proxy.unhosted.org/IrisCouch'
+        hrefPrefix: 'http://proxy.unhosted.org/CouchDb'
       }
     };
     (function() {
       var surfnet= {
-        type: 'simple',
+        type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple',
         authPrefix: 'https://storage.surfnetlabs.nl/oauth/authorize?user_address=',
         hrefPrefix: 'https://storage.surfnetlabs.nl/storage'
       };
       var dutchUniversities= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
         'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'uvt.n', 'wur.nl',
-        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl'];
+        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl', 'surfnet.nl'];
       for(var i=0;i<dutchUniversities.length;i++) {
         guesses[dutchUniversities[i]]=surfnet;
       }

@@ -30,14 +30,14 @@ require(['../src/remoteStorage'], function(remoteStorage) {
     },
     'dejong.michiel@iriscouch.com': {
       type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb',
-      href: 'http://proxy.unhosted.org/IrisCouch/dejong.michiel@iriscouch.com',
+      href: 'http://proxy.unhosted.org/CouchDb/iriscouch.com/dejong.michiel',
       properties: {
         'http://oauth.net/core/1.0/endpoint/request': 'http://proxy.unhosted.org/OAuth.html?userAddress=dejong.michiel@iriscouch.com'
       }
     },
     'dejong.michiel@gmail.com': {
       type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb',
-      href: 'http://proxy.unhosted.org/IrisCouch/dejong.michiel@iriscouch.com',
+      href: 'http://proxy.unhosted.org/CouchDb/iriscouch.com/dejong.michiel',
       properties: {
         'http://oauth.net/core/1.0/endpoint/request': 'http://proxy.unhosted.org/OAuth.html?userAddress=dejong.michiel@iriscouch.com'
       }
