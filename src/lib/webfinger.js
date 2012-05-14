@@ -122,12 +122,13 @@ define(
                     //}
                     //TO:
                     //{
-                    //  type: 'pds-remotestorage-00#webdav',
+                    //  type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav',
                     //  href: 'http://host/foo/',
                     //  legacySuffix: '/bar'
-                    //  auth: {
-                    //    type: 'pds-oauth2-00',
-                    //    href: 'http://host/auth'
+                    //  properties: {
+                    //    'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
+                    //    'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
+                    //    'http://oauth.net/core/1.0/endpoint/request': 'http://host/auth'
                     //  }
                     //}
                     if(lrddLinks['remoteStorage'] && lrddLinks['remoteStorage']['auth'] && lrddLinks['remoteStorage']['api'] && lrddLinks['remoteStorage']['template']) {
