@@ -19,14 +19,16 @@ define(
       'iriscouch.com': {
         type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb',
         authPrefix: 'http://proxy.unhosted.org/OAuth.html?userAddress=',
-        hrefPrefix: 'http://proxy.unhosted.org/CouchDb'
+        hrefPrefix: 'http://proxy.unhosted.org/CouchDb',
+        pathFormat: 'host/user'
       }
     };
     (function() {
       var surfnet= {
         type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple',
         authPrefix: 'https://storage.surfnetlabs.nl/oauth/authorize?user_address=',
-        hrefPrefix: 'https://storage.surfnetlabs.nl/storage'
+        hrefPrefix: 'https://storage.surfnetlabs.nl/storage',
+        pathFormat: 'user@host'
       };
       var dutchUniversities= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
         'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'uvt.n', 'wur.nl',
@@ -85,7 +87,7 @@ define(
               cb(null, {
                 rel: 'https://www.w3.org/community/unhosted/wiki/personal-data-service-00',
                 type: blueprint.type,
-                href: blueprint.hrefPrefix+'/'+parts[1]+'/'+parts[0],
+                href: blueprint.hrefPrefix+'/'+(blueprint.pathFormat=='user@host'?userAddress:parts[1]+'/'+parts[0]),
                 properties: {
                   'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
                   'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
