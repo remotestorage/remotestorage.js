@@ -27,7 +27,7 @@ define(
       var surfnet= {
         type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple',
         authPrefix: 'https://storage.surfnetlabs.nl/oauth/authorize?user_address=',
-        hrefPrefix: 'https://storage.surfnetlabs.nl/storage',
+        hrefPrefix: 'https://storage.surfnetlabs.nl',
         pathFormat: 'user@host'
       };
       var dutchUniversities= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',

@@ -16,7 +16,7 @@ require(['../src/remoteStorage'], function(remoteStorage) {
     },
     'francois@surfnet.nl': {
       type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple',
-      href: 'https://storage.surfnetlabs.nl/storage/francois@surfnet.nl',
+      href: 'https://storage.surfnetlabs.nl/francois@surfnet.nl',
       properties: {
         'http://oauth.net/core/1.0/endpoint/request': 'https://storage.surfnetlabs.nl/oauth/authorize?user_address=francois@surfnet.nl'
       }
