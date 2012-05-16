@@ -24,17 +24,27 @@ define(
       }
     };
     (function() {
-      var surfnet= {
+      var surfnetSaml= {
         type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple',
-        authPrefix: 'https://storage.surfnetlabs.nl/oauth/authorize?user_address=',
-        hrefPrefix: 'https://storage.surfnetlabs.nl',
+        authPrefix: 'https://storage.surfnetlabs.nl/saml/oauth/authorize?user_address=',
+        hrefPrefix: 'https://storage.surfnetlabs.nl/saml',
         pathFormat: 'user@host'
       };
-      var dutchUniversities= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
+      var surfnetBrowserId= {
+        type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple',
+        authPrefix: 'https://storage.surfnetlabs.nl/browserid/oauth/authorize?user_address=',
+        hrefPrefix: 'https://storage.surfnetlabs.nl/browserid',
+        pathFormat: 'user@host'
+      };
+      var dutchUniversitiesNoSaml= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
         'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'uvt.n', 'wur.nl',
-        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl', 'surfnet.nl'];
-      for(var i=0;i<dutchUniversities.length;i++) {
-        guesses[dutchUniversities[i]]=surfnet;
+        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl'];
+      var dutchUniversitiesSaml= ['surfnet.nl'];
+      for(var i=0;i<dutchUniversitiesSaml.length;i++) {
+        guesses[dutchUniversitiesSaml[i]]=surfnetSaml;
+      }
+      for(var i=0;i<dutchUniversitiesNoSaml.length;i++) {
+        guesses[dutchUniversitiesNoSaml[i]]=surfnetBrowserId;
       }
     })();
 
