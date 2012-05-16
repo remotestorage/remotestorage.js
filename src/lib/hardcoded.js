@@ -38,7 +38,7 @@ define(
       };
       var dutchUniversitiesNoSaml= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
         'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'uvt.n', 'wur.nl',
-        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl'];
+        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl', 'tuxed.net'];
       var dutchUniversitiesSaml= ['surfnet.nl'];
       for(var i=0;i<dutchUniversitiesSaml.length;i++) {
         guesses[dutchUniversitiesSaml[i]]=surfnetSaml;
