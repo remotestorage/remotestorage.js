@@ -57,9 +57,9 @@
       var redirectUri = 'http://unhosted.org/asdf/qwer.html';
       var oauthAddress = remoteStorage.createOAuthAddress(
         {
-          type: 'https://www.w3.org/community/rww/wiki/simple-00',
-          auth: {
-            href: 'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org'
+          type: 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple',
+          properties: {
+            'http://oauth.net/core/1.0/endpoint/request': 'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org'
           }
         },
         ['asdf:rw', 'qw/er:r', 'public/asdf:r'],
@@ -75,9 +75,9 @@
       var redirectUri = 'http://unhosted.org/asdf/qwer.html';
       var oauthAddress = remoteStorage.createOAuthAddress(
         {
-          type: 'pds-remotestorage-00#webdav',
-          auth: {
-            href: 'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org'
+          type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav',
+          properties: {
+            'http://oauth.net/core/1.0/endpoint/request': 'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org'
           }
         },
         ['asdf:rw', 'qw/er:r', 'public/asdf:r'],

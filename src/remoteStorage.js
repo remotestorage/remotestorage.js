@@ -18,7 +18,7 @@ define(
         }
       },
       createOAuthAddress = function (storageInfo, scopes, redirectUri) {
-        if(storageInfo.type=='https://www.w3.org/community/rww/wiki/simple-00') {
+        if(storageInfo.type=='https://www.w3.org/community/rww/wiki/read-write-web-00#simple') {
           scopesStr = scopes.join(' ');
         } else {
           var legacyScopes = [];
