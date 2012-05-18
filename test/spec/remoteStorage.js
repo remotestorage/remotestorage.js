@@ -14,18 +14,19 @@
       specHelper.tearDownXhr();
     });
     it("should fail on host-meta 403", function() {
-      specHelper.setUpXhr();
+      specHelper.setUpServer();
       var remoteStorage = specHelper.getRemoteStorage();
-      remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
-        expect(err).toEqual('the href doesn\'t contain "{uri}"');
-        expect(storageInfo).toEqual(null);
-        expect(sinonRequests.length).toEqual(2); 
-        expect(sinonRequests[0].url).toEqual('https://b.c/.well-known/host-meta');
-        expect(sinonRequests[1].url).toEqual('http://unhosted.org/.well-known/acct:a@b.c.webfinger');
-      });
-      sinonRequests[0].respond(403, {}, '');//https host-meta
-      sinonRequests[1].respond(403, {}, '');//http host-meta
-      specHelper.tearDownXhr();
+      sinonServer.respondWith('GET', 'https://b.c/.well-known/host-meta', [403, {}, '']);
+      sinonServer.respondWith('GET', 'http://unhosted.org/.well-known/acct:a@b.c.webfinger', [403, {}, '']);
+      sinonServer.respondWith('GET', 'http://proxy.unhosted.org/testIrisCouch?q=acct:a@b.c.webfinger', [404, {}, '']);
+        
+      var callback=sinon.spy();
+      remoteStorage.getStorageInfo('a@b.c', callback);
+      
+      sinonServer.respond();
+      sinon.assert.calledOnce(callback);
+      sinon.assert.calledWith(callback, 'err: during IrisCouch test:404', undefined);
+      specHelper.tearDownServer();
     });
     it("should succeed in getting a valid xml-based webfinger record", function() {
       specHelper.setUpXhr();
