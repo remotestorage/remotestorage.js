@@ -32,8 +32,9 @@
       var remoteStorage = specHelper.getRemoteStorage();
       remoteStorage.getStorageInfo('a@b.c', function(err, storageInfo) {
         expect(err).toEqual(null);
-        expect(storageInfo.type).toEqual('pds-remotestorage-00#simple');
+        expect(storageInfo.type).toEqual('https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple');
         expect(storageInfo.href).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org');
+        expect(storageInfo.legacySuffix).toEqual('/hegga');
         expect(storageInfo.auth.href).toEqual('http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org');
         expect(sinonRequests.length).toEqual(2);
         expect(sinonRequests[0].url).toEqual('https://b.c/.well-known/host-meta');
@@ -47,7 +48,7 @@
       sinonRequests[1].respond(200, {}, '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
           +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\' xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
           +'<Link rel=\'remoteStorage\' api=\'simple\' auth=\'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org\''
-          +' href=\'http://surf.unhosted.org:4000/michiel@unhosted.org\'></Link></XRD>');
+          +' template=\'http://surf.unhosted.org:4000/michiel@unhosted.org/{category}/hegga\'></Link></XRD>');
       specHelper.tearDownXhr();
     });
   });
