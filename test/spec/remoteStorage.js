@@ -35,7 +35,7 @@
         expect(storageInfo.type).toEqual('https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple');
         expect(storageInfo.href).toEqual('http://surf.unhosted.org:4000/michiel@unhosted.org');
         expect(storageInfo.legacySuffix).toEqual('/hegga');
-        expect(storageInfo.auth.href).toEqual('http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org');
+        expect(storageInfo.properties['http://oauth.net/core/1.0/endpoint/request']).toEqual('http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org');
         expect(sinonRequests.length).toEqual(2);
         expect(sinonRequests[0].url).toEqual('https://b.c/.well-known/host-meta');
         expect(sinonRequests[1].url).toEqual('http://unhosted.org/.well-known/acct:a@b.c.webfinger');
