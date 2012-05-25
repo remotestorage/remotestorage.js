@@ -1,3 +1,9 @@
+0.6.5
+=====
+* fix tests
+* include surfnet pilot
+* clean up storageInfo format
+
 0.6.4
 =====
 * fix JRD syntax
