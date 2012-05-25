@@ -101,7 +101,7 @@ define(
     function getStorageInfo(userAddress, options, cb) {
       userAddress2hostMetas(userAddress, function(err1, hostMetaAddresses) {
         if(err1) {
-          cb(err);
+          cb(err1);
         } else {
           fetchXrd(hostMetaAddresses, options.timeout, function(err2, hostMetaLinks) {
             if(err2) {
