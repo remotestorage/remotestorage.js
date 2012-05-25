@@ -137,22 +137,37 @@ define([], function() {
     var xml2js=require('xml2js');
     new xml2js.Parser().parseString(str, cb);
   }
+
+  function getFragmentParamsNode() {
+    return [];
+  }
+  function getFragmentParamsBrowser() {
+    if(location.hash.length) {
+      return location.hash.substring(1).split('&');
+    } else {
+      return [];
+    }
+  }
+
   if(typeof(window) === 'undefined') {
     return {
       ajax: ajaxNode,
-      parseXml: parseXmlNode
+      parseXml: parseXmlNode,
+      getFragmentParams: getFragmentParamsNode
     }
   } else {
     if(window.XDomainRequest) {
       return {
         ajax: ajaxExplorer,
-        parseXml: parseXmlBrowser
-      }
+        parseXml: parseXmlBrowser,
+        getFragmentParams: getFragmentParamsBrowser
+      };
     } else {
       return {
         ajax: ajaxBrowser,
-        parseXml: parseXmlBrowser
-      }
+        parseXml: parseXmlBrowser,
+        getFragmentParams: getFragmentParamsBrowser
+      };
     }
   }
 });

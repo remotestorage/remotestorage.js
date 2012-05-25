@@ -80,16 +80,10 @@ define(
         };
       },
       receiveToken = function () {
-        var params, kv;
-        if(location.hash.length > 0) {
-          params = location.hash.split('&');
-          for(var i = 0; i < params.length; i++) {
-            if(params[i][0]=='#') {
-              params[i] = params[i].substring(1);
-            }
-            if(params[i].substring(0, 'access_token='.length)=='access_token=') {
-              return params[i].substring('access_token='.length);
-            }
+        var params = platform.getFragmentParams();
+        for(var i = 0; i < params.length; i++) {
+          if(params[i].substring(0, 'access_token='.length)=='access_token=') {
+            return params[i].substring('access_token='.length);
           }
         }
         return null;
