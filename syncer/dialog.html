@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+  <head>
+    <title>Connecting your remote storage</title>
+    <meta charset="utf-8">
+    <script src="include.js"></script>
+    <script>
+      var bearerToken = remoteStorage.receiveToken();
+      if(bearerToken) {
+        document.write('And back to the application &hellip;');
+        localStorage.setItem('_unhosted$bearerToken', bearerToken);
+        localStorage.setItem('_unhosted:dialogResult', JSON.stringify({
+          err: null
+        }));
+        window.close();
+      } else {
+        var userAddress = localStorage.getItem('_unhosted$userAddress');
+        document.write('Redirecting to your remote storage for <strong>'+userAddress+'</strong> &hellip;');
+        var categories = JSON.parse(localStorage.getItem('_unhosted$categories'));
+        remoteStorage.getStorageInfo(userAddress, function(err, storageInfo) {
+          if(err) {
+            localStorage.setItem('_unhosted:dialogResult', JSON.stringify({
+              err: err
+            }));
+            document.write('<br>Oops! That didn\'t work for "'+userAddress+'". Are you sure you have remote storage at that address? If not, <a href="http://unhosted.org">get a user address with remote storage</a>.');
+          } else {
+            localStorage.setItem('_unhosted$storageInfo', JSON.stringify(storageInfo));
+            var oauthAddress = remoteStorage.createOAuthAddress(storageInfo, categories, location.href);
+            window.location = oauthAddress;
+          }
+        });
+      }
+    </script>
+  </head>
+  <body>
+  </body>
+</html>
