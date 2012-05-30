@@ -309,7 +309,9 @@
           localStorage[category+'$_index']=indexStr;
           localStorage[category+'$'+key]=valueStr;
           pushItem(category, key, now, indexStr, valueStr);
-          oc({key: key, oldValue: getItem(category, key), newValue: value});
+          //there's some discussion about whether setItem should trigger onChange.
+          //our current conclusion is that it should not:
+          //oc({key: key, oldValue: getItem(category, key), newValue: value});
         }
       }
     }
