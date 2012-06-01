@@ -31,7 +31,7 @@ define(
           'redirect_uri='+encodeURIComponent(redirectUri),
           'scope='+encodeURIComponent(scopesStr),
           'response_type=token',
-          'client_id='+encodeURIComponent(redirectUri)
+          'client_id='+encodeURIComponent(window.location.hostname)
         ];
         var authHref = storageInfo.properties['http://oauth.net/core/1.0/endpoint/request'];
         return authHref + (authHref.indexOf('?') === -1?'?':'&') + terms.join('&');
