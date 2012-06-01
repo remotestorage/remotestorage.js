@@ -37,8 +37,8 @@ define(
         pathFormat: 'user@host'
       };
       var dutchUniversitiesNoSaml= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
-        'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'uvt.n', 'wur.nl',
-        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl', 'tuxed.net'];
+        'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'uvt.nl', 'wur.nl',
+        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl'];
       var dutchUniversitiesSaml= ['surfnet.nl', 'fontys.nl'];
       for(var i=0;i<dutchUniversitiesSaml.length;i++) {
         guesses[dutchUniversitiesSaml[i]]=surfnetSaml;
