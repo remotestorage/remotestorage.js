@@ -1,10 +1,12 @@
 define(
-  ['require', './lib/platform', './lib/couch', './lib/dav', './lib/webfinger', './lib/hardcoded'],
-  function (require, platform, couch, dav, webfinger, hardcoded) {
+  ['require', './lib/xml2json', './lib/platform', './lib/couch', './lib/dav', './lib/webfinger', './lib/hardcoded'],
+  function (require, xml2json, platform, couch, dav, webfinger, hardcoded) {
     var createStorageInfo = function(href, type, properties) {
+        var nodirs = (type.substring(0, 'https://www.w3.org/community/rww/wiki/read-write-web-00'.length) != 'https://www.w3.org/community/rww/wiki/read-write-web-00');
         return {
           href: href,
           type: type,
+          nodirs: nodirs,
           properties: properties
         }
       },
@@ -64,9 +66,9 @@ define(
           cb(dav);
         }
       },
-      resolveKey = function(storageInfo, basePath, relPath) {
+      resolveKey = function(storageInfo, basePath, relPath, nodirs) {
         var itemPathParts = ((basePath.length?(basePath + '/'):'') + relPath).split('/');
-        var item = itemPathParts.splice(1).join('_');
+        var item = itemPathParts.splice(1).join(nodirs ? '_' : '/');
         return storageInfo.href + '/' + itemPathParts[0]
           + (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
           + '/' + (item[0] == '_' ? 'u' : '') + item;
@@ -78,7 +80,7 @@ define(
               cb('argument "key" should be a string');
             } else {
               getDriver(storageInfo.type, function (d) {
-                d.get(resolveKey(storageInfo, basePath, key), token, cb);
+                d.get(resolveKey(storageInfo, basePath, key, storageInfo.nodirs), token, cb);
               });
             }
           },
@@ -89,7 +91,7 @@ define(
               cb('argument "value" should be a string');
             } else {
               getDriver(storageInfo.type, function (d) {
-                d.put(resolveKey(storageInfo, basePath, key), value, token, cb);
+                d.put(resolveKey(storageInfo, basePath, key, storageInfo.nodirs), value, token, cb);
               });
             }
           },
@@ -98,7 +100,7 @@ define(
               cb('argument "key" should be a string');
             } else {
               getDriver(storageInfo.type, function (d) {
-                d['delete'](resolveKey(storageInfo, basePath, key), token, cb);
+                d['delete'](resolveKey(storageInfo, basePath, key, storageInfo.nodirs), token, cb);
               });
             }
           }

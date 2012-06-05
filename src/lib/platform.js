@@ -1,4 +1,4 @@
-define([], function() {
+define(['./xml2json'], function(xml2json) {
   function ajaxBrowser(params) {
     var timedOut = false;
     var timer;
@@ -23,7 +23,7 @@ define([], function() {
         if(timer) {
           window.clearTimeout(timer);
         }
-        if(xhr.status==200 || xhr.status==201 || xhr.status==204) {
+        if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
           params.success(xhr.responseText);
         } else {
           params.error(xhr.status);
@@ -115,23 +115,7 @@ define([], function() {
     }
   }
   function parseXmlBrowser(str, cb) {
-    var tree=(new DOMParser()).parseFromString(str, 'text/xml')
-    var nodes=tree.getElementsByTagName('Link');
-    var obj={
-      Link: []
-    };
-    for(var i=0; i<nodes.length; i++) {
-      var link={};
-      for(var j=0; j<nodes[i].attributes.length;j++) {
-        link[nodes[i].attributes[j].name]=nodes[i].attributes[j].value;
-      }
-      if(link['rel']) {
-        obj.Link.push({
-          '@': link
-        });
-      }
-    }
-    cb(null, obj);
+    cb(null, xml2json.parser(str));
   }
   function parseXmlNode(str, cb) {
     var xml2js=require('xml2js');

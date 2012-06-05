@@ -71,11 +71,11 @@ require(['../src/remoteStorage'], function(remoteStorage) {
   if(location.hash.length) {
     var storageInfo =JSON.parse(localStorage[localStorage.which]);
     var client = remoteStorage.createClient(storageInfo, 'test/foo', remoteStorage.receiveToken());
-    client.put('bar', 'hi', function(err) {
+    client.put('bar/baz', 'hi', function(err) {
       if(err) {
         alert(err);
       } else {
-        client.get('/', function(err, data) {
+        client.get('bar/', function(err, data) {
           alert(err);
           alert(data);
         });
