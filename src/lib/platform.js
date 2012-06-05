@@ -116,7 +116,8 @@ define([], function() {
   }
   function parseXmlBrowser(str, cb) {
     var tree=(new DOMParser()).parseFromString(str, 'text/xml')
-    var nodes=tree.getElementsByTagName('Link');
+    //var nodes=tree.getElementsByTagName('Link');
+    var nodes=tree.documentElement.childNodes;
     var obj={
       Link: []
     };
