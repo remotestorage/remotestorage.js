@@ -41,8 +41,15 @@ require(['../src/remoteStorage'], function(remoteStorage) {
       properties: {
         'http://oauth.net/core/1.0/endpoint/request': 'http://proxy.unhosted.org/OAuth.html?userAddress=dejong.michiel@iriscouch.com'
       }
+    },
+    'admin@michi.oc': {
+      type: 'https://www.w3.org/community/rww/wiki/read-write-web-00#webdav',
+      href: 'http://michi.oc/apps/remoteStorage/WebDAV.php/admin/remoteStorage',
+      properties: {
+        'auth-endpoint': 'http://michi.oc/?app=remoteStorage&getfile=auth.php&userid=admin'
+      }
     }
-  }
+  };
   function check(i) {
     remoteStorage.getStorageInfo(i, function(err, storageInfo){
       console.log(storageInfo);
@@ -63,13 +70,15 @@ require(['../src/remoteStorage'], function(remoteStorage) {
   for(test in tests) {
     check(test);
   }
-  remoteStorage.getStorageInfo('michiel@owncube.com', function(err, storageInfo) {
-    var response = remoteStorage.createOAuthAddress(storageInfo, ['a:rw'], 'http://localhost/asdf.html');
-    if(response == 'https://owncube.com/apps/remoteStorage/auth.php/michiel?redirect_uri=http%3A%2F%2Flocalhost%2Fasdf.html&scope='
-        +encodeURIComponent('a')+'&response_type=token&client_id=http%3A%2F%2Flocalhost%2Fasdf.html') {
-      document.write('Legacy OAuth OK<br>');
-    } else {
-      document.write('Legacy OAuth ERR:'+response+'<br>');
-    }
-  });
+  if(true) {
+    remoteStorage.getStorageInfo('michiel@owncube.com', function(err, storageInfo) {
+      var response = remoteStorage.createOAuthAddress(storageInfo, ['a:rw'], 'http://localhost/asdf.html');
+      if(response == 'https://owncube.com/apps/remoteStorage/auth.php/michiel?redirect_uri=http%3A%2F%2Flocalhost%2Fasdf.html&scope='
+          +encodeURIComponent('a')+'&response_type=token&client_id=http%3A%2F%2Flocalhost%2Fasdf.html') {
+        document.write('Legacy OAuth OK<br>');
+      } else {
+        document.write('Legacy OAuth ERR:'+response+'<br>');
+      }
+    });
+  }
 });

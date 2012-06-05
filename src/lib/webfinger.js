@@ -163,7 +163,7 @@ define(
                         && lrddLinks['remotestorage']['href']
                         && lrddLinks['remotestorage']['type']
                         && lrddLinks['remotestorage']['properties']
-                        && lrddLinks['remotestorage']['properties']['http://oauth.net/core/1.0/endpoint/request']
+                        && lrddLinks['remotestorage']['properties']['auth-endpoint']
                         ) {
                       cb(null, lrddLinks['remotestorage']);
                     } else {
