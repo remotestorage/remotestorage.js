@@ -53,6 +53,7 @@ require(['../src/remoteStorage'], function(remoteStorage) {
   function check(i) {
     remoteStorage.getStorageInfo(i, function(err, storageInfo){
       console.log(storageInfo);
+      localStorage[i]=JSON.stringify(storageInfo);
       if(!storageInfo) {
         document.write(i+' ERR ('+JSON.stringify(storageInfo)+')<br>');
       } else if (storageInfo.type != tests[i].type) {
@@ -63,12 +64,23 @@ require(['../src/remoteStorage'], function(remoteStorage) {
       } else if (storageInfo.href != tests[i].href) {
         document.write(i+' ERR (href: '+JSON.stringify(storageInfo.href)+')<br>');
       } else {
-        document.write(i+' OK <input type="submit" value="Auth" onclick="window.open(\''+remoteStorage.createOAuthAddress(storageInfo, ['test:rw'], location.href)+'\');"><br>');
+        document.write(i+' OK <input type="submit" value="Auth" onclick="localStorage.which=\''+i+'\';window.open(\''+remoteStorage.createOAuthAddress(storageInfo, ['test:rw'], location.href)+'\');"><br>');
       }
     });
   }
   if(location.hash.length) {
-    alert(remoteStorage.receiveToken());
+    var storageInfo =JSON.parse(localStorage[localStorage.which]);
+    var client = remoteStorage.createClient(storageInfo, 'test/foo', remoteStorage.receiveToken());
+    client.put('bar', 'hi', function(err) {
+      if(err) {
+        alert(err);
+      } else {
+        client.get('/', function(err, data) {
+          alert(err);
+          alert(data);
+        });
+      }
+    });
   } else {
     for(test in tests) {
       check(test);

@@ -57,7 +57,12 @@ define(
         return authHref + (authHref.indexOf('?') === -1?'?':'&') + terms.join('&');
       },
       getDriver = function (type, cb) {
-        cb(type === 'pds-remotestorage-00#couchdb'?couch:dav);
+        if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#couchdb'
+          || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb') {
+          cb(couch);
+        } else {
+          cb(dav);
+        }
       },
       resolveKey = function(storageInfo, basePath, relPath) {
         var itemPathParts = ((basePath.length?(basePath + '/'):'') + relPath).split('/');

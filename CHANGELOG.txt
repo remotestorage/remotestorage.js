@@ -1,3 +1,7 @@
+0.6.9
+=====
+* update new webfinger format
+
 0.6.8
 =====
 * surfnet hardcoded list update
