@@ -338,26 +338,31 @@
         }
       }
     } 
-    function getCollection(category) {
+    // get an Array of all items' values.
+    // if the optional callback 'cb' is given, instead that is called with
+    // each item and it's key, and getCollection returns null.
+    function getCollection(category, cb) {
       ol('syncer.getCollection('
         +JSON.stringify(category)+');');
       var index;
       try {
         index=JSON.parse(localStorage[category+'$_index']);
       } catch(e) {
+          console.error(e);
       }
+      var items = [];
       if(index) {
-        var items = [];
         for(var i in index) {
+          var item;
           try {
-            items.push(JSON.parse(localStorage[category+'$'+i]));
+            item = JSON.parse(localStorage[category+'$'+i]);
+            cb ? cb(item, i) : items.push(item);
           } catch(e) {
+            console.error(e);
           }
         }
-        return items;
-      } else {
-        return [];
       }
+      return cb ? null : items;
     }
     function display(connectElement, categories, libDir, onChangeHandler) {
       if(libDir.length && libDir[libDir.length - 1] != '/') {//libDir without trailing slash
@@ -419,10 +424,9 @@
       onChange(onChangeHandler);
       //init all data:
       for(var i=0; i < categories.length; i++) {
-        var thisColl = getCollection(categories[i]);
-        for(var key in thisColl) {
-          onChangeHandler({category: categories[i], key: key, newValue: getItem(categories[i], key), oldValue: undefined});
-        }
+        getCollection(categories[i], function(item, key) {
+          onChangeHandler({category: categories[i], key: key, newValue: item, oldValue: undefined});
+        });
       }
     }
     onLoad();
