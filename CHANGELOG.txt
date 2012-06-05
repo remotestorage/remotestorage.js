@@ -1,3 +1,8 @@
+0.6.8
+=====
+* add remoteStorage.createStorageInfo
+* set client_id correctly
+
 0.6.7
 =====
 * add fontys.nl to hardcoded

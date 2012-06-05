@@ -1,18 +1,29 @@
 define(
   ['require', './lib/platform', './lib/couch', './lib/dav', './lib/webfinger', './lib/hardcoded'],
   function (require, platform, couch, dav, webfinger, hardcoded) {
-    var getStorageInfo = function (userAddress, cb) {
+    var createStorageInfo = function(href, type, properties) {
+        return {
+          href: href,
+          type: type,
+          properties: properties
+        }
+      },
+      getStorageInfo = function (userAddress, cb) {
         if(typeof(userAddress) != 'string') {
           cb('user address should be a string');
         } else {
-          webfinger.getStorageInfo(userAddress, {timeout: 3000}, function(err, storageInfo) {
+          webfinger.getStorageInfo(userAddress, {timeout: 3000}, function(err, data) {
             if(err) {
-              hardcoded.guessStorageInfo(userAddress, {timeout: 3000}, function(err2, data) {
-                cb(err2, data);
+              hardcoded.guessStorageInfo(userAddress, {timeout: 3000}, function(err2, data2) {
+                var storageInfo;
+                try {
+                  createStorageInfo(data2.href, data2.type, data2.properties);
+                } catch(e) {
+                }
+                cb(err2, storageInfo);
               });
             } else {
-              storageInfo.rel=storageInfo.type;//support both while we settle down the syntax
-              cb(err, storageInfo);
+              cb(err, createStorageInfo(data.href, data.type, data.properties));
             }
           });
         }
@@ -27,11 +38,20 @@ define(
           }
           scopesStr = legacyScopes.join(',');          
         }
+        var hostAndRest;
+        if(redirectUri.substring(0, 'https://'.length) == 'https://') {
+          hostAndRest = redirectUri.substring('https://'.length);
+        } else if(redirectUri.substring(0, 'http://'.length) == 'http://') {
+          hostAndRest = redirectUri.substring('http://'.length);
+        } else {
+          throw new Error('redirectUri does not start with https:// or http://');
+        }
+        var host = hostAndRest.split(':')[0].split('/')[0];
         var terms = [
           'redirect_uri='+encodeURIComponent(redirectUri),
           'scope='+encodeURIComponent(scopesStr),
           'response_type=token',
-          'client_id='+encodeURIComponent(redirectUri)
+          'client_id='+encodeURIComponent(host)
         ];
         var authHref = storageInfo.properties['http://oauth.net/core/1.0/endpoint/request'];
         return authHref + (authHref.indexOf('?') === -1?'?':'&') + terms.join('&');
@@ -43,7 +63,7 @@ define(
         var itemPathParts = ((basePath.length?(basePath + '/'):'') + relPath).split('/');
         var item = itemPathParts.splice(1).join('_');
         return storageInfo.href + '/' + itemPathParts[0]
-          + (storageInfo.legacySuffix ? storageInfo.legacySuffix : '')
+          + (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
           + '/' + (item[0] == '_' ? 'u' : '') + item;
       },
       createClient = function (storageInfo, basePath, token) {
@@ -91,6 +111,7 @@ define(
 
   return {
     getStorageInfo     : getStorageInfo,
+    createStorageInfo  : createStorageInfo,
     createOAuthAddress : createOAuthAddress,
     createClient       : createClient,
     receiveToken       : receiveToken
