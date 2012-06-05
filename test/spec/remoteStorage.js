@@ -57,6 +57,7 @@
     it("should create an OAuth address", function() {//test 4
       var remoteStorage = specHelper.getRemoteStorage();
       var redirectUri = 'http://unhosted.org/asdf/qwer.html';
+      var redirectHost = 'unhosted.org';
       var oauthAddress = remoteStorage.createOAuthAddress(
         {
           type: 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple',
@@ -69,12 +70,13 @@
         );
       expect(oauthAddress).toEqual(
         'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org?redirect_uri='+encodeURIComponent(redirectUri)
-          +'&scope='+encodeURIComponent('asdf:rw qw/er:r public/asdf:r')+'&response_type=token&client_id='+encodeURIComponent(redirectUri)
+          +'&scope='+encodeURIComponent('asdf:rw qw/er:r public/asdf:r')+'&response_type=token&client_id='+encodeURIComponent(redirectHost)
       );
     });
     it("should create a legacy OAuth address", function() {//test 4
       var remoteStorage = specHelper.getRemoteStorage();
       var redirectUri = 'http://unhosted.org/asdf/qwer.html';
+      var redirectHost = 'unhosted.org';
       var oauthAddress = remoteStorage.createOAuthAddress(
         {
           type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav',
@@ -87,7 +89,7 @@
         );
       expect(oauthAddress).toEqual(
         'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org?redirect_uri='+encodeURIComponent(redirectUri)
-          +'&scope='+encodeURIComponent('asdf,qw,public')+'&response_type=token&client_id='+encodeURIComponent(redirectUri)
+          +'&scope='+encodeURIComponent('asdf,qw,public')+'&response_type=token&client_id='+encodeURIComponent(redirectHost)
       );
     });
     it("should receive a token from the fragment, first position", function() {//test 9
