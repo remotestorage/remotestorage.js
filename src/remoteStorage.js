@@ -53,7 +53,7 @@ define(
           'response_type=token',
           'client_id='+encodeURIComponent(host)
         ];
-        var authHref = storageInfo.properties['http://oauth.net/core/1.0/endpoint/request'];
+        var authHref = storageInfo.properties['auth-endpoint'];
         return authHref + (authHref.indexOf('?') === -1?'?':'&') + terms.join('&');
       },
       getDriver = function (type, cb) {

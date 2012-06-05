@@ -101,7 +101,7 @@ define(
                 properties: {
                   'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
                   'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
-                  'http://oauth.net/core/1.0/endpoint/request': blueprint.authPrefix+userAddress
+                  'auth-endpoint': blueprint.authPrefix+userAddress
                 }
               });
               return;
