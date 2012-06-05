@@ -1,6 +1,6 @@
 define(
-  ['require', './lib/xml2json', './lib/platform', './lib/couch', './lib/dav', './lib/webfinger', './lib/hardcoded'],
-  function (require, xml2json, platform, couch, dav, webfinger, hardcoded) {
+  ['require', './lib/platform', './lib/couch', './lib/dav', './lib/webfinger', './lib/hardcoded'],
+  function (require, platform, couch, dav, webfinger, hardcoded) {
     var createStorageInfo = function(href, type, properties) {
         var nodirs = (type.substring(0, 'https://www.w3.org/community/rww/wiki/read-write-web-00'.length) != 'https://www.w3.org/community/rww/wiki/read-write-web-00');
         return {
