@@ -1,5 +1,6 @@
 0.6.8
 =====
+* surfnet hardcoded list update
 * add remoteStorage.createStorageInfo
 * set client_id correctly
 
