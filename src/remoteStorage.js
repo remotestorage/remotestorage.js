@@ -1,6 +1,6 @@
 define(
-  ['require', './lib/platform', './lib/couch', './lib/dav', './lib/webfinger', './lib/hardcoded'],
-  function (require, platform, couch, dav, webfinger, hardcoded) {
+  ['require', './lib/platform', './lib/couch', './lib/dav', './lib/simple', './lib/webfinger', './lib/hardcoded'],
+  function (require, platform, couch, dav, simple, webfinger, hardcoded) {
     var createStorageInfo = function(href, type, properties) {
         var nodirs = (type.substring(0, 'https://www.w3.org/community/rww/wiki/read-write-web-00'.length) != 'https://www.w3.org/community/rww/wiki/read-write-web-00');
         return {
@@ -62,8 +62,11 @@ define(
         if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#couchdb'
           || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb') {
           cb(couch);
-        } else {
+        } else if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#webdav'
+          || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav') {
           cb(dav);
+        } else {
+          cb(simple);
         }
       },
       resolveKey = function(storageInfo, basePath, relPath, nodirs) {
