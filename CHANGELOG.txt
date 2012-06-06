@@ -1,6 +1,8 @@
 0.6.9
 =====
 * update new webfinger format
+* add read-write-web-00#webdav support
+* add read-write-web-00#simple support
 
 0.6.8
 =====
