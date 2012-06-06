@@ -15,7 +15,7 @@ define(
           cb('user address should be a string');
         } else {
           webfinger.getStorageInfo(userAddress, {timeout: 3000}, function(err, data) {
-            if(err) {
+            if(err==404 || err=='timeout') {
               hardcoded.guessStorageInfo(userAddress, {timeout: 3000}, function(err2, data2) {
                 var storageInfo;
                 try {
