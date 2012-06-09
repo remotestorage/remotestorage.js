@@ -87,8 +87,8 @@ Might work: Firefox Mobile, Android stock browser, Opera 12+, Opera Mobile 12+, 
 
 Planned: IE 8 & 9 (please [help with this](https://groups.google.com/d/topic/unhosted/Xk1hJMr9i9c/discussion)!).
 
-## Version and license
-This is version 0.5.6 of the library, and you can use it under AGPL or MIT license - whatever floats your boat. Pull requests are very welcome (if you're not on github you can email them to michiel at unhosted.org). To build:
+## License
+You can use this library under AGPL or MIT license - whatever floats your boat. Pull requests are very welcome (if you're not on github you can email them to michiel at unhosted.org). To build:
 
     cd build
     node build.js
