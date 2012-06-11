@@ -346,9 +346,10 @@
         +JSON.stringify(category)+');');
       var index;
       try {
-        index=JSON.parse(localStorage[category+'$_index']);
+        var _index = localStorage[category+'$_index'];
+        index = _index ? JSON.parse(_index) : {};
       } catch(e) {
-          console.error(e);
+        console.error(e);
       }
       var items = [];
       if(index) {
