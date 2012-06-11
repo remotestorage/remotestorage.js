@@ -1,6 +1,6 @@
 # remoteStorage.js
 
-A library for adding remoteStorage support to your client-side app. See [the tutorial](http://tutorial.unhosted.5apps.com) for example usage and [download](https://github.com/unhosted/remoteStorage.js/raw/master/build/latest/remoteStorage.js) the library.
+A library for adding remoteStorage support to your client-side app. See [the tutorial](http://tutorial.unhosted.5apps.com) for example usage and [download](https://github.com/unhosted/remoteStorage.js/raw/master/build/latest/remoteStorage.js) the library. To use, check out 'master'. To contribute, check out '0.7' (but come to #unhosted on freenode or email michiel at unhosted.org first, so we can coordinate).
 
 ## Code example
 
@@ -87,8 +87,8 @@ Might work: Firefox Mobile, Android stock browser, Opera 12+, Opera Mobile 12+, 
 
 Planned: IE 8 & 9 (please [help with this](https://groups.google.com/d/topic/unhosted/Xk1hJMr9i9c/discussion)!).
 
-## Version and license
-This is version 0.5.6 of the library, and you can use it under AGPL or MIT license - whatever floats your boat. Pull requests are very welcome (if you're not on github you can email them to michiel at unhosted.org). To build:
+## License
+You can use this library under AGPL or MIT license - whatever floats your boat. Pull requests are very welcome (if you're not on github you can email them to michiel at unhosted.org). To build:
 
     cd build
     node build.js
