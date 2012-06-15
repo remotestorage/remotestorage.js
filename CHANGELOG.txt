@@ -1,3 +1,8 @@
+0.6.9
+=====
+* make sure token is decoded before passing it as Authorization header
+* Don't log confusing JSON parse error, if hasn't been stored yet
+
 0.6.8
 =====
 * surfnet hardcoded list update
