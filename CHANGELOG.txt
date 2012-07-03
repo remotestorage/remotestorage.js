@@ -1,7 +1,16 @@
+0.7.0
+=====
+* big breaking change!
+* introduces modules, and changes everything completely.
+* nothing is the same as in version 0.6
+
 0.6.9
 =====
 * make sure token is decoded before passing it as Authorization header
 * Don't log confusing JSON parse error, if hasn't been stored yet
+* update new webfinger format
+* add read-write-web-00#webdav support
+* add read-write-web-00#simple support
 
 0.6.8
 =====

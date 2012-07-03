@@ -23,7 +23,7 @@ define([], function() {
         if(timer) {
           window.clearTimeout(timer);
         }
-        if(xhr.status==200 || xhr.status==201 || xhr.status==204) {
+        if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
           params.success(xhr.responseText);
         } else {
           params.error(xhr.status);
@@ -116,14 +116,17 @@ define([], function() {
   }
   function parseXmlBrowser(str, cb) {
     var tree=(new DOMParser()).parseFromString(str, 'text/xml')
-    var nodes=tree.getElementsByTagName('Link');
+    //var nodes=tree.getElementsByTagName('Link');
+    var nodes=tree.documentElement.childNodes;
     var obj={
       Link: []
     };
     for(var i=0; i<nodes.length; i++) {
       var link={};
-      for(var j=0; j<nodes[i].attributes.length;j++) {
-        link[nodes[i].attributes[j].name]=nodes[i].attributes[j].value;
+      if(nodes[i].attributes) {
+        for(var j=0; j<nodes[i].attributes.length;j++) {
+          link[nodes[i].attributes[j].name]=nodes[i].attributes[j].value;
+        }
       }
       if(link['rel']) {
         obj.Link.push({
@@ -131,42 +134,98 @@ define([], function() {
         });
       }
     }
-    cb(null, obj);
+    cb(null, obj);   
   }
   function parseXmlNode(str, cb) {
     var xml2js=require('xml2js');
     new xml2js.Parser().parseString(str, cb);
   }
 
-  function getFragmentParamsNode() {
-    return [];
+  function harvestTokenNode() {
   }
-  function getFragmentParamsBrowser() {
+  function harvestTokenBrowser() {
     if(location.hash.length) {
-      return location.hash.substring(1).split('&');
-    } else {
-      return [];
+      var pairs = location.hash.substring(1).split('&');
+      for(var i=0; i<pairs.length; i++) {
+        if(pairs[i].substring(0, 'access_token='.length) == 'access_token=') {
+          return pairs[i].substring('access_token='.length);
+        }
+      }
     }
   }
-
+  function setElementHtmlNode(eltName, html) {
+  }
+  function setElementHtmlBrowser(eltName, html) {
+    document.getElementById(eltName).innerHTML = html;
+  }
+  function getElementValueNode(eltName) {
+  }
+  function getElementValueBrowser(eltName) {
+    return document.getElementById(eltName).value;
+  }
+  function eltOnNode(eltName, eventType, cb) {
+  }
+  function eltOnBrowser(eltName, eventType, cb) {
+    if(eventType == 'click') {
+      document.getElementById(eltName).onclick = cb;
+    } else if(eventType == 'hover') {
+      document.getElementById(eltName).onmouseover = cb;
+    } else if(eventType == 'type') {
+      document.getElementById(eltName).onkeyup = cb;
+    }
+  }
+  function getLocationBrowser() {
+    return window.location.href;
+  }
+  function getLocationNode() {
+  }
+  function setLocationBrowser(location) {
+    window.location = location;
+  }
+  function setLocationNode() {
+  }
+  function alertBrowser(str) {
+    alert(str);
+  }
+  function alertNode(str) {
+    console.log(str);
+  }
   if(typeof(window) === 'undefined') {
     return {
       ajax: ajaxNode,
       parseXml: parseXmlNode,
-      getFragmentParams: getFragmentParamsNode
+      harvestToken: harvestTokenNode,
+      setElementHTML: setElementHtmlNode,
+      getElementValue: getElementValueNode,
+      eltOn: eltOnNode,
+      getLocation: getLocationNode,
+      setLocation: setLocationNode,
+      alert: alertNode
     }
   } else {
     if(window.XDomainRequest) {
       return {
         ajax: ajaxExplorer,
         parseXml: parseXmlBrowser,
-        getFragmentParams: getFragmentParamsBrowser
+        harvestToken: harvestTokenBrowser,
+        setElementHTML: setElementHtmlBrowser,
+        getElementValue: getElementValueBrowser,
+        eltOn: eltOnBrowser,
+        getLocation: getLocationBrowser,
+        setLocation: setLocationBrowser,
+        alert: alertBrowser
       };
     } else {
       return {
         ajax: ajaxBrowser,
         parseXml: parseXmlBrowser,
-        getFragmentParams: getFragmentParamsBrowser
+        harvestToken: harvestTokenBrowser,
+        setElementHTML: setElementHtmlBrowser,
+        getElementValue: getElementValueBrowser,
+        eltOn: eltOnBrowser,
+        getLocation: getLocationBrowser,
+        setLocation: setLocationBrowser,
+        alert: alertBrowser
       };
     }
   }

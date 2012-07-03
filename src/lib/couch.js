@@ -163,9 +163,15 @@ define(
         }
       });
     }
+    function set(url, valueStr, cb) {
+      if(typeof(valueStr) == 'undefined') {
+        return delete_(url, cb);
+      } else {
+        return put(url, valueStr, cb);
+      }
+    }
     return {
       get: get,
-      put: put,
-      delete: delete_
+      set: set
     };
 });

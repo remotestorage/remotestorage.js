@@ -27,6 +27,8 @@
     }
     var modNames = deps[name];
     var mods={};
+    console.log('loading module '+name);
+    console.log('typeof dependencies: '+typeof(modNames));
     for(var i=0;i<modNames.length;i++) {
       mods[modNames[i]]=_loadModule(modNames[i]);
     }

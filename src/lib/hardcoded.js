@@ -38,7 +38,12 @@ define(
       };
       var dutchUniversitiesNoSaml= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
         'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'uvt.nl', 'wur.nl',
-        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl'];
+        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl',
+        'ahk.nl', 'cah.nl', 'driestar.nl', 'che.nl', 'chn.nl', 'hen.nl', 'huygens.nl', 'diedenoort.nl', 'efa.nl', 'dehaagsehogeschool.nl',
+        'hasdenbosch.nl', 'inholland.nl', 'hsbrabant.nl', 'dehorst.nl', 'kempel.nl', 'domstad.nl', 'hsdrenthe.nl', 'edith.nl', 'hsleiden.nl',
+        'interport.nl', 'schumann.nl', 'hsbos.nl', 'hva.nl', 'han.nl', 'hvu.nl', 'hesasd.nl', 'hes-rdam.nl', 'hku.nl', 'hmtr.nl',
+        'hzeeland.nl', 'hotelschool.nl', 'ichtus-rdam.nl', 'larenstein.nl', 'iselinge.nl', 'koncon.nl', 'kabk.nl', 'lhump.nl', 'msm.nl', 'hsmarnix.nl',
+        'nhtv.nl', 'nth.nl', 'nhl.nl', 'sandberg.nl', 'hsij.nl', 'stoas.nl', 'thrijswijk.nl', 'tio.nl', 'vhall.nl', 'chw.nl', 'hogeschoolrotterdam.nl'];
       var dutchUniversitiesSaml= ['surfnet.nl', 'fontys.nl'];
       for(var i=0;i<dutchUniversitiesSaml.length;i++) {
         guesses[dutchUniversitiesSaml[i]]=surfnetSaml;
@@ -101,7 +106,7 @@ define(
                 properties: {
                   'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
                   'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
-                  'http://oauth.net/core/1.0/endpoint/request': blueprint.authPrefix+userAddress
+                  'auth-endpoint': blueprint.authPrefix+userAddress
                 }
               });
               return;

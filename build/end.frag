@@ -1,3 +1,3 @@
 
-  remoteStorage = loadModule('remoteStorage');
+  remoteStorage = _loadModule('remoteStorage');
 })();

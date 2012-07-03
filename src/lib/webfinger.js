@@ -128,7 +128,7 @@ define(
                     //  properties: {
                     //    'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
                     //    'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
-                    //    'http://oauth.net/core/1.0/endpoint/request': 'http://host/auth'
+                    //    'auth-endpoint': 'http://host/auth'
                     //  }
                     //}
                     if(lrddLinks['remoteStorage'] && lrddLinks['remoteStorage']['auth'] && lrddLinks['remoteStorage']['api'] && lrddLinks['remoteStorage']['template']) {
@@ -153,7 +153,7 @@ define(
                       storageInfo.properties = {
                         "access-methods": ["http://oauth.net/core/1.0/parameters/auth-header"],
                         "auth-methods": ["http://oauth.net/discovery/1.0/consumer-identity/static"],
-                        "http://oauth.net/core/1.0/endpoint/request": lrddLinks['remoteStorage']['auth']
+                        "auth-endpoint": lrddLinks['remoteStorage']['auth']
                       };
                       if(templateParts.length == 2 && templateParts[1] != '/') {
                         storageInfo.properties['legacySuffix'] = templateParts[1];
@@ -163,7 +163,7 @@ define(
                         && lrddLinks['remotestorage']['href']
                         && lrddLinks['remotestorage']['type']
                         && lrddLinks['remotestorage']['properties']
-                        && lrddLinks['remotestorage']['properties']['http://oauth.net/core/1.0/endpoint/request']
+                        && lrddLinks['remotestorage']['properties']['auth-endpoint']
                         ) {
                       cb(null, lrddLinks['remotestorage']);
                     } else {
