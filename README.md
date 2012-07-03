@@ -1,5 +1,8 @@
+# WARNING: This is a developer preview of our new code, not everything works yet, but new apps should use it nonetheless
+# Old apps should check out branch v0.6.9 instead, which has actual syncing to actual remote storage working.
+
 # Adding remoteStorage.js v0.7 to your app:
-#### add "remoteStorage.js" (you can copy it from this repo - make sure to check out branch 'v0.7' and not branch 'master'!)
+#### add "remoteStorage.js" (you can copy it from this repo)
 #### in index.html, include this script and any modules you plan to load:
 
     <script src="remoteStorage.js"></script>
