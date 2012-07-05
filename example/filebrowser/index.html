@@ -1,7 +1,7 @@
 <html>
   <body>
     <div id="widget"></div>
-    <ul id="/"></ul>
+    <a onclick="displayFolded('/');"}>/ <- click me</a><ul id="/"></ul>
     <div id="source"></div>
     <script src="../../build/latest/remoteStorage-debug.js"></script>
     <script>
@@ -18,23 +18,21 @@
         }
         document.getElementById(path).innerHTML = str;
       }
-      displayFolded('/');
       document.getElementById('source').innerHTML =
         'Code:<br><code>'//sorry for the hard-formatting here
-        +'remoteStorage.displayWidget(\'widget\');<br>'
-        +'  remoteStorage.loadModule(\'root\', \'r\');<br>'
+        +'remoteStorage.displayWidget(\'widget\');//the thing you see in the top right<br>'
+        +'  remoteStorage.loadModule(\'root\', \'r\');//\'r\' for read-only access<br>'
         +'  function displayFolded(path) {<br>'
-        +'&nbsp;    if(path.substr(-1) != \'/\') {<br>'
+        +'&nbsp;    if(path.substr(-1) != \'/\') {//Only directory names end in a slash and can be listed<br>'
         +'&nbsp;&nbsp;      return;<br>'
         +'&nbsp;    }<br>'
-        +'&nbsp;    var listing = remoteStorage.root.getListing(path);<br>'
+        +'&nbsp;    var listing = remoteStorage.root.getListing(path);//returns an array of strings<br>'
         +'&nbsp;    var str = \'\';<br>'
-        +'&nbsp;    for(var i=0; i&lt;listing.length; i++) {<br>'
+        +'&nbsp;    for(var i=0; i&lt;listing.length; i++) {//construct the html<br>'
         +'&nbsp;&nbsp;      str += \'&lt;li>&lt;span onclick="displayFolded(\\\'\'+path+listing[i]+\'\\\');"}>\'+listing[i]+\'&lt;/span>&lt;ul id="\'+path+listing[i]+\'">&lt;/ul>&lt;/li>\';<br>'
         +'&nbsp;    }<br>'
-        +'&nbsp;    document.getElementById(path).innerHTML = str;<br>'
+        +'&nbsp;    document.getElementById(path).innerHTML = str;//insert the html into the DOM<br>'
         +'  }<br>'
-        +'  displayFolded(\'/\');'
         +'</code>';
     </script>
   </body>
