@@ -34,6 +34,17 @@ remoteStorage.defineModule('money', function(myBaseClient) {
   //addIOU( tag,      thing, amount, currency,owee,ower) {
     addIOU(date, 'transfer', amount, currency, from, to);
   }
+  function groupPayment(box, id, payers, beneficiaries, date, comment) {
+    for(var payer in payers) {
+      var euros = payers[payer];
+      var perPerson = euros/beneficiaries.length;
+      for(var i=0; i<beneficiaries.length; i++) {
+        remoteStorage.money.addIOU(id, comment, euros, 'EUR', payer, box);
+        remoteStorage.money.addIOU(id, comment, euros, 'EUR', box, beneficiaries[i]);
+      }
+    }
+  }
+
   function getBalance(personName, currency) {
     var peers = myBaseClient.getListing('IOUs/'+personName+'/'),
       balance = 0;
@@ -82,6 +93,7 @@ remoteStorage.defineModule('money', function(myBaseClient) {
       reportTransfer: reportTransfer,
       addIOU: addIOU,
       addDeclaration: addDeclaration,
+      groupPayment: groupPayment,
       //getBalances: getBalances,
       getBalances2: getBalances2,
       setBalance: setBalance
