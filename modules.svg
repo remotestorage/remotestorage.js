@@ -58,7 +58,7 @@
   <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_53" y="434" x="259" stroke-width="0" stroke="#000000" fill="#000000">remoteStorage</text>
   <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_54" y="473" x="392" stroke-width="0" stroke="#000000" fill="#000000">modules</text>
   <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_55" y="420" x="541" stroke-width="0" stroke="#000000" fill="#000000">baseClient</text>
-  <rect id="svg_56" height="39" width="80" y="311" x="516" stroke-width="5" stroke="#000000" fill="#000000"/>
+  <rect id="svg_56" height="39" width="80" y="311" x="516" stroke-width="5" stroke="#000000" fill="#FF0000"/>
   <line id="svg_57" y2="384" x2="565" y1="350" x1="568" stroke-width="5" stroke="#000000" fill="none"/>
   <line id="svg_58" y2="327" x2="515" y1="328" x1="473" stroke-width="5" stroke="#000000" fill="none"/>
   <line id="svg_59" y2="389" x2="403" y1="399" x1="457" stroke-width="5" stroke="#000000" fill="none"/>
