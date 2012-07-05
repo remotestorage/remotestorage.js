@@ -26,18 +26,24 @@
         remove: function() {},
       };
     }
-    var module;
+    var modules={};
     remoteStorage = {
       defineModule: function(moduleName, cb) {
         var stubClientPrivate = makeStubClient();
         var stubClientPublic = makeStubClient();
-        module = cb(stubClientPrivate, stubClientPublic);
+        modules[moduleName] = cb(stubClientPrivate, stubClientPublic);
       }
     };
   </script>
   <script type="text/javascript" src="../src/modules/tasks-0.1.js"></script>
+  <script type="text/javascript" src="../src/modules/documents-0.1.js"></script>
+  <script type="text/javascript" src="../src/modules/money-0.1.js"></script>
+  <script type="text/javascript" src="../src/modules/calendar-0.1.js"></script>
   <!-- include spec files here... -->
   <script type="text/javascript" src="spec/modules/tasks.js"></script>
+  <script type="text/javascript" src="spec/modules/documents.js"></script>
+  <script type="text/javascript" src="spec/modules/money.js"></script>
+  <script type="text/javascript" src="spec/modules/calendar.js"></script>
 
 
 </head>
