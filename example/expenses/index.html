@@ -4,7 +4,7 @@
 <script src="../../src/modules/money-0.1.js"></script>
 <script>
   function declaration(person, date, comment, euros) {
-    remoteStorage.money.addDeclaration(person, 'unhosted-project', comment, date, euros, 'EUR');
+    remoteStorage.money.addDeclaration(person, 'donations-needed', comment, date, euros, 'EUR');
   }
   function bulkDeclaration(person, date, items) {
     for(var i in items) {
@@ -14,6 +14,10 @@
   function transfer(from, to, date, euros) {
     remoteStorage.money.reportTransfer(from, to, date, euros, 'EUR');
   }
+  function addDonation(comment, euros, acceptor, date) {
+    remoteStorage.money.reportTransfer('donations-received', acceptor, date, euros, 'EUR');
+    //remoteStorage.money.addIOU('donation '+date, comment, euros, 'EUR', 'unhosted-project', 'donations-needed');
+  }
 
   localStorage.clear();
   remoteStorage.loadModule('money', 'rw');
@@ -21,17 +25,19 @@
     'full-time work allowance Michiel, 1 Nov 2010 - 15 Jan 2011':       2500.00,
     'full-time work allowance Michiel, 1 Mar 2011 - 8 Sep 2011':        6250.00,
     'office desk Michiel     co-up, april, 12-day flex':                  95.00,
-    'office desk Michiel     betahaus, july, at team desk + coffee':     158.33,
-    'Donation by Michiel':                                            -6000.00,
-    'Received from Crisp for workshop':                                -540.00,
-    'donations accepted in cash by Michiel':                             -40.00
+    'office desk Michiel     betahaus, july, at team desk + coffee':     158.33
   });
+  addDonation('Donation by Michiel', 6000, 'michiel', '2011/09/09');
+  addDonation('Received from Crisp for workshop', 540, 'michiel', '2011/09/09');
+  addDonation('Donations accepted in cash by Michiel', 40, 'michiel', '2011/09/09');
+  
   bulkDeclaration('javi', '2011/09/09', {
     'office desk Javier      co-up, april, 12-day flex':                  95.00,
     'full-time work allowance Javier, 15 Mar 2011 - 31 May 2011':       2500.00,
-    'reserved for Krankenkasse Javier, 15 Mar 2011 - 31 May 2011':      375.00,
-    'Donation by Javier':                                              -2970.00
+    'reserved for Krankenkasse Javier, 15 Mar 2011 - 31 May 2011':      375.00
   });
+  addDonation('Donation by Javier', 2970, 'javi', '2011/09/09');
+  
   bulkDeclaration('michiel', '2011/09/09', {
     'DNR+Host \'unhosted.org\' godaddy            (11 sep)': 12.08,
     'DNR                     godaddy            (16 jan)': 7.70,
@@ -102,8 +108,8 @@
   bulkDeclaration('berlinerbank', '2011/09/09', {
     'reject.js                                            (13 eur, will be paid through berliner bank)': 13,
     'jsconfeu-fun                                         (20 eur, will be paid through berliner bank)': 20,
-    'paid directly from Berliner Bank account': -33
   });
+  addDonation('paid directly from Berliner Bank account', 33, 'berlinerbank', '2011/09/09');
   
   bulkDeclaration('michiel', '2011/09/09', {
     'notary                  Seeger&Seeger          31.75         (apr)': 31.75,
@@ -121,7 +127,6 @@
     'sending another 14 T-shirts: 2x Germany(1.45 EUR), 12x international(3.45 EUR)': 44.30,
     'days co-up Michiel sept: 95 eur, paid directly from Berliner Bank': 0,
     //'the verein already owed him 4613.82 euros for year one expenses, plus whatever he paid for Krankenkasse during the period': 4613.82,
-    'received 4042 euros from paypal to his personal bank account (comdirect)': -4042,
     'paid 4,50 for sdw prints': 4.50,
     'paid sdw (some 130 euros, will check)': 130,
     'paid 40,15 for sending T-shirts (3rd batch)': 40.15,
@@ -132,11 +137,14 @@
     '03/10/2011 THE RACKSPACE CLOUD (210-581-0410 - Estados Unidos)': 20.28,
     '20/10/2011 GODADDY.COM EUROPE (02079792661 - Reino Unido)': 7.50,
     'flyeralarm stickers pay-on-delivery': 68.71,
-    'worked two months 9 sept - 9 nov': 2000,
-    'received from nlnet': -2800
+    'worked two months 9 sept - 9 nov': 2000
   });
-  transfer('unhosted-project', 'unhosted-reserved', '2012/09/09', 937, 'EUR', 'reservation for Krankenkasse Michiel, 1 Mar 2011 - 8 Sep 2011');
-  transfer('unhosted-reserved', 'unhosted-project', '2012/10/09', 937, 'EUR', 'reservation for Krankenkasse Michiel, 1 Mar 2011 - 8 Sep 2011');
+  addDonation('received 4042 euros from paypal to his personal bank account (comdirect)', 4042, 'michiel', '2011/10/31');
+  addDonation('received from nlnet', 2800, 'michiel', '2011/10/31');
+  
+  transfer('donations-needed', 'unhosted-reserved', '2012/09/09', 937, 'EUR', 'reservation for Krankenkasse Michiel, 1 Mar 2011 - 8 Sep 2011');
+  transfer('unhosted-reserved', 'donations-needed', '2012/10/09', 937, 'EUR', 'reservation for Krankenkasse Michiel, 1 Mar 2011 - 8 Sep 2011');
+  
   bulkDeclaration('michiel', '2011/12/31', {
     //'original summary (presumably the 1 Nov start balance?)': 3125.20,
     'mozfest (apart from travel to UK which was already in there)': 32.76,

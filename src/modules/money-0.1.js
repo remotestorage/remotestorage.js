@@ -80,6 +80,7 @@ remoteStorage.defineModule('money', function(myBaseClient) {
     codeVersion: '0.1.0',
     exports: {
       reportTransfer: reportTransfer,
+      addIOU: addIOU,
       addDeclaration: addDeclaration,
       //getBalances: getBalances,
       getBalances2: getBalances2,
