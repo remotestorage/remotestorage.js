@@ -1,5 +1,16 @@
+/* -*- js-indent-level:2 -*- */
+
 define(['./sync', './store'], function (sync, store) {
   var moduleChangeHandlers = {};
+
+  function bindContext(callback, context) {
+    if(context) {
+      return function() { return callback.apply(context, arguments); };
+    } else {
+      return callback;
+    }
+  }
+
   function extractModuleName(path) {
     if (path && typeof(path) == 'string') {
       var parts = path.split('/');
@@ -10,6 +21,7 @@ define(['./sync', './store'], function (sync, store) {
       }
     }
   }
+
   function fireChange(moduleName, eventObj) {
     if(moduleName && moduleChangeHandlers[moduleName]) {
       for(var i=0; i<moduleChangeHandlers[moduleName].length; i++) {
@@ -17,10 +29,12 @@ define(['./sync', './store'], function (sync, store) {
       }
     }
   }
+
   store.on('change', function(e) {
     var moduleName = extractModuleName(eventObj.path);
     fireChange(moduleName, e);//tab-, device- and cloud-based changes all get fired from the store.
   });
+
   function set(absPath, valueStr) {
     var  node = store.getNode(absPath);
     node.outgoingChange = true;
@@ -36,6 +50,7 @@ define(['./sync', './store'], function (sync, store) {
     fireChange(moduleName, changeEvent);
     return ret; 
   }
+
   function claimAccess(path, claim) {
     var node = store.getNode(path);
     if((claim != node.access) && (claim == 'rw' || node.access == null)) {
@@ -46,45 +61,56 @@ define(['./sync', './store'], function (sync, store) {
       }
     }
   }
+
   function isDir(path) {
     if(typeof(path) != 'string') {
       doSomething();
     }
     return (path.substr(-1)=='/');
   }
+
   return {
     claimAccess: claimAccess,
-    getInstance : function(moduleName, public) {
+    getInstance: function(moduleName, isPublic) {
       function makePath(path) {
         if(moduleName == 'root') {
           return path;
         }
-        return (public?'/public/':'/')+moduleName+'/'+path;
+        return (isPublic?'/public/':'/')+moduleName+'/'+path;
       }
+
       return {
-        on          : function(eventType, cb) {//'error' or 'change'. Change events have a path and origin (tab, device, cloud) field
+
+        // helpers for implementations
+        h: {
+          bindContext: bindContext
+        },
+
+        on: function(eventType, cb, context) {//'error' or 'change'. Change events have a path and origin (tab, device, cloud) field
           if(eventType=='change') {
             if(moduleName) {
               if(!moduleChangeHandlers[moduleName]) {
                 moduleChangeHandlers[moduleName]=[];
               }
-              moduleChangeHandlers[moduleName].push(cb);
+              moduleChangeHandlers[moduleName].push(bindContext(cb, context));
             }
           }
         },
-        getObject    : function(path, cb) {
+
+        getObject: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err) {
               var node = store.getNode(absPath);
-              cb(node.data);
+              bindContext(cb, context)(node.data);
             });
           } else {
             var node = store.getNode(absPath);
             return node.data;
           }
         },
-        getListing    : function(path, cb) {
+
+        getListing: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err) {
@@ -93,23 +119,24 @@ define(['./sync', './store'], function (sync, store) {
               for(var i in node.data) {
                 arr.push(i);
               }
-              cb(arr);
+              bindContext(cb, context)(arr);
             });
           } else {
             var node = store.getNode(absPath);
-              var arr = [];
-              for(var i in node.data) {
-                arr.push(i);
-              }
+            var arr = [];
+            for(var i in node.data) {
+              arr.push(i);
+            }
             return arr;
           }
         },
-        getMedia    : function(path, cb) {
+
+        getMedia: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err) {
               var node = store.getNode(absPath);
-              cb({
+              bindContext(cb, context)({
                 mimeType: node.mimeType,
                 data: node.data
               });
@@ -122,28 +149,33 @@ define(['./sync', './store'], function (sync, store) {
             };
           }
         },
-        remove      : function(path) {
+
+        remove: function(path) {
           return set(makePath(path));
         },
         
-        storeObject : function(type, path, obj) {
+        storeObject: function(type, path, obj) {
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
           return set(makePath(path), obj, 'application/json');
         },
-        storeMedia  : function(mimeType, path, data) {
+
+        storeMedia: function(mimeType, path, data) {
           return set(makePath(path), data, mimeType);
         },
-        getCurrentWebRoot : function() {
-          return 'https://example.com/this/is/an/example/'+(public?'public/':'')+moduleName+'/';
+
+        getCurrentWebRoot: function() {
+          return 'https://example.com/this/is/an/example/'+(isPublic?'public/':'')+moduleName+'/';
         },
-        sync        : function(path, switchVal) {
+
+        sync: function(path, switchVal) {
           var absPath = makePath(path);
           var node = store.getNode(absPath);
           node.startForcing = (switchVal != false);
           store.updateNode(absPath, node);
         },
-        getState    : function(path) {
+
+        getState: function(path) {
         }
       };
     }
