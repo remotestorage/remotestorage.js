@@ -22,6 +22,13 @@ define(
         }
         return moduleVersions[moduleName];
       };
+      defineModule('root', function(client) {
+        return {
+          exports: {
+            getListing: client.getListing
+          }
+        };
+      });
   return {
     defineModule    : defineModule,
     loadModule      : loadModule,

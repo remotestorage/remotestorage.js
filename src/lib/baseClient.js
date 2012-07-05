@@ -56,6 +56,9 @@ define(['./sync', './store'], function (sync, store) {
     claimAccess: claimAccess,
     getInstance : function(moduleName, public) {
       function makePath(path) {
+        if(moduleName == 'root') {
+          return path;
+        }
         return (public?'/public/':'/')+moduleName+'/'+path;
       }
       return {

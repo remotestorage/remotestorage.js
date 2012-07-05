@@ -272,7 +272,8 @@ define('lib/platform',[], function() {
   }
 });
 
-define('lib/couch',['./platform'],
+define('lib/couch',
+  ['./platform'],
   function (platform) {
     var shadowCouchRev = null;
     function getShadowCouchRev(url) {
@@ -449,7 +450,8 @@ define('lib/couch',['./platform'],
     };
 });
 
-define('lib/dav',['./platform'],
+define('lib/dav',
+  ['./platform'],
   function (platform) {
     function doCall(method, url, value, token, cb, deadLine) {
       var platformObj = {
@@ -576,7 +578,8 @@ define('lib/dav',['./platform'],
     }
 });
 
-define('lib/getputdelete',['./platform'],
+define('lib/getputdelete',
+  ['./platform'],
   function (platform) {
     function doCall(method, url, value, token, cb, deadLine) {
       var platformObj = {
@@ -646,7 +649,8 @@ define('lib/getputdelete',['./platform'],
     }
 });
 
-define('lib/webfinger',['./platform'],
+define('lib/webfinger',
+  ['./platform'],
   function (platform) {
 
       ///////////////
@@ -831,7 +835,8 @@ define('lib/webfinger',['./platform'],
     }
 });
 
-define('lib/hardcoded',['./platform'],
+define('lib/hardcoded',
+  ['./platform'],
   function (platform) {
     var guesses={
       //'dropbox.com': {
@@ -1109,6 +1114,68 @@ define('lib/session',['./platform', './webfinger', './hardcoded'], function(plat
   }
 });
 
+//the session holds the storage info, so when logged in, you go:
+//application                                application
+//    module                             module
+//        baseClient                 baseClient
+//            cache              cache
+//                session    session
+//                    wireClient
+//
+//and if you're not logged in it's simply:
+//
+//application                application
+//      module              module
+//        baseClient  baseClient
+//                cache 
+
+define('lib/wireClient',['./platform', './couch', './dav', './getputdelete', './session'], function (platform, couch, dav, getputdelete, session) {
+  function getDriver(type, cb) {
+    if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#couchdb'
+      || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb') {
+      cb(couch);
+    } else if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#webdav'
+      || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav') {
+      cb(dav);
+    } else {
+      cb(getputdelete);
+    }
+  }
+  function resolveKey(storageInfo, basePath, relPath, nodirs) {
+    var itemPathParts = ((basePath.length?(basePath + '/'):'') + relPath).split('/');
+    var item = itemPathParts.splice(2).join(nodirs ? '_' : '/');
+    return storageInfo.href + '/' + itemPathParts[1]
+      + (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
+      + '/' + (item[2] == '_' ? 'u' : '') + item;
+  }
+  return {
+    get: function (path, cb) {
+      var storageInfo = session.getStorageInfo(),
+        token = session.getBearerToken();
+      if(typeof(path) != 'string') {
+        cb('argument "path" should be a string');
+      } else {
+        getDriver(storageInfo.type, function (d) {
+          d.get(resolveKey(storageInfo, '', path, storageInfo.nodirs), token, cb);
+        });
+      }
+    },
+    set: function (path, valueStr, cb) {
+      var storageInfo = session.getStorageInfo(),
+        token = session.getBearerToken();
+      if(typeof(path) != 'string') {
+        cb('argument "path" should be a string');
+      } else if(typeof(valueStr) != 'string') {
+        cb('argument "valueStr" should be a string');
+      } else {
+        getDriver(storageInfo.type, function (d) {
+          d.set(resolveKey(storageInfo, '', path, storageInfo.nodirs), value, token, cb);
+        });
+      }
+    }
+  };
+});
+
 define('lib/store',[], function () {
 //for the syncing, it turns out to be useful to store nodes for items, and store their data separately.
 //we can then also use those nodes to mark where outgoing changes exist.
@@ -1240,68 +1307,6 @@ define('lib/store',[], function () {
     getNode    : getNode,
     updateNode : updateNode,
     forget     : forget
-  };
-});
-
-//the session holds the storage info, so when logged in, you go:
-//application                                application
-//    module                             module
-//        baseClient                 baseClient
-//            cache              cache
-//                session    session
-//                    wireClient
-//
-//and if you're not logged in it's simply:
-//
-//application                application
-//      module              module
-//        baseClient  baseClient
-//                cache 
-
-define('lib/wireClient',['./platform', './couch', './dav', './getputdelete', './session'], function (platform, couch, dav, getputdelete, session) {
-  function getDriver(type, cb) {
-    if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#couchdb'
-      || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb') {
-      cb(couch);
-    } else if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#webdav'
-      || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav') {
-      cb(dav);
-    } else {
-      cb(getputdelete);
-    }
-  }
-  function resolveKey(storageInfo, basePath, relPath, nodirs) {
-    var itemPathParts = ((basePath.length?(basePath + '/'):'') + relPath).split('/');
-    var item = itemPathParts.splice(2).join(nodirs ? '_' : '/');
-    return storageInfo.href + '/' + itemPathParts[1]
-      + (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
-      + '/' + (item[2] == '_' ? 'u' : '') + item;
-  }
-  return {
-    get: function (path, cb) {
-      var storageInfo = session.getStorageInfo(),
-        token = session.getBearerToken();
-      if(typeof(path) != 'string') {
-        cb('argument "path" should be a string');
-      } else {
-        getDriver(storageInfo.type, function (d) {
-          d.get(resolveKey(storageInfo, '', path, storageInfo.nodirs), token, cb);
-        });
-      }
-    },
-    set: function (path, valueStr, cb) {
-      var storageInfo = session.getStorageInfo(),
-        token = session.getBearerToken();
-      if(typeof(path) != 'string') {
-        cb('argument "path" should be a string');
-      } else if(typeof(valueStr) != 'string') {
-        cb('argument "valueStr" should be a string');
-      } else {
-        getDriver(storageInfo.type, function (d) {
-          d.set(resolveKey(storageInfo, '', path, storageInfo.nodirs), value, token, cb);
-        });
-      }
-    }
   };
 });
 
@@ -1643,6 +1648,9 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
     claimAccess: claimAccess,
     getInstance : function(moduleName, public) {
       function makePath(path) {
+        if(moduleName == 'root') {
+          return path;
+        }
         return (public?'/public/':'/')+moduleName+'/'+path;
       }
       return {
@@ -1734,7 +1742,8 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
   };
 });
 
-define('remoteStorage',['require', './lib/platform', './lib/couch', './lib/dav', './lib/getputdelete', './lib/webfinger', './lib/hardcoded', './lib/session', './lib/widget',
+define('remoteStorage',
+  ['require', './lib/platform', './lib/couch', './lib/dav', './lib/getputdelete', './lib/webfinger', './lib/hardcoded', './lib/session', './lib/widget',
     './lib/baseClient', './lib/wireClient', './lib/sync'],
   function (require, platform, couch, dav, getputdelete, webfinger, hardcoded, session, widget, baseClient, wireClient, sync) {
     var modules = {},
@@ -1757,6 +1766,13 @@ define('remoteStorage',['require', './lib/platform', './lib/couch', './lib/dav',
         }
         return moduleVersions[moduleName];
       };
+      defineModule('root', function(client) {
+        return {
+          exports: {
+            getListing: client.getListing
+          }
+        };
+      });
   return {
     defineModule    : defineModule,
     loadModule      : loadModule,
