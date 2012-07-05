@@ -48,22 +48,22 @@
   <line id="svg_126" y2="323" x2="143" y1="362" x1="291" stroke-width="5" stroke="#000000" fill="none"/>
   <line id="svg_127" y2="87" x2="49" y1="69" x1="49" stroke-width="5" stroke="#000000" fill="none"/>
   <line id="svg_128" y2="217" x2="36" y1="59" x1="24" stroke-width="5" stroke="#000000" fill="none"/>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_69" y="92" x="524" stroke-width="0" stroke="#000000" fill="#00FFFF">check</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_70" y="116" x="528" stroke-width="0" stroke="#000000" fill="#00FFFF">localStorage</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_71" y="48" x="344" stroke-width="0" stroke="#000000" fill="#00FFFF">pageload</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_72" y="211" x="405" stroke-width="0" stroke="#000000" fill="#00FFFF">harvest</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_73" y="237" x="404" stroke-width="0" stroke="#000000" fill="#00FFFF">token</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_74" y="343" x="311" stroke-width="0" stroke="#000000" fill="#00FFFF">discover</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_75" y="446" x="321" stroke-width="0" stroke="#000000" fill="#00FFFF">redirect</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_76" y="331" x="99" stroke-width="0" stroke="#000000" fill="#00FFFF">failed</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_77" y="242" x="70" stroke-width="0" stroke="#000000" fill="#00FFFF">typing</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_78" y="170" x="178" stroke-width="0" stroke="#000000" fill="#00FFFF">connecting</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_79" y="112" x="119" stroke-width="0" stroke="#000000" fill="#00FFFF">registering</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_80" y="52" x="84" stroke-width="0" stroke="#000000" fill="#00FFFF">anonymous</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_81" y="234" x="194" stroke-width="0" stroke="#000000" fill="#00FFFF">interrupted</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_82" y="291" x="503" stroke-width="0" stroke="#000000" fill="#00FFFF">busy</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_83" y="408" x="487" stroke-width="0" stroke="#000000" fill="#00FFFF">connected</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_84" y="344" x="570" stroke-width="0" stroke="#000000" fill="#00FFFF">offline</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_108" y="209" x="552" stroke-width="0" stroke="#000000" fill="#00FFFF">disconnect?</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_69" y="92" x="524" stroke-width="0" stroke="#000000" fill="#000000">check</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_70" y="116" x="528" stroke-width="0" stroke="#000000" fill="#000000">localStorage</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_71" y="48" x="344" stroke-width="0" stroke="#000000" fill="#000000">pageload</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_72" y="211" x="405" stroke-width="0" stroke="#000000" fill="#000000">harvest</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_73" y="237" x="404" stroke-width="0" stroke="#000000" fill="#000000">token</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_74" y="343" x="311" stroke-width="0" stroke="#000000" fill="#000000">discover</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_75" y="446" x="321" stroke-width="0" stroke="#000000" fill="#000000">redirect</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_76" y="331" x="99" stroke-width="0" stroke="#000000" fill="#000000">failed</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_77" y="242" x="70" stroke-width="0" stroke="#000000" fill="#000000">typing</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_78" y="170" x="178" stroke-width="0" stroke="#000000" fill="#000000">connecting</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_79" y="112" x="119" stroke-width="0" stroke="#000000" fill="#000000">registering</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_80" y="52" x="84" stroke-width="0" stroke="#000000" fill="#000000">anonymous</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_81" y="234" x="194" stroke-width="0" stroke="#000000" fill="#000000">interrupted</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_82" y="291" x="503" stroke-width="0" stroke="#000000" fill="#000000">busy</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_83" y="408" x="487" stroke-width="0" stroke="#000000" fill="#000000">connected</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_84" y="344" x="570" stroke-width="0" stroke="#000000" fill="#000000">offline</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_108" y="209" x="552" stroke-width="0" stroke="#000000" fill="#000000">disconnect?</text>
  </g>
 </svg>
