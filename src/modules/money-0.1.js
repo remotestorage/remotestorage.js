@@ -37,10 +37,10 @@ remoteStorage.defineModule('money', function(myBaseClient) {
   function groupPayment(box, id, payers, beneficiaries, date, comment) {
     for(var payer in payers) {
       var euros = payers[payer];
+      remoteStorage.money.addIOU(id, comment, euros, 'EUR', payer, box);
       var perPerson = euros/beneficiaries.length;
       for(var i=0; i<beneficiaries.length; i++) {
-        remoteStorage.money.addIOU(id, comment, euros, 'EUR', payer, box);
-        remoteStorage.money.addIOU(id, comment, euros, 'EUR', box, beneficiaries[i]);
+        remoteStorage.money.addIOU(id, comment, perPerson, 'EUR', box, beneficiaries[i]);
       }
     }
   }

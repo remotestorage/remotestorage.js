@@ -1,0 +1,38 @@
+<script src="../../build/latest/remoteStorage-debug.js"></script>
+<script src="../../src/modules/money-0.1.js"></script>
+<ul id="balances">(calculating...)</ul>
+<script>
+
+  console.log('************************');
+  function itoa(i) {
+    var wholes = Math.floor(i);
+    var cents = (i - Math.floor(i))*100;
+    var dimes = Math.floor(cents/10);
+    cents = Math.floor(cents - 10*dimes+0.5);
+    //console.log(i+' -> '+wholes+'.'+dimes+cents);
+    return ''+wholes+'.'+dimes+cents;
+  }
+  function roundOff(amount) {
+    return Math.floor(100*amount+0.5)/100;
+  }
+  function display() {
+    var balances = remoteStorage.money.getBalances2('EUR');
+    var str = '';
+    for(var i in balances) {
+     str += '<li>'+i+': '+itoa(roundOff(balances[i]))+' EUR</li>';
+    };
+    document.getElementById('balances').innerHTML=str;
+  }
+
+  localStorage.clear();
+  remoteStorage.loadModule('money', 'rw');
+  remoteStorage.money.groupPayment('beer.js', 12354678, {
+    martin: 15,
+    michiel:3
+  }, ['martin', 'michiel', 'john'], '2012/07/05', 'paid for some beer');
+  display();
+</script>
+<div id="widget"></div>
+<script>
+  remoteStorage.displayWidget('widget');
+</script>
