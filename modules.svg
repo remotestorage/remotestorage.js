@@ -14,21 +14,12 @@
   <rect fill="#FF0000" stroke="#000000" stroke-width="5" x="15" y="344" width="164" height="51" id="svg_9"/>
   <rect fill="#FF0000" stroke="#000000" stroke-width="5" x="458" y="384" width="164" height="51" id="svg_10"/>
   <rect fill="#FF0000" stroke="#000000" stroke-width="5" x="310" y="319" width="164" height="51" id="svg_11"/>
-  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="258" y1="41" x2="334" y2="69" id="svg_12"/>
-  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="256" y1="53" x2="336" y2="128" id="svg_13"/>
-  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="246" y1="73" x2="338" y2="190" id="svg_14"/>
-  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="150" y1="75" x2="140" y2="118" id="svg_15"/>
-  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="195" y1="244" x2="183" y2="265" id="svg_16"/>
-  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="94" y1="175" x2="90" y2="262" id="svg_17"/>
-  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="23" y1="341" x2="21" y2="101" id="svg_18"/>
-  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="21" y1="101" x2="90" y2="46" id="svg_19"/>
-  <text fill="#000000" stroke="#000000" stroke-width="0" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" opacity="0.5" x="111" y="43" id="svg_20" font-size="24" font-family="serif" text-anchor="middle" xml:space="preserve"/>
-  <text fill="#000000" stroke="#000000" stroke-width="0" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" opacity="0.5" x="124" y="44" id="svg_21" font-size="24" font-family="serif" text-anchor="middle" xml:space="preserve"/>
-  <text fill="#000000" stroke="#000000" stroke-width="0" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" opacity="0.5" x="152" y="436" id="svg_22" font-size="24" font-family="serif" text-anchor="middle" xml:space="preserve"/>
-  <text fill="#000000" stroke="#000000" stroke-width="0" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" opacity="0.5" x="114" y="410" id="svg_23" font-size="24" font-family="serif" text-anchor="middle" xml:space="preserve"/>
-  <text fill="#000000" stroke="#000000" stroke-width="0" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" opacity="0.5" x="54" y="447" id="svg_24" font-size="24" font-family="serif" text-anchor="middle" xml:space="preserve"/>
-  <text fill="#000000" stroke="#000000" stroke-width="0" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" opacity="0.5" x="315" y="271" id="svg_25" font-size="24" font-family="serif" text-anchor="middle" xml:space="preserve"/>
-  <text fill="#000000" stroke="#000000" stroke-width="0" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" opacity="0.5" x="229" y="408" id="svg_26" font-size="24" font-family="serif" text-anchor="middle" xml:space="preserve"/>
+  <rect id="svg_47" height="45" width="142" y="407" x="190" stroke-width="5" stroke="#000000" fill="#FF0000"/>
+  <rect id="svg_48" height="20" width="21" y="381" x="382" stroke-width="5" stroke="#000000" fill="#FF0000"/>
+  <rect id="svg_49" height="15" width="25" y="418" x="379" stroke-width="5" stroke="#000000" fill="#FF0000"/>
+  <rect id="svg_50" height="15" width="23" y="439" x="381" stroke-width="5" stroke="#000000" fill="#FF0000"/>
+  <rect id="svg_56" height="39" width="80" y="311" x="516" stroke-width="5" stroke="#000000" fill="#FF0000"/>
+  <ellipse ry="21" rx="43" id="svg_51" cy="442" cx="93" stroke-width="5" stroke="#000000" fill="#FF0000"/>
   <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_27" y="52" x="168" stroke-width="0" stroke="#000000" fill="#000000">platform</text>
   <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_28" y="74" x="415" stroke-width="0" stroke="#000000" fill="#000000">dav</text>
   <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_29" y="139" x="421" stroke-width="0" stroke="#000000" fill="#000000">couch</text>
@@ -40,6 +31,18 @@
   <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_35" y="222" x="210" stroke-width="0" stroke="#000000" fill="#000000">hardcoded</text>
   <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_36" y="297" x="134" stroke-width="0" stroke="#000000" fill="#000000">session</text>
   <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_37" y="375" x="94" stroke-width="0" stroke="#000000" fill="#000000">widget</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_52" y="443" x="96" stroke-width="0" stroke="#000000" fill="#000000">app</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_53" y="434" x="259" stroke-width="0" stroke="#000000" fill="#000000">remoteStorage</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_54" y="473" x="392" stroke-width="0" stroke="#000000" fill="#000000">modules</text>
+  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_55" y="420" x="541" stroke-width="0" stroke="#000000" fill="#000000">baseClient</text>
+  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="258" y1="41" x2="334" y2="69" id="svg_12"/>
+  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="256" y1="53" x2="336" y2="128" id="svg_13"/>
+  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="246" y1="73" x2="338" y2="190" id="svg_14"/>
+  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="150" y1="75" x2="140" y2="118" id="svg_15"/>
+  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="195" y1="244" x2="183" y2="265" id="svg_16"/>
+  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="94" y1="175" x2="90" y2="262" id="svg_17"/>
+  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="23" y1="341" x2="21" y2="101" id="svg_18"/>
+  <line fill="none" stroke="#000000" stroke-width="5" stroke-dasharray="null" stroke-linejoin="null" stroke-linecap="null" x1="21" y1="101" x2="90" y2="46" id="svg_19"/>
   <line id="svg_38" y2="319" x2="106" y1="341" x1="97" stroke-width="5" stroke="#000000" fill="none"/>
   <line id="svg_39" y2="247" x2="612" y1="60" x1="500" stroke-width="5" stroke="#000000" fill="none"/>
   <line id="svg_40" y2="245" x2="577" y1="132" x1="502" stroke-width="5" stroke="#000000" fill="none"/>
@@ -49,16 +52,6 @@
   <line id="svg_44" y2="383" x2="545" y1="342" x1="475" stroke-width="5" stroke="#000000" fill="none"/>
   <line id="svg_45" y2="335" x2="310" y1="285" x1="220" stroke-width="5" stroke="#000000" fill="none"/>
   <line id="svg_46" y2="353" x2="307" y1="370" x1="178" stroke-width="5" stroke="#000000" fill="none"/>
-  <rect id="svg_47" height="45" width="142" y="407" x="190" stroke-width="5" stroke="#000000" fill="#FF0000"/>
-  <rect id="svg_48" height="20" width="21" y="381" x="382" stroke-width="5" stroke="#000000" fill="#FF0000"/>
-  <rect id="svg_49" height="15" width="25" y="418" x="379" stroke-width="5" stroke="#000000" fill="#FF0000"/>
-  <rect id="svg_50" height="15" width="23" y="439" x="381" stroke-width="5" stroke="#000000" fill="#FF0000"/>
-  <rect id="svg_56" height="39" width="80" y="311" x="516" stroke-width="5" stroke="#000000" fill="#FF0000"/>
-  <ellipse ry="21" rx="43" id="svg_51" cy="442" cx="93" stroke-width="5" stroke="#000000" fill="#FF0000"/>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_52" y="443" x="96" stroke-width="0" stroke="#000000" fill="#000000">app</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_53" y="434" x="259" stroke-width="0" stroke="#000000" fill="#000000">remoteStorage</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_54" y="473" x="392" stroke-width="0" stroke="#000000" fill="#000000">modules</text>
-  <text xml:space="preserve" text-anchor="middle" font-family="serif" font-size="24" id="svg_55" y="420" x="541" stroke-width="0" stroke="#000000" fill="#000000">baseClient</text>
   <line id="svg_57" y2="384" x2="565" y1="350" x1="568" stroke-width="5" stroke="#000000" fill="none"/>
   <line id="svg_58" y2="327" x2="515" y1="328" x1="473" stroke-width="5" stroke="#000000" fill="none"/>
   <line id="svg_59" y2="389" x2="403" y1="399" x1="457" stroke-width="5" stroke="#000000" fill="none"/>
