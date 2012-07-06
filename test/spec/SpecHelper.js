@@ -30,6 +30,9 @@ var specHelper = (function() {
     },
     getPublicBaseClient: function(moduleName) {
       return jasmine.currentEnv_.publicBaseClients[moduleName];
+    },
+    getPlatformStub: function(moduleName) {
+      return jasmine.currentEnv_.platformStubs[moduleName];
     }
   };
 })();

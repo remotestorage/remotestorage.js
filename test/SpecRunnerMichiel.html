@@ -39,11 +39,39 @@
         getCurrentWebRoot: function() { return doF('getCurrentWebRoot', []); }
       };
     }
+    function makePlatformStub() {
+      var called = [],
+        responses = [];
+      function setResponses(arr) {
+        responses=arr;
+      }
+      function doF(name, params) {
+        called.push({name: name, params: params});
+        return responses.shift();
+      }
+      function getCalled() {
+        return called;
+      }
+      return {
+        setResponses: setResponses,
+        getCalled: getCalled,
+        ajax: function(params) { return doF('ajax', [params]); },
+        parseXml: function(str, cb) { return doF('parseXml', [str, cb]); },
+        harvestToken: function() { return doF('harvestToken', []); },
+        setElementHTML: function(eltName, html) { return doF('setElementHTML', [eltName, html]); },
+        getElementValue: function(eltName) { return doF('getElementValue', [eltName]); },
+        eltOn: function(eltName, eventType, cb) { return doF('eltOn', [eltName, eventType, cb]); },
+        getLocation: function() { return doF('getLocation', []); },
+        setLocation: function(loc) { return doF('setLocation', [loc]); },
+        alert: function(str) { return doF('alert', [str]); }
+      };
+    }
     var jasmineEnv = jasmine.getEnv();
     jasmineEnv.modules={};
     jasmineEnv.files={};
     jasmineEnv.privateBaseClients={};
     jasmineEnv.publicBaseClients={};
+    jasmineEnv.platformStubs={};
     remoteStorage = {
       defineModule: function(moduleName, cb) {
         jasmineEnv.privateBaseClients[moduleName] = makeStubClient();
@@ -51,9 +79,18 @@
         jasmineEnv.modules[moduleName] = cb(jasmineEnv.privateBaseClients[moduleName], jasmineEnv.publicBaseClients[moduleName]);
       }
     };
-    //define(deps, cb) {
-    //  jasmineEnv.files[thisFile]=cb(;
   </script>
+
+  <script>
+    //WEBFINGER:
+    jasmineEnv.platformStubs['webfinger']= makePlatformStub();
+    function define(deps, cb) {
+      jasmineEnv.files['webfinger']=cb(jasmineEnv.platformStubs['webfinger']);
+    };
+  </script>
+  <script type="text/javascript" src="../src/lib/webfinger.js"></script>
+  
+  
   <script type="text/javascript" src="../src/modules/tasks-0.1.js"></script>
   <script type="text/javascript" src="../src/modules/documents-0.1.js"></script>
   <script type="text/javascript" src="../src/modules/money-0.1.js"></script>
