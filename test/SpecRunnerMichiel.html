@@ -26,6 +26,11 @@
       function getCalled() {
         return called;
       }
+      function reset() {
+        called=[];
+        responses=[];
+        return this;
+      }
       return {
         setResponses: setResponses,
         getCalled: getCalled,
@@ -52,9 +57,15 @@
       function getCalled() {
         return called;
       }
+      function reset() {
+        called=[];
+        responses=[];
+        return this;
+      }
       return {
         setResponses: setResponses,
         getCalled: getCalled,
+        reset: reset,
         ajax: function(params) { return doF('ajax', [params]); },
         parseXml: function(str, cb) { return doF('parseXml', [str, cb]); },
         harvestToken: function() { return doF('harvestToken', []); },

@@ -32,7 +32,7 @@ var specHelper = (function() {
       return jasmine.currentEnv_.publicBaseClients[moduleName];
     },
     getPlatformStub: function(moduleName) {
-      return jasmine.currentEnv_.platformStubs[moduleName];
+      return jasmine.currentEnv_.platformStubs[moduleName].reset();
     }
   };
 })();
