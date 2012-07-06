@@ -5,7 +5,7 @@
       var platformStub = specHelper.getPlatformStub('webfinger');
       platformStub.setResponses([undefined]);
       var ret = webfinger.getStorageInfo('a@b.c', {}, function(err, storageInfo) {
-        expect(err).toEqual('JSON parsing failed - asdf');
+        expect(err).toEqual('could not fetch host-meta for a@b.c');
         expect(storageInfo).toEqual(null);
       });
       expect(typeof(rit)).toEqual('undefined');
@@ -23,6 +23,14 @@
       expect(calls[1].name).toEqual('parseXml');
       expect(calls[1].params[0]).toEqual('asdf');
       calls[1].params[1]('unparsable', undefined);
+      var calls = platformStub.getCalled();
+      expect(calls.length).toEqual(3);
+      calls[2].params[0].success('asdf');
+      var calls = platformStub.getCalled();
+      expect(calls.length).toEqual(4);
+      expect(calls[3].name).toEqual('parseXml');
+      expect(calls[3].params[0]).toEqual('asdf');
+      calls[3].params[1]('unparsable', undefined);
     });
     it("should fail on host-meta 403", function() {
       var webfinger = specHelper.getFile('webfinger');
@@ -35,16 +43,9 @@
       var calls = platformStub.getCalled();
       expect(calls.length).toEqual(1);
       calls[0].params[0].error(403);
-      //sinonServer.respondWith('GET', 'http://unhosted.org/.well-known/acct:a@b.c.webfinger', [403, {}, '']);
-      //sinonServer.respondWith('GET', 'http://proxy.unhosted.org/testIrisCouch?q=acct:a@b.c.webfinger', [404, {}, '']);
-       
-      //var callback=sinon.spy();
-      //remoteStorage.getStorageInfo('a@b.c', callback);
-    
-      //sinonServer.respond();
-      //sinon.assert.calledOnce(callback);
-      //sinon.assert.calledWith(callback, 'err: during IrisCouch test:404', undefined);
-      //specHelper.tearDownServer();
+      var calls = platformStub.getCalled();
+      expect(calls.length).toEqual(2);
+      calls[1].params[0].error(403);
     });
     it("should succeed in getting a valid xml-based webfinger record", function() {
       var webfinger = specHelper.getFile('webfinger');
@@ -86,6 +87,17 @@
         +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\' xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
         +'<Link rel=\'remoteStorage\' api=\'simple\' auth=\'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org\'';
       calls[2].params[0].success(webfingerStr);
+      var calls = platformStub.getCalled();
+      expect(calls.length).toEqual(4);
+      expect(calls[3].name).toEqual('parseXml');
+      expect(calls[3].params[0]).toEqual(webfingerStr);
+      calls[3].params[1](null, {
+        remoteStorage: {
+          api: 'WebDAV',
+          template: 'http://host/foo/{category}/bar',
+          auth: 'http://host/auth'
+        }
+      });
     });
   });
 })();
