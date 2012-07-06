@@ -73,7 +73,7 @@
         Link: [ 
           {
             '@': {
-              rel: 'lrdd",
+              rel: 'lrdd',
               template: 'http://unhosted.org/.well-known/{uri}.webfinger'
             }
           }
@@ -85,7 +85,7 @@
       var webfingerStr = '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
         +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\' xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
         +'<Link rel=\'remoteStorage\' api=\'simple\' auth=\'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org\'';
-      calls[1].params[0].success(webfingerStr);
+      calls[2].params[0].success(webfingerStr);
     });
   });
 })();
