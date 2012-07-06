@@ -1,7 +1,7 @@
 (function() {
   describe("documents", function() {
     it("should get a private list", function() {
-      var list = modules.documents.exports.getPrivateList('a');
+      var list = specHelper.getModule('documents').exports.getPrivateList('a');
       expect(typeof(list.add)).toEqual('function');
       expect(typeof(list.getContent)).toEqual('function');
       expect(typeof(list.getIds)).toEqual('function');
