@@ -10,6 +10,14 @@
       expect(typeof(list.on)).toEqual('function');
       expect(typeof(list.remove)).toEqual('function');
       expect(typeof(list.set)).toEqual('function');
+      var privateClient = specHelper.getPrivateBaseClient('tasks');
+      privateClient.setResponses(['asdf']);
+      var r = list.get('a');
+      expect(r).toEqual('asdf');
+      expect(privateClient.getCalled()).toEqual([
+        { name : 'sync', params : [ 'a/', undefined ] },
+        { name : 'getObject', params : [ 'a/a' ] }
+      ]);
     });
   });
 })();

@@ -24,6 +24,12 @@ var specHelper = (function() {
     },
     getModule: function(moduleName) {
       return jasmine.currentEnv_.modules[moduleName];
+    },
+    getPrivateBaseClient: function(moduleName) {
+      return jasmine.currentEnv_.privateBaseClients[moduleName];
+    },
+    getPublicBaseClient: function(moduleName) {
+      return jasmine.currentEnv_.publicBaseClients[moduleName];
     }
   };
 })();

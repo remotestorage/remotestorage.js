@@ -14,15 +14,29 @@
   <!-- the file we are testing... -->
   <script>
     function makeStubClient() {
+      var called = [],
+        responses = [];
+      function setResponses(arr) {
+        responses=arr;
+      }
+      function doF(name, params) {
+        called.push({name: name, params: params});
+        return responses.shift();
+      }
+      function getCalled() {
+        return called;
+      }
       return {
-        //: function() {},
-        sync: function() {},
-        getObject: function() {},
-        storeObject: function() {},
-        getMedia: function() {},
-        storeMedia: function() {},
-        getListing: function() {},
-        remove: function() {},
+        setResponses: setResponses,
+        getCalled: getCalled,
+        sync: function(path, switchVal) { return doF('sync', [path, switchVal]); },
+        getObject: function(path) { return doF('getObject', [path]); },
+        storeObject: function(type, path, obj) { return doF('storeObject', [type, path, obj]); },
+        getMedia: function(path) { return doF('getMedia', [path]); },
+        storeMedia: function(type, path, data) { return doF('storeMedia', [type, path, data]); },
+        getListing: function(path) { return doF('getListing', [path]); },
+        remove: function(path) { return doF('remove', [path]); },
+        getCurrentWebRoot: function() { return doF('getCurrentWebRoot', []); }
       };
     }
     var jasmineEnv = jasmine.getEnv();
