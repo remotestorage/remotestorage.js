@@ -16,8 +16,6 @@
   <script>
     function makeStubClient() {
       return {
-        //: function() {},
-        sync: function() {},
         getObject: function() {},
         storeObject: function() {},
         getMedia: function() {},
@@ -26,12 +24,12 @@
         remove: function() {},
       };
     }
-    var modules={};
+    var module;
     remoteStorage = {
       defineModule: function(moduleName, cb) {
         var stubClientPrivate = makeStubClient();
         var stubClientPublic = makeStubClient();
-        modules[moduleName] = cb(stubClientPrivate, stubClientPublic);
+        module = cb(stubClientPrivate, stubClientPublic);
       }
     };
   </script>
