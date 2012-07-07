@@ -1497,7 +1497,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
     }
     return hostParts[0].split(':')[0];
   }
-  function dance(endpoint) {
+  function dance(endpoint, oldScopes) {
     var endPointParts = endpoint.split('?');
     var queryParams = [];
     if(endPointParts.length == 2) {
@@ -1508,7 +1508,13 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
     var loc = platform.getLocation();
     var scopesArr = [];
     for(var i in scopesObj) {
-      scopesArr.push(i+':'+scopesObj[i]);
+      if(oldScopes) {
+        if(i.substring(0, '/public/'.length) != '/public/') {
+          scopesArr.push(i.substring(1, i.length-2));
+        }
+      } else {
+        scopesArr.push(i+':'+scopesObj[i]);
+      }
     }
     queryParams.push('scope='+encodeURIComponent(scopesArr));
     queryParams.push('redirect_uri='+encodeURIComponent(loc));
@@ -1557,7 +1563,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
         if(err) {
           setWidgetState('failed');
         } else {
-          dance(auth);
+          dance(auth, true);
         }
       });
     } else {
