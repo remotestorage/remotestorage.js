@@ -1060,7 +1060,8 @@ define('lib/wireClient',['./platform', './couch', './dav', './getputdelete', './
     }
   }
   function resolveKey(storageType, storageHref, basePath, relPath) {
-    var nodirs=true;
+    //var nodirs=true;
+    var nodirs=false;
     var itemPathParts = ((basePath.length?(basePath + '/'):'') + relPath).split('/');
     var item = itemPathParts.splice(2).join(nodirs ? '_' : '/');
     return storageHref + '/' + itemPathParts[1]
