@@ -81,7 +81,7 @@ define(['./webfinger', './hardcoded', './session', './sync', './store', './platf
     } else {
       var sessionState = session.getState();
       if(sessionState == 'authing') {
-        if(harvestToken()) {
+        if(platform.harvestToken()) {
           sessionState = 'connected';
         } else {
           return 'interrupted';

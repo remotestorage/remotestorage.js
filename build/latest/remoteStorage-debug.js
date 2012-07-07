@@ -1422,7 +1422,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
     } else {
       var sessionState = session.getState();
       if(sessionState == 'authing') {
-        if(harvestToken()) {
+        if(platform.harvestToken()) {
           sessionState = 'connected';
         } else {
           return 'interrupted';
