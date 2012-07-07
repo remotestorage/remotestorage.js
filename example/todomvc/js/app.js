@@ -5,7 +5,7 @@ window.addEventListener( "load", windowLoadHandler, false );
 
 function windowLoadHandler() {
   remoteStorage.displayWidget('remotestorage-connect');
-  remoteStorage.loadModule('tasks', '0.1', 'rw');
+  remoteStorage.loadModule('tasks', 'rw');
   todos = remoteStorage.tasks.getPrivateList('todos');
   todos.on('error', function(err) {
   });

@@ -994,12 +994,6 @@ define('lib/session',['./platform', './webfinger', './hardcoded'], function(plat
     set('storageHref', undefined);
     set('bearerToken', undefined);
   }
-  function addScope(scope) {
-    var scopes = get('scopes') || {};
-    var scopeParts = scope.split(':');
-    scopes[scopeParts[0]] = scopeParts[1];
-    set('scopes', scopes);
-  }
   function getState() {
     if(get('userAddress')) {
       if(get('storageInfo')) {
@@ -1395,7 +1389,8 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './pla
     locale='en',
     connectElement,
     widgetState,
-    userAddress;
+    userAddress,
+    scopesObj = {};
   function translate(text) {
     return text;
   }
@@ -1489,8 +1484,8 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './pla
     }
     return hostParts[0].split(':')[0];
   }
-  function dance() {
-    var endPointParts = get('storageInfo').properties['auth-endpoint'].split('?');
+  function dance(endpoint) {
+    var endPointParts = endpoint.split('?');
     var queryParams = [];
     if(endPointParts.length == 2) {
       queryParams=endPointParts[1].split('&');
@@ -1498,10 +1493,6 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './pla
       errorHandler('more than one questionmark in auth-endpoint - ignoring');
     }
     var loc = platform.getLocation();
-    var scopesObj = get('scopes');
-    if(!scopesObj) {
-      return errorHandler('no modules loaded - cannot connect');
-    }
     var scopesArr = [];
     for(var i in scopesObj) {
       scopesArr.push(i+':'+scopesObj[i]);
@@ -1520,13 +1511,21 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './pla
           if(err2) {
             cb(err2);
           } else {
-            session.setStorageInfo(data2);
-            cb(null);
+            if(data2.type && data2.href && data.properties && data.properties['auth-endpoint']) {
+              session.setStorageInfo(data2.type, data2.href);
+              cb(null, data2.properties['auth-endpoint']);
+            } else {
+              cb('cannot make sense of storageInfo from webfinger');
+            }
           }
         });
       } else {
-        session.setStorageInfo(data);
-        cb(null);
+        if(data.type && data.href && data.properties && data.properties['auth-endpoint']) {
+          session.setStorageInfo(data.type, data.href);
+          cb(null, data.properties['auth-endpoint']);
+        } else {
+          cb('cannot make sense of storageInfo from hardcoded');
+        }
       }
     });
   }
@@ -1539,7 +1538,11 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './pla
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
-      discoverStorageInfo(userAddress, function(err) {});
+      discoverStorageInfo(userAddress, function(err, auth) {
+        if(!err) {
+          dance(auth);
+        }
+      });
     } else {
       setWidgetState('typing');
     }
@@ -1573,6 +1576,9 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './pla
     setWidgetStateOnLoad();
   }
   function addScope(module, mode) {
+    if(!scopesObj[module] || mode == 'rw') {
+      scopesObj[module] = mode;
+    }
   }
   onLoad();
   return {

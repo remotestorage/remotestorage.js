@@ -28,12 +28,6 @@ define(['./platform', './webfinger', './hardcoded'], function(platform, webfinge
     set('storageHref', undefined);
     set('bearerToken', undefined);
   }
-  function addScope(scope) {
-    var scopes = get('scopes') || {};
-    var scopeParts = scope.split(':');
-    scopes[scopeParts[0]] = scopeParts[1];
-    set('scopes', scopes);
-  }
   function getState() {
     if(get('userAddress')) {
       if(get('storageInfo')) {
