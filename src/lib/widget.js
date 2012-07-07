@@ -41,9 +41,10 @@ define(['./webfinger', './hardcoded', './session', './sync', './store', './platf
       +'   @-ms-keyframes remotestorage-loading { from{-ms-transform:rotate(0deg)} to{ -ms-transform:rotate(360deg)} }\n' 
       //hide all elements by default:
       +'#remotestorage-connect-button, #remotestorage-questionmark, #remotestorage-register-button, #remotestorage-cube, #remotestorage-useraddress, #remotestorage-infotext, #remotestorage-devsonly, #remotestorage-disconnect { display:none }\n' 
-      //in anonymous, registering and failed state, display register-button, connect-button, cube, questionmark:
+      //in anonymous, registering, interrupted and failed state, display register-button, connect-button, cube, questionmark:
       +'#remotestorage-state.anonymous #remotestorage-cube, #remotestorage-state.anonymous #remotestorage-connect-button, #remotestorage-state.anonymous #remotestorage-register-button, #remotestorage-state.anonymous #remotestorage-questionmark { display: block }\n'
       +'#remotestorage-state.registering #remotestorage-cube, #remotestorage-state.registering #remotestorage-connect-button, #remotestorage-state.registering #remotestorage-register-button, #remotestorage-state.registering #remotestorage-questionmark { display: block }\n'
+      +'#remotestorage-state.interrupted #remotestorage-cube, #remotestorage-state.interrupted #remotestorage-connect-button, #remotestorage-state.interrupted #remotestorage-register-button, #remotestorage-state.interrupted #remotestorage-questionmark { display: block }\n'
       +'#remotestorage-state.failed #remotestorage-cube, #remotestorage-state.failed #remotestorage-connect-button, #remotestorage-state.failed #remotestorage-register-button, #remotestorage-state.failed #remotestorage-questionmark { display: block }\n'
       //in typing state, display useraddress, connect-button, cube, questionmark:
       +'#remotestorage-state.typing #remotestorage-cube, #remotestorage-state.typing #remotestorage-connect-button, #remotestorage-state.typing #remotestorage-useraddress, #remotestorage-state.typing #remotestorage-questionmark { display: block }\n'
@@ -169,7 +170,7 @@ define(['./webfinger', './hardcoded', './session', './sync', './store', './platf
     for(var i in scopesObj) {
       if(oldScopes) {
         if(i.substring(0, '/public/'.length) != '/public/') {
-          scopesArr.push(i.substring(1, i.length-2));
+          scopesArr.push(i.substring(1, i.length-1));
         }
       } else {
         scopesArr.push(i+':'+scopesObj[i]);
