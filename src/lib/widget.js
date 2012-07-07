@@ -209,8 +209,11 @@ define(['./webfinger', './hardcoded', './session', './sync', './platform'], func
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
+      setWidgetState('connecting');
       discoverStorageInfo(userAddress, function(err, auth) {
-        if(!err) {
+        if(err) {
+          setWidgetState('failed');
+        } else {
           dance(auth);
         }
       });

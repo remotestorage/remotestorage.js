@@ -995,15 +995,11 @@ define('lib/session',['./platform', './webfinger', './hardcoded'], function(plat
     set('bearerToken', undefined);
   }
   function getState() {
-    if(get('userAddress')) {
-      if(get('storageInfo')) {
-        if(get('bearerToken')) {
-          return 'connected';
-        } else {
-          return 'authing';
-        }
+    if(get('storageType') && get('storageHref')) {
+      if(get('bearerToken')) {
+        return 'connected';
       } else {
-        return 'connecting';
+        return 'authing';
       }
     } else {
       return 'anonymous';
@@ -1538,8 +1534,11 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './pla
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
+      setWidgetState('connecting');
       discoverStorageInfo(userAddress, function(err, auth) {
-        if(!err) {
+        if(err) {
+          setWidgetState('failed');
+        } else {
           dance(auth);
         }
       });

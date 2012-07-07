@@ -29,15 +29,11 @@ define(['./platform', './webfinger', './hardcoded'], function(platform, webfinge
     set('bearerToken', undefined);
   }
   function getState() {
-    if(get('userAddress')) {
-      if(get('storageInfo')) {
-        if(get('bearerToken')) {
-          return 'connected';
-        } else {
-          return 'authing';
-        }
+    if(get('storageType') && get('storageHref')) {
+      if(get('bearerToken')) {
+        return 'connected';
       } else {
-        return 'connecting';
+        return 'authing';
       }
     } else {
       return 'anonymous';
