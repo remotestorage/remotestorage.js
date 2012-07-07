@@ -113,7 +113,7 @@ define(['./webfinger', './hardcoded', './session', './sync', './platform'], func
       +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
       +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br>Click for more info on the Unhosted movement.</span>'//info text
       +'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <a class="infotext" href="http://unhosted.org" target="_blank" id="remotestorage-devsonly">Developer preview only! Find a way to read these instructions, and then run localStorage.setItem("boldlyGo", "engage"); from the console.<br>Click for more info on the Unhosted movement.</a>'
+      +'  <a class="infotext" href="http://unhosted.org" target="_blank" id="remotestorage-devsonly">Local use only, no async sync yet. But modules work!<br>Click for more info on the Unhosted movement.</a>'
       +'</div>';
     platform.setElementHTML(connectElement, html);
     platform.eltOn('remotestorage-register-button', 'click', handleRegisterButtonClick);
