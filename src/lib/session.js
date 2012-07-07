@@ -7,6 +7,10 @@ define(['./platform', './webfinger', './hardcoded'], function(platform, webfinge
     localStorage.setItem(prefix+key, JSON.stringify(value));
     memCache[key]=value;
   }
+  function remove(key) {
+    localStorage.removeItem(prefix+key);
+    delete memCache[key];
+  }
   function get(key) {
     if(typeof(memCache[key]) == 'undefined') {
       var valStr = localStorage.getItem(prefix+key);
@@ -24,9 +28,9 @@ define(['./platform', './webfinger', './hardcoded'], function(platform, webfinge
     return memCache[key];
   }
   function disconnectRemote() {
-    set('storageType', undefined);
-    set('storageHref', undefined);
-    set('bearerToken', undefined);
+    remove('storageType');
+    remove('storageHref');
+    remove('bearerToken');
   }
   function getState() {
     if(get('storageType') && get('storageHref')) {
