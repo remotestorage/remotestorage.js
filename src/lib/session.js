@@ -23,81 +23,6 @@ define(['./platform', './webfinger', './hardcoded'], function(platform, webfinge
     }
     return memCache[key];
   }
-  function discoverStorageInfo(userAddress, cb) {
-    webfinger.getStorageInfo(userAddress, {}, function(err, data) {
-      if(err) {
-        hardcoded.guessStorageInfo(userAddress, {}, function(err2, data2) {
-          if(err2) {
-            cb(err2);
-          } else {
-            set('storageInfo', data2);
-            cb(null);
-          }
-        });
-      } else {
-        set('storageInfo', data);
-        cb(null);
-      }
-    });
-  }
-  function redirectUriToClientId(loc) {
-    //TODO: add some serious unit testing to this function
-    if(loc.substring(0, 'http://'.length) == 'http://') {
-      loc = loc.substring('http://'.length);
-    } else if(loc.substring(0, 'https://'.length) == 'https://') {
-      loc = loc.substring('https://'.length);
-    } else {
-      return loc;//for all other schemes
-    }
-    var hostParts = loc.split('/')[0].split('@');
-    if(hostParts.length > 2) {
-      return loc;//don't know how to simplify URLs with more than 1 @ before the third slash
-    }
-    if(hostParts.length == 2) {
-      hostParts.shift();
-    }
-    return hostParts[0].split(':')[0];
-  }
-  function dance() {
-    var endPointParts = get('storageInfo').properties['auth-endpoint'].split('?');
-    var queryParams = [];
-    if(endPointParts.length == 2) {
-      queryParams=endPointParts[1].split('&');
-    } else if(endPointParts.length>2) {
-      errorHandler('more than one questionmark in auth-endpoint - ignoring');
-    }
-    var loc = platform.getLocation();
-    var scopesObj = get('scopes');
-    if(!scopesObj) {
-      return errorHandler('no modules loaded - cannot connect');
-    }
-    var scopesArr = [];
-    for(var i in scopesObj) {
-      scopesArr.push(i+':'+scopesObj[i]);
-    }
-    queryParams.push('scope='+encodeURIComponent(scopesArr));
-    queryParams.push('redirect_uri='+encodeURIComponent(loc));
-    queryParams.push('client_id='+encodeURIComponent(redirectUriToClientId(loc)));
-    
-    platform.setLocation(endPointParts[0]+'?'+queryParams.join('&'));
-  }
-  function discoverStorageInfo(userAddress) {
-    set('userAddress', userAddress);
-    discoverStorageInfo(function(err) {
-      if(err) {
-        errorHandler(err);
-        stateHandler('failed');
-      } else {
-        dance();
-      }
-    });
-  }
-  function onLoad() {
-    var tokenHarvested = platform.harvestToken();
-    if(tokenHarvested) {
-      set('bearerToken', tokenHarvested);
-    }
-  }
   function disconnectRemote() {
     set('storageType', undefined);
     set('storageHref', undefined);
@@ -132,7 +57,6 @@ define(['./platform', './webfinger', './hardcoded'], function(platform, webfinge
     }
   }
 
-  onLoad();
   
   return {
     setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
