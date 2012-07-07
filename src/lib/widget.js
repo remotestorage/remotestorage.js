@@ -203,7 +203,7 @@ define(['./webfinger', './hardcoded', './session', './sync', './platform'], func
   function onLoad() {
     var tokenHarvested = platform.harvestToken();
     if(tokenHarvested) {
-      set('bearerToken', tokenHarvested);
+      session.setBearerToken(tokenHarvested);
     }
   }
   function handleConnectButtonClick() {

@@ -1532,7 +1532,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './pla
   function onLoad() {
     var tokenHarvested = platform.harvestToken();
     if(tokenHarvested) {
-      set('bearerToken', tokenHarvested);
+      session.setBearerToken(tokenHarvested);
     }
   }
   function handleConnectButtonClick() {
