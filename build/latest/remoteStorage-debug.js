@@ -1278,7 +1278,7 @@ define('lib/sync',['./wireClient', './session', './store'], function(wireClient,
   //a leaf will not need a lastFetch field, because we always fetch its containingDir anyway. so you should never store items
   //in directories you can't list!
   //
-  function pullMap(basePath, map, force) {
+  function pullMap(basePath, map, force, accessInherited) {
     for(var path in map) {
       var node = store.getNode(basePath+path);//will return a fake dir with empty children list for item
       //node.revision = the revision we have, 0 if we have nothing;
@@ -1286,20 +1286,20 @@ define('lib/sync',['./wireClient', './session', './store'], function(wireClient,
       //node.stopForcing = maybe fetch, but don't force from here on down
       //node.keep = we're not recursively syncing this, but we obtained a copy implicitly and want to keep it in sync
       //node.children = a map of children nodes to their revisions (0 for cache miss)
-      
+      var access = accessInherited || node.access;
       if(node.revision<map[path]) {
         if(node.startForcing) { force = true; }
         if(node.stopForcing) { force = false; }
-        if((force || node.keep) && node.access) {
+        if((force || node.keep) && access) {
           wireClient.get(basePath+path, function (err, data) {
             var node = store.getNode(basePath+path);
             node.data = data;
             store.updateNode(basePath+path, node);
-            pullMap(basePath+path, store.getNode(basePath+path).children, force);//recurse without forcing
+            pullMap(basePath+path, store.getNode(basePath+path).children, force, access);//recurse without forcing
           });
         } else {
           //store.forget(basePath+path);
-          pullMap(basePath+path, node.children, force);
+          pullMap(basePath+path, node.children, force, access);
         }
       }// else everything up to date
     }
