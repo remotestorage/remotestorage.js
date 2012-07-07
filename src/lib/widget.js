@@ -126,7 +126,7 @@ define(['./webfinger', './hardcoded', './session', './sync', './platform'], func
     setRegistering();
     var win = window.open('http://unhosted.org/en/a/register.html', 'Get your remote storage',
       'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,'
-      +'width=400,height=200,top=0,left=0');
+      +'width=820,height=800,top=0,left=0');
     //var timer = setInterval(function() { 
     //  if(win.closed) {
     //    clearInterval(timer);
