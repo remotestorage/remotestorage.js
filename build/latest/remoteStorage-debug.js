@@ -1059,22 +1059,24 @@ define('lib/wireClient',['./platform', './couch', './dav', './getputdelete', './
       cb(getputdelete);
     }
   }
-  function resolveKey(storageInfo, basePath, relPath, nodirs) {
+  function resolveKey(storageType, storageHref, basePath, relPath) {
+    var nodirs=true;
     var itemPathParts = ((basePath.length?(basePath + '/'):'') + relPath).split('/');
     var item = itemPathParts.splice(2).join(nodirs ? '_' : '/');
-    return storageInfo.href + '/' + itemPathParts[1]
-      + (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
+    return storageHref + '/' + itemPathParts[1]
+      //+ (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
       + '/' + (item[2] == '_' ? 'u' : '') + item;
   }
   return {
     get: function (path, cb) {
-      var storageInfo = session.getStorageInfo(),
+      var storageType = session.getStorageType(),
+        storageHref = session.getStorageHref(),
         token = session.getBearerToken();
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
       } else {
-        getDriver(storageInfo.type, function (d) {
-          d.get(resolveKey(storageInfo, '', path, storageInfo.nodirs), token, cb);
+        getDriver(storageType, function (d) {
+          d.get(resolveKey(storageType, storageHref, '', path), token, cb);
         });
       }
     },
@@ -1086,8 +1088,8 @@ define('lib/wireClient',['./platform', './couch', './dav', './getputdelete', './
       } else if(typeof(valueStr) != 'string') {
         cb('argument "valueStr" should be a string');
       } else {
-        getDriver(storageInfo.type, function (d) {
-          d.set(resolveKey(storageInfo, '', path, storageInfo.nodirs), value, token, cb);
+        getDriver(storageType, function (d) {
+          d.set(resolveKey(storageType, storageHref, '', path), value, token, cb);
         });
       }
     }
@@ -1296,7 +1298,7 @@ define('lib/sync',['./wireClient', './session', './store'], function(wireClient,
             pullMap(basePath+path, store.getNode(basePath+path).children, force);//recurse without forcing
           });
         } else {
-          store.forget(basePath+path);
+          //store.forget(basePath+path);
           pullMap(basePath+path, node.children, force);
         }
       }// else everything up to date
@@ -1572,9 +1574,10 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
     }
   }
   function handleCubeClick() {
-    if(widgetState == 'connected') {
-      handleDisconnectClick();
-    }
+    sync.syncNow();
+    //if(widgetState == 'connected') {
+    //  handleDisconnectClick();
+    //}
   }
   function handleWidgetTypeUserAddress() {
     setRegistering(false);
@@ -1846,9 +1849,12 @@ define('remoteStorage',[
       if(moduleName == 'root') {
         moduleName = '';
         widget.addScope('/', mode);
+        baseClient.claimAccess('/', mode);
       } else {
         widget.addScope('/'+moduleName+'/', mode);
+        baseClient.claimAccess('/'+moduleName, mode);
         widget.addScope('/public/'+moduleName+'/', mode);
+        baseClient.claimAccess('/public/'+moduleName, mode);
       }
       return module.version
     },

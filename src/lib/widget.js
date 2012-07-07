@@ -233,9 +233,10 @@ define(['./webfinger', './hardcoded', './session', './sync', './store', './platf
     }
   }
   function handleCubeClick() {
-    if(widgetState == 'connected') {
-      handleDisconnectClick();
-    }
+    sync.syncNow();
+    //if(widgetState == 'connected') {
+    //  handleDisconnectClick();
+    //}
   }
   function handleWidgetTypeUserAddress() {
     setRegistering(false);

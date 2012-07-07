@@ -56,7 +56,7 @@ define(['./wireClient', './session', './store'], function(wireClient, session, s
             pullMap(basePath+path, store.getNode(basePath+path).children, force);//recurse without forcing
           });
         } else {
-          store.forget(basePath+path);
+          //store.forget(basePath+path);
           pullMap(basePath+path, node.children, force);
         }
       }// else everything up to date

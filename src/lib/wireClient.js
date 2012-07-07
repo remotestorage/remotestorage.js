@@ -25,22 +25,24 @@ define(['./platform', './couch', './dav', './getputdelete', './session'], functi
       cb(getputdelete);
     }
   }
-  function resolveKey(storageInfo, basePath, relPath, nodirs) {
+  function resolveKey(storageType, storageHref, basePath, relPath) {
+    var nodirs=true;
     var itemPathParts = ((basePath.length?(basePath + '/'):'') + relPath).split('/');
     var item = itemPathParts.splice(2).join(nodirs ? '_' : '/');
-    return storageInfo.href + '/' + itemPathParts[1]
-      + (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
+    return storageHref + '/' + itemPathParts[1]
+      //+ (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
       + '/' + (item[2] == '_' ? 'u' : '') + item;
   }
   return {
     get: function (path, cb) {
-      var storageInfo = session.getStorageInfo(),
+      var storageType = session.getStorageType(),
+        storageHref = session.getStorageHref(),
         token = session.getBearerToken();
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
       } else {
-        getDriver(storageInfo.type, function (d) {
-          d.get(resolveKey(storageInfo, '', path, storageInfo.nodirs), token, cb);
+        getDriver(storageType, function (d) {
+          d.get(resolveKey(storageType, storageHref, '', path), token, cb);
         });
       }
     },
@@ -52,8 +54,8 @@ define(['./platform', './couch', './dav', './getputdelete', './session'], functi
       } else if(typeof(valueStr) != 'string') {
         cb('argument "valueStr" should be a string');
       } else {
-        getDriver(storageInfo.type, function (d) {
-          d.set(resolveKey(storageInfo, '', path, storageInfo.nodirs), value, token, cb);
+        getDriver(storageType, function (d) {
+          d.set(resolveKey(storageType, storageHref, '', path), value, token, cb);
         });
       }
     }
