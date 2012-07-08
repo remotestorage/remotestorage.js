@@ -1,4 +1,4 @@
-define(['./session', './sync', './platform'], function (session, sync, platform) {
+define(['./webfinger', './hardcoded', './session', './sync', './store', './platform'], function (webfinger, hardcoded, session, sync, store, platform) {
   var remoteStorageIcon = 'data:image/png;base64,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'
@@ -41,9 +41,10 @@ define(['./session', './sync', './platform'], function (session, sync, platform)
       +'   @-ms-keyframes remotestorage-loading { from{-ms-transform:rotate(0deg)} to{ -ms-transform:rotate(360deg)} }\n' 
       //hide all elements by default:
       +'#remotestorage-connect-button, #remotestorage-questionmark, #remotestorage-register-button, #remotestorage-cube, #remotestorage-useraddress, #remotestorage-infotext, #remotestorage-devsonly, #remotestorage-disconnect { display:none }\n' 
-      //in anonymous, registering and failed state, display register-button, connect-button, cube, questionmark:
+      //in anonymous, registering, interrupted and failed state, display register-button, connect-button, cube, questionmark:
       +'#remotestorage-state.anonymous #remotestorage-cube, #remotestorage-state.anonymous #remotestorage-connect-button, #remotestorage-state.anonymous #remotestorage-register-button, #remotestorage-state.anonymous #remotestorage-questionmark { display: block }\n'
       +'#remotestorage-state.registering #remotestorage-cube, #remotestorage-state.registering #remotestorage-connect-button, #remotestorage-state.registering #remotestorage-register-button, #remotestorage-state.registering #remotestorage-questionmark { display: block }\n'
+      +'#remotestorage-state.interrupted #remotestorage-cube, #remotestorage-state.interrupted #remotestorage-connect-button, #remotestorage-state.interrupted #remotestorage-register-button, #remotestorage-state.interrupted #remotestorage-questionmark { display: block }\n'
       +'#remotestorage-state.failed #remotestorage-cube, #remotestorage-state.failed #remotestorage-connect-button, #remotestorage-state.failed #remotestorage-register-button, #remotestorage-state.failed #remotestorage-questionmark { display: block }\n'
       //in typing state, display useraddress, connect-button, cube, questionmark:
       +'#remotestorage-state.typing #remotestorage-cube, #remotestorage-state.typing #remotestorage-connect-button, #remotestorage-state.typing #remotestorage-useraddress, #remotestorage-state.typing #remotestorage-questionmark { display: block }\n'
@@ -60,7 +61,8 @@ define(['./session', './sync', './platform'], function (session, sync, platform)
     locale='en',
     connectElement,
     widgetState,
-    userAddress;
+    userAddress,
+    scopesObj = {};
   function translate(text) {
     return text;
   }
@@ -80,7 +82,7 @@ define(['./session', './sync', './platform'], function (session, sync, platform)
     } else {
       var sessionState = session.getState();
       if(sessionState == 'authing') {
-        if(harvestToken()) {
+        if(platform.harvestToken()) {
           sessionState = 'connected';
         } else {
           return 'interrupted';
@@ -100,9 +102,10 @@ define(['./session', './sync', './platform'], function (session, sync, platform)
     displayWidgetState(state, userAddress);
   }
   function displayWidgetState(state, userAddress) {
-    if(!localStorage.boldlyGo) {
+    if(!localStorage.michiel) {
       state='devsonly';
     }
+    var userAddress = localStorage['remotestorage_widget_useraddress'];
     var html = 
       '<style>'+widgetCss+'</style>'
       +'<div id="remotestorage-state" class="'+state+'">'
@@ -112,8 +115,9 @@ define(['./session', './sync', './platform'], function (session, sync, platform)
       +'  <span id="remotestorage-disconnect">Disconnect <strong>'+userAddress+'</strong></span>'//disconnect hover; should be immediately preceded by cube because of https://developer.mozilla.org/en/CSS/Adjacent_sibling_selectors:
       +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
       +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br>Click for more info on the Unhosted movement.</span>'//info text
-      +'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <a class="infotext" href="http://unhosted.org" target="_blank" id="remotestorage-devsonly">Developer preview only! Find a way to read these instructions, and then run localStorage.setItem("boldlyGo", "engage"); from the console.<br>Click for more info on the Unhosted movement.</a>'
+      //+'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
+      +'  <input id="remotestorage-useraddress" type="text" value="admin@mich.oc" placeholder="you@remotestorage" autofocus >'//text input
+      +'  <a class="infotext" href="http://unhosted.org" target="_blank" id="remotestorage-devsonly">Local use only, no async sync yet. But modules work!<br>Click for more info on the Unhosted movement.</a>'
       +'</div>';
     platform.setElementHTML(connectElement, html);
     platform.eltOn('remotestorage-register-button', 'click', handleRegisterButtonClick);
@@ -126,7 +130,7 @@ define(['./session', './sync', './platform'], function (session, sync, platform)
     setRegistering();
     var win = window.open('http://unhosted.org/en/a/register.html', 'Get your remote storage',
       'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,'
-      +'width=400,height=200,top=0,left=0');
+      +'width=820,height=800,top=0,left=0');
     //var timer = setInterval(function() { 
     //  if(win.closed) {
     //    clearInterval(timer);
@@ -135,17 +139,101 @@ define(['./session', './sync', './platform'], function (session, sync, platform)
     //}, 250);
     setWidgetState('registering');
   }
+  function redirectUriToClientId(loc) {
+    //TODO: add some serious unit testing to this function
+    if(loc.substring(0, 'http://'.length) == 'http://') {
+      loc = loc.substring('http://'.length);
+    } else if(loc.substring(0, 'https://'.length) == 'https://') {
+      loc = loc.substring('https://'.length);
+    } else {
+      return loc;//for all other schemes
+    }
+    var hostParts = loc.split('/')[0].split('@');
+    if(hostParts.length > 2) {
+      return loc;//don't know how to simplify URLs with more than 1 @ before the third slash
+    }
+    if(hostParts.length == 2) {
+      hostParts.shift();
+    }
+    return hostParts[0].split(':')[0];
+  }
+  function dance(endpoint, oldScopes) {
+    var endPointParts = endpoint.split('?');
+    var queryParams = [];
+    if(endPointParts.length == 2) {
+      queryParams=endPointParts[1].split('&');
+    } else if(endPointParts.length>2) {
+      errorHandler('more than one questionmark in auth-endpoint - ignoring');
+    }
+    var loc = platform.getLocation();
+    var scopesArr = [];
+    for(var i in scopesObj) {
+      if(oldScopes) {
+        if(i.substring(0, '/public/'.length) != '/public/') {
+          scopesArr.push(i.substring(1, i.length-1));
+        }
+      } else {
+        scopesArr.push(i+':'+scopesObj[i]);
+      }
+    }
+    queryParams.push('scope='+encodeURIComponent(scopesArr));
+    queryParams.push('redirect_uri='+encodeURIComponent(loc));
+    queryParams.push('client_id='+encodeURIComponent(redirectUriToClientId(loc)));
+    
+    platform.setLocation(endPointParts[0]+'?'+queryParams.join('&'));
+  }
+
+  function discoverStorageInfo(userAddress, cb) {
+    webfinger.getStorageInfo(userAddress, {}, function(err, data) {
+      if(err) {
+        hardcoded.guessStorageInfo(userAddress, {}, function(err2, data2) {
+          if(err2) {
+            cb(err2);
+          } else {
+            if(data2.type && data2.href && data.properties && data.properties['auth-endpoint']) {
+              session.setStorageInfo(data2.type, data2.href);
+              cb(null, data2.properties['auth-endpoint']);
+            } else {
+              cb('cannot make sense of storageInfo from webfinger');
+            }
+          }
+        });
+      } else {
+        if(data.type && data.href && data.properties && data.properties['auth-endpoint']) {
+          session.setStorageInfo(data.type, data.href);
+          cb(null, data.properties['auth-endpoint']);
+        } else {
+          cb('cannot make sense of storageInfo from hardcoded');
+        }
+      }
+    });
+  }
+  function onLoad() {
+    var tokenHarvested = platform.harvestToken();
+    if(tokenHarvested) {
+      session.setBearerToken(tokenHarvested);
+    }
+  }
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
-      session.discoverStorageInfo(userAdddress, function(err) {});
+      localStorage['remotestorage_widget_useraddress']=userAddress;
+      setWidgetState('connecting');
+      discoverStorageInfo(userAddress, function(err, auth) {
+        if(err) {
+          setWidgetState('failed');
+        } else {
+          dance(auth, true);
+        }
+      });
     } else {
       setWidgetState('typing');
     }
   }
   function handleDisconnectClick() {
     if(widgetState == 'connected') {
-      session.disconnect();
+      session.disconnectRemote();
+      store.forgetAll();//FIXME: not sure if widget talking directly to store is the right dependency structure
       setWidgetState('anonymous');
     } else {
       alert('you cannot disconnect now, please wait until the cloud is up to date...');
@@ -153,6 +241,9 @@ define(['./session', './sync', './platform'], function (session, sync, platform)
   }
   function handleCubeClick() {
     sync.syncNow();
+    //if(widgetState == 'connected') {
+    //  handleDisconnectClick();
+    //}
   }
   function handleWidgetTypeUserAddress() {
     setRegistering(false);
@@ -172,7 +263,11 @@ define(['./session', './sync', './platform'], function (session, sync, platform)
     setWidgetStateOnLoad();
   }
   function addScope(module, mode) {
+    if(!scopesObj[module] || mode == 'rw') {
+      scopesObj[module] = mode;
+    }
   }
+  onLoad();
   return {
     display : display,
     addScope: addScope

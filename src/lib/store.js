@@ -109,6 +109,15 @@ define([], function () {
     }
   }
   function forget(path) {
+    localStorage.removeItem(prefixNodes+path);
+
+  }
+  function forgetAll() {
+    for(var i=0; i<localStorage.length; i++) {
+      if(localStorage.key(i).substr(0, prefixNodes.length) == prefixNodes) {
+        localStorage.removeItem(localStorage.key(i));
+      }
+    }
   }
   function on(eventName, cb) {
     if(eventName=='change') {
@@ -128,6 +137,7 @@ define([], function () {
     
     getNode    : getNode,
     updateNode : updateNode,
-    forget     : forget
+    forget     : forget,
+    forgetAll  : forgetAll
   };
 });
