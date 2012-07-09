@@ -1845,15 +1845,9 @@ define('remoteStorage',[
 ], function(require, platform, couch, dav, getputdelete, webfinger, hardcoded,
             session, widget, baseClient, wireClient, sync) {
 
-  var moduleVersions = {};
+  var moduleVersions = {}, modules = {};
 
   var remoteStorage =  {
-
-    /**
-     ** PUBLIC ATTRIBUTES
-     **/
-
-    modules: {},
 
     /**
      ** PUBLIC METHODS
@@ -1861,12 +1855,20 @@ define('remoteStorage',[
 
     defineModule: function(moduleName, builder) {
       console.log('DEFINE MODULE', moduleName);
-      this.modules[moduleName] = builder(
+      modules[moduleName] = builder(
         // private client:
         baseClient.getInstance(moduleName, false),
         // public client:
         baseClient.getInstance(moduleName, true)
       );
+    },
+
+    getModuleList: function() {
+      return Object.keys(modules);
+    },
+
+    getModuleInfo: function(moduleName) {
+      return modules[moduleName];
     },
 
     // Load module with given name, accessible with given mode.
@@ -1875,7 +1877,7 @@ define('remoteStorage',[
       if(this[moduleName]) {
         return moduleVersions[moduleName];
       }
-      var module = this.modules[moduleName];
+      var module = modules[moduleName];
 
       if(! module) {
         throw "Module not defined: " + moduleName;
