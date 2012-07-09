@@ -36,6 +36,12 @@ define(['./wireClient', './session', './store'], function(wireClient, session, s
   //a leaf will not need a lastFetch field, because we always fetch its containingDir anyway. so you should never store items
   //in directories you can't list!
   //
+  //what is quite complex is the difference between node.children and node.data for a directory.
+  //first of all, if you delete a file, then in its parent node, it is removed from data, but not (yet) from children, so that the
+  //deletion can still be synced. once it's removed from the server, and the directory listing is retrieved again, i think it should be removed
+  //from children as well.
+  //also, the values in .data are server-side revision numbers, where as in .children i think they are client-side timestamps.
+  //TODO: double check this description once it's all working
   function pullMap(basePath, map, force, accessInherited) {
     for(var path in map) {
       var node = store.getNode(basePath+path);//will return a fake dir with empty children list for item
@@ -50,9 +56,11 @@ define(['./wireClient', './session', './store'], function(wireClient, session, s
         if(node.stopForcing) { force = false; }
         if((force || node.keep) && access) {
           wireClient.get(basePath+path, function (err, data) {
-            var node = store.getNode(basePath+path);
-            node.data = data;
-            store.updateNode(basePath+path, node);
+            if(data) {
+              var node = store.getNode(basePath+path);
+              node.data = data;
+              store.updateNode(basePath+path, node);
+            }
             pullMap(basePath+path, store.getNode(basePath+path).children, force, access);//recurse without forcing
           });
         } else {

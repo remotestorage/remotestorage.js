@@ -29,13 +29,20 @@ define(['./sync', './store'], function (sync, store) {
       }
     }
   }
-
+  fireError(str) {
+    console.log(str);
+  }
   store.on('change', function(e) {
     var moduleName = extractModuleName(eventObj.path);
     fireChange(moduleName, e);//tab-, device- and cloud-based changes all get fired from the store.
   });
+  
 
   function set(absPath, valueStr) {
+    if(isDir(path) {
+      fireError('attempt to set a value to a directory '+absPath);
+      return;
+    }
     var  node = store.getNode(absPath);
     node.outgoingChange = true;
     var changeEvent = {
