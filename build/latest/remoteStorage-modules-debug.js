@@ -903,11 +903,17 @@ remoteStorage.defineModule('contacts', function(base) {
      **/
     
     Contact: Contact,
+
+    /**
+     ** INHERITED METHODS
+     **/
+
+    on: base.on,
     
     /**
      ** PUBLIC METHODS
      **/
-
+    
     list: function(limit, offset) {
       var list = base.getListing('');
       if(! offset) {
