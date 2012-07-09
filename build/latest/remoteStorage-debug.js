@@ -670,11 +670,12 @@ define('lib/webfinger',
         } else if(!(/^[\.0-9a-z\-]+$/.test(parts[1]))) {
           cb('That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
         } else {
+          var query = '?resource=acct:'+encodeURIComponent(userAddress);
           cb(null, [
-            'https://'+parts[1]+'/.well-known/host-meta.json',
-            'https://'+parts[1]+'/.well-known/host-meta',
-            'http://'+parts[1]+'/.well-known/host-meta.json',
-            'http://'+parts[1]+'/.well-known/host-meta'
+            'https://'+parts[1]+'/.well-known/host-meta.json'+query,
+            'https://'+parts[1]+'/.well-known/host-meta'+query,
+            'http://'+parts[1]+'/.well-known/host-meta.json'+query,
+            'http://'+parts[1]+'/.well-known/host-meta'+query
             ]);
         }
       }
@@ -750,6 +751,63 @@ define('lib/webfinger',
       }
       cb(null, links);
     }
+    function parseRemoteStorageLink(obj, cb) {
+      //FROM:
+      //{
+      //  api: 'WebDAV',
+      //  template: 'http://host/foo/{category}/bar',
+      //  auth: 'http://host/auth'
+      //}
+      //TO:
+      //{
+      //  type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav',
+      //  href: 'http://host/foo/',
+      //  legacySuffix: '/bar'
+      //  properties: {
+      //    'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
+      //    'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
+      //    'auth-endpoint': 'http://host/auth'
+      //  }
+      //}
+      if(obj && obj['auth'] && obj['api'] && obj['template']) {
+        var storageInfo = {};
+        if(obj['api'] == 'simple') {
+          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple';
+        } else if(obj['api'] == 'WebDAV') {
+          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav';
+        } else if(obj['api'] == 'CouchDB') {
+          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb';
+        } else {
+          cb('api not recognized');
+          return;
+        }
+
+        var templateParts = obj['template'].split('{category}');
+        if(templateParts[0].substring(templateParts[0].length-1)=='/') {
+          storageInfo['href'] = templateParts[0].substring(0, templateParts[0].length-1);
+        } else {
+          storageInfo['href'] = templateParts[0];
+        }
+        storageInfo.properties = {
+          "access-methods": ["http://oauth.net/core/1.0/parameters/auth-header"],
+          "auth-methods": ["http://oauth.net/discovery/1.0/consumer-identity/static"],
+          "auth-endpoint": obj['auth']
+        };
+        if(templateParts.length == 2 && templateParts[1] != '/') {
+          storageInfo.properties['legacySuffix'] = templateParts[1];
+        }
+        cb(null, storageInfo);
+      } else if(obj
+          && obj['href']
+          && obj['type']
+          && obj['properties']
+          && obj['properties']['auth-endpoint']
+          ) {
+        cb(null, obj);
+      } else {
+        cb('could not extract storageInfo from lrdd');
+      }
+    }
     function getStorageInfo(userAddress, options, cb) {
       userAddress2hostMetas(userAddress, function(err1, hostMetaAddresses) {
         if(err1) {
@@ -759,68 +817,22 @@ define('lib/webfinger',
             if(err2) {
               cb('could not fetch host-meta for '+userAddress);
             } else {
-              if(hostMetaLinks['lrdd'] && hostMetaLinks['lrdd'].template) {
+              if(hostMetaLinks['remoteStorage']) {
+                parseRemoteStorageLink(hostMetaLinks['remoteStorage'], cb);
+              } else if(hostMetaLinks['remotestorage']) {
+                parseRemoteStorageLink(hostMetaLinks['remoteStorage'], cb);
+              } else if(hostMetaLinks['lrdd'] && hostMetaLinks['lrdd'].template) {
                 var parts = hostMetaLinks['lrdd'].template.split('{uri}');
                 var lrddAddresses=[parts.join('acct:'+userAddress), parts.join(userAddress)];
                  fetchXrd(lrddAddresses, options.timeout, function(err4, lrddLinks) {
                   if(err4) {
                     cb('could not fetch lrdd for '+userAddress);
+                  } else if(lrddLinks['remoteStorage']) {
+                    parseRemoteStorageLink(lrddLinks['remoteStorage'], cb);
+                  } else if(lrddLinks['remotestorage']) {
+                    parseRemoteStorageLink(lrddLinks['remotestorage'], cb);
                   } else {
-                     //FROM:
-                    //{
-                    //  api: 'WebDAV',
-                    //  template: 'http://host/foo/{category}/bar',
-                    //  auth: 'http://host/auth'
-                    //}
-                    //TO:
-                    //{
-                    //  type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav',
-                    //  href: 'http://host/foo/',
-                    //  legacySuffix: '/bar'
-                    //  properties: {
-                    //    'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
-                    //    'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
-                    //    'auth-endpoint': 'http://host/auth'
-                    //  }
-                    //}
-                    if(lrddLinks['remoteStorage'] && lrddLinks['remoteStorage']['auth'] && lrddLinks['remoteStorage']['api'] && lrddLinks['remoteStorage']['template']) {
-                      var storageInfo = {};
-                      if(lrddLinks['remoteStorage']['api'] == 'simple') {
-                        storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple';
-                      } else if(lrddLinks['remoteStorage']['api'] == 'WebDAV') {
-                        storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav';
-                      } else if(lrddLinks['remoteStorage']['api'] == 'CouchDB') {
-                        storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb';
-                      } else {
-                        cb('api not recognized');
-                        return;
-                      }
-
-                      var templateParts = lrddLinks['remoteStorage']['template'].split('{category}');
-                      if(templateParts[0].substring(templateParts[0].length-1)=='/') {
-                        storageInfo['href'] = templateParts[0].substring(0, templateParts[0].length-1);
-                      } else {
-                        storageInfo['href'] = templateParts[0];
-                      }
-                      storageInfo.properties = {
-                        "access-methods": ["http://oauth.net/core/1.0/parameters/auth-header"],
-                        "auth-methods": ["http://oauth.net/discovery/1.0/consumer-identity/static"],
-                        "auth-endpoint": lrddLinks['remoteStorage']['auth']
-                      };
-                      if(templateParts.length == 2 && templateParts[1] != '/') {
-                        storageInfo.properties['legacySuffix'] = templateParts[1];
-                      }
-                      cb(null, storageInfo);
-                    } else if(lrddLinks['remotestorage']
-                        && lrddLinks['remotestorage']['href']
-                        && lrddLinks['remotestorage']['type']
-                        && lrddLinks['remotestorage']['properties']
-                        && lrddLinks['remotestorage']['properties']['auth-endpoint']
-                        ) {
-                      cb(null, lrddLinks['remotestorage']);
-                    } else {
-                      cb('could not extract storageInfo from lrdd');
-                    }
+                    cb('could not extract storageInfo from lrdd');
                   }
                 }); 
               } else {
@@ -1467,7 +1479,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
       +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
       +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br>Click for more info on the Unhosted movement.</span>'//info text
       //+'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <input id="remotestorage-useraddress" type="text" value="michiel@frkosp.wind.surfnet.nl" placeholder="you@remotestorage" autofocus >'//text input
+      +'  <input id="remotestorage-useraddress" type="text" value="michiel@mich.rs" placeholder="you@remotestorage" autofocus >'//text input
       +'  <a class="infotext" href="http://unhosted.org" target="_blank" id="remotestorage-devsonly">Local use only, no async sync yet. But modules work!<br>Click for more info on the Unhosted movement.</a>'
       +'</div>';
     platform.setElementHTML(connectElement, html);
@@ -1536,9 +1548,9 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
   }
 
   function discoverStorageInfo(userAddress, cb) {
-    webfinger.getStorageInfo(userAddress, {}, function(err, data) {
+    webfinger.getStorageInfo(userAddress, {timeout: 3000}, function(err, data) {
       if(err) {
-        hardcoded.guessStorageInfo(userAddress, {}, function(err2, data2) {
+        hardcoded.guessStorageInfo(userAddress, {timeout: 3000}, function(err2, data2) {
           if(err2) {
             cb(err2);
           } else {
