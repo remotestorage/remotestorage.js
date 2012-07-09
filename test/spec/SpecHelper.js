@@ -18,6 +18,21 @@ var specHelper = (function() {
     },
     getRemoteStorage: function() {
       return jasmine.currentEnv_.remoteStorage;
+    },
+    getFile: function(fileName) {
+      return jasmine.currentEnv_.files[fileName];
+    },
+    getModule: function(moduleName) {
+      return jasmine.currentEnv_.modules[moduleName];
+    },
+    getPrivateBaseClient: function(moduleName) {
+      return jasmine.currentEnv_.privateBaseClients[moduleName];
+    },
+    getPublicBaseClient: function(moduleName) {
+      return jasmine.currentEnv_.publicBaseClients[moduleName];
+    },
+    getPlatformStub: function(moduleName) {
+      return jasmine.currentEnv_.platformStubs[moduleName].reset();
     }
   };
 })();
