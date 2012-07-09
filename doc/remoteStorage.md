@@ -59,7 +59,3 @@ Returns the list of known (i.e. defined) moduleNames. Those modules aren't neces
 #### getLoadedModuleList()
 
 Returns the list of loaded (i.e. defined and available)
-
-#### setBearerToken(bearerToken, claimedScopes)
-
-Store the given bearerToken to session and claim given scopes.
