@@ -41,7 +41,8 @@
         storeMedia: function(type, path, data) { return doF('storeMedia', [type, path, data]); },
         getListing: function(path) { return doF('getListing', [path]); },
         remove: function(path) { return doF('remove', [path]); },
-        getCurrentWebRoot: function() { return doF('getCurrentWebRoot', []); }
+        getCurrentWebRoot: function() { return doF('getCurrentWebRoot', []); },
+        reset: reset
       };
     }
     function makePlatformStub() {
@@ -106,6 +107,8 @@
   <script type="text/javascript" src="../src/modules/documents-0.1.js"></script>
   <script type="text/javascript" src="../src/modules/money-0.1.js"></script>
   <script type="text/javascript" src="../src/modules/calendar-0.1.js"></script>
+  <script type="text/javascript" src="assets/vcardjs-0.2.js"></script>
+  <script type="text/javascript" src="../src/modules/contacts-0.1.js"></script>
   <!-- include spec files here... -->
   <script type="text/javascript" src="spec/SpecHelper.js"></script>
   <!-- include spec files here... -->
@@ -120,6 +123,7 @@
   <script type="text/javascript" src="spec/modules/documents.js"></script>
   <script type="text/javascript" src="spec/modules/money.js"></script>
   <script type="text/javascript" src="spec/modules/calendar.js"></script>
+  <script type="text/javascript" src="spec/modules/contacts.js"></script>
 
 </head>
 
