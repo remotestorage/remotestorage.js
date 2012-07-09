@@ -56,13 +56,13 @@ define([
       moduleVersions[moduleName] = module.version;
       if(moduleName == 'root') {
         moduleName = '';
-        widget.addScope('/', mode);
-        baseClient.claimAccess('/', mode);
+        widget.addScope('', mode);
+        baseClient.claimAccess('', mode);
       } else {
-        widget.addScope('/'+moduleName+'/', mode);
-        baseClient.claimAccess('/'+moduleName+'/', mode);
-        widget.addScope('/public/'+moduleName+'/', mode);
-        baseClient.claimAccess('/public/'+moduleName+'/', mode);
+        widget.addScope(moduleName+'/', mode);
+        baseClient.claimAccess(moduleName+'/', mode);
+        widget.addScope('public/'+moduleName+'/', mode);
+        baseClient.claimAccess('public/'+moduleName+'/', mode);
       }
       return module.version
     },

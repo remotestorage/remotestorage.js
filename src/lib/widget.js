@@ -177,7 +177,7 @@ define(['./webfinger', './hardcoded', './session', './sync', './store', './platf
       }
     }
     queryParams.push('response_type=token');
-    queryParams.push('scope='+encodeURIComponent(scopesArr));
+    queryParams.push('scope='+encodeURIComponent(scopesArr.join(' ')));
     queryParams.push('redirect_uri='+encodeURIComponent(loc));
     queryParams.push('client_id='+encodeURIComponent(redirectUriToClientId(loc)));
     
@@ -224,7 +224,7 @@ define(['./webfinger', './hardcoded', './session', './sync', './store', './platf
         if(err) {
           setWidgetState('failed');
         } else {
-          dance(auth, true);
+          dance(auth, false);
         }
       });
     } else {

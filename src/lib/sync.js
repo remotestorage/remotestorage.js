@@ -51,7 +51,12 @@ define(['./wireClient', './session', './store'], function(wireClient, session, s
       //node.keep = we're not recursively syncing this, but we obtained a copy implicitly and want to keep it in sync
       //node.children = a map of children nodes to their revisions (0 for cache miss)
       var access = accessInherited || node.access;
-      if(node.revision<map[path]) {
+      if(node.outgoingChange) {
+        //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
+        wireClient.set(basePath+path, JSON.stringify(node.data), function(err) {
+          console.log(err);
+        });
+      } else if(node.revision<map[path]) {
         if(node.startForcing) { force = true; }
         if(node.stopForcing) { force = false; }
         if((force || node.keep) && access) {

@@ -48,7 +48,8 @@ define(['./platform', './couch', './dav', './getputdelete', './session'], functi
       }
     },
     set: function (path, valueStr, cb) {
-      var storageInfo = session.getStorageInfo(),
+      var storageType = session.getStorageType(),
+        storageHref = session.getStorageHref(),
         token = session.getBearerToken();
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
@@ -56,7 +57,7 @@ define(['./platform', './couch', './dav', './getputdelete', './session'], functi
         cb('argument "valueStr" should be a string');
       } else {
         getDriver(storageType, function (d) {
-          d.set(resolveKey(storageType, storageHref, '', path), value, token, cb);
+          d.set(resolveKey(storageType, storageHref, '', path), valueStr, token, cb);
         });
       }
     }

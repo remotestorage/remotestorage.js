@@ -1095,7 +1095,8 @@ define('lib/wireClient',['./platform', './couch', './dav', './getputdelete', './
       }
     },
     set: function (path, valueStr, cb) {
-      var storageInfo = session.getStorageInfo(),
+      var storageType = session.getStorageType(),
+        storageHref = session.getStorageHref(),
         token = session.getBearerToken();
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
@@ -1103,7 +1104,7 @@ define('lib/wireClient',['./platform', './couch', './dav', './getputdelete', './
         cb('argument "valueStr" should be a string');
       } else {
         getDriver(storageType, function (d) {
-          d.set(resolveKey(storageType, storageHref, '', path), value, token, cb);
+          d.set(resolveKey(storageType, storageHref, '', path), valueStr, token, cb);
         });
       }
     }
@@ -1307,7 +1308,12 @@ define('lib/sync',['./wireClient', './session', './store'], function(wireClient,
       //node.keep = we're not recursively syncing this, but we obtained a copy implicitly and want to keep it in sync
       //node.children = a map of children nodes to their revisions (0 for cache miss)
       var access = accessInherited || node.access;
-      if(node.revision<map[path]) {
+      if(node.outgoingChange) {
+        //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
+        wireClient.set(basePath+path, JSON.stringify(node.data), function(err) {
+          console.log(err);
+        });
+      } else if(node.revision<map[path]) {
         if(node.startForcing) { force = true; }
         if(node.stopForcing) { force = false; }
         if((force || node.keep) && access) {
@@ -1540,7 +1546,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
       }
     }
     queryParams.push('response_type=token');
-    queryParams.push('scope='+encodeURIComponent(scopesArr));
+    queryParams.push('scope='+encodeURIComponent(scopesArr.join(' ')));
     queryParams.push('redirect_uri='+encodeURIComponent(loc));
     queryParams.push('client_id='+encodeURIComponent(redirectUriToClientId(loc)));
     
@@ -1587,7 +1593,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
         if(err) {
           setWidgetState('failed');
         } else {
-          dance(auth, true);
+          dance(auth, false);
         }
       });
     } else {
@@ -1887,13 +1893,13 @@ define('remoteStorage',[
       moduleVersions[moduleName] = module.version;
       if(moduleName == 'root') {
         moduleName = '';
-        widget.addScope('/', mode);
-        baseClient.claimAccess('/', mode);
+        widget.addScope('', mode);
+        baseClient.claimAccess('', mode);
       } else {
-        widget.addScope('/'+moduleName+'/', mode);
-        baseClient.claimAccess('/'+moduleName+'/', mode);
-        widget.addScope('/public/'+moduleName+'/', mode);
-        baseClient.claimAccess('/public/'+moduleName+'/', mode);
+        widget.addScope(moduleName+'/', mode);
+        baseClient.claimAccess(moduleName+'/', mode);
+        widget.addScope('public/'+moduleName+'/', mode);
+        baseClient.claimAccess('public/'+moduleName+'/', mode);
       }
       return module.version
     },
