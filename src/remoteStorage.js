@@ -14,7 +14,7 @@ define([
 ], function(require, platform, couch, dav, getputdelete, webfinger, hardcoded,
             session, widget, baseClient, wireClient, sync) {
 
-  var moduleVersions = {}, modules = {};
+  var loadedModules = {}, modules = {};
 
   var remoteStorage =  {
 
@@ -36,6 +36,10 @@ define([
       return Object.keys(modules);
     },
 
+    getLoadedModuleList: function() {
+      return Object.keys(loadedModules);
+    },
+
     getModuleInfo: function(moduleName) {
       return modules[moduleName];
     },
@@ -43,17 +47,20 @@ define([
     // Load module with given name, accessible with given mode.
     // Return the module's version.
     loadModule: function(moduleName, mode) {
-      if(this[moduleName]) {
-        return moduleVersions[moduleName];
+      if(moduleName in loadedModules) {
+        return;
       }
       var module = modules[moduleName];
+
+      if(! mode) {
+        mode = 'r';
+      }
 
       if(! module) {
         throw "Module not defined: " + moduleName;
       }
 
       this[moduleName] = module.exports;
-      moduleVersions[moduleName] = module.version;
       if(moduleName == 'root') {
         moduleName = '';
         widget.addScope('', mode);
@@ -64,7 +71,8 @@ define([
         widget.addScope('public/'+moduleName+'/', mode);
         baseClient.claimAccess('/public/'+moduleName+'/', mode);
       }
-      return module.version
+
+      loadedModules[moduleName] = true;
     },
 
     setBearerToken: function(bearerToken, claimedScopes) {
