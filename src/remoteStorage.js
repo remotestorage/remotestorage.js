@@ -14,9 +14,15 @@ define([
 ], function(require, platform, couch, dav, getputdelete, webfinger, hardcoded,
             session, widget, baseClient, wireClient, sync) {
 
-  var moduleVersions = {}, modules = {};
+  var moduleVersions = {};
 
   var remoteStorage =  {
+
+    /**
+     ** PUBLIC ATTRIBUTES
+     **/
+
+    modules: {},
 
     /**
      ** PUBLIC METHODS
@@ -24,20 +30,12 @@ define([
 
     defineModule: function(moduleName, builder) {
       console.log('DEFINE MODULE', moduleName);
-      modules[moduleName] = builder(
+      this.modules[moduleName] = builder(
         // private client:
         baseClient.getInstance(moduleName, false),
         // public client:
         baseClient.getInstance(moduleName, true)
       );
-    },
-
-    getModuleList: function() {
-      return Object.keys(modules);
-    },
-
-    getModuleInfo: function(moduleName) {
-      return modules[moduleName];
     },
 
     // Load module with given name, accessible with given mode.
@@ -46,7 +44,7 @@ define([
       if(this[moduleName]) {
         return moduleVersions[moduleName];
       }
-      var module = modules[moduleName];
+      var module = this.modules[moduleName];
 
       if(! module) {
         throw "Module not defined: " + moduleName;
