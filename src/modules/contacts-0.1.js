@@ -19,7 +19,14 @@ remoteStorage.defineModule('contacts', function(base) {
       return destination;
   }
 
-  var debug = DEBUG ? base.h.bindContext(console.log, console) : function() {};
+  function bindContext(cb, context) {
+    if(! context) {
+      return cb;
+    }
+    return function() { return cb.apply(context, arguments); };
+  }
+
+  var debug = DEBUG ? bindContext(console.log, console) : function() {};
 
   /**
    ** The Contact class.
@@ -87,7 +94,7 @@ remoteStorage.defineModule('contacts', function(base) {
     get: function(uid, cb, context) {
       if(cb) {
         base.getObject(uid, function(data) {
-          base.h.bindContext(cb, context)(this._load(data));
+          bindContext(cb, context)(this._load(data));
         }, this);
       } else {
         return this._load(base.getObject(uid));
@@ -110,7 +117,7 @@ remoteStorage.defineModule('contacts', function(base) {
       var results = [];
       var item;
       for(var i=0;i<list.length;i++) {
-        item = base.h.bindContext(cb, context)(list[i]);
+        item = bindContext(cb, context)(list[i]);
         if(item) {
           results.push(item)
         }

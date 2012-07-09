@@ -7,11 +7,14 @@
 
   describe('contacts module', function() {
 
-    var version, contacts;
+    var version, contacts, privateClient;
 
     beforeEach(function() {
-      version = remoteStorage.loadModule('contacts', 'rw');
-      contacts = remoteStorage.contacts;
+      var module = specHelper.getModule('contacts');
+      version = module.version;
+      contacts = module.exports;
+
+      privateClient = specHelper.getPrivateBaseClient('contacts').reset();
     });
 
     afterEach(function() {
@@ -60,7 +63,8 @@
 
       beforeEach(function() {
         fixture = contacts.build({fn: "foo"});
-        fixture.save();
+	fixture.validate(); // generates UID and REV
+	privateClient.setResponses([fixture.toJCard()]);
         result = contacts.get(fixture.uid)
       });
 
@@ -74,6 +78,13 @@
         ).toEqual(
           fixture.toJCard()
         );
+      });
+
+      it('calls getObject on the private base client', function() {
+	expect(privateClient.getCalled()).toEqual([{
+	  name: 'getObject',
+	  params: [fixture.uid]
+	}]);
       });
 
     });
@@ -108,6 +119,15 @@
         expect('uid' in result).toBe(true)
         expect('rev' in result).toBe(true);
       });
+
+      it('calls storeObject', function() {
+	var called = privateClient.getCalled();
+	expect(called.length).toEqual(1);
+	expect(called[0].name).toEqual('storeObject');
+	expect(called[0].params[0]).toEqual('vcard');
+	expect(called[0].params[1]).toEqual(result.uid);
+	expect(called[0].params[2]).toEqual(result.toJCard());
+      });
     });
 
     describe('list', function() {
@@ -115,10 +135,34 @@
 
       beforeEach(function() {
         fixtures = [
-          contacts.create({ fn: "Bob Bathtub" }),
-          contacts.create({ fn: "Alice" }),
+          contacts.build({ fn: "Bob Bathtub" }),
+          contacts.build({ fn: "Alice" }),
         ];
+	fixtures[0].validate();
+	fixtures[1].validate();
+	privateClient.setResponses([
+	  [fixtures[0].uid,fixtures[1].uid],
+	  fixtures[0].toJCard(),
+	  fixtures[1].toJCard()
+	]);
         result = contacts.list();
+      });
+
+      it('calls getListing', function() {
+	var called = privateClient.getCalled();
+	expect(called[0].name).toEqual('getListing');
+      });
+
+      it('calls getObject twice', function() {
+	var called = privateClient.getCalled();
+	expect(called[1]).toEqual({
+	  name: 'getObject',
+	  params: [fixtures[0].uid]
+	});
+	expect(called[2]).toEqual({
+	  name: 'getObject',
+	  params: [fixtures[1].uid]
+	});
       });
 
       it('returns all contacts', function() {
@@ -140,12 +184,19 @@
 
       beforeEach(function() {
         fixtures = [
-          contacts.create({
+          contacts.build({
             fn: "Alice",
             email: { type: 'internet', value: 'alice@wonderland.lit' }
           }),
-          contacts.create({ fn: "Bob Bathtub" }),
+          contacts.build({ fn: "Bob Bathtub" }),
         ];
+	fixtures[0].validate();
+	fixtures[1].validate();
+	privateClient.setResponses([
+	  [fixtures[0].uid, fixtures[1].uid],
+	  fixtures[0].toJCard(),
+	  fixtures[1].toJCard()
+	]);
       });
 
       it("finds contacts based on their full FN", function() {
