@@ -14,7 +14,7 @@ define([
 ], function(require, platform, couch, dav, getputdelete, webfinger, hardcoded,
             session, widget, baseClient, wireClient, sync) {
 
-  var moduleVersions = {}, modules: {};
+  var moduleVersions = {}, modules = {};
 
   var remoteStorage =  {
 
