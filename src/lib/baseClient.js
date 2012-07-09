@@ -29,7 +29,7 @@ define(['./sync', './store'], function (sync, store) {
       }
     }
   }
-  fireError(str) {
+  function fireError(str) {
     console.log(str);
   }
   store.on('change', function(e) {
