@@ -39,7 +39,7 @@ define(['./sync', './store'], function (sync, store) {
   
 
   function set(absPath, valueStr) {
-    if(isDir(path)) {
+    if(isDir(absPath)) {
       fireError('attempt to set a value to a directory '+absPath);
       return;
     }

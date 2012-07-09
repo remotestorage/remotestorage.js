@@ -216,7 +216,8 @@ define('lib/platform',[], function() {
     }
   }
   function getLocationBrowser() {
-    return window.location.href;
+    //TODO: deal with http://user:a#aa@host.com/ although i doubt someone would actually use that even once between now and the end of the internet
+    return window.location.href.split('#')[0];
   }
   function getLocationNode() {
   }
@@ -670,9 +671,9 @@ define('lib/webfinger',
           cb('That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
         } else {
           cb(null, [
-            //'https://'+parts[1]+'/.well-known/host-meta.json',
+            'https://'+parts[1]+'/.well-known/host-meta.json',
             'https://'+parts[1]+'/.well-known/host-meta',
-            //'http://'+parts[1]+'/.well-known/host-meta.json',
+            'http://'+parts[1]+'/.well-known/host-meta.json',
             'http://'+parts[1]+'/.well-known/host-meta'
             ]);
         }
@@ -1466,7 +1467,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
       +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
       +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br>Click for more info on the Unhosted movement.</span>'//info text
       //+'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <input id="remotestorage-useraddress" type="text" value="michiel@5apps.com" placeholder="you@remotestorage" autofocus >'//text input
+      +'  <input id="remotestorage-useraddress" type="text" value="michiel@frkosp.wind.surfnet.nl" placeholder="you@remotestorage" autofocus >'//text input
       +'  <a class="infotext" href="http://unhosted.org" target="_blank" id="remotestorage-devsonly">Local use only, no async sync yet. But modules work!<br>Click for more info on the Unhosted movement.</a>'
       +'</div>';
     platform.setElementHTML(connectElement, html);
@@ -1526,6 +1527,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
         scopesArr.push(i+':'+scopesObj[i]);
       }
     }
+    queryParams.push('response_type=token');
     queryParams.push('scope='+encodeURIComponent(scopesArr));
     queryParams.push('redirect_uri='+encodeURIComponent(loc));
     queryParams.push('client_id='+encodeURIComponent(redirectUriToClientId(loc)));
@@ -1665,7 +1667,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
   
 
   function set(absPath, valueStr) {
-    if(isDir(path)) {
+    if(isDir(absPath)) {
       fireError('attempt to set a value to a directory '+absPath);
       return;
     }

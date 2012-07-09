@@ -116,7 +116,7 @@ define(['./webfinger', './hardcoded', './session', './sync', './store', './platf
       +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
       +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br>Click for more info on the Unhosted movement.</span>'//info text
       //+'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <input id="remotestorage-useraddress" type="text" value="michiel@5apps.com" placeholder="you@remotestorage" autofocus >'//text input
+      +'  <input id="remotestorage-useraddress" type="text" value="michiel@frkosp.wind.surfnet.nl" placeholder="you@remotestorage" autofocus >'//text input
       +'  <a class="infotext" href="http://unhosted.org" target="_blank" id="remotestorage-devsonly">Local use only, no async sync yet. But modules work!<br>Click for more info on the Unhosted movement.</a>'
       +'</div>';
     platform.setElementHTML(connectElement, html);
@@ -176,6 +176,7 @@ define(['./webfinger', './hardcoded', './session', './sync', './store', './platf
         scopesArr.push(i+':'+scopesObj[i]);
       }
     }
+    queryParams.push('response_type=token');
     queryParams.push('scope='+encodeURIComponent(scopesArr));
     queryParams.push('redirect_uri='+encodeURIComponent(loc));
     queryParams.push('client_id='+encodeURIComponent(redirectUriToClientId(loc)));

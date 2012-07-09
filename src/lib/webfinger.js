@@ -19,9 +19,9 @@ define(
           cb('That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
         } else {
           cb(null, [
-            //'https://'+parts[1]+'/.well-known/host-meta.json',
+            'https://'+parts[1]+'/.well-known/host-meta.json',
             'https://'+parts[1]+'/.well-known/host-meta',
-            //'http://'+parts[1]+'/.well-known/host-meta.json',
+            'http://'+parts[1]+'/.well-known/host-meta.json',
             'http://'+parts[1]+'/.well-known/host-meta'
             ]);
         }

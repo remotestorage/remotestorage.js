@@ -175,7 +175,8 @@ define([], function() {
     }
   }
   function getLocationBrowser() {
-    return window.location.href;
+    //TODO: deal with http://user:a#aa@host.com/ although i doubt someone would actually use that even once between now and the end of the internet
+    return window.location.href.split('#')[0];
   }
   function getLocationNode() {
   }
