@@ -1295,7 +1295,6 @@ remoteStorage.defineModule('tasks', function(myPrivateBaseClient, myPublicBaseCl
   }
   return {
     name: 'tasks',
-    dataVersion: '0.1',
     dataHints: {
       "module": "tasks are things that need doing; items on your todo list",
       
@@ -1307,7 +1306,6 @@ remoteStorage.defineModule('tasks', function(myPrivateBaseClient, myPublicBaseCl
       "directory tasks/:year/": "tasks that need doing during year :year",
       "directory public/tasks/:hash/": "tasks list shared to for instance a team"
     },
-    codeVersion: '0.1.0',
     exports: {
       getPrivateList: getPrivateList
     }
