@@ -70,7 +70,6 @@ remoteStorage.defineModule('documents', function(myBaseClient) {
   }
   return {
     name: 'documents',
-    dataVersion: '0.1',
     dataHints: {
       "module": "documents can be text documents, or etherpad-lite documents or pdfs or whatever people consider a (text) document. But spreadsheets and diagrams probably not",
       "objectType text": "a human-readable plain-text document in utf-8. No html or markdown etc, they should have their own object types",
@@ -81,7 +80,6 @@ remoteStorage.defineModule('documents', function(myBaseClient) {
       "item documents/notes/projects": "used by docrastinate for the 'projects' pane",
       "item documents/notes/personal": "used by docrastinate for the 'personal' pane"
     },
-    codeVersion: '0.1.0',
     exports: {
       getPrivateList: getPrivateList
     }

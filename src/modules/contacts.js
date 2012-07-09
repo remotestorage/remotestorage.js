@@ -5,7 +5,7 @@ remoteStorage.defineModule('contacts', function(base) {
 
   if(typeof(VCard) === 'undefined') {
     console.error("remoteStorage.contacts requires vCardJS from https://github.com/nilclass/vcardjs");
-    return { version: '0.0', exports: {} };
+    return { exports: {} };
   }
 
   // Copy over all properties from source to destination.
@@ -166,8 +166,6 @@ remoteStorage.defineModule('contacts', function(base) {
   };
   
   return {
-    
-    version: '0.1',
     
     exports: contacts
   }

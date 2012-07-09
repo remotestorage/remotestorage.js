@@ -7,11 +7,10 @@
 
   describe('contacts module', function() {
 
-    var version, contacts, privateClient;
+    var contacts, privateClient;
 
     beforeEach(function() {
       var module = specHelper.getModule('contacts');
-      version = module.version;
       contacts = module.exports;
 
       privateClient = specHelper.getPrivateBaseClient('contacts').reset();
@@ -19,10 +18,6 @@
 
     afterEach(function() {
       localStorage.clear();
-    });
-
-    it('has reached the golden lands of version 0.1', function() {
-      expect(version).toBe('0.1');
     });
 
     describe('Contact model', function() {

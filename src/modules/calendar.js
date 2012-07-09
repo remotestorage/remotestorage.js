@@ -19,7 +19,6 @@ remoteStorage.defineModule('calendar', function(privateBaseClient) {
     privateBaseClient.remove(day+'/'+itemId);
   }
   return {
-    version: '0.1',
     exports: {
       getEventsForDay: getEventsForDay,
       addEvent: addEvent,
