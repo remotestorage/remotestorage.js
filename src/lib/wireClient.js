@@ -1,19 +1,56 @@
-//the session holds the storage info, so when logged in, you go:
-//application                                application
-//    module                             module
-//        baseClient                 baseClient
-//            cache              cache
-//                session    session
-//                    wireClient
-//
-//and if you're not logged in it's simply:
-//
-//application                application
-//      module              module
-//        baseClient  baseClient
-//                cache 
+define(['./platform', './couch', './dav', './getputdelete'], function (platform, couch, dav, getputdelete) {
+  var prefix = 'remoteStorage_wire_',
+    memCache = {},
+    stateHandler = function(){},
+    errorHandler = function(){};
+  function set(key, value) {
+    localStorage.setItem(prefix+key, JSON.stringify(value));
+    memCache[key]=value;
+  }
+  function remove(key) {
+    localStorage.removeItem(prefix+key);
+    delete memCache[key];
+  }
+  function get(key) {
+    if(typeof(memCache[key]) == 'undefined') {
+      var valStr = localStorage.getItem(prefix+key);
+      if(typeof(valStr) == 'string') {
+        try {
+          memCache[key] = JSON.parse(valStr);
+        } catch(e) {
+          localStorage.removeItem(prefix+key);
+          memCache[key] = null;
+        }
+      } else {
+        memCache[key] = null;
+      }
+    }
+    return memCache[key];
+  }
+  function disconnectRemote() {
+    remove('storageType');
+    remove('storageHref');
+    remove('bearerToken');
+  }
+  function getState() {
+    if(get('storageType') && get('storageHref')) {
+      if(get('bearerToken')) {
+        return 'connected';
+      } else {
+        return 'authing';
+      }
+    } else {
+      return 'anonymous';
+    }
+  }
+  function on(eventType, cb) {
+    if(eventType == 'state') {
+      stateHandler = cb;
+    } else if(eventType == 'error') {
+      errorHandler = cb;
+    }
+  }
 
-define(['./platform', './couch', './dav', './getputdelete', './session'], function (platform, couch, dav, getputdelete, session) {
   function getDriver(type, cb) {
     if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#couchdb'
       || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb') {
@@ -36,9 +73,9 @@ define(['./platform', './couch', './dav', './getputdelete', './session'], functi
   }
   return {
     get: function (path, cb) {
-      var storageType = session.getStorageType(),
-        storageHref = session.getStorageHref(),
-        token = session.getBearerToken();
+      var storageType = get('storageType'),
+        storageHref = get('storageHref'),
+        token = get('bearerToken');
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
       } else {
@@ -48,9 +85,9 @@ define(['./platform', './couch', './dav', './getputdelete', './session'], functi
       }
     },
     set: function (path, valueStr, cb) {
-      var storageType = session.getStorageType(),
-        storageHref = session.getStorageHref(),
-        token = session.getBearerToken();
+      var storageType = get('storageType'),
+        storageHref = get('storageHref'),
+        token = get('bearerToken');
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
       } else if(typeof(valueStr) != 'string') {
@@ -60,6 +97,11 @@ define(['./platform', './couch', './dav', './getputdelete', './session'], functi
           d.set(resolveKey(storageType, storageHref, '', path), valueStr, token, cb);
         });
       }
-    }
+    },
+    setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
+    setBearerToken   : function(bearerToken) { set('bearerToken', bearerToken); },
+    disconnectRemote : disconnectRemote,
+    on               : on,
+    getState         : getState
   };
 });

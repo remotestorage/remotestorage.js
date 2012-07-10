@@ -6,13 +6,12 @@ define([
   './lib/getputdelete',
   './lib/webfinger',
   './lib/hardcoded',
-  './lib/session',
   './lib/widget',
   './lib/baseClient',
   './lib/wireClient',
   './lib/sync'
 ], function(require, platform, couch, dav, getputdelete, webfinger, hardcoded,
-            session, widget, baseClient, wireClient, sync) {
+            wireClient, widget, baseClient, wireClient, sync) {
 
   var loadedModules = {}, modules = {};
 
@@ -76,7 +75,7 @@ define([
     },
 
     setBearerToken: function(bearerToken, claimedScopes) {
-      session.setBearerToken(bearerToken);
+      wireClient.setBearerToken(bearerToken);
       baseClient.claimScopes(claimedScopes);
     },
 
@@ -84,11 +83,11 @@ define([
      ** DELEGATED METHODS
      **/
 
-    disconnectRemote : session.disconnectRemote,
-    flushLocal       : session.flushLocal,
+    disconnectRemote : wireClient.disconnectRemote,
+    flushLocal       : store.forgetAll,
     syncNow          : sync.syncNow,
     displayWidget    : widget.display,
-    setStorageInfo   : session.setStorageInfo
+    setStorageInfo   : wireClient.setStorageInfo
 
   };
 
