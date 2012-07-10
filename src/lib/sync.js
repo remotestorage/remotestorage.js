@@ -1,3 +1,26 @@
+//start: store has a tree with three types of node: dir, object, media.
+//each node has fields:
+// - access (whether we believe we can read and maybe write the subtree starting at that node on remote)
+// - children (hash map file name -> remote timestamp, used to know if we should recurse during pull)
+// - data (for dirs, hash map file name -> local timestamp, maybe this should actually be in the nodes); for objects, the object; for media, the mimetype and value)
+// - outgoingChange is true (should maybe be a timestamp or null) if this is object or media
+//whenever you sync, it first pulls in the entire tree, starting at the root.
+//if it doesn't have read access, it will pull the children instead
+//if any of the children increased their timestamp, it will recurse into them
+//caching without outgoing changes is easy. and if the cache is kept up-to-date, then outgoing changes are also easy, although they would trigger read-back
+//if you've been offline for a while and have pending changes to push out, then pull first, and compare timestamps.
+//only push outgoing changes that you think are newer than what's on remote. so if two devices have been online for a while, then the one you connect first, wins.
+//but if only one device has been offline, and has one-year-old changes on there, then those are not pushed out.
+//possible improvements:
+//-avoid read-back for objects and (especially) media: could use E-tags. returning timestamps on PUT would be even more efficient.
+//-if a resource is deleted, then maybe it should stay listed in the parent. otherwise they will reappear if you connect a one-year-old device.
+//-allowing the client to choose the timestamp would allow for "softer" write
+//
+//in PUT you should always either send or receive a 'Last-Modified' header (should add this to the protocol)
+//maybe: always let the server respond with a Last-Modified header, so that you can see later in the index if your write was successful by only looking at the parent index and without retrieving the actual resource. if two writes were concurrent, the losing party will receive a change event
+//and let the client send an 'if-not-modified-since' header for 'soft writes'. you can get a 409 response if there's a conflict.
+//probably the client should respect a margin of about 60 seconds within which it should attempt hard writes; after that it should switch to soft writes.
+
 define(['./wireClient', './session', './store'], function(wireClient, session, store) {
   var prefix = '_remoteStorage_', busy=false;
    
