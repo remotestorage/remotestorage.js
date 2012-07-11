@@ -65,7 +65,9 @@ define(['./wireClient', './store'], function(wireClient, store) {
   }
   function syncNow(path, cb) {
     busy=true;
-    pullMap('', {path: Infinity}, false, false, function() {
+    var map={};
+    map[path]= Infinity;
+    pullMap('', map, false, false, function() {
       busy=false;
       cb();
     });
