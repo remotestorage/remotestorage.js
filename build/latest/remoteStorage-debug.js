@@ -65,7 +65,7 @@ define('lib/platform',[], function() {
           window.clearTimeout(timer);
         }
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
-          params.success(xhr.responseText, xhr.responseHeaders);
+          params.success(xhr.responseText, xhr.getAllResponseHeaders());
         } else {
           params.error(xhr.status);
         }
