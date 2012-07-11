@@ -1,7 +1,7 @@
 define(
   ['./platform'],
   function (platform) {
-    function doCall(method, url, value, token, cb, deadLine) {
+    function doCall(method, url, value, mimeType, token, cb, deadLine) {
       var platformObj = {
         url: url,
         method: method,
@@ -16,7 +16,7 @@ define(
 
       platformObj.headers = {
         'Authorization': 'Bearer ' + token,
-        'Content-Type':  'text/plain;charset=UTF-8'
+        'Content-Type':  mimeType,
       };
 
       platformObj.fields = {withCredentials: 'true'};
@@ -28,7 +28,7 @@ define(
     }
 
     function get(url, token, cb) {
-      doCall('GET', url, null, token, function(err, data) {
+      doCall('GET', url, null, null, token, function(err, data) {
         if(err == 404) {
           cb(null, undefined);
         } else {
@@ -46,7 +46,7 @@ define(
     }
 
     function put(url, value, mimeType, token, cb) {
-      doCall('PUT', url, value, token, function(err, data) {
+      doCall('PUT', url, value, mimeType, token, function(err, data) {
         if(err == 404) {
           doPut(url, value, token, 1, cb);
         } else {
