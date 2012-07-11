@@ -1111,7 +1111,7 @@ define('lib/store',[], function () {
         startAccess: null,
         startForce: null,
         lastModified: 0,
-        outgoingChanges: false,
+        outgoingChange: false,
         keep: true,
         children: {},
         added: {},
@@ -1197,10 +1197,12 @@ define('lib/store',[], function () {
   function getState(path) {
     return 'disconnected';
   }
-  function setNodeData(path, data) {
+  function setNodeData(path, data, outgoing) {
     var node = getNode(path);
     node.data = data;
-    node.outgoingChange = new Date().getTime();
+    if(outgoing) {
+      node.outgoingChange = new Date().getTime();
+    }
     updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
   }
   function setNodeAccess(path, claim) {
@@ -1266,7 +1268,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
         startOne();
         wireClient.get(path, function (err, data) {
           if(data) {
-            store.setNodeData(path, data);
+            store.setNodeData(path, data, false);
           }
           finishOne(err);
           startOne();
@@ -1650,7 +1652,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
       newValue: valueStr,
       path: path
     };
-    var ret = store.setNodeData(absPath, valueStr);
+    var ret = store.setNodeData(absPath, valueStr, true);
     var moduleName = extractModuleName(absPath);
     fireChange(moduleName, changeEvent);
     return ret; 

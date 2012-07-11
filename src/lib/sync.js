@@ -37,7 +37,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
         startOne();
         wireClient.get(path, function (err, data) {
           if(data) {
-            store.setNodeData(path, data);
+            store.setNodeData(path, data, false);
           }
           finishOne(err);
           startOne();

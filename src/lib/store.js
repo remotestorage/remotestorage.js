@@ -24,9 +24,9 @@ define([], function () {
         startAccess: null,
         startForce: null,
         lastModified: 0,
-        outgoingChanges: false,
+        outgoingChange: false,
         keep: true,
-        children: {},
+        data: (isDir(path)?{}:undefined),
         added: {},
         removed: {},
         changed: {},
@@ -69,20 +69,26 @@ define([], function () {
     return new Date().getTime();
   }
   function updateNode(path, node, changeType) {
+    //there are three types of local changes: added, removed, changed.
+    //when a PUT or DELETE is successful and we get a Last-Modified header back the parents should already be updated right to the root
+    //
     localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
       if(changeType=='set') { 
-        if(!parentNode.children[getFileName(path)]) {
-          parentNode.added[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
-        } else {
+        if(parentNode.data[getFileName(path)]) {
           parentNode.changed[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+        } else {
+          parentNode.added[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
         }
         updateNode(containingDir, parentNode, 'set');
       } else if(changeType=='remove') {
         parentNode.removed[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
         updateNode(containingDir, parentNode, 'set');
+      } else if(changeType=='accept') {
+      } else if(changeType=='gone') {
+
       }
     }
   }
@@ -110,11 +116,34 @@ define([], function () {
   function getState(path) {
     return 'disconnected';
   }
-  function setNodeData(path, data) {
+  function setNodeData(path, data, outgoing, lastModified, mimeType) {
     var node = getNode(path);
     node.data = data;
-    node.outgoingChange = new Date().getTime();
-    updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
+    if(outgoing) {
+      node.outgoingChange = new Date().getTime();
+      updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
+    } else {
+      if(isDir(path)) {
+        for(var i in data) {
+          delete node.added(i);
+        }
+        for(var i in node.removed) {
+          if(!data[i]) {
+            delete node.removed(i);
+          }
+        }
+        updateNode(path, node, 'accept');
+      } else {
+        if(node.outgoingChange) {
+          if(data != node.data && node.outgoingChange > lastModified) {
+            //reject the update, outgoing changes will change it
+          } else {
+            node.outgoingChange=false;
+            updateNode(path, node, (typeof(data)=='undefined'?'gone':'accept'));
+          }
+        }
+      }
+    }
   }
   function setNodeAccess(path, claim) {
     var node = getNode(path);

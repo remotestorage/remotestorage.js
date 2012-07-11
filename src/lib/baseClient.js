@@ -50,7 +50,7 @@ define(['./sync', './store'], function (sync, store) {
       newValue: valueStr,
       path: path
     };
-    var ret = store.setNodeData(absPath, valueStr);
+    var ret = store.setNodeData(absPath, valueStr, true);
     var moduleName = extractModuleName(absPath);
     fireChange(moduleName, changeEvent);
     return ret; 
