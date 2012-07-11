@@ -218,7 +218,7 @@ define(['./webfinger', './hardcoded', './wireClient', './sync', './store', './pl
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
-      localStorage['remotestorage_widget_useraddress']=userAddress;
+      localStorage['remote_storage_widget_useraddress']=userAddress;
       setWidgetState('connecting');
       discoverStorageInfo(userAddress, function(err, auth) {
         if(err) {

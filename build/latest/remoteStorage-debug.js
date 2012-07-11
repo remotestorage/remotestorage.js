@@ -980,33 +980,25 @@ define('lib/getputdelete',
 });
 
 define('lib/wireClient',['./couch', './dav', './getputdelete'], function (couch, dav, getputdelete) {
-  var prefix = 'remoteStorage_wire_',
-    memCache = {},
+  var prefix = 'remote_storage_wire_',
     stateHandler = function(){},
     errorHandler = function(){};
   function set(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
-    memCache[key]=value;
   }
   function remove(key) {
     localStorage.removeItem(prefix+key);
-    delete memCache[key];
   }
   function get(key) {
-    if(typeof(memCache[key]) == 'undefined') {
-      var valStr = localStorage.getItem(prefix+key);
-      if(typeof(valStr) == 'string') {
-        try {
-          memCache[key] = JSON.parse(valStr);
-        } catch(e) {
-          localStorage.removeItem(prefix+key);
-          memCache[key] = null;
-        }
-      } else {
-        memCache[key] = null;
+    var valStr = localStorage.getItem(prefix+key);
+    if(typeof(valStr) == 'string') {
+      try {
+        return JSON.parse(valStr);
+      } catch(e) {
+        localStorage.removeItem(prefix+key);
       }
     }
-    return memCache[key];
+    return null;
   }
   function disconnectRemote() {
     remove('storageType');
@@ -1612,7 +1604,7 @@ define('lib/widget',['./webfinger', './hardcoded', './wireClient', './sync', './
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
-      localStorage['remotestorage_widget_useraddress']=userAddress;
+      localStorage['remote_storage_widget_useraddress']=userAddress;
       setWidgetState('connecting');
       discoverStorageInfo(userAddress, function(err, auth) {
         if(err) {
