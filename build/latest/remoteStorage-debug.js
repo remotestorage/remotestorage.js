@@ -1192,18 +1192,38 @@ define('lib/store',[], function () {
   function connect(path, connectVal) {
     var node = getNode(path);
     node.startForcing=(connectVal!=false);
-    updateNode(path, node);
+    updateNode(path, node, 'meta');
   }
   function getState(path) {
     return 'disconnected';
   }
+  function setNodeData(path, data) {
+    var node = getNode(path);
+    node.data = data;
+    node.outgoingChange = new Date().getTime();
+    updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
+  }
+  function setNodeAccess(path, claim) {
+    var node = getNode(path);
+    if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
+      node.startAccess = claim;
+      updateNode(path, node);
+    }
+  }
+  function setNodeForce(path, force) {
+    var node = getNode(path);
+    node.startForce = force;
+    updateNode(path, node);
+  }
   return {
-    on         : on,//error,change(origin=tab,device,cloud)
+    on            : on,//error,change(origin=tab,device,cloud)
    
-    getNode    : getNode,
-    updateNode : updateNode,
-    forget     : forget,
-    forgetAll  : forgetAll
+    getNode       : getNode,
+    setNodeData   : setNodeData,
+    setNodeAccess : setNodeAccess,
+    setNodeForce  : setNodeForce,
+    forget        : forget,
+    forgetAll     : forgetAll
   };
 });
 
@@ -1246,9 +1266,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
         startOne();
         wireClient.get(path, function (err, data) {
           if(data) {
-            var node = store.getNode(path);
-            node.data = data;
-            store.updateNode(path, node);
+            store.setNodeData(path, data);
           }
           pullMap(path, store.getNode(path).children, force, access, function(err2) {
             finishOne(err || err2);
@@ -1616,35 +1634,26 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
   });
   
 
-  function set(absPath, valueStr) {
+  function set(path, absPath, valueStr) {
     if(isDir(absPath)) {
       fireError('attempt to set a value to a directory '+absPath);
       return;
     }
     var  node = store.getNode(absPath);
-    node.outgoingChange = true;
     var changeEvent = {
       origin: 'window',
       oldValue: node.data,
       newValue: valueStr,
-      path: absPath
+      path: path
     };
-    node.data = valueStr;
-    var ret = store.updateNode(absPath, node);
+    var ret = store.setNodeData(absPath, valueStr);
     var moduleName = extractModuleName(absPath);
     fireChange(moduleName, changeEvent);
     return ret; 
   }
 
   function claimAccess(path, claim) {
-    var node = store.getNode(path);
-    if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
-      node.startAccess = claim;
-      store.updateNode(path, node);
-      for(var i in node.children) {
-        claimAccess(path+i, claim);
-      }
-    }
+    store.setNodeAccess(path, claim);
   }
 
   function isDir(path) {
@@ -1701,15 +1710,26 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
             sync.fetchNow(absPath, function(err) {
               var node = store.getNode(absPath);
               var arr = [];
-              for(var i in node.data) {
+              for(var i in node.children) {
+                if(!node.removed[i]) {
+                  arr.push(i);
+                }
+              }
+              for(var i in node.added) {
                 arr.push(i);
               }
+              //no need to look at node.changed, that doesn't change the listing
               bindContext(cb, context)(arr);
             });
           } else {
             var node = store.getNode(absPath);
             var arr = [];
-            for(var i in node.data) {
+            for(var i in node.children) {
+              if(!node.removed[i]) {
+                arr.push(i);
+              }
+            }
+            for(var i in node.added) {
               arr.push(i);
             }
             return arr;
@@ -1736,17 +1756,17 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         remove: function(path) {
-          return set(makePath(path));
+          return set(path, makePath(path));
         },
         
         storeObject: function(type, path, obj) {
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
-          return set(makePath(path), obj, 'application/json');
+          return set(path, makePath(path), obj, 'application/json');
         },
 
         storeMedia: function(mimeType, path, data) {
-          return set(makePath(path), data, mimeType);
+          return set(path, makePath(path), data, mimeType);
         },
 
         getCurrentWebRoot: function() {
@@ -1755,9 +1775,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
 
         sync: function(path, switchVal) {
           var absPath = makePath(path);
-          var node = store.getNode(absPath);
-          node.startForce = (switchVal != false);
-          store.updateNode(absPath, node);
+          store.setNodeForce(absPath, (switchVal != false));
         },
 
         getState: function(path) {

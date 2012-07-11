@@ -38,7 +38,7 @@ define(['./sync', './store'], function (sync, store) {
   });
   
 
-  function set(absPath, valueStr) {
+  function set(path, absPath, valueStr) {
     if(isDir(absPath)) {
       fireError('attempt to set a value to a directory '+absPath);
       return;
@@ -48,7 +48,7 @@ define(['./sync', './store'], function (sync, store) {
       origin: 'window',
       oldValue: node.data,
       newValue: valueStr,
-      path: absPath
+      path: path
     };
     var ret = store.setNodeData(absPath, valueStr);
     var moduleName = extractModuleName(absPath);
@@ -114,15 +114,26 @@ define(['./sync', './store'], function (sync, store) {
             sync.fetchNow(absPath, function(err) {
               var node = store.getNode(absPath);
               var arr = [];
-              for(var i in node.data) {
+              for(var i in node.children) {
+                if(!node.removed[i]) {
+                  arr.push(i);
+                }
+              }
+              for(var i in node.added) {
                 arr.push(i);
               }
+              //no need to look at node.changed, that doesn't change the listing
               bindContext(cb, context)(arr);
             });
           } else {
             var node = store.getNode(absPath);
             var arr = [];
-            for(var i in node.data) {
+            for(var i in node.children) {
+              if(!node.removed[i]) {
+                arr.push(i);
+              }
+            }
+            for(var i in node.added) {
               arr.push(i);
             }
             return arr;
@@ -149,17 +160,17 @@ define(['./sync', './store'], function (sync, store) {
         },
 
         remove: function(path) {
-          return set(makePath(path));
+          return set(path, makePath(path));
         },
         
         storeObject: function(type, path, obj) {
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
-          return set(makePath(path), obj, 'application/json');
+          return set(path, makePath(path), obj, 'application/json');
         },
 
         storeMedia: function(mimeType, path, data) {
-          return set(makePath(path), data, mimeType);
+          return set(path, makePath(path), data, mimeType);
         },
 
         getCurrentWebRoot: function() {
