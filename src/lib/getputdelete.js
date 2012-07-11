@@ -9,11 +9,7 @@ define(
           cb(err);
         },
         success: function(data, headers) {
-          if(method=='PUT') {
-            cb(null, new Date(headers['Last-Modified']).getTime());
-          } else {
-            cb(null, data);
-          }
+          cb(null, new Date(headers['Last-Modified']).getTime(), headers['Content-Type']);
         },
         timeout: 3000
       }

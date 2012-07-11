@@ -40,9 +40,9 @@ define(['./wireClient', './store'], function(wireClient, store) {
       if(node.startForce !== null) { force = node.startForce; }
       if((force || node.keep) && access) {
         startOne();
-        wireClient.get(path, function (err, data) {
+        wireClient.get(path, function (err, data, timestamp, mimeType) {
           if(data) {
-            store.setNodeData(path, data, false);
+            store.setNodeData(path, data, false, timestamp, mimeType);
           }
           finishOne(err);
           startOne();

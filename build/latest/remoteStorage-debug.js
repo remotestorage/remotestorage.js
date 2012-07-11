@@ -65,7 +65,7 @@ define('lib/platform',[], function() {
           window.clearTimeout(timer);
         }
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
-          params.success(xhr.responseText);
+          params.success(xhr.responseText, xhr.responseHeaders);
         } else {
           params.error(xhr.status);
         }
@@ -917,11 +917,7 @@ define('lib/getputdelete',
           cb(err);
         },
         success: function(data, headers) {
-          if(method=='PUT') {
-            cb(null, new Date(headers['Last-Modified']).getTime());
-          } else {
-            cb(null, data);
-          }
+          cb(null, new Date(headers['Last-Modified']).getTime(), headers['Content-Type']);
         },
         timeout: 3000
       }
@@ -1339,9 +1335,9 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
       if(node.startForce !== null) { force = node.startForce; }
       if((force || node.keep) && access) {
         startOne();
-        wireClient.get(path, function (err, data) {
+        wireClient.get(path, function (err, data, timestamp, mimeType) {
           if(data) {
-            store.setNodeData(path, data, false);
+            store.setNodeData(path, data, false, timestamp, mimeType);
           }
           finishOne(err);
           startOne();
