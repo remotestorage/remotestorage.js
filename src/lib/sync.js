@@ -59,7 +59,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
     }
     startOne();
     for(var path in map) {
-      handleChild(basePath, path, map[path], force, accessInherited, finishOne);
+      handleChild(basePath, path, map[path], force, accessInherited, startOne, finishOne);
     }
     finishOne();
   }
