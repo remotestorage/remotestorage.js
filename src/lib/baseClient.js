@@ -60,8 +60,8 @@ define(['./sync', './store'], function (sync, store) {
 
   function claimAccess(path, claim) {
     var node = store.getNode(path);
-    if((claim != node.access) && (claim == 'rw' || node.access == null)) {
-      node.access = claim;
+    if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
+      node.startAccess = claim;
       store.updateNode(path, node);
       for(var i in node.children) {
         claimAccess(path+i, claim);
@@ -178,7 +178,7 @@ define(['./sync', './store'], function (sync, store) {
         sync: function(path, switchVal) {
           var absPath = makePath(path);
           var node = store.getNode(absPath);
-          node.startForcing = (switchVal != false);
+          node.startForce = (switchVal != false);
           store.updateNode(absPath, node);
         },
 

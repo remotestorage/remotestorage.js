@@ -1,3 +1,12 @@
+// access: null
+// revision: 0
+// keep: true
+// children
+//   tasks/: 999999
+//   public/: 999999
+// data
+//   
+
 //start: store has a tree with three types of node: dir, object, media.
 //object and media nodes have fields:
 //lastModified, type (media/object), mimeType/objectType, data, access, outgoingChange (client-side timestamp or false), sync
@@ -14,36 +23,37 @@ define(['./wireClient', './store'], function(wireClient, store) {
       return 'connected';
     }
   }
-  function handleChild(basePath, path, lastModified, force, accessInherited, startOne, finishOne) {
-    var node = store.getNode(basePath+path);//will return a fake dir with empty children list for item
-    var access = accessInherited || node.access;
+  function handleChild(path, lastModified, force, access, startOne, finishOne) {
+    console.log('handleChild '+path);
+    var node = store.getNode(path);//will return a fake dir with empty children list for item
     if(node.outgoingChange) {
       //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
       startOne();
-      wireClient.set(basePath+path, JSON.stringify(node.data), finishOne);
+      wireClient.set(path, JSON.stringify(node.data), finishOne);
     } else if(node.revision<lastModified) {
-      if(node.startForcing) { force = true; }
-      if(node.stopForcing) { force = false; }
+      if(node.startAccess !== null) { access = node.startAccess; }
+      if(node.startForce !== null) { force = node.startForce; }
       if((force || node.keep) && access) {
         startOne();
-        wireClient.get(basePath+path, function (err, data) {
+        wireClient.get(path, function (err, data) {
           if(data) {
-            var node = store.getNode(basePath+path);
+            var node = store.getNode(path);
             node.data = data;
-            store.updateNode(basePath+path, node);
+            store.updateNode(path, node);
           }
-          pullMap(basePath+path, store.getNode(basePath+path).children, force, access, function(err2) {
+          pullMap(path, store.getNode(path).children, force, access, function(err2) {
             finishOne(err || err2);
           });//recurse without forcing
         });
       } else {
-        //store.forget(basePath+path);
+        //store.forget(path);
         startOne();
-        pullMap(basePath+path, node.children, force, access, finishOne);
+        pullMap(path, node.children, force, access, finishOne);
       }
     }// else everything up to date
   }
-  function pullMap(basePath, map, force, accessInherited, cb) {
+  function pullMap(basePath, map, force, access, cb) {
+    console.log('pullMap '+basePath);
     var outstanding=0, errors=false;
     function startOne() {
       outstanding++;
@@ -59,7 +69,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
     }
     startOne();
     for(var path in map) {
-      handleChild(basePath, path, map[path], force, accessInherited, startOne, finishOne);
+      handleChild(basePath+path, map[path], force, access, startOne, finishOne);
     }
     finishOne();
   }

@@ -1,26 +1,4 @@
 define([], function () {
-//for the syncing, it turns out to be useful to store nodes for items, and store their data separately.
-//we can then also use those nodes to mark where outgoing changes exist.
-//so we would have one store for nodes, one for cache, and one for diffs.
-//windows on the same device should share the diffs with each other, but basically flush their memCache whenever a diff or a cache or a node changes.
-//memCache can be one big hashmap of nodes.
-//actually, cache value and diff can be stored on the node, that makes it all a lot easier
-//when a diff exists, then cache value can be expunged, so really, we only have to mark the node as 'outgoing:' with a timestamp.
-//so in memCache, each node has fields:
-//-lastRemoteRevisionSeen: (integer, not necessarily a timestamp!)
-//-force: true/false/undefined
-//-lastFetched: (timestamp on local clock)
-//-outgoingChange: (timestamp on local clock or undefined)
-//-keep: true/false
-//-access: r/rw/null
-//-children: map of filenames->true; {} for leafs
-//-data: (obj), only for leafs
-//
-//store should expose: setObject, setMedia, removeItem, getData, getStatus, from baseClient (will lead to outgoingChange)
-//also: getNode (from sync), updateNode (from sync), forgetNode (from sync)
-//getNode should return {revision: 0} for a cache miss, but {revision:0, access:null, children:['bar']} for /foo if /foo/bar exists
-//when you setObject or setMedia, parent nodes should be created and/or updated.
-
   var onChange,
     prefixNodes = 'remote_storage_nodes:';
   window.addEventListener('storage', function(e) {
@@ -42,12 +20,16 @@ define([], function () {
       }
     }
     if(!value) {
-      value = {
-        access: null,
-        revision: 0,
+      value = {//this is what an empty node looks like
+        startAccess: null,
+        startForce: null,
+        lastModified: 0,
+        outgoingChanges: false,
         keep: true,
         children: {},
-        data: (isDir(path)? {} : undefined)
+        added: {},
+        removed: {},
+        changed: {},
       };
     }
     return value;
@@ -134,7 +116,7 @@ define([], function () {
   }
   return {
     on         : on,//error,change(origin=tab,device,cloud)
-    
+   
     getNode    : getNode,
     updateNode : updateNode,
     forget     : forget,
