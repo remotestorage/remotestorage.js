@@ -1246,14 +1246,14 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
     }
   }
   function pullMap(basePath, map, force, accessInherited, cb) {
-    var outstanding=0;
+    var outstanding=0, success=true;
     function startOne() {
       outstanding++;
     }
     function finishOne() {
       outstanding--;
       if(outstanding==0) {
-        cb();
+        cb(success);
       }
     }
     startOne();
@@ -1264,7 +1264,9 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
         //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
         startOne();
         wireClient.set(basePath+path, JSON.stringify(node.data), function(err) {
-          console.log(err);
+          if(err) {
+            success = false;
+          }
           finishOne();
         });
       } else if(node.revision<map[path]) {
@@ -1277,6 +1279,9 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
               var node = store.getNode(basePath+path);
               node.data = data;
               store.updateNode(basePath+path, node);
+            }
+            if(err) {
+              success = false;
             }
             pullMap(basePath+path, store.getNode(basePath+path).children, force, access, finishOne);//recurse without forcing
           });
@@ -1291,7 +1296,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
   }
   function syncNow(path, cb) {
     busy=true;
-    pullMap('', {path: Infinity}, false, function() {
+    pullMap('', {path: Infinity}, false, false, function() {
       busy=false;
       cb();
     });
