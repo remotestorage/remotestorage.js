@@ -84,7 +84,7 @@ define(['./couch', './dav', './getputdelete'], function (couch, dav, getputdelet
         });
       }
     },
-    set: function (path, valueStr, cb) {
+    set: function (path, valueStr, mimeType, cb) {
       var storageType = get('storageType'),
         storageHref = get('storageHref'),
         token = get('bearerToken');
@@ -94,7 +94,7 @@ define(['./couch', './dav', './getputdelete'], function (couch, dav, getputdelet
         cb('argument "valueStr" should be a string');
       } else {
         getDriver(storageType, function (d) {
-          d.set(resolveKey(storageType, storageHref, '', path), valueStr, token, cb);
+          d.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
         });
       }
     },

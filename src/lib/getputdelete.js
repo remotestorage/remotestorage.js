@@ -8,8 +8,12 @@ define(
         error: function(err) {
           cb(err);
         },
-        success: function(data) {
-          cb(null, data);
+        success: function(data, headers) {
+          if(method=='PUT') {
+            cb(null, new Date(headers['Last-Modified']).getTime());
+          } else {
+            cb(null, data);
+          }
         },
         timeout: 3000
       }
@@ -45,7 +49,7 @@ define(
       });
     }
 
-    function put(url, value, token, cb) {
+    function put(url, value, mimeType, token, cb) {
       doCall('PUT', url, value, token, function(err, data) {
         if(err == 404) {
           doPut(url, value, token, 1, cb);

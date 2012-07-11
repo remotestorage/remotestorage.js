@@ -675,7 +675,7 @@ define('lib/couch',
         }
       });
     }
-    function put(url, value, token, cb) {
+    function put(url, value, mimeType, token, cb) {
       var revision = getShadowCouchRev(url);
       var obj = {
         value: value
@@ -862,7 +862,7 @@ define('lib/dav',
       }
     }
 
-    function put(url, value, token, cb) {
+    function put(url, value, mimeType, token, cb) {
       doPut(url, value, token, 0, cb);
     }
     function doPut(url, value, token, mkcolLevel, cb) {
@@ -916,8 +916,12 @@ define('lib/getputdelete',
         error: function(err) {
           cb(err);
         },
-        success: function(data) {
-          cb(null, data);
+        success: function(data, headers) {
+          if(method=='PUT') {
+            cb(null, new Date(headers['Last-Modified']).getTime());
+          } else {
+            cb(null, data);
+          }
         },
         timeout: 3000
       }
@@ -953,7 +957,7 @@ define('lib/getputdelete',
       });
     }
 
-    function put(url, value, token, cb) {
+    function put(url, value, mimeType, token, cb) {
       doCall('PUT', url, value, token, function(err, data) {
         if(err == 404) {
           doPut(url, value, token, 1, cb);
@@ -1063,7 +1067,7 @@ define('lib/wireClient',['./couch', './dav', './getputdelete'], function (couch,
         });
       }
     },
-    set: function (path, valueStr, cb) {
+    set: function (path, valueStr, mimeType, cb) {
       var storageType = get('storageType'),
         storageHref = get('storageHref'),
         token = get('bearerToken');
@@ -1073,7 +1077,7 @@ define('lib/wireClient',['./couch', './dav', './getputdelete'], function (couch,
         cb('argument "valueStr" should be a string');
       } else {
         getDriver(storageType, function (d) {
-          d.set(resolveKey(storageType, storageHref, '', path), valueStr, token, cb);
+          d.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
         });
       }
     },
