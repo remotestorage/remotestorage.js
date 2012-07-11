@@ -15,9 +15,11 @@ define(
       }
 
       platformObj.headers = {
-        'Authorization': 'Bearer ' + token,
-        'Content-Type':  mimeType,
-      };
+        'Authorization': 'Bearer ' + token
+      }
+      if(mimeType) {
+        platformObj.headers['Content-Type'] = mimeType;
+      }
 
       platformObj.fields = {withCredentials: 'true'};
       if(method != 'GET') {
@@ -55,11 +57,11 @@ define(
       });
     }
 
-    function set(url, valueStr, token, cb) {
+    function set(url, valueStr, mimeType, token, cb) {
       if(typeof(valueStr) == 'undefined') {
-        doCall('DELETE', url, null, token, cb);
+        doCall('DELETE', url, null, null, token, cb);
       } else {
-        put(url, valueStr, token, cb);
+        put(url, valueStr, mimeType, token, cb);
       }
     }
 

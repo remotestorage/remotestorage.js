@@ -923,9 +923,11 @@ define('lib/getputdelete',
       }
 
       platformObj.headers = {
-        'Authorization': 'Bearer ' + token,
-        'Content-Type':  mimeType,
-      };
+        'Authorization': 'Bearer ' + token
+      }
+      if(mimeType) {
+        platformObj.headers['Content-Type'] = mimeType;
+      }
 
       platformObj.fields = {withCredentials: 'true'};
       if(method != 'GET') {
@@ -963,11 +965,11 @@ define('lib/getputdelete',
       });
     }
 
-    function set(url, valueStr, token, cb) {
+    function set(url, valueStr, mimeType, token, cb) {
       if(typeof(valueStr) == 'undefined') {
-        doCall('DELETE', url, null, token, cb);
+        doCall('DELETE', url, null, null, token, cb);
       } else {
-        put(url, valueStr, token, cb);
+        put(url, valueStr, mimeType, token, cb);
       }
     }
 
@@ -1324,7 +1326,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
     if(node.outgoingChange) {
       //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
       startOne();
-      wireClient.set(path, JSON.stringify(node.data), function(err, timestamp) {
+      wireClient.set(path, JSON.stringify(node.data), node.mimeType, function(err, timestamp) {
         if(!err) {
           store.clearOutgoingChange(path, timestamp);
         }
