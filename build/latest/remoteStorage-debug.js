@@ -273,6 +273,333 @@ define('lib/platform',[], function() {
   }
 });
 
+define('lib/webfinger',
+  ['./platform'],
+  function (platform) {
+
+      ///////////////
+     // Webfinger //
+    ///////////////
+
+    function userAddress2hostMetas(userAddress, cb) {
+      var parts = userAddress.toLowerCase().split('@');
+      if(parts.length < 2) {
+        cb('That is not a user address. There is no @-sign in it');
+      } else if(parts.length > 2) {
+        cb('That is not a user address. There is more than one @-sign in it');
+      } else {
+        if(!(/^[\.0-9a-z\-\_]+$/.test(parts[0]))) {
+          cb('That is not a user address. There are non-dotalphanumeric symbols before the @-sign: "'+parts[0]+'"');
+        } else if(!(/^[\.0-9a-z\-]+$/.test(parts[1]))) {
+          cb('That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
+        } else {
+          var query = '?resource=acct:'+encodeURIComponent(userAddress);
+          cb(null, [
+            'https://'+parts[1]+'/.well-known/host-meta.json'+query,
+            'https://'+parts[1]+'/.well-known/host-meta'+query,
+            'http://'+parts[1]+'/.well-known/host-meta.json'+query,
+            'http://'+parts[1]+'/.well-known/host-meta'+query
+            ]);
+        }
+      }
+    }
+    function fetchXrd(addresses, timeout, cb) {
+      var firstAddress = addresses.shift();
+      if(firstAddress) {
+        platform.ajax({
+          url: firstAddress,
+          success: function(data) {
+            parseAsJrd(data, function(err, obj){
+              if(err) {
+                parseAsXrd(data, function(err, obj){
+                  if(err) {
+                    fetchXrd(addresses, timeout, cb);
+                  } else {
+                    cb(null, obj);
+                  }
+                });
+              } else {
+                cb(null, obj);
+              }
+            });
+          },
+          error: function(data) {
+            fetchXrd(addresses, timeout, cb);
+          },
+          timeout: timeout
+        });
+      } else {
+        cb('could not fetch xrd');
+      }
+    }
+    function parseAsXrd(str, cb) {
+      platform.parseXml(str, function(err, obj) {
+        if(err) {
+          cb(err);
+        } else {
+          if(obj && obj.Link) {
+            var links = {};
+            if(obj.Link && obj.Link['@']) {//obj.Link is one element
+              if(obj.Link['@'].rel) {
+                links[obj.Link['@'].rel]=obj.Link['@'];
+              }
+            } else {//obj.Link is an array
+              for(var i=0; i<obj.Link.length; i++) {
+                if(obj.Link[i]['@'] && obj.Link[i]['@'].rel) {
+                  links[obj.Link[i]['@'].rel]=obj.Link[i]['@'];
+                }
+              }
+            }
+            cb(null, links);
+          } else {
+            cb('found valid xml but with no Link elements in there');
+          }
+        }
+      });
+    }
+    function parseAsJrd(str, cb) {
+      var obj;
+      try {
+        obj = JSON.parse(str);
+      } catch(e) {
+        cb('not valid JSON');
+        return;
+      }
+      var links = {};
+      for(var i=0; i<obj.links.length; i++) {
+        //just take the first one of each rel:
+        if(obj.links[i].rel) {
+          links[obj.links[i].rel]=obj.links[i];
+        }
+      }
+      cb(null, links);
+    }
+    function parseRemoteStorageLink(obj, cb) {
+      //FROM:
+      //{
+      //  api: 'WebDAV',
+      //  template: 'http://host/foo/{category}/bar',
+      //  auth: 'http://host/auth'
+      //}
+      //TO:
+      //{
+      //  type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav',
+      //  href: 'http://host/foo/',
+      //  legacySuffix: '/bar'
+      //  properties: {
+      //    'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
+      //    'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
+      //    'auth-endpoint': 'http://host/auth'
+      //  }
+      //}
+      if(obj && obj['auth'] && obj['api'] && obj['template']) {
+        var storageInfo = {};
+        if(obj['api'] == 'simple') {
+          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple';
+        } else if(obj['api'] == 'WebDAV') {
+          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav';
+        } else if(obj['api'] == 'CouchDB') {
+          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb';
+        } else {
+          cb('api not recognized');
+          return;
+        }
+
+        var templateParts = obj['template'].split('{category}');
+        if(templateParts[0].substring(templateParts[0].length-1)=='/') {
+          storageInfo['href'] = templateParts[0].substring(0, templateParts[0].length-1);
+        } else {
+          storageInfo['href'] = templateParts[0];
+        }
+        storageInfo.properties = {
+          "access-methods": ["http://oauth.net/core/1.0/parameters/auth-header"],
+          "auth-methods": ["http://oauth.net/discovery/1.0/consumer-identity/static"],
+          "auth-endpoint": obj['auth']
+        };
+        if(templateParts.length == 2 && templateParts[1] != '/') {
+          storageInfo.properties['legacySuffix'] = templateParts[1];
+        }
+        cb(null, storageInfo);
+      } else if(obj
+          && obj['href']
+          && obj['type']
+          && obj['properties']
+          && obj['properties']['auth-endpoint']
+          ) {
+        cb(null, obj);
+      } else {
+        cb('could not extract storageInfo from lrdd');
+      }
+    }
+    function getStorageInfo(userAddress, options, cb) {
+      userAddress2hostMetas(userAddress, function(err1, hostMetaAddresses) {
+        if(err1) {
+          cb(err1);
+        } else {
+          fetchXrd(hostMetaAddresses, options.timeout, function(err2, hostMetaLinks) {
+            if(err2) {
+              cb('could not fetch host-meta for '+userAddress);
+            } else {
+              if(hostMetaLinks['remoteStorage']) {
+                parseRemoteStorageLink(hostMetaLinks['remoteStorage'], cb);
+              } else if(hostMetaLinks['remotestorage']) {
+                parseRemoteStorageLink(hostMetaLinks['remoteStorage'], cb);
+              } else if(hostMetaLinks['lrdd'] && hostMetaLinks['lrdd'].template) {
+                var parts = hostMetaLinks['lrdd'].template.split('{uri}');
+                var lrddAddresses=[parts.join('acct:'+userAddress), parts.join(userAddress)];
+                 fetchXrd(lrddAddresses, options.timeout, function(err4, lrddLinks) {
+                  if(err4) {
+                    cb('could not fetch lrdd for '+userAddress);
+                  } else if(lrddLinks['remoteStorage']) {
+                    parseRemoteStorageLink(lrddLinks['remoteStorage'], cb);
+                  } else if(lrddLinks['remotestorage']) {
+                    parseRemoteStorageLink(lrddLinks['remotestorage'], cb);
+                  } else {
+                    cb('could not extract storageInfo from lrdd');
+                  }
+                }); 
+              } else {
+                cb('could not extract lrdd template from host-meta');
+              }
+            }
+          });
+        }
+      });
+    }
+    return {
+      getStorageInfo: getStorageInfo
+    }
+});
+
+define('lib/hardcoded',
+  ['./platform'],
+  function (platform) {
+    var guesses={
+      //'dropbox.com': {
+      //  api: 'Dropbox',
+      //  authPrefix: 'http://proxy.unhosted.org/OAuth.html?userAddress=',
+      //  authSuffix: '',
+      //  templatePrefix: 'http://proxy.unhosted.org/Dropbox/',
+      //  templateSuffix: '/{category}/'
+      //},
+      //'gmail.com': {
+      //  api: 'GoogleDocs',
+      //  authPrefix: 'http://proxy.unhosted.org/OAuth.html?userAddress=',
+      //  authSuffix: '',
+      //  templatePrefix: 'http://proxy.unhosted.org/GoogleDocs/',
+      //  templateSuffix: '/{category}/'
+      //},
+      'iriscouch.com': {
+        type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb',
+        authPrefix: 'http://proxy.unhosted.org/OAuth.html?userAddress=',
+        hrefPrefix: 'http://proxy.unhosted.org/CouchDb',
+        pathFormat: 'host/user'
+      }
+    };
+    (function() {
+      var surfnetSaml= {
+        type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple',
+        authPrefix: 'https://storage.surfnetlabs.nl/saml/oauth/authorize?user_address=',
+        hrefPrefix: 'https://storage.surfnetlabs.nl/saml',
+        pathFormat: 'user@host'
+      };
+      var surfnetBrowserId= {
+        type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple',
+        authPrefix: 'https://storage.surfnetlabs.nl/browserid/oauth/authorize?user_address=',
+        hrefPrefix: 'https://storage.surfnetlabs.nl/browserid',
+        pathFormat: 'user@host'
+      };
+      var dutchUniversitiesNoSaml= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
+        'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'uvt.nl', 'wur.nl',
+        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl',
+        'ahk.nl', 'cah.nl', 'driestar.nl', 'che.nl', 'chn.nl', 'hen.nl', 'huygens.nl', 'diedenoort.nl', 'efa.nl', 'dehaagsehogeschool.nl',
+        'hasdenbosch.nl', 'inholland.nl', 'hsbrabant.nl', 'dehorst.nl', 'kempel.nl', 'domstad.nl', 'hsdrenthe.nl', 'edith.nl', 'hsleiden.nl',
+        'interport.nl', 'schumann.nl', 'hsbos.nl', 'hva.nl', 'han.nl', 'hvu.nl', 'hesasd.nl', 'hes-rdam.nl', 'hku.nl', 'hmtr.nl',
+        'hzeeland.nl', 'hotelschool.nl', 'ichtus-rdam.nl', 'larenstein.nl', 'iselinge.nl', 'koncon.nl', 'kabk.nl', 'lhump.nl', 'msm.nl', 'hsmarnix.nl',
+        'nhtv.nl', 'nth.nl', 'nhl.nl', 'sandberg.nl', 'hsij.nl', 'stoas.nl', 'thrijswijk.nl', 'tio.nl', 'vhall.nl', 'chw.nl', 'hogeschoolrotterdam.nl'];
+      var dutchUniversitiesSaml= ['surfnet.nl', 'fontys.nl'];
+      for(var i=0;i<dutchUniversitiesSaml.length;i++) {
+        guesses[dutchUniversitiesSaml[i]]=surfnetSaml;
+      }
+      for(var i=0;i<dutchUniversitiesNoSaml.length;i++) {
+        guesses[dutchUniversitiesNoSaml[i]]=surfnetBrowserId;
+      }
+    })();
+
+    function testIrisCouch(userAddress, options, cb) {
+      platform.ajax({
+        url: 'http://proxy.unhosted.org/irisCouchCheck?q=acct:'+userAddress,
+        //url: 'http://proxy.unhosted.org/lookup?q=acct:'+userAddress,
+        success: function(data) {
+          var obj;
+          try {
+            obj=JSON.parse(data);
+          } catch(e) {
+          }
+          if(!obj) {
+            cb('err: unparsable response from IrisCouch check');
+          } else {
+            cb(null, obj);
+          }
+        },
+        error: function(err) {
+          cb('err: during IrisCouch test:'+err);
+        },
+        timeout: options.timeout,
+        //data: userName
+      });
+    }
+    function mapToIrisCouch(userAddress) {
+      var parts=userAddress.split('@');
+      if(['libredocs', 'mail', 'browserid', 'me'].indexOf(parts[0]) == -1) {
+        return parts[0]+'@iriscouch.com';
+      } else {
+        return parts[2].substring(0, parts[2].indexOf('.'))+'@iriscouch.com';
+      }
+    }
+    function guessStorageInfo(userAddress, options, cb) {
+      var parts=userAddress.split('@');
+      if(parts.length < 2) {
+        cb('That is not a user address. There is no @-sign in it');
+      } else if(parts.length > 2) {
+        cb('That is not a user address. There is more than one @-sign in it');
+      } else {
+        if(!(/^[\.0-9A-Za-z]+$/.test(parts[0]))) {
+          cb('That is not a user address. There are non-dotalphanumeric symbols before the @-sign: "'+parts[0]+'"');
+        } else if(!(/^[\.0-9A-Za-z\-]+$/.test(parts[1]))) {
+          cb('That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
+        } else {
+          while(parts[1].indexOf('.') != -1) {
+            if(guesses[parts[1]]) {
+              blueprint=guesses[parts[1]];
+              cb(null, {
+                rel: 'https://www.w3.org/community/unhosted/wiki/personal-data-service-00',
+                type: blueprint.type,
+                href: blueprint.hrefPrefix+'/'+(blueprint.pathFormat=='user@host'?userAddress:parts[1]+'/'+parts[0]),
+                properties: {
+                  'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
+                  'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
+                  'auth-endpoint': blueprint.authPrefix+userAddress
+                }
+              });
+              return;
+            }
+            parts[1]=parts[1].substring(parts[1].indexOf('.')+1);
+          }
+          if(new Date() < new Date('9/9/2012')) {//temporary measure to help our 160 fakefinger users migrate learn to use their @iriscouch.com user addresses
+            //testIrisCouch(mapToIrisCouch(userAddress), cb);
+            testIrisCouch(userAddress, options, cb);
+          } else {
+            cb('err: not a guessable domain, and fakefinger-migration has ended');
+          }
+        }
+      }
+    }
+    return {
+      guessStorageInfo: guessStorageInfo
+    }
+});
+
 define('lib/couch',
   ['./platform'],
   function (platform) {
@@ -650,334 +977,7 @@ define('lib/getputdelete',
     }
 });
 
-define('lib/webfinger',
-  ['./platform'],
-  function (platform) {
-
-      ///////////////
-     // Webfinger //
-    ///////////////
-
-    function userAddress2hostMetas(userAddress, cb) {
-      var parts = userAddress.toLowerCase().split('@');
-      if(parts.length < 2) {
-        cb('That is not a user address. There is no @-sign in it');
-      } else if(parts.length > 2) {
-        cb('That is not a user address. There is more than one @-sign in it');
-      } else {
-        if(!(/^[\.0-9a-z\-\_]+$/.test(parts[0]))) {
-          cb('That is not a user address. There are non-dotalphanumeric symbols before the @-sign: "'+parts[0]+'"');
-        } else if(!(/^[\.0-9a-z\-]+$/.test(parts[1]))) {
-          cb('That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
-        } else {
-          var query = '?resource=acct:'+encodeURIComponent(userAddress);
-          cb(null, [
-            'https://'+parts[1]+'/.well-known/host-meta.json'+query,
-            'https://'+parts[1]+'/.well-known/host-meta'+query,
-            'http://'+parts[1]+'/.well-known/host-meta.json'+query,
-            'http://'+parts[1]+'/.well-known/host-meta'+query
-            ]);
-        }
-      }
-    }
-    function fetchXrd(addresses, timeout, cb) {
-      var firstAddress = addresses.shift();
-      if(firstAddress) {
-        platform.ajax({
-          url: firstAddress,
-          success: function(data) {
-            parseAsJrd(data, function(err, obj){
-              if(err) {
-                parseAsXrd(data, function(err, obj){
-                  if(err) {
-                    fetchXrd(addresses, timeout, cb);
-                  } else {
-                    cb(null, obj);
-                  }
-                });
-              } else {
-                cb(null, obj);
-              }
-            });
-          },
-          error: function(data) {
-            fetchXrd(addresses, timeout, cb);
-          },
-          timeout: timeout
-        });
-      } else {
-        cb('could not fetch xrd');
-      }
-    }
-    function parseAsXrd(str, cb) {
-      platform.parseXml(str, function(err, obj) {
-        if(err) {
-          cb(err);
-        } else {
-          if(obj && obj.Link) {
-            var links = {};
-            if(obj.Link && obj.Link['@']) {//obj.Link is one element
-              if(obj.Link['@'].rel) {
-                links[obj.Link['@'].rel]=obj.Link['@'];
-              }
-            } else {//obj.Link is an array
-              for(var i=0; i<obj.Link.length; i++) {
-                if(obj.Link[i]['@'] && obj.Link[i]['@'].rel) {
-                  links[obj.Link[i]['@'].rel]=obj.Link[i]['@'];
-                }
-              }
-            }
-            cb(null, links);
-          } else {
-            cb('found valid xml but with no Link elements in there');
-          }
-        }
-      });
-    }
-    function parseAsJrd(str, cb) {
-      var obj;
-      try {
-        obj = JSON.parse(str);
-      } catch(e) {
-        cb('not valid JSON');
-        return;
-      }
-      var links = {};
-      for(var i=0; i<obj.links.length; i++) {
-        //just take the first one of each rel:
-        if(obj.links[i].rel) {
-          links[obj.links[i].rel]=obj.links[i];
-        }
-      }
-      cb(null, links);
-    }
-    function parseRemoteStorageLink(obj, cb) {
-      //FROM:
-      //{
-      //  api: 'WebDAV',
-      //  template: 'http://host/foo/{category}/bar',
-      //  auth: 'http://host/auth'
-      //}
-      //TO:
-      //{
-      //  type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav',
-      //  href: 'http://host/foo/',
-      //  legacySuffix: '/bar'
-      //  properties: {
-      //    'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
-      //    'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
-      //    'auth-endpoint': 'http://host/auth'
-      //  }
-      //}
-      if(obj && obj['auth'] && obj['api'] && obj['template']) {
-        var storageInfo = {};
-        if(obj['api'] == 'simple') {
-          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple';
-        } else if(obj['api'] == 'WebDAV') {
-          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav';
-        } else if(obj['api'] == 'CouchDB') {
-          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb';
-        } else {
-          cb('api not recognized');
-          return;
-        }
-
-        var templateParts = obj['template'].split('{category}');
-        if(templateParts[0].substring(templateParts[0].length-1)=='/') {
-          storageInfo['href'] = templateParts[0].substring(0, templateParts[0].length-1);
-        } else {
-          storageInfo['href'] = templateParts[0];
-        }
-        storageInfo.properties = {
-          "access-methods": ["http://oauth.net/core/1.0/parameters/auth-header"],
-          "auth-methods": ["http://oauth.net/discovery/1.0/consumer-identity/static"],
-          "auth-endpoint": obj['auth']
-        };
-        if(templateParts.length == 2 && templateParts[1] != '/') {
-          storageInfo.properties['legacySuffix'] = templateParts[1];
-        }
-        cb(null, storageInfo);
-      } else if(obj
-          && obj['href']
-          && obj['type']
-          && obj['properties']
-          && obj['properties']['auth-endpoint']
-          ) {
-        cb(null, obj);
-      } else {
-        cb('could not extract storageInfo from lrdd');
-      }
-    }
-    function getStorageInfo(userAddress, options, cb) {
-      userAddress2hostMetas(userAddress, function(err1, hostMetaAddresses) {
-        if(err1) {
-          cb(err1);
-        } else {
-          fetchXrd(hostMetaAddresses, options.timeout, function(err2, hostMetaLinks) {
-            if(err2) {
-              cb('could not fetch host-meta for '+userAddress);
-            } else {
-              if(hostMetaLinks['remoteStorage']) {
-                parseRemoteStorageLink(hostMetaLinks['remoteStorage'], cb);
-              } else if(hostMetaLinks['remotestorage']) {
-                parseRemoteStorageLink(hostMetaLinks['remoteStorage'], cb);
-              } else if(hostMetaLinks['lrdd'] && hostMetaLinks['lrdd'].template) {
-                var parts = hostMetaLinks['lrdd'].template.split('{uri}');
-                var lrddAddresses=[parts.join('acct:'+userAddress), parts.join(userAddress)];
-                 fetchXrd(lrddAddresses, options.timeout, function(err4, lrddLinks) {
-                  if(err4) {
-                    cb('could not fetch lrdd for '+userAddress);
-                  } else if(lrddLinks['remoteStorage']) {
-                    parseRemoteStorageLink(lrddLinks['remoteStorage'], cb);
-                  } else if(lrddLinks['remotestorage']) {
-                    parseRemoteStorageLink(lrddLinks['remotestorage'], cb);
-                  } else {
-                    cb('could not extract storageInfo from lrdd');
-                  }
-                }); 
-              } else {
-                cb('could not extract lrdd template from host-meta');
-              }
-            }
-          });
-        }
-      });
-    }
-    return {
-      getStorageInfo: getStorageInfo
-    }
-});
-
-define('lib/hardcoded',
-  ['./platform'],
-  function (platform) {
-    var guesses={
-      //'dropbox.com': {
-      //  api: 'Dropbox',
-      //  authPrefix: 'http://proxy.unhosted.org/OAuth.html?userAddress=',
-      //  authSuffix: '',
-      //  templatePrefix: 'http://proxy.unhosted.org/Dropbox/',
-      //  templateSuffix: '/{category}/'
-      //},
-      //'gmail.com': {
-      //  api: 'GoogleDocs',
-      //  authPrefix: 'http://proxy.unhosted.org/OAuth.html?userAddress=',
-      //  authSuffix: '',
-      //  templatePrefix: 'http://proxy.unhosted.org/GoogleDocs/',
-      //  templateSuffix: '/{category}/'
-      //},
-      'iriscouch.com': {
-        type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb',
-        authPrefix: 'http://proxy.unhosted.org/OAuth.html?userAddress=',
-        hrefPrefix: 'http://proxy.unhosted.org/CouchDb',
-        pathFormat: 'host/user'
-      }
-    };
-    (function() {
-      var surfnetSaml= {
-        type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple',
-        authPrefix: 'https://storage.surfnetlabs.nl/saml/oauth/authorize?user_address=',
-        hrefPrefix: 'https://storage.surfnetlabs.nl/saml',
-        pathFormat: 'user@host'
-      };
-      var surfnetBrowserId= {
-        type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple',
-        authPrefix: 'https://storage.surfnetlabs.nl/browserid/oauth/authorize?user_address=',
-        hrefPrefix: 'https://storage.surfnetlabs.nl/browserid',
-        pathFormat: 'user@host'
-      };
-      var dutchUniversitiesNoSaml= ['leidenuniv.nl', 'leiden.edu', 'uva.nl', 'vu.nl', 'eur.nl', 'maastrichtuniversity.nl',
-        'ru.nl', 'rug.nl', 'uu.nl', 'tudelft.nl', 'utwente.nl', 'tue.nl', 'tilburguniversity.edu', 'uvt.nl', 'wur.nl',
-        'wageningenuniversity.nl', 'ou.nl', 'lumc.nl', 'amc.nl',
-        'ahk.nl', 'cah.nl', 'driestar.nl', 'che.nl', 'chn.nl', 'hen.nl', 'huygens.nl', 'diedenoort.nl', 'efa.nl', 'dehaagsehogeschool.nl',
-        'hasdenbosch.nl', 'inholland.nl', 'hsbrabant.nl', 'dehorst.nl', 'kempel.nl', 'domstad.nl', 'hsdrenthe.nl', 'edith.nl', 'hsleiden.nl',
-        'interport.nl', 'schumann.nl', 'hsbos.nl', 'hva.nl', 'han.nl', 'hvu.nl', 'hesasd.nl', 'hes-rdam.nl', 'hku.nl', 'hmtr.nl',
-        'hzeeland.nl', 'hotelschool.nl', 'ichtus-rdam.nl', 'larenstein.nl', 'iselinge.nl', 'koncon.nl', 'kabk.nl', 'lhump.nl', 'msm.nl', 'hsmarnix.nl',
-        'nhtv.nl', 'nth.nl', 'nhl.nl', 'sandberg.nl', 'hsij.nl', 'stoas.nl', 'thrijswijk.nl', 'tio.nl', 'vhall.nl', 'chw.nl', 'hogeschoolrotterdam.nl'];
-      var dutchUniversitiesSaml= ['surfnet.nl', 'fontys.nl'];
-      for(var i=0;i<dutchUniversitiesSaml.length;i++) {
-        guesses[dutchUniversitiesSaml[i]]=surfnetSaml;
-      }
-      for(var i=0;i<dutchUniversitiesNoSaml.length;i++) {
-        guesses[dutchUniversitiesNoSaml[i]]=surfnetBrowserId;
-      }
-    })();
-
-    function testIrisCouch(userAddress, options, cb) {
-      platform.ajax({
-        url: 'http://proxy.unhosted.org/irisCouchCheck?q=acct:'+userAddress,
-        //url: 'http://proxy.unhosted.org/lookup?q=acct:'+userAddress,
-        success: function(data) {
-          var obj;
-          try {
-            obj=JSON.parse(data);
-          } catch(e) {
-          }
-          if(!obj) {
-            cb('err: unparsable response from IrisCouch check');
-          } else {
-            cb(null, obj);
-          }
-        },
-        error: function(err) {
-          cb('err: during IrisCouch test:'+err);
-        },
-        timeout: options.timeout,
-        //data: userName
-      });
-    }
-    function mapToIrisCouch(userAddress) {
-      var parts=userAddress.split('@');
-      if(['libredocs', 'mail', 'browserid', 'me'].indexOf(parts[0]) == -1) {
-        return parts[0]+'@iriscouch.com';
-      } else {
-        return parts[2].substring(0, parts[2].indexOf('.'))+'@iriscouch.com';
-      }
-    }
-    function guessStorageInfo(userAddress, options, cb) {
-      var parts=userAddress.split('@');
-      if(parts.length < 2) {
-        cb('That is not a user address. There is no @-sign in it');
-      } else if(parts.length > 2) {
-        cb('That is not a user address. There is more than one @-sign in it');
-      } else {
-        if(!(/^[\.0-9A-Za-z]+$/.test(parts[0]))) {
-          cb('That is not a user address. There are non-dotalphanumeric symbols before the @-sign: "'+parts[0]+'"');
-        } else if(!(/^[\.0-9A-Za-z\-]+$/.test(parts[1]))) {
-          cb('That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
-        } else {
-          while(parts[1].indexOf('.') != -1) {
-            if(guesses[parts[1]]) {
-              blueprint=guesses[parts[1]];
-              cb(null, {
-                rel: 'https://www.w3.org/community/unhosted/wiki/personal-data-service-00',
-                type: blueprint.type,
-                href: blueprint.hrefPrefix+'/'+(blueprint.pathFormat=='user@host'?userAddress:parts[1]+'/'+parts[0]),
-                properties: {
-                  'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
-                  'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
-                  'auth-endpoint': blueprint.authPrefix+userAddress
-                }
-              });
-              return;
-            }
-            parts[1]=parts[1].substring(parts[1].indexOf('.')+1);
-          }
-          if(new Date() < new Date('9/9/2012')) {//temporary measure to help our 160 fakefinger users migrate learn to use their @iriscouch.com user addresses
-            //testIrisCouch(mapToIrisCouch(userAddress), cb);
-            testIrisCouch(userAddress, options, cb);
-          } else {
-            cb('err: not a guessable domain, and fakefinger-migration has ended');
-          }
-        }
-      }
-    }
-    return {
-      guessStorageInfo: guessStorageInfo
-    }
-});
-
-define('lib/wireClient',['./platform', './couch', './dav', './getputdelete'], function (platform, couch, dav, getputdelete) {
+define('lib/wireClient',['./couch', './dav', './getputdelete'], function (couch, dav, getputdelete) {
   var prefix = 'remoteStorage_wire_',
     memCache = {},
     stateHandler = function(){},
@@ -1545,7 +1545,10 @@ define('lib/widget',['./webfinger', './hardcoded', './wireClient', './sync', './
     }
   }
   function handleCubeClick() {
-    sync.syncNow();
+    setWidgetState('busy');
+    sync.syncNow('/', function(success) {
+      setWidgetState((success?'connected':'offline'));
+    });
     //if(widgetState == 'connected') {
     //  handleDisconnectClick();
     //}
@@ -1560,7 +1563,6 @@ define('lib/widget',['./webfinger', './hardcoded', './wireClient', './sync', './
   function display(setConnectElement, setLocale) {
     connectElement = setConnectElement;
     locale = setLocale;
-    sync.on('state', setWidgetState);
     wireClient.on('error', function(err) {
       platform.alert(translate(err));
     });
@@ -1772,18 +1774,12 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
 
 define('remoteStorage',[
   'require',
-  './lib/platform',
-  './lib/couch',
-  './lib/dav',
-  './lib/getputdelete',
-  './lib/webfinger',
-  './lib/hardcoded',
   './lib/widget',
   './lib/baseClient',
-  './lib/wireClient',
-  './lib/sync'
-], function(require, platform, couch, dav, getputdelete, webfinger, hardcoded,
-            wireClient, widget, baseClient, wireClient, sync) {
+  './lib/store',
+  './lib/sync',
+  './lib/wireClient'
+], function(require, widget, baseClient, store, sync, wireClient) {
 
   var loadedModules = {}, modules = {};
 

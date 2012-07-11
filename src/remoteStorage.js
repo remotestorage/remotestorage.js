@@ -1,17 +1,11 @@
 define([
   'require',
-  './lib/platform',
-  './lib/couch',
-  './lib/dav',
-  './lib/getputdelete',
-  './lib/webfinger',
-  './lib/hardcoded',
   './lib/widget',
   './lib/baseClient',
-  './lib/wireClient',
-  './lib/sync'
-], function(require, platform, couch, dav, getputdelete, webfinger, hardcoded,
-            wireClient, widget, baseClient, wireClient, sync) {
+  './lib/store',
+  './lib/sync',
+  './lib/wireClient'
+], function(require, widget, baseClient, store, sync, wireClient) {
 
   var loadedModules = {}, modules = {};
 

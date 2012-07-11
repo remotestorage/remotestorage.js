@@ -1,4 +1,4 @@
-define(['./platform', './couch', './dav', './getputdelete'], function (platform, couch, dav, getputdelete) {
+define(['./couch', './dav', './getputdelete'], function (couch, dav, getputdelete) {
   var prefix = 'remoteStorage_wire_',
     memCache = {},
     stateHandler = function(){},

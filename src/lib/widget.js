@@ -241,7 +241,10 @@ define(['./webfinger', './hardcoded', './wireClient', './sync', './store', './pl
     }
   }
   function handleCubeClick() {
-    sync.syncNow();
+    setWidgetState('busy');
+    sync.syncNow('/', function(success) {
+      setWidgetState((success?'connected':'offline'));
+    });
     //if(widgetState == 'connected') {
     //  handleDisconnectClick();
     //}
@@ -256,7 +259,6 @@ define(['./webfinger', './hardcoded', './wireClient', './sync', './store', './pl
   function display(setConnectElement, setLocale) {
     connectElement = setConnectElement;
     locale = setLocale;
-    sync.on('state', setWidgetState);
     wireClient.on('error', function(err) {
       platform.alert(translate(err));
     });
