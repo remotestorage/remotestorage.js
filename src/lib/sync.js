@@ -1,5 +1,5 @@
 // access: null
-// revision: 0
+// lastModified: 0
 // keep: true
 // children
 //   tasks/: 999999
@@ -30,16 +30,14 @@ define(['./wireClient', './store'], function(wireClient, store) {
       //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
       startOne();
       wireClient.set(path, JSON.stringify(node.data), finishOne);
-    } else if(node.revision<lastModified) {
+    } else if(node.lastModified<lastModified) {
       if(node.startAccess !== null) { access = node.startAccess; }
       if(node.startForce !== null) { force = node.startForce; }
       if((force || node.keep) && access) {
         startOne();
         wireClient.get(path, function (err, data) {
           if(data) {
-            var node = store.getNode(path);
-            node.data = data;
-            store.updateNode(path, node);
+            store.setNodeData(path, data);
           }
           pullMap(path, store.getNode(path).children, force, access, function(err2) {
             finishOne(err || err2);

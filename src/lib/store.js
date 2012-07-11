@@ -68,25 +68,21 @@ define([], function () {
   function getCurrTimestamp() {
     return new Date().getTime();
   }
-  function updateNode(path, node) {
+  function updateNode(path, node, changeType) {
     localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
-      var changed = false;
-      if(!parentNode.children[getFileName(path)]) {
-        parentNode.children[getFileName(path)] = 999999;//meaning we should fetch this node next time
-        changed = true;
-      }
-      if(parentNode.data[getFileName(path)] && !node.data) {
-        delete parentNode.data[getFileName(path)];
-        changed = true;
-      } else if(!parentNode.data[getFileName(path)] && node.data) {
-        parentNode.data[getFileName(path)] = true;
-        changed = true;
-      }
-      if(changed) {
-        updateNode(containingDir, parentNode);
+      if(changeType=='set') { 
+        if(!parentNode.children[getFileName(path)]) {
+          parentNode.added[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+        } else {
+          parentNode.changed[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+        }
+        updateNode(containingDir, parentNode, 'set');
+      } else if(changeType=='remove') {
+        parentNode.removed[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+        updateNode(containingDir, parentNode, 'set');
       }
     }
   }
@@ -109,17 +105,37 @@ define([], function () {
   function connect(path, connectVal) {
     var node = getNode(path);
     node.startForcing=(connectVal!=false);
-    updateNode(path, node);
+    updateNode(path, node, 'meta');
   }
   function getState(path) {
     return 'disconnected';
   }
+  function setNodeData(path, data) {
+    var node = getNode(path);
+    node.data = data;
+    node.outgoingChange = new Date().getTime();
+    updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
+  }
+  function setNodeAccess(path, claim) {
+    var node = getNode(path);
+    if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
+      node.startAccess = claim;
+      updateNode(path, node);
+    }
+  }
+  function setNodeForce(path, force) {
+    var node = getNode(path);
+    node.startForce = force;
+    updateNode(path, node);
+  }
   return {
-    on         : on,//error,change(origin=tab,device,cloud)
+    on            : on,//error,change(origin=tab,device,cloud)
    
-    getNode    : getNode,
-    updateNode : updateNode,
-    forget     : forget,
-    forgetAll  : forgetAll
+    getNode       : getNode,
+    setNodeData   : setNodeData,
+    setNodeAccess : setNodeAccess,
+    setNodeForce  : setNodeForce,
+    forget        : forget,
+    forgetAll     : forgetAll
   };
 });

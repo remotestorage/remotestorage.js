@@ -44,29 +44,20 @@ define(['./sync', './store'], function (sync, store) {
       return;
     }
     var  node = store.getNode(absPath);
-    node.outgoingChange = true;
     var changeEvent = {
       origin: 'window',
       oldValue: node.data,
       newValue: valueStr,
       path: absPath
     };
-    node.data = valueStr;
-    var ret = store.updateNode(absPath, node);
+    var ret = store.setNodeData(absPath, valueStr);
     var moduleName = extractModuleName(absPath);
     fireChange(moduleName, changeEvent);
     return ret; 
   }
 
   function claimAccess(path, claim) {
-    var node = store.getNode(path);
-    if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
-      node.startAccess = claim;
-      store.updateNode(path, node);
-      for(var i in node.children) {
-        claimAccess(path+i, claim);
-      }
-    }
+    store.setNodeAccess(path, claim);
   }
 
   function isDir(path) {
@@ -177,9 +168,7 @@ define(['./sync', './store'], function (sync, store) {
 
         sync: function(path, switchVal) {
           var absPath = makePath(path);
-          var node = store.getNode(absPath);
-          node.startForce = (switchVal != false);
-          store.updateNode(absPath, node);
+          store.setNodeForce(absPath, (switchVal != false));
         },
 
         getState: function(path) {

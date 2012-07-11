@@ -1086,28 +1086,6 @@ define('lib/wireClient',['./couch', './dav', './getputdelete'], function (couch,
 });
 
 define('lib/store',[], function () {
-//for the syncing, it turns out to be useful to store nodes for items, and store their data separately.
-//we can then also use those nodes to mark where outgoing changes exist.
-//so we would have one store for nodes, one for cache, and one for diffs.
-//windows on the same device should share the diffs with each other, but basically flush their memCache whenever a diff or a cache or a node changes.
-//memCache can be one big hashmap of nodes.
-//actually, cache value and diff can be stored on the node, that makes it all a lot easier
-//when a diff exists, then cache value can be expunged, so really, we only have to mark the node as 'outgoing:' with a timestamp.
-//so in memCache, each node has fields:
-//-lastRemoteRevisionSeen: (integer, not necessarily a timestamp!)
-//-force: true/false/undefined
-//-lastFetched: (timestamp on local clock)
-//-outgoingChange: (timestamp on local clock or undefined)
-//-keep: true/false
-//-access: r/rw/null
-//-children: map of filenames->true; {} for leafs
-//-data: (obj), only for leafs
-//
-//store should expose: setObject, setMedia, removeItem, getData, getStatus, from baseClient (will lead to outgoingChange)
-//also: getNode (from sync), updateNode (from sync), forgetNode (from sync)
-//getNode should return {revision: 0} for a cache miss, but {revision:0, access:null, children:['bar']} for /foo if /foo/bar exists
-//when you setObject or setMedia, parent nodes should be created and/or updated.
-
   var onChange,
     prefixNodes = 'remote_storage_nodes:';
   window.addEventListener('storage', function(e) {
@@ -1129,12 +1107,16 @@ define('lib/store',[], function () {
       }
     }
     if(!value) {
-      value = {
-        access: null,
-        revision: 0,
+      value = {//this is what an empty node looks like
+        startAccess: null,
+        startForce: null,
+        lastModified: 0,
+        outgoingChanges: false,
         keep: true,
         children: {},
-        data: (isDir(path)? {} : undefined)
+        added: {},
+        removed: {},
+        changed: {},
       };
     }
     return value;
@@ -1173,25 +1155,21 @@ define('lib/store',[], function () {
   function getCurrTimestamp() {
     return new Date().getTime();
   }
-  function updateNode(path, node) {
+  function updateNode(path, node, changeType) {
     localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
-      var changed = false;
-      if(!parentNode.children[getFileName(path)]) {
-        parentNode.children[getFileName(path)] = 999999;//meaning we should fetch this node next time
-        changed = true;
-      }
-      if(parentNode.data[getFileName(path)] && !node.data) {
-        delete parentNode.data[getFileName(path)];
-        changed = true;
-      } else if(!parentNode.data[getFileName(path)] && node.data) {
-        parentNode.data[getFileName(path)] = true;
-        changed = true;
-      }
-      if(changed) {
-        updateNode(containingDir, parentNode);
+      if(changeType=='set') { 
+        if(!parentNode.children[getFileName(path)]) {
+          parentNode.added[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+        } else {
+          parentNode.changed[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+        }
+        updateNode(containingDir, parentNode, 'set');
+      } else if(changeType=='remove') {
+        parentNode.removed[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+        updateNode(containingDir, parentNode, 'set');
       }
     }
   }
@@ -1221,13 +1199,22 @@ define('lib/store',[], function () {
   }
   return {
     on         : on,//error,change(origin=tab,device,cloud)
-    
+   
     getNode    : getNode,
     updateNode : updateNode,
     forget     : forget,
     forgetAll  : forgetAll
   };
 });
+
+// access: null
+// lastModified: 0
+// keep: true
+// children
+//   tasks/: 999999
+//   public/: 999999
+// data
+//   
 
 //start: store has a tree with three types of node: dir, object, media.
 //object and media nodes have fields:
@@ -1245,17 +1232,16 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
       return 'connected';
     }
   }
-  function handleChild(path, lastModified, force, accessInherited, startOne, finishOne) {
+  function handleChild(path, lastModified, force, access, startOne, finishOne) {
     console.log('handleChild '+path);
     var node = store.getNode(path);//will return a fake dir with empty children list for item
-    var access = accessInherited || node.access;
     if(node.outgoingChange) {
       //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
       startOne();
       wireClient.set(path, JSON.stringify(node.data), finishOne);
-    } else if(node.revision<lastModified) {
-      if(node.startForcing) { force = true; }
-      if(node.stopForcing) { force = false; }
+    } else if(node.lastModified<lastModified) {
+      if(node.startAccess !== null) { access = node.startAccess; }
+      if(node.startForce !== null) { force = node.startForce; }
       if((force || node.keep) && access) {
         startOne();
         wireClient.get(path, function (err, data) {
@@ -1275,7 +1261,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
       }
     }// else everything up to date
   }
-  function pullMap(basePath, map, force, accessInherited, cb) {
+  function pullMap(basePath, map, force, access, cb) {
     console.log('pullMap '+basePath);
     var outstanding=0, errors=false;
     function startOne() {
@@ -1292,7 +1278,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
     }
     startOne();
     for(var path in map) {
-      handleChild(basePath+path, map[path], force, accessInherited, startOne, finishOne);
+      handleChild(basePath+path, map[path], force, access, startOne, finishOne);
     }
     finishOne();
   }
@@ -1652,8 +1638,8 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
 
   function claimAccess(path, claim) {
     var node = store.getNode(path);
-    if((claim != node.access) && (claim == 'rw' || node.access == null)) {
-      node.access = claim;
+    if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
+      node.startAccess = claim;
       store.updateNode(path, node);
       for(var i in node.children) {
         claimAccess(path+i, claim);
@@ -1770,7 +1756,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         sync: function(path, switchVal) {
           var absPath = makePath(path);
           var node = store.getNode(absPath);
-          node.startForcing = (switchVal != false);
+          node.startForce = (switchVal != false);
           store.updateNode(absPath, node);
         },
 
