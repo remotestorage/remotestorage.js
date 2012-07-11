@@ -39,14 +39,18 @@ define(['./wireClient', './store'], function(wireClient, store) {
           if(data) {
             store.setNodeData(path, data);
           }
-          pullMap(path, store.getNode(path).children, force, access, function(err2) {
-            finishOne(err || err2);
-          });//recurse without forcing
+          finishOne(err);
+          startOne();
+          pullMap(path, store.getNode(path).children, force, access, finishOne);
+          startOne();
+          pullMap(path, store.getNode(path).added, force, access, finishOne);
         });
       } else {
         //store.forget(path);
         startOne();
         pullMap(path, node.children, force, access, finishOne);
+        startOne();
+        pullMap(path, node.added, force, access, finishOne);
       }
     }// else everything up to date
   }
