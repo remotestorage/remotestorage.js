@@ -78,17 +78,37 @@ define([], function () {
       var parentNode=getNode(containingDir);
       if(changeType=='set') { 
         if(parentNode.data[getFileName(path)]) {
-          parentNode.changed[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+          parentNode.changed[getFileName(path)] = new Date().getTime();
         } else {
-          parentNode.added[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+          parentNode.added[getFileName(path)] = new Date().getTime();
         }
         updateNode(containingDir, parentNode, 'set');
       } else if(changeType=='remove') {
-        parentNode.removed[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+        parentNode.removed[getFileName(path)] = new Date().getTime();
         updateNode(containingDir, parentNode, 'set');
       } else if(changeType=='accept') {
+        if(parentNode.data[getFileName(path)] != node.lastModified) {
+          parentNode.data[getFileName(path)] = node.lastModified;
+          if(parentNode.lastModified < node.lastModified) {
+            parentNode.lastModified = node.lastModified;
+          }
+          updateNode(containingDir, parentNode, 'accept');
+        }
       } else if(changeType=='gone') {
-
+        delete parentNode.data[getFileName(path)];
+        if(parentNode.lastModified < node.lastModified) {
+          parentNode.lastModified = node.lastModified;
+        }
+        updateNode(containingDir, parentNode, 'accept');
+      } else if(changeType=='clear') {
+        parentNode.data[getFileName(path)] = node.lastModified;
+        delete parentNode.added[getFileName(path)];
+        delete parentNode.removed[getFileName(path)];
+        delete parentNode.changed[getFileName(path)];
+        if(parentNode.lastModified < node.lastModified) {
+          parentNode.lastModified = node.lastModified;
+        }
+        updateNode(containingDir, parentNode, 'accept');
       }
     }
   }
@@ -119,6 +139,12 @@ define([], function () {
   function setNodeData(path, data, outgoing, lastModified, mimeType) {
     var node = getNode(path);
     node.data = data;
+    if(lastModified) {
+      node.lastModified = lastModified;
+    }
+    if(mimeType) {
+      node.mimeType = mimeType;
+    }
     if(outgoing) {
       node.outgoingChange = new Date().getTime();
       updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
@@ -138,12 +164,22 @@ define([], function () {
           if(data != node.data && node.outgoingChange > lastModified) {
             //reject the update, outgoing changes will change it
           } else {
-            node.outgoingChange=false;
-            updateNode(path, node, (typeof(data)=='undefined'?'gone':'accept'));
+            node.data = data;
+            node.outgoingChange = false;
+            node.lastModified = lastModified;
+            updateNode(path, node, 'clear');
           }
+        } else {
+          updateNode(path, node, (typeof(data)=='undefined'?'gone':'accept'));
         }
       }
     }
+  }
+  function clearOutgoingChange(path, lastModified) {
+    var node = getNode(path);
+    node.lastModified = lastModified;
+    node.outgoingChange = false;
+    updateNode(path, node, 'clear');
   }
   function setNodeAccess(path, claim) {
     var node = getNode(path);

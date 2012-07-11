@@ -1113,7 +1113,7 @@ define('lib/store',[], function () {
         lastModified: 0,
         outgoingChange: false,
         keep: true,
-        children: {},
+        data: (isDir(path)?{}:undefined),
         added: {},
         removed: {},
         changed: {},
@@ -1156,20 +1156,46 @@ define('lib/store',[], function () {
     return new Date().getTime();
   }
   function updateNode(path, node, changeType) {
+    //there are three types of local changes: added, removed, changed.
+    //when a PUT or DELETE is successful and we get a Last-Modified header back the parents should already be updated right to the root
+    //
     localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
       if(changeType=='set') { 
-        if(!parentNode.children[getFileName(path)]) {
-          parentNode.added[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+        if(parentNode.data[getFileName(path)]) {
+          parentNode.changed[getFileName(path)] = new Date().getTime();
         } else {
-          parentNode.changed[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+          parentNode.added[getFileName(path)] = new Date().getTime();
         }
         updateNode(containingDir, parentNode, 'set');
       } else if(changeType=='remove') {
-        parentNode.removed[getFileName(path)] = new Date().getTime();//meaning we should fetch this node next time
+        parentNode.removed[getFileName(path)] = new Date().getTime();
         updateNode(containingDir, parentNode, 'set');
+      } else if(changeType=='accept') {
+        if(parentNode.data[getFileName(path)] != node.lastModified) {
+          parentNode.data[getFileName(path)] = node.lastModified;
+          if(parentNode.lastModified < node.lastModified) {
+            parentNode.lastModified = node.lastModified;
+          }
+          updateNode(containingDir, parentNode, 'accept');
+        }
+      } else if(changeType=='gone') {
+        delete parentNode.data[getFileName(path)];
+        if(parentNode.lastModified < node.lastModified) {
+          parentNode.lastModified = node.lastModified;
+        }
+        updateNode(containingDir, parentNode, 'accept');
+      } else if(changeType=='clear') {
+        parentNode.data[getFileName(path)] = node.lastModified;
+        delete parentNode.added[getFileName(path)];
+        delete parentNode.removed[getFileName(path)];
+        delete parentNode.changed[getFileName(path)];
+        if(parentNode.lastModified < node.lastModified) {
+          parentNode.lastModified = node.lastModified;
+        }
+        updateNode(containingDir, parentNode, 'accept');
       }
     }
   }
@@ -1197,13 +1223,50 @@ define('lib/store',[], function () {
   function getState(path) {
     return 'disconnected';
   }
-  function setNodeData(path, data, outgoing) {
+  function setNodeData(path, data, outgoing, lastModified, mimeType) {
     var node = getNode(path);
     node.data = data;
+    if(lastModified) {
+      node.lastModified = lastModified;
+    }
+    if(mimeType) {
+      node.mimeType = mimeType;
+    }
     if(outgoing) {
       node.outgoingChange = new Date().getTime();
+      updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
+    } else {
+      if(isDir(path)) {
+        for(var i in data) {
+          delete node.added(i);
+        }
+        for(var i in node.removed) {
+          if(!data[i]) {
+            delete node.removed(i);
+          }
+        }
+        updateNode(path, node, 'accept');
+      } else {
+        if(node.outgoingChange) {
+          if(data != node.data && node.outgoingChange > lastModified) {
+            //reject the update, outgoing changes will change it
+          } else {
+            node.data = data;
+            node.outgoingChange = false;
+            node.lastModified = lastModified;
+            updateNode(path, node, 'clear');
+          }
+        } else {
+          updateNode(path, node, (typeof(data)=='undefined'?'gone':'accept'));
+        }
+      }
     }
-    updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
+  }
+  function clearOutgoingChange(path, lastModified) {
+    var node = getNode(path);
+    node.lastModified = lastModified;
+    node.outgoingChange = false;
+    updateNode(path, node, 'clear');
   }
   function setNodeAccess(path, claim) {
     var node = getNode(path);
@@ -1260,7 +1323,12 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
     if(node.outgoingChange) {
       //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
       startOne();
-      wireClient.set(path, JSON.stringify(node.data), finishOne);
+      wireClient.set(path, JSON.stringify(node.data), function(err, timestamp) {
+        if(!err) {
+          store.clearOutgoingChange(path, timestamp);
+        }
+        finishOne();
+      });
     } else if(node.lastModified<lastModified) {
       if(node.startAccess !== null) { access = node.startAccess; }
       if(node.startForce !== null) { force = node.startForce; }

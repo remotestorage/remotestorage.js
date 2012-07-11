@@ -29,7 +29,12 @@ define(['./wireClient', './store'], function(wireClient, store) {
     if(node.outgoingChange) {
       //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
       startOne();
-      wireClient.set(path, JSON.stringify(node.data), finishOne);
+      wireClient.set(path, JSON.stringify(node.data), function(err, timestamp) {
+        if(!err) {
+          store.clearOutgoingChange(path, timestamp);
+        }
+        finishOne();
+      });
     } else if(node.lastModified<lastModified) {
       if(node.startAccess !== null) { access = node.startAccess; }
       if(node.startForce !== null) { force = node.startForce; }
