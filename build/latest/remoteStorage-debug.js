@@ -1287,6 +1287,7 @@ define('lib/store',[], function () {
     setNodeData   : setNodeData,
     setNodeAccess : setNodeAccess,
     setNodeForce  : setNodeForce,
+    clearOutgoingChange:clearOutgoingChange,
     forget        : forget,
     forgetAll     : forgetAll
   };
