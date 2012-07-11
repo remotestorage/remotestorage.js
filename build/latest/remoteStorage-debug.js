@@ -1245,52 +1245,52 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
       return 'connected';
     }
   }
+  function handleChild(basePath, path, lastModified, force, accessInherited, startOne, finishOne) {
+    var node = store.getNode(basePath+path);//will return a fake dir with empty children list for item
+    var access = accessInherited || node.access;
+    if(node.outgoingChange) {
+      //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
+      startOne();
+      wireClient.set(basePath+path, JSON.stringify(node.data), finishOne);
+    } else if(node.revision<lastModified) {
+      if(node.startForcing) { force = true; }
+      if(node.stopForcing) { force = false; }
+      if((force || node.keep) && access) {
+        startOne();
+        wireClient.get(basePath+path, function (err, data) {
+          if(data) {
+            var node = store.getNode(basePath+path);
+            node.data = data;
+            store.updateNode(basePath+path, node);
+          }
+          pullMap(basePath+path, store.getNode(basePath+path).children, force, access, function(err2) {
+            finishOne(err || err2);
+          });//recurse without forcing
+        });
+      } else {
+        //store.forget(basePath+path);
+        startOne();
+        pullMap(basePath+path, node.children, force, access, finishOne);
+      }
+    }// else everything up to date
+  }
   function pullMap(basePath, map, force, accessInherited, cb) {
-    var outstanding=0, success=true;
+    var outstanding=0, errors=false;
     function startOne() {
       outstanding++;
     }
-    function finishOne() {
+    function finishOne(err) {
+      if(err) {
+        errors = true;
+      }
       outstanding--;
       if(outstanding==0) {
-        cb(success);
+        cb(errors);
       }
     }
     startOne();
     for(var path in map) {
-      var node = store.getNode(basePath+path);//will return a fake dir with empty children list for item
-      var access = accessInherited || node.access;
-      if(node.outgoingChange) {
-        //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
-        startOne();
-        wireClient.set(basePath+path, JSON.stringify(node.data), function(err) {
-          if(err) {
-            success = false;
-          }
-          finishOne();
-        });
-      } else if(node.revision<map[path]) {
-        if(node.startForcing) { force = true; }
-        if(node.stopForcing) { force = false; }
-        if((force || node.keep) && access) {
-          startOne();
-          wireClient.get(basePath+path, function (err, data) {
-            if(data) {
-              var node = store.getNode(basePath+path);
-              node.data = data;
-              store.updateNode(basePath+path, node);
-            }
-            if(err) {
-              success = false;
-            }
-            pullMap(basePath+path, store.getNode(basePath+path).children, force, access, finishOne);//recurse without forcing
-          });
-        } else {
-          //store.forget(basePath+path);
-          startOne();
-          pullMap(basePath+path, node.children, force, access, finishOne);
-        }
-      }// else everything up to date
+      handleChild(basePath, path, map[path], force, accessInherited, finishOne);
     }
     finishOne();
   }
