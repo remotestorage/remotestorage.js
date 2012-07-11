@@ -1296,7 +1296,7 @@ define('lib/store',[], function () {
 // access: null
 // lastModified: 0
 // keep: true
-// children
+// data
 //   tasks/: 999999
 //   public/: 999999
 // data
@@ -1306,7 +1306,7 @@ define('lib/store',[], function () {
 //object and media nodes have fields:
 //lastModified, type (media/object), mimeType/objectType, data, access, outgoingChange (client-side timestamp or false), sync
 //dir nodes have fields:
-//lastModified, type (dir), children (hash filename -> remote timestamp), added/changed/removed, access, startSync, stopSync
+//lastModified, type (dir), data (hash filename -> remote timestamp), added/changed/removed, access, startSync, stopSync
 
 define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
   var prefix = '_remoteStorage_', busy=false;
@@ -1320,7 +1320,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
   }
   function handleChild(path, lastModified, force, access, startOne, finishOne) {
     console.log('handleChild '+path);
-    var node = store.getNode(path);//will return a fake dir with empty children list for item
+    var node = store.getNode(path);//will return a fake dir with empty data list for item
     if(node.outgoingChange) {
       //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
       startOne();
@@ -1341,14 +1341,14 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
           }
           finishOne(err);
           startOne();
-          pullMap(path, store.getNode(path).children, force, access, finishOne);
+          pullMap(path, store.getNode(path).data, force, access, finishOne);
           startOne();
           pullMap(path, store.getNode(path).added, force, access, finishOne);
         });
       } else {
         //store.forget(path);
         startOne();
-        pullMap(path, node.children, force, access, finishOne);
+        pullMap(path, node.data, force, access, finishOne);
         startOne();
         pullMap(path, node.added, force, access, finishOne);
       }
