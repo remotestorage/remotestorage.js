@@ -63,6 +63,25 @@ define(['./couch', './dav', './getputdelete'], function (couch, dav, getputdelet
       //+ (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
       + '/' + (item[2] == '_' ? 'u' : '') + item;
   }
+  function setChain(driver, hashMap, mimeType, token, cb, timestamp) {
+    var i;
+    for(i in hashMap) {
+      break;
+    }
+    if(i) {
+      var thisOne = hashMap[i];
+      delete hashMap[i];
+      driver.set(i, thisOne, mimeType, token, function(err, timestamp) {
+        if(err) {
+          cb(err);
+        } else {
+          setChain(driver, hashMap, mimeType, token, cb, timestamp);
+        }
+      });
+    } else {
+      cb(null, timestamp);
+    }
+  }
   return {
     get: function (path, cb) {
       var storageType = get('storageType'),
@@ -76,7 +95,7 @@ define(['./couch', './dav', './getputdelete'], function (couch, dav, getputdelet
         });
       }
     },
-    set: function (path, valueStr, mimeType, cb) {
+    set: function (path, valueStr, mimeType, parentChain, cb) {
       var storageType = get('storageType'),
         storageHref = get('storageHref'),
         token = get('bearerToken');
@@ -86,7 +105,17 @@ define(['./couch', './dav', './getputdelete'], function (couch, dav, getputdelet
         cb('argument "valueStr" should be a string');
       } else {
         getDriver(storageType, function (d) {
-          d.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
+          d.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, function(err, timestamp) {
+            if(d.requiresParentChaining && !err) {
+              var resolvedParentChain = {};
+              for(var i in parentChain) {
+                resolvedParentChain[resolveKey(storageType, storageHref, '', i)] = parentChain[i];
+              }
+              setChain(d, resolvedParentChain, 'application/json', token, cb);
+            } else {
+              cb(err, timestamp);
+            }
+          });
         });
       }
     },

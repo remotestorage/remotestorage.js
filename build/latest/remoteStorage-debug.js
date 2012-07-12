@@ -1044,6 +1044,25 @@ define('lib/wireClient',['./couch', './dav', './getputdelete'], function (couch,
       //+ (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
       + '/' + (item[2] == '_' ? 'u' : '') + item;
   }
+  function setChain(driver, hashMap, mimeType, token, cb, timestamp) {
+    var i;
+    for(i in hashMap) {
+      break;
+    }
+    if(i) {
+      var thisOne = hashMap[i];
+      delete hashMap[i];
+      driver.set(i, thisOne, mimeType, token, function(err, timestamp) {
+        if(err) {
+          cb(err);
+        } else {
+          setChain(driver, hashMap, mimeType, token, cb, timestamp);
+        }
+      });
+    } else {
+      cb(null, timestamp);
+    }
+  }
   return {
     get: function (path, cb) {
       var storageType = get('storageType'),
@@ -1057,7 +1076,7 @@ define('lib/wireClient',['./couch', './dav', './getputdelete'], function (couch,
         });
       }
     },
-    set: function (path, valueStr, mimeType, cb) {
+    set: function (path, valueStr, mimeType, parentChain, cb) {
       var storageType = get('storageType'),
         storageHref = get('storageHref'),
         token = get('bearerToken');
@@ -1067,7 +1086,17 @@ define('lib/wireClient',['./couch', './dav', './getputdelete'], function (couch,
         cb('argument "valueStr" should be a string');
       } else {
         getDriver(storageType, function (d) {
-          d.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
+          d.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, function(err, timestamp) {
+            if(d.requiresParentChaining && !err) {
+              var resolvedParentChain = {};
+              for(var i in parentChain) {
+                resolvedParentChain[resolveKey(storageType, storageHref, '', i)] = parentChain[i];
+              }
+              setChain(d, resolvedParentChain, 'application/json', token, cb);
+            } else {
+              cb(err, timestamp);
+            }
+          });
         });
       }
     },
@@ -1312,13 +1341,23 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
       return 'connected';
     }
   }
+  function getParentChain(path) {//this is for legacy support
+    var pathParts = path.split('/');
+    var parentChain={};
+    for(var i = 2; i<pathParts.length; i++) {
+      var thisPath = pathParts.slice(0, i).join('/');
+      parentChain[thisPath] = store.getNode(thisPath).data;
+    }
+    return parentChain;
+  }
   function handleChild(path, lastModified, force, access, startOne, finishOne) {
     console.log('handleChild '+path);
     var node = store.getNode(path);//will return a fake dir with empty data list for item
     if(node.outgoingChange) {
       //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
       startOne();
-      wireClient.set(path, JSON.stringify(node.data), node.mimeType, function(err, timestamp) {
+      var parentChain = getParentChain(path);
+      wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
         if(!err) {
           store.clearOutgoingChange(path, timestamp);
         }

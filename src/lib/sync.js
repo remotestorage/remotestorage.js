@@ -23,13 +23,23 @@ define(['./wireClient', './store'], function(wireClient, store) {
       return 'connected';
     }
   }
+  function getParentChain(path) {//this is for legacy support
+    var pathParts = path.split('/');
+    var parentChain={};
+    for(var i = 2; i<pathParts.length; i++) {
+      var thisPath = pathParts.slice(0, i).join('/');
+      parentChain[thisPath] = store.getNode(thisPath).data;
+    }
+    return parentChain;
+  }
   function handleChild(path, lastModified, force, access, startOne, finishOne) {
     console.log('handleChild '+path);
     var node = store.getNode(path);//will return a fake dir with empty data list for item
     if(node.outgoingChange) {
       //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
       startOne();
-      wireClient.set(path, JSON.stringify(node.data), node.mimeType, function(err, timestamp) {
+      var parentChain = getParentChain(path);
+      wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
         if(!err) {
           store.clearOutgoingChange(path, timestamp);
         }
