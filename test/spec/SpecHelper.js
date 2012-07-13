@@ -20,7 +20,7 @@ var specHelper = (function() {
       return jasmine.currentEnv_.remoteStorage;
     },
     getFile: function(fileName) {
-      return jasmine.currentEnv_.files[fileName];
+      return jasmine.currentEnv_.files[fileName].module;
     },
     getModule: function(moduleName) {
       return jasmine.currentEnv_.modules[moduleName];
@@ -31,8 +31,10 @@ var specHelper = (function() {
     getPublicBaseClient: function(moduleName) {
       return jasmine.currentEnv_.publicBaseClients[moduleName];
     },
-    getPlatformStub: function(moduleName) {
-      return jasmine.currentEnv_.platformStubs[moduleName].reset();
+    getStub: function(moduleName, stubName) {
+      var stub = jasmine.currentEnv_.files[moduleName].stubs[stubName];
+      stub.reset();
+      return stub;
     }
   };
 })();

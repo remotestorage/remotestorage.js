@@ -2,7 +2,8 @@
   describe("webfinger", function() {
     it("should fail to parse a bogus host-meta", function() {
       var webfinger = specHelper.getFile('webfinger');
-      var platformStub = specHelper.getPlatformStub('webfinger');
+      var platformStub = specHelper.getStub('webfinger', 'platform');
+      platformStub.addFunc3('getStorageInfo');
       platformStub.setResponses([undefined]);
       var ret = webfinger.getStorageInfo('a@b.c', {}, function(err, storageInfo) {
         expect(err).toEqual('could not fetch host-meta for a@b.c');
