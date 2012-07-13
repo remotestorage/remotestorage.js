@@ -11,14 +11,123 @@
   <script type="text/javascript" src="lib/jasmine/jasmine-html.js"></script>
 
   <script type="text/javascript" src="lib/sinon/sinon-1.3.1.js"></script>
+  <!-- the file we are testing... -->
+  <script>
+    function makeStubClient() {
+      var called = [],
+        responses = [];
+      function setResponses(arr) {
+        responses=arr;
+      }
+      function doF(name, params) {
+        called.push({name: name, params: params});
+        return responses.shift();
+      }
+      function getCalled() {
+        return called;
+      }
+      function reset() {
+        called=[];
+        responses=[];
+        return this;
+      }
+      return {
+        setResponses: setResponses,
+        getCalled: getCalled,
+        sync: function(path, switchVal) { return doF('sync', [path, switchVal]); },
+        getObject: function(path) { return doF('getObject', [path]); },
+        storeObject: function(type, path, obj) { return doF('storeObject', [type, path, obj]); },
+        getMedia: function(path) { return doF('getMedia', [path]); },
+        storeMedia: function(type, path, data) { return doF('storeMedia', [type, path, data]); },
+        getListing: function(path) { return doF('getListing', [path]); },
+        remove: function(path) { return doF('remove', [path]); },
+        getCurrentWebRoot: function() { return doF('getCurrentWebRoot', []); }
+      };
+    }
+    var jasmineEnv = jasmine.getEnv();
+    jasmineEnv.modules={};
+    jasmineEnv.files={};
+    jasmineEnv.privateBaseClients={};
+    jasmineEnv.publicBaseClients={};
+    remoteStorage = {
+      defineModule: function(moduleName, cb) {
+        jasmineEnv.privateBaseClients[moduleName] = makeStubClient();
+        jasmineEnv.publicBaseClients[moduleName] = makeStubClient();
+        jasmineEnv.modules[moduleName] = cb(jasmineEnv.privateBaseClients[moduleName], jasmineEnv.publicBaseClients[moduleName]);
+      }
+    };
+  </script>
 
+  <script>
+    function makeStub(name) {
+      var called = [],
+        responses = [];
+      function setResponses(arr) {
+        responses=arr;
+      }
+      function doF(name, params) {
+        called.push({name: name, params: params});
+        return responses.shift();
+      }
+      function getCalled() {
+        return called;
+      }
+      function reset() {
+        called=[];
+        responses=[];
+        return this;
+      }
+      return {
+        name: name,
+        stub: {},
+        setResponses: setResponses,
+        getCalled: getCalled,
+        reset: reset,
+        addFunc1: function(name) {
+          this.stub[name]=function(p1) { return doF(name, [p1]); };
+        },
+        addFunc2: function(name) {
+          this.stub[name]=function(p1, p2) { return doF(name, [p1, p2]); };
+        },
+        addFunc3: function(name) {
+          this.stub[name]=function(p1, p2, p3) { return doF(name, [p1, p2, p3]); };
+        },
+        addFunc4: function(name) {
+          this.stub[name]=function(p1, p2, p3, p4) { return doF(name, [p1, p2, p3, p4]); };
+        },
+        addFunc5: function(name) {
+          this.stub[name]=function(p1, p2, p3, p4, p5) { return doF(name, [p1, p2, p3, p4, p5]); };
+        }
+      };
+    }
+    var define;
+    function setDefine(name) {
+      define = function(deps, cb) {
+        var obj = {stubs: {}, pass: []};
+        for(var i=0; i< deps.length; i++) {
+          obj.stubs[deps[i]]=makeStub(deps[i]);
+          obj.pass.push(obj.stubs[deps[i]].stub);
+        }
+        obj.module = cb(obj.stubs);
+        jasmineEnv.files[name]=obj;
+      };
+    }
+  </script>
+  <script>setDefine('platform');</script> <script type="text/javascript" src="../src/lib/platform.js"></script>
+  <script>setDefine('webfinger');</script> <script type="text/javascript" src="../src/lib/webfinger.js"></script>
+  <script>setDefine('webfinger');</script> <script type="text/javascript" src="../src/lib/hardcoded.js"></script>
+  <script>setDefine('widget');</script> <script type="text/javascript" src="../src/lib/widget.js"></script>
+  <script>setDefine('main');</script> <script type="text/javascript" src="../src/remoteStorage.js"></script>
+  <script>setDefine('dav');</script> <script type="text/javascript" src="../src/lib/dav.js"></script>
+  <script>setDefine('couch');</script> <script type="text/javascript" src="../src/lib/couch.js"></script>
+  <script>setDefine('getputdelete');</script> <script type="text/javascript" src="../src/lib/getputdelete.js"></script>
+  <script>setDefine('wireClient');</script> <script type="text/javascript" src="../src/lib/wireClient.js"></script>
+  <script>setDefine('sync');</script> <script type="text/javascript" src="../src/lib/sync.js"></script>
+  <script>setDefine('store');</script> <script type="text/javascript" src="../src/lib/store.js"></script> 
+  <script>setDefine('baseClient');</script> <script type="text/javascript" src="../src/lib/baseClient.js"></script>
 
-  <script type="text/javascript" src="spec/moduleStubs.js"></script>
-
-  <!-- core source -->
-  <script type="text/javascript" src="../src/lib/webfinger.js"></script>
+  <script type="text/javascript" src="spec/moduleStubs.js"></script> 
   
-
   <!-- module source -->
   <script type="text/javascript" src="../src/modules/tasks.js"></script>
   <script type="text/javascript" src="../src/modules/documents.js"></script>
@@ -26,8 +135,7 @@
   <script type="text/javascript" src="../src/modules/calendar.js"></script>
   <script type="text/javascript" src="assets/vcardjs-0.2.js"></script>
   <script type="text/javascript" src="../src/modules/contacts.js"></script>
-
-
+  
   <!-- SpecHelper -->
   <script type="text/javascript" src="spec/SpecHelper.js"></script>
 
