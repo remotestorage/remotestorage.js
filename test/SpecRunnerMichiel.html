@@ -56,10 +56,9 @@
         jasmineEnv.modules[moduleName] = cb(jasmineEnv.privateBaseClients[moduleName], jasmineEnv.publicBaseClients[moduleName]);
       }
     };
-  </script>
-
-  <script>
     function makeStub(name) {
+      var nameParts = name.split('/');
+      name = nameParts[nameParts.length -1];
       var called = [],
         responses = [];
       function setResponses(arr) {
@@ -77,54 +76,101 @@
         responses=[];
         return this;
       }
-      return {
+      var obj = {
         name: name,
         stub: {},
         setResponses: setResponses,
         getCalled: getCalled,
         reset: reset,
-        addFunc1: function(name) {
-          this.stub[name]=function(p1) { return doF(name, [p1]); };
-        },
-        addFunc2: function(name) {
-          this.stub[name]=function(p1, p2) { return doF(name, [p1, p2]); };
-        },
-        addFunc3: function(name) {
-          this.stub[name]=function(p1, p2, p3) { return doF(name, [p1, p2, p3]); };
-        },
-        addFunc4: function(name) {
-          this.stub[name]=function(p1, p2, p3, p4) { return doF(name, [p1, p2, p3, p4]); };
-        },
-        addFunc5: function(name) {
-          this.stub[name]=function(p1, p2, p3, p4, p5) { return doF(name, [p1, p2, p3, p4, p5]); };
+        addFunc: function(name, numExports) {
+          if(numExports == 0) {
+            this.stub[name]=function(p1) { return doF(name, [p1]); };
+          } else if(numExports == 1) {
+            this.stub[name]=function(p1) { return doF(name, [p1]); };
+          } else if(numExports == 2) {
+            this.stub[name]=function(p1, p2) { return doF(name, [p1, p2]); };
+          } else if(numExports == 3) {
+            this.stub[name]=function(p1, p2, p3) { return doF(name, [p1, p2, p3]); };
+          } else if(numExports == 4) {
+            this.stub[name]=function(p1, p2, p3, p4) { return doF(name, [p1, p2, p3, p4]); };
+          } else if(numExports == 5) {
+            this.stub[name]=function(p1, p2, p3, p4, p5) { return doF(name, [p1, p2, p3, p4, p5]); };
+          }
         }
       };
+      if(jasmineEnv.files[name] && jasmineEnv.files[name].exports) {
+        for(var i in jasmineEnv.files[name].exports) {
+          obj.addFunc(i, jasmineEnv.files[name].exports[i]);
+        }
+      }
+      return obj;
     }
     var define;
-    function setDefine(name) {
+    function setDefine(name, exports) {
       define = function(deps, cb) {
-        var obj = {stubs: {}, pass: []};
+        var obj = {stubs: {}};
+        var pass = [];
         for(var i=0; i< deps.length; i++) {
-          obj.stubs[deps[i]]=makeStub(deps[i]);
-          obj.pass.push(obj.stubs[deps[i]].stub);
+          obj.stubs[deps[i]]=makeStub(deps[i], jasmineEnv);
+          pass.push(obj.stubs[deps[i]].stub);
         }
-        obj.module = cb(obj.stubs);
+        if(pass.length == 0) {
+          obj.module = cb();
+        } else if(pass.length == 1) {
+          obj.module = cb(pass[0]);
+        } else if(pass.length == 2) {
+          obj.module = cb(pass[0], pass[1]);
+        } else if(pass.length == 3) {
+          obj.module = cb(pass[0], pass[1], pass[2]);
+        } else if(pass.length == 4) {
+          obj.module = cb(pass[0], pass[1], pass[2], pass[3]);
+        } else if(pass.length == 5) {
+          obj.module = cb(pass[0], pass[1], pass[2], pass[3], pass[4]);
+        } else if(pass.length == 6) {
+          obj.module = cb(pass[0], pass[1], pass[2], pass[3], pass[4], pass[5]);
+        } else if(pass.length == 7) {
+          obj.module = cb(pass[0], pass[1], pass[2], pass[3], pass[4], pass[5], pass[6]);
+        }
+        obj.exports = exports;
         jasmineEnv.files[name]=obj;
       };
     }
   </script>
-  <script>setDefine('platform');</script> <script type="text/javascript" src="../src/lib/platform.js"></script>
-  <script>setDefine('webfinger');</script> <script type="text/javascript" src="../src/lib/webfinger.js"></script>
-  <script>setDefine('webfinger');</script> <script type="text/javascript" src="../src/lib/hardcoded.js"></script>
-  <script>setDefine('widget');</script> <script type="text/javascript" src="../src/lib/widget.js"></script>
-  <script>setDefine('main');</script> <script type="text/javascript" src="../src/remoteStorage.js"></script>
-  <script>setDefine('dav');</script> <script type="text/javascript" src="../src/lib/dav.js"></script>
-  <script>setDefine('couch');</script> <script type="text/javascript" src="../src/lib/couch.js"></script>
-  <script>setDefine('getputdelete');</script> <script type="text/javascript" src="../src/lib/getputdelete.js"></script>
-  <script>setDefine('wireClient');</script> <script type="text/javascript" src="../src/lib/wireClient.js"></script>
-  <script>setDefine('sync');</script> <script type="text/javascript" src="../src/lib/sync.js"></script>
-  <script>setDefine('store');</script> <script type="text/javascript" src="../src/lib/store.js"></script> 
-  <script>setDefine('baseClient');</script> <script type="text/javascript" src="../src/lib/baseClient.js"></script>
+  <script>setDefine('platform', {
+  });</script> <script type="text/javascript" src="../src/lib/platform.js"></script>
+  <script>setDefine('dav', {
+  });</script> <script type="text/javascript" src="../src/lib/dav.js"></script>
+  <script>setDefine('couch', {
+  });</script> <script type="text/javascript" src="../src/lib/couch.js"></script>
+  <script>setDefine('getputdelete', {
+  });</script> <script type="text/javascript" src="../src/lib/getputdelete.js"></script>
+  <script>setDefine('wireClient', {
+    disconnectRemote: 0,
+    setStorageHref: 1,
+    setStorageType: 1,
+    setBearerToken: 1
+  });</script> <script type="text/javascript" src="../src/lib/wireClient.js"></script>
+  <script>setDefine('sync', {
+    syncNow: 2
+  });</script> <script type="text/javascript" src="../src/lib/sync.js"></script>
+  <script>setDefine('store', {
+    forgetAll: 0,
+    on: 2
+  });</script> <script type="text/javascript" src="../src/lib/store.js"></script> 
+  <script>setDefine('baseClient', {
+    getInstance: 2
+  });</script> <script type="text/javascript" src="../src/lib/baseClient.js"></script>
+  
+  <script>setDefine('webfinger', {
+    getStorageInfo: 3
+  });</script> <script type="text/javascript" src="../src/lib/webfinger.js"></script>
+  <script>setDefine('hardcoded', {
+  });</script> <script type="text/javascript" src="../src/lib/hardcoded.js"></script>
+  <script>setDefine('widget', {
+    display: 1
+  });</script> <script type="text/javascript" src="../src/lib/widget.js"></script>
+  <script>setDefine('main', {
+  });</script> <script type="text/javascript" src="../src/remoteStorage.js"></script>
 
   <script type="text/javascript" src="spec/moduleStubs.js"></script> 
   
