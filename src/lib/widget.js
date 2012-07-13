@@ -209,12 +209,6 @@ define(['./webfinger', './hardcoded', './wireClient', './sync', './store', './pl
       }
     });
   }
-  function onLoad() {
-    var tokenHarvested = platform.harvestToken();
-    if(tokenHarvested) {
-      wireClient.setBearerToken(tokenHarvested);
-    }
-  }
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
@@ -257,6 +251,10 @@ define(['./webfinger', './hardcoded', './wireClient', './sync', './store', './pl
     console.log('handleWidgetHover');
   }
   function display(setConnectElement, setLocale) {
+    var tokenHarvested = platform.harvestToken();
+    if(tokenHarvested) {
+      wireClient.setBearerToken(tokenHarvested);
+    }
     connectElement = setConnectElement;
     locale = setLocale;
     wireClient.on('error', function(err) {
@@ -270,7 +268,7 @@ define(['./webfinger', './hardcoded', './wireClient', './sync', './store', './pl
       scopesObj[module] = mode;
     }
   }
-  onLoad();
+  
   return {
     display : display,
     addScope: addScope
