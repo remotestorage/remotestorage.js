@@ -73,7 +73,7 @@ define(
         }
       });
     }
-    function put(url, value, token, cb) {
+    function put(url, value, mimeType, token, cb) {
       var revision = getShadowCouchRev(url);
       var obj = {
         value: value

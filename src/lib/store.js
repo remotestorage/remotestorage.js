@@ -1,26 +1,4 @@
 define([], function () {
-//for the syncing, it turns out to be useful to store nodes for items, and store their data separately.
-//we can then also use those nodes to mark where outgoing changes exist.
-//so we would have one store for nodes, one for cache, and one for diffs.
-//windows on the same device should share the diffs with each other, but basically flush their memCache whenever a diff or a cache or a node changes.
-//memCache can be one big hashmap of nodes.
-//actually, cache value and diff can be stored on the node, that makes it all a lot easier
-//when a diff exists, then cache value can be expunged, so really, we only have to mark the node as 'outgoing:' with a timestamp.
-//so in memCache, each node has fields:
-//-lastRemoteRevisionSeen: (integer, not necessarily a timestamp!)
-//-force: true/false/undefined
-//-lastFetched: (timestamp on local clock)
-//-outgoingChange: (timestamp on local clock or undefined)
-//-keep: true/false
-//-access: r/rw/null
-//-children: map of filenames->true; {} for leafs
-//-data: (obj), only for leafs
-//
-//store should expose: setObject, setMedia, removeItem, getData, getStatus, from baseClient (will lead to outgoingChange)
-//also: getNode (from sync), updateNode (from sync), forgetNode (from sync)
-//getNode should return {revision: 0} for a cache miss, but {revision:0, access:null, children:['bar']} for /foo if /foo/bar exists
-//when you setObject or setMedia, parent nodes should be created and/or updated.
-
   var onChange,
     prefixNodes = 'remote_storage_nodes:';
   window.addEventListener('storage', function(e) {
@@ -42,12 +20,16 @@ define([], function () {
       }
     }
     if(!value) {
-      value = {
-        access: null,
-        revision: 0,
+      value = {//this is what an empty node looks like
+        startAccess: null,
+        startForce: null,
+        lastModified: 0,
+        outgoingChange: false,
         keep: true,
-        children: {},
-        data: (isDir(path)? {} : undefined)
+        data: (isDir(path)?{}:undefined),
+        added: {},
+        removed: {},
+        changed: {},
       };
     }
     return value;
@@ -86,25 +68,47 @@ define([], function () {
   function getCurrTimestamp() {
     return new Date().getTime();
   }
-  function updateNode(path, node) {
+  function updateNode(path, node, changeType) {
+    //there are three types of local changes: added, removed, changed.
+    //when a PUT or DELETE is successful and we get a Last-Modified header back the parents should already be updated right to the root
+    //
     localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
-      var changed = false;
-      if(!parentNode.children[getFileName(path)]) {
-        parentNode.children[getFileName(path)] = 999999;//meaning we should fetch this node next time
-        changed = true;
-      }
-      if(parentNode.data[getFileName(path)] && !node.data) {
+      if(changeType=='set') { 
+        if(parentNode.data[getFileName(path)]) {
+          parentNode.changed[getFileName(path)] = new Date().getTime();
+        } else {
+          parentNode.added[getFileName(path)] = new Date().getTime();
+        }
+        updateNode(containingDir, parentNode, 'set');
+      } else if(changeType=='remove') {
+        parentNode.removed[getFileName(path)] = new Date().getTime();
+        updateNode(containingDir, parentNode, 'set');
+      } else if(changeType=='accept') {
+        if(parentNode.data[getFileName(path)] != node.lastModified) {
+          parentNode.data[getFileName(path)] = node.lastModified;
+          if(parentNode.lastModified < node.lastModified) {
+            parentNode.lastModified = node.lastModified;
+          }
+          updateNode(containingDir, parentNode, 'accept');
+        }
+      } else if(changeType=='gone') {
         delete parentNode.data[getFileName(path)];
-        changed = true;
-      } else if(!parentNode.data[getFileName(path)] && node.data) {
-        parentNode.data[getFileName(path)] = true;
-        changed = true;
-      }
-      if(changed) {
-        updateNode(containingDir, parentNode);
+        if(parentNode.lastModified < node.lastModified) {
+          parentNode.lastModified = node.lastModified;
+        }
+        updateNode(containingDir, parentNode, 'accept');
+      } else if(changeType=='clear') {
+        parentNode.data[getFileName(path)] = node.lastModified;
+        delete parentNode.added[getFileName(path)];
+        delete parentNode.removed[getFileName(path)];
+        delete parentNode.changed[getFileName(path)];
+        if(parentNode.lastModified < node.lastModified) {
+          parentNode.lastModified = node.lastModified;
+        }
+        updateNode(containingDir, parentNode, 'accept');
       }
     }
   }
@@ -127,17 +131,77 @@ define([], function () {
   function connect(path, connectVal) {
     var node = getNode(path);
     node.startForcing=(connectVal!=false);
-    updateNode(path, node);
+    updateNode(path, node, 'meta');
   }
   function getState(path) {
     return 'disconnected';
   }
+  function setNodeData(path, data, outgoing, lastModified, mimeType) {
+    var node = getNode(path);
+    node.data = data;
+    if(lastModified) {
+      node.lastModified = lastModified;
+    }
+    if(mimeType) {
+      node.mimeType = mimeType;
+    }
+    if(outgoing) {
+      node.outgoingChange = new Date().getTime();
+      updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
+    } else {
+      if(isDir(path)) {
+        for(var i in data) {
+          delete node.added(i);
+        }
+        for(var i in node.removed) {
+          if(!data[i]) {
+            delete node.removed(i);
+          }
+        }
+        updateNode(path, node, 'accept');
+      } else {
+        if(node.outgoingChange) {
+          if(data != node.data && node.outgoingChange > lastModified) {
+            //reject the update, outgoing changes will change it
+          } else {
+            node.data = data;
+            node.outgoingChange = false;
+            node.lastModified = lastModified;
+            updateNode(path, node, 'clear');
+          }
+        } else {
+          updateNode(path, node, (typeof(data)=='undefined'?'gone':'accept'));
+        }
+      }
+    }
+  }
+  function clearOutgoingChange(path, lastModified) {
+    var node = getNode(path);
+    node.lastModified = lastModified;
+    node.outgoingChange = false;
+    updateNode(path, node, 'clear');
+  }
+  function setNodeAccess(path, claim) {
+    var node = getNode(path);
+    if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
+      node.startAccess = claim;
+      updateNode(path, node);
+    }
+  }
+  function setNodeForce(path, force) {
+    var node = getNode(path);
+    node.startForce = force;
+    updateNode(path, node);
+  }
   return {
-    on         : on,//error,change(origin=tab,device,cloud)
-    
-    getNode    : getNode,
-    updateNode : updateNode,
-    forget     : forget,
-    forgetAll  : forgetAll
+    on            : on,//error,change(origin=tab,device,cloud)
+   
+    getNode       : getNode,
+    setNodeData   : setNodeData,
+    setNodeAccess : setNodeAccess,
+    setNodeForce  : setNodeForce,
+    clearOutgoingChange:clearOutgoingChange,
+    forget        : forget,
+    forgetAll     : forgetAll
   };
 });

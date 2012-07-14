@@ -1,18 +1,11 @@
 define([
   'require',
-  './lib/platform',
-  './lib/couch',
-  './lib/dav',
-  './lib/getputdelete',
-  './lib/webfinger',
-  './lib/hardcoded',
-  './lib/session',
   './lib/widget',
   './lib/baseClient',
-  './lib/wireClient',
-  './lib/sync'
-], function(require, platform, couch, dav, getputdelete, webfinger, hardcoded,
-            session, widget, baseClient, wireClient, sync) {
+  './lib/store',
+  './lib/sync',
+  './lib/wireClient'
+], function(require, widget, baseClient, store, sync, wireClient) {
 
   var loadedModules = {}, modules = {};
 
@@ -63,12 +56,12 @@ define([
       this[moduleName] = module.exports;
       if(moduleName == 'root') {
         moduleName = '';
-        widget.addScope('/', mode);
+        widget.addScope('', mode);
         baseClient.claimAccess('/', mode);
       } else {
-        widget.addScope('/'+moduleName+'/', mode);
+        widget.addScope(moduleName+'/', mode);
         baseClient.claimAccess('/'+moduleName+'/', mode);
-        widget.addScope('/public/'+moduleName+'/', mode);
+        widget.addScope('public/'+moduleName+'/', mode);
         baseClient.claimAccess('/public/'+moduleName+'/', mode);
       }
 
@@ -76,7 +69,7 @@ define([
     },
 
     setBearerToken: function(bearerToken, claimedScopes) {
-      session.setBearerToken(bearerToken);
+      wireClient.setBearerToken(bearerToken);
       baseClient.claimScopes(claimedScopes);
     },
 
@@ -84,21 +77,13 @@ define([
      ** DELEGATED METHODS
      **/
 
-    disconnectRemote : session.disconnectRemote,
-    flushLocal       : session.flushLocal,
+    disconnectRemote : wireClient.disconnectRemote,
+    flushLocal       : store.forgetAll,
     syncNow          : sync.syncNow,
     displayWidget    : widget.display,
-    setStorageInfo   : session.setStorageInfo
+    setStorageInfo   : wireClient.setStorageInfo
 
   };
-
-  remoteStorage.defineModule('root', function(client) {
-    return {
-      exports: {
-        getListing: client.getListing
-      }
-    }
-  });
 
 
   return remoteStorage;

@@ -65,7 +65,7 @@ define('lib/platform',[], function() {
           window.clearTimeout(timer);
         }
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
-          params.success(xhr.responseText);
+          params.success(xhr.responseText, xhr.getAllResponseHeaders());
         } else {
           params.error(xhr.status);
         }
@@ -271,383 +271,6 @@ define('lib/platform',[], function() {
       };
     }
   }
-});
-
-define('lib/couch',
-  ['./platform'],
-  function (platform) {
-    var shadowCouchRev = null;
-    function getShadowCouchRev(url) {
-      if(!shadowCouchRev) {
-        try {
-          shadowCouchRev = JSON.parse(localStorage.getItem('_shadowCouchRev'));
-        } catch(e) {
-        }
-        if(!shadowCouchRev) {
-          shadowCouchRev = {};
-        }
-      }
-      return shadowCouchRev[url];
-    }
-    function setShadowCouchRev(url, rev) {
-      if(!shadowCouchRev) {
-        try {
-          shadowCouchRev=JSON.parse(localStorage.getItem('_shadowCouchRev'));
-        } catch(e) {
-        }
-      }
-      if(!shadowCouchRev) {
-        shadowCouchRev = {};
-      }
-      shadowCouchRev[url] = rev;
-      localStorage.setItem('_shadowCouchRev', JSON.stringify(shadowCouchRev));
-    }
-    function doCall(method, url, value, token, cb) {
-      var platformObj = {
-        url: url,
-        method: method,
-        error: function(err) {
-          if(err == 404) {
-            cb(null, undefined);
-          } else {
-            cb(err, null);
-          }
-        },
-        success: function(data) {
-          cb(null, data);
-        },
-        timeout: 3000
-      };
-      if(token) {
-        platformObj.headers = {Authorization: 'Bearer '+token};
-      }
-      platformObj.fields = {withCredentials: 'true'};
-      if(method!='GET') {
-        platformObj.data = value;
-      }
-      platform.ajax(platformObj);
-    }
-    function get(url, token, cb) {
-      doCall('GET', url, null, token, function(err, data) {
-        if(err) {
-          cb(err, data);
-        } else {
-          var obj;
-          try {
-            obj = JSON.parse(data);
-          } catch(e) {
-          }
-          if(obj && obj._rev) {
-            setShadowCouchRev(url, obj._rev);
-            cb(null, obj.value);
-          } else if(typeof(data) == 'undefined') {
-            cb(null, undefined);
-          } else {
-            cb('unparsable data from couch');
-          }
-        }
-      });
-    }
-    function put(url, value, token, cb) {
-      var revision = getShadowCouchRev(url);
-      var obj = {
-        value: value
-      };
-      if(revision) {
-        obj._rev = revision;
-      }
-      doCall('PUT', url, JSON.stringify(obj), token, function(err, data) {
-        if(err) {
-          if(err == 409) {//conflict; fetch, update and retry
-            doCall('GET', url, null, token, function(err2, data2) {
-              if(err2) {
-                cb('after 409, got a '+err2);
-              } else {
-                var rightRev;
-                try {
-                  rightRev=JSON.parse(data2)._rev;
-                } catch(e) {
-                }
-                if(rightRev) {
-                  obj = {
-                    value: value,
-                    _rev: rightRev
-                  };
-                  setShadowCouchRev(url, rightRev);
-                    doCall('PUT', url, JSON.stringify(obj), token, function(err3, data3) {
-                    if(err3) {
-                      cb('after 409, second attempt got '+err3);
-                    } else {
-                      cb(null);
-                    }
-                  });
-                } else {
-                  cb('after 409, got unparseable JSON');
-                }
-              }
-            });
-          } else {
-            cb(err);
-          }
-        } else {
-          var obj;
-          try {
-            obj = JSON.parse(data);
-          } catch(e) {
-          }
-          if(obj && obj.rev) {
-            setShadowCouchRev(url, obj.rev);
-          }
-          cb(null);
-        }
-      });
-    }
-    function delete_(url, token, cb) {
-      var revision = getShadowCouchRev(url);
-      doCall('DELETE', url+(revision?'?rev='+revision:''), null, token, function(err, data) {
-        if(err == 409) {
-          doCall('GET', url, null, token, function(err2, data2) {
-            if(err2) {
-              cb('after 409, got a '+err2);
-            } else {
-              var rightRev;
-              try {
-                rightRev = JSON.parse(data2)._rev;
-              } catch(e) {
-              }
-              if(rightRev) {
-                setShadowCouchRev(url, rightRev);
-                doCall('DELETE', url + '?rev=' + rightRev, null, token, function(err3, data3) {
-                  if(err3) {
-                    cb('after 409, second attempt got '+err3);
-                  } else {
-                    setShadowCouchRev(url, undefined);
-                    cb(null);
-                  }
-                });
-              } else {
-                cb('after 409, got unparseable JSON');
-              }
-            }
-          });
-        } else {
-          if(!err) {
-            setShadowCouchRev(url, undefined);
-          }
-          cb(err);
-        }
-      });
-    }
-    function set(url, valueStr, cb) {
-      if(typeof(valueStr) == 'undefined') {
-        return delete_(url, cb);
-      } else {
-        return put(url, valueStr, cb);
-      }
-    }
-    return {
-      get: get,
-      set: set
-    };
-});
-
-define('lib/dav',
-  ['./platform'],
-  function (platform) {
-    function doCall(method, url, value, token, cb, deadLine) {
-      var platformObj = {
-        url: url,
-        method: method,
-        error: function(err) {
-          cb(err);
-        },
-        success: function(data) {
-          cb(null, data);
-        },
-        timeout: 3000
-      }
-
-      platformObj.headers = {
-        'Authorization': 'Bearer ' + decodeURIComponent(token),
-        'Content-Type':  'text/plain;charset=UTF-8'
-      };
-
-      platformObj.fields = {withCredentials: 'true'};
-      if(method != 'GET') {
-        platformObj.data =value;
-      }
-
-      platform.ajax(platformObj);
-    }
-
-    function get(url, token, cb) {
-      if(url.substr(-1) == '/') {
-        doCall('PROPFIND', url, null, token, function(err, data) {
-          if(err == null) {
-            //<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns">
-            //  <d:response>
-            //    <d:href>/apps/remoteStorage/WebDAV.php/admin/remoteStorage/test/foo/bar/</d:href>
-            //    <d:propstat>
-            //      <d:prop>
-            //        <d:getlastmodified xmlns:b="urn:uuid:c2f41010-65b3-11d1-a29f-00aa00c14882/" b:dt="dateTime.rfc1123">
-            //          Tue, 05 Jun 2012 15:48:54 GMT
-            //        </d:getlastmodified>
-            //        <d:resourcetype>
-            //          <d:collection/>
-            //        </d:resourcetype>
-            //        <d:quota-used-bytes>4105</d:quota-used-bytes>
-            //        <d:quota-available-bytes>8516481024</d:quota-available-bytes>
-            //      </d:prop>
-            //      <d:status>HTTP/1.1 200 OK</d:status>
-            //    </d:propstat>
-            //  </d:response>
-            //  <d:response>
-            //    <d:href>/apps/remoteStorage/WebDAV.php/admin/remoteStorage/test/foo/bar/baz</d:href>
-            //    <d:propstat>
-            //      <d:prop>
-            //        <d:getlastmodified xmlns:b="urn:uuid:c2f41010-65b3-11d1-a29f-00aa00c14882/" b:dt="dateTime.rfc1123">
-            //          Tue, 05 Jun 2012 16:05:56 GMT
-            //        </d:getlastmodified>
-            //        <d:getcontentlength>2</d:getcontentlength>
-            //        <d:resourcetype/>
-            //        <d:getcontenttype>text/plain</d:getcontenttype>
-            //      </d:prop>
-            //      <d:status>HTTP/1.1 200 OK</d:status>
-            //    </d:propstat>
-            //  </d:response>
-            //</d:multistatus>
-
-            platform.parseXml(data, function(obj) {
-              cb(null, obj);
-            });
-          } else {
-            cb(err);
-          }
-        });
-      } else {
-        doCall('GET', url, null, token, function(err, data) {
-          if(err == 404) {
-            cb(null, undefined);
-          } else {
-            cb(err, data);
-          }
-        });
-      }
-    }
-
-    function put(url, value, token, cb) {
-      doPut(url, value, token, 0, cb);
-    }
-    function doPut(url, value, token, mkcolLevel, cb) {
-      if(mkcolLevel==0) {
-        doCall('PUT', url, value, token, function(err, data) {
-          if(err == 404) {
-            doPut(url, value, token, 1, cb);
-          } else {
-            cb(err, data);
-          }
-        });
-      } else {
-        var urlParts = url.split('/');
-        if(urlParts.length<mkcolLevel+3) {
-          cb('put failed, looks like server is not compliant (reached root in MKCOL chain)');
-        } else {
-          doCall('MKCOL', urlParts.slice(0, urlParts.length - mkcolLevel).join('/'), null, token, function(err) {
-            if(err==404 || err==409) {
-              doPut(url, value, token, mkcolLevel+1, cb);
-            } else if(err) {
-              cb(err);
-            } else {
-              doPut(url, value, token, mkcolLevel-1, cb);
-            }
-          });
-        }
-      }
-    }
-
-    function set(url, valueStr, token, cb) {
-      if(typeof(valueStr) == 'undefined') {
-        doCall('DELETE', url, null, token, cb);
-      } else {
-        put(url, valueStr, token, cb);
-      }
-    }
-
-    return {
-      get:    get,
-      set:    set
-    }
-});
-
-define('lib/getputdelete',
-  ['./platform'],
-  function (platform) {
-    function doCall(method, url, value, token, cb, deadLine) {
-      var platformObj = {
-        url: url,
-        method: method,
-        error: function(err) {
-          cb(err);
-        },
-        success: function(data) {
-          cb(null, data);
-        },
-        timeout: 3000
-      }
-
-      platformObj.headers = {
-        'Authorization': 'Bearer ' + token,
-        'Content-Type':  'text/plain;charset=UTF-8'
-      };
-
-      platformObj.fields = {withCredentials: 'true'};
-      if(method != 'GET') {
-        platformObj.data =value;
-      }
-
-      platform.ajax(platformObj);
-    }
-
-    function get(url, token, cb) {
-      doCall('GET', url, null, token, function(err, data) {
-        if(err == 404) {
-          cb(null, undefined);
-        } else {
-          if(url.substr(-1)=='/') {
-            try {
-              data = JSON.parse(data);
-            } catch (e) {
-              cb('unparseable directory index');
-              return;
-            }
-          }
-          cb(err, data);
-        }
-      });
-    }
-
-    function put(url, value, token, cb) {
-      doCall('PUT', url, value, token, function(err, data) {
-        if(err == 404) {
-          doPut(url, value, token, 1, cb);
-        } else {
-          cb(err, data);
-        }
-      });
-    }
-
-    function set(url, valueStr, token, cb) {
-      if(typeof(valueStr) == 'undefined') {
-        doCall('DELETE', url, null, token, cb);
-      } else {
-        put(url, valueStr, token, cb);
-      }
-    }
-
-    return {
-      get:    get,
-      set:    set
-    }
 });
 
 define('lib/webfinger',
@@ -977,34 +600,405 @@ define('lib/hardcoded',
     }
 });
 
-define('lib/session',['./platform', './webfinger', './hardcoded'], function(platform, webfinger, hardcoded) {
-  var prefix = 'remoteStorage_session_',
-    memCache = {},
+define('lib/couch',
+  ['./platform'],
+  function (platform) {
+    var shadowCouchRev = null;
+    function getShadowCouchRev(url) {
+      if(!shadowCouchRev) {
+        try {
+          shadowCouchRev = JSON.parse(localStorage.getItem('_shadowCouchRev'));
+        } catch(e) {
+        }
+        if(!shadowCouchRev) {
+          shadowCouchRev = {};
+        }
+      }
+      return shadowCouchRev[url];
+    }
+    function setShadowCouchRev(url, rev) {
+      if(!shadowCouchRev) {
+        try {
+          shadowCouchRev=JSON.parse(localStorage.getItem('_shadowCouchRev'));
+        } catch(e) {
+        }
+      }
+      if(!shadowCouchRev) {
+        shadowCouchRev = {};
+      }
+      shadowCouchRev[url] = rev;
+      localStorage.setItem('_shadowCouchRev', JSON.stringify(shadowCouchRev));
+    }
+    function doCall(method, url, value, token, cb) {
+      var platformObj = {
+        url: url,
+        method: method,
+        error: function(err) {
+          if(err == 404) {
+            cb(null, undefined);
+          } else {
+            cb(err, null);
+          }
+        },
+        success: function(data) {
+          cb(null, data);
+        },
+        timeout: 3000
+      };
+      if(token) {
+        platformObj.headers = {Authorization: 'Bearer '+token};
+      }
+      platformObj.fields = {withCredentials: 'true'};
+      if(method!='GET') {
+        platformObj.data = value;
+      }
+      platform.ajax(platformObj);
+    }
+    function get(url, token, cb) {
+      doCall('GET', url, null, token, function(err, data) {
+        if(err) {
+          cb(err, data);
+        } else {
+          var obj;
+          try {
+            obj = JSON.parse(data);
+          } catch(e) {
+          }
+          if(obj && obj._rev) {
+            setShadowCouchRev(url, obj._rev);
+            cb(null, obj.value);
+          } else if(typeof(data) == 'undefined') {
+            cb(null, undefined);
+          } else {
+            cb('unparsable data from couch');
+          }
+        }
+      });
+    }
+    function put(url, value, mimeType, token, cb) {
+      var revision = getShadowCouchRev(url);
+      var obj = {
+        value: value
+      };
+      if(revision) {
+        obj._rev = revision;
+      }
+      doCall('PUT', url, JSON.stringify(obj), token, function(err, data) {
+        if(err) {
+          if(err == 409) {//conflict; fetch, update and retry
+            doCall('GET', url, null, token, function(err2, data2) {
+              if(err2) {
+                cb('after 409, got a '+err2);
+              } else {
+                var rightRev;
+                try {
+                  rightRev=JSON.parse(data2)._rev;
+                } catch(e) {
+                }
+                if(rightRev) {
+                  obj = {
+                    value: value,
+                    _rev: rightRev
+                  };
+                  setShadowCouchRev(url, rightRev);
+                    doCall('PUT', url, JSON.stringify(obj), token, function(err3, data3) {
+                    if(err3) {
+                      cb('after 409, second attempt got '+err3);
+                    } else {
+                      cb(null);
+                    }
+                  });
+                } else {
+                  cb('after 409, got unparseable JSON');
+                }
+              }
+            });
+          } else {
+            cb(err);
+          }
+        } else {
+          var obj;
+          try {
+            obj = JSON.parse(data);
+          } catch(e) {
+          }
+          if(obj && obj.rev) {
+            setShadowCouchRev(url, obj.rev);
+          }
+          cb(null);
+        }
+      });
+    }
+    function delete_(url, token, cb) {
+      var revision = getShadowCouchRev(url);
+      doCall('DELETE', url+(revision?'?rev='+revision:''), null, token, function(err, data) {
+        if(err == 409) {
+          doCall('GET', url, null, token, function(err2, data2) {
+            if(err2) {
+              cb('after 409, got a '+err2);
+            } else {
+              var rightRev;
+              try {
+                rightRev = JSON.parse(data2)._rev;
+              } catch(e) {
+              }
+              if(rightRev) {
+                setShadowCouchRev(url, rightRev);
+                doCall('DELETE', url + '?rev=' + rightRev, null, token, function(err3, data3) {
+                  if(err3) {
+                    cb('after 409, second attempt got '+err3);
+                  } else {
+                    setShadowCouchRev(url, undefined);
+                    cb(null);
+                  }
+                });
+              } else {
+                cb('after 409, got unparseable JSON');
+              }
+            }
+          });
+        } else {
+          if(!err) {
+            setShadowCouchRev(url, undefined);
+          }
+          cb(err);
+        }
+      });
+    }
+    function set(url, valueStr, cb) {
+      if(typeof(valueStr) == 'undefined') {
+        return delete_(url, cb);
+      } else {
+        return put(url, valueStr, cb);
+      }
+    }
+    return {
+      get: get,
+      set: set
+    };
+});
+
+define('lib/dav',
+  ['./platform'],
+  function (platform) {
+    function doCall(method, url, value, token, cb, deadLine) {
+      var platformObj = {
+        url: url,
+        method: method,
+        error: function(err) {
+          cb(err);
+        },
+        success: function(data) {
+          cb(null, data);
+        },
+        timeout: 3000
+      }
+
+      platformObj.headers = {
+        'Authorization': 'Bearer ' + decodeURIComponent(token),
+        'Content-Type':  'text/plain;charset=UTF-8'
+      };
+
+      platformObj.fields = {withCredentials: 'true'};
+      if(method != 'GET') {
+        platformObj.data =value;
+      }
+
+      platform.ajax(platformObj);
+    }
+
+    function get(url, token, cb) {
+      if(url.substr(-1) == '/') {
+        doCall('PROPFIND', url, null, token, function(err, data) {
+          if(err == null) {
+            //<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns">
+            //  <d:response>
+            //    <d:href>/apps/remoteStorage/WebDAV.php/admin/remoteStorage/test/foo/bar/</d:href>
+            //    <d:propstat>
+            //      <d:prop>
+            //        <d:getlastmodified xmlns:b="urn:uuid:c2f41010-65b3-11d1-a29f-00aa00c14882/" b:dt="dateTime.rfc1123">
+            //          Tue, 05 Jun 2012 15:48:54 GMT
+            //        </d:getlastmodified>
+            //        <d:resourcetype>
+            //          <d:collection/>
+            //        </d:resourcetype>
+            //        <d:quota-used-bytes>4105</d:quota-used-bytes>
+            //        <d:quota-available-bytes>8516481024</d:quota-available-bytes>
+            //      </d:prop>
+            //      <d:status>HTTP/1.1 200 OK</d:status>
+            //    </d:propstat>
+            //  </d:response>
+            //  <d:response>
+            //    <d:href>/apps/remoteStorage/WebDAV.php/admin/remoteStorage/test/foo/bar/baz</d:href>
+            //    <d:propstat>
+            //      <d:prop>
+            //        <d:getlastmodified xmlns:b="urn:uuid:c2f41010-65b3-11d1-a29f-00aa00c14882/" b:dt="dateTime.rfc1123">
+            //          Tue, 05 Jun 2012 16:05:56 GMT
+            //        </d:getlastmodified>
+            //        <d:getcontentlength>2</d:getcontentlength>
+            //        <d:resourcetype/>
+            //        <d:getcontenttype>text/plain</d:getcontenttype>
+            //      </d:prop>
+            //      <d:status>HTTP/1.1 200 OK</d:status>
+            //    </d:propstat>
+            //  </d:response>
+            //</d:multistatus>
+
+            platform.parseXml(data, function(obj) {
+              cb(null, obj);
+            });
+          } else {
+            cb(err);
+          }
+        });
+      } else {
+        doCall('GET', url, null, token, function(err, data) {
+          if(err == 404) {
+            cb(null, undefined);
+          } else {
+            cb(err, data);
+          }
+        });
+      }
+    }
+
+    function put(url, value, mimeType, token, cb) {
+      doPut(url, value, token, 0, cb);
+    }
+    function doPut(url, value, token, mkcolLevel, cb) {
+      if(mkcolLevel==0) {
+        doCall('PUT', url, value, token, function(err, data) {
+          if(err == 404) {
+            doPut(url, value, token, 1, cb);
+          } else {
+            cb(err, data);
+          }
+        });
+      } else {
+        var urlParts = url.split('/');
+        if(urlParts.length<mkcolLevel+3) {
+          cb('put failed, looks like server is not compliant (reached root in MKCOL chain)');
+        } else {
+          doCall('MKCOL', urlParts.slice(0, urlParts.length - mkcolLevel).join('/'), null, token, function(err) {
+            if(err==404 || err==409) {
+              doPut(url, value, token, mkcolLevel+1, cb);
+            } else if(err) {
+              cb(err);
+            } else {
+              doPut(url, value, token, mkcolLevel-1, cb);
+            }
+          });
+        }
+      }
+    }
+
+    function set(url, valueStr, token, cb) {
+      if(typeof(valueStr) == 'undefined') {
+        doCall('DELETE', url, null, token, cb);
+      } else {
+        put(url, valueStr, token, cb);
+      }
+    }
+
+    return {
+      get:    get,
+      set:    set
+    }
+});
+
+define('lib/getputdelete',
+  ['./platform'],
+  function (platform) {
+    function doCall(method, url, value, mimeType, token, cb, deadLine) {
+      var platformObj = {
+        url: url,
+        method: method,
+        error: function(err) {
+          cb(err);
+        },
+        success: function(data, headers) {
+          cb(null, new Date(headers['Last-Modified']).getTime(), headers['Content-Type']);
+        },
+        timeout: 3000
+      }
+
+      platformObj.headers = {
+        'Authorization': 'Bearer ' + token
+      }
+      if(mimeType) {
+        platformObj.headers['Content-Type'] = mimeType;
+      }
+
+      platformObj.fields = {withCredentials: 'true'};
+      if(method != 'GET') {
+        platformObj.data =value;
+      }
+
+      platform.ajax(platformObj);
+    }
+
+    function get(url, token, cb) {
+      doCall('GET', url, null, null, token, function(err, data) {
+        if(err == 404) {
+          cb(null, undefined);
+        } else {
+          if(url.substr(-1)=='/') {
+            try {
+              data = JSON.parse(data);
+            } catch (e) {
+              cb('unparseable directory index');
+              return;
+            }
+          }
+          cb(err, data);
+        }
+      });
+    }
+
+    function put(url, value, mimeType, token, cb) {
+      doCall('PUT', url, value, mimeType, token, function(err, data) {
+        if(err == 404) {
+          doPut(url, value, token, 1, cb);
+        } else {
+          cb(err, data);
+        }
+      });
+    }
+
+    function set(url, valueStr, mimeType, token, cb) {
+      if(typeof(valueStr) == 'undefined') {
+        doCall('DELETE', url, null, null, token, cb);
+      } else {
+        put(url, valueStr, mimeType, token, cb);
+      }
+    }
+
+    return {
+      get:    get,
+      set:    set
+    }
+});
+
+define('lib/wireClient',['./couch', './dav', './getputdelete'], function (couch, dav, getputdelete) {
+  var prefix = 'remote_storage_wire_',
     stateHandler = function(){},
     errorHandler = function(){};
   function set(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
-    memCache[key]=value;
   }
   function remove(key) {
     localStorage.removeItem(prefix+key);
-    delete memCache[key];
   }
   function get(key) {
-    if(typeof(memCache[key]) == 'undefined') {
-      var valStr = localStorage.getItem(prefix+key);
-      if(typeof(valStr) == 'string') {
-        try {
-          memCache[key] = JSON.parse(valStr);
-        } catch(e) {
-          localStorage.removeItem(prefix+key);
-          memCache[key] = null;
-        }
-      } else {
-        memCache[key] = null;
+    var valStr = localStorage.getItem(prefix+key);
+    if(typeof(valStr) == 'string') {
+      try {
+        return JSON.parse(valStr);
+      } catch(e) {
+        localStorage.removeItem(prefix+key);
       }
     }
-    return memCache[key];
+    return null;
   }
   function disconnectRemote() {
     remove('storageType');
@@ -1030,37 +1024,6 @@ define('lib/session',['./platform', './webfinger', './hardcoded'], function(plat
     }
   }
 
-  
-  return {
-    setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
-    getStorageType   : function() { return get('storageType'); },
-    getStorageHref   : function() { return get('storageHref'); },
-    
-    setBearerToken   : function(bearerToken) { set('bearerToken', bearerToken); },
-    getBearerToken   : function() { return get('bearerToken'); },
-    
-    disconnectRemote : disconnectRemote,
-    on               : on,
-    getState         : getState
-  }
-});
-
-//the session holds the storage info, so when logged in, you go:
-//application                                application
-//    module                             module
-//        baseClient                 baseClient
-//            cache              cache
-//                session    session
-//                    wireClient
-//
-//and if you're not logged in it's simply:
-//
-//application                application
-//      module              module
-//        baseClient  baseClient
-//                cache 
-
-define('lib/wireClient',['./platform', './couch', './dav', './getputdelete', './session'], function (platform, couch, dav, getputdelete, session) {
   function getDriver(type, cb) {
     if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#couchdb'
       || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb') {
@@ -1081,11 +1044,30 @@ define('lib/wireClient',['./platform', './couch', './dav', './getputdelete', './
       //+ (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
       + '/' + (item[2] == '_' ? 'u' : '') + item;
   }
+  function setChain(driver, hashMap, mimeType, token, cb, timestamp) {
+    var i;
+    for(i in hashMap) {
+      break;
+    }
+    if(i) {
+      var thisOne = hashMap[i];
+      delete hashMap[i];
+      driver.set(i, thisOne, mimeType, token, function(err, timestamp) {
+        if(err) {
+          cb(err);
+        } else {
+          setChain(driver, hashMap, mimeType, token, cb, timestamp);
+        }
+      });
+    } else {
+      cb(null, timestamp);
+    }
+  }
   return {
     get: function (path, cb) {
-      var storageType = session.getStorageType(),
-        storageHref = session.getStorageHref(),
-        token = session.getBearerToken();
+      var storageType = get('storageType'),
+        storageHref = get('storageHref'),
+        token = get('bearerToken');
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
       } else {
@@ -1094,45 +1076,39 @@ define('lib/wireClient',['./platform', './couch', './dav', './getputdelete', './
         });
       }
     },
-    set: function (path, valueStr, cb) {
-      var storageInfo = session.getStorageInfo(),
-        token = session.getBearerToken();
+    set: function (path, valueStr, mimeType, parentChain, cb) {
+      var storageType = get('storageType'),
+        storageHref = get('storageHref'),
+        token = get('bearerToken');
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
       } else if(typeof(valueStr) != 'string') {
         cb('argument "valueStr" should be a string');
       } else {
         getDriver(storageType, function (d) {
-          d.set(resolveKey(storageType, storageHref, '', path), value, token, cb);
+          d.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, function(err, timestamp) {
+            if(d.requiresParentChaining && !err) {
+              var resolvedParentChain = {};
+              for(var i in parentChain) {
+                resolvedParentChain[resolveKey(storageType, storageHref, '', i)] = parentChain[i];
+              }
+              setChain(d, resolvedParentChain, 'application/json', token, cb);
+            } else {
+              cb(err, timestamp);
+            }
+          });
         });
       }
-    }
+    },
+    setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
+    setBearerToken   : function(bearerToken) { set('bearerToken', bearerToken); },
+    disconnectRemote : disconnectRemote,
+    on               : on,
+    getState         : getState
   };
 });
 
 define('lib/store',[], function () {
-//for the syncing, it turns out to be useful to store nodes for items, and store their data separately.
-//we can then also use those nodes to mark where outgoing changes exist.
-//so we would have one store for nodes, one for cache, and one for diffs.
-//windows on the same device should share the diffs with each other, but basically flush their memCache whenever a diff or a cache or a node changes.
-//memCache can be one big hashmap of nodes.
-//actually, cache value and diff can be stored on the node, that makes it all a lot easier
-//when a diff exists, then cache value can be expunged, so really, we only have to mark the node as 'outgoing:' with a timestamp.
-//so in memCache, each node has fields:
-//-lastRemoteRevisionSeen: (integer, not necessarily a timestamp!)
-//-force: true/false/undefined
-//-lastFetched: (timestamp on local clock)
-//-outgoingChange: (timestamp on local clock or undefined)
-//-keep: true/false
-//-access: r/rw/null
-//-children: map of filenames->true; {} for leafs
-//-data: (obj), only for leafs
-//
-//store should expose: setObject, setMedia, removeItem, getData, getStatus, from baseClient (will lead to outgoingChange)
-//also: getNode (from sync), updateNode (from sync), forgetNode (from sync)
-//getNode should return {revision: 0} for a cache miss, but {revision:0, access:null, children:['bar']} for /foo if /foo/bar exists
-//when you setObject or setMedia, parent nodes should be created and/or updated.
-
   var onChange,
     prefixNodes = 'remote_storage_nodes:';
   window.addEventListener('storage', function(e) {
@@ -1154,12 +1130,16 @@ define('lib/store',[], function () {
       }
     }
     if(!value) {
-      value = {
-        access: null,
-        revision: 0,
+      value = {//this is what an empty node looks like
+        startAccess: null,
+        startForce: null,
+        lastModified: 0,
+        outgoingChange: false,
         keep: true,
-        children: {},
-        data: (isDir(path)? {} : undefined)
+        data: (isDir(path)?{}:undefined),
+        added: {},
+        removed: {},
+        changed: {},
       };
     }
     return value;
@@ -1198,25 +1178,47 @@ define('lib/store',[], function () {
   function getCurrTimestamp() {
     return new Date().getTime();
   }
-  function updateNode(path, node) {
+  function updateNode(path, node, changeType) {
+    //there are three types of local changes: added, removed, changed.
+    //when a PUT or DELETE is successful and we get a Last-Modified header back the parents should already be updated right to the root
+    //
     localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
-      var changed = false;
-      if(!parentNode.children[getFileName(path)]) {
-        parentNode.children[getFileName(path)] = 999999;//meaning we should fetch this node next time
-        changed = true;
-      }
-      if(parentNode.data[getFileName(path)] && !node.data) {
+      if(changeType=='set') { 
+        if(parentNode.data[getFileName(path)]) {
+          parentNode.changed[getFileName(path)] = new Date().getTime();
+        } else {
+          parentNode.added[getFileName(path)] = new Date().getTime();
+        }
+        updateNode(containingDir, parentNode, 'set');
+      } else if(changeType=='remove') {
+        parentNode.removed[getFileName(path)] = new Date().getTime();
+        updateNode(containingDir, parentNode, 'set');
+      } else if(changeType=='accept') {
+        if(parentNode.data[getFileName(path)] != node.lastModified) {
+          parentNode.data[getFileName(path)] = node.lastModified;
+          if(parentNode.lastModified < node.lastModified) {
+            parentNode.lastModified = node.lastModified;
+          }
+          updateNode(containingDir, parentNode, 'accept');
+        }
+      } else if(changeType=='gone') {
         delete parentNode.data[getFileName(path)];
-        changed = true;
-      } else if(!parentNode.data[getFileName(path)] && node.data) {
-        parentNode.data[getFileName(path)] = true;
-        changed = true;
-      }
-      if(changed) {
-        updateNode(containingDir, parentNode);
+        if(parentNode.lastModified < node.lastModified) {
+          parentNode.lastModified = node.lastModified;
+        }
+        updateNode(containingDir, parentNode, 'accept');
+      } else if(changeType=='clear') {
+        parentNode.data[getFileName(path)] = node.lastModified;
+        delete parentNode.added[getFileName(path)];
+        delete parentNode.removed[getFileName(path)];
+        delete parentNode.changed[getFileName(path)];
+        if(parentNode.lastModified < node.lastModified) {
+          parentNode.lastModified = node.lastModified;
+        }
+        updateNode(containingDir, parentNode, 'accept');
       }
     }
   }
@@ -1239,129 +1241,189 @@ define('lib/store',[], function () {
   function connect(path, connectVal) {
     var node = getNode(path);
     node.startForcing=(connectVal!=false);
-    updateNode(path, node);
+    updateNode(path, node, 'meta');
   }
   function getState(path) {
     return 'disconnected';
   }
+  function setNodeData(path, data, outgoing, lastModified, mimeType) {
+    var node = getNode(path);
+    node.data = data;
+    if(lastModified) {
+      node.lastModified = lastModified;
+    }
+    if(mimeType) {
+      node.mimeType = mimeType;
+    }
+    if(outgoing) {
+      node.outgoingChange = new Date().getTime();
+      updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
+    } else {
+      if(isDir(path)) {
+        for(var i in data) {
+          delete node.added(i);
+        }
+        for(var i in node.removed) {
+          if(!data[i]) {
+            delete node.removed(i);
+          }
+        }
+        updateNode(path, node, 'accept');
+      } else {
+        if(node.outgoingChange) {
+          if(data != node.data && node.outgoingChange > lastModified) {
+            //reject the update, outgoing changes will change it
+          } else {
+            node.data = data;
+            node.outgoingChange = false;
+            node.lastModified = lastModified;
+            updateNode(path, node, 'clear');
+          }
+        } else {
+          updateNode(path, node, (typeof(data)=='undefined'?'gone':'accept'));
+        }
+      }
+    }
+  }
+  function clearOutgoingChange(path, lastModified) {
+    var node = getNode(path);
+    node.lastModified = lastModified;
+    node.outgoingChange = false;
+    updateNode(path, node, 'clear');
+  }
+  function setNodeAccess(path, claim) {
+    var node = getNode(path);
+    if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
+      node.startAccess = claim;
+      updateNode(path, node);
+    }
+  }
+  function setNodeForce(path, force) {
+    var node = getNode(path);
+    node.startForce = force;
+    updateNode(path, node);
+  }
   return {
-    on         : on,//error,change(origin=tab,device,cloud)
-    
-    getNode    : getNode,
-    updateNode : updateNode,
-    forget     : forget,
-    forgetAll  : forgetAll
+    on            : on,//error,change(origin=tab,device,cloud)
+   
+    getNode       : getNode,
+    setNodeData   : setNodeData,
+    setNodeAccess : setNodeAccess,
+    setNodeForce  : setNodeForce,
+    clearOutgoingChange:clearOutgoingChange,
+    forget        : forget,
+    forgetAll     : forgetAll
   };
 });
 
-define('lib/sync',['./wireClient', './session', './store'], function(wireClient, session, store) {
+// access: null
+// lastModified: 0
+// keep: true
+// data
+//   tasks/: 999999
+//   public/: 999999
+// data
+//   
+
+//start: store has a tree with three types of node: dir, object, media.
+//object and media nodes have fields:
+//lastModified, type (media/object), mimeType/objectType, data, access, outgoingChange (client-side timestamp or false), sync
+//dir nodes have fields:
+//lastModified, type (dir), data (hash filename -> remote timestamp), added/changed/removed, access, startSync, stopSync
+
+define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
   var prefix = '_remoteStorage_', busy=false;
    
-  function addToList(listName, path, value) {
-    var list = getList(listName);
-    if(list[path] != value) {
-      list[path] = value;
-      localStorage.setItem(prefix+listName, JSON.stringify(list));
-    }
-  }
-  function getList(listName) {
-    var list, listStr = localStorage.getItem(prefix+listName);
-    if(listStr) {
-      try {
-        return JSON.parse(listStr);
-      } catch(e) {
-      }
-    }
-    return {};
-  }
   function getState(path) {
-    if(session.getState() == 'connected') {
-      if(busy) {
-        return 'busy';
-      } else {
-        return 'connected';
-      }
+    if(busy) {
+      return 'busy';
     } else {
-      return 'anonymous';
+      return 'connected';
     }
   }
-  //the sync list is at the same time a list of what should be synced and what we know about that data.
-  //a node should have lastFetched, (null if we have no access), and a hashmap of children -> lastModified.
-  //we should not have a separate syncList and store. just an 'includeChildren' field and an 'explicit' field.
-  //syncNode types: noAccess, miss, explicitRecursive, implicitKeep, implicitLeave
-  //a leaf will not need a lastFetch field, because we always fetch its containingDir anyway. so you should never store items
-  //in directories you can't list!
-  //
-  //what is quite complex is the difference between node.children and node.data for a directory.
-  //first of all, if you delete a file, then in its parent node, it is removed from data, but not (yet) from children, so that the
-  //deletion can still be synced. once it's removed from the server, and the directory listing is retrieved again, i think it should be removed
-  //from children as well.
-  //also, the values in .data are server-side revision numbers, where as in .children i think they are client-side timestamps.
-  //TODO: double check this description once it's all working
-  function pullMap(basePath, map, force, accessInherited) {
-    for(var path in map) {
-      var node = store.getNode(basePath+path);//will return a fake dir with empty children list for item
-      //node.revision = the revision we have, 0 if we have nothing;
-      //node.startForcing = force fetch from here on down
-      //node.stopForcing = maybe fetch, but don't force from here on down
-      //node.keep = we're not recursively syncing this, but we obtained a copy implicitly and want to keep it in sync
-      //node.children = a map of children nodes to their revisions (0 for cache miss)
-      var access = accessInherited || node.access;
-      if(node.revision<map[path]) {
-        if(node.startForcing) { force = true; }
-        if(node.stopForcing) { force = false; }
-        if((force || node.keep) && access) {
-          wireClient.get(basePath+path, function (err, data) {
-            if(data) {
-              var node = store.getNode(basePath+path);
-              node.data = data;
-              store.updateNode(basePath+path, node);
-            }
-            pullMap(basePath+path, store.getNode(basePath+path).children, force, access);//recurse without forcing
-          });
-        } else {
-          //store.forget(basePath+path);
-          pullMap(basePath+path, node.children, force, access);
-        }
-      }// else everything up to date
+  function getParentChain(path) {//this is for legacy support
+    var pathParts = path.split('/');
+    var parentChain={};
+    for(var i = 2; i<pathParts.length; i++) {
+      var thisPath = pathParts.slice(0, i).join('/');
+      parentChain[thisPath] = store.getNode(thisPath).data;
     }
+    return parentChain;
   }
-  //
-  function getUserAddress() {
-    return null;
-  }
-  function getCurrentTimestamp() {
-    return new Date().getTime();
-  }
-  function get(path, cb) {
-    var fromCache = store.get(path);
-    if(fromCache) {
-      cb(null, fromCache);
-    } else {
-      wireClient.get(path, function(err, data) {
-        if(getState(path) != 'disconnected') {
-          store.set(path, data);
-          addToList('pull', path, getCurrentTimeStamp());
+  function handleChild(path, lastModified, force, access, startOne, finishOne) {
+    console.log('handleChild '+path);
+    var node = store.getNode(path);//will return a fake dir with empty data list for item
+    if(node.outgoingChange) {
+      //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
+      startOne();
+      var parentChain = getParentChain(path);
+      wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
+        if(!err) {
+          store.clearOutgoingChange(path, timestamp);
         }
-        cb(err, data);
+        finishOne();
       });
+    } else if(node.lastModified<lastModified) {
+      if(node.startAccess !== null) { access = node.startAccess; }
+      if(node.startForce !== null) { force = node.startForce; }
+      if((force || node.keep) && access) {
+        startOne();
+        wireClient.get(path, function (err, data, timestamp, mimeType) {
+          if(data) {
+            store.setNodeData(path, data, false, timestamp, mimeType);
+          }
+          finishOne(err);
+          startOne();
+          pullMap(path, store.getNode(path).data, force, access, finishOne);
+          startOne();
+          pullMap(path, store.getNode(path).added, force, access, finishOne);
+        });
+      } else {
+        //store.forget(path);
+        startOne();
+        pullMap(path, node.data, force, access, finishOne);
+        startOne();
+        pullMap(path, node.added, force, access, finishOne);
+      }
+    }// else everything up to date
+  }
+  function pullMap(basePath, map, force, access, cb) {
+    console.log('pullMap '+basePath);
+    var outstanding=0, errors=false;
+    function startOne() {
+      outstanding++;
     }
+    function finishOne(err) {
+      if(err) {
+        errors = true;
+      }
+      outstanding--;
+      if(outstanding==0) {
+        cb(errors);
+      }
+    }
+    startOne();
+    for(var path in map) {
+      handleChild(basePath+path, map[path], force, access, startOne, finishOne);
+    }
+    finishOne();
   }
-  function syncNow() {
-    pullMap('', {'/': Infinity}, false);
-  }
-  function on(eventType, cb) {
+  function syncNow(path, cb) {
+    busy=true;
+    var map={};
+    map[path]= Infinity;
+    pullMap('', map, false, false, function() {
+      busy=false;
+      cb();
+    });
   }
   return {
     syncNow: syncNow,
-    getState : getState,
-    getUserAddress : getUserAddress,
-    get : get,
-    on : on
+    getState : getState
   };
 });
 
-define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './store', './platform'], function (webfinger, hardcoded, session, sync, store, platform) {
+define('lib/widget',['./webfinger', './hardcoded', './wireClient', './sync', './store', './platform'], function (webfinger, hardcoded, wireClient, sync, store, platform) {
   var remoteStorageIcon = 'data:image/png;base64,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'
@@ -1443,18 +1505,18 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
     if(isRegistering()) {
       return 'registering';
     } else {
-      var sessionState = session.getState();
-      if(sessionState == 'authing') {
+      var wireClientState = wireClient.getState();
+      if(wireClientState == 'authing') {
         if(platform.harvestToken()) {
-          sessionState = 'connected';
+          wireClientState = 'connected';
         } else {
           return 'interrupted';
         }
       }
-      if(sessionState == 'connected') {
+      if(wireClientState == 'connected') {
         return sync.getState();//'busy', 'connected' or 'offline'
       }
-      return sessionState;//'connecting' or 'anonymous'
+      return wireClientState;//'connecting' or 'anonymous'
     }
   }
   function setWidgetStateOnLoad() {
@@ -1540,7 +1602,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
       }
     }
     queryParams.push('response_type=token');
-    queryParams.push('scope='+encodeURIComponent(scopesArr));
+    queryParams.push('scope='+encodeURIComponent(scopesArr.join(' ')));
     queryParams.push('redirect_uri='+encodeURIComponent(loc));
     queryParams.push('client_id='+encodeURIComponent(redirectUriToClientId(loc)));
     
@@ -1555,7 +1617,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
             cb(err2);
           } else {
             if(data2.type && data2.href && data.properties && data.properties['auth-endpoint']) {
-              session.setStorageInfo(data2.type, data2.href);
+              wireClient.setStorageInfo(data2.type, data2.href);
               cb(null, data2.properties['auth-endpoint']);
             } else {
               cb('cannot make sense of storageInfo from webfinger');
@@ -1564,7 +1626,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
         });
       } else {
         if(data.type && data.href && data.properties && data.properties['auth-endpoint']) {
-          session.setStorageInfo(data.type, data.href);
+          wireClient.setStorageInfo(data.type, data.href);
           cb(null, data.properties['auth-endpoint']);
         } else {
           cb('cannot make sense of storageInfo from hardcoded');
@@ -1572,22 +1634,16 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
       }
     });
   }
-  function onLoad() {
-    var tokenHarvested = platform.harvestToken();
-    if(tokenHarvested) {
-      session.setBearerToken(tokenHarvested);
-    }
-  }
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
-      localStorage['remotestorage_widget_useraddress']=userAddress;
+      localStorage['remote_storage_widget_useraddress']=userAddress;
       setWidgetState('connecting');
       discoverStorageInfo(userAddress, function(err, auth) {
         if(err) {
           setWidgetState('failed');
         } else {
-          dance(auth, true);
+          dance(auth, false);
         }
       });
     } else {
@@ -1596,15 +1652,18 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
   }
   function handleDisconnectClick() {
     if(widgetState == 'connected') {
-      session.disconnectRemote();
-      store.forgetAll();//FIXME: not sure if widget talking directly to store is the right dependency structure
+      wireClient.disconnectRemote();
+      store.forgetAll();
       setWidgetState('anonymous');
     } else {
       alert('you cannot disconnect now, please wait until the cloud is up to date...');
     }
   }
   function handleCubeClick() {
-    sync.syncNow();
+    setWidgetState('busy');
+    sync.syncNow('/', function(success) {
+      setWidgetState((success?'connected':'offline'));
+    });
     //if(widgetState == 'connected') {
     //  handleDisconnectClick();
     //}
@@ -1617,13 +1676,16 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
     console.log('handleWidgetHover');
   }
   function display(setConnectElement, setLocale) {
+    var tokenHarvested = platform.harvestToken();
+    if(tokenHarvested) {
+      wireClient.setBearerToken(tokenHarvested);
+    }
     connectElement = setConnectElement;
     locale = setLocale;
-    sync.on('state', setWidgetState);
-    session.on('error', function(err) {
+    wireClient.on('error', function(err) {
       platform.alert(translate(err));
     });
-    session.on('state', setWidgetState);
+    wireClient.on('state', setWidgetState);
     setWidgetStateOnLoad();
   }
   function addScope(module, mode) {
@@ -1631,7 +1693,7 @@ define('lib/widget',['./webfinger', './hardcoded', './session', './sync', './sto
       scopesObj[module] = mode;
     }
   }
-  onLoad();
+  
   return {
     display : display,
     addScope: addScope
@@ -1678,35 +1740,26 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
   });
   
 
-  function set(absPath, valueStr) {
+  function set(path, absPath, valueStr) {
     if(isDir(absPath)) {
       fireError('attempt to set a value to a directory '+absPath);
       return;
     }
     var  node = store.getNode(absPath);
-    node.outgoingChange = true;
     var changeEvent = {
       origin: 'window',
       oldValue: node.data,
       newValue: valueStr,
-      path: absPath
+      path: path
     };
-    node.data = valueStr;
-    var ret = store.updateNode(absPath, node);
+    var ret = store.setNodeData(absPath, valueStr, true);
     var moduleName = extractModuleName(absPath);
     fireChange(moduleName, changeEvent);
     return ret; 
   }
 
   function claimAccess(path, claim) {
-    var node = store.getNode(path);
-    if((claim != node.access) && (claim == 'rw' || node.access == null)) {
-      node.access = claim;
-      store.updateNode(path, node);
-      for(var i in node.children) {
-        claimAccess(path+i, claim);
-      }
-    }
+    store.setNodeAccess(path, claim);
   }
 
   function isDir(path) {
@@ -1763,15 +1816,26 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
             sync.fetchNow(absPath, function(err) {
               var node = store.getNode(absPath);
               var arr = [];
-              for(var i in node.data) {
+              for(var i in node.children) {
+                if(!node.removed[i]) {
+                  arr.push(i);
+                }
+              }
+              for(var i in node.added) {
                 arr.push(i);
               }
+              //no need to look at node.changed, that doesn't change the listing
               bindContext(cb, context)(arr);
             });
           } else {
             var node = store.getNode(absPath);
             var arr = [];
-            for(var i in node.data) {
+            for(var i in node.children) {
+              if(!node.removed[i]) {
+                arr.push(i);
+              }
+            }
+            for(var i in node.added) {
               arr.push(i);
             }
             return arr;
@@ -1798,17 +1862,17 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         remove: function(path) {
-          return set(makePath(path));
+          return set(path, makePath(path));
         },
         
         storeObject: function(type, path, obj) {
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
-          return set(makePath(path), obj, 'application/json');
+          return set(path, makePath(path), obj, 'application/json');
         },
 
         storeMedia: function(mimeType, path, data) {
-          return set(makePath(path), data, mimeType);
+          return set(path, makePath(path), data, mimeType);
         },
 
         getCurrentWebRoot: function() {
@@ -1817,9 +1881,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
 
         sync: function(path, switchVal) {
           var absPath = makePath(path);
-          var node = store.getNode(absPath);
-          node.startForcing = (switchVal != false);
-          store.updateNode(absPath, node);
+          store.setNodeForce(absPath, (switchVal != false));
         },
 
         getState: function(path) {
@@ -1831,19 +1893,12 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
 
 define('remoteStorage',[
   'require',
-  './lib/platform',
-  './lib/couch',
-  './lib/dav',
-  './lib/getputdelete',
-  './lib/webfinger',
-  './lib/hardcoded',
-  './lib/session',
   './lib/widget',
   './lib/baseClient',
-  './lib/wireClient',
-  './lib/sync'
-], function(require, platform, couch, dav, getputdelete, webfinger, hardcoded,
-            session, widget, baseClient, wireClient, sync) {
+  './lib/store',
+  './lib/sync',
+  './lib/wireClient'
+], function(require, widget, baseClient, store, sync, wireClient) {
 
   var loadedModules = {}, modules = {};
 
@@ -1894,12 +1949,12 @@ define('remoteStorage',[
       this[moduleName] = module.exports;
       if(moduleName == 'root') {
         moduleName = '';
-        widget.addScope('/', mode);
+        widget.addScope('', mode);
         baseClient.claimAccess('/', mode);
       } else {
-        widget.addScope('/'+moduleName+'/', mode);
+        widget.addScope(moduleName+'/', mode);
         baseClient.claimAccess('/'+moduleName+'/', mode);
-        widget.addScope('/public/'+moduleName+'/', mode);
+        widget.addScope('public/'+moduleName+'/', mode);
         baseClient.claimAccess('/public/'+moduleName+'/', mode);
       }
 
@@ -1907,7 +1962,7 @@ define('remoteStorage',[
     },
 
     setBearerToken: function(bearerToken, claimedScopes) {
-      session.setBearerToken(bearerToken);
+      wireClient.setBearerToken(bearerToken);
       baseClient.claimScopes(claimedScopes);
     },
 
@@ -1915,21 +1970,13 @@ define('remoteStorage',[
      ** DELEGATED METHODS
      **/
 
-    disconnectRemote : session.disconnectRemote,
-    flushLocal       : session.flushLocal,
+    disconnectRemote : wireClient.disconnectRemote,
+    flushLocal       : store.forgetAll,
     syncNow          : sync.syncNow,
     displayWidget    : widget.display,
-    setStorageInfo   : session.setStorageInfo
+    setStorageInfo   : wireClient.setStorageInfo
 
   };
-
-  remoteStorage.defineModule('root', function(client) {
-    return {
-      exports: {
-        getListing: client.getListing
-      }
-    }
-  });
 
 
   return remoteStorage;

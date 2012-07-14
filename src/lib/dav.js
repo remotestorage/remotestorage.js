@@ -82,7 +82,7 @@ define(
       }
     }
 
-    function put(url, value, token, cb) {
+    function put(url, value, mimeType, token, cb) {
       doPut(url, value, token, 0, cb);
     }
     function doPut(url, value, token, mkcolLevel, cb) {

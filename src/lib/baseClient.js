@@ -38,35 +38,26 @@ define(['./sync', './store'], function (sync, store) {
   });
   
 
-  function set(absPath, valueStr) {
+  function set(path, absPath, valueStr) {
     if(isDir(absPath)) {
       fireError('attempt to set a value to a directory '+absPath);
       return;
     }
     var  node = store.getNode(absPath);
-    node.outgoingChange = true;
     var changeEvent = {
       origin: 'window',
       oldValue: node.data,
       newValue: valueStr,
-      path: absPath
+      path: path
     };
-    node.data = valueStr;
-    var ret = store.updateNode(absPath, node);
+    var ret = store.setNodeData(absPath, valueStr, true);
     var moduleName = extractModuleName(absPath);
     fireChange(moduleName, changeEvent);
     return ret; 
   }
 
   function claimAccess(path, claim) {
-    var node = store.getNode(path);
-    if((claim != node.access) && (claim == 'rw' || node.access == null)) {
-      node.access = claim;
-      store.updateNode(path, node);
-      for(var i in node.children) {
-        claimAccess(path+i, claim);
-      }
-    }
+    store.setNodeAccess(path, claim);
   }
 
   function isDir(path) {
@@ -123,15 +114,26 @@ define(['./sync', './store'], function (sync, store) {
             sync.fetchNow(absPath, function(err) {
               var node = store.getNode(absPath);
               var arr = [];
-              for(var i in node.data) {
+              for(var i in node.children) {
+                if(!node.removed[i]) {
+                  arr.push(i);
+                }
+              }
+              for(var i in node.added) {
                 arr.push(i);
               }
+              //no need to look at node.changed, that doesn't change the listing
               bindContext(cb, context)(arr);
             });
           } else {
             var node = store.getNode(absPath);
             var arr = [];
-            for(var i in node.data) {
+            for(var i in node.children) {
+              if(!node.removed[i]) {
+                arr.push(i);
+              }
+            }
+            for(var i in node.added) {
               arr.push(i);
             }
             return arr;
@@ -158,17 +160,17 @@ define(['./sync', './store'], function (sync, store) {
         },
 
         remove: function(path) {
-          return set(makePath(path));
+          return set(path, makePath(path));
         },
         
         storeObject: function(type, path, obj) {
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
-          return set(makePath(path), obj, 'application/json');
+          return set(path, makePath(path), obj, 'application/json');
         },
 
         storeMedia: function(mimeType, path, data) {
-          return set(makePath(path), data, mimeType);
+          return set(path, makePath(path), data, mimeType);
         },
 
         getCurrentWebRoot: function() {
@@ -177,9 +179,7 @@ define(['./sync', './store'], function (sync, store) {
 
         sync: function(path, switchVal) {
           var absPath = makePath(path);
-          var node = store.getNode(absPath);
-          node.startForcing = (switchVal != false);
-          store.updateNode(absPath, node);
+          store.setNodeForce(absPath, (switchVal != false));
         },
 
         getState: function(path) {

@@ -1,19 +1,48 @@
-//the session holds the storage info, so when logged in, you go:
-//application                                application
-//    module                             module
-//        baseClient                 baseClient
-//            cache              cache
-//                session    session
-//                    wireClient
-//
-//and if you're not logged in it's simply:
-//
-//application                application
-//      module              module
-//        baseClient  baseClient
-//                cache 
+define(['./couch', './dav', './getputdelete'], function (couch, dav, getputdelete) {
+  var prefix = 'remote_storage_wire_',
+    stateHandler = function(){},
+    errorHandler = function(){};
+  function set(key, value) {
+    localStorage.setItem(prefix+key, JSON.stringify(value));
+  }
+  function remove(key) {
+    localStorage.removeItem(prefix+key);
+  }
+  function get(key) {
+    var valStr = localStorage.getItem(prefix+key);
+    if(typeof(valStr) == 'string') {
+      try {
+        return JSON.parse(valStr);
+      } catch(e) {
+        localStorage.removeItem(prefix+key);
+      }
+    }
+    return null;
+  }
+  function disconnectRemote() {
+    remove('storageType');
+    remove('storageHref');
+    remove('bearerToken');
+  }
+  function getState() {
+    if(get('storageType') && get('storageHref')) {
+      if(get('bearerToken')) {
+        return 'connected';
+      } else {
+        return 'authing';
+      }
+    } else {
+      return 'anonymous';
+    }
+  }
+  function on(eventType, cb) {
+    if(eventType == 'state') {
+      stateHandler = cb;
+    } else if(eventType == 'error') {
+      errorHandler = cb;
+    }
+  }
 
-define(['./platform', './couch', './dav', './getputdelete', './session'], function (platform, couch, dav, getputdelete, session) {
   function getDriver(type, cb) {
     if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#couchdb'
       || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb') {
@@ -34,11 +63,30 @@ define(['./platform', './couch', './dav', './getputdelete', './session'], functi
       //+ (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
       + '/' + (item[2] == '_' ? 'u' : '') + item;
   }
+  function setChain(driver, hashMap, mimeType, token, cb, timestamp) {
+    var i;
+    for(i in hashMap) {
+      break;
+    }
+    if(i) {
+      var thisOne = hashMap[i];
+      delete hashMap[i];
+      driver.set(i, thisOne, mimeType, token, function(err, timestamp) {
+        if(err) {
+          cb(err);
+        } else {
+          setChain(driver, hashMap, mimeType, token, cb, timestamp);
+        }
+      });
+    } else {
+      cb(null, timestamp);
+    }
+  }
   return {
     get: function (path, cb) {
-      var storageType = session.getStorageType(),
-        storageHref = session.getStorageHref(),
-        token = session.getBearerToken();
+      var storageType = get('storageType'),
+        storageHref = get('storageHref'),
+        token = get('bearerToken');
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
       } else {
@@ -47,18 +95,34 @@ define(['./platform', './couch', './dav', './getputdelete', './session'], functi
         });
       }
     },
-    set: function (path, valueStr, cb) {
-      var storageInfo = session.getStorageInfo(),
-        token = session.getBearerToken();
+    set: function (path, valueStr, mimeType, parentChain, cb) {
+      var storageType = get('storageType'),
+        storageHref = get('storageHref'),
+        token = get('bearerToken');
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
       } else if(typeof(valueStr) != 'string') {
         cb('argument "valueStr" should be a string');
       } else {
         getDriver(storageType, function (d) {
-          d.set(resolveKey(storageType, storageHref, '', path), value, token, cb);
+          d.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, function(err, timestamp) {
+            if(d.requiresParentChaining && !err) {
+              var resolvedParentChain = {};
+              for(var i in parentChain) {
+                resolvedParentChain[resolveKey(storageType, storageHref, '', i)] = parentChain[i];
+              }
+              setChain(d, resolvedParentChain, 'application/json', token, cb);
+            } else {
+              cb(err, timestamp);
+            }
+          });
         });
       }
-    }
+    },
+    setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
+    setBearerToken   : function(bearerToken) { set('bearerToken', bearerToken); },
+    disconnectRemote : disconnectRemote,
+    on               : on,
+    getState         : getState
   };
 });
