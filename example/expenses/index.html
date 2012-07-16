@@ -288,14 +288,15 @@
   declaration('michiel', '2012/07/31', 'unemployment+health insurance August', 1070);
 
   //year 3:
-  declaration('michiel', '2012/09/09', '12 months Michiel', 12*1500);
-  declaration('niklas', '2012/09/09', '11 months Niklas', 11*1800);
+  declaration('michiel', '2012/09/09', '12 months Michiel', 12*(1500+70+45));//living expenses + health insurance + desk
+  declaration('niklas', '2012/09/09', '11 months Niklas', 11*(1500+220+250));//living expenses + health insurance + desk
   reportDonation('nlnet year 3', 15000, 'michiel', '2012/09/09');
   reportDonation('nlnet year 3', 15000, 'niklas', '2012/09/09');
   declaration('michiel', '2012/09/09', 'stickers and other misc costs', 1019.83);
-  reportDonation('Wau Holland Stiftung', 555.17+1019.83, 'michiel', '2012/09/09');
-  reportDonation('Wau Holland Stiftung', 4800, 'niklas', '2012/09/09');
-  transfer('Requesting from Wau Holland Stiftung', 'donations-received', '2012/09/09', 555.17+1019.83+4800, 'EUR');
+  reportDonation('Wau Holland Stiftung', 1935.17+1019.83, 'michiel', '2012/09/09');
+  reportDonation('Wau Holland Stiftung', 6670, 'niklas', '2012/09/09');
+  transfer('Requesting from nlnet foundation', 'donations-received', '2012/09/09', 30000, 'EUR');
+  transfer('Requesting from Wau Holland Stiftung', 'donations-received', '2012/09/09', 1935.17+1019.83+6670, 'EUR');
 
   console.log('************************');
   function itoa(i) {
