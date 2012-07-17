@@ -17,22 +17,22 @@ var specHelper = (function() {
       sinonServer.restore();
     },
     getRemoteStorage: function() {
-      return jasmine.currentEnv_.remoteStorage;
+      return testEnv.remoteStorage;
     },
     getFile: function(fileName) {
-      return jasmine.currentEnv_.files[fileName].module;
+      return testEnv.files[fileName].module;
     },
     getModule: function(moduleName) {
-      return jasmine.currentEnv_.modules[moduleName];
+      return testEnv.modules[moduleName];
     },
     getPrivateBaseClient: function(moduleName) {
-      return jasmine.currentEnv_.privateBaseClients[moduleName];
+      return testEnv.privateBaseClients[moduleName];
     },
     getPublicBaseClient: function(moduleName) {
-      return jasmine.currentEnv_.publicBaseClients[moduleName];
+      return testEnv.publicBaseClients[moduleName];
     },
     getStub: function(moduleName, stubName) {
-      var stub = jasmine.currentEnv_.files[moduleName].stubs[stubName];
+      var stub = testEnv.files[moduleName].stubs[stubName];
       stub.reset();
       return stub;
     }

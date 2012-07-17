@@ -3,17 +3,17 @@
     it("should fail to parse a bogus host-meta", function() {
       var webfinger = specHelper.getFile('webfinger');
       var platformStub = specHelper.getStub('webfinger', 'platform');
-      platformStub.addFunc3('getStorageInfo');
+      platformStub.addFunc('getStorageInfo', 3);
       platformStub.setResponses([undefined]);
       var ret = webfinger.getStorageInfo('a@b.c', {}, function(err, storageInfo) {
         expect(err).toEqual('could not fetch host-meta for a@b.c');
         expect(storageInfo).toEqual(null);
       });
-      expect(typeof(rit)).toEqual('undefined');
+      expect(typeof(ret)).toEqual('undefined');
       var calls = platformStub.getCalled();
       expect(calls.length).toEqual(1);
       expect(calls[0].name).toEqual('ajax');
-      expect(calls[0].params[0].url).toEqual('https://b.c/.well-known/host-meta');
+      expect(calls[0].params[0].url).toEqual('https://b.c/.well-known/host-meta.json?resource=acct:a%40b.c');
       expect(typeof(calls[0].params[0].success)).toEqual('function');
       expect(typeof(calls[0].params[0].error)).toEqual('function');
       expect(typeof(calls[0].params[0].timeout)).toEqual('undefined');
@@ -35,7 +35,7 @@
     });
     it("should fail on host-meta 403", function() {
       var webfinger = specHelper.getFile('webfinger');
-      var platformStub = specHelper.getPlatformStub('webfinger');
+      var platformStub = specHelper.getStub('webfinger', 'platform');
       platformStub.setResponses([undefined]);
       var ret = webfinger.getStorageInfo('a@b.c', {}, function(err, storageInfo) {
         expect(err).toEqual('could not fetch host-meta for a@b.c');
@@ -50,7 +50,7 @@
     });
     it("should succeed in getting a valid xml-based webfinger record", function() {
       var webfinger = specHelper.getFile('webfinger');
-      var platformStub = specHelper.getPlatformStub('webfinger');
+      var platformStub = specHelper.getStub('webfinger', 'platform');
       platformStub.setResponses([undefined]);
       var ret = webfinger.getStorageInfo('a@b.c', {}, function(err, storageInfo) {
         expect(err).toEqual(null);
