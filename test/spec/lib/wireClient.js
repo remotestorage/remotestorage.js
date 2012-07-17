@@ -1,0 +1,7 @@
+
+(function() {
+
+  describe('wireClient', function() {
+  });
+
+})();

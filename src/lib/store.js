@@ -11,7 +11,7 @@ define([], function () {
     }
   });
   function getNode(path) {
-    valueStr = localStorage.getItem(prefixNodes+path);
+    var valueStr = localStorage.getItem(prefixNodes+path);
     var value;
     if(valueStr) {
       try {
@@ -124,8 +124,10 @@ define([], function () {
     }
   }
   function on(eventName, cb) {
-    if(eventName=='change') {
+    if(eventName == 'change') {
       onChange = cb;
+    } else {
+      throw("Unknown event: " + eventName);
     }
   }
   function connect(path, connectVal) {
