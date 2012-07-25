@@ -39,19 +39,17 @@
       }), lsSpy;
 
       beforeEach(function() {
-	//// FIREFOX DOESN'T SUPPORT STUBS ON localStorage.
-        // lsSpy = spyOn(localStorage, 'getItem').andReturn(nodeData);
-	localStorage.setItem('remote_storage_nodes:path/to/node', nodeData);
+        lsSpy = spyOn(Storage.prototype, 'getItem').andReturn(nodeData);
         spyOn(JSON, 'parse').andCallThrough();
 
         result = store.getNode('path/to/node');
       });
 
-      // it('gets the value from localStorage, with a key prefix', function() {
-      //   expect(localStorage.getItem).toHaveBeenCalledWith(
-      //     'remote_storage_nodes:path/to/node'
-      //   );
-      // });
+      it('gets the value from localStorage, with a key prefix', function() {
+        expect(localStorage.getItem).toHaveBeenCalledWith(
+          'remote_storage_nodes:path/to/node'
+        );
+      });
 
       it('parses the JSON fetched json data', function() {
         expect(JSON.parse).toHaveBeenCalledWith(nodeData);
@@ -67,10 +65,9 @@
       describe('if invalid json data is retrieved', function() {
 
         beforeEach(function() {
-          // lsSpy.plan = function() {
-          //   return "{this:'will',!!!FAIL...{'";
-          // }
-	  localStorage.setItem('remote_storage_nodes:path/to/node', "{this:'will',!!!FAIL...{")
+          lsSpy.plan = function() {
+            return "{this:'will',!!!FAIL...{'";
+          }
         });
 
         it("doesn't throw an exception", function() {
@@ -86,10 +83,9 @@
       describe('the newly created node', function() {
 
         beforeEach(function() {
-          // lsSpy.plan = function() {
-          //   return undefined;
-          // }
-	  localStorage.removeItem('remote_storage_nodes:path/to/node');
+          lsSpy.plan = function() {
+            return undefined;
+          }
 
           result = store.getNode('path/to/node');
         });
