@@ -28,24 +28,16 @@ function doBuild(output, startFrag, name, endFrag, debug) {
   delete config.optimize;
 }
 
-//   //debug build:
-//   config.optimize = 'none';
-//   config.wrap.startFile = 'startDebug.frag';
-//   config.wrap.endFile = 'end.frag';
-//   config.out = 'latest/' + name + '-debug.js';
-
-//   //node build:
-//   requirejs.optimize(config);
-//   delete config.optimize;
-//   config.out = 'latest/' + name + '-node.js';
-//   config.wrap.startFile = 'start.frag';
-//   config.wrap.endFile = 'endNode.frag';
-//   requirejs.optimize(config);
-
-// }
-
+// remoteStorage build
 doBuild('remoteStorage', 'start.frag', 'remoteStorage', 'end.frag');
 doBuild('remoteStorage-debug', 'startDebug.frag', 'remoteStorage', 'end.frag', true);
 doBuild('remoteStorage-node', 'start.frag', 'remoteStorage', 'endNode.frag');
+
+// modules build
 doBuild('remoteStorage-modules', 'start.frag', 'remoteStorage-modules', 'endModules.frag');
+// set of modules, not optimized.
 doBuild('remoteStorage-modules-debug', 'start.frag', 'remoteStorage-modules', 'endModules.frag', true);
+
+// combined build
+doBuild('remoteStorage-with-modules', 'start.frag', 'remoteStorage-with-modules', 'end.frag');
+doBuild('remoteStorage-with-modules-debug', 'startDebug.frag', 'remoteStorage-with-modules', 'end.frag', true);
