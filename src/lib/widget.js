@@ -105,7 +105,7 @@ define(['./webfinger', './hardcoded', './wireClient', './sync', './store', './pl
     if(!localStorage.michiel) {
       state='devsonly';
     }
-    var userAddress = localStorage['remotestorage_widget_useraddress'];
+    var userAddress = localStorage['remote_storage_widget_useraddress'];
     var html = 
       '<style>'+widgetCss+'</style>'
       +'<div id="remotestorage-state" class="'+state+'">'

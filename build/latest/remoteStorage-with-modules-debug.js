@@ -1984,5 +1984,15 @@ define('remoteStorage',[
   return remoteStorage;
 });
 
+define([
+  './remoteStorage',
+], function(remoteStorage) {
+
+  window.remoteStorage = remoteStorage;
+
+  define(['./remoteStorage-modules'], function() {});
+
+
+});
   remoteStorage = _loadModule('remoteStorage');
 })();

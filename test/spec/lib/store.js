@@ -39,7 +39,7 @@
       }), lsSpy;
 
       beforeEach(function() {
-        lsSpy = spyOn(localStorage, 'getItem').andReturn(nodeData);
+        lsSpy = spyOn(Storage.prototype, 'getItem').andReturn(nodeData);
         spyOn(JSON, 'parse').andCallThrough();
 
         result = store.getNode('path/to/node');
@@ -65,8 +65,6 @@
       describe('if invalid json data is retrieved', function() {
 
         beforeEach(function() {
-          // spies can't be set twice...
-          // ...but hacked to conform to will:
           lsSpy.plan = function() {
             return "{this:'will',!!!FAIL...{'";
           }
