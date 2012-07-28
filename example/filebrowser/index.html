@@ -25,7 +25,7 @@
       }
     </script>
     <script>
-      document.getElementById('source').innerHTML = '<h3>Code:</h3><pre><code>' + document.getElementById('real-source').innerHTML + '</code></pre>';
+      document.getElementById('source').innerHTML = '<h3>Code:</h3><pre><code>' + document.getElementById('real-source').innerHTML.replace(/>/g, '&gt;').replace(/</g, '&lt;') + '</code></pre>';
     </script>
   </body>
 </html>
