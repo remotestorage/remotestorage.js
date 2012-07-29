@@ -1420,15 +1420,18 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
     console.log('handleChild '+path);
     var node = store.getNode(path);//will return a fake dir with empty data list for item
     if(node.outgoingChange) {
-      //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
-      startOne();
-      var parentChain = getParentChain(path);
-      wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
-        if(!err) {
-          store.clearOutgoingChange(path, timestamp);
-        }
-        finishOne();
-      });
+      if(node.startAccess !== null) { access = node.startAccess; }
+      if(access=='rw') {
+        //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
+        startOne();
+        var parentChain = getParentChain(path);
+        wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
+          if(!err) {
+            store.clearOutgoingChange(path, timestamp);
+          }
+          finishOne();
+        });
+      }
     } else if(node.lastModified<lastModified) {
       if(node.startAccess !== null) { access = node.startAccess; }
       if(node.startForce !== null) { force = node.startForce; }
