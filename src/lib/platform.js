@@ -116,8 +116,7 @@ define([], function() {
   }
   function parseXmlBrowser(str, cb) {
     var tree=(new DOMParser()).parseFromString(str, 'text/xml')
-    //var nodes=tree.getElementsByTagName('Link');
-    var nodes=tree.documentElement.childNodes;
+    var nodes=tree.getElementsByTagName('Link');
     var obj={
       Link: []
     };
@@ -127,6 +126,14 @@ define([], function() {
         for(var j=0; j<nodes[i].attributes.length;j++) {
           link[nodes[i].attributes[j].name]=nodes[i].attributes[j].value;
         }
+      }
+      var props = nodes[i].getElementsByTagName('Property');
+      link.properties = {}
+      xyz = props
+      for(var k=0; k<props.length;k++) {
+        link.properties[
+          props[k].getAttribute('type')
+        ] = props[k].childNodes[0].nodeValue;
       }
       if(link['rel']) {
         obj.Link.push({
