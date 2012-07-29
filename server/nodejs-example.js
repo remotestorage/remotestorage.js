@@ -1,4 +1,4 @@
-//exports.handler = (function() {
+exports.handler = (function() {
   var url=require('url'),
     crypto=require('crypto'),
     config = {
@@ -206,10 +206,12 @@
     }
   }
 
+  return {
+    serve: serve
+  };
+})();
 
-require('http').createServer(serve).listen(80);
+if(require.main==module) {//if this file is directly called from the CLI
+  require('http').createServer(exports.handler.serve).listen(80);
+}
 
-//  return {
-//    serve: serve
-//  };
-//})();
