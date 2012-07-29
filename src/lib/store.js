@@ -153,11 +153,11 @@ define([], function () {
     } else {
       if(isDir(path)) {
         for(var i in data) {
-          delete node.added(i);
+          delete node.added[i];
         }
         for(var i in node.removed) {
           if(!data[i]) {
-            delete node.removed(i);
+            delete node.removed[i] ;
           }
         }
         updateNode(path, node, 'accept');

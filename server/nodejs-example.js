@@ -138,7 +138,7 @@ exports.handler = (function() {
       if(mayRead(req.headers.authorization, path)) {
         if(!data[path]) {
           if(path.substr(-1)=='/') {
-            writeJson(res, [], req.headers.origin);
+            writeJson(res, {}, req.headers.origin);
           } else {
             give404(res, req.headers.origin);
           }

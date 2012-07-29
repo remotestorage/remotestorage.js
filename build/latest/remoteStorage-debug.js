@@ -671,312 +671,6 @@ define('lib/hardcoded',
     }
 });
 
-define('lib/couch',
-  ['./platform'],
-  function (platform) {
-    var shadowCouchRev = null;
-    function getShadowCouchRev(url) {
-      if(!shadowCouchRev) {
-        try {
-          shadowCouchRev = JSON.parse(localStorage.getItem('_shadowCouchRev'));
-        } catch(e) {
-        }
-        if(!shadowCouchRev) {
-          shadowCouchRev = {};
-        }
-      }
-      return shadowCouchRev[url];
-    }
-    function setShadowCouchRev(url, rev) {
-      if(!shadowCouchRev) {
-        try {
-          shadowCouchRev=JSON.parse(localStorage.getItem('_shadowCouchRev'));
-        } catch(e) {
-        }
-      }
-      if(!shadowCouchRev) {
-        shadowCouchRev = {};
-      }
-      shadowCouchRev[url] = rev;
-      localStorage.setItem('_shadowCouchRev', JSON.stringify(shadowCouchRev));
-    }
-    function doCall(method, url, value, token, cb) {
-      var platformObj = {
-        url: url,
-        method: method,
-        error: function(err) {
-          if(err == 404) {
-            cb(null, undefined);
-          } else {
-            cb(err, null);
-          }
-        },
-        success: function(data) {
-          cb(null, data);
-        },
-        timeout: 3000
-      };
-      if(token) {
-        platformObj.headers = {Authorization: 'Bearer '+token};
-      }
-      platformObj.fields = {withCredentials: 'true'};
-      if(method!='GET') {
-        platformObj.data = value;
-      }
-      platform.ajax(platformObj);
-    }
-    function get(url, token, cb) {
-      doCall('GET', url, null, token, function(err, data) {
-        if(err) {
-          cb(err, data);
-        } else {
-          var obj;
-          try {
-            obj = JSON.parse(data);
-          } catch(e) {
-          }
-          if(obj && obj._rev) {
-            setShadowCouchRev(url, obj._rev);
-            cb(null, obj.value);
-          } else if(typeof(data) == 'undefined') {
-            cb(null, undefined);
-          } else {
-            cb('unparsable data from couch');
-          }
-        }
-      });
-    }
-    function put(url, value, mimeType, token, cb) {
-      var revision = getShadowCouchRev(url);
-      var obj = {
-        value: value
-      };
-      if(revision) {
-        obj._rev = revision;
-      }
-      doCall('PUT', url, JSON.stringify(obj), token, function(err, data) {
-        if(err) {
-          if(err == 409) {//conflict; fetch, update and retry
-            doCall('GET', url, null, token, function(err2, data2) {
-              if(err2) {
-                cb('after 409, got a '+err2);
-              } else {
-                var rightRev;
-                try {
-                  rightRev=JSON.parse(data2)._rev;
-                } catch(e) {
-                }
-                if(rightRev) {
-                  obj = {
-                    value: value,
-                    _rev: rightRev
-                  };
-                  setShadowCouchRev(url, rightRev);
-                    doCall('PUT', url, JSON.stringify(obj), token, function(err3, data3) {
-                    if(err3) {
-                      cb('after 409, second attempt got '+err3);
-                    } else {
-                      cb(null);
-                    }
-                  });
-                } else {
-                  cb('after 409, got unparseable JSON');
-                }
-              }
-            });
-          } else {
-            cb(err);
-          }
-        } else {
-          var obj;
-          try {
-            obj = JSON.parse(data);
-          } catch(e) {
-          }
-          if(obj && obj.rev) {
-            setShadowCouchRev(url, obj.rev);
-          }
-          cb(null);
-        }
-      });
-    }
-    function delete_(url, token, cb) {
-      var revision = getShadowCouchRev(url);
-      doCall('DELETE', url+(revision?'?rev='+revision:''), null, token, function(err, data) {
-        if(err == 409) {
-          doCall('GET', url, null, token, function(err2, data2) {
-            if(err2) {
-              cb('after 409, got a '+err2);
-            } else {
-              var rightRev;
-              try {
-                rightRev = JSON.parse(data2)._rev;
-              } catch(e) {
-              }
-              if(rightRev) {
-                setShadowCouchRev(url, rightRev);
-                doCall('DELETE', url + '?rev=' + rightRev, null, token, function(err3, data3) {
-                  if(err3) {
-                    cb('after 409, second attempt got '+err3);
-                  } else {
-                    setShadowCouchRev(url, undefined);
-                    cb(null);
-                  }
-                });
-              } else {
-                cb('after 409, got unparseable JSON');
-              }
-            }
-          });
-        } else {
-          if(!err) {
-            setShadowCouchRev(url, undefined);
-          }
-          cb(err);
-        }
-      });
-    }
-    function set(url, valueStr, cb) {
-      if(typeof(valueStr) == 'undefined') {
-        return delete_(url, cb);
-      } else {
-        return put(url, valueStr, cb);
-      }
-    }
-    return {
-      get: get,
-      set: set
-    };
-});
-
-define('lib/dav',
-  ['./platform'],
-  function (platform) {
-    function doCall(method, url, value, token, cb, deadLine) {
-      var platformObj = {
-        url: url,
-        method: method,
-        error: function(err) {
-          cb(err);
-        },
-        success: function(data) {
-          cb(null, data);
-        },
-        timeout: 3000
-      }
-
-      platformObj.headers = {
-        'Authorization': 'Bearer ' + decodeURIComponent(token),
-        'Content-Type':  'text/plain;charset=UTF-8'
-      };
-
-      platformObj.fields = {withCredentials: 'true'};
-      if(method != 'GET') {
-        platformObj.data =value;
-      }
-
-      platform.ajax(platformObj);
-    }
-
-    function get(url, token, cb) {
-      if(url.substr(-1) == '/') {
-        doCall('PROPFIND', url, null, token, function(err, data) {
-          if(err == null) {
-            //<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns">
-            //  <d:response>
-            //    <d:href>/apps/remoteStorage/WebDAV.php/admin/remoteStorage/test/foo/bar/</d:href>
-            //    <d:propstat>
-            //      <d:prop>
-            //        <d:getlastmodified xmlns:b="urn:uuid:c2f41010-65b3-11d1-a29f-00aa00c14882/" b:dt="dateTime.rfc1123">
-            //          Tue, 05 Jun 2012 15:48:54 GMT
-            //        </d:getlastmodified>
-            //        <d:resourcetype>
-            //          <d:collection/>
-            //        </d:resourcetype>
-            //        <d:quota-used-bytes>4105</d:quota-used-bytes>
-            //        <d:quota-available-bytes>8516481024</d:quota-available-bytes>
-            //      </d:prop>
-            //      <d:status>HTTP/1.1 200 OK</d:status>
-            //    </d:propstat>
-            //  </d:response>
-            //  <d:response>
-            //    <d:href>/apps/remoteStorage/WebDAV.php/admin/remoteStorage/test/foo/bar/baz</d:href>
-            //    <d:propstat>
-            //      <d:prop>
-            //        <d:getlastmodified xmlns:b="urn:uuid:c2f41010-65b3-11d1-a29f-00aa00c14882/" b:dt="dateTime.rfc1123">
-            //          Tue, 05 Jun 2012 16:05:56 GMT
-            //        </d:getlastmodified>
-            //        <d:getcontentlength>2</d:getcontentlength>
-            //        <d:resourcetype/>
-            //        <d:getcontenttype>text/plain</d:getcontenttype>
-            //      </d:prop>
-            //      <d:status>HTTP/1.1 200 OK</d:status>
-            //    </d:propstat>
-            //  </d:response>
-            //</d:multistatus>
-
-            platform.parseXml(data, function(obj) {
-              cb(null, obj);
-            });
-          } else {
-            cb(err);
-          }
-        });
-      } else {
-        doCall('GET', url, null, token, function(err, data) {
-          if(err == 404) {
-            cb(null, undefined);
-          } else {
-            cb(err, data);
-          }
-        });
-      }
-    }
-
-    function put(url, value, mimeType, token, cb) {
-      doPut(url, value, token, 0, cb);
-    }
-    function doPut(url, value, token, mkcolLevel, cb) {
-      if(mkcolLevel==0) {
-        doCall('PUT', url, value, token, function(err, data) {
-          if(err == 404) {
-            doPut(url, value, token, 1, cb);
-          } else {
-            cb(err, data);
-          }
-        });
-      } else {
-        var urlParts = url.split('/');
-        if(urlParts.length<mkcolLevel+3) {
-          cb('put failed, looks like server is not compliant (reached root in MKCOL chain)');
-        } else {
-          doCall('MKCOL', urlParts.slice(0, urlParts.length - mkcolLevel).join('/'), null, token, function(err) {
-            if(err==404 || err==409) {
-              doPut(url, value, token, mkcolLevel+1, cb);
-            } else if(err) {
-              cb(err);
-            } else {
-              doPut(url, value, token, mkcolLevel-1, cb);
-            }
-          });
-        }
-      }
-    }
-
-    function set(url, valueStr, token, cb) {
-      if(typeof(valueStr) == 'undefined') {
-        doCall('DELETE', url, null, token, cb);
-      } else {
-        put(url, valueStr, token, cb);
-      }
-    }
-
-    return {
-      get:    get,
-      set:    set
-    }
-});
-
 define('lib/getputdelete',
   ['./platform'],
   function (platform) {
@@ -988,7 +682,7 @@ define('lib/getputdelete',
           cb(err);
         },
         success: function(data, headers) {
-          cb(null, new Date(headers['Last-Modified']).getTime(), headers['Content-Type']);
+          cb(null, data, new Date(headers['Last-Modified']).getTime(), headers['Content-Type']);
         },
         timeout: 3000
       }
@@ -1009,7 +703,7 @@ define('lib/getputdelete',
     }
 
     function get(url, token, cb) {
-      doCall('GET', url, null, null, token, function(err, data) {
+      doCall('GET', url, null, null, token, function(err, data, timestamp, mimetype) {
         if(err == 404) {
           cb(null, undefined);
         } else {
@@ -1021,7 +715,7 @@ define('lib/getputdelete',
               return;
             }
           }
-          cb(err, data);
+          cb(err, data, timestamp, mimetype);
         }
       });
     }
@@ -1050,7 +744,7 @@ define('lib/getputdelete',
     }
 });
 
-define('lib/wireClient',['./couch', './dav', './getputdelete'], function (couch, dav, getputdelete) {
+define('lib/wireClient',['./getputdelete'], function (getputdelete) {
   var prefix = 'remote_storage_wire_',
     stateHandler = function(){},
     errorHandler = function(){};
@@ -1096,15 +790,7 @@ define('lib/wireClient',['./couch', './dav', './getputdelete'], function (couch,
   }
 
   function getDriver(type, cb) {
-    if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#couchdb'
-      || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb') {
-      cb(couch);
-    } else if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#webdav'
-      || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav') {
-      cb(dav);
-    } else {
-      cb(getputdelete);
-    }
+    cb(getputdelete);
   }
   function resolveKey(storageType, storageHref, basePath, relPath) {
     //var nodirs=true;
@@ -1334,11 +1020,11 @@ define('lib/store',[], function () {
     } else {
       if(isDir(path)) {
         for(var i in data) {
-          delete node.added(i);
+          delete node.added[i];
         }
         for(var i in node.removed) {
           if(!data[i]) {
-            delete node.removed(i);
+            delete node.removed[i] ;
           }
         }
         updateNode(path, node, 'accept');
@@ -1439,7 +1125,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
           finishOne();
         });
       }
-    } else if(node.lastModified<lastModified) {
+    } else if(node.lastModified<lastModified || !lastModified) {//i think there must a cleaner way than this ugly using 0 where no access
       if(node.startAccess !== null) { access = node.startAccess; }
       if(node.startForce !== null) { force = node.startForce; }
       if((force || node.keep) && access) {

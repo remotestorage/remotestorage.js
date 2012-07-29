@@ -48,7 +48,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
           finishOne();
         });
       }
-    } else if(node.lastModified<lastModified) {
+    } else if(node.lastModified<lastModified || !lastModified) {//i think there must a cleaner way than this ugly using 0 where no access
       if(node.startAccess !== null) { access = node.startAccess; }
       if(node.startForce !== null) { force = node.startForce; }
       if((force || node.keep) && access) {
