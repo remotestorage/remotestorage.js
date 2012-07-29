@@ -158,13 +158,14 @@ exports.handler = (function() {
         req.on('end', function(chunk) {
           data[path]=dataStr;
           var pathParts=path.split('/');
-          var timestamp=new Date().getTime();;
+          var timestamp=new Date().getTime();
+          pathParts.pop();//the file itself
           while(pathParts.length > 2) {
             var thisPart = pathParts.pop();
             if(!data[pathParts.join('/')+'/']) {
               data[pathParts.join('/')+'/'] = {};
             }
-            data[pathParts.join('/')+'/'][thisPart]=timestamp;
+            data[pathParts.join('/')+'/'][thisPart+'/']=timestamp;
           }
           writeJson(res, null, req.headers.origin);
         });
