@@ -1,7 +1,6 @@
 (function() {
   var exports={}, deps={};
   function define(name, relDeps, code){
-    name = String(name);
     exports[name]=code;
     var dir = name.substring(0,name.lastIndexOf('/')+1);
     deps[name]=[];
@@ -20,10 +19,6 @@
         }
       }
       deps[name].push(dir+relDeps[i]);
-    }
-
-    if(name === 'remoteStorage') {
-      remoteStorage = _loadModule('remoteStorage');
     }
   }
   function _loadModule(name) {
@@ -450,14 +445,6 @@ define('lib/webfinger',
       }
       cb(null, links);
     }
-
-    var rww = 'http://www.w3.org/community/rww/wiki/Read-write-web-00#';
-    var legacyApiTypes = {
-      'simple': rww + 'simple',
-      'WebDAV': rww + 'webdav',
-      'CouchDB': rww + 'couchdb'
-    }
-
     function parseRemoteStorageLink(obj, cb) {
       //FROM:
       //{
@@ -478,11 +465,14 @@ define('lib/webfinger',
       //}
       if(obj && obj['auth'] && obj['api'] && obj['template']) {
         var storageInfo = {};
-
-        storageInfo['type'] = legacyApiTypes[ obj['api'] ];
-
-        if(! storageInfo['type']) {
-          cb('api not recognized: ', + obj['api']);
+        if(obj['api'] == 'simple') {
+          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple';
+        } else if(obj['api'] == 'WebDAV') {
+          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav';
+        } else if(obj['api'] == 'CouchDB') {
+          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb';
+        } else {
+          cb('api not recognized');
           return;
         }
 
@@ -1843,7 +1833,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
             sync.fetchNow(absPath, function(err) {
               var node = store.getNode(absPath);
               var arr = [];
-              for(var i in node.children) {
+              for(var i in node.data) {
                 if(!node.removed[i]) {
                   arr.push(i);
                 }
@@ -1857,7 +1847,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           } else {
             var node = store.getNode(absPath);
             var arr = [];
-            for(var i in node.children) {
+            for(var i in node.data) {
               if(!node.removed[i]) {
                 arr.push(i);
               }
@@ -1918,7 +1908,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
   };
 });
 
-define('remoteStorage', [
+define('remoteStorage',[
   'require',
   './lib/widget',
   './lib/baseClient',

@@ -192,13 +192,14 @@ exports.handler = (function() {
   function serve(req, res, staticsMap) {
     var urlObj = url.parse(req.url, true), userAddress, userName;
     console.log(urlObj);
-    if(req.method == 'GET') {
-      if(urlObj.pathname == '/.well-known/host-meta.json') {//TODO: implement rest of webfinger
-        webfinger(urlObj, res);
-      } else if(urlObj.pathname.substring(0, '/auth/'.length) == '/auth/') {
-        oauth(urlObj, res);
-      }
+    if(urlObj.pathname == '/.well-known/host-meta.json') {//TODO: implement rest of webfinger
+      console.log('HOST-META');
+      webfinger(urlObj, res);
+    } else if(urlObj.pathname.substring(0, '/auth/'.length) == '/auth/') {
+      console.log('OAUTH');
+      oauth(urlObj, res);
     } else if(urlObj.pathname.substring(0, '/storage/'.length) == '/storage/') {
+      console.log('STORAGE');
       storage(req, urlObj, res);
     } else {
       console.log('UNKNOWN');
