@@ -99,6 +99,14 @@ define(
       }
       cb(null, links);
     }
+
+    var rww = 'http://www.w3.org/community/rww/wiki/Read-write-web-00#';
+    var legacyApiTypes = {
+      'simple': rww + 'simple',
+      'WebDAV': rww + 'webdav',
+      'CouchDB': rww + 'couchdb'
+    }
+
     function parseRemoteStorageLink(obj, cb) {
       //FROM:
       //{
@@ -119,14 +127,11 @@ define(
       //}
       if(obj && obj['auth'] && obj['api'] && obj['template']) {
         var storageInfo = {};
-        if(obj['api'] == 'simple') {
-          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#simple';
-        } else if(obj['api'] == 'WebDAV') {
-          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav';
-        } else if(obj['api'] == 'CouchDB') {
-          storageInfo['type'] = 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb';
-        } else {
-          cb('api not recognized');
+
+        storageInfo['type'] = legacyApiTypes[ obj['api'] ];
+
+        if(! storageInfo['type']) {
+          cb('api not recognized: ', + obj['api']);
           return;
         }
 
