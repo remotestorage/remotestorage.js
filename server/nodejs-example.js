@@ -46,15 +46,19 @@
       }
     }
   }
-  function writeJson(res, obj, origin) {
-    console.log(obj);
-    res.writeHead(200, {
+  function writeHead(res, status, origin) {
+    res.writeHead(status, {
       'access-control-allow-origin': (origin?origin:'*'),
-      'access-control-allow-headers': 'Content-Type, Authorization, Origin',
+      'access-control-allow-headers': 'content-type, authorization, origin',
       'access-control-allow-methods': 'GET, PUT, DELETE',
       'content-type': 'application/json',
       'last-modified': 'Wed, 11 Jul 2012, 12:00:00'
     });
+  }
+  function writeJson(res, obj, origin) {
+    console.log('access-control-allow-origin:'+ (origin?origin:'*'));
+    console.log(obj);
+    writeHead(res, 200, origin);
     res.write(JSON.stringify(obj));
     res.end();
   }
@@ -68,25 +72,13 @@
   function give404(res, origin) {
     console.log('404');
     console.log(data);
-    res.writeHead(404, {
-      'access-control-allow-origin': (origin?origin:'*'),
-      'access-control-allow-headers': 'Content-Type, Authorization, Origin',
-      'access-control-allow-methods': 'GET, PUT, DELETE',
-      'content-type': 'application/json',
-      'last-modified': 'Wed, 11 Jul 2012, 12:00:00'
-    });
+    writeHead(res, 404, origin);
     res.end();
   }
   function computerSaysNo(res, origin) {
     console.log('COMPUTER_SAYS_NO');
     console.log(tokens);
-    res.writeHead(401, {
-      'access-control-allow-origin': (origin?origin:'*'),
-      'access-control-allow-headers': 'Content-Type, Authorization, Origin',
-      'access-control-allow-methods': 'GET, PUT, DELETE',
-      'content-type': 'application/json',
-      'last-modified': 'Wed, 11 Jul 2012, 12:00:00'
-    });
+    writeHead(res, 401, origin);
     res.end();
   }
 
@@ -139,7 +131,7 @@
   function storage(req, urlObj, res) {
     var path=urlObj.pathname.substring('/storage'.length);
     if(req.method=='OPTIONS') {
-      console.log('OPTIONS '+req.headers.origin);
+      console.log('OPTIONS ', req.headers);
       writeJson(res, null, req.headers.origin);
     } else if(req.method=='GET') {
       console.log('GET');
@@ -202,12 +194,11 @@
     console.log(urlObj);
     if(req.method == 'GET') {
       if(urlObj.pathname == '/.well-known/host-meta.json') {//TODO: implement rest of webfinger
-        return webfinger(urlObj, res);
+        webfinger(urlObj, res);
       } else if(urlObj.pathname.substring(0, '/auth/'.length) == '/auth/') {
-        return oauth(urlObj, res);
+        oauth(urlObj, res);
       }
-    }
-    if(urlObj.pathname.substring(0, '/storage/'.length) == '/storage/') {
+    } else if(urlObj.pathname.substring(0, '/storage/'.length) == '/storage/') {
       storage(req, urlObj, res);
     } else {
       console.log('UNKNOWN');
