@@ -4,7 +4,7 @@ exports.handler = (function() {
     config = {
       protocol: 'http',
       host: 'mich.rs'
-    }, tokens = {}, data = {};
+    }, tokens = {}, lastModified = {}, contentType = {}, content = {};
   function createToken(userName, scopes, cb) {
     crypto.randomBytes(48, function(ex, buf) {
       var token = buf.toString('hex');
@@ -46,21 +46,30 @@ exports.handler = (function() {
       }
     }
   }
-  function writeHead(res, status, origin) {
-    res.writeHead(status, {
+  function writeHead(res, status, origin, timestamp, contentType) {
+    var headers = {
       'access-control-allow-origin': (origin?origin:'*'),
       'access-control-allow-headers': 'content-type, authorization, origin',
       'access-control-allow-methods': 'GET, PUT, DELETE',
-      'content-type': 'application/json',
-      'last-modified': 'Wed, 11 Jul 2012, 12:00:00'
-    });
+    };
+    if(timestamp) {
+      headers['last-modified']= new Date(timestamp).toString();
+    }
+    if(contentType) {
+      headers['content-type']= contentType;
+    }
+    res.writeHead(status, headers);
   }
-  function writeJson(res, obj, origin) {
+  function writeRaw(res, contentType, content, origin, timestamp) {
     console.log('access-control-allow-origin:'+ (origin?origin:'*'));
-    console.log(obj);
-    writeHead(res, 200, origin);
-    res.write(JSON.stringify(obj));
+    console.log(contentType);
+    console.log(content);
+    writeHead(res, 200, origin, timestamp, conentType);
+    res.write(content);
     res.end();
+  }
+  function writeJson(res, obj, origin, timestamp) {
+    writeRaw(res, 'application/json', JSON.stringify(obj), origin timestamp);
   }
   function writeHtml(res, html) {
     res.writeHead(200, {
@@ -71,14 +80,14 @@ exports.handler = (function() {
   }
   function give404(res, origin) {
     console.log('404');
-    console.log(data);
-    writeHead(res, 404, origin);
+    console.log(content);
+    writeHead(res, 404, origin, 'now');
     res.end();
   }
   function computerSaysNo(res, origin) {
     console.log('COMPUTER_SAYS_NO');
     console.log(tokens);
-    writeHead(res, 401, origin);
+    writeHead(res, 401, origin, 'now');
     res.end();
   }
 
@@ -136,14 +145,14 @@ exports.handler = (function() {
     } else if(req.method=='GET') {
       console.log('GET');
       if(mayRead(req.headers.authorization, path)) {
-        if(!data[path]) {
+        if(!content[path]) {
           if(path.substr(-1)=='/') {
-            writeJson(res, {}, req.headers.origin);
+            writeJson(res, {}, req.headers.origin, 0);
           } else {
             give404(res, req.headers.origin);
           }
         } else {
-          writeJson(res, data[path], req.headers.origin);
+          writeRaw(res, contentType[path], content[path], req.headers.origin, lastModified[path]);
         }
       } else {
         computerSaysNo(res, req.headers.origin);
@@ -152,22 +161,25 @@ exports.handler = (function() {
       console.log('PUT');
       if(mayWrite(req.headers.authorization, path)) {
         var dataStr = '';
-        req.on('data', function(chunk) {
+        req.on('content', function(chunk) {
           dataStr+=chunk;
         });
         req.on('end', function(chunk) {
-          data[path]=dataStr;
+          var timestamp = new Date().getTime();
+          content[path]=dataStr;
+          contentType[path]=req.headers['content-type'];
+          lastModified[path]=timestamp;
           var pathParts=path.split('/');
           var timestamp=new Date().getTime();
           pathParts.pop();//the file itself
           while(pathParts.length > 2) {
             var thisPart = pathParts.pop();
-            if(!data[pathParts.join('/')+'/']) {
-              data[pathParts.join('/')+'/'] = {};
+            if(!content[pathParts.join('/')+'/']) {
+              content[pathParts.join('/')+'/'] = {};
             }
-            data[pathParts.join('/')+'/'][thisPart+'/']=timestamp;
+            content[pathParts.join('/')+'/'][thisPart+'/']=timestamp;
           }
-          writeJson(res, null, req.headers.origin);
+          writeJson(res, null, req.headers.origin, timestamp);
         });
       } else {
         computerSaysNo(res, req.headers.origin);
@@ -175,13 +187,16 @@ exports.handler = (function() {
     } else if(req.method=='DELETE') {
       console.log('DELETE');
       if(mayWrite(req.headers.authorization, path)) {
-          delete data[path];
+          var timestamp = new Date().getTime();
+          delete content[path];
+          delete contentType[path];
+          lastModified[path]=timestamp;
           var pathParts=path.split('/');
           var thisPart = pathParts.pop();
-          if(data[pathParts.join('/')+'/']) {
-            delete data[pathParts.join('/')+'/'][thisPart];
+          if(content[pathParts.join('/')+'/']) {
+            delete content[pathParts.join('/')+'/'][thisPart];
           }
-          writeJson(res, null, req.headers.origin);
+          writeJson(res, null, req.headers.origin, timestamp);
       } else {
         computerSaysNo(res, req.headers.origin);
       }
