@@ -1,0 +1,72 @@
+#!/bin/bash
+
+this=$0
+root=$(dirname $0)
+project_name=$1
+shift
+modules=$@
+
+if test "" == "${project_name}" ; then
+    echo -e "\nUsage: ${this} <project-name> [<module>:<mode> ...]\n"
+    echo -e "Example: ${this} my-unhosted-app public:rw tasks:rw contacts:r"
+    echo -e "(if <mode> is ommitted, it defaults to 'rw')\n"
+    exit 127
+fi
+
+
+module_loaders() {
+    indent=$1
+    for module in $modules ; do
+        name=$(echo $module | cut -d ':' -f 1)
+        mode=$(echo $module | cut -d ':' -f 2)
+        if test "${name}" == "${mode}" ; then
+            mode="rw"
+        fi
+        echo "${indent}remoteStorage.loadModule('${name}', '${mode}');"
+    done
+}
+
+if test -f "${project_name}/index.html" ; then
+    echo "Project exists. Won't overwrite. Delete it first."
+    exit -2
+fi
+
+echo "CREATE ${project_name}"
+mkdir -p "${project_name}"
+echo "CREATE lib, src"
+mkdir -p "${project_name}/"{lib,src}
+echo "COPY remoteStorage"
+cp $root/../build/latest/remoteStorage.js "${project_name}/lib/"
+cp $root/../build/latest/remoteStorage-modules.js "${project_name}/lib/"
+echo "CREATE index.html"
+cat >> "${project_name}/index.html" <<EOF
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>${project_name}</title>
+    <!-- remoteStorage -->
+    <script src="lib/remoteStorage.js"></script>
+    <!-- modules -->
+    <script src="lib/remoteStorage-modules.js"></script>
+    <!-- app -->
+    <script src="src/${project_name}.js"></script>
+  </head>
+  <body>
+    <div id="remotestorage-widget"></div>
+  </body>
+</html>
+EOF
+
+echo "CREATE src/${project_name}.js"
+cat >> "${project_name}/src/${project_name}.js" <<EOF
+(function() {
+
+  remoteStorage.loadModule('root', 'r');
+$(module_loaders '  ')  
+
+  window.onload = function() {
+    remoteStorage.displayWidget('remotestorage-widget');
+  }
+
+})();
+EOF

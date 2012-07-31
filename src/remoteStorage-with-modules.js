@@ -1,10 +1,6 @@
-define([
+define('remoteStorage-with-modules', [
   './remoteStorage',
+  './remoteStorage-modules'
 ], function(remoteStorage) {
-
-  window.remoteStorage = remoteStorage;
-
-  define(['./remoteStorage-modules'], function() {});
-
 
 });

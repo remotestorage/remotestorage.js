@@ -1,6 +1,7 @@
 (function() {
   var exports={}, deps={};
   function define(name, relDeps, code){
+    name = String(name);
     exports[name]=code;
     var dir = name.substring(0,name.lastIndexOf('/')+1);
     deps[name]=[];
@@ -19,6 +20,10 @@
         }
       }
       deps[name].push(dir+relDeps[i]);
+    }
+
+    if(name === 'remoteStorage') {
+      remoteStorage = _loadModule('remoteStorage');
     }
   }
   function _loadModule(name) {
@@ -1599,7 +1604,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
   };
 });
 
-define('remoteStorage',[
+define('remoteStorage', [
   'require',
   './lib/widget',
   './lib/baseClient',
