@@ -1,5 +1,5 @@
 (function() {
-  var exports={}, deps={};
+  var exports={}, deps={}, mods={};
   function define(name, relDeps, code){
     name = String(name);
     exports[name]=code;
@@ -31,11 +31,15 @@
       return function(){};
     }
     var modNames = deps[name];
-    var mods={};
     console.log('loading module '+name);
     console.log('typeof dependencies: '+typeof(modNames));
     for(var i=0;i<modNames.length;i++) {
-      mods[modNames[i]]=_loadModule(modNames[i]);
+      if(!mods[modNames[i]]) {
+        console.log('loading '+modNames[i]);
+        mods[modNames[i]]=_loadModule(modNames[i]);
+      } else {
+        console.log('already loaded '+modNames[i]);
+      }
     }
     var modList=[];
     for(var i=0;i<modNames.length;i++) {
