@@ -1177,19 +1177,25 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
             }
             finishOne(err);
             if(path.substr(-1)=='/') {//isDir(path)
+              var thisNode = store.getNode(path), map;
+              map = thisNode.data;
+              for(var i in thisNode.added) {
+                map[i] = thisNode.added[i];
+              }
               startOne();
-              pullMap(path, store.getNode(path).data, force, access, finishOne);
-              startOne();
-              pullMap(path, store.getNode(path).added, force, access, finishOne);
+              pullMap(path, map, force, access, finishOne);
             }
           });
         })(path);
       } else if(path.substr(-1)=='/') {//isDir(path)
         //store.forget(path);
+        var thisNode = store.getNode(path), map;
+        map = thisNode.data;
+        for(var i in thisNode.added) {
+          map[i] = thisNode.added[i];
+        }
         startOne();
-        pullMap(path, node.data, force, access, finishOne);
-        startOne();
-        pullMap(path, node.added, force, access, finishOne);
+        pullMap(path, map, force, access, finishOne);
       }
     }// else everything up to date
   }
@@ -1210,11 +1216,15 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
     }
     startOne();
     for(var path in map) {
-      handleChild(basePath+path, map[path], force, access, startOne, finishOne);
+      console.log('pullMap '+basePath+' calling handleChild for '+path);
+      (function(path) {
+        handleChild(basePath+path, map[path], force, access, startOne, finishOne);
+      })(path);
     }
     finishOne();
   }
   function syncNow(path, cb) {
+    console.log('syncNow '+path);
     busy=true;
     var map={};
     map[path]= Infinity;
