@@ -165,7 +165,7 @@ exports.handler = (function() {
       console.log('PUT');
       if(mayWrite(req.headers.authorization, path)) {
         var dataStr = '';
-        req.on('content', function(chunk) {
+        req.on('data', function(chunk) {
           dataStr+=chunk;
         });
         req.on('end', function(chunk) {
@@ -191,6 +191,9 @@ exports.handler = (function() {
             content[pathParts.join('/')+'/'][thisPart]=timestamp;
             console.log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
           }
+          console.log(content);
+          console.log(contentType);
+          console.log(lastModified);
           writeJson(res, null, req.headers.origin, timestamp);
         });
       } else {
