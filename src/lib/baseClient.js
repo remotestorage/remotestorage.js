@@ -33,7 +33,7 @@ define(['./sync', './store'], function (sync, store) {
     console.log(str);
   }
   store.on('change', function(e) {
-    var moduleName = extractModuleName(eventObj.path);
+    var moduleName = extractModuleName(e.path);
     fireChange(moduleName, e);//tab-, device- and cloud-based changes all get fired from the store.
   });
   

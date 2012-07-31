@@ -38,34 +38,42 @@ define(['./wireClient', './store'], function(wireClient, store) {
     if(node.outgoingChange) {
       if(node.startAccess !== null) { access = node.startAccess; }
       if(access=='rw') {
-        //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
-        startOne();
-        var parentChain = getParentChain(path);
-        wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
-          if(!err) {
-            store.clearOutgoingChange(path, timestamp);
-          }
-          finishOne();
-        });
+        (function(path) {
+          //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
+          startOne();
+          var parentChain = getParentChain(path);
+          console.log('set-call handleChild '+path);
+          wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
+            console.log('set-cb handleChild '+path);
+            if(!err) {
+              store.clearOutgoingChange(path, timestamp);
+            }
+            finishOne();
+          });
+        })(path);
       }
     } else if(node.lastModified<lastModified || !lastModified) {//i think there must a cleaner way than this ugly using 0 where no access
       if(node.startAccess !== null) { access = node.startAccess; }
       if(node.startForce !== null) { force = node.startForce; }
       if((force || node.keep) && access) {
-        startOne();
-        wireClient.get(path, function (err, data, timestamp, mimeType) {
-          if(data) {
-            store.setNodeData(path, data, false, timestamp, mimeType);
-          }
-          finishOne(err);
-          if(path.substr(-1)=='/') {//isDir(path)
-            startOne();
-            pullMap(path, store.getNode(path).data, force, access, finishOne);
-            startOne();
-            pullMap(path, store.getNode(path).added, force, access, finishOne);
-          }
-        });
-      } else {
+        (function(path) {
+          startOne();
+          console.log('get-call handleChild '+path);
+          wireClient.get(path, function (err, data, timestamp, mimeType) {
+            console.log('get-cb handleChild '+path);
+            if(data) {
+              store.setNodeData(path, data, false, timestamp, mimeType);
+            }
+            finishOne(err);
+            if(path.substr(-1)=='/') {//isDir(path)
+              startOne();
+              pullMap(path, store.getNode(path).data, force, access, finishOne);
+              startOne();
+              pullMap(path, store.getNode(path).added, force, access, finishOne);
+            }
+          });
+        })(path);
+      } else if(path.substr(-1)=='/') {//isDir(path)
         //store.forget(path);
         startOne();
         pullMap(path, node.data, force, access, finishOne);
