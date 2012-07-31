@@ -58,10 +58,12 @@ define(['./wireClient', './store'], function(wireClient, store) {
             store.setNodeData(path, data, false, timestamp, mimeType);
           }
           finishOne(err);
-          startOne();
-          pullMap(path, store.getNode(path).data, force, access, finishOne);
-          startOne();
-          pullMap(path, store.getNode(path).added, force, access, finishOne);
+          if(path.substr(-1)=='/') {//isDir(path)
+            startOne();
+            pullMap(path, store.getNode(path).data, force, access, finishOne);
+            startOne();
+            pullMap(path, store.getNode(path).added, force, access, finishOne);
+          }
         });
       } else {
         //store.forget(path);

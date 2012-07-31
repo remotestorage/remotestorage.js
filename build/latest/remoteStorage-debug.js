@@ -876,17 +876,22 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
 });
 
 define('lib/store',[], function () {
-  var onChange,
+  var onChange=[],
     prefixNodes = 'remote_storage_nodes:';
   window.addEventListener('storage', function(e) {
     if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
       e.path = e.key.substring(prefixNodes.length);
-      if(onChange && !isDir(e.path)) {
+      if(!isDir(e.path)) {
         e.origin='device';
-        onChange(e);
+        fireChange(e);
       }
     }
   });
+  function fireChange(e) {
+    for(var i=0; i<onChange.length; i++) {
+      onChange[i](e);
+    }
+  }
   function getNode(path) {
     var valueStr = localStorage.getItem(prefixNodes+path);
     var value;
@@ -975,12 +980,26 @@ define('lib/store',[], function () {
           }
           updateNode(containingDir, parentNode, 'accept');
         }
+        fireChange({
+          path: path,
+          origin: 'remote',
+          oldValue: undefined,
+          newValue: node.data,
+          timestamp: node.lastModified
+        });
       } else if(changeType=='gone') {
         delete parentNode.data[getFileName(path)];
         if(parentNode.lastModified < node.lastModified) {
           parentNode.lastModified = node.lastModified;
         }
         updateNode(containingDir, parentNode, 'accept');
+        fireChange({
+          path: path,
+          origin: 'remote',
+          oldValue: undefined,
+          newValue: undefined,
+          timestamp: node.lastModified
+        });
       } else if(changeType=='clear') {
         parentNode.data[getFileName(path)] = node.lastModified;
         delete parentNode.added[getFileName(path)];
@@ -1012,7 +1031,7 @@ define('lib/store',[], function () {
   }
   function on(eventName, cb) {
     if(eventName == 'change') {
-      onChange = cb;
+      onChange.push(cb);
     } else {
       throw("Unknown event: " + eventName);
     }
@@ -1150,10 +1169,12 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
             store.setNodeData(path, data, false, timestamp, mimeType);
           }
           finishOne(err);
-          startOne();
-          pullMap(path, store.getNode(path).data, force, access, finishOne);
-          startOne();
-          pullMap(path, store.getNode(path).added, force, access, finishOne);
+          if(path.substr(-1)=='/') {//isDir(path)
+            startOne();
+            pullMap(path, store.getNode(path).data, force, access, finishOne);
+            startOne();
+            pullMap(path, store.getNode(path).added, force, access, finishOne);
+          }
         });
       } else {
         //store.forget(path);
