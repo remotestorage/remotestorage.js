@@ -1,4 +1,4 @@
-define(['./couch', './dav', './getputdelete'], function (couch, dav, getputdelete) {
+define(['./getputdelete'], function (getputdelete) {
   var prefix = 'remote_storage_wire_',
     stateHandler = function(){},
     errorHandler = function(){};
@@ -44,15 +44,7 @@ define(['./couch', './dav', './getputdelete'], function (couch, dav, getputdelet
   }
 
   function getDriver(type, cb) {
-    if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#couchdb'
-      || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#couchdb') {
-      cb(couch);
-    } else if(type === 'https://www.w3.org/community/rww/wiki/read-write-web-00#webdav'
-      || type === 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav') {
-      cb(dav);
-    } else {
-      cb(getputdelete);
-    }
+    cb(getputdelete);
   }
   function resolveKey(storageType, storageHref, basePath, relPath) {
     //var nodirs=true;

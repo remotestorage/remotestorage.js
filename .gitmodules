@@ -1,0 +1,3 @@
+[submodule "example/litewrite"]
+	path = example/litewrite
+	url = git://github.com/jancborchardt/litewrite.git

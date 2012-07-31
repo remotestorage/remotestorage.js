@@ -9,7 +9,7 @@ define(
           cb(err);
         },
         success: function(data, headers) {
-          cb(null, new Date(headers['Last-Modified']).getTime(), headers['Content-Type']);
+          cb(null, data, new Date(headers['Last-Modified']).getTime(), headers['Content-Type']);
         },
         timeout: 3000
       }
@@ -30,7 +30,7 @@ define(
     }
 
     function get(url, token, cb) {
-      doCall('GET', url, null, null, token, function(err, data) {
+      doCall('GET', url, null, null, token, function(err, data, timestamp, mimetype) {
         if(err == 404) {
           cb(null, undefined);
         } else {
@@ -42,7 +42,7 @@ define(
               return;
             }
           }
-          cb(err, data);
+          cb(err, data, timestamp, mimetype);
         }
       });
     }

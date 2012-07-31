@@ -1,6 +1,7 @@
 (function() {
   var exports={}, deps={};
   function define(name, relDeps, code){
+    name = String(name);
     exports[name]=code;
     var dir = name.substring(0,name.lastIndexOf('/')+1);
     deps[name]=[];

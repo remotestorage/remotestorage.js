@@ -109,6 +109,11 @@ define([], function () {
           parentNode.lastModified = node.lastModified;
         }
         updateNode(containingDir, parentNode, 'accept');
+      } else if(changeType=='meta') {//make sure parentNodes get created when setting force or access
+        if(!parentNode.data[getFileName(path)]) {
+          parentNode.data[getFileName(path)]=0;
+        }
+        updateNode(containingDir, parentNode, 'meta');
       }
     }
   }
@@ -130,11 +135,6 @@ define([], function () {
       throw("Unknown event: " + eventName);
     }
   }
-  function connect(path, connectVal) {
-    var node = getNode(path);
-    node.startForcing=(connectVal!=false);
-    updateNode(path, node, 'meta');
-  }
   function getState(path) {
     return 'disconnected';
   }
@@ -153,11 +153,11 @@ define([], function () {
     } else {
       if(isDir(path)) {
         for(var i in data) {
-          delete node.added(i);
+          delete node.added[i];
         }
         for(var i in node.removed) {
           if(!data[i]) {
-            delete node.removed(i);
+            delete node.removed[i] ;
           }
         }
         updateNode(path, node, 'accept');
@@ -187,13 +187,13 @@ define([], function () {
     var node = getNode(path);
     if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
       node.startAccess = claim;
-      updateNode(path, node);
+      updateNode(path, node, 'meta');
     }
   }
   function setNodeForce(path, force) {
     var node = getNode(path);
     node.startForce = force;
-    updateNode(path, node);
+    updateNode(path, node, 'meta');
   }
   return {
     on            : on,//error,change(origin=tab,device,cloud)

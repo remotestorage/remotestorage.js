@@ -114,7 +114,7 @@ define(['./sync', './store'], function (sync, store) {
             sync.fetchNow(absPath, function(err) {
               var node = store.getNode(absPath);
               var arr = [];
-              for(var i in node.children) {
+              for(var i in node.data) {
                 if(!node.removed[i]) {
                   arr.push(i);
                 }
@@ -128,7 +128,7 @@ define(['./sync', './store'], function (sync, store) {
           } else {
             var node = store.getNode(absPath);
             var arr = [];
-            for(var i in node.children) {
+            for(var i in node.data) {
               if(!node.removed[i]) {
                 arr.push(i);
               }

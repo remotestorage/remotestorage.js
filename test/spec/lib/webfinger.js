@@ -86,7 +86,12 @@
       expect(calls[2].params[0].url).toEqual('http://unhosted.org/.well-known/acct:a@b.c.webfinger');
       var webfingerStr = '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n'
         +'<XRD xmlns=\'http://docs.oasis-open.org/ns/xri/xrd-1.0\' xmlns:hm=\'http://host-meta.net/xrd/1.0\'>\n'
-        +'<Link rel=\'remoteStorage\' api=\'simple\' auth=\'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org\'';
+        +'<Link rel="remoteStorage" href="">'
+        +'  <Property type="auth-method">https://tools.ietf.org/html/draft-ietf-oauth-v2-26#section-4.2</Property>'
+        +'  <Property type="auth-endpoint">http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org</Property>'
+        +'</Link></XRD>';
+// auth=\'http://surf.unhosted.org:4000/_oauth/michiel@unhosted.org\'
+// api=\'simple\' 
       calls[2].params[0].success(webfingerStr);
       var calls = platformStub.getCalled();
       expect(calls.length).toEqual(4);
