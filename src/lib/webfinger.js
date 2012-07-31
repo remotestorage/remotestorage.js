@@ -100,62 +100,16 @@ define(
       cb(null, links);
     }
 
-    var rww = 'http://www.w3.org/community/rww/wiki/Read-write-web-00#';
-    var legacyApiTypes = {
-      'simple': rww + 'simple',
-      'WebDAV': rww + 'webdav',
-      'CouchDB': rww + 'couchdb'
-    }
-
     function parseRemoteStorageLink(obj, cb) {
-      //FROM:
-      //{
-      //  api: 'WebDAV',
-      //  template: 'http://host/foo/{category}/bar',
-      //  auth: 'http://host/auth'
-      //}
-      //TO:
-      //{
-      //  type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav',
-      //  href: 'http://host/foo/',
-      //  legacySuffix: '/bar'
-      //  properties: {
-      //    'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
-      //    'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
-      //    'auth-endpoint': 'http://host/auth'
-      //  }
-      //}
-      if(obj && obj['auth'] && obj['api'] && obj['template']) {
-        var storageInfo = {};
-
-        storageInfo['type'] = legacyApiTypes[ obj['api'] ];
-
-        if(! storageInfo['type']) {
-          cb('api not recognized: ', + obj['api']);
-          return;
-        }
-
-        var templateParts = obj['template'].split('{category}');
-        if(templateParts[0].substring(templateParts[0].length-1)=='/') {
-          storageInfo['href'] = templateParts[0].substring(0, templateParts[0].length-1);
-        } else {
-          storageInfo['href'] = templateParts[0];
-        }
-        storageInfo.properties = {
-          "access-methods": ["http://oauth.net/core/1.0/parameters/auth-header"],
-          "auth-methods": ["http://oauth.net/discovery/1.0/consumer-identity/static"],
-          "auth-endpoint": obj['auth']
-        };
-        if(templateParts.length == 2 && templateParts[1] != '/') {
-          storageInfo.properties['legacySuffix'] = templateParts[1];
-        }
-        cb(null, storageInfo);
-      } else if(obj
+      // TODO:
+      //   * check for and validate properties.auth-method
+      //   * validate type
+      if(obj
           && obj['href']
           && obj['type']
           && obj['properties']
           && obj['properties']['auth-endpoint']
-          ) {
+        ) {
         cb(null, obj);
       } else {
         cb('could not extract storageInfo from lrdd');
