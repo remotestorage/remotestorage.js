@@ -177,13 +177,19 @@ exports.handler = (function() {
           var pathParts=path.split('/');
           var timestamp=new Date().getTime();
           console.log(pathParts);
+          var fileItself=true;
           while(pathParts.length > 2) {
             var thisPart = pathParts.pop();
+            if(fileItself) {
+              fileItself=false;
+            } else {
+              thisPart += '/';
+            }
             if(!content[pathParts.join('/')+'/']) {
               content[pathParts.join('/')+'/'] = {};
             }
-            content[pathParts.join('/')+'/'][thisPart+'/']=timestamp;
-            console.log('stored parent '+pathParts.join('/')+'/ ['+thisPart+'/]='+timestamp, content[pathParts.join('/')+'/']);
+            content[pathParts.join('/')+'/'][thisPart]=timestamp;
+            console.log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
           }
           writeJson(res, null, req.headers.origin, timestamp);
         });
