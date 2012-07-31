@@ -125,6 +125,7 @@ define([], function () {
     for(var i=0; i<localStorage.length; i++) {
       if(localStorage.key(i).substr(0, prefixNodes.length) == prefixNodes) {
         localStorage.removeItem(localStorage.key(i));
+        i--;
       }
     }
   }
