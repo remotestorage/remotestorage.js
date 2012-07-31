@@ -893,6 +893,7 @@ define('lib/store',[], function () {
     if(valueStr) {
       try {
         value = JSON.parse(valueStr);
+        value.data = JSON.parse(value.data);//double-JSON-ed for now, until we split content away from meta
       } catch(e) {
       }
     }
@@ -949,6 +950,9 @@ define('lib/store',[], function () {
     //there are three types of local changes: added, removed, changed.
     //when a PUT or DELETE is successful and we get a Last-Modified header back the parents should already be updated right to the root
     //
+    if(typeof(node.data) != 'string') {
+      node.data=JSON.stringify(node.data);//double-JSON-ed for now, until we separate metadata from content
+    }
     localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     var containingDir = getContainingDir(path);
     if(containingDir) {
