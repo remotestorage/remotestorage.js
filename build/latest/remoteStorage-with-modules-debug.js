@@ -1156,13 +1156,13 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
   }
   function pullMap(basePath, map, force, access, cb) {
     console.log('pullMap '+basePath);
-    var outstanding=0, errors=false;
+    var outstanding=0, errors=null;
     function startOne() {
       outstanding++;
     }
     function finishOne(err) {
       if(err) {
-        errors = true;
+        errors = err;
       }
       outstanding--;
       if(outstanding==0) {
