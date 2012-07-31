@@ -74,13 +74,13 @@ define(['./wireClient', './store'], function(wireClient, store) {
   }
   function pullMap(basePath, map, force, access, cb) {
     console.log('pullMap '+basePath);
-    var outstanding=0, errors=false;
+    var outstanding=0, errors=null;
     function startOne() {
       outstanding++;
     }
     function finishOne(err) {
       if(err) {
-        errors = true;
+        errors = err;
       }
       outstanding--;
       if(outstanding==0) {
@@ -97,9 +97,9 @@ define(['./wireClient', './store'], function(wireClient, store) {
     busy=true;
     var map={};
     map[path]= Infinity;
-    pullMap('', map, false, false, function() {
+    pullMap('', map, false, false, function(err) {
       busy=false;
-      cb();
+      cb((err===null));
     });
   }
   return {
