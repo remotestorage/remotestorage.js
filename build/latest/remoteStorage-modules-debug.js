@@ -1,6 +1,7 @@
 (function() {
   var exports={}, deps={};
   function define(name, relDeps, code){
+    name = String(name);
     exports[name]=code;
     var dir = name.substring(0,name.lastIndexOf('/')+1);
     deps[name]=[];
@@ -986,6 +987,13 @@ remoteStorage.defineModule('contacts', function(base) {
       }, this);
     },
 
+    indexBy: function(key) {
+      var worker = new Worker('data:function(){postMessage("foobar")}')
+      worker.onmessage = function(event) {
+        console.log('worker event: ', worker);
+      }
+    },
+
     /**
      ** PRIVATE METHODS
      **/
@@ -1005,8 +1013,15 @@ remoteStorage.defineModule('contacts', function(base) {
   };
   
   return {
+
+    name: 'contacts',
+    dataHints: {
+      "module" : "contacts are personas about which any information is known.",
+      "objectType contact": ""
+    },
     
     exports: contacts
+
   }
 });
 
@@ -1320,7 +1335,7 @@ remoteStorage.defineModule('tasks', function(myPrivateBaseClient, myPublicBaseCl
 
 define("modules/tasks", function(){});
 
-define('remoteStorage-modules',[
+define('remoteStorage-modules', [
   './modules/calendar', 
   './modules/deps/vcardjs-0.2.js',
   './modules/contacts', 
@@ -1330,4 +1345,6 @@ define('remoteStorage-modules',[
 ], function() {
   return {};
 });
+
+
 })();

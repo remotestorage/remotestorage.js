@@ -1,4 +1,4 @@
-define([
+define('remoteStorage-modules', [
   './modules/calendar', 
   './modules/deps/vcardjs-0.2.js',
   './modules/contacts', 
@@ -8,3 +8,4 @@ define([
 ], function() {
   return {};
 });
+
