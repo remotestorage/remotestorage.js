@@ -18,7 +18,7 @@
 
 #### load the 'tasks' module,
 
-    remoteStorage.loadModule('tasks', '0.1', 'rw');
+    remoteStorage.loadModule('tasks', 'rw');
 
 #### open a private tasks list called 'todos':
 
