@@ -1,5 +1,5 @@
 (function() {
-  var exports={}, deps={};
+  var exports={}, deps={}, mods={};
   function define(name, relDeps, code){
     name = String(name);
     exports[name]=code;
@@ -31,11 +31,11 @@
       return function(){};
     }
     var modNames = deps[name];
-    var mods={};
-    console.log('loading module '+name);
-    console.log('typeof dependencies: '+typeof(modNames));
     for(var i=0;i<modNames.length;i++) {
-      mods[modNames[i]]=_loadModule(modNames[i]);
+      if(!mods[modNames[i]]) {
+        console.log('loading '+modNames[i]);
+        mods[modNames[i]]=_loadModule(modNames[i]);
+      }
     }
     var modList=[];
     for(var i=0;i<modNames.length;i++) {
@@ -258,14 +258,14 @@ define('lib/platform',[], function() {
     new xml2js.Parser().parseString(str, cb);
   }
 
-  function harvestTokenNode() {
+  function harvestParamNode() {
   }
-  function harvestTokenBrowser() {
+  function harvestParamBrowser(param) {
     if(location.hash.length) {
       var pairs = location.hash.substring(1).split('&');
       for(var i=0; i<pairs.length; i++) {
-        if(pairs[i].substring(0, 'access_token='.length) == 'access_token=') {
-          return pairs[i].substring('access_token='.length);
+        if(pairs[i].substring(0, (param+'=').length) == param+'=') {
+          return pairs[i].substring((param+'=').length);
         }
       }
     }
@@ -312,7 +312,7 @@ define('lib/platform',[], function() {
     return {
       ajax: ajaxNode,
       parseXml: parseXmlNode,
-      harvestToken: harvestTokenNode,
+      harvestParam: harvestParamNode,
       setElementHTML: setElementHtmlNode,
       getElementValue: getElementValueNode,
       eltOn: eltOnNode,
@@ -325,7 +325,7 @@ define('lib/platform',[], function() {
       return {
         ajax: ajaxExplorer,
         parseXml: parseXmlBrowser,
-        harvestToken: harvestTokenBrowser,
+        harvestParam: harvestParamBrowser,
         setElementHTML: setElementHtmlBrowser,
         getElementValue: getElementValueBrowser,
         eltOn: eltOnBrowser,
@@ -337,7 +337,7 @@ define('lib/platform',[], function() {
       return {
         ajax: ajaxBrowser,
         parseXml: parseXmlBrowser,
-        harvestToken: harvestTokenBrowser,
+        harvestParam: harvestParamBrowser,
         setElementHTML: setElementHtmlBrowser,
         getElementValue: getElementValueBrowser,
         eltOn: eltOnBrowser,
@@ -451,62 +451,16 @@ define('lib/webfinger',
       cb(null, links);
     }
 
-    var rww = 'http://www.w3.org/community/rww/wiki/Read-write-web-00#';
-    var legacyApiTypes = {
-      'simple': rww + 'simple',
-      'WebDAV': rww + 'webdav',
-      'CouchDB': rww + 'couchdb'
-    }
-
     function parseRemoteStorageLink(obj, cb) {
-      //FROM:
-      //{
-      //  api: 'WebDAV',
-      //  template: 'http://host/foo/{category}/bar',
-      //  auth: 'http://host/auth'
-      //}
-      //TO:
-      //{
-      //  type: 'https://www.w3.org/community/unhosted/wiki/remotestorage-2011.10#webdav',
-      //  href: 'http://host/foo/',
-      //  legacySuffix: '/bar'
-      //  properties: {
-      //    'access-methods': ['http://oauth.net/core/1.0/parameters/auth-header'],
-      //    'auth-methods': ['http://oauth.net/discovery/1.0/consumer-identity/static'],
-      //    'auth-endpoint': 'http://host/auth'
-      //  }
-      //}
-      if(obj && obj['auth'] && obj['api'] && obj['template']) {
-        var storageInfo = {};
-
-        storageInfo['type'] = legacyApiTypes[ obj['api'] ];
-
-        if(! storageInfo['type']) {
-          cb('api not recognized: ', + obj['api']);
-          return;
-        }
-
-        var templateParts = obj['template'].split('{category}');
-        if(templateParts[0].substring(templateParts[0].length-1)=='/') {
-          storageInfo['href'] = templateParts[0].substring(0, templateParts[0].length-1);
-        } else {
-          storageInfo['href'] = templateParts[0];
-        }
-        storageInfo.properties = {
-          "access-methods": ["http://oauth.net/core/1.0/parameters/auth-header"],
-          "auth-methods": ["http://oauth.net/discovery/1.0/consumer-identity/static"],
-          "auth-endpoint": obj['auth']
-        };
-        if(templateParts.length == 2 && templateParts[1] != '/') {
-          storageInfo.properties['legacySuffix'] = templateParts[1];
-        }
-        cb(null, storageInfo);
-      } else if(obj
+      // TODO:
+      //   * check for and validate properties.auth-method
+      //   * validate type
+      if(obj
           && obj['href']
           && obj['type']
           && obj['properties']
           && obj['properties']['auth-endpoint']
-          ) {
+        ) {
         cb(null, obj);
       } else {
         cb('could not extract storageInfo from lrdd');
@@ -876,23 +830,29 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
 });
 
 define('lib/store',[], function () {
-  var onChange,
+  var onChange=[],
     prefixNodes = 'remote_storage_nodes:';
   window.addEventListener('storage', function(e) {
     if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
       e.path = e.key.substring(prefixNodes.length);
-      if(onChange && !isDir(e.path)) {
+      if(!isDir(e.path)) {
         e.origin='device';
-        onChange(e);
+        fireChange(e);
       }
     }
   });
+  function fireChange(e) {
+    for(var i=0; i<onChange.length; i++) {
+      onChange[i](e);
+    }
+  }
   function getNode(path) {
     var valueStr = localStorage.getItem(prefixNodes+path);
     var value;
     if(valueStr) {
       try {
         value = JSON.parse(valueStr);
+        value.data = JSON.parse(value.data);//double-JSON-ed for now, until we split content away from meta
       } catch(e) {
       }
     }
@@ -949,6 +909,9 @@ define('lib/store',[], function () {
     //there are three types of local changes: added, removed, changed.
     //when a PUT or DELETE is successful and we get a Last-Modified header back the parents should already be updated right to the root
     //
+    if(typeof(node.data) != 'string') {
+      node.data=JSON.stringify(node.data);//double-JSON-ed for now, until we separate metadata from content
+    }
     localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     var containingDir = getContainingDir(path);
     if(containingDir) {
@@ -971,12 +934,26 @@ define('lib/store',[], function () {
           }
           updateNode(containingDir, parentNode, 'accept');
         }
+        fireChange({
+          path: path,
+          origin: 'remote',
+          oldValue: undefined,
+          newValue: node.data,
+          timestamp: node.lastModified
+        });
       } else if(changeType=='gone') {
         delete parentNode.data[getFileName(path)];
         if(parentNode.lastModified < node.lastModified) {
           parentNode.lastModified = node.lastModified;
         }
         updateNode(containingDir, parentNode, 'accept');
+        fireChange({
+          path: path,
+          origin: 'remote',
+          oldValue: undefined,
+          newValue: undefined,
+          timestamp: node.lastModified
+        });
       } else if(changeType=='clear') {
         parentNode.data[getFileName(path)] = node.lastModified;
         delete parentNode.added[getFileName(path)];
@@ -1002,12 +979,13 @@ define('lib/store',[], function () {
     for(var i=0; i<localStorage.length; i++) {
       if(localStorage.key(i).substr(0, prefixNodes.length) == prefixNodes) {
         localStorage.removeItem(localStorage.key(i));
+        i--;
       }
     }
   }
   function on(eventName, cb) {
     if(eventName == 'change') {
-      onChange = cb;
+      onChange.push(cb);
     } else {
       throw("Unknown event: " + eventName);
     }
@@ -1125,49 +1103,65 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
     if(node.outgoingChange) {
       if(node.startAccess !== null) { access = node.startAccess; }
       if(access=='rw') {
-        //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
-        startOne();
-        var parentChain = getParentChain(path);
-        wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
-          if(!err) {
-            store.clearOutgoingChange(path, timestamp);
-          }
-          finishOne();
-        });
+        (function(path) {
+          //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
+          startOne();
+          var parentChain = getParentChain(path);
+          console.log('set-call handleChild '+path);
+          wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
+            console.log('set-cb handleChild '+path);
+            if(!err) {
+              store.clearOutgoingChange(path, timestamp);
+            }
+            finishOne();
+          });
+        })(path);
       }
     } else if(node.lastModified<lastModified || !lastModified) {//i think there must a cleaner way than this ugly using 0 where no access
       if(node.startAccess !== null) { access = node.startAccess; }
       if(node.startForce !== null) { force = node.startForce; }
       if((force || node.keep) && access) {
-        startOne();
-        wireClient.get(path, function (err, data, timestamp, mimeType) {
-          if(data) {
-            store.setNodeData(path, data, false, timestamp, mimeType);
-          }
-          finishOne(err);
+        (function(path) {
           startOne();
-          pullMap(path, store.getNode(path).data, force, access, finishOne);
-          startOne();
-          pullMap(path, store.getNode(path).added, force, access, finishOne);
-        });
-      } else {
+          console.log('get-call handleChild '+path);
+          wireClient.get(path, function (err, data, timestamp, mimeType) {
+            console.log('get-cb handleChild '+path);
+            if(data) {
+              store.setNodeData(path, data, false, timestamp, mimeType);
+            }
+            finishOne(err);
+            if(path.substr(-1)=='/') {//isDir(path)
+              var thisNode = store.getNode(path), map;
+              map = thisNode.data;
+              for(var i in thisNode.added) {
+                map[i] = thisNode.added[i];
+              }
+              startOne();
+              pullMap(path, map, force, access, finishOne);
+            }
+          });
+        })(path);
+      } else if(path.substr(-1)=='/') {//isDir(path)
         //store.forget(path);
+        var thisNode = store.getNode(path), map;
+        map = thisNode.data;
+        for(var i in thisNode.added) {
+          map[i] = thisNode.added[i];
+        }
         startOne();
-        pullMap(path, node.data, force, access, finishOne);
-        startOne();
-        pullMap(path, node.added, force, access, finishOne);
+        pullMap(path, map, force, access, finishOne);
       }
     }// else everything up to date
   }
   function pullMap(basePath, map, force, access, cb) {
     console.log('pullMap '+basePath);
-    var outstanding=0, errors=false;
+    var outstanding=0, errors=null;
     function startOne() {
       outstanding++;
     }
     function finishOne(err) {
       if(err) {
-        errors = true;
+        errors = err;
       }
       outstanding--;
       if(outstanding==0) {
@@ -1176,17 +1170,21 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
     }
     startOne();
     for(var path in map) {
-      handleChild(basePath+path, map[path], force, access, startOne, finishOne);
+      console.log('pullMap '+basePath+' calling handleChild for '+path);
+      (function(path) {
+        handleChild(basePath+path, map[path], force, access, startOne, finishOne);
+      })(path);
     }
     finishOne();
   }
   function syncNow(path, cb) {
+    console.log('syncNow '+path);
     busy=true;
     var map={};
     map[path]= Infinity;
-    pullMap('', map, false, false, function() {
+    pullMap('', map, false, false, function(err) {
       busy=false;
-      cb();
+      cb((err===null));
     });
   }
   return {
@@ -1219,13 +1217,6 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       return 'registering';
     } else {
       var wireClientState = wireClient.getState();
-      if(wireClientState == 'authing') {
-        if(platform.harvestToken()) {
-          wireClientState = 'connected';
-        } else {
-          return 'interrupted';
-        }
-      }
       if(wireClientState == 'connected') {
         return sync.getState();//'busy', 'connected' or 'offline'
       }
@@ -1295,7 +1286,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
     return hostParts[0].split(':')[0];
   }
-  function dance(endpoint, oldScopes) {
+  function dance(endpoint) {
     var endPointParts = endpoint.split('?');
     var queryParams = [];
     if(endPointParts.length == 2) {
@@ -1306,13 +1297,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     var loc = platform.getLocation();
     var scopesArr = [];
     for(var i in scopesObj) {
-      if(oldScopes) {
-        if(i.substring(0, '/public/'.length) != '/public/') {
-          scopesArr.push(i.substring(1, i.length-1));
-        }
-      } else {
-        scopesArr.push(i+':'+scopesObj[i]);
-      }
+      scopesArr.push(i+':'+scopesObj[i]);
     }
     queryParams.push('response_type=token');
     queryParams.push('scope='+encodeURIComponent(scopesArr.join(' ')));
@@ -1356,7 +1341,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
         if(err) {
           setWidgetState('failed');
         } else {
-          dance(auth, false);
+          dance(auth);
         }
       });
     } else {
@@ -1389,9 +1374,18 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     console.log('handleWidgetHover');
   }
   function display(setConnectElement, setLocale) {
-    var tokenHarvested = platform.harvestToken();
+    var tokenHarvested = platform.harvestParam('access_token');
+    var storageRootHarvested = platform.harvestParam('storage_root');
+    var storageApiHarvested = platform.harvestParam('storage_api');
+    var authorizeEndpointHarvested = platform.harvestParam('authorize_endpoint');
     if(tokenHarvested) {
       wireClient.setBearerToken(tokenHarvested);
+    }
+    if(storageRootHarvested) {
+      wireClient.setStorageInfo((storageApiHarvested ? storageApiHarvested : '2012.04'), storageRootHarvested);
+    }
+    if(authorizeEndpointHarvested) {
+      dance(authorizeEndpointHarvested);
     }
     connectElement = setConnectElement;
     locale = setLocale;
@@ -1448,7 +1442,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
     console.log(str);
   }
   store.on('change', function(e) {
-    var moduleName = extractModuleName(eventObj.path);
+    var moduleName = extractModuleName(e.path);
     fireChange(moduleName, e);//tab-, device- and cloud-based changes all get fired from the store.
   });
   
@@ -1665,9 +1659,8 @@ define('remoteStorage', [
         widget.addScope('', mode);
         baseClient.claimAccess('/', mode);
       } else {
-        widget.addScope(moduleName+'/', mode);
+        widget.addScope(moduleName, mode);
         baseClient.claimAccess('/'+moduleName+'/', mode);
-        widget.addScope('public/'+moduleName+'/', mode);
         baseClient.claimAccess('/public/'+moduleName+'/', mode);
       }
 

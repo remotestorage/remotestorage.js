@@ -38,49 +38,65 @@ define(['./wireClient', './store'], function(wireClient, store) {
     if(node.outgoingChange) {
       if(node.startAccess !== null) { access = node.startAccess; }
       if(access=='rw') {
-        //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
-        startOne();
-        var parentChain = getParentChain(path);
-        wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
-          if(!err) {
-            store.clearOutgoingChange(path, timestamp);
-          }
-          finishOne();
-        });
+        (function(path) {
+          //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
+          startOne();
+          var parentChain = getParentChain(path);
+          console.log('set-call handleChild '+path);
+          wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
+            console.log('set-cb handleChild '+path);
+            if(!err) {
+              store.clearOutgoingChange(path, timestamp);
+            }
+            finishOne();
+          });
+        })(path);
       }
     } else if(node.lastModified<lastModified || !lastModified) {//i think there must a cleaner way than this ugly using 0 where no access
       if(node.startAccess !== null) { access = node.startAccess; }
       if(node.startForce !== null) { force = node.startForce; }
       if((force || node.keep) && access) {
-        startOne();
-        wireClient.get(path, function (err, data, timestamp, mimeType) {
-          if(data) {
-            store.setNodeData(path, data, false, timestamp, mimeType);
-          }
-          finishOne(err);
+        (function(path) {
           startOne();
-          pullMap(path, store.getNode(path).data, force, access, finishOne);
-          startOne();
-          pullMap(path, store.getNode(path).added, force, access, finishOne);
-        });
-      } else {
+          console.log('get-call handleChild '+path);
+          wireClient.get(path, function (err, data, timestamp, mimeType) {
+            console.log('get-cb handleChild '+path);
+            if(data) {
+              store.setNodeData(path, data, false, timestamp, mimeType);
+            }
+            finishOne(err);
+            if(path.substr(-1)=='/') {//isDir(path)
+              var thisNode = store.getNode(path), map;
+              map = thisNode.data;
+              for(var i in thisNode.added) {
+                map[i] = thisNode.added[i];
+              }
+              startOne();
+              pullMap(path, map, force, access, finishOne);
+            }
+          });
+        })(path);
+      } else if(path.substr(-1)=='/') {//isDir(path)
         //store.forget(path);
+        var thisNode = store.getNode(path), map;
+        map = thisNode.data;
+        for(var i in thisNode.added) {
+          map[i] = thisNode.added[i];
+        }
         startOne();
-        pullMap(path, node.data, force, access, finishOne);
-        startOne();
-        pullMap(path, node.added, force, access, finishOne);
+        pullMap(path, map, force, access, finishOne);
       }
     }// else everything up to date
   }
   function pullMap(basePath, map, force, access, cb) {
     console.log('pullMap '+basePath);
-    var outstanding=0, errors=false;
+    var outstanding=0, errors=null;
     function startOne() {
       outstanding++;
     }
     function finishOne(err) {
       if(err) {
-        errors = true;
+        errors = err;
       }
       outstanding--;
       if(outstanding==0) {
@@ -89,17 +105,21 @@ define(['./wireClient', './store'], function(wireClient, store) {
     }
     startOne();
     for(var path in map) {
-      handleChild(basePath+path, map[path], force, access, startOne, finishOne);
+      console.log('pullMap '+basePath+' calling handleChild for '+path);
+      (function(path) {
+        handleChild(basePath+path, map[path], force, access, startOne, finishOne);
+      })(path);
     }
     finishOne();
   }
   function syncNow(path, cb) {
+    console.log('syncNow '+path);
     busy=true;
     var map={};
     map[path]= Infinity;
-    pullMap('', map, false, false, function() {
+    pullMap('', map, false, false, function(err) {
       busy=false;
-      cb();
+      cb((err===null));
     });
   }
   return {

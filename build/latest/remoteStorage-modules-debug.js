@@ -1,5 +1,5 @@
 (function() {
-  var exports={}, deps={};
+  var exports={}, deps={}, mods = {};
   function define(name, relDeps, code){
     name = String(name);
     exports[name]=code;
@@ -27,9 +27,10 @@
       return function(){};
     }
     var modNames = deps[name];
-    var mods={};
     for(var i=0;i<modNames.length;i++) {
-      mods[modNames[i]]=_loadModule(modNames[i]);
+      if(!mods[modNames[i]]) {
+        mods[modNames[i]]=_loadModule(modNames[i]);
+      }
     }
     var modList=[];
     for(var i=0;i<modNames.length;i++) {
@@ -987,13 +988,6 @@ remoteStorage.defineModule('contacts', function(base) {
       }, this);
     },
 
-    indexBy: function(key) {
-      var worker = new Worker('data:function(){postMessage("foobar")}')
-      worker.onmessage = function(event) {
-        console.log('worker event: ', worker);
-      }
-    },
-
     /**
      ** PRIVATE METHODS
      **/
@@ -1013,15 +1007,8 @@ remoteStorage.defineModule('contacts', function(base) {
   };
   
   return {
-
-    name: 'contacts',
-    dataHints: {
-      "module" : "contacts are personas about which any information is known.",
-      "objectType contact": ""
-    },
     
     exports: contacts
-
   }
 });
 

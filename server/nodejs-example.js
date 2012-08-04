@@ -6,15 +6,17 @@ exports.handler = (function() {
       host: 'mich.rs'
     }, tokens = {}, lastModified = {}, contentType = {}, content = {};
   function createToken(userName, scopes, cb) {
+    var scopePaths=[];
     crypto.randomBytes(48, function(ex, buf) {
       var token = buf.toString('hex');
       for(var i=0; i<scopes.length; i++) {
-        scopes[i]=userName+'/'+scopes[i];
+        scopesPaths.push(userName+'/'+scopes[i]+'/');
+        scopesPaths.push(userName+'/public/'+scopes[i]+'/');
       }
-      tokens[token] = scopes;
+      tokens[token] = scopePaths;
       cb(token);
     });
-  }
+  }§
   function mayRead(authorizationHeader, path) {
     if(authorizationHeader) {
       var scopes = tokens[authorizationHeader.substring('Bearer '.length)];
@@ -64,12 +66,12 @@ exports.handler = (function() {
     console.log('access-control-allow-origin:'+ (origin?origin:'*'));
     console.log(contentType);
     console.log(content);
-    writeHead(res, 200, origin, timestamp, conentType);
+    writeHead(res, 200, origin, timestamp, contentType);
     res.write(content);
     res.end();
   }
   function writeJson(res, obj, origin, timestamp) {
-    writeRaw(res, 'application/json', JSON.stringify(obj), origin timestamp);
+    writeRaw(res, 'application/json', JSON.stringify(obj), origin, timestamp);
   }
   function writeHtml(res, html) {
     res.writeHead(200, {
@@ -145,14 +147,18 @@ exports.handler = (function() {
     } else if(req.method=='GET') {
       console.log('GET');
       if(mayRead(req.headers.authorization, path)) {
-        if(!content[path]) {
+        if(content[path]) {
+          if(path.substr(-1)=='/') {
+            writeJson(res, content[path], req.headers.origin, 0);
+          } else {
+            writeRaw(res, contentType[path], content[path], req.headers.origin, lastModified[path]);
+          }
+        } else {
           if(path.substr(-1)=='/') {
             writeJson(res, {}, req.headers.origin, 0);
           } else {
             give404(res, req.headers.origin);
           }
-        } else {
-          writeRaw(res, contentType[path], content[path], req.headers.origin, lastModified[path]);
         }
       } else {
         computerSaysNo(res, req.headers.origin);
@@ -161,24 +167,35 @@ exports.handler = (function() {
       console.log('PUT');
       if(mayWrite(req.headers.authorization, path)) {
         var dataStr = '';
-        req.on('content', function(chunk) {
+        req.on('data', function(chunk) {
           dataStr+=chunk;
         });
         req.on('end', function(chunk) {
           var timestamp = new Date().getTime();
           content[path]=dataStr;
           contentType[path]=req.headers['content-type'];
+          console.log('stored '+path, content[path], contentType[path]);
           lastModified[path]=timestamp;
           var pathParts=path.split('/');
           var timestamp=new Date().getTime();
-          pathParts.pop();//the file itself
+          console.log(pathParts);
+          var fileItself=true;
           while(pathParts.length > 2) {
             var thisPart = pathParts.pop();
+            if(fileItself) {
+              fileItself=false;
+            } else {
+              thisPart += '/';
+            }
             if(!content[pathParts.join('/')+'/']) {
               content[pathParts.join('/')+'/'] = {};
             }
-            content[pathParts.join('/')+'/'][thisPart+'/']=timestamp;
+            content[pathParts.join('/')+'/'][thisPart]=timestamp;
+            console.log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
           }
+          console.log(content);
+          console.log(contentType);
+          console.log(lastModified);
           writeJson(res, null, req.headers.origin, timestamp);
         });
       } else {

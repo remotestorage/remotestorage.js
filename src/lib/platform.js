@@ -148,14 +148,14 @@ define([], function() {
     new xml2js.Parser().parseString(str, cb);
   }
 
-  function harvestTokenNode() {
+  function harvestParamNode() {
   }
-  function harvestTokenBrowser() {
+  function harvestParamBrowser(param) {
     if(location.hash.length) {
       var pairs = location.hash.substring(1).split('&');
       for(var i=0; i<pairs.length; i++) {
-        if(pairs[i].substring(0, 'access_token='.length) == 'access_token=') {
-          return pairs[i].substring('access_token='.length);
+        if(pairs[i].substring(0, (param+'=').length) == param+'=') {
+          return pairs[i].substring((param+'=').length);
         }
       }
     }
@@ -202,7 +202,7 @@ define([], function() {
     return {
       ajax: ajaxNode,
       parseXml: parseXmlNode,
-      harvestToken: harvestTokenNode,
+      harvestParam: harvestParamNode,
       setElementHTML: setElementHtmlNode,
       getElementValue: getElementValueNode,
       eltOn: eltOnNode,
@@ -215,7 +215,7 @@ define([], function() {
       return {
         ajax: ajaxExplorer,
         parseXml: parseXmlBrowser,
-        harvestToken: harvestTokenBrowser,
+        harvestParam: harvestParamBrowser,
         setElementHTML: setElementHtmlBrowser,
         getElementValue: getElementValueBrowser,
         eltOn: eltOnBrowser,
@@ -227,7 +227,7 @@ define([], function() {
       return {
         ajax: ajaxBrowser,
         parseXml: parseXmlBrowser,
-        harvestToken: harvestTokenBrowser,
+        harvestParam: harvestParamBrowser,
         setElementHTML: setElementHtmlBrowser,
         getElementValue: getElementValueBrowser,
         eltOn: eltOnBrowser,

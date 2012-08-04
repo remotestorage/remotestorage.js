@@ -22,13 +22,6 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       return 'registering';
     } else {
       var wireClientState = wireClient.getState();
-      if(wireClientState == 'authing') {
-        if(platform.harvestToken()) {
-          wireClientState = 'connected';
-        } else {
-          return 'interrupted';
-        }
-      }
       if(wireClientState == 'connected') {
         return sync.getState();//'busy', 'connected' or 'offline'
       }
@@ -98,7 +91,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
     return hostParts[0].split(':')[0];
   }
-  function dance(endpoint, oldScopes) {
+  function dance(endpoint) {
     var endPointParts = endpoint.split('?');
     var queryParams = [];
     if(endPointParts.length == 2) {
@@ -109,13 +102,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     var loc = platform.getLocation();
     var scopesArr = [];
     for(var i in scopesObj) {
-      if(oldScopes) {
-        if(i.substring(0, '/public/'.length) != '/public/') {
-          scopesArr.push(i.substring(1, i.length-1));
-        }
-      } else {
-        scopesArr.push(i+':'+scopesObj[i]);
-      }
+      scopesArr.push(i+':'+scopesObj[i]);
     }
     queryParams.push('response_type=token');
     queryParams.push('scope='+encodeURIComponent(scopesArr.join(' ')));
@@ -159,7 +146,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         if(err) {
           setWidgetState('failed');
         } else {
-          dance(auth, false);
+          dance(auth);
         }
       });
     } else {
@@ -192,9 +179,18 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     console.log('handleWidgetHover');
   }
   function display(setConnectElement, setLocale) {
-    var tokenHarvested = platform.harvestToken();
+    var tokenHarvested = platform.harvestParam('access_token');
+    var storageRootHarvested = platform.harvestParam('storage_root');
+    var storageApiHarvested = platform.harvestParam('storage_api');
+    var authorizeEndpointHarvested = platform.harvestParam('authorize_endpoint');
     if(tokenHarvested) {
       wireClient.setBearerToken(tokenHarvested);
+    }
+    if(storageRootHarvested) {
+      wireClient.setStorageInfo((storageApiHarvested ? storageApiHarvested : '2012.04'), storageRootHarvested);
+    }
+    if(authorizeEndpointHarvested) {
+      dance(authorizeEndpointHarvested);
     }
     connectElement = setConnectElement;
     locale = setLocale;
