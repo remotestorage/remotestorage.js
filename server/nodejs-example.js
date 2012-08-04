@@ -6,15 +6,17 @@ exports.handler = (function() {
       host: 'mich.rs'
     }, tokens = {}, lastModified = {}, contentType = {}, content = {};
   function createToken(userName, scopes, cb) {
+    var scopePaths=[];
     crypto.randomBytes(48, function(ex, buf) {
       var token = buf.toString('hex');
       for(var i=0; i<scopes.length; i++) {
-        scopes[i]=userName+'/'+scopes[i];
+        scopesPaths.push(userName+'/'+scopes[i]+'/');
+        scopesPaths.push(userName+'/public/'+scopes[i]+'/');
       }
-      tokens[token] = scopes;
+      tokens[token] = scopePaths;
       cb(token);
     });
-  }
+  }§
   function mayRead(authorizationHeader, path) {
     if(authorizationHeader) {
       var scopes = tokens[authorizationHeader.substring('Bearer '.length)];
