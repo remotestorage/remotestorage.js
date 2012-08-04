@@ -22,13 +22,6 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       return 'registering';
     } else {
       var wireClientState = wireClient.getState();
-      if(wireClientState == 'authing') {
-        if(platform.harvestToken()) {
-          wireClientState = 'connected';
-        } else {
-          return 'interrupted';
-        }
-      }
       if(wireClientState == 'connected') {
         return sync.getState();//'busy', 'connected' or 'offline'
       }
@@ -194,7 +187,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       wireClient.setBearerToken(tokenHarvested);
     }
     if(storageRootHarvested) {
-      wireClient.setStorageInfo(storageApiHarvested, storageRootHarvested);
+      wireClient.setStorageInfo((storageApiHarvested ? storageApiHarvested : '2012.04'), storageRootHarvested);
     }
     if(authorizeEndpointHarvested) {
       dance(authorizeEndpointHarvested);
