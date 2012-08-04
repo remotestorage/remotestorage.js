@@ -192,9 +192,18 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     console.log('handleWidgetHover');
   }
   function display(setConnectElement, setLocale) {
-    var tokenHarvested = platform.harvestToken();
+    var tokenHarvested = platform.harvestParam('access_token');
+    var storageRootHarvested = platform.harvestParam('storage_root');
+    var storageApiHarvested = platform.harvestParam('storage_api');
+    var authorizeEndpointHarvested = platform.harvestParam('authorize_endpoint');
     if(tokenHarvested) {
       wireClient.setBearerToken(tokenHarvested);
+    }
+    if(storageRootHarvested) {
+      wireClient.setStorageInfo(storageApiHarvested, storageRootHarvested);
+    }
+    if(authorizeEndpointHarvested) {
+      dance(authorizeEndpointHarvested, false);
     }
     connectElement = setConnectElement;
     locale = setLocale;

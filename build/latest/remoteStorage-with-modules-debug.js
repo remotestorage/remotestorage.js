@@ -258,14 +258,14 @@ define('lib/platform',[], function() {
     new xml2js.Parser().parseString(str, cb);
   }
 
-  function harvestTokenNode() {
+  function harvestParamNode() {
   }
-  function harvestTokenBrowser() {
+  function harvestParamBrowser(param) {
     if(location.hash.length) {
       var pairs = location.hash.substring(1).split('&');
       for(var i=0; i<pairs.length; i++) {
-        if(pairs[i].substring(0, 'access_token='.length) == 'access_token=') {
-          return pairs[i].substring('access_token='.length);
+        if(pairs[i].substring(0, (param+'=').length) == param+'=') {
+          return pairs[i].substring((param+'=').length);
         }
       }
     }
@@ -312,7 +312,7 @@ define('lib/platform',[], function() {
     return {
       ajax: ajaxNode,
       parseXml: parseXmlNode,
-      harvestToken: harvestTokenNode,
+      harvestParam: harvestParamNode,
       setElementHTML: setElementHtmlNode,
       getElementValue: getElementValueNode,
       eltOn: eltOnNode,
@@ -325,7 +325,7 @@ define('lib/platform',[], function() {
       return {
         ajax: ajaxExplorer,
         parseXml: parseXmlBrowser,
-        harvestToken: harvestTokenBrowser,
+        harvestParam: harvestParamBrowser,
         setElementHTML: setElementHtmlBrowser,
         getElementValue: getElementValueBrowser,
         eltOn: eltOnBrowser,
@@ -337,7 +337,7 @@ define('lib/platform',[], function() {
       return {
         ajax: ajaxBrowser,
         parseXml: parseXmlBrowser,
-        harvestToken: harvestTokenBrowser,
+        harvestParam: harvestParamBrowser,
         setElementHTML: setElementHtmlBrowser,
         getElementValue: getElementValueBrowser,
         eltOn: eltOnBrowser,
@@ -1387,9 +1387,18 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     console.log('handleWidgetHover');
   }
   function display(setConnectElement, setLocale) {
-    var tokenHarvested = platform.harvestToken();
+    var tokenHarvested = platform.harvestParam('access_token');
+    var storageRootHarvested = platform.harvestParam('storage_root');
+    var storageApiHarvested = platform.harvestParam('storage_api');
+    var authorizeEndpointHarvested = platform.harvestParam('authorize_endpoint');
     if(tokenHarvested) {
       wireClient.setBearerToken(tokenHarvested);
+    }
+    if(storageRootHarvested) {
+      wireClient.setStorageInfo(storageApiHarvested, storageRootHarvested);
+    }
+    if(authorizeEndpointHarvested) {
+      dance(authorizeEndpointHarvested, false);
     }
     connectElement = setConnectElement;
     locale = setLocale;
