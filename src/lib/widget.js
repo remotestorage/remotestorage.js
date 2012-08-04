@@ -98,7 +98,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
     return hostParts[0].split(':')[0];
   }
-  function dance(endpoint, oldScopes) {
+  function dance(endpoint) {
     var endPointParts = endpoint.split('?');
     var queryParams = [];
     if(endPointParts.length == 2) {
@@ -109,13 +109,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     var loc = platform.getLocation();
     var scopesArr = [];
     for(var i in scopesObj) {
-      if(oldScopes) {
-        if(i.substring(0, '/public/'.length) != '/public/') {
-          scopesArr.push(i.substring(1, i.length-1));
-        }
-      } else {
-        scopesArr.push(i+':'+scopesObj[i]);
-      }
+      scopesArr.push(i+':'+scopesObj[i]);
     }
     queryParams.push('response_type=token');
     queryParams.push('scope='+encodeURIComponent(scopesArr.join(' ')));
@@ -159,7 +153,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         if(err) {
           setWidgetState('failed');
         } else {
-          dance(auth, false);
+          dance(auth);
         }
       });
     } else {
@@ -203,7 +197,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       wireClient.setStorageInfo(storageApiHarvested, storageRootHarvested);
     }
     if(authorizeEndpointHarvested) {
-      dance(authorizeEndpointHarvested, false);
+      dance(authorizeEndpointHarvested);
     }
     connectElement = setConnectElement;
     locale = setLocale;

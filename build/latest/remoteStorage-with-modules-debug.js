@@ -1293,7 +1293,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
     return hostParts[0].split(':')[0];
   }
-  function dance(endpoint, oldScopes) {
+  function dance(endpoint) {
     var endPointParts = endpoint.split('?');
     var queryParams = [];
     if(endPointParts.length == 2) {
@@ -1304,13 +1304,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     var loc = platform.getLocation();
     var scopesArr = [];
     for(var i in scopesObj) {
-      if(oldScopes) {
-        if(i.substring(0, '/public/'.length) != '/public/') {
-          scopesArr.push(i.substring(1, i.length-1));
-        }
-      } else {
-        scopesArr.push(i+':'+scopesObj[i]);
-      }
+      scopesArr.push(i+':'+scopesObj[i]);
     }
     queryParams.push('response_type=token');
     queryParams.push('scope='+encodeURIComponent(scopesArr.join(' ')));
@@ -1354,7 +1348,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
         if(err) {
           setWidgetState('failed');
         } else {
-          dance(auth, false);
+          dance(auth);
         }
       });
     } else {
@@ -1398,7 +1392,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       wireClient.setStorageInfo(storageApiHarvested, storageRootHarvested);
     }
     if(authorizeEndpointHarvested) {
-      dance(authorizeEndpointHarvested, false);
+      dance(authorizeEndpointHarvested);
     }
     connectElement = setConnectElement;
     locale = setLocale;
@@ -1672,9 +1666,8 @@ define('remoteStorage', [
         widget.addScope('', mode);
         baseClient.claimAccess('/', mode);
       } else {
-        widget.addScope(moduleName+'/', mode);
+        widget.addScope(moduleName, mode);
         baseClient.claimAccess('/'+moduleName+'/', mode);
-        widget.addScope('public/'+moduleName+'/', mode);
         baseClient.claimAccess('/public/'+moduleName+'/', mode);
       }
 

@@ -59,9 +59,8 @@ define('remoteStorage', [
         widget.addScope('', mode);
         baseClient.claimAccess('/', mode);
       } else {
-        widget.addScope(moduleName+'/', mode);
+        widget.addScope(moduleName, mode);
         baseClient.claimAccess('/'+moduleName+'/', mode);
-        widget.addScope('public/'+moduleName+'/', mode);
         baseClient.claimAccess('/public/'+moduleName+'/', mode);
       }
 
