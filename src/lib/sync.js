@@ -71,6 +71,11 @@ define(['./wireClient', './store'], function(wireClient, store) {
               for(var i in thisNode.added) {
                 map[i] = thisNode.added[i];
               }
+              if(data) {
+                for(var i in data) {
+                  map[i] = data[i];
+                }
+              }
               startOne();
               pullMap(path, map, force, access, finishOne);
             }
