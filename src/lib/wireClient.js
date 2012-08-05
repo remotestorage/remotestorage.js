@@ -43,9 +43,6 @@ define(['./getputdelete'], function (getputdelete) {
     }
   }
 
-  function getDriver(type, cb) {
-    cb(getputdelete);
-  }
   function resolveKey(storageType, storageHref, basePath, relPath) {
     //var nodirs=true;
     var nodirs=false;
@@ -82,9 +79,7 @@ define(['./getputdelete'], function (getputdelete) {
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
       } else {
-        getDriver(storageType, function (d) {
-          d.get(resolveKey(storageType, storageHref, '', path), token, cb);
-        });
+        getputdelete.get(resolveKey(storageType, storageHref, '', path), token, cb);
       }
     },
     set: function (path, valueStr, mimeType, parentChain, cb) {
@@ -96,19 +91,7 @@ define(['./getputdelete'], function (getputdelete) {
       } else if(typeof(valueStr) != 'string') {
         cb('argument "valueStr" should be a string');
       } else {
-        getDriver(storageType, function (d) {
-          d.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, function(err, timestamp) {
-            if(d.requiresParentChaining && !err) {
-              var resolvedParentChain = {};
-              for(var i in parentChain) {
-                resolvedParentChain[resolveKey(storageType, storageHref, '', i)] = parentChain[i];
-              }
-              setChain(d, resolvedParentChain, 'application/json', token, cb);
-            } else {
-              cb(err, timestamp);
-            }
-          });
-        });
+        getputdelete.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
       }
     },
     setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
