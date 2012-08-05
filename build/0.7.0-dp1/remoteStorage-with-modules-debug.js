@@ -1098,7 +1098,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
           console.log('set-call handleChild '+path);
           wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
             console.log('set-cb handleChild '+path);
-            if(!err) {
+            if(!err && path.substr(-1)!='/') {//directory listings will get updated in store only when the actual objects come in 
               store.clearOutgoingChange(path, timestamp);
             }
             finishOne();
