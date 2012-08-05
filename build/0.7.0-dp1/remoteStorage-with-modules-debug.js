@@ -997,9 +997,9 @@ define('lib/store',[], function () {
           delete node.added[i];
         }
         for(var i in node.removed) {
-          if(data[i] === null) {
+          if(!data[i]) {//removal was successful, will get here on 200 response to DELETE call, when rippling clear to containing dir
             delete node.removed[i];
-            delete node.data[i];
+            delete node.data[i];//will be there with null timestamp still because it needs to stay synced until deletion was succesfully roundtripped
           }
         }
         updateNode(path, node, 'accept');
