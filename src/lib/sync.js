@@ -45,7 +45,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
           console.log('set-call handleChild '+path);
           wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
             console.log('set-cb handleChild '+path);
-            if(!err && path.substr(-1)!='/') {//directory listings will get updated in store only when the actual objects come in 
+            if(!err && timestamp) {
               store.clearOutgoingChange(path, timestamp);
             }
             finishOne();
@@ -61,7 +61,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
           console.log('get-call handleChild '+path);
           wireClient.get(path, function (err, data, timestamp, mimeType) {
             console.log('get-cb handleChild '+path);
-            if(data) {
+            if(!err && data && path.substr(-1)!='/') {//directory listings will get updated in store only when the actual objects come in
               store.setNodeData(path, data, false, timestamp, mimeType);
             }
             finishOne(err);
