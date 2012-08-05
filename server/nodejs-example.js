@@ -212,8 +212,10 @@ exports.handler = (function() {
           var pathParts=path.split('/');
           var thisPart = pathParts.pop();
           if(content[pathParts.join('/')+'/']) {
+            console.log('delete content['+pathParts.join('/')+'/]['+thisPart+']');
             delete content[pathParts.join('/')+'/'][thisPart];
           }
+          console.log(content);
           writeJson(res, null, req.headers.origin, timestamp);
       } else {
         computerSaysNo(res, req.headers.origin);

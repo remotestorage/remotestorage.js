@@ -180,8 +180,9 @@ define([], function () {
           delete node.added[i];
         }
         for(var i in node.removed) {
-          if(!data[i]) {
-            delete node.removed[i] ;
+          if(data[i] === null) {
+            delete node.removed[i];
+            delete node.data[i];
           }
         }
         updateNode(path, node, 'accept');

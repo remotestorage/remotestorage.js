@@ -88,8 +88,6 @@ define(['./getputdelete'], function (getputdelete) {
         token = get('bearerToken');
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
-      } else if(typeof(valueStr) != 'string') {
-        cb('argument "valueStr" should be a string');
       } else {
         getputdelete.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
       }
