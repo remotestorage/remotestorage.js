@@ -10,13 +10,14 @@ exports.handler = (function() {
     crypto.randomBytes(48, function(ex, buf) {
       var token = buf.toString('hex');
       for(var i=0; i<scopes.length; i++) {
-        scopesPaths.push(userName+'/'+scopes[i]+'/');
-        scopesPaths.push(userName+'/public/'+scopes[i]+'/');
+        var thisScopeParts = scopes[i].split(':');
+        scopePaths.push(userName+'/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
+        scopePaths.push(userName+'/public/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
       }
       tokens[token] = scopePaths;
       cb(token);
     });
-  }§
+  }
   function mayRead(authorizationHeader, path) {
     if(authorizationHeader) {
       var scopes = tokens[authorizationHeader.substring('Bearer '.length)];
