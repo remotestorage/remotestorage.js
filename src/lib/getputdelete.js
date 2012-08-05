@@ -9,6 +9,7 @@ define(
           cb(err);
         },
         success: function(data, headers) {
+          console.log('doCall cb '+url);
           cb(null, data, new Date(headers['Last-Modified']).getTime(), headers['Content-Type']);
         },
         timeout: 3000
@@ -25,7 +26,7 @@ define(
       if(method != 'GET') {
         platformObj.data =value;
       }
-
+      console.log('platform.ajax '+url);
       platform.ajax(platformObj);
     }
 
@@ -48,7 +49,9 @@ define(
     }
 
     function put(url, value, mimeType, token, cb) {
+      console.log('calling PUT '+url);
       doCall('PUT', url, value, mimeType, token, function(err, data) {
+        console.log('cb from PUT '+url);
         if(err == 404) {
           doPut(url, value, token, 1, cb);
         } else {

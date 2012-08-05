@@ -23,6 +23,7 @@ define([], function() {
         if(timer) {
           window.clearTimeout(timer);
         }
+        console.log('xhr cb '+params.url);
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
           params.success(xhr.responseText, xhr.getAllResponseHeaders());
         } else {
@@ -30,6 +31,7 @@ define([], function() {
         }
       }
     }
+    console.log('xhr '+params.url);
     if(typeof(params.data) === 'string') {
       xhr.send(params.data);
     } else {

@@ -133,6 +133,7 @@ define('lib/platform',[], function() {
         if(timer) {
           window.clearTimeout(timer);
         }
+        console.log('xhr cb '+params.url);
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
           params.success(xhr.responseText, xhr.getAllResponseHeaders());
         } else {
@@ -140,6 +141,7 @@ define('lib/platform',[], function() {
         }
       }
     }
+    console.log('xhr '+params.url);
     if(typeof(params.data) === 'string') {
       xhr.send(params.data);
     } else {
@@ -646,6 +648,7 @@ define('lib/getputdelete',
           cb(err);
         },
         success: function(data, headers) {
+          console.log('doCall cb '+url);
           cb(null, data, new Date(headers['Last-Modified']).getTime(), headers['Content-Type']);
         },
         timeout: 3000
@@ -662,7 +665,7 @@ define('lib/getputdelete',
       if(method != 'GET') {
         platformObj.data =value;
       }
-
+      console.log('platform.ajax '+url);
       platform.ajax(platformObj);
     }
 
@@ -685,7 +688,9 @@ define('lib/getputdelete',
     }
 
     function put(url, value, mimeType, token, cb) {
+      console.log('calling PUT '+url);
       doCall('PUT', url, value, mimeType, token, function(err, data) {
+        console.log('cb from PUT '+url);
         if(err == 404) {
           doPut(url, value, token, 1, cb);
         } else {
