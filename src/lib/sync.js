@@ -23,6 +23,13 @@ define(['./wireClient', './store'], function(wireClient, store) {
       return 'connected';
     }
   }
+  function tryRead(node, force, access, cb) {
+    if(access) {
+      wireClient.get(node.path, cb);
+    } else {
+      cb(null, node.data);
+    }
+  }
   function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne) {
     for(var i in remote) {
       if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {
@@ -31,7 +38,11 @@ define(['./wireClient', './store'], function(wireClient, store) {
     }
     for(var i in cached) {
       if(!remote[i]) {
-        pushNode(dirPath+i, startOne, finishOne);
+        var childNode = store.getNode(dirPath+i);
+        startOne();
+        wireClient.set(dirPath+i, childNode.data, function(err, timestamp) {
+          finishOne();
+        });
       }
     }
     for(var i in diff) {
@@ -40,8 +51,28 @@ define(['./wireClient', './store'], function(wireClient, store) {
       }
     }
   }
-  function pullNode(path, force, access, cb) {
+  function pullNode(path, force, access, startOne, finishOne) {
     console.log('pullNode '+path);
+    var thisNode=store.getNode(path);
+    startOne();
+    if(access) {
+      wireClient.get(path, function(err, data) {
+        if(!err && data) {
+          if(path.substr(-1)=='/') {
+            dirMerge(path, data, thisNode.data, thisNode.diff, startOne, finishOne);
+          } else {
+            store.setNodeData(path, data, false);
+          }
+        }
+        finishOne();
+      });
+    } else {
+      for(var i in thisNode.data) {
+        pullNode(path+i, force, access, startOne, finishOne);
+      }
+    }
+  }
+  function syncNow(path, cb) {
     var outstanding=0, errors=null;
     function startOne() {
       outstanding++;
@@ -55,28 +86,11 @@ define(['./wireClient', './store'], function(wireClient, store) {
         cb(errors);
       }
     }
-    var thisNode=store.getNode(path);
-    startOne();
-    tryRead(thisNode, function(err, data) {
-      if(!err && data) {
-        if(path.substr(-1)=='/') {
-          dirMerge(path, data, thisNode.data, thisNode.diff, startOne, finishOne);
-        } else {
-          store.setNodeData(path, data, false);
-        }
-      }
-      finishOne();
-    });
-  }
-  function syncNow(path, cb) {
     console.log('syncNow '+path);
     busy=true;
     var map={};
     map[path]= Infinity;
-    pullNode('', false, false, function(err) {
-      busy=false;
-      cb((err===null));
-    });
+    pullNode('', false, false, startOne, finishOne);
   }
   return {
     syncNow: syncNow,

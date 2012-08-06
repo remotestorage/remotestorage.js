@@ -847,12 +847,9 @@ define('lib/store',[], function () {
         startAccess: null,
         startForce: null,
         lastModified: 0,
-        outgoingChange: false,
         keep: true,
         data: (isDir(path)?{}:undefined),
-        added: {},
-        removed: {},
-        changed: {},
+        diff: {}
       };
     }
     return value;
@@ -891,69 +888,49 @@ define('lib/store',[], function () {
   function getCurrTimestamp() {
     return new Date().getTime();
   }
-  function updateNode(path, node, changeType) {
-    //there are three types of local changes: added, removed, changed.
-    //when a PUT or DELETE is successful and we get a Last-Modified header back the parents should already be updated right to the root
-    //
-    if(typeof(node.data) != 'string') {
-      node.data=JSON.stringify(node.data);//double-JSON-ed for now, until we separate metadata from content
+  function updateNode(path, node, outgoing, meta, timestamp) {
+    if(node) {
+      if(typeof(node.data) != 'string') {
+        node.data=JSON.stringify(node.data);//double-JSON-ed for now, until we separate metadata from content
+      }
+      localStorage.setItem(prefixNodes+path, JSON.stringify(node));
+    } else {
+      localStorage.removeItem(prefixNodes+path);
     }
-    localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
-      if(changeType=='set') { 
-        if(parentNode.data[getFileName(path)]) {
-          parentNode.changed[getFileName(path)] = new Date().getTime();
-        } else {
-          parentNode.added[getFileName(path)] = new Date().getTime();
-        }
-        updateNode(containingDir, parentNode, 'set');
-      } else if(changeType=='remove') {
-        parentNode.removed[getFileName(path)] = new Date().getTime();
-        updateNode(containingDir, parentNode, 'set');
-      } else if(changeType=='accept') {
-        if(parentNode.data[getFileName(path)] != node.lastModified) {
-          parentNode.data[getFileName(path)] = node.lastModified;
-          if(parentNode.lastModified < node.lastModified) {
-            parentNode.lastModified = node.lastModified;
+      if(meta) {
+        parentNode.data[getFileName(path)]=0;
+        updateNode(containingDir, parentNode, false, true);
+      } else if(outgoing) { 
+        parentNode.diff[getFileName(path)] = new Date().getTime();
+        updateNode(containingDir, parentNode, true);
+      } else {//incoming
+        if(node) {//incoming add or change
+          if(parentNode.data[getFileName(path)] != node.lastModified) {
+            parentNode.data[getFileName(path)] = node.lastModified;
+            if(parentNode.lastModified < node.lastModified) {
+              parentNode.lastModified = node.lastModified;
+            }
+            updateNode(containingDir, parentNode, false);
           }
-          updateNode(containingDir, parentNode, 'accept');
+        } else {//incoming deletion
+          if(parentNode.data[getFileName(path)]) {
+            delete parentNode.data[getFileName(path)];
+            parentNode.lastModified = timestamp;
+            updateNode(containingDir, parentNode, false);
+          }
+        } 
+        if(path.substr(-1)!='/') {
+          fireChange({
+            path: path,
+            origin: 'remote',
+            oldValue: undefined,
+            newValue: (node ? node.data : undefined),
+            timestamp: (node ? node.lastModified : timestamp) 
+          });
         }
-        fireChange({
-          path: path,
-          origin: 'remote',
-          oldValue: undefined,
-          newValue: node.data,
-          timestamp: node.lastModified
-        });
-      } else if(changeType=='gone') {
-        delete parentNode.data[getFileName(path)];
-        if(parentNode.lastModified < node.lastModified) {
-          parentNode.lastModified = node.lastModified;
-        }
-        updateNode(containingDir, parentNode, 'accept');
-        fireChange({
-          path: path,
-          origin: 'remote',
-          oldValue: undefined,
-          newValue: undefined,
-          timestamp: node.lastModified
-        });
-      } else if(changeType=='clear') {
-        parentNode.data[getFileName(path)] = node.lastModified;
-        delete parentNode.added[getFileName(path)];
-        delete parentNode.removed[getFileName(path)];
-        delete parentNode.changed[getFileName(path)];
-        if(parentNode.lastModified < node.lastModified) {
-          parentNode.lastModified = node.lastModified;
-        }
-        updateNode(containingDir, parentNode, 'accept');
-      } else if(changeType=='meta') {//make sure parentNodes get created when setting force or access
-        if(!parentNode.data[getFileName(path)]) {
-          parentNode.data[getFileName(path)]=0;
-        }
-        updateNode(containingDir, parentNode, 'meta');
       }
     }
   }
@@ -988,54 +965,22 @@ define('lib/store',[], function () {
     if(mimeType) {
       node.mimeType = mimeType;
     }
-    if(outgoing) {
-      node.outgoingChange = new Date().getTime();
-      updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
-    } else {
-      if(isDir(path)) {
-        for(var i in data) {
-          delete node.added[i];
-        }
-        for(var i in node.removed) {
-          if(!data[i]) {//removal was successful, will get here on 200 response to DELETE call, when rippling clear to containing dir
-            delete node.removed[i];
-            delete node.data[i];//will be there with null timestamp still because it needs to stay synced until deletion was succesfully roundtripped
-          }
-        }
-        updateNode(path, node, 'accept');
-      } else {
-        if(node.outgoingChange) {
-          if(data != node.data && node.outgoingChange > lastModified) {
-            //reject the update, outgoing changes will change it
-          } else {
-            node.data = data;
-            node.outgoingChange = false;
-            node.lastModified = lastModified;
-            updateNode(path, node, 'clear');
-          }
-        } else {
-          updateNode(path, node, (typeof(data)=='undefined'?'gone':'accept'));
-        }
-      }
+    if(!lastModified) {
+      lastModified = new Date().getTime();
     }
-  }
-  function clearOutgoingChange(path, lastModified) {
-    var node = getNode(path);
-    node.lastModified = lastModified;
-    node.outgoingChange = false;
-    updateNode(path, node, 'clear');
+    updateNode(path, node, outgoing, false, lastModified);
   }
   function setNodeAccess(path, claim) {
     var node = getNode(path);
     if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
       node.startAccess = claim;
-      updateNode(path, node, 'meta');
+      updateNode(path, node, false, true);//meta
     }
   }
   function setNodeForce(path, force) {
     var node = getNode(path);
     node.startForce = force;
-    updateNode(path, node, 'meta');
+    updateNode(path, node, false, true);//meta
   }
   return {
     on            : on,//error,change(origin=tab,device,cloud)
@@ -1044,7 +989,6 @@ define('lib/store',[], function () {
     setNodeData   : setNodeData,
     setNodeAccess : setNodeAccess,
     setNodeForce  : setNodeForce,
-    clearOutgoingChange:clearOutgoingChange,
     forget        : forget,
     forgetAll     : forgetAll
   };
@@ -1075,78 +1019,56 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
       return 'connected';
     }
   }
-  function getParentChain(path) {//this is for legacy support
-    var pathParts = path.split('/');
-    var parentChain={};
-    for(var i = 2; i<pathParts.length; i++) {
-      var thisPath = pathParts.slice(0, i).join('/');
-      parentChain[thisPath] = store.getNode(thisPath).data;
+  function tryRead(node, force, access, cb) {
+    if(access) {
+      wireClient.get(node.path, cb);
+    } else {
+      cb(null, node.data);
     }
-    return parentChain;
   }
-  function handleChild(path, lastModified, force, access, startOne, finishOne) {
-    console.log('handleChild '+path);
-    var node = store.getNode(path);//will return a fake dir with empty data list for item
-    if(node.outgoingChange) {
-      if(node.startAccess !== null) { access = node.startAccess; }
-      if(access=='rw') {
-        (function(path) {
-          //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
-          startOne();
-          var parentChain = getParentChain(path);
-          console.log('set-call handleChild '+path);
-          wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
-            console.log('set-cb handleChild '+path);
-            if(!err && timestamp) {
-              store.clearOutgoingChange(path, timestamp);
-            }
-            finishOne();
-          });
-        })(path);
+  function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne) {
+    for(var i in remote) {
+      if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {
+        pullNode(dirPath+i, force, access, startOne, finishOne);
       }
-    } else if(node.lastModified<lastModified || !lastModified) {//i think there must a cleaner way than this ugly using 0 where no access
-      if(node.startAccess !== null) { access = node.startAccess; }
-      if(node.startForce !== null) { force = node.startForce; }
-      if((force || node.keep) && access) {
-        (function(path) {
-          startOne();
-          console.log('get-call handleChild '+path);
-          wireClient.get(path, function (err, data, timestamp, mimeType) {
-            console.log('get-cb handleChild '+path);
-            if(!err && data && path.substr(-1)!='/') {//directory listings will get updated in store only when the actual objects come in
-              store.setNodeData(path, data, false, timestamp, mimeType);
-            }
-            finishOne(err);
-            if(path.substr(-1)=='/') {//isDir(path)
-              var thisNode = store.getNode(path), map;
-              map = thisNode.data;
-              for(var i in thisNode.added) {
-                map[i] = thisNode.added[i];
-              }
-              if(data) {
-                for(var i in data) {
-                  map[i] = data[i];
-                }
-              }
-              startOne();
-              pullMap(path, map, force, access, finishOne);
-            }
-          });
-        })(path);
-      } else if(path.substr(-1)=='/') {//isDir(path)
-        //store.forget(path);
-        var thisNode = store.getNode(path), map;
-        map = thisNode.data;
-        for(var i in thisNode.added) {
-          map[i] = thisNode.added[i];
-        }
+    }
+    for(var i in cached) {
+      if(!remote[i]) {
+        var childNode = store.getNode(dirPath+i);
         startOne();
-        pullMap(path, map, force, access, finishOne);
+        wireClient.set(dirPath+i, childNode.data, function(err, timestamp) {
+          finishOne();
+        });
       }
-    }// else everything up to date
+    }
+    for(var i in diff) {
+      if(remote[i] === cached[i]) {//can either be same timestamp or both undefined
+        delete diff[i];
+      }
+    }
   }
-  function pullMap(basePath, map, force, access, cb) {
-    console.log('pullMap '+basePath);
+  function pullNode(path, force, access, startOne, finishOne) {
+    console.log('pullNode '+path);
+    var thisNode=store.getNode(path);
+    startOne();
+    if(access) {
+      wireClient.get(path, function(err, data) {
+        if(!err && data) {
+          if(path.substr(-1)=='/') {
+            dirMerge(path, data, thisNode.data, thisNode.diff, startOne, finishOne);
+          } else {
+            store.setNodeData(path, data, false);
+          }
+        }
+        finishOne();
+      });
+    } else {
+      for(var i in thisNode.data) {
+        pullNode(path+i, force, access, startOne, finishOne);
+      }
+    }
+  }
+  function syncNow(path, cb) {
     var outstanding=0, errors=null;
     function startOne() {
       outstanding++;
@@ -1160,24 +1082,11 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
         cb(errors);
       }
     }
-    startOne();
-    for(var path in map) {
-      console.log('pullMap '+basePath+' calling handleChild for '+path);
-      (function(path) {
-        handleChild(basePath+path, map[path], force, access, startOne, finishOne);
-      })(path);
-    }
-    finishOne();
-  }
-  function syncNow(path, cb) {
     console.log('syncNow '+path);
     busy=true;
     var map={};
     map[path]= Infinity;
-    pullMap('', map, false, false, function(err) {
-      busy=false;
-      cb((err===null));
-    });
+    pullNode('', false, false, startOne, finishOne);
   }
   return {
     syncNow: syncNow,
