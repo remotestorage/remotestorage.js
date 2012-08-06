@@ -87,6 +87,11 @@ define([], function () {
         parentNode.data[getFileName(path)]=0;
         updateNode(containingDir, parentNode, false, true);
       } else if(outgoing) { 
+        if(node) {
+          parentNode.data[getFileName(path)] = new Date().getTime();
+        } else {
+          delete parentNode.data[getFileName(path)];
+        }
         parentNode.diff[getFileName(path)] = new Date().getTime();
         updateNode(containingDir, parentNode, true);
       } else {//incoming
@@ -142,15 +147,14 @@ define([], function () {
   function setNodeData(path, data, outgoing, lastModified, mimeType) {
     var node = getNode(path);
     node.data = data;
-    if(lastModified) {
-      node.lastModified = lastModified;
+    if(!mimeType) {
+      mimeType='application/json';
     }
-    if(mimeType) {
-      node.mimeType = mimeType;
-    }
+    node.mimeType = mimeType;
     if(!lastModified) {
       lastModified = new Date().getTime();
     }
+    node.lastModified = lastModified;
     updateNode(path, node, outgoing, false, lastModified);
   }
   function setNodeAccess(path, claim) {
