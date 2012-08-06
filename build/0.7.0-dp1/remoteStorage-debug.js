@@ -1011,7 +1011,7 @@ define('lib/store',[], function () {
 //object and media nodes have fields:
 //lastModified, type (media/object), mimeType/objectType, data, access, outgoingChange (client-side timestamp or false), sync
 //dir nodes have fields:
-//lastModified, type (dir), data (hash filename -> remote timestamp), added/changed/removed, access, startSync, stopSync
+//lastModified, type (dir), data (hash filename -> remote timestamp), diff, access, startSync, stopSync
 
 define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
   var prefix = '_remoteStorage_', busy=false;
@@ -1429,25 +1429,14 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
               var node = store.getNode(absPath);
               var arr = [];
               for(var i in node.data) {
-                if(!node.removed[i]) {
-                  arr.push(i);
-                }
-              }
-              for(var i in node.added) {
                 arr.push(i);
               }
-              //no need to look at node.changed, that doesn't change the listing
               bindContext(cb, context)(arr);
             });
           } else {
             var node = store.getNode(absPath);
             var arr = [];
             for(var i in node.data) {
-              if(!node.removed[i]) {
-                arr.push(i);
-              }
-            }
-            for(var i in node.added) {
               arr.push(i);
             }
             return arr;

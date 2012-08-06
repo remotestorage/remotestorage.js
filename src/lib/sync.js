@@ -11,7 +11,7 @@
 //object and media nodes have fields:
 //lastModified, type (media/object), mimeType/objectType, data, access, outgoingChange (client-side timestamp or false), sync
 //dir nodes have fields:
-//lastModified, type (dir), data (hash filename -> remote timestamp), added/changed/removed, access, startSync, stopSync
+//lastModified, type (dir), data (hash filename -> remote timestamp), diff, access, startSync, stopSync
 
 define(['./wireClient', './store'], function(wireClient, store) {
   var prefix = '_remoteStorage_', busy=false;

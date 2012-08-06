@@ -115,25 +115,14 @@ define(['./sync', './store'], function (sync, store) {
               var node = store.getNode(absPath);
               var arr = [];
               for(var i in node.data) {
-                if(!node.removed[i]) {
-                  arr.push(i);
-                }
-              }
-              for(var i in node.added) {
                 arr.push(i);
               }
-              //no need to look at node.changed, that doesn't change the listing
               bindContext(cb, context)(arr);
             });
           } else {
             var node = store.getNode(absPath);
             var arr = [];
             for(var i in node.data) {
-              if(!node.removed[i]) {
-                arr.push(i);
-              }
-            }
-            for(var i in node.added) {
               arr.push(i);
             }
             return arr;
