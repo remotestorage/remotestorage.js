@@ -82,7 +82,7 @@ define(['./getputdelete'], function (getputdelete) {
         getputdelete.get(resolveKey(storageType, storageHref, '', path), token, cb);
       }
     },
-    set: function (path, valueStr, mimeType, parentChain, cb) {
+    set: function (path, valueStr, mimeType, cb) {
       var storageType = get('storageType'),
         storageHref = get('storageHref'),
         token = get('bearerToken');

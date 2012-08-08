@@ -157,9 +157,10 @@ define([], function() {
       var pairs = location.hash.substring(1).split('&');
       for(var i=0; i<pairs.length; i++) {
         if(pairs[i].substring(0, (param+'=').length) == param+'=') {
+          var ret = pairs[i].substring((param+'=').length);
           delete pairs[i];
           location = '#'+pairs.join('&');
-          return pairs[i].substring((param+'=').length);
+          return ret;
         }
       }
     }

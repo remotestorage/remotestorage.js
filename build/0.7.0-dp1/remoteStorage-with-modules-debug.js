@@ -267,9 +267,10 @@ define('lib/platform',[], function() {
       var pairs = location.hash.substring(1).split('&');
       for(var i=0; i<pairs.length; i++) {
         if(pairs[i].substring(0, (param+'=').length) == param+'=') {
+          var ret = pairs[i].substring((param+'=').length);
           delete pairs[i];
           location = '#'+pairs.join('&');
-          return pairs[i].substring((param+'=').length);
+          return ret;
         }
       }
     }
@@ -799,7 +800,7 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
         getputdelete.get(resolveKey(storageType, storageHref, '', path), token, cb);
       }
     },
-    set: function (path, valueStr, mimeType, parentChain, cb) {
+    set: function (path, valueStr, mimeType, cb) {
       var storageType = get('storageType'),
         storageHref = get('storageHref'),
         token = get('bearerToken');
@@ -1027,17 +1028,21 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
   }
   function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne) {
     for(var i in remote) {
-      if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {
+      if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {//should probably include force and keep in this decision
         pullNode(dirPath+i, force, access, startOne, finishOne);
       }
     }
     for(var i in cached) {
-      if(!remote[i] && i.substr(-1)!='/') {
-        var childNode = store.getNode(dirPath+i);
-        startOne();
-        wireClient.set(dirPath+i, childNode.data, function(err, timestamp) {
-          finishOne();
-        });
+      if(!remote[i]) {
+        if(i.substr(-1)!='/') {
+          var childNode = store.getNode(dirPath+i);
+          startOne();
+          wireClient.set(dirPath+i, childNode.data, 'application/json', function(err, timestamp) {
+            finishOne();
+          });
+        } else {//recurse
+          pullNode(dirPath+i, force, access, startOne, finishOne);
+        }
       }
     }
     for(var i in diff) {

@@ -25,17 +25,21 @@ define(['./wireClient', './store'], function(wireClient, store) {
   }
   function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne) {
     for(var i in remote) {
-      if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {
+      if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {//should probably include force and keep in this decision
         pullNode(dirPath+i, force, access, startOne, finishOne);
       }
     }
     for(var i in cached) {
-      if(!remote[i] && i.substr(-1)!='/') {
-        var childNode = store.getNode(dirPath+i);
-        startOne();
-        wireClient.set(dirPath+i, childNode.data, function(err, timestamp) {
-          finishOne();
-        });
+      if(!remote[i]) {
+        if(i.substr(-1)!='/') {
+          var childNode = store.getNode(dirPath+i);
+          startOne();
+          wireClient.set(dirPath+i, childNode.data, 'application/json', function(err, timestamp) {
+            finishOne();
+          });
+        } else {//recurse
+          pullNode(dirPath+i, force, access, startOne, finishOne);
+        }
       }
     }
     for(var i in diff) {
