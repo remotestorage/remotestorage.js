@@ -849,7 +849,7 @@ define('lib/store',[], function () {
       value = {//this is what an empty node looks like
         startAccess: null,
         startForce: null,
-        lastModified: 0,
+        timestamp: 0,
         keep: true,
         data: (isDir(path)?{}:undefined),
         diff: {}
@@ -904,7 +904,9 @@ define('lib/store',[], function () {
     if(containingDir) {
       var parentNode=getNode(containingDir);
       if(meta) {
-        parentNode.data[getFileName(path)]=0;
+        if(!parentNode.data[getFileName(path)]) {
+          parentNode.data[getFileName(path)]=0;
+        }
         updateNode(containingDir, parentNode, false, true);
       } else if(outgoing) { 
         if(node) {
@@ -916,27 +918,21 @@ define('lib/store',[], function () {
         updateNode(containingDir, parentNode, true);
       } else {//incoming
         if(node) {//incoming add or change
-          if(parentNode.data[getFileName(path)] != node.lastModified) {
-            parentNode.data[getFileName(path)] = node.lastModified;
-            if(parentNode.lastModified < node.lastModified) {
-              parentNode.lastModified = node.lastModified;
-            }
             updateNode(containingDir, parentNode, false);
-          }
         } else {//incoming deletion
           if(parentNode.data[getFileName(path)]) {
             delete parentNode.data[getFileName(path)];
-            parentNode.lastModified = timestamp;
+            delete parentNode.diff[getFileName(path)];
             updateNode(containingDir, parentNode, false);
           }
-        } 
+        }
         if(path.substr(-1)!='/') {
           fireChange({
             path: path,
             origin: 'remote',
             oldValue: undefined,
             newValue: (node ? node.data : undefined),
-            timestamp: (node ? node.lastModified : timestamp) 
+            timestamp: timestamp 
           });
         }
       }
@@ -964,18 +960,17 @@ define('lib/store',[], function () {
   function getState(path) {
     return 'disconnected';
   }
-  function setNodeData(path, data, outgoing, lastModified, mimeType) {
+  function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
     node.data = data;
     if(!mimeType) {
       mimeType='application/json';
     }
     node.mimeType = mimeType;
-    if(!lastModified) {
-      lastModified = new Date().getTime();
+    if(!timestamp) {
+      timestamp = new Date().getTime();
     }
-    node.lastModified = lastModified;
-    updateNode(path, node, outgoing, false, lastModified);
+    updateNode(path, node, outgoing, false, timestamp);
   }
   function setNodeAccess(path, claim) {
     var node = getNode(path);
@@ -1001,21 +996,6 @@ define('lib/store',[], function () {
   };
 });
 
-// access: null
-// lastModified: 0
-// keep: true
-// data
-//   tasks/: 999999
-//   public/: 999999
-// data
-//   
-
-//start: store has a tree with three types of node: dir, object, media.
-//object and media nodes have fields:
-//lastModified, type (media/object), mimeType/objectType, data, access, outgoingChange (client-side timestamp or false), sync
-//dir nodes have fields:
-//lastModified, type (dir), data (hash filename -> remote timestamp), diff, access, startSync, stopSync
-
 define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
   var prefix = '_remoteStorage_', busy=false;
    
@@ -1037,7 +1017,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
         if(i.substr(-1)!='/') {
           var childNode = store.getNode(dirPath+i);
           startOne();
-          wireClient.set(dirPath+i, childNode.data, 'application/json', function(err, timestamp) {
+          wireClient.set(dirPath+i, JSON.stringify(childNode.data), 'application/json', function(err, timestamp) {
             finishOne();
           });
         } else {//recurse
