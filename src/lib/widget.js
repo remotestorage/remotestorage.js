@@ -36,9 +36,6 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     displayWidgetState(state, userAddress);
   }
   function displayWidgetState(state, userAddress) {
-    if(!localStorage.michiel) {
-      state='devsonly';
-    }
     var userAddress = localStorage['remote_storage_widget_useraddress'];
     var html = 
       '<style>'+assets.widgetCss+'</style>'
@@ -181,6 +178,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   function display(setConnectElement, setLocale) {
     var tokenHarvested = platform.harvestParam('access_token');
     var storageRootHarvested = platform.harvestParam('storage_root');
+    if(!storageRootHarvested) {
+      setWidgetState('devsonly');
+    }
     var storageApiHarvested = platform.harvestParam('storage_api');
     var authorizeEndpointHarvested = platform.harvestParam('authorize_endpoint');
     if(tokenHarvested) {
