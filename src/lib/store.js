@@ -98,7 +98,11 @@ define([], function () {
         updateNode(containingDir, parentNode, true);
       } else {//incoming
         if(node) {//incoming add or change
+          if(!parentNode.data[getFileName(path)] || parentNode.data[getFileName(path)] < timestamp) {
+            parentNode.data[getFileName(path)] = timestamp;
+            delete parentNode.diff[getFileName(path)];
             updateNode(containingDir, parentNode, false);
+          }
         } else {//incoming deletion
           if(parentNode.data[getFileName(path)]) {
             delete parentNode.data[getFileName(path)];

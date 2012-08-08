@@ -128,8 +128,10 @@ define('lib/platform',[], function() {
         xhr.setRequestHeader(header, params.headers[header]);
       }
     }
+    console.log('A '+params.url);
     xhr.onreadystatechange = function() {
       if((xhr.readyState==4) && (!timedOut)) {
+        console.log('B '+params.url);
         if(timer) {
           window.clearTimeout(timer);
         }
@@ -918,7 +920,11 @@ define('lib/store',[], function () {
         updateNode(containingDir, parentNode, true);
       } else {//incoming
         if(node) {//incoming add or change
+          if(!parentNode.data[getFileName(path)] || parentNode.data[getFileName(path)] < timestamp) {
+            parentNode.data[getFileName(path)] = timestamp;
+            delete parentNode.diff[getFileName(path)];
             updateNode(containingDir, parentNode, false);
+          }
         } else {//incoming deletion
           if(parentNode.data[getFileName(path)]) {
             delete parentNode.data[getFileName(path)];
@@ -1013,7 +1019,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
       }
     }
     for(var i in cached) {
-      if(!remote[i]) {
+      if(!remote[i] || cached[i] > remote[i]) {
         if(i.substr(-1)!='/') {
           var childNode = store.getNode(dirPath+i);
           startOne();
