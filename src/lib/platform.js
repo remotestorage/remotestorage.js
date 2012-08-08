@@ -18,8 +18,10 @@ define([], function() {
         xhr.setRequestHeader(header, params.headers[header]);
       }
     }
+    console.log('A '+params.url);
     xhr.onreadystatechange = function() {
       if((xhr.readyState==4) && (!timedOut)) {
+        console.log('B '+params.url);
         if(timer) {
           window.clearTimeout(timer);
         }
