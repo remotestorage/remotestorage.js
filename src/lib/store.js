@@ -154,7 +154,7 @@ define([], function () {
     if(!timestamp) {
       timestamp = new Date().getTime();
     }
-    updateNode(path, node, outgoing, false, timestamp);
+    updateNode(path, (data ? node : undefined), outgoing, false, timestamp);
   }
   function setNodeAccess(path, claim) {
     var node = getNode(path);
