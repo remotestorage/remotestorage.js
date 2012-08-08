@@ -30,7 +30,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
       }
     }
     for(var i in cached) {
-      if(!remote[i]) {
+      if(!remote[i] && i.substr(-1)!='/') {
         var childNode = store.getNode(dirPath+i);
         startOne();
         wireClient.set(dirPath+i, childNode.data, function(err, timestamp) {
@@ -53,8 +53,8 @@ define(['./wireClient', './store'], function(wireClient, store) {
     if(thisNode.startForce) {
       force = thisNode.startForce;
     }
-    startOne();
     if(access) {
+      startOne();
       wireClient.get(path, function(err, data) {
         if(!err && data) {
           if(path.substr(-1)=='/') {
