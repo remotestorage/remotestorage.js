@@ -194,9 +194,9 @@ exports.handler = (function() {
             content[pathParts.join('/')+'/'][thisPart]=timestamp;
             console.log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
           }
-          console.log(content);
-          console.log(contentType);
-          console.log(lastModified);
+          console.log('content:', content);
+          console.log('contentType:', contentType);
+          console.log('lastModified:', lastModified);
           writeJson(res, null, req.headers.origin, timestamp);
         });
       } else {

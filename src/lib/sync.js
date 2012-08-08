@@ -1,18 +1,3 @@
-// access: null
-// lastModified: 0
-// keep: true
-// data
-//   tasks/: 999999
-//   public/: 999999
-// data
-//   
-
-//start: store has a tree with three types of node: dir, object, media.
-//object and media nodes have fields:
-//lastModified, type (media/object), mimeType/objectType, data, access, outgoingChange (client-side timestamp or false), sync
-//dir nodes have fields:
-//lastModified, type (dir), data (hash filename -> remote timestamp), diff, access, startSync, stopSync
-
 define(['./wireClient', './store'], function(wireClient, store) {
   var prefix = '_remoteStorage_', busy=false;
    
@@ -34,7 +19,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
         if(i.substr(-1)!='/') {
           var childNode = store.getNode(dirPath+i);
           startOne();
-          wireClient.set(dirPath+i, childNode.data, 'application/json', function(err, timestamp) {
+          wireClient.set(dirPath+i, JSON.stringify(childNode.data), 'application/json', function(err, timestamp) {
             finishOne();
           });
         } else {//recurse

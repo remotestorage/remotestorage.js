@@ -29,7 +29,7 @@ define([], function () {
       value = {//this is what an empty node looks like
         startAccess: null,
         startForce: null,
-        lastModified: 0,
+        timestamp: 0,
         keep: true,
         data: (isDir(path)?{}:undefined),
         diff: {}
@@ -84,7 +84,9 @@ define([], function () {
     if(containingDir) {
       var parentNode=getNode(containingDir);
       if(meta) {
-        parentNode.data[getFileName(path)]=0;
+        if(!parentNode.data[getFileName(path)]) {
+          parentNode.data[getFileName(path)]=0;
+        }
         updateNode(containingDir, parentNode, false, true);
       } else if(outgoing) { 
         if(node) {
@@ -96,27 +98,21 @@ define([], function () {
         updateNode(containingDir, parentNode, true);
       } else {//incoming
         if(node) {//incoming add or change
-          if(parentNode.data[getFileName(path)] != node.lastModified) {
-            parentNode.data[getFileName(path)] = node.lastModified;
-            if(parentNode.lastModified < node.lastModified) {
-              parentNode.lastModified = node.lastModified;
-            }
             updateNode(containingDir, parentNode, false);
-          }
         } else {//incoming deletion
           if(parentNode.data[getFileName(path)]) {
             delete parentNode.data[getFileName(path)];
-            parentNode.lastModified = timestamp;
+            delete parentNode.diff[getFileName(path)];
             updateNode(containingDir, parentNode, false);
           }
-        } 
+        }
         if(path.substr(-1)!='/') {
           fireChange({
             path: path,
             origin: 'remote',
             oldValue: undefined,
             newValue: (node ? node.data : undefined),
-            timestamp: (node ? node.lastModified : timestamp) 
+            timestamp: timestamp 
           });
         }
       }
@@ -144,18 +140,17 @@ define([], function () {
   function getState(path) {
     return 'disconnected';
   }
-  function setNodeData(path, data, outgoing, lastModified, mimeType) {
+  function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
     node.data = data;
     if(!mimeType) {
       mimeType='application/json';
     }
     node.mimeType = mimeType;
-    if(!lastModified) {
-      lastModified = new Date().getTime();
+    if(!timestamp) {
+      timestamp = new Date().getTime();
     }
-    node.lastModified = lastModified;
-    updateNode(path, node, outgoing, false, lastModified);
+    updateNode(path, node, outgoing, false, timestamp);
   }
   function setNodeAccess(path, claim) {
     var node = getNode(path);

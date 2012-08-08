@@ -1037,7 +1037,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
         if(i.substr(-1)!='/') {
           var childNode = store.getNode(dirPath+i);
           startOne();
-          wireClient.set(dirPath+i, childNode.data, 'application/json', function(err, timestamp) {
+          wireClient.set(dirPath+i, JSON.stringify(childNode.data), 'application/json', function(err, timestamp) {
             finishOne();
           });
         } else {//recurse
