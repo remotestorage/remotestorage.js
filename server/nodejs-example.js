@@ -101,6 +101,31 @@ exports.handler = (function() {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
+  function portal(urlObj, res) {
+    res.writeHead(200, {
+      'content-type': 'text/html'
+    });
+    res.write('<!DOCTYPE html lang="en"><head><title>'+config.host+'</title><meta charset="utf-8"></head><body><ul>');
+    var scopes = {
+      'http://todomvc.michiel.5apps.com/': 'tasks:rw'
+    };
+    var outstanding = 0;
+    for(var i in scopes) {
+      outstanding++;
+      (function(i) {
+        createToken(config.defaultUserName, scopes[i], function(token) {
+          res.write('<li><a href="'+i+'#storage_root=http://'+config.host+'/storage/'+config.defaultUserName
+            //+'&authorize_endpoint=http://'+config.host+'/auth/'+config.defaultUserName+'">'+i+'</a></li>');
+            +'&access_token='+token+'</a></li>');
+          outstanding--;
+          if(outstanding==0) {
+            res.write('</ul></body></html>');
+            res.end();
+          }
+        });
+      })(i);
+    }
+  }
   function webfinger(urlObj, res) {
     console.log('WEBFINGER');
     if(urlObj.query['resource']) {
@@ -228,7 +253,10 @@ exports.handler = (function() {
   function serve(req, res, staticsMap) {
     var urlObj = url.parse(req.url, true), userAddress, userName;
     console.log(urlObj);
-    if(urlObj.pathname == '/.well-known/host-meta.json') {//TODO: implement rest of webfinger
+    if(urlObj.pathname == '/') {
+      console.log('PORTAL');
+      portal(urlObj, res);
+    } else if(urlObj.pathname == '/.well-known/host-meta.json') {//TODO: implement rest of webfinger
       console.log('HOST-META');
       webfinger(urlObj, res);
     } else if(urlObj.pathname.substring(0, '/auth/'.length) == '/auth/') {
