@@ -1134,9 +1134,6 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     displayWidgetState(state, userAddress);
   }
   function displayWidgetState(state, userAddress) {
-    if(devsonly) {
-      state='devsonly';
-    }
     var userAddress = localStorage['remote_storage_widget_useraddress'];
     var html = 
       '<style>'+assets.widgetCss+'</style>'
@@ -1276,13 +1273,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   function handleWidgetHover() {
     console.log('handleWidgetHover');
   }
-  var devsonly=true;
   function display(setConnectElement, setLocale) {
     var tokenHarvested = platform.harvestParam('access_token');
     var storageRootHarvested = platform.harvestParam('storage_root');
-    if(storageRootHarvested) {
-      devsonly=false;
-    }
     var storageApiHarvested = platform.harvestParam('storage_api');
     var authorizeEndpointHarvested = platform.harvestParam('authorize_endpoint');
     if(tokenHarvested) {
