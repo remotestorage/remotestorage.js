@@ -23,13 +23,6 @@ define(['./wireClient', './store'], function(wireClient, store) {
       return 'connected';
     }
   }
-  function tryRead(node, force, access, cb) {
-    if(access) {
-      wireClient.get(node.path, cb);
-    } else {
-      cb(null, node.data);
-    }
-  }
   function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne) {
     for(var i in remote) {
       if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {
@@ -54,12 +47,18 @@ define(['./wireClient', './store'], function(wireClient, store) {
   function pullNode(path, force, access, startOne, finishOne) {
     console.log('pullNode '+path);
     var thisNode=store.getNode(path);
+    if(thisNode.startAccess == 'rw' || !access) {
+      access = thisNode.startAccess;
+    }
+    if(thisNode.startForce) {
+      force = thisNode.startForce;
+    }
     startOne();
     if(access) {
       wireClient.get(path, function(err, data) {
         if(!err && data) {
           if(path.substr(-1)=='/') {
-            dirMerge(path, data, thisNode.data, thisNode.diff, startOne, finishOne);
+            dirMerge(path, data, thisNode.data, thisNode.diff, force, access, startOne, finishOne);
           } else {
             store.setNodeData(path, data, false);
           }
@@ -68,7 +67,9 @@ define(['./wireClient', './store'], function(wireClient, store) {
       });
     } else {
       for(var i in thisNode.data) {
-        pullNode(path+i, force, access, startOne, finishOne);
+        if(i.substr(-1)=='/') {
+          pullNode(path+i, force, access, startOne, finishOne);
+        }
       }
     }
   }
@@ -83,14 +84,13 @@ define(['./wireClient', './store'], function(wireClient, store) {
       }
       outstanding--;
       if(outstanding==0) {
+        busy=false;
         cb(errors);
       }
     }
     console.log('syncNow '+path);
     busy=true;
-    var map={};
-    map[path]= Infinity;
-    pullNode('', false, false, startOne, finishOne);
+    pullNode(path, false, false, startOne, finishOne);
   }
   return {
     syncNow: syncNow,
