@@ -117,7 +117,7 @@ exports.handler = (function() {
         createToken(config.defaultUserName, scopes[i], function(token) {
           res.write('<li><a href="'+i+'#storage_root=http://'+config.host+'/storage/'+config.defaultUserName
             //+'&authorize_endpoint=http://'+config.host+'/auth/'+config.defaultUserName+'">'+i+'</a></li>');
-            +'&access_token='+token+'</a></li>');
+            +'&access_token='+token+'">'+i+'</a></li>');
           outstanding--;
           if(outstanding==0) {
             res.write('</ul></body></html>');

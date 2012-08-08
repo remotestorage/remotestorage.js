@@ -1134,6 +1134,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     displayWidgetState(state, userAddress);
   }
   function displayWidgetState(state, userAddress) {
+    if(devsonly) {
+      state='devsonly';
+    }
     var userAddress = localStorage['remote_storage_widget_useraddress'];
     var html = 
       '<style>'+assets.widgetCss+'</style>'
@@ -1146,7 +1149,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br>Click for more info on the Unhosted movement.</span>'//info text
       //+'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
       +'  <input id="remotestorage-useraddress" type="text" value="me@local.dev" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <a class="infotext" href="http://unhosted.org" target="_blank" id="remotestorage-devsonly">Local use only, no async sync yet. But modules work!<br>Click for more info on the Unhosted movement.</a>'
+      +'  <a class="infotext" href="http://remotestoragejs.com/" target="_blank" id="remotestorage-devsonly">Please run the server on http://local.dev/<br>and launch from there! Click for more info.</a>'
       +'</div>';
     platform.setElementHTML(connectElement, html);
     platform.eltOn('remotestorage-register-button', 'click', handleRegisterButtonClick);
@@ -1273,11 +1276,12 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   function handleWidgetHover() {
     console.log('handleWidgetHover');
   }
+  var devsonly=true;
   function display(setConnectElement, setLocale) {
     var tokenHarvested = platform.harvestParam('access_token');
     var storageRootHarvested = platform.harvestParam('storage_root');
-    if(!storageRootHarvested) {
-      setWidgetState('devsonly');
+    if(storageRootHarvested) {
+      devsonly=false;
     }
     var storageApiHarvested = platform.harvestParam('storage_api');
     var authorizeEndpointHarvested = platform.harvestParam('authorize_endpoint');
