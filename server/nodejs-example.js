@@ -3,7 +3,8 @@ exports.handler = (function() {
     crypto=require('crypto'),
     config = {
       protocol: 'http',
-      host: 'mich.rs'
+      host: 'local.dev',
+      defaultUserName: 'me'
     }, tokens = {}, lastModified = {}, contentType = {}, content = {};
   function createToken(userName, scopes, cb) {
     var scopePaths=[];
