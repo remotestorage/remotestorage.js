@@ -12,8 +12,12 @@ exports.handler = (function() {
       var token = buf.toString('hex');
       for(var i=0; i<scopes.length; i++) {
         var thisScopeParts = scopes[i].split(':');
-        scopePaths.push(userName+'/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
-        scopePaths.push(userName+'/public/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
+        if(thisScopeParts[0]=='') {
+          scopePaths.push('/:'+thisScopeParts[1]);
+        } else {
+          scopePaths.push(userName+'/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
+          scopePaths.push(userName+'/public/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
+        }
       }
       tokens[token] = scopePaths;
       cb(token);
