@@ -101,13 +101,13 @@ define([], function () {
           if(!parentNode.data[getFileName(path)] || parentNode.data[getFileName(path)] < timestamp) {
             parentNode.data[getFileName(path)] = timestamp;
             delete parentNode.diff[getFileName(path)];
-            updateNode(containingDir, parentNode, false);
+            updateNode(containingDir, parentNode, false, false, timestamp);
           }
         } else {//incoming deletion
           if(parentNode.data[getFileName(path)]) {
             delete parentNode.data[getFileName(path)];
             delete parentNode.diff[getFileName(path)];
-            updateNode(containingDir, parentNode, false);
+            updateNode(containingDir, parentNode, false, false, timestamp);
           }
         }
         if(path.substr(-1)!='/') {
