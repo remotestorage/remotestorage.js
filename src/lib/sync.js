@@ -1,11 +1,22 @@
 define(['./wireClient', './store'], function(wireClient, store) {
-  var prefix = '_remoteStorage_', busy=false;
+  var prefix = '_remoteStorage_', busy=false, stateCbs=[];
    
-  function getState(path) {
+  function getState(path) {//should also distinguish between synced and locally modified for the path probably
     if(busy) {
       return 'busy';
     } else {
       return 'connected';
+    }
+  }
+  function setBusy(val) {
+    busy=val;
+    for(var i=0;i<stateCbs.length;i++) {
+      stateCbs[i](val?'busy':'connected');
+    }
+  }
+  function on(eventType, cb) {
+    if(eventType=='state') {
+      stateCbs.push(cb);
     }
   }
   function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne, clearCb) {
@@ -84,16 +95,16 @@ define(['./wireClient', './store'], function(wireClient, store) {
       }
       outstanding--;
       if(outstanding==0) {
-        busy=false;
-        cb(errors);
+        setBusy(false);
       }
     }
     console.log('syncNow '+path);
-    busy=true;
+    setBusy(true);
     pullNode(path, false, false, startOne, finishOne);
   }
   return {
     syncNow: syncNow,
-    getState : getState
+    getState : getState,
+    on: on
   };
 });

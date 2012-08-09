@@ -1,6 +1,5 @@
 define(['./getputdelete'], function (getputdelete) {
   var prefix = 'remote_storage_wire_',
-    stateHandler = function(){},
     errorHandler = function(){};
   function set(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
@@ -36,9 +35,7 @@ define(['./getputdelete'], function (getputdelete) {
     }
   }
   function on(eventType, cb) {
-    if(eventType == 'state') {
-      stateHandler = cb;
-    } else if(eventType == 'error') {
+    if(eventType == 'error') {
       errorHandler = cb;
     }
   }

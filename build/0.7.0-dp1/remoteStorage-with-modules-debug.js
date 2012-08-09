@@ -720,7 +720,6 @@ define('lib/getputdelete',
 
 define('lib/wireClient',['./getputdelete'], function (getputdelete) {
   var prefix = 'remote_storage_wire_',
-    stateHandler = function(){},
     errorHandler = function(){};
   function set(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
@@ -756,9 +755,7 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
     }
   }
   function on(eventType, cb) {
-    if(eventType == 'state') {
-      stateHandler = cb;
-    } else if(eventType == 'error') {
+    if(eventType == 'error') {
       errorHandler = cb;
     }
   }
@@ -1009,13 +1006,24 @@ define('lib/store',[], function () {
 });
 
 define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
-  var prefix = '_remoteStorage_', busy=false;
+  var prefix = '_remoteStorage_', busy=false, stateCbs=[];
    
-  function getState(path) {
+  function getState(path) {//should also distinguish between synced and locally modified for the path probably
     if(busy) {
       return 'busy';
     } else {
       return 'connected';
+    }
+  }
+  function setBusy(val) {
+    busy=val;
+    for(var i=0;i<stateCbs.length;i++) {
+      stateCbs[i](val?'busy':'connected');
+    }
+  }
+  function on(eventType, cb) {
+    if(eventType=='state') {
+      stateCbs.push(cb);
     }
   }
   function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne, clearCb) {
@@ -1094,17 +1102,17 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
       }
       outstanding--;
       if(outstanding==0) {
-        busy=false;
-        cb(errors);
+        setBusy(false);
       }
     }
     console.log('syncNow '+path);
-    busy=true;
+    setBusy(true);
     pullNode(path, false, false, startOne, finishOne);
   }
   return {
     syncNow: syncNow,
-    getState : getState
+    getState : getState,
+    on: on
   };
 });
 
@@ -1273,9 +1281,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
   }
   function handleCubeClick() {
-    setWidgetState('busy');
     sync.syncNow('/', function(errors) {
-      setWidgetState((errors?'offline':'connected'));
     });
     //if(widgetState == 'connected') {
     //  handleDisconnectClick();
@@ -1307,7 +1313,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     wireClient.on('error', function(err) {
       platform.alert(translate(err));
     });
-    wireClient.on('state', setWidgetState);
+    sync.on('state', setWidgetState);
     setWidgetStateOnLoad();
   }
   function addScope(module, mode) {
@@ -1382,6 +1388,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
 
   function claimAccess(path, claim) {
     store.setNodeAccess(path, claim);
+    //sync.syncNow(path)
   }
 
   function isDir(path) {

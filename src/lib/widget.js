@@ -163,9 +163,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
   }
   function handleCubeClick() {
-    setWidgetState('busy');
     sync.syncNow('/', function(errors) {
-      setWidgetState((errors?'offline':'connected'));
     });
     //if(widgetState == 'connected') {
     //  handleDisconnectClick();
@@ -197,7 +195,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     wireClient.on('error', function(err) {
       platform.alert(translate(err));
     });
-    wireClient.on('state', setWidgetState);
+    sync.on('state', setWidgetState);
     setWidgetStateOnLoad();
   }
   function addScope(module, mode) {
