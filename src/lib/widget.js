@@ -36,9 +36,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     displayWidgetState(state, userAddress);
   }
   function displayWidgetState(state, userAddress) {
-    if(!localStorage.michiel) {
-      state = 'devsonly';
-    }
+    //if(!localStorage.michiel) {
+    //  state = 'devsonly';
+    //}
     var userAddress = localStorage['remote_storage_widget_useraddress'];
     var html = 
       '<style>'+assets.widgetCss+'</style>'
@@ -140,15 +140,20 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
-      localStorage['remote_storage_widget_useraddress']=userAddress;
-      setWidgetState('connecting');
-      discoverStorageInfo(userAddress, function(err, auth) {
-        if(err) {
-          setWidgetState('failed');
-        } else {
-          dance(auth);
-        }
-      });
+      if(userAddress=='me@local.dev') {
+        localStorage['remote_storage_widget_useraddress']=userAddress;
+        setWidgetState('connecting');
+        discoverStorageInfo(userAddress, function(err, auth) {
+          if(err) {
+            alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
+            setWidgetState('failed');
+          } else {
+            dance(auth);
+          }
+        });
+      } else {
+        alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
+      }
     } else {
       setWidgetState('typing');
     }
