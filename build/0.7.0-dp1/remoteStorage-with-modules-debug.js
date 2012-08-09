@@ -990,6 +990,11 @@ define('lib/store',[], function () {
     node.startForce = force;
     updateNode(path, node, false, true);//meta
   }
+  function clearDiff(path, i) {
+    var node = getNode(path);
+    delete node.diff[i];
+    updateNode(path, node, false, true);//meta
+  }
   return {
     on            : on,//error,change(origin=tab,device,cloud)
    
@@ -997,6 +1002,7 @@ define('lib/store',[], function () {
     setNodeData   : setNodeData,
     setNodeAccess : setNodeAccess,
     setNodeForce  : setNodeForce,
+    clearDiff     : clearDiff,
     forget        : forget,
     forgetAll     : forgetAll
   };
@@ -1012,7 +1018,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
       return 'connected';
     }
   }
-  function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne) {
+  function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne, clearCb) {
     for(var i in remote) {
       if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {//should probably include force and keep in this decision
         pullNode(dirPath+i, force, access, startOne, finishOne);
@@ -1033,12 +1039,16 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
     }
     for(var i in diff) {
       if(!cached[i]) {//outgoing delete
-        startOne();
-        wireClient.set(dirPath+i, undefined, undefined, function(err, timestamp) {
-          finishOne();
-        });
+        if(remote[i]) {
+          startOne();
+          wireClient.set(dirPath+i, undefined, undefined, function(err, timestamp) {
+            finishOne();
+          });
+        } else {
+          clearCb(i);
+        }
       } else if(remote[i] === cached[i]) {//can either be same timestamp or both undefined
-        delete diff[i];
+        clearCb(i);
       }
     }
   }
@@ -1056,7 +1066,9 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
       wireClient.get(path, function(err, data) {
         if(!err && data) {
           if(path.substr(-1)=='/') {
-            dirMerge(path, data, thisNode.data, thisNode.diff, force, access, startOne, finishOne);
+            dirMerge(path, data, thisNode.data, thisNode.diff, force, access, startOne, finishOne, function(i) {
+              store.clearDiff(path, i);
+            });
           } else {
             store.setNodeData(path, data, false);
           }

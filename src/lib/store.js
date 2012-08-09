@@ -168,6 +168,11 @@ define([], function () {
     node.startForce = force;
     updateNode(path, node, false, true);//meta
   }
+  function clearDiff(path, i) {
+    var node = getNode(path);
+    delete node.diff[i];
+    updateNode(path, node, false, true);//meta
+  }
   return {
     on            : on,//error,change(origin=tab,device,cloud)
    
@@ -175,6 +180,7 @@ define([], function () {
     setNodeData   : setNodeData,
     setNodeAccess : setNodeAccess,
     setNodeForce  : setNodeForce,
+    clearDiff     : clearDiff,
     forget        : forget,
     forgetAll     : forgetAll
   };
