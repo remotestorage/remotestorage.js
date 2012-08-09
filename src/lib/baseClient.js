@@ -58,7 +58,7 @@ define(['./sync', './store'], function (sync, store) {
 
   function claimAccess(path, claim) {
     store.setNodeAccess(path, claim);
-    //sync.syncNow(path)
+    //sync.syncNow(path);
   }
 
   function isDir(path) {

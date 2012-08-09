@@ -84,14 +84,14 @@ define(['./wireClient', './store'], function(wireClient, store) {
       }
     }
   }
-  function syncNow(path, cb) {
+  function syncNow(path) {
     var outstanding=0, errors=null;
     function startOne() {
       outstanding++;
     }
     function finishOne(err) {
       if(err) {
-        errors = err;
+        //TODO: do something with them :)
       }
       outstanding--;
       if(outstanding==0) {
