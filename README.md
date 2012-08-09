@@ -7,7 +7,7 @@
 
 #### to your /etc/hosts file. then run:
 
-    sudo node server/example-nodejs.js
+    sudo node server/nodejs-example.js
 
 # Adding remoteStorage.js v0.7 to your app:
 #### add "remoteStorage.js" (you can copy it from this repo)

@@ -201,7 +201,7 @@ exports.handler = (function() {
       }
     } else if(req.method=='PUT') {
       console.log('PUT');
-      if(mayWrite(req.headers.authorization, path)) {
+      if(mayWrite(req.headers.authorization, path) && path.substr(-1)!='/') {
         var dataStr = '';
         req.on('data', function(chunk) {
           dataStr+=chunk;

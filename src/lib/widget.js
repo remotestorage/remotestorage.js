@@ -164,8 +164,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   }
   function handleCubeClick() {
     setWidgetState('busy');
-    sync.syncNow('/', function(success) {
-      setWidgetState((success?'connected':'offline'));
+    sync.syncNow('/', function(errors) {
+      setWidgetState((errors?'offline':'connected'));
     });
     //if(widgetState == 'connected') {
     //  handleDisconnectClick();

@@ -17,13 +17,13 @@ define(['./wireClient', './store'], function(wireClient, store) {
     for(var i in cached) {
       if(!remote[i] || cached[i] > remote[i]) {
         if(i.substr(-1)=='/') {
+          pullNode(dirPath+i, force, access, startOne, finishOne);
+        } else {//recurse
           var childNode = store.getNode(dirPath+i);
           startOne();
           wireClient.set(dirPath+i, JSON.stringify(childNode.data), 'application/json', function(err, timestamp) {
             finishOne();
           });
-        } else {//recurse
-          pullNode(dirPath+i, force, access, startOne, finishOne);
         }
       }
     }
