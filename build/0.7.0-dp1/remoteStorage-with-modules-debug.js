@@ -761,13 +761,8 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
   }
 
   function resolveKey(storageType, storageHref, basePath, relPath) {
-    //var nodirs=true;
-    var nodirs=false;
-    var itemPathParts = ((basePath.length?(basePath + '/'):'') + relPath).split('/');
-    var item = itemPathParts.splice(2).join(nodirs ? '_' : '/');
-    return storageHref + '/' + itemPathParts[1]
-      //+ (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
-      + '/' + (item[2] == '_' ? 'u' : '') + item;
+    var item = ((basePath.length?(basePath + '/'):'') + relPath);
+    return storageHref + item;
   }
   function setChain(driver, hashMap, mimeType, token, cb, timestamp) {
     var i;
