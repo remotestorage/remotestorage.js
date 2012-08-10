@@ -1433,10 +1433,12 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           if(cb) {
             sync.fetchNow(absPath, function(err) {
               var node = store.getNode(absPath);
+              delete node.data['@type'];
               bindContext(cb, context)(node.data);
             });
           } else {
             var node = store.getNode(absPath);
+            delete node.data['@type'];
             return node.data;
           }
         },
