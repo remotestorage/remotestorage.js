@@ -1462,7 +1462,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           }
         },
 
-        getMedia: function(path, cb, context) {
+        getDocument: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err) {
@@ -1491,7 +1491,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           return set(path, makePath(path), obj, 'application/json');
         },
 
-        storeMedia: function(mimeType, path, data) {
+        storeDocument: function(mimeType, path, data) {
           return set(path, makePath(path), data, mimeType);
         },
 
