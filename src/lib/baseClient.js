@@ -35,6 +35,7 @@ define(['./sync', './store'], function (sync, store) {
   store.on('change', function(e) {
     var moduleName = extractModuleName(e.path);
     fireChange(moduleName, e);//tab-, device- and cloud-based changes all get fired from the store.
+    fireChange('root', e);//root module gets everything
   });
   
 
@@ -53,6 +54,7 @@ define(['./sync', './store'], function (sync, store) {
     var ret = store.setNodeData(absPath, valueStr, true);
     var moduleName = extractModuleName(absPath);
     fireChange(moduleName, changeEvent);
+    fireChange('root', changeEvent);
     return ret; 
   }
 
