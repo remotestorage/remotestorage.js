@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+
+require File.expand_path('../features/support/providers.rb', __FILE__)
+
+unless provider = ARGV[0]
+  $stderr.puts "\nUsage: #$0 <provider>\n  where provider is one of: #{PROVIDERS.keys.join(', ')}\n\n"
+  exit 127
+end
+
+start_provider(provider.to_sym)
