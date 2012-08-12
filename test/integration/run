@@ -5,6 +5,6 @@ set -e
 
 trap 'kill -9 %1' EXIT
 cd ../../
-adsf -p 80 > adsf.log &
+adsf -p 3000 > adsf.log &
 cd -
 cucumber

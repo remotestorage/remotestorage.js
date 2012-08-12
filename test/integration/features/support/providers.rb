@@ -2,8 +2,8 @@
 PROVIDERS = {
   :remote_storage_ruby => {
     :in => 'providers/remote-storage-ruby/',
-    :run => 'rackup -p {port}',
-    :on_port => 23457
+    :run => 'rackup -p {port} -l {hostname}',
+    :with_domain => 'remote-storage-ruby.dev'
   }
 }
 
@@ -13,7 +13,7 @@ def start_provider(type)
   raise "Unknown provider: #{type}" unless provider = PROVIDERS[type]
 
   Dir.chdir(provider[:in]) && system(
-    provider[:run].sub('{port}') { provider[:on_port] }
+    provider[:run].sub('{port}', '80').sub('{domain}') { provider[:with_domain] }
   )
 
 end

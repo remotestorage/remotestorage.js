@@ -1,11 +1,10 @@
+
+var config = require('./config').config;
+
 exports.handler = (function() {
   var url=require('url'),
     crypto=require('crypto'),
-    config = {
-      protocol: 'http',
-      host: 'local.dev',
-      defaultUserName: 'me'
-    }, tokens = {}, lastModified = {}, contentType = {}, content = {};
+    tokens = {}, lastModified = {}, contentType = {}, content = {};
   function createToken(userName, scopes, cb) {
     var scopePaths=[];
     crypto.randomBytes(48, function(ex, buf) {
@@ -287,6 +286,6 @@ exports.handler = (function() {
 })();
 
 if(require.main==module) {//if this file is directly called from the CLI
-  require('http').createServer(exports.handler.serve).listen(80);
+  require('http').createServer(exports.handler.serve).listen(config.port);
 }
 

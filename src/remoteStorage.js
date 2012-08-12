@@ -80,6 +80,7 @@ define('remoteStorage', [
     flushLocal       : store.forgetAll,
     syncNow          : sync.syncNow,
     displayWidget    : widget.display,
+    getWidgetState   : widget.getState,
     setStorageInfo   : wireClient.setStorageInfo
 
   };

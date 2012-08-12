@@ -475,6 +475,7 @@ define('lib/webfinger',
     }
     function getStorageInfo(userAddress, options, cb) {
       userAddress2hostMetas(userAddress, function(err1, hostMetaAddresses) {
+        console.log("HOST META ADDRESSES", hostMetaAddresses, '(error: ', err1, ')');
         if(err1) {
           cb(err1);
         } else {
@@ -1148,6 +1149,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     widgetState = state;
     displayWidgetState(state, userAddress);
   }
+  function getWidgetState() {
+    return widgetState;
+  }
   function displayWidgetState(state, userAddress) {
     //if(!localStorage.michiel) {
     //  state = 'devsonly';
@@ -1202,7 +1206,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     if(hostParts.length == 2) {
       hostParts.shift();
     }
-    return hostParts[0].split(':')[0];
+    return hostParts[0];
   }
   function dance(endpoint) {
     var endPointParts = endpoint.split('?');
@@ -1324,7 +1328,8 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   
   return {
     display : display,
-    addScope: addScope
+    addScope: addScope,
+    getState: getWidgetState
   };
 });
 
@@ -1595,6 +1600,7 @@ define('remoteStorage', [
     flushLocal       : store.forgetAll,
     syncNow          : sync.syncNow,
     displayWidget    : widget.display,
+    getWidgetState   : widget.getState,
     setStorageInfo   : wireClient.setStorageInfo
 
   };

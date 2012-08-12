@@ -35,6 +35,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     widgetState = state;
     displayWidgetState(state, userAddress);
   }
+  function getWidgetState() {
+    return widgetState;
+  }
   function displayWidgetState(state, userAddress) {
     //if(!localStorage.michiel) {
     //  state = 'devsonly';
@@ -89,7 +92,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     if(hostParts.length == 2) {
       hostParts.shift();
     }
-    return hostParts[0].split(':')[0];
+    return hostParts[0];
   }
   function dance(endpoint) {
     var endPointParts = endpoint.split('?');
@@ -211,6 +214,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   
   return {
     display : display,
-    addScope: addScope
+    addScope: addScope,
+    getState: getWidgetState
   };
 });
