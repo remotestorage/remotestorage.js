@@ -128,8 +128,10 @@ define('lib/platform',[], function() {
         xhr.setRequestHeader(header, params.headers[header]);
       }
     }
+    console.log('A '+params.url);
     xhr.onreadystatechange = function() {
       if((xhr.readyState==4) && (!timedOut)) {
+        console.log('B '+params.url);
         if(timer) {
           window.clearTimeout(timer);
         }
@@ -267,7 +269,10 @@ define('lib/platform',[], function() {
       var pairs = location.hash.substring(1).split('&');
       for(var i=0; i<pairs.length; i++) {
         if(pairs[i].substring(0, (param+'=').length) == param+'=') {
-          return pairs[i].substring((param+'=').length);
+          var ret = pairs[i].substring((param+'=').length);
+          delete pairs[i];
+          location = '#'+pairs.join('&');
+          return ret;
         }
       }
     }
@@ -715,7 +720,6 @@ define('lib/getputdelete',
 
 define('lib/wireClient',['./getputdelete'], function (getputdelete) {
   var prefix = 'remote_storage_wire_',
-    stateHandler = function(){},
     errorHandler = function(){};
   function set(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
@@ -751,21 +755,14 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
     }
   }
   function on(eventType, cb) {
-    if(eventType == 'state') {
-      stateHandler = cb;
-    } else if(eventType == 'error') {
+    if(eventType == 'error') {
       errorHandler = cb;
     }
   }
 
   function resolveKey(storageType, storageHref, basePath, relPath) {
-    //var nodirs=true;
-    var nodirs=false;
-    var itemPathParts = ((basePath.length?(basePath + '/'):'') + relPath).split('/');
-    var item = itemPathParts.splice(2).join(nodirs ? '_' : '/');
-    return storageHref + '/' + itemPathParts[1]
-      //+ (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
-      + '/' + (item[2] == '_' ? 'u' : '') + item;
+    var item = ((basePath.length?(basePath + '/'):'') + relPath);
+    return storageHref + item;
   }
   function setChain(driver, hashMap, mimeType, token, cb, timestamp) {
     var i;
@@ -797,7 +794,7 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
         getputdelete.get(resolveKey(storageType, storageHref, '', path), token, cb);
       }
     },
-    set: function (path, valueStr, mimeType, parentChain, cb) {
+    set: function (path, valueStr, mimeType, cb) {
       var storageType = get('storageType'),
         storageHref = get('storageHref'),
         token = get('bearerToken');
@@ -846,13 +843,10 @@ define('lib/store',[], function () {
       value = {//this is what an empty node looks like
         startAccess: null,
         startForce: null,
-        lastModified: 0,
-        outgoingChange: false,
+        timestamp: 0,
         keep: true,
         data: (isDir(path)?{}:undefined),
-        added: {},
-        removed: {},
-        changed: {},
+        diff: {}
       };
     }
     return value;
@@ -891,69 +885,54 @@ define('lib/store',[], function () {
   function getCurrTimestamp() {
     return new Date().getTime();
   }
-  function updateNode(path, node, changeType) {
-    //there are three types of local changes: added, removed, changed.
-    //when a PUT or DELETE is successful and we get a Last-Modified header back the parents should already be updated right to the root
-    //
-    if(typeof(node.data) != 'string') {
-      node.data=JSON.stringify(node.data);//double-JSON-ed for now, until we separate metadata from content
+  function updateNode(path, node, outgoing, meta, timestamp) {
+    if(node) {
+      if(typeof(node.data) != 'string') {
+        node.data=JSON.stringify(node.data);//double-JSON-ed for now, until we separate metadata from content
+      }
+      localStorage.setItem(prefixNodes+path, JSON.stringify(node));
+    } else {
+      localStorage.removeItem(prefixNodes+path);
     }
-    localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
-      if(changeType=='set') { 
-        if(parentNode.data[getFileName(path)]) {
-          parentNode.changed[getFileName(path)] = new Date().getTime();
-        } else {
-          parentNode.added[getFileName(path)] = new Date().getTime();
-        }
-        updateNode(containingDir, parentNode, 'set');
-      } else if(changeType=='remove') {
-        parentNode.removed[getFileName(path)] = new Date().getTime();
-        updateNode(containingDir, parentNode, 'set');
-      } else if(changeType=='accept') {
-        if(parentNode.data[getFileName(path)] != node.lastModified) {
-          parentNode.data[getFileName(path)] = node.lastModified;
-          if(parentNode.lastModified < node.lastModified) {
-            parentNode.lastModified = node.lastModified;
-          }
-          updateNode(containingDir, parentNode, 'accept');
-        }
-        fireChange({
-          path: path,
-          origin: 'remote',
-          oldValue: undefined,
-          newValue: node.data,
-          timestamp: node.lastModified
-        });
-      } else if(changeType=='gone') {
-        delete parentNode.data[getFileName(path)];
-        if(parentNode.lastModified < node.lastModified) {
-          parentNode.lastModified = node.lastModified;
-        }
-        updateNode(containingDir, parentNode, 'accept');
-        fireChange({
-          path: path,
-          origin: 'remote',
-          oldValue: undefined,
-          newValue: undefined,
-          timestamp: node.lastModified
-        });
-      } else if(changeType=='clear') {
-        parentNode.data[getFileName(path)] = node.lastModified;
-        delete parentNode.added[getFileName(path)];
-        delete parentNode.removed[getFileName(path)];
-        delete parentNode.changed[getFileName(path)];
-        if(parentNode.lastModified < node.lastModified) {
-          parentNode.lastModified = node.lastModified;
-        }
-        updateNode(containingDir, parentNode, 'accept');
-      } else if(changeType=='meta') {//make sure parentNodes get created when setting force or access
+      if(meta) {
         if(!parentNode.data[getFileName(path)]) {
           parentNode.data[getFileName(path)]=0;
         }
-        updateNode(containingDir, parentNode, 'meta');
+        updateNode(containingDir, parentNode, false, true);
+      } else if(outgoing) { 
+        if(node) {
+          parentNode.data[getFileName(path)] = new Date().getTime();
+        } else {
+          delete parentNode.data[getFileName(path)];
+        }
+        parentNode.diff[getFileName(path)] = new Date().getTime();
+        updateNode(containingDir, parentNode, true);
+      } else {//incoming
+        if(node) {//incoming add or change
+          if(!parentNode.data[getFileName(path)] || parentNode.data[getFileName(path)] < timestamp) {
+            parentNode.data[getFileName(path)] = timestamp;
+            delete parentNode.diff[getFileName(path)];
+            updateNode(containingDir, parentNode, false, false, timestamp);
+          }
+        } else {//incoming deletion
+          if(parentNode.data[getFileName(path)]) {
+            delete parentNode.data[getFileName(path)];
+            delete parentNode.diff[getFileName(path)];
+            updateNode(containingDir, parentNode, false, false, timestamp);
+          }
+        }
+        if(path.substr(-1)!='/') {
+          fireChange({
+            path: path,
+            origin: 'remote',
+            oldValue: undefined,
+            newValue: (node ? node.data : undefined),
+            timestamp: timestamp 
+          });
+        }
       }
     }
   }
@@ -979,63 +958,34 @@ define('lib/store',[], function () {
   function getState(path) {
     return 'disconnected';
   }
-  function setNodeData(path, data, outgoing, lastModified, mimeType) {
+  function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
     node.data = data;
-    if(lastModified) {
-      node.lastModified = lastModified;
+    if(!mimeType) {
+      mimeType='application/json';
     }
-    if(mimeType) {
-      node.mimeType = mimeType;
+    node.mimeType = mimeType;
+    if(!timestamp) {
+      timestamp = new Date().getTime();
     }
-    if(outgoing) {
-      node.outgoingChange = new Date().getTime();
-      updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
-    } else {
-      if(isDir(path)) {
-        for(var i in data) {
-          delete node.added[i];
-        }
-        for(var i in node.removed) {
-          if(!data[i]) {//removal was successful, will get here on 200 response to DELETE call, when rippling clear to containing dir
-            delete node.removed[i];
-            delete node.data[i];//will be there with null timestamp still because it needs to stay synced until deletion was succesfully roundtripped
-          }
-        }
-        updateNode(path, node, 'accept');
-      } else {
-        if(node.outgoingChange) {
-          if(data != node.data && node.outgoingChange > lastModified) {
-            //reject the update, outgoing changes will change it
-          } else {
-            node.data = data;
-            node.outgoingChange = false;
-            node.lastModified = lastModified;
-            updateNode(path, node, 'clear');
-          }
-        } else {
-          updateNode(path, node, (typeof(data)=='undefined'?'gone':'accept'));
-        }
-      }
-    }
-  }
-  function clearOutgoingChange(path, lastModified) {
-    var node = getNode(path);
-    node.lastModified = lastModified;
-    node.outgoingChange = false;
-    updateNode(path, node, 'clear');
+    updateNode(path, (data ? node : undefined), outgoing, false, timestamp);
   }
   function setNodeAccess(path, claim) {
     var node = getNode(path);
     if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
       node.startAccess = claim;
-      updateNode(path, node, 'meta');
+      updateNode(path, node, false, true);//meta
     }
   }
   function setNodeForce(path, force) {
     var node = getNode(path);
     node.startForce = force;
-    updateNode(path, node, 'meta');
+    updateNode(path, node, false, true);//meta
+  }
+  function clearDiff(path, i) {
+    var node = getNode(path);
+    delete node.diff[i];
+    updateNode(path, node, false, true);//meta
   }
   return {
     on            : on,//error,change(origin=tab,device,cloud)
@@ -1044,144 +994,120 @@ define('lib/store',[], function () {
     setNodeData   : setNodeData,
     setNodeAccess : setNodeAccess,
     setNodeForce  : setNodeForce,
-    clearOutgoingChange:clearOutgoingChange,
+    clearDiff     : clearDiff,
     forget        : forget,
     forgetAll     : forgetAll
   };
 });
 
-// access: null
-// lastModified: 0
-// keep: true
-// data
-//   tasks/: 999999
-//   public/: 999999
-// data
-//   
-
-//start: store has a tree with three types of node: dir, object, media.
-//object and media nodes have fields:
-//lastModified, type (media/object), mimeType/objectType, data, access, outgoingChange (client-side timestamp or false), sync
-//dir nodes have fields:
-//lastModified, type (dir), data (hash filename -> remote timestamp), added/changed/removed, access, startSync, stopSync
-
 define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
-  var prefix = '_remoteStorage_', busy=false;
+  var prefix = '_remoteStorage_', busy=false, stateCbs=[];
    
-  function getState(path) {
+  function getState(path) {//should also distinguish between synced and locally modified for the path probably
     if(busy) {
       return 'busy';
     } else {
       return 'connected';
     }
   }
-  function getParentChain(path) {//this is for legacy support
-    var pathParts = path.split('/');
-    var parentChain={};
-    for(var i = 2; i<pathParts.length; i++) {
-      var thisPath = pathParts.slice(0, i).join('/');
-      parentChain[thisPath] = store.getNode(thisPath).data;
+  function setBusy(val) {
+    busy=val;
+    for(var i=0;i<stateCbs.length;i++) {
+      stateCbs[i](val?'busy':'connected');
     }
-    return parentChain;
   }
-  function handleChild(path, lastModified, force, access, startOne, finishOne) {
-    console.log('handleChild '+path);
-    var node = store.getNode(path);//will return a fake dir with empty data list for item
-    if(node.outgoingChange) {
-      if(node.startAccess !== null) { access = node.startAccess; }
-      if(access=='rw') {
-        (function(path) {
-          //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
+  function on(eventType, cb) {
+    if(eventType=='state') {
+      stateCbs.push(cb);
+    }
+  }
+  function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne, clearCb) {
+    for(var i in remote) {
+      if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {//should probably include force and keep in this decision
+        pullNode(dirPath+i, force, access, startOne, finishOne);
+      }
+    }
+    for(var i in cached) {
+      if(!remote[i] || cached[i] > remote[i]) {
+        if(i.substr(-1)=='/') {
+          pullNode(dirPath+i, force, access, startOne, finishOne);
+        } else {//recurse
+          var childNode = store.getNode(dirPath+i);
           startOne();
-          var parentChain = getParentChain(path);
-          console.log('set-call handleChild '+path);
-          wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
-            console.log('set-cb handleChild '+path);
-            if(!err && timestamp) {
-              store.clearOutgoingChange(path, timestamp);
-            }
+          wireClient.set(dirPath+i, JSON.stringify(childNode.data), 'application/json', function(err, timestamp) {
             finishOne();
           });
-        })(path);
-      }
-    } else if(node.lastModified<lastModified || !lastModified) {//i think there must a cleaner way than this ugly using 0 where no access
-      if(node.startAccess !== null) { access = node.startAccess; }
-      if(node.startForce !== null) { force = node.startForce; }
-      if((force || node.keep) && access) {
-        (function(path) {
-          startOne();
-          console.log('get-call handleChild '+path);
-          wireClient.get(path, function (err, data, timestamp, mimeType) {
-            console.log('get-cb handleChild '+path);
-            if(!err && data && path.substr(-1)!='/') {//directory listings will get updated in store only when the actual objects come in
-              store.setNodeData(path, data, false, timestamp, mimeType);
-            }
-            finishOne(err);
-            if(path.substr(-1)=='/') {//isDir(path)
-              var thisNode = store.getNode(path), map;
-              map = thisNode.data;
-              for(var i in thisNode.added) {
-                map[i] = thisNode.added[i];
-              }
-              if(data) {
-                for(var i in data) {
-                  map[i] = data[i];
-                }
-              }
-              startOne();
-              pullMap(path, map, force, access, finishOne);
-            }
-          });
-        })(path);
-      } else if(path.substr(-1)=='/') {//isDir(path)
-        //store.forget(path);
-        var thisNode = store.getNode(path), map;
-        map = thisNode.data;
-        for(var i in thisNode.added) {
-          map[i] = thisNode.added[i];
         }
-        startOne();
-        pullMap(path, map, force, access, finishOne);
       }
-    }// else everything up to date
+    }
+    for(var i in diff) {
+      if(!cached[i]) {//outgoing delete
+        if(remote[i]) {
+          startOne();
+          wireClient.set(dirPath+i, undefined, undefined, function(err, timestamp) {
+            finishOne();
+          });
+        } else {
+          clearCb(i);
+        }
+      } else if(remote[i] === cached[i]) {//can either be same timestamp or both undefined
+        clearCb(i);
+      }
+    }
   }
-  function pullMap(basePath, map, force, access, cb) {
-    console.log('pullMap '+basePath);
+  function pullNode(path, force, access, startOne, finishOne) {
+    console.log('pullNode '+path);
+    var thisNode=store.getNode(path);
+    if(thisNode.startAccess == 'rw' || !access) {
+      access = thisNode.startAccess;
+    }
+    if(thisNode.startForce) {
+      force = thisNode.startForce;
+    }
+    if(access) {
+      startOne();
+      wireClient.get(path, function(err, data) {
+        if(!err && data) {
+          if(path.substr(-1)=='/') {
+            dirMerge(path, data, thisNode.data, thisNode.diff, force, access, startOne, finishOne, function(i) {
+              store.clearDiff(path, i);
+            });
+          } else {
+            store.setNodeData(path, data, false);
+          }
+        }
+        finishOne();
+      });
+    } else {
+      for(var i in thisNode.data) {
+        if(i.substr(-1)=='/') {
+          pullNode(path+i, force, access, startOne, finishOne);
+        }
+      }
+    }
+  }
+  function syncNow(path) {
     var outstanding=0, errors=null;
     function startOne() {
       outstanding++;
     }
     function finishOne(err) {
       if(err) {
-        errors = err;
+        //TODO: do something with them :)
       }
       outstanding--;
       if(outstanding==0) {
-        cb(errors);
+        setBusy(false);
       }
     }
-    startOne();
-    for(var path in map) {
-      console.log('pullMap '+basePath+' calling handleChild for '+path);
-      (function(path) {
-        handleChild(basePath+path, map[path], force, access, startOne, finishOne);
-      })(path);
-    }
-    finishOne();
-  }
-  function syncNow(path, cb) {
     console.log('syncNow '+path);
-    busy=true;
-    var map={};
-    map[path]= Infinity;
-    pullMap('', map, false, false, function(err) {
-      busy=false;
-      cb((err===null));
-    });
+    setBusy(true);
+    pullNode(path, false, false, startOne, finishOne);
   }
   return {
     syncNow: syncNow,
-    getState : getState
+    getState : getState,
+    on: on
   };
 });
 
@@ -1223,9 +1149,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     displayWidgetState(state, userAddress);
   }
   function displayWidgetState(state, userAddress) {
-    if(!localStorage.michiel) {
-      state='devsonly';
-    }
+    //if(!localStorage.michiel) {
+    //  state = 'devsonly';
+    //}
     var userAddress = localStorage['remote_storage_widget_useraddress'];
     var html = 
       '<style>'+assets.widgetCss+'</style>'
@@ -1237,8 +1163,8 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
       +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br>Click for more info on the Unhosted movement.</span>'//info text
       //+'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <input id="remotestorage-useraddress" type="text" value="michiel@mich.rs" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <a class="infotext" href="http://unhosted.org" target="_blank" id="remotestorage-devsonly">Local use only, no async sync yet. But modules work!<br>Click for more info on the Unhosted movement.</a>'
+      +'  <input id="remotestorage-useraddress" type="text" value="me@local.dev" placeholder="you@remotestorage" autofocus >'//text input
+      +'  <a class="infotext" href="http://remotestoragejs.com/" target="_blank" id="remotestorage-devsonly">RemoteStorageJs is still in developer preview!<br>Click for more info.</a>'
       +'</div>';
     platform.setElementHTML(connectElement, html);
     platform.eltOn('remotestorage-register-button', 'click', handleRegisterButtonClick);
@@ -1327,15 +1253,20 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
-      localStorage['remote_storage_widget_useraddress']=userAddress;
-      setWidgetState('connecting');
-      discoverStorageInfo(userAddress, function(err, auth) {
-        if(err) {
-          setWidgetState('failed');
-        } else {
-          dance(auth);
-        }
-      });
+      if(userAddress=='me@local.dev') {
+        localStorage['remote_storage_widget_useraddress']=userAddress;
+        setWidgetState('connecting');
+        discoverStorageInfo(userAddress, function(err, auth) {
+          if(err) {
+            alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
+            setWidgetState('failed');
+          } else {
+            dance(auth);
+          }
+        });
+      } else {
+        alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
+      }
     } else {
       setWidgetState('typing');
     }
@@ -1350,9 +1281,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
   }
   function handleCubeClick() {
-    setWidgetState('busy');
-    sync.syncNow('/', function(success) {
-      setWidgetState((success?'connected':'offline'));
+    sync.syncNow('/', function(errors) {
     });
     //if(widgetState == 'connected') {
     //  handleDisconnectClick();
@@ -1384,7 +1313,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     wireClient.on('error', function(err) {
       platform.alert(translate(err));
     });
-    wireClient.on('state', setWidgetState);
+    sync.on('state', setWidgetState);
     setWidgetStateOnLoad();
   }
   function addScope(module, mode) {
@@ -1436,6 +1365,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
   store.on('change', function(e) {
     var moduleName = extractModuleName(e.path);
     fireChange(moduleName, e);//tab-, device- and cloud-based changes all get fired from the store.
+    fireChange('root', e);//root module gets everything
   });
   
 
@@ -1454,11 +1384,13 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
     var ret = store.setNodeData(absPath, valueStr, true);
     var moduleName = extractModuleName(absPath);
     fireChange(moduleName, changeEvent);
+    fireChange('root', changeEvent);
     return ret; 
   }
 
   function claimAccess(path, claim) {
     store.setNodeAccess(path, claim);
+    //sync.syncNow(path);
   }
 
   function isDir(path) {
@@ -1501,10 +1433,12 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           if(cb) {
             sync.fetchNow(absPath, function(err) {
               var node = store.getNode(absPath);
+              delete node.data['@type'];
               bindContext(cb, context)(node.data);
             });
           } else {
             var node = store.getNode(absPath);
+            delete node.data['@type'];
             return node.data;
           }
         },
@@ -1516,32 +1450,21 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
               var node = store.getNode(absPath);
               var arr = [];
               for(var i in node.data) {
-                if(!node.removed[i]) {
-                  arr.push(i);
-                }
-              }
-              for(var i in node.added) {
                 arr.push(i);
               }
-              //no need to look at node.changed, that doesn't change the listing
               bindContext(cb, context)(arr);
             });
           } else {
             var node = store.getNode(absPath);
             var arr = [];
             for(var i in node.data) {
-              if(!node.removed[i]) {
-                arr.push(i);
-              }
-            }
-            for(var i in node.added) {
               arr.push(i);
             }
             return arr;
           }
         },
 
-        getMedia: function(path, cb, context) {
+        getDocument: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err) {
@@ -1570,7 +1493,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           return set(path, makePath(path), obj, 'application/json');
         },
 
-        storeMedia: function(mimeType, path, data) {
+        storeDocument: function(mimeType, path, data) {
           return set(path, makePath(path), data, mimeType);
         },
 

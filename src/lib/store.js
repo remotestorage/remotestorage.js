@@ -29,13 +29,10 @@ define([], function () {
       value = {//this is what an empty node looks like
         startAccess: null,
         startForce: null,
-        lastModified: 0,
-        outgoingChange: false,
+        timestamp: 0,
         keep: true,
         data: (isDir(path)?{}:undefined),
-        added: {},
-        removed: {},
-        changed: {},
+        diff: {}
       };
     }
     return value;
@@ -74,69 +71,54 @@ define([], function () {
   function getCurrTimestamp() {
     return new Date().getTime();
   }
-  function updateNode(path, node, changeType) {
-    //there are three types of local changes: added, removed, changed.
-    //when a PUT or DELETE is successful and we get a Last-Modified header back the parents should already be updated right to the root
-    //
-    if(typeof(node.data) != 'string') {
-      node.data=JSON.stringify(node.data);//double-JSON-ed for now, until we separate metadata from content
+  function updateNode(path, node, outgoing, meta, timestamp) {
+    if(node) {
+      if(typeof(node.data) != 'string') {
+        node.data=JSON.stringify(node.data);//double-JSON-ed for now, until we separate metadata from content
+      }
+      localStorage.setItem(prefixNodes+path, JSON.stringify(node));
+    } else {
+      localStorage.removeItem(prefixNodes+path);
     }
-    localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
-      if(changeType=='set') { 
-        if(parentNode.data[getFileName(path)]) {
-          parentNode.changed[getFileName(path)] = new Date().getTime();
-        } else {
-          parentNode.added[getFileName(path)] = new Date().getTime();
-        }
-        updateNode(containingDir, parentNode, 'set');
-      } else if(changeType=='remove') {
-        parentNode.removed[getFileName(path)] = new Date().getTime();
-        updateNode(containingDir, parentNode, 'set');
-      } else if(changeType=='accept') {
-        if(parentNode.data[getFileName(path)] != node.lastModified) {
-          parentNode.data[getFileName(path)] = node.lastModified;
-          if(parentNode.lastModified < node.lastModified) {
-            parentNode.lastModified = node.lastModified;
-          }
-          updateNode(containingDir, parentNode, 'accept');
-        }
-        fireChange({
-          path: path,
-          origin: 'remote',
-          oldValue: undefined,
-          newValue: node.data,
-          timestamp: node.lastModified
-        });
-      } else if(changeType=='gone') {
-        delete parentNode.data[getFileName(path)];
-        if(parentNode.lastModified < node.lastModified) {
-          parentNode.lastModified = node.lastModified;
-        }
-        updateNode(containingDir, parentNode, 'accept');
-        fireChange({
-          path: path,
-          origin: 'remote',
-          oldValue: undefined,
-          newValue: undefined,
-          timestamp: node.lastModified
-        });
-      } else if(changeType=='clear') {
-        parentNode.data[getFileName(path)] = node.lastModified;
-        delete parentNode.added[getFileName(path)];
-        delete parentNode.removed[getFileName(path)];
-        delete parentNode.changed[getFileName(path)];
-        if(parentNode.lastModified < node.lastModified) {
-          parentNode.lastModified = node.lastModified;
-        }
-        updateNode(containingDir, parentNode, 'accept');
-      } else if(changeType=='meta') {//make sure parentNodes get created when setting force or access
+      if(meta) {
         if(!parentNode.data[getFileName(path)]) {
           parentNode.data[getFileName(path)]=0;
         }
-        updateNode(containingDir, parentNode, 'meta');
+        updateNode(containingDir, parentNode, false, true);
+      } else if(outgoing) { 
+        if(node) {
+          parentNode.data[getFileName(path)] = new Date().getTime();
+        } else {
+          delete parentNode.data[getFileName(path)];
+        }
+        parentNode.diff[getFileName(path)] = new Date().getTime();
+        updateNode(containingDir, parentNode, true);
+      } else {//incoming
+        if(node) {//incoming add or change
+          if(!parentNode.data[getFileName(path)] || parentNode.data[getFileName(path)] < timestamp) {
+            parentNode.data[getFileName(path)] = timestamp;
+            delete parentNode.diff[getFileName(path)];
+            updateNode(containingDir, parentNode, false, false, timestamp);
+          }
+        } else {//incoming deletion
+          if(parentNode.data[getFileName(path)]) {
+            delete parentNode.data[getFileName(path)];
+            delete parentNode.diff[getFileName(path)];
+            updateNode(containingDir, parentNode, false, false, timestamp);
+          }
+        }
+        if(path.substr(-1)!='/') {
+          fireChange({
+            path: path,
+            origin: 'remote',
+            oldValue: undefined,
+            newValue: (node ? node.data : undefined),
+            timestamp: timestamp 
+          });
+        }
       }
     }
   }
@@ -162,63 +144,34 @@ define([], function () {
   function getState(path) {
     return 'disconnected';
   }
-  function setNodeData(path, data, outgoing, lastModified, mimeType) {
+  function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
     node.data = data;
-    if(lastModified) {
-      node.lastModified = lastModified;
+    if(!mimeType) {
+      mimeType='application/json';
     }
-    if(mimeType) {
-      node.mimeType = mimeType;
+    node.mimeType = mimeType;
+    if(!timestamp) {
+      timestamp = new Date().getTime();
     }
-    if(outgoing) {
-      node.outgoingChange = new Date().getTime();
-      updateNode(path, node, (typeof(data)=='undefined'?'remove':'set'));
-    } else {
-      if(isDir(path)) {
-        for(var i in data) {
-          delete node.added[i];
-        }
-        for(var i in node.removed) {
-          if(!data[i]) {//removal was successful, will get here on 200 response to DELETE call, when rippling clear to containing dir
-            delete node.removed[i];
-            delete node.data[i];//will be there with null timestamp still because it needs to stay synced until deletion was succesfully roundtripped
-          }
-        }
-        updateNode(path, node, 'accept');
-      } else {
-        if(node.outgoingChange) {
-          if(data != node.data && node.outgoingChange > lastModified) {
-            //reject the update, outgoing changes will change it
-          } else {
-            node.data = data;
-            node.outgoingChange = false;
-            node.lastModified = lastModified;
-            updateNode(path, node, 'clear');
-          }
-        } else {
-          updateNode(path, node, (typeof(data)=='undefined'?'gone':'accept'));
-        }
-      }
-    }
-  }
-  function clearOutgoingChange(path, lastModified) {
-    var node = getNode(path);
-    node.lastModified = lastModified;
-    node.outgoingChange = false;
-    updateNode(path, node, 'clear');
+    updateNode(path, (data ? node : undefined), outgoing, false, timestamp);
   }
   function setNodeAccess(path, claim) {
     var node = getNode(path);
     if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
       node.startAccess = claim;
-      updateNode(path, node, 'meta');
+      updateNode(path, node, false, true);//meta
     }
   }
   function setNodeForce(path, force) {
     var node = getNode(path);
     node.startForce = force;
-    updateNode(path, node, 'meta');
+    updateNode(path, node, false, true);//meta
+  }
+  function clearDiff(path, i) {
+    var node = getNode(path);
+    delete node.diff[i];
+    updateNode(path, node, false, true);//meta
   }
   return {
     on            : on,//error,change(origin=tab,device,cloud)
@@ -227,7 +180,7 @@ define([], function () {
     setNodeData   : setNodeData,
     setNodeAccess : setNodeAccess,
     setNodeForce  : setNodeForce,
-    clearOutgoingChange:clearOutgoingChange,
+    clearDiff     : clearDiff,
     forget        : forget,
     forgetAll     : forgetAll
   };

@@ -1,6 +1,14 @@
 # WARNING: This is a developer preview of our new code, not everything works yet, but new apps should use it nonetheless
 # Old apps should check out branch v0.6.9 instead, which has actual syncing to actual remote storage working.
 
+#### To run the test server, first of all add a line
+
+    127.0.0.1 local.dev
+
+#### to your /etc/hosts file. then run:
+
+    sudo node server/nodejs-example.js
+
 # Adding remoteStorage.js v0.7 to your app:
 #### add "remoteStorage.js" (you can copy it from this repo)
 #### in index.html, include this script and any modules you plan to load:
@@ -12,13 +20,14 @@
 
     <div id="remotestorage-connect"></div>
 
-#### then in your app's onload function, add a call to put the 'connect your remote storage' UI into that div, 
-
-    remoteStorage.displayWidget('remotestorage-connect');
-
 #### load the 'tasks' module,
 
     remoteStorage.loadModule('tasks', 'rw');
+
+#### and after you have loaded all the modules you will be using, but still in your app's onload function,
+#### add a call to put the 'connect your remote storage' UI into that div, 
+
+    remoteStorage.displayWidget('remotestorage-connect');
 
 #### open a private tasks list called 'todos':
 

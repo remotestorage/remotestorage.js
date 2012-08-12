@@ -1,6 +1,5 @@
 define(['./getputdelete'], function (getputdelete) {
   var prefix = 'remote_storage_wire_',
-    stateHandler = function(){},
     errorHandler = function(){};
   function set(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
@@ -36,21 +35,14 @@ define(['./getputdelete'], function (getputdelete) {
     }
   }
   function on(eventType, cb) {
-    if(eventType == 'state') {
-      stateHandler = cb;
-    } else if(eventType == 'error') {
+    if(eventType == 'error') {
       errorHandler = cb;
     }
   }
 
   function resolveKey(storageType, storageHref, basePath, relPath) {
-    //var nodirs=true;
-    var nodirs=false;
-    var itemPathParts = ((basePath.length?(basePath + '/'):'') + relPath).split('/');
-    var item = itemPathParts.splice(2).join(nodirs ? '_' : '/');
-    return storageHref + '/' + itemPathParts[1]
-      //+ (storageInfo.properties.legacySuffix ? storageInfo.properties.legacySuffix : '')
-      + '/' + (item[2] == '_' ? 'u' : '') + item;
+    var item = ((basePath.length?(basePath + '/'):'') + relPath);
+    return storageHref + item;
   }
   function setChain(driver, hashMap, mimeType, token, cb, timestamp) {
     var i;
@@ -82,7 +74,7 @@ define(['./getputdelete'], function (getputdelete) {
         getputdelete.get(resolveKey(storageType, storageHref, '', path), token, cb);
       }
     },
-    set: function (path, valueStr, mimeType, parentChain, cb) {
+    set: function (path, valueStr, mimeType, cb) {
       var storageType = get('storageType'),
         storageHref = get('storageHref'),
         token = get('bearerToken');

@@ -3,7 +3,8 @@ exports.handler = (function() {
     crypto=require('crypto'),
     config = {
       protocol: 'http',
-      host: 'mich.rs'
+      host: 'local.dev',
+      defaultUserName: 'me'
     }, tokens = {}, lastModified = {}, contentType = {}, content = {};
   function createToken(userName, scopes, cb) {
     var scopePaths=[];
@@ -11,8 +12,12 @@ exports.handler = (function() {
       var token = buf.toString('hex');
       for(var i=0; i<scopes.length; i++) {
         var thisScopeParts = scopes[i].split(':');
-        scopePaths.push(userName+'/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
-        scopePaths.push(userName+'/public/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
+        if(thisScopeParts[0]=='') {
+          scopePaths.push('/:'+thisScopeParts[1]);
+        } else {
+          scopePaths.push(userName+'/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
+          scopePaths.push(userName+'/public/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
+        }
       }
       tokens[token] = scopePaths;
       cb(token);
@@ -101,6 +106,36 @@ exports.handler = (function() {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
+  function portal(urlObj, res) {
+    res.writeHead(200, {
+      'content-type': 'text/html'
+    });
+    res.write('<!DOCTYPE html lang="en"><head><title>'+config.host+'</title><meta charset="utf-8"></head><body><ul>');
+    var scopes = {
+      'http://todomvc.michiel.5apps.com/': ['tasks:rw'],
+      'http://litewrite.michiel.5apps.com/': ['documents:rw'],
+      'http://docrastinate.michiel.5apps.com/': ['documents:rw'],
+      'http://expenses.michiel.5apps.com/': ['money:rw'],
+      'http://evanw-continuous-calendar.michiel.5apps.com/': ['calendar:rw'],
+      'http://seven20.epic720.5apps.com/manage.htm': [':rw']
+    };
+    var outstanding = 0;
+    for(var i in scopes) {
+      outstanding++;
+      (function(i) {
+        createToken(config.defaultUserName, scopes[i], function(token) {
+          res.write('<li><a href="'+i+'#storage_root=http://'+config.host+'/storage/'+config.defaultUserName
+            //+'&authorize_endpoint=http://'+config.host+'/auth/'+config.defaultUserName+'">'+i+'</a></li>');
+            +'&access_token='+token+'">'+i+'</a></li>');
+          outstanding--;
+          if(outstanding==0) {
+            res.write('</ul></body></html>');
+            res.end();
+          }
+        });
+      })(i);
+    }
+  }
   function webfinger(urlObj, res) {
     console.log('WEBFINGER');
     if(urlObj.query['resource']) {
@@ -166,7 +201,7 @@ exports.handler = (function() {
       }
     } else if(req.method=='PUT') {
       console.log('PUT');
-      if(mayWrite(req.headers.authorization, path)) {
+      if(mayWrite(req.headers.authorization, path) && path.substr(-1)!='/') {
         var dataStr = '';
         req.on('data', function(chunk) {
           dataStr+=chunk;
@@ -194,9 +229,9 @@ exports.handler = (function() {
             content[pathParts.join('/')+'/'][thisPart]=timestamp;
             console.log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
           }
-          console.log(content);
-          console.log(contentType);
-          console.log(lastModified);
+          console.log('content:', content);
+          console.log('contentType:', contentType);
+          console.log('lastModified:', lastModified);
           writeJson(res, null, req.headers.origin, timestamp);
         });
       } else {
@@ -228,7 +263,10 @@ exports.handler = (function() {
   function serve(req, res, staticsMap) {
     var urlObj = url.parse(req.url, true), userAddress, userName;
     console.log(urlObj);
-    if(urlObj.pathname == '/.well-known/host-meta.json') {//TODO: implement rest of webfinger
+    if(urlObj.pathname == '/') {
+      console.log('PORTAL');
+      portal(urlObj, res);
+    } else if(urlObj.pathname == '/.well-known/host-meta.json') {//TODO: implement rest of webfinger
       console.log('HOST-META');
       webfinger(urlObj, res);
     } else if(urlObj.pathname.substring(0, '/auth/'.length) == '/auth/') {

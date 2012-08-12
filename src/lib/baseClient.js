@@ -35,6 +35,7 @@ define(['./sync', './store'], function (sync, store) {
   store.on('change', function(e) {
     var moduleName = extractModuleName(e.path);
     fireChange(moduleName, e);//tab-, device- and cloud-based changes all get fired from the store.
+    fireChange('root', e);//root module gets everything
   });
   
 
@@ -53,11 +54,13 @@ define(['./sync', './store'], function (sync, store) {
     var ret = store.setNodeData(absPath, valueStr, true);
     var moduleName = extractModuleName(absPath);
     fireChange(moduleName, changeEvent);
+    fireChange('root', changeEvent);
     return ret; 
   }
 
   function claimAccess(path, claim) {
     store.setNodeAccess(path, claim);
+    //sync.syncNow(path);
   }
 
   function isDir(path) {
@@ -100,10 +103,12 @@ define(['./sync', './store'], function (sync, store) {
           if(cb) {
             sync.fetchNow(absPath, function(err) {
               var node = store.getNode(absPath);
+              delete node.data['@type'];
               bindContext(cb, context)(node.data);
             });
           } else {
             var node = store.getNode(absPath);
+            delete node.data['@type'];
             return node.data;
           }
         },
@@ -115,32 +120,21 @@ define(['./sync', './store'], function (sync, store) {
               var node = store.getNode(absPath);
               var arr = [];
               for(var i in node.data) {
-                if(!node.removed[i]) {
-                  arr.push(i);
-                }
-              }
-              for(var i in node.added) {
                 arr.push(i);
               }
-              //no need to look at node.changed, that doesn't change the listing
               bindContext(cb, context)(arr);
             });
           } else {
             var node = store.getNode(absPath);
             var arr = [];
             for(var i in node.data) {
-              if(!node.removed[i]) {
-                arr.push(i);
-              }
-            }
-            for(var i in node.added) {
               arr.push(i);
             }
             return arr;
           }
         },
 
-        getMedia: function(path, cb, context) {
+        getDocument: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err) {
@@ -169,7 +163,7 @@ define(['./sync', './store'], function (sync, store) {
           return set(path, makePath(path), obj, 'application/json');
         },
 
-        storeMedia: function(mimeType, path, data) {
+        storeDocument: function(mimeType, path, data) {
           return set(path, makePath(path), data, mimeType);
         },
 

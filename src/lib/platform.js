@@ -18,8 +18,10 @@ define([], function() {
         xhr.setRequestHeader(header, params.headers[header]);
       }
     }
+    console.log('A '+params.url);
     xhr.onreadystatechange = function() {
       if((xhr.readyState==4) && (!timedOut)) {
+        console.log('B '+params.url);
         if(timer) {
           window.clearTimeout(timer);
         }
@@ -157,7 +159,10 @@ define([], function() {
       var pairs = location.hash.substring(1).split('&');
       for(var i=0; i<pairs.length; i++) {
         if(pairs[i].substring(0, (param+'=').length) == param+'=') {
-          return pairs[i].substring((param+'=').length);
+          var ret = pairs[i].substring((param+'=').length);
+          delete pairs[i];
+          location = '#'+pairs.join('&');
+          return ret;
         }
       }
     }

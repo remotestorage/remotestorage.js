@@ -36,9 +36,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     displayWidgetState(state, userAddress);
   }
   function displayWidgetState(state, userAddress) {
-    if(!localStorage.michiel) {
-      state='devsonly';
-    }
+    //if(!localStorage.michiel) {
+    //  state = 'devsonly';
+    //}
     var userAddress = localStorage['remote_storage_widget_useraddress'];
     var html = 
       '<style>'+assets.widgetCss+'</style>'
@@ -50,8 +50,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
       +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br>Click for more info on the Unhosted movement.</span>'//info text
       //+'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <input id="remotestorage-useraddress" type="text" value="michiel@mich.rs" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <a class="infotext" href="http://unhosted.org" target="_blank" id="remotestorage-devsonly">Local use only, no async sync yet. But modules work!<br>Click for more info on the Unhosted movement.</a>'
+      +'  <input id="remotestorage-useraddress" type="text" value="me@local.dev" placeholder="you@remotestorage" autofocus >'//text input
+      +'  <a class="infotext" href="http://remotestoragejs.com/" target="_blank" id="remotestorage-devsonly">RemoteStorageJs is still in developer preview!<br>Click for more info.</a>'
       +'</div>';
     platform.setElementHTML(connectElement, html);
     platform.eltOn('remotestorage-register-button', 'click', handleRegisterButtonClick);
@@ -140,15 +140,20 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
-      localStorage['remote_storage_widget_useraddress']=userAddress;
-      setWidgetState('connecting');
-      discoverStorageInfo(userAddress, function(err, auth) {
-        if(err) {
-          setWidgetState('failed');
-        } else {
-          dance(auth);
-        }
-      });
+      if(userAddress=='me@local.dev') {
+        localStorage['remote_storage_widget_useraddress']=userAddress;
+        setWidgetState('connecting');
+        discoverStorageInfo(userAddress, function(err, auth) {
+          if(err) {
+            alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
+            setWidgetState('failed');
+          } else {
+            dance(auth);
+          }
+        });
+      } else {
+        alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
+      }
     } else {
       setWidgetState('typing');
     }
@@ -163,9 +168,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
   }
   function handleCubeClick() {
-    setWidgetState('busy');
-    sync.syncNow('/', function(success) {
-      setWidgetState((success?'connected':'offline'));
+    sync.syncNow('/', function(errors) {
     });
     //if(widgetState == 'connected') {
     //  handleDisconnectClick();
@@ -197,7 +200,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     wireClient.on('error', function(err) {
       platform.alert(translate(err));
     });
-    wireClient.on('state', setWidgetState);
+    sync.on('state', setWidgetState);
     setWidgetStateOnLoad();
   }
   function addScope(module, mode) {

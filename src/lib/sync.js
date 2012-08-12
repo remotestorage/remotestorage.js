@@ -1,134 +1,110 @@
-// access: null
-// lastModified: 0
-// keep: true
-// data
-//   tasks/: 999999
-//   public/: 999999
-// data
-//   
-
-//start: store has a tree with three types of node: dir, object, media.
-//object and media nodes have fields:
-//lastModified, type (media/object), mimeType/objectType, data, access, outgoingChange (client-side timestamp or false), sync
-//dir nodes have fields:
-//lastModified, type (dir), data (hash filename -> remote timestamp), added/changed/removed, access, startSync, stopSync
-
 define(['./wireClient', './store'], function(wireClient, store) {
-  var prefix = '_remoteStorage_', busy=false;
+  var prefix = '_remoteStorage_', busy=false, stateCbs=[];
    
-  function getState(path) {
+  function getState(path) {//should also distinguish between synced and locally modified for the path probably
     if(busy) {
       return 'busy';
     } else {
       return 'connected';
     }
   }
-  function getParentChain(path) {//this is for legacy support
-    var pathParts = path.split('/');
-    var parentChain={};
-    for(var i = 2; i<pathParts.length; i++) {
-      var thisPath = pathParts.slice(0, i).join('/');
-      parentChain[thisPath] = store.getNode(thisPath).data;
+  function setBusy(val) {
+    busy=val;
+    for(var i=0;i<stateCbs.length;i++) {
+      stateCbs[i](val?'busy':'connected');
     }
-    return parentChain;
   }
-  function handleChild(path, lastModified, force, access, startOne, finishOne) {
-    console.log('handleChild '+path);
-    var node = store.getNode(path);//will return a fake dir with empty data list for item
-    if(node.outgoingChange) {
-      if(node.startAccess !== null) { access = node.startAccess; }
-      if(access=='rw') {
-        (function(path) {
-          //TODO: deal with media; they don't need stringifying, but have a mime type that needs setting in a header
+  function on(eventType, cb) {
+    if(eventType=='state') {
+      stateCbs.push(cb);
+    }
+  }
+  function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne, clearCb) {
+    for(var i in remote) {
+      if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {//should probably include force and keep in this decision
+        pullNode(dirPath+i, force, access, startOne, finishOne);
+      }
+    }
+    for(var i in cached) {
+      if(!remote[i] || cached[i] > remote[i]) {
+        if(i.substr(-1)=='/') {
+          pullNode(dirPath+i, force, access, startOne, finishOne);
+        } else {//recurse
+          var childNode = store.getNode(dirPath+i);
           startOne();
-          var parentChain = getParentChain(path);
-          console.log('set-call handleChild '+path);
-          wireClient.set(path, JSON.stringify(node.data), node.mimeType, parentChain, function(err, timestamp) {
-            console.log('set-cb handleChild '+path);
-            if(!err && timestamp) {
-              store.clearOutgoingChange(path, timestamp);
-            }
+          wireClient.set(dirPath+i, JSON.stringify(childNode.data), 'application/json', function(err, timestamp) {
             finishOne();
           });
-        })(path);
-      }
-    } else if(node.lastModified<lastModified || !lastModified) {//i think there must a cleaner way than this ugly using 0 where no access
-      if(node.startAccess !== null) { access = node.startAccess; }
-      if(node.startForce !== null) { force = node.startForce; }
-      if((force || node.keep) && access) {
-        (function(path) {
-          startOne();
-          console.log('get-call handleChild '+path);
-          wireClient.get(path, function (err, data, timestamp, mimeType) {
-            console.log('get-cb handleChild '+path);
-            if(!err && data && path.substr(-1)!='/') {//directory listings will get updated in store only when the actual objects come in
-              store.setNodeData(path, data, false, timestamp, mimeType);
-            }
-            finishOne(err);
-            if(path.substr(-1)=='/') {//isDir(path)
-              var thisNode = store.getNode(path), map;
-              map = thisNode.data;
-              for(var i in thisNode.added) {
-                map[i] = thisNode.added[i];
-              }
-              if(data) {
-                for(var i in data) {
-                  map[i] = data[i];
-                }
-              }
-              startOne();
-              pullMap(path, map, force, access, finishOne);
-            }
-          });
-        })(path);
-      } else if(path.substr(-1)=='/') {//isDir(path)
-        //store.forget(path);
-        var thisNode = store.getNode(path), map;
-        map = thisNode.data;
-        for(var i in thisNode.added) {
-          map[i] = thisNode.added[i];
         }
-        startOne();
-        pullMap(path, map, force, access, finishOne);
       }
-    }// else everything up to date
+    }
+    for(var i in diff) {
+      if(!cached[i]) {//outgoing delete
+        if(remote[i]) {
+          startOne();
+          wireClient.set(dirPath+i, undefined, undefined, function(err, timestamp) {
+            finishOne();
+          });
+        } else {
+          clearCb(i);
+        }
+      } else if(remote[i] === cached[i]) {//can either be same timestamp or both undefined
+        clearCb(i);
+      }
+    }
   }
-  function pullMap(basePath, map, force, access, cb) {
-    console.log('pullMap '+basePath);
+  function pullNode(path, force, access, startOne, finishOne) {
+    console.log('pullNode '+path);
+    var thisNode=store.getNode(path);
+    if(thisNode.startAccess == 'rw' || !access) {
+      access = thisNode.startAccess;
+    }
+    if(thisNode.startForce) {
+      force = thisNode.startForce;
+    }
+    if(access) {
+      startOne();
+      wireClient.get(path, function(err, data) {
+        if(!err && data) {
+          if(path.substr(-1)=='/') {
+            dirMerge(path, data, thisNode.data, thisNode.diff, force, access, startOne, finishOne, function(i) {
+              store.clearDiff(path, i);
+            });
+          } else {
+            store.setNodeData(path, data, false);
+          }
+        }
+        finishOne();
+      });
+    } else {
+      for(var i in thisNode.data) {
+        if(i.substr(-1)=='/') {
+          pullNode(path+i, force, access, startOne, finishOne);
+        }
+      }
+    }
+  }
+  function syncNow(path) {
     var outstanding=0, errors=null;
     function startOne() {
       outstanding++;
     }
     function finishOne(err) {
       if(err) {
-        errors = err;
+        //TODO: do something with them :)
       }
       outstanding--;
       if(outstanding==0) {
-        cb(errors);
+        setBusy(false);
       }
     }
-    startOne();
-    for(var path in map) {
-      console.log('pullMap '+basePath+' calling handleChild for '+path);
-      (function(path) {
-        handleChild(basePath+path, map[path], force, access, startOne, finishOne);
-      })(path);
-    }
-    finishOne();
-  }
-  function syncNow(path, cb) {
     console.log('syncNow '+path);
-    busy=true;
-    var map={};
-    map[path]= Infinity;
-    pullMap('', map, false, false, function(err) {
-      busy=false;
-      cb((err===null));
-    });
+    setBusy(true);
+    pullNode(path, false, false, startOne, finishOne);
   }
   return {
     syncNow: syncNow,
-    getState : getState
+    getState : getState,
+    on: on
   };
 });
