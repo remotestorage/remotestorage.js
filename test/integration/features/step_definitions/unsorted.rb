@@ -1,4 +1,9 @@
 
+Given(/^my localStorage is empty$/) do
+  step("I am on the test app")
+  page.evaluate_script('localStorage.clear();')
+end
+
 Given(/^I am on the test app$/) do
   visit('/test/integration/app')
 end
@@ -27,6 +32,7 @@ end
 When(/^debugger$/) { debugger }
 
 Then(/^I should end up on my RemoteStorage login page$/) do
+  sleep(0.2) # (sometimes this takes a while)
   page.current_url.should =~ /^http:\/\/#{@provider_host}\/auth\/me/
 end
 
@@ -38,3 +44,10 @@ Then(/^the widget state should have changed to "([^"]*)"$/) do |state|
   page.evaluate_script("remoteStorage.getWidgetState()").should eq state
 end
 
+When(/^I get the listing of "([^"]*)"$/) do |path|
+  @response = page.evaluate_script("remoteStorage.root.getListing('#{path}')")
+end
+
+Then(/^I should receive '([^']+)'$/) do |json|
+  @response.to_json.should eq json
+end
