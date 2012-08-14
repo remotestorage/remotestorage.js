@@ -48,6 +48,14 @@ When(/^I get the listing of "([^"]*)"$/) do |path|
   @response = page.evaluate_script("remoteStorage.root.getListing('#{path}')")
 end
 
-Then(/^I should receive '([^']+)'$/) do |json|
-  @response.to_json.should eq json
+When(/^I get the key "([^"]+)"$/) do |path|
+  @response = page.evaluate_script("remoteStorage.root.getObject('#{path}')")
+end
+
+When(/^I set the key "([^"]+)" of type "([^"]+)" to "([^"]+)"$/) do |key, type, value|
+  @response = page.evaluate_script("remoteStorage.root.setObject('#{type}', '#{key}', '#{value}')")
+end
+
+Then(/^I should receive '([^']*)'$/) do |json|
+  json.length > 0 ? (@response.to_json.should eq json) : ("#{@response}".should eq json)
 end
