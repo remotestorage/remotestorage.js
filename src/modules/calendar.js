@@ -1,6 +1,6 @@
 remoteStorage.defineModule('calendar', function(privateBaseClient) {
   // callback expects a list of objects with the itemId and itemValue properties set
-  privateBaseClient.sync('/');
+  //privateBaseClient.sync('/');
   function getEventsForDay(day) {
     var ids = privateBaseClient.getListing(day+'/');
     var list = [];
