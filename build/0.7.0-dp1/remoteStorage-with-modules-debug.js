@@ -1323,6 +1323,14 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     });
     sync.on('state', setWidgetState);
     setWidgetStateOnLoad();
+    window.onkeydown = function(evt) {
+      if(evt.ctrlKey && evt.which == 83) {
+        evt.preventDefault();
+        console.log("CTRL+S - SYNCING");
+        sync.syncNow('/', function(errors) {});
+        return false;
+      }
+    }
   }
   function addScope(module, mode) {
     if(!scopesObj[module] || mode == 'rw') {
