@@ -11,3 +11,4 @@ cd ../../server
 node nodejs-example.js > server.log &
 cd -
 cucumber $@
+exit $?
