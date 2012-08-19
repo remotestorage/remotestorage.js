@@ -280,7 +280,11 @@ define('lib/platform',[], function() {
   function setElementHtmlNode(eltName, html) {
   }
   function setElementHtmlBrowser(eltName, html) {
-    document.getElementById(eltName).innerHTML = html;
+    var elt = eltName;
+    if(! (elt instanceof Element)) {
+      elt = document.getElementById(eltName);
+    }
+    elt.innerHTML = html;
   }
   function getElementValueNode(eltName) {
   }
