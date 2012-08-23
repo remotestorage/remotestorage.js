@@ -9,6 +9,10 @@ define('remoteStorage', [
 
   var claimedModules = {}, modules = {};
 
+  function deprecate(oldFn, newFn) {
+    console.error("DEPRECATION: " + oldFn + " is deprecated! Use " + newFn + " instead.");
+  }
+
   var remoteStorage =  {
 
     /**
@@ -175,6 +179,11 @@ define('remoteStorage', [
         baseClient.claimAccess('/public/'+moduleName+'/', mode);
       }
       claimedModules[moduleName] = true;
+    },
+
+    loadModule: function() {
+      deprecate('remoteStorage.loadModule', 'remoteStorage.claimAccess');
+      this.claimModuleAccess.apply(this, arguments);
     },
 
     /** setBearerToken() - Set bearer token and claim additional scopes.
