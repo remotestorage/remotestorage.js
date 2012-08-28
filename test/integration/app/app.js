@@ -3,7 +3,7 @@
 
   window.onload = function() {
 
-    remoteStorage.loadModule('root');
+    remoteStorage.claimAccess('root');
 
     remoteStorage.displayWidget('remotestorage-connect');
   }
