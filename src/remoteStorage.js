@@ -29,7 +29,8 @@ define('remoteStorage', [
      ** it can only be written by an authenticated client with read-write
      ** access claimed on it.
      **
-     ** It is expected to return an object, as described under getModuleInfo().
+     ** The builder is expected to return an object, as described under
+     ** getModuleInfo().
      ** 
      **/
     defineModule: function(moduleName, builder) {
@@ -41,7 +42,8 @@ define('remoteStorage', [
         baseClient.getInstance(moduleName, true)
       );
       modules[moduleName] = module;
-      this[moduleName] = module.exports
+      this[moduleName] = module.exports;
+      console.log('Module defined: ' + moduleName, module, this);
     },
 
     /** getModuleList() - Get an Array of all moduleNames, currently defined.
@@ -73,19 +75,19 @@ define('remoteStorage', [
      **
      **   objectType <type> - description of an object
      **                       type implemented by the module:
-     **   "objectType message"
+     **     "objectType message"
      **
      **   <attributeType> <objectType>#<attribute> - description of an attribute
      **
-     **   "string message#subject"
+     **     "string message#subject"
      **
      **   directory <path> - description of a path's purpose
      **
-     **   "directory documents/notes/"
+     **     "directory documents/notes/"
      **
      **   item <path> - description of a special item
      **
-     **   "item documents/notes/calendar"
+     **     "item documents/notes/calendar"
      **
      ** Hope this helps.
      **
@@ -139,8 +141,10 @@ define('remoteStorage', [
         var _modules = modules, mode = 'rw';
         modules = {};
 
-        if(arguments[arguments.length - 1].match(/^rw?$/)) {
-          mode = arguments[arguments.length - 1];
+        var lastArg = arguments[arguments.length - 1];
+
+        if(typeof(lastArg) === 'string' && lastArg.match(/^rw?$/)) {
+          mode = lastArg;
           delete arguments[arguments.length - 1];
         }
         
@@ -245,7 +249,6 @@ define('remoteStorage', [
     setStorageInfo   : wireClient.setStorageInfo
 
   };
-
 
   return remoteStorage;
 });
