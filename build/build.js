@@ -36,7 +36,7 @@ doBuild('remoteStorage-node', 'start.frag', 'remoteStorage', 'endNode.frag');
 // modules build
 doBuild('remoteStorage-modules', 'start.frag', 'remoteStorage-modules', 'endModules.frag');
 // set of modules, not optimized.
-doBuild('remoteStorage-modules-debug', 'start.frag', 'remoteStorage-modules', 'endModules.frag', true);
+doBuild('remoteStorage-modules-debug', 'startDebug.frag', 'remoteStorage-modules', 'endModules.frag', true);
 
 // combined build
 doBuild('remoteStorage-with-modules', 'start.frag', 'remoteStorage-with-modules', 'end.frag');
