@@ -158,17 +158,26 @@ define(['./sync', './store'], function (sync, store) {
         },
 
         remove: function(path) {
-          return set(path, makePath(path));
+          var ret = set(path, makePath(path));
+          sync.syncNow('/', function(errors) {
+          });
+          return ret;
         },
 
         storeObject: function(type, path, obj) {
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
-          return set(path, makePath(path), obj, 'application/json');
+          var ret = set(path, makePath(path), obj, 'application/json');
+          sync.syncNow('/', function(errors) {
+          });
+          return ret;
         },
 
         storeDocument: function(mimeType, path, data) {
-          return set(path, makePath(path), data, mimeType);
+          var ret = set(path, makePath(path), data, mimeType);
+          sync.syncNow('/', function(errors) {
+          });
+          return ret;
         },
 
         getCurrentWebRoot: function() {

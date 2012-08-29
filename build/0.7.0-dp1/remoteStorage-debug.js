@@ -269,7 +269,7 @@ define('lib/platform',[], function() {
       var pairs = location.hash.substring(1).split('&');
       for(var i=0; i<pairs.length; i++) {
         if(pairs[i].substring(0, (param+'=').length) == param+'=') {
-          var ret = pairs[i].substring((param+'=').length);
+          var ret = decodeURIComponent(pairs[i].substring((param+'=').length));
           delete pairs[i];
           location = '#'+pairs.join('&');
           return ret;
@@ -1331,6 +1331,11 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
         return false;
       }
     }
+    
+    //TODO: discuss with Niklas how to wire all these events. it should be onload, but inside the display function seems wrong
+    sync.syncNow('/', function(errors) {
+    });
+
   }
   function addScope(module, mode) {
     if(!scopesObj[module] || mode == 'rw') {
@@ -1505,17 +1510,26 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         remove: function(path) {
-          return set(path, makePath(path));
+          var ret = set(path, makePath(path));
+          sync.syncNow('/', function(errors) {
+          });
+          return ret;
         },
 
         storeObject: function(type, path, obj) {
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
-          return set(path, makePath(path), obj, 'application/json');
+          var ret = set(path, makePath(path), obj, 'application/json');
+          sync.syncNow('/', function(errors) {
+          });
+          return ret;
         },
 
         storeDocument: function(mimeType, path, data) {
-          return set(path, makePath(path), data, mimeType);
+          var ret = set(path, makePath(path), data, mimeType);
+          sync.syncNow('/', function(errors) {
+          });
+          return ret;
         },
 
         getCurrentWebRoot: function() {
