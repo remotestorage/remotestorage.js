@@ -27,6 +27,9 @@
       return function(){};
     }
     var modNames = deps[name];
+    if(! modNames) {
+      throw "Failed to find dependencies for module " + name;
+    }
     for(var i=0;i<modNames.length;i++) {
       if(!mods[modNames[i]]) {
         mods[modNames[i]]=_loadModule(modNames[i]);
