@@ -1,11 +1,12 @@
 define('remoteStorage-modules', [
-  './modules/calendar', 
-  './modules/deps/vcardjs-0.2.js',
-  './modules/contacts', 
-  './modules/documents', 
+  'remoteStorage',
+  './modules/root',
+  './modules/calendar',
+  './modules/contacts',
+  './modules/documents',
   './modules/money',
   './modules/tasks'
-], function() {
-  return {};
+], function(remoteStorage) {
+  return remoteStorage;
 });
 

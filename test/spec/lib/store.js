@@ -94,8 +94,7 @@
           expect(
             Object.keys(result).sort()
           ).toEqual(
-            ['added', 'changed', 'data', 'keep', 'lastModified',
-             'outgoingChange', 'removed', 'startAccess', 'startForce']
+            ['data', 'diff', 'keep', 'startAccess', 'startForce', 'timestamp']
           );
         });
 

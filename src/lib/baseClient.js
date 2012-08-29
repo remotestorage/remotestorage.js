@@ -37,7 +37,7 @@ define(['./sync', './store'], function (sync, store) {
     fireChange(moduleName, e);//tab-, device- and cloud-based changes all get fired from the store.
     fireChange('root', e);//root module gets everything
   });
-  
+
 
   function set(path, absPath, valueStr) {
     if(isDir(absPath)) {
@@ -55,7 +55,7 @@ define(['./sync', './store'], function (sync, store) {
     var moduleName = extractModuleName(absPath);
     fireChange(moduleName, changeEvent);
     fireChange('root', changeEvent);
-    return ret; 
+    return ret;
   }
 
   function claimAccess(path, claim) {
@@ -103,12 +103,16 @@ define(['./sync', './store'], function (sync, store) {
           if(cb) {
             sync.fetchNow(absPath, function(err) {
               var node = store.getNode(absPath);
-              delete node.data['@type'];
+              if(node.data) {
+                delete node.data['@type'];
+              }
               bindContext(cb, context)(node.data);
             });
           } else {
             var node = store.getNode(absPath);
-            delete node.data['@type'];
+            if(node.data) {
+              delete node.data['@type'];
+            }
             return node.data;
           }
         },
@@ -159,7 +163,7 @@ define(['./sync', './store'], function (sync, store) {
           });
           return ret;
         },
-        
+
         storeObject: function(type, path, obj) {
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);

@@ -35,6 +35,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     widgetState = state;
     displayWidgetState(state, userAddress);
   }
+  function getWidgetState() {
+    return widgetState;
+  }
   function displayWidgetState(state, userAddress) {
     //if(!localStorage.michiel) {
     //  state = 'devsonly';
@@ -89,7 +92,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     if(hostParts.length == 2) {
       hostParts.shift();
     }
-    return hostParts[0].split(':')[0];
+    return hostParts[0];
   }
   function dance(endpoint) {
     var endPointParts = endpoint.split('?');
@@ -202,6 +205,14 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     });
     sync.on('state', setWidgetState);
     setWidgetStateOnLoad();
+    window.onkeydown = function(evt) {
+      if(evt.ctrlKey && evt.which == 83) {
+        evt.preventDefault();
+        console.log("CTRL+S - SYNCING");
+        sync.syncNow('/', function(errors) {});
+        return false;
+      }
+    }
     
     //TODO: discuss with Niklas how to wire all these events. it should be onload, but inside the display function seems wrong
     sync.syncNow('/', function(errors) {
@@ -216,6 +227,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   
   return {
     display : display,
-    addScope: addScope
+    addScope: addScope,
+    getState: getWidgetState
   };
 });

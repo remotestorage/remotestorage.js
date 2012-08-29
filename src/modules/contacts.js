@@ -1,140 +1,168 @@
 
-remoteStorage.defineModule('contacts', function(base) {
+/**
+ ** Skeleton for new modules
+ **/
 
-  var DEBUG = true;
+define(['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage, vCardJS) {
 
-  if(typeof(VCard) === 'undefined') {
-    console.error("remoteStorage.contacts requires vCardJS from https://github.com/nilclass/vcardjs");
-    return { exports: {} };
-  }
+  var moduleName = "contacts";
 
-  // Copy over all properties from source to destination.
-  // Return destination.
-  function extend(destination, source) {
+  var VCard = vCardJS.VCard, VCF = vCardJS.VCF;
+
+  remoteStorage.defineModule(moduleName, function(base) {
+
+    var DEBUG = true;
+
+    // Copy over all properties from source to destination.
+    // Return destination.
+    function extend(destination, source) {
       var keys = Object.keys(source);
       for(var i=0;i<keys.length;i++) {
-          var key = keys[i];
-          destination[key] = source[key];
+        var key = keys[i];
+        destination[key] = source[key];
       }
       return destination;
-  }
-
-  function bindContext(cb, context) {
-    if(! context) {
-      return cb;
-    }
-    return function() { return cb.apply(context, arguments); };
-  }
-
-  var debug = DEBUG ? bindContext(console.log, console) : function() {};
-
-  /**
-   ** The Contact class.
-   **/
-  var Contact = function() {
-    VCard.apply(this, arguments);
-  }
-
-  Contact.prototype = extend({
-    isNew: true,
-
-    save: function() {
-      this.validate();
-
-      if(this.errors && this.errors.length > 0) {
-        return false;
-      } else {
-        base.storeObject('vcard', this.uid, this.toJCard());
-        this.markSaved();
-        return true;
-      }
-    },
-
-    markSaved: function() {
-      this.isNew = false;
-      // attribute defined & used in vCardJS
-      this.changed = false;
-      return this;
     }
 
-  }, VCard.prototype);
+    var bindContext = (
+      ( (typeof (function() {}).bind === 'function') ?
+        // native version
+        function(cb, context) { return cb.bind(context); } :
+        // custom version
+        function(cb, context) {
+          return function() { return cb.apply(context, arguments); }
+        } )
+    );
 
-  /**
-   ** THE CONTACTS MODULE
-   **/
-
-  var contacts = {
-    
-    /**
-     ** NAMESPACE
-     **/
-    
-    Contact: Contact,
+    var debug = DEBUG ? bindContext(console.log, console) : function() {};
 
     /**
-     ** INHERITED METHODS
+     ** The Contact class.
      **/
+    var Contact = function() {
+      VCard.apply(this, arguments);
+    }
 
-    on: base.on,
-    
-    /**
-     ** PUBLIC METHODS
-     **/
-    
-    list: function(limit, offset) {
-      var list = base.getListing('');
-      if(! offset) {
-        offset = 0;
-      }
-      if(! limit) {
-        limit = list.length - offset;
-      }
+    Contact.prototype = extend({
+      isNew: true,
 
-      for(var i=0;i<limit;i++) {
-        list[i + offset] = this.get(list[i + offset]);
-      }
-      return list;
-    },
+      save: function() {
+        this.validate();
 
-    // Get a Contact instance based on it's UID.
-    get: function(uid, cb, context) {
-      if(cb) {
-        base.getObject(uid, function(data) {
-          bindContext(cb, context)(this._load(data));
-        }, this);
-      } else {
-        return this._load(base.getObject(uid));
-      }
-    },
-
-    build: function(attributes) {
-      return this._wrap(attributes);
-    },
-
-    create: function(attributes) {
-      var instance = this.build(attributes);
-      instance.save();
-      return instance;
-    },
-
-    filter: function(cb, context) {
-      // this is highly ineffective. go fix it!
-      var list = this.list();
-      var results = [];
-      var item;
-      for(var i=0;i<list.length;i++) {
-        item = bindContext(cb, context)(list[i]);
-        if(item) {
-          results.push(item)
+        if(this.errors && this.errors.length > 0) {
+          return false;
+        } else {
+          base.storeObject('vcard', this.uid, this.toJCard());
+          this.markSaved();
+          return true;
         }
+      },
+
+      markSaved: function() {
+        this.isNew = false;
+        // attribute defined & used in vCardJS
+        this.changed = false;
+        return this;
       }
-      return results;
-    },
 
-    search: function(filter) {
-      var keys = Object.keys(filter);
+    }, VCard.prototype);
 
-      return this.filter(function(item) {
+    /**
+     ** THE CONTACTS MODULE
+     **/
+
+    var contacts = {
+      
+      /**
+       ** NAMESPACE
+       **/
+      
+      Contact: Contact,
+
+      /**
+       ** PUBLIC METHODS
+       **/
+
+      on: function(eventType, callback) {
+        base.on(eventType, function(event) {
+          if(event.oldValue) {
+            event.oldValue = new Contact(event.oldValue);
+          }
+          if(event.newValue) {
+            event.newValue = new Contact(event.newValue);
+          }
+          callback(event);
+        });
+      },
+      
+      sync: function() {
+        debug("contacts.sync()");
+        base.sync('/');
+      },
+
+      list: function(limit, offset) {
+        var list = base.getListing('');
+        if(! offset) {
+          offset = 0;
+        }
+        if(! limit) {
+          limit = list.length - offset;
+        }
+
+        for(var i=0;i<limit;i++) {
+          list[i + offset] = this.get(list[i + offset]);
+        }
+        return list;
+      },
+
+      // Get a Contact instance based on it's UID.
+      get: function(uid, cb, context) {
+        if(cb) {
+          base.getObject(uid, function(data) {
+            bindContext(cb, context)(this._load(data));
+          }, this);
+        } else {
+          return this._load(base.getObject(uid));
+        }
+      },
+
+      build: function(attributes) {
+        return this._wrap(attributes);
+      },
+
+      create: function(attributes) {
+        var instance = this.build(attributes);
+        instance.save();
+        return instance;
+      },
+
+      filter: function(cb, context) {
+        // this is highly ineffective. go fix it!
+        var list = this.list();
+        var results = [];
+        var item;
+        for(var i=0;i<list.length;i++) {
+          item = bindContext(cb, context)(list[i]);
+          if(item) {
+            results.push(item)
+          }
+        }
+        return results;
+      },
+
+      search: function(filter) {
+        var keys = Object.keys(filter);
+
+        return this.filter(function(item) {
+          return this.searchMatch(item, filter, keys);
+        }, this);
+      },
+
+      searchMatch: function(item, filter, filterKeys) {
+        if(! filterKeys) {
+          filterKeys = Object.keys(filter);
+        }
+
         for(var i=0;i<keys.length;i++) {
           var k = keys[i], v = filter[k];
           debug('check ', k, ' == ', v, ' in ', item, '(', item[k], ')');
@@ -150,29 +178,36 @@ remoteStorage.defineModule('contacts', function(base) {
         }
         debug('success');
         return item;
-      }, this);
-    },
+      },
 
-    /**
-     ** PRIVATE METHODS
-     **/
+      /**
+       ** PRIVATE METHODS
+       **/
 
-    // _wrap given data and mark as saved.
-    _load: function(data) {
-      return this._wrap(data).markSaved();
-    },
+      // _wrap given data and mark as saved.
+      _load: function(data) {
+        return this._wrap(data).markSaved();
+      },
 
-    // return given data as a Contact instance.
-    // do nothing, if it's already a contact.
-    _wrap: function(data) {
-      return(data instanceof Contact ? data : new Contact(data));
+      // return given data as a Contact instance.
+      // do nothing, if it's already a contact.
+      _wrap: function(data) {
+        return(data instanceof Contact ? data : new Contact(data));
+      }
+
+      
+    };
+    
+    return {
+      name: moduleName,
+
+      dataHints: {
+      },
+      
+      exports: contacts
     }
-
-    
-  };
+  });
   
-  return {
+  return remoteStorage[moduleName];
     
-    exports: contacts
-  }
 });

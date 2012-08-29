@@ -21,16 +21,18 @@
       }
       deps[name].push(dir+relDeps[i]);
     }
-
-    if(name === 'remoteStorage') {
-      remoteStorage = _loadModule('remoteStorage');
-    }
   }
+
   function _loadModule(name) {
     if(name=='require') {//not including that one, out!
       return function(){};
     }
     var modNames = deps[name];
+    if(! modNames) {
+      console.log("MODS", mods);
+      console.log("DEPS", deps);
+      throw "Failed to find dependencies for module " + name;
+    }
     for(var i=0;i<modNames.length;i++) {
       if(!mods[modNames[i]]) {
         console.log('loading '+modNames[i]);
