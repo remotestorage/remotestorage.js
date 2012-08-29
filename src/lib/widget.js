@@ -202,6 +202,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     });
     sync.on('state', setWidgetState);
     setWidgetStateOnLoad();
+    
+    //TODO: discuss with Niklas how to wire all these events. it should be onload, but inside the display function seems wrong
+    sync.syncNow('/', function(errors) {
+    });
+
   }
   function addScope(module, mode) {
     if(!scopesObj[module] || mode == 'rw') {

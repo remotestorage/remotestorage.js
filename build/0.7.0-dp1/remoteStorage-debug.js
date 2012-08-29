@@ -1315,6 +1315,11 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     });
     sync.on('state', setWidgetState);
     setWidgetStateOnLoad();
+    
+    //TODO: discuss with Niklas how to wire all these events. it should be onload, but inside the display function seems wrong
+    sync.syncNow('/', function(errors) {
+    });
+
   }
   function addScope(module, mode) {
     if(!scopesObj[module] || mode == 'rw') {
@@ -1484,17 +1489,26 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         remove: function(path) {
-          return set(path, makePath(path));
+          var ret = set(path, makePath(path));
+          sync.syncNow('/', function(errors) {
+          });
+          return ret;
         },
         
         storeObject: function(type, path, obj) {
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
-          return set(path, makePath(path), obj, 'application/json');
+          var ret = set(path, makePath(path), obj, 'application/json');
+          sync.syncNow('/', function(errors) {
+          });
+          return ret;
         },
 
         storeDocument: function(mimeType, path, data) {
-          return set(path, makePath(path), data, mimeType);
+          var ret = set(path, makePath(path), data, mimeType);
+          sync.syncNow('/', function(errors) {
+          });
+          return ret;
         },
 
         getCurrentWebRoot: function() {
