@@ -1138,6 +1138,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
   }
   function calcWidgetStateOnLoad() {
+    wc = wireClient;
     if(isRegistering()) {
       return 'registering';
     } else {
@@ -1335,8 +1336,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
     
     //TODO: discuss with Niklas how to wire all these events. it should be onload, but inside the display function seems wrong
-    sync.syncNow('/', function(errors) {
-    });
+    //TODO: discuss with Michiel that I commented this in, as it breaks the widget altogether (it reaches the "connected" state w/o being connected)
+    //sync.syncNow('/', function(errors) {
+    //});
 
   }
   function addScope(module, mode) {

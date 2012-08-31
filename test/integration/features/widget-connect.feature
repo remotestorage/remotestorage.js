@@ -1,6 +1,10 @@
 
 Feature: Connect through Widget
 
+  Background:
+    Given my localStorage is empty
+    And I am on the test app
+
   Scenario: Connect with my RemoteStorage account
     Given I have a user address
     And I am on the test app
