@@ -20,9 +20,9 @@
 
     <div id="remotestorage-connect"></div>
 
-#### load the 'tasks' module,
+#### claim access to the 'tasks' module,
 
-    remoteStorage.loadModule('tasks', 'rw');
+    remoteStorage.claimAccess('tasks', 'rw');
 
 #### and after you have loaded all the modules you will be using, but still in your app's onload function,
 #### add a call to put the 'connect your remote storage' UI into that div, 
