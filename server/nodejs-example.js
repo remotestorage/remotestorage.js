@@ -175,7 +175,7 @@ exports.handler = (function() {
     }
   }
   function storage(req, urlObj, res) {
-    var path=urlObj.pathname.substring('/storage/'.length);
+    var path=urlObj.pathname.substring('/storage'.length);
     if(req.method=='OPTIONS') {
       console.log('OPTIONS ', req.headers);
       writeJson(res, null, req.headers.origin);
