@@ -35,10 +35,21 @@
 
 #### and specify your handlers for 'error' and 'change' on the task list:
 
-    todos.on('error', function(err) {
+    todos.on('error', function(event) {
+      // you can set up this event handler, but currently it isn't used.
+      // will probably be in the future though.
     });
-    todos.on('change', function(id, obj) {
-      refreshData();
+
+    todos.on('change', function(event) {
+
+      if(event.newValue && event.oldValue) {
+        console.log(event.path + " was updated")
+      } else if(event.newValue) {
+        console.log(event.path + " was created")
+      } else if(event.oldValue) {
+        console.log(event.path + " was deleted")
+      }
+
     });
 
 #### note that your change handler will be called with an object that has an 'origin' field, that comes with a value of 'tab', 'device', or 'cloud'
