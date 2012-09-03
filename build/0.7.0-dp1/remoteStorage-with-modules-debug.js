@@ -860,6 +860,7 @@ define('lib/store',[], function () {
   }
   function isDir(path) {
     if(typeof(path) != 'string') {
+      console.error("Given path is not a string: ", path);
       doSomething();
     }
     return path.substr(-1) == '/';
@@ -1063,8 +1064,8 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
     }
   }
   function pullNode(path, force, access, startOne, finishOne) {
-    console.log('pullNode '+path);
     var thisNode=store.getNode(path);
+    console.log('pullNode '+path, thisNode);
     if(thisNode.startAccess == 'rw' || !access) {
       access = thisNode.startAccess;
     }
@@ -1083,7 +1084,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
             store.setNodeData(path, data, false);
           }
         }
-        finishOne();
+        finishOne(err);
       });
     } else {
       for(var i in thisNode.data) {
@@ -1093,29 +1094,57 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
       }
     }
   }
-  function syncNow(path) {
-    var outstanding=0, errors=null;
+
+  // TODO: DRY those two:
+
+  function fetchNow(path, callback) {
+    var outstanding = 0, errors=[];
     function startOne() {
       outstanding++;
     }
     function finishOne(err) {
       if(err) {
-        //TODO: do something with them :)
+        errors.push(err);
+      }
+      outstanding--;
+      if(outstanding == 0) {
+        setBusy(false);
+        callback(errors || null, store.getNode(path));
+      }
+    }
+    setBusy(true);
+    pullNode(path, false, true, startOne, finishOne)
+  }
+  
+  function syncNow(path, callback) {
+    var outstanding=0, errors=[];
+    function startOne() {
+      outstanding++;
+    }
+    function finishOne(err) {
+      if(err) {
+        errors.push(path);
       }
       outstanding--;
       if(outstanding==0) {
         setBusy(false);
+        if(callback) {
+          callback(errors || null);
+        }
       }
     }
     console.log('syncNow '+path);
     setBusy(true);
     pullNode(path, false, false, startOne, finishOne);
   }
+
   return {
     syncNow: syncNow,
+    fetchNow: fetchNow,
     getState : getState,
     on: on
   };
+
 });
 
 define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform) {
@@ -1457,8 +1486,12 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         getObject: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
-            sync.fetchNow(absPath, function(err) {
-              var node = store.getNode(absPath);
+            sync.on('state', function(state) {
+              console.log('SYNC STATE: ' + state);
+            });
+
+            sync.fetchNow(absPath, function(err, node) {
+              //var node = store.getNode(absPath);
               if(node.data) {
                 delete node.data['@type'];
               }
@@ -1476,8 +1509,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         getListing: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
-            sync.fetchNow(absPath, function(err) {
-              var node = store.getNode(absPath);
+            sync.fetchNow(absPath, function(err, node) {
               var arr = [];
               for(var i in node.data) {
                 arr.push(i);
@@ -1497,8 +1529,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         getDocument: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
-            sync.fetchNow(absPath, function(err) {
-              var node = store.getNode(absPath);
+            sync.fetchNow(absPath, function(err, node) {
               bindContext(cb, context)({
                 mimeType: node.mimeType,
                 data: node.data

@@ -39,6 +39,7 @@ define([], function () {
   }
   function isDir(path) {
     if(typeof(path) != 'string') {
+      console.error("Given path is not a string: ", path);
       doSomething();
     }
     return path.substr(-1) == '/';

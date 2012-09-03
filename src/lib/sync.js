@@ -54,8 +54,8 @@ define(['./wireClient', './store'], function(wireClient, store) {
     }
   }
   function pullNode(path, force, access, startOne, finishOne) {
-    console.log('pullNode '+path);
     var thisNode=store.getNode(path);
+    console.log('pullNode '+path, thisNode);
     if(thisNode.startAccess == 'rw' || !access) {
       access = thisNode.startAccess;
     }
@@ -74,7 +74,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
             store.setNodeData(path, data, false);
           }
         }
-        finishOne();
+        finishOne(err);
       });
     } else {
       for(var i in thisNode.data) {
@@ -84,27 +84,55 @@ define(['./wireClient', './store'], function(wireClient, store) {
       }
     }
   }
-  function syncNow(path) {
-    var outstanding=0, errors=null;
+
+  // TODO: DRY those two:
+
+  function fetchNow(path, callback) {
+    var outstanding = 0, errors=[];
     function startOne() {
       outstanding++;
     }
     function finishOne(err) {
       if(err) {
-        //TODO: do something with them :)
+        errors.push(err);
+      }
+      outstanding--;
+      if(outstanding == 0) {
+        setBusy(false);
+        callback(errors || null, store.getNode(path));
+      }
+    }
+    setBusy(true);
+    pullNode(path, false, true, startOne, finishOne)
+  }
+  
+  function syncNow(path, callback) {
+    var outstanding=0, errors=[];
+    function startOne() {
+      outstanding++;
+    }
+    function finishOne(err) {
+      if(err) {
+        errors.push(path);
       }
       outstanding--;
       if(outstanding==0) {
         setBusy(false);
+        if(callback) {
+          callback(errors || null);
+        }
       }
     }
     console.log('syncNow '+path);
     setBusy(true);
     pullNode(path, false, false, startOne, finishOne);
   }
+
   return {
     syncNow: syncNow,
+    fetchNow: fetchNow,
     getState : getState,
     on: on
   };
+
 });

@@ -101,8 +101,7 @@ define(['./sync', './store'], function (sync, store) {
         getObject: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
-            sync.fetchNow(absPath, function(err) {
-              var node = store.getNode(absPath);
+            sync.fetchNow(absPath, function(err, node) {
               if(node.data) {
                 delete node.data['@type'];
               }
@@ -120,8 +119,7 @@ define(['./sync', './store'], function (sync, store) {
         getListing: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
-            sync.fetchNow(absPath, function(err) {
-              var node = store.getNode(absPath);
+            sync.fetchNow(absPath, function(err, node) {
               var arr = [];
               for(var i in node.data) {
                 arr.push(i);
@@ -141,8 +139,7 @@ define(['./sync', './store'], function (sync, store) {
         getDocument: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
-            sync.fetchNow(absPath, function(err) {
-              var node = store.getNode(absPath);
+            sync.fetchNow(absPath, function(err, node) {
               bindContext(cb, context)({
                 mimeType: node.mimeType,
                 data: node.data
