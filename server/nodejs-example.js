@@ -12,7 +12,7 @@ exports.handler = (function() {
       for(var i=0; i<scopes.length; i++) {
         var thisScopeParts = scopes[i].split(':');
         if(thisScopeParts[0]=='') {
-          scopePaths.push('/:'+thisScopeParts[1]);
+          scopePaths.push(userName+'/:'+thisScopeParts[1]);
         } else {
           scopePaths.push(userName+'/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
           scopePaths.push(userName+'/public/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
@@ -22,28 +22,17 @@ exports.handler = (function() {
       cb(token);
     });
   }
-  function getAllowedPaths(token, write) {
-    var paths=[];
-    scopes = tokens[token];
-    if(scopes) {
-      for(var i=0; i<scopes.length; i++) {
-        var scopeParts = scopes[i].split(':');
-        if(scopeParts[1]=='rw' || !write) {
-          paths.push('/'+scopeParts[0]+'/');
-          paths.push('/public/'+scopeParts[0]+'/');
-        }
-      }
-    }
-    return paths;
-  }
   function mayRead(authorizationHeader, path) {
     if(authorizationHeader) {
-      var allowedPaths = getAllowedPaths(authorizationHeader.substring('Bearer '.length), false);
-      for(var i=0; i<allowedPaths.length;i++) {
-        if(path.substring(0, allowedPaths[i])==allowedPaths[i]) {
-          return true;
-        } else {
-          console.log(path.substring(0, allowedPaths[i].length)+' != '+ allowedPaths[i]);
+      var scopes = tokens[authorizationHeader.substring('Bearer '.length)];
+      if(scopes) {
+        for(var i=0; i<scopes.length; i++) {
+          var scopeParts = scopes[i].split(':');
+          if(path.substring(0, scopeParts[0].length)==scopeParts[0]) {
+            return true;
+          } else {
+            console.log(path.substring(0, scopeParts[0].length)+' != '+ scopeParts[0]);
+          }
         }
       }
     } else {
@@ -53,12 +42,13 @@ exports.handler = (function() {
   }
   function mayWrite(authorizationHeader, path) {
     if(authorizationHeader) {
-      var allowedPaths = getAllowedPaths(authorizationHeader.substring('Bearer '.length), true);
-      for(var i=0; i<allowedPaths.length;i++) {
-        if(path.substring(0, allowedPaths[i])==allowedPaths[i]) {
-          return true;
-        } else {
-          console.log(path.substring(0, allowedPaths[i].length)+' != '+ allowedPaths[i]);
+      var scopes = tokens[authorizationHeader.substring('Bearer '.length)];
+      if(scopes) {
+        for(var i=0; i<scopes.length; i++) {
+          var scopeParts = scopes[i].split(':');
+          if(scopeParts.length==2 && scopeParts[1]=='rw' && path.substring(0, scopeParts[0].length)==scopeParts[0]) {
+            return true;
+          }
         }
       }
     }
@@ -185,7 +175,7 @@ exports.handler = (function() {
     }
   }
   function storage(req, urlObj, res) {
-    var path=urlObj.pathname.substring('/storage'.length);
+    var path=urlObj.pathname.substring('/storage/'.length);
     if(req.method=='OPTIONS') {
       console.log('OPTIONS ', req.headers);
       writeJson(res, null, req.headers.origin);
