@@ -92,9 +92,9 @@ define(['../remoteStorage'], function(remoteStorage) {
       return myPublicBaseClient;
     }
 
-    function getObject(path, cb, contex) {
+    function getObject(path, cb, context) {
       var client = getClient(path);
-      return client.getObject(path, cb, contex);
+      return client.getObject(path, cb, context);
     }
 
     function setObject(type, path, obj) {
