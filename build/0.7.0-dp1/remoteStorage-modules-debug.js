@@ -1513,8 +1513,8 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
 
         remove: function(path) {
           var ret = set(path, makePath(path));
-          sync.syncNow('/', function(errors) {
-          });
+          //sync.syncNow('/', function(errors) {
+          //});
           return ret;
         },
 
@@ -1522,15 +1522,15 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
           var ret = set(path, makePath(path), obj, 'application/json');
-          sync.syncNow('/', function(errors) {
-          });
+          //sync.syncNow('/', function(errors) {
+          //});
           return ret;
         },
 
         storeDocument: function(mimeType, path, data) {
           var ret = set(path, makePath(path), data, mimeType);
-          sync.syncNow('/', function(errors) {
-          });
+          //sync.syncNow('/', function(errors) {
+          //});
           return ret;
         },
 
