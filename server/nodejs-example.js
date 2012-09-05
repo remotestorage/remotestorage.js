@@ -18,6 +18,8 @@ exports.handler = (function() {
           scopePaths.push(userName+'/public/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
         }
       }
+      console.log('createToken ',userName,scopes);
+      console.log('adding ',scopePaths,' for',token);
       tokens[token] = scopePaths;
       cb(token);
     });
@@ -168,7 +170,7 @@ exports.handler = (function() {
     if(clientId != clientIdToMatch) {
       writeHtml(res, 'we do not trust this combination of client_id and redirect_uri');
     } else {
-      var userName = urlObj.pathname.substring('/auth'.length);
+      var userName = urlObj.pathname.substring('/auth/'.length);
       createToken(userName, scopes, function(token) {
         writeHtml(res, '<a href="'+toHtml(redirectUri)+'#access_token='+toHtml(token)+'">Allow</a>');
       });
