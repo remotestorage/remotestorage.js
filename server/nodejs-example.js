@@ -22,17 +22,28 @@ exports.handler = (function() {
       cb(token);
     });
   }
+  function getAllowedPaths(token, write) {
+    var paths=[];
+    scopes = tokens[token];
+    if(scopes) {
+      for(var i=0; i<scopes.length; i++) {
+        var scopeParts = scopes[i].split(':');
+        if(scopeParts[1]=='rw' || !write) {
+          paths.push('/'+scopeParts[0]+'/');
+          paths.push('/public/'+scopeParts[0]+'/');
+        }
+      }
+    }
+    return paths;
+  }
   function mayRead(authorizationHeader, path) {
     if(authorizationHeader) {
-      var scopes = tokens[authorizationHeader.substring('Bearer '.length)];
-      if(scopes) {
-        for(var i=0; i<scopes.length; i++) {
-          var scopeParts = scopes[i].split(':');
-          if(path.substring(0, scopeParts[0].length)==scopeParts[0]) {
-            return true;
-          } else {
-            console.log(path.substring(0, scopeParts[0].length)+' != '+ scopeParts[0]);
-          }
+      var allowedPaths = getAllowedPaths(authorizationHeader.substring('Bearer '.length), false);
+      for(var i=0; i<allowedPaths.length;i++) {
+        if(path.substring(0, allowedPaths[i])==allowedPaths[i]) {
+          return true;
+        } else {
+          console.log(path.substring(0, allowedPaths[i].length)+' != '+ allowedPaths[i]);
         }
       }
     } else {
@@ -42,13 +53,12 @@ exports.handler = (function() {
   }
   function mayWrite(authorizationHeader, path) {
     if(authorizationHeader) {
-      var scopes = tokens[authorizationHeader.substring('Bearer '.length)];
-      if(scopes) {
-        for(var i=0; i<scopes.length; i++) {
-          var scopeParts = scopes[i].split(':');
-          if(scopeParts.length==2 && scopeParts[1]=='rw' && path.substring(0, scopeParts[0].length)==scopeParts[0]) {
-            return true;
-          }
+      var allowedPaths = getAllowedPaths(authorizationHeader.substring('Bearer '.length), true);
+      for(var i=0; i<allowedPaths.length;i++) {
+        if(path.substring(0, allowedPaths[i])==allowedPaths[i]) {
+          return true;
+        } else {
+          console.log(path.substring(0, allowedPaths[i].length)+' != '+ allowedPaths[i]);
         }
       }
     }
