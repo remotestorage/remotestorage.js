@@ -89,6 +89,41 @@ define(['../remoteStorage'], function(remoteStorage) {
       obj[currency]=amount;
       myBaseClient.storeObject('balance', date+'/0/'+peer+'/balance', obj);
     }
+
+    function getTransactions(year, month, day) {
+      return [];
+    }
+    //we want to return all the transactions that affect the current user, even if the current user is not a peer.
+    //this may give a problem where i don't know about some transaction between two of my friends, and it looks to me like they
+    //have an outstanding balance that could be resolved. so there should always be a one-on-one balance at any time, but this cannot necessarily be public
+    //to people who can see some of the transactions between them. so there may be two versions of a transaction, one that gets tagged for more friends, 
+    //like the unhosted central pot, and only has a "+" or "-" resulting balance,
+    //and a private one displaying the real balance.
+/*
+
+what parts need work?
+- change data format: store each tab that we know of only once. what if we know it partially? topic tabs (multiple users), full tabs (two peers) and gates (two peers)
+- display transactions app 
+- manually enter and edit transactions
+- a balance can be taken off-topic, e.g. from '#unhosted' to '#personal'. so viewers of the #unhosted tab can see that a balance between me and Hugo was moved to #personal.
+- i have a #me tab with my bank accounts. if i get money from my brother's bank account to my bank account, then i'm suddenly richer no my #me tab but poorer on my #brothers tab.
+my specific bank accounts don''t show up on the other tabs, there it''s just my name.
+
+transactions: <-
+credit: ->
+debt: <-
+
+#broers
+jurgen <- michiel 93eur
+
+#banks
+michiel <- ing 93eur
+
+bootstrap tab display:
+
+tab name
+*/
+
     return {
       name: moduleName,
       dataVersion: '0.1',
@@ -103,7 +138,8 @@ define(['../remoteStorage'], function(remoteStorage) {
         groupPayment: groupPayment,
         //getBalances: getBalances,
         getBalances2: getBalances2,
-        setBalance: setBalance
+        setBalance: setBalance,
+        getTransactions: getTransactions
       }
     };
   });
