@@ -1486,12 +1486,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         getObject: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
-            sync.on('state', function(state) {
-              console.log('SYNC STATE: ' + state);
-            });
-
             sync.fetchNow(absPath, function(err, node) {
-              //var node = store.getNode(absPath);
               if(node.data) {
                 delete node.data['@type'];
               }
@@ -1546,8 +1541,8 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
 
         remove: function(path) {
           var ret = set(path, makePath(path));
-          sync.syncNow('/', function(errors) {
-          });
+          //sync.syncNow('/', function(errors) {
+          //});
           return ret;
         },
 
@@ -1555,15 +1550,15 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
           var ret = set(path, makePath(path), obj, 'application/json');
-          sync.syncNow('/', function(errors) {
-          });
+          //sync.syncNow('/', function(errors) {
+          //});
           return ret;
         },
 
         storeDocument: function(mimeType, path, data) {
           var ret = set(path, makePath(path), data, mimeType);
-          sync.syncNow('/', function(errors) {
-          });
+          //sync.syncNow('/', function(errors) {
+          //});
           return ret;
         },
 
@@ -1932,9 +1927,9 @@ define('modules/root',['../remoteStorage'], function(remoteStorage) {
       return myPublicBaseClient;
     }
 
-    function getObject(path, cb, contex) {
+    function getObject(path, cb, context) {
       var client = getClient(path);
-      return client.getObject(path, cb, contex);
+      return client.getObject(path, cb, context);
     }
 
     function setObject(type, path, obj) {
@@ -3179,6 +3174,41 @@ define('modules/money',['../remoteStorage'], function(remoteStorage) {
       obj[currency]=amount;
       myBaseClient.storeObject('balance', date+'/0/'+peer+'/balance', obj);
     }
+
+    function getTransactions(year, month, day) {
+      return [];
+    }
+    //we want to return all the transactions that affect the current user, even if the current user is not a peer.
+    //this may give a problem where i don't know about some transaction between two of my friends, and it looks to me like they
+    //have an outstanding balance that could be resolved. so there should always be a one-on-one balance at any time, but this cannot necessarily be public
+    //to people who can see some of the transactions between them. so there may be two versions of a transaction, one that gets tagged for more friends, 
+    //like the unhosted central pot, and only has a "+" or "-" resulting balance,
+    //and a private one displaying the real balance.
+/*
+
+what parts need work?
+- change data format: store each tab that we know of only once. what if we know it partially? topic tabs (multiple users), full tabs (two peers) and gates (two peers)
+- display transactions app 
+- manually enter and edit transactions
+- a balance can be taken off-topic, e.g. from '#unhosted' to '#personal'. so viewers of the #unhosted tab can see that a balance between me and Hugo was moved to #personal.
+- i have a #me tab with my bank accounts. if i get money from my brother's bank account to my bank account, then i'm suddenly richer no my #me tab but poorer on my #brothers tab.
+my specific bank accounts don''t show up on the other tabs, there it''s just my name.
+
+transactions: <-
+credit: ->
+debt: <-
+
+#broers
+jurgen <- michiel 93eur
+
+#banks
+michiel <- ing 93eur
+
+bootstrap tab display:
+
+tab name
+*/
+
     return {
       name: moduleName,
       dataVersion: '0.1',
@@ -3193,7 +3223,8 @@ define('modules/money',['../remoteStorage'], function(remoteStorage) {
         groupPayment: groupPayment,
         //getBalances: getBalances,
         getBalances2: getBalances2,
-        setBalance: setBalance
+        setBalance: setBalance,
+        getTransactions: getTransactions
       }
     };
   });
