@@ -92,21 +92,62 @@ define(['../remoteStorage'], function(remoteStorage) {
       return myPublicBaseClient;
     }
 
-    function getObject(path, cb, contex) {
+    /** getObject(path, [callback, [context]]) - get the object at given path
+     **
+     ** If the callback is NOT given, getObject returns the object at the given
+     ** path from local cache:
+     **
+     **   remoteStorage.root.getObject('/todo/today')
+     **   // -> { items: ['sit in the sun', 'watch the clouds', ...], ... }
+     **
+     ** If the callback IS given, getObject returns undefined and will at some
+     ** point in the future, when the object's data has been pulled, call
+     ** call the given callback.
+     **
+     **   remoteStorage.root.getObject('/todo/tomorrow', function(list) {
+     **     // do something
+     **   });
+     ** 
+     ** If both callback and context are given, the callback will be bound to
+     ** the given context object:
+     **
+     **  remoteStorage.root.getObject('/todo/next-months', function(list) {
+     **      for(var i=0;i<list.items.length;i++) {
+     **        this.addToBacklog(list.items[i]);
+     **      }// ^^ context 
+     **    },
+     **    this // < context.
+     **  );
+     **
+     **/
+    function getObject(path, cb, context) {
       var client = getClient(path);
-      return client.getObject(path, cb, contex);
+      return client.getObject(path, cb, context);
     }
 
+    /** setObject(type, path, object) - store the given object at the given path.
+     **
+     ** The given type should be a string and is used to build a JSON-LD @type
+     ** URI to store along with the given object.
+     **
+     **/
     function setObject(type, path, obj) {
       var client = getClient(path);
       client.storeObject(type, path, obj);
     }
 
+    /** removeObject(path) - remove node at given path
+     **/
     function removeObject(path) {
       var client = getClient(path);
       client.remove(path);
     }
 
+    /** getListing(path, [callback, [context]]) - get a listing of the given
+     **                                           path's child nodes.
+     **
+     ** Callback and return semantics are the same as for getObject.
+     **/
     function getListing(path, cb, context) {
       var client = getClient(path);
       return client.getListing(path, cb, context);
