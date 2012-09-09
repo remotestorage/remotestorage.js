@@ -1483,13 +1483,6 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           }
         },
 
-        /** getObject(path, callback, context)
-         **
-         ** path is REQUIRED, callback and context are OPTIONAL.
-         **
-         ** 
-         **
-         **/
         getObject: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
@@ -1548,8 +1541,8 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
 
         remove: function(path) {
           var ret = set(path, makePath(path));
-          sync.syncNow('/', function(errors) {
-          });
+          //sync.syncNow('/', function(errors) {
+          //});
           return ret;
         },
 
@@ -1557,15 +1550,15 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
           var ret = set(path, makePath(path), obj, 'application/json');
-          sync.syncNow('/', function(errors) {
-          });
+          //sync.syncNow('/', function(errors) {
+          //});
           return ret;
         },
 
         storeDocument: function(mimeType, path, data) {
           var ret = set(path, makePath(path), data, mimeType);
-          sync.syncNow('/', function(errors) {
-          });
+          //sync.syncNow('/', function(errors) {
+          //});
           return ret;
         },
 
@@ -1736,7 +1729,7 @@ define('remoteStorage', [
         }
         
         for(var i=0;i<_modules.length;i++) {
-          modules[_modules] = mode;
+          modules[_modules[i]] = mode;
         }
       }
       for(var moduleName in modules) {

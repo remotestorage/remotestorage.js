@@ -12,12 +12,14 @@ exports.handler = (function() {
       for(var i=0; i<scopes.length; i++) {
         var thisScopeParts = scopes[i].split(':');
         if(thisScopeParts[0]=='') {
-          scopePaths.push('/:'+thisScopeParts[1]);
+          scopePaths.push(userName+'/:'+thisScopeParts[1]);
         } else {
           scopePaths.push(userName+'/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
           scopePaths.push(userName+'/public/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
         }
       }
+      console.log('createToken ',userName,scopes);
+      console.log('adding ',scopePaths,' for',token);
       tokens[token] = scopePaths;
       cb(token);
     });
@@ -168,14 +170,14 @@ exports.handler = (function() {
     if(clientId != clientIdToMatch) {
       writeHtml(res, 'we do not trust this combination of client_id and redirect_uri');
     } else {
-      var userName = urlObj.pathname.substring('/auth'.length);
+      var userName = urlObj.pathname.substring('/auth/'.length);
       createToken(userName, scopes, function(token) {
         writeHtml(res, '<a href="'+toHtml(redirectUri)+'#access_token='+toHtml(token)+'">Allow</a>');
       });
     }
   }
   function storage(req, urlObj, res) {
-    var path=urlObj.pathname.substring('/storage'.length);
+    var path=urlObj.pathname.substring('/storage/'.length);
     if(req.method=='OPTIONS') {
       console.log('OPTIONS ', req.headers);
       writeJson(res, null, req.headers.origin);
