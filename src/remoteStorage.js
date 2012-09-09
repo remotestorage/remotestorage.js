@@ -149,7 +149,7 @@ define('remoteStorage', [
         }
         
         for(var i=0;i<_modules.length;i++) {
-          modules[_modules] = mode;
+          modules[_modules[i]] = mode;
         }
       }
       for(var moduleName in modules) {
