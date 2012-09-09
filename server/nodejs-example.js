@@ -289,5 +289,6 @@ exports.handler = (function() {
 
 if(require.main==module) {//if this file is directly called from the CLI
   require('http').createServer(exports.handler.serve).listen(config.port);
+  console.log("Example server started on 0.0.0.0:" + config.port);
 }
 
