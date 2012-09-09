@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>my-favourite-bookmark</title>
+    <!-- modules -->
+    <script src="lib/remoteStorage-modules.js"></script>
+    <!-- app -->
+    <script src="src/my-favourite-bookmark.js"></script>
+  </head>
+  <body>
+    <div id="remotestorage-widget"></div>
+
+    <form id="add-form">
+      <label>
+        URL
+        <input type="text" name="url" id="url-input">
+      </label>
+      <input type="submit" value="Add">
+    </form>
+
+    <ul id="bookmark-list"></ul>
+  </body>
+</html>

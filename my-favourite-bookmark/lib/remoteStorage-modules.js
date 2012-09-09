@@ -1,0 +1,1 @@
+../../build/latest/remoteStorage-modules.js

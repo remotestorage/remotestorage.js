@@ -3,7 +3,7 @@
  ** Skeleton for new modules
  **/
 
-define(['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage, vCardJS) {
+define('modules/contacts', ['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage, vCardJS) {
 
   var moduleName = "contacts";
 
@@ -24,6 +24,24 @@ define(['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage,
       return destination;
     }
 
+    var contacts = {};
+
+    // Copy over all properties from source to destination.
+    // Return destination.
+    function extend() {
+      var destination = arguments[0], source;
+      for(var i=1;i<arguments.length;i++) {
+        source = arguments[i];
+        var keys = Object.keys(source);
+        for(var j=0;j<keys.length;j++) {
+          var key = keys[j];
+          destination[key] = source[key];
+        }
+      }
+      return destination;
+    }
+
+
     var bindContext = (
       ( (typeof (function() {}).bind === 'function') ?
         // native version
@@ -36,14 +54,8 @@ define(['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage,
 
     var debug = DEBUG ? bindContext(console.log, console) : function() {};
 
-    /**
-     ** The Contact class.
-     **/
-    var Contact = function() {
-      VCard.apply(this, arguments);
-    }
+    var nodePrototype = {
 
-    Contact.prototype = extend({
       isNew: true,
 
       save: function() {
@@ -52,27 +64,92 @@ define(['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage,
         if(this.errors && this.errors.length > 0) {
           return false;
         } else {
-          base.storeObject('vcard', this.uid, this.toJCard());
+          base.storeObject('vcard+' + this.kind, this.uid, this.toJCard());
           this.markSaved();
           return true;
         }
       },
+    }
 
-      markSaved: function() {
-        this.isNew = false;
-        // attribute defined & used in vCardJS
-        this.changed = false;
-        return this;
+    /**
+     ** The Contact class.
+     **/
+    var Contact = function() {
+      VCard.apply(this, arguments);
+      this.setAttribute('kind', 'individual');
+    }
+    
+    extend(Contact.prototype, nodePrototype, VCard.prototype, {
+    });
+
+    /**
+     ** The Group class.
+     **/
+
+    var Group = function(name) {
+      VCard.apply(this, arguments);
+      this.setAttribute('kind', 'group');
+    }
+
+    extend(Group.prototype, nodePrototype, {
+
+      getMembers: function() {
+        var members = [];
+        for(var i=0;i<this.member.length;i++) {
+          members.push(this.lookupMember(member[i]));
+        }
+        return members;
+      },
+
+      // resolve a URI to a contact an return it.
+      lookupMember: function(uri) {
+        var md = uri.match(/^([^:]:(.*)$/), scheme = md[1], rest = md[2];
+        var key;
+        switch(scheme) {
+          // URN and UUID directly resolve to the contact's key.
+          // if they don't, there is nothing we can do about it.
+        case 'urn':
+        case 'uuid':
+          return contacts.get(uri);
+        case 'mailto':
+        case 'xmpp':
+        case 'sip':
+        case 'tel':
+          var query = {};
+          query[{
+            mailto: 'email',
+            xmpp: 'impp',
+            sip: 'impp',
+            tel: 'tel'
+          }[scheme]] = rest;
+          var results = contacts.search(query);
+          if(results.length > 0) {
+            return results[0];
+          }
+          if(scheme == 'tel') {
+            break; // no fallback for TEL
+          }
+          // fallback for MAILTO, XMPP, SIP schems is webfinger:
+        case 'acct':
+          console.error("FIXME: implement contact-lookup via webfinger!");
+          break;
+          // HTTP could resolve to a foaf profile, a vcard, a jcard...
+        case 'http':
+          console.error("FIXME: implement contact-lookup via HTTP!");
+          break;
+        default:
+          console.error("FIXME: unknown URI scheme " + scheme);
+        }
+        return undefined;
       }
 
-    }, VCard.prototype);
+    });
 
     /**
      ** THE CONTACTS MODULE
      **/
 
-    var contacts = {
-      
+    extend(contacts, {
       /**
        ** NAMESPACE
        **/
@@ -105,10 +182,6 @@ define(['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage,
         if(! offset) {
           offset = 0;
         }
-        if(! limit) {
-          limit = list.length - offset;
-        }
-
         for(var i=0;i<limit;i++) {
           list[i + offset] = this.get(list[i + offset]);
         }
@@ -163,21 +236,39 @@ define(['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage,
           filterKeys = Object.keys(filter);
         }
 
-        for(var i=0;i<keys.length;i++) {
-          var k = keys[i], v = filter[k];
-          debug('check ', k, ' == ', v, ' in ', item, '(', item[k], ')');
-          if(typeof(v) === 'string' && v.length === 0) {
-            continue;
-          } else if(v instanceof RegExp) {
-            if(! v.test(item[k])) {
+        var check = function(value, ref) {
+          if(value instanceof Array) {
+            // multiples, such as MEMBER, EMAIL, TEL
+            for(var i=0;i<value.length;i++) {
+              check(value[i], ref);
+            }
+          } else if(typeof value === 'object' && value.value) {
+            // compounds, such as EMAIL, TEL, IMPP
+            check(value.value, ref);
+          } else {
+            if(typeof(ref) === 'string' && ref.length === 0) {
+              return true; // the empty string always matches
+            } else if(ref instanceof RegExp) {
+              if(! ref.test(value)) {
+                return false;
+              }
+            } else if(value !== ref) {
+              // equality is fallback.
               return false;
             }
-          } else if(item[k] !== v) {
-            return false;
           }
         }
-        debug('success');
-        return item;
+
+        return this.filter(function(item) {
+          for(var i=0;i<keys.length;i++) {
+            var k = keys[i], v = filter[k];
+            if(! check(item[k], v)) {
+              return false;
+            }
+          }
+          debug('success');
+          return item;
+        });
       },
 
       /**
@@ -188,26 +279,27 @@ define(['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage,
       _load: function(data) {
         return this._wrap(data).markSaved();
       },
-
+      
       // return given data as a Contact instance.
       // do nothing, if it's already a contact.
       _wrap: function(data) {
         return(data instanceof Contact ? data : new Contact(data));
       }
 
+    });
       
-    };
-    
+      
     return {
       name: moduleName,
-
+      
       dataHints: {
       },
-      
+        
       exports: contacts
     }
   });
-  
+      
+      
   return remoteStorage[moduleName];
-    
+      
 });

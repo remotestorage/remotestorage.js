@@ -1483,15 +1483,17 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           }
         },
 
+        /** getObject(path, callback, context)
+         **
+         ** path is REQUIRED, callback and context are OPTIONAL.
+         **
+         ** 
+         **
+         **/
         getObject: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
-            sync.on('state', function(state) {
-              console.log('SYNC STATE: ' + state);
-            });
-
             sync.fetchNow(absPath, function(err, node) {
-              //var node = store.getNode(absPath);
               if(node.data) {
                 delete node.data['@type'];
               }
@@ -1932,21 +1934,62 @@ define('modules/root',['../remoteStorage'], function(remoteStorage) {
       return myPublicBaseClient;
     }
 
-    function getObject(path, cb, contex) {
+    /** getObject(path, [callback, [context]]) - get the object at given path
+     **
+     ** If the callback is NOT given, getObject returns the object at the given
+     ** path from local cache:
+     **
+     **   remoteStorage.root.getObject('/todo/today')
+     **   // -> { items: ['sit in the sun', 'watch the clouds', ...], ... }
+     **
+     ** If the callback IS given, getObject returns undefined and will at some
+     ** point in the future, when the object's data has been pulled, call
+     ** call the given callback.
+     **
+     **   remoteStorage.root.getObject('/todo/tomorrow', function(list) {
+     **     // do something
+     **   });
+     ** 
+     ** If both callback and context are given, the callback will be bound to
+     ** the given context object:
+     **
+     **  remoteStorage.root.getObject('/todo/next-months', function(list) {
+     **      for(var i=0;i<list.items.length;i++) {
+     **        this.addToBacklog(list.items[i]);
+     **      }// ^^ context 
+     **    },
+     **    this // < context.
+     **  );
+     **
+     **/
+    function getObject(path, cb, context) {
       var client = getClient(path);
-      return client.getObject(path, cb, contex);
+      return client.getObject(path, cb, context);
     }
 
+    /** setObject(type, path, object) - store the given object at the given path.
+     **
+     ** The given type should be a string and is used to build a JSON-LD @type
+     ** URI to store along with the given object.
+     **
+     **/
     function setObject(type, path, obj) {
       var client = getClient(path);
       client.storeObject(type, path, obj);
     }
 
+    /** removeObject(path) - remove node at given path
+     **/
     function removeObject(path) {
       var client = getClient(path);
       client.remove(path);
     }
 
+    /** getListing(path, [callback, [context]]) - get a listing of the given
+     **                                           path's child nodes.
+     **
+     ** Callback and return semantics are the same as for getObject.
+     **/
     function getListing(path, cb, context) {
       var client = getClient(path);
       return client.getListing(path, cb, context);
@@ -2781,7 +2824,7 @@ define('modules/deps/vcardjs-0.2',[], function() {
  ** Skeleton for new modules
  **/
 
-define('modules/contacts',['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage, vCardJS) {
+define('modules/contacts', ['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage, vCardJS) {
 
   var moduleName = "contacts";
 
@@ -2802,6 +2845,24 @@ define('modules/contacts',['../remoteStorage', 'modules/deps/vcardjs-0.2'], func
       return destination;
     }
 
+    var contacts = {};
+
+    // Copy over all properties from source to destination.
+    // Return destination.
+    function extend() {
+      var destination = arguments[0], source;
+      for(var i=1;i<arguments.length;i++) {
+        source = arguments[i];
+        var keys = Object.keys(source);
+        for(var j=0;j<keys.length;j++) {
+          var key = keys[j];
+          destination[key] = source[key];
+        }
+      }
+      return destination;
+    }
+
+
     var bindContext = (
       ( (typeof (function() {}).bind === 'function') ?
         // native version
@@ -2814,14 +2875,8 @@ define('modules/contacts',['../remoteStorage', 'modules/deps/vcardjs-0.2'], func
 
     var debug = DEBUG ? bindContext(console.log, console) : function() {};
 
-    /**
-     ** The Contact class.
-     **/
-    var Contact = function() {
-      VCard.apply(this, arguments);
-    }
+    var nodePrototype = {
 
-    Contact.prototype = extend({
       isNew: true,
 
       save: function() {
@@ -2830,27 +2885,92 @@ define('modules/contacts',['../remoteStorage', 'modules/deps/vcardjs-0.2'], func
         if(this.errors && this.errors.length > 0) {
           return false;
         } else {
-          base.storeObject('vcard', this.uid, this.toJCard());
+          base.storeObject('vcard+' + this.kind, this.uid, this.toJCard());
           this.markSaved();
           return true;
         }
       },
+    }
 
-      markSaved: function() {
-        this.isNew = false;
-        // attribute defined & used in vCardJS
-        this.changed = false;
-        return this;
+    /**
+     ** The Contact class.
+     **/
+    var Contact = function() {
+      VCard.apply(this, arguments);
+      this.setAttribute('kind', 'individual');
+    }
+    
+    extend(Contact.prototype, nodePrototype, VCard.prototype, {
+    });
+
+    /**
+     ** The Group class.
+     **/
+
+    var Group = function(name) {
+      VCard.apply(this, arguments);
+      this.setAttribute('kind', 'group');
+    }
+
+    extend(Group.prototype, nodePrototype, {
+
+      getMembers: function() {
+        var members = [];
+        for(var i=0;i<this.member.length;i++) {
+          members.push(this.lookupMember(member[i]));
+        }
+        return members;
+      },
+
+      // resolve a URI to a contact an return it.
+      lookupMember: function(uri) {
+        var md = uri.match(/^([^:]:(.*)$/), scheme = md[1], rest = md[2];
+        var key;
+        switch(scheme) {
+          // URN and UUID directly resolve to the contact's key.
+          // if they don't, there is nothing we can do about it.
+        case 'urn':
+        case 'uuid':
+          return contacts.get(uri);
+        case 'mailto':
+        case 'xmpp':
+        case 'sip':
+        case 'tel':
+          var query = {};
+          query[{
+            mailto: 'email',
+            xmpp: 'impp',
+            sip: 'impp',
+            tel: 'tel'
+          }[scheme]] = rest;
+          var results = contacts.search(query);
+          if(results.length > 0) {
+            return results[0];
+          }
+          if(scheme == 'tel') {
+            break; // no fallback for TEL
+          }
+          // fallback for MAILTO, XMPP, SIP schems is webfinger:
+        case 'acct':
+          console.error("FIXME: implement contact-lookup via webfinger!");
+          break;
+          // HTTP could resolve to a foaf profile, a vcard, a jcard...
+        case 'http':
+          console.error("FIXME: implement contact-lookup via HTTP!");
+          break;
+        default:
+          console.error("FIXME: unknown URI scheme " + scheme);
+        }
+        return undefined;
       }
 
-    }, VCard.prototype);
+    });
 
     /**
      ** THE CONTACTS MODULE
      **/
 
-    var contacts = {
-      
+    extend(contacts, {
       /**
        ** NAMESPACE
        **/
@@ -2883,10 +3003,6 @@ define('modules/contacts',['../remoteStorage', 'modules/deps/vcardjs-0.2'], func
         if(! offset) {
           offset = 0;
         }
-        if(! limit) {
-          limit = list.length - offset;
-        }
-
         for(var i=0;i<limit;i++) {
           list[i + offset] = this.get(list[i + offset]);
         }
@@ -2941,21 +3057,39 @@ define('modules/contacts',['../remoteStorage', 'modules/deps/vcardjs-0.2'], func
           filterKeys = Object.keys(filter);
         }
 
-        for(var i=0;i<keys.length;i++) {
-          var k = keys[i], v = filter[k];
-          debug('check ', k, ' == ', v, ' in ', item, '(', item[k], ')');
-          if(typeof(v) === 'string' && v.length === 0) {
-            continue;
-          } else if(v instanceof RegExp) {
-            if(! v.test(item[k])) {
+        var check = function(value, ref) {
+          if(value instanceof Array) {
+            // multiples, such as MEMBER, EMAIL, TEL
+            for(var i=0;i<value.length;i++) {
+              check(value[i], ref);
+            }
+          } else if(typeof value === 'object' && value.value) {
+            // compounds, such as EMAIL, TEL, IMPP
+            check(value.value, ref);
+          } else {
+            if(typeof(ref) === 'string' && ref.length === 0) {
+              return true; // the empty string always matches
+            } else if(ref instanceof RegExp) {
+              if(! ref.test(value)) {
+                return false;
+              }
+            } else if(value !== ref) {
+              // equality is fallback.
               return false;
             }
-          } else if(item[k] !== v) {
-            return false;
           }
         }
-        debug('success');
-        return item;
+
+        return this.filter(function(item) {
+          for(var i=0;i<keys.length;i++) {
+            var k = keys[i], v = filter[k];
+            if(! check(item[k], v)) {
+              return false;
+            }
+          }
+          debug('success');
+          return item;
+        });
       },
 
       /**
@@ -2966,28 +3100,29 @@ define('modules/contacts',['../remoteStorage', 'modules/deps/vcardjs-0.2'], func
       _load: function(data) {
         return this._wrap(data).markSaved();
       },
-
+      
       // return given data as a Contact instance.
       // do nothing, if it's already a contact.
       _wrap: function(data) {
         return(data instanceof Contact ? data : new Contact(data));
       }
 
+    });
       
-    };
-    
+      
     return {
       name: moduleName,
-
+      
       dataHints: {
       },
-      
+        
       exports: contacts
     }
   });
-  
+      
+      
   return remoteStorage[moduleName];
-    
+      
 });
 
 
@@ -2996,6 +3131,7 @@ define('modules/documents',['../remoteStorage'], function(remoteStorage) {
 
   var moduleName = 'documents';
 
+  // /documents , /public/documents
   remoteStorage.defineModule(moduleName, function(myBaseClient) {
     var errorHandlers=[];
     function fire(eventType, eventObj) {
@@ -3322,6 +3458,90 @@ define('modules/tasks',['../remoteStorage'], function(remoteStorage) {
 
 });
 
+
+define('modules/bookmarks',['../remoteStorage'], function(remoteStorage) {
+
+  var moduleName = 'bookmarks';
+
+  remoteStorage.defineModule(
+    moduleName,
+    function(privateClient, publicClient) {
+
+      privateClient.sync('');
+      publicClient.sync('');
+
+      return {
+        name: moduleName,
+
+        dataHints: {
+          "module" : "Store URLs which you do not wish to forget"
+        },
+
+        exports: {
+
+          // remoteStorage.bookmarks.on('change', function(changeEvent) {
+          //   if(changeEvent.newValue && changeEvent.oldValue) {
+          //    changeEvent.origin:
+          //      * window - event come from current window
+          //            -> ignore it
+          //      * device - same device, other tab (/window/...)
+          //      * remote - not related to this app's instance, some other app updated something on remoteStorage
+          //   }
+          // });
+          on: privateClient.on,
+
+          listUrls: function() {
+            var keys = privateClient.getListing('');
+            var urls = [];
+            keys.forEach(function(key) {
+              urls.push(privateClient.get(key).url);
+            });
+            return urls;
+          },
+
+
+          listBookmarks: function() {
+            var keys = privateClient.getListing('');
+            var bms = [];
+            keys.forEach(function(key) {
+              bms.push(privateClient.getObject(key));
+            });
+            return bms;
+          },
+          
+          // remoteStorage.bookmarks.addUrl
+          addUrl: function(url) {
+            return privateClient.storeObject(
+              // /bookmarks/http%3A%2F%2Funhosted.org%2F
+              'bookmark', encodeURIComponent(url), {
+                url: url,
+                createdAt: new Date()
+              }
+            );
+          },
+
+          getPublicListing: function() {
+            var listing = publicClient.getObject('publishedItems');
+            return listing || { items: [] };
+          },
+
+          publish: function(url) {
+            var key = encodeURIComponent(url);
+            var bookmark = privateClient.getObject(key);
+
+            publicClient.storeObject('bookmark', key, bookmark);
+
+            var listing = publicClient.getListing('');
+            delete listing['published'];
+            publicClient.storeObject('bookmark-list', 'published', listing);
+          }
+
+        }
+      };
+    }
+  );
+
+});
 define('remoteStorage-modules', [
   'remoteStorage',
   './modules/root',
@@ -3329,7 +3549,8 @@ define('remoteStorage-modules', [
   './modules/contacts',
   './modules/documents',
   './modules/money',
-  './modules/tasks'
+  './modules/tasks',
+  './modules/bookmarks'
 ], function(remoteStorage) {
   return remoteStorage;
 });

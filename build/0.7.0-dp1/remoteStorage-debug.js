@@ -1483,15 +1483,17 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           }
         },
 
+        /** getObject(path, callback, context)
+         **
+         ** path is REQUIRED, callback and context are OPTIONAL.
+         **
+         ** 
+         **
+         **/
         getObject: function(path, cb, context) {
           var absPath = makePath(path);
           if(cb) {
-            sync.on('state', function(state) {
-              console.log('SYNC STATE: ' + state);
-            });
-
             sync.fetchNow(absPath, function(err, node) {
-              //var node = store.getNode(absPath);
               if(node.data) {
                 delete node.data['@type'];
               }
