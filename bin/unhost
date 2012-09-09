@@ -22,7 +22,7 @@ module_loaders() {
         if test "${name}" == "${mode}" ; then
             mode="rw"
         fi
-        echo "${indent}remoteStorage.loadModule('${name}', '${mode}');"
+        echo "${indent}remoteStorage.claimAccess('${name}', '${mode}');"
     done
 }
 
@@ -44,9 +44,7 @@ cat >> "${project_name}/index.html" <<EOF
 <html>
   <head>
     <title>${project_name}</title>
-    <!-- remoteStorage -->
-    <script src="lib/remoteStorage.js"></script>
-    <!-- modules -->
+    <!-- remoteStorage + all modules -->
     <script src="lib/remoteStorage-modules.js"></script>
     <!-- app -->
     <script src="src/${project_name}.js"></script>
@@ -61,7 +59,6 @@ echo "CREATE src/${project_name}.js"
 cat >> "${project_name}/src/${project_name}.js" <<EOF
 (function() {
 
-  remoteStorage.loadModule('root', 'r');
 $(module_loaders '  ')  
 
   window.onload = function() {
