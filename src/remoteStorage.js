@@ -135,11 +135,17 @@ define('remoteStorage', [
      **/
     claimAccess: function(claimed) {
 
-      // FIXME: there are some weird bugs, when using varg signature (at least in firefox)
+      function makeArray(args) {
+        var a = [];
+        for(var i in args) {
+          a[i] = args[i];
+        }
+        return a;
+      }
 
       if(typeof(claimed) !== 'object' || (claimed instanceof Array)) {
         if(! (claimed instanceof Array)) {
-          claimed = arguments;
+          claimed = makeArray(arguments);
         }
         var _modules = claimed, mode = 'rw';
         claimed = {};
@@ -151,9 +157,10 @@ define('remoteStorage', [
           delete arguments[arguments.length - 1];
         }
 
-        for(var i=0;i<_modules.length;i++) {
+        for(var i in _modules) {
           claimed[_modules[i]] = mode;
         }
+
       }
       for(var moduleName in claimed) {
         this.claimModuleAccess(moduleName, claimed[moduleName]);
