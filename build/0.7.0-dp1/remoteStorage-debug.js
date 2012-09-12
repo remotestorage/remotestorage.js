@@ -812,6 +812,7 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
       }
     },
     setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
+    getStorageHref   : function() { return get('storageHref') },
     setBearerToken   : function(bearerToken) { set('bearerToken', bearerToken); },
     disconnectRemote : disconnectRemote,
     on               : on,
@@ -868,7 +869,7 @@ define('lib/store',[], function () {
   function getContainingDir(path) {
     // '' 'a' 'a/' 'a/b' 'a/b/' 'a/b/c' 'a/b/c/'
     var parts = path.split('/');
-    // [''] ['a'] ['a', ''] ['a', 'b'] ['a', 'b', ''] ['a', 'b', 'c'] ['a', 'b', 'c', '']
+    // [''] ['a'] ['a', ''] ['a', 'b'] ['a', 'b', ''] ['a', 'b', 'c'] ['a', 'b', 'c', ''] 
     if(!parts[parts.length-1].length) {//last part is empty, so string was empty or had a trailing slash
       parts.pop();
     }
@@ -910,7 +911,7 @@ define('lib/store',[], function () {
           parentNode.data[getFileName(path)]=0;
         }
         updateNode(containingDir, parentNode, false, true);
-      } else if(outgoing) {
+      } else if(outgoing) { 
         if(node) {
           parentNode.data[getFileName(path)] = new Date().getTime();
         } else {
@@ -938,7 +939,7 @@ define('lib/store',[], function () {
             origin: 'remote',
             oldValue: undefined,
             newValue: (node ? node.data : undefined),
-            timestamp: timestamp
+            timestamp: timestamp 
           });
         }
       }
@@ -995,10 +996,9 @@ define('lib/store',[], function () {
     delete node.diff[i];
     updateNode(path, node, false, true);//meta
   }
-
   return {
     on            : on,//error,change(origin=tab,device,cloud)
-
+   
     getNode       : getNode,
     setNodeData   : setNodeData,
     setNodeAccess : setNodeAccess,
@@ -1578,6 +1578,22 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           return ret;
         },
 
+        /**
+           Get the full URL of the item at given path.
+           This will only work, if the user is connected to a remoteStorage account,
+           otherwise it returns null.
+        */
+        getItemURL: function(path) {
+          var base = remoteStorage.getStorageHref();
+          if(! base) {
+            return null;
+          }
+          if(base.substr(-1) != '/') {
+            base = base + '/';
+          }
+          return base + makePath(path);
+        },
+
         getCurrentWebRoot: function() {
           return 'https://example.com/this/is/an/example/'+(isPublic?'public/':'')+moduleName+'/';
         },
@@ -1847,7 +1863,8 @@ define('remoteStorage', [
     displayWidget    : widget.display,
 
     getWidgetState   : widget.getState,
-    setStorageInfo   : wireClient.setStorageInfo
+    setStorageInfo   : wireClient.setStorageInfo,
+    getStorageHref   : wireClient.getStorageHref
 
   };
 

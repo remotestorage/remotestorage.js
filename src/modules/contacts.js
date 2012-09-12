@@ -78,7 +78,7 @@ define('modules/contacts', ['../remoteStorage', 'modules/deps/vcardjs-0.2'], fun
       VCard.apply(this, arguments);
       this.setAttribute('kind', 'individual');
     }
-    
+
     extend(Contact.prototype, nodePrototype, VCard.prototype, {
     });
 
@@ -103,7 +103,7 @@ define('modules/contacts', ['../remoteStorage', 'modules/deps/vcardjs-0.2'], fun
 
       // resolve a URI to a contact an return it.
       lookupMember: function(uri) {
-        var md = uri.match(/^([^:]:(.*)$/), scheme = md[1], rest = md[2];
+        var md = uri.match(/^([^:]):(.*)$/), scheme = md[1], rest = md[2];
         var key;
         switch(scheme) {
           // URN and UUID directly resolve to the contact's key.
@@ -153,7 +153,7 @@ define('modules/contacts', ['../remoteStorage', 'modules/deps/vcardjs-0.2'], fun
       /**
        ** NAMESPACE
        **/
-      
+
       Contact: Contact,
 
       /**
@@ -171,7 +171,7 @@ define('modules/contacts', ['../remoteStorage', 'modules/deps/vcardjs-0.2'], fun
           callback(event);
         });
       },
-      
+
       sync: function() {
         debug("contacts.sync()");
         base.sync('/');
@@ -279,7 +279,7 @@ define('modules/contacts', ['../remoteStorage', 'modules/deps/vcardjs-0.2'], fun
       _load: function(data) {
         return this._wrap(data).markSaved();
       },
-      
+
       // return given data as a Contact instance.
       // do nothing, if it's already a contact.
       _wrap: function(data) {
@@ -287,19 +287,19 @@ define('modules/contacts', ['../remoteStorage', 'modules/deps/vcardjs-0.2'], fun
       }
 
     });
-      
-      
+
+
     return {
       name: moduleName,
-      
+
       dataHints: {
       },
-        
+
       exports: contacts
     }
   });
-      
-      
+
+
   return remoteStorage[moduleName];
-      
+
 });
