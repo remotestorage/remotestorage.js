@@ -192,6 +192,22 @@ define(['./sync', './store'], function (sync, store) {
           return ret;
         },
 
+        /**
+           Get the full URL of the item at given path.
+           This will only work, if the user is connected to a remoteStorage account,
+           otherwise it returns null.
+        */
+        getItemURL: function(path) {
+          var base = remoteStorage.getStorageHref();
+          if(! base) {
+            return null;
+          }
+          if(base.substr(-1) != '/') {
+            base = base + '/';
+          }
+          return base + makePath(path);
+        },
+
         getCurrentWebRoot: function() {
           return 'https://example.com/this/is/an/example/'+(isPublic?'public/':'')+moduleName+'/';
         },

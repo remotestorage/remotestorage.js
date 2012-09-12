@@ -85,6 +85,7 @@ define(['./getputdelete'], function (getputdelete) {
       }
     },
     setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
+    getStorageHref   : function() { return get('storageHref') },
     setBearerToken   : function(bearerToken) { set('bearerToken', bearerToken); },
     disconnectRemote : disconnectRemote,
     on               : on,

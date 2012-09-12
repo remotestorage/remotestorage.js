@@ -250,7 +250,8 @@ define('remoteStorage', [
     displayWidget    : widget.display,
 
     getWidgetState   : widget.getState,
-    setStorageInfo   : wireClient.setStorageInfo
+    setStorageInfo   : wireClient.setStorageInfo,
+    getStorageHref   : wireClient.getStorageHref
 
   };
 
