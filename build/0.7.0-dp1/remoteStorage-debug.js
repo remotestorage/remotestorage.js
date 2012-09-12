@@ -868,7 +868,7 @@ define('lib/store',[], function () {
   function getContainingDir(path) {
     // '' 'a' 'a/' 'a/b' 'a/b/' 'a/b/c' 'a/b/c/'
     var parts = path.split('/');
-    // [''] ['a'] ['a', ''] ['a', 'b'] ['a', 'b', ''] ['a', 'b', 'c'] ['a', 'b', 'c', ''] 
+    // [''] ['a'] ['a', ''] ['a', 'b'] ['a', 'b', ''] ['a', 'b', 'c'] ['a', 'b', 'c', '']
     if(!parts[parts.length-1].length) {//last part is empty, so string was empty or had a trailing slash
       parts.pop();
     }
@@ -910,7 +910,7 @@ define('lib/store',[], function () {
           parentNode.data[getFileName(path)]=0;
         }
         updateNode(containingDir, parentNode, false, true);
-      } else if(outgoing) { 
+      } else if(outgoing) {
         if(node) {
           parentNode.data[getFileName(path)] = new Date().getTime();
         } else {
@@ -938,7 +938,7 @@ define('lib/store',[], function () {
             origin: 'remote',
             oldValue: undefined,
             newValue: (node ? node.data : undefined),
-            timestamp: timestamp 
+            timestamp: timestamp
           });
         }
       }
@@ -995,9 +995,10 @@ define('lib/store',[], function () {
     delete node.diff[i];
     updateNode(path, node, false, true);//meta
   }
+
   return {
     on            : on,//error,change(origin=tab,device,cloud)
-   
+
     getNode       : getNode,
     setNodeData   : setNodeData,
     setNodeAccess : setNodeAccess,
@@ -1465,6 +1466,14 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         return (isPublic?'/public/':'/')+moduleName+'/'+path;
       }
 
+      function ensureAccess(mode) {
+        var path = makePath('');
+        var node = store.getNode(path);
+        if(! (new RegExp(mode)).test(node.startAccess)) {
+          throw "Not sufficient access claimed for node at " + path + " (need: " + mode + ", have: " + (node.startAccess || 'none') + ")";
+        }
+      }
+
       return {
 
         // helpers for implementations
@@ -1473,6 +1482,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         on: function(eventType, cb, context) {//'error' or 'change'. Change events have a path and origin (tab, device, cloud) field
+          ensureAccess('r');
           if(eventType=='change') {
             if(moduleName) {
               if(!moduleChangeHandlers[moduleName]) {
@@ -1484,6 +1494,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         getObject: function(path, cb, context) {
+          ensureAccess('r');
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err, node) {
@@ -1502,6 +1513,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         getListing: function(path, cb, context) {
+          ensureAccess('r');
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err, node) {
@@ -1522,6 +1534,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         getDocument: function(path, cb, context) {
+          ensureAccess('r');
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err, node) {
@@ -1540,6 +1553,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         remove: function(path) {
+          ensureAccess('w');
           var ret = set(path, makePath(path));
           //sync.syncNow('/', function(errors) {
           //});
@@ -1547,6 +1561,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         storeObject: function(type, path, obj) {
+          ensureAccess('w');
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
           var ret = set(path, makePath(path), obj, 'application/json');
@@ -1556,6 +1571,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         storeDocument: function(mimeType, path, data) {
+          ensureAccess('w');
           var ret = set(path, makePath(path), data, mimeType);
           //sync.syncNow('/', function(errors) {
           //});
@@ -1567,6 +1583,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         sync: function(path, switchVal) {
+          ensureAccess('r');
           var absPath = makePath(path);
           store.setNodeForce(absPath, (switchVal != false));
         },
@@ -1611,7 +1628,7 @@ define('remoteStorage', [
      **
      ** The builder is expected to return an object, as described under
      ** getModuleInfo().
-     ** 
+     **
      **/
     defineModule: function(moduleName, builder) {
       console.log('DEFINE MODULE', moduleName);
@@ -1627,7 +1644,7 @@ define('remoteStorage', [
     },
 
     /** getModuleList() - Get an Array of all moduleNames, currently defined.
-     ** 
+     **
      **/
     getModuleList: function() {
       return Object.keys(modules);
@@ -1680,7 +1697,7 @@ define('remoteStorage', [
      **
      ** You need to claim access to a module before you can
      ** access data from it.
-     ** 
+     **
      ** modules can be specified in three ways:
      **
      ** * via an object:
@@ -1711,15 +1728,18 @@ define('remoteStorage', [
      ** claimAccess() will throw an exception, if any given module hasn't been
      ** defined (yet). Access to all previously processed modules will have been
      ** claimed, however.
-     ** 
+     **
      **/
-    claimAccess: function(modules) {
-      if(typeof(modules) !== 'object' || (modules instanceof Array)) {
-        if(! modules instanceof Array) {
-          modules = arguments;
+    claimAccess: function(claimed) {
+
+      // FIXME: there are some weird bugs, when using varg signature (at least in firefox)
+
+      if(typeof(claimed) !== 'object' || (claimed instanceof Array)) {
+        if(! (claimed instanceof Array)) {
+          claimed = arguments;
         }
-        var _modules = modules, mode = 'rw';
-        modules = {};
+        var _modules = claimed, mode = 'rw';
+        claimed = {};
 
         var lastArg = arguments[arguments.length - 1];
 
@@ -1727,13 +1747,13 @@ define('remoteStorage', [
           mode = lastArg;
           delete arguments[arguments.length - 1];
         }
-        
+
         for(var i=0;i<_modules.length;i++) {
-          modules[_modules[i]] = mode;
+          claimed[_modules[i]] = mode;
         }
       }
-      for(var moduleName in modules) {
-        this.claimModuleAccess(moduleName, modules[moduleName]);
+      for(var moduleName in claimed) {
+        this.claimModuleAccess(moduleName, claimed[moduleName]);
       }
     },
 
@@ -1742,6 +1762,7 @@ define('remoteStorage', [
      ** claimAccess() provides the same interface.
      **/
     claimModuleAccess: function(moduleName, mode) {
+      console.log('claimModuleAccess', arguments);
       if(! moduleName in modules) {
         throw "Module not defined: " + moduleName;
       }
@@ -1787,7 +1808,7 @@ define('remoteStorage', [
     disconnectRemote : wireClient.disconnectRemote,
 
     /** flushLocal() - Forget this ever happened.
-     ** 
+     **
      ** Delete all locally stored data.
      ** This doesn't clear localStorage, just removes everything
      ** remoteStorage.js ever saved there (though obviously only under
@@ -1799,7 +1820,7 @@ define('remoteStorage', [
     flushLocal       : store.forgetAll,
 
     /** syncNow(path) - Synchronize local <-> remote storage.
-     ** 
+     **
      ** Syncing starts at given path and bubbles down.
      ** The actual changes to either local or remote storage happen in the
      ** future, so you should attach change handlers on the modules you're
