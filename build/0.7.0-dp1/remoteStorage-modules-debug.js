@@ -3254,27 +3254,28 @@ define('modules/documents',['../remoteStorage'], function(remoteStorage) {
 
 });
 
-remoteStorage.defineModule('money', function(myPrivateBaseClient, myPublicBaseClient) {
-  return {
-    name: 'money',
-    dataHints: {
-    },
-    exports: {
-      setDayBusiness: function(tab, year, month, day, transactions, endBalances) {
-        var datePath = year+'/'+month+'/'+day+'/'+tab.substring(1)+'/';
-        for(var i=0; i<transactions.length;i++) {
-          myPrivateBaseClient.storeObject('transaction', datePath+'transaction/'+i, transactions[i]);
-        }
-        for(var i in endBalances) {
-          myPrivateBaseClient.storeObject('balance', datePath+'balance/'+i, endBalances[i]);
+define('modules/money',['../remoteStorage'], function(remoteStorage) {
+
+  remoteStorage.defineModule('money', function(myPrivateBaseClient, myPublicBaseClient) {
+    return {
+      name: 'money',
+      dataHints: {
+      },
+      exports: {
+        setDayBusiness: function(tab, year, month, day, transactions, endBalances) {
+          var datePath = year+'/'+month+'/'+day+'/'+tab.substring(1)+'/';
+          for(var i=0; i<transactions.length;i++) {
+            myPrivateBaseClient.storeObject('transaction', datePath+'transaction/'+i, transactions[i]);
+          }
+          for(var i in endBalances) {
+            myPrivateBaseClient.storeObject('balance', datePath+'balance/'+i, endBalances[i]);
+          }
         }
       }
-    }
-  };
+    };
+  });
+
 });
-
-define("modules/money", function(){});
-
 
 define('modules/tasks',['../remoteStorage'], function(remoteStorage) {
 
