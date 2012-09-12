@@ -213,7 +213,6 @@ define(['./sync', './store'], function (sync, store) {
         },
 
         sync: function(path, switchVal) {
-          ensureAccess('r');
           var absPath = makePath(path);
           store.setNodeForce(absPath, (switchVal != false));
         },
