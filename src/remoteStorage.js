@@ -31,7 +31,7 @@ define('remoteStorage', [
      **
      ** The builder is expected to return an object, as described under
      ** getModuleInfo().
-     ** 
+     **
      **/
     defineModule: function(moduleName, builder) {
       console.log('DEFINE MODULE', moduleName);
@@ -47,7 +47,7 @@ define('remoteStorage', [
     },
 
     /** getModuleList() - Get an Array of all moduleNames, currently defined.
-     ** 
+     **
      **/
     getModuleList: function() {
       return Object.keys(modules);
@@ -100,7 +100,7 @@ define('remoteStorage', [
      **
      ** You need to claim access to a module before you can
      ** access data from it.
-     ** 
+     **
      ** modules can be specified in three ways:
      **
      ** * via an object:
@@ -131,15 +131,18 @@ define('remoteStorage', [
      ** claimAccess() will throw an exception, if any given module hasn't been
      ** defined (yet). Access to all previously processed modules will have been
      ** claimed, however.
-     ** 
+     **
      **/
-    claimAccess: function(modules) {
-      if(typeof(modules) !== 'object' || (modules instanceof Array)) {
-        if(! modules instanceof Array) {
-          modules = arguments;
+    claimAccess: function(claimed) {
+
+      // FIXME: there are some weird bugs, when using varg signature (at least in firefox)
+
+      if(typeof(claimed) !== 'object' || (claimed instanceof Array)) {
+        if(! (claimed instanceof Array)) {
+          claimed = arguments;
         }
-        var _modules = modules, mode = 'rw';
-        modules = {};
+        var _modules = claimed, mode = 'rw';
+        claimed = {};
 
         var lastArg = arguments[arguments.length - 1];
 
@@ -147,13 +150,13 @@ define('remoteStorage', [
           mode = lastArg;
           delete arguments[arguments.length - 1];
         }
-        
+
         for(var i=0;i<_modules.length;i++) {
-          modules[_modules[i]] = mode;
+          claimed[_modules[i]] = mode;
         }
       }
-      for(var moduleName in modules) {
-        this.claimModuleAccess(moduleName, modules[moduleName]);
+      for(var moduleName in claimed) {
+        this.claimModuleAccess(moduleName, claimed[moduleName]);
       }
     },
 
@@ -162,6 +165,7 @@ define('remoteStorage', [
      ** claimAccess() provides the same interface.
      **/
     claimModuleAccess: function(moduleName, mode) {
+      console.log('claimModuleAccess', arguments);
       if(! moduleName in modules) {
         throw "Module not defined: " + moduleName;
       }
@@ -207,7 +211,7 @@ define('remoteStorage', [
     disconnectRemote : wireClient.disconnectRemote,
 
     /** flushLocal() - Forget this ever happened.
-     ** 
+     **
      ** Delete all locally stored data.
      ** This doesn't clear localStorage, just removes everything
      ** remoteStorage.js ever saved there (though obviously only under
@@ -219,7 +223,7 @@ define('remoteStorage', [
     flushLocal       : store.forgetAll,
 
     /** syncNow(path) - Synchronize local <-> remote storage.
-     ** 
+     **
      ** Syncing starts at given path and bubbles down.
      ** The actual changes to either local or remote storage happen in the
      ** future, so you should attach change handlers on the modules you're
