@@ -195,6 +195,30 @@ define('lib/platform',[], function() {
       headers: params.headers
     };
     var timer, timedOut;
+
+    if(params.timeout) {
+      timer = setTimeout(function() {
+        params.error('timeout');
+        timedOut=true;
+      }, params.timeout);
+    }
+
+    // nodejs represents headers like:
+    // 'message-id' : '...',
+    //
+    // we want:
+    //
+    // 'Message-Id' : '...'
+    function normalizeHeaders(headers) {
+      var h = {};
+      for(var key in headers) {
+        h[key.replace(/(?:^|\-)[a-z]/g, function(match) {
+          return match.toUpperCase();
+        })] = headers[key];
+      }
+      return h;
+    }
+
     var lib = (urlObj.protocol=='https:'?https:http);
     var request = lib.request(options, function(response) {
       var str='';
@@ -208,7 +232,7 @@ define('lib/platform',[], function() {
         }
         if(!timedOut) {
           if(response.statusCode==200 || response.statusCode==201 || response.statusCode==204) {
-            params.success(str);
+            params.success(str, normalizeHeaders(response.headers));
           } else {
             params.error(response.statusCode);
           }
@@ -216,14 +240,11 @@ define('lib/platform',[], function() {
       });
     });
     request.on('error', function(e) {
+      if(timer) {
+        clearTimeout(timer);
+      }
       params.error(e.message);
     });
-    if(params.timeout) {
-      timer = setTimeout(function() {
-        params.error('timeout');
-        timedOut=true;
-      }, params.timeout);
-    }
     if(params.data) {
       request.end(params.data);
     } else {
@@ -257,7 +278,7 @@ define('lib/platform',[], function() {
         });
       }
     }
-    cb(null, obj);   
+    cb(null, obj);
   }
   function parseXmlNode(str, cb) {
     var xml2js=require('xml2js');
@@ -454,6 +475,9 @@ define('lib/webfinger',
         cb('not valid JSON');
         return;
       }
+      if(! obj.links) {
+        cb('JRD contains no links');
+      }
       var links = {};
       for(var i=0; i<obj.links.length; i++) {
         //just take the first one of each rel:
@@ -506,7 +530,7 @@ define('lib/webfinger',
                   } else {
                     cb('could not extract storageInfo from lrdd');
                   }
-                }); 
+                });
               } else {
                 cb('could not extract lrdd template from host-meta');
               }
@@ -823,15 +847,17 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
 define('lib/store',[], function () {
   var onChange=[],
     prefixNodes = 'remote_storage_nodes:';
-  window.addEventListener('storage', function(e) {
-    if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
-      e.path = e.key.substring(prefixNodes.length);
-      if(!isDir(e.path)) {
-        e.origin='device';
-        fireChange(e);
+  if(typeof(window) !== 'undefined') {
+    window.addEventListener('storage', function(e) {
+      if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
+        e.path = e.key.substring(prefixNodes.length);
+        if(!isDir(e.path)) {
+          e.origin='device';
+          fireChange(e);
+        }
       }
-    }
-  });
+    });
+  }
   function fireChange(e) {
     for(var i=0; i<onChange.length; i++) {
       onChange[i](e);
@@ -869,7 +895,7 @@ define('lib/store',[], function () {
   function getContainingDir(path) {
     // '' 'a' 'a/' 'a/b' 'a/b/' 'a/b/c' 'a/b/c/'
     var parts = path.split('/');
-    // [''] ['a'] ['a', ''] ['a', 'b'] ['a', 'b', ''] ['a', 'b', 'c'] ['a', 'b', 'c', ''] 
+    // [''] ['a'] ['a', ''] ['a', 'b'] ['a', 'b', ''] ['a', 'b', 'c'] ['a', 'b', 'c', '']
     if(!parts[parts.length-1].length) {//last part is empty, so string was empty or had a trailing slash
       parts.pop();
     }
@@ -911,7 +937,7 @@ define('lib/store',[], function () {
           parentNode.data[getFileName(path)]=0;
         }
         updateNode(containingDir, parentNode, false, true);
-      } else if(outgoing) { 
+      } else if(outgoing) {
         if(node) {
           parentNode.data[getFileName(path)] = new Date().getTime();
         } else {
@@ -939,7 +965,7 @@ define('lib/store',[], function () {
             origin: 'remote',
             oldValue: undefined,
             newValue: (node ? node.data : undefined),
-            timestamp: timestamp 
+            timestamp: timestamp
           });
         }
       }
@@ -998,7 +1024,7 @@ define('lib/store',[], function () {
   }
   return {
     on            : on,//error,change(origin=tab,device,cloud)
-   
+
     getNode       : getNode,
     setNodeData   : setNodeData,
     setNodeAccess : setNodeAccess,
@@ -1011,7 +1037,7 @@ define('lib/store',[], function () {
 
 define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
   var prefix = '_remoteStorage_', busy=false, stateCbs=[];
-   
+
   function getState(path) {//should also distinguish between synced and locally modified for the path probably
     if(busy) {
       return 'busy';
@@ -1116,7 +1142,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
     setBusy(true);
     pullNode(path, false, true, startOne, finishOne)
   }
-  
+
   function syncNow(path, callback) {
     var outstanding=0, errors=[];
     function startOne() {
@@ -1130,7 +1156,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
       if(outstanding==0) {
         setBusy(false);
         if(callback) {
-          callback(errors || null);
+          callback(errors.length > 0 ? errors : null);
         }
       }
     }
@@ -1610,14 +1636,38 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
   };
 });
 
+
+define('lib/nodeConnect',['./wireClient', './webfinger'], function(wireClient, webfinger) {
+
+  return {
+
+    setUserAddress: function(userAddress, callback) {
+      webfinger.getStorageInfo(userAddress, { timeout: 3000 }, function(err, data) {
+        if(err) {
+          console.error("Failed to look up storage info for user " + userAddress + ": ", err);
+        } else {
+          wireClient.setStorageInfo(data.type, data.href);
+        }
+
+        callback(err);
+      });
+    },
+
+    setStorageInfo: wireClient.setStorageInfo,
+    setBearerToken: wireClient.setBearerToken
+
+  }
+
+});
 define('remoteStorage', [
   'require',
   './lib/widget',
   './lib/baseClient',
   './lib/store',
   './lib/sync',
-  './lib/wireClient'
-], function(require, widget, baseClient, store, sync, wireClient) {
+  './lib/wireClient',
+  './lib/nodeConnect'
+], function(require, widget, baseClient, store, sync, wireClient, nodeConnect) {
 
   var claimedModules = {}, modules = {};
 
@@ -1870,7 +1920,9 @@ define('remoteStorage', [
 
     getWidgetState   : widget.getState,
     setStorageInfo   : wireClient.setStorageInfo,
-    getStorageHref   : wireClient.getStorageHref
+    getStorageHref   : wireClient.getStorageHref,
+
+    nodeConnect: nodeConnect
 
   };
 

@@ -6,7 +6,8 @@ define('remoteStorage-modules', [
   './modules/documents',
   './modules/money',
   './modules/tasks',
-  './modules/bookmarks'
+  './modules/bookmarks',
+  './modules/messages'
 ], function(remoteStorage) {
   return remoteStorage;
 });

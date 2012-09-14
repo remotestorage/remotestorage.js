@@ -5,19 +5,38 @@ exports.handler = (function() {
   var url=require('url'),
     crypto=require('crypto'),
     tokens = {}, lastModified = {}, contentType = {}, content = {};
-  function createToken(userName, scopes, cb) {
+
+  function makeScopePaths(userName, scopes) {
     var scopePaths=[];
+    for(var i=0; i<scopes.length; i++) {
+      var thisScopeParts = scopes[i].split(':');
+      if(thisScopeParts[0]=='') {
+        scopePaths.push(userName+'/:'+thisScopeParts[1]);
+      } else {
+        scopePaths.push(userName+'/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
+        scopePaths.push(userName+'/public/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
+      }
+    }
+    return scopePaths;
+  }
+
+  function createInitialTokens() {
+    if(! config.initialTokens) {
+      return;
+    }
+    for(var token in config.initialTokens) {
+      var scopePaths = makeScopePaths(
+        config.defaultUserName, config.initialTokens[token]
+      );
+      console.log('adding ',scopePaths,' for', token);
+      tokens[token] = scopePaths;
+    }
+  }
+
+  function createToken(userName, scopes, cb) {
     crypto.randomBytes(48, function(ex, buf) {
       var token = buf.toString('hex');
-      for(var i=0; i<scopes.length; i++) {
-        var thisScopeParts = scopes[i].split(':');
-        if(thisScopeParts[0]=='') {
-          scopePaths.push(userName+'/:'+thisScopeParts[1]);
-        } else {
-          scopePaths.push(userName+'/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
-          scopePaths.push(userName+'/public/'+thisScopeParts[0]+'/:'+thisScopeParts[1]);
-        }
-      }
+      var scopePaths = makeScopePaths(userName, scopes);
       console.log('createToken ',userName,scopes);
       console.log('adding ',scopePaths,' for',token);
       tokens[token] = scopePaths;
@@ -281,6 +300,8 @@ exports.handler = (function() {
       writeJson(res, urlObj.query);
     }
   }
+
+  createInitialTokens();
 
   return {
     serve: serve

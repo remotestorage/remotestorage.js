@@ -4,8 +4,9 @@ define('remoteStorage', [
   './lib/baseClient',
   './lib/store',
   './lib/sync',
-  './lib/wireClient'
-], function(require, widget, baseClient, store, sync, wireClient) {
+  './lib/wireClient',
+  './lib/nodeConnect'
+], function(require, widget, baseClient, store, sync, wireClient, nodeConnect) {
 
   var claimedModules = {}, modules = {};
 
@@ -258,7 +259,9 @@ define('remoteStorage', [
 
     getWidgetState   : widget.getState,
     setStorageInfo   : wireClient.setStorageInfo,
-    getStorageHref   : wireClient.getStorageHref
+    getStorageHref   : wireClient.getStorageHref,
+
+    nodeConnect: nodeConnect
 
   };
 
