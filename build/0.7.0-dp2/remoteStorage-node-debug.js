@@ -1508,7 +1508,6 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         },
 
         on: function(eventType, cb, context) {//'error' or 'change'. Change events have a path and origin (tab, device, cloud) field
-          ensureAccess('r');
           if(eventType=='change') {
             if(moduleName) {
               if(!moduleChangeHandlers[moduleName]) {
