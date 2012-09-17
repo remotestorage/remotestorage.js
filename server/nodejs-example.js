@@ -1,10 +1,44 @@
 
 var config = require('./config').config;
 
+var fs = require('fs');
+
 exports.handler = (function() {
   var url=require('url'),
     crypto=require('crypto'),
     tokens = {}, lastModified = {}, contentType = {}, content = {};
+
+  function saveState(name, value) {
+    fs.writeFile("server-state/" + name + ".json", JSON.stringify(value), function() { });    
+  }
+
+  function loadState(name) {
+    if(fs.existsSync("server-state/" + name + ".json")) {
+      return JSON.parse(fs.readFileSync("server-state/" + name + ".json"));
+    } else {
+      return {}
+    }
+  }
+
+  function saveData() {
+    if(! fs.existsSync("server-state")) {
+      fs.mkdirSync("server-state");
+    }
+    saveState('tokens', tokens);
+    saveState('lastModified', lastModified);
+    saveState('contentType', contentType);
+    saveState('content', content);
+  }
+
+  function loadData() {
+    tokens = loadState('tokens');
+    lastModified = loadState('lastModified');
+    contentType = loadState('contentType');
+    content = loadState('content');
+
+    console.log("DATA LOADED", tokens, lastModified, contentType, content);
+  }
+
 
   function makeScopePaths(userName, scopes) {
     var scopePaths=[];
@@ -232,6 +266,7 @@ exports.handler = (function() {
           contentType[path]=req.headers['content-type'];
           console.log('stored '+path, content[path], contentType[path]);
           lastModified[path]=timestamp;
+          saveData();
           var pathParts=path.split('/');
           var timestamp=new Date().getTime();
           console.log(pathParts);
@@ -301,6 +336,7 @@ exports.handler = (function() {
     }
   }
 
+  loadData();
   createInitialTokens();
 
   return {
