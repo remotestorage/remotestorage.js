@@ -299,6 +299,7 @@ exports.handler = (function() {
           delete content[path];
           delete contentType[path];
           lastModified[path]=timestamp;
+          saveData();
           var pathParts=path.split('/');
           var thisPart = pathParts.pop();
           if(content[pathParts.join('/')+'/']) {
