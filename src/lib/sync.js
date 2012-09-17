@@ -107,6 +107,12 @@ define(['./wireClient', './store'], function(wireClient, store) {
   }
 
   function syncNow(path, callback) {
+
+    if(wireClient.getState() == 'anonymous') {
+      callback(['not connected']);
+      return;
+    }
+
     var outstanding=0, errors=[];
     function startOne() {
       outstanding++;
