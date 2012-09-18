@@ -14,7 +14,10 @@ define('remoteStorage', [
     console.error("DEPRECATION: " + oldFn + " is deprecated! Use " + newFn + " instead.");
   }
 
-  var remoteStorage =  {
+  /**
+     @object remoteStorage
+  */
+  var remoteStorage =  { 
 
     /**
      ** PUBLIC METHODS
@@ -97,43 +100,44 @@ define('remoteStorage', [
       return modules[moduleName];
     },
 
-    /** claimAccess() - Claim access for a set of modules.
-     **
-     ** You need to claim access to a module before you can
-     ** access data from it.
-     **
-     ** modules can be specified in three ways:
-     **
-     ** * via an object:
-     **
-     **   remoteStorage.claimAccess({
-     **     contacts: 'r',
-     **     documents: 'rw',
-     **     money: 'r'
-     **   });
-     **
-     ** * via an array:
-     **
-     **   remoteStorage.claimAccess(['contacts', 'documents', 'money']);
-     **
-     ** * via variable arguments:
-     **
-     **   remoteStorage.claimAccess('contacts', 'documents', 'money');
-     **
-     ** In both the array and argument list call sequence, access will
-     ** by default be claimed read-write ('rw'), UNLESS the last argument
-     ** (not the last member of the array) is either the string 'r' or 'rw':
-     **
-     **   remoteStorage.claimAccess('documents', 'rw');
-     **   remoteStorage.claimAccess(['money', 'documents'], 'r');
-     **
-     ** Errors:
-     **
-     ** claimAccess() will throw an exception, if any given module hasn't been
-     ** defined (yet). Access to all previously processed modules will have been
-     ** claimed, however.
-     **
-     **/
+    /**
+       @method remoteStorage.claimAccess()
+       @summary Claim access for a set of modules.
+       @desc
+       You need to claim access to a module before you can
+       access data from it.
+     
+       modules can be specified in three ways:
+     
+       * via an object:
+      
+         remoteStorage.claimAccess({
+           contacts: 'r',
+           documents: 'rw',
+           money: 'r'
+         });
+      
+       * via an array:
+      
+         remoteStorage.claimAccess(['contacts', 'documents', 'money']);
+      
+       * via variable arguments:
+      
+         remoteStorage.claimAccess('contacts', 'documents', 'money');
+      
+       In both the array and argument list call sequence, access will
+       by default be claimed read-write ('rw'), UNLESS the last argument
+       (not the last member of the array) is either the string 'r' or 'rw':
+      
+         remoteStorage.claimAccess('documents', 'rw');
+         remoteStorage.claimAccess(['money', 'documents'], 'r');
+      
+       Errors:
+      
+       claimAccess() will throw an exception, if any given module hasn't been
+       defined (yet). Access to all previously processed modules will have been
+       claimed, however.    
+     */
     claimAccess: function(claimed) {
 
       function makeArray(args) {

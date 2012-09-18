@@ -1,7 +1,7 @@
 /* -*- js-indent-level:2 -*- */
 
 define(['./sync', './store'], function (sync, store) {
-  var moduleChangeHandlers = {};
+  var moduleChangeHandlers = {}, errorHandlers = [];
 
   function bindContext(callback, context) {
     if(context) {
@@ -31,6 +31,10 @@ define(['./sync', './store'], function (sync, store) {
   }
   function fireError(str) {
     console.log(str);
+
+    for(var i=0;i<errorHandlers.length;i++) {
+      errorHandlers[i](str);
+    }
   }
   store.on('change', function(e) {
     var moduleName = extractModuleName(e.path);
@@ -71,7 +75,9 @@ define(['./sync', './store'], function (sync, store) {
   }
 
   return {
+
     claimAccess: claimAccess,
+
     getInstance: function(moduleName, isPublic) {
       function makePath(path) {
         if(moduleName == 'root') {
@@ -80,17 +86,30 @@ define(['./sync', './store'], function (sync, store) {
         return (isPublic?'/public/':'/')+moduleName+'/'+path;
       }
 
-      function ensureAccess(mode) {
-        var path = makePath('');
+      function nodeGivesAccess(path, mode) {
         var node = store.getNode(path);
-        if(! (new RegExp(mode)).test(node.startAccess)) {
-          throw "Not sufficient access claimed for node at " + path + " (need: " + mode + ", have: " + (node.startAccess || 'none') + ")";
+        var access = (new RegExp(mode)).test(node.startAccess);
+        if(access) {
+          return true
+        } else if(path.length > 0) {
+          return nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''))
         }
       }
 
+      function ensureAccess(mode) {
+        var path = makePath('');
+
+        if(! nodeGivesAccess(path, mode)) {
+          throw "Not sufficient access claimed for node at " + path;
+        }
+      }
+
+      /**
+         @desc baseClient
+      */
       return {
 
-        // helpers for implementations
+
         h: {
           bindContext: bindContext
         },
@@ -103,6 +122,8 @@ define(['./sync', './store'], function (sync, store) {
               }
               moduleChangeHandlers[moduleName].push(bindContext(cb, context));
             }
+          } else if(eventType == 'error') {
+            errorHandlers.push(bindContext(cb, context));
           }
         },
 
@@ -165,36 +186,62 @@ define(['./sync', './store'], function (sync, store) {
           }
         },
 
-        remove: function(path) {
+        /**
+           @method remove
+
+           @desc Remove node at given path from storage. Starts synchronization.
+
+           @param {String} path
+           @param {Function} callback (optional) callback to be called once synchronization is done.
+           @param {Object} context (optional) context for the callback
+
+           @fires "error" if no callback is given and synchronization fails
+        */
+        remove: function(path, cb, context) {
           ensureAccess('w');
           var ret = set(path, makePath(path));
-          //sync.syncNow('/', function(errors) {
-          //});
-          return ret;
-        },
-
-        storeObject: function(type, path, obj) {
-          ensureAccess('w');
-          obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
-          //checkFields(obj);
-          var ret = set(path, makePath(path), obj, 'application/json');
-          //sync.syncNow('/', function(errors) {
-          //});
-          return ret;
-        },
-
-        storeDocument: function(mimeType, path, data) {
-          ensureAccess('w');
-          var ret = set(path, makePath(path), data, mimeType);
-          //sync.syncNow('/', function(errors) {
-          //});
+          this.syncNow(cb, context);
           return ret;
         },
 
         /**
-           Get the full URL of the item at given path.
-           This will only work, if the user is connected to a remoteStorage account,
-           otherwise it returns null.
+           @method storeObject
+
+           @desc Store object at given path. Starts synchronization.
+
+           @param {String} type The type of object being stored. Two objects stored under the same type key should have the same structure.
+           @param {String} path Path relative to module root.
+           @param {Object} object The object to be saved.
+           @param {Function} callback (optional) callback to be called, once synchronization is done.
+           @param {Object} context (optional) context for the callback
+
+           @fires "error" if no callback is given and synchronization fails
+         */
+        storeObject: function(type, path, obj, cb, context) {
+          ensureAccess('w');
+          obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
+          //checkFields(obj);
+          var ret = set(path, makePath(path), obj, 'application/json');
+          this.syncNow(cb, context);
+          return ret;
+        },
+
+        storeDocument: function(mimeType, path, data, cb, context) {
+          ensureAccess('w');
+          var ret = set(path, makePath(path), data, mimeType);
+          this.syncNow(cb, context);
+          return ret;
+        },
+
+        /**
+           @method getItemURL
+
+           @desc Get the full URL of the item at given path. This will only
+           work, if the user is connected to a remoteStorage account, otherwise
+           it returns null.
+
+           @param {String} path relative path starting from the module root.
+           @returns String or null
         */
         getItemURL: function(path) {
           var base = remoteStorage.getStorageHref();
@@ -211,9 +258,23 @@ define(['./sync', './store'], function (sync, store) {
           return 'https://example.com/this/is/an/example/'+(isPublic?'public/':'')+moduleName+'/';
         },
 
+        /**
+           @method sync
+
+           @desc Force synchronization on given path.
+        */
         sync: function(path, switchVal) {
           var absPath = makePath(path);
           store.setNodeForce(absPath, (switchVal != false));
+        },
+
+        syncNow: function(cb, context) {
+          sync.syncNow(makePath(''), cb ? bindContext(cb, context) : function(errors) {
+            if(errors && errors.length > 0) {
+              console.log("Error syncing: ", errors);
+              fireError(errors);
+            }
+          });
         },
 
         getState: function(path) {
