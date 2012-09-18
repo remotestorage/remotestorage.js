@@ -500,7 +500,6 @@ define('lib/webfinger',
         ) {
         cb(null, obj);
       } else {
-        console.log('link', obj);
         cb('could not extract storageInfo from lrdd');
       }
     }
@@ -1304,7 +1303,6 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   function discoverStorageInfo(userAddress, cb) {
     webfinger.getStorageInfo(userAddress, {timeout: 3000}, function(err, data) {
       if(err) {
-        console.log("discovery of " + userAddress + " failed, guessing...", '(error was:', err, ')');
         hardcoded.guessStorageInfo(userAddress, {timeout: 3000}, function(err2, data2) {
           if(err2) {
             cb(err2);
@@ -1335,16 +1333,15 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
         setWidgetState('connecting');
         discoverStorageInfo(userAddress, function(err, auth) {
           if(err) {
-            console.log("discoverStorageInfo failed: ", err);
-            //alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
+            alert('webfinger discovery failed! (sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo)');
             setWidgetState('failed');
           } else {
             dance(auth);
           }
         });
-    //} else {
-      //alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
-    //}
+      // } else {
+      //   alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
+      // }
     } else {
       setWidgetState('typing');
     }
