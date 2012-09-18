@@ -500,6 +500,7 @@ define('lib/webfinger',
         ) {
         cb(null, obj);
       } else {
+        console.log('link', obj);
         cb('could not extract storageInfo from lrdd');
       }
     }
@@ -1144,6 +1145,14 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
   }
 
   function syncNow(path, callback) {
+
+    if(wireClient.getState() == 'anonymous') {
+      if(callback) {
+        callback(['not connected']);
+      }
+      return;
+    }
+
     var outstanding=0, errors=[];
     function startOne() {
       outstanding++;
@@ -1295,6 +1304,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   function discoverStorageInfo(userAddress, cb) {
     webfinger.getStorageInfo(userAddress, {timeout: 3000}, function(err, data) {
       if(err) {
+        console.log("discovery of " + userAddress + " failed, guessing...", '(error was:', err, ')');
         hardcoded.guessStorageInfo(userAddress, {timeout: 3000}, function(err2, data2) {
           if(err2) {
             cb(err2);
@@ -1320,20 +1330,21 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
-      if(userAddress=='me@local.dev') {
+      //if(userAddress=='me@local.dev') {
         localStorage['remote_storage_widget_useraddress']=userAddress;
         setWidgetState('connecting');
         discoverStorageInfo(userAddress, function(err, auth) {
           if(err) {
-            alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
+            console.log("discoverStorageInfo failed: ", err);
+            //alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
             setWidgetState('failed');
           } else {
             dance(auth);
           }
         });
-      } else {
-        alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
-      }
+    //} else {
+      //alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
+    //}
     } else {
       setWidgetState('typing');
     }
@@ -1413,7 +1424,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
 /* -*- js-indent-level:2 -*- */
 
 define('lib/baseClient',['./sync', './store'], function (sync, store) {
-  var moduleChangeHandlers = {};
+  var moduleChangeHandlers = {}, errorHandlers = [];
 
   function bindContext(callback, context) {
     if(context) {
@@ -1443,6 +1454,10 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
   }
   function fireError(str) {
     console.log(str);
+
+    for(var i=0;i<errorHandlers.length;i++) {
+      errorHandlers[i](str);
+    }
   }
   store.on('change', function(e) {
     var moduleName = extractModuleName(e.path);
@@ -1483,7 +1498,9 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
   }
 
   return {
+
     claimAccess: claimAccess,
+
     getInstance: function(moduleName, isPublic) {
       function makePath(path) {
         if(moduleName == 'root') {
@@ -1492,17 +1509,30 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         return (isPublic?'/public/':'/')+moduleName+'/'+path;
       }
 
-      function ensureAccess(mode) {
-        var path = makePath('');
+      function nodeGivesAccess(path, mode) {
         var node = store.getNode(path);
-        if(! (new RegExp(mode)).test(node.startAccess)) {
-          throw "Not sufficient access claimed for node at " + path + " (need: " + mode + ", have: " + (node.startAccess || 'none') + ")";
+        var access = (new RegExp(mode)).test(node.startAccess);
+        if(access) {
+          return true
+        } else if(path.length > 0) {
+          return nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''))
         }
       }
 
+      function ensureAccess(mode) {
+        var path = makePath('');
+
+        if(! nodeGivesAccess(path, mode)) {
+          throw "Not sufficient access claimed for node at " + path;
+        }
+      }
+
+      /**
+         @desc baseClient
+      */
       return {
 
-        // helpers for implementations
+
         h: {
           bindContext: bindContext
         },
@@ -1515,6 +1545,8 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
               }
               moduleChangeHandlers[moduleName].push(bindContext(cb, context));
             }
+          } else if(eventType == 'error') {
+            errorHandlers.push(bindContext(cb, context));
           }
         },
 
@@ -1577,36 +1609,62 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           }
         },
 
-        remove: function(path) {
+        /**
+           @method remove
+
+           @desc Remove node at given path from storage. Starts synchronization.
+
+           @param {String} path
+           @param {Function} callback (optional) callback to be called once synchronization is done.
+           @param {Object} context (optional) context for the callback
+
+           @fires "error" if no callback is given and synchronization fails
+        */
+        remove: function(path, cb, context) {
           ensureAccess('w');
           var ret = set(path, makePath(path));
-          //sync.syncNow('/', function(errors) {
-          //});
-          return ret;
-        },
-
-        storeObject: function(type, path, obj) {
-          ensureAccess('w');
-          obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
-          //checkFields(obj);
-          var ret = set(path, makePath(path), obj, 'application/json');
-          //sync.syncNow('/', function(errors) {
-          //});
-          return ret;
-        },
-
-        storeDocument: function(mimeType, path, data) {
-          ensureAccess('w');
-          var ret = set(path, makePath(path), data, mimeType);
-          //sync.syncNow('/', function(errors) {
-          //});
+          this.syncNow(cb, context);
           return ret;
         },
 
         /**
-           Get the full URL of the item at given path.
-           This will only work, if the user is connected to a remoteStorage account,
-           otherwise it returns null.
+           @method storeObject
+
+           @desc Store object at given path. Starts synchronization.
+
+           @param {String} type The type of object being stored. Two objects stored under the same type key should have the same structure.
+           @param {String} path Path relative to module root.
+           @param {Object} object The object to be saved.
+           @param {Function} callback (optional) callback to be called, once synchronization is done.
+           @param {Object} context (optional) context for the callback
+
+           @fires "error" if no callback is given and synchronization fails
+         */
+        storeObject: function(type, path, obj, cb, context) {
+          ensureAccess('w');
+          obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
+          //checkFields(obj);
+          var ret = set(path, makePath(path), obj, 'application/json');
+          this.syncNow(cb, context);
+          return ret;
+        },
+
+        storeDocument: function(mimeType, path, data, cb, context) {
+          ensureAccess('w');
+          var ret = set(path, makePath(path), data, mimeType);
+          this.syncNow(cb, context);
+          return ret;
+        },
+
+        /**
+           @method getItemURL
+
+           @desc Get the full URL of the item at given path. This will only
+           work, if the user is connected to a remoteStorage account, otherwise
+           it returns null.
+
+           @param {String} path relative path starting from the module root.
+           @returns String or null
         */
         getItemURL: function(path) {
           var base = remoteStorage.getStorageHref();
@@ -1623,9 +1681,23 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
           return 'https://example.com/this/is/an/example/'+(isPublic?'public/':'')+moduleName+'/';
         },
 
+        /**
+           @method sync
+
+           @desc Force synchronization on given path.
+        */
         sync: function(path, switchVal) {
           var absPath = makePath(path);
           store.setNodeForce(absPath, (switchVal != false));
+        },
+
+        syncNow: function(cb, context) {
+          sync.syncNow(makePath(''), cb ? bindContext(cb, context) : function(errors) {
+            if(errors && errors.length > 0) {
+              console.log("Error syncing: ", errors);
+              fireError(errors);
+            }
+          });
         },
 
         getState: function(path) {
@@ -1674,7 +1746,10 @@ define('remoteStorage', [
     console.error("DEPRECATION: " + oldFn + " is deprecated! Use " + newFn + " instead.");
   }
 
-  var remoteStorage =  {
+  /**
+     @object remoteStorage
+  */
+  var remoteStorage =  { 
 
     /**
      ** PUBLIC METHODS
@@ -1757,43 +1832,44 @@ define('remoteStorage', [
       return modules[moduleName];
     },
 
-    /** claimAccess() - Claim access for a set of modules.
-     **
-     ** You need to claim access to a module before you can
-     ** access data from it.
-     **
-     ** modules can be specified in three ways:
-     **
-     ** * via an object:
-     **
-     **   remoteStorage.claimAccess({
-     **     contacts: 'r',
-     **     documents: 'rw',
-     **     money: 'r'
-     **   });
-     **
-     ** * via an array:
-     **
-     **   remoteStorage.claimAccess(['contacts', 'documents', 'money']);
-     **
-     ** * via variable arguments:
-     **
-     **   remoteStorage.claimAccess('contacts', 'documents', 'money');
-     **
-     ** In both the array and argument list call sequence, access will
-     ** by default be claimed read-write ('rw'), UNLESS the last argument
-     ** (not the last member of the array) is either the string 'r' or 'rw':
-     **
-     **   remoteStorage.claimAccess('documents', 'rw');
-     **   remoteStorage.claimAccess(['money', 'documents'], 'r');
-     **
-     ** Errors:
-     **
-     ** claimAccess() will throw an exception, if any given module hasn't been
-     ** defined (yet). Access to all previously processed modules will have been
-     ** claimed, however.
-     **
-     **/
+    /**
+       @method remoteStorage.claimAccess()
+       @summary Claim access for a set of modules.
+       @desc
+       You need to claim access to a module before you can
+       access data from it.
+     
+       modules can be specified in three ways:
+     
+       * via an object:
+      
+         remoteStorage.claimAccess({
+           contacts: 'r',
+           documents: 'rw',
+           money: 'r'
+         });
+      
+       * via an array:
+      
+         remoteStorage.claimAccess(['contacts', 'documents', 'money']);
+      
+       * via variable arguments:
+      
+         remoteStorage.claimAccess('contacts', 'documents', 'money');
+      
+       In both the array and argument list call sequence, access will
+       by default be claimed read-write ('rw'), UNLESS the last argument
+       (not the last member of the array) is either the string 'r' or 'rw':
+      
+         remoteStorage.claimAccess('documents', 'rw');
+         remoteStorage.claimAccess(['money', 'documents'], 'r');
+      
+       Errors:
+      
+       claimAccess() will throw an exception, if any given module hasn't been
+       defined (yet). Access to all previously processed modules will have been
+       claimed, however.    
+     */
     claimAccess: function(claimed) {
 
       function makeArray(args) {
