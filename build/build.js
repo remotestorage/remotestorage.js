@@ -14,7 +14,7 @@ function doBuild(output, startFrag, name, endFrag, debug) {
 
   if(!! debug) {
     config.optimize = 'none';
-  } 
+  }
 
   config.wrap.startFile = startFrag;
   config.name = name;
@@ -32,6 +32,7 @@ function doBuild(output, startFrag, name, endFrag, debug) {
 doBuild('remoteStorage', 'start.frag', 'remoteStorage', 'end.frag');
 doBuild('remoteStorage-debug', 'startDebug.frag', 'remoteStorage', 'end.frag', true);
 doBuild('remoteStorage-node', 'start.frag', 'remoteStorage', 'endNode.frag');
+doBuild('remoteStorage-node-debug', 'startDebug.frag', 'remoteStorage', 'endNode.frag', true);
 
 // remoteStorage + modules build
 doBuild('remoteStorage-modules', 'start.frag', 'remoteStorage-modules', 'endModules.frag');

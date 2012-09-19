@@ -1,6 +1,6 @@
 define(['./wireClient', './store'], function(wireClient, store) {
   var prefix = '_remoteStorage_', busy=false, stateCbs=[];
-   
+
   function getState(path) {//should also distinguish between synced and locally modified for the path probably
     if(busy) {
       return 'busy';
@@ -105,7 +105,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
     setBusy(true);
     pullNode(path, false, true, startOne, finishOne)
   }
-  
+
   function syncNow(path, callback) {
     var outstanding=0, errors=[];
     function startOne() {
@@ -119,7 +119,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
       if(outstanding==0) {
         setBusy(false);
         if(callback) {
-          callback(errors || null);
+          callback(errors.length > 0 ? errors : null);
         }
       }
     }

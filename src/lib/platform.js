@@ -83,6 +83,30 @@ define([], function() {
       headers: params.headers
     };
     var timer, timedOut;
+
+    if(params.timeout) {
+      timer = setTimeout(function() {
+        params.error('timeout');
+        timedOut=true;
+      }, params.timeout);
+    }
+
+    // nodejs represents headers like:
+    // 'message-id' : '...',
+    //
+    // we want:
+    //
+    // 'Message-Id' : '...'
+    function normalizeHeaders(headers) {
+      var h = {};
+      for(var key in headers) {
+        h[key.replace(/(?:^|\-)[a-z]/g, function(match) {
+          return match.toUpperCase();
+        })] = headers[key];
+      }
+      return h;
+    }
+
     var lib = (urlObj.protocol=='https:'?https:http);
     var request = lib.request(options, function(response) {
       var str='';
@@ -96,7 +120,7 @@ define([], function() {
         }
         if(!timedOut) {
           if(response.statusCode==200 || response.statusCode==201 || response.statusCode==204) {
-            params.success(str);
+            params.success(str, normalizeHeaders(response.headers));
           } else {
             params.error(response.statusCode);
           }
@@ -104,14 +128,11 @@ define([], function() {
       });
     });
     request.on('error', function(e) {
+      if(timer) {
+        clearTimeout(timer);
+      }
       params.error(e.message);
     });
-    if(params.timeout) {
-      timer = setTimeout(function() {
-        params.error('timeout');
-        timedOut=true;
-      }, params.timeout);
-    }
     if(params.data) {
       request.end(params.data);
     } else {
@@ -145,7 +166,7 @@ define([], function() {
         });
       }
     }
-    cb(null, obj);   
+    cb(null, obj);
   }
   function parseXmlNode(str, cb) {
     var xml2js=require('xml2js');

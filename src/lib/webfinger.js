@@ -90,6 +90,9 @@ define(
         cb('not valid JSON');
         return;
       }
+      if(! obj.links) {
+        cb('JRD contains no links');
+      }
       var links = {};
       for(var i=0; i<obj.links.length; i++) {
         //just take the first one of each rel:
@@ -142,7 +145,7 @@ define(
                   } else {
                     cb('could not extract storageInfo from lrdd');
                   }
-                }); 
+                });
               } else {
                 cb('could not extract lrdd template from host-meta');
               }

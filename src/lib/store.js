@@ -1,15 +1,17 @@
 define([], function () {
   var onChange=[],
     prefixNodes = 'remote_storage_nodes:';
-  window.addEventListener('storage', function(e) {
-    if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
-      e.path = e.key.substring(prefixNodes.length);
-      if(!isDir(e.path)) {
-        e.origin='device';
-        fireChange(e);
+  if(typeof(window) !== 'undefined') {
+    window.addEventListener('storage', function(e) {
+      if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
+        e.path = e.key.substring(prefixNodes.length);
+        if(!isDir(e.path)) {
+          e.origin='device';
+          fireChange(e);
+        }
       }
-    }
-  });
+    });
+  }
   function fireChange(e) {
     for(var i=0; i<onChange.length; i++) {
       onChange[i](e);
@@ -47,7 +49,7 @@ define([], function () {
   function getContainingDir(path) {
     // '' 'a' 'a/' 'a/b' 'a/b/' 'a/b/c' 'a/b/c/'
     var parts = path.split('/');
-    // [''] ['a'] ['a', ''] ['a', 'b'] ['a', 'b', ''] ['a', 'b', 'c'] ['a', 'b', 'c', ''] 
+    // [''] ['a'] ['a', ''] ['a', 'b'] ['a', 'b', ''] ['a', 'b', 'c'] ['a', 'b', 'c', '']
     if(!parts[parts.length-1].length) {//last part is empty, so string was empty or had a trailing slash
       parts.pop();
     }
@@ -89,7 +91,7 @@ define([], function () {
           parentNode.data[getFileName(path)]=0;
         }
         updateNode(containingDir, parentNode, false, true);
-      } else if(outgoing) { 
+      } else if(outgoing) {
         if(node) {
           parentNode.data[getFileName(path)] = new Date().getTime();
         } else {
@@ -117,7 +119,7 @@ define([], function () {
             origin: 'remote',
             oldValue: undefined,
             newValue: (node ? node.data : undefined),
-            timestamp: timestamp 
+            timestamp: timestamp
           });
         }
       }
@@ -176,7 +178,7 @@ define([], function () {
   }
   return {
     on            : on,//error,change(origin=tab,device,cloud)
-   
+
     getNode       : getNode,
     setNodeData   : setNodeData,
     setNodeAccess : setNodeAccess,
