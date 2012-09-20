@@ -1921,7 +1921,7 @@ define('remoteStorage', [
       if(moduleName == 'root') {
         moduleName = '';
         widget.addScope('', mode);
-        baseClient.claimAccess('/', mode);
+        baseClient.claimAccess('', mode);
       } else {
         widget.addScope(moduleName, mode);
         baseClient.claimAccess('/'+moduleName+'/', mode);
@@ -3039,11 +3039,6 @@ define('modules/contacts', ['../remoteStorage', 'modules/deps/vcardjs-0.2'], fun
     var nodePrototype = {
 
       isNew: true,
-
-      markSaved: function() {
-        this.isNew = false;
-        return this;
-      },
 
       save: function() {
         this.validate();
