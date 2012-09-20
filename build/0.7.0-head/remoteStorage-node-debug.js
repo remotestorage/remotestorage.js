@@ -35,7 +35,7 @@
     }
     for(var i=0;i<modNames.length;i++) {
       if(!mods[modNames[i]]) {
-        console.log('loading '+modNames[i]);
+        console.log('[LOADER] loading '+modNames[i]);
         mods[modNames[i]]=_loadModule(modNames[i]);
       }
     }
@@ -110,7 +110,90 @@ define('lib/assets',[], function () {
   };
 });
 
-define('lib/platform',[], function() {
+
+define('lib/util',[], function() {
+
+  var loggers = {}, silentLogger = {};
+
+  var knownLoggers = ['sync', 'webfinger', 'getputdelete', 'platform', 'baseClient'];
+
+  var util = {
+
+    toArray: function(enumerable) {
+      var a = [];
+      for(var i in enumerable) {
+        a.push(enumerable[i]);
+      }
+      return a;
+    },
+
+    getLogger: function(name) {
+
+      if(! loggers[name]) {
+        loggers[name] = {
+
+          info: function() {
+            this.log('info', util.toArray(arguments));
+          },
+
+          debug: function() {
+            this.log('debug', util.toArray(arguments), 'debug');
+          },
+
+          error: function() {
+            this.log('error', util.toArray(arguments), 'error');
+          },
+
+          log: function(level, args, type) {
+            if(silentLogger[name]) {
+              return;
+            }
+
+            if(! type) {
+              type = 'log';
+            }
+
+            args.unshift("[" + name.toUpperCase() + "] -- " + level + " ");
+            
+            console[type].apply(console, args);
+          }
+        }
+      }
+
+      return loggers[name];
+    },
+
+    silenceLogger: function() {
+      var names = util.toArray(arguments);
+      for(var i=0;i<names.length;i++) {
+        silentLogger[ names[i] ] = true;
+      }
+    },
+
+    unsilenceLogger: function() {
+      var names = util.toArray(arguments);
+      for(var i=0;i<names.length;i++) {
+        delete silentLogger[ names[i] ];
+      }
+    },
+
+    silenceAllLoggers: function() {
+      this.silenceLogger.apply(this, knownLoggers);
+    },
+
+    unsilenceAllLoggers: function() {
+      this.unsilenceLogger.apply(this, knownLoggers);
+    },
+  }
+
+  return util;
+});
+
+
+define('lib/platform',['./util'], function(util) {
+
+  var logger = util.getLogger('platform');
+
   function ajaxBrowser(params) {
     var timedOut = false;
     var timer;
@@ -130,14 +213,14 @@ define('lib/platform',[], function() {
         xhr.setRequestHeader(header, params.headers[header]);
       }
     }
-    console.log('A '+params.url);
+    logger.debug('A '+params.url);
     xhr.onreadystatechange = function() {
       if((xhr.readyState==4) && (!timedOut)) {
-        console.log('B '+params.url);
+        logger.debug('B '+params.url);
         if(timer) {
           window.clearTimeout(timer);
         }
-        console.log('xhr cb '+params.url);
+        logger.debug('xhr cb '+params.url);
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
           params.success(xhr.responseText, xhr.getAllResponseHeaders());
         } else {
@@ -145,7 +228,7 @@ define('lib/platform',[], function() {
         }
       }
     }
-    console.log('xhr '+params.url);
+    logger.debug('xhr '+params.url);
     if(typeof(params.data) === 'string') {
       xhr.send(params.data);
     } else {
@@ -183,7 +266,9 @@ define('lib/platform',[], function() {
     if(!params.method) {
       params.method='GET';
     }
-    if(!params.data) {
+    if(params.data) {
+      params.headers['content-length'] = params.data.length;
+    } else {
       params.data = null;
     }
     var urlObj = url.parse(params.url);
@@ -384,8 +469,10 @@ define('lib/platform',[], function() {
 });
 
 define('lib/webfinger',
-  ['./platform'],
-  function (platform) {
+  ['./platform', './util'],
+  function (platform, util) {
+
+    var logger = util.getLogger('webfinger');
 
       ///////////////
      // Webfinger //
@@ -505,7 +592,7 @@ define('lib/webfinger',
     }
     function getStorageInfo(userAddress, options, cb) {
       userAddress2hostMetas(userAddress, function(err1, hostMetaAddresses) {
-        console.log("HOST META ADDRESSES", hostMetaAddresses, '(error: ', err1, ')');
+        logger.debug("HOST META ADDRESSES", hostMetaAddresses, '(error: ', err1, ')');
         if(err1) {
           cb(err1);
         } else {
@@ -674,8 +761,11 @@ define('lib/hardcoded',
 });
 
 define('lib/getputdelete',
-  ['./platform'],
-  function (platform) {
+  ['./platform', './util'],
+  function (platform, util) {
+
+    var logger = util.getLogger('getputdelete');
+
     function doCall(method, url, value, mimeType, token, cb, deadLine) {
       var platformObj = {
         url: url,
@@ -684,7 +774,7 @@ define('lib/getputdelete',
           cb(err);
         },
         success: function(data, headers) {
-          console.log('doCall cb '+url);
+          logger.debug('doCall cb '+url);
           cb(null, data, new Date(headers['Last-Modified']).getTime(), headers['Content-Type']);
         },
         timeout: 3000
@@ -701,7 +791,7 @@ define('lib/getputdelete',
       if(method != 'GET') {
         platformObj.data =value;
       }
-      console.log('platform.ajax '+url);
+      logger.debug('platform.ajax '+url);
       platform.ajax(platformObj);
     }
 
@@ -724,9 +814,9 @@ define('lib/getputdelete',
     }
 
     function put(url, value, mimeType, token, cb) {
-      console.log('calling PUT '+url);
+      logger.info('calling PUT '+url);
       doCall('PUT', url, value, mimeType, token, function(err, data) {
-        console.log('cb from PUT '+url);
+        logger.debug('cb from PUT '+url);
         if(err == 404) {
           doPut(url, value, token, 1, cb);
         } else {
@@ -844,7 +934,10 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
   };
 });
 
-define('lib/store',[], function () {
+define('lib/store',['./util'], function (util) {
+
+  var logger = util.getLogger('store');
+
   var onChange=[],
     prefixNodes = 'remote_storage_nodes:';
   if(typeof(window) !== 'undefined') {
@@ -887,7 +980,7 @@ define('lib/store',[], function () {
   }
   function isDir(path) {
     if(typeof(path) != 'string') {
-      console.error("Given path is not a string: ", path);
+      logger.error("Given path is not a string: ", path);
       doSomething();
     }
     return path.substr(-1) == '/';
@@ -1035,8 +1128,10 @@ define('lib/store',[], function () {
   };
 });
 
-define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
+define('lib/sync',['./wireClient', './store', './util'], function(wireClient, store, util) {
   var prefix = '_remoteStorage_', busy=false, stateCbs=[];
+
+  var logger = util.getLogger('sync');
 
   function getState(path) {//should also distinguish between synced and locally modified for the path probably
     if(busy) {
@@ -1092,7 +1187,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
   }
   function pullNode(path, force, access, startOne, finishOne) {
     var thisNode=store.getNode(path);
-    console.log('pullNode '+path, thisNode);
+    logger.debug('pullNode '+path, thisNode);
     if(thisNode.startAccess == 'rw' || !access) {
       access = thisNode.startAccess;
     }
@@ -1168,7 +1263,7 @@ define('lib/sync',['./wireClient', './store'], function(wireClient, store) {
         }
       }
     }
-    console.log('syncNow '+path);
+    logger.info('syncNow '+path);
     setBusy(true);
     pullNode(path, false, false, startOne, finishOne);
   }
@@ -1420,8 +1515,10 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
 
 /* -*- js-indent-level:2 -*- */
 
-define('lib/baseClient',['./sync', './store'], function (sync, store) {
+define('lib/baseClient',['./sync', './store', './util'], function (sync, store, util) {
   var moduleChangeHandlers = {}, errorHandlers = [];
+
+  var logger = util.getLogger('baseClient');
 
   function bindContext(callback, context) {
     if(context) {
@@ -1450,8 +1547,6 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
     }
   }
   function fireError(str) {
-    console.log(str);
-
     for(var i=0;i<errorHandlers.length;i++) {
       errorHandlers[i](str);
     }
@@ -1691,7 +1786,7 @@ define('lib/baseClient',['./sync', './store'], function (sync, store) {
         syncNow: function(cb, context) {
           sync.syncNow(makePath(''), cb ? bindContext(cb, context) : function(errors) {
             if(errors && errors.length > 0) {
-              console.log("Error syncing: ", errors);
+              logger.error("Error syncing: ", errors);
               fireError(errors);
             }
           });
@@ -1734,13 +1829,16 @@ define('remoteStorage', [
   './lib/store',
   './lib/sync',
   './lib/wireClient',
-  './lib/nodeConnect'
-], function(require, widget, baseClient, store, sync, wireClient, nodeConnect) {
+  './lib/nodeConnect',
+  './lib/util'
+], function(require, widget, baseClient, store, sync, wireClient, nodeConnect, util) {
 
   var claimedModules = {}, modules = {};
 
+  var logger = util.getLogger('base');
+
   function deprecate(oldFn, newFn) {
-    console.error("DEPRECATION: " + oldFn + " is deprecated! Use " + newFn + " instead.");
+    logger.error("DEPRECATION: " + oldFn + " is deprecated! Use " + newFn + " instead.");
   }
 
   /**
@@ -1767,7 +1865,7 @@ define('remoteStorage', [
      **
      **/
     defineModule: function(moduleName, builder) {
-      console.log('DEFINE MODULE', moduleName);
+      logger.debug('DEFINE MODULE', moduleName);
       var module = builder(
         // private client:
         baseClient.getInstance(moduleName, false),
@@ -1776,7 +1874,7 @@ define('remoteStorage', [
       );
       modules[moduleName] = module;
       this[moduleName] = module.exports;
-      console.log('Module defined: ' + moduleName, module, this);
+      logger.debug('Module defined: ' + moduleName, module, this);
     },
 
     /** getModuleList() - Get an Array of all moduleNames, currently defined.
@@ -1906,7 +2004,7 @@ define('remoteStorage', [
      ** claimAccess() provides the same interface.
      **/
     claimModuleAccess: function(moduleName, mode) {
-      console.log('claimModuleAccess', arguments);
+      logger.debug('claimModuleAccess', arguments);
       if(! moduleName in modules) {
         throw "Module not defined: " + moduleName;
       }
@@ -1994,7 +2092,9 @@ define('remoteStorage', [
     setStorageInfo   : wireClient.setStorageInfo,
     getStorageHref   : wireClient.getStorageHref,
 
-    nodeConnect: nodeConnect
+    nodeConnect: nodeConnect,
+
+    util: util
 
   };
 

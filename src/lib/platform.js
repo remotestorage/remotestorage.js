@@ -1,4 +1,7 @@
-define([], function() {
+define(['./util'], function(util) {
+
+  var logger = util.getLogger('platform');
+
   function ajaxBrowser(params) {
     var timedOut = false;
     var timer;
@@ -18,14 +21,14 @@ define([], function() {
         xhr.setRequestHeader(header, params.headers[header]);
       }
     }
-    console.log('A '+params.url);
+    logger.debug('A '+params.url);
     xhr.onreadystatechange = function() {
       if((xhr.readyState==4) && (!timedOut)) {
-        console.log('B '+params.url);
+        logger.debug('B '+params.url);
         if(timer) {
           window.clearTimeout(timer);
         }
-        console.log('xhr cb '+params.url);
+        logger.debug('xhr cb '+params.url);
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
           params.success(xhr.responseText, xhr.getAllResponseHeaders());
         } else {
@@ -33,7 +36,7 @@ define([], function() {
         }
       }
     }
-    console.log('xhr '+params.url);
+    logger.debug('xhr '+params.url);
     if(typeof(params.data) === 'string') {
       xhr.send(params.data);
     } else {
@@ -71,7 +74,9 @@ define([], function() {
     if(!params.method) {
       params.method='GET';
     }
-    if(!params.data) {
+    if(params.data) {
+      params.headers['content-length'] = params.data.length;
+    } else {
       params.data = null;
     }
     var urlObj = url.parse(params.url);

@@ -5,13 +5,16 @@ define('remoteStorage', [
   './lib/store',
   './lib/sync',
   './lib/wireClient',
-  './lib/nodeConnect'
-], function(require, widget, baseClient, store, sync, wireClient, nodeConnect) {
+  './lib/nodeConnect',
+  './lib/util'
+], function(require, widget, baseClient, store, sync, wireClient, nodeConnect, util) {
 
   var claimedModules = {}, modules = {};
 
+  var logger = util.getLogger('base');
+
   function deprecate(oldFn, newFn) {
-    console.error("DEPRECATION: " + oldFn + " is deprecated! Use " + newFn + " instead.");
+    logger.error("DEPRECATION: " + oldFn + " is deprecated! Use " + newFn + " instead.");
   }
 
   /**
@@ -38,7 +41,7 @@ define('remoteStorage', [
      **
      **/
     defineModule: function(moduleName, builder) {
-      console.log('DEFINE MODULE', moduleName);
+      logger.debug('DEFINE MODULE', moduleName);
       var module = builder(
         // private client:
         baseClient.getInstance(moduleName, false),
@@ -47,7 +50,7 @@ define('remoteStorage', [
       );
       modules[moduleName] = module;
       this[moduleName] = module.exports;
-      console.log('Module defined: ' + moduleName, module, this);
+      logger.debug('Module defined: ' + moduleName, module, this);
     },
 
     /** getModuleList() - Get an Array of all moduleNames, currently defined.
@@ -177,7 +180,7 @@ define('remoteStorage', [
      ** claimAccess() provides the same interface.
      **/
     claimModuleAccess: function(moduleName, mode) {
-      console.log('claimModuleAccess', arguments);
+      logger.debug('claimModuleAccess', arguments);
       if(! moduleName in modules) {
         throw "Module not defined: " + moduleName;
       }
@@ -265,7 +268,9 @@ define('remoteStorage', [
     setStorageInfo   : wireClient.setStorageInfo,
     getStorageHref   : wireClient.getStorageHref,
 
-    nodeConnect: nodeConnect
+    nodeConnect: nodeConnect,
+
+    util: util
 
   };
 

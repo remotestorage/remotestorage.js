@@ -1,7 +1,9 @@
 /* -*- js-indent-level:2 -*- */
 
-define(['./sync', './store'], function (sync, store) {
+define(['./sync', './store', './util'], function (sync, store, util) {
   var moduleChangeHandlers = {}, errorHandlers = [];
+
+  var logger = util.getLogger('baseClient');
 
   function bindContext(callback, context) {
     if(context) {
@@ -30,8 +32,6 @@ define(['./sync', './store'], function (sync, store) {
     }
   }
   function fireError(str) {
-    console.log(str);
-
     for(var i=0;i<errorHandlers.length;i++) {
       errorHandlers[i](str);
     }
@@ -271,7 +271,7 @@ define(['./sync', './store'], function (sync, store) {
         syncNow: function(cb, context) {
           sync.syncNow(makePath(''), cb ? bindContext(cb, context) : function(errors) {
             if(errors && errors.length > 0) {
-              console.log("Error syncing: ", errors);
+              logger.error("Error syncing: ", errors);
               fireError(errors);
             }
           });

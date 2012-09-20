@@ -1,6 +1,8 @@
 define(
-  ['./platform'],
-  function (platform) {
+  ['./platform', './util'],
+  function (platform, util) {
+
+    var logger = util.getLogger('webfinger');
 
       ///////////////
      // Webfinger //
@@ -120,7 +122,7 @@ define(
     }
     function getStorageInfo(userAddress, options, cb) {
       userAddress2hostMetas(userAddress, function(err1, hostMetaAddresses) {
-        console.log("HOST META ADDRESSES", hostMetaAddresses, '(error: ', err1, ')');
+        logger.debug("HOST META ADDRESSES", hostMetaAddresses, '(error: ', err1, ')');
         if(err1) {
           cb(err1);
         } else {

@@ -1,20 +1,79 @@
 
+define([], function() {
 
-// FIXME: global for now, to work with modules.
-window.util = {
+  var loggers = {}, silentLogger = {};
 
-  bindContext: function bindContext(callback, context) {
-    if(context) {
-      return function() { return callback.apply(context, arguments); };
-    } else {
-      return callback;
-    }
+  var knownLoggers = ['sync', 'webfinger', 'getputdelete', 'platform', 'baseClient'];
+
+  var util = {
+
+    toArray: function(enumerable) {
+      var a = [];
+      for(var i in enumerable) {
+        a.push(enumerable[i]);
+      }
+      return a;
+    },
+
+    getLogger: function(name) {
+
+      if(! loggers[name]) {
+        loggers[name] = {
+
+          info: function() {
+            this.log('info', util.toArray(arguments));
+          },
+
+          debug: function() {
+            this.log('debug', util.toArray(arguments), 'debug');
+          },
+
+          error: function() {
+            this.log('error', util.toArray(arguments), 'error');
+          },
+
+          log: function(level, args, type) {
+            if(silentLogger[name]) {
+              return;
+            }
+
+            if(! type) {
+              type = 'log';
+            }
+
+            args.unshift("[" + name.toUpperCase() + "] -- " + level + " ");
+            
+            console[type].apply(console, args);
+          }
+        }
+      }
+
+      return loggers[name];
+    },
+
+    silenceLogger: function() {
+      var names = util.toArray(arguments);
+      for(var i=0;i<names.length;i++) {
+        silentLogger[ names[i] ] = true;
+      }
+    },
+
+    unsilenceLogger: function() {
+      var names = util.toArray(arguments);
+      for(var i=0;i<names.length;i++) {
+        delete silentLogger[ names[i] ];
+      }
+    },
+
+    silenceAllLoggers: function() {
+      this.silenceLogger.apply(this, knownLoggers);
+    },
+
+    unsilenceAllLoggers: function() {
+      this.unsilenceLogger.apply(this, knownLoggers);
+    },
   }
 
-}
-
-
-define('util', function() {
-  return window.util;
+  return util;
 });
 

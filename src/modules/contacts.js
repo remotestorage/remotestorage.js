@@ -58,6 +58,11 @@ define('modules/contacts', ['../remoteStorage', 'modules/deps/vcardjs-0.2'], fun
 
       isNew: true,
 
+      markSaved: function() {
+        this.isNew = false;
+        return this;
+      },
+
       save: function() {
         this.validate();
 

@@ -1,4 +1,7 @@
-define([], function () {
+define(['./util'], function (util) {
+
+  var logger = util.getLogger('store');
+
   var onChange=[],
     prefixNodes = 'remote_storage_nodes:';
   if(typeof(window) !== 'undefined') {
@@ -41,7 +44,7 @@ define([], function () {
   }
   function isDir(path) {
     if(typeof(path) != 'string') {
-      console.error("Given path is not a string: ", path);
+      logger.error("Given path is not a string: ", path);
       doSomething();
     }
     return path.substr(-1) == '/';

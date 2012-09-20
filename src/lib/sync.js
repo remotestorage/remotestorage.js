@@ -1,5 +1,7 @@
-define(['./wireClient', './store'], function(wireClient, store) {
+define(['./wireClient', './store', './util'], function(wireClient, store, util) {
   var prefix = '_remoteStorage_', busy=false, stateCbs=[];
+
+  var logger = util.getLogger('sync');
 
   function getState(path) {//should also distinguish between synced and locally modified for the path probably
     if(busy) {
@@ -55,7 +57,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
   }
   function pullNode(path, force, access, startOne, finishOne) {
     var thisNode=store.getNode(path);
-    console.log('pullNode '+path, thisNode);
+    logger.debug('pullNode '+path, thisNode);
     if(thisNode.startAccess == 'rw' || !access) {
       access = thisNode.startAccess;
     }
@@ -131,7 +133,7 @@ define(['./wireClient', './store'], function(wireClient, store) {
         }
       }
     }
-    console.log('syncNow '+path);
+    logger.info('syncNow '+path);
     setBusy(true);
     pullNode(path, false, false, startOne, finishOne);
   }

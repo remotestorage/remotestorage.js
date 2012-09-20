@@ -35,7 +35,7 @@
     }
     for(var i=0;i<modNames.length;i++) {
       if(!mods[modNames[i]]) {
-        console.log('loading '+modNames[i]);
+        console.log('[LOADER] loading '+modNames[i]);
         mods[modNames[i]]=_loadModule(modNames[i]);
       }
     }
