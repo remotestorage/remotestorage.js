@@ -72,8 +72,8 @@ define(
         error: function(err) {
           cb('err: during IrisCouch test:'+err);
         },
-        timeout: options.timeout,
-        //data: userName
+        timeout: options.timeout/*,
+        data: userName*/
       });
     }
     function mapToIrisCouch(userAddress) {
