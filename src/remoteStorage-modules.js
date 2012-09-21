@@ -1,5 +1,5 @@
 define('remoteStorage-modules', [
-  'remoteStorage',
+  './remoteStorage',
   './modules/root',
   './modules/calendar',
   './modules/contacts',

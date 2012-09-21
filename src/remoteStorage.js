@@ -1,4 +1,4 @@
-define('remoteStorage', [
+define([
   'require',
   './lib/widget',
   './lib/baseClient',
