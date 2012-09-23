@@ -155,7 +155,7 @@ define('lib/util',[], function() {
 
             args.unshift("[" + name.toUpperCase() + "] -- " + level + " ");
             
-            console[type].apply(console, args);
+            (console[type] || console.log).apply(console, args);
           }
         }
       }
@@ -183,7 +183,7 @@ define('lib/util',[], function() {
 
     unsilenceAllLoggers: function() {
       this.unsilenceLogger.apply(this, knownLoggers);
-    },
+    }
   }
 
   return util;
@@ -705,8 +705,8 @@ define('lib/hardcoded',
         error: function(err) {
           cb('err: during IrisCouch test:'+err);
         },
-        timeout: options.timeout,
-        //data: userName
+        timeout: options.timeout/*,
+        data: userName*/
       });
     }
     function mapToIrisCouch(userAddress) {

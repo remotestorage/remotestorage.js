@@ -43,7 +43,7 @@ define([], function() {
 
             args.unshift("[" + name.toUpperCase() + "] -- " + level + " ");
             
-            console[type].apply(console, args);
+            (console[type] || console.log).apply(console, args);
           }
         }
       }
