@@ -1603,6 +1603,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
 
       function nodeGivesAccess(path, mode) {
         var node = store.getNode(path);
+        logger.debug("check node access", path, mode, node);
         var access = (new RegExp(mode)).test(node.startAccess);
         if(access) {
           return true
@@ -1737,6 +1738,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
           var ret = set(path, makePath(path), obj, 'application/json');
+          this.sync(path);
           this.syncNow(cb, context);
           return ret;
         },
