@@ -71,7 +71,7 @@ define([], function() {
 
     unsilenceAllLoggers: function() {
       this.unsilenceLogger.apply(this, knownLoggers);
-    },
+    }
   }
 
   return util;
