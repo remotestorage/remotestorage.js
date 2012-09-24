@@ -194,6 +194,31 @@ define('lib/platform',['./util'], function(util) {
 
   var logger = util.getLogger('platform');
 
+  function browserParseHeaders(rawHeaders) {
+    var headers = {};
+    var lines = rawHeaders.split(/\r?\n/);
+    var lastKey = null, md, key, value;
+    for(var i=0;i<lines.length;i++) {
+      if(lines[i].length == 0) {
+        // empty line
+        continue;
+      } else if((md = lines[i].match(/^([^:]+):\s*(.+)$/))) {
+        // key: value line
+        key = md[1], value = md[2];
+        headers[key] = value;
+        lastKey = key;
+      } else if((md = lines[i].match(/^\s+(.+)$/))) {
+        // continued line (if previous line exceeded 80 bytes
+        key = lastKey, value= md[1];
+        headers[key] = headers[key] + value;
+      } else {
+        // nothing we recognize.
+        logger.error("Failed to parse header line: " + lines[i]);
+      }
+    }
+    return headers;
+  }
+
   function ajaxBrowser(params) {
     var timedOut = false;
     var timer;
@@ -222,7 +247,7 @@ define('lib/platform',['./util'], function(util) {
         }
         logger.debug('xhr cb '+params.url);
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
-          params.success(xhr.responseText, xhr.getAllResponseHeaders());
+          params.success(xhr.responseText, browserParseHeaders(xhr.getAllResponseHeaders()));
         } else {
           params.error(xhr.status);
         }
@@ -766,6 +791,8 @@ define('lib/getputdelete',
 
     var logger = util.getLogger('getputdelete');
 
+    var defaultContentType = 'application/octet-stream';
+
     function doCall(method, url, value, mimeType, token, cb, deadLine) {
       var platformObj = {
         url: url,
@@ -774,8 +801,13 @@ define('lib/getputdelete',
           cb(err);
         },
         success: function(data, headers) {
-          logger.debug('doCall cb '+url);
-          cb(null, data, new Date(headers['Last-Modified']).getTime(), headers['Content-Type']);
+          logger.debug('doCall cb '+url, 'headers:', headers);
+          var timestamp;
+          if(headers['Last-Modified'] && (timestamp = new Date(headers['Last-Modified']))) {
+            cb(null, data, timestamp.getTime(), headers['Content-Type'] || defaultContentType);
+          } else {
+            throw "Last-Modified header not found, can't determine timestamp of " + url;
+          }
         },
         timeout: 3000
       }
@@ -2006,7 +2038,7 @@ define('remoteStorage', [
      ** claimAccess() provides the same interface.
      **/
     claimModuleAccess: function(moduleName, mode) {
-      logger.debug('claimModuleAccess', arguments);
+      logger.debug('claimModuleAccess', moduleName, mode);
       if(! moduleName in modules) {
         throw "Module not defined: " + moduleName;
       }
@@ -2021,7 +2053,7 @@ define('remoteStorage', [
       if(moduleName == 'root') {
         moduleName = '';
         widget.addScope('', mode);
-        baseClient.claimAccess('', mode);
+        baseClient.claimAccess('/', mode);
       } else {
         widget.addScope(moduleName, mode);
         baseClient.claimAccess('/'+moduleName+'/', mode);
