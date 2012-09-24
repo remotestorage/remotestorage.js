@@ -180,7 +180,7 @@ define('remoteStorage', [
      ** claimAccess() provides the same interface.
      **/
     claimModuleAccess: function(moduleName, mode) {
-      logger.debug('claimModuleAccess', arguments);
+      logger.debug('claimModuleAccess', moduleName, mode);
       if(! moduleName in modules) {
         throw "Module not defined: " + moduleName;
       }
@@ -195,7 +195,7 @@ define('remoteStorage', [
       if(moduleName == 'root') {
         moduleName = '';
         widget.addScope('', mode);
-        baseClient.claimAccess('', mode);
+        baseClient.claimAccess('/', mode);
       } else {
         widget.addScope(moduleName, mode);
         baseClient.claimAccess('/'+moduleName+'/', mode);
