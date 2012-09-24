@@ -4,6 +4,8 @@ define(
 
     var logger = util.getLogger('getputdelete');
 
+    var defaultContentType = 'application/octet-stream';
+
     function doCall(method, url, value, mimeType, token, cb, deadLine) {
       var platformObj = {
         url: url,
@@ -12,8 +14,13 @@ define(
           cb(err);
         },
         success: function(data, headers) {
-          logger.debug('doCall cb '+url);
-          cb(null, data, new Date(headers['Last-Modified']).getTime(), headers['Content-Type']);
+          logger.debug('doCall cb '+url, 'headers:', headers);
+          var timestamp;
+          if(headers['Last-Modified'] && (timestamp = new Date(headers['Last-Modified']))) {
+            cb(null, data, timestamp.getTime(), headers['Content-Type'] || defaultContentType);
+          } else {
+            throw "Last-Modified header not found, can't determine timestamp of " + url;
+          }
         },
         timeout: 3000
       }

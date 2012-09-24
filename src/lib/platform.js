@@ -2,6 +2,31 @@ define(['./util'], function(util) {
 
   var logger = util.getLogger('platform');
 
+  function browserParseHeaders(rawHeaders) {
+    var headers = {};
+    var lines = rawHeaders.split(/\r?\n/);
+    var lastKey = null, md, key, value;
+    for(var i=0;i<lines.length;i++) {
+      if(lines[i].length == 0) {
+        // empty line
+        continue;
+      } else if((md = lines[i].match(/^([^:]+):\s*(.+)$/))) {
+        // key: value line
+        key = md[1], value = md[2];
+        headers[key] = value;
+        lastKey = key;
+      } else if((md = lines[i].match(/^\s+(.+)$/))) {
+        // continued line (if previous line exceeded 80 bytes
+        key = lastKey, value= md[1];
+        headers[key] = headers[key] + value;
+      } else {
+        // nothing we recognize.
+        logger.error("Failed to parse header line: " + lines[i]);
+      }
+    }
+    return headers;
+  }
+
   function ajaxBrowser(params) {
     var timedOut = false;
     var timer;
@@ -30,7 +55,7 @@ define(['./util'], function(util) {
         }
         logger.debug('xhr cb '+params.url);
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
-          params.success(xhr.responseText, xhr.getAllResponseHeaders());
+          params.success(xhr.responseText, browserParseHeaders(xhr.getAllResponseHeaders()));
         } else {
           params.error(xhr.status);
         }
