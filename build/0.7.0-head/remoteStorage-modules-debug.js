@@ -3153,7 +3153,7 @@ define('modules/deps/vcardjs-0.2',[], function() {
  ** Skeleton for new modules
  **/
 
-define('modules/contacts',['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage, vCardJS) {
+define('modules/contacts',['../remoteStorage', '../modules/deps/vcardjs-0.2'], function(remoteStorage, vCardJS) {
   var moduleName = "contacts";
 
   var VCard = vCardJS.VCard, VCF = vCardJS.VCF;
