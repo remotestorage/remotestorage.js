@@ -28,7 +28,7 @@
       return function(){};
     }
     var modNames = deps[name];
-    if(! modNames) {
+    if(! (modNames instanceof Array)) {
       console.log("MODS", mods);
       console.log("DEPS", deps);
       throw "Failed to find dependencies for module " + name;
@@ -1894,7 +1894,7 @@ define('lib/nodeConnect',['./wireClient', './webfinger'], function(wireClient, w
   }
 
 });
-define('remoteStorage', [
+define('remoteStorage',[
   'require',
   './lib/widget',
   './lib/baseClient',

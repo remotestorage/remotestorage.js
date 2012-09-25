@@ -28,7 +28,7 @@
       return function(){};
     }
     var modNames = deps[name];
-    if(! modNames) {
+    if(! (modNames instanceof Array)) {
       console.log("MODS", mods);
       console.log("DEPS", deps);
       throw "Failed to find dependencies for module " + name;
@@ -1894,7 +1894,7 @@ define('lib/nodeConnect',['./wireClient', './webfinger'], function(wireClient, w
   }
 
 });
-define('remoteStorage', [
+define('remoteStorage',[
   'require',
   './lib/widget',
   './lib/baseClient',
@@ -3153,8 +3153,7 @@ define('modules/deps/vcardjs-0.2',[], function() {
  ** Skeleton for new modules
  **/
 
-define('modules/contacts', ['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage, vCardJS) {
-
+define('modules/contacts',['../remoteStorage', 'modules/deps/vcardjs-0.2'], function(remoteStorage, vCardJS) {
   var moduleName = "contacts";
 
   var VCard = vCardJS.VCard, VCF = vCardJS.VCF;
@@ -3784,8 +3783,8 @@ define('modules/bookmarks',['../remoteStorage'], function(remoteStorage) {
 
 });
 
-define('remoteStorage-modules', [
-  'remoteStorage',
+define('remoteStorage-modules',[
+  './remoteStorage',
   './modules/root',
   './modules/calendar',
   './modules/contacts',
