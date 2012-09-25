@@ -142,18 +142,10 @@ define([
        claimed, however.    
      */
     claimAccess: function(claimed) {
-
-      function makeArray(args) {
-        var a = [];
-        for(var i in args) {
-          a[i] = args[i];
-        }
-        return a;
-      }
-
       if(typeof(claimed) !== 'object' || (claimed instanceof Array)) {
         if(! (claimed instanceof Array)) {
-          claimed = makeArray(arguments);
+          // convert arguments to array
+          claimed = Array.prototype.slice.call(arguments);
         }
         var _modules = claimed, mode = 'rw';
         claimed = {};
@@ -180,7 +172,7 @@ define([
      ** claimAccess() provides the same interface.
      **/
     claimModuleAccess: function(moduleName, mode) {
-      logger.debug('claimModuleAccess', arguments);
+      logger.debug('claimModuleAccess', moduleName, mode);
       if(! moduleName in modules) {
         throw "Module not defined: " + moduleName;
       }
@@ -195,7 +187,7 @@ define([
       if(moduleName == 'root') {
         moduleName = '';
         widget.addScope('', mode);
-        baseClient.claimAccess('', mode);
+        baseClient.claimAccess('/', mode);
       } else {
         widget.addScope(moduleName, mode);
         baseClient.claimAccess('/'+moduleName+'/', mode);
