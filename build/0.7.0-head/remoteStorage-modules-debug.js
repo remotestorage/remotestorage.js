@@ -1,3 +1,4 @@
+/* remoteStorage.js 0.7.0-head remoteStoragejs.com, MIT-licensed */
 (function() {
   var exports={}, deps={}, mods={};
   function define(name, relDeps, code){
@@ -3153,7 +3154,13 @@ define('modules/deps/vcardjs-0.2',[], function() {
  ** Skeleton for new modules
  **/
 
-define('modules/contacts',['../remoteStorage', '../modules/deps/vcardjs-0.2'], function(remoteStorage, vCardJS) {
+define('modules/contacts',[
+  // don't change these weird paths.
+  // required due to builder issues hopefully to be resolved by
+  // https://github.com/RemoteStorage/remoteStorage.js/issues/84
+  '../remoteStorage',
+  '../modules/deps/vcardjs-0.2'
+], function(remoteStorage, vCardJS) {
   var moduleName = "contacts";
 
   var VCard = vCardJS.VCard, VCF = vCardJS.VCF;

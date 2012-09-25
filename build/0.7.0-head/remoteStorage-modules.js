@@ -1,3 +1,5 @@
+/* remoteStorage.js 0.7.0-head remoteStoragejs.com, MIT-licensed */
+
 /**
  * vCardJS - a vCard 4.0 implementation in JavaScript
  *
