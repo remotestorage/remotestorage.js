@@ -2300,7 +2300,11 @@ define('modules/root',['../remoteStorage'], function(remoteStorage) {
      **/
     function setObject(type, path, obj) {
       var client = getClient(path);
-      client.storeObject(type, path, obj);
+      if(typeof(obj) === 'object') {
+        client.storeObject(type, path, obj);
+      } else {
+        client.storeDocument(type, path, obj);
+      }
     }
 
     /** removeObject(path) - remove node at given path
