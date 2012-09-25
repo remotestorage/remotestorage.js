@@ -1,4 +1,4 @@
-define('remoteStorage-modules', [
+define([
   './remoteStorage',
   './modules/root',
   './modules/calendar',
