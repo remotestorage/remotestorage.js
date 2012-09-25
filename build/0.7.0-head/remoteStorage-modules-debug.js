@@ -971,7 +971,8 @@ define('lib/store',['./util'], function (util) {
   var logger = util.getLogger('store');
 
   var onChange=[],
-    prefixNodes = 'remote_storage_nodes:';
+    prefixNodes = 'remote_storage_nodes:',
+    prefixNodesData = 'remote_storage_node_data:';
   if(typeof(window) !== 'undefined') {
     window.addEventListener('storage', function(e) {
       if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
@@ -994,7 +995,6 @@ define('lib/store',['./util'], function (util) {
     if(valueStr) {
       try {
         value = JSON.parse(valueStr);
-        value.data = JSON.parse(value.data);//double-JSON-ed for now, until we split content away from meta
       } catch(e) {
       }
     }
@@ -1004,7 +1004,6 @@ define('lib/store',['./util'], function (util) {
         startForce: null,
         timestamp: 0,
         keep: true,
-        data: (isDir(path)?{}:undefined),
         diff: {}
       };
     }
@@ -1047,9 +1046,6 @@ define('lib/store',['./util'], function (util) {
   }
   function updateNode(path, node, outgoing, meta, timestamp) {
     if(node) {
-      if(typeof(node.data) != 'string') {
-        node.data=JSON.stringify(node.data);//double-JSON-ed for now, until we separate metadata from content
-      }
       localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     } else {
       localStorage.removeItem(prefixNodes+path);
@@ -1057,30 +1053,35 @@ define('lib/store',['./util'], function (util) {
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
+      var parentData = getNodeData(parentNode) || {};
       if(meta) {
-        if(!parentNode.data[getFileName(path)]) {
-          parentNode.data[getFileName(path)]=0;
+        if(! (parentData && parentData[getFileName(path)])) {
+          parentData[getFileName(path)] = 0;
         }
+        updateNodeData(containingDir, parentData);
         updateNode(containingDir, parentNode, false, true);
       } else if(outgoing) {
         if(node) {
-          parentNode.data[getFileName(path)] = new Date().getTime();
+          parentData[getFileName(path)] = new Date().getTime();
         } else {
-          delete parentNode.data[getFileName(path)];
+          delete parentData[getFileName(path)];
         }
         parentNode.diff[getFileName(path)] = new Date().getTime();
+        updateNodeData(containingDir, parentData);
         updateNode(containingDir, parentNode, true);
       } else {//incoming
         if(node) {//incoming add or change
-          if(!parentNode.data[getFileName(path)] || parentNode.data[getFileName(path)] < timestamp) {
-            parentNode.data[getFileName(path)] = timestamp;
+          if(!parentData[getFileName(path)] || parentData[getFileName(path)] < timestamp) {
+            parentData[getFileName(path)] = timestamp;
             delete parentNode.diff[getFileName(path)];
+            updateNodeData(containingDir, parentData);
             updateNode(containingDir, parentNode, false, false, timestamp);
           }
         } else {//incoming deletion
-          if(parentNode.data[getFileName(path)]) {
-            delete parentNode.data[getFileName(path)];
+          if(parentData[getFileName(path)]) {
+            delete parentData[getFileName(path)];
             delete parentNode.diff[getFileName(path)];
+            updateNodeData(containingDir, parentData);
             updateNode(containingDir, parentNode, false, false, timestamp);
           }
         }
@@ -1089,7 +1090,7 @@ define('lib/store',['./util'], function (util) {
             path: path,
             origin: 'remote',
             oldValue: undefined,
-            newValue: (node ? node.data : undefined),
+            newValue: (node ? getNodeData(node) : undefined),
             timestamp: timestamp
           });
         }
@@ -1118,9 +1119,23 @@ define('lib/store',['./util'], function (util) {
   function getState(path) {
     return 'disconnected';
   }
+
+  function updateNodeData(path, data) {
+    if(! path) {
+      console.trace();
+      throw "Path is required!";
+    }
+    var encodedData;
+    try {
+      encodedData = JSON.stringify(data);
+    } catch(exc) {
+      encodedData = data;
+    }
+    localStorage.setItem(prefixNodesData+path, encodedData)
+  }
+
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
-    node.data = data;
     if(!mimeType) {
       mimeType='application/json';
     }
@@ -1128,8 +1143,26 @@ define('lib/store',['./util'], function (util) {
     if(!timestamp) {
       timestamp = new Date().getTime();
     }
+    updateNodeData(path, data);
     updateNode(path, (data ? node : undefined), outgoing, false, timestamp);
   }
+
+  function getNodeData(path) {
+    if(typeof(path) === 'object') { // a node
+      path = path.path;
+    }
+    var valueStr = localStorage.getItem(prefixNodesData+path);
+    if(valueStr) {
+      try {
+        return JSON.parse(valueStr);
+      } catch(exc) {
+        return valueStr;
+      }
+    } else {
+      return undefined;
+    }
+  }
+
   function setNodeAccess(path, claim) {
     var node = getNode(path);
     if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
@@ -1151,6 +1184,7 @@ define('lib/store',['./util'], function (util) {
     on            : on,//error,change(origin=tab,device,cloud)
 
     getNode       : getNode,
+    getNodeData   : getNodeData,
     setNodeData   : setNodeData,
     setNodeAccess : setNodeAccess,
     setNodeForce  : setNodeForce,
@@ -1195,8 +1229,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
           pullNode(dirPath+i, force, access, startOne, finishOne);
         } else {//recurse
           var childNode = store.getNode(dirPath+i);
+          var childData = store.getNodeData(dirPath + i);
           startOne();
-          wireClient.set(dirPath+i, JSON.stringify(childNode.data), 'application/json', function(err, timestamp) {
+          wireClient.set(dirPath+i, JSON.stringify(childData), 'application/json', function(err, timestamp) {
             finishOne();
           });
         }
@@ -1218,7 +1253,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     }
   }
   function pullNode(path, force, access, startOne, finishOne) {
-    var thisNode=store.getNode(path);
+    var thisNode = store.getNode(path);
+    var thisData = store.getNodeData(path);
     logger.debug('pullNode '+path, thisNode);
     if(thisNode.startAccess == 'rw' || !access) {
       access = thisNode.startAccess;
@@ -1231,7 +1267,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       wireClient.get(path, function(err, data) {
         if(!err && data) {
           if(path.substr(-1)=='/') {
-            dirMerge(path, data, thisNode.data, thisNode.diff, force, access, startOne, finishOne, function(i) {
+            dirMerge(path, data, thisData, thisNode.diff, force, access, startOne, finishOne, function(i) {
               store.clearDiff(path, i);
             });
           } else {
@@ -1241,7 +1277,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
         finishOne(err);
       });
     } else {
-      for(var i in thisNode.data) {
+      for(var i in thisData) {
         if(i.substr(-1)=='/') {
           pullNode(path+i, force, access, startOne, finishOne);
         }
@@ -1598,7 +1634,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     var  node = store.getNode(absPath);
     var changeEvent = {
       origin: 'window',
-      oldValue: node.data,
+      oldValue: store.getNodeData(node),
       newValue: valueStr,
       path: path
     };
@@ -1645,7 +1681,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
       }
 
       function ensureAccess(mode) {
-        var path = makePath('');
+        var path = makePath(moduleName == 'root' ? '/' : '');
 
         if(! nodeGivesAccess(path, mode)) {
           throw "Not sufficient access claimed for node at " + path;
@@ -1656,11 +1692,6 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
          @desc baseClient
       */
       return {
-
-
-        h: {
-          bindContext: bindContext
-        },
 
         on: function(eventType, cb, context) {//'error' or 'change'. Change events have a path and origin (tab, device, cloud) field
           if(eventType=='change') {
@@ -1680,17 +1711,19 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err, node) {
-              if(node.data) {
-                delete node.data['@type'];
+              var data = store.getNodeData(node);
+              if(data && (typeof(data) == 'object')) {
+                delete data['@type'];
               }
-              bindContext(cb, context)(node.data);
+              bindContext(cb, context)(data);
             });
           } else {
             var node = store.getNode(absPath);
-            if(node.data) {
-              delete node.data['@type'];
+            var data = store.getNodeData(absPath);
+            if(data && (typeof(data) == 'object')) {
+              delete data['@type'];
             }
-            return node.data;
+            return data;
           }
         },
 
@@ -1699,16 +1732,18 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err, node) {
+              var data = store.getNodeData(node);
               var arr = [];
-              for(var i in node.data) {
+              for(var i in data) {
                 arr.push(i);
               }
               bindContext(cb, context)(arr);
             });
           } else {
             var node = store.getNode(absPath);
+            var data = store.getNodeData(absPath);
             var arr = [];
-            for(var i in node.data) {
+            for(var i in data) {
               arr.push(i);
             }
             return arr;
@@ -1722,14 +1757,14 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
             sync.fetchNow(absPath, function(err, node) {
               bindContext(cb, context)({
                 mimeType: node.mimeType,
-                data: node.data
+                data: store.getNodeData(node)
               });
             });
           } else {
             var node = store.getNode(absPath);
             return {
               mimeType: node.mimeType,
-              data: node.data
+              data: store.getNodeData(node)
             };
           }
         },
@@ -1767,6 +1802,9 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
          */
         storeObject: function(type, path, obj, cb, context) {
           ensureAccess('w');
+          if(typeof(obj) !== 'object') {
+            throw "storeObject needs to get an object as value!"
+          }
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
           var ret = set(path, makePath(path), obj, 'application/json');
@@ -2000,18 +2038,10 @@ define('remoteStorage', [
        claimed, however.    
      */
     claimAccess: function(claimed) {
-
-      function makeArray(args) {
-        var a = [];
-        for(var i in args) {
-          a[i] = args[i];
-        }
-        return a;
-      }
-
       if(typeof(claimed) !== 'object' || (claimed instanceof Array)) {
         if(! (claimed instanceof Array)) {
-          claimed = makeArray(arguments);
+          // convert arguments to array
+          claimed = Array.prototype.slice.call(arguments);
         }
         var _modules = claimed, mode = 'rw';
         claimed = {};
@@ -2270,7 +2300,11 @@ define('modules/root',['../remoteStorage'], function(remoteStorage) {
      **/
     function setObject(type, path, obj) {
       var client = getClient(path);
-      client.storeObject(type, path, obj);
+      if(typeof(obj) === 'object') {
+        client.storeObject(type, path, obj);
+      } else {
+        client.storeDocument(type, path, obj);
+      }
     }
 
     /** removeObject(path) - remove node at given path
@@ -3674,8 +3708,8 @@ define('modules/bookmarks',['../remoteStorage'], function(remoteStorage) {
     moduleName,
     function(privateClient, publicClient) {
 
-      privateClient.sync('');
-      publicClient.sync('');
+      // privateClient.sync('');
+      // publicClient.sync('');
 
       return {
         name: moduleName,
@@ -3749,6 +3783,7 @@ define('modules/bookmarks',['../remoteStorage'], function(remoteStorage) {
   );
 
 });
+
 define('remoteStorage-modules', [
   'remoteStorage',
   './modules/root',

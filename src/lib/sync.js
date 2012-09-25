@@ -33,8 +33,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
           pullNode(dirPath+i, force, access, startOne, finishOne);
         } else {//recurse
           var childNode = store.getNode(dirPath+i);
+          var childData = store.getNodeData(dirPath + i);
           startOne();
-          wireClient.set(dirPath+i, JSON.stringify(childNode.data), 'application/json', function(err, timestamp) {
+          wireClient.set(dirPath+i, JSON.stringify(childData), 'application/json', function(err, timestamp) {
             finishOne();
           });
         }
@@ -56,7 +57,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     }
   }
   function pullNode(path, force, access, startOne, finishOne) {
-    var thisNode=store.getNode(path);
+    var thisNode = store.getNode(path);
+    var thisData = store.getNodeData(path);
     logger.debug('pullNode '+path, thisNode);
     if(thisNode.startAccess == 'rw' || !access) {
       access = thisNode.startAccess;
@@ -69,7 +71,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       wireClient.get(path, function(err, data) {
         if(!err && data) {
           if(path.substr(-1)=='/') {
-            dirMerge(path, data, thisNode.data, thisNode.diff, force, access, startOne, finishOne, function(i) {
+            dirMerge(path, data, thisData, thisNode.diff, force, access, startOne, finishOne, function(i) {
               store.clearDiff(path, i);
             });
           } else {
@@ -79,7 +81,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         finishOne(err);
       });
     } else {
-      for(var i in thisNode.data) {
+      for(var i in thisData) {
         if(i.substr(-1)=='/') {
           pullNode(path+i, force, access, startOne, finishOne);
         }

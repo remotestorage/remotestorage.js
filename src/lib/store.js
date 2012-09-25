@@ -3,7 +3,8 @@ define(['./util'], function (util) {
   var logger = util.getLogger('store');
 
   var onChange=[],
-    prefixNodes = 'remote_storage_nodes:';
+    prefixNodes = 'remote_storage_nodes:',
+    prefixNodesData = 'remote_storage_node_data:';
   if(typeof(window) !== 'undefined') {
     window.addEventListener('storage', function(e) {
       if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
@@ -26,7 +27,6 @@ define(['./util'], function (util) {
     if(valueStr) {
       try {
         value = JSON.parse(valueStr);
-        value.data = JSON.parse(value.data);//double-JSON-ed for now, until we split content away from meta
       } catch(e) {
       }
     }
@@ -36,7 +36,6 @@ define(['./util'], function (util) {
         startForce: null,
         timestamp: 0,
         keep: true,
-        data: (isDir(path)?{}:undefined),
         diff: {}
       };
     }
@@ -79,9 +78,6 @@ define(['./util'], function (util) {
   }
   function updateNode(path, node, outgoing, meta, timestamp) {
     if(node) {
-      if(typeof(node.data) != 'string') {
-        node.data=JSON.stringify(node.data);//double-JSON-ed for now, until we separate metadata from content
-      }
       localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     } else {
       localStorage.removeItem(prefixNodes+path);
@@ -89,30 +85,35 @@ define(['./util'], function (util) {
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
+      var parentData = getNodeData(parentNode) || {};
       if(meta) {
-        if(!parentNode.data[getFileName(path)]) {
-          parentNode.data[getFileName(path)]=0;
+        if(! (parentData && parentData[getFileName(path)])) {
+          parentData[getFileName(path)] = 0;
         }
+        updateNodeData(containingDir, parentData);
         updateNode(containingDir, parentNode, false, true);
       } else if(outgoing) {
         if(node) {
-          parentNode.data[getFileName(path)] = new Date().getTime();
+          parentData[getFileName(path)] = new Date().getTime();
         } else {
-          delete parentNode.data[getFileName(path)];
+          delete parentData[getFileName(path)];
         }
         parentNode.diff[getFileName(path)] = new Date().getTime();
+        updateNodeData(containingDir, parentData);
         updateNode(containingDir, parentNode, true);
       } else {//incoming
         if(node) {//incoming add or change
-          if(!parentNode.data[getFileName(path)] || parentNode.data[getFileName(path)] < timestamp) {
-            parentNode.data[getFileName(path)] = timestamp;
+          if(!parentData[getFileName(path)] || parentData[getFileName(path)] < timestamp) {
+            parentData[getFileName(path)] = timestamp;
             delete parentNode.diff[getFileName(path)];
+            updateNodeData(containingDir, parentData);
             updateNode(containingDir, parentNode, false, false, timestamp);
           }
         } else {//incoming deletion
-          if(parentNode.data[getFileName(path)]) {
-            delete parentNode.data[getFileName(path)];
+          if(parentData[getFileName(path)]) {
+            delete parentData[getFileName(path)];
             delete parentNode.diff[getFileName(path)];
+            updateNodeData(containingDir, parentData);
             updateNode(containingDir, parentNode, false, false, timestamp);
           }
         }
@@ -121,7 +122,7 @@ define(['./util'], function (util) {
             path: path,
             origin: 'remote',
             oldValue: undefined,
-            newValue: (node ? node.data : undefined),
+            newValue: (node ? getNodeData(node) : undefined),
             timestamp: timestamp
           });
         }
@@ -150,9 +151,23 @@ define(['./util'], function (util) {
   function getState(path) {
     return 'disconnected';
   }
+
+  function updateNodeData(path, data) {
+    if(! path) {
+      console.trace();
+      throw "Path is required!";
+    }
+    var encodedData;
+    try {
+      encodedData = JSON.stringify(data);
+    } catch(exc) {
+      encodedData = data;
+    }
+    localStorage.setItem(prefixNodesData+path, encodedData)
+  }
+
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
-    node.data = data;
     if(!mimeType) {
       mimeType='application/json';
     }
@@ -160,8 +175,26 @@ define(['./util'], function (util) {
     if(!timestamp) {
       timestamp = new Date().getTime();
     }
+    updateNodeData(path, data);
     updateNode(path, (data ? node : undefined), outgoing, false, timestamp);
   }
+
+  function getNodeData(path) {
+    if(typeof(path) === 'object') { // a node
+      path = path.path;
+    }
+    var valueStr = localStorage.getItem(prefixNodesData+path);
+    if(valueStr) {
+      try {
+        return JSON.parse(valueStr);
+      } catch(exc) {
+        return valueStr;
+      }
+    } else {
+      return undefined;
+    }
+  }
+
   function setNodeAccess(path, claim) {
     var node = getNode(path);
     if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
@@ -183,6 +216,7 @@ define(['./util'], function (util) {
     on            : on,//error,change(origin=tab,device,cloud)
 
     getNode       : getNode,
+    getNodeData   : getNodeData,
     setNodeData   : setNodeData,
     setNodeAccess : setNodeAccess,
     setNodeForce  : setNodeForce,

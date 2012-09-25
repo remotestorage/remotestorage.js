@@ -51,7 +51,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     var  node = store.getNode(absPath);
     var changeEvent = {
       origin: 'window',
-      oldValue: node.data,
+      oldValue: store.getNodeData(node),
       newValue: valueStr,
       path: path
     };
@@ -98,7 +98,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       }
 
       function ensureAccess(mode) {
-        var path = makePath('');
+        var path = makePath(moduleName == 'root' ? '/' : '');
 
         if(! nodeGivesAccess(path, mode)) {
           throw "Not sufficient access claimed for node at " + path;
@@ -109,11 +109,6 @@ define(['./sync', './store', './util'], function (sync, store, util) {
          @desc baseClient
       */
       return {
-
-
-        h: {
-          bindContext: bindContext
-        },
 
         on: function(eventType, cb, context) {//'error' or 'change'. Change events have a path and origin (tab, device, cloud) field
           if(eventType=='change') {
@@ -133,17 +128,19 @@ define(['./sync', './store', './util'], function (sync, store, util) {
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err, node) {
-              if(node.data) {
-                delete node.data['@type'];
+              var data = store.getNodeData(node);
+              if(data && (typeof(data) == 'object')) {
+                delete data['@type'];
               }
-              bindContext(cb, context)(node.data);
+              bindContext(cb, context)(data);
             });
           } else {
             var node = store.getNode(absPath);
-            if(node.data) {
-              delete node.data['@type'];
+            var data = store.getNodeData(absPath);
+            if(data && (typeof(data) == 'object')) {
+              delete data['@type'];
             }
-            return node.data;
+            return data;
           }
         },
 
@@ -152,16 +149,18 @@ define(['./sync', './store', './util'], function (sync, store, util) {
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err, node) {
+              var data = store.getNodeData(node);
               var arr = [];
-              for(var i in node.data) {
+              for(var i in data) {
                 arr.push(i);
               }
               bindContext(cb, context)(arr);
             });
           } else {
             var node = store.getNode(absPath);
+            var data = store.getNodeData(absPath);
             var arr = [];
-            for(var i in node.data) {
+            for(var i in data) {
               arr.push(i);
             }
             return arr;
@@ -175,14 +174,14 @@ define(['./sync', './store', './util'], function (sync, store, util) {
             sync.fetchNow(absPath, function(err, node) {
               bindContext(cb, context)({
                 mimeType: node.mimeType,
-                data: node.data
+                data: store.getNodeData(node)
               });
             });
           } else {
             var node = store.getNode(absPath);
             return {
               mimeType: node.mimeType,
-              data: node.data
+              data: store.getNodeData(node)
             };
           }
         },
@@ -220,6 +219,9 @@ define(['./sync', './store', './util'], function (sync, store, util) {
          */
         storeObject: function(type, path, obj, cb, context) {
           ensureAccess('w');
+          if(typeof(obj) !== 'object') {
+            throw "storeObject needs to get an object as value!"
+          }
           obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
           //checkFields(obj);
           var ret = set(path, makePath(path), obj, 'application/json');
