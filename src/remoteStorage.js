@@ -142,18 +142,10 @@ define('remoteStorage', [
        claimed, however.    
      */
     claimAccess: function(claimed) {
-
-      function makeArray(args) {
-        var a = [];
-        for(var i in args) {
-          a[i] = args[i];
-        }
-        return a;
-      }
-
       if(typeof(claimed) !== 'object' || (claimed instanceof Array)) {
         if(! (claimed instanceof Array)) {
-          claimed = makeArray(arguments);
+          // convert arguments to array
+          claimed = Array.prototype.slice.call(arguments);
         }
         var _modules = claimed, mode = 'rw';
         claimed = {};
