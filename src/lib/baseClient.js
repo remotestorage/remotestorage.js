@@ -110,11 +110,6 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       */
       return {
 
-
-        h: {
-          bindContext: bindContext
-        },
-
         on: function(eventType, cb, context) {//'error' or 'change'. Change events have a path and origin (tab, device, cloud) field
           if(eventType=='change') {
             if(moduleName) {
