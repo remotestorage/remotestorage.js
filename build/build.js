@@ -4,10 +4,11 @@ var fs=require('fs'),
 //normal build:
 var config = {
   baseUrl: '../src',
+  name: '../build/lib/almond',
   wrap: {
     startFile: 'start.frag',
     endFile:'end.frag'
-  },
+  }
 };
 
 function doBuild(output, startFrag, name, endFrag, debug) {
@@ -17,7 +18,7 @@ function doBuild(output, startFrag, name, endFrag, debug) {
   }
 
   config.wrap.startFile = startFrag;
-  config.name = name;
+  config.include = [name];
   config.wrap.endFile = endFrag;
   config.out = 'latest/' + output + '.js';
 
@@ -30,11 +31,11 @@ function doBuild(output, startFrag, name, endFrag, debug) {
 
 // remoteStorage build
 doBuild('remoteStorage', 'start.frag', 'remoteStorage', 'end.frag');
-doBuild('remoteStorage-debug', 'startDebug.frag', 'remoteStorage', 'end.frag', true);
+doBuild('remoteStorage-debug', 'start.frag', 'remoteStorage', 'end.frag', true);
 doBuild('remoteStorage-node', 'start.frag', 'remoteStorage', 'endNode.frag');
-doBuild('remoteStorage-node-debug', 'startDebug.frag', 'remoteStorage', 'endNode.frag', true);
+doBuild('remoteStorage-node-debug', 'start.frag', 'remoteStorage', 'endNode.frag', true);
 
 // remoteStorage + modules build
 doBuild('remoteStorage-modules', 'start.frag', 'remoteStorage-modules', 'endModules.frag');
 // set of modules, not optimized.
-doBuild('remoteStorage-modules-debug', 'startDebug.frag', 'remoteStorage-modules', 'endModules.frag', true);
+doBuild('remoteStorage-modules-debug', 'start.frag', 'remoteStorage-modules', 'endModules.frag', true);

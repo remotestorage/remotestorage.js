@@ -11,5 +11,5 @@
     }
   }
 
-  module.exports = _loadModule('remoteStorage');
+  module.exports = require('remoteStorage');
 })();

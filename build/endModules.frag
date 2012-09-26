@@ -1,4 +1,4 @@
 
-  remoteStorage = _loadModule('remoteStorage-modules');
+  remoteStorage = require('remoteStorage-modules');
 
 })();
