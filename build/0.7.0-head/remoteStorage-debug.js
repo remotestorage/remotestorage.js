@@ -626,10 +626,11 @@ define('lib/webfinger',
             if(err2) {
               cb('could not fetch host-meta for '+userAddress);
             } else {
-              if(hostMetaLinks['remoteStorage']) {
-                parseRemoteStorageLink(hostMetaLinks['remoteStorage'], cb);
-              } else if(hostMetaLinks['remotestorage']) {
-                parseRemoteStorageLink(hostMetaLinks['remoteStorage'], cb);
+              if(hostMetaLinks['remoteStorage'] || hostMetaLinks['remotestorage']) {
+                parseRemoteStorageLink(
+                  hostMetaLinks['remoteStorage'] || hostMetaLinks['remotestorage'],
+                  cb
+                );
               } else if(hostMetaLinks['lrdd'] && hostMetaLinks['lrdd'].template) {
                 var parts = hostMetaLinks['lrdd'].template.split('{uri}');
                 var lrddAddresses=[parts.join('acct:'+userAddress), parts.join(userAddress)];
