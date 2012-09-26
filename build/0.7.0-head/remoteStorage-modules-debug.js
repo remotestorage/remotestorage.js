@@ -1418,9 +1418,9 @@ define('lib/store',['./util'], function (util) {
       throw "Path is required!";
     }
     var encodedData;
-    try {
+    if(typeof(data) === 'object') {
       encodedData = JSON.stringify(data);
-    } catch(exc) {
+    } else {
       encodedData = data;
     }
     localStorage.setItem(prefixNodesData+path, encodedData)
