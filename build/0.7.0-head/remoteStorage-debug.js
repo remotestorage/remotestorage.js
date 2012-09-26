@@ -803,12 +803,7 @@ define('lib/getputdelete',
         },
         success: function(data, headers) {
           logger.debug('doCall cb '+url, 'headers:', headers);
-          var timestamp;
-          if(headers['Last-Modified'] && (timestamp = new Date(headers['Last-Modified']))) {
-            cb(null, data, timestamp.getTime(), headers['Content-Type'] || defaultContentType);
-          } else {
-            throw "Last-Modified header not found, can't determine timestamp of " + url;
-          }
+          cb(null, data, headers['Content-Type'] || defaultContentType);
         },
         timeout: 3000
       }
@@ -829,7 +824,7 @@ define('lib/getputdelete',
     }
 
     function get(url, token, cb) {
-      doCall('GET', url, null, null, token, function(err, data, timestamp, mimetype) {
+      doCall('GET', url, null, null, token, function(err, data, mimetype) {
         if(err == 404) {
           cb(null, undefined);
         } else {
@@ -841,7 +836,7 @@ define('lib/getputdelete',
               return;
             }
           }
-          cb(err, data, timestamp, mimetype);
+          cb(err, data, mimetype);
         }
       });
     }
@@ -1232,7 +1227,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
           var childNode = store.getNode(dirPath+i);
           var childData = store.getNodeData(dirPath + i);
           startOne();
-          wireClient.set(dirPath+i, JSON.stringify(childData), 'application/json', function(err, timestamp) {
+          wireClient.set(dirPath+i, JSON.stringify(childData), 'application/json', function(err) {
             finishOne();
           });
         }
@@ -1242,7 +1237,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       if(!cached[i]) {//outgoing delete
         if(remote[i]) {
           startOne();
-          wireClient.set(dirPath+i, undefined, undefined, function(err, timestamp) {
+          wireClient.set(dirPath+i, undefined, undefined, function(err) {
             finishOne();
           });
         } else {

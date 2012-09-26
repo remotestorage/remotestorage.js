@@ -15,12 +15,7 @@ define(
         },
         success: function(data, headers) {
           logger.debug('doCall cb '+url, 'headers:', headers);
-          var timestamp;
-          if(headers['Last-Modified'] && (timestamp = new Date(headers['Last-Modified']))) {
-            cb(null, data, timestamp.getTime(), headers['Content-Type'] || defaultContentType);
-          } else {
-            throw "Last-Modified header not found, can't determine timestamp of " + url;
-          }
+          cb(null, data, headers['Content-Type'] || defaultContentType);
         },
         timeout: 3000
       }
@@ -41,7 +36,7 @@ define(
     }
 
     function get(url, token, cb) {
-      doCall('GET', url, null, null, token, function(err, data, timestamp, mimetype) {
+      doCall('GET', url, null, null, token, function(err, data, mimetype) {
         if(err == 404) {
           cb(null, undefined);
         } else {
@@ -53,7 +48,7 @@ define(
               return;
             }
           }
-          cb(err, data, timestamp, mimetype);
+          cb(err, data, mimetype);
         }
       });
     }

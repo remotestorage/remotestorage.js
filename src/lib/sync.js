@@ -35,7 +35,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
           var childNode = store.getNode(dirPath+i);
           var childData = store.getNodeData(dirPath + i);
           startOne();
-          wireClient.set(dirPath+i, JSON.stringify(childData), 'application/json', function(err, timestamp) {
+          wireClient.set(dirPath+i, JSON.stringify(childData), 'application/json', function(err) {
             finishOne();
           });
         }
@@ -45,7 +45,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       if(!cached[i]) {//outgoing delete
         if(remote[i]) {
           startOne();
-          wireClient.set(dirPath+i, undefined, undefined, function(err, timestamp) {
+          wireClient.set(dirPath+i, undefined, undefined, function(err) {
             finishOne();
           });
         } else {

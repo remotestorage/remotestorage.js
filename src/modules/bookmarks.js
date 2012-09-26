@@ -7,8 +7,8 @@ define(['../remoteStorage'], function(remoteStorage) {
     moduleName,
     function(privateClient, publicClient) {
 
-      privateClient.sync('');
-      publicClient.sync('');
+      // privateClient.sync('');
+      // publicClient.sync('');
 
       return {
         name: moduleName,
