@@ -1523,7 +1523,10 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
           var childNode = store.getNode(dirPath+i);
           var childData = store.getNodeData(dirPath + i);
           startOne();
-          wireClient.set(dirPath+i, JSON.stringify(childData), 'application/json', function(err) {
+          if(typeof(childData) === 'object') {
+            childData = JSON.stringify(childData);
+          }
+          wireClient.set(dirPath+i, childData, 'application/json', function(err) {
             finishOne();
           });
         }
