@@ -3634,8 +3634,13 @@ define('modules/contacts',[
         if(! offset) {
           offset = 0;
         }
+        if(! limit) {
+          limit = list.length - offset;
+        }
         for(var i=0;i<limit;i++) {
-          list[i + offset] = this.get(list[i + offset]);
+          if(list[i + offset]) {
+            list[i + offset] = this.get(list[i + offset]);
+          }
         }
         return list;
       },

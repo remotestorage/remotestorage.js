@@ -1,8 +1,19 @@
 var fs=require('fs'),
-  requirejs = require('requirejs');
+  requirejs = require('requirejs'),
+  modules = require('./modules');
+
+function deepCopy(object) {
+  var o = {}, keys = Object.keys(object);
+  for(var i=0;i<keys.length;i++) {
+    var k = keys[i], v = object[keys[i]];
+    o[k] = (typeof(v) === 'object') ? deepCopy(v) : v;
+  }
+  return o;
+}
+
 
 //normal build:
-var config = {
+var defaults = {
   baseUrl: '../src',
   name: '../build/lib/almond',
   wrap: {
@@ -11,31 +22,43 @@ var config = {
   }
 };
 
-function doBuild(output, startFrag, name, endFrag, debug) {
-
-  if(!! debug) {
+function build(output, inputs, options) {
+  var config = deepCopy(defaults);
+  if(! options) {
+    options = {};
+  }
+  if(! (inputs instanceof Array)) {
+    inputs = [inputs];
+  }
+  if(options.start) {
+    config.wrap.startFile = options.start;
+  }
+  if(options.end) {
+    config.wrap.endFile = options.end;
+  }
+  if(options.debug) {
     config.optimize = 'none';
   }
 
-  config.wrap.startFile = startFrag;
-  config.include = [name];
-  config.wrap.endFile = endFrag;
-  config.out = 'latest/' + output + '.js';
+  config.include = inputs;
+  config.out = output + '.js';
 
-  console.log((!!debug) ? 'DEBUG' : 'OPTIMIZED', name, '->', config.out);
+  console.log('BUILD', output, 'FROM', inputs, 'WITH', options);
 
   requirejs.optimize(config);
-
-  delete config.optimize;
 }
 
-// remoteStorage build
-doBuild('remoteStorage', 'start.frag', 'remoteStorage', 'end.frag');
-doBuild('remoteStorage-debug', 'start.frag', 'remoteStorage', 'end.frag', true);
-doBuild('remoteStorage-node', 'start.frag', 'remoteStorage', 'endNode.frag');
-doBuild('remoteStorage-node-debug', 'start.frag', 'remoteStorage', 'endNode.frag', true);
+build('latest/remoteStorage', 'remoteStorage');
+build('latest/remoteStorage-debug', 'remoteStorage', { debug: true });
+build('latest/remoteStorage-node', 'remoteStorage', { end: 'endNode.frag' });
+build('latest/remoteStorage-node-debug', 'remoteStorage', { end: 'endNode.frag', debug: true });
 
-// remoteStorage + modules build
-doBuild('remoteStorage-modules', 'start.frag', 'remoteStorage-modules', 'endModules.frag');
-// set of modules, not optimized.
-doBuild('remoteStorage-modules-debug', 'start.frag', 'remoteStorage-modules', 'endModules.frag', true);
+
+build('latest/remoteStorage-modules', 'remoteStorage-modules', { end: 'endModules.frag' });
+build('latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
+// var mods = modules.map(function(module) {
+//   return 'modules/' + module.name;
+// });
+
+// build('latest/remoteStorage-modules', mods, { end: 'endModules.frag' });
+// build('latest/remoteStorage-modules-debug', mods, { end: 'endModules.frag', debug: true });
