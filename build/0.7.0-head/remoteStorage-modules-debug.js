@@ -1547,6 +1547,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   function pullNode(path, force, access, startOne, finishOne) {
     var thisNode = store.getNode(path);
     var thisData = store.getNodeData(path);
+    if((! thisData) && (path.substr(-1) == '/')) {
+      thisData = {};
+    }
     logger.debug('pullNode '+path, thisNode);
     if(thisNode.startAccess == 'rw' || !access) {
       access = thisNode.startAccess;
