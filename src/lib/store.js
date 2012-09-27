@@ -76,7 +76,30 @@ define(['./util'], function (util) {
   function getCurrTimestamp() {
     return new Date().getTime();
   }
+
+  function validPath(path) {
+    if(path[0] != '/') {
+      throw "Invalid path: " + path;
+    }
+  }
+
+  function updateNodeData(path, data) {
+    validPath(path);
+    if(! path) {
+      console.trace();
+      throw "Path is required!";
+    }
+    var encodedData;
+    if(typeof(data) === 'object') {
+      encodedData = JSON.stringify(data);
+    } else {
+      encodedData = data;
+    }
+    localStorage.setItem(prefixNodesData+path, encodedData)
+  }
+
   function updateNode(path, node, outgoing, meta, timestamp) {
+    validPath(path);
     if(node) {
       localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     } else {
@@ -85,13 +108,13 @@ define(['./util'], function (util) {
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
-      var parentData = getNodeData(parentNode) || {};
+      var parentData = getNodeData(containingDir) || {};
       if(meta) {
         if(! (parentData && parentData[getFileName(path)])) {
           parentData[getFileName(path)] = 0;
         }
         updateNodeData(containingDir, parentData);
-        updateNode(containingDir, parentNode, false, true);
+        updateNode(containingDir, parentNode, false, true, timestamp);
       } else if(outgoing) {
         if(node) {
           parentData[getFileName(path)] = new Date().getTime();
@@ -100,7 +123,7 @@ define(['./util'], function (util) {
         }
         parentNode.diff[getFileName(path)] = new Date().getTime();
         updateNodeData(containingDir, parentData);
-        updateNode(containingDir, parentNode, true);
+        updateNode(containingDir, parentNode, true, false, timestamp);
       } else {//incoming
         if(node) {//incoming add or change
           if(!parentData[getFileName(path)] || parentData[getFileName(path)] < timestamp) {
@@ -122,7 +145,7 @@ define(['./util'], function (util) {
             path: path,
             origin: 'remote',
             oldValue: undefined,
-            newValue: (node ? getNodeData(node) : undefined),
+            newValue: (node ? getNodeData(path) : undefined),
             timestamp: timestamp
           });
         }
@@ -152,20 +175,6 @@ define(['./util'], function (util) {
     return 'disconnected';
   }
 
-  function updateNodeData(path, data) {
-    if(! path) {
-      console.trace();
-      throw "Path is required!";
-    }
-    var encodedData;
-    if(typeof(data) === 'object') {
-      encodedData = JSON.stringify(data);
-    } else {
-      encodedData = data;
-    }
-    localStorage.setItem(prefixNodesData+path, encodedData)
-  }
-
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
     if(!mimeType) {
@@ -180,9 +189,6 @@ define(['./util'], function (util) {
   }
 
   function getNodeData(path) {
-    if(typeof(path) === 'object') { // a node
-      path = path.path;
-    }
     var valueStr = localStorage.getItem(prefixNodesData+path);
     if(valueStr) {
       try {

@@ -63,9 +63,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     var thisNode = store.getNode(path);
     var thisData = store.getNodeData(path);
     if((! thisData) && (path.substr(-1) == '/')) {
+      console.log("DIRECTORY DOESN'T HAVE DATA", path, thisNode);
       thisData = {};
     }
-    logger.debug('pullNode '+path, thisNode);
+    logger.debug('pullNode "'+path+'"', thisNode);
     if(thisNode.startAccess == 'rw' || !access) {
       access = thisNode.startAccess;
     }

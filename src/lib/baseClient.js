@@ -51,7 +51,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     var  node = store.getNode(absPath);
     var changeEvent = {
       origin: 'window',
-      oldValue: store.getNodeData(node),
+      oldValue: store.getNodeData(absPath),
       newValue: valueStr,
       path: path
     };
@@ -128,7 +128,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err, node) {
-              var data = store.getNodeData(node);
+              var data = store.getNodeData(absPath);
               if(data && (typeof(data) == 'object')) {
                 delete data['@type'];
               }
@@ -149,7 +149,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err, node) {
-              var data = store.getNodeData(node);
+              var data = store.getNodeData(absPath);
               var arr = [];
               for(var i in data) {
                 arr.push(i);
@@ -174,14 +174,14 @@ define(['./sync', './store', './util'], function (sync, store, util) {
             sync.fetchNow(absPath, function(err, node) {
               bindContext(cb, context)({
                 mimeType: node.mimeType,
-                data: store.getNodeData(node)
+                data: store.getNodeData(absPath)
               });
             });
           } else {
             var node = store.getNode(absPath);
             return {
               mimeType: node.mimeType,
-              data: store.getNodeData(node)
+              data: store.getNodeData(absPath)
             };
           }
         },

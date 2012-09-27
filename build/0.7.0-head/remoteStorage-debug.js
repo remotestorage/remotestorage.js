@@ -1336,7 +1336,30 @@ define('lib/store',['./util'], function (util) {
   function getCurrTimestamp() {
     return new Date().getTime();
   }
+
+  function validPath(path) {
+    if(path[0] != '/') {
+      throw "Invalid path: " + path;
+    }
+  }
+
+  function updateNodeData(path, data) {
+    validPath(path);
+    if(! path) {
+      console.trace();
+      throw "Path is required!";
+    }
+    var encodedData;
+    if(typeof(data) === 'object') {
+      encodedData = JSON.stringify(data);
+    } else {
+      encodedData = data;
+    }
+    localStorage.setItem(prefixNodesData+path, encodedData)
+  }
+
   function updateNode(path, node, outgoing, meta, timestamp) {
+    validPath(path);
     if(node) {
       localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     } else {
@@ -1345,13 +1368,13 @@ define('lib/store',['./util'], function (util) {
     var containingDir = getContainingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
-      var parentData = getNodeData(parentNode) || {};
+      var parentData = getNodeData(containingDir) || {};
       if(meta) {
         if(! (parentData && parentData[getFileName(path)])) {
           parentData[getFileName(path)] = 0;
         }
         updateNodeData(containingDir, parentData);
-        updateNode(containingDir, parentNode, false, true);
+        updateNode(containingDir, parentNode, false, true, timestamp);
       } else if(outgoing) {
         if(node) {
           parentData[getFileName(path)] = new Date().getTime();
@@ -1360,7 +1383,7 @@ define('lib/store',['./util'], function (util) {
         }
         parentNode.diff[getFileName(path)] = new Date().getTime();
         updateNodeData(containingDir, parentData);
-        updateNode(containingDir, parentNode, true);
+        updateNode(containingDir, parentNode, true, false, timestamp);
       } else {//incoming
         if(node) {//incoming add or change
           if(!parentData[getFileName(path)] || parentData[getFileName(path)] < timestamp) {
@@ -1382,7 +1405,7 @@ define('lib/store',['./util'], function (util) {
             path: path,
             origin: 'remote',
             oldValue: undefined,
-            newValue: (node ? getNodeData(node) : undefined),
+            newValue: (node ? getNodeData(path) : undefined),
             timestamp: timestamp
           });
         }
@@ -1412,20 +1435,6 @@ define('lib/store',['./util'], function (util) {
     return 'disconnected';
   }
 
-  function updateNodeData(path, data) {
-    if(! path) {
-      console.trace();
-      throw "Path is required!";
-    }
-    var encodedData;
-    if(typeof(data) === 'object') {
-      encodedData = JSON.stringify(data);
-    } else {
-      encodedData = data;
-    }
-    localStorage.setItem(prefixNodesData+path, encodedData)
-  }
-
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
     if(!mimeType) {
@@ -1440,9 +1449,6 @@ define('lib/store',['./util'], function (util) {
   }
 
   function getNodeData(path) {
-    if(typeof(path) === 'object') { // a node
-      path = path.path;
-    }
     var valueStr = localStorage.getItem(prefixNodesData+path);
     if(valueStr) {
       try {
@@ -1551,9 +1557,10 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     var thisNode = store.getNode(path);
     var thisData = store.getNodeData(path);
     if((! thisData) && (path.substr(-1) == '/')) {
+      console.log("DIRECTORY DOESN'T HAVE DATA", path, thisNode);
       thisData = {};
     }
-    logger.debug('pullNode '+path, thisNode);
+    logger.debug('pullNode "'+path+'"', thisNode);
     if(thisNode.startAccess == 'rw' || !access) {
       access = thisNode.startAccess;
     }
@@ -1932,7 +1939,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     var  node = store.getNode(absPath);
     var changeEvent = {
       origin: 'window',
-      oldValue: store.getNodeData(node),
+      oldValue: store.getNodeData(absPath),
       newValue: valueStr,
       path: path
     };
@@ -2009,7 +2016,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err, node) {
-              var data = store.getNodeData(node);
+              var data = store.getNodeData(absPath);
               if(data && (typeof(data) == 'object')) {
                 delete data['@type'];
               }
@@ -2030,7 +2037,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
           var absPath = makePath(path);
           if(cb) {
             sync.fetchNow(absPath, function(err, node) {
-              var data = store.getNodeData(node);
+              var data = store.getNodeData(absPath);
               var arr = [];
               for(var i in data) {
                 arr.push(i);
@@ -2055,14 +2062,14 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
             sync.fetchNow(absPath, function(err, node) {
               bindContext(cb, context)({
                 mimeType: node.mimeType,
-                data: store.getNodeData(node)
+                data: store.getNodeData(absPath)
               });
             });
           } else {
             var node = store.getNode(absPath);
             return {
               mimeType: node.mimeType,
-              data: store.getNodeData(node)
+              data: store.getNodeData(absPath)
             };
           }
         },
