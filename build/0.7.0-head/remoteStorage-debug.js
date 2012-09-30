@@ -2536,10 +2536,14 @@ define('remoteStorage',[
        @desc
        You need to claim access to a module before you can
        access data from it.
-     
-       modules can be specified in three ways:
-     
-       * via an object:
+      
+       Modules can be specified in two ways:
+      
+       * via a string plus access mode for single modules:
+      
+         remoteStorage.claimAccess('contacts', 'r');
+      
+       * via an object for multiple modules:
       
          remoteStorage.claimAccess({
            contacts: 'r',
@@ -2547,20 +2551,7 @@ define('remoteStorage',[
            money: 'r'
          });
       
-       * via an array:
-      
-         remoteStorage.claimAccess(['contacts', 'documents', 'money']);
-      
-       * via variable arguments:
-      
-         remoteStorage.claimAccess('contacts', 'documents', 'money');
-      
-       In both the array and argument list call sequence, access will
-       by default be claimed read-write ('rw'), UNLESS the last argument
-       (not the last member of the array) is either the string 'r' or 'rw':
-      
-         remoteStorage.claimAccess('documents', 'rw');
-         remoteStorage.claimAccess(['money', 'documents'], 'r');
+       Access mode can be 'r' for read-only or 'rw' for read-write.
       
        Errors:
       
@@ -2568,38 +2559,37 @@ define('remoteStorage',[
        defined (yet). Access to all previously processed modules will have been
        claimed, however.
 
-       @param {Object|Array|String} claimed See description for details.
+       @param {Object|String} moduleName See description for details.
+       @param {String} [mode] See description for details.
      */
-    claimAccess: function(claimed) {
-      if(typeof(claimed) !== 'object' || (claimed instanceof Array)) {
-        if(! (claimed instanceof Array)) {
-          // convert arguments to array
-          claimed = Array.prototype.slice.call(arguments);
+    claimAccess: function(moduleName, mode) {
+      
+      var modeTestRegex = /^rw?$/;
+      function testMode(moduleName, mode) {
+        if(!modeTestRegex.test(mode)) {
+          throw "Claimed access to module '" + moduleName + "' but mode not correctly specified ('" + mode + "').";
         }
-        var _modules = claimed, mode = 'rw';
-        claimed = {};
-
-        var lastArg = arguments[arguments.length - 1];
-
-        if(typeof(lastArg) === 'string' && lastArg.match(/^rw?$/)) {
-          mode = lastArg;
-          delete arguments[arguments.length - 1];
-        }
-
-        for(var i in _modules) {
-          claimed[_modules[i]] = mode;
-        }
-
       }
-      for(var moduleName in claimed) {
-        this.claimModuleAccess(moduleName, claimed[moduleName]);
+      
+      var moduleObj;
+      if(typeof moduleName === 'object') {
+        moduleObj = moduleName;
+      } else {
+        testMode(moduleName, mode);
+        moduleObj = {};
+        moduleObj[moduleName] = mode
+      }
+      for(var _moduleName in moduleObj) {
+        var _mode = moduleObj[_moduleName];
+        testMode(_moduleName, _mode);
+        this.claimModuleAccess(_moduleName, _mode);
       }
     },
 
     /** @private */
     claimModuleAccess: function(moduleName, mode) {
       logger.debug('claimModuleAccess', moduleName, mode);
-      if(! moduleName in modules) {
+      if(!(moduleName in modules)) {
         throw "Module not defined: " + moduleName;
       }
 
@@ -2607,9 +2597,6 @@ define('remoteStorage',[
         return;
       }
 
-      if(! mode) {
-        mode = 'r';
-      }
       if(moduleName == 'root') {
         moduleName = '';
         widget.addScope('', mode);
@@ -2620,16 +2607,6 @@ define('remoteStorage',[
         baseClient.claimAccess('/public/'+moduleName+'/', mode);
       }
       claimedModules[moduleName] = true;
-    },
-
-    /**
-       @method loadModule
-       @memberof module:remoteStorage
-       @deprecated Use claimAccess instead.
-    */
-    loadModule: function() {
-      deprecate('remoteStorage.loadModule', 'remoteStorage.claimAccess');
-      this.claimModuleAccess.apply(this, arguments);
     },
 
     /** @private */
