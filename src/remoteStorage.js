@@ -200,16 +200,6 @@ define([
       claimedModules[moduleName] = true;
     },
 
-    /**
-       @method loadModule
-       @memberof module:remoteStorage
-       @deprecated Use claimAccess instead.
-    */
-    loadModule: function() {
-      deprecate('remoteStorage.loadModule', 'remoteStorage.claimAccess');
-      this.claimModuleAccess.apply(this, arguments);
-    },
-
     /** @private */
     setBearerToken: function(bearerToken, claimedScopes) {
       wireClient.setBearerToken(bearerToken);
