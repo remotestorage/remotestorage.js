@@ -86,32 +86,32 @@ define([
      
        @desc If the module doesn't exist, the result will be undefined.
      
-             Module information currently gives you the following (if you're lucky):
-            
-             * exports - don't ever use this. it's basically the module's instance.
-             * name - the name of the module, but you knew that already.
-             * dataHints - an object, describing internas about the module.
-            
-             Some of the dataHints used are:
-            
-               objectType <type> - description of an object
-                                   type implemented by the module:
-                 "objectType message"
-            
-               <attributeType> <objectType>#<attribute> - description of an attribute
-            
-                 "string message#subject"
-            
-               directory <path> - description of a path's purpose
-            
-                 "directory documents/notes/"
-            
-               item <path> - description of a special item
-            
-                 "item documents/notes/calendar"
-            
-             Hope this helps.
-        
+       Module information currently gives you the following (if you're lucky):
+      
+       * exports - don't ever use this. it's basically the module's instance.
+       * name - the name of the module, but you knew that already.
+       * dataHints - an object, describing internas about the module.
+      
+       Some of the dataHints used are:
+      
+         objectType <type> - description of an object
+                             type implemented by the module:
+           "objectType message"
+      
+         <attributeType> <objectType>#<attribute> - description of an attribute
+      
+           "string message#subject"
+      
+         directory <path> - description of a path's purpose
+      
+           "directory documents/notes/"
+      
+         item <path> - description of a special item
+      
+           "item documents/notes/calendar"
+      
+       Hope this helps.
+  
        @param {String} moduleName Name of the module to get information about.
      */
     getModuleInfo: function(moduleName) {
@@ -119,7 +119,8 @@ define([
     },
 
     /**
-       @method remoteStorage.claimAccess()
+       @method claimAccess
+       @memberof module:remoteStorage
        @summary Claim access for a set of modules.
        @desc
        You need to claim access to a module before you can
@@ -154,7 +155,9 @@ define([
       
        claimAccess() will throw an exception, if any given module hasn't been
        defined (yet). Access to all previously processed modules will have been
-       claimed, however.    
+       claimed, however.
+
+       @param {Object|Array|String} claimed See description for details.
      */
     claimAccess: function(claimed) {
       if(typeof(claimed) !== 'object' || (claimed instanceof Array)) {
@@ -182,10 +185,7 @@ define([
       }
     },
 
-    /** claimModuleAccess() - Claim access to a single module.
-     ** We probably don't need this out in the public, as
-     ** claimAccess() provides the same interface.
-     **/
+    /** @private */
     claimModuleAccess: function(moduleName, mode) {
       logger.debug('claimModuleAccess', moduleName, mode);
       if(! moduleName in modules) {
@@ -211,16 +211,17 @@ define([
       claimedModules[moduleName] = true;
     },
 
+    /**
+       @method loadModule
+       @memberof module:remoteStorage
+       @deprecated Use claimAccess instead.
+    */
     loadModule: function() {
       deprecate('remoteStorage.loadModule', 'remoteStorage.claimAccess');
       this.claimModuleAccess.apply(this, arguments);
     },
 
-    /** setBearerToken() - Set bearer token and claim additional scopes.
-     ** Bearer token will usually be received via a #access_token=
-     ** fragment after authorization.
-     ** You don't need this, if you are using the widget.
-     **/
+    /** @private */
     setBearerToken: function(bearerToken, claimedScopes) {
       wireClient.setBearerToken(bearerToken);
       baseClient.claimScopes(claimedScopes);
@@ -232,43 +233,45 @@ define([
 
     disconnectRemote : wireClient.disconnectRemote,
 
-    /** flushLocal() - Forget this ever happened.
-     **
-     ** Delete all locally stored data.
-     ** This doesn't clear localStorage, just removes everything
-     ** remoteStorage.js ever saved there (though obviously only under
-     ** the current origin).
-     **
-     ** To implement logging out, use (at least) this.
-     **
-     **/
+    /**
+       @method flushLocal
+       @memberof module:remoteStorage
+
+       @summary Forget this ever happened.
+
+       @desc Delete all locally stored data.
+       This doesn't clear localStorage, just removes everything
+       remoteStorage.js ever saved there (though obviously only under
+       the current origin).
+       
+       To implement logging out, use (at least) this.
+    */
     flushLocal       : store.forgetAll,
 
-    /** syncNow(path) - Synchronize local <-> remote storage.
-     **
-     ** Syncing starts at given path and bubbles down.
-     ** The actual changes to either local or remote storage happen in the
-     ** future, so you should attach change handlers on the modules you're
-     ** interested in.
-     **
-     ** Example:
-     **   remoteStorage.money.on('change', function(changeEvent) {
-     **     updateBudget(changeEvent);
-     **   });
-     **   remoteStorage.syncNow('/money');
-     **
-     ** Modules may bring their own sync method, which should take preference
-     ** over the one here.
-     **
-     **/
+    /**
+       @method syncNow
+       @memberof module:remoteStorage
+
+       @summary Synchronize local <-> remote storage.
+
+       @desc Syncing starts at given path and bubbles down.
+       The actual changes to either local or remote storage happen in the
+       future, so you should attach change handlers on the modules you're
+       interested in.
+       
+       Example:
+         remoteStorage.money.on('change', function(changeEvent) {
+           updateBudget(changeEvent);
+         });
+         remoteStorage.syncNow('/money');
+     
+       Modules may bring their own sync method, which should take preference
+       over the one here.
+     
+     */
     syncNow          : sync.syncNow,
 
-    /** displayWidget(element) - Display the widget in the given DOM element.
-     **
-     ** The argument given, can either be a DOM ID, or a element reference.
-     ** In either case, the element MUST be attached to the DOM tree at the
-     ** time of calling displayWidget().
-     **/
+    // documented in widget.
     displayWidget    : widget.display,
 
     getWidgetState   : widget.getState,
