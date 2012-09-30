@@ -411,7 +411,7 @@ define('lib/util',[], function() {
 
   var loggers = {}, silentLogger = {};
 
-  var knownLoggers = ['sync', 'webfinger', 'getputdelete', 'platform', 'baseClient'];
+  var knownLoggers = ['sync', 'webfinger', 'getputdelete', 'platform', 'baseClient', 'widget'];
 
   var util = {
 
@@ -1650,12 +1650,16 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 
 });
 
-define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform) {
+define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util) {
+
   var locale='en',
     connectElement,
     widgetState,
     userAddress,
+    authDialogStrategy = 'redirect',
+    authPopupRef,
     scopesObj = {};
+  var logger = util.getLogger('widget');
   function translate(text) {
     return text;
   }
@@ -1692,9 +1696,6 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     return widgetState;
   }
   function displayWidgetState(state, userAddress) {
-    //if(!localStorage.michiel) {
-    //  state = 'devsonly';
-    //}
     var userAddress = localStorage['remote_storage_widget_useraddress'];
     var html = 
       '<style>'+assets.widgetCss+'</style>'
@@ -1747,6 +1748,43 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
     return hostParts[0];
   }
+
+  /**
+     Auth popup: when remoteStorage.displayWidget is called with the authDialog option set to 'popup',
+     the following happens:
+     1) When clicking "connect", a window is opened and saved as authPopupRef (prepareAuthPopup)
+     2) Once webfinger discovery is done, authPopupRef's location is set to the auth URL (setPopupLocation)
+     3) In case webfinger discovery fails, the popup is closed (closeAuthPopup)
+     4) As soon as the auth dialog redirects back with an access_token, the child popup calls
+        "remotestorageTokenReceived" on the opening window and closes itself.
+     5) remotestorageTokenReceived recalculates the widget state -> we're connected!
+   */
+
+  function prepareAuthPopup() { // in parent window
+    authPopupRef = window.open(document.location, 'remotestorageAuthPopup', 'dependent=yes,width=500,height=400');
+    window.remotestorageTokenReceived = function() {
+      delete window.remotestorageTokenReceived;
+      setWidgetStateOnLoad();
+    };
+  }
+
+  function closeAuthPopup() { // in parent window
+    authPopupRef.close();
+  }
+
+  function setAuthPopupLocation(location) { // in parent window
+    authPopupRef.document.location = location;
+  }
+
+  function finalizeAuthPopup() { // in child window
+    if(! frames.opener) {
+      // not in child window (probably due to storage-first)
+      return;
+    }
+    frames.opener.remotestorageTokenReceived();
+    window.close();
+  }
+
   function dance(endpoint) {
     var endPointParts = endpoint.split('?');
     var queryParams = [];
@@ -1764,8 +1802,19 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     queryParams.push('scope='+encodeURIComponent(scopesArr.join(' ')));
     queryParams.push('redirect_uri='+encodeURIComponent(loc));
     queryParams.push('client_id='+encodeURIComponent(redirectUriToClientId(loc)));
+
+    var authLocation = endPointParts[0]+'?'+queryParams.join('&');
     
-    platform.setLocation(endPointParts[0]+'?'+queryParams.join('&'));
+    switch(authDialogStrategy) {
+    case 'redirect':
+      platform.setLocation(authLocation);
+      break;
+    case 'popup':
+      setAuthPopupLocation(authLocation);
+      break;
+    default:
+      throw "Invalid strategy for auth dialog: " + authDialogStrategy;
+    }
   }
 
   function discoverStorageInfo(userAddress, cb) {
@@ -1796,20 +1845,20 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
-      //if(userAddress=='me@local.dev') {
-        localStorage['remote_storage_widget_useraddress']=userAddress;
-        setWidgetState('connecting');
-        discoverStorageInfo(userAddress, function(err, auth) {
-          if(err) {
-            alert('webfinger discovery failed! (sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo)');
-            setWidgetState('failed');
-          } else {
-            dance(auth);
-          }
-        });
-      // } else {
-      //   alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
-      // }
+      localStorage['remote_storage_widget_useraddress']=userAddress;
+      setWidgetState('connecting');
+      if(authDialogStrategy == 'popup') {
+        prepareAuthPopup();
+      }
+      discoverStorageInfo(userAddress, function(err, auth) {
+        if(err) {
+          platform.alert('webfinger discovery failed! (sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo)');
+          closeAuthPopup();
+          setWidgetState('failed');
+        } else {
+          dance(auth);
+        }
+      });
     } else {
       setWidgetState('typing');
     }
@@ -1820,7 +1869,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       store.forgetAll();
       setWidgetState('anonymous');
     } else {
-      alert('you cannot disconnect now, please wait until the cloud is up to date...');
+      platform.alert('you cannot disconnect now, please wait until the cloud is up to date...');
     }
   }
   function handleCubeClick() {
@@ -1830,20 +1879,46 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     //  handleDisconnectClick();
     //}
   }
-  function handleWidgetTypeUserAddress() {
+  function handleWidgetTypeUserAddress(event) {
     setRegistering(false);
-    console.log('handleWidgetTypeUserAddress');
+    if(event.keyCode === 13) {
+      document.getElementById('remotestorage-connect-button').click();
+    }
   }
   function handleWidgetHover() {
-    console.log('handleWidgetHover');
+    logger.debug('handleWidgetHover');
   }
-  function display(setConnectElement, setLocale) {
+
+  /**
+     @method displayWidget
+     @memberof module:remoteStorage
+     @param {String} connectElement DOM ID of element to attach widget elements to
+     @param {Object} options Options, as described below.
+     @param {String} options.authDialog Strategy to display OAuth dialog. Either 'redirect' or 'popup'. Defaults to 'redirect'.
+     @param {Boolean} options.syncShortcut Whether to setup CTRL+S as a shortcut for immediate sync. Default is true.
+     @param {String} options.locale Locale to use for the widget. Currently ignored.
+   */
+  function display(setConnectElement, options) {
     var tokenHarvested = platform.harvestParam('access_token');
     var storageRootHarvested = platform.harvestParam('storage_root');
     var storageApiHarvested = platform.harvestParam('storage_api');
     var authorizeEndpointHarvested = platform.harvestParam('authorize_endpoint');
+    if(! options) {
+      options = {};
+    }
+
+    if(typeof(options.authDialog) !== 'undefined') {
+      authDialogStrategy = options.authDialog;
+    }
+
+    locale = options.locale;
+
     if(tokenHarvested) {
       wireClient.setBearerToken(tokenHarvested);
+
+      if(authDialogStrategy === 'popup') {
+        finalizeAuthPopup();
+      }
     }
     if(storageRootHarvested) {
       wireClient.setStorageInfo((storageApiHarvested ? storageApiHarvested : '2012.04'), storageRootHarvested);
@@ -1851,19 +1926,25 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     if(authorizeEndpointHarvested) {
       dance(authorizeEndpointHarvested);
     }
+
     connectElement = setConnectElement;
-    locale = setLocale;
+
     wireClient.on('error', function(err) {
       platform.alert(translate(err));
     });
+
     sync.on('state', setWidgetState);
+
     setWidgetStateOnLoad();
-    window.onkeydown = function(evt) {
-      if(evt.ctrlKey && evt.which == 83) {
-        evt.preventDefault();
-        console.log("CTRL+S - SYNCING");
-        sync.syncNow('/', function(errors) {});
-        return false;
+
+    if(options.syncShortcut !== false) {
+      window.onkeydown = function(evt) {
+        if(evt.ctrlKey && evt.which == 83) {
+          evt.preventDefault();
+          logger.info("CTRL+S - SYNCING");
+          sync.syncNow('/', function(errors) {});
+          return false;
+        }
       }
     }
     
@@ -1873,6 +1954,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     //});
 
   }
+
   function addScope(module, mode) {
     if(!scopesObj[module] || mode == 'rw') {
       scopesObj[module] = mode;
@@ -1888,7 +1970,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
 
 /* -*- js-indent-level:2 -*- */
 
+/** @module baseClient*/
 define('lib/baseClient',['./sync', './store', './util'], function (sync, store, util) {
+
   var moduleChangeHandlers = {}, errorHandlers = [];
 
   var logger = util.getLogger('baseClient');
@@ -1950,6 +2034,12 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     return ret;
   }
 
+  /**
+     @method claimAccess
+     @param {String} path Absolute path to claim access on.
+     @param {String} claim Mode to claim ('r' or 'rw')
+     @memberof module:baseClient
+  */
   function claimAccess(path, claim) {
     store.setNodeAccess(path, claim);
     //sync.syncNow(path);
@@ -1962,216 +2052,306 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     return (path.substr(-1)=='/');
   }
 
+  var BaseClient;
+
+
+  BaseClient = function(moduleName, isPublic) {
+    this.moduleName = moduleName, this.isPublic = isPublic;
+  }
+
+  /** @class BaseClient */
+  BaseClient.prototype = {
+
+    /** @private */
+    makePath: function(path) {
+      if(this.moduleName == 'root') {
+        return path;
+      }
+      return (this.isPublic?'/public/':'/')+this.moduleName+'/'+path;
+    },
+
+    /** @private */
+    nodeGivesAccess: function(path, mode) {
+      var node = store.getNode(path);
+      logger.debug("check node access", path, mode, node);
+      var access = (new RegExp(mode)).test(node.startAccess);
+      if(access) {
+        return true
+      } else if(path.length > 0) {
+        return nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''))
+      }
+    },
+
+    /** @private */
+    ensureAccess: function(mode) {
+      var path = this.makePath(this.moduleName == 'root' ? '/' : '');
+
+      if(! this.nodeGivesAccess(path, mode)) {
+        throw "Not sufficient access claimed for node at " + path;
+      }
+    },
+
+
+    /**
+       @method BaseClient#on
+
+       @desc Install an event handler for the given type.
+
+       @param {String} eventType
+       @param {Function} handler
+       @param {Object} context (optional) context to bind handler to.
+    */
+    on: function(eventType, handler, context) {//'error' or 'change'. Change events have a path and origin (tab, device, cloud) field
+      if(eventType=='change') {
+        if(this.moduleName) {
+          if(!moduleChangeHandlers[this.moduleName]) {
+            moduleChangeHandlers[this.moduleName]=[];
+          }
+          moduleChangeHandlers[this.moduleName].push(bindContext(handler, context));
+        }
+      } else if(eventType == 'error') {
+        errorHandlers.push(bindContext(handler, context));
+      } else {
+        throw "No such event type: " + eventType;
+      }
+    },
+
+    /**
+       @method BaseClient#getObject
+
+       @desc Get a JSON object from given path.
+
+       @param {String} path
+       @param {Function} callback (optional)
+       @param {Object} context (optional)
+
+       @returns {Object}
+    */
+    getObject: function(path, cb, context) {
+      this.ensureAccess('r');
+      var absPath = this.makePath(path);
+      if(cb) {
+        sync.fetchNow(absPath, function(err, node) {
+          var data = store.getNodeData(absPath);
+          if(data && (typeof(data) == 'object')) {
+            delete data['@type'];
+          }
+          bindContext(cb, context)(data);
+        });
+      } else {
+        var node = store.getNode(absPath);
+        var data = store.getNodeData(absPath);
+        if(data && (typeof(data) == 'object')) {
+          delete data['@type'];
+        }
+        return data;
+      }
+    },
+
+    /**
+       @method BaseClient#getListing
+
+       @desc Get a list of keys directly under the specified path.
+
+       @param {String} path
+       @param {Function} callback (optional)
+       @param {Object} context (optional)
+
+       @returns {Array} of keys
+    */
+    getListing: function(path, cb, context) {
+      this.ensureAccess('r');
+      var absPath = this.makePath(path);
+      if(cb) {
+        sync.fetchNow(absPath, function(err, node) {
+          var data = store.getNodeData(absPath);
+          var arr = [];
+          for(var i in data) {
+            arr.push(i);
+          }
+          bindContext(cb, context)(arr);
+        });
+      } else {
+        var node = store.getNode(absPath);
+        var data = store.getNodeData(absPath);
+        var arr = [];
+        for(var i in data) {
+          arr.push(i);
+        }
+        return arr;
+      }
+    },
+
+    /**
+       @method BaseClient#getDocument
+
+       @desc Get the document at the given path. A Document is raw data, as opposed to a JSON object (use getObject for that).
+
+       @param {String} path
+       @param {Function} callback (optional) callback to be called with the result
+       @param {Object} context (optional) ocntext for the callback
+
+       @returns {Object} with keys "mimeType" and "data".
+    */
+    getDocument: function(path, cb, context) {
+      this.ensureAccess('r');
+      var absPath = this.makePath(path);
+      if(cb) {
+        sync.fetchNow(absPath, function(err, node) {
+          bindContext(cb, context)({
+            mimeType: node.mimeType,
+            data: store.getNodeData(absPath)
+          });
+        });
+      } else {
+        var node = store.getNode(absPath);
+        return {
+          mimeType: node.mimeType,
+          data: store.getNodeData(absPath)
+        };
+      }
+    },
+
+    /**
+       @method BaseClient#remove
+
+       @desc Remove node at given path from storage. Starts synchronization.
+
+       @param {String} path
+       @param {Function} callback (optional) callback to be called once synchronization is done.
+       @param {Object} context (optional) context for the callback
+
+       @fires "error" if no callback is given and synchronization fails
+    */
+    remove: function(path, cb, context) {
+      this.ensureAccess('w');
+      var ret = set(path, this.makePath(path));
+      this.syncNow(cb, context);
+      return ret;
+    },
+
+    /**
+       @method BaseClient#storeObject
+
+       @desc Store object at given path. Starts synchronization.
+
+       @param {String} type The type of object being stored. Two objects stored under the same type key should have the same structure.
+       @param {String} path Path relative to module root.
+       @param {Object} object The object to be saved.
+       @param {Function} callback (optional) callback to be called, once synchronization is done.
+       @param {Object} context (optional) context for the callback
+
+       @fires "error" if no callback is given and synchronization fails
+    */
+    storeObject: function(type, path, obj, cb, context) {
+      this.ensureAccess('w');
+      if(typeof(obj) !== 'object') {
+        throw "storeObject needs to get an object as value!"
+      }
+      obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+this.moduleName+'/'+type;
+      //checkFields(obj);
+      var ret = set(path, this.makePath(path), obj, 'application/json');
+      this.sync(path);
+      this.syncNow(cb, context);
+      return ret;
+    },
+
+    /**
+       @method BaseClient#storeDocument
+
+       @desc Store raw data at a given path.
+
+       @param {String} mimeType MIME type of the data.
+       @param {String} path
+       @param {String} data
+       @param {Function} callback (optional)
+       @param {Object} context (optional)
+
+       @fires "error" if no callback is given and synchronization fails
+    */
+    storeDocument: function(mimeType, path, data, cb, context) {
+      this.ensureAccess('w');
+      var ret = set(path, this.makePath(path), data, mimeType);
+      this.syncNow(cb, context);
+      return ret;
+    },
+
+    /**
+       @method BaseClient#getItemURL
+
+       @desc Get the full URL of the item at given path. This will only
+       work, if the user is connected to a remoteStorage account, otherwise
+       it returns null.
+
+       @param {String} path relative path starting from the module root.
+       @returns String or null
+    */
+    getItemURL: function(path) {
+      var base = remoteStorage.getStorageHref();
+      if(! base) {
+        return null;
+      }
+      if(base.substr(-1) != '/') {
+        base = base + '/';
+      }
+      return base + this.makePath(path);
+    },
+
+    getCurrentWebRoot: function() {
+      return 'https://example.com/this/is/an/example/'+(this.isPublic?'public/':'')+this.moduleName+'/';
+    },
+
+    /**
+       @method BaseClient#sync
+
+       @desc Force synchronization on given path.
+
+       @param {String} path
+       @param {Boolean} switchVal (optional) if set to "false", remove force flag from node at path
+    */
+    sync: function(path, switchVal) {
+      var absPath = this.makePath(path);
+      store.setNodeForce(absPath, (switchVal != false));
+    },
+
+    /**
+       @method syncNow
+       @memberof class:BaseClient
+
+       @desc Synchronize with remotestorage, starting at this client's root.
+
+       @param {Function} callback (optional) callback to call once synchronization finishes.
+       @param {Object} context (optional) context to bind callback to.
+
+       @fires "error" if no callback is given and synchronization fails.
+    */
+    syncNow: function(cb, context) {
+      sync.syncNow(this.makePath(''), cb ? bindContext(cb, context) : function(errors) {
+        if(errors && errors.length > 0) {
+          logger.error("Error syncing: ", errors);
+          fireError(errors);
+        }
+      });
+    },
+
+    getState: function(path) {
+    }
+  };
+
+
   return {
 
     claimAccess: claimAccess,
 
+    /**
+       @method getInstance
+       @memberof module:baseClient
+       @param {String} moduleName Name of the module the returned client is to be part of.
+       @param {Boolean} isPublic Whether this client shall write to the public category.
+       @returns BaseClient
+    */
     getInstance: function(moduleName, isPublic) {
-      function makePath(path) {
-        if(moduleName == 'root') {
-          return path;
-        }
-        return (isPublic?'/public/':'/')+moduleName+'/'+path;
-      }
-
-      function nodeGivesAccess(path, mode) {
-        var node = store.getNode(path);
-        logger.debug("check node access", path, mode, node);
-        var access = (new RegExp(mode)).test(node.startAccess);
-        if(access) {
-          return true
-        } else if(path.length > 0) {
-          return nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''))
-        }
-      }
-
-      function ensureAccess(mode) {
-        var path = makePath(moduleName == 'root' ? '/' : '');
-
-        if(! nodeGivesAccess(path, mode)) {
-          throw "Not sufficient access claimed for node at " + path;
-        }
-      }
-
-      /**
-         @desc baseClient
-      */
-      return {
-
-        on: function(eventType, cb, context) {//'error' or 'change'. Change events have a path and origin (tab, device, cloud) field
-          if(eventType=='change') {
-            if(moduleName) {
-              if(!moduleChangeHandlers[moduleName]) {
-                moduleChangeHandlers[moduleName]=[];
-              }
-              moduleChangeHandlers[moduleName].push(bindContext(cb, context));
-            }
-          } else if(eventType == 'error') {
-            errorHandlers.push(bindContext(cb, context));
-          }
-        },
-
-        getObject: function(path, cb, context) {
-          ensureAccess('r');
-          var absPath = makePath(path);
-          if(cb) {
-            sync.fetchNow(absPath, function(err, node) {
-              var data = store.getNodeData(absPath);
-              if(data && (typeof(data) == 'object')) {
-                delete data['@type'];
-              }
-              bindContext(cb, context)(data);
-            });
-          } else {
-            var node = store.getNode(absPath);
-            var data = store.getNodeData(absPath);
-            if(data && (typeof(data) == 'object')) {
-              delete data['@type'];
-            }
-            return data;
-          }
-        },
-
-        getListing: function(path, cb, context) {
-          ensureAccess('r');
-          var absPath = makePath(path);
-          if(cb) {
-            sync.fetchNow(absPath, function(err, node) {
-              var data = store.getNodeData(absPath);
-              var arr = [];
-              for(var i in data) {
-                arr.push(i);
-              }
-              bindContext(cb, context)(arr);
-            });
-          } else {
-            var node = store.getNode(absPath);
-            var data = store.getNodeData(absPath);
-            var arr = [];
-            for(var i in data) {
-              arr.push(i);
-            }
-            return arr;
-          }
-        },
-
-        getDocument: function(path, cb, context) {
-          ensureAccess('r');
-          var absPath = makePath(path);
-          if(cb) {
-            sync.fetchNow(absPath, function(err, node) {
-              bindContext(cb, context)({
-                mimeType: node.mimeType,
-                data: store.getNodeData(absPath)
-              });
-            });
-          } else {
-            var node = store.getNode(absPath);
-            return {
-              mimeType: node.mimeType,
-              data: store.getNodeData(absPath)
-            };
-          }
-        },
-
-        /**
-           @method remove
-
-           @desc Remove node at given path from storage. Starts synchronization.
-
-           @param {String} path
-           @param {Function} callback (optional) callback to be called once synchronization is done.
-           @param {Object} context (optional) context for the callback
-
-           @fires "error" if no callback is given and synchronization fails
-        */
-        remove: function(path, cb, context) {
-          ensureAccess('w');
-          var ret = set(path, makePath(path));
-          this.syncNow(cb, context);
-          return ret;
-        },
-
-        /**
-           @method storeObject
-
-           @desc Store object at given path. Starts synchronization.
-
-           @param {String} type The type of object being stored. Two objects stored under the same type key should have the same structure.
-           @param {String} path Path relative to module root.
-           @param {Object} object The object to be saved.
-           @param {Function} callback (optional) callback to be called, once synchronization is done.
-           @param {Object} context (optional) context for the callback
-
-           @fires "error" if no callback is given and synchronization fails
-         */
-        storeObject: function(type, path, obj, cb, context) {
-          ensureAccess('w');
-          if(typeof(obj) !== 'object') {
-            throw "storeObject needs to get an object as value!"
-          }
-          obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+moduleName+'/'+type;
-          //checkFields(obj);
-          var ret = set(path, makePath(path), obj, 'application/json');
-          this.sync(path);
-          this.syncNow(cb, context);
-          return ret;
-        },
-
-        storeDocument: function(mimeType, path, data, cb, context) {
-          ensureAccess('w');
-          var ret = set(path, makePath(path), data, mimeType);
-          this.syncNow(cb, context);
-          return ret;
-        },
-
-        /**
-           @method getItemURL
-
-           @desc Get the full URL of the item at given path. This will only
-           work, if the user is connected to a remoteStorage account, otherwise
-           it returns null.
-
-           @param {String} path relative path starting from the module root.
-           @returns String or null
-        */
-        getItemURL: function(path) {
-          var base = remoteStorage.getStorageHref();
-          if(! base) {
-            return null;
-          }
-          if(base.substr(-1) != '/') {
-            base = base + '/';
-          }
-          return base + makePath(path);
-        },
-
-        getCurrentWebRoot: function() {
-          return 'https://example.com/this/is/an/example/'+(isPublic?'public/':'')+moduleName+'/';
-        },
-
-        /**
-           @method sync
-
-           @desc Force synchronization on given path.
-        */
-        sync: function(path, switchVal) {
-          var absPath = makePath(path);
-          store.setNodeForce(absPath, (switchVal != false));
-        },
-
-        syncNow: function(cb, context) {
-          sync.syncNow(makePath(''), cb ? bindContext(cb, context) : function(errors) {
-            if(errors && errors.length > 0) {
-              logger.error("Error syncing: ", errors);
-              fireError(errors);
-            }
-          });
-        },
-
-        getState: function(path) {
-        }
-      };
+      return new BaseClient(moduleName, isPublic);
     }
   };
 });
@@ -2219,7 +2399,7 @@ define('remoteStorage',[
   }
 
   /**
-     @object remoteStorage
+     @module remoteStorage
   */
   var remoteStorage =  { 
 
@@ -2227,20 +2407,26 @@ define('remoteStorage',[
      ** PUBLIC METHODS
      **/
 
-    /** defineModule() - define a new module, with given name.
-     **
-     ** Module names MUST be unique. The given builder will be called
-     ** immediately, with two arguments, which are both instances of
-     ** baseClient. The first accesses the private section of a modules
-     ** storage space, the second the public one. The public area can
-     ** be read by any client (not just an authenticated one), while
-     ** it can only be written by an authenticated client with read-write
-     ** access claimed on it.
-     **
-     ** The builder is expected to return an object, as described under
-     ** getModuleInfo().
-     **
-     **/
+    /**
+       @method defineModule
+       @memberof module:remoteStorage
+       
+       @desc Define a new module, with given name.
+       Module names MUST be unique. The given builder will be called
+       immediately, with two arguments, which are both instances of
+       baseClient. The first accesses the private section of a modules
+       storage space, the second the public one. The public area can
+       be read by any client (not just an authenticated one), while
+       it can only be written by an authenticated client with read-write
+       access claimed on it.
+       
+       The builder is expected to return an object, as described under
+       remoteStorage.getModuleInfo.
+
+       @param {String} moduleName Name of the module to define. SHOULD be a-z and all lowercase.
+       @param {Function} builder Builder function that holds the module definition.
+       @see remoteStorage.getModuleInfo
+     */
     defineModule: function(moduleName, builder) {
       logger.debug('DEFINE MODULE', moduleName);
       var module = builder(
@@ -2254,58 +2440,68 @@ define('remoteStorage',[
       logger.debug('Module defined: ' + moduleName, module, this);
     },
 
-    /** getModuleList() - Get an Array of all moduleNames, currently defined.
-     **
-     **/
+    /**
+       @method getModuleList
+       @memberof module:remoteStorage
+
+       @desc Get an Array of all moduleNames, currently defined.
+     */
     getModuleList: function() {
       return Object.keys(modules);
     },
 
-    /** getClaimedModuleList() - Get a list of all modules, currently claimed
-     **                          access on.
-     **
-     **/
+    /**
+       @method getClaimedModuleList
+       @memberof module:remoteStorage
+
+       @desc Get a list of all modules, currently claimed access on.
+    */
     getClaimedModuleList: function() {
       return Object.keys(claimedModules);
     },
 
-    /** getModuleInfo() - Retrieve meta-information about a given module.
-     **
-     ** If the module doesn't exist, the result will be undefined.
-     **
-     ** Module information currently gives you the following (if you're lucky):
-     **
-     ** * exports - don't ever use this. it's basically the module's instance.
-     ** * name - the name of the module, but you knew that already.
-     ** * dataHints - an object, describing internas about the module.
-     **
-     ** Some of the dataHints used are:
-     **
-     **   objectType <type> - description of an object
-     **                       type implemented by the module:
-     **     "objectType message"
-     **
-     **   <attributeType> <objectType>#<attribute> - description of an attribute
-     **
-     **     "string message#subject"
-     **
-     **   directory <path> - description of a path's purpose
-     **
-     **     "directory documents/notes/"
-     **
-     **   item <path> - description of a special item
-     **
-     **     "item documents/notes/calendar"
-     **
-     ** Hope this helps.
-     **
-     **/
+    /**
+       @method getModuleInfo
+       @memberof module:remoteStorage
+       @summary Retrieve meta-information about a given module.
+     
+       @desc If the module doesn't exist, the result will be undefined.
+     
+       Module information currently gives you the following (if you're lucky):
+      
+       * exports - don't ever use this. it's basically the module's instance.
+       * name - the name of the module, but you knew that already.
+       * dataHints - an object, describing internas about the module.
+      
+       Some of the dataHints used are:
+      
+         objectType <type> - description of an object
+                             type implemented by the module:
+           "objectType message"
+      
+         <attributeType> <objectType>#<attribute> - description of an attribute
+      
+           "string message#subject"
+      
+         directory <path> - description of a path's purpose
+      
+           "directory documents/notes/"
+      
+         item <path> - description of a special item
+      
+           "item documents/notes/calendar"
+      
+       Hope this helps.
+  
+       @param {String} moduleName Name of the module to get information about.
+     */
     getModuleInfo: function(moduleName) {
       return modules[moduleName];
     },
 
     /**
-       @method remoteStorage.claimAccess()
+       @method claimAccess
+       @memberof module:remoteStorage
        @summary Claim access for a set of modules.
        @desc
        You need to claim access to a module before you can
@@ -2340,7 +2536,9 @@ define('remoteStorage',[
       
        claimAccess() will throw an exception, if any given module hasn't been
        defined (yet). Access to all previously processed modules will have been
-       claimed, however.    
+       claimed, however.
+
+       @param {Object|Array|String} claimed See description for details.
      */
     claimAccess: function(claimed) {
       if(typeof(claimed) !== 'object' || (claimed instanceof Array)) {
@@ -2368,10 +2566,7 @@ define('remoteStorage',[
       }
     },
 
-    /** claimModuleAccess() - Claim access to a single module.
-     ** We probably don't need this out in the public, as
-     ** claimAccess() provides the same interface.
-     **/
+    /** @private */
     claimModuleAccess: function(moduleName, mode) {
       logger.debug('claimModuleAccess', moduleName, mode);
       if(! moduleName in modules) {
@@ -2397,16 +2592,17 @@ define('remoteStorage',[
       claimedModules[moduleName] = true;
     },
 
+    /**
+       @method loadModule
+       @memberof module:remoteStorage
+       @deprecated Use claimAccess instead.
+    */
     loadModule: function() {
       deprecate('remoteStorage.loadModule', 'remoteStorage.claimAccess');
       this.claimModuleAccess.apply(this, arguments);
     },
 
-    /** setBearerToken() - Set bearer token and claim additional scopes.
-     ** Bearer token will usually be received via a #access_token=
-     ** fragment after authorization.
-     ** You don't need this, if you are using the widget.
-     **/
+    /** @private */
     setBearerToken: function(bearerToken, claimedScopes) {
       wireClient.setBearerToken(bearerToken);
       baseClient.claimScopes(claimedScopes);
@@ -2418,43 +2614,45 @@ define('remoteStorage',[
 
     disconnectRemote : wireClient.disconnectRemote,
 
-    /** flushLocal() - Forget this ever happened.
-     **
-     ** Delete all locally stored data.
-     ** This doesn't clear localStorage, just removes everything
-     ** remoteStorage.js ever saved there (though obviously only under
-     ** the current origin).
-     **
-     ** To implement logging out, use (at least) this.
-     **
-     **/
+    /**
+       @method flushLocal
+       @memberof module:remoteStorage
+
+       @summary Forget this ever happened.
+
+       @desc Delete all locally stored data.
+       This doesn't clear localStorage, just removes everything
+       remoteStorage.js ever saved there (though obviously only under
+       the current origin).
+       
+       To implement logging out, use (at least) this.
+    */
     flushLocal       : store.forgetAll,
 
-    /** syncNow(path) - Synchronize local <-> remote storage.
-     **
-     ** Syncing starts at given path and bubbles down.
-     ** The actual changes to either local or remote storage happen in the
-     ** future, so you should attach change handlers on the modules you're
-     ** interested in.
-     **
-     ** Example:
-     **   remoteStorage.money.on('change', function(changeEvent) {
-     **     updateBudget(changeEvent);
-     **   });
-     **   remoteStorage.syncNow('/money');
-     **
-     ** Modules may bring their own sync method, which should take preference
-     ** over the one here.
-     **
-     **/
+    /**
+       @method syncNow
+       @memberof module:remoteStorage
+
+       @summary Synchronize local <-> remote storage.
+
+       @desc Syncing starts at given path and bubbles down.
+       The actual changes to either local or remote storage happen in the
+       future, so you should attach change handlers on the modules you're
+       interested in.
+       
+       Example:
+         remoteStorage.money.on('change', function(changeEvent) {
+           updateBudget(changeEvent);
+         });
+         remoteStorage.syncNow('/money');
+     
+       Modules may bring their own sync method, which should take preference
+       over the one here.
+     
+     */
     syncNow          : sync.syncNow,
 
-    /** displayWidget(element) - Display the widget in the given DOM element.
-     **
-     ** The argument given, can either be a DOM ID, or a element reference.
-     ** In either case, the element MUST be attached to the DOM tree at the
-     ** time of calling displayWidget().
-     **/
+    // documented in widget.
     displayWidget    : widget.display,
 
     getWidgetState   : widget.getState,
