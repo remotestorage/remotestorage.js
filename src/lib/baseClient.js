@@ -108,7 +108,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       if(access) {
         return true
       } else if(path.length > 0) {
-        return nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''))
+        return this.nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''))
       }
     },
 
