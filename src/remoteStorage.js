@@ -188,9 +188,6 @@ define([
         return;
       }
 
-      if(! mode) {
-        mode = 'r';
-      }
       if(moduleName == 'root') {
         moduleName = '';
         widget.addScope('', mode);
