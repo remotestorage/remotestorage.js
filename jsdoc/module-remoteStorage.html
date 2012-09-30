@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Module: remoteStorage</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-jsdoc.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Module: remoteStorage</h1>
+    
+    
+
+
+
+<section>
+    
+<header>
+    <h2>
+    remoteStorage
+    </h2>
+    
+</header>  
+
+<article>
+    <div class="container-overview">
+    
+    
+    
+        
+        
+        
+<dl class="details">
+    
+        
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source"><ul class="dummy"><li>remoteStorage.js, line 20</li></ul></dd>
+	
+    
+    
+	
+	
+	
+	
+</dl>
+
+        
+        
+    
+    </div>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+        <h3 class="subsection-title">Methods</h3>
+        
+        <dl>
+            
+<dt>
+    <h4 class="name" id="claimAccess"><span class="type-signature">&lt;static> </span>claimAccess</h4>
+    
+    
+    <p class="summary">Claim access for a set of modules.</p>
+    
+</dt>
+<dd>
+    
+    
+    <div class="description method">
+        You need to claim access to a module before you can
+       access data from it.
+     
+       modules can be specified in three ways:
+via an object:
+      
+         remoteStorage.claimAccess({
+           contacts: 'r',
+           documents: 'rw',
+           money: 'r'
+         });
+via an array:
+      
+         remoteStorage.claimAccess(['contacts', 'documents', 'money']);
+via variable arguments:
+      
+         remoteStorage.claimAccess('contacts', 'documents', 'money');
+      
+       In both the array and argument list call sequence, access will
+       by default be claimed read-write ('rw'), UNLESS the last argument
+       (not the last member of the array) is either the string 'r' or 'rw':
+      
+         remoteStorage.claimAccess('documents', 'rw');
+         remoteStorage.claimAccess(['money', 'documents'], 'r');
+      
+       Errors:
+      
+       claimAccess() will throw an exception, if any given module hasn't been
+       defined (yet). Access to all previously processed modules will have been
+       claimed, however.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>claimed</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+|
+
+<span class="param-type">Array</span>
+|
+
+<span class="param-type">String</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">See description for details.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source"><ul class="dummy"><li>remoteStorage.js, line 121</li></ul></dd>
+	
+    
+    
+	
+	
+	
+	
+</dl>
+
+    
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="defineModule"><span class="type-signature">&lt;static> </span>defineModule</h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description method">
+        Define a new module, with given name.
+       Module names MUST be unique. The given builder will be called
+       immediately, with two arguments, which are both instances of
+       baseClient. The first accesses the private section of a modules
+       storage space, the second the public one. The public area can
+       be read by any client (not just an authenticated one), while
+       it can only be written by an authenticated client with read-write
+       access claimed on it.
+       
+       The builder is expected to return an object, as described under
+       remoteStorage.getModuleInfo.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>moduleName</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Name of the module to define. SHOULD be a-z and all lowercase.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>builder</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Function</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Builder function that holds the module definition.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source"><ul class="dummy"><li>remoteStorage.js, line 27</li></ul></dd>
+	
+    
+    
+	
+	
+	<dt class="tag-see">See:</dt>
+	<dd class="tag-see">
+        <ul>
+            <li>remoteStorage.getModuleInfo</li>
+        </ul>
+	</dd>
+	
+	
+	
+</dl>
+
+    
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="displayWidget"><span class="type-signature">&lt;static> </span>displayWidget</h4>
+    
+    
+</dt>
+<dd>
+    
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>connectElement</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">DOM ID of element to attach widget elements to</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>options</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Options, as described below.
+                <h6>Properties</h6>
+                
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>authDialog</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Strategy to display OAuth dialog. Either 'redirect' or 'popup'. Defaults to 'redirect'.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>syncShortcut</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Whether to setup CTRL+S as a shortcut for immediate sync. Default is true.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>locale</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Locale to use for the widget. Currently ignored.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+            </td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source"><ul class="dummy"><li>widget.js, line 240</li></ul></dd>
+	
+    
+    
+	
+	
+	
+	
+</dl>
+
+    
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="flushLocal"><span class="type-signature">&lt;static> </span>flushLocal</h4>
+    
+    
+    <p class="summary">Forget this ever happened.</p>
+    
+</dt>
+<dd>
+    
+    
+    <div class="description method">
+        Delete all locally stored data.
+       This doesn't clear localStorage, just removes everything
+       remoteStorage.js ever saved there (though obviously only under
+       the current origin).
+       
+       To implement logging out, use (at least) this.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source"><ul class="dummy"><li>remoteStorage.js, line 236</li></ul></dd>
+	
+    
+    
+	
+	
+	
+	
+</dl>
+
+    
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="getClaimedModuleList"><span class="type-signature">&lt;static> </span>getClaimedModuleList</h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description method">
+        Get a list of all modules, currently claimed access on.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source"><ul class="dummy"><li>remoteStorage.js, line 72</li></ul></dd>
+	
+    
+    
+	
+	
+	
+	
+</dl>
+
+    
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="getModuleInfo"><span class="type-signature">&lt;static> </span>getModuleInfo</h4>
+    
+    
+    <p class="summary">Retrieve meta-information about a given module.</p>
+    
+</dt>
+<dd>
+    
+    
+    <div class="description method">
+        If the module doesn't exist, the result will be undefined.
+     
+       Module information currently gives you the following (if you're lucky):
+exports - don't ever use this. it's basically the module's instance.
+name - the name of the module, but you knew that already.
+dataHints - an object, describing internas about the module.
+      
+       Some of the dataHints used are:
+      
+         objectType &lt;type> - description of an object
+                             type implemented by the module:
+           "objectType message"
+      
+         &lt;attributeType> &lt;objectType>#&lt;attribute> - description of an attribute
+      
+           "string message#subject"
+      
+         directory &lt;path> - description of a path's purpose
+      
+           "directory documents/notes/"
+      
+         item &lt;path> - description of a special item
+      
+           "item documents/notes/calendar"
+      
+       Hope this helps.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>moduleName</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">Name of the module to get information about.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source"><ul class="dummy"><li>remoteStorage.js, line 82</li></ul></dd>
+	
+    
+    
+	
+	
+	
+	
+</dl>
+
+    
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="getModuleList"><span class="type-signature">&lt;static> </span>getModuleList</h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description method">
+        Get an Array of all moduleNames, currently defined.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source"><ul class="dummy"><li>remoteStorage.js, line 62</li></ul></dd>
+	
+    
+    
+	
+	
+	
+	
+</dl>
+
+    
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="loadModule"><span class="type-signature">&lt;static> </span>loadModule</h4>
+    
+    
+</dt>
+<dd>
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+	
+	
+	
+
+	
+	
+	
+        <dt class="important tag-deprecated">Deprecated:</dt><dd><ul class="dummy"><li>Use claimAccess instead.</li><ul></dd>
+    
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source"><ul class="dummy"><li>remoteStorage.js, line 214</li></ul></dd>
+	
+    
+    
+	
+	
+	
+	
+</dl>
+
+    
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="syncNow"><span class="type-signature">&lt;static> </span>syncNow</h4>
+    
+    
+    <p class="summary">Synchronize local <-> remote storage.</p>
+    
+</dt>
+<dd>
+    
+    
+    <div class="description method">
+        Syncing starts at given path and bubbles down.
+       The actual changes to either local or remote storage happen in the
+       future, so you should attach change handlers on the modules you're
+       interested in.
+       
+       Example:
+         remoteStorage.money.on('change', function(changeEvent) {
+           updateBudget(changeEvent);
+         });
+         remoteStorage.syncNow('/money');
+     
+       Modules may bring their own sync method, which should take preference
+       over the one here.
+    </div>
+    
+
+    
+    
+    
+    
+    
+    
+    
+<dl class="details">
+    
+        
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	<dt class="tag-source">Source:</dt>
+	<dd class="tag-source"><ul class="dummy"><li>remoteStorage.js, line 251</li></ul></dd>
+	
+    
+    
+	
+	
+	
+	
+</dl>
+
+    
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        </dl>
+    
+    
+    
+    
+    
+</article>
+
+</section>  
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-baseClient.html">baseClient</a></li><li><a href="module-remoteStorage.html">remoteStorage</a></li></ul><h3>Classes</h3><ul><li><a href="BaseClient.html">BaseClient</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3</a> on Sun Sep 30 2012 15:20:50 GMT+0200 (CEST)
+</footer>
+
+<script> prettyPrint(); </script>
+</body>
+</html>
