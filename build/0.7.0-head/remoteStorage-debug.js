@@ -1824,16 +1824,20 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     queryParams.push('client_id='+encodeURIComponent(redirectUriToClientId(loc)));
 
     var authLocation = endPointParts[0]+'?'+queryParams.join('&');
-    
-    switch(authDialogStrategy) {
-    case 'redirect':
-      platform.setLocation(authLocation);
-      break;
-    case 'popup':
-      setAuthPopupLocation(authLocation);
-      break;
-    default:
-      throw "Invalid strategy for auth dialog: " + authDialogStrategy;
+
+    if(typeof(authDialogStrategy) == 'function') {
+      authDialogStrategy(authLocation);
+    } else {
+      switch(authDialogStrategy) {
+      case 'redirect':
+        platform.setLocation(authLocation);
+        break;
+      case 'popup':
+        setAuthPopupLocation(authLocation);
+        break;
+      default:
+        throw "Invalid strategy for auth dialog: " + authDialogStrategy;
+      }
     }
   }
 
@@ -1914,7 +1918,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
      @memberof module:remoteStorage
      @param {String} connectElement DOM ID of element to attach widget elements to
      @param {Object} options Options, as described below.
-     @param {String} options.authDialog Strategy to display OAuth dialog. Either 'redirect' or 'popup'. Defaults to 'redirect'.
+     @param {String} options.authDialog Strategy to display OAuth dialog. Either 'redirect', 'popup' or a function. Defaults to 'redirect'. If this is a function, that function will receive the URL of the auth dialog. The OAuth dance will redirect back to the current location, with an access token, so that must be possible.
      @param {Boolean} options.syncShortcut Whether to setup CTRL+S as a shortcut for immediate sync. Default is true.
      @param {String} options.locale Locale to use for the widget. Currently ignored.
    */
