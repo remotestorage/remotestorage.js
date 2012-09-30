@@ -180,7 +180,7 @@ define([
     /** @private */
     claimModuleAccess: function(moduleName, mode) {
       logger.debug('claimModuleAccess', moduleName, mode);
-      if(! moduleName in modules) {
+      if(!(moduleName in modules)) {
         throw "Module not defined: " + moduleName;
       }
 
