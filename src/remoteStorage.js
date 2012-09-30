@@ -174,7 +174,6 @@ define([
 
         if(typeof(lastArg) === 'string' && lastArg.match(/^rw?$/)) {
           mode = lastArg;
-          delete arguments[arguments.length - 1];
         }
 
         for(var i in _modules) {
