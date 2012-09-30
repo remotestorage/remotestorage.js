@@ -1,6 +1,8 @@
 
 define([], function() {
 
+  "use strict";
+
   var loggers = {}, silentLogger = {};
 
   var knownLoggers = ['sync', 'webfinger', 'getputdelete', 'platform', 'baseClient', 'widget'];

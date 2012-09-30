@@ -1,4 +1,7 @@
 define(['./getputdelete'], function (getputdelete) {
+
+  "use strict";
+
   var prefix = 'remote_storage_wire_',
     errorHandler = function(){};
   function set(key, value) {

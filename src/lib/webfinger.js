@@ -2,6 +2,8 @@ define(
   ['./platform', './util'],
   function (platform, util) {
 
+    "use strict";
+
     var logger = util.getLogger('webfinger');
 
       ///////////////

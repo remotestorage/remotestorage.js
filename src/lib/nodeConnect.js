@@ -1,6 +1,8 @@
 
 define(['./wireClient', './webfinger'], function(wireClient, webfinger) {
 
+  "use strict";
+
   return {
 
     setUserAddress: function(userAddress, callback) {

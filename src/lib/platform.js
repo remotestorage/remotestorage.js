@@ -1,5 +1,7 @@
 define(['./util'], function(util) {
 
+  "use strict";
+
   var logger = util.getLogger('platform');
 
   function browserParseHeaders(rawHeaders) {

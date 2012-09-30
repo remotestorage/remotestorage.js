@@ -1,6 +1,9 @@
 define(
   ['./platform'],
   function (platform) {
+
+    "use strict";
+
     var guesses={
       //'dropbox.com': {
       //  api: 'Dropbox',

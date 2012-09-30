@@ -1,5 +1,7 @@
 define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util) {
 
+  "use strict";
+
   var locale='en',
     connectElement,
     widgetState,
@@ -22,7 +24,6 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
   }
   function calcWidgetStateOnLoad() {
-    wc = wireClient;
     if(isRegistering()) {
       return 'registering';
     } else {

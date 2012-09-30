@@ -3,6 +3,8 @@
 /** @module baseClient*/
 define(['./sync', './store', './util'], function (sync, store, util) {
 
+  "use strict";
+
   var moduleChangeHandlers = {}, errorHandlers = [];
 
   var logger = util.getLogger('baseClient');

@@ -1,4 +1,7 @@
 define(['./wireClient', './store', './util'], function(wireClient, store, util) {
+
+  "use strict";
+
   var prefix = '_remoteStorage_', busy=false, stateCbs=[];
 
   var logger = util.getLogger('sync');

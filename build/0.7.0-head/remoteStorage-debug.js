@@ -409,6 +409,8 @@ define('lib/assets',[], function () {
 
 define('lib/util',[], function() {
 
+  
+
   var loggers = {}, silentLogger = {};
 
   var knownLoggers = ['sync', 'webfinger', 'getputdelete', 'platform', 'baseClient', 'widget'];
@@ -487,6 +489,8 @@ define('lib/util',[], function() {
 
 
 define('lib/platform',['./util'], function(util) {
+
+  
 
   var logger = util.getLogger('platform');
 
@@ -793,6 +797,8 @@ define('lib/webfinger',
   ['./platform', './util'],
   function (platform, util) {
 
+    
+
     var logger = util.getLogger('webfinger');
 
       ///////////////
@@ -956,6 +962,9 @@ define('lib/webfinger',
 define('lib/hardcoded',
   ['./platform'],
   function (platform) {
+
+    
+
     var guesses={
       //'dropbox.com': {
       //  api: 'Dropbox',
@@ -1086,6 +1095,8 @@ define('lib/getputdelete',
   ['./platform', './util'],
   function (platform, util) {
 
+    
+
     var logger = util.getLogger('getputdelete');
 
     var defaultContentType = 'application/octet-stream';
@@ -1164,6 +1175,9 @@ define('lib/getputdelete',
 });
 
 define('lib/wireClient',['./getputdelete'], function (getputdelete) {
+
+  
+
   var prefix = 'remote_storage_wire_',
     errorHandler = function(){};
   function set(key, value) {
@@ -1259,6 +1273,8 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
 });
 
 define('lib/store',['./util'], function (util) {
+
+  
 
   var logger = util.getLogger('store');
 
@@ -1493,6 +1509,9 @@ define('lib/store',['./util'], function (util) {
 });
 
 define('lib/sync',['./wireClient', './store', './util'], function(wireClient, store, util) {
+
+  
+
   var prefix = '_remoteStorage_', busy=false, stateCbs=[];
 
   var logger = util.getLogger('sync');
@@ -1652,6 +1671,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 
 define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util) {
 
+  
+
   var locale='en',
     connectElement,
     widgetState,
@@ -1674,7 +1695,6 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
   }
   function calcWidgetStateOnLoad() {
-    wc = wireClient;
     if(isRegistering()) {
       return 'registering';
     } else {
@@ -1972,6 +1992,8 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
 
 /** @module baseClient*/
 define('lib/baseClient',['./sync', './store', './util'], function (sync, store, util) {
+
+  
 
   var moduleChangeHandlers = {}, errorHandlers = [];
 
@@ -2359,6 +2381,8 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
 
 define('lib/nodeConnect',['./wireClient', './webfinger'], function(wireClient, webfinger) {
 
+  
+
   return {
 
     setUserAddress: function(userAddress, callback) {
@@ -2389,6 +2413,8 @@ define('remoteStorage',[
   './lib/nodeConnect',
   './lib/util'
 ], function(require, widget, baseClient, store, sync, wireClient, nodeConnect, util) {
+
+  
 
   var claimedModules = {}, modules = {};
 

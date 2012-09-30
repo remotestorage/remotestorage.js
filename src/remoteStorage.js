@@ -9,6 +9,8 @@ define([
   './lib/util'
 ], function(require, widget, baseClient, store, sync, wireClient, nodeConnect, util) {
 
+  "use strict";
+
   var claimedModules = {}, modules = {};
 
   var logger = util.getLogger('base');
