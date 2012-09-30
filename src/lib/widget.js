@@ -1,9 +1,13 @@
-define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform) {
+define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util) {
+
   var locale='en',
     connectElement,
     widgetState,
     userAddress,
+    authDialogStrategy = 'redirect',
+    authPopupRef,
     scopesObj = {};
+  var logger = util.getLogger('widget');
   function translate(text) {
     return text;
   }
@@ -40,9 +44,6 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     return widgetState;
   }
   function displayWidgetState(state, userAddress) {
-    //if(!localStorage.michiel) {
-    //  state = 'devsonly';
-    //}
     var userAddress = localStorage['remote_storage_widget_useraddress'];
     var html = 
       '<style>'+assets.widgetCss+'</style>'
@@ -95,6 +96,43 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
     return hostParts[0];
   }
+
+  /**
+     Auth popup: when remoteStorage.displayWidget is called with the authDialog option set to 'popup',
+     the following happens:
+     1) When clicking "connect", a window is opened and saved as authPopupRef (prepareAuthPopup)
+     2) Once webfinger discovery is done, authPopupRef's location is set to the auth URL (setPopupLocation)
+     3) In case webfinger discovery fails, the popup is closed (closeAuthPopup)
+     4) As soon as the auth dialog redirects back with an access_token, the child popup calls
+        "remotestorageTokenReceived" on the opening window and closes itself.
+     5) remotestorageTokenReceived recalculates the widget state -> we're connected!
+   */
+
+  function prepareAuthPopup() { // in parent window
+    authPopupRef = window.open(document.location, 'remotestorageAuthPopup', 'dependent=yes,width=500,height=400');
+    window.remotestorageTokenReceived = function() {
+      delete window.remotestorageTokenReceived;
+      setWidgetStateOnLoad();
+    };
+  }
+
+  function closeAuthPopup() { // in parent window
+    authPopupRef.close();
+  }
+
+  function setAuthPopupLocation(location) { // in parent window
+    authPopupRef.document.location = location;
+  }
+
+  function finalizeAuthPopup() { // in child window
+    if(! frames.opener) {
+      // not in child window (probably due to storage-first)
+      return;
+    }
+    frames.opener.remotestorageTokenReceived();
+    window.close();
+  }
+
   function dance(endpoint) {
     var endPointParts = endpoint.split('?');
     var queryParams = [];
@@ -112,8 +150,19 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     queryParams.push('scope='+encodeURIComponent(scopesArr.join(' ')));
     queryParams.push('redirect_uri='+encodeURIComponent(loc));
     queryParams.push('client_id='+encodeURIComponent(redirectUriToClientId(loc)));
+
+    var authLocation = endPointParts[0]+'?'+queryParams.join('&');
     
-    platform.setLocation(endPointParts[0]+'?'+queryParams.join('&'));
+    switch(authDialogStrategy) {
+    case 'redirect':
+      platform.setLocation(authLocation);
+      break;
+    case 'popup':
+      setAuthPopupLocation(authLocation);
+      break;
+    default:
+      throw "Invalid strategy for auth dialog: " + authDialogStrategy;
+    }
   }
 
   function discoverStorageInfo(userAddress, cb) {
@@ -144,20 +193,20 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
-      //if(userAddress=='me@local.dev') {
-        localStorage['remote_storage_widget_useraddress']=userAddress;
-        setWidgetState('connecting');
-        discoverStorageInfo(userAddress, function(err, auth) {
-          if(err) {
-            alert('webfinger discovery failed! (sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo)');
-            setWidgetState('failed');
-          } else {
-            dance(auth);
-          }
-        });
-      // } else {
-      //   alert('sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo');
-      // }
+      localStorage['remote_storage_widget_useraddress']=userAddress;
+      setWidgetState('connecting');
+      if(authDialogStrategy == 'popup') {
+        prepareAuthPopup();
+      }
+      discoverStorageInfo(userAddress, function(err, auth) {
+        if(err) {
+          platform.alert('webfinger discovery failed! (sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo)');
+          closeAuthPopup();
+          setWidgetState('failed');
+        } else {
+          dance(auth);
+        }
+      });
     } else {
       setWidgetState('typing');
     }
@@ -168,7 +217,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       store.forgetAll();
       setWidgetState('anonymous');
     } else {
-      alert('you cannot disconnect now, please wait until the cloud is up to date...');
+      platform.alert('you cannot disconnect now, please wait until the cloud is up to date...');
     }
   }
   function handleCubeClick() {
@@ -178,20 +227,46 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     //  handleDisconnectClick();
     //}
   }
-  function handleWidgetTypeUserAddress() {
+  function handleWidgetTypeUserAddress(event) {
     setRegistering(false);
-    console.log('handleWidgetTypeUserAddress');
+    if(event.keyCode === 13) {
+      document.getElementById('remotestorage-connect-button').click();
+    }
   }
   function handleWidgetHover() {
-    console.log('handleWidgetHover');
+    logger.debug('handleWidgetHover');
   }
-  function display(setConnectElement, setLocale) {
+
+  /**
+     @method displayWidget
+     @memberof module:remoteStorage
+     @param {String} connectElement DOM ID of element to attach widget elements to
+     @param {Object} options Options, as described below.
+     @param {String} options.authDialog Strategy to display OAuth dialog. Either 'redirect' or 'popup'. Defaults to 'redirect'.
+     @param {Boolean} options.syncShortcut Whether to setup CTRL+S as a shortcut for immediate sync. Default is true.
+     @param {String} options.locale Locale to use for the widget. Currently ignored.
+   */
+  function display(setConnectElement, options) {
     var tokenHarvested = platform.harvestParam('access_token');
     var storageRootHarvested = platform.harvestParam('storage_root');
     var storageApiHarvested = platform.harvestParam('storage_api');
     var authorizeEndpointHarvested = platform.harvestParam('authorize_endpoint');
+    if(! options) {
+      options = {};
+    }
+
+    if(typeof(options.authDialog) !== 'undefined') {
+      authDialogStrategy = options.authDialog;
+    }
+
+    locale = options.locale;
+
     if(tokenHarvested) {
       wireClient.setBearerToken(tokenHarvested);
+
+      if(authDialogStrategy === 'popup') {
+        finalizeAuthPopup();
+      }
     }
     if(storageRootHarvested) {
       wireClient.setStorageInfo((storageApiHarvested ? storageApiHarvested : '2012.04'), storageRootHarvested);
@@ -199,19 +274,25 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     if(authorizeEndpointHarvested) {
       dance(authorizeEndpointHarvested);
     }
+
     connectElement = setConnectElement;
-    locale = setLocale;
+
     wireClient.on('error', function(err) {
       platform.alert(translate(err));
     });
+
     sync.on('state', setWidgetState);
+
     setWidgetStateOnLoad();
-    window.onkeydown = function(evt) {
-      if(evt.ctrlKey && evt.which == 83) {
-        evt.preventDefault();
-        console.log("CTRL+S - SYNCING");
-        sync.syncNow('/', function(errors) {});
-        return false;
+
+    if(options.syncShortcut !== false) {
+      window.onkeydown = function(evt) {
+        if(evt.ctrlKey && evt.which == 83) {
+          evt.preventDefault();
+          logger.info("CTRL+S - SYNCING");
+          sync.syncNow('/', function(errors) {});
+          return false;
+        }
       }
     }
     
@@ -221,6 +302,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     //});
 
   }
+
   function addScope(module, mode) {
     if(!scopesObj[module] || mode == 'rw') {
       scopesObj[module] = mode;

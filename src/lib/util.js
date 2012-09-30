@@ -3,7 +3,7 @@ define([], function() {
 
   var loggers = {}, silentLogger = {};
 
-  var knownLoggers = ['sync', 'webfinger', 'getputdelete', 'platform', 'baseClient'];
+  var knownLoggers = ['sync', 'webfinger', 'getputdelete', 'platform', 'baseClient', 'widget'];
 
   var util = {
 

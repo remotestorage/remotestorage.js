@@ -18,7 +18,7 @@ define([
   }
 
   /**
-     @object remoteStorage
+     @module remoteStorage
   */
   var remoteStorage =  { 
 
@@ -26,20 +26,26 @@ define([
      ** PUBLIC METHODS
      **/
 
-    /** defineModule() - define a new module, with given name.
-     **
-     ** Module names MUST be unique. The given builder will be called
-     ** immediately, with two arguments, which are both instances of
-     ** baseClient. The first accesses the private section of a modules
-     ** storage space, the second the public one. The public area can
-     ** be read by any client (not just an authenticated one), while
-     ** it can only be written by an authenticated client with read-write
-     ** access claimed on it.
-     **
-     ** The builder is expected to return an object, as described under
-     ** getModuleInfo().
-     **
-     **/
+    /**
+       @method defineModule
+       @memberof module:remoteStorage
+       
+       @desc Define a new module, with given name.
+       Module names MUST be unique. The given builder will be called
+       immediately, with two arguments, which are both instances of
+       baseClient. The first accesses the private section of a modules
+       storage space, the second the public one. The public area can
+       be read by any client (not just an authenticated one), while
+       it can only be written by an authenticated client with read-write
+       access claimed on it.
+       
+       The builder is expected to return an object, as described under
+       remoteStorage.getModuleInfo.
+
+       @param {String} moduleName Name of the module to define. SHOULD be a-z and all lowercase.
+       @param {Function} builder Builder function that holds the module definition.
+       @see remoteStorage.getModuleInfo
+     */
     defineModule: function(moduleName, builder) {
       logger.debug('DEFINE MODULE', moduleName);
       var module = builder(
@@ -53,52 +59,61 @@ define([
       logger.debug('Module defined: ' + moduleName, module, this);
     },
 
-    /** getModuleList() - Get an Array of all moduleNames, currently defined.
-     **
-     **/
+    /**
+       @method getModuleList
+       @memberof module:remoteStorage
+
+       @desc Get an Array of all moduleNames, currently defined.
+     */
     getModuleList: function() {
       return Object.keys(modules);
     },
 
-    /** getClaimedModuleList() - Get a list of all modules, currently claimed
-     **                          access on.
-     **
-     **/
+    /**
+       @method getClaimedModuleList
+       @memberof module:remoteStorage
+
+       @desc Get a list of all modules, currently claimed access on.
+    */
     getClaimedModuleList: function() {
       return Object.keys(claimedModules);
     },
 
-    /** getModuleInfo() - Retrieve meta-information about a given module.
-     **
-     ** If the module doesn't exist, the result will be undefined.
-     **
-     ** Module information currently gives you the following (if you're lucky):
-     **
-     ** * exports - don't ever use this. it's basically the module's instance.
-     ** * name - the name of the module, but you knew that already.
-     ** * dataHints - an object, describing internas about the module.
-     **
-     ** Some of the dataHints used are:
-     **
-     **   objectType <type> - description of an object
-     **                       type implemented by the module:
-     **     "objectType message"
-     **
-     **   <attributeType> <objectType>#<attribute> - description of an attribute
-     **
-     **     "string message#subject"
-     **
-     **   directory <path> - description of a path's purpose
-     **
-     **     "directory documents/notes/"
-     **
-     **   item <path> - description of a special item
-     **
-     **     "item documents/notes/calendar"
-     **
-     ** Hope this helps.
-     **
-     **/
+    /**
+       @method getModuleInfo
+       @memberof module:remoteStorage
+       @summary Retrieve meta-information about a given module.
+     
+       @desc If the module doesn't exist, the result will be undefined.
+     
+             Module information currently gives you the following (if you're lucky):
+            
+             * exports - don't ever use this. it's basically the module's instance.
+             * name - the name of the module, but you knew that already.
+             * dataHints - an object, describing internas about the module.
+            
+             Some of the dataHints used are:
+            
+               objectType <type> - description of an object
+                                   type implemented by the module:
+                 "objectType message"
+            
+               <attributeType> <objectType>#<attribute> - description of an attribute
+            
+                 "string message#subject"
+            
+               directory <path> - description of a path's purpose
+            
+                 "directory documents/notes/"
+            
+               item <path> - description of a special item
+            
+                 "item documents/notes/calendar"
+            
+             Hope this helps.
+        
+       @param {String} moduleName Name of the module to get information about.
+     */
     getModuleInfo: function(moduleName) {
       return modules[moduleName];
     },
