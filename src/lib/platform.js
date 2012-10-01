@@ -186,7 +186,6 @@ define(['./util'], function(util) {
       }
       var props = nodes[i].getElementsByTagName('Property');
       link.properties = {}
-      xyz = props
       for(var k=0; k<props.length;k++) {
         link.properties[
           props[k].getAttribute('type')

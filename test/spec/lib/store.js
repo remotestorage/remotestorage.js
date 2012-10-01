@@ -32,7 +32,6 @@
         lastModified: 10,
         outgoingChange: false,
         keep: true,
-        data: 'something',
         added: {},
         removed: {},
         changed: {}
@@ -57,7 +56,6 @@
 
       it('returns the parsed object', function() {
         expect(typeof(result)).toEqual('object');
-        expect(result.data).toEqual('something');
         expect(result.keep).toEqual(true);
         expect(result.lastModified).toEqual(10);
       });
@@ -94,21 +92,16 @@
           expect(
             Object.keys(result).sort()
           ).toEqual(
-            ['data', 'diff', 'keep', 'startAccess', 'startForce', 'timestamp']
+            ['diff', 'keep', 'startAccess', 'startForce', 'timestamp']
           );
-        });
-
-        it("sets 'data' to undefined for non-directory nodes", function() {
-          expect(result.data).toBe(undefined);
-        });
-
-        it("sets 'data' to an object for directory nodes", function() {
-          result = store.getNode('path/to/');
-          expect(result.data).toEqual({});
         });
         
       });
 
+    });
+
+
+    xdescribe('getNodeData', function() {
     });
     
     xdescribe('setNodeData', function() {
