@@ -1,4 +1,13 @@
 
+/**
+
+   TODO:
+   - getNodeData JSON parsing
+   - setNodeData everything
+   - clearDiff
+
+ */
+
 (function() {
 
   describe('store', function() {
@@ -26,7 +35,7 @@
     });
     
     describe('getNode', function() {
-      var result, nodeData = JSON.stringify({
+      var result, nodeObj = JSON.stringify({
         startAccess: null,
         startForce: null,
         lastModified: 10,
@@ -38,20 +47,20 @@
       }), lsSpy;
 
       beforeEach(function() {
-        lsSpy = spyOn(Storage.prototype, 'getItem').andReturn(nodeData);
+        lsSpy = spyOn(Storage.prototype, 'getItem').andReturn(nodeObj);
         spyOn(JSON, 'parse').andCallThrough();
 
-        result = store.getNode('path/to/node');
+        result = store.getNode('/path/to/node');
       });
 
       it('gets the value from localStorage, with a key prefix', function() {
         expect(localStorage.getItem).toHaveBeenCalledWith(
-          'remote_storage_nodes:path/to/node'
+          'remote_storage_nodes:/path/to/node'
         );
       });
 
       it('parses the JSON fetched json data', function() {
-        expect(JSON.parse).toHaveBeenCalledWith(nodeData);
+        expect(JSON.parse).toHaveBeenCalledWith(nodeObj);
       });
 
       it('returns the parsed object', function() {
@@ -69,12 +78,12 @@
         });
 
         it("doesn't throw an exception", function() {
-          expect(function() { store.getNode('path/to/node'); }).
+          expect(function() { store.getNode('/path/to/node'); }).
             not.toThrow();
         });
 
         it("still returns an object", function() {
-          expect(typeof(store.getNode('path/to/node'))).toEqual('object');
+          expect(typeof(store.getNode('/path/to/node'))).toEqual('object');
         });
       });
 
@@ -85,7 +94,7 @@
             return undefined;
           }
 
-          result = store.getNode('path/to/node');
+          result = store.getNode('/path/to/node');
         });
 
         it('has all the right attributes', function() {
@@ -101,25 +110,66 @@
     });
 
 
-    xdescribe('getNodeData', function() {
+    describe('getNodeData', function() {
+
+      it("returns undefined for data nodes that don't exist", function() {
+        expect(store.getNodeData('/unexistant/node')).toBe(undefined);
+      });
+
     });
     
     xdescribe('setNodeData', function() {
+
     });
     
-    xdescribe('setNodeAccess', function() {
+    describe('setNodeAccess', function() {
+
+      it("sets the node's startAccess flag to the given claim", function() {
+        store.setNodeAccess('/foo/bar', 'rw');
+        expect(store.getNode('/foo/bar').startAccess).toEqual('rw');
+      });
+      
     });
     
-    xdescribe('setNodeForce', function() {
+    describe('setNodeForce', function() {
+
+      it("sets the node's startForce flag to the given value", function() {
+        store.setNodeForce('/foo/bar', true);
+        expect(store.getNode('/foo/bar').startForce).toBe(true);
+        store.setNodeForce('/foo/baz', false);
+        expect(store.getNode('/foo/baz').startForce).toBe(false);
+      });
+
     });
     
-    xdescribe('clearOutgoingChange', function() {
+    describe('forget', function() {
+
+      beforeEach(function() {
+        store.setNodeAccess('/foo/bar', 'rw');
+        // check that it worked...
+        expect(store.getNode('/foo/bar').startAccess).toEqual('rw');
+      });
+
+      it("removes the node at given path from local storage", function() {
+        store.forget('/foo/bar');
+        expect(store.getNode('/foo/bar').startAccess).toBe(null);
+      });
+
     });
     
-    xdescribe('forget', function() {
-    });
-    
-    xdescribe('forgetAll', function() {
+    describe('forgetAll', function() {
+
+      beforeEach(function() {
+        store.setNodeAccess('/foo/bar', 'rw');
+        store.setNodeAccess('/foo/baz', 'r');
+      });
+
+      it("removes all nodes", function() {
+        store.forgetAll();
+        expect(store.getNode('/foo/bar').startAccess).toBe(null);
+        expect(store.getNode('/foo/baz').startAccess).toBe(null);
+      });
+
     });
 
   });

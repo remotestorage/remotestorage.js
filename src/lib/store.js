@@ -24,6 +24,7 @@ define(['./util'], function (util) {
     }
   }
   function getNode(path) {
+    validPath(path);
     var valueStr = localStorage.getItem(prefixNodes+path);
     var value;
     if(valueStr) {
@@ -155,8 +156,8 @@ define(['./util'], function (util) {
     }
   }
   function forget(path) {
+    validPath(path);
     localStorage.removeItem(prefixNodes+path);
-
   }
   function forgetAll() {
     for(var i=0; i<localStorage.length; i++) {
@@ -191,6 +192,7 @@ define(['./util'], function (util) {
   }
 
   function getNodeData(path) {
+    validPath(path);
     var valueStr = localStorage.getItem(prefixNodesData+path);
     if(valueStr) {
       try {
