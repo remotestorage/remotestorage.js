@@ -10,10 +10,14 @@ define(['./util'], function(util) {
     var lastKey = null, md, key, value;
     for(var i=0;i<lines.length;i++) {
       if(lines[i].length == 0) {
-        // empty line
+        // empty line. obviously.
         continue;
       } else if((md = lines[i].match(/^([^:]+):\s*(.+)$/))) {
-        // key: value line
+        // The escaped colon in the following (previously added) comment is
+        // necessary, to prevent NaturalDocs from generating a toplevel
+        // document called "value line" to the documentation. True story.
+        
+        // key\: value line
         key = md[1], value = md[2];
         headers[key] = value;
         lastKey = key;

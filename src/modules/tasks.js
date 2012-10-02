@@ -4,6 +4,52 @@ define(['../remoteStorage'], function(remoteStorage) {
   var moduleName = "tasks";
 
   remoteStorage.defineModule(moduleName, function(myPrivateBaseClient, myPublicBaseClient) {
+
+    // Namespace: remoteStorage.tasks
+    //
+    // tasks are things that need doing; items on your todo list
+    //
+    // Example:
+    //   (start code)
+    //   // open a task list (you can have multiple task lists, see dataHints for naming suggestions)
+    //   var todos = remoteStorage.tasks.getPrivateList(listName);
+    //
+    //   function printTasks() {
+    //     // get all task ids...
+    //     todos.getIds().forEach(function(id) {
+    //       // ...then load each task and print it.
+    //       var task = todos.get(id);
+    //       console.log(task.completed ? '[x]' : '[ ]', task.title);
+    //     });
+    //   }
+    //
+    //   // add some tasks
+    //   todos.add("Start unhosted webapp");
+    //   todos.add("Obtain a freedombox");
+    //   todos.add("Scientifically overcome the existence of dirty laundry");
+    //
+    //   // see the result
+    //   printTasks();
+    //
+    //   mark the first task as completed (after all, by copying this code you create a unhosted webapp)
+    //   todos.markCompleted(todos.getIds()[0]);
+    //
+    //   // see what changed
+    //   printTasks();
+    //
+    //   (end code)
+    //
+    // Method: getPrivateList
+    //
+    // open a task list to work with
+    //
+    // Parameters:
+    //   listName - name of the list to open. try "todos" or "2012".
+    //
+    // Returns:
+    //   a <TaskList> object
+    //
+
     var errorHandlers=[];
     function fire(eventType, eventObj) {
       if(eventType == 'error') {
@@ -84,21 +130,88 @@ define(['../remoteStorage'], function(remoteStorage) {
           errorHandlers.push(cb);
         }
       }
+      // Class: TaskList
       return {
+        // Method: getIds
+        //
+        // Get a list of task IDs, currently in this list
+        //
+        // Example:
+        //   > remoteStorage.tasks.getIds();
+        //
         getIds        : getIds,
+        // Method: get
+        //
+        // Get a single task object, by it's ID.
+        //
+        // Parameters:
+        //   id - the task ID
+        //
+        // Returns:
+        //   An object containing the task's data.
         get           : get,
+        // Method: set
+        //
+        // Set the title of a task.
+        // 
+        // Parameters:
+        //   id - the task ID
+        //   title - new title to set
+        //
         set           : set,
+        // Method: add
+        //
+        // Add a task by providing it's title.
+        //
+        // Newly created tasks are marked as not completed.
+        //
+        // Parameters:
+        //   title - title to set for the new task.
+        //
         add           : add,
+        // Method: remove
+        //
+        // Remove a task
+        //
+        // Parameters:
+        //   id - the task ID
+        //
         remove        : remove,
+        // Method: markCompleted
+        //
+        // Mark a task as completed.
+        //
+        // Parameters:
+        //   id    - the task ID
+        //   value - (optional) boolean. defaults to true.
+        //
+        // Examples:
+        //   > remoteStorage.tasks.markCompleted(123);
+        //
+        //   > remoteStorage.tasks.markCompleted(234, false);
         markCompleted : markCompleted,
+        // Method: getStats
+        //
+        // Get statistics on this <TaskList>.
+        //
+        // Returns:
+        //   An Object with keys,
+        //
+        //   todoCompleted - number of completed tasks
+        //   totalTodo     - total number of tasks in this list
+        //   todoLeft      - number of tasks awaiting completion
+        //
         getStats      : getStats,
+        // Method: on
+        //
+        // Delegated to <BaseClient.on>
         on            : on
       };
     }
     return {
       name: moduleName,
       dataHints: {
-        "module": "tasks are things that need doing; items on your todo list",
+        "module": "",
         
         "objectType task": "something that needs doing, like cleaning the windows or fixing a specific bug in a program",
         "string task#title": "describes what it is that needs doing",

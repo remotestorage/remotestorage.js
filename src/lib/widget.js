@@ -1,5 +1,7 @@
 define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util) {
 
+  // //Documents: widget
+
   "use strict";
 
   var locale='en',
@@ -98,16 +100,19 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     return hostParts[0];
   }
 
-  /**
-     Auth popup: when remoteStorage.displayWidget is called with the authDialog option set to 'popup',
-     the following happens:
-     1) When clicking "connect", a window is opened and saved as authPopupRef (prepareAuthPopup)
-     2) Once webfinger discovery is done, authPopupRef's location is set to the auth URL (setPopupLocation)
-     3) In case webfinger discovery fails, the popup is closed (closeAuthPopup)
-     4) As soon as the auth dialog redirects back with an access_token, the child popup calls
-        "remotestorageTokenReceived" on the opening window and closes itself.
-     5) remotestorageTokenReceived recalculates the widget state -> we're connected!
-   */
+  //
+  // //Section: Auth popup
+  //
+  //
+  // when remoteStorage.displayWidget is called with the authDialog option set to 'popup',
+  // the following happens:
+  //   * When clicking "connect", a window is opened and saved as authPopupRef (prepareAuthPopup)
+  //   * Once webfinger discovery is done, authPopupRef's location is set to the auth URL (setPopupLocation)
+  //   * In case webfinger discovery fails, the popup is closed (closeAuthPopup)
+  //   * As soon as the auth dialog redirects back with an access_token, the child popup calls
+  //     "remotestorageTokenReceived" on the opening window and closes itself.
+  //   * remotestorageTokenReceived recalculates the widget state -> we're connected!
+  // 
 
   function prepareAuthPopup() { // in parent window
     authPopupRef = window.open(document.location, 'remotestorageAuthPopup', 'dependent=yes,width=500,height=400');
@@ -242,15 +247,6 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     logger.debug('handleWidgetHover');
   }
 
-  /**
-     @method displayWidget
-     @memberof module:remoteStorage
-     @param {String} connectElement DOM ID of element to attach widget elements to
-     @param {Object} options Options, as described below.
-     @param {String} options.authDialog Strategy to display OAuth dialog. Either 'redirect', 'popup' or a function. Defaults to 'redirect'. If this is a function, that function will receive the URL of the auth dialog. The OAuth dance will redirect back to the current location, with an access token, so that must be possible.
-     @param {Boolean} options.syncShortcut Whether to setup CTRL+S as a shortcut for immediate sync. Default is true.
-     @param {String} options.locale Locale to use for the widget. Currently ignored.
-   */
   function display(setConnectElement, options) {
     var tokenHarvested = platform.harvestParam('access_token');
     var storageRootHarvested = platform.harvestParam('storage_root');

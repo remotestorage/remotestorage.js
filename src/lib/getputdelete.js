@@ -75,8 +75,27 @@ define(
       }
     }
 
+    // Namespace: getputdelete
     return {
       get:    get,
+
+      //
+      // Method: set
+      //
+      // Send a PUT or DELETE request to given path.
+      //
+      // Parameters:
+      //   path     - path to send request to
+      //   data     - optional data to send. if data is undefined (not null!), a DELETE request is used.
+      //   mimeType - MIME type to set for the data via the Content-Type header. Only relevant for PUT.
+      //   token    - bearer token used to authorize the request
+      //   callback - callback called to signal success or failure
+      //
+      // Callback parameters:
+      //   err      - error message(s). if no error occured, err is null.
+      //   data     - raw response data
+      //   mimeType - value of the response's Content-Type header. If none was returned, this defaults to application/octet-stream.
+      //
       set:    set
     }
 });

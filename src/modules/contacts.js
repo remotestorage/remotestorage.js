@@ -10,26 +10,46 @@ define([
   '../remoteStorage',
   '../modules/deps/vcardjs-0.2'
 ], function(remoteStorage, vCardJS) {
+
+  // Namespace: remoteStorage.contacts
+  //
+  // Section: Tutorial
+  //
+  //   > // TODO!
+  //
+  // Section: Data Format
+  //
+  // The contacts module deals with information about people and connections between people.
+  //
+  // Data is stored as vcards, in a JSON representation.
+  //
+  // Here's an example:
+  //
+  //   (start code)
+  //   {
+  //     // FN stands for "formatted name". it's required.
+  //     "fn": "Hagbard Celine",
+  //     // N is an (optional) detailed representation of the name
+  //     "n": {
+  //       "first-name": "Hagbard"
+  //       "last-name": "Celine"
+  //     },
+  //     // a vcard can have multiple email addresses, so it's stored as an array.
+  //     "email" : [{
+  //       "type": "work",
+  //       "value": "hagbard@leifericson.no"
+  //     }]
+  //   }
+  //   (end code)
+  //
+
   var moduleName = "contacts";
 
   var VCard = vCardJS.VCard, VCF = vCardJS.VCF;
 
   remoteStorage.defineModule(moduleName, function(base) {
 
-    var DEBUG = true;
-
-    // Copy over all properties from source to destination.
-    // Return destination.
-    function extend(destination, source) {
-      var keys = Object.keys(source);
-      for(var i=0;i<keys.length;i++) {
-        var key = keys[i];
-        destination[key] = source[key];
-      }
-      return destination;
-    }
-
-    var contacts = {};
+    var DEBUG = true, contacts = {};
 
     // Copy over all properties from source to destination.
     // Return destination.
@@ -59,49 +79,25 @@ define([
 
     var debug = DEBUG ? bindContext(console.log, console) : function() {};
 
-    var nodePrototype = {
+    // VCard subtypes:
 
-      isNew: true,
-
-      markSaved: function() {
-        this.isNew = false;
-        return this;
-      },
-
-      save: function() {
-        this.validate();
-
-        if(this.errors && this.errors.length > 0) {
-          return false;
-        } else {
-          base.storeObject('vcard+' + this.kind, this.uid, this.toJCard());
-          this.markSaved();
-          return true;
-        }
-      },
-    }
-
-    /**
-     ** The Contact class.
-     **/
     var Contact = function() {
       VCard.apply(this, arguments);
       this.setAttribute('kind', 'individual');
     }
 
-    extend(Contact.prototype, nodePrototype, VCard.prototype, {
-    });
-
-    /**
-     ** The Group class.
-     **/
+    function makeVcardInstance(data) {
+      var type = (data.kind == 'individual' ? Contact :
+                  (data.kind == 'group' ? Group : VCard));
+      return new type(data);
+    }
 
     var Group = function(name) {
       VCard.apply(this, arguments);
       this.setAttribute('kind', 'group');
     }
 
-    extend(Group.prototype, nodePrototype, {
+    var groupMembers = {
 
       getMembers: function() {
         var members = [];
@@ -153,40 +149,72 @@ define([
         return undefined;
       }
 
-    });
+    };
 
-    /**
-     ** THE CONTACTS MODULE
-     **/
+    // Namespace: exports
 
     extend(contacts, {
-      /**
-       ** NAMESPACE
-       **/
 
+      // Property: Contact
+      // A VCard constructor for contacts (kind: "individual")
       Contact: Contact,
 
-      /**
-       ** PUBLIC METHODS
-       **/
+      // Property: Group
+      // A VCard constructor for groups (kind: "group")
+      //
+      Group: Group,
 
+      //
+      // Method: on
+      //
+      // Install an event handler.
+      //
+      // "change" events will be altered, so the newValue and oldValue attributes contain VCard instances.
+      //
+      // For documentation on events see <BaseClient> and <BaseClient.on>.
       on: function(eventType, callback) {
         base.on(eventType, function(event) {
           if(event.oldValue) {
-            event.oldValue = new Contact(event.oldValue);
+            event.oldValue = contacts._wrap(event.oldValue);
           }
           if(event.newValue) {
-            event.newValue = new Contact(event.newValue);
+            event.newValue = contacts._wrap(event.newValue);
           }
           callback(event);
         });
       },
 
+      //
+      // Method: sync
+      //
+      // Set the "force sync" flag for all contacts.
+      //
+      // This causes the complete data to be synced, next time <syncNow> is called on either /contacts/ or /.
+      //
       sync: function() {
         debug("contacts.sync()");
-        base.sync('/');
+        base.sync('');
       },
 
+      //
+      // Method: list
+      //
+      // Get a list of contact objects.
+      //
+      // Parameters:
+      //   limit - (optional) maximum number of objects to return
+      //   offset - (optional) index to start at.
+      //
+      //   you can use limit / offset to implement pagination or load-on-scroll flows.
+      //
+      // Returns:
+      //   An Array of VCard objects (or descendants)
+      //
+      // Example:
+      //   > remoteStorage.contacts.list().forEach(function(contact) {
+      //   >   console.log(contact.getAttribute('fn'));
+      //   > });
+      //
       list: function(limit, offset) {
         var list = base.getListing('');
         if(! offset) {
@@ -203,25 +231,71 @@ define([
         return list;
       },
 
-      // Get a Contact instance based on it's UID.
+      //
+      // Method: get
+      //
+      // Retrieve a single contact.
+      //
+      // Parameters:
+      //   uid - UID of the contact
+      //   callback - (optional)
+      //   context - (optional)
+      //
+      // The callbacks follow the semantics described in <BaseClient.getObject>
+      //
       get: function(uid, cb, context) {
         if(cb) {
           base.getObject(uid, function(data) {
-            bindContext(cb, context)(this._load(data));
+            bindContext(cb, context)(this._wrap(data));
           }, this);
         } else {
-          return this._load(base.getObject(uid));
+          return this._wrap(base.getObject(uid));
         }
       },
 
+      //
+      // Method: build
+      //
+      // Build a new (unsaved) contact object.
+      //
+      // If you want to store the object later, use <put>.
+      //
+      // Parameters:
+      //   attributes - (optional) initial attributes to add
+      //
       build: function(attributes) {
         return this._wrap(attributes);
       },
 
-      create: function(attributes) {
-        var instance = this.build(attributes);
-        instance.save();
-        return instance;
+      //
+      // Method: put
+      //
+      // Update or create a contact.
+      //
+      // Parameters:
+      //   contact - a VCard object
+      //
+      // Returns:
+      //   the (possibly altered) VCard object
+      //
+      // Sets UID and REV attributes as needed.
+      //
+      //
+      // Example:
+      //   (start code)
+      //   var contact = remoteStorage.contacts.build({ "kind":"individual" });
+      //   contact.fn = "Donald Duck";
+      //   // (at this point you could contact.validate(), to check if everything is in order)
+      //   remoteStorage.contacts.put(contact);
+      //   // contact now persisted.
+      //   (end code)
+      //
+      put: function(contact) {
+        var contact = this.build(contact);
+        contact.validate();
+        // TODO: do something with the errors!
+        base.storeObject('vcard+' + (contact.kind || 'individual'), contact.uid, contact.attributes);
+        return contact;
       },
 
       filter: function(cb, context) {
@@ -286,19 +360,8 @@ define([
         });
       },
 
-      /**
-       ** PRIVATE METHODS
-       **/
-
-      // _wrap given data and mark as saved.
-      _load: function(data) {
-        return this._wrap(data).markSaved();
-      },
-
-      // return given data as a Contact instance.
-      // do nothing, if it's already a contact.
       _wrap: function(data) {
-        return(data instanceof Contact ? data : new Contact(data));
+        return(data instanceof VCard ? data : makeVcardInstance(data));
       }
 
     });
