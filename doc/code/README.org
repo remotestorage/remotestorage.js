@@ -1,2 +1,0 @@
-* Code documentation:
-http://remotestoragejs.com/doc/code/

@@ -3,3 +3,6 @@
 .#*
 *.swp
 node_modules
+build/
+doc/code/
+doc/config/
