@@ -4,7 +4,10 @@ define(['remotestorage/remoteStorage-modules'], function(remoteStorage) {
 
     remoteStorage.claimAccess('root', 'rw');
 
+    remoteStorage.root.sync('/');
+
     remoteStorage.displayWidget('remotestorage-connect');
+
   }
 
 });

@@ -97,11 +97,18 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       thisData = {};
     }
     logger.debug('pullNode "'+path+'"', thisNode);
-    if(thisNode.startForce) {
-      force = thisNode.startForce;
+
+    if(thisNode.startAccess == 'rw' || !access) {
+      force = thisNode.startAccess;
     }
-    if(force) {
-      startOne();
+
+    if(! force) {
+      force = findForce(path, thisNode);
+    }
+    
+    startOne();
+
+    if(force || access) {
       wireClient.get(path, function(err, data) {
         if(!err && data) {
           if(isDir) {
@@ -112,8 +119,13 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
             store.setNodeData(path, data, false);
           }
         }
+        
         finishOne(err);
+
       });
+
+      return;
+
     } else if(thisData && isDir) {
       for(var i in thisData) {
         if(util.isDir(i)) {
@@ -121,6 +133,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         }
       }
     }
+
+    finishOne();
+
   }
 
   // TODO: DRY those two:
