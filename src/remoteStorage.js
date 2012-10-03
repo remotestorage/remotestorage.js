@@ -311,7 +311,7 @@ define([
     syncNow          : sync.syncNow,
 
     //  
-    // Method: displayWidget(domID, options)
+    // Method: displayWidget
     //
     // Add the remotestorage widget to the page.
     // 

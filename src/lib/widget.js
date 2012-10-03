@@ -1,6 +1,10 @@
 define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util) {
 
-  // //Documents: widget
+  // Namespace: widget
+  //
+  // The remotestorage widget.
+  //
+  // See <remoteStorage.displayWidget>
 
   "use strict";
 

@@ -2,6 +2,19 @@ define(['./util'], function (util) {
 
   "use strict";
 
+  // Namespace: store
+  //
+  // The store stores data locally. It treats all data as raw nodes, that have *metadata* and *payload*.
+  // Metadata and payload are stored under separate keys.
+  //
+  // This is what a node's metadata looks like:
+  //   startAccess - either "r" or "rw". Flag means, that this node has been claimed access on (see <remoteStorage.claimAccess>) (default: null)
+  //   startForce  - boolean flag to indicate that this node shall always be synced. (see <BaseClient.sync>) (default: null)
+  //   timestamp   - last time this node was (apparently) updated (default: 0)
+  //   keep        - A flag to indicate, whether this node should be kept in cache. Currently unused. (default: true)
+  //   diff        - difference in the node's data since the last synchronization.
+  //
+
   var logger = util.getLogger('store');
 
   var onChange=[],

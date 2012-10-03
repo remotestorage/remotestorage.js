@@ -4,6 +4,42 @@ define(
 
     "use strict";
 
+    // Namespace: webfinger
+    //
+    // Webfinger discovery.
+    // Supports XRD, JRD and the <"resource" parameter at http://tools.ietf.org/html/draft-jones-appsawg-webfinger-06#section-5.2>
+    //
+    // remoteStorage.js tries the following things to discover a user's profile:
+    //   * via HTTPS to /.well-known/host-meta.json
+    //   * via HTTPS to /.well-known/host-meta
+    //   * via HTTP to /.well-known/host-meta.json
+    //   * via HTTP to /.well-known/host-meta
+    //
+    //   All those requests carry the "resource" query parameter.
+    //
+    // So in order for a discovery to work most quickly, a server should
+    // respond to HTTPS requests like:
+    //
+    //   > /.well-known/host-meta.json?resource=acct%3Abob%40example.com
+    // And return a JSON representation of the profile, such as this:
+    //
+    //   (start code)
+    //
+    //   {
+    //     links:[{
+    //       href: 'https://example.com/storage/bob',
+    //       rel: "remoteStorage",
+    //       type: "https://www.w3.org/community/rww/wiki/read-write-web-00#simple",
+    //       properties: {
+    //         'auth-method': "https://tools.ietf.org/html/draft-ietf-oauth-v2-26#section-4.2",
+    //         'auth-endpoint': 'https://example.com/auth/bob'
+    //       }
+    //     }]
+    //   }
+    //
+    //   (end code)
+    //
+
     var logger = util.getLogger('webfinger');
 
       ///////////////
@@ -122,6 +158,23 @@ define(
         cb('could not extract storageInfo from lrdd');
       }
     }
+
+
+    // Method: getStorageInfo
+    // Get the storage information of a given user address.
+    //
+    // Parameters:
+    //   userAddress - a string in the form user@host
+    //   options     - see below
+    //   callback    - to receive the discovered storage info
+    //
+    // Options:
+    //   timeout     - time in milliseconds, until resulting in a 'timeout' error.
+    //
+    // Callback parameters:
+    //   err         - either an error message or null if discovery succeeded
+    //   storageInfo - the format is equivalent to that of the JSON representation of the remotestorage link (see above)
+    //
     function getStorageInfo(userAddress, options, cb) {
       userAddress2hostMetas(userAddress, function(err1, hostMetaAddresses) {
         logger.debug("HOST META ADDRESSES", hostMetaAddresses, '(error: ', err1, ')');

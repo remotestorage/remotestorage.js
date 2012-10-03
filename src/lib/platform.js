@@ -2,6 +2,83 @@ define(['./util'], function(util) {
 
   "use strict";
 
+  // Namespace: platform
+  //
+  // Platform specific implementations of common things to do.
+  //
+  // Method: ajax
+  //
+  // Set off an HTTP request.
+  // Uses CORS, if available on the platform.
+  //
+  // Parameters:
+  //   (given as an *Object*)
+  //
+  //   url     - URL to send the request to
+  //   success - callback function to call when request succeeded
+  //   error   - callback function to call when request failed
+  //   method  - (optional) HTTP request method to use (default: GET)
+  //   headers - (optional) object containing request headers to set
+  //   timeout - (optional) milliseconds until request is given up and error
+  //             callback is called. If omitted, the request never times out.
+  //
+  // Example:
+  //   (start code)
+  //   platform.ajax({
+  //     url: "http://en.wikipedia.org/wiki/AJAX",
+  //     success: function(responseText, responseHeaders) {
+  //       console.log("Here's the page: ", responseText);
+  //     },
+  //     error: function(errorMessage) {
+  //       console.error("Something went wrong: ", errorMessage);
+  //     },
+  //     timeout: 3000
+  //   });
+  //   (end code)
+  //
+  // Platform support:
+  //   web browser - YES (if browser <supports CORS at http://caniuse.com/#feat=cors>)
+  //   IE - Partially, no support for setting headers.
+  //   node - YES, CORS not an issue at all
+  // 
+  //
+  // Method: parseXml
+  //
+  // Parse given XML source.
+  //
+  // Platform support:
+  //   browser - yes, if DOMParser is available
+  //   node - yes, if xml2js is available
+  //
+  //
+  // Method: setElementHTML
+  //
+  // Set the HTML content of an element.
+  //
+  // Parameters:
+  //   element - either an Element or a DOM ID resolving to an element
+  //   content - HTML content to set
+  //
+  // Platform support:
+  //   browser - Yes
+  //   node - not implemented
+  //
+  //
+  // Method: getElementValue
+  //
+  //
+  // Method: eltOn
+  //
+  //
+  // Method: getLocation
+  //
+  //
+  // Method: setLocation
+  //
+  //
+  // Method: alert
+  //
+
   var logger = util.getLogger('platform');
 
   function browserParseHeaders(rawHeaders) {

@@ -4,6 +4,10 @@ define(
 
     "use strict";
 
+    // Namespace: hardcoded
+    //
+    // Legacy webfinger fallbacks for dutch universities.
+
     var guesses={
       //'dropbox.com': {
       //  api: 'Dropbox',

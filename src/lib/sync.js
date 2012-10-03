@@ -2,6 +2,11 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
   "use strict";
 
+  // Namespace: sync
+  //
+  // Sync is where all the magic happens. It connects the <store> and <wireClient>
+  //
+
   var prefix = '_remoteStorage_', busy=false, stateCbs=[];
 
   var logger = util.getLogger('sync');

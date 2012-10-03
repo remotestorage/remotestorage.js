@@ -3,20 +3,34 @@ define([], function() {
 
   "use strict";
 
+  // Namespace: util
+  //
+  // Utility functions. Mainly logging.
+  //
+
   var loggers = {}, silentLogger = {};
 
   var knownLoggers = ['sync', 'webfinger', 'getputdelete', 'platform', 'baseClient', 'widget'];
 
   var util = {
 
-    toArray: function(enumerable) {
-      var a = [];
-      for(var i in enumerable) {
-        a.push(enumerable[i]);
-      }
-      return a;
+    // Method: toArray
+    // Convert something into an Array.
+    // Example:
+    // > function squareAll() {
+    // >   return util.toArray(arguments).map(function(arg) {
+    // >     return Math.pow(arg, 2);
+    // >   });
+    // > }
+    toArray: function(arrayLike) {
+      return Array.prototype.slice.call(arrayLike);
     },
 
+    // Method: getLogger
+    //
+    // Get a logger with a given name.
+    // Usually this only happens once per file.
+    //
     getLogger: function(name) {
 
       if(! loggers[name]) {
@@ -53,6 +67,12 @@ define([], function() {
       return loggers[name];
     },
 
+    // Method: silenceLogger
+    // Silence all given loggers.
+    //
+    // So, if you're not interested in seeing all the synchronization logs, you could do:
+    // > remoteStorage.util.silenceLogger('sync');
+    //
     silenceLogger: function() {
       var names = util.toArray(arguments);
       for(var i=0;i<names.length;i++) {
@@ -60,6 +80,9 @@ define([], function() {
       }
     },
 
+    // Method: silenceLogger
+    // Unsilence all given loggers.
+    // The opposite of <silenceLogger>
     unsilenceLogger: function() {
       var names = util.toArray(arguments);
       for(var i=0;i<names.length;i++) {
@@ -67,10 +90,14 @@ define([], function() {
       }
     },
 
+    // Method: silenceAllLoggers
+    // silence all known loggers
     silenceAllLoggers: function() {
       this.silenceLogger.apply(this, knownLoggers);
     },
 
+    // Method: unsilenceAllLoggers
+    // opposite of <silenceAllLoggers>
     unsilenceAllLoggers: function() {
       this.unsilenceLogger.apply(this, knownLoggers);
     }

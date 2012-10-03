@@ -60,7 +60,16 @@ Group: Modules  {
 
 Group: Internals  {
 
+   File: wireClient  (lib/wireClient.js)
    File: getputdelete  (lib/getputdelete.js)
+   File: store  (lib/store.js)
+   File: sync  (lib/sync.js)
+   File: util  (lib/util.js)
+   File: webfinger  (lib/webfinger.js)
+   File: platform  (lib/platform.js)
+   File: nodeConnect  (lib/nodeConnect.js)
+   File: hardcoded  (lib/hardcoded.js)
+   File: widget  (lib/widget.js)
    }  # Group: Internals
 
 Group: Docs Index  {

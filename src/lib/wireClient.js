@@ -66,7 +66,20 @@ define(['./getputdelete'], function (getputdelete) {
       cb(null, timestamp);
     }
   }
+
+  // Namespace: wireClient
+  //
+  // The wireClient stores the user's storage information and controls getputdelete accordingly.
+  //
   return {
+
+    // Method: get
+    //
+    // Get data from given path from remotestorage
+    //
+    // Parameters:
+    //   path     - absolute path (starting from storage root)
+    //   callback - see <getputdelete.get> for details on the callback parameters
     get: function (path, cb) {
       var storageType = get('storageType'),
         storageHref = get('storageHref'),
@@ -77,6 +90,16 @@ define(['./getputdelete'], function (getputdelete) {
         getputdelete.get(resolveKey(storageType, storageHref, '', path), token, cb);
       }
     },
+
+    // Method: set
+    //
+    // Write data to given path in remotestorage
+    //
+    // Parameters:
+    //   path     - absolute path (starting from storage root)
+    //   valueStr - raw data to write
+    //   mimeType - MIME type to set as Content-Type header
+    //   callback - see <getputdelete.set> for details on the callback parameters.
     set: function (path, valueStr, mimeType, cb) {
       var storageType = get('storageType'),
         storageHref = get('storageHref'),
@@ -87,11 +110,44 @@ define(['./getputdelete'], function (getputdelete) {
         getputdelete.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
       }
     },
+
+    // Method: setStorageInfo
+    //
+    // Configure wireClient.
     setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
+
+    // Method: getStorageInfo
+    //
+    // Get base URL of the user's remotestorage.
     getStorageHref   : function() { return get('storageHref') },
+    
+    // Method: getBearerToken
+    //
+    // Get the authorization token currently set.
     setBearerToken   : function(bearerToken) { set('bearerToken', bearerToken); },
+
+    // Method: disconnectRemote
+    //
+    // Clear the wireClient configuration
     disconnectRemote : disconnectRemote,
+
+    // Method: on
+    //
+    // Install an event handler
+    //
+    // Currently known events: "error"
+    //
+    // FIXME: the error handler is never called!
     on               : on,
+
+    // Method: getState
+    //
+    // Get current state.
+    //
+    // Possible states are:
+    //   anonymous - no information set
+    //   authing   - storage's type & href set, but no token received yet
+    //   connected - all information present.
     getState         : getState
   };
 });
