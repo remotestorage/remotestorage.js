@@ -42,7 +42,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       '<style>'+assets.widgetCss+'</style>'
       +'<div id="remotestorage-state" class="'+state+'">'
       +'  <input id="remotestorage-connect-button" class="remotestorage-button" type="submit" value="'+translate('connect')+'"/>'//connect button
-      +'  <span id="remotestorage-register-button" class="remotestorage-button">'+translate('get remoteStorage')+'</span>'//register
+      +'  <span id="remotestorage-register-button" class="remotestorage-button">'+translate('get remotestorage')+'</span>'//register
       +'  <img id="remotestorage-cube" src="'+assets.remoteStorageCube+'"/>'//cube
       +'  <span id="remotestorage-disconnect">Disconnect ' + (userAddress ? '<strong>'+userAddress+'</strong>' : '') + '</span>'//disconnect hover; should be immediately preceded by cube because of https://developer.mozilla.org/en/CSS/Adjacent_sibling_selectors:
       +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
