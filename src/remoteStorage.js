@@ -9,12 +9,6 @@ define([
   './lib/util'
 ], function(require, widget, BaseClient, store, sync, wireClient, nodeConnect, util) {
 
-  var _global = typeof(window) !== 'undefined' ? window : global;
-
-  if(typeof(_global.remoteStorage) !== 'undefined') {
-    return _global.remoteStorage
-  }
-
   "use strict";
 
   var claimedModules = {}, modules = {}, moduleNameRE = /^[a-z]+$/;
@@ -361,8 +355,6 @@ define([
     util: util
 
   };
-
-  _global.remoteStorage = remoteStorage;
 
   return remoteStorage;
 });
