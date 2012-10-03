@@ -11,7 +11,11 @@ if (browserType) {document.write("<div class=" + browserType + ">");if (browserV
 
 
 
-<div id=Content><div class="CClass"><div class=CTopic id=MainTopic><h1 class=CTitle><a name="sync"></a>sync</h1><div class=CBody><p>Sync is where all the magic happens.&nbsp; It connects the <a href="store-js.html#store" class=LClass id=link1 onMouseOver="ShowTip(event, 'tt1', 'link1')" onMouseOut="HideTip('tt1')">store</a> and <a href="wireClient-js.html#wireClient" class=LClass id=link2 onMouseOver="ShowTip(event, 'tt2', 'link2')" onMouseOut="HideTip('tt2')">wireClient</a></p></div></div></div>
+<div id=Content><div class="CClass"><div class=CTopic id=MainTopic><h1 class=CTitle><a name="sync"></a>sync</h1><div class=CBody><p>Sync is where all the magic happens.&nbsp; It connects the <a href="store-js.html#store" class=LClass id=link1 onMouseOver="ShowTip(event, 'tt1', 'link1')" onMouseOut="HideTip('tt1')">store</a> and <a href="wireClient-js.html#wireClient" class=LClass id=link2 onMouseOver="ShowTip(event, 'tt2', 'link2')" onMouseOut="HideTip('tt2')">wireClient</a></p><!--START_ND_SUMMARY--><div class=Summary><div class=STitle>Summary</div><div class=SBorder><table border=0 cellspacing=0 cellpadding=0 class=STable><tr class="SMain"><td class=SEntry><a href="#sync" >sync</a></td><td class=SDescription>Sync is where all the magic happens. </td></tr><tr class="SGroup SIndent1"><td class=SEntry><a href="#sync.Properties" >Properties</a></td><td class=SDescription></td></tr><tr class="SProperty SIndent2 SMarked"><td class=SEntry><a href="#sync.minPollInterval" >minPollInterval</a></td><td class=SDescription>Minimal interval between syncNow calls. </td></tr></table></div></div><!--END_ND_SUMMARY--></div></div></div>
+
+<div class="CGroup"><div class=CTopic><h3 class=CTitle><a name="sync.Properties"></a>Properties</h3></div></div>
+
+<div class="CProperty"><div class=CTopic><h3 class=CTitle><a name="sync.minPollInterval"></a>minPollInterval</h3><div class=CBody><p>Minimal interval between syncNow calls.&nbsp; All calls that happen in between, immediately succeed (call their callbacks) without doing anything.</p></div></div></div>
 
 </div><!--Content-->
 
