@@ -1,0 +1,3 @@
+
+  remoteStorage = require('remoteStorage');
+})();
