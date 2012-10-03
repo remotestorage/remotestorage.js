@@ -26,6 +26,15 @@ define([], function() {
       return Array.prototype.slice.call(arrayLike);
     },
 
+    isDir: function(path) {
+      return path.substr(-1) == '/';
+    },
+
+    containingDir: function(path) {
+      var dir = path.replace(/[^\/]+\/?$/, '');
+      return dir == path ? null : dir;
+    },
+
     // Method: getLogger
     //
     // Get a logger with a given name.

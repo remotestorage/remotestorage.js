@@ -7,7 +7,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   // Sync is where all the magic happens. It connects the <store> and <wireClient>
   //
 
-  var prefix = '_remoteStorage_', busy=false, stateCbs=[];
+  var sync; // set below.
+
+  var prefix = '_remoteStorage_', busy=false, stateCbs=[], syncOkNow=true;
 
   var logger = util.getLogger('sync');
 
@@ -23,6 +25,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     for(var i=0;i<stateCbs.length;i++) {
       stateCbs[i](val?'busy':'connected');
     }
+
+    if(! val) {
+    }
   }
   function on(eventType, cb) {
     if(eventType=='state') {
@@ -37,7 +42,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     }
     for(var i in cached) {
       if(!remote[i] || cached[i] > remote[i]) {
-        if(i.substr(-1)=='/') {
+        if(util.isDir(i)) {
           pullNode(dirPath+i, force, access, startOne, finishOne);
         } else {//recurse
           var childNode = store.getNode(dirPath+i);
@@ -67,24 +72,39 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       }
     }
   }
+
+  function findForce(path, node) {
+    console.log("findForce", path, node);
+    if(! node) {
+      return null;
+    } else if(! node.startForce) {
+      var parentPath = util.containingDir(path);
+      if(parentPath == path) {
+        return false;
+      } else {
+        return findForce(parentPath, store.getNode(parentPath));
+      }
+    } else {
+      return node.startForce;
+    }
+  }
+
   function pullNode(path, force, access, startOne, finishOne) {
     var thisNode = store.getNode(path);
     var thisData = store.getNodeData(path);
-    if((! thisData) && (path.substr(-1) == '/')) {
+    var isDir = util.isDir(path);
+    if((! thisData) && isDir) {
       thisData = {};
     }
     logger.debug('pullNode "'+path+'"', thisNode);
-    if(thisNode.startAccess == 'rw' || !access) {
-      access = thisNode.startAccess;
-    }
     if(thisNode.startForce) {
       force = thisNode.startForce;
     }
-    if(access) {
+    if(force) {
       startOne();
       wireClient.get(path, function(err, data) {
         if(!err && data) {
-          if(path.substr(-1)=='/') {
+          if(isDir) {
             dirMerge(path, data, thisData, thisNode.diff, force, access, startOne, finishOne, function(i) {
               store.clearDiff(path, i);
             });
@@ -94,9 +114,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         }
         finishOne(err);
       });
-    } else {
+    } else if(thisData && isDir) {
       for(var i in thisData) {
-        if(i.substr(-1)=='/') {
+        if(util.isDir(i)) {
           pullNode(path+i, force, access, startOne, finishOne);
         }
       }
@@ -126,6 +146,14 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
   function syncNow(path, callback) {
 
+    if(! path) {
+      throw "path is required";
+    }
+
+    if(! syncOkNow) {
+      return callback(null);
+    }
+
     if(wireClient.getState() == 'anonymous') {
       if(callback) {
         callback(['not connected']);
@@ -144,21 +172,34 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       outstanding--;
       if(outstanding==0) {
         setBusy(false);
+        setTimeout(function() {
+          syncOkNow = true;
+        }, sync.minPollInterval);
         if(callback) {
           callback(errors.length > 0 ? errors : null);
+        } else {
+          console.log('syncNow done');
         }
       }
     }
     logger.info('syncNow '+path);
     setBusy(true);
+    syncOkNow = false;
     pullNode(path, false, false, startOne, finishOne);
   }
 
-  return {
+  sync = {
+    // Property: minPollInterval
+    // Minimal interval between syncNow calls.
+    // All calls that happen in between, immediately succeed
+    // (call their callbacks) without doing anything.
+    minPollInterval: 3000,
     syncNow: syncNow,
     fetchNow: fetchNow,
     getState : getState,
     on: on
   };
+
+  return sync;
 
 });

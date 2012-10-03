@@ -83,6 +83,10 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     return (path.substr(-1)=='/');
   }
 
+  function containingDir(path) {
+    return path.replace(/[^\/]+$/, '');
+  }
+
   var BaseClient = function(moduleName, isPublic) {
     this.moduleName = moduleName, this.isPublic = isPublic;
   }
@@ -341,8 +345,8 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //
     remove: function(path, callback, context) {
       this.ensureAccess('w');
-      set(path, this.makePath(path));
-      this.syncNow(callback, context);
+      set(path, this.makePath(path), undefined);
+      this.syncNow(containingDir(path), callback, context);
     },
 
     //
@@ -389,7 +393,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+this.moduleName+'/'+type;
       set(path, this.makePath(path), obj, 'application/json');
       this.sync(path);
-      this.syncNow(callback, context);
+      this.syncNow(path, callback, context);
     },
 
     //
@@ -410,7 +414,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     storeDocument: function(mimeType, path, data, callback, context) {
       this.ensureAccess('w');
       set(path, this.makePath(path), data, mimeType);
-      this.syncNow(callback, context);
+      this.syncNow(path, callback, context);
     },
 
     //
@@ -462,18 +466,18 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //
     // Method: syncNow
     //
-    // Start synchronization cycle of this module's branch. Calling this method
-    // will not affect other module's synchronization state.
+    // Start synchronization at given path.
     //
     // Note that only those nodes will be synchronized, that have a *force* flag
     // set. Use <BaseClient.sync> to set the force flag on a node.
     //
     // Parameters:
+    //   path     - relative path from the module root. 
     //   callback - (optional) callback to call once synchronization finishes.
     //   context  - (optional) context to bind callback to.
     //
-    syncNow: function(callback, context) {
-      sync.syncNow(this.makePath(''), callback ? bindContext(callback, context) : function(errors) {
+    syncNow: function(path, callback, context) {
+      sync.syncNow(this.makePath(path), callback ? bindContext(callback, context) : function(errors) {
         if(errors && errors.length > 0) {
           logger.error("Error syncing: ", errors);
           fireError(errors);

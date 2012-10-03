@@ -16,7 +16,7 @@ define(
           cb(err);
         },
         success: function(data, headers) {
-          logger.debug('doCall cb '+url, 'headers:', headers);
+          //logger.debug('doCall cb '+url, 'headers:', headers);
           cb(null, data, headers['Content-Type'] || defaultContentType);
         },
         timeout: 3000
@@ -33,7 +33,7 @@ define(
       if(method != 'GET') {
         platformObj.data =value;
       }
-      logger.debug('platform.ajax '+url);
+      //logger.debug('platform.ajax '+url);
       platform.ajax(platformObj);
     }
 
@@ -58,7 +58,7 @@ define(
     function put(url, value, mimeType, token, cb) {
       logger.info('calling PUT '+url);
       doCall('PUT', url, value, mimeType, token, function(err, data) {
-        logger.debug('cb from PUT '+url);
+        //logger.debug('cb from PUT '+url);
         if(err == 404) {
           doPut(url, value, token, 1, cb);
         } else {
