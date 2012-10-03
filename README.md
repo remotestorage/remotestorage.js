@@ -4,7 +4,7 @@
 
 * Consult this README
 * Consult the [API documentation](http://remotestoragejs.com/doc/code)
-* Ask in the [IRC Channel](http://remotestoragejs.com/doc/code) (#remotestorage on freenode)
+* Ask in the [IRC Channel](http://webchat.freenode.net/?channels=remotestorage) (#remotestorage on freenode)
 * Join the mailinglist, by sending an email to remotestorage@librelist.com (the first email won't be delivered, but instead trigger your subscribtion)
 
 ### Running the local Test Server
