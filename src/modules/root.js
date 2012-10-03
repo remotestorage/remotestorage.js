@@ -161,6 +161,7 @@ define(['../remoteStorage'], function(remoteStorage) {
 
     return {
       exports: {
+        sync: function(path) { myPrivateBaseClient.sync(path) },
         getListing: getListing,
         getObject: getObject,
         setObject: setObject,

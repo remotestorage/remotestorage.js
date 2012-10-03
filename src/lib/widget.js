@@ -22,9 +22,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   function calcWidgetStateOnLoad() {
     var wireClientState = wireClient.getState();
     if(wireClientState == 'connected') {
-      return sync.getState();//'busy', 'connected' or 'offline'
+      return sync.getState();// 'connected', 'busy'
     }
-    return wireClientState;//'connecting' or 'anonymous'
+    return wireClientState;//'connected', 'authing', 'anonymous'
   }
   function setWidgetStateOnLoad() {
     setWidgetState(calcWidgetStateOnLoad());
@@ -237,6 +237,22 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       options = {};
     }
 
+    connectElement = setConnectElement;
+
+    wireClient.on('connected', function() {
+      sync.syncNow('/', function(err) {
+        if(err) {
+          logger.error("Initial sync failed: ", err)
+        }
+      });
+    });
+
+    wireClient.on('error', function(err) {
+      platform.alert(translate(err));
+    });
+
+    sync.on('state', setWidgetState);
+
     if(typeof(options.authDialog) !== 'undefined') {
       authDialogStrategy = options.authDialog;
     }
@@ -257,14 +273,6 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       dance(authorizeEndpointHarvested);
     }
 
-    connectElement = setConnectElement;
-
-    wireClient.on('error', function(err) {
-      platform.alert(translate(err));
-    });
-
-    sync.on('state', setWidgetState);
-
     setWidgetStateOnLoad();
 
     if(options.syncShortcut !== false) {
@@ -278,11 +286,6 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       }
     }
     
-    //TODO: discuss with Niklas how to wire all these events. it should be onload, but inside the display function seems wrong
-    //TODO: discuss with Michiel that I commented this in, as it breaks the widget altogether (it reaches the "connected" state w/o being connected)
-    //sync.syncNow('/', function(errors) {
-    //});
-
   }
 
   function addScope(module, mode) {

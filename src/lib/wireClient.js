@@ -3,9 +3,27 @@ define(['./getputdelete'], function (getputdelete) {
   "use strict";
 
   var prefix = 'remote_storage_wire_',
-    errorHandler = function(){};
+    errorCbs=[], connectedCbs=[];
+
+  function fireError() {
+    for(var i=0;i<errorCbs.length;i++) {
+      errorCbs[i].apply(null, arguments);
+    }
+  }
+
+  function fireConnected() {
+    console.log("FIRE CONNECTED", connectedCbs);
+    for(var i=0;i<connectedCbs.length;i++) {
+      connectedCbs[i].apply(null, arguments);
+    }
+  }
+
   function set(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
+
+    if(getState() == 'connected') {
+      fireConnected();
+    }
   }
   function remove(key) {
     localStorage.removeItem(prefix+key);
@@ -39,7 +57,11 @@ define(['./getputdelete'], function (getputdelete) {
   }
   function on(eventType, cb) {
     if(eventType == 'error') {
-      errorHandler = cb;
+      errorCbs.push(cb);
+    } else if(eventType == 'connected') {
+      connectedCbs.push(cb);
+    } else {
+      throw "Unknown eventType: " + eventType;
     }
   }
 
@@ -114,6 +136,14 @@ define(['./getputdelete'], function (getputdelete) {
     // Method: setStorageInfo
     //
     // Configure wireClient.
+    //
+    // Parameters:
+    //   type - the storage type (see specification)
+    //   href - base URL of the storage server
+    //
+    // Fires:
+    //   configured - if wireClient is now fully configured
+    //
     setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
 
     // Method: getStorageHref
@@ -121,9 +151,16 @@ define(['./getputdelete'], function (getputdelete) {
     // Get base URL of the user's remotestorage.
     getStorageHref   : function() { return get('storageHref') },
     
-    // Method: getBearerToken
+    // Method: SetBearerToken
     //
-    // Get the authorization token currently set.
+    // Set the bearer token for authorization
+    //
+    // Parameters:
+    //   bearerToken - token to use
+    //
+    // Fires:
+    //   configured - if wireClient is now fully configured.
+    //
     setBearerToken   : function(bearerToken) { set('bearerToken', bearerToken); },
 
     // Method: disconnectRemote
@@ -135,9 +172,7 @@ define(['./getputdelete'], function (getputdelete) {
     //
     // Install an event handler
     //
-    // Currently known events: "error"
-    //
-    // FIXME: the error handler is never called!
+    // 
     on               : on,
 
     // Method: getState
