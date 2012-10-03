@@ -2866,12 +2866,6 @@ define('remoteStorage',[
   './lib/util'
 ], function(require, widget, BaseClient, store, sync, wireClient, nodeConnect, util) {
 
-  var _global = typeof(window) !== 'undefined' ? window : global;
-
-  if(typeof(_global.remoteStorage) !== 'undefined') {
-    return _global.remoteStorage
-  }
-
   
 
   var claimedModules = {}, modules = {}, moduleNameRE = /^[a-z]+$/;
@@ -2940,7 +2934,7 @@ define('remoteStorage',[
     //
     //   remoteStorage.claimAccess('beers', 'rw');
     //
-    //   remoteStorage.displayWidget(/* see documentation */)
+    //   remoteStorage.displayWidget(/* see documentation */);
     //
     //   remoteStorage.addBeer('<replace-with-favourite-beer-kind>');
     //
@@ -3218,8 +3212,6 @@ define('remoteStorage',[
     util: util
 
   };
-
-  _global.remoteStorage = remoteStorage;
 
   return remoteStorage;
 });
