@@ -1,5 +1,7 @@
 define(['../remoteStorage'], function(remoteStorage) {
 
+  window.rootRemoteStorage = remoteStorage;
+
   remoteStorage.defineModule('public', function(client) {
     function getPublicItems() {
       return client.getObject("publishedItems");
