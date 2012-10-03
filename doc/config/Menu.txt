@@ -46,31 +46,38 @@ Format: 1.51
 # --------------------------------------------------------------------------
 
 
-Group: Lib  {
+Group: Public API  {
 
+   File: remoteStorage  (remoteStorage.js)
    File: BaseClient  (lib/baseClient.js)
+   }  # Group: Public API
+
+Group: Modules  {
+
+   File: contacts  (no auto-title, modules/contacts.js)
+   File: tasks  (no auto-title, modules/tasks.js)
+   }  # Group: Modules
+
+Group: Internals  {
+
+   File: wireClient  (lib/wireClient.js)
    File: getputdelete  (lib/getputdelete.js)
-   File: hardcoded  (lib/hardcoded.js)
-   File: nodeConnect  (lib/nodeConnect.js)
-   File: platform  (lib/platform.js)
    File: store  (lib/store.js)
    File: sync  (lib/sync.js)
    File: util  (lib/util.js)
    File: webfinger  (lib/webfinger.js)
+   File: platform  (lib/platform.js)
+   File: nodeConnect  (lib/nodeConnect.js)
+   File: hardcoded  (lib/hardcoded.js)
    File: widget  (lib/widget.js)
-   File: wireClient  (lib/wireClient.js)
-   }  # Group: Lib
+   }  # Group: Internals
 
-File: remoteStorage  (remoteStorage.js)
-File: remoteStorage.contacts  (modules/contacts.js)
-File: remoteStorage.tasks  (modules/tasks.js)
-
-Group: Index  {
+Group: Docs Index  {
 
    Index: Everything
    Class Index: Classes
-   Event Index: Events
    Function Index: Functions
+   Event Index: Events
    Property Index: Properties
-   }  # Group: Index
+   }  # Group: Docs Index
 
