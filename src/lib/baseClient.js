@@ -43,7 +43,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
 
   store.on('change', function(e) {
     var moduleName = extractModuleName(e.path);
-    fireChange(moduleName, e);//tab-, device- and cloud-based changes all get fired from the store.
+    fireChange(moduleName, e);//window-, device- and cloud-based changes all get fired from the store.
     fireChange('root', e);//root module gets everything
   });
 
@@ -116,7 +116,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   path     - path to the node that chagned
     //   newValue - new value of the node. if the node has been removed, this is undefined.
     //   oldValue - previous value of the node. if the node has been newly created, this is undefined.
-    //   origin   - either "tab", "device" or "remote". Elaborated below.
+    //   origin   - either "window", "device" or "remote". Elaborated below.
     //
     // Change origins:
     //   Change events can come from different origins. In order for your app to
@@ -124,7 +124,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //
     //   The following origins are defined,
     //
-    //   tab - this event was generated from the same *browser tab* or window that received the event
+    //   window - this event was generated from the same *browser tab* or window that received the event
     //   device - this event was generated from the same *app*, but a differnent tab or window
     //   remote - this event came from the *remotestorage server*. that means another app or the same app on another device caused the event.
     //
