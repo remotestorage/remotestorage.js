@@ -434,6 +434,15 @@ define('lib/util',[], function() {
       return Array.prototype.slice.call(arrayLike);
     },
 
+    isDir: function(path) {
+      return path.substr(-1) == '/';
+    },
+
+    containingDir: function(path) {
+      var dir = path.replace(/[^\/]+\/?$/, '');
+      return dir == path ? null : dir;
+    },
+
     // Method: getLogger
     //
     // Get a logger with a given name.
@@ -1273,7 +1282,7 @@ define('lib/getputdelete',
           cb(err);
         },
         success: function(data, headers) {
-          logger.debug('doCall cb '+url, 'headers:', headers);
+          //logger.debug('doCall cb '+url, 'headers:', headers);
           cb(null, data, headers['Content-Type'] || defaultContentType);
         },
         timeout: 3000
@@ -1290,7 +1299,7 @@ define('lib/getputdelete',
       if(method != 'GET') {
         platformObj.data =value;
       }
-      logger.debug('platform.ajax '+url);
+      //logger.debug('platform.ajax '+url);
       platform.ajax(platformObj);
     }
 
@@ -1315,7 +1324,7 @@ define('lib/getputdelete',
     function put(url, value, mimeType, token, cb) {
       logger.info('calling PUT '+url);
       doCall('PUT', url, value, mimeType, token, function(err, data) {
-        logger.debug('cb from PUT '+url);
+        //logger.debug('cb from PUT '+url);
         if(err == 404) {
           doPut(url, value, token, 1, cb);
         } else {
@@ -1556,7 +1565,7 @@ define('lib/store',['./util'], function (util) {
     window.addEventListener('storage', function(e) {
       if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
         e.path = e.key.substring(prefixNodes.length);
-        if(!isDir(e.path)) {
+        if(!util.isDir(e.path)) {
           e.origin='device';
           fireChange(e);
         }
@@ -1597,33 +1606,9 @@ define('lib/store',['./util'], function (util) {
     }
     return value;
   }
-  function isDir(path) {
-    if(typeof(path) != 'string') {
-      logger.error("Given path is not a string: ", path);
-      doSomething();
-    }
-    return path.substr(-1) == '/';
-  }
-  function getContainingDir(path) {
-    // '' 'a' 'a/' 'a/b' 'a/b/' 'a/b/c' 'a/b/c/'
-    var parts = path.split('/');
-    // [''] ['a'] ['a', ''] ['a', 'b'] ['a', 'b', ''] ['a', 'b', 'c'] ['a', 'b', 'c', '']
-    if(!parts[parts.length-1].length) {//last part is empty, so string was empty or had a trailing slash
-      parts.pop();
-    }
-    // [] ['a'] ['a'] ['a', 'b'] ['a', 'b'] ['a', 'b', 'c'] ['a', 'b', 'c']
-    if(parts.length) {//remove the filename or dirname
-      parts.pop();
-      // - [] [] ['a'] ['a'] ['a', 'b'] ['a', 'b']
-      return parts.join('/')+(parts.length?'/':'');
-      // - '' '' 'a/' 'a/' 'a/b/' 'a/b/'
-    }
-    return undefined;
-    // undefined - - - - - -
-  }
   function getFileName(path) {
     var parts = path.split('/');
-    if(isDir(path)) {
+    if(util.isDir(path)) {
       return parts[parts.length-2]+'/';
     } else {
       return parts[parts.length-1];
@@ -1646,14 +1631,32 @@ define('lib/store',['./util'], function (util) {
       throw "Path is required!";
     }
     var encodedData;
-    if(typeof(data) === 'object') {
-      encodedData = JSON.stringify(data);
+    if(typeof(data) !== 'undefined') {
+      if(typeof(data) === 'object') {
+        encodedData = JSON.stringify(data);
+      } else {
+        encodedData = data;
+      }
+      localStorage.setItem(prefixNodesData+path, encodedData)
     } else {
-      encodedData = data;
+      localStorage.removeItem(prefixNodesData+path)
     }
-    localStorage.setItem(prefixNodesData+path, encodedData)
   }
 
+  // Function: updateNode
+  //
+  // (internal) update a node's metadata
+  //
+  // Parameters:
+  //   path      - absolute path from the storage root
+  //   node      - either a node object or undefined
+  //   outgoing  - boolean, whether this update is to be propagated (PUT)
+  //   meta      - boolean, whether this is only a change in metadata
+  //   timestamp - timestamp to set for the update
+  //
+  // Fires:
+  //   change    - (with origin=remote) if meta and outgoing are both false
+  //
   function updateNode(path, node, outgoing, meta, timestamp) {
     validPath(path);
     if(node) {
@@ -1661,15 +1664,15 @@ define('lib/store',['./util'], function (util) {
     } else {
       localStorage.removeItem(prefixNodes+path);
     }
-    var containingDir = getContainingDir(path);
+    var containingDir = util.containingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
       var parentData = getNodeData(containingDir) || {};
       if(meta) {
         if(! (parentData && parentData[getFileName(path)])) {
           parentData[getFileName(path)] = 0;
+          updateNodeData(containingDir, parentData);
         }
-        updateNodeData(containingDir, parentData);
         updateNode(containingDir, parentNode, false, true, timestamp);
       } else if(outgoing) {
         if(node) {
@@ -1748,6 +1751,7 @@ define('lib/store',['./util'], function (util) {
   }
 
   function getNodeData(path) {
+    logger.info('GET', path);
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodesData+path);
     var node = getNode(path);
@@ -1806,7 +1810,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   // Sync is where all the magic happens. It connects the <store> and <wireClient>
   //
 
-  var prefix = '_remoteStorage_', busy=false, stateCbs=[];
+  var sync; // set below.
+
+  var prefix = '_remoteStorage_', busy=false, stateCbs=[], syncOkNow=true;
 
   var logger = util.getLogger('sync');
 
@@ -1822,6 +1828,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     for(var i=0;i<stateCbs.length;i++) {
       stateCbs[i](val?'busy':'connected');
     }
+
+    if(! val) {
+    }
   }
   function on(eventType, cb) {
     if(eventType=='state') {
@@ -1836,7 +1845,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     }
     for(var i in cached) {
       if(!remote[i] || cached[i] > remote[i]) {
-        if(i.substr(-1)=='/') {
+        if(util.isDir(i)) {
           pullNode(dirPath+i, force, access, startOne, finishOne);
         } else {//recurse
           var childNode = store.getNode(dirPath+i);
@@ -1866,24 +1875,39 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       }
     }
   }
+
+  function findForce(path, node) {
+    console.log("findForce", path, node);
+    if(! node) {
+      return null;
+    } else if(! node.startForce) {
+      var parentPath = util.containingDir(path);
+      if(parentPath == path) {
+        return false;
+      } else {
+        return findForce(parentPath, store.getNode(parentPath));
+      }
+    } else {
+      return node.startForce;
+    }
+  }
+
   function pullNode(path, force, access, startOne, finishOne) {
     var thisNode = store.getNode(path);
     var thisData = store.getNodeData(path);
-    if((! thisData) && (path.substr(-1) == '/')) {
+    var isDir = util.isDir(path);
+    if((! thisData) && isDir) {
       thisData = {};
     }
     logger.debug('pullNode "'+path+'"', thisNode);
-    if(thisNode.startAccess == 'rw' || !access) {
-      access = thisNode.startAccess;
-    }
     if(thisNode.startForce) {
       force = thisNode.startForce;
     }
-    if(access) {
+    if(force) {
       startOne();
       wireClient.get(path, function(err, data) {
         if(!err && data) {
-          if(path.substr(-1)=='/') {
+          if(isDir) {
             dirMerge(path, data, thisData, thisNode.diff, force, access, startOne, finishOne, function(i) {
               store.clearDiff(path, i);
             });
@@ -1893,9 +1917,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
         }
         finishOne(err);
       });
-    } else {
+    } else if(thisData && isDir) {
       for(var i in thisData) {
-        if(i.substr(-1)=='/') {
+        if(util.isDir(i)) {
           pullNode(path+i, force, access, startOne, finishOne);
         }
       }
@@ -1925,6 +1949,14 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 
   function syncNow(path, callback) {
 
+    if(! path) {
+      throw "path is required";
+    }
+
+    if(! syncOkNow) {
+      return callback(null);
+    }
+
     if(wireClient.getState() == 'anonymous') {
       if(callback) {
         callback(['not connected']);
@@ -1943,22 +1975,35 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       outstanding--;
       if(outstanding==0) {
         setBusy(false);
+        setTimeout(function() {
+          syncOkNow = true;
+        }, sync.minPollInterval);
         if(callback) {
           callback(errors.length > 0 ? errors : null);
+        } else {
+          console.log('syncNow done');
         }
       }
     }
     logger.info('syncNow '+path);
     setBusy(true);
+    syncOkNow = false;
     pullNode(path, false, false, startOne, finishOne);
   }
 
-  return {
+  sync = {
+    // Property: minPollInterval
+    // Minimal interval between syncNow calls.
+    // All calls that happen in between, immediately succeed
+    // (call their callbacks) without doing anything.
+    minPollInterval: 3000,
     syncNow: syncNow,
     fetchNow: fetchNow,
     getState : getState,
     on: on
   };
+
+  return sync;
 
 });
 
@@ -2347,6 +2392,10 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     return (path.substr(-1)=='/');
   }
 
+  function containingDir(path) {
+    return path.replace(/[^\/]+$/, '');
+  }
+
   var BaseClient = function(moduleName, isPublic) {
     this.moduleName = moduleName, this.isPublic = isPublic;
   }
@@ -2605,8 +2654,8 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     //
     remove: function(path, callback, context) {
       this.ensureAccess('w');
-      set(path, this.makePath(path));
-      this.syncNow(callback, context);
+      set(path, this.makePath(path), undefined);
+      this.syncNow(containingDir(path), callback, context);
     },
 
     //
@@ -2653,7 +2702,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
       obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+this.moduleName+'/'+type;
       set(path, this.makePath(path), obj, 'application/json');
       this.sync(path);
-      this.syncNow(callback, context);
+      this.syncNow(path, callback, context);
     },
 
     //
@@ -2674,7 +2723,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     storeDocument: function(mimeType, path, data, callback, context) {
       this.ensureAccess('w');
       set(path, this.makePath(path), data, mimeType);
-      this.syncNow(callback, context);
+      this.syncNow(path, callback, context);
     },
 
     //
@@ -2726,18 +2775,18 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     //
     // Method: syncNow
     //
-    // Start synchronization cycle of this module's branch. Calling this method
-    // will not affect other module's synchronization state.
+    // Start synchronization at given path.
     //
     // Note that only those nodes will be synchronized, that have a *force* flag
     // set. Use <BaseClient.sync> to set the force flag on a node.
     //
     // Parameters:
+    //   path     - relative path from the module root. 
     //   callback - (optional) callback to call once synchronization finishes.
     //   context  - (optional) context to bind callback to.
     //
-    syncNow: function(callback, context) {
-      sync.syncNow(this.makePath(''), callback ? bindContext(callback, context) : function(errors) {
+    syncNow: function(path, callback, context) {
+      sync.syncNow(this.makePath(path), callback ? bindContext(callback, context) : function(errors) {
         if(errors && errors.length > 0) {
           logger.error("Error syncing: ", errors);
           fireError(errors);
