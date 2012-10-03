@@ -1,5 +1,13 @@
-# WARNING: This is a developer preview of our new code, not everything works yet, but new apps should use it nonetheless
-# Old apps should check out branch v0.6.9 instead, which has actual syncing to actual remote storage working.
+# remoteStorage.js
+
+### Where to get help?
+
+* Consult this README
+* Consult the "API documentation"(http://remotestoragejs.com/doc/code)
+* Ask in the "IRC Channel"(http://remotestoragejs.com/doc/code) (#remotestorage on freenode)
+* Join the mailinglist, by sending an email to remotestorage@librelist.com (the first email won't be delivered, but instead trigger your subscribtion)
+
+### Running the local Test Server
 
 #### To run the test server, first of all add a line
 
@@ -9,7 +17,8 @@
 
     sudo node server/nodejs-example.js
 
-# Adding remoteStorage.js v0.7 to your app:
+### Adding remoteStorage.js v0.7 to your app:
+
 #### add "remoteStorage.js" (you can copy it from this repo)
 #### in index.html, include this script and any modules you plan to load:
 
