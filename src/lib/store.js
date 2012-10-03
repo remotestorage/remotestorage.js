@@ -29,7 +29,7 @@ define(['./util'], function (util) {
     window.addEventListener('storage', function(e) {
       if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
         e.path = e.key.substring(prefixNodes.length);
-        if(!isDir(e.path)) {
+        if(!util.isDir(e.path)) {
           e.origin='device';
           fireChange(e);
         }
@@ -70,33 +70,9 @@ define(['./util'], function (util) {
     }
     return value;
   }
-  function isDir(path) {
-    if(typeof(path) != 'string') {
-      logger.error("Given path is not a string: ", path);
-      doSomething();
-    }
-    return path.substr(-1) == '/';
-  }
-  function getContainingDir(path) {
-    // '' 'a' 'a/' 'a/b' 'a/b/' 'a/b/c' 'a/b/c/'
-    var parts = path.split('/');
-    // [''] ['a'] ['a', ''] ['a', 'b'] ['a', 'b', ''] ['a', 'b', 'c'] ['a', 'b', 'c', '']
-    if(!parts[parts.length-1].length) {//last part is empty, so string was empty or had a trailing slash
-      parts.pop();
-    }
-    // [] ['a'] ['a'] ['a', 'b'] ['a', 'b'] ['a', 'b', 'c'] ['a', 'b', 'c']
-    if(parts.length) {//remove the filename or dirname
-      parts.pop();
-      // - [] [] ['a'] ['a'] ['a', 'b'] ['a', 'b']
-      return parts.join('/')+(parts.length?'/':'');
-      // - '' '' 'a/' 'a/' 'a/b/' 'a/b/'
-    }
-    return undefined;
-    // undefined - - - - - -
-  }
   function getFileName(path) {
     var parts = path.split('/');
-    if(isDir(path)) {
+    if(util.isDir(path)) {
       return parts[parts.length-2]+'/';
     } else {
       return parts[parts.length-1];
@@ -119,14 +95,32 @@ define(['./util'], function (util) {
       throw "Path is required!";
     }
     var encodedData;
-    if(typeof(data) === 'object') {
-      encodedData = JSON.stringify(data);
+    if(typeof(data) !== 'undefined') {
+      if(typeof(data) === 'object') {
+        encodedData = JSON.stringify(data);
+      } else {
+        encodedData = data;
+      }
+      localStorage.setItem(prefixNodesData+path, encodedData)
     } else {
-      encodedData = data;
+      localStorage.removeItem(prefixNodesData+path)
     }
-    localStorage.setItem(prefixNodesData+path, encodedData)
   }
 
+  // Function: updateNode
+  //
+  // (internal) update a node's metadata
+  //
+  // Parameters:
+  //   path      - absolute path from the storage root
+  //   node      - either a node object or undefined
+  //   outgoing  - boolean, whether this update is to be propagated (PUT)
+  //   meta      - boolean, whether this is only a change in metadata
+  //   timestamp - timestamp to set for the update
+  //
+  // Fires:
+  //   change    - (with origin=remote) if meta and outgoing are both false
+  //
   function updateNode(path, node, outgoing, meta, timestamp) {
     validPath(path);
     if(node) {
@@ -134,15 +128,15 @@ define(['./util'], function (util) {
     } else {
       localStorage.removeItem(prefixNodes+path);
     }
-    var containingDir = getContainingDir(path);
+    var containingDir = util.containingDir(path);
     if(containingDir) {
       var parentNode=getNode(containingDir);
       var parentData = getNodeData(containingDir) || {};
       if(meta) {
         if(! (parentData && parentData[getFileName(path)])) {
           parentData[getFileName(path)] = 0;
+          updateNodeData(containingDir, parentData);
         }
-        updateNodeData(containingDir, parentData);
         updateNode(containingDir, parentNode, false, true, timestamp);
       } else if(outgoing) {
         if(node) {
@@ -221,6 +215,7 @@ define(['./util'], function (util) {
   }
 
   function getNodeData(path) {
+    logger.info('GET', path);
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodesData+path);
     var node = getNode(path);

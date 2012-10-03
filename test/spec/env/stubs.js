@@ -53,6 +53,7 @@ function makeStub(name) {
   }
   return obj;
 }
+
 var define;
 function setDefine(name, exports) {
   define = function(deps, cb) {
@@ -65,7 +66,7 @@ function setDefine(name, exports) {
       pass.push(obj.stubs[dep].stub);
     }
     obj.module = cb.apply(this, pass);
-    obj.exports = exports;
+    obj.exports = exports || obj.module;
     testEnv.files[name]=obj;
   };
 }
