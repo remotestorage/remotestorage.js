@@ -19,26 +19,12 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   function translate(text) {
     return text;
   }
-  function isRegistering() {
-    return localStorage.getItem('remote_storage_registering');
-  }
-  function setRegistering(value) {
-    if(value===false) {
-      localStorage.removeItem('remote_storage_registering');
-    } else {
-      localStorage.setItem('remote_storage_registering', 'true');
-    }
-  }
   function calcWidgetStateOnLoad() {
-    if(isRegistering()) {
-      return 'registering';
-    } else {
-      var wireClientState = wireClient.getState();
-      if(wireClientState == 'connected') {
-        return sync.getState();//'busy', 'connected' or 'offline'
-      }
-      return wireClientState;//'connecting' or 'anonymous'
+    var wireClientState = wireClient.getState();
+    if(wireClientState == 'connected') {
+      return sync.getState();//'busy', 'connected' or 'offline'
     }
+    return wireClientState;//'connecting' or 'anonymous'
   }
   function setWidgetStateOnLoad() {
     setWidgetState(calcWidgetStateOnLoad());
@@ -73,17 +59,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     platform.eltOn('remotestorage-useraddress', 'type', handleWidgetTypeUserAddress);
   }
   function handleRegisterButtonClick() {
-    setRegistering();
     var win = window.open('http://unhosted.org/en/a/register.html', 'Get your remote storage',
       'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,'
       +'width=820,height=800,top=0,left=0');
-    //var timer = setInterval(function() { 
-    //  if(win.closed) {
-    //    clearInterval(timer);
-    //    setRegistering(false);
-    //  }
-    //}, 250);
-    setWidgetState('registering');
   }
   function redirectUriToClientId(loc) {
     //TODO: add some serious unit testing to this function
@@ -242,7 +220,6 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     //}
   }
   function handleWidgetTypeUserAddress(event) {
-    setRegistering(false);
     if(event.keyCode === 13) {
       document.getElementById('remotestorage-connect-button').click();
     }
