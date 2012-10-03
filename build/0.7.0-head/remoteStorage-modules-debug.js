@@ -1385,9 +1385,27 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
   
 
   var prefix = 'remote_storage_wire_',
-    errorHandler = function(){};
+    errorCbs=[], connectedCbs=[];
+
+  function fireError() {
+    for(var i=0;i<errorCbs.length;i++) {
+      errorCbs[i].apply(null, arguments);
+    }
+  }
+
+  function fireConnected() {
+    console.log("FIRE CONNECTED", connectedCbs);
+    for(var i=0;i<connectedCbs.length;i++) {
+      connectedCbs[i].apply(null, arguments);
+    }
+  }
+
   function set(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
+
+    if(getState() == 'connected') {
+      fireConnected();
+    }
   }
   function remove(key) {
     localStorage.removeItem(prefix+key);
@@ -1421,7 +1439,11 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
   }
   function on(eventType, cb) {
     if(eventType == 'error') {
-      errorHandler = cb;
+      errorCbs.push(cb);
+    } else if(eventType == 'connected') {
+      connectedCbs.push(cb);
+    } else {
+      throw "Unknown eventType: " + eventType;
     }
   }
 
@@ -1496,6 +1518,14 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
     // Method: setStorageInfo
     //
     // Configure wireClient.
+    //
+    // Parameters:
+    //   type - the storage type (see specification)
+    //   href - base URL of the storage server
+    //
+    // Fires:
+    //   configured - if wireClient is now fully configured
+    //
     setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
 
     // Method: getStorageHref
@@ -1503,9 +1533,16 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
     // Get base URL of the user's remotestorage.
     getStorageHref   : function() { return get('storageHref') },
     
-    // Method: getBearerToken
+    // Method: SetBearerToken
     //
-    // Get the authorization token currently set.
+    // Set the bearer token for authorization
+    //
+    // Parameters:
+    //   bearerToken - token to use
+    //
+    // Fires:
+    //   configured - if wireClient is now fully configured.
+    //
     setBearerToken   : function(bearerToken) { set('bearerToken', bearerToken); },
 
     // Method: disconnectRemote
@@ -1517,9 +1554,7 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
     //
     // Install an event handler
     //
-    // Currently known events: "error"
-    //
-    // FIXME: the error handler is never called!
+    // 
     on               : on,
 
     // Method: getState
@@ -1900,11 +1935,18 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       thisData = {};
     }
     logger.debug('pullNode "'+path+'"', thisNode);
-    if(thisNode.startForce) {
-      force = thisNode.startForce;
+
+    if(thisNode.startAccess == 'rw' || !access) {
+      force = thisNode.startAccess;
     }
-    if(force) {
-      startOne();
+
+    if(! force) {
+      force = findForce(path, thisNode);
+    }
+    
+    startOne();
+
+    if(force || access) {
       wireClient.get(path, function(err, data) {
         if(!err && data) {
           if(isDir) {
@@ -1915,8 +1957,13 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
             store.setNodeData(path, data, false);
           }
         }
+        
         finishOne(err);
+
       });
+
+      return;
+
     } else if(thisData && isDir) {
       for(var i in thisData) {
         if(util.isDir(i)) {
@@ -1924,6 +1971,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
         }
       }
     }
+
+    finishOne();
+
   }
 
   // TODO: DRY those two:
@@ -2031,9 +2081,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   function calcWidgetStateOnLoad() {
     var wireClientState = wireClient.getState();
     if(wireClientState == 'connected') {
-      return sync.getState();//'busy', 'connected' or 'offline'
+      return sync.getState();// 'connected', 'busy'
     }
-    return wireClientState;//'connecting' or 'anonymous'
+    return wireClientState;//'connected', 'authing', 'anonymous'
   }
   function setWidgetStateOnLoad() {
     setWidgetState(calcWidgetStateOnLoad());
@@ -2246,6 +2296,22 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       options = {};
     }
 
+    connectElement = setConnectElement;
+
+    wireClient.on('connected', function() {
+      sync.syncNow('/', function(err) {
+        if(err) {
+          logger.error("Initial sync failed: ", err)
+        }
+      });
+    });
+
+    wireClient.on('error', function(err) {
+      platform.alert(translate(err));
+    });
+
+    sync.on('state', setWidgetState);
+
     if(typeof(options.authDialog) !== 'undefined') {
       authDialogStrategy = options.authDialog;
     }
@@ -2266,14 +2332,6 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       dance(authorizeEndpointHarvested);
     }
 
-    connectElement = setConnectElement;
-
-    wireClient.on('error', function(err) {
-      platform.alert(translate(err));
-    });
-
-    sync.on('state', setWidgetState);
-
     setWidgetStateOnLoad();
 
     if(options.syncShortcut !== false) {
@@ -2287,11 +2345,6 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       }
     }
     
-    //TODO: discuss with Niklas how to wire all these events. it should be onload, but inside the display function seems wrong
-    //TODO: discuss with Michiel that I commented this in, as it breaks the widget altogether (it reaches the "connected" state w/o being connected)
-    //sync.syncNow('/', function(errors) {
-    //});
-
   }
 
   function addScope(module, mode) {
@@ -3405,6 +3458,7 @@ define('modules/root',['../remoteStorage'], function(remoteStorage) {
 
     return {
       exports: {
+        sync: function(path) { myPrivateBaseClient.sync(path) },
         getListing: getListing,
         getObject: getObject,
         setObject: setObject,
