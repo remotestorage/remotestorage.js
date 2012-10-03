@@ -77,7 +77,7 @@ define([
     //
     //   remoteStorage.claimAccess('beers', 'rw');
     //
-    //   remoteStorage.displayWidget(/* see documentation */)
+    //   remoteStorage.displayWidget(/* see documentation */);
     //
     //   remoteStorage.addBeer('<replace-with-favourite-beer-kind>');
     //
