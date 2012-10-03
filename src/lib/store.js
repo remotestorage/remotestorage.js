@@ -13,11 +13,16 @@ define(['./util'], function (util) {
   //   timestamp   - last time this node was (apparently) updated (default: 0)
   //   keep        - A flag to indicate, whether this node should be kept in cache. Currently unused. (default: true)
   //   diff        - difference in the node's data since the last synchronization.
+  //   mimeType    - MIME media type
   //
+  // Event: change
+  // See <BaseClient.Events>
+  // Event: error
+  // See <BaseClient.Events>
 
   var logger = util.getLogger('store');
 
-  var onChange=[],
+  var onChange=[], onError=[],
     prefixNodes = 'remote_storage_nodes:',
     prefixNodesData = 'remote_storage_node_data:';
   if(typeof(window) !== 'undefined') {
@@ -36,6 +41,13 @@ define(['./util'], function (util) {
       onChange[i](e);
     }
   }
+
+  function fireError(e) {
+    for(var i=0; i<onError.length; i++) {
+      onError[i](e);
+    }
+  }
+
   function getNode(path) {
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodes+path);
@@ -51,6 +63,7 @@ define(['./util'], function (util) {
         startAccess: null,
         startForce: null,
         timestamp: 0,
+        mimeType: "application/json",
         keep: true,
         diff: {}
       };
@@ -180,9 +193,12 @@ define(['./util'], function (util) {
       }
     }
   }
+
   function on(eventName, cb) {
     if(eventName == 'change') {
       onChange.push(cb);
+    } else if(eventName == 'error') {
+      onError.push(cb);
     } else {
       throw("Unknown event: " + eventName);
     }
@@ -207,12 +223,17 @@ define(['./util'], function (util) {
   function getNodeData(path) {
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodesData+path);
+    var node = getNode(path);
     if(valueStr) {
-      try {
-        return JSON.parse(valueStr);
-      } catch(exc) {
-        return valueStr;
+      if(node.mimeType == "application/json") {
+        try {
+          return JSON.parse(valueStr);
+        } catch(exc) {
+          fireError("Invalid JSON node at " + path + ": " + valueStr);
+        }
       }
+
+      return valueStr;
     } else {
       return undefined;
     }

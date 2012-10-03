@@ -116,7 +116,7 @@ define(['./getputdelete'], function (getputdelete) {
     // Configure wireClient.
     setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
 
-    // Method: getStorageInfo
+    // Method: getStorageHref
     //
     // Get base URL of the user's remotestorage.
     getStorageHref   : function() { return get('storageHref') },

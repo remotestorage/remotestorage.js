@@ -40,6 +40,7 @@
         startForce: null,
         lastModified: 10,
         outgoingChange: false,
+        mimeType: "application/json",
         keep: true,
         added: {},
         removed: {},
@@ -101,7 +102,7 @@
           expect(
             Object.keys(result).sort()
           ).toEqual(
-            ['diff', 'keep', 'startAccess', 'startForce', 'timestamp']
+            ['diff', 'keep', 'mimeType', 'startAccess', 'startForce', 'timestamp']
           );
         });
         
