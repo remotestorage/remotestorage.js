@@ -1983,26 +1983,12 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   function translate(text) {
     return text;
   }
-  function isRegistering() {
-    return localStorage.getItem('remote_storage_registering');
-  }
-  function setRegistering(value) {
-    if(value===false) {
-      localStorage.removeItem('remote_storage_registering');
-    } else {
-      localStorage.setItem('remote_storage_registering', 'true');
-    }
-  }
   function calcWidgetStateOnLoad() {
-    if(isRegistering()) {
-      return 'registering';
-    } else {
-      var wireClientState = wireClient.getState();
-      if(wireClientState == 'connected') {
-        return sync.getState();//'busy', 'connected' or 'offline'
-      }
-      return wireClientState;//'connecting' or 'anonymous'
+    var wireClientState = wireClient.getState();
+    if(wireClientState == 'connected') {
+      return sync.getState();//'busy', 'connected' or 'offline'
     }
+    return wireClientState;//'connecting' or 'anonymous'
   }
   function setWidgetStateOnLoad() {
     setWidgetState(calcWidgetStateOnLoad());
@@ -2037,17 +2023,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     platform.eltOn('remotestorage-useraddress', 'type', handleWidgetTypeUserAddress);
   }
   function handleRegisterButtonClick() {
-    setRegistering();
     var win = window.open('http://unhosted.org/en/a/register.html', 'Get your remote storage',
       'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,'
       +'width=820,height=800,top=0,left=0');
-    //var timer = setInterval(function() { 
-    //  if(win.closed) {
-    //    clearInterval(timer);
-    //    setRegistering(false);
-    //  }
-    //}, 250);
-    setWidgetState('registering');
   }
   function redirectUriToClientId(loc) {
     //TODO: add some serious unit testing to this function
@@ -2206,7 +2184,6 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     //}
   }
   function handleWidgetTypeUserAddress(event) {
-    setRegistering(false);
     if(event.keyCode === 13) {
       document.getElementById('remotestorage-connect-button').click();
     }
@@ -2330,7 +2307,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
 
   store.on('change', function(e) {
     var moduleName = extractModuleName(e.path);
-    fireChange(moduleName, e);//tab-, device- and cloud-based changes all get fired from the store.
+    fireChange(moduleName, e);//window-, device- and cloud-based changes all get fired from the store.
     fireChange('root', e);//root module gets everything
   });
 
@@ -2403,7 +2380,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     //   path     - path to the node that chagned
     //   newValue - new value of the node. if the node has been removed, this is undefined.
     //   oldValue - previous value of the node. if the node has been newly created, this is undefined.
-    //   origin   - either "tab", "device" or "remote". Elaborated below.
+    //   origin   - either "window", "device" or "remote". Elaborated below.
     //
     // Change origins:
     //   Change events can come from different origins. In order for your app to
@@ -2411,7 +2388,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     //
     //   The following origins are defined,
     //
-    //   tab - this event was generated from the same *browser tab* or window that received the event
+    //   window - this event was generated from the same *browser tab* or window that received the event
     //   device - this event was generated from the same *app*, but a differnent tab or window
     //   remote - this event came from the *remotestorage server*. that means another app or the same app on another device caused the event.
     //
