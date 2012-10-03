@@ -9,9 +9,15 @@ define([
   './lib/util'
 ], function(require, widget, BaseClient, store, sync, wireClient, nodeConnect, util) {
 
+  var _global = typeof(window) !== 'undefined' ? window : global;
+
+  if(typeof(_global.remoteStorage) !== 'undefined') {
+    return _global.remoteStorage
+  }
+
   "use strict";
 
-  var claimedModules = {}, modules = {};
+  var claimedModules = {}, modules = {}, moduleNameRE = /^[a-z]+$/;
 
   var logger = util.getLogger('base');
 
@@ -34,7 +40,7 @@ define([
     // <getModuleInfo>.
     //
     // Parameter:
-    //   moduleName - Name of the module to define. SHOULD be a-z and all lowercase.
+    //   moduleName - Name of the module to define. MUST be a-z and all lowercase.
     //   builder    - Builder function that holds the module definition.
     //
     // Example:
@@ -87,6 +93,11 @@ define([
     //   <BaseClient>
     //
     defineModule: function(moduleName, builder) {
+
+      if(! moduleNameRE.test(moduleName)) {
+        throw 'Invalid moduleName: "'+moduleName+'", only a-z lowercase allowed.'
+      }
+
       logger.debug('DEFINE MODULE', moduleName);
       var module = builder(
         // private client:
@@ -350,6 +361,8 @@ define([
     util: util
 
   };
+
+  _global.remoteStorage = remoteStorage;
 
   return remoteStorage;
 });
