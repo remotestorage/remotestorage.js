@@ -1,4 +1,4 @@
-define(['../../../src/remoteStorage-modules'], function(remoteStorage) {
+define(['remotestorage/remoteStorage-modules'], function(remoteStorage) {
 
   window.onload = function() {
 

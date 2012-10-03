@@ -3,7 +3,15 @@
   <head>
     <meta charset="utf-8">
     <title>Test App</title>
-    <script data-main="app.js" src="../../../src/require.js"></script>
+    <script src="../../../src/require.js"></script>
+    <script type="text/javascript">
+    	require.config({
+    		paths: {
+       			"remotestorage": "../../../src"
+       		},
+       		deps: ['app']
+    	});
+    </script>
   </head>
   <body>
     <div id="remotestorage-connect"></div>
