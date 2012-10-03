@@ -1,0 +1,10 @@
+
+* remoteStorage.js Documentation
+
+** remoteStorage.js?
+   
+   -> https://github.com/RemoteStorage/remoteStorage.js
+
+** Code documentation:
+
+   http://remotestoragejs.com/doc/code/
