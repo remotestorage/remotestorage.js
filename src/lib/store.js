@@ -15,10 +15,6 @@ define(['./util'], function (util) {
   //   diff        - difference in the node's data since the last synchronization.
   //   mimeType    - MIME media type
   //
-  // Event: change
-  // See <BaseClient.Events>
-  // Event: error
-  // See <BaseClient.Events>
 
   var logger = util.getLogger('store');
 
@@ -48,6 +44,15 @@ define(['./util'], function (util) {
     }
   }
 
+  // Method: getNode
+  // get a node's metadata
+  //
+  // Parameters:
+  //   path - absolute path
+  //
+  // Returns:
+  //   a node object. If no node is found at the given path, a new empty
+  //   node object is constructed instead.
   function getNode(path) {
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodes+path);
@@ -56,6 +61,8 @@ define(['./util'], function (util) {
       try {
         value = JSON.parse(valueStr);
       } catch(e) {
+        logger.error("Invalid node data in store: ", valueStr);
+        // invalid JSON data is treated like a node that doesn't exist.
       }
     }
     if(!value) {
@@ -70,6 +77,7 @@ define(['./util'], function (util) {
     }
     return value;
   }
+
   function getFileName(path) {
     var parts = path.split('/');
     if(util.isDir(path)) {
@@ -78,6 +86,7 @@ define(['./util'], function (util) {
       return parts[parts.length-1];
     }
   }
+
   function getCurrTimestamp() {
     return new Date().getTime();
   }
@@ -107,20 +116,6 @@ define(['./util'], function (util) {
     }
   }
 
-  // Function: updateNode
-  //
-  // (internal) update a node's metadata
-  //
-  // Parameters:
-  //   path      - absolute path from the storage root
-  //   node      - either a node object or undefined
-  //   outgoing  - boolean, whether this update is to be propagated (PUT)
-  //   meta      - boolean, whether this is only a change in metadata
-  //   timestamp - timestamp to set for the update
-  //
-  // Fires:
-  //   change    - (with origin=remote) if meta and outgoing are both false
-  //
   function updateNode(path, node, outgoing, meta, timestamp) {
     validPath(path);
     if(node) {
@@ -129,36 +124,40 @@ define(['./util'], function (util) {
       localStorage.removeItem(prefixNodes+path);
     }
     var containingDir = util.containingDir(path);
+
     if(containingDir) {
+
       var parentNode=getNode(containingDir);
       var parentData = getNodeData(containingDir) || {};
+      var baseName = getFileName(path);
+
       if(meta) {
-        if(! (parentData && parentData[getFileName(path)])) {
-          parentData[getFileName(path)] = 0;
+        if(! (parentData && parentData[baseName])) {
+          parentData[baseName] = 0;
           updateNodeData(containingDir, parentData);
         }
         updateNode(containingDir, parentNode, false, true, timestamp);
       } else if(outgoing) {
         if(node) {
-          parentData[getFileName(path)] = new Date().getTime();
+          parentData[baseName] = getCurrTimestamp();
         } else {
-          delete parentData[getFileName(path)];
+          delete parentData[baseName];
         }
-        parentNode.diff[getFileName(path)] = new Date().getTime();
+        parentNode.diff[baseName] = getCurrTimestamp();
         updateNodeData(containingDir, parentData);
         updateNode(containingDir, parentNode, true, false, timestamp);
       } else {//incoming
         if(node) {//incoming add or change
-          if(!parentData[getFileName(path)] || parentData[getFileName(path)] < timestamp) {
-            parentData[getFileName(path)] = timestamp;
-            delete parentNode.diff[getFileName(path)];
+          if(!parentData[baseName] || parentData[baseName] < timestamp) {
+            parentData[baseName] = timestamp;
+            delete parentNode.diff[baseName];
             updateNodeData(containingDir, parentData);
             updateNode(containingDir, parentNode, false, false, timestamp);
           }
         } else {//incoming deletion
-          if(parentData[getFileName(path)]) {
-            delete parentData[getFileName(path)];
-            delete parentNode.diff[getFileName(path)];
+          if(parentData[baseName]) {
+            delete parentData[baseName];
+            delete parentNode.diff[baseName];
             updateNodeData(containingDir, parentData);
             updateNode(containingDir, parentNode, false, false, timestamp);
           }
@@ -175,19 +174,39 @@ define(['./util'], function (util) {
       }
     }
   }
+
+  // Method: forget
+  // Forget node at given path
+  //
+  // Parameters:
+  //   path - absolute path
   function forget(path) {
     validPath(path);
     localStorage.removeItem(prefixNodes+path);
+    localStorage.removeItem(prefixNodesData+path);
   }
+
+  // Method: forgetAll
+  // Forget all data stored by <store>.
+  //
   function forgetAll() {
     for(var i=0; i<localStorage.length; i++) {
-      if(localStorage.key(i).substr(0, prefixNodes.length) == prefixNodes) {
+      if(localStorage.key(i).substr(0, prefixNodes.length) == prefixNodes ||
+         localStorage.key(i).substr(0, prefixNodesData.length) == prefixNodesData) {
         localStorage.removeItem(localStorage.key(i));
         i--;
       }
     }
   }
 
+  // Method: on
+  // Install an event handler
+  //
+  // Event: change
+  // See <BaseClient.Events>
+  //
+  // Event: error
+  // See <BaseClient.Events>
   function on(eventName, cb) {
     if(eventName == 'change') {
       onChange.push(cb);
@@ -197,10 +216,21 @@ define(['./util'], function (util) {
       throw("Unknown event: " + eventName);
     }
   }
-  function getState(path) {
-    return 'disconnected';
-  }
 
+  // Function: setNodeData
+  //
+  // update a node's metadata
+  //
+  // Parameters:
+  //   path      - absolute path from the storage root
+  //   data      - node data to set, or undefined to delete the node
+  //   outgoing  - boolean, whether this update is to be propagated
+  //   timestamp - timestamp to set for the update
+  //   mimeType  - MIME media type of the node's data
+  //
+  // Fires:
+  //   change w/ origin=remote - unless this is an outgoing change
+  //
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
     if(!mimeType) {
@@ -208,12 +238,17 @@ define(['./util'], function (util) {
     }
     node.mimeType = mimeType;
     if(!timestamp) {
-      timestamp = new Date().getTime();
+      timestamp = getCurrTimestamp();
     }
     updateNodeData(path, data);
     updateNode(path, (data ? node : undefined), outgoing, false, timestamp);
   }
 
+  // Method: getNodeData
+  // get a node's data
+  //
+  // Parameters:
+  //   path - absolute path
   function getNodeData(path) {
     logger.info('GET', path);
     validPath(path);
@@ -234,6 +269,14 @@ define(['./util'], function (util) {
     }
   }
 
+  // Method: setNodeAccess
+  //
+  // Set startAccess flag on a node.
+  //
+  // Parameters:
+  //   path  - absolute path to the node
+  //   claim - claim to set. Either "r" or "rw"
+  //
   function setNodeAccess(path, claim) {
     var node = getNode(path);
     if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
@@ -241,16 +284,39 @@ define(['./util'], function (util) {
       updateNode(path, node, false, true);//meta
     }
   }
+
+  // Method: setNodeForce
+  //
+  // Set startForce flag on a node.
+  //
+  // Parameters:
+  //   path  - absolute path to the node
+  //   force - value to set for the force flag (boolean)
+  //
   function setNodeForce(path, force) {
     var node = getNode(path);
     node.startForce = force;
     updateNode(path, node, false, true);//meta
   }
-  function clearDiff(path, i) {
+
+  // Method: clearDiff
+  //
+  // Clear current diff on the node. This only applies to
+  // directory nodes.
+  //
+  // Clearing the diff is usually done, once the changes have been
+  // propagated through sync.
+  //
+  // Parameters:
+  //   path      - absolute path to the directory node
+  //   childName - name of the child who's change has been propagated
+  //
+  function clearDiff(path, childName) {
     var node = getNode(path);
-    delete node.diff[i];
+    delete node.diff[childName];
     updateNode(path, node, false, true);//meta
   }
+
   return {
     on            : on,//error,change(origin=tab,device,cloud)
 

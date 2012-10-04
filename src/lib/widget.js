@@ -15,6 +15,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     authDialogStrategy = 'redirect',
     authPopupRef,
     scopesObj = {};
+
+  var popupSettings = 'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,width=820,height=800,top=0,left=0';
+
   var logger = util.getLogger('widget');
   function translate(text) {
     return text;
@@ -37,6 +40,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     return widgetState;
   }
   function displayWidgetState(state, userAddress) {
+    if(state === 'authing') {
+      platform.alert("Authentication was aborted. Please try again.");
+      return setWidgetState('typing')
+    }
+
     var userAddress = localStorage['remote_storage_widget_useraddress'];
     var html = 
       '<style>'+assets.widgetCss+'</style>'
@@ -48,7 +56,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
       +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br/>Click for more info on the Unhosted movement.</span>'//info text
       //+'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <input id="remotestorage-useraddress" type="text" value="me@local.dev" placeholder="you@remotestorage" autofocus="" />'//text input
+      +'  <input id="remotestorage-useraddress" type="text" value="' + userAddress + '" placeholder="you@remotestorage" autofocus="" />'//text input
       +'  <a class="infotext" href="http://remotestoragejs.com/" target="_blank" id="remotestorage-devsonly">RemoteStorageJs is still in developer preview!<br/>Click for more info.</a>'
       +'</div>';
     platform.setElementHTML(connectElement, html);
@@ -59,9 +67,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     platform.eltOn('remotestorage-useraddress', 'type', handleWidgetTypeUserAddress);
   }
   function handleRegisterButtonClick() {
-    var win = window.open('http://unhosted.org/en/a/register.html', 'Get your remote storage',
-      'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,'
-      +'width=820,height=800,top=0,left=0');
+    window.open(
+      'http://unhosted.org/en/a/register.html',
+      'Get your remote storage',
+      popupSettings
+    );
   }
   function redirectUriToClientId(loc) {
     //TODO: add some serious unit testing to this function
@@ -97,7 +107,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   // 
 
   function prepareAuthPopup() { // in parent window
-    authPopupRef = window.open(document.location, 'remotestorageAuthPopup', 'dependent=yes,width=500,height=400');
+    authPopupRef = window.open(
+      document.location,
+      'remotestorageAuthPopup',
+      popupSettings + ',dependent=yes'
+    );
     window.remotestorageTokenReceived = function() {
       delete window.remotestorageTokenReceived;
       setWidgetStateOnLoad();
@@ -193,7 +207,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       discoverStorageInfo(userAddress, function(err, auth) {
         if(err) {
           platform.alert('webfinger discovery failed! (sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo)');
-          closeAuthPopup();
+          if(authDialogStrategy == 'popup') {
+            closeAuthPopup();
+          }
           setWidgetState('failed');
         } else {
           dance(auth);
