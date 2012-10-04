@@ -343,9 +343,23 @@ define([
     //
     //    (using the same markup as above)
     //
+    //    > remoteStorage.displayWidget('remotestorage-connect', { authDialog: 'popup' });
     //    
     displayWidget    : widget.display,
 
+    // Method: getWidgetState
+    //
+    // Get the widget state, reflecting the general connection state.
+    //
+    // Defined widget states are:
+    //   anonymous  - initial state
+    //   typing     - userAddress input visible, user typing her address.
+    //   connecting - pre-authentication, webfinger discovery.
+    //   authing    - about to redirect to the auth endpoint (if authDialog=popup,
+    //                means the popup is open)
+    //   connected  - Discovery & Auth done, connected to remotestorage.
+    //   busy       - Currently exchaning data. (spinning cube)
+    //
     getWidgetState   : widget.getState,
     setStorageInfo   : wireClient.setStorageInfo,
     getStorageHref   : wireClient.getStorageHref,
