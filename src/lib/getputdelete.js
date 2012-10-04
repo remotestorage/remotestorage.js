@@ -42,7 +42,7 @@ define(
         if(err == 404) {
           cb(null, undefined);
         } else {
-          if(url.substr(-1)=='/') {
+          if(util.isDir(url)) {
             try {
               data = JSON.parse(data);
             } catch (e) {

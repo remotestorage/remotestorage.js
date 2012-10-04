@@ -162,13 +162,21 @@
 
       beforeEach(function() {
         store.setNodeAccess('/foo/bar', 'rw');
+        store.setNodeData('/foo/bar', 'baz');
         store.setNodeAccess('/foo/baz', 'r');
+        store.setNodeData('/foo/baz', 'bar');
       });
 
-      it("removes all nodes", function() {
+      it("removes all node metadata", function() {
         store.forgetAll();
         expect(store.getNode('/foo/bar').startAccess).toBe(null);
         expect(store.getNode('/foo/baz').startAccess).toBe(null);
+      });
+
+      it("removes all node data", function() {
+        store.forgetAll();
+        expect(store.getNodeData('/foo/bar')).toBe(undefined);
+        expect(store.getNodeData('/foo/baz')).toBe(undefined);
       });
 
     });

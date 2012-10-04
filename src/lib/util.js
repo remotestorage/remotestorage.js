@@ -26,10 +26,21 @@ define([], function() {
       return Array.prototype.slice.call(arrayLike);
     },
 
+    // Method: isDir
+    // Convenience method to check if given path is a directory.
     isDir: function(path) {
       return path.substr(-1) == '/';
     },
 
+    // Method: containingDir
+    // Calculate the parent path of the given path, by stripping the last part.
+    //
+    // Parameters:
+    //   path - any path, absolute or relative.
+    //
+    // Returns:
+    //   the parent path or *null*, if the given path is a root ("" or "/")
+    //
     containingDir: function(path) {
       var dir = path.replace(/[^\/]+\/?$/, '');
       return dir == path ? null : dir;
@@ -40,19 +51,35 @@ define([], function() {
     // Get a logger with a given name.
     // Usually this only happens once per file.
     //
+    // Parameters:
+    //   name - name of the logger. usually the name of the file this method
+    //          is called from.
+    //
+    // Returns:
+    //   A logger object
+    //
     getLogger: function(name) {
 
       if(! loggers[name]) {
         loggers[name] = {
+          // Class: Logger
 
+          // Method: info
+          // Log to loglevel "info".
           info: function() {
             this.log('info', util.toArray(arguments));
           },
 
+          // Method: debug
+          // Log to loglevel "debug".
+          // Will use the browser's debug logging facility, if available.
           debug: function() {
             this.log('debug', util.toArray(arguments), 'debug');
           },
 
+          // Method: debug
+          // Log to loglevel "error".
+          // Will use the browser's error logging facility, if available.
           error: function() {
             this.log('error', util.toArray(arguments), 'error');
           },
