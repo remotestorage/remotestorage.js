@@ -17,7 +17,7 @@ define(['./wireClient', './webfinger'], function(wireClient, webfinger) {
   //       console.log("Connected!");
   //
   //       // it's your responsibility to make sure the token given above
-  //       // actually allows gives you that access. this like is just to
+  //       // actually allows gives you that access. this line is just to
   //       // inform remoteStorage.js about it:
   //       remoteStorage.claimAccess('contacts', 'r');
   //
