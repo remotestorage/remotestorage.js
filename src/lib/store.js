@@ -15,6 +15,11 @@ define(['./util'], function (util) {
   //   diff        - difference in the node's data since the last synchronization.
   //   mimeType    - MIME media type
   //
+  // Event: change
+  // See <BaseClient.Events>
+  //
+  // Event: error
+  // See <BaseClient.Events>
 
   var logger = util.getLogger('store');
 
@@ -202,11 +207,6 @@ define(['./util'], function (util) {
   // Method: on
   // Install an event handler
   //
-  // Event: change
-  // See <BaseClient.Events>
-  //
-  // Event: error
-  // See <BaseClient.Events>
   function on(eventName, cb) {
     if(eventName == 'change') {
       onChange.push(cb);

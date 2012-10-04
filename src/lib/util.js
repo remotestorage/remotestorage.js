@@ -62,24 +62,15 @@ define([], function() {
 
       if(! loggers[name]) {
         loggers[name] = {
-          // Class: Logger
 
-          // Method: info
-          // Log to loglevel "info".
           info: function() {
             this.log('info', util.toArray(arguments));
           },
 
-          // Method: debug
-          // Log to loglevel "debug".
-          // Will use the browser's debug logging facility, if available.
           debug: function() {
             this.log('debug', util.toArray(arguments), 'debug');
           },
 
-          // Method: debug
-          // Log to loglevel "error".
-          // Will use the browser's error logging facility, if available.
           error: function() {
             this.log('error', util.toArray(arguments), 'error');
           },
@@ -138,6 +129,20 @@ define([], function() {
       this.unsilenceLogger.apply(this, knownLoggers);
     }
   }
+
+  // Class: Logger
+  //
+  // Method: info
+  // Log to loglevel "info".
+  //
+  // Method: debug
+  // Log to loglevel "debug".
+  // Will use the browser's debug logging facility, if available.
+  //
+  // Method: debug
+  // Log to loglevel "error".
+  // Will use the browser's error logging facility, if available.
+  //
 
   return util;
 });
