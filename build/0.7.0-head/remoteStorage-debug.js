@@ -454,6 +454,15 @@ define('lib/util',[], function() {
       return dir == path ? null : dir;
     },
 
+    baseName: function(path) {
+      var parts = path.split('/');
+      if(util.isDir(path)) {
+        return parts[parts.length-2]+'/';
+      } else {
+        return parts[parts.length-1];
+      }
+    },
+
     // Method: getLogger
     //
     // Get a logger with a given name.
@@ -698,7 +707,7 @@ define('lib/platform',['./util'], function(util) {
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
           params.success(xhr.responseText, browserParseHeaders(xhr.getAllResponseHeaders()));
         } else {
-          params.error(xhr.status);
+          params.error(xhr.status || 'unknown error');
         }
       }
     }
@@ -1918,9 +1927,15 @@ define('lib/store',['./util'], function (util) {
   //   childName - name of the child who's change has been propagated
   //
   function clearDiff(path, childName) {
+    logger.debug('clearDiff', path, childName);
     var node = getNode(path);
     delete node.diff[childName];
     updateNode(path, node, false, true);//meta
+
+    var parentPath;
+    if(Object.keys(node.diff).length === 0 && (parentPath = util.containingDir(path))) {
+      clearDiff(parentPath, util.baseName(path));
+    }
   }
 
   return {
@@ -1991,6 +2006,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
             childData = JSON.stringify(childData);
           }
           wireClient.set(dirPath+i, childData, childNode.mimeType, function(err) {
+            if(err) {
+              logger.error('wireclient said error', err);
+            }
             finishOne(err);
           });
         }
@@ -2006,7 +2024,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
         } else {
           clearCb(i);
         }
-      } else if(remote[i] === cached[i]) {//can either be same timestamp or both undefined
+      } else {
         clearCb(i);
       }
     }
@@ -2037,6 +2055,31 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     }
   }
 
+  function hasDiff(parentPath, path) {
+    var parent = store.getNode(parentPath),
+        fname = getFileName(path);
+    return !! parent.diff[fname];
+  }
+
+  function pushNode(path, finishOne) {
+    logger.debug('pushNode', path);
+    var parentPath = util.containingDir(path);
+    if(hasDiff(parentPath, path)) {
+      logger.debug('pushNode!', path);
+      var data = store.getNodeData(path);
+      var node = store.getNode(path);
+      wireClient.set(path, data, node.mimeType, function(err) {
+        logger.debug("wire client set result", arguments);
+        if(! err) {
+          store.clearDiff(parentPath, fname);
+        } else {
+          logger.error('pushNode', err);
+        }
+        finishOne(err);
+      });
+    }
+  }
+
   function pullNode(path, force, access, startOne, finishOne) {
     var thisNode = store.getNode(path);
     var thisData = store.getNodeData(path);
@@ -2058,24 +2101,23 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 
     if(force || access) {
       wireClient.get(path, function(err, data) {
+        console.log("WIRE CLIENT SAID ERR", err);
         if(!err && data) {
           if(isDir) {
             dirMerge(path, data, thisData, thisNode.diff, force, access, startOne, finishOne, function(i) {
               store.clearDiff(path, i);
             });
           } else {
-            var parentPath = util.containingDir(path), parent = store.getNode(parentPath), fname = getFileName(path);
-            if(parent.diff[fname]) {
-              wireClient.set(path, thisData, thisNode.mimeType, function(err) {
-                if(! err) {
-                  store.clearDiff(parentPath, fname);
-                }
-                finishOne(err);
-              });
-              return;
-            } else {
-              store.setNodeData(path, data, false);
+            store.setNodeData(path, data, false);
+          }
+        } else {
+          if(isDir) {
+            for(var key in thisData) {
+              startOne();
+              pushNode(path + key, finishOne);
             }
+          } else {
+            pushNode(path, finishOne);
           }
         }
         
@@ -3436,7 +3478,7 @@ define('remoteStorage',[
 
     nodeConnect: nodeConnect,
 
-    util: util
+    util: util,
 
   };
 
