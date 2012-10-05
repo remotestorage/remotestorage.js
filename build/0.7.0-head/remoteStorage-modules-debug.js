@@ -2067,6 +2067,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
             var parentPath = util.containingDir(path), parent = store.getNode(parentPath), fname = getFileName(path);
             if(parent.diff[fname]) {
               wireClient.set(path, thisData, thisNode.mimeType, function(err) {
+                if(! err) {
+                  store.clearDiff(parentPath, fname);
+                }
                 finishOne(err);
               });
               return;
@@ -2227,7 +2230,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       return setWidgetState('typing')
     }
 
-    var userAddress = localStorage['remote_storage_widget_useraddress'];
+    var userAddress = localStorage['remote_storage_widget_useraddress'] || 'me@local.dev';
     var html = 
       '<style>'+assets.widgetCss+'</style>'
       +'<div id="remotestorage-state" class="'+state+'">'
