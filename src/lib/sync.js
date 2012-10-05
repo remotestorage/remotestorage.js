@@ -128,6 +128,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
             var parentPath = util.containingDir(path), parent = store.getNode(parentPath), fname = getFileName(path);
             if(parent.diff[fname]) {
               wireClient.set(path, thisData, thisNode.mimeType, function(err) {
+                if(! err) {
+                  store.clearDiff(parentPath, fname);
+                }
                 finishOne(err);
               });
               return;

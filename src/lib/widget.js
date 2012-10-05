@@ -45,7 +45,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       return setWidgetState('typing')
     }
 
-    var userAddress = localStorage['remote_storage_widget_useraddress'];
+    var userAddress = localStorage['remote_storage_widget_useraddress'] || 'me@local.dev';
     var html = 
       '<style>'+assets.widgetCss+'</style>'
       +'<div id="remotestorage-state" class="'+state+'">'
