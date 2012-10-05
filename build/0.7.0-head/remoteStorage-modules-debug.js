@@ -1662,6 +1662,9 @@ define('lib/store',['./util'], function (util) {
   //   a node object. If no node is found at the given path, a new empty
   //   node object is constructed instead.
   function getNode(path) {
+    if(! path) {
+      throw "No path given!";
+    }
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodes+path);
     var value;
@@ -1987,8 +1990,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
           if(typeof(childData) === 'object') {
             childData = JSON.stringify(childData);
           }
-          wireClient.set(dirPath+i, childData, 'application/json', function(err) {
-            finishOne();
+          wireClient.set(dirPath+i, childData, childNode.mimeType, function(err) {
+            finishOne(err);
           });
         }
       }
@@ -2009,15 +2012,24 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     }
   }
 
+  function getFileName(path) {
+    var parts = path.split('/');
+    if(util.isDir(path)) {
+      return parts[parts.length-2]+'/';
+    } else {
+      return parts[parts.length-1];
+    }
+  }
+
   function findForce(path, node) {
     console.log("findForce", path, node);
     if(! node) {
       return null;
     } else if(! node.startForce) {
       var parentPath = util.containingDir(path);
-      if(parentPath == path) {
+      if((!path) || (parentPath == path)) {
         return false;
-      } else {
+      } else if(parentPath) {
         return findForce(parentPath, store.getNode(parentPath));
       }
     } else {
@@ -2052,12 +2064,20 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
               store.clearDiff(path, i);
             });
           } else {
-            store.setNodeData(path, data, false);
+            var parentPath = util.containingDir(path), parent = store.getNode(parentPath), fname = getFileName(path);
+            if(parent.diff[fname]) {
+              wireClient.set(path, thisData, thisNode.mimeType, function(err) {
+                finishOne(err);
+              });
+              return;
+            } else {
+              store.setNodeData(path, data, false);
+            }
           }
         }
         
         finishOne(err);
-
+        
       });
 
       return;
@@ -2509,6 +2529,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
   }
 
   function fireChange(moduleName, eventObj) {
+    logger.debug("FIRE CHANGE", moduleName, eventObj);
     if(moduleName && moduleChangeHandlers[moduleName]) {
       for(var i=0; i<moduleChangeHandlers[moduleName].length; i++) {
         moduleChangeHandlers[moduleName][i](eventObj);
@@ -2524,7 +2545,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
 
   store.on('change', function(e) {
     var moduleName = extractModuleName(e.path);
-    fireChange(moduleName, e);//window-, device- and cloud-based changes all get fired from the store.
+    fireChange(moduleName, e);//remote-based changes get fired from the store.
     fireChange('root', e);//root module gets everything
   });
 
@@ -2561,6 +2582,12 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
 
   var BaseClient = function(moduleName, isPublic) {
     this.moduleName = moduleName, this.isPublic = isPublic;
+
+    for(var key in this) {
+      if(typeof(this[key]) === 'function') {
+        this[key] = bindContext(this[key], this);
+      }
+    }
   }
 
   // Class: BaseClient
@@ -5144,7 +5171,6 @@ define('modules/bookmarks',['../remoteStorage'], function(remoteStorage) {
     moduleName,
     function(privateClient, publicClient) {
 
-      // privateClient.sync('');
       // publicClient.sync('');
 
       return {
@@ -5183,6 +5209,7 @@ define('modules/bookmarks',['../remoteStorage'], function(remoteStorage) {
             keys.forEach(function(key) {
               bms.push(privateClient.getObject(key));
             });
+            privateClient.sync('');
             return bms;
           },
           
