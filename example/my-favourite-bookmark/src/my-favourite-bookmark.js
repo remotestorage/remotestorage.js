@@ -1,6 +1,6 @@
 (function() {
 
-  remoteStorage.claimAccess('bookmarks');
+  remoteStorage.claimAccess('bookmarks', 'rw');
 
   window.onload = function() {
     remoteStorage.displayWidget('remotestorage-widget');

@@ -51,8 +51,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
           if(typeof(childData) === 'object') {
             childData = JSON.stringify(childData);
           }
-          wireClient.set(dirPath+i, childData, 'application/json', function(err) {
-            finishOne();
+          wireClient.set(dirPath+i, childData, childNode.mimeType, function(err) {
+            finishOne(err);
           });
         }
       }
@@ -73,15 +73,24 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     }
   }
 
+  function getFileName(path) {
+    var parts = path.split('/');
+    if(util.isDir(path)) {
+      return parts[parts.length-2]+'/';
+    } else {
+      return parts[parts.length-1];
+    }
+  }
+
   function findForce(path, node) {
     console.log("findForce", path, node);
     if(! node) {
       return null;
     } else if(! node.startForce) {
       var parentPath = util.containingDir(path);
-      if(parentPath == path) {
+      if((!path) || (parentPath == path)) {
         return false;
-      } else {
+      } else if(parentPath) {
         return findForce(parentPath, store.getNode(parentPath));
       }
     } else {
@@ -116,12 +125,20 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
               store.clearDiff(path, i);
             });
           } else {
-            store.setNodeData(path, data, false);
+            var parentPath = util.containingDir(path), parent = store.getNode(parentPath), fname = getFileName(path);
+            if(parent.diff[fname]) {
+              wireClient.set(path, thisData, thisNode.mimeType, function(err) {
+                finishOne(err);
+              });
+              return;
+            } else {
+              store.setNodeData(path, data, false);
+            }
           }
         }
         
         finishOne(err);
-
+        
       });
 
       return;
