@@ -1,1 +1,1 @@
-../../build/latest/remoteStorage-modules.js
+../../../build/latest/remoteStorage-modules-debug.js

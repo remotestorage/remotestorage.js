@@ -59,6 +59,9 @@ define(['./util'], function (util) {
   //   a node object. If no node is found at the given path, a new empty
   //   node object is constructed instead.
   function getNode(path) {
+    if(! path) {
+      throw "No path given!";
+    }
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodes+path);
     var value;

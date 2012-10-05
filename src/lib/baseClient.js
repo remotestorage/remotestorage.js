@@ -28,6 +28,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
   }
 
   function fireChange(moduleName, eventObj) {
+    logger.debug("FIRE CHANGE", moduleName, eventObj);
     if(moduleName && moduleChangeHandlers[moduleName]) {
       for(var i=0; i<moduleChangeHandlers[moduleName].length; i++) {
         moduleChangeHandlers[moduleName][i](eventObj);
@@ -43,7 +44,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
 
   store.on('change', function(e) {
     var moduleName = extractModuleName(e.path);
-    fireChange(moduleName, e);//window-, device- and cloud-based changes all get fired from the store.
+    fireChange(moduleName, e);//remote-based changes get fired from the store.
     fireChange('root', e);//root module gets everything
   });
 
@@ -80,6 +81,12 @@ define(['./sync', './store', './util'], function (sync, store, util) {
 
   var BaseClient = function(moduleName, isPublic) {
     this.moduleName = moduleName, this.isPublic = isPublic;
+
+    for(var key in this) {
+      if(typeof(this[key]) === 'function') {
+        this[key] = bindContext(this[key], this);
+      }
+    }
   }
 
   // Class: BaseClient
