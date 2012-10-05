@@ -31,9 +31,11 @@ var specHelper = (function() {
     getPublicBaseClient: function(moduleName) {
       return testEnv.publicBaseClients[moduleName];
     },
-    getStub: function(moduleName, stubName) {
+    getStub: function(moduleName, stubName, reset) {
       var stub = testEnv.files[moduleName].stubs[stubName];
-      stub.reset();
+      if(reset || (typeof(reset) === 'undefined')) {
+        stub.reset();
+      }
       return stub;
     }
   };

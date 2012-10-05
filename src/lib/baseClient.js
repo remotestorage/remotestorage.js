@@ -48,7 +48,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
   });
 
   function set(path, absPath, valueStr) {
-    if(isDir(absPath)) {
+    if(util.isDir(absPath)) {
       fireError('attempt to set a value to a directory '+absPath);
       return;
     }
@@ -76,16 +76,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //sync.syncNow(path);
   }
 
-  function isDir(path) {
-    if(typeof(path) != 'string') {
-      doSomething();
-    }
-    return (path.substr(-1)=='/');
-  }
 
-  function containingDir(path) {
-    return path.replace(/[^\/]+$/, '');
-  }
 
   var BaseClient = function(moduleName, isPublic) {
     this.moduleName = moduleName, this.isPublic = isPublic;
@@ -346,7 +337,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     remove: function(path, callback, context) {
       this.ensureAccess('w');
       set(path, this.makePath(path), undefined);
-      this.syncNow(containingDir(path), callback, context);
+      this.syncNow(util.containingDir(path), callback, context);
     },
 
     //
@@ -440,10 +431,6 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       return base + this.makePath(path);
     },
 
-    getCurrentWebRoot: function() {
-      return 'https://example.com/this/is/an/example/'+(this.isPublic?'public/':'')+this.moduleName+'/';
-    },
-
     //
     // Method: sync
     //
@@ -483,9 +470,6 @@ define(['./sync', './store', './util'], function (sync, store, util) {
           fireError(errors);
         }
       });
-    },
-
-    getState: function(path) {
     }
   };
 

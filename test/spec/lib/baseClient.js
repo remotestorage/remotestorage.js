@@ -1,30 +1,77 @@
 
 (function() {
 
-  describe('baseClient', function() {
-    var baseClient;
+  describe('BaseClient', function() {
+    var BaseClient, baseClient, storeStub, client, storeChangehandler;
 
     beforeEach(function() {
-      baseClient = specHelper.getFile('baseClient');
+      storeStub = specHelper.getStub('baseClient', 'store', false);
+      BaseClient = specHelper.getFile('baseClient');
+      baseClient = new BaseClient('test');
+
+      storeStub.getCalled().forEach(function(call) {
+        if(call.name === 'on' && call.params[0] === 'change') {
+          storeChangeHandler = call.params[1];
+        }
+      });
     });
 
-    xdescribe('claimAccess', function() {});
-    xdescribe('getInstance', function() {});
+    it("is listening for store change events", function() {
+      expect(storeChangeHandler).not.toBe(undefined);
+      expect(typeof storeChangeHandler).toEqual('function');
+    });
 
-    describe('BaseClient', function() {
+    describe('on', function() {
 
-      xdescribe('on', function() {});
-      xdescribe('getObject', function() {});
-      xdescribe('getListing', function() {});
-      xdescribe('getDocument', function() {});
-      xdescribe('remove', function() {});
-      xdescribe('storeObject', function() {});
-      xdescribe('storeDocument', function() {});
-      xdescribe('getItemURL', function() {});
-      xdescribe('sync', function() {});
-      xdescribe('syncNow', function() {});
+      describe("change event", function() {
+        var called;
+
+        beforeEach(function() {
+          called = [];
+          baseClient.on("change", function() {
+            called.push(Array.prototype.slice.call(arguments));
+          });
+        });
+
+        it("gets fired, when there is a change event from store", function() {
+          var evt = {
+            path: "/test/foo/bar",
+            oldValue: "foo",
+            newValue: "bar",
+            origin: "window"
+          };
+          storeChangeHandler(evt);
+          expect(called.length).toEqual(1);
+          expect(called[0]).toEqual([evt]);
+        });
+
+        // BROKEN!!!!!
+        // it("gets fired, when data is being updated", function() {
+        //   var cbCalled = false;
+        //   waitsFor(function() { return cbCalled === true; },
+        //            'storeObject');
+        //   baseClient.storeObject('test-object', 'foo/bar', {
+        //     value: 'baz'
+        //   } , function() {
+        //     cbCalled = true;
+        //     expect(called.length).toEqual(1);
+        //     console.log('CALLED', called);
+        //   });
+        // });
+
+      });
 
     });
+
+    describe('getObject', function() {});
+    describe('getListing', function() {});
+    describe('getDocument', function() {});
+    describe('remove', function() {});
+    describe('storeObject', function() {});
+    describe('storeDocument', function() {});
+    describe('getItemURL', function() {});
+    describe('sync', function() {});
+    describe('syncNow', function() {});
 
   });
 
