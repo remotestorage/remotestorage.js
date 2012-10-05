@@ -434,10 +434,21 @@ define('lib/util',[], function() {
       return Array.prototype.slice.call(arrayLike);
     },
 
+    // Method: isDir
+    // Convenience method to check if given path is a directory.
     isDir: function(path) {
       return path.substr(-1) == '/';
     },
 
+    // Method: containingDir
+    // Calculate the parent path of the given path, by stripping the last part.
+    //
+    // Parameters:
+    //   path - any path, absolute or relative.
+    //
+    // Returns:
+    //   the parent path or *null*, if the given path is a root ("" or "/")
+    //
     containingDir: function(path) {
       var dir = path.replace(/[^\/]+\/?$/, '');
       return dir == path ? null : dir;
@@ -447,6 +458,13 @@ define('lib/util',[], function() {
     //
     // Get a logger with a given name.
     // Usually this only happens once per file.
+    //
+    // Parameters:
+    //   name - name of the logger. usually the name of the file this method
+    //          is called from.
+    //
+    // Returns:
+    //   A logger object
     //
     getLogger: function(name) {
 
@@ -519,6 +537,20 @@ define('lib/util',[], function() {
       this.unsilenceLogger.apply(this, knownLoggers);
     }
   }
+
+  // Class: Logger
+  //
+  // Method: info
+  // Log to loglevel "info".
+  //
+  // Method: debug
+  // Log to loglevel "debug".
+  // Will use the browser's debug logging facility, if available.
+  //
+  // Method: debug
+  // Log to loglevel "error".
+  // Will use the browser's error logging facility, if available.
+  //
 
   return util;
 });
@@ -1308,7 +1340,7 @@ define('lib/getputdelete',
         if(err == 404) {
           cb(null, undefined);
         } else {
-          if(url.substr(-1)=='/') {
+          if(util.isDir(url)) {
             try {
               data = JSON.parse(data);
             } catch (e) {
@@ -1588,6 +1620,7 @@ define('lib/store',['./util'], function (util) {
   //
   // Event: change
   // See <BaseClient.Events>
+  //
   // Event: error
   // See <BaseClient.Events>
 
@@ -1619,6 +1652,15 @@ define('lib/store',['./util'], function (util) {
     }
   }
 
+  // Method: getNode
+  // get a node's metadata
+  //
+  // Parameters:
+  //   path - absolute path
+  //
+  // Returns:
+  //   a node object. If no node is found at the given path, a new empty
+  //   node object is constructed instead.
   function getNode(path) {
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodes+path);
@@ -1627,6 +1669,8 @@ define('lib/store',['./util'], function (util) {
       try {
         value = JSON.parse(valueStr);
       } catch(e) {
+        logger.error("Invalid node data in store: ", valueStr);
+        // invalid JSON data is treated like a node that doesn't exist.
       }
     }
     if(!value) {
@@ -1641,6 +1685,7 @@ define('lib/store',['./util'], function (util) {
     }
     return value;
   }
+
   function getFileName(path) {
     var parts = path.split('/');
     if(util.isDir(path)) {
@@ -1649,6 +1694,7 @@ define('lib/store',['./util'], function (util) {
       return parts[parts.length-1];
     }
   }
+
   function getCurrTimestamp() {
     return new Date().getTime();
   }
@@ -1678,20 +1724,6 @@ define('lib/store',['./util'], function (util) {
     }
   }
 
-  // Function: updateNode
-  //
-  // (internal) update a node's metadata
-  //
-  // Parameters:
-  //   path      - absolute path from the storage root
-  //   node      - either a node object or undefined
-  //   outgoing  - boolean, whether this update is to be propagated (PUT)
-  //   meta      - boolean, whether this is only a change in metadata
-  //   timestamp - timestamp to set for the update
-  //
-  // Fires:
-  //   change    - (with origin=remote) if meta and outgoing are both false
-  //
   function updateNode(path, node, outgoing, meta, timestamp) {
     validPath(path);
     if(node) {
@@ -1700,36 +1732,40 @@ define('lib/store',['./util'], function (util) {
       localStorage.removeItem(prefixNodes+path);
     }
     var containingDir = util.containingDir(path);
+
     if(containingDir) {
+
       var parentNode=getNode(containingDir);
       var parentData = getNodeData(containingDir) || {};
+      var baseName = getFileName(path);
+
       if(meta) {
-        if(! (parentData && parentData[getFileName(path)])) {
-          parentData[getFileName(path)] = 0;
+        if(! (parentData && parentData[baseName])) {
+          parentData[baseName] = 0;
           updateNodeData(containingDir, parentData);
         }
         updateNode(containingDir, parentNode, false, true, timestamp);
       } else if(outgoing) {
         if(node) {
-          parentData[getFileName(path)] = new Date().getTime();
+          parentData[baseName] = getCurrTimestamp();
         } else {
-          delete parentData[getFileName(path)];
+          delete parentData[baseName];
         }
-        parentNode.diff[getFileName(path)] = new Date().getTime();
+        parentNode.diff[baseName] = getCurrTimestamp();
         updateNodeData(containingDir, parentData);
         updateNode(containingDir, parentNode, true, false, timestamp);
       } else {//incoming
         if(node) {//incoming add or change
-          if(!parentData[getFileName(path)] || parentData[getFileName(path)] < timestamp) {
-            parentData[getFileName(path)] = timestamp;
-            delete parentNode.diff[getFileName(path)];
+          if(!parentData[baseName] || parentData[baseName] < timestamp) {
+            parentData[baseName] = timestamp;
+            delete parentNode.diff[baseName];
             updateNodeData(containingDir, parentData);
             updateNode(containingDir, parentNode, false, false, timestamp);
           }
         } else {//incoming deletion
-          if(parentData[getFileName(path)]) {
-            delete parentData[getFileName(path)];
-            delete parentNode.diff[getFileName(path)];
+          if(parentData[baseName]) {
+            delete parentData[baseName];
+            delete parentNode.diff[baseName];
             updateNodeData(containingDir, parentData);
             updateNode(containingDir, parentNode, false, false, timestamp);
           }
@@ -1746,19 +1782,34 @@ define('lib/store',['./util'], function (util) {
       }
     }
   }
+
+  // Method: forget
+  // Forget node at given path
+  //
+  // Parameters:
+  //   path - absolute path
   function forget(path) {
     validPath(path);
     localStorage.removeItem(prefixNodes+path);
+    localStorage.removeItem(prefixNodesData+path);
   }
+
+  // Method: forgetAll
+  // Forget all data stored by <store>.
+  //
   function forgetAll() {
     for(var i=0; i<localStorage.length; i++) {
-      if(localStorage.key(i).substr(0, prefixNodes.length) == prefixNodes) {
+      if(localStorage.key(i).substr(0, prefixNodes.length) == prefixNodes ||
+         localStorage.key(i).substr(0, prefixNodesData.length) == prefixNodesData) {
         localStorage.removeItem(localStorage.key(i));
         i--;
       }
     }
   }
 
+  // Method: on
+  // Install an event handler
+  //
   function on(eventName, cb) {
     if(eventName == 'change') {
       onChange.push(cb);
@@ -1768,10 +1819,21 @@ define('lib/store',['./util'], function (util) {
       throw("Unknown event: " + eventName);
     }
   }
-  function getState(path) {
-    return 'disconnected';
-  }
 
+  // Function: setNodeData
+  //
+  // update a node's metadata
+  //
+  // Parameters:
+  //   path      - absolute path from the storage root
+  //   data      - node data to set, or undefined to delete the node
+  //   outgoing  - boolean, whether this update is to be propagated
+  //   timestamp - timestamp to set for the update
+  //   mimeType  - MIME media type of the node's data
+  //
+  // Fires:
+  //   change w/ origin=remote - unless this is an outgoing change
+  //
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
     if(!mimeType) {
@@ -1779,12 +1841,17 @@ define('lib/store',['./util'], function (util) {
     }
     node.mimeType = mimeType;
     if(!timestamp) {
-      timestamp = new Date().getTime();
+      timestamp = getCurrTimestamp();
     }
     updateNodeData(path, data);
     updateNode(path, (data ? node : undefined), outgoing, false, timestamp);
   }
 
+  // Method: getNodeData
+  // get a node's data
+  //
+  // Parameters:
+  //   path - absolute path
   function getNodeData(path) {
     logger.info('GET', path);
     validPath(path);
@@ -1805,6 +1872,14 @@ define('lib/store',['./util'], function (util) {
     }
   }
 
+  // Method: setNodeAccess
+  //
+  // Set startAccess flag on a node.
+  //
+  // Parameters:
+  //   path  - absolute path to the node
+  //   claim - claim to set. Either "r" or "rw"
+  //
   function setNodeAccess(path, claim) {
     var node = getNode(path);
     if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
@@ -1812,16 +1887,39 @@ define('lib/store',['./util'], function (util) {
       updateNode(path, node, false, true);//meta
     }
   }
+
+  // Method: setNodeForce
+  //
+  // Set startForce flag on a node.
+  //
+  // Parameters:
+  //   path  - absolute path to the node
+  //   force - value to set for the force flag (boolean)
+  //
   function setNodeForce(path, force) {
     var node = getNode(path);
     node.startForce = force;
     updateNode(path, node, false, true);//meta
   }
-  function clearDiff(path, i) {
+
+  // Method: clearDiff
+  //
+  // Clear current diff on the node. This only applies to
+  // directory nodes.
+  //
+  // Clearing the diff is usually done, once the changes have been
+  // propagated through sync.
+  //
+  // Parameters:
+  //   path      - absolute path to the directory node
+  //   childName - name of the child who's change has been propagated
+  //
+  function clearDiff(path, childName) {
     var node = getNode(path);
-    delete node.diff[i];
+    delete node.diff[childName];
     updateNode(path, node, false, true);//meta
   }
+
   return {
     on            : on,//error,change(origin=tab,device,cloud)
 
@@ -1972,6 +2070,11 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       }
     }
 
+    // this is an edge case, reached when all of the following are true:
+    // * this is NOT a directory node
+    // * neither this node nor any of it's parent have startForce set
+    // * this node doesn't have it's startAccess flag set
+    // * neither 'force' nor 'access' are forced by this pullNode call
     finishOne();
 
   }
@@ -2074,6 +2177,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     authDialogStrategy = 'redirect',
     authPopupRef,
     scopesObj = {};
+
+  var popupSettings = 'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,width=820,height=800,top=0,left=0';
+
   var logger = util.getLogger('widget');
   function translate(text) {
     return text;
@@ -2096,6 +2202,11 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     return widgetState;
   }
   function displayWidgetState(state, userAddress) {
+    if(state === 'authing') {
+      platform.alert("Authentication was aborted. Please try again.");
+      return setWidgetState('typing')
+    }
+
     var userAddress = localStorage['remote_storage_widget_useraddress'];
     var html = 
       '<style>'+assets.widgetCss+'</style>'
@@ -2107,7 +2218,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
       +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br/>Click for more info on the Unhosted movement.</span>'//info text
       //+'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <input id="remotestorage-useraddress" type="text" value="me@local.dev" placeholder="you@remotestorage" autofocus="" />'//text input
+      +'  <input id="remotestorage-useraddress" type="text" value="' + userAddress + '" placeholder="you@remotestorage" autofocus="" />'//text input
       +'  <a class="infotext" href="http://remotestoragejs.com/" target="_blank" id="remotestorage-devsonly">RemoteStorageJs is still in developer preview!<br/>Click for more info.</a>'
       +'</div>';
     platform.setElementHTML(connectElement, html);
@@ -2118,9 +2229,11 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     platform.eltOn('remotestorage-useraddress', 'type', handleWidgetTypeUserAddress);
   }
   function handleRegisterButtonClick() {
-    var win = window.open('http://unhosted.org/en/a/register.html', 'Get your remote storage',
-      'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,'
-      +'width=820,height=800,top=0,left=0');
+    window.open(
+      'http://unhosted.org/en/a/register.html',
+      'Get your remote storage',
+      popupSettings
+    );
   }
   function redirectUriToClientId(loc) {
     //TODO: add some serious unit testing to this function
@@ -2156,7 +2269,11 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   // 
 
   function prepareAuthPopup() { // in parent window
-    authPopupRef = window.open(document.location, 'remotestorageAuthPopup', 'dependent=yes,width=500,height=400');
+    authPopupRef = window.open(
+      document.location,
+      'remotestorageAuthPopup',
+      popupSettings + ',dependent=yes'
+    );
     window.remotestorageTokenReceived = function() {
       delete window.remotestorageTokenReceived;
       setWidgetStateOnLoad();
@@ -2252,7 +2369,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       discoverStorageInfo(userAddress, function(err, auth) {
         if(err) {
           platform.alert('webfinger discovery failed! (sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo)');
-          closeAuthPopup();
+          if(authDialogStrategy == 'popup') {
+            closeAuthPopup();
+          }
           setWidgetState('failed');
         } else {
           dance(auth);
@@ -2410,7 +2529,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
   });
 
   function set(path, absPath, valueStr) {
-    if(isDir(absPath)) {
+    if(util.isDir(absPath)) {
       fireError('attempt to set a value to a directory '+absPath);
       return;
     }
@@ -2438,16 +2557,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     //sync.syncNow(path);
   }
 
-  function isDir(path) {
-    if(typeof(path) != 'string') {
-      doSomething();
-    }
-    return (path.substr(-1)=='/');
-  }
 
-  function containingDir(path) {
-    return path.replace(/[^\/]+$/, '');
-  }
 
   var BaseClient = function(moduleName, isPublic) {
     this.moduleName = moduleName, this.isPublic = isPublic;
@@ -2708,7 +2818,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     remove: function(path, callback, context) {
       this.ensureAccess('w');
       set(path, this.makePath(path), undefined);
-      this.syncNow(containingDir(path), callback, context);
+      this.syncNow(util.containingDir(path), callback, context);
     },
 
     //
@@ -2802,10 +2912,6 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
       return base + this.makePath(path);
     },
 
-    getCurrentWebRoot: function() {
-      return 'https://example.com/this/is/an/example/'+(this.isPublic?'public/':'')+this.moduleName+'/';
-    },
-
     //
     // Method: sync
     //
@@ -2845,9 +2951,6 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
           fireError(errors);
         }
       });
-    },
-
-    getState: function(path) {
     }
   };
 
@@ -2874,7 +2977,7 @@ define('lib/nodeConnect',['./wireClient', './webfinger'], function(wireClient, w
   //       console.log("Connected!");
   //
   //       // it's your responsibility to make sure the token given above
-  //       // actually allows gives you that access. this like is just to
+  //       // actually allows gives you that access. this line is just to
   //       // inform remoteStorage.js about it:
   //       remoteStorage.claimAccess('contacts', 'r');
   //
@@ -3279,9 +3382,23 @@ define('remoteStorage',[
     //
     //    (using the same markup as above)
     //
+    //    > remoteStorage.displayWidget('remotestorage-connect', { authDialog: 'popup' });
     //    
     displayWidget    : widget.display,
 
+    // Method: getWidgetState
+    //
+    // Get the widget state, reflecting the general connection state.
+    //
+    // Defined widget states are:
+    //   anonymous  - initial state
+    //   typing     - userAddress input visible, user typing her address.
+    //   connecting - pre-authentication, webfinger discovery.
+    //   authing    - about to redirect to the auth endpoint (if authDialog=popup,
+    //                means the popup is open)
+    //   connected  - Discovery & Auth done, connected to remotestorage.
+    //   busy       - Currently exchaning data. (spinning cube)
+    //
     getWidgetState   : widget.getState,
     setStorageInfo   : wireClient.setStorageInfo,
     getStorageHref   : wireClient.getStorageHref,
