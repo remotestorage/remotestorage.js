@@ -2894,8 +2894,9 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
       }
       obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+this.moduleName+'/'+type;
       set(path, this.makePath(path), obj, 'application/json');
-      this.sync(path);
-      this.syncNow(path, callback, context);
+      var parentPath = util.containingDir(path);
+      this.sync(parentPath);
+      this.syncNow(parentPath, callback, context);
     },
 
     //
