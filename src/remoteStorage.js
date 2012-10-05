@@ -366,7 +366,7 @@ define([
 
     nodeConnect: nodeConnect,
 
-    util: util
+    util: util,
 
   };
 

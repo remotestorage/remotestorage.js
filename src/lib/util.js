@@ -46,6 +46,15 @@ define([], function() {
       return dir == path ? null : dir;
     },
 
+    baseName: function(path) {
+      var parts = path.split('/');
+      if(util.isDir(path)) {
+        return parts[parts.length-2]+'/';
+      } else {
+        return parts[parts.length-1];
+      }
+    },
+
     // Method: getLogger
     //
     // Get a logger with a given name.
