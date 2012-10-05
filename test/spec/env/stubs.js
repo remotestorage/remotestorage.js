@@ -36,6 +36,8 @@ function makeStub(name) {
       this.stub[name] = function() {
         if(typeof(numExports) === 'function') {
           return numExports.apply(this, arguments);
+        } else if(numExports === 'forward') { 
+          return testEnv.files[obj.name].module[name].apply(this, arguments);
         } else {
           var a = [];
           for(var i=0;i<numExports;i++) {

@@ -134,6 +134,11 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       }
     }
 
+    // this is an edge case, reached when all of the following are true:
+    // * this is NOT a directory node
+    // * neither this node nor any of it's parent have startForce set
+    // * this node doesn't have it's startAccess flag set
+    // * neither 'force' nor 'access' are forced by this pullNode call
     finishOne();
 
   }
