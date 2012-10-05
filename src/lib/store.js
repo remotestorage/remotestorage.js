@@ -315,9 +315,15 @@ define(['./util'], function (util) {
   //   childName - name of the child who's change has been propagated
   //
   function clearDiff(path, childName) {
+    logger.debug('clearDiff', path, childName);
     var node = getNode(path);
     delete node.diff[childName];
     updateNode(path, node, false, true);//meta
+
+    var parentPath;
+    if(Object.keys(node.diff).length === 0 && (parentPath = util.containingDir(path))) {
+      clearDiff(parentPath, util.baseName(path));
+    }
   }
 
   return {

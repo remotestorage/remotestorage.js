@@ -140,7 +140,7 @@ define(['./util'], function(util) {
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
           params.success(xhr.responseText, browserParseHeaders(xhr.getAllResponseHeaders()));
         } else {
-          params.error(xhr.status);
+          params.error(xhr.status || 'unknown error');
         }
       }
     }
