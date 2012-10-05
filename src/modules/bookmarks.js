@@ -33,7 +33,7 @@ define(['../remoteStorage'], function(remoteStorage) {
             var keys = privateClient.getListing('');
             var urls = [];
             keys.forEach(function(key) {
-              urls.push(privateClient.get(key).url);
+              urls.push(privateClient.getObject(key).url);
             });
             return urls;
           },
