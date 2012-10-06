@@ -1363,6 +1363,9 @@ define('lib/getputdelete',
     }
 
     function put(url, value, mimeType, token, cb) {
+      if(typeof(value) !== 'string') {
+        cb("invalid value given to PUT, only strings allowed, got " + typeof(value));
+      }
 
       if(! value) {
         cb("no value set");
@@ -1869,13 +1872,15 @@ define('lib/store',['./util'], function (util) {
   //
   // Parameters:
   //   path - absolute path
-  function getNodeData(path) {
+  //   raw  - (optional) if given and true, don't attempt to unpack JSON data
+  //
+  function getNodeData(path, raw) {
     logger.info('GET', path);
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodesData+path);
     var node = getNode(path);
     if(valueStr) {
-      if(node.mimeType == "application/json") {
+      if((!raw) && (node.mimeType == "application/json")) {
         try {
           return JSON.parse(valueStr);
         } catch(exc) {
@@ -2071,7 +2076,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     var fname = getFileName(path)
     if(hasDiff(parentPath, fname)) {
       logger.debug('pushNode!', path);
-      var data = store.getNodeData(path);
+      var data = store.getNodeData(path, true);
       var node = store.getNode(path);
       if(! data) {
         console.error("ATTEMPTED TO PUSH EMPTY DATA", node, data);
