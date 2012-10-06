@@ -440,7 +440,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     },
 
     //
-    // Method: sync
+    // Method: use
     //
     // Force given path to be synchronized in the future.
     //
@@ -453,9 +453,14 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   path      - path relative to the module root
     //   switchVal - optional boolean flag to set force value. Use "false" to remove the force flag.
     //
-    sync: function(path, switchVal) {
+    use: function(path, switchVal) {
       var absPath = this.makePath(path);
       store.setNodeForce(absPath, (switchVal != false));
+    },
+
+    sync: function() {
+      util.deprecate('BaseClient.sync', 'BaseClient.use');
+      this.use.apply(this, arguments);
     },
 
     //
