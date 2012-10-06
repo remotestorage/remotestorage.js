@@ -1363,6 +1363,11 @@ define('lib/getputdelete',
     }
 
     function put(url, value, mimeType, token, cb) {
+
+      if(! value) {
+        cb("no value set");
+      }
+
       logger.info('calling PUT '+url, ' (' + value.length + ')');
       doCall('PUT', url, value, mimeType, token, function(err, data) {
         //logger.debug('cb from PUT '+url);
