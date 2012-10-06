@@ -11,8 +11,13 @@ define(['../remoteStorage'], function(remoteStorage) {
     //
     // Example:
     //   (start code)
+    //
+    //   remoteStorage.claimAccess('tasks', 'rw');
+    //
+    //   remoteStorage.displayWidget('remotestorage-connect');
+    //
     //   // open a task list (you can have multiple task lists, see dataHints for naming suggestions)
-    //   var todos = remoteStorage.tasks.getPrivateList(listName);
+    //   var todos = remoteStorage.tasks.getPrivateList('todos');
     //
     //   function printTasks() {
     //     // get all task ids...
@@ -31,7 +36,7 @@ define(['../remoteStorage'], function(remoteStorage) {
     //   // see the result
     //   printTasks();
     //
-    //   mark the first task as completed (after all, by copying this code you create a unhosted webapp)
+    //   // mark the first task as completed (after all, by copying this code you create a unhosted webapp)
     //   todos.markCompleted(todos.getIds()[0]);
     //
     //   // see what changed
