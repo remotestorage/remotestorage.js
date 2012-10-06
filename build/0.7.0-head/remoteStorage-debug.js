@@ -2068,6 +2068,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       logger.debug('pushNode!', path);
       var data = store.getNodeData(path);
       var node = store.getNode(path);
+      if(! data) {
+        console.error("ATTEMPTED TO PUSH EMPTY DATA", node, data);
+      }
       wireClient.set(path, data, node.mimeType, function(err) {
         logger.debug("wire client set result", arguments);
         if(! err) {
