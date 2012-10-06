@@ -56,9 +56,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
   }
 
-  function setWidgetState(state) {
+  function setWidgetState(state, updateView) {
     widgetState = state;
-    displayWidgetState(state, userAddress);
+    if(updateView !== false) {
+      displayWidgetState(state, userAddress);
+    }
     fireState(state);
   }
 
@@ -250,6 +252,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     if(widgetState == 'connected') {
       wireClient.disconnectRemote();
       store.forgetAll();
+      // trigger 'disconnected' once, so the app can clear it's views.
+      setWidgetState('disconnected', true);
       setWidgetState('anonymous');
     } else {
       platform.alert('you cannot disconnect now, please wait until the cloud is up to date...');
