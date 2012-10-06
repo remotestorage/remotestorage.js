@@ -258,11 +258,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     });
   }
   function handleCubeClick() {
-    sync.syncNow('/', function(errors) {
-    });
-    //if(widgetState == 'connected') {
-    //  handleDisconnectClick();
-    //}
+    if(widgetState == 'connected') {
+     handleDisconnectClick();
+    }
   }
   function handleWidgetTypeUserAddress(event) {
     if(event.keyCode === 13) {
