@@ -2066,8 +2066,13 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     return !! parent.diff[fname];
   }
 
-  function pushNode(path, finishOne) {
+  function pushNode(path, startOne, finishOne) {
     if(util.isDir(path)) {
+      var dirData = store.getNodeData(path);
+      for(var key in dirData) {
+        startOne();
+        pushNode(path + key, startOne, finishOne);
+      }
       return;
     }
     logger.debug('pushNode', path);
@@ -2123,14 +2128,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
             store.setNodeData(path, data, false);
           }
         } else {
-          if(isDir) {
-            for(var key in thisData) {
-              startOne();
-              pushNode(path + key, finishOne);
-            }
-          } else {
-            pushNode(path, finishOne);
-          }
+          pushNode(path, startOne, finishOne);
         }
         
         finishOne(err);
