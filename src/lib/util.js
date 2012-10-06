@@ -55,6 +55,10 @@ define([], function() {
       }
     },
 
+    deprecate: function(methodName, replacement) {
+      console.log('WARNING: ' + methodName + ' is deprecated, use ' + replacement + ' instead');
+    },
+
     // Method: getLogger
     //
     // Get a logger with a given name.
