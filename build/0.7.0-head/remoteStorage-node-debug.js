@@ -2232,6 +2232,12 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   // The remotestorage widget.
   //
   // See <remoteStorage.displayWidget>
+  //
+  //
+  // Event: state
+  //
+  // Fired when the widget state changes.
+  // See <remoteStorage.getWidgetState> for available events.
 
   
 
@@ -2241,7 +2247,8 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     userAddress,
     authDialogStrategy = 'redirect',
     authPopupRef,
-    scopesObj = {};
+    scopesObj = {},
+    stateChangeHandlers = [];
 
   var popupSettings = 'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,width=820,height=800,top=0,left=0';
 
@@ -2249,23 +2256,43 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   function translate(text) {
     return text;
   }
-  function calcWidgetStateOnLoad() {
+
+  function calcWidgetState() {
     var wireClientState = wireClient.getState();
     if(wireClientState == 'connected') {
       return sync.getState();// 'connected', 'busy'
     }
     return wireClientState;//'connected', 'authing', 'anonymous'
   }
+
   function setWidgetStateOnLoad() {
-    setWidgetState(calcWidgetStateOnLoad());
+    setWidgetState(calcWidgetState());
   }
+
+  function fireState(state) {
+    for(var i=0;i<stateChangeHandlers.length;i++) {
+      stateChangeHandlers[i](state);
+    }
+  }
+
+  function on(eventType, callback) {
+    if(eventType === 'state') {
+      stateChangeHandlers.push(callback);
+    } else {
+      throw "Unknown event type: " + eventType;
+    }
+  }
+
   function setWidgetState(state) {
     widgetState = state;
     displayWidgetState(state, userAddress);
+    fireState(state);
   }
+
   function getWidgetState() {
     return widgetState;
   }
+
   function displayWidgetState(state, userAddress) {
     if(state === 'authing') {
       platform.alert("Authentication was aborted. Please try again.");
@@ -2433,7 +2460,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       }
       discoverStorageInfo(userAddress, function(err, auth) {
         if(err) {
-          platform.alert('webfinger discovery failed! (sorry this is still a developer preview! developers, point local.dev to 127.0.0.1, then run sudo node server/nodejs-example.js from the repo)');
+          platform.alert('webfinger discovery failed! Please check if your user address is correct. If the problem persists, contact your storage provider for support. (Error is: ' + err);
           if(authDialogStrategy == 'popup') {
             closeAuthPopup();
           }
@@ -2540,7 +2567,8 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   return {
     display : display,
     addScope: addScope,
-    getState: getWidgetState
+    getState: getWidgetState,
+    on: on
   };
 });
 
@@ -3459,12 +3487,24 @@ define('remoteStorage',[
     //    
     displayWidget    : widget.display,
 
+    //
+    // Method: onWidget
+    //
+    // Add event handler to the widget.
+    // See <widget.Events> for available Events.
+    //
+    // Parameters:
+    //   eventType - type of event to add handler to
+    //   handler   - handler function
+    //
+    onWidget: widget.on,
+
     // Method: getWidgetState
     //
     // Get the widget state, reflecting the general connection state.
     //
     // Defined widget states are:
-    //   anonymous  - initial state
+    //   anonymous  - initial state / disconnected
     //   typing     - userAddress input visible, user typing her address.
     //   connecting - pre-authentication, webfinger discovery.
     //   authing    - about to redirect to the auth endpoint (if authDialog=popup,
