@@ -11,8 +11,12 @@ if (browserType) {document.write("<div class=" + browserType + ">");if (browserV
 
 
 
-<div id=Content><div class="CClass"><div class=CTopic id=MainTopic><h1 class=CTitle><a name="remoteStorage.tasks"></a>remoteStorage.<wbr>tasks</h1><div class=CBody><p>tasks are things that need doing; items on your todo list</p><h4 class=CHeading>Example</h4><blockquote><pre class="prettyprint">// open a task list (you can have multiple task lists, see dataHints for naming suggestions)
-var todos = remoteStorage.tasks.getPrivateList(listName);
+<div id=Content><div class="CClass"><div class=CTopic id=MainTopic><h1 class=CTitle><a name="remoteStorage.tasks"></a>remoteStorage.<wbr>tasks</h1><div class=CBody><p>tasks are things that need doing; items on your todo list</p><h4 class=CHeading>Example</h4><blockquote><pre class="prettyprint">remoteStorage.claimAccess('tasks', 'rw');
+
+remoteStorage.displayWidget('remotestorage-connect');
+
+// open a task list (you can have multiple task lists, see dataHints for naming suggestions)
+var todos = remoteStorage.tasks.getPrivateList('todos');
 
 function printTasks() {
   // get all task ids...
@@ -31,7 +35,7 @@ todos.add(&quot;Scientifically overcome the existence of dirty laundry&quot;);
 // see the result
 printTasks();
 
-mark the first task as completed (after all, by copying this code you create a unhosted webapp)
+// mark the first task as completed (after all, by copying this code you create a unhosted webapp)
 todos.markCompleted(todos.getIds()[0]);
 
 // see what changed
