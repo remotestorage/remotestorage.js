@@ -101,16 +101,16 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     }
   }
 
-  function hasDiff(parentPath, path) {
-    var parent = store.getNode(parentPath),
-        fname = getFileName(path);
+  function hasDiff(parentPath, fname) {
+    var parent = store.getNode(parentPath);
     return !! parent.diff[fname];
   }
 
   function pushNode(path, finishOne) {
     logger.debug('pushNode', path);
     var parentPath = util.containingDir(path);
-    if(hasDiff(parentPath, path)) {
+    var fname = getFileName(path)
+    if(hasDiff(parentPath, fname)) {
       logger.debug('pushNode!', path);
       var data = store.getNodeData(path);
       var node = store.getNode(path);
