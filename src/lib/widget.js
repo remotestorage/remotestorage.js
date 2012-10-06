@@ -249,15 +249,13 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
   }
   function handleDisconnectClick() {
-    if(widgetState == 'connected') {
+    sync.syncNow('/', function() {
       wireClient.disconnectRemote();
       store.forgetAll();
       // trigger 'disconnected' once, so the app can clear it's views.
       setWidgetState('disconnected', true);
       setWidgetState('anonymous');
-    } else {
-      platform.alert('you cannot disconnect now, please wait until the cloud is up to date...');
-    }
+    });
   }
   function handleCubeClick() {
     sync.syncNow('/', function(errors) {
