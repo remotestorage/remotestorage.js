@@ -2237,7 +2237,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   // Event: state
   //
   // Fired when the widget state changes.
-  // See <remoteStorage.getWidgetState> for available events.
+  // See <remoteStorage.getWidgetState> for available states.
 
   
 
@@ -2283,9 +2283,11 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
   }
 
-  function setWidgetState(state) {
+  function setWidgetState(state, updateView) {
     widgetState = state;
-    displayWidgetState(state, userAddress);
+    if(updateView !== false) {
+      displayWidgetState(state, userAddress);
+    }
     fireState(state);
   }
 
@@ -2477,6 +2479,8 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     if(widgetState == 'connected') {
       wireClient.disconnectRemote();
       store.forgetAll();
+      // trigger 'disconnected' once, so the app can clear it's views.
+      setWidgetState('disconnected', true);
       setWidgetState('anonymous');
     } else {
       platform.alert('you cannot disconnect now, please wait until the cloud is up to date...');

@@ -2237,7 +2237,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   // Event: state
   //
   // Fired when the widget state changes.
-  // See <remoteStorage.getWidgetState> for available events.
+  // See <remoteStorage.getWidgetState> for available states.
 
   
 
@@ -2283,9 +2283,11 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
   }
 
-  function setWidgetState(state) {
+  function setWidgetState(state, updateView) {
     widgetState = state;
-    displayWidgetState(state, userAddress);
+    if(updateView !== false) {
+      displayWidgetState(state, userAddress);
+    }
     fireState(state);
   }
 
@@ -2477,6 +2479,8 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     if(widgetState == 'connected') {
       wireClient.disconnectRemote();
       store.forgetAll();
+      // trigger 'disconnected' once, so the app can clear it's views.
+      setWidgetState('disconnected', true);
       setWidgetState('anonymous');
     } else {
       platform.alert('you cannot disconnect now, please wait until the cloud is up to date...');
@@ -5028,8 +5032,13 @@ define('modules/tasks',['../remoteStorage'], function(remoteStorage) {
     //
     // Example:
     //   (start code)
+    //
+    //   remoteStorage.claimAccess('tasks', 'rw');
+    //
+    //   remoteStorage.displayWidget('remotestorage-connect');
+    //
     //   // open a task list (you can have multiple task lists, see dataHints for naming suggestions)
-    //   var todos = remoteStorage.tasks.getPrivateList(listName);
+    //   var todos = remoteStorage.tasks.getPrivateList('todos');
     //
     //   function printTasks() {
     //     // get all task ids...
@@ -5048,7 +5057,7 @@ define('modules/tasks',['../remoteStorage'], function(remoteStorage) {
     //   // see the result
     //   printTasks();
     //
-    //   mark the first task as completed (after all, by copying this code you create a unhosted webapp)
+    //   // mark the first task as completed (after all, by copying this code you create a unhosted webapp)
     //   todos.markCompleted(todos.getIds()[0]);
     //
     //   // see what changed
