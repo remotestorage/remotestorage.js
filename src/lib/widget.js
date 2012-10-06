@@ -10,7 +10,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   // Event: state
   //
   // Fired when the widget state changes.
-  // See <remoteStorage.getWidgetState> for available events.
+  // See <remoteStorage.getWidgetState> for available states.
 
   "use strict";
 
