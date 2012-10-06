@@ -107,6 +107,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   }
 
   function pushNode(path, finishOne) {
+    if(util.isDir(path)) {
+      return;
+    }
     logger.debug('pushNode', path);
     var parentPath = util.containingDir(path);
     var fname = getFileName(path)

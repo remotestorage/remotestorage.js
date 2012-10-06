@@ -60,18 +60,10 @@ define(
         cb("invalid value given to PUT, only strings allowed, got " + typeof(value));
       }
 
-      if(! value) {
-        cb("no value set");
-      }
-
       logger.info('calling PUT '+url, ' (' + value.length + ')');
       doCall('PUT', url, value, mimeType, token, function(err, data) {
         //logger.debug('cb from PUT '+url);
-        if(err == 404) {
-          doPut(url, value, token, 1, cb);
-        } else {
-          cb(err, data);
-        }
+        cb(err, data);
       });
     }
 
