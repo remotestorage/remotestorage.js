@@ -56,6 +56,9 @@ define(
     }
 
     function put(url, value, mimeType, token, cb) {
+      if(typeof(value) !== 'string') {
+        cb("invalid value given to PUT, only strings allowed, got " + typeof(value));
+      }
 
       if(! value) {
         cb("no value set");

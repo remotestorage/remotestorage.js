@@ -112,7 +112,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     var fname = getFileName(path)
     if(hasDiff(parentPath, fname)) {
       logger.debug('pushNode!', path);
-      var data = store.getNodeData(path);
+      var data = store.getNodeData(path, true);
       var node = store.getNode(path);
       if(! data) {
         console.error("ATTEMPTED TO PUSH EMPTY DATA", node, data);
