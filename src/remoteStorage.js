@@ -347,12 +347,24 @@ define([
     //    
     displayWidget    : widget.display,
 
+    //
+    // Method: onWidget
+    //
+    // Add event handler to the widget.
+    // See <widget.Events> for available Events.
+    //
+    // Parameters:
+    //   eventType - type of event to add handler to
+    //   handler   - handler function
+    //
+    onWidget: widget.on,
+
     // Method: getWidgetState
     //
     // Get the widget state, reflecting the general connection state.
     //
     // Defined widget states are:
-    //   anonymous  - initial state
+    //   anonymous  - initial state / disconnected
     //   typing     - userAddress input visible, user typing her address.
     //   connecting - pre-authentication, webfinger discovery.
     //   authing    - about to redirect to the auth endpoint (if authDialog=popup,
