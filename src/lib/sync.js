@@ -86,7 +86,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   }
 
   function findForce(path, node) {
-    console.log("findForce", path, node);
     if(! node) {
       return null;
     } else if(! node.startForce) {
@@ -123,7 +122,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       var data = store.getNodeData(path, true);
       var node = store.getNode(path);
       if(! data) {
-        console.error("ATTEMPTED TO PUSH EMPTY DATA", node, data);
+        logger.error("ATTEMPTED TO PUSH EMPTY DATA", node, data);
+        return;
       }
       wireClient.set(path, data, node.mimeType, function(err) {
         logger.debug("wire client set result", arguments);
@@ -158,7 +158,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
     if(force || access) {
       wireClient.get(path, function(err, data) {
-        console.log("WIRE CLIENT SAID ERR", err);
         if(!err && data) {
           if(isDir) {
             dirMerge(path, data, thisData, thisNode.diff, force, access, startOne, finishOne, function(i) {
@@ -249,7 +248,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         if(callback) {
           callback(errors.length > 0 ? errors : null);
         } else {
-          console.log('syncNow done');
+          logger.info('syncNow done');
         }
       }
     }

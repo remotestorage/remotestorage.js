@@ -12,7 +12,6 @@ define(['./getputdelete'], function (getputdelete) {
   }
 
   function fireConnected() {
-    console.log("FIRE CONNECTED", connectedCbs);
     for(var i=0;i<connectedCbs.length;i++) {
       connectedCbs[i].apply(null, arguments);
     }
