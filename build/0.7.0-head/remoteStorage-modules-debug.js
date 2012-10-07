@@ -419,7 +419,7 @@ define('lib/util',[], function() {
 
   var loggers = {}, silentLogger = {};
 
-  var knownLoggers = ['sync', 'webfinger', 'getputdelete', 'platform', 'baseClient', 'widget'];
+  var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform', 'baseClient', 'widget', 'store'];
 
   var util = {
 
@@ -464,8 +464,58 @@ define('lib/util',[], function() {
       }
     },
 
+    bindAll: function(object) {
+      for(var key in object) {
+        if(typeof(object[key]) === 'function') {
+          object[key] = this.bindContext(object[key], object);
+        }
+      }
+      return object;
+    },
+
+    bindContext: function(callback, context) {
+      if(context) {
+        return function() { return callback.apply(context, arguments); };
+      } else {
+        return callback;
+      }
+    },
+
     deprecate: function(methodName, replacement) {
       console.log('WARNING: ' + methodName + ' is deprecated, use ' + replacement + ' instead');
+    },
+
+    getEventEmitter: function() {
+
+      return this.bindAll({
+
+        _handlers: (function() {
+          var eventNames = Array.prototype.slice.call(arguments);
+          var handlers = {};
+          eventNames.forEach(function(name) {
+            handlers[name] = [];
+          });
+          return handlers;
+        }).apply(null, arguments),
+
+        emit: function(eventName) {
+          var handlerArgs = Array.prototype.slice.call(arguments, 1);
+          if(this._handlers[eventName]) {
+            this._handlers[eventName].forEach(function(handler) {
+              handler.apply(null, handlerArgs);
+            });
+          }
+        },
+
+        on: function(eventName, handler) {
+          if(! this._handlers[eventName]) {
+            throw "Unknown event: " + eventName;
+          }
+          this._handlers[eventName].push(handler);
+        }
+
+      });
+
     },
 
     // Method: getLogger
@@ -1639,30 +1689,22 @@ define('lib/store',['./util'], function (util) {
 
   var logger = util.getLogger('store');
 
+  var events = util.getEventEmitter('change', 'error');
+
   var onChange=[], onError=[],
     prefixNodes = 'remote_storage_nodes:',
     prefixNodesData = 'remote_storage_node_data:';
+
   if(typeof(window) !== 'undefined') {
     window.addEventListener('storage', function(e) {
       if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
         e.path = e.key.substring(prefixNodes.length);
         if(!util.isDir(e.path)) {
           e.origin='device';
-          fireChange(e);
+          events.emit('change', e);
         }
       }
     });
-  }
-  function fireChange(e) {
-    for(var i=0; i<onChange.length; i++) {
-      onChange[i](e);
-    }
-  }
-
-  function fireError(e) {
-    for(var i=0; i<onError.length; i++) {
-      onError[i](e);
-    }
   }
 
   // Method: getNode
@@ -1787,7 +1829,7 @@ define('lib/store',['./util'], function (util) {
           }
         }
         if(path.substr(-1)!='/') {
-          fireChange({
+          events.emit('change', {
             path: path,
             origin: 'remote',
             oldValue: undefined,
@@ -1820,19 +1862,6 @@ define('lib/store',['./util'], function (util) {
         localStorage.removeItem(localStorage.key(i));
         i--;
       }
-    }
-  }
-
-  // Method: on
-  // Install an event handler
-  //
-  function on(eventName, cb) {
-    if(eventName == 'change') {
-      onChange.push(cb);
-    } else if(eventName == 'error') {
-      onError.push(cb);
-    } else {
-      throw("Unknown event: " + eventName);
     }
   }
 
@@ -1880,7 +1909,7 @@ define('lib/store',['./util'], function (util) {
         try {
           return JSON.parse(valueStr);
         } catch(exc) {
-          fireError("Invalid JSON node at " + path + ": " + valueStr);
+          events.emit('error', "Invalid JSON node at " + path + ": " + valueStr);
         }
       }
 
@@ -1945,7 +1974,10 @@ define('lib/store',['./util'], function (util) {
   }
 
   return {
-    on            : on,//error,change(origin=tab,device,cloud)
+    // Method: on
+    // Install an event handler
+    //
+    on            : events.on,
 
     getNode       : getNode,
     getNodeData   : getNodeData,
@@ -1969,9 +2001,10 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 
   var sync; // set below.
 
-  var prefix = '_remoteStorage_', busy=false, stateCbs=[], syncOkNow=true;
+  var prefix = '_remoteStorage_', busy=false, syncOkNow=true;
 
   var logger = util.getLogger('sync');
+  var events = util.getEventEmitter('state');
 
   function getState(path) {//should also distinguish between synced and locally modified for the path probably
     if(busy) {
@@ -1982,18 +2015,10 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   }
   function setBusy(val) {
     busy=val;
-    for(var i=0;i<stateCbs.length;i++) {
-      stateCbs[i](val?'busy':'connected');
-    }
 
-    if(! val) {
-    }
+    events.emit('state', val ? 'busy' : 'connected');
   }
-  function on(eventType, cb) {
-    if(eventType=='state') {
-      stateCbs.push(cb);
-    }
-  }
+
   function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne, clearCb) {
     for(var i in remote) {
       if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {//should probably include force and keep in this decision
@@ -2001,7 +2026,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       }
     }
     for(var i in cached) {
-      if(!remote[i] || cached[i] > remote[i]) {
+      if(!remote[i] && !diff[i]) { // incoming delete
+        store.forget(dirPath + i);
+      } else if(!remote[i] || cached[i] > remote[i]) {
         if(util.isDir(i)) {
           pullNode(dirPath+i, force, access, startOne, finishOne);
         } else {//recurse
@@ -2227,7 +2254,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     syncNow: syncNow,
     fetchNow: fetchNow,
     getState : getState,
-    on: on
+    on: events.on
   };
 
   return sync;
@@ -2256,8 +2283,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     userAddress,
     authDialogStrategy = 'redirect',
     authPopupRef,
-    scopesObj = {},
-    stateChangeHandlers = [];
+    scopesObj = {};
+
+  var events = util.getEventEmitter('state');
 
   var popupSettings = 'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,width=820,height=800,top=0,left=0';
 
@@ -2278,26 +2306,12 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     setWidgetState(calcWidgetState());
   }
 
-  function fireState(state) {
-    for(var i=0;i<stateChangeHandlers.length;i++) {
-      stateChangeHandlers[i](state);
-    }
-  }
-
-  function on(eventType, callback) {
-    if(eventType === 'state') {
-      stateChangeHandlers.push(callback);
-    } else {
-      throw "Unknown event type: " + eventType;
-    }
-  }
-
   function setWidgetState(state, updateView) {
     widgetState = state;
     if(updateView !== false) {
       displayWidgetState(state, userAddress);
     }
-    fireState(state);
+    events.emit('state', state);
   }
 
   function getWidgetState() {
@@ -2519,6 +2533,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     connectElement = setConnectElement;
 
     wireClient.on('connected', function() {
+      setWidgetState('connected');
       sync.syncNow('/', function(err) {
         if(err) {
           logger.error("Initial sync failed: ", err)
@@ -2577,7 +2592,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     display : display,
     addScope: addScope,
     getState: getWidgetState,
-    on: on
+    on: events.on
   };
 });
 
@@ -2587,17 +2602,8 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
 
   
 
-  var moduleChangeHandlers = {}, errorHandlers = [];
-
   var logger = util.getLogger('baseClient');
-
-  function bindContext(callback, context) {
-    if(context) {
-      return function() { return callback.apply(context, arguments); };
-    } else {
-      return callback;
-    }
-  }
+  var moduleEvents = {};
 
   function extractModuleName(path) {
     if (path && typeof(path) == 'string') {
@@ -2611,17 +2617,8 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
   }
 
   function fireChange(moduleName, eventObj) {
-    logger.debug("FIRE CHANGE", moduleName, eventObj);
-    if(moduleName && moduleChangeHandlers[moduleName]) {
-      for(var i=0; i<moduleChangeHandlers[moduleName].length; i++) {
-        moduleChangeHandlers[moduleName][i](eventObj);
-      }
-    }
-  }
-
-  function fireError(str) {
-    for(var i=0;i<errorHandlers.length;i++) {
-      errorHandlers[i](str);
+    if(moduleEvents[moduleName]) {
+      moduleEvents[moduleName].emit('change', eventObj);
     }
   }
 
@@ -2632,11 +2629,12 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
   });
 
   function set(path, absPath, valueStr) {
+    var moduleName = extractModuleName(absPath);
     if(util.isDir(absPath)) {
-      fireError('attempt to set a value to a directory '+absPath);
+      moduleEvents[moduleName].emit('error', 'attempt to set a value to a directory '+absPath);
       return;
     }
-    var  node = store.getNode(absPath);
+    var node = store.getNode(absPath);
     var changeEvent = {
       origin: 'window',
       oldValue: store.getNodeData(absPath),
@@ -2644,32 +2642,14 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
       path: path
     };
     store.setNodeData(absPath, valueStr, true);
-    var moduleName = extractModuleName(absPath);
     fireChange(moduleName, changeEvent);
     fireChange('root', changeEvent);
   }
 
-  /**
-     @method claimAccess
-     @param {String} path Absolute path to claim access on.
-     @param {String} claim Mode to claim ('r' or 'rw')
-     @memberof module:baseClient
-  */
-  function claimAccess(path, claim) {
-    store.setNodeAccess(path, claim);
-    //sync.syncNow(path);
-  }
-
-
-
   var BaseClient = function(moduleName, isPublic) {
     this.moduleName = moduleName, this.isPublic = isPublic;
-
-    for(var key in this) {
-      if(typeof(this[key]) === 'function') {
-        this[key] = bindContext(this[key], this);
-      }
-    }
+    moduleEvents[moduleName] = util.getEventEmitter('change');
+    util.bindAll(this);
   }
 
   // Class: BaseClient
@@ -2763,18 +2743,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     //   context   - (optional) context to bind handler to
     //  
     on: function(eventType, handler, context) {
-      if(eventType=='change') {
-        if(this.moduleName) {
-          if(!moduleChangeHandlers[this.moduleName]) {
-            moduleChangeHandlers[this.moduleName]=[];
-          }
-          moduleChangeHandlers[this.moduleName].push(bindContext(handler, context));
-        }
-      } else if(eventType == 'error') {
-        errorHandlers.push(bindContext(handler, context));
-      } else {
-        throw "No such event type: " + eventType;
-      }
+      moduleEvents[this.moduleName].on(eventType, util.bindContext(handler, context));
     },
 
     //
@@ -2823,7 +2792,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
           if(data && (typeof(data) == 'object')) {
             delete data['@type'];
           }
-          bindContext(callback, context)(data);
+          util.bindContext(callback, context)(data);
         });
       } else {
         var node = store.getNode(absPath);
@@ -2862,7 +2831,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
           for(var i in data) {
             arr.push(i);
           }
-          bindContext(callback, context)(arr);
+          util.bindContext(callback, context)(arr);
         });
       } else {
         var node = store.getNode(absPath);
@@ -2899,7 +2868,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
       var absPath = this.makePath(path);
       if(callback) {
         sync.fetchNow(absPath, function(err, node) {
-          bindContext(callback, context)({
+          util.bindContext(callback, context)({
             mimeType: node.mimeType,
             data: store.getNodeData(absPath)
           });
@@ -3060,12 +3029,17 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     //   context  - (optional) context to bind callback to.
     //
     syncNow: function(path, callback, context) {
-      sync.syncNow(this.makePath(path), callback ? bindContext(callback, context) : function(errors) {
-        if(errors && errors.length > 0) {
-          logger.error("Error syncing: ", errors);
-          fireError(errors);
-        }
-      });
+      sync.syncNow(
+        this.makePath(path),
+        ( callback ?
+          util.bindContext(callback, context) :
+          util.bindContext(function(errors) {
+            if(errors && errors.length > 0) {
+              logger.error("Error syncing: ", errors);
+              moduleEvents[this.moduleName].emit('error', errors);
+            }
+          }, this) )
+      );
     }
   };
 
@@ -3705,7 +3679,7 @@ define('modules/root',['../remoteStorage'], function(remoteStorage) {
 
     return {
       exports: {
-        sync: function(path) { myPrivateBaseClient.sync(path) },
+        use: function(path) { myPrivateBaseClient.use(path) },
         getListing: getListing,
         getObject: getObject,
         setObject: setObject,
