@@ -9,9 +9,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
   var sync; // set below.
 
-  var prefix = '_remoteStorage_', busy=false, stateCbs=[], syncOkNow=true;
+  var prefix = '_remoteStorage_', busy=false, syncOkNow=true;
 
   var logger = util.getLogger('sync');
+  var events = util.getEventEmitter('state');
 
   function getState(path) {//should also distinguish between synced and locally modified for the path probably
     if(busy) {
@@ -22,18 +23,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   }
   function setBusy(val) {
     busy=val;
-    for(var i=0;i<stateCbs.length;i++) {
-      stateCbs[i](val?'busy':'connected');
-    }
 
-    if(! val) {
-    }
+    events.emit('state', val ? 'busy' : 'connected');
   }
-  function on(eventType, cb) {
-    if(eventType=='state') {
-      stateCbs.push(cb);
-    }
-  }
+
   function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne, clearCb) {
     for(var i in remote) {
       if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {//should probably include force and keep in this decision
@@ -41,7 +34,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       }
     }
     for(var i in cached) {
-      if(!remote[i] || cached[i] > remote[i]) {
+      if(!remote[i] && !diff[i]) { // incoming delete
+        store.forget(dirPath + i);
+      } else if(!remote[i] || cached[i] > remote[i]) {
         if(util.isDir(i)) {
           pullNode(dirPath+i, force, access, startOne, finishOne);
         } else {//recurse
@@ -267,7 +262,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     syncNow: syncNow,
     fetchNow: fetchNow,
     getState : getState,
-    on: on
+    on: events.on
   };
 
   return sync;

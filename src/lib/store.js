@@ -23,30 +23,22 @@ define(['./util'], function (util) {
 
   var logger = util.getLogger('store');
 
+  var events = util.getEventEmitter('change', 'error');
+
   var onChange=[], onError=[],
     prefixNodes = 'remote_storage_nodes:',
     prefixNodesData = 'remote_storage_node_data:';
+
   if(typeof(window) !== 'undefined') {
     window.addEventListener('storage', function(e) {
       if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
         e.path = e.key.substring(prefixNodes.length);
         if(!util.isDir(e.path)) {
           e.origin='device';
-          fireChange(e);
+          events.emit('change', e);
         }
       }
     });
-  }
-  function fireChange(e) {
-    for(var i=0; i<onChange.length; i++) {
-      onChange[i](e);
-    }
-  }
-
-  function fireError(e) {
-    for(var i=0; i<onError.length; i++) {
-      onError[i](e);
-    }
   }
 
   // Method: getNode
@@ -171,7 +163,7 @@ define(['./util'], function (util) {
           }
         }
         if(path.substr(-1)!='/') {
-          fireChange({
+          events.emit('change', {
             path: path,
             origin: 'remote',
             oldValue: undefined,
@@ -204,19 +196,6 @@ define(['./util'], function (util) {
         localStorage.removeItem(localStorage.key(i));
         i--;
       }
-    }
-  }
-
-  // Method: on
-  // Install an event handler
-  //
-  function on(eventName, cb) {
-    if(eventName == 'change') {
-      onChange.push(cb);
-    } else if(eventName == 'error') {
-      onError.push(cb);
-    } else {
-      throw("Unknown event: " + eventName);
     }
   }
 
@@ -264,7 +243,7 @@ define(['./util'], function (util) {
         try {
           return JSON.parse(valueStr);
         } catch(exc) {
-          fireError("Invalid JSON node at " + path + ": " + valueStr);
+          events.emit('error', "Invalid JSON node at " + path + ": " + valueStr);
         }
       }
 
@@ -329,7 +308,10 @@ define(['./util'], function (util) {
   }
 
   return {
-    on            : on,//error,change(origin=tab,device,cloud)
+    // Method: on
+    // Install an event handler
+    //
+    on            : events.on,
 
     getNode       : getNode,
     getNodeData   : getNodeData,

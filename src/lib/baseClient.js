@@ -4,17 +4,8 @@ define(['./sync', './store', './util'], function (sync, store, util) {
 
   "use strict";
 
-  var moduleChangeHandlers = {}, errorHandlers = [];
-
   var logger = util.getLogger('baseClient');
-
-  function bindContext(callback, context) {
-    if(context) {
-      return function() { return callback.apply(context, arguments); };
-    } else {
-      return callback;
-    }
-  }
+  var moduleEvents = {};
 
   function extractModuleName(path) {
     if (path && typeof(path) == 'string') {
@@ -28,17 +19,8 @@ define(['./sync', './store', './util'], function (sync, store, util) {
   }
 
   function fireChange(moduleName, eventObj) {
-    logger.debug("FIRE CHANGE", moduleName, eventObj);
-    if(moduleName && moduleChangeHandlers[moduleName]) {
-      for(var i=0; i<moduleChangeHandlers[moduleName].length; i++) {
-        moduleChangeHandlers[moduleName][i](eventObj);
-      }
-    }
-  }
-
-  function fireError(str) {
-    for(var i=0;i<errorHandlers.length;i++) {
-      errorHandlers[i](str);
+    if(moduleEvents[moduleName]) {
+      moduleEvents[moduleName].emit('change', eventObj);
     }
   }
 
@@ -49,11 +31,12 @@ define(['./sync', './store', './util'], function (sync, store, util) {
   });
 
   function set(path, absPath, valueStr) {
+    var moduleName = extractModuleName(absPath);
     if(util.isDir(absPath)) {
-      fireError('attempt to set a value to a directory '+absPath);
+      moduleEvents[moduleName].emit('error', 'attempt to set a value to a directory '+absPath);
       return;
     }
-    var  node = store.getNode(absPath);
+    var node = store.getNode(absPath);
     var changeEvent = {
       origin: 'window',
       oldValue: store.getNodeData(absPath),
@@ -61,32 +44,14 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       path: path
     };
     store.setNodeData(absPath, valueStr, true);
-    var moduleName = extractModuleName(absPath);
     fireChange(moduleName, changeEvent);
     fireChange('root', changeEvent);
   }
 
-  /**
-     @method claimAccess
-     @param {String} path Absolute path to claim access on.
-     @param {String} claim Mode to claim ('r' or 'rw')
-     @memberof module:baseClient
-  */
-  function claimAccess(path, claim) {
-    store.setNodeAccess(path, claim);
-    //sync.syncNow(path);
-  }
-
-
-
   var BaseClient = function(moduleName, isPublic) {
     this.moduleName = moduleName, this.isPublic = isPublic;
-
-    for(var key in this) {
-      if(typeof(this[key]) === 'function') {
-        this[key] = bindContext(this[key], this);
-      }
-    }
+    moduleEvents[moduleName] = util.getEventEmitter('change');
+    util.bindAll(this);
   }
 
   // Class: BaseClient
@@ -180,18 +145,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   context   - (optional) context to bind handler to
     //  
     on: function(eventType, handler, context) {
-      if(eventType=='change') {
-        if(this.moduleName) {
-          if(!moduleChangeHandlers[this.moduleName]) {
-            moduleChangeHandlers[this.moduleName]=[];
-          }
-          moduleChangeHandlers[this.moduleName].push(bindContext(handler, context));
-        }
-      } else if(eventType == 'error') {
-        errorHandlers.push(bindContext(handler, context));
-      } else {
-        throw "No such event type: " + eventType;
-      }
+      moduleEvents[this.moduleName].on(eventType, util.bindContext(handler, context));
     },
 
     //
@@ -240,7 +194,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
           if(data && (typeof(data) == 'object')) {
             delete data['@type'];
           }
-          bindContext(callback, context)(data);
+          util.bindContext(callback, context)(data);
         });
       } else {
         var node = store.getNode(absPath);
@@ -279,7 +233,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
           for(var i in data) {
             arr.push(i);
           }
-          bindContext(callback, context)(arr);
+          util.bindContext(callback, context)(arr);
         });
       } else {
         var node = store.getNode(absPath);
@@ -316,7 +270,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       var absPath = this.makePath(path);
       if(callback) {
         sync.fetchNow(absPath, function(err, node) {
-          bindContext(callback, context)({
+          util.bindContext(callback, context)({
             mimeType: node.mimeType,
             data: store.getNodeData(absPath)
           });
@@ -477,12 +431,17 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   context  - (optional) context to bind callback to.
     //
     syncNow: function(path, callback, context) {
-      sync.syncNow(this.makePath(path), callback ? bindContext(callback, context) : function(errors) {
-        if(errors && errors.length > 0) {
-          logger.error("Error syncing: ", errors);
-          fireError(errors);
-        }
-      });
+      sync.syncNow(
+        this.makePath(path),
+        ( callback ?
+          util.bindContext(callback, context) :
+          util.bindContext(function(errors) {
+            if(errors && errors.length > 0) {
+              logger.error("Error syncing: ", errors);
+              moduleEvents[this.moduleName].emit('error', errors);
+            }
+          }, this) )
+      );
     }
   };
 
