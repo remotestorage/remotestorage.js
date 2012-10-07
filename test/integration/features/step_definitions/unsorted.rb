@@ -1,6 +1,5 @@
 
 def eval_js(code)
-
   js = "(function() { try { return #{code}; } catch(exc) { return 'CUKE-ERR:' + exc; } })()"
 
   response = page.evaluate_script(js)
@@ -12,9 +11,14 @@ def eval_js(code)
   return response
 end
 
-Given(/^my localStorage is empty$/) do
+Given(/^(?:my localStorage is empty|I clear my localStorage)$/) do
   step("I am on the test app")
   page.evaluate_script('localStorage.clear();')
+end
+
+
+Given(/^(?:my remotestorage is empty|I clear my remotestorage)$/) do
+  Net::HTTP.start('local.dev') {|http| http.post('/reset', '') }
 end
 
 Given(/^I am on the test app$/) do
