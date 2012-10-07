@@ -253,6 +253,10 @@ define(['./util'], function (util) {
     }
   }
 
+  function removeNode(path) {
+    setNodeData(path, '', false);
+  }
+
   // Method: setNodeAccess
   //
   // Set startAccess flag on a node.
@@ -319,6 +323,7 @@ define(['./util'], function (util) {
     setNodeAccess : setNodeAccess,
     setNodeForce  : setNodeForce,
     clearDiff     : clearDiff,
+    removeNode    : removeNode,
     forget        : forget,
     forgetAll     : forgetAll
   };
