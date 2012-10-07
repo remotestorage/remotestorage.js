@@ -176,7 +176,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //
     //   It very much depends on your circumstances, but roughly put,
     //   * if you are interested in a whole *branch* of objects, then force
-    //     synchronization on the root of that branch using <BaseClient.sync>,
+    //     synchronization on the root of that branch using <BaseClient.use>,
     //     and after that use getObject *without* a callback to get your data from
     //     local cache.
     //   * if you only want to access a *single object* without syncing an entire
@@ -253,10 +253,30 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     },
 
     //
+    // Method: getAll
+    //
+    // Get all objects directly below a given path.
+    //
+    // Receives the same parameters as <getListing>
+    //
+    getAll: function(path, callback, context) {
+      var getOne = function(item) {
+        return this.getObject(path + item);
+      };
+      if(callback) {
+        this.getListing(path, function(listing) {
+          util.bindContext(callback, context)(listing.map(getOne));
+        }, this);
+      } else {
+        return this.getListing(path).map(getOne);
+      }
+    },
+
+    //
     // Method: getDocument
     //
     // Get the document at the given path. A Document is raw data, as opposed to
-    // a JSON object (use getObject for that).
+    // a JSON object (use <getObject> for that).
     //
     // Except for the return value structure, getDocument works exactly like
     // getObject.
