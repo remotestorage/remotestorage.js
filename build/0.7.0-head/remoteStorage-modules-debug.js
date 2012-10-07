@@ -388,10 +388,10 @@ define('lib/assets',[], function () {
       +'#remotestorage-connect-button, #remotestorage-questionmark, #remotestorage-register-button, #remotestorage-cube, #remotestorage-useraddress, #remotestorage-infotext, #remotestorage-devsonly, #remotestorage-disconnect { display:none }\n' 
       //in anonymous, interrupted, authing and failed state, display register-button, connect-button, cube, questionmark:
       +'#remotestorage-state.anonymous #remotestorage-cube, #remotestorage-state.anonymous #remotestorage-connect-button, #remotestorage-state.anonymous #remotestorage-register-button, #remotestorage-state.anonymous #remotestorage-questionmark { display: block }\n'
-      +'#remotestorage-state.connecting #remotestorage-cube, #remotestorage-state.connecting #remotestorage-connect-button, #remotestorage-state.connecting #remotestorage-register-button, #remotestorage-state.connecting #remotestorage-questionmark { display: block }\n'
+      +'#remotestorage-state.connecting #remotestorage-cube, #remotestorage-state.connecting #remotestorage-connect-button, #remotestorage-state.connecting #remotestorage-useraddress, #remotestorage-state.connecting #remotestorage-questionmark { display: block }\n'
       +'#remotestorage-state.interrupted #remotestorage-cube, #remotestorage-state.interrupted #remotestorage-connect-button, #remotestorage-state.interrupted #remotestorage-register-button, #remotestorage-state.interrupted #remotestorage-questionmark { display: block }\n'
       +'#remotestorage-state.failed #remotestorage-cube, #remotestorage-state.failed #remotestorage-connect-button, #remotestorage-state.failed #remotestorage-register-button, #remotestorage-state.failed #remotestorage-questionmark { display: block }\n'
-      +'#remotestorage-state.authing #remotestorage-cube, #remotestorage-state.authing #remotestorage-connect-button, #remotestorage-state.authing #remotestorage-register-button, #remotestorage-state.authing #remotestorage-questionmark { display: block }\n'
+      +'#remotestorage-state.authing #remotestorage-cube, #remotestorage-state.authing #remotestorage-connect-button, #remotestorage-state.authing #remotestorage-useraddress, #remotestorage-state.authing #remotestorage-questionmark { display: block }\n'
       //in typing state, display useraddress, connect-button, cube, questionmark:
       +'#remotestorage-state.typing #remotestorage-cube, #remotestorage-state.typing #remotestorage-connect-button, #remotestorage-state.typing #remotestorage-useraddress, #remotestorage-state.typing #remotestorage-questionmark { display: block }\n'
       //display the cube when in connected, busy or offline state:
@@ -1381,7 +1381,7 @@ define('lib/getputdelete',
           //logger.debug('doCall cb '+url, 'headers:', headers);
           cb(null, data, headers['Content-Type'] || defaultContentType);
         },
-        timeout: 3000
+        timeout: 5000
       }
 
       platformObj.headers = {
@@ -2037,6 +2037,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
         if(util.isDir(i)) {
           pullNode(dirPath+i, force, access, startOne, finishOne);
         } else {//recurse
+          logger.debug('dirMerge will push', cached[i], '>', remote[i]);
+
           var childNode = store.getNode(dirPath+i);
           var childData = store.getNodeData(dirPath + i);
           startOne();
@@ -2099,12 +2101,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 
   function pushNode(path, startOne, finishOne) {
     if(util.isDir(path)) {
-      var dirData = store.getNodeData(path);
-      for(var key in dirData) {
-        startOne();
-        pushNode(path + key, startOne, finishOne);
-      }
-      return;
+      var dirNode = store.getNode(path);
+      dirMerge(path, store.getNodeData(path), dirNode.diff, false, false, startOne, finishOne, function(i) { store.clearDiff(path, i); });
     }
     logger.debug('pushNode', path);
     var parentPath = util.containingDir(path);
@@ -2340,7 +2338,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
       +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br/>Click for more info on the Unhosted movement.</span>'//info text
       //+'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <input id="remotestorage-useraddress" type="text" value="' + userAddress + '" placeholder="user@host" autofocus="" />'//text input
+      +'  <input id="remotestorage-useraddress" ' + (state == 'connecting' || state == 'authing' ? 'disabled="disabled" ' : '') + 'type="text" value="' + userAddress + '" placeholder="user@host" autofocus="" />'//text input
       +'  <a class="infotext" href="http://remotestoragejs.com/" target="_blank" id="remotestorage-devsonly">RemoteStorageJs is still in developer preview!<br/>Click for more info.</a>'
       +'</div>';
     platform.setElementHTML(connectElement, html);
