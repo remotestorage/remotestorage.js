@@ -2868,10 +2868,10 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
       }
       if(callback) {
         this.getListing(path, function(listing) {
-          util.bindContext(callback, context)(listing.map(getOne, true));
+          util.bindContext(callback, context)(listing.map(getOne, this));
         }, this);
       } else {
-        return this.getListing(path).map(getOne, true);
+        return this.getListing(path).map(getOne, this);
       }
     },
 
