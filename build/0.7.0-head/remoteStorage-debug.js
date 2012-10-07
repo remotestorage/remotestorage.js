@@ -2625,7 +2625,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     if(moduleEvents[moduleName]) {
 
       if(moduleName !== 'root') {
-        eventObj.relativePath = eventObj.path.replace(new RegExp('^/(?public/|)' + moduleName + '/'), '');
+        eventObj.relativePath = eventObj.path.replace(new RegExp('^/(?:public/|)' + moduleName + '/'), '');
       }
 
       moduleEvents[moduleName].emit('change', eventObj);
