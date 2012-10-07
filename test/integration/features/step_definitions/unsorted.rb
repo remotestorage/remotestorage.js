@@ -1,4 +1,17 @@
 
+def eval_js(code)
+
+  js = "(function() { try { return #{code}; } catch(exc) { return 'CUKE-ERR:' + exc; } })()"
+
+  response = page.evaluate_script(js)
+
+  if response =~ /^CUKE-ERR\:(.+)$/
+    raise "JS error: #{$~[1]}"
+  end
+
+  return response
+end
+
 Given(/^my localStorage is empty$/) do
   step("I am on the test app")
   page.evaluate_script('localStorage.clear();')
@@ -41,19 +54,24 @@ Then(/^I should end up on the test app$/) do
 end
 
 Then(/^the widget state should have changed to "([^"]*)"$/) do |state|
-  page.evaluate_script("remoteStorage.getWidgetState()").should eq state
+  eval_js("stateChanges").should include state
+  page.execute_script("clearStateChanges()")
 end
 
 When(/^I get the listing of "([^"]*)"$/) do |path|
-  @response = page.evaluate_script("remoteStorage.root.getListing('#{path}')")
+  @response = eval_js("remoteStorage.root.getListing('#{path}')")
 end
 
 When(/^I get the key "([^"]+)"$/) do |path|
-  @response = page.evaluate_script("remoteStorage.root.getObject('#{path}')")
+  @response = eval_js("remoteStorage.root.getObject('#{path}')")
 end
 
-When(/^I set the key "([^"]+)" of type "([^"]+)" to "([^"]+)"$/) do |key, type, value|
-  @response = page.evaluate_script("remoteStorage.root.setObject('#{type}', '#{key}', '#{value}')")
+When(/^I set the key "([^"]+)" of type "([^"]+)" to '([^']+)'$/) do |key, type, value|
+  eval_js("remoteStorage.root.setObject('#{type}', '#{key}', #{value})")
+end
+
+When(/^I remove the key "([^"]+)"$/) do |key|
+  eval_js("remoteStorage.root.removeObject('#{key}')")
 end
 
 Then(/^I should receive '([^']*)'$/) do |json|

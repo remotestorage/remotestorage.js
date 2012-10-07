@@ -14,7 +14,15 @@ Feature: GET / PUT / DELETE
     Then I should receive ''
 
   Scenario: Setting a key, then getting it
-    When I set the key "/foo" of type "dummy" to "bar"
+    When I set the key "/foo" of type "dummy" to '{"bar":"baz"}'
     And I get the key "/foo"
-    Then I should receive '"bar"'
+    Then I should receive '{"bar":"baz"}'
 
+
+  Scenario: Setting a key, then removing it
+    When I set the key "/foo" of type "dummy" to '{"bar":"baz"}'
+    And I get the key "/foo"
+    Then I should receive '{"bar":"baz"}'
+    When I remove the key "/foo"
+    And I get the key "/foo"
+    Then I should receive ''

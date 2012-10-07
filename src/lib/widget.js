@@ -20,8 +20,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     userAddress,
     authDialogStrategy = 'redirect',
     authPopupRef,
-    scopesObj = {},
-    stateChangeHandlers = [];
+    scopesObj = {};
+
+  var events = util.getEventEmitter('state');
 
   var popupSettings = 'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,width=820,height=800,top=0,left=0';
 
@@ -42,26 +43,12 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     setWidgetState(calcWidgetState());
   }
 
-  function fireState(state) {
-    for(var i=0;i<stateChangeHandlers.length;i++) {
-      stateChangeHandlers[i](state);
-    }
-  }
-
-  function on(eventType, callback) {
-    if(eventType === 'state') {
-      stateChangeHandlers.push(callback);
-    } else {
-      throw "Unknown event type: " + eventType;
-    }
-  }
-
   function setWidgetState(state, updateView) {
     widgetState = state;
     if(updateView !== false) {
       displayWidgetState(state, userAddress);
     }
-    fireState(state);
+    events.emit('state', state);
   }
 
   function getWidgetState() {
@@ -283,6 +270,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     connectElement = setConnectElement;
 
     wireClient.on('connected', function() {
+      setWidgetState('connected');
       sync.syncNow('/', function(err) {
         if(err) {
           logger.error("Initial sync failed: ", err)
@@ -341,6 +329,6 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     display : display,
     addScope: addScope,
     getState: getWidgetState,
-    on: on
+    on: events.on
   };
 });

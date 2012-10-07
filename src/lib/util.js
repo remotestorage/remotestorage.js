@@ -10,7 +10,7 @@ define([], function() {
 
   var loggers = {}, silentLogger = {};
 
-  var knownLoggers = ['sync', 'webfinger', 'getputdelete', 'platform', 'baseClient', 'widget'];
+  var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform', 'baseClient', 'widget', 'store'];
 
   var util = {
 
@@ -55,8 +55,58 @@ define([], function() {
       }
     },
 
+    bindAll: function(object) {
+      for(var key in object) {
+        if(typeof(object[key]) === 'function') {
+          object[key] = this.bindContext(object[key], object);
+        }
+      }
+      return object;
+    },
+
+    bindContext: function(callback, context) {
+      if(context) {
+        return function() { return callback.apply(context, arguments); };
+      } else {
+        return callback;
+      }
+    },
+
     deprecate: function(methodName, replacement) {
       console.log('WARNING: ' + methodName + ' is deprecated, use ' + replacement + ' instead');
+    },
+
+    getEventEmitter: function() {
+
+      return this.bindAll({
+
+        _handlers: (function() {
+          var eventNames = Array.prototype.slice.call(arguments);
+          var handlers = {};
+          eventNames.forEach(function(name) {
+            handlers[name] = [];
+          });
+          return handlers;
+        }).apply(null, arguments),
+
+        emit: function(eventName) {
+          var handlerArgs = Array.prototype.slice.call(arguments, 1);
+          if(this._handlers[eventName]) {
+            this._handlers[eventName].forEach(function(handler) {
+              handler.apply(null, handlerArgs);
+            });
+          }
+        },
+
+        on: function(eventName, handler) {
+          if(! this._handlers[eventName]) {
+            throw "Unknown event: " + eventName;
+          }
+          this._handlers[eventName].push(handler);
+        }
+
+      });
+
     },
 
     // Method: getLogger
