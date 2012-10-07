@@ -35,7 +35,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     }
     for(var i in cached) {
       if(!remote[i] && !diff[i]) { // incoming delete
-        store.forget(dirPath + i);
+        store.removeNode(dirPath + i);
       } else if(!remote[i] || cached[i] > remote[i]) {
         if(util.isDir(i)) {
           pullNode(dirPath+i, force, access, startOne, finishOne);

@@ -1919,6 +1919,10 @@ define('lib/store',['./util'], function (util) {
     }
   }
 
+  function removeNode(path) {
+    setNodeData(path, '', false);
+  }
+
   // Method: setNodeAccess
   //
   // Set startAccess flag on a node.
@@ -1985,6 +1989,7 @@ define('lib/store',['./util'], function (util) {
     setNodeAccess : setNodeAccess,
     setNodeForce  : setNodeForce,
     clearDiff     : clearDiff,
+    removeNode    : removeNode,
     forget        : forget,
     forgetAll     : forgetAll
   };
@@ -2027,7 +2032,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     }
     for(var i in cached) {
       if(!remote[i] && !diff[i]) { // incoming delete
-        store.forget(dirPath + i);
+        store.removeNode(dirPath + i);
       } else if(!remote[i] || cached[i] > remote[i]) {
         if(util.isDir(i)) {
           pullNode(dirPath+i, force, access, startOne, finishOne);
