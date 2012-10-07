@@ -25,17 +25,20 @@ define(['./util'], function (util) {
 
   var events = util.getEventEmitter('change', 'error');
 
-  var onChange=[], onError=[],
-    prefixNodes = 'remote_storage_nodes:',
-    prefixNodesData = 'remote_storage_node_data:';
+  var prefixNodes = 'remote_storage_nodes:',
+      prefixNodesData = 'remote_storage_node_data:';
+
+  function isPrefixed(key) {
+    return key.substring(0, prefixNodes.length) == prefixNodes;
+  }
 
   if(typeof(window) !== 'undefined') {
-    window.addEventListener('storage', function(e) {
-      if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
-        e.path = e.key.substring(prefixNodes.length);
-        if(!util.isDir(e.path)) {
-          e.origin='device';
-          events.emit('change', e);
+    window.addEventListener('storage', function(event) {
+      if(isPrefixed(event.key)) {
+        if(! util.isDir(event.path)) {
+          event.path = event.key.substring(prefixNodes.length);
+          event.origin = 'device';
+          events.emit('change', event);
         }
       }
     });
@@ -311,20 +314,44 @@ define(['./util'], function (util) {
     }
   }
 
+  // Method: fireInitialEvents
+  //
+  // Fire a change event with origin=device for each node present in localStorage.
+  //
+  // This is so apps don't need to add event handlers *and* initially request
+  // listings to fill their views.
+  //
+  function fireInitialEvents() {
+    for(var i=0; i<localStorage.length; i++) {
+      var key = localStorage.key(i)
+      if(isPrefixed(key)) {
+        var path = key.substring(prefixNodes.length);
+        if(! util.isDir(path)) {
+          events.emit('change', {
+            path: path,
+            newValue: getNodeData(path),
+            oldValue: undefined,
+            origin: 'device'
+          });
+        }
+      }
+    }
+  }
+
   return {
     // Method: on
     // Install an event handler
     //
-    on            : events.on,
-
-    getNode       : getNode,
-    getNodeData   : getNodeData,
-    setNodeData   : setNodeData,
-    setNodeAccess : setNodeAccess,
-    setNodeForce  : setNodeForce,
-    clearDiff     : clearDiff,
-    removeNode    : removeNode,
-    forget        : forget,
-    forgetAll     : forgetAll
+    on                : events.on,
+    getNode           : getNode,
+    getNodeData       : getNodeData,
+    setNodeData       : setNodeData,
+    setNodeAccess     : setNodeAccess,
+    setNodeForce      : setNodeForce,
+    clearDiff         : clearDiff,
+    removeNode        : removeNode,
+    forget            : forget,
+    forgetAll         : forgetAll,
+    fireInitialEvents : fireInitialEvents
   };
 });

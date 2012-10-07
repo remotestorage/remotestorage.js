@@ -91,11 +91,9 @@ define([], function() {
 
         emit: function(eventName) {
           var handlerArgs = Array.prototype.slice.call(arguments, 1);
-          if(this._handlers[eventName]) {
-            this._handlers[eventName].forEach(function(handler) {
-              handler.apply(null, handlerArgs);
-            });
-          }
+          this._handlers[eventName].forEach(function(handler) {
+            handler.apply(null, handlerArgs);
+          });
         },
 
         on: function(eventName, handler) {
