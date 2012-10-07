@@ -1,27 +1,16 @@
-define(['./getputdelete'], function (getputdelete) {
+define(['./getputdelete', './util'], function (getputdelete, util) {
 
   "use strict";
 
-  var prefix = 'remote_storage_wire_',
-    errorCbs=[], connectedCbs=[];
+  var prefix = 'remote_storage_wire_';
 
-  function fireError() {
-    for(var i=0;i<errorCbs.length;i++) {
-      errorCbs[i].apply(null, arguments);
-    }
-  }
-
-  function fireConnected() {
-    for(var i=0;i<connectedCbs.length;i++) {
-      connectedCbs[i].apply(null, arguments);
-    }
-  }
+  var events = util.getEventEmitter('connected', 'error');
 
   function set(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
 
     if(getState() == 'connected') {
-      fireConnected();
+      events.emit('connected');
     }
   }
   function remove(key) {
@@ -92,6 +81,9 @@ define(['./getputdelete'], function (getputdelete) {
   //
   // The wireClient stores the user's storage information and controls getputdelete accordingly.
   //
+  // Event: connected
+  //
+  // Fired once everything is configured.
   return {
 
     // Method: get

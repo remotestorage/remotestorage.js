@@ -258,6 +258,15 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     logger.debug('handleWidgetHover');
   }
 
+  function nowConnected() {
+    setWidgetState('connected');
+    sync.syncNow('/', function(err) {
+      if(err) {
+        logger.error("Initial sync failed: ", err)
+      }
+    });
+  }
+
   function display(setConnectElement, options) {
     var tokenHarvested = platform.harvestParam('access_token');
     var storageRootHarvested = platform.harvestParam('storage_root');
@@ -269,14 +278,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
     connectElement = setConnectElement;
 
-    wireClient.on('connected', function() {
-      setWidgetState('connected');
-      sync.syncNow('/', function(err) {
-        if(err) {
-          logger.error("Initial sync failed: ", err)
-        }
-      });
-    });
+    if(wireClient.getState() == 'connected') {
+      nowConnected();
+    } else {
+      wireClient.on('connected', nowConnected);
+    }
 
     wireClient.on('error', function(err) {
       platform.alert(translate(err));
