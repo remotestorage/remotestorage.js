@@ -78,7 +78,7 @@ define(['../remoteStorage'], function(remoteStorage) {
       return uuid;
     }
     function getPrivateList(listName) {
-      myPrivateBaseClient.sync(listName+'/');
+      myPrivateBaseClient.use(listName+'/');
       function getIds() {
         return myPrivateBaseClient.getListing(listName+'/');
       }

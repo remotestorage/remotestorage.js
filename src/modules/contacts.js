@@ -185,15 +185,15 @@ define([
       },
 
       //
-      // Method: sync
+      // Method: use
       //
       // Set the "force sync" flag for all contacts.
       //
       // This causes the complete data to be synced, next time <syncNow> is called on either /contacts/ or /.
       //
-      sync: function() {
+      use: function() {
         debug("contacts.sync()");
-        base.sync('');
+        base.use('');
       },
 
       //

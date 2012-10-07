@@ -45,7 +45,7 @@ define(['../remoteStorage'], function(remoteStorage) {
             keys.forEach(function(key) {
               bms.push(privateClient.getObject(key));
             });
-            privateClient.sync('');
+            privateClient.use('');
             return bms;
           },
           
