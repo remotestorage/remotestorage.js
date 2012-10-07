@@ -76,6 +76,19 @@ define([], function() {
       console.log('WARNING: ' + methodName + ' is deprecated, use ' + replacement + ' instead');
     },
 
+    // Method: getEventEmitter
+    //
+    // Create a new EventEmitter object and return it.
+    //
+    // It gets all valid events as it's arguments.
+    //
+    // Example:
+    // (start code)
+    // var events = util.getEventEmitter('change', 'error');
+    // events.on('error', function(what) { alert('something happens: ' + what); });
+    // events.emit('error', 'fired!');
+    // (end code)
+    //
     getEventEmitter: function() {
 
       return this.bindAll({
@@ -91,6 +104,9 @@ define([], function() {
 
         emit: function(eventName) {
           var handlerArgs = Array.prototype.slice.call(arguments, 1);
+          if(! this._handlers[eventName]) {
+            throw "Unknown event: " + eventName;
+          }
           this._handlers[eventName].forEach(function(handler) {
             handler.apply(null, handlerArgs);
           });
@@ -203,6 +219,25 @@ define([], function() {
   // Method: debug
   // Log to loglevel "error".
   // Will use the browser's error logging facility, if available.
+  //
+
+  // Class: EventEmitter
+  //
+  // Method: emit
+  //
+  // Fire an event
+  //
+  // Parameters:
+  //   eventName - name of the event. Must have been passed to getEventEmitter.
+  //   *rest     - arguments passed to the handler.
+  //
+  // Method: on
+  //
+  // Install an event handler
+  //
+  // Parameters:
+  //   eventName - name of the event. Must have been passed to getEventEmitter.
+  //   handler   - handler to call when an event is emitted.
   //
 
   return util;
