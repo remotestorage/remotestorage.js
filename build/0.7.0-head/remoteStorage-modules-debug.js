@@ -2623,6 +2623,11 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
 
   function fireChange(moduleName, eventObj) {
     if(moduleEvents[moduleName]) {
+
+      if(moduleName !== 'root') {
+        eventObj.relativePath = eventObj.path.replace(new RegExp('^/(?public/|)' + moduleName + '/'), '');
+      }
+
       moduleEvents[moduleName].emit('change', eventObj);
     }
   }
@@ -2683,10 +2688,11 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     // Fired when data concerning this module is updated.
     //
     // Properties:
-    //   path     - path to the node that chagned
-    //   newValue - new value of the node. if the node has been removed, this is undefined.
-    //   oldValue - previous value of the node. if the node has been newly created, this is undefined.
-    //   origin   - either "window", "device" or "remote". Elaborated below.
+    //   path         - path to the node that changed
+    //   newValue     - new value of the node. if the node has been removed, this is undefined.
+    //   oldValue     - previous value of the node. if the node has been newly created, this is undefined.
+    //   origin       - either "tab", "device" or "remote". Elaborated below.
+    //   relativePath - path relative to the module root (*not* present in the root module. Use path there instead)
     //
     // Change origins:
     //   Change events can come from different origins. In order for your app to
