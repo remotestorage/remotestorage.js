@@ -1476,30 +1476,19 @@ define('lib/getputdelete',
     }
 });
 
-define('lib/wireClient',['./getputdelete'], function (getputdelete) {
+define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, util) {
 
   
 
-  var prefix = 'remote_storage_wire_',
-    errorCbs=[], connectedCbs=[];
+  var prefix = 'remote_storage_wire_';
 
-  function fireError() {
-    for(var i=0;i<errorCbs.length;i++) {
-      errorCbs[i].apply(null, arguments);
-    }
-  }
-
-  function fireConnected() {
-    for(var i=0;i<connectedCbs.length;i++) {
-      connectedCbs[i].apply(null, arguments);
-    }
-  }
+  var events = util.getEventEmitter('connected', 'error');
 
   function set(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
 
     if(getState() == 'connected') {
-      fireConnected();
+      events.emit('connected');
     }
   }
   function remove(key) {
@@ -1570,6 +1559,9 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
   //
   // The wireClient stores the user's storage information and controls getputdelete accordingly.
   //
+  // Event: connected
+  //
+  // Fired once everything is configured.
   return {
 
     // Method: get
@@ -2524,6 +2516,15 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     logger.debug('handleWidgetHover');
   }
 
+  function nowConnected() {
+    setWidgetState('connected');
+    sync.syncNow('/', function(err) {
+      if(err) {
+        logger.error("Initial sync failed: ", err)
+      }
+    });
+  }
+
   function display(setConnectElement, options) {
     var tokenHarvested = platform.harvestParam('access_token');
     var storageRootHarvested = platform.harvestParam('storage_root');
@@ -2535,14 +2536,11 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
 
     connectElement = setConnectElement;
 
-    wireClient.on('connected', function() {
-      setWidgetState('connected');
-      sync.syncNow('/', function(err) {
-        if(err) {
-          logger.error("Initial sync failed: ", err)
-        }
-      });
-    });
+    if(wireClient.getState() == 'connected') {
+      nowConnected();
+    } else {
+      wireClient.on('connected', nowConnected);
+    }
 
     wireClient.on('error', function(err) {
       platform.alert(translate(err));
