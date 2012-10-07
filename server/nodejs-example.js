@@ -8,7 +8,11 @@ var dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--n
 exports.handler = (function() {
   var url=require('url'),
     crypto=require('crypto'),
+    tokens, lastModified, contentType, content;
+
+  function resetState() {
     tokens = {}, lastModified = {}, contentType = {}, content = {};
+  }
 
   function saveState(name, value) {
     fs.writeFile("server-state/" + name + ".json", JSON.stringify(value), function() { });    
@@ -339,12 +343,16 @@ exports.handler = (function() {
     } else if(urlObj.pathname.substring(0, '/storage/'.length) == '/storage/') {
       console.log('STORAGE');
       storage(req, urlObj, res);
+    } else if(req.method == 'POST' && urlObj.pathname.substring(0, '/reset'.length) == '/reset') { // clear data; used in tests.
+      resetState();
+      writeJson(res, { forgot: 'everything' });
     } else {
       console.log('UNKNOWN');
       writeJson(res, urlObj.query);
     }
   }
 
+  resetState();
   loadData();
   createInitialTokens();
 

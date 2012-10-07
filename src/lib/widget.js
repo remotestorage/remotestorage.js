@@ -242,7 +242,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       // trigger 'disconnected' once, so the app can clear it's views.
       setWidgetState('disconnected', true);
       setWidgetState('anonymous');
-    });
+    }, true);
   }
   function handleCubeClick() {
     if(widgetState == 'connected') {

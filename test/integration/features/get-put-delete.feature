@@ -3,6 +3,7 @@ Feature: GET / PUT / DELETE
 
   Background:
     Given my localStorage is empty
+    And my remotestorage is empty
     And I am on the test app
 
   Scenario: Listing the empty root

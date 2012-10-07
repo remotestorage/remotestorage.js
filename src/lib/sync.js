@@ -209,13 +209,13 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     pullNode(path, false, true, startOne, finishOne)
   }
 
-  function syncNow(path, callback) {
+  function syncNow(path, callback, force) {
 
     if(! path) {
       throw "path is required";
     }
 
-    if(! syncOkNow) {
+    if((! syncOkNow) && (! force)) {
       return callback(null);
     }
 
