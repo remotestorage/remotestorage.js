@@ -278,6 +278,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
     connectElement = setConnectElement;
 
+    store.fireInitialEvents();
+
     if(wireClient.getState() == 'connected') {
       nowConnected();
     } else {
