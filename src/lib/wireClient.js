@@ -44,13 +44,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     }
   }
   function on(eventType, cb) {
-    if(eventType == 'error') {
-      errorCbs.push(cb);
-    } else if(eventType == 'connected') {
-      connectedCbs.push(cb);
-    } else {
-      throw "Unknown eventType: " + eventType;
-    }
+    events.on(eventType, cb);
   }
 
   function resolveKey(storageType, storageHref, basePath, relPath) {
