@@ -1440,7 +1440,6 @@ define('lib/wireClient',['./getputdelete'], function (getputdelete) {
   }
 
   function fireConnected() {
-    console.log("FIRE CONNECTED", connectedCbs);
     for(var i=0;i<connectedCbs.length;i++) {
       connectedCbs[i].apply(null, arguments);
     }
@@ -2047,7 +2046,6 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   }
 
   function findForce(path, node) {
-    console.log("findForce", path, node);
     if(! node) {
       return null;
     } else if(! node.startForce) {
@@ -2084,7 +2082,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       var data = store.getNodeData(path, true);
       var node = store.getNode(path);
       if(! data) {
-        console.error("ATTEMPTED TO PUSH EMPTY DATA", node, data);
+        logger.error("ATTEMPTED TO PUSH EMPTY DATA", node, data);
+        return;
       }
       wireClient.set(path, data, node.mimeType, function(err) {
         logger.debug("wire client set result", arguments);
@@ -2119,7 +2118,6 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 
     if(force || access) {
       wireClient.get(path, function(err, data) {
-        console.log("WIRE CLIENT SAID ERR", err);
         if(!err && data) {
           if(isDir) {
             dirMerge(path, data, thisData, thisNode.diff, force, access, startOne, finishOne, function(i) {
@@ -2210,7 +2208,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
         if(callback) {
           callback(errors.length > 0 ? errors : null);
         } else {
-          console.log('syncNow done');
+          logger.info('syncNow done');
         }
       }
     }
