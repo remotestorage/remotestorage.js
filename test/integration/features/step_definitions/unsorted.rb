@@ -77,3 +77,23 @@ end
 Then(/^I should receive '([^']*)'$/) do |json|
   json.length > 0 ? (@response.to_json.should eq json) : ("#{@response}".should eq json)
 end
+
+When(/^I connect to remotestorage$/) do
+  step "I have a user address"
+  step "I am on the test app"
+  step 'I click "connect"'
+  step 'I fill in my user address'
+  step 'I click "connect"'
+  step "I should end up on my RemoteStorage login page"
+  step "I authorize the app"
+  step "I should end up on the test app"
+  step 'the widget state should have changed to "connected"'
+end
+
+When(/^I disconnect from remotestorage$/) do
+  page.find(:css, '#remotestorage-cube').click
+end
+
+When(/^I wait a second$/) do
+  sleep(1)
+end
