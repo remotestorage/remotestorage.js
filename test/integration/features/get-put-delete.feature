@@ -26,3 +26,11 @@ Feature: GET / PUT / DELETE
     When I remove the key "/foo"
     And I get the key "/foo"
     Then I should receive ''
+
+  Scenario: Setting a key, then listing contents
+    When I set the key "/foo" of type "dummy" to '{"bar":"baz"}'
+    And I get the key "/foo"
+    Then I should receive '{"bar":"baz"}'
+    When I get the listing of "/"
+    Then I should receive '["foo"]'
+

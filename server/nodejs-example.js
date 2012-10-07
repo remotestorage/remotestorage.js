@@ -3,6 +3,8 @@ var config = require('./config').config;
 
 var fs = require('fs');
 
+var dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
+
 exports.handler = (function() {
   var url=require('url'),
     crypto=require('crypto'),
@@ -21,6 +23,9 @@ exports.handler = (function() {
   }
 
   function saveData() {
+    if(dontPersist) {
+      return;
+    }
     if(! fs.existsSync("server-state")) {
       fs.mkdirSync("server-state");
     }
@@ -31,6 +36,9 @@ exports.handler = (function() {
   }
 
   function loadData() {
+    if(dontPersist) {
+      return;
+    }
     tokens = loadState('tokens');
     lastModified = loadState('lastModified');
     contentType = loadState('contentType');
@@ -271,7 +279,7 @@ exports.handler = (function() {
           var timestamp=new Date().getTime();
           console.log(pathParts);
           var fileItself=true;
-          while(pathParts.length > 2) {
+          while(pathParts.length > 1) {
             var thisPart = pathParts.pop();
             if(fileItself) {
               fileItself=false;
