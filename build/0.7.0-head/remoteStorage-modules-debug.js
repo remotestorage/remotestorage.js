@@ -2206,13 +2206,13 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     pullNode(path, false, true, startOne, finishOne)
   }
 
-  function syncNow(path, callback) {
+  function syncNow(path, callback, force) {
 
     if(! path) {
       throw "path is required";
     }
 
-    if(! syncOkNow) {
+    if((! syncOkNow) && (! force)) {
       return callback(null);
     }
 
@@ -2510,7 +2510,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       // trigger 'disconnected' once, so the app can clear it's views.
       setWidgetState('disconnected', true);
       setWidgetState('anonymous');
-    });
+    }, true);
   }
   function handleCubeClick() {
     if(widgetState == 'connected') {
