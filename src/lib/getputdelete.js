@@ -19,7 +19,7 @@ define(
           //logger.debug('doCall cb '+url, 'headers:', headers);
           cb(null, data, headers['Content-Type'] || defaultContentType);
         },
-        timeout: 3000
+        timeout: 5000
       }
 
       platformObj.headers = {

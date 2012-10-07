@@ -40,6 +40,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         if(util.isDir(i)) {
           pullNode(dirPath+i, force, access, startOne, finishOne);
         } else {//recurse
+          logger.debug('dirMerge will push', cached[i], '>', remote[i]);
+
           var childNode = store.getNode(dirPath+i);
           var childData = store.getNodeData(dirPath + i);
           startOne();
@@ -102,12 +104,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
   function pushNode(path, startOne, finishOne) {
     if(util.isDir(path)) {
-      var dirData = store.getNodeData(path);
-      for(var key in dirData) {
-        startOne();
-        pushNode(path + key, startOne, finishOne);
-      }
-      return;
+      var dirNode = store.getNode(path);
+      dirMerge(path, store.getNodeData(path), dirNode.diff, false, false, startOne, finishOne, function(i) { store.clearDiff(path, i); });
     }
     logger.debug('pushNode', path);
     var parentPath = util.containingDir(path);
