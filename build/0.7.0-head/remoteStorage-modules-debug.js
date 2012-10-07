@@ -3509,7 +3509,7 @@ define('remoteStorage',[
 
     nodeConnect: nodeConnect,
 
-    util: util,
+    util: util
 
   };
 
