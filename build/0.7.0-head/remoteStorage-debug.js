@@ -2137,8 +2137,6 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
         if(util.isDir(i)) {
           pullNode(dirPath+i, force, access, startOne, finishOne);
         } else {//recurse
-          logger.debug('dirMerge will push', cached[i], '>', remote[i]);
-
           var childNode = store.getNode(dirPath+i);
           var childData = store.getNodeData(dirPath + i);
           startOne();
@@ -2985,15 +2983,15 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
         var o = {};
         listing.forEach(function(item) {
           o[path + item] = this.getObject(path + item);
-        });
+        }, this);
         return o;
-      }
+      }.bind(this);
       if(callback) {
         this.getListing(path, function(listing) {
-          util.bindContext(callback, context)(makeMap.call(this, listing));
+          util.bindContext(callback, context)(makeMap(listing));
         }, this);
       } else {
-        return makeMap.call(this, this.getListing(path));
+        return makeMap(this.getListing(path));
       }
     },
 
