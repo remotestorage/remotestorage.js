@@ -258,16 +258,22 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //
     // Receives the same parameters as <getListing>
     //
+    // Returns an object in the form { path : object, ... }
+    //
     getAll: function(path, callback, context) {
-      var getOne = function(item) {
-        return this.getObject(path + item);
+      var makeMap = function(listing) {
+        var o = {};
+        listing.forEach(function(item) {
+          o[path + item] = this.getObject(path + item);
+        });
+        return o;
       }
       if(callback) {
         this.getListing(path, function(listing) {
-          util.bindContext(callback, context)(listing.map(getOne, this));
+          util.bindContext(callback, context)(makeMap.call(this, listing));
         }, this);
       } else {
-        return this.getListing(path).map(getOne, this);
+        return makeMap.call(this, this.getListing(path));
       }
     },
 
