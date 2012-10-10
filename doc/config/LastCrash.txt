@@ -1,0 +1,22 @@
+Crash Message:
+
+   Couldn't open input file /home/nil/src/remoteStorage.js/doc/pages/.#download.txt
+
+Current Action:
+
+   Parsing /home/nil/src/remoteStorage.js/doc/pages/.#download.txt
+
+Natural Docs version 1.51
+Perl version 5.14.2 on linux
+
+Command Line:
+
+   -i ./src -i ./doc/pages/ -o html ./doc/code -p ./doc/config
+
+Stack Trace:
+
+   NaturalDocs::Error::CatchDeath, called from
+   NaturalDocs::Languages::Simple::ParseFile, line 168, called from
+   NaturalDocs::Parser::Parse, line 335, called from
+   NaturalDocs::Parser::ParseForInformation, line 95, called from
+   (eval), line 320 of /usr/share/perl5/naturaldocs/NaturalDocs

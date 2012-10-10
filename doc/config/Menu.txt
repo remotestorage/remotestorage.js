@@ -1,8 +1,9 @@
 Format: 1.51
 
 
-# You can add a title and sub-title to your menu like this:
-# Title: [project name]
+Title: remotestorage JS
+
+# You can also add a sub-title to your menu like this:
 # SubTitle: [subtitle]
 
 # You can add a footer to your documentation like this:
@@ -43,43 +44,64 @@ Format: 1.51
 # time it is run.  When working with groups, just deal with the braces and
 # forget about the indentation and comments.
 # 
+# You can use this file on other computers even if they use different
+# directories.  As long as the command line points to the same source files,
+# Natural Docs will be able to correct the locations automatically.
+# 
 # --------------------------------------------------------------------------
 
 
-Group: Public API  {
+Group: Intro  {
 
-   File: remoteStorage  (remoteStorage.js)
-   File: BaseClient  (lib/baseClient.js)
-   }  # Group: Public API
+   File: Overview  (/home/nil/src/remoteStorage.js/doc/pages/overview.txt)
+   File: Get remoteStorage.js  (no auto-title, /home/nil/src/remoteStorage.js/doc/pages/download.txt)
+   }  # Group: Intro
 
-Group: Modules  {
+Group: API  {
 
-   File: contacts  (no auto-title, modules/contacts.js)
-   File: tasks  (no auto-title, modules/tasks.js)
-   }  # Group: Modules
+   Group: Public API  {
 
-Group: Internals  {
+      File: remoteStorage  (/home/nil/src/remoteStorage.js/src/remoteStorage.js)
+      File: BaseClient  (/home/nil/src/remoteStorage.js/src/lib/baseClient.js)
+      }  # Group: Public API
 
-   File: wireClient  (lib/wireClient.js)
-   File: getputdelete  (lib/getputdelete.js)
-   File: store  (lib/store.js)
-   File: sync  (lib/sync.js)
-   File: util  (lib/util.js)
-   File: webfinger  (lib/webfinger.js)
-   File: platform  (lib/platform.js)
-   File: nodeConnect  (lib/nodeConnect.js)
-   File: hardcoded  (lib/hardcoded.js)
-   File: widget  (lib/widget.js)
-   File: foreignClient  (lib/foreignClient.js)
-   }  # Group: Internals
+   Group: Modules  {
 
-Group: Docs Index  {
+      File: contacts  (no auto-title, /home/nil/src/remoteStorage.js/src/modules/contacts.js)
+      File: tasks  (no auto-title, /home/nil/src/remoteStorage.js/src/modules/tasks.js)
+      }  # Group: Modules
 
-   Index: Everything
-   Class Index: Classes
-   Function Index: Functions
-   Event Index: Events
-   Property Index: Properties
-   Type Index: Types
-   }  # Group: Docs Index
+   Group: Internals  {
 
+      File: wireClient  (/home/nil/src/remoteStorage.js/src/lib/wireClient.js)
+      File: getputdelete  (/home/nil/src/remoteStorage.js/src/lib/getputdelete.js)
+      File: store  (/home/nil/src/remoteStorage.js/src/lib/store.js)
+      File: sync  (/home/nil/src/remoteStorage.js/src/lib/sync.js)
+      File: util  (/home/nil/src/remoteStorage.js/src/lib/util.js)
+      File: webfinger  (/home/nil/src/remoteStorage.js/src/lib/webfinger.js)
+      File: platform  (/home/nil/src/remoteStorage.js/src/lib/platform.js)
+      File: nodeConnect  (/home/nil/src/remoteStorage.js/src/lib/nodeConnect.js)
+      File: hardcoded  (/home/nil/src/remoteStorage.js/src/lib/hardcoded.js)
+      File: widget  (/home/nil/src/remoteStorage.js/src/lib/widget.js)
+      File: foreignClient  (/home/nil/src/remoteStorage.js/src/lib/foreignClient.js)
+      }  # Group: Internals
+
+   Group: Docs Index  {
+
+      Index: Everything
+      Class Index: Classes
+      Function Index: Functions
+      Event Index: Events
+      Property Index: Properties
+      Type Index: Types
+      Build Target Index: Build Targets
+      File Index: Files
+      }  # Group: Docs Index
+
+   }  # Group: API
+
+
+
+##### Do not change or remove these lines. #####
+Data: 1(D3333RuEG3\8o36H93HGEutGrtuHp`GMl636H9)
+Data: 1(h3333RuEG3\8o36H93HGEutGrtuHp`GMl63fu93Ip`G6)
