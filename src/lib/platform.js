@@ -91,7 +91,10 @@ define(['./util'], function(util) {
   }
 
   function browserParseHeaders(rawHeaders) {
-    logger.debug("PARSE HEADERS", typeof(rawHeaders), rawHeaders);
+    if(! rawHeaders) {
+      // firefox bug. workaround in ajaxBrowser.
+      return null;
+    }
     var headers = {};
     var lines = rawHeaders.split(/\r?\n/);
     var lastKey = null, md, key, value;
@@ -148,8 +151,16 @@ define(['./util'], function(util) {
         }
         logger.debug('xhr cb '+params.url);
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
-          window.yxz = xhr;
-          params.success(xhr.responseText, browserParseHeaders(xhr.getAllResponseHeaders()));
+          var headers = browserParseHeaders(xhr.getAllResponseHeaders());
+          if(! headers) {
+            // Firefox' getAllResponseHeaders is broken for CORS requests since forever.
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=608735
+            // Any additional headers that are needed by other code, should be added here.
+            headers = {
+              'content-type': xhr.getResponseHeader('Content-Type')
+            }
+          }
+          params.success(xhr.responseText, headers);
         } else {
           params.error(xhr.status || 'unknown error');
         }
