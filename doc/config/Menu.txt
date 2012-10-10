@@ -70,6 +70,7 @@ Group: Internals  {
    File: nodeConnect  (lib/nodeConnect.js)
    File: hardcoded  (lib/hardcoded.js)
    File: widget  (lib/widget.js)
+   File: foreignClient  (lib/foreignClient.js)
    }  # Group: Internals
 
 Group: Docs Index  {
@@ -79,5 +80,6 @@ Group: Docs Index  {
    Function Index: Functions
    Event Index: Events
    Property Index: Properties
+   Type Index: Types
    }  # Group: Docs Index
 
