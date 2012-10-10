@@ -26,6 +26,11 @@ Title: remotestorage JS
 #   yyyy  - Four digit year.  2006 is "2006"
 #   year  - Four digit year.  2006 is "2006"
 
+# These are indexes you deleted, so Natural Docs will not add them again
+# unless you remove them from this line.
+
+Don't Index: General, Functions, Files, Types, Classes, Build Targets, Events, Properties
+
 
 # --------------------------------------------------------------------------
 # 
@@ -85,18 +90,6 @@ Group: API  {
       File: widget  (/home/nil/src/remoteStorage.js/src/lib/widget.js)
       File: foreignClient  (/home/nil/src/remoteStorage.js/src/lib/foreignClient.js)
       }  # Group: Internals
-
-   Group: Docs Index  {
-
-      Index: Everything
-      Class Index: Classes
-      Function Index: Functions
-      Event Index: Events
-      Property Index: Properties
-      Type Index: Types
-      Build Target Index: Build Targets
-      File Index: Files
-      }  # Group: Docs Index
 
    }  # Group: API
 
