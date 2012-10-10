@@ -45,8 +45,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         if(util.isDir(i)) {
           pullNode(dirPath+i, force, access, startOne, finishOne);
         } else {//recurse
-          logger.debug('dirMerge will push', cached[i], '>', remote[i]);
-
           var childNode = store.getNode(dirPath+i);
           var childData = store.getNodeData(dirPath + i);
           startOne();

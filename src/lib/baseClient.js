@@ -265,15 +265,15 @@ define(['./sync', './store', './util'], function (sync, store, util) {
         var o = {};
         listing.forEach(function(item) {
           o[path + item] = this.getObject(path + item);
-        });
+        }, this);
         return o;
-      }
+      }.bind(this);
       if(callback) {
         this.getListing(path, function(listing) {
-          util.bindContext(callback, context)(makeMap.call(this, listing));
+          util.bindContext(callback, context)(makeMap(listing));
         }, this);
       } else {
-        return makeMap.call(this, this.getListing(path));
+        return makeMap(this.getListing(path));
       }
     },
 
