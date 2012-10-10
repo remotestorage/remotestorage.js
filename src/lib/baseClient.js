@@ -475,7 +475,11 @@ define(['./sync', './store', './util'], function (sync, store, util) {
             }
           }, this) )
       );
-    }
+    },
+
+    deactivateSync: function() { sync.sleep(); },
+    activateSync: function() { sync.wakeup(); }
+    
   };
 
   return BaseClient;

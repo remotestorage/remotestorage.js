@@ -269,7 +269,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     syncNow: syncNow,
     fetchNow: fetchNow,
     getState : getState,
-    on: events.on
+    on: events.on,
+
+    sleep: function() { syncOkNow = false; },
+    wakeup: function() { syncOkNow = true; }
 
   };
 
