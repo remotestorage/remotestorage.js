@@ -485,6 +485,19 @@ define('lib/util',[], function() {
       console.log('WARNING: ' + methodName + ' is deprecated, use ' + replacement + ' instead');
     },
 
+    // Method: getEventEmitter
+    //
+    // Create a new EventEmitter object and return it.
+    //
+    // It gets all valid events as it's arguments.
+    //
+    // Example:
+    // (start code)
+    // var events = util.getEventEmitter('change', 'error');
+    // events.on('error', function(what) { alert('something happens: ' + what); });
+    // events.emit('error', 'fired!');
+    // (end code)
+    //
     getEventEmitter: function() {
 
       return this.bindAll({
@@ -500,11 +513,12 @@ define('lib/util',[], function() {
 
         emit: function(eventName) {
           var handlerArgs = Array.prototype.slice.call(arguments, 1);
-          if(this._handlers[eventName]) {
-            this._handlers[eventName].forEach(function(handler) {
-              handler.apply(null, handlerArgs);
-            });
+          if(! this._handlers[eventName]) {
+            throw "Unknown event: " + eventName;
           }
+          this._handlers[eventName].forEach(function(handler) {
+            handler.apply(null, handlerArgs);
+          });
         },
 
         on: function(eventName, handler) {
@@ -616,6 +630,25 @@ define('lib/util',[], function() {
   // Will use the browser's error logging facility, if available.
   //
 
+  // Class: EventEmitter
+  //
+  // Method: emit
+  //
+  // Fire an event
+  //
+  // Parameters:
+  //   eventName - name of the event. Must have been passed to getEventEmitter.
+  //   *rest     - arguments passed to the handler.
+  //
+  // Method: on
+  //
+  // Install an event handler
+  //
+  // Parameters:
+  //   eventName - name of the event. Must have been passed to getEventEmitter.
+  //   handler   - handler to call when an event is emitted.
+  //
+
   return util;
 });
 
@@ -703,7 +736,20 @@ define('lib/platform',['./util'], function(util) {
 
   var logger = util.getLogger('platform');
 
+  // downcase all header keys
+  function normalizeHeaders(headers) {
+    var h = {};
+    for(var key in headers) {
+      h[key.toLowerCase()] = headers[key];
+    }
+    return h;
+  }
+
   function browserParseHeaders(rawHeaders) {
+    if(! rawHeaders) {
+      // firefox bug. workaround in ajaxBrowser.
+      return null;
+    }
     var headers = {};
     var lines = rawHeaders.split(/\r?\n/);
     var lastKey = null, md, key, value;
@@ -729,7 +775,7 @@ define('lib/platform',['./util'], function(util) {
         logger.error("Failed to parse header line: " + lines[i]);
       }
     }
-    return headers;
+    return normalizeHeaders(headers);
   }
 
   function ajaxBrowser(params) {
@@ -760,7 +806,16 @@ define('lib/platform',['./util'], function(util) {
         }
         logger.debug('xhr cb '+params.url);
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
-          params.success(xhr.responseText, browserParseHeaders(xhr.getAllResponseHeaders()));
+          var headers = browserParseHeaders(xhr.getAllResponseHeaders());
+          if(! headers) {
+            // Firefox' getAllResponseHeaders is broken for CORS requests since forever.
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=608735
+            // Any additional headers that are needed by other code, should be added here.
+            headers = {
+              'content-type': xhr.getResponseHeader('Content-Type')
+            }
+          }
+          params.success(xhr.responseText, headers);
         } else {
           params.error(xhr.status || 'unknown error');
         }
@@ -824,22 +879,6 @@ define('lib/platform',['./util'], function(util) {
         params.error('timeout');
         timedOut=true;
       }, params.timeout);
-    }
-
-    // nodejs represents headers like:
-    // 'message-id' : '...',
-    //
-    // we want:
-    //
-    // 'Message-Id' : '...'
-    function normalizeHeaders(headers) {
-      var h = {};
-      for(var key in headers) {
-        h[key.replace(/(?:^|\-)[a-z]/g, function(match) {
-          return match.toUpperCase();
-        })] = headers[key];
-      }
-      return h;
     }
 
     var lib = (urlObj.protocol=='https:'?https:http);
@@ -1370,6 +1409,15 @@ define('lib/getputdelete',
 
     var defaultContentType = 'application/octet-stream';
 
+    function getContentType(headers) {
+      if(headers['content-type']) {
+        return headers['content-type'].split(';')[0];
+      } else {
+        logger.error("Falling back to default content type: ", defaultContentType, JSON.stringify(headers));
+        return defaultContentType;
+      }
+    }
+
     function doCall(method, url, value, mimeType, token, cb, deadLine) {
       var platformObj = {
         url: url,
@@ -1379,13 +1427,15 @@ define('lib/getputdelete',
         },
         success: function(data, headers) {
           //logger.debug('doCall cb '+url, 'headers:', headers);
-          cb(null, data, headers['Content-Type'] || defaultContentType);
+          cb(null, data, getContentType(headers));
         },
         timeout: 5000
       }
 
-      platformObj.headers = {
-        'Authorization': 'Bearer ' + token
+      if(token) {
+        platformObj.headers = {
+          'Authorization': 'Bearer ' + token
+        }
       }
       if(mimeType) {
         platformObj.headers['Content-Type'] = mimeType;
@@ -1659,7 +1709,11 @@ define('lib/store',['./util'], function (util) {
   // The store stores data locally. It treats all data as raw nodes, that have *metadata* and *payload*.
   // Metadata and payload are stored under separate keys.
   //
-  // This is what a node's metadata looks like:
+  // Type: Node
+  //
+  // Represents a node within the primary store.
+  //
+  // Properties:
   //   startAccess - either "r" or "rw". Flag means, that this node has been claimed access on (see <remoteStorage.claimAccess>) (default: null)
   //   startForce  - boolean flag to indicate that this node shall always be synced. (see <BaseClient.sync>) (default: null)
   //   timestamp   - last time this node was (apparently) updated (default: 0)
@@ -1672,22 +1726,30 @@ define('lib/store',['./util'], function (util) {
   //
   // Event: error
   // See <BaseClient.Events>
+  //
+  // Method: on
+  //
+  // Install an event handler
+  // See <util.EventEmitter.on> for documentation.
 
   var logger = util.getLogger('store');
 
   var events = util.getEventEmitter('change', 'error');
 
-  var onChange=[], onError=[],
-    prefixNodes = 'remote_storage_nodes:',
-    prefixNodesData = 'remote_storage_node_data:';
+  var prefixNodes = 'remote_storage_nodes:',
+      prefixNodesData = 'remote_storage_node_data:';
+
+  function isPrefixed(key) {
+    return key.substring(0, prefixNodes.length) == prefixNodes;
+  }
 
   if(typeof(window) !== 'undefined') {
-    window.addEventListener('storage', function(e) {
-      if(e.key.substring(0, prefixNodes.length == prefixNodes)) {
-        e.path = e.key.substring(prefixNodes.length);
-        if(!util.isDir(e.path)) {
-          e.origin='device';
-          events.emit('change', e);
+    window.addEventListener('storage', function(event) {
+      if(isPrefixed(event.key)) {
+        if(! util.isDir(event.path)) {
+          event.path = event.key.substring(prefixNodes.length);
+          event.origin = 'device';
+          events.emit('change', event);
         }
       }
     });
@@ -1770,6 +1832,18 @@ define('lib/store',['./util'], function (util) {
 
   function updateNode(path, node, outgoing, meta, timestamp) {
     validPath(path);
+
+    if((! timestamp)) {
+      if((path !== '/') && (! outgoing)) {
+        logger.error('no timestamp given for node', path);
+      }
+      timestamp = outgoing ? getCurrTimestamp() : 0;
+    }
+
+    if(node) {
+      node.timestamp = timestamp;
+    }
+
     if(node) {
       localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     } else {
@@ -1791,11 +1865,11 @@ define('lib/store',['./util'], function (util) {
         updateNode(containingDir, parentNode, false, true, timestamp);
       } else if(outgoing) {
         if(node) {
-          parentData[baseName] = getCurrTimestamp();
+          parentData[baseName] = timestamp;
         } else {
           delete parentData[baseName];
         }
-        parentNode.diff[baseName] = getCurrTimestamp();
+        parentNode.diff[baseName] = timestamp;
         updateNodeData(containingDir, parentData);
         updateNode(containingDir, parentNode, true, false, timestamp);
       } else {//incoming
@@ -1814,7 +1888,7 @@ define('lib/store',['./util'], function (util) {
             updateNode(containingDir, parentNode, false, false, timestamp);
           }
         }
-        if(path.substr(-1)!='/') {
+        if(! util.isDir(path)) {
           events.emit('change', {
             path: path,
             origin: 'remote',
@@ -1871,9 +1945,6 @@ define('lib/store',['./util'], function (util) {
       mimeType='application/json';
     }
     node.mimeType = mimeType;
-    if(!timestamp) {
-      timestamp = getCurrTimestamp();
-    }
     updateNodeData(path, data);
     updateNode(path, (data ? node : undefined), outgoing, false, timestamp);
   }
@@ -1906,7 +1977,7 @@ define('lib/store',['./util'], function (util) {
   }
 
   function removeNode(path) {
-    setNodeData(path, '', false);
+    setNodeData(path, undefined, false);
   }
 
   // Method: setNodeAccess
@@ -1963,21 +2034,42 @@ define('lib/store',['./util'], function (util) {
     }
   }
 
-  return {
-    // Method: on
-    // Install an event handler
-    //
-    on            : events.on,
+  // Method: fireInitialEvents
+  //
+  // Fire a change event with origin=device for each node present in localStorage.
+  //
+  // This is so apps don't need to add event handlers *and* initially request
+  // listings to fill their views.
+  //
+  function fireInitialEvents() {
+    for(var i=0; i<localStorage.length; i++) {
+      var key = localStorage.key(i)
+      if(isPrefixed(key)) {
+        var path = key.substring(prefixNodes.length);
+        if(! util.isDir(path)) {
+          events.emit('change', {
+            path: path,
+            newValue: getNodeData(path),
+            oldValue: undefined,
+            origin: 'device'
+          });
+        }
+      }
+    }
+  }
 
-    getNode       : getNode,
-    getNodeData   : getNodeData,
-    setNodeData   : setNodeData,
-    setNodeAccess : setNodeAccess,
-    setNodeForce  : setNodeForce,
-    clearDiff     : clearDiff,
-    removeNode    : removeNode,
-    forget        : forget,
-    forgetAll     : forgetAll
+  return {
+    on                : events.on,
+    getNode           : getNode,
+    getNodeData       : getNodeData,
+    setNodeData       : setNodeData,
+    setNodeAccess     : setNodeAccess,
+    setNodeForce      : setNodeForce,
+    clearDiff         : clearDiff,
+    removeNode        : removeNode,
+    forget            : forget,
+    forgetAll         : forgetAll,
+    fireInitialEvents : fireInitialEvents
   };
 });
 
@@ -2010,9 +2102,14 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     events.emit('state', val ? 'busy' : 'connected');
   }
 
+  var syncTimestamps = {};
+
   function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne, clearCb) {
     for(var i in remote) {
       if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {//should probably include force and keep in this decision
+        if(! util.isDir(dirPath + i)) {
+          syncTimestamps[dirPath + i] = remote[i];
+        }
         pullNode(dirPath+i, force, access, startOne, finishOne);
       }
     }
@@ -2037,6 +2134,10 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
             }
             finishOne(err);
           });
+        }
+      } else if(remote[i]) {
+        if(! util.isDir(dirPath + i)) {
+          syncTimestamps[dirPath + i] = remote[i];
         }
       }
     }
@@ -2133,14 +2234,16 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     startOne();
 
     if(force || access) {
-      wireClient.get(path, function(err, data) {
+      wireClient.get(path, function(err, data, mimeType) {
         if(!err && data) {
           if(isDir) {
             dirMerge(path, data, thisData, thisNode.diff, force, access, startOne, finishOne, function(i) {
               store.clearDiff(path, i);
             });
           } else {
-            store.setNodeData(path, data, false);
+            var t = syncTimestamps[path];
+            delete syncTimestamps[path];
+            store.setNodeData(path, data, false, t, mimeType);
           }
         } else {
           pushNode(path, startOne, finishOne);
@@ -2196,7 +2299,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       throw "path is required";
     }
 
-    if((! syncOkNow) && (! force)) {
+    if((! syncOkNow) && (! force) || busy) {
       return callback(null);
     }
 
@@ -2244,6 +2347,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     fetchNow: fetchNow,
     getState : getState,
     on: events.on
+
   };
 
   return sync;
@@ -2333,6 +2437,10 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     platform.eltOn('remotestorage-disconnect', 'click', handleDisconnectClick);
     platform.eltOn('remotestorage-cube', 'click', handleCubeClick);
     platform.eltOn('remotestorage-useraddress', 'type', handleWidgetTypeUserAddress);
+
+    if(state === 'typing') {
+      document.getElementById('remotestorage-useraddress').focus();
+    }
   }
   function handleRegisterButtonClick() {
     window.open(
@@ -2530,6 +2638,8 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
 
     connectElement = setConnectElement;
 
+    store.fireInitialEvents();
+
     if(wireClient.getState() == 'connected') {
       nowConnected();
     } else {
@@ -2628,27 +2738,26 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
     fireChange('root', e);//root module gets everything
   });
 
-  function set(path, absPath, valueStr) {
+  function set(path, absPath, value) {
     var moduleName = extractModuleName(absPath);
     if(util.isDir(absPath)) {
       moduleEvents[moduleName].emit('error', 'attempt to set a value to a directory '+absPath);
       return;
     }
-    var node = store.getNode(absPath);
     var changeEvent = {
       origin: 'window',
       oldValue: store.getNodeData(absPath),
-      newValue: valueStr,
+      newValue: value,
       path: path
     };
-    store.setNodeData(absPath, valueStr, true);
+    store.setNodeData(absPath, value, true);
     fireChange(moduleName, changeEvent);
     fireChange('root', changeEvent);
   }
 
   var BaseClient = function(moduleName, isPublic) {
     this.moduleName = moduleName, this.isPublic = isPublic;
-    moduleEvents[moduleName] = util.getEventEmitter('change');
+    moduleEvents[moduleName] = util.getEventEmitter('change', 'error');
     util.bindAll(this);
   }
 
@@ -2964,7 +3073,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
       obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+this.moduleName+'/'+type;
       set(path, this.makePath(path), obj, 'application/json');
       var parentPath = util.containingDir(path);
-      this.sync(parentPath);
+      this.use(parentPath);
       this.syncNow(parentPath, callback, context);
     },
 
@@ -3056,7 +3165,9 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
           util.bindContext(callback, context) :
           util.bindContext(function(errors) {
             if(errors && errors.length > 0) {
-              logger.error("Error syncing: ", errors);
+              if(! (errors.length == 1 && errors[0] == 'not connected')) {
+                logger.error("Error syncing: ", errors);
+              }
               moduleEvents[this.moduleName].emit('error', errors);
             }
           }, this) )
