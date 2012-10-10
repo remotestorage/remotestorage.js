@@ -128,14 +128,31 @@ define(['./util'], function (util) {
     }
   }
 
+  function determineDirTimestamp(path) {
+    var data = getNodeData(path);
+    if(data) {
+      var times = [];
+      for(var key in data) {
+        times.push(data[key]);
+      }
+      return Math.max.apply(Math, times);
+    } else {
+      return getCurrTimestamp();
+    }
+  }
+
   function updateNode(path, node, outgoing, meta, timestamp) {
     validPath(path);
 
     if((! timestamp)) {
-      if((path !== '/') && (! outgoing)) {
+      if(outgoing) {
+        timestamp = getCurrTimestamp();
+      } else if(util.isDir(path)) {
+        timestamp = determineDirTimestamp(path)
+      } else {
         logger.error('no timestamp given for node', path);
+        timestamp = 0;
       }
-      timestamp = outgoing ? getCurrTimestamp() : 0;
     }
 
     if(node) {
