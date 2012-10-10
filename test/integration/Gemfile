@@ -1,5 +1,7 @@
 # -*- mode:ruby -*-
 
+source :gemcutter
+
 gem 'cucumber'
 gem 'capybara'
 gem 'adsf'
