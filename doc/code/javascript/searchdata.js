@@ -1,3 +1,32 @@
 var indexSectionsWithContent = {
-
+   "General": {
+      "Symbols": false,
+      "Numbers": false,
+      "A": true,
+      "B": true,
+      "C": true,
+      "D": true,
+      "E": true,
+      "F": true,
+      "G": true,
+      "H": true,
+      "I": false,
+      "J": false,
+      "K": false,
+      "L": true,
+      "M": true,
+      "N": true,
+      "O": true,
+      "P": true,
+      "Q": false,
+      "R": true,
+      "S": true,
+      "T": true,
+      "U": true,
+      "V": false,
+      "W": true,
+      "X": false,
+      "Y": false,
+      "Z": false
+      }
    }

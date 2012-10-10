@@ -29,7 +29,7 @@ Title: remotestorage JS
 # These are indexes you deleted, so Natural Docs will not add them again
 # unless you remove them from this line.
 
-Don't Index: General, Functions, Files, Types, Classes, Build Targets, Events, Properties
+Don't Index: Functions, Files, Classes, Types, Events, Build Targets, Properties
 
 
 # --------------------------------------------------------------------------
@@ -90,6 +90,11 @@ Group: API  {
       File: widget  (/home/nil/src/remoteStorage.js/src/lib/widget.js)
       File: foreignClient  (/home/nil/src/remoteStorage.js/src/lib/foreignClient.js)
       }  # Group: Internals
+
+   Group: Docs Index  {
+
+      Index: Everything
+      }  # Group: Docs Index
 
    }  # Group: API
 
