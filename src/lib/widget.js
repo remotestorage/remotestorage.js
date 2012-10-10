@@ -81,6 +81,10 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     platform.eltOn('remotestorage-disconnect', 'click', handleDisconnectClick);
     platform.eltOn('remotestorage-cube', 'click', handleCubeClick);
     platform.eltOn('remotestorage-useraddress', 'type', handleWidgetTypeUserAddress);
+
+    if(state === 'typing') {
+      document.getElementById('remotestorage-useraddress').focus();
+    }
   }
   function handleRegisterButtonClick() {
     window.open(
