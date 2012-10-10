@@ -8,6 +8,15 @@ define(
 
     var defaultContentType = 'application/octet-stream';
 
+    function getContentType(headers) {
+      if(headers['content-type']) {
+        return headers['content-type'].split(';')[0];
+      } else {
+        logger.error("Falling back to default content type: ", defaultContentType, JSON.stringify(headers));
+        return defaultContentType;
+      }
+    }
+
     function doCall(method, url, value, mimeType, token, cb, deadLine) {
       var platformObj = {
         url: url,
@@ -17,13 +26,15 @@ define(
         },
         success: function(data, headers) {
           //logger.debug('doCall cb '+url, 'headers:', headers);
-          cb(null, data, headers['Content-Type'] || defaultContentType);
+          cb(null, data, getContentType(headers));
         },
         timeout: 5000
       }
 
-      platformObj.headers = {
-        'Authorization': 'Bearer ' + token
+      if(token) {
+        platformObj.headers = {
+          'Authorization': 'Bearer ' + token
+        }
       }
       if(mimeType) {
         platformObj.headers['Content-Type'] = mimeType;

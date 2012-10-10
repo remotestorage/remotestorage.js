@@ -7,7 +7,11 @@ define(['./util'], function (util) {
   // The store stores data locally. It treats all data as raw nodes, that have *metadata* and *payload*.
   // Metadata and payload are stored under separate keys.
   //
-  // This is what a node's metadata looks like:
+  // Type: Node
+  //
+  // Represents a node within the primary store.
+  //
+  // Properties:
   //   startAccess - either "r" or "rw". Flag means, that this node has been claimed access on (see <remoteStorage.claimAccess>) (default: null)
   //   startForce  - boolean flag to indicate that this node shall always be synced. (see <BaseClient.sync>) (default: null)
   //   timestamp   - last time this node was (apparently) updated (default: 0)
@@ -20,6 +24,11 @@ define(['./util'], function (util) {
   //
   // Event: error
   // See <BaseClient.Events>
+  //
+  // Method: on
+  //
+  // Install an event handler
+  // See <util.EventEmitter.on> for documentation.
 
   var logger = util.getLogger('store');
 
@@ -121,6 +130,18 @@ define(['./util'], function (util) {
 
   function updateNode(path, node, outgoing, meta, timestamp) {
     validPath(path);
+
+    if((! timestamp)) {
+      if((path !== '/') && (! outgoing)) {
+        logger.error('no timestamp given for node', path);
+      }
+      timestamp = outgoing ? getCurrTimestamp() : 0;
+    }
+
+    if(node) {
+      node.timestamp = timestamp;
+    }
+
     if(node) {
       localStorage.setItem(prefixNodes+path, JSON.stringify(node));
     } else {
@@ -142,11 +163,11 @@ define(['./util'], function (util) {
         updateNode(containingDir, parentNode, false, true, timestamp);
       } else if(outgoing) {
         if(node) {
-          parentData[baseName] = getCurrTimestamp();
+          parentData[baseName] = timestamp;
         } else {
           delete parentData[baseName];
         }
-        parentNode.diff[baseName] = getCurrTimestamp();
+        parentNode.diff[baseName] = timestamp;
         updateNodeData(containingDir, parentData);
         updateNode(containingDir, parentNode, true, false, timestamp);
       } else {//incoming
@@ -165,7 +186,7 @@ define(['./util'], function (util) {
             updateNode(containingDir, parentNode, false, false, timestamp);
           }
         }
-        if(path.substr(-1)!='/') {
+        if(! util.isDir(path)) {
           events.emit('change', {
             path: path,
             origin: 'remote',
@@ -222,9 +243,6 @@ define(['./util'], function (util) {
       mimeType='application/json';
     }
     node.mimeType = mimeType;
-    if(!timestamp) {
-      timestamp = getCurrTimestamp();
-    }
     updateNodeData(path, data);
     updateNode(path, (data ? node : undefined), outgoing, false, timestamp);
   }
@@ -257,7 +275,7 @@ define(['./util'], function (util) {
   }
 
   function removeNode(path) {
-    setNodeData(path, '', false);
+    setNodeData(path, undefined, false);
   }
 
   // Method: setNodeAccess
@@ -339,9 +357,6 @@ define(['./util'], function (util) {
   }
 
   return {
-    // Method: on
-    // Install an event handler
-    //
     on                : events.on,
     getNode           : getNode,
     getNodeData       : getNodeData,

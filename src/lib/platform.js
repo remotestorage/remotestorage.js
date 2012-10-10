@@ -81,7 +81,17 @@ define(['./util'], function(util) {
 
   var logger = util.getLogger('platform');
 
+  // downcase all header keys
+  function normalizeHeaders(headers) {
+    var h = {};
+    for(var key in headers) {
+      h[key.toLowerCase()] = headers[key];
+    }
+    return h;
+  }
+
   function browserParseHeaders(rawHeaders) {
+    logger.debug("PARSE HEADERS", typeof(rawHeaders), rawHeaders);
     var headers = {};
     var lines = rawHeaders.split(/\r?\n/);
     var lastKey = null, md, key, value;
@@ -107,7 +117,7 @@ define(['./util'], function(util) {
         logger.error("Failed to parse header line: " + lines[i]);
       }
     }
-    return headers;
+    return normalizeHeaders(headers);
   }
 
   function ajaxBrowser(params) {
@@ -138,6 +148,7 @@ define(['./util'], function(util) {
         }
         logger.debug('xhr cb '+params.url);
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
+          window.yxz = xhr;
           params.success(xhr.responseText, browserParseHeaders(xhr.getAllResponseHeaders()));
         } else {
           params.error(xhr.status || 'unknown error');
@@ -202,22 +213,6 @@ define(['./util'], function(util) {
         params.error('timeout');
         timedOut=true;
       }, params.timeout);
-    }
-
-    // nodejs represents headers like:
-    // 'message-id' : '...',
-    //
-    // we want:
-    //
-    // 'Message-Id' : '...'
-    function normalizeHeaders(headers) {
-      var h = {};
-      for(var key in headers) {
-        h[key.replace(/(?:^|\-)[a-z]/g, function(match) {
-          return match.toUpperCase();
-        })] = headers[key];
-      }
-      return h;
     }
 
     var lib = (urlObj.protocol=='https:'?https:http);
