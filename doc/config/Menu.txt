@@ -6,9 +6,7 @@ Title: remotestorage JS
 # You can also add a sub-title to your menu like this:
 # SubTitle: [subtitle]
 
-# You can add a footer to your documentation like this:
-# Footer: [text]
-# If you want to add a copyright notice, this would be the place to do it.
+Footer: remoteStorage.js is developed by some people. It's open source (MIT license) and meant for YOU! Don't mess with people's data, dude.
 
 # You can add a timestamp to your documentation like one of these:
 # Timestamp: Generated on month day, year
@@ -29,7 +27,7 @@ Title: remotestorage JS
 # These are indexes you deleted, so Natural Docs will not add them again
 # unless you remove them from this line.
 
-Don't Index: Functions, Files, Classes, Types, Events, Build Targets, Properties
+Don't Index: Functions, Files, Types, Classes, Build Targets, Events, Properties
 
 
 # --------------------------------------------------------------------------
