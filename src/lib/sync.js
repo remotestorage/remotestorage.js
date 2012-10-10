@@ -27,9 +27,14 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     events.emit('state', val ? 'busy' : 'connected');
   }
 
+  var syncTimestamps = {};
+
   function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne, clearCb) {
     for(var i in remote) {
       if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {//should probably include force and keep in this decision
+        if(! util.isDir(dirPath + i)) {
+          syncTimestamps[dirPath + i] = remote[i];
+        }
         pullNode(dirPath+i, force, access, startOne, finishOne);
       }
     }
@@ -54,6 +59,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
             }
             finishOne(err);
           });
+        }
+      } else if(remote[i]) {
+        if(! util.isDir(dirPath + i)) {
+          syncTimestamps[dirPath + i] = remote[i];
         }
       }
     }
@@ -150,14 +159,16 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     startOne();
 
     if(force || access) {
-      wireClient.get(path, function(err, data) {
+      wireClient.get(path, function(err, data, mimeType) {
         if(!err && data) {
           if(isDir) {
             dirMerge(path, data, thisData, thisNode.diff, force, access, startOne, finishOne, function(i) {
               store.clearDiff(path, i);
             });
           } else {
-            store.setNodeData(path, data, false);
+            var t = syncTimestamps[path];
+            delete syncTimestamps[path];
+            store.setNodeData(path, data, false, t, mimeType);
           }
         } else {
           pushNode(path, startOne, finishOne);
@@ -213,7 +224,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       throw "path is required";
     }
 
-    if((! syncOkNow) && (! force)) {
+    if((! syncOkNow) && (! force) || busy) {
       return callback(null);
     }
 
@@ -261,6 +272,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     fetchNow: fetchNow,
     getState : getState,
     on: events.on
+
   };
 
   return sync;

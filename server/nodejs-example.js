@@ -122,9 +122,9 @@ exports.handler = (function() {
   }
   function writeHead(res, status, origin, timestamp, contentType) {
     var headers = {
-      'access-control-allow-origin': (origin?origin:'*'),
-      'access-control-allow-headers': 'content-type, authorization, origin',
-      'access-control-allow-methods': 'GET, PUT, DELETE',
+      'Access-Control-Allow-Origin': (origin?origin:'*'),
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Origin',
+      'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
     };
     if(timestamp) {
       headers['last-modified']= new Date(timestamp).toString();

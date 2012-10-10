@@ -35,27 +35,26 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     fireChange('root', e);//root module gets everything
   });
 
-  function set(path, absPath, valueStr) {
+  function set(path, absPath, value) {
     var moduleName = extractModuleName(absPath);
     if(util.isDir(absPath)) {
       moduleEvents[moduleName].emit('error', 'attempt to set a value to a directory '+absPath);
       return;
     }
-    var node = store.getNode(absPath);
     var changeEvent = {
       origin: 'window',
       oldValue: store.getNodeData(absPath),
-      newValue: valueStr,
+      newValue: value,
       path: path
     };
-    store.setNodeData(absPath, valueStr, true);
+    store.setNodeData(absPath, value, true);
     fireChange(moduleName, changeEvent);
     fireChange('root', changeEvent);
   }
 
   var BaseClient = function(moduleName, isPublic) {
     this.moduleName = moduleName, this.isPublic = isPublic;
-    moduleEvents[moduleName] = util.getEventEmitter('change');
+    moduleEvents[moduleName] = util.getEventEmitter('change', 'error');
     util.bindAll(this);
   }
 
@@ -371,7 +370,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+this.moduleName+'/'+type;
       set(path, this.makePath(path), obj, 'application/json');
       var parentPath = util.containingDir(path);
-      this.sync(parentPath);
+      this.use(parentPath);
       this.syncNow(parentPath, callback, context);
     },
 
@@ -463,7 +462,9 @@ define(['./sync', './store', './util'], function (sync, store, util) {
           util.bindContext(callback, context) :
           util.bindContext(function(errors) {
             if(errors && errors.length > 0) {
-              logger.error("Error syncing: ", errors);
+              if(! (errors.length == 1 && errors[0] == 'not connected')) {
+                logger.error("Error syncing: ", errors);
+              }
               moduleEvents[this.moduleName].emit('error', errors);
             }
           }, this) )
