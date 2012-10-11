@@ -1846,18 +1846,18 @@ define('lib/store',['./util'], function (util) {
   function updateNode(path, node, outgoing, meta, timestamp) {
     validPath(path);
 
-    if((! timestamp)) {
+    if((!meta) && (! timestamp)) {
       if(outgoing) {
         timestamp = getCurrTimestamp();
       } else if(util.isDir(path)) {
         timestamp = determineDirTimestamp(path)
       } else {
-        logger.error('no timestamp given for node', path);
+        throw ('no timestamp given for node' + path);
         timestamp = 0;
       }
     }
 
-    if(node) {
+    if(node && typeof(timestamp) !== 'undefined') {
       node.timestamp = timestamp;
     }
 
@@ -2361,7 +2361,10 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     syncNow: syncNow,
     fetchNow: fetchNow,
     getState : getState,
-    on: events.on
+    on: events.on,
+
+    sleep: function() { syncOkNow = false; },
+    wakeup: function() { syncOkNow = true; }
 
   };
 
@@ -2832,7 +2835,7 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
 
     makePath: function(path) {
       if(this.moduleName == 'root') {
-        return path;
+        return path[0] === '/' ? path : ('/' + path);
       }
       return (this.isPublic?'/public/':'/')+this.moduleName+'/'+path;
     },
@@ -3193,7 +3196,11 @@ define('lib/baseClient',['./sync', './store', './util'], function (sync, store, 
             }
           }, this) )
       );
-    }
+    },
+
+    deactivateSync: function() { sync.sleep(); },
+    activateSync: function() { sync.wakeup(); }
+    
   };
 
   return BaseClient;
