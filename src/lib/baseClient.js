@@ -114,7 +114,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
 
     makePath: function(path) {
       if(this.moduleName == 'root') {
-        return path;
+        return path[0] === '/' ? path : ('/' + path);
       }
       return (this.isPublic?'/public/':'/')+this.moduleName+'/'+path;
     },
