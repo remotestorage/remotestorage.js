@@ -66,7 +66,7 @@
         });
 
         it("passes on data and mimetype when success() is called", function() {
-          ajaxOpts.success("something", { 'Content-Type': 'text/plain' });
+          ajaxOpts.success("something", { 'content-type': 'text/plain' });
           expect(result[1]).toEqual('something');
           expect(result[2]).toEqual('text/plain');
         });
@@ -89,12 +89,12 @@
         });
 
         it("attempts to parse the response from JSON", function() {
-          ajaxOpts.success('{"foo":123,"bar/":456}', {});
+          ajaxOpts.success('{"foo":123,"bar/":456}', { 'content-type' : 'application/json'});
           expect(typeof(result[1])).toEqual('object');
         });
 
         it("yields an error, when parsing the response fails", function() {
-          ajaxOpts.success('this aint json', {});
+          ajaxOpts.success('this aint json', { 'content-type' : 'application/json'});
           expect(typeof(result[0])).toEqual('string');
         });
       });

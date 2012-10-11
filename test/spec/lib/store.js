@@ -162,9 +162,13 @@
 
       beforeEach(function() {
         store.setNodeAccess('/foo/bar', 'rw');
-        store.setNodeData('/foo/bar', 'baz');
+        store.setNodeData(
+          '/foo/bar', 'baz', true, new Date().getTime(), 'text/plain'
+        );
         store.setNodeAccess('/foo/baz', 'r');
-        store.setNodeData('/foo/baz', 'bar');
+        store.setNodeData(
+          '/foo/baz', 'bar', true, new Date().getTime(), 'text/plain'
+        );
       });
 
       it("removes all node metadata", function() {

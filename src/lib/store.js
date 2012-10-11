@@ -144,18 +144,18 @@ define(['./util'], function (util) {
   function updateNode(path, node, outgoing, meta, timestamp) {
     validPath(path);
 
-    if((! timestamp)) {
+    if((!meta) && (! timestamp)) {
       if(outgoing) {
         timestamp = getCurrTimestamp();
       } else if(util.isDir(path)) {
         timestamp = determineDirTimestamp(path)
       } else {
-        logger.error('no timestamp given for node', path);
+        throw ('no timestamp given for node' + path);
         timestamp = 0;
       }
     }
 
-    if(node) {
+    if(node && typeof(timestamp) !== 'undefined') {
       node.timestamp = timestamp;
     }
 
