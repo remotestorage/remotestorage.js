@@ -45,19 +45,19 @@
           expect(called[0]).toEqual([evt]);
         });
 
-        // BROKEN!!!!!
-        // it("gets fired, when data is being updated", function() {
-        //   var cbCalled = false;
-        //   waitsFor(function() { return cbCalled === true; },
-        //            'storeObject');
-        //   baseClient.storeObject('test-object', 'foo/bar', {
-        //     value: 'baz'
-        //   } , function() {
-        //     cbCalled = true;
-        //     expect(called.length).toEqual(1);
-        //     console.log('CALLED', called);
-        //   });
-        // });
+        it("gets fired, when data is being updated", function() {
+          baseClient.storeObject('test-object', 'foo/bar', {
+            value: 'baz'
+          });
+          expect(called.length).toEqual(1);
+          var evt = called[0][0];
+          console.log("EVT", evt);
+          expect(evt.path).toEqual('foo/bar');
+          expect(evt.oldValue).toBe(undefined);
+          expect(typeof(evt.newValue)).toEqual('object');
+          expect(evt.newValue.value).toEqual('baz');
+          expect(evt.origin).toEqual("window");
+        });
 
       });
 
