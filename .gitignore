@@ -3,3 +3,5 @@
 .#*
 *.swp
 node_modules
+*.log
+server/server-state
