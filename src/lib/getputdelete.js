@@ -28,13 +28,12 @@ define(
           //logger.debug('doCall cb '+url, 'headers:', headers);
           cb(null, data, getContentType(headers));
         },
-        timeout: deadLine || 5000
+        timeout: deadLine || 5000,
+        headers: {}
       }
 
       if(token) {
-        platformObj.headers = {
-          'Authorization': 'Bearer ' + token
-        }
+        platformObj.headers['Authorization'] = 'Bearer ' + token;
       }
       if(mimeType) {
         platformObj.headers['Content-Type'] = mimeType;

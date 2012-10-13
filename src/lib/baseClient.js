@@ -1,5 +1,3 @@
-/* -*- js-indent-level:2 -*- */
-
 define(['./sync', './store', './util'], function (sync, store, util) {
 
   "use strict";
@@ -18,15 +16,24 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     }
   }
 
+  var isPublicRE = /^\/public\//;
+
   function fireChange(moduleName, eventObj) {
-    if(moduleEvents[moduleName]) {
+    var isPublic = isPublicRE.test(eventObj.path);
+    var events;
+    if(moduleEvents[moduleName] && (events = moduleEvents[moduleName][isPublic])) {
 
       if(moduleName !== 'root') {
         eventObj.relativePath = eventObj.path.replace(new RegExp('^/(?:public/|)' + moduleName + '/'), '');
       }
 
-      moduleEvents[moduleName].emit('change', eventObj);
+      events.emit('change', eventObj);
     }
+  }
+
+  function fireError(absPath, error) {
+    var isPublic = isPublicRE.test(absPath);
+    moduleEvents[moduleName][isPublic].emit('error', error);
   }
 
   store.on('change', function(e) {
@@ -38,14 +45,14 @@ define(['./sync', './store', './util'], function (sync, store, util) {
   function set(path, absPath, value) {
     var moduleName = extractModuleName(absPath);
     if(util.isDir(absPath)) {
-      moduleEvents[moduleName].emit('error', 'attempt to set a value to a directory '+absPath);
+      fireError(absPath, 'attempt to set a value to a directory '+absPath);
       return;
     }
     var changeEvent = {
       origin: 'window',
       oldValue: store.getNodeData(absPath),
       newValue: value,
-      path: path
+      path: absPath
     };
     store.setNodeData(absPath, value, true);
     fireChange(moduleName, changeEvent);
@@ -54,7 +61,11 @@ define(['./sync', './store', './util'], function (sync, store, util) {
 
   var BaseClient = function(moduleName, isPublic) {
     this.moduleName = moduleName, this.isPublic = isPublic;
-    moduleEvents[moduleName] = util.getEventEmitter('change', 'error');
+    if(! moduleEvents[moduleName]) {
+      moduleEvents[moduleName] = {};
+    }
+    this.events = util.getEventEmitter('change', 'error');
+    moduleEvents[moduleName][isPublic] = this.events;
     util.bindAll(this);
   }
 
@@ -138,6 +149,11 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       }
     },
 
+    lastUpdateOf: function(path) {
+      var absPath = this.makePath(path);
+      var node = store.getNode(absPath);
+      return node ? node.timestamp : null;
+    },
 
     //  
     // Method: on
@@ -150,7 +166,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   context   - (optional) context to bind handler to
     //  
     on: function(eventType, handler, context) {
-      moduleEvents[this.moduleName].on(eventType, util.bindContext(handler, context));
+      this.events.on(eventType, util.bindContext(handler, context));
     },
 
     //
@@ -194,19 +210,18 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       this.ensureAccess('r');
       var absPath = this.makePath(path);
       if(callback) {
-        sync.fetchNow(absPath, function(err, node) {
-          var data = store.getNodeData(absPath);
-          if(data && (typeof(data) == 'object')) {
-            delete data['@type'];
+        var cb = util.bindContext(callback, context);
+        this.fetchNow(absPath, function(err, node) {
+          if(err) {
+            cb(err);
+          } else {
+            var data = store.getNodeData(absPath);
+            cb(null, data);
           }
-          util.bindContext(callback, context)(data);
         });
       } else {
         var node = store.getNode(absPath);
         var data = store.getNodeData(absPath);
-        if(data && (typeof(data) == 'object')) {
-          delete data['@type'];
-        }
         return data;
       }
     },
@@ -256,15 +271,22 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //
     // Get all objects directly below a given path.
     //
-    // Receives the same parameters as <getListing>
+    // Receives the same parameters as <getListing> (FIXME!!!)
     //
     // Returns an object in the form { path : object, ... }
     //
-    getAll: function(path, callback, context) {
+    getAll: function(type, path, callback, context) {
+      if(typeof(path) != 'string') {
+        path = type, callback = path, context = callback;
+        type = null;
+      }
       var makeMap = function(listing) {
         var o = {};
-        listing.forEach(function(item) {
-          o[path + item] = this.getObject(path + item);
+        listing.forEach(function(name) {
+          var item = this.getObject(path + name);
+          if((! type) || type == item['@type'].split('/').slice(-1)[0]) {
+            o[path + name] = item;
+          }
         }, this);
         return o;
       }.bind(this);
@@ -329,7 +351,11 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     remove: function(path, callback, context) {
       this.ensureAccess('w');
       set(path, this.makePath(path), undefined);
-      this.syncNow(util.containingDir(path), callback, context);
+      if(callback) {
+        this.syncNow(util.containingDir(path), callback, context);
+      } else {
+        this.triggerSync();
+      }
     },
 
     //
@@ -377,7 +403,11 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       set(path, this.makePath(path), obj, 'application/json');
       var parentPath = util.containingDir(path);
       this.use(parentPath);
-      this.syncNow(parentPath, callback, context);
+      if(callback) {
+        this.syncNow(parentPath, callback, context);
+      } else {
+        this.triggerSync();
+      }
     },
 
     //
@@ -398,7 +428,15 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     storeDocument: function(mimeType, path, data, callback, context) {
       this.ensureAccess('w');
       set(path, this.makePath(path), data, mimeType);
-      this.syncNow(path, callback, context);
+      if(callback) {
+        this.syncNow(path, callback, context);
+      } else {
+        this.triggerSync();
+      }
+    },
+
+    getStorageHref: function() {
+      return remoteStorage.getStorageHref();
     },
 
     //
@@ -414,7 +452,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   a String - when currently connected
     //   null - when currently disconnected
     getItemURL: function(path) {
-      var base = remoteStorage.getStorageHref();
+      var base = this.getStorageHref();
       if(! base) {
         return null;
       }
@@ -461,6 +499,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   callback - (optional) callback to call once synchronization finishes.
     //   context  - (optional) context to bind callback to.
     //
+    // FIXME: currently syncs always the module root.
     syncNow: function(path, callback, context) {
       sync.syncNow(
         this.makePath(path),
@@ -471,10 +510,34 @@ define(['./sync', './store', './util'], function (sync, store, util) {
               if(! (errors.length == 1 && errors[0] == 'not connected')) {
                 logger.error("Error syncing: ", errors);
               }
-              moduleEvents[this.moduleName].emit('error', errors);
+              this.events.emit('error', errors);
             }
           }, this) )
       );
+    },
+
+    triggerSync: function() {
+      if(this._syncDelayTimer) {
+        clearTimeout(this._syncDelayTimer);
+      }
+      this._syncDelayTimer = setTimeout(function() {
+        this._syncDelayTimer = null;
+        this.syncNow('');
+      }.bind(this), 250);
+    },
+
+    fetchNow: function(path, callback) {
+      sync.fetchNow(path, callback);
+    },
+
+    hasDiff: function(path) {
+      var absPath = this.makePath(path);
+      if(util.isDir(absPath)) {
+        return Object.keys(store.getNode(absPath).diff).length > 0;
+      } else {
+        var parentPath = absPath.replace(/[^\/]+$/, '');
+        return !! store.getNode(absPath).diff[path.split('/').slice(-1)[0]];
+      }
     },
 
     deactivateSync: function() { sync.sleep(); },

@@ -10,7 +10,8 @@ define([], function() {
 
   var loggers = {}, silentLogger = {};
 
-  var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform', 'baseClient', 'widget', 'store'];
+  var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform',
+                      'baseClient', 'widget', 'store', 'foreignClient'];
 
   var util = {
 
@@ -30,6 +31,16 @@ define([], function() {
     // Convenience method to check if given path is a directory.
     isDir: function(path) {
       return path.substr(-1) == '/';
+    },
+    
+    pathParts: function(path) {
+      var parts = ['/'];
+      var md;
+      while(md = path.match(/^(.*?)([^\/]+\/?)$/)) {
+        parts.unshift(md[2]);
+        path = md[1];
+      }
+      return parts;
     },
 
     // Method: containingDir
@@ -178,20 +189,24 @@ define([], function() {
     // > remoteStorage.util.silenceLogger('sync');
     //
     silenceLogger: function() {
+      console.log('silence begin', arguments);
       var names = util.toArray(arguments);
       for(var i=0;i<names.length;i++) {
         silentLogger[ names[i] ] = true;
       }
+      console.log('silence end', silentLogger);
     },
 
     // Method: silenceLogger
     // Unsilence all given loggers.
     // The opposite of <silenceLogger>
     unsilenceLogger: function() {
+      console.log('unsilence begin', arguments);
       var names = util.toArray(arguments);
       for(var i=0;i<names.length;i++) {
         delete silentLogger[ names[i] ];
       }
+      console.log('unsilence end', silentLogger);
     },
 
     // Method: silenceAllLoggers

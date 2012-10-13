@@ -19,6 +19,24 @@ define(['./util'], function (util) {
   //   diff        - difference in the node's data since the last synchronization.
   //   mimeType    - MIME media type
   //
+  // Optional properties:
+  //   expired    - local node is present, but remote has updates that haven't been
+  //                applied, yet
+  //   remoteTime - when 'expired' is set, this holds the timestamp of the last
+  //                seen remote update.
+  //   error      - a sync error happened, so node state is unknown.
+  //
+  // Node errors:
+  //   When a node has the error property set, it is set to an object with the
+  //   following data
+  //
+  //   action    - either 'push' or 'pull', depending on the action that failed.
+  //   timestamp - (local) timestamp of the time when the error happened.
+  //   reason    - error messages given by the underlying layer.
+  //
+  //   Errors being propagated to the node through sync come either from
+  //   <platform>, <getputdelete> or <wireClient>, depending on what went wrong.
+  //
   // Event: change
   // See <BaseClient.Events>
   //
@@ -103,10 +121,16 @@ define(['./util'], function (util) {
     return new Date().getTime();
   }
 
+  var userAddressRE = /^[^@]+@[^:]+:\//;
+
   function validPath(path) {
-    if(path[0] != '/') {
+    if(! (path[0] == '/' || userAddressRE.test(path))) {
       throw "Invalid path: " + path;
     }
+  }
+
+  function isForeign(path) {
+    return path[0] != '/';
   }
 
   function updateNodeData(path, data) {
@@ -203,7 +227,7 @@ define(['./util'], function (util) {
             updateNode(containingDir, parentNode, false, false, timestamp);
           }
         }
-        if(! util.isDir(path)) {
+        if(! (util.isDir(path) || isForeign(path))) {
           events.emit('change', {
             path: path,
             origin: 'remote',
@@ -256,6 +280,13 @@ define(['./util'], function (util) {
   //
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
+
+    if(outgoing && node.expired) {
+      throw "Attempt to update expired node at " + path;
+    }
+
+    delete node.expired;
+
     if(!mimeType) {
       mimeType='application/json';
     }
@@ -325,6 +356,23 @@ define(['./util'], function (util) {
     updateNode(path, node, false, true);//meta
   }
 
+  function setNodeError(path, error) {
+    var node = getNode(path);
+    if(! error) {
+      delete node.error;
+    } else {
+      node.error = error;
+    }
+    updateNode(path, node, false, true);
+  }
+
+  function expireNode(path, timestamp) {
+    var node = getNode(path);
+    node.expired = true;
+    node.remoteTime = timestamp;
+    updateNode(path, node, false, true);
+  }
+
   // Method: clearDiff
   //
   // Clear current diff on the node. This only applies to
@@ -339,6 +387,9 @@ define(['./util'], function (util) {
   //
   function clearDiff(path, childName) {
     logger.debug('clearDiff', path, childName);
+    if(! util.isDir(path)) {
+      throw "clearDiff called for data node: " + path;
+    }
     var node = getNode(path);
     delete node.diff[childName];
     updateNode(path, node, false, true);//meta
@@ -357,6 +408,7 @@ define(['./util'], function (util) {
   // listings to fill their views.
   //
   function fireInitialEvents() {
+    logger.info('fire initial events');
     for(var i=0; i<localStorage.length; i++) {
       var key = localStorage.key(i)
       if(isPrefixed(key)) {
@@ -384,6 +436,8 @@ define(['./util'], function (util) {
     removeNode        : removeNode,
     forget            : forget,
     forgetAll         : forgetAll,
-    fireInitialEvents : fireInitialEvents
+    fireInitialEvents : fireInitialEvents,
+    setNodeError: setNodeError,
+    expireNode: expireNode
   };
 });

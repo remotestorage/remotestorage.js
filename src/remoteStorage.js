@@ -1,13 +1,15 @@
 define([
   'require',
   './lib/widget',
-  './lib/baseClient',
   './lib/store',
   './lib/sync',
   './lib/wireClient',
   './lib/nodeConnect',
-  './lib/util'
-], function(require, widget, BaseClient, store, sync, wireClient, nodeConnect, util) {
+  './lib/util',
+  './lib/webfinger',
+  './lib/foreignClient',
+  './lib/baseClient'
+], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, ForeignClient, BaseClient) {
 
   "use strict";
 
@@ -92,7 +94,6 @@ define([
         throw 'Invalid moduleName: "'+moduleName+'", only a-z lowercase allowed.'
       }
 
-      logger.debug('DEFINE MODULE', moduleName);
       var module = builder(
         // private client:
         new BaseClient(moduleName, false),
@@ -101,7 +102,6 @@ define([
       );
       modules[moduleName] = module;
       this[moduleName] = module.exports;
-      logger.debug('Module defined: ' + moduleName, module, this);
     },
 
     //
@@ -381,7 +381,18 @@ define([
 
     nodeConnect: nodeConnect,
 
-    util: util
+    util: util,
+
+    getClientForAddress: function(userAddress, callback) {
+      webfinger.getStorageInfo(
+        userAddress, { timeout: 3000 }, function(err, storageInfo) {
+          if(err) {
+            callback(err);
+          } else {
+            callback(null, new ForeignClient(userAddress, storageInfo));
+          }
+        });
+    }
 
   };
 

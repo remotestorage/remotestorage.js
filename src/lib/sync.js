@@ -1,281 +1,353 @@
 define(['./wireClient', './store', './util'], function(wireClient, store, util) {
 
-  "use strict";
+  /*
 
-  // Namespace: sync
-  //
-  // Sync is where all the magic happens. It connects the <store> and <wireClient>
-  //
+    Legend:
+     L - has local modifications
+     R - has remote modifications
+     D - modification is a delete
 
-  var sync; // set below.
+    Suppose a tree like this:
 
-  var prefix = '_remoteStorage_', busy=false, syncOkNow=true;
+       /
+       /messages/
+       /messages/pool/
+       /messages/pool/1
+       /messages/pool/2
+    L  /messages/pool/3
+    R  /messages/pool/4
+       /messages/index/read/true/1
+    L  /messages/index/read/true/3
+       /messages/index/read/false/2
+    LD /messages/index/read/false/3
+    R  /messages/index/read/false/4
 
-  var logger = util.getLogger('sync');
-  var events = util.getEventEmitter('state');
 
-  function getState(path) {//should also distinguish between synced and locally modified for the path probably
-    if(busy) {
-      return 'busy';
-    } else {
-      return 'connected';
+    Now a sync cycle for /messages/ begins:
+
+    GET /messages/
+      -> mark remote diff for pool/ and index/
+    GET /messages/index/
+      -> mark local and remote diff for read/
+    GET /messages/index/read/
+      -> mark remote diff for false/
+    GET /messages/index/read/false/
+      -> mark remote diff for 4
+    DELETE /messages/index/read/false/3
+      -> clear local diff for 3
+    GET /messages/index/read/false/4
+      -> update local node 4
+      -> clear remote diff for 4
+      (pop back to /messages/index/read/)
+      -> clear remote and local diff for false/
+    GET /messages/index/read/true/
+    PUT /messages/index/read/true/3
+      -> clear local diff for 3
+      (pop back to /messages/index/read/)
+      -> clear local diff for true/)
+      (pop back to /messages/index/)
+      -> clear local and remote diff for read/
+      (pop back to /messages/)
+    GET /messages/pool/
+      -> mark remote diff for 4
+    PUT /messages/pool/3
+      -> clear local diff for 3
+    GET /messages/pool/4
+      -> update local node 4
+      -> clear remote diff for 4
+      (pop back to /messages/)
+      -> clear local and remote diff for pool/
+      (pop back to /)
+      -> clear local and remote diff for messages/
+
+    Sync cycle all done.
+   */
+
+  function markPullFailed(path, reason) {
+    store.setNodeError(path, {
+      action: 'pull',
+      timestamp: new Date().getTime(),
+      reason: reason
+    });
+  }
+
+  function markPushFailed(path, reason) {
+    store.setNodeError(path, {
+      action: 'push',
+      timestamp: new Date().getTime(),
+      reason: reason
+    });
+  }
+
+  function clearError(path) {
+    store.setNodeError(path, null);
+  }
+
+  function markRemoteTime(path, timestamp) {
+    var node = store.getNode(path);
+    if(node.timestamp < timestamp) {
+      store.expireNode(path, timestamp);
     }
   }
-  function setBusy(val) {
-    busy=val;
 
-    events.emit('state', val ? 'busy' : 'connected');
-  }
+  // Property: timestampCache
+  //
+  // A map of the form { <path> : <timestamp> } to keep track of timestamps seen
+  // in directory listings.
+  var timestampCache = {};
 
-  var syncTimestamps = {};
+  /** PUSH **/
 
-  function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne, clearCb) {
-    for(var i in remote) {
-      if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {//should probably include force and keep in this decision
-        if(! util.isDir(dirPath + i)) {
-          syncTimestamps[dirPath + i] = remote[i];
-        }
-        pullNode(dirPath+i, force, access, startOne, finishOne);
-      }
-    }
-    for(var i in cached) {
-      if(!remote[i] && !diff[i]) { // incoming delete
-        store.removeNode(dirPath + i);
-      } else if(!remote[i] || cached[i] > remote[i]) {
-        if(util.isDir(i)) {
-          pullNode(dirPath+i, force, access, startOne, finishOne);
-        } else {//recurse
-          var childNode = store.getNode(dirPath+i);
-          var childData = store.getNodeData(dirPath + i);
-          startOne();
-          if(typeof(childData) === 'object') {
-            childData = JSON.stringify(childData);
+  function recursivePush(path, callback) {
+    var errors = [];
+    var node = store.getNode(path);
+    var diffKeys = Object.keys(node.diff);
+
+    function pushNext() {
+      var key = diffKeys.shift();
+      push(path + key, function(err) {
+        if(err) {
+          for(var i=0;i<err.length;i++) {
+            errors.push(err[i]);
           }
-          wireClient.set(dirPath+i, childData, childNode.mimeType, function(err) {
-            if(err) {
-              logger.error('wireclient said error', err);
-            }
-            finishOne(err);
-          });
         }
-      } else if(remote[i]) {
-        if(! util.isDir(dirPath + i)) {
-          syncTimestamps[dirPath + i] = remote[i];
-        }
-      }
+        pushNext();
+      });
     }
-    for(var i in diff) {
-      if(!cached[i]) {//outgoing delete
-        if(remote[i]) {
-          startOne();
-          wireClient.set(dirPath+i, undefined, undefined, function(err) {
-            finishOne();
-          });
-        } else {
-          clearCb(i);
-        }
+
+    pushNext();
+  }
+
+  function pushOne(path, callback) {
+    var rawData = store.getNodeData(path, true);
+
+    wireClient.set(path, rawData, function(err) {
+      if(err) {
+        markPushFailed(path, err);
+        callback([path + ': ' + err]);
       } else {
-        clearCb(i);
+        clearError(path);
+        clearDiff(path);
+        callback(null);
       }
-    }
+    });
   }
 
-  function getFileName(path) {
-    var parts = path.split('/');
+  // Push a single node.
+  // Travels *down* the path, so pushing a directory node will push all it's
+  // children.
+  function push(path, callback) {
+
     if(util.isDir(path)) {
-      return parts[parts.length-2]+'/';
+      recursivePush(path, callback);
     } else {
-      return parts[parts.length-1];
+      pushOne(path, callback);
     }
+
   }
 
-  function findForce(path, node) {
-    if(! node) {
-      return null;
-    } else if(! node.startForce) {
-      var parentPath = util.containingDir(path);
-      if((!path) || (parentPath == path)) {
-        return false;
-      } else if(parentPath) {
-        return findForce(parentPath, store.getNode(parentPath));
-      }
-    } else {
-      return node.startForce;
-    }
-  }
+  /** PULL **/
 
-  function hasDiff(parentPath, fname) {
-    var parent = store.getNode(parentPath);
-    return !! parent.diff[fname];
-  }
-
-  function pushNode(path, startOne, finishOne) {
-    if(util.isDir(path)) {
-      var dirNode = store.getNode(path);
-      dirMerge(path, store.getNodeData(path), dirNode.diff, false, false, startOne, finishOne, function(i) { store.clearDiff(path, i); });
-    }
-    logger.debug('pushNode', path);
-    var parentPath = util.containingDir(path);
-    var fname = getFileName(path)
-    if(hasDiff(parentPath, fname)) {
-      logger.debug('pushNode!', path);
-      var data = store.getNodeData(path, true);
-      var node = store.getNode(path);
-      if(! data) {
-        logger.error("ATTEMPTED TO PUSH EMPTY DATA", node, data);
-        return;
-      }
-      wireClient.set(path, data, node.mimeType, function(err) {
-        logger.debug("wire client set result", arguments);
-        if(! err) {
-          store.clearDiff(parentPath, fname);
+  // Pull a single node and update the store.
+  function pullOne(path, callback) {
+    var errors = [];
+    wireClient.get(path, function(err, data, mimeType) {
+      if(err) {
+        markPullFailed(path, err);
+        errors.push(path + ': ' + err);
+      } else if(! data) {
+        // incoming delete
+        store.removeNode(path);
+      } else {
+        // incoming update
+        var t = timestampCache[path];
+        if(! t) {
+          errors.push("unexpected pull result for " +
+                      path + ", no timestamp in cache");
         } else {
-          logger.error('pushNode', err);
-        }
-        finishOne(err);
-      });
-    }
-  }
-
-  function pullNode(path, force, access, startOne, finishOne) {
-    var thisNode = store.getNode(path);
-    var thisData = store.getNodeData(path);
-    var isDir = util.isDir(path);
-    if((! thisData) && isDir) {
-      thisData = {};
-    }
-    logger.debug('pullNode "'+path+'"', thisNode);
-
-    if(thisNode.startAccess == 'rw' || !access) {
-      force = thisNode.startAccess;
-    }
-
-    if(! force) {
-      force = findForce(path, thisNode);
-    }
-    
-    startOne();
-
-    if(force || access) {
-      wireClient.get(path, function(err, data, mimeType) {
-        if(!err && data) {
-          if(isDir) {
-            dirMerge(path, data, thisData, thisNode.diff, force, access, startOne, finishOne, function(i) {
-              store.clearDiff(path, i);
-            });
-          } else {
-            var t = syncTimestamps[path];
-            delete syncTimestamps[path];
-            store.setNodeData(path, data, false, t, mimeType);
+          clearError(path);
+          delete timestampCache[path];
+          store.setNodeData(path, data, false, t, mimeType);
+          if(util.isDir(path)) {
+            var listing = store.getNodeData(path);
+            for(var key in listing) {
+              timestampCache[path + key] = listing[key];
+            }
           }
-        } else {
-          pushNode(path, startOne, finishOne);
         }
-        
-        finishOne(err);
-        
+      }
+      callback(errors.length > 0 ? errors : null);
+    });
+  }
+
+  // Pull a single node.
+  // Travels *up* the path, so pulling a node will pull all it's parents to
+  // update their timestamps, but not their children.
+  function pull(path, callback) {
+    var queue = util.pathParts(path);
+    var p = '';
+
+    function pullNext() {
+      p += queue.shift();
+      pullOne(p, function(err) {
+        if(err) {
+          callback(err);
+        } else if(queue.length > 0) {
+          pullNext();
+        } else {
+          callback(null);
+        }
       });
+    }
 
-      return;
+    pullNext();
+  }
 
-    } else if(thisData && isDir) {
-      for(var i in thisData) {
-        if(util.isDir(i)) {
-          pullNode(path+i, force, access, startOne, finishOne);
+  function isExpired(path) {
+    var node = store.getNode(path);
+    return node.expired;
+  }
+
+  // only pull given node, if it has remote updates.
+  function maybePull(path, callback) {
+    if(isExpired(path)) {
+      pull(path, callback);
+    } else {
+      callback(null);
+    }
+  }
+
+  // only pull given tree, if it has remote updates.
+  function maybePullTree(path, callback, force) {
+    if(isExpired(path)) {
+      pullTree(path, callback, force);
+    } else {
+      callback(null);
+    }
+  }
+
+  // Pull a directory node and all it's (directory) children recursively.
+  // This will only pull data nodes that are marked with 'force' or are below
+  // a directory, which is marked with 'force'.
+  // For all other data nodes, remote updates will cause local expiration.
+  //
+  function pullTree(path, callback, force) {
+    var errors = [];
+
+    if(! util.isDir(path)) {
+      throw "pullTree: Expected directory node, got: " + path;
+    }
+    pull(path, function(err) {
+      if(err) {
+        callback(err);
+      } else {
+        var node = store.getNode(path);
+        if(node.startForce) {
+          force = node.startForce;
+        }
+        var listing = store.getNodeData(path);
+        var todos = [];
+        for(var key in listing) {
+          var p = path + key;
+          markRemoteTime(p, listing[key]);
+          if(util.isDir(p) || force) {
+            todos.push(p);
+          }
+        }
+
+        function pullNext() {
+          var next = todos.shift();
+          if(next) {
+            if(util.isDir(next)) {
+              maybePullTree(next, function(err) {
+                if(err) {
+                  errors.push(err);
+                }
+                pullNext();
+              }, force);
+            } else { // forced pull (if remote has updates)
+              maybePull(next, function(err) {
+                if(err) {
+                  errors.push(err);
+                }
+                pullNext();
+              });
+            }
+          } else { // todos is empty, all done.
+            callback(errors.length > 0 ? errors : null);
+          }
+        }
+
+        pullNext();
+      }
+    });
+  }
+
+  /** SYNC **/
+
+  function syncTree(startPath, startNode, callback) {
+    if(startNode.startAccess == 'r') {
+      // read-only access is the easiest to handle. Just pull recursively.
+      pullTree(startPath, callback);
+    } else {
+      // combination of push & pull, based on remote / local updates.
+      pullTree(startPath, callback); // FIXME
+    }
+  }
+
+  // Start a full sync.
+  //
+  // Starts at the root node and pushes all it's 
+  function syncFull(callback) {
+    var root = store.getNode('/');
+
+    // sync either starts on the root (root scope requested), or on one or more
+    // of it's children (one or more regular scopes requested).
+
+    if(root.startAccess) {
+      syncTree('/', root, callback);
+    } else {
+      var rootData = store.getNodeData('/');
+      var errors = [];
+      var todos = [];
+
+      for(var key in rootData) {
+        var path = '/' + key;
+        var child = store.getNode(path);
+        if(child.startAccess) {
+          todos.push(child);
         }
       }
+
+      function syncNext() {
+        var path = todos.shift();
+
+        syncTree(path, child, function(err) {
+          if(err) {
+            errors.push(err);
+          }
+
+          if(todos.length > 0) {
+            syncNext();
+          } else {
+            callback(errors.length > 0 ? errors : null);
+          }
+        });
+      }
+
+      syncNext();
     }
-
-    // this is an edge case, reached when all of the following are true:
-    // * this is NOT a directory node
-    // * neither this node nor any of it's parent have startForce set
-    // * this node doesn't have it's startAccess flag set
-    // * neither 'force' nor 'access' are forced by this pullNode call
-    finishOne();
-
   }
 
-  // TODO: DRY those two:
+  return {
 
-  function fetchNow(path, callback) {
-    var outstanding = 0, errors=[];
-    function startOne() {
-      outstanding++;
-    }
-    function finishOne(err) {
-      if(err) {
-        errors.push(err);
-      }
-      outstanding--;
-      if(outstanding == 0) {
-        setBusy(false);
-        callback(errors || null, store.getNode(path));
-      }
-    }
-    setBusy(true);
-    pullNode(path, false, true, startOne, finishOne)
-  }
+    pullOne: pullOne,
+    pushOne: pushOne,
 
-  function syncNow(path, callback, force) {
-
-    if(! path) {
-      throw "path is required";
-    }
-
-    if((! syncOkNow) && (! force) || busy) {
-      return callback(null);
-    }
-
-    if(wireClient.getState() == 'anonymous') {
-      if(callback) {
-        callback(['not connected']);
-      }
-      return;
-    }
-
-    var outstanding=0, errors=[];
-    function startOne() {
-      outstanding++;
-    }
-    function finishOne(err) {
-      if(err) {
-        errors.push(path);
-      }
-      outstanding--;
-      if(outstanding==0) {
-        setBusy(false);
-        setTimeout(function() {
-          syncOkNow = true;
-        }, sync.minPollInterval);
-        if(callback) {
-          callback(errors.length > 0 ? errors : null);
-        } else {
-          logger.info('syncNow done');
-        }
-      }
-    }
-    logger.info('syncNow '+path);
-    setBusy(true);
-    syncOkNow = false;
-    pullNode(path, false, false, startOne, finishOne);
-  }
-
-  sync = {
-    // Property: minPollInterval
-    // Minimal interval between syncNow calls.
-    // All calls that happen in between, immediately succeed
-    // (call their callbacks) without doing anything.
-    minPollInterval: 3000,
-    syncNow: syncNow,
-    fetchNow: fetchNow,
-    getState : getState,
-    on: events.on,
-
-    sleep: function() { syncOkNow = false; },
-    wakeup: function() { syncOkNow = true; }
+    // hack to make the spec work.
+    _timestampCache: timestampCache
 
   };
 
-  return sync;
-
 });
+
