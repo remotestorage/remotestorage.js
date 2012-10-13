@@ -48,14 +48,20 @@ function build(output, inputs, options) {
   requirejs.optimize(config);
 }
 
-build('latest/remoteStorage', 'remoteStorage');
-build('latest/remoteStorage-debug', 'remoteStorage', { debug: true });
-build('latest/remoteStorage-node', 'remoteStorage', { end: 'endNode.frag' });
-build('latest/remoteStorage-node-debug', 'remoteStorage', { end: 'endNode.frag', debug: true });
+if(process.argv[2] == 'debug') {
+  build('latest/remoteStorage-debug', 'remoteStorage', { debug: true });
+} else {
+  build('latest/remoteStorage', 'remoteStorage');
+  build('latest/remoteStorage-debug', 'remoteStorage', { debug: true });
+  build('latest/remoteStorage-node', 'remoteStorage', { end: 'endNode.frag' });
+  build('latest/remoteStorage-node-debug', 'remoteStorage', { end: 'endNode.frag', debug: true });
 
 
-build('latest/remoteStorage-modules', 'remoteStorage-modules', { end: 'endModules.frag' });
-build('latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
+  build('latest/remoteStorage-modules', 'remoteStorage-modules', { end: 'endModules.frag' });
+  build('latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
+
+}
+
 // var mods = modules.map(function(module) {
 //   return 'modules/' + module.name;
 // });
