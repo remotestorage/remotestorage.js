@@ -18,6 +18,7 @@ define(
     }
 
     function doCall(method, url, value, mimeType, token, cb, deadLine) {
+      logger.info(method, url);
       var platformObj = {
         url: url,
         method: method,

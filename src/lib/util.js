@@ -13,6 +13,8 @@ define([], function() {
   var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform',
                       'baseClient', 'widget', 'store', 'foreignClient'];
 
+  var logFn = null;
+
   var util = {
 
     // Method: toArray
@@ -204,6 +206,9 @@ define([], function() {
           },
 
           log: function(level, args, type) {
+            if(logFn) {
+              return logFn(name, level, args);
+            }
             if(silentLogger[name]) {
               return;
             }
@@ -220,6 +225,20 @@ define([], function() {
       }
 
       return loggers[name];
+    },
+
+    // Method: setLogFunction
+    //
+    // Override the default logger with a custom function.
+    // After the remotestorage will no longer log to the browser console, but
+    // instead pass each logger call to the provided function.
+    //
+    // Log function parameters:
+    //   name  - Name of the logger.
+    //   level - loglevel, one of 'info', 'debug', 'error'
+    //   args  - Array of arguments passed to the logger. can be anything.
+    setLogFunction: function(logFunction) {
+      logFn = logFunction;
     },
 
     // Method: silenceLogger

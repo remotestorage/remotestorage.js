@@ -384,8 +384,11 @@ define([
     //                  afterwards.
     //
     getWidgetState   : widget.getState,
+    getSyncState     : sync.getState,
     setStorageInfo   : wireClient.setStorageInfo,
     getStorageHref   : wireClient.getStorageHref,
+
+    disableSyncThrottling: sync.disableThrottling,
 
     nodeConnect: nodeConnect,
 

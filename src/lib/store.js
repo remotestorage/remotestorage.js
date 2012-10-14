@@ -156,7 +156,7 @@ define(['./util'], function (util) {
       } else if(util.isDir(path)) {
         timestamp = determineDirTimestamp(path)
       } else {
-        throw ('no timestamp given for node ' + path);
+        throw new Error('no timestamp given for node ' + path);
         timestamp = 0;
       }
     }

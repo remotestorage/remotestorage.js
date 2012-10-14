@@ -258,6 +258,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     sync.fullPush(function() {
       wireClient.disconnectRemote();
       store.forgetAll();
+      sync.clearSettings();
       // trigger 'disconnected' once, so the app can clear it's views.
       setWidgetState('disconnected', true);
       setWidgetState('anonymous');

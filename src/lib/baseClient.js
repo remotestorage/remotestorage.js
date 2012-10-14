@@ -357,13 +357,14 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //
     // Parameters:
     //   path     - Path relative to the module root.
-    //   callback - (optional) passed on to <syncNow>
-    //   context  - (optional) passed on to <syncNow>
+    //   callback - (optional) called when the change has been propagated to remotestorage
+    //   context  - (optional)
     //
     remove: function(path, callback, context) {
       this.ensureAccess('w');
       var absPath = this.makePath(path);
       set(path, absPath, undefined);
+      sync.syncOne(absPath, util.bind(callback, context));
     },
 
     //
@@ -376,8 +377,8 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   type     - unique type of this object within this module. See description below.
     //   path     - path relative to the module root.
     //   object   - an object to be saved to the given node. It must be serializable as JSON.
-    //   callback - (optional) passed on to <syncNow>
-    //   context  - (optional) passed on to <syncNow>
+    //   callback - (optional) called when the change has been propagated to remotestorage
+    //   context  - (optional) 
     //
     // What about the type?:
     //
@@ -408,7 +409,9 @@ define(['./sync', './store', './util'], function (sync, store, util) {
         throw "storeObject needs to get an object as value!"
       }
       obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+this.moduleName+'/'+type;
-      set(path, this.makePath(path), obj, 'application/json');
+      var absPath = this.makePath(path);
+      set(path, absPath, obj, 'application/json');
+      sync.syncOne(absPath, util.bind(callback, context));
     },
 
     //
@@ -420,15 +423,17 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   mimeType - MIME media type of the data being stored
     //   path     - path relative to the module root. MAY NOT end in a forward slash.
     //   data     - string of raw data to store
-    //   callback - (optional) passed to <syncNow>
-    //   context  - (optional) passed to <syncNow>
+    //   callback - (optional) called when the change has been propagated to remotestorage
+    //   context  - (optional)
     //
     // The given mimeType will later be returned, when retrieving the data
     // using getDocument.
     //
     storeDocument: function(mimeType, path, data, callback, context) {
       this.ensureAccess('w');
-      set(path, this.makePath(path), data, mimeType);
+      var absPath = this.makePath(path);
+      set(path, absPath, data, mimeType);
+      sync.syncOne(absPath, util.bind(callback, context));
     },
 
     getStorageHref: function() {
@@ -480,7 +485,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     // Force given path to be synchronized in the future.
     //
     // In order for a given path to be synchronized with remotestorage by
-    // <syncNow>, it has to be marked as "interesting". This is done via the
+    // <sync>, it has to be marked as "interesting". This is done via the
     // *force* flag. Forcing sync on a directory causes the entire branch
     // to be considered "forced".
     //

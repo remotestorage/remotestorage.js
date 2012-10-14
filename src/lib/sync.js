@@ -8,8 +8,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   // Namespace: sync
 
   /*
-
     Section: Notes
+
+    Som example I made up to visualize some of the sync cases.
 
     Legend:
       L - has local modifications
@@ -70,9 +71,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       >   -> clear local and remote diff for messages/
 
     Sync cycle all done.
+
    */
 
-  var settingsPrefix = 'remotestorage_sync:';
+  var settingsPrefix = 'remote_storage_sync:';
 
   function getSetting(key) {
     var data = localStorage.getItem(settingsPrefix + key);
@@ -85,6 +87,15 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       value = JSON.stringify(value);
     }
     return localStorage.setItem(settingsPrefix + key, value);
+  }
+
+  function clearSettings() {
+    for(var i=0;i<localStorage.length;i++) {
+      var key = localStorage.key(i);
+      if(key.match(new RegExp('^' + settingsPrefix))) {
+        localStorage.removeItem(key);
+      }
+    }
   }
 
   // queue of spawnQueue calls
@@ -120,7 +131,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
   function getState() { return ready ? 'connected' : 'busy'; }
 
-  // Section: Higher level functions
+  // Section: Meta helpers
 
   // Function: makeConflictResolver
   // returns a function that can be called to resolve the conflict
@@ -169,7 +180,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //   done - a callback function to call, when the iterator is finished
   //
   function spawnQueue(list, max, iter) {
-
     if(! ready) {
       deferredQueues.push([list, max, iter]);
       return;
@@ -187,7 +197,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       n--;
       if(i == list.length && n == 0) {
         setReady();
-      } else {
+      } else if(i < list.length) {
         spawn();
       }
     }
@@ -196,7 +206,38 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         next();
       }
     }
-    spawn();
+    setTimeout(spawn, 1);
+  }
+
+  // Limit calls to the given function to the given interval.
+  // If the function receives a callback, it must be the last argument.
+  // If the call is intercepted, as minInterval has not passed yet, the callback
+  // will be called immediately. No parameters will be passed on to the callback.
+  function limit(name, syncFunction, minInterval) {
+    return function() {
+      var args = Array.prototype.slice.call(arguments);
+      var callback = args.slice(-1)[0];
+      var plainArgs = args;
+      if(typeof(callback) == 'function') {
+        plainArgs = args.slice(0, -1);
+      } else {
+        callback = null;
+      }
+      var now = new Date().getTime();
+      var cacheKey = [name, plainArgs];
+      var limitCache = getSetting('limitCache') || {};
+      if(limitCache[cacheKey] && limitCache[cacheKey] > (now - minInterval)) {
+        logger.debug('limit', name, '-> replay');
+        if(callback) {
+          callback();
+        }
+      } else {
+        logger.debug('limit', name, '-> call through');
+        limitCache[cacheKey] = now;
+        setSetting('limitCache', limitCache);
+        syncFunction.apply(this, args);
+      }
+    }
   }
 
   // Section: Events
@@ -267,15 +308,16 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
 
   function fireError(path, error) {
-    var event = {
-      path: path,
-      error: error
-    };
+    var event = { path: path, };
     if(typeof(error) == 'object') {
       event.stack = error.stack;
       if(typeof(event.stack == 'string')) {
         event.stack = event.stack.split('\n');
       }
+      event.message = error.message;
+      event.exception = error;
+    } else {
+      event.message = error;
     }
     events.emit('error', event);
   }
@@ -325,7 +367,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   }
 
   function fetchNode(path, callback) {
-    logger.info("fetch", path);
+    logger.info("fetch remote", path);
     wireClient.get(path, function(err, data, mimeType) {
       if(err) {
         fireError(path, err);
@@ -347,6 +389,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   }
 
   function fetchLocalNode(path, isDeleted) {
+    logger.info("fetch local", path);
     var localNode = store.getNode(path);
     localNode.data = store.getNodeData(path);
     if(typeof(isDeleted) == 'undefined') {
@@ -370,7 +413,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     return {
       timestamp: timestamp,
       data: data,
-      deleted: ! data,
+      deleted: timestamp == 0,
       mimeType: mimeType
     }
   }
@@ -379,7 +422,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     function done(data, mimeType) {
       callback(prepareRemoteNode(
         data, mimeType,
-        parentData ? parentData[util.baseName(path)] : 0
+        (parentData && parentData[util.baseName(path)]) || 0
       ));
     }
 
@@ -412,6 +455,26 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     }
   }
 
+  // Function: traverseTree
+  //
+  // Traverse the full tree of nodes, passing each data node to the callback for processing.
+  //
+  // Parameters:
+  //   root     - Path to the root to start traversal at.
+  //   callback - callback called for each node. see below.
+  //   options  - (optional) Object with options. see below.
+  //
+  // Callback parameters:
+  //   The callback is called for each node, that is present either
+  //   locally or remote (or both).
+  //
+  //   path       - path to current node
+  //   localNode  - local node at current path. See <fetchLocalNode> for a description.
+  //   remoteNode - remote node at current path. See <fetchRemoteNode> for a description.
+  //
+  // Options:
+  //   depth - When given, a positive number, setting the maximum depth of traversal.
+  //           Depth will be decremented in each recursion
   function traverseTree(root, callback, opts) {
     logger.info('traverse', root);
     
@@ -429,7 +492,13 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
     // fetch local listing
     var localRootNode = store.getNode(root);
-    var localListing = store.getNodeData(root) || {};
+    var localListing = store.getNodeData(root);
+
+    if(! localListing) {
+      // create empty directory node, if it doesn't exist.
+      localListing = {};
+      store.setNodeData(root, localListing, false, 0, 'application/json');
+    }
 
     opts.access = util.highestAccess(opts.access, localRootNode.startAccess);
     opts.force = opts.force || localRootNode.startForce;
@@ -448,6 +517,16 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       tryReady();
       done();
       return;
+    }
+
+    var localDiff = Object.keys(localRootNode.diff).length > 0;
+
+    if(! localDiff) {
+      if(opts.pushOnly) {
+        tryReady();
+        done();
+        return;
+      }
     }
 
     // fetch remote listing
@@ -476,20 +555,14 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
       // check if we can skip this node.
       //
-      if(Object.keys(localRootNode.diff).length == 0) {
-        // no local diff.
-
-        if(opts.pushOnly) {
-          tryReady();
-          return;
-        }
-
+      if(! localDiff) {
         var remoteDiff = false;
         for(var i=0;i<fullListing.length;i++) {
           var item = fullListing[i];
           if(localListing[item] != remoteListing[item]) {
-            remoteDiff = true;
             // remote diff detected.
+            // -> continue!
+            remoteDiff = true;
             break;
           }
         }
@@ -534,48 +607,54 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
   function compareAndAct(path, local, remote) {
 
-    logger.debug('compareAndAct', path, local, remote);
-
     var action = null;
 
     if(local.deleted) {
       // outgoing delete!
+      logger.debug(path, 'outgoing delete');
       action = deleteRemote;
 
-    } else if(remote.deleted) {
+    } else if(remote.deleted && local.lastUpdatedAt > 0) {
       if(local.timestamp == local.lastUpdatedAt) {
         // incoming delete!
-        action = deleteLocal
+        logger.debug(path, 'incoming delete');
+        action = deleteLocal;
 
       } else {
         // deletion conflict!
+        logger.debug(path, 'deletion conflict', 'remote', remote, 'local', local);
         action = util.curry(fireConflict, 'delete');
 
       }
     } else if(local.timestamp == remote.timestamp) {
       // no action today!
+      logger.debug(path, 'no action today');
       return;
 
     } else if(local.timestamp > remote.timestamp) {
-      // local updated before remote
+      // local updated happpened before remote update
       if(local.lastUpdatedAt == remote.timestamp) {
         // outgoing update!
+        logger.debug(path, 'outgoing update');
         action = updateRemote;
 
       } else {
         // merge conflict!
-        action = util.curry(fireConflict, 'merge');
+        logger.debug(path, 'merge conflict (remote > local)');
+        action = util.curry(fireConflict, 'merge', 'remote', remote, 'local', local);
 
       }
     } else if(local.timestamp < remote.timestamp) {
-      // remote updated before local
+      // remote updated happened before local update
       if(local.lastUpdatedAt == local.timestamp) {
         // incoming update!
+        logger.debug(path, 'incoming update');
         action = updateLocal;
 
       } else {
         // merge conflict!
-        action = util.curry(fireConflict, 'merge');
+        logger.debug(path, 'merge conflict (local > remote)');
+        action = util.curry(fireConflict, 'merge', 'remote', remote, 'local', local);
 
       }
     }
@@ -625,6 +704,12 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   // Perform a full sync cycle, but don't update local data.
   //
   // Used before disconnecting, to clear local diffs.
+  //
+  // Fires:
+  //   ready    - when the sync queue is empty afterwards
+  //   conflict - when there are two incompatible versions of the same node
+  //   change   - when the local store is updated
+  //
   function fullPush(callback) {
     logger.info("full push started");
 
@@ -648,6 +733,12 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //   startPath - path to start at. Must be a directory path.
   //   depth     - maximum depth of directories to traverse. null for infinite depth.
   //   callback  - callback to call when done. receives no parameters.
+  //
+  // Fires:
+  //   ready    - when the sync queue is empty afterwards
+  //   conflict - when there are two incompatible versions of the same node
+  //   change   - when the local store is updated
+  //
   function partialSync(startPath, depth, callback) {
     logger.info("partial sync requested: " + startPath);    
     enqueueTask(function() {
@@ -663,9 +754,21 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //
   // Sync a single path. Call the callback when done.
   //
+  // This function ignores all flags (access, force, forceTree) set on the node.
+  //
+  // Parameters:
+  //   path     - the path to synchronize
+  //   callback - (optional) callback to call when done
+  //
   // Callback parameters:
   //   node - local node after sync
   //   data - data of local node after sync
+  //
+  // Fires:
+  //   ready    - when the sync queue is empty afterwards
+  //   conflict - when there are two incompatible versions of the same node
+  //   change   - when the local store is updated
+  //
   function syncOne(path, callback) {
     logger.info("single sync requested: " + path);
     enqueueTask(function() {
@@ -673,7 +776,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       fetchRemoteNode(path, function(remoteNode) {
         var localNode = fetchLocalNode(path);
         compareAndAct(path, localNode, remoteNode);
-        callback(store.getNode(path), store.getNodeData(path));
+        if(callback) {
+          callback(store.getNode(path), store.getNodeData(path));
+        }
       });
     });
   }
@@ -689,55 +794,38 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     }
   });
 
-  // Limit calls to the given function to the given interval.
-  // If the function receives a callback, it must be the last argument.
-  // If the call is intercepted, as minInterval has not passed yet, the callback
-  // will be called immediately. No parameters will be passed on to the callback.
-  function limit(name, syncFunction, minInterval) {
-    return function() {
-      var args = Array.prototype.slice.call(arguments);
-      var callback = args.slice(-1)[0];
-      var plainArgs = args;
-      if(typeof(callback) == 'function') {
-        plainArgs = args.slice(0, -1);
-      } else {
-        callback = null;
-      }
-      var now = new Date().getTime();
-      var cacheKey = [name, plainArgs];
-      var limitCache = getSetting('limitCache') || {};
-      if(limitCache[cacheKey] && limitCache[cacheKey] > (now - minInterval)) {
-        logger.debug('limit', name, '-> replay');
-        if(callback) {
-          callback();
-        }
-      } else {
-        logger.debug('limit', name, '-> call through');
-        limitCache[cacheKey] = now;
-        setSetting('limitCache', limitCache);
-        syncFunction.apply(this, args);
-      }
-    }
-  }
+  var limitedFullSync = limit('fullSync', fullSync, 30000);
+  var limitedPartialSync = limit('partialSync', partialSync, 10000);
   
-  return {
+  var sync = {
 
-    fullSync: limit('fullSync', fullSync, 30000),
-    partialSync: limit('partialSync', partialSync, 10000),
+    fullSync: limitedFullSync,
+    partialSync: limitedPartialSync,
     fullPush: fullPush,
     syncOne: syncOne,
 
     getState: getState,
     on: events.on,
 
-    syncNow: function() {
+    clearSettings: clearSettings,
+
+    syncNow: function(path, callback) {
       util.deprecate('sync.syncNow', 'sync.fullSync');
+      this.fullSync(callback);
     },
-    fetchNow: function() {
-      util.deprecate('sync.fetchNow', 'sync.fullSync');
+    fetchNow: function(path, callback) {
+      util.deprecate('sync.fetchNow', 'sync.syncOne or sync.partialSync');
+      this.syncOne(path, callback);
+    },
+
+    disableThrottling: function() {
+      sync.fullSync = fullSync;
+      sync.partialSync = partialSync;
     }
 
-  };
+  }
+
+  return sync;
 
 });
 
