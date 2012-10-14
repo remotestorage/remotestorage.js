@@ -50,6 +50,7 @@ function build(output, inputs, options) {
 
 if(process.argv[2] == 'debug') {
   build('latest/remoteStorage-debug', 'remoteStorage', { debug: true });
+  build('latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
 } else {
   build('latest/remoteStorage', 'remoteStorage');
   build('latest/remoteStorage-debug', 'remoteStorage', { debug: true });
