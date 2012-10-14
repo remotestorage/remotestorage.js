@@ -313,7 +313,15 @@ define([
     //   Array of error messages - when errors occured. When syncNow is called and the user is not connected, this is also considered an error.
     //   null - no error occured, synchronization finished gracefully.
     //
-    syncNow          : sync.syncNow,
+    syncNow          : function(path, depth, callback) {
+      if(! depth) {
+        callback = depth;
+        depth = null;
+      }
+
+      sync.partialSync(path, depth, callback);
+    },
+
 
     //  
     // Method: displayWidget

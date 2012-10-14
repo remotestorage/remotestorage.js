@@ -255,13 +255,13 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
   }
   function handleDisconnectClick() {
-    sync.syncNow('/', function() {
+    sync.fullPush(function() {
       wireClient.disconnectRemote();
       store.forgetAll();
       // trigger 'disconnected' once, so the app can clear it's views.
       setWidgetState('disconnected', true);
       setWidgetState('anonymous');
-    }, true);
+    });
   }
   function handleCubeClick() {
     if(widgetState == 'connected') {
@@ -280,13 +280,10 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   function nowConnected() {
     setWidgetState('connected');
     store.fireInitialEvents();
-    sync.syncNow('/', function(err) {
-      if(err) {
-        logger.error("Initial sync failed: ", err)
-      } else {
-        events.emit('ready');
-      }
-    }, true);
+    sync.fullSync(function() {
+      logger.info("Initial sync done.");
+      events.emit('ready');
+    });
   }
 
   function display(setConnectElement, options) {
@@ -338,8 +335,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       window.onkeydown = function(evt) {
         if(evt.ctrlKey && evt.which == 83) {
           evt.preventDefault();
-          logger.info("CTRL+S - SYNCING");
-          sync.syncNow('/', function(errors) {});
+          sync.fullSync();
           return false;
         }
       }

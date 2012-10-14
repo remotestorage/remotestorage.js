@@ -114,8 +114,21 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
       if(typeof(path) != 'string') {
         cb('argument "path" should be a string');
       } else {
+        if(valueStr && typeof(valueStr) != 'string') {
+          valueStr = JSON.stringify(valueStr);
+        }
         getputdelete.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
       }
+    },
+
+    remove: function(path, cb) {
+      var storageType = get('storageType');
+      var storageHref = get('storageHref');
+      var token = get('bearerToken');
+      getputdelete.set(
+        resolveKey(storageType, storageHref, '', path),
+        undefined, undefined, token, cb
+      );
     },
 
     // Method: setStorageInfo

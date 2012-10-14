@@ -15,12 +15,8 @@ define(['../remoteStorage'], function(remoteStorage) {
 
   remoteStorage.defineModule('root', function(myPrivateBaseClient, myPublicBaseClient) {
     function setOnChange(cb) {
-      myPrivateBaseClient.on('change', function(e) {
-        console.log(e); cb(e);
-      });
-      myPublicBaseClient.on('change', function(e) {
-        console.log(e); cb(e);
-      });
+      myPrivateBaseClient.on('change', cb);
+      myPublicBaseClient.on('change', cb);
     }
 
     function addToPublicItems(path) {
@@ -168,13 +164,21 @@ define(['../remoteStorage'], function(remoteStorage) {
      ** Callback and return semantics are the same as for getObject.
      **/
     function getListing(path, cb, context) {
+      if(! path) {
+        throw "Path is required"
+      }
       var client = getClient(path);
       return client.getListing(path, cb, context);
     }
 
     return {
       exports: {
-        use: function(path) { myPrivateBaseClient.use(path) },
+        use: function() {
+          myPrivateBaseClient.use.apply(myPrivateBaseClient, arguments);
+        },
+        release: function() {
+          myPrivateBaseClient.release.apply(myPrivateBaseClient, arguments);
+        },
         getListing: getListing,
         getObject: getObject,
         setObject: setObject,
@@ -184,7 +188,8 @@ define(['../remoteStorage'], function(remoteStorage) {
         archiveObject: archiveObject,
         publishObject: publishObject,
         setOnChange: setOnChange,
-        hasDiff: hasDiff
+        hasDiff: hasDiff,
+        syncOnce: myPrivateBaseClient.syncOnce.bind(myPrivateBaseClient)
       }
     }
   });

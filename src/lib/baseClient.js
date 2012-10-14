@@ -166,7 +166,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   context   - (optional) context to bind handler to
     //  
     on: function(eventType, handler, context) {
-      this.events.on(eventType, util.bindContext(handler, context));
+      this.events.on(eventType, util.bind(handler, context));
     },
 
     //
@@ -209,19 +209,18 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     getObject: function(path, callback, context) {
       this.ensureAccess('r');
       var absPath = this.makePath(path);
+      var data = store.getNodeData(absPath);
+
       if(callback) {
-        var cb = util.bindContext(callback, context);
-        this.fetchNow(absPath, function(err, node) {
-          if(err) {
-            cb(err);
-          } else {
-            var data = store.getNodeData(absPath);
-            cb(null, data);
-          }
-        });
+        var cb = util.bind(callback, context);
+        if(data && !(typeof(data) == 'object' && Object.keys(data).length == 0)) {
+          cb(data);
+        } else {
+          sync.syncOne(absPath, function(node, data) {
+            cb(data);
+          });
+        }
       } else {
-        var node = store.getNode(absPath);
-        var data = store.getNodeData(absPath);
         return data;
       }
     },
@@ -253,7 +252,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
           for(var i in data) {
             arr.push(i);
           }
-          util.bindContext(callback, context)(arr);
+          util.bind(callback, context)(arr);
         });
       } else {
         var node = store.getNode(absPath);
@@ -292,7 +291,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       }.bind(this);
       if(callback) {
         this.getListing(path, function(listing) {
-          util.bindContext(callback, context)(makeMap(listing));
+          util.bind(callback, context)(makeMap(listing));
         }, this);
       } else {
         return makeMap(this.getListing(path));
@@ -321,19 +320,32 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     getDocument: function(path, callback, context) {
       this.ensureAccess('r');
       var absPath = this.makePath(path);
-      if(callback) {
-        sync.fetchNow(absPath, function(err, node) {
-          util.bindContext(callback, context)({
+
+      function makeResult() {
+        var node = store.getNode(absPath);
+        if(node) {
+          return {
             mimeType: node.mimeType,
             data: store.getNodeData(absPath)
+          };
+        } else {
+          return null;
+        }
+      }
+
+      var result = makeResult();
+
+      if(callback) {
+        var cb = util.bind(callback, context);
+        if(result) {
+          cb(result);
+        } else {
+          sync.syncOne(absPath, function() {
+            cb(makeResult());
           });
-        });
+        }
       } else {
-        var node = store.getNode(absPath);
-        return {
-          mimeType: node.mimeType,
-          data: store.getNodeData(absPath)
-        };
+        return result;
       }
     },
 
@@ -350,12 +362,8 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //
     remove: function(path, callback, context) {
       this.ensureAccess('w');
-      set(path, this.makePath(path), undefined);
-      if(callback) {
-        this.syncNow(util.containingDir(path), callback, context);
-      } else {
-        this.triggerSync();
-      }
+      var absPath = this.makePath(path);
+      set(path, absPath, undefined);
     },
 
     //
@@ -401,13 +409,6 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       }
       obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+this.moduleName+'/'+type;
       set(path, this.makePath(path), obj, 'application/json');
-      var parentPath = util.containingDir(path);
-      this.use(parentPath);
-      if(callback) {
-        this.syncNow(parentPath, callback, context);
-      } else {
-        this.triggerSync();
-      }
     },
 
     //
@@ -428,11 +429,6 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     storeDocument: function(mimeType, path, data, callback, context) {
       this.ensureAccess('w');
       set(path, this.makePath(path), data, mimeType);
-      if(callback) {
-        this.syncNow(path, callback, context);
-      } else {
-        this.triggerSync();
-      }
     },
 
     getStorageHref: function() {
@@ -462,6 +458,22 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       return base + this.makePath(path);
     },
 
+    syncOnce: function(path, callback) {
+      var previousTreeForce = store.getNode(path).startForceTree;
+      this.use(path, false);
+      sync.partialSync(path, 1, function() {
+        if(previousTreeForce) {
+          this.use(path, true);
+        } else {
+          this.release(path);
+        }
+        if(callback) {
+          callback();
+        }
+      }.bind(this));
+
+    },
+
     //
     // Method: use
     //
@@ -474,60 +486,19 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //
     // Parameters:
     //   path      - path relative to the module root
-    //   switchVal - optional boolean flag to set force value. Use "false" to remove the force flag.
+    //   treeOnly  - boolean value, whether only the tree should be synced.
     //
-    use: function(path, switchVal) {
+    use: function(path, treeOnly) {
+      console.error('use', path);
       var absPath = this.makePath(path);
-      store.setNodeForce(absPath, (switchVal != false));
+      store.setNodeForce(absPath, !treeOnly, true);
     },
 
-    sync: function() {
-      util.deprecate('BaseClient.sync', 'BaseClient.use');
-      this.use.apply(this, arguments);
-    },
-
-    //
-    // Method: syncNow
-    //
-    // Start synchronization at given path.
-    //
-    // Note that only those nodes will be synchronized, that have a *force* flag
-    // set. Use <BaseClient.sync> to set the force flag on a node.
-    //
-    // Parameters:
-    //   path     - relative path from the module root. 
-    //   callback - (optional) callback to call once synchronization finishes.
-    //   context  - (optional) context to bind callback to.
-    //
-    // FIXME: currently syncs always the module root.
-    syncNow: function(path, callback, context) {
-      sync.syncNow(
-        this.makePath(path),
-        ( callback ?
-          util.bindContext(callback, context) :
-          util.bindContext(function(errors) {
-            if(errors && errors.length > 0) {
-              if(! (errors.length == 1 && errors[0] == 'not connected')) {
-                logger.error("Error syncing: ", errors);
-              }
-              this.events.emit('error', errors);
-            }
-          }, this) )
-      );
-    },
-
-    triggerSync: function() {
-      if(this._syncDelayTimer) {
-        clearTimeout(this._syncDelayTimer);
-      }
-      this._syncDelayTimer = setTimeout(function() {
-        this._syncDelayTimer = null;
-        this.syncNow('');
-      }.bind(this), 250);
-    },
-
-    fetchNow: function(path, callback) {
-      sync.fetchNow(path, callback);
+    // counterpart for use()
+    release: function(path) {
+      console.error('release', path);
+      var absPath = this.makePath(path);
+      store.setNodeForce(absPath, false, false);
     },
 
     hasDiff: function(path) {
@@ -538,10 +509,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
         var parentPath = absPath.replace(/[^\/]+$/, '');
         return !! store.getNode(absPath).diff[path.split('/').slice(-1)[0]];
       }
-    },
-
-    deactivateSync: function() { sync.sleep(); },
-    activateSync: function() { sync.wakeup(); }
+    }
     
   };
 

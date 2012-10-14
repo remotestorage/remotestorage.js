@@ -15,27 +15,8 @@ define(['./util'], function (util) {
   //   startAccess - either "r" or "rw". Flag means, that this node has been claimed access on (see <remoteStorage.claimAccess>) (default: null)
   //   startForce  - boolean flag to indicate that this node shall always be synced. (see <BaseClient.sync>) (default: null)
   //   timestamp   - last time this node was (apparently) updated (default: 0)
-  //   keep        - A flag to indicate, whether this node should be kept in cache. Currently unused. (default: true)
   //   diff        - difference in the node's data since the last synchronization.
   //   mimeType    - MIME media type
-  //
-  // Optional properties:
-  //   expired    - local node is present, but remote has updates that haven't been
-  //                applied, yet
-  //   remoteTime - when 'expired' is set, this holds the timestamp of the last
-  //                seen remote update.
-  //   error      - a sync error happened, so node state is unknown.
-  //
-  // Node errors:
-  //   When a node has the error property set, it is set to an object with the
-  //   following data
-  //
-  //   action    - either 'push' or 'pull', depending on the action that failed.
-  //   timestamp - (local) timestamp of the time when the error happened.
-  //   reason    - error messages given by the underlying layer.
-  //
-  //   Errors being propagated to the node through sync come either from
-  //   <platform>, <getputdelete> or <wireClient>, depending on what went wrong.
   //
   // Event: change
   // See <BaseClient.Events>
@@ -99,9 +80,10 @@ define(['./util'], function (util) {
       value = {//this is what an empty node looks like
         startAccess: null,
         startForce: null,
+        startForceTree: null,
         timestamp: 0,
+        lastUpdatedAt: 0,
         mimeType: "application/json",
-        keep: true,
         diff: {}
       };
     }
@@ -174,7 +156,7 @@ define(['./util'], function (util) {
       } else if(util.isDir(path)) {
         timestamp = determineDirTimestamp(path)
       } else {
-        throw ('no timestamp given for node' + path);
+        throw ('no timestamp given for node ' + path);
         timestamp = 0;
       }
     }
@@ -281,11 +263,9 @@ define(['./util'], function (util) {
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
 
-    if(outgoing && node.expired) {
-      throw "Attempt to update expired node at " + path;
+    if(! outgoing) {
+      node.lastUpdatedAt = timestamp;
     }
-
-    delete node.expired;
 
     if(!mimeType) {
       mimeType='application/json';
@@ -344,15 +324,17 @@ define(['./util'], function (util) {
 
   // Method: setNodeForce
   //
-  // Set startForce flag on a node.
+  // Set startForce and startForceTree flags on a node.
   //
   // Parameters:
-  //   path  - absolute path to the node
-  //   force - value to set for the force flag (boolean)
+  //   path      - absolute path to the node
+  //   dataFlag  - whether to sync data
+  //   treeFlag  - whether to sync the tree
   //
-  function setNodeForce(path, force) {
+  function setNodeForce(path, dataFlag, treeFlag) {
     var node = getNode(path);
-    node.startForce = force;
+    node.startForce = dataFlag;
+    node.startForceTree = treeFlag;
     updateNode(path, node, false, true);//meta
   }
 
@@ -366,37 +348,31 @@ define(['./util'], function (util) {
     updateNode(path, node, false, true);
   }
 
-  function expireNode(path, timestamp) {
-    var node = getNode(path);
-    node.expired = true;
-    node.remoteTime = timestamp;
-    updateNode(path, node, false, true);
-  }
-
   // Method: clearDiff
   //
-  // Clear current diff on the node. This only applies to
-  // directory nodes.
+  // Clear diff flag of given node on it's parent.
+  //
+  // Recurses upwards, when the parent's diff becomes empty.
   //
   // Clearing the diff is usually done, once the changes have been
   // propagated through sync.
   //
   // Parameters:
-  //   path      - absolute path to the directory node
-  //   childName - name of the child who's change has been propagated
+  //   path      - absolute path to the node
   //
-  function clearDiff(path, childName) {
-    logger.debug('clearDiff', path, childName);
-    if(! util.isDir(path)) {
-      throw "clearDiff called for data node: " + path;
-    }
-    var node = getNode(path);
-    delete node.diff[childName];
-    updateNode(path, node, false, true);//meta
+  function clearDiff(path) {
+    logger.debug('clearDiff', path);
+    var parentPath = util.containingDir(path);
+    var baseName = util.baseName(path);
+    if(parentPath) {
+      var parent = getNode(parentPath);
+      delete parent.diff[baseName];
+      
+      updateNode(parentPath, parent, false, true);
 
-    var parentPath;
-    if(Object.keys(node.diff).length === 0 && (parentPath = util.containingDir(path))) {
-      clearDiff(parentPath, util.baseName(path));
+      if(Object.keys(parent.diff).length === 0) {
+        clearDiff(parentPath);
+      }
     }
   }
 
@@ -409,20 +385,27 @@ define(['./util'], function (util) {
   //
   function fireInitialEvents() {
     logger.info('fire initial events');
-    for(var i=0; i<localStorage.length; i++) {
-      var key = localStorage.key(i)
-      if(isPrefixed(key)) {
-        var path = key.substring(prefixNodes.length);
-        if(! util.isDir(path)) {
-          events.emit('change', {
-            path: path,
-            newValue: getNodeData(path),
-            oldValue: undefined,
-            origin: 'device'
-          });
+
+    function iter(path) {
+      if(util.isDir(path)) {
+        var listing = getNodeData(path);
+        if(listing) {
+          for(var key in listing) {
+            iter(path + key);
+          }
         }
+      } else {
+        events.emit('change', {
+          path: path,
+          newValue: getNodeData(path),
+          oldValue: undefined,
+          origin: 'device'
+        });        
       }
     }
+
+    iter('/');
+
   }
 
   return {
@@ -438,6 +421,5 @@ define(['./util'], function (util) {
     forgetAll         : forgetAll,
     fireInitialEvents : fireInitialEvents,
     setNodeError: setNodeError,
-    expireNode: expireNode
   };
 });

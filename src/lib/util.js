@@ -43,6 +43,13 @@ define([], function() {
       return parts;
     },
 
+    extend: function(a, b) {
+      for(var key in b) {
+        a[key] = b[key];
+      }
+      return a;
+    },
+
     // Method: containingDir
     // Calculate the parent path of the given path, by stripping the last part.
     //
@@ -69,13 +76,24 @@ define([], function() {
     bindAll: function(object) {
       for(var key in object) {
         if(typeof(object[key]) === 'function') {
-          object[key] = this.bindContext(object[key], object);
+          object[key] = this.bind(object[key], object);
         }
       }
       return object;
     },
 
-    bindContext: function(callback, context) {
+    curry: function(f) {
+      var _a = Array.prototype.slice.call(arguments, 1);
+      return function() {
+        var a = Array.prototype.slice.call(arguments);
+        for(var i=(_a.length-1);i>=0;i--) {
+          a.unshift(_a[i]);
+        }
+        return f.apply(this, a);
+      }
+    },
+
+    bind: function(callback, context) {
       if(context) {
         return function() { return callback.apply(context, arguments); };
       } else {
@@ -84,7 +102,12 @@ define([], function() {
     },
 
     deprecate: function(methodName, replacement) {
+      console.trace();
       console.log('WARNING: ' + methodName + ' is deprecated, use ' + replacement + ' instead');
+    },
+
+    highestAccess: function(a, b) {
+      return (a == 'rw' || b == 'rw') ? 'rw' : (a == 'r' || b == 'r') ? 'r' : null;
     },
 
     // Method: getEventEmitter
@@ -115,17 +138,34 @@ define([], function() {
 
         emit: function(eventName) {
           var handlerArgs = Array.prototype.slice.call(arguments, 1);
+          // console.log("EMIT", eventName, handlerArgs);
           if(! this._handlers[eventName]) {
             throw "Unknown event: " + eventName;
           }
           this._handlers[eventName].forEach(function(handler) {
-            handler.apply(null, handlerArgs);
+            if(handler) {
+              handler.apply(null, handlerArgs);
+            }
           });
+        },
+
+        once: function(eventName, handler) {
+          var i = this._handlers[eventName].length;
+          if(typeof(handler) !== 'function') {
+            throw "Expected function as handler, got: " + typeof(handler);
+          }
+          this.on(eventName, function() {
+            delete this._handlers[eventName][i];
+            handler.apply(this, arguments);
+          }.bind(this));
         },
 
         on: function(eventName, handler) {
           if(! this._handlers[eventName]) {
             throw "Unknown event: " + eventName;
+          }
+          if(typeof(handler) !== 'function') {
+            throw "Expected function as handler, got: " + typeof(handler);
           }
           this._handlers[eventName].push(handler);
         }
@@ -189,24 +229,20 @@ define([], function() {
     // > remoteStorage.util.silenceLogger('sync');
     //
     silenceLogger: function() {
-      console.log('silence begin', arguments);
       var names = util.toArray(arguments);
       for(var i=0;i<names.length;i++) {
         silentLogger[ names[i] ] = true;
       }
-      console.log('silence end', silentLogger);
     },
 
     // Method: silenceLogger
     // Unsilence all given loggers.
     // The opposite of <silenceLogger>
     unsilenceLogger: function() {
-      console.log('unsilence begin', arguments);
       var names = util.toArray(arguments);
       for(var i=0;i<names.length;i++) {
         delete silentLogger[ names[i] ];
       }
-      console.log('unsilence end', silentLogger);
     },
 
     // Method: silenceAllLoggers
