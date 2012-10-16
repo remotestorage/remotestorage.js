@@ -781,13 +781,14 @@ define('lib/platform',['./util'], function(util) {
   function ajaxBrowser(params) {
     var timedOut = false;
     var timer;
+    var xhr = new XMLHttpRequest();
     if(params.timeout) {
       timer = window.setTimeout(function() {
         timedOut = true;
+        xhr.abort();
         params.error('timeout');
       }, params.timeout);
     }
-    var xhr = new XMLHttpRequest();
     if(!params.method) {
       params.method='GET';
     }
@@ -799,7 +800,7 @@ define('lib/platform',['./util'], function(util) {
     }
     logger.debug('A '+params.url);
     xhr.onreadystatechange = function() {
-      if((xhr.readyState==4) && (!timedOut)) {
+      if((xhr.readyState==4)) {
         logger.debug('B '+params.url);
         if(timer) {
           window.clearTimeout(timer);
@@ -1114,8 +1115,11 @@ define('lib/webfinger',
         }
       }
     }
-    function fetchXrd(addresses, timeout, cb) {
+    function fetchXrd(addresses, timeout, cb, errors) {
       var firstAddress = addresses.shift();
+      if(! errors) {
+        errors = [];
+      }
       if(firstAddress) {
         platform.ajax({
           url: firstAddress,
@@ -1134,13 +1138,14 @@ define('lib/webfinger',
               }
             });
           },
-          error: function(data) {
-            fetchXrd(addresses, timeout, cb);
+          error: function(error) {
+            errors.push(error);
+            fetchXrd(addresses, timeout, cb, errors);
           },
           timeout: timeout
         });
       } else {
-        cb('could not fetch xrd');
+        cb('could not fetch XRD: ' + errors[0]);
       }
     }
     function parseAsXrd(str, cb) {
@@ -1229,7 +1234,7 @@ define('lib/webfinger',
         } else {
           fetchXrd(hostMetaAddresses, options.timeout, function(err2, hostMetaLinks) {
             if(err2) {
-              cb('could not fetch host-meta for '+userAddress);
+              cb('could not fetch host-meta for '+userAddress + ' (' + err2 + ')');
             } else {
               if(hostMetaLinks['remoteStorage'] || hostMetaLinks['remotestorage']) {
                 parseRemoteStorageLink(
@@ -1429,7 +1434,7 @@ define('lib/getputdelete',
           //logger.debug('doCall cb '+url, 'headers:', headers);
           cb(null, data, getContentType(headers));
         },
-        timeout: 5000
+        timeout: deadLine || 5000
       }
 
       if(token) {
@@ -2396,7 +2401,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     authPopupRef,
     scopesObj = {};
 
-  var events = util.getEventEmitter('state');
+  var events = util.getEventEmitter('state', 'ready');
 
   var popupSettings = 'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,width=820,height=800,top=0,left=0';
 
@@ -2566,11 +2571,12 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   }
 
   function discoverStorageInfo(userAddress, cb) {
-    webfinger.getStorageInfo(userAddress, {timeout: 3000}, function(err, data) {
+    webfinger.getStorageInfo(userAddress, {timeout: 5000}, function(err, data) {
       if(err) {
-        hardcoded.guessStorageInfo(userAddress, {timeout: 3000}, function(err2, data2) {
+        hardcoded.guessStorageInfo(userAddress, {timeout: 5000}, function(err2, data2) {
           if(err2) {
-            cb(err2);
+            logger.debug("Error from fakefinger: " + err2);
+            cb(err);
           } else {
             if(data2.type && data2.href && data.properties && data.properties['auth-endpoint']) {
               wireClient.setStorageInfo(data2.type, data2.href);
@@ -2590,6 +2596,30 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       }
     });
   }
+
+  var maxRetryCount = 2;
+
+  function tryWebfinger(userAddress, retryCount) {
+    if(typeof(retryCount) == 'undefined') {
+      retryCount = 0;
+    }
+    discoverStorageInfo(userAddress, function(err, auth) {
+      if(err) {
+        if(err == 'timeout' && retryCount != maxRetryCount) {
+          tryWebfinger(userAddress, retryCount + 1);
+        } else {
+          platform.alert('webfinger discovery failed! Please check if your user address is correct and try again. If the problem persists, contact your storage provider for support. (Error is: ' + err + ')');
+        }
+        if(authDialogStrategy == 'popup') {
+          closeAuthPopup();
+        }
+        setWidgetState('failed');
+      } else {
+        dance(auth);
+      }
+    });
+  }
+
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
@@ -2598,17 +2628,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       if(authDialogStrategy == 'popup') {
         prepareAuthPopup();
       }
-      discoverStorageInfo(userAddress, function(err, auth) {
-        if(err) {
-          platform.alert('webfinger discovery failed! Please check if your user address is correct. If the problem persists, contact your storage provider for support. (Error is: ' + err);
-          if(authDialogStrategy == 'popup') {
-            closeAuthPopup();
-          }
-          setWidgetState('failed');
-        } else {
-          dance(auth);
-        }
-      });
+      tryWebfinger(userAddress);
     } else {
       setWidgetState('typing');
     }
@@ -2638,11 +2658,14 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
 
   function nowConnected() {
     setWidgetState('connected');
+    store.fireInitialEvents();
     sync.syncNow('/', function(err) {
       if(err) {
         logger.error("Initial sync failed: ", err)
+      } else {
+        events.emit('ready');
       }
-    });
+    }, true);
   }
 
   function display(setConnectElement, options) {
@@ -2655,8 +2678,6 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
 
     connectElement = setConnectElement;
-
-    store.fireInitialEvents();
 
     if(wireClient.getState() == 'connected') {
       nowConnected();
