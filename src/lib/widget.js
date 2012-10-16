@@ -192,11 +192,12 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   }
 
   function discoverStorageInfo(userAddress, cb) {
-    webfinger.getStorageInfo(userAddress, {timeout: 3000}, function(err, data) {
+    webfinger.getStorageInfo(userAddress, {timeout: 5000}, function(err, data) {
       if(err) {
-        hardcoded.guessStorageInfo(userAddress, {timeout: 3000}, function(err2, data2) {
+        hardcoded.guessStorageInfo(userAddress, {timeout: 5000}, function(err2, data2) {
           if(err2) {
-            cb(err2);
+            logger.debug("Error from fakefinger: " + err2);
+            cb(err);
           } else {
             if(data2.type && data2.href && data.properties && data.properties['auth-endpoint']) {
               wireClient.setStorageInfo(data2.type, data2.href);
@@ -216,6 +217,30 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       }
     });
   }
+
+  var maxRetryCount = 2;
+
+  function tryWebfinger(userAddress, retryCount) {
+    if(typeof(retryCount) == 'undefined') {
+      retryCount = 0;
+    }
+    discoverStorageInfo(userAddress, function(err, auth) {
+      if(err) {
+        if(err == 'timeout' && retryCount != maxRetryCount) {
+          tryWebfinger(userAddress, retryCount + 1);
+        } else {
+          platform.alert('webfinger discovery failed! Please check if your user address is correct and try again. If the problem persists, contact your storage provider for support. (Error is: ' + err + ')');
+        }
+        if(authDialogStrategy == 'popup') {
+          closeAuthPopup();
+        }
+        setWidgetState('failed');
+      } else {
+        dance(auth);
+      }
+    });
+  }
+
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = platform.getElementValue('remotestorage-useraddress');
@@ -224,17 +249,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       if(authDialogStrategy == 'popup') {
         prepareAuthPopup();
       }
-      discoverStorageInfo(userAddress, function(err, auth) {
-        if(err) {
-          platform.alert('webfinger discovery failed! Please check if your user address is correct. If the problem persists, contact your storage provider for support. (Error is: ' + err);
-          if(authDialogStrategy == 'popup') {
-            closeAuthPopup();
-          }
-          setWidgetState('failed');
-        } else {
-          dance(auth);
-        }
-      });
+      tryWebfinger(userAddress);
     } else {
       setWidgetState('typing');
     }

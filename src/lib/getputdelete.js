@@ -28,7 +28,7 @@ define(
           //logger.debug('doCall cb '+url, 'headers:', headers);
           cb(null, data, getContentType(headers));
         },
-        timeout: 5000
+        timeout: deadLine || 5000
       }
 
       if(token) {

@@ -68,8 +68,11 @@ define(
         }
       }
     }
-    function fetchXrd(addresses, timeout, cb) {
+    function fetchXrd(addresses, timeout, cb, errors) {
       var firstAddress = addresses.shift();
+      if(! errors) {
+        errors = [];
+      }
       if(firstAddress) {
         platform.ajax({
           url: firstAddress,
@@ -88,13 +91,14 @@ define(
               }
             });
           },
-          error: function(data) {
-            fetchXrd(addresses, timeout, cb);
+          error: function(error) {
+            errors.push(error);
+            fetchXrd(addresses, timeout, cb, errors);
           },
           timeout: timeout
         });
       } else {
-        cb('could not fetch xrd');
+        cb('could not fetch XRD: ' + errors[0]);
       }
     }
     function parseAsXrd(str, cb) {
@@ -183,7 +187,7 @@ define(
         } else {
           fetchXrd(hostMetaAddresses, options.timeout, function(err2, hostMetaLinks) {
             if(err2) {
-              cb('could not fetch host-meta for '+userAddress);
+              cb('could not fetch host-meta for '+userAddress + ' (' + err2 + ')');
             } else {
               if(hostMetaLinks['remoteStorage'] || hostMetaLinks['remotestorage']) {
                 parseRemoteStorageLink(
