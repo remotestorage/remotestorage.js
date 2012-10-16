@@ -6,17 +6,17 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
   var events = util.getEventEmitter('connected', 'error');
 
-  function set(key, value) {
+  function setSetting(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
 
     if(getState() == 'connected') {
       events.emit('connected');
     }
   }
-  function remove(key) {
+  function removeSetting(key) {
     localStorage.removeItem(prefix+key);
   }
-  function get(key) {
+  function getSetting(key) {
     var valStr = localStorage.getItem(prefix+key);
     if(typeof(valStr) == 'string') {
       try {
@@ -28,13 +28,13 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     return null;
   }
   function disconnectRemote() {
-    remove('storageType');
-    remove('storageHref');
-    remove('bearerToken');
+    removeSetting('storageType');
+    removeSetting('storageHref');
+    removeSetting('bearerToken');
   }
   function getState() {
-    if(get('storageType') && get('storageHref')) {
-      if(get('bearerToken')) {
+    if(getSetting('storageType') && getSetting('storageHref')) {
+      if(getSetting('bearerToken')) {
         return 'connected';
       } else {
         return 'authing';
@@ -51,25 +51,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     var item = ((basePath.length?(basePath + '/'):'') + relPath);
     return storageHref + item;
   }
-  function setChain(driver, hashMap, mimeType, token, cb, timestamp) {
-    var i;
-    for(i in hashMap) {
-      break;
-    }
-    if(i) {
-      var thisOne = hashMap[i];
-      delete hashMap[i];
-      driver.set(i, thisOne, mimeType, token, function(err, timestamp) {
-        if(err) {
-          cb(err);
-        } else {
-          setChain(driver, hashMap, mimeType, token, cb, timestamp);
-        }
-      });
-    } else {
-      cb(null, timestamp);
-    }
-  }
+
 
   // Namespace: wireClient
   //
@@ -78,58 +60,74 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   // Event: connected
   //
   // Fired once everything is configured.
+
+
+  // Method: get
+  //
+  // Get data from given path from remotestorage
+  //
+  // Parameters:
+  //   path     - absolute path (starting from storage root)
+  //   callback - see <getputdelete.get> for details on the callback parameters
+  function get(path, cb) {
+    var storageType = getSetting('storageType'),
+    storageHref = getSetting('storageHref'),
+    token = getSetting('bearerToken');
+    if(typeof(path) != 'string') {
+      cb('argument "path" should be a string');
+    } else {
+      getputdelete.get(resolveKey(storageType, storageHref, '', path), token, cb);
+    }
+  }
+
+
+  // Method: set
+  //
+  // Write data to given path in remotestorage
+  //
+  // Parameters:
+  //   path     - absolute path (starting from storage root)
+  //   valueStr - raw data to write
+  //   mimeType - MIME type to set as Content-Type header
+  //   callback - see <getputdelete.set> for details on the callback parameters.
+  function set(path, valueStr, mimeType, cb) {
+    var storageType = getSetting('storageType'),
+    storageHref = getSetting('storageHref'),
+    token = getSetting('bearerToken');
+    if(typeof(path) != 'string') {
+      cb('argument "path" should be a string');
+    } else {
+      if(valueStr && typeof(valueStr) != 'string') {
+        valueStr = JSON.stringify(valueStr);
+      }
+      getputdelete.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
+    }
+  }
+
+  // Method: remove
+  //
+  // Remove data at given path from remotestorage
+  //
+  // Parameters:
+  //   path     - absolute path (starting from storage root)
+  //   callback - see <getputdelete.set> for details on the callback parameters.
+  function remove(path, cb) {
+    var storageType = getSetting('storageType');
+    var storageHref = getSetting('storageHref');
+    var token = getSetting('bearerToken');
+    getputdelete.set(
+      resolveKey(storageType, storageHref, '', path),
+      undefined, undefined, token, cb
+    );
+  }
+
+
+
   return {
 
-    // Method: get
-    //
-    // Get data from given path from remotestorage
-    //
-    // Parameters:
-    //   path     - absolute path (starting from storage root)
-    //   callback - see <getputdelete.get> for details on the callback parameters
-    get: function (path, cb) {
-      var storageType = get('storageType'),
-        storageHref = get('storageHref'),
-        token = get('bearerToken');
-      if(typeof(path) != 'string') {
-        cb('argument "path" should be a string');
-      } else {
-        getputdelete.get(resolveKey(storageType, storageHref, '', path), token, cb);
-      }
-    },
-
-    // Method: set
-    //
-    // Write data to given path in remotestorage
-    //
-    // Parameters:
-    //   path     - absolute path (starting from storage root)
-    //   valueStr - raw data to write
-    //   mimeType - MIME type to set as Content-Type header
-    //   callback - see <getputdelete.set> for details on the callback parameters.
-    set: function (path, valueStr, mimeType, cb) {
-      var storageType = get('storageType'),
-        storageHref = get('storageHref'),
-        token = get('bearerToken');
-      if(typeof(path) != 'string') {
-        cb('argument "path" should be a string');
-      } else {
-        if(valueStr && typeof(valueStr) != 'string') {
-          valueStr = JSON.stringify(valueStr);
-        }
-        getputdelete.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
-      }
-    },
-
-    remove: function(path, cb) {
-      var storageType = get('storageType');
-      var storageHref = get('storageHref');
-      var token = get('bearerToken');
-      getputdelete.set(
-        resolveKey(storageType, storageHref, '', path),
-        undefined, undefined, token, cb
-      );
-    },
+    get: get,
+    set: set,
+    remove: remove,
 
     // Method: setStorageInfo
     //
@@ -142,12 +140,17 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     // Fires:
     //   configured - if wireClient is now fully configured
     //
-    setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
+    setStorageInfo   : function(type, href) {
+      setSetting('storageType', type);
+      setSetting('storageHref', href);
+    },
 
     // Method: getStorageHref
     //
     // Get base URL of the user's remotestorage.
-    getStorageHref   : function() { return get('storageHref') },
+    getStorageHref   : function() {
+      return getSetting('storageHref')
+    },
     
     // Method: SetBearerToken
     //
@@ -159,7 +162,9 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     // Fires:
     //   configured - if wireClient is now fully configured.
     //
-    setBearerToken   : function(bearerToken) { set('bearerToken', bearerToken); },
+    setBearerToken   : function(bearerToken) {
+      setSetting('bearerToken', bearerToken);
+    },
 
     // Method: disconnectRemote
     //

@@ -2,7 +2,7 @@
 (function() {
 
   describe('BaseClient', function() {
-    var BaseClient, baseClient, storeStub, client, storeChangehandler;
+    var BaseClient, baseClient, storeStub, client, storeChangeHandler;
 
     beforeEach(function() {
       storeStub = specHelper.getStub('baseClient', 'store', false);

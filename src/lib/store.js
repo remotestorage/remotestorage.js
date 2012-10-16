@@ -409,17 +409,23 @@ define(['./util'], function (util) {
   }
 
   return {
+
+    // method         , local              , used by
+                                           
+    getNode           : getNode,          // sync
+    getNodeData       : getNodeData,      // sync
+    setNodeData       : setNodeData,      // sync
+    clearDiff         : clearDiff,        // sync
+    removeNode        : removeNode,       // sync
+
+    setNodeError: setNodeError,
+
     on                : events.on,
-    getNode           : getNode,
-    getNodeData       : getNodeData,
-    setNodeData       : setNodeData,
     setNodeAccess     : setNodeAccess,
     setNodeForce      : setNodeForce,
-    clearDiff         : clearDiff,
-    removeNode        : removeNode,
     forget            : forget,
-    forgetAll         : forgetAll,
-    fireInitialEvents : fireInitialEvents,
-    setNodeError: setNodeError,
+    
+    forgetAll         : forgetAll,        // widget
+    fireInitialEvents : fireInitialEvents // widget
   };
 });
