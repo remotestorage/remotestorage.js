@@ -126,13 +126,14 @@ define(['./util'], function(util) {
   function ajaxBrowser(params) {
     var timedOut = false;
     var timer;
+    var xhr = new XMLHttpRequest();
     if(params.timeout) {
       timer = window.setTimeout(function() {
         timedOut = true;
+        xhr.abort();
         params.error('timeout');
       }, params.timeout);
     }
-    var xhr = new XMLHttpRequest();
     if(!params.method) {
       params.method='GET';
     }
@@ -144,7 +145,7 @@ define(['./util'], function(util) {
     }
     logger.debug('A '+params.url);
     xhr.onreadystatechange = function() {
-      if((xhr.readyState==4) && (!timedOut)) {
+      if((xhr.readyState==4)) {
         logger.debug('B '+params.url);
         if(timer) {
           window.clearTimeout(timer);

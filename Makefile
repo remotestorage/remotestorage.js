@@ -8,10 +8,13 @@ DOC_INPUTS=-i $(SOURCE_DIR) -i ./doc/pages/
 
 NODEJS=node
 
-default: build
+default: debug-only
 
 build:
 	cd build/ && $(NODEJS) build.js
+
+debug-only:
+	cd build/ && $(NODEJS) build.js debug
 
 prepare-gh-pages:
 	git checkout gh-pages

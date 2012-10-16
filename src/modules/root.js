@@ -94,6 +94,11 @@ define(['../remoteStorage'], function(remoteStorage) {
       return myPublicBaseClient;
     }
 
+    function hasDiff(path) {
+      var client = getClient(path);
+      return client.hasDiff(path);
+    }
+
     /** getObject(path, [callback, [context]]) - get the object at given path
      **
      ** If the callback is NOT given, getObject returns the object at the given
@@ -125,6 +130,16 @@ define(['../remoteStorage'], function(remoteStorage) {
     function getObject(path, cb, context) {
       var client = getClient(path);
       return client.getObject(path, cb, context);
+    }
+
+    function getDocument(path, cb, context) {
+      var client = getClient(path);
+      return client.getDocument(path, cb, context);
+    }
+
+    function setDocument(mimeType, path, data, cb, context) {
+      var client = getClient(path);
+      return client.storeDocument(mimeType, path, data, cb, context);
     }
 
     /** setObject(type, path, object) - store the given object at the given path.
@@ -165,10 +180,13 @@ define(['../remoteStorage'], function(remoteStorage) {
         getListing: getListing,
         getObject: getObject,
         setObject: setObject,
+        getDocument: getDocument,
+        setDocument: setDocument,
         removeObject: removeObject,
         archiveObject: archiveObject,
         publishObject: publishObject,
-        setOnChange:setOnChange
+        setOnChange: setOnChange,
+        hasDiff: hasDiff
       }
     }
   });
