@@ -28,9 +28,9 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     return null;
   }
   function disconnectRemote() {
-    removeSetting('storageType');
-    removeSetting('storageHref');
-    removeSetting('bearerToken');
+    util.grepLocalStorage(new RegExp('^' + prefix), function(key) {
+      localStorage.removeItem(key);
+    });
   }
   function getState() {
     if(getSetting('storageType') && getSetting('storageHref')) {
@@ -47,11 +47,16 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     events.on(eventType, cb);
   }
 
-  function resolveKey(storageType, storageHref, basePath, relPath) {
-    var item = ((basePath.length?(basePath + '/'):'') + relPath);
-    return storageHref + item;
+  function resolveKey(path) {
+    var storageHref = getSetting('storageHref');
+    return storageHref + path;
   }
 
+  var foreignKeyRE = /^([^\/][^:]+):(\/.*)$/;
+
+  function isForeign(path) {
+    return foreignKeyRE.test(path);
+  }
 
   // Namespace: wireClient
   //
@@ -61,7 +66,6 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   //
   // Fired once everything is configured.
 
-
   // Method: get
   //
   // Get data from given path from remotestorage
@@ -70,16 +74,24 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   //   path     - absolute path (starting from storage root)
   //   callback - see <getputdelete.get> for details on the callback parameters
   function get(path, cb) {
-    var storageType = getSetting('storageType'),
-    storageHref = getSetting('storageHref'),
-    token = getSetting('bearerToken');
+    if(isForeign(path)) {
+      return getForeign(path, cb);
+    }
+    var token = getSetting('bearerToken');
     if(typeof(path) != 'string') {
-      cb('argument "path" should be a string');
+      cb(new Error('argument "path" should be a string'));
     } else {
-      getputdelete.get(resolveKey(storageType, storageHref, '', path), token, cb);
+      getputdelete.get(resolveKey(path), token, cb);
     }
   }
 
+  function getForeign(fullPath, cb) {
+    var md = fullPath.match(foreignKeyRE);
+    var userAddress = md[1];
+    var path = md[2];
+    var base = getStorageHrefForUser(userAddress);
+    getputdelete.get(base + path, null, cb);
+  }
 
   // Method: set
   //
@@ -91,16 +103,17 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   //   mimeType - MIME type to set as Content-Type header
   //   callback - see <getputdelete.set> for details on the callback parameters.
   function set(path, valueStr, mimeType, cb) {
-    var storageType = getSetting('storageType'),
-    storageHref = getSetting('storageHref'),
-    token = getSetting('bearerToken');
+    if(isForeign(path)) {
+      return cb(new Error("Foreign storage is read-only"));
+    }
+    var token = getSetting('bearerToken');
     if(typeof(path) != 'string') {
-      cb('argument "path" should be a string');
+      cb(new Error('argument "path" should be a string'));
     } else {
       if(valueStr && typeof(valueStr) != 'string') {
         valueStr = JSON.stringify(valueStr);
       }
-      getputdelete.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
+      getputdelete.set(resolveKey(path), valueStr, mimeType, token, cb);
     }
   }
 
@@ -112,16 +125,28 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   //   path     - absolute path (starting from storage root)
   //   callback - see <getputdelete.set> for details on the callback parameters.
   function remove(path, cb) {
-    var storageType = getSetting('storageType');
-    var storageHref = getSetting('storageHref');
+    if(isForeign(path)) {
+      return cb(new Error("Foreign storage is read-only"));
+    }
     var token = getSetting('bearerToken');
-    getputdelete.set(
-      resolveKey(storageType, storageHref, '', path),
-      undefined, undefined, token, cb
-    );
+    getputdelete.set(resolveKey(path), undefined, undefined, token, cb);
   }
 
+  function getStorageHrefForUser(userAddress) {
+    var info = getSetting('storageInfo:' + userAddress);
+    if(! info) {
+      throw new Error("userAddress unknown to wireClient: " + userAddress);
+    }
+    return info.href;
+  }
 
+  function addStorageInfo(userAddress, storageInfo) {
+    setSetting('storageInfo:' + userAddress, storageInfo);
+  }
+
+  function hasStorageInfo(userAddress) {
+    return !! getSetting('storageInfo:' + userAddress);
+  }
 
   return {
 
@@ -165,6 +190,24 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     setBearerToken   : function(bearerToken) {
       setSetting('bearerToken', bearerToken);
     },
+
+    // Method: addStorageInfo
+    //
+    // Add another user's storage info.
+    // After calling this, keys in the form userAddress:path can be resolved.
+    //
+    // Parameters:
+    //   userAddress - a user address in the form user@host
+    //   storageInfo - an object, with at least an 'href' attribute
+    addStorageInfo: addStorageInfo,
+
+    // Method: hasStorageInfo
+    //
+    // Find out if the wireClient has cached storageInfo for the given userAddress.
+    //
+    // Parameters:
+    //   userAddress - a user address to look up
+    hasStorageInfo: hasStorageInfo,
 
     // Method: disconnectRemote
     //

@@ -2,51 +2,95 @@ define(['./util', './baseClient', './getputdelete', './store'], function(util, B
 
   var logger = util.getLogger('foreignClient');
 
-  var ForeignClient = function(userAddress, storageInfo) {
-    this.storageInfo = storageInfo;
-    this.userAddress = userAddress;
-    this.pathPrefix = userAddress + ':'
+  var knownClients = {}
 
-    BaseClient.apply(this, ['root', true]);
+  store.on('foreign-change', function(event) {
+    var userAddress = event.path.split(':')[0];
+    var client = knownClients[userAddress];
+    if(client) {
+      client.events.emit('change', event);
+    }
+  });
+
+  /*
+    Class: ForeignClient
+    
+    A modified <BaseClient>, to query other people's storage.
+   */
+
+  // Constructor: ForeignClient
+  //
+  // Parameters:
+  //   userAddress - A userAddress string in the form user@host.
+  //
+  // The userAddress must be known to wireClient.
+  //
+  var ForeignClient = function(userAddress) {
+    this.userAddress = userAddress;
+    this.pathPrefix = userAddress + ':';
+
+    this.moduleName = 'root', this.isPublic = true;
+    this.events = util.getEventEmitter('change', 'error');
+    knownClients[userAddress] = this;
+    util.bindAll(this);
   }
   
   ForeignClient.prototype = {
 
+    // Method: getPublished
+    //
+    // Get the 'publishedItems' object for the given module.
+    //
+    // publishedItems is an object of the form { path : timestamp, ... }.
+    //
+    // Parameters:
+    //   moduleName - (optional) module name to get the publishedItems object for
+    //   callback   - callback to call with the result
+    //
+    // Example:
+    //   (start code)
+    //   remoteStorage.getForeignClient('user@host', function(client) {
+    //     client.getPublished(object, function(publishedItems) {
+    //       for(var key in publishedItems) {
+    //         console.log("Item: ", key, " published at: ", publishedItems[key]);
+    //       }
+    //     });
+    //   });
+    //   (end code)
     getPublished: function(moduleName, callback) {
-      this.getObject('/' + moduleName + '/publishedItems', function(err, data) {
-        if(data) { delete data['@type'] }
-        callback(err, data || {});
+      var fullPath;
+      if(typeof(moduleName) == 'function') {
+        callback = moduleName;
+        fullPath = '/publishedItems';
+      } else {
+        fullPath = '/' + moduleName + '/publishedItems';
+      }
+      this.getObject(fullPath, function(data) {
+        if(data) { delete data['@type']; }
+        callback(data || {});
       });
     },
 
     getPublishedObjects: function(moduleName, callback) {
-      this.getPublished(moduleName, function(err, list) {
-        if(err) {
-          callback(err);
-        } else {
-          var paths = Object.keys(list);
-          var i=0;
-          var objects = {};
-          var errors = [];
-          function loadOne() {
-            if(i < paths.length) {
-              var path = '/' + moduleName + '/' + paths[i++];
-              this.getObject(path, function(e, object) {
-                if(e) {
-                  errors.push(e);
-                } else {
-                  objects[path] = object;
-                }
-
-                loadOne.call(this);
-              }.bind(this));
-            } else {
-              callback(errors.length > 0 ? err : null, objects);
-            }
+      this.getPublished(moduleName, function(list) {
+        var paths = Object.keys(list);
+        var i = 0;
+        var objects = {};
+        function loadOne() {
+          if(i < paths.length) {
+            var key = paths[i++];
+            var path = '/' + moduleName + '/' + key;
+            this.getObject(path, function(object) {
+              objects[path] = object;
+                
+              loadOne.call(this);
+            }.bind(this));
+          } else {
+            callback(objects);
           }
-
-          loadOne.call(this);
         }
+
+        loadOne.call(this);
       }.bind(this));
     },
 
@@ -58,18 +102,8 @@ define(['./util', './baseClient', './getputdelete', './store'], function(util, B
       return mode == 'r';
     },
 
-    fetchNow: function(path, callback) {
-      getputdelete.get(this.buildUrl(path), null, function(err, data, mimeType) {
-        if(data) {
-          var now = new Date().getTime();
-          store.setNodeData(path, data, false, now, mimeType);
-        }
-        callback(err, data);
-      });
-    },
-
-    buildUrl: function(path) {
-      return this.storageInfo.href + '/public' + path.split(':')[1];
+    on: function(eventName, handler) {
+      this.events.on(eventName, handler);
     }
 
   }
@@ -83,7 +117,8 @@ define(['./util', './baseClient', './getputdelete', './store'], function(util, B
     remove: true,
     nodeGivesAccess: true,
     fetchNow: true,
-    syncNow: true
+    syncNow: true,
+    on: true
   }
 
   // inherit some stuff from BaseClient
@@ -94,6 +129,11 @@ define(['./util', './baseClient', './getputdelete', './store'], function(util, B
     }
   }
 
-  return ForeignClient;
+  return {
+    getClient: function(userAddress) {
+      var client = knownClients[userAddress];
+      return client || new ForeignClient(userAddress);
+    }
+  };
 
 });

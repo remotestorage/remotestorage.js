@@ -18,16 +18,19 @@ define(['./sync', './store', './util'], function (sync, store, util) {
 
   var isPublicRE = /^\/public\//;
 
-  function fireChange(moduleName, eventObj) {
+  function fireModuleEvent(eventName, moduleName, eventObj) {
     var isPublic = isPublicRE.test(eventObj.path);
     var events;
-    if(moduleEvents[moduleName] && (events = moduleEvents[moduleName][isPublic])) {
+    if(moduleEvents[moduleName] &&
+       (events = moduleEvents[moduleName][isPublic])) {
 
-      if(moduleName !== 'root') {
-        eventObj.relativePath = eventObj.path.replace(new RegExp('^/(?:public/|)' + moduleName + '/'), '');
+      if(moduleName !== 'root' && eventObj.path) {
+        eventObj.relativePath = eventObj.path.replace(
+          (isPublic ? '/public/' : '/') + moduleName + '/', ''
+        );
       }
 
-      events.emit('change', eventObj);
+      events.emit(eventName, eventObj);
     }
   }
 
@@ -36,10 +39,18 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     moduleEvents[moduleName][isPublic].emit('error', error);
   }
 
-  store.on('change', function(e) {
-    var moduleName = extractModuleName(e.path);
-    fireChange(moduleName, e);//remote-based changes get fired from the store.
-    fireChange('root', e);//root module gets everything
+  store.on('change', function(event) {
+    var moduleName = extractModuleName(event.path);
+    // remote-based changes get fired from the store.
+    fireModuleEvent('change', moduleName, event);
+    // root module gets everything
+    fireModuleEvent('change', 'root', event);
+  });
+
+  sync.on('conflict', function(event) {
+    var moduleName = extractModuleName(event.path);
+    fireModuleEvent('conflict', moduleName, event);
+    fireModuleEvent('conflict', 'root', event);
   });
 
   function set(path, absPath, value) {
@@ -55,8 +66,8 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       path: absPath
     };
     store.setNodeData(absPath, value, true);
-    fireChange(moduleName, changeEvent);
-    fireChange('root', changeEvent);
+    fireModuleEvent('change', moduleName, changeEvent);
+    fireModuleEvent('change', 'root', changeEvent);
   }
 
   var BaseClient = function(moduleName, isPublic) {
@@ -64,7 +75,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     if(! moduleEvents[moduleName]) {
       moduleEvents[moduleName] = {};
     }
-    this.events = util.getEventEmitter('change', 'error');
+    this.events = util.getEventEmitter('change', 'conflict', 'error');
     moduleEvents[moduleName][isPublic] = this.events;
     util.bindAll(this);
   }
@@ -124,15 +135,14 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   
 
     makePath: function(path) {
-      if(this.moduleName == 'root') {
-        return path[0] === '/' ? path : ('/' + path);
-      }
-      return (this.isPublic?'/public/':'/')+this.moduleName+'/'+path;
+      var base = (this.moduleName == 'root' ?
+                  (path[0] === '/' ? '' : '/') :
+                  '/' + this.moduleName + '/');
+      return (this.isPublic ? '/public' + base : base) + path;
     },
 
     nodeGivesAccess: function(path, mode) {
       var node = store.getNode(path);
-      logger.debug("check node access", path, mode, node);
       var access = (new RegExp(mode)).test(node.startAccess);
       if(access) {
         return true
@@ -482,26 +492,26 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //
     // Method: use
     //
-    // Force given path to be synchronized in the future.
+    // Set force flags on given path.
     //
-    // In order for a given path to be synchronized with remotestorage by
-    // <sync>, it has to be marked as "interesting". This is done via the
-    // *force* flag. Forcing sync on a directory causes the entire branch
-    // to be considered "forced".
+    // See <sync> for details.
     //
     // Parameters:
     //   path      - path relative to the module root
     //   treeOnly  - boolean value, whether only the tree should be synced.
     //
     use: function(path, treeOnly) {
-      console.error('use', path);
       var absPath = this.makePath(path);
       store.setNodeForce(absPath, !treeOnly, true);
     },
 
-    // counterpart for use()
+    // Method: release
+    //
+    // Remove force flags from given node.
+    //
+    // See <sync> for details.
+    // 
     release: function(path) {
-      console.error('release', path);
       var absPath = this.makePath(path);
       store.setNodeForce(absPath, false, false);
     },
@@ -511,8 +521,8 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       if(util.isDir(absPath)) {
         return Object.keys(store.getNode(absPath).diff).length > 0;
       } else {
-        var parentPath = absPath.replace(/[^\/]+$/, '');
-        return !! store.getNode(absPath).diff[path.split('/').slice(-1)[0]];
+        var parentPath = util.containingDir(absPath);
+        return !! store.getNode(parentPath).diff[path.split('/').slice(-1)[0]];
       }
     }
     

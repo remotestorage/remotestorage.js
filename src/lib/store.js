@@ -6,47 +6,77 @@ define(['./util'], function (util) {
   //
   // The store stores data locally. It treats all data as raw nodes, that have *metadata* and *payload*.
   // Metadata and payload are stored under separate keys.
+
+
+  var logger = util.getLogger('store');
+
+  // node metadata key prefix
+  var prefixNodes = 'remote_storage_nodes:';
+  // note payload data key prefix
+  var prefixNodesData = 'remote_storage_node_data:';
+  // foreign nodes are prefixed with a user address
+  var userAddressRE = /^[^@]+@[^:]+:\//;
+
+  var events = util.getEventEmitter('error', 'change', 'foreign-change');
+
   //
   // Type: Node
   //
-  // Represents a node within the primary store.
+  // Represents a node within the local store.
   //
   // Properties:
   //   startAccess - either "r" or "rw". Flag means, that this node has been claimed access on (see <remoteStorage.claimAccess>) (default: null)
   //   startForce  - boolean flag to indicate that this node shall always be synced. (see <BaseClient.sync>) (default: null)
   //   timestamp   - last time this node was (apparently) updated (default: 0)
-  //   diff        - difference in the node's data since the last synchronization.
+  //   lastUpdatedAt - Last time this node was upated from remotestorage
   //   mimeType    - MIME media type
+  //   diff        - (directories only) marks children that have been modified.
   //
+
+
   // Event: change
   // See <BaseClient.Events>
+
+  function fireChange(origin, path, oldValue) {
+    var node = getNode(path);
+    events.emit('change', {
+      path: path,
+      origin: origin,
+      oldValue: oldValue,
+      newValue: getNodeData(path),
+      timestamp: node.timestamp
+    });
+  }
+
+  // Event: foreign-change
+  // Fired when a foreign node is updated.
+
+  function fireForeignChange(path, oldValue) {
+    var node = getNode(path);
+    events.emit('foreign-change', {
+      path: path,
+      oldValue: oldValue,
+      newValue: getNodeData(path),
+      timestamp: node.timestamp
+    });
+  }
+  
   //
   // Event: error
   // See <BaseClient.Events>
+
   //
   // Method: on
   //
   // Install an event handler
   // See <util.EventEmitter.on> for documentation.
 
-  var logger = util.getLogger('store');
-
-  var events = util.getEventEmitter('change', 'error');
-
-  var prefixNodes = 'remote_storage_nodes:',
-      prefixNodesData = 'remote_storage_node_data:';
-
-  function isPrefixed(key) {
-    return key.substring(0, prefixNodes.length) == prefixNodes;
-  }
-
+  // forward events from other tabs
   if(typeof(window) !== 'undefined') {
     window.addEventListener('storage', function(event) {
       if(isPrefixed(event.key)) {
-        if(! util.isDir(event.path)) {
-          event.path = event.key.substring(prefixNodes.length);
-          event.origin = 'device';
-          events.emit('change', event);
+        if(! util.isDir(event.key)) {
+          fireChange('device', event.key.substring(prefixNodes.length), event.oldValue);
         }
       }
     });
@@ -63,7 +93,7 @@ define(['./util'], function (util) {
   //   node object is constructed instead.
   function getNode(path) {
     if(! path) {
-      throw "No path given!";
+      throw new Error("No path given!");
     }
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodes+path);
@@ -83,144 +113,15 @@ define(['./util'], function (util) {
         startForceTree: null,
         timestamp: 0,
         lastUpdatedAt: 0,
-        mimeType: "application/json",
-        diff: {}
+        mimeType: "application/json"
       };
+      if(util.isDir(path)) {
+        value.diff = {};
+      }
     }
     return value;
   }
 
-  function getFileName(path) {
-    var parts = path.split('/');
-    if(util.isDir(path)) {
-      return parts[parts.length-2]+'/';
-    } else {
-      return parts[parts.length-1];
-    }
-  }
-
-  function getCurrTimestamp() {
-    return new Date().getTime();
-  }
-
-  var userAddressRE = /^[^@]+@[^:]+:\//;
-
-  function validPath(path) {
-    if(! (path[0] == '/' || userAddressRE.test(path))) {
-      throw "Invalid path: " + path;
-    }
-  }
-
-  function isForeign(path) {
-    return path[0] != '/';
-  }
-
-  function updateNodeData(path, data) {
-    validPath(path);
-    if(! path) {
-      console.trace();
-      throw "Path is required!";
-    }
-    var encodedData;
-    if(typeof(data) !== 'undefined') {
-      if(typeof(data) === 'object') {
-        encodedData = JSON.stringify(data);
-      } else {
-        encodedData = data;
-      }
-      localStorage.setItem(prefixNodesData+path, encodedData)
-    } else {
-      localStorage.removeItem(prefixNodesData+path)
-    }
-  }
-
-  function determineDirTimestamp(path) {
-    var data = getNodeData(path);
-    if(data) {
-      var times = [];
-      for(var key in data) {
-        times.push(data[key]);
-      }
-      return Math.max.apply(Math, times);
-    } else {
-      return getCurrTimestamp();
-    }
-  }
-
-  function updateNode(path, node, outgoing, meta, timestamp) {
-    validPath(path);
-
-    if((!meta) && (! timestamp)) {
-      if(outgoing) {
-        timestamp = getCurrTimestamp();
-      } else if(util.isDir(path)) {
-        timestamp = determineDirTimestamp(path)
-      } else {
-        throw new Error('no timestamp given for node ' + path);
-        timestamp = 0;
-      }
-    }
-
-    if(node && typeof(timestamp) !== 'undefined') {
-      node.timestamp = timestamp;
-    }
-
-    if(node) {
-      localStorage.setItem(prefixNodes+path, JSON.stringify(node));
-    } else {
-      localStorage.removeItem(prefixNodes+path);
-    }
-    var containingDir = util.containingDir(path);
-
-    if(containingDir) {
-
-      var parentNode=getNode(containingDir);
-      var parentData = getNodeData(containingDir) || {};
-      var baseName = getFileName(path);
-
-      if(meta) {
-        if(! (parentData && parentData[baseName])) {
-          parentData[baseName] = 0;
-          updateNodeData(containingDir, parentData);
-        }
-        updateNode(containingDir, parentNode, false, true, timestamp);
-      } else if(outgoing) {
-        if(node) {
-          parentData[baseName] = timestamp;
-        } else {
-          delete parentData[baseName];
-        }
-        parentNode.diff[baseName] = timestamp;
-        updateNodeData(containingDir, parentData);
-        updateNode(containingDir, parentNode, true, false, timestamp);
-      } else {//incoming
-        if(node) {//incoming add or change
-          if(!parentData[baseName] || parentData[baseName] < timestamp) {
-            parentData[baseName] = timestamp;
-            delete parentNode.diff[baseName];
-            updateNodeData(containingDir, parentData);
-            updateNode(containingDir, parentNode, false, false, timestamp);
-          }
-        } else {//incoming deletion
-          if(parentData[baseName]) {
-            delete parentData[baseName];
-            delete parentNode.diff[baseName];
-            updateNodeData(containingDir, parentData);
-            updateNode(containingDir, parentNode, false, false, timestamp);
-          }
-        }
-        if(! (util.isDir(path) || isForeign(path))) {
-          events.emit('change', {
-            path: path,
-            origin: 'remote',
-            oldValue: undefined,
-            newValue: (node ? getNodeData(path) : undefined),
-            timestamp: timestamp
-          });
-        }
-      }
-    }
-  }
 
   // Method: forget
   // Forget node at given path
@@ -262,9 +163,11 @@ define(['./util'], function (util) {
   //
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
+    var oldValue;
 
     if(! outgoing) {
       node.lastUpdatedAt = timestamp;
+      oldValue = getNodeData(path);
     }
 
     if(!mimeType) {
@@ -272,7 +175,7 @@ define(['./util'], function (util) {
     }
     node.mimeType = mimeType;
     updateNodeData(path, data);
-    updateNode(path, (data ? node : undefined), outgoing, false, timestamp);
+    updateNode(path, (data ? node : undefined), outgoing, false, timestamp, oldValue);
   }
 
   // Method: getNodeData
@@ -359,9 +262,15 @@ define(['./util'], function (util) {
   //
   // Parameters:
   //   path      - absolute path to the node
+  //   timestamp - new timestamp (received from remote) to set on the node.
   //
-  function clearDiff(path) {
+  function clearDiff(path, timestamp) {
     logger.debug('clearDiff', path);
+    var node = getNode(path);
+    if(timestamp) {
+      node.timestamp = node.lastUpdatedAt = timestamp;
+      updateNode(path, node, false, true);
+    }
     var parentPath = util.containingDir(path);
     var baseName = util.baseName(path);
     if(parentPath) {
@@ -395,17 +304,152 @@ define(['./util'], function (util) {
           }
         }
       } else {
-        events.emit('change', {
-          path: path,
-          newValue: getNodeData(path),
-          oldValue: undefined,
-          origin: 'device'
-        });        
+        fireChange('device', path);
       }
     }
 
     iter('/');
 
+  }
+
+
+
+
+  function isPrefixed(key) {
+    return key.substring(0, prefixNodes.length) == prefixNodes;
+  }
+
+  function getFileName(path) {
+    var parts = path.split('/');
+    if(util.isDir(path)) {
+      return parts[parts.length-2]+'/';
+    } else {
+      return parts[parts.length-1];
+    }
+  }
+
+  function getCurrTimestamp() {
+    return new Date().getTime();
+  }
+
+  function validPath(path) {
+    if(! (path[0] == '/' || userAddressRE.test(path))) {
+      throw new Error("Invalid path: " + path);
+    }
+  }
+
+  function isForeign(path) {
+    return path[0] != '/';
+  }
+
+
+  function determineDirTimestamp(path) {
+    var data = getNodeData(path);
+    if(data) {
+      var times = [];
+      for(var key in data) {
+        times.push(data[key]);
+      }
+      return Math.max.apply(Math, times);
+    } else {
+      return getCurrTimestamp();
+    }
+  }
+
+  function updateNodeData(path, data) {
+    validPath(path);
+    if(! path) {
+      throw new Error("Path is required!");
+    }
+    var encodedData;
+    if(typeof(data) !== 'undefined') {
+      if(typeof(data) === 'object') {
+        encodedData = JSON.stringify(data);
+      } else {
+        encodedData = data;
+      }
+      localStorage.setItem(prefixNodesData+path, encodedData)
+    } else {
+      localStorage.removeItem(prefixNodesData+path)
+    }
+  }
+
+  function updateNode(path, node, outgoing, meta, timestamp, oldValue) {
+    validPath(path);
+
+    if((!meta) && (! timestamp)) {
+      if(outgoing) {
+        timestamp = getCurrTimestamp();
+      } else if(util.isDir(path)) {
+        timestamp = determineDirTimestamp(path)
+      } else {
+        throw new Error('no timestamp given for node ' + path);
+        timestamp = 0;
+      }
+    }
+
+    if(node && typeof(timestamp) !== 'undefined') {
+      node.timestamp = timestamp;
+    }
+
+    if(node) {
+      localStorage.setItem(prefixNodes+path, JSON.stringify(node));
+    } else {
+      localStorage.removeItem(prefixNodes+path);
+    }
+    var containingDir = util.containingDir(path);
+
+    if(containingDir) {
+
+      var parentNode=getNode(containingDir);
+      var parentData = getNodeData(containingDir) || {};
+      var baseName = getFileName(path);
+
+      if(meta) {
+        if(! (parentData && parentData[baseName])) {
+          parentData[baseName] = 0;
+          updateNodeData(containingDir, parentData);
+        }
+        updateNode(containingDir, parentNode, false, true, timestamp);
+      } else if(outgoing) {
+        // outgoing
+        if(node) {
+          parentData[baseName] = timestamp;
+        } else {
+          delete parentData[baseName];
+        }
+        parentNode.diff[baseName] = timestamp;
+        updateNodeData(containingDir, parentData);
+        updateNode(containingDir, parentNode, true, false, timestamp);
+      } else {
+        // incoming
+        if(node) {
+          // incoming add or change
+          if(!parentData[baseName] || parentData[baseName] < timestamp) {
+            parentData[baseName] = timestamp;
+            delete parentNode.diff[baseName];
+            updateNodeData(containingDir, parentData);
+            updateNode(containingDir, parentNode, false, false, timestamp);
+          }
+        } else {
+          // incoming deletion
+          if(parentData[baseName]) {
+            delete parentData[baseName];
+            delete parentNode.diff[baseName];
+            updateNodeData(containingDir, parentData);
+            updateNode(containingDir, parentNode, false, false, timestamp);
+          }
+        }
+        if(! util.isDir(path)) {
+          // fire changes
+          if(isForeign(path)) {
+            fireForeignChange(path, oldValue);
+          } else {
+            fireChange('remote', path, oldValue);
+          }
+        }
+      }
+    }
   }
 
   return {
@@ -428,4 +472,5 @@ define(['./util'], function (util) {
     forgetAll         : forgetAll,        // widget
     fireInitialEvents : fireInitialEvents // widget
   };
+
 });

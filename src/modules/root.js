@@ -171,8 +171,14 @@ define(['../remoteStorage'], function(remoteStorage) {
       return client.getListing(path, cb, context);
     }
 
+    function on(eventName, callback) {
+      myPrivateBaseClient.on(eventName, callback);
+      myPublicBaseClient.on(eventName, callback);
+    }
+
     return {
       exports: {
+        on: on,
         use: function() {
           myPrivateBaseClient.use.apply(myPrivateBaseClient, arguments);
         },

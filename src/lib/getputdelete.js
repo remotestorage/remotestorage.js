@@ -23,6 +23,11 @@ define(
         url: url,
         method: method,
         error: function(err) {
+          if(err == 401) {
+            err = 'unauthorized';
+          } else {
+            logger.error(method + ' ' + url + ': ', err);
+          }
           cb(err);
         },
         success: function(data, headers) {
@@ -52,6 +57,8 @@ define(
       doCall('GET', url, null, null, token, function(err, data, mimetype) {
         if(err == 404) {
           cb(null, undefined);
+        } else if(err) {
+          cb(err);
         } else {
           if(util.isDir(url)) {
             try {
@@ -61,7 +68,7 @@ define(
               return;
             }
           }
-          cb(err, data, mimetype);
+          cb(null, data, mimetype);
         }
       });
     }

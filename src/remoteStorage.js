@@ -9,7 +9,7 @@ define([
   './lib/webfinger',
   './lib/foreignClient',
   './lib/baseClient'
-], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, ForeignClient, BaseClient) {
+], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient) {
 
   "use strict";
 
@@ -394,15 +394,22 @@ define([
 
     util: util,
 
-    getClientForAddress: function(userAddress, callback) {
-      webfinger.getStorageInfo(
-        userAddress, { timeout: 3000 }, function(err, storageInfo) {
-          if(err) {
-            callback(err);
-          } else {
-            callback(null, new ForeignClient(userAddress, storageInfo));
+    getForeignClient: function(userAddress, callback) {
+      var client = foreignClient.getClient(userAddress);
+      if(wireClient.hasStorageInfo(userAddress)) {
+        callback(null, client);
+      } else {
+        webfinger.getStorageInfo(
+          userAddress, { timeout: 3000 }, function(err, storageInfo) {
+            if(err) {
+              callback(err);
+            } else {
+              wireClient.addStorageInfo(userAddress, storageInfo);
+              callback(null, client);
+            }
           }
-        });
+        );
+      }
     }
 
   };

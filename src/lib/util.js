@@ -274,6 +274,22 @@ define([], function() {
     // opposite of <silenceAllLoggers>
     unsilenceAllLoggers: function() {
       this.unsilenceLogger.apply(this, knownLoggers);
+    },
+
+    // Method: grepLocalStorage
+    // Find a list of keys that match a given pattern.
+    //
+    // Iterates over all localStorage keys and calls given 'iter'
+    // for each key that matches given 'pattern'.
+    //
+    // The iter receives the matching key as it's only argument.
+    grepLocalStorage: function(pattern, iter) {
+      for(var i=0;i<localStorage.length;i++) {
+        var key = localStorage.key(i);
+        if(pattern.test(key)) {
+          iter(key);
+        }
+      }
     }
   }
 
