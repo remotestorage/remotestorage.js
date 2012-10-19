@@ -128,11 +128,28 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //   change   - when the local store is updated
   //
   function fullSync(callback) {
+    if(! isConnected()) {
+      return callback && callback('not-connected');
+    }
+
     logger.info("full sync started");
 
-    enqueueTask(function() {
-      traverseTree('/', processNode);
-    }, callback);
+    var roots = findRoots();
+
+    var synced = 0;
+
+    function rootCb() {
+      synced++;
+      if(synced == roots.length) {
+        callback.apply(this, arguments);
+      }
+    }
+
+    roots.forEach(function(root) {
+      enqueueTask(function() {
+        traverseTree(root, processNode);
+      }, rootCb);
+    });
   }
 
   // Function: fullPush
@@ -147,6 +164,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //   change   - when the local store is updated
   //
   function fullPush(callback) {
+    if(! isConnected()) {
+      return callback && callback('not-connected');
+    }
+
     logger.info("full push started");
 
     enqueueTask(function() {
@@ -176,6 +197,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //   change   - when the local store is updated
   //
   function partialSync(startPath, depth, callback) {
+    if(! isConnected()) {
+      return callback && callback('not-connected');
+    }
+
     validatePath(startPath);
     logger.info("partial sync requested: " + startPath);
     enqueueTask(function() {
@@ -207,6 +232,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //   change   - when the local store is updated
   //
   function syncOne(path, callback) {
+    if(! isConnected()) {
+      return callback && callback('not-connected');
+    }
+
     validatePath(path, true);
     logger.info("single sync requested: " + path);
     enqueueTask(function() {
@@ -215,7 +244,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         var localNode = fetchLocalNode(path);
         processNode(path, localNode, remoteNode);
         if(callback) {
-          callback(store.getNode(path), store.getNodeData(path));
+          // FIXME: document error parameter.
+          callback(null, store.getNode(path), store.getNodeData(path));
         }
       });
     });
@@ -510,15 +540,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
   /**************************************/
 
-  // Section: Trivial internas
-
-  function makeSet(a, b) {
-    var o = {};
-    for(var i=0;i<a.length;i++) { o[a[i]] = true; }
-    for(var j=0;j<b.length;j++) { o[b[j]] = true; }
-    return Object.keys(o);
-  }
-
   // Function: fetchLocalNode
   //
   // Fetch a local node at given path.
@@ -543,6 +564,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         var baseName = util.baseName(path);
         var parent = store.getNode(parentPath);
         var parentData = store.getNodeData(parentPath);
+        console.log("PARENT DATA", parentData);
         isDeleted = (! parentData[baseName]) && parent.diff[baseName];
       } else {
         // root node can't be deleted.
@@ -556,6 +578,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   function fetchNode(path, callback) {
     logger.info("fetch remote", path);
     wireClient.get(path, function(err, data, mimeType) {
+      console.log("GET result", err, data, mimeType);
       if(err) {
         fireError(path, err);
       } else {
@@ -620,17 +643,17 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     }
   }
 
-  function findAccess(path) {
-    if(! path) {
-      return null;
-    } else {
-      var node = store.getNode(path);
-      if(node.startAccess) {
-        return node.startAccess;
-      } else {
-        return findAccess(util.containingDir(path));
-      }
-    }
+  // Section: Trivial helpers
+
+  function isConnected() {
+    return wireClient.getState() == 'connected';
+  }
+
+  function makeSet(a, b) {
+    var o = {};
+    for(var i=0;i<a.length;i++) { o[a[i]] = true; }
+    for(var j=0;j<b.length;j++) { o[b[j]] = true; }
+    return Object.keys(o);
   }
 
   var foreignPathRE = /^[^\/][^:]+:\//;
@@ -651,6 +674,34 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   function validatePath(path, foreignOk) {
     if(! validPath(path, foreignOk)) {
       throw new Error("Invalid path: " + path);
+    }
+  }
+
+  function findRoots(path) {
+    var root = store.getNode('/');
+    var roots = []
+    if(root.startAccess) {
+      roots.push(root);
+    } else {
+      Object.keys(store.getNodeData('/')).forEach(function(key) {
+        if(store.getNode('/' + key).startAccess) {
+          roots.push('/' + key);
+        }
+      });
+    }
+    return roots;
+  }
+
+  function findAccess(path) {
+    if(! path) {
+      return null;
+    } else {
+      var node = store.getNode(path);
+      if(node.startAccess) {
+        return node.startAccess;
+      } else {
+        return findAccess(util.containingDir(path));
+      }
     }
   }
 
@@ -709,7 +760,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       opts.access = findAccess(util.containingDir(root));
     }
 
-    if((! opts.access) && (! (root != '/') || opts.force || opts.forceTree)) {
+    if((! opts.access) && (root != '/') && ! (opts.force || opts.forceTree)) {
       // no access and no interest.
       // -> bail!
       logger.debug('skipping', root, 'no interest', '(access: ', opts.access, ' force: ', opts.force, ' forceTree: ', opts.forceTree, ')');
@@ -928,6 +979,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     // Method: fullSync
     // <fullSync>, limited to act at max once every 30 seconds
     fullSync: limitedFullSync,
+
+    forceSync: fullSync,
     // Method: partialSync
     // <partialSync>, limited to act at max once every 30 seconds per (path, depth) pair.
     partialSync: limitedPartialSync,

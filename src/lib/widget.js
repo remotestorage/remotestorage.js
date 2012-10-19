@@ -387,9 +387,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   }
 
   function nowConnected() {
+    console.log("NOW CONNECTED");
+    setWidgetState('connected');
     initialSync = true;
     store.fireInitialEvents();
-    sync.fullSync(function() {
+    sync.forceSync(function() {
       logger.info("Initial sync done.");
       initialSync = false;
       setWidgetState(getWidgetState());
@@ -420,7 +422,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
     connectElement = setConnectElement;
 
-    if(wireClient.getState() == 'connected') {
+    if(wireClient.calcState() == 'connected') {
       nowConnected();
     } else {
       wireClient.on('connected', nowConnected);

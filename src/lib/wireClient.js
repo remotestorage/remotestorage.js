@@ -6,16 +6,22 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
   var events = util.getEventEmitter('connected', 'error');
 
+  var state = 'anonymous';
+
   function setSetting(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
 
-    if(getState() == 'connected') {
+    calcState();
+
+    if(state == 'connected') {
       events.emit('connected');
     }
   }
+
   function removeSetting(key) {
     localStorage.removeItem(prefix+key);
   }
+
   function getSetting(key) {
     var valStr = localStorage.getItem(prefix+key);
     if(typeof(valStr) == 'string') {
@@ -27,22 +33,30 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     }
     return null;
   }
+
   function disconnectRemote() {
     util.grepLocalStorage(new RegExp('^' + prefix), function(key) {
       localStorage.removeItem(key);
     });
   }
+
   function getState() {
+    return state;
+  }
+
+  function calcState() {
     if(getSetting('storageType') && getSetting('storageHref')) {
       if(getSetting('bearerToken')) {
-        return 'connected';
+        state = 'connected';
       } else {
-        return 'authing';
+        state = 'authing';
       }
     } else {
-      return 'anonymous';
+      state = 'anonymous';
     }
+    return state;
   }
+
   function on(eventType, cb) {
     events.on(eventType, cb);
   }
@@ -76,6 +90,8 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   function get(path, cb) {
     if(isForeign(path)) {
       return getForeign(path, cb);
+    } else if(state != 'connected') {
+      cb(new Error('not-connected'));
     }
     var token = getSetting('bearerToken');
     if(typeof(path) != 'string') {
@@ -105,6 +121,8 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   function set(path, valueStr, mimeType, cb) {
     if(isForeign(path)) {
       return cb(new Error("Foreign storage is read-only"));
+    } else if(state != 'connected') {
+      cb(new Error('not-connected'));
     }
     var token = getSetting('bearerToken');
     if(typeof(path) != 'string') {
@@ -229,6 +247,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     //   anonymous - no information set
     //   authing   - storage's type & href set, but no token received yet
     //   connected - all information present.
-    getState         : getState
+    getState         : getState,
+    calcState: calcState
   };
 });
