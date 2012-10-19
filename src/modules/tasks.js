@@ -5,9 +5,6 @@ define(['../remoteStorage'], function(remoteStorage) {
 
   remoteStorage.defineModule(moduleName, function(myPrivateBaseClient, myPublicBaseClient) {
 
-    myPrivateBaseClient.setSchema({
-    });
-
     // Namespace: remoteStorage.tasks
     //
     // tasks are things that need doing; items on your todo list

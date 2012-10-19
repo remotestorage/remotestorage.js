@@ -4,6 +4,8 @@ DOC_DIR=./doc/code
 DOC_CONFIG_DIR=./doc/config
 SOURCE_DIR=./src
 
+DOC_INPUTS=-i $(SOURCE_DIR) -i ./doc/pages/
+
 NODEJS=node
 
 default: debug-only
@@ -37,9 +39,9 @@ push-assets: commit-build commit-docs push-gh-pages
 
 doc:
 	mkdir -p $(DOC_DIR) $(DOC_CONFIG_DIR)
-	$(DOC_BIN) -i $(SOURCE_DIR) -o html $(DOC_DIR) -p $(DOC_CONFIG_DIR)
+	$(DOC_BIN) $(DOC_INPUTS) -o html $(DOC_DIR) -p $(DOC_CONFIG_DIR)
 
 clean-doc:
-	rm -rf $(DOC_DIR)
+	rm -rf $(DOC_DIR) $(DOC_CONFIG_DIR)/Data
 
 .PHONY: doc clean-doc build commit-build push-build prepare-gh-pages

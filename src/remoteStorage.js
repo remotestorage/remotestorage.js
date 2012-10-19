@@ -384,8 +384,12 @@ define([
     //                  afterwards.
     //
     getWidgetState   : widget.getState,
+
+    //
     getSyncState     : sync.getState,
+    //
     setStorageInfo   : wireClient.setStorageInfo,
+
     getStorageHref   : wireClient.getStorageHref,
 
     disableSyncThrottling: sync.disableThrottling,
@@ -394,13 +398,37 @@ define([
 
     util: util,
 
+    // Method: getForeignClient
+    //
+    // Get a <ForeignClient> instance for a given user.
+    //
+    // Parameters:
+    //   userAddress - a user address in the form user@host
+    //   callback - a callback to receive the client
+    //
+    // If there is no storageInfo cached for this userAddress, this will trigger
+    // a webfinger discovery and when that succeeded, return the client through
+    // the callback.
+    //
+    // Example:
+    //   (start code)
+    //   var client = remoteStorage.getForeignClient('alice@wonderland.lit', function(error, client) {
+    //     if(error) {
+    //       console.error("Discovery failed: ", error);
+    //     } else {
+    //       client.getPublishedObjects(function(objects) {
+    //         console.log('public stuff', objects);
+    //       });
+    //     }
+    //   });
+    //   (end code)
     getForeignClient: function(userAddress, callback) {
       var client = foreignClient.getClient(userAddress);
       if(wireClient.hasStorageInfo(userAddress)) {
         callback(null, client);
       } else {
         webfinger.getStorageInfo(
-          userAddress, { timeout: 3000 }, function(err, storageInfo) {
+          userAddress, { timeout: 5000 }, function(err, storageInfo) {
             if(err) {
               callback(err);
             } else {

@@ -127,15 +127,14 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //   conflict - when there are two incompatible versions of the same node
   //   change   - when the local store is updated
   //
-  function fullSync(callback) {
+  function fullSync(callback, pushOnly) {
     if(! isConnected()) {
       return callback && callback('not-connected');
     }
 
-    logger.info("full sync started");
+    logger.info("full " + (pushOnly ? "push" : "sync") + " started");
 
     var roots = findRoots();
-
     var synced = 0;
 
     function rootCb() {
@@ -147,7 +146,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
     roots.forEach(function(root) {
       enqueueTask(function() {
-        traverseTree(root, processNode);
+        traverseTree(root, processNode, {
+          pushOnly: pushOnly
+        });
       }, rootCb);
     });
   }
@@ -164,22 +165,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //   change   - when the local store is updated
   //
   function fullPush(callback) {
-    if(! isConnected()) {
-      return callback && callback('not-connected');
-    }
-
-    logger.info("full push started");
-
-    enqueueTask(function() {
-
-      if(callback) {
-        events.once('ready', callback);
-      }
-
-      traverseTree('/', processNode, {
-        pushOnly: true
-      });
-    });
+    fullSync(callback, true);
   }
 
   // Function: partialSync
@@ -681,7 +667,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     var root = store.getNode('/');
     var roots = []
     if(root.startAccess) {
-      roots.push(root);
+      roots.push('/');
     } else {
       Object.keys(store.getNodeData('/')).forEach(function(key) {
         if(store.getNode('/' + key).startAccess) {
@@ -825,7 +811,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         }
       }
 
-      spawnQueue(fullListing, 2, function(item, next) {
+      spawnQueue(fullListing, 6, function(item, next) {
         var path = root + item;
         if(util.isDir(item)) {
           if(opts.depth && opts.depth == 1) {

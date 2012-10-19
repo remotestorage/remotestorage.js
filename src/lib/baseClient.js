@@ -1,4 +1,4 @@
-define(['./sync', './store', './util'], function (sync, store, util) {
+define(['./sync', './store', './util', './validate'], function (sync, store, util, validate) {
 
   "use strict";
 
@@ -390,6 +390,9 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   callback - (optional) called when the change has been propagated to remotestorage
     //   context  - (optional) 
     //
+    // Returns:
+    //   An array of errors, when the validation failed, otherwise null.
+    //
     // What about the type?:
     //
     //   A great thing about having data on the web, is to be able to link to
@@ -412,16 +415,28 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   storeObject, you should make sure that once your code is in the wild, future
     //   versions of the code are compatible with the same JSON structure.
     //
+    // How to define types?:
+    //
+    //   See <declareType> or the calendar module (src/modules/calendar.js) for examples.
     // 
     storeObject: function(type, path, obj, callback, context) {
       this.ensureAccess('w');
       if(typeof(obj) !== 'object') {
         throw "storeObject needs to get an object as value!"
       }
-      obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+this.moduleName+'/'+type;
-      var absPath = this.makePath(path);
-      set(path, absPath, obj, 'application/json');
-      sync.syncOne(absPath, util.bind(callback, context));
+      obj['@type'] = this.resolveType(type);
+
+      var errors = this.validateObject(obj);
+
+      if(errors) {
+        console.error("Error saving this ", type, ": ", obj, errors);
+        return errors;
+      } else {
+        var absPath = this.makePath(path);
+        set(path, absPath, obj, 'application/json');
+        sync.syncOne(absPath, util.bind(callback, context));
+        return null;
+      }
     },
 
     //
@@ -524,6 +539,105 @@ define(['./sync', './store', './util'], function (sync, store, util) {
         var parentPath = util.containingDir(absPath);
         return !! store.getNode(parentPath).diff[path.split('/').slice(-1)[0]];
       }
+    },
+
+    /**** TYPE HANDLING ****/
+
+    types: {},
+    schemas: {},
+
+    resolveType: function(alias) {
+      var type = this.types[alias];
+      if(! type) {
+        // FIXME: support custom namespace. don't fall back to remotestoragejs.com.
+        type = 'https://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+        logger.error("WARNING: type alias not declared: " + alias, '(have:', this.types, this.schemas, ')');
+      }
+      return type;
+    },
+
+    resolveSchema: function(type) {
+      var schema = this.schemas[type];
+      if(! schema) {
+        schema = {};
+        logger.error("WARNING: can't find schema for type: ", type);
+      }
+      return schema;
+    },
+
+    // Method: declareType
+    //
+    // Declare a type and assign it a schema.
+    // Once a type has a schema set, all data that is stored with that type will be validated before saving it.
+    //
+    // Parameters:
+    //   alias  - an alias to refer to the type. Must be unique within one scope / module.
+    //   type   - (optional) full type-identifier to identify the type. used as @type attribute.
+    //   schema - an object containing the schema for this new type.
+    //
+    // if "type" is ommitted, it will be generated based on the module name.
+    //
+    // Example:
+    //   (start code)
+    //   client.declareType('drink', {
+    //     "description": "A representation of a drink",
+    //     "type": "object",
+    //     "properties": {
+    //       "name": {
+    //         "type": "string",
+    //         "description": "Human readable name of the drink",
+    //         "required": true
+    //       }
+    //     }
+    //   });
+    //
+    //   client.storeObject('drink', 'foo', {});
+    //   // returns errors:
+    //   // [{ "property": "name",
+    //   //    "message": "is missing and it is required" }]
+    //
+    //   
+    //   (end code)
+    declareType: function(alias, type, schema) {
+      if(this.types[alias]) {
+        logger.error("WARNING: re-declaring already declared alias " + alias);
+      }
+      if(! schema) {
+        schema = type;
+        type = 'https://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+      }
+      this.types[alias] = type;
+      this.schemas[type] = schema;
+    },
+
+    // Method: validateObject
+    //
+    // Validate an object with it's schema.
+    //
+    // Parameters:
+    //   object - the object to validate
+    //   alias  - (optional) the type-alias to use, in case the object doesn't have a @type attribute.
+    //
+    // Returns:
+    //   null   - when the object is valid
+    //   array of errors - when validation fails.
+    //
+    // The errors are objects of the form:
+    // > { "property": "foo", "message": "is named badly" }
+    //
+    validateObject: function(object, alias) {
+      var type = object['@type'];
+      if(! type) {
+        if(alias) {
+          type = this.resolveType(alias);
+        } else {
+          return [{"property":"@type","message":"missing"}];
+        }
+      }
+      var schema = this.resolveSchema(type);
+      var result = validate(object, schema);
+
+      return result.valid ? null : result.errors;
     }
     
   };
