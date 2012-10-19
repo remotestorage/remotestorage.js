@@ -43,7 +43,7 @@ Section: Using an AMD loader
 
 (like <requirejs at http://requirejs.org/>)
 
-RemotestorageJS internally uses AMD to 
+RemotestorageJS uses AMD to manage internal dependencies. So if your app uses AMD as well, you can just include remoteStorage.js and use your regular build process.
 
 Just clone the repository somewhere and copy the src/ folder to your app:
 > cp -r remoteStorage.js/src/ MYAPP/lib/remotestorage/
