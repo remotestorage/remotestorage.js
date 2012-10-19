@@ -1,0 +1,64 @@
+
+File: Adding remotestorage to your app
+
+Section: Built version
+
+-
+
+Simply <download a build at http://remotestoragejs.com/doc/code/files2/download-txt.html#Ready_made_builds> and include it into your page, for example,
+> <script src="remoteStorage-modules.js"></script>
+
+Section: Build it yourself
+
+-
+
+For an overview over the generated build targets, see <this page at http://remotestoragejs.com/doc/code/files2/download-txt.html#Ready_made_builds>.
+
+If you haven't already, clone the repository:
+> git clone git://github.com/RemoteStorage/remoteStorage.js.git
+> cd remoteStorage.js/
+
+Now install requirejs, unless you have it already:
+> npm install requirejs
+
+Then you can build all targets using:
+> make build
+
+Or only the debug targets:
+> make debug-only
+
+If you wish to add your module to the build, place it in src/modules/, and wrap your code in a define() call:
+> define(['../remoteStorage'], function(remoteStorage) {
+>   // your module code, remoteStorage.defineModule etc.
+>
+>   // change this, for AMD loaders, so module can get loaded directly
+>   return remoteStorage.[mymodulename];
+> });
+
+Then add it to the list of modules in src/remoteStorage-modules.js and build as before.
+
+Section: Using an AMD loader
+
+-
+
+(like <requirejs at http://requirejs.org/>)
+
+RemotestorageJS internally uses AMD to 
+
+Just clone the repository somewhere and copy the src/ folder to your app:
+> cp -r remoteStorage.js/src/ MYAPP/lib/remotestorage/
+
+(You could also add the repository as a git submodule, that way you can update it more easily)
+
+Then add the path where you put remotestorage to your require configuration as needed, for example:
+> require.config({
+>   paths: {
+>     "remotestorage" : "lib/remotestorage/" // if you cloned the repository, you may need to add 'src/'
+>   }
+> })
+
+In your application or module code, you can then load remotestoragejs:
+> define(['remotestorage/remoteStorage'], function(remoteStorage) {
+>   // ...
+> });
+
