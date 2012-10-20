@@ -205,7 +205,7 @@ define(['./util'], function (util) {
     }
   }
 
-  function removeNode(path) {
+  function removeNode(path, timestamp) {
     setNodeData(path, undefined, false);
   }
 

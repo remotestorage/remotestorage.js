@@ -426,7 +426,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   function deleteLocal(path, local, remote) {
     logger.info('DELETE', path, 'REMOTE -> LOCAL');
     var oldValue = store.getNodeData(path);
-    store.removeNode(path);
+    store.removeNode(path, remote.timestamp);
   }
 
   // Function: deleteRemote
