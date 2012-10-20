@@ -8,3 +8,4 @@ doc/code/
 doc/config/
 *.log
 server/server-state
+server-state
