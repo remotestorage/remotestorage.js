@@ -2,6 +2,7 @@
 DOC_BIN=naturaldocs
 DOC_DIR=./doc/code
 DOC_CONFIG_DIR=./doc/config
+DOC_CUSTOM_CSS=custom-1
 SOURCE_DIR=./src
 
 NODEJS=node
@@ -37,7 +38,7 @@ push-assets: commit-build commit-docs push-gh-pages
 
 doc:
 	mkdir -p $(DOC_DIR) $(DOC_CONFIG_DIR)
-	$(DOC_BIN) -i $(SOURCE_DIR) -o html $(DOC_DIR) -p $(DOC_CONFIG_DIR)
+	$(DOC_BIN) -i $(SOURCE_DIR) -o html $(DOC_DIR) -p $(DOC_CONFIG_DIR) -s Default $(DOC_CUSTOM_CSS)
 
 clean-doc:
 	rm -rf $(DOC_DIR)

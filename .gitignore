@@ -5,7 +5,7 @@
 node_modules
 build/
 doc/code/
-doc/config/
+doc/config/Data
 *.log
 server/server-state
 server-state
