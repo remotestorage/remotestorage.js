@@ -204,6 +204,10 @@ a:active, a:hover {
   box-sizing: border-box;
 }
 
+.MTitle {
+  display: none;
+}
+
 .MGroup {
   margin: 1em 0 1em 0;
 }
@@ -257,7 +261,7 @@ a:active, a:hover {
 }
 
 .MGroup .MEntry {
-    padding-left: 20px;
+    padding-left: 10px;
 }
 
 .MGroup .MEntry a {
@@ -344,3 +348,4 @@ a:active, a:hover {
 #Footer {
   display: none;
 }
+

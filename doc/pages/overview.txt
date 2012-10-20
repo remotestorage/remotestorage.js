@@ -1,10 +1,10 @@
 File: Overview
 
-Welcome to the developer documentation for remoteStorage.js, a client side implementation of the <remotestorage at http://remotestorage.io/> specification.
+Welcome to the developer documentation for remoteStorage.js, a client side implementation of the <remoteStorage at http://remotestorage.io/> specification.
 
 What is remoteStorage?:
 
-remoteStorage.js is a JavaScript library, used to enable users of <unhosted at http://unhosted.org/> web apps (JavaScript apps running in a browser) to store their data at a place of their choice (their "remotestorage" server). It tries to get in the way of app developers as little as possible, while providing the easiest path for both developers and users to integrate their storage with apps.
+remoteStorage.js is a JavaScript library, used to enable users of <unhosted at http://unhosted.org/> web apps (JavaScript apps running in a browser) to store their data at a place of their choice (their "remoteStorage" server). It tries to get in the way of app developers as little as possible, while providing the easiest path for both developers and users to integrate their storage with apps.
 
 Some of the goals of remoteStorage.js are:
 * Provide a unified "login" experience across apps through the "connect widget".
