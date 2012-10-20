@@ -466,6 +466,17 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         }
       }
     }
+
+    window.onbeforeunload = function(event) {
+      if(widgetState == 'anonymous') {
+        return null;
+      } else {
+        sync.fullPush();
+        var message = "Synchronizing your data now. Please wait until the cube stops spinning."
+        event.returnValue = message
+        return message;
+      }
+    }
     
   }
 
