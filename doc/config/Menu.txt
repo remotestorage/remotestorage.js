@@ -29,7 +29,6 @@ Footer: remoteStorage.js is developed by some people. It's open source (MIT lice
 
 Don't Index: Functions, Files, Classes, Types, Events, Build Targets, Properties
 
-
 # --------------------------------------------------------------------------
 # 
 # Cut and paste the lines below to change the order in which your files
@@ -47,11 +46,6 @@ Don't Index: Functions, Files, Classes, Types, Events, Build Targets, Properties
 # time it is run.  When working with groups, just deal with the braces and
 # forget about the indentation and comments.
 # 
-# You can use this file on other computers even if they use different
-# directories.  As long as the command line points to the same source files,
-# Natural Docs will be able to correct the locations automatically.
-# 
-# --------------------------------------------------------------------------
 
 
 Group: Intro  {

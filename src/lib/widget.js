@@ -20,7 +20,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     userAddress,
     authDialogStrategy = 'redirect',
     authPopupRef,
+    initialSync,
     scopesObj = {};
+
+  var widget;
+  var offlineReason;
 
   var events = util.getEventEmitter('state', 'ready');
 
@@ -55,37 +59,132 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     return widgetState;
   }
 
+  function buildWidget() {
+
+    function el(tag, id, attrs) {
+      var e = document.createElement(tag);
+      if(id) {
+        e.setAttribute('id', id);
+      }
+      if(attrs && attrs._content) {
+        e.innerHTML = attrs._content;
+        delete attrs._content;
+      }
+      for(var key in attrs) {
+        e.setAttribute(key, attrs[key]);
+      }
+      return e;
+    }
+
+    var widget = {
+      root: el('div', 'remotestorage-state'),
+      connectButton: el('input', 'remotestorage-connect-button', {
+        'class': 'remotestorage-button',
+        'type': 'submit',
+        'value': translate('connect')
+      }),
+      registerButton: el('span', 'remotestorage-register-button', {
+        'class': 'remotestorage-button',
+        '_content': translate('get remotestorage')
+      }),
+      cube: el('img', 'remotestorage-cube', {
+        'src': assets.remoteStorageCube
+      }),
+      bubble: el('span', 'remotestorage-bubble'),
+      helpHint: el('a', 'remotestorage-questionmark', {
+        'href': 'http://unhosted.org/#remotestorage',
+        'target': '_blank'
+      }),
+      helpText: el('span', 'remotestorage-infotext', {
+        'class': 'infotext',
+        '_content': 'This app allows you to use your own data storage!<br/>Click for more info on the Unhosted movement.'
+      }),
+      userAddress: el('input', 'remotestorage-useraddress', {
+        'placeholder': 'user@host'
+      }),
+
+      style: el('style')
+    };
+
+    widget.root.appendChild(widget.connectButton);
+    widget.root.appendChild(widget.registerButton);
+    widget.root.appendChild(widget.cube);
+    widget.root.appendChild(widget.bubble);
+    widget.root.appendChild(widget.helpHint);
+    widget.root.appendChild(widget.helpText);
+    widget.root.appendChild(widget.userAddress);
+
+    widget.style.innerHTML = assets.widgetCss;
+
+    return widget;
+  }
+
   function displayWidgetState(state, userAddress) {
     if(state === 'authing') {
       platform.alert("Authentication was aborted. Please try again.");
       return setWidgetState('typing')
     }
 
+    if(! widget) {
+      var root = document.getElementById(connectElement);
+      widget = buildWidget();
+
+      widget.registerButton.addEventListener('click', handleRegisterButtonClick);
+      widget.connectButton.addEventListener('click', handleConnectButtonClick);
+      widget.bubble.addEventListener('click', handleBubbleClick);
+      widget.cube.addEventListener('click', handleCubeClick);
+      widget.userAddress.addEventListener('keyup', handleWidgetTypeUserAddress);
+
+      root.appendChild(widget.style);
+      root.appendChild(widget.root);
+    }
+
+    widget.root.setAttribute('class', state);
+
+
     var userAddress = localStorage['remote_storage_widget_useraddress'] || '';
-    var html = 
-      '<style>'+assets.widgetCss+'</style>'
-      +'<div id="remotestorage-state" class="'+state+'">'
-      +'  <input id="remotestorage-connect-button" class="remotestorage-button" type="submit" value="'+translate('connect')+'"/>'//connect button
-      +'  <span id="remotestorage-register-button" class="remotestorage-button">'+translate('get remotestorage')+'</span>'//register
-      +'  <img id="remotestorage-cube" src="'+assets.remoteStorageCube+'"/>'//cube
-      +'  <span id="remotestorage-disconnect">Disconnect ' + (userAddress ? '<strong>'+userAddress+'</strong>' : '') + '</span>'//disconnect hover; should be immediately preceded by cube because of https://developer.mozilla.org/en/CSS/Adjacent_sibling_selectors:
-      +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
-      +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br/>Click for more info on the Unhosted movement.</span>'//info text
-      //+'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <input id="remotestorage-useraddress" ' + (state == 'connecting' || state == 'authing' ? 'disabled="disabled" ' : '') + 'type="text" value="' + userAddress + '" placeholder="user@host" autofocus="" />'//text input
-      +'  <a class="infotext" href="http://remotestoragejs.com/" target="_blank" id="remotestorage-devsonly">RemoteStorageJs is still in developer preview!<br/>Click for more info.</a>'
-      +'</div>';
-    platform.setElementHTML(connectElement, html);
-    platform.eltOn('remotestorage-register-button', 'click', handleRegisterButtonClick);
-    platform.eltOn('remotestorage-connect-button', 'click', handleConnectButtonClick);
-    platform.eltOn('remotestorage-disconnect', 'click', handleDisconnectClick);
-    platform.eltOn('remotestorage-cube', 'click', handleCubeClick);
-    platform.eltOn('remotestorage-useraddress', 'type', handleWidgetTypeUserAddress);
+
+    if(userAddress) {
+      widget.userAddress.value = userAddress;
+      userAddress = '<strong>' + userAddress + '</strong>';
+    } else {
+      userAddress = '<strong>(n/a)</strong>';
+    }
+
+    var bubbleText = '';
+    var bubbleVisible = false;
+    if(initialSync) {
+      bubbleText = 'Connecting ' + userAddress;
+      bubbleVisible = true
+    } else if(state == 'connected') {
+      bubbleText = 'Disconnect ' + userAddress;
+    } else if(state == 'busy') {
+      bubbleText = 'Synchronizing ' + userAddress + '...';
+    } else if(state == 'offline') {
+      if(offlineReason == 'unauthorized') {
+        bubbleText = 'Access denied by remotestorage. Click to reconnect.';
+        bubbleVisible = true;
+      } else {
+        bubbleText = 'Offline (' + userAddress + ')';
+      }
+    }
+    
+    widget.bubble.innerHTML = bubbleText;
+
+    if(bubbleVisible) {
+      // always show cube & bubble while connecting or error
+      widget.cube.setAttribute('style', 'opacity:1');
+      widget.bubble.setAttribute('style', 'display:inline');
+    } else {
+      widget.cube.removeAttribute('style');
+      widget.bubble.removeAttribute('style');
+    }
 
     if(state === 'typing') {
-      document.getElementById('remotestorage-useraddress').focus();
+      widget.userAddress.focus();
     }
   }
+
   function handleRegisterButtonClick() {
     window.open(
       'http://unhosted.org/en/a/register.html',
@@ -93,6 +192,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       popupSettings
     );
   }
+
   function redirectUriToClientId(loc) {
     //TODO: add some serious unit testing to this function
     if(loc.substring(0, 'http://'.length) == 'http://') {
@@ -155,7 +255,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     window.close();
   }
 
-  function dance(endpoint) {
+  function dance() {
+    var endpoint = localStorage['remote_storage_widget_auth_endpoint'];
     var endPointParts = endpoint.split('?');
     var queryParams = [];
     if(endPointParts.length == 2) {
@@ -236,15 +337,16 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         }
         setWidgetState('failed');
       } else {
-        dance(auth);
+        localStorage['remote_storage_widget_auth_endpoint'] = auth;
+        dance();
       }
     });
   }
 
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
-      userAddress = platform.getElementValue('remotestorage-useraddress');
-      localStorage['remote_storage_widget_useraddress']=userAddress;
+      userAddress = widget.userAddress.value;
+      localStorage['remote_storage_widget_useraddress'] = userAddress;
       setWidgetState('connecting');
       if(authDialogStrategy == 'popup') {
         prepareAuthPopup();
@@ -254,23 +356,30 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       setWidgetState('typing');
     }
   }
-  function handleDisconnectClick() {
-    sync.syncNow('/', function() {
-      wireClient.disconnectRemote();
-      store.forgetAll();
-      // trigger 'disconnected' once, so the app can clear it's views.
-      setWidgetState('disconnected', true);
-      setWidgetState('anonymous');
-    }, true);
+
+  function handleBubbleClick() {
+    if(widgetState == 'connected' || widgetState == 'busy') {
+      // DISCONNECT
+      sync.fullPush(function() {
+        wireClient.disconnectRemote();
+        store.forgetAll();
+        sync.clearSettings();
+        // trigger 'disconnected' once, so the app can clear it's views.
+        setWidgetState('disconnected', true);
+        setWidgetState('anonymous');
+      });
+    } else if(widgetState == 'offline' && offlineReason == 'unauthorized') {
+      dance();
+    }
   }
   function handleCubeClick() {
-    if(widgetState == 'connected') {
-     handleDisconnectClick();
+    if(widgetState == 'connected' || widgetState == 'connected') {
+      handleBubbleClick();
     }
   }
   function handleWidgetTypeUserAddress(event) {
     if(event.keyCode === 13) {
-      document.getElementById('remotestorage-connect-button').click();
+      widget.connectButton.click();
     }
   }
   function handleWidgetHover() {
@@ -278,15 +387,16 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   }
 
   function nowConnected() {
+    console.log("NOW CONNECTED");
     setWidgetState('connected');
+    initialSync = true;
     store.fireInitialEvents();
-    sync.syncNow('/', function(err) {
-      if(err) {
-        logger.error("Initial sync failed: ", err)
-      } else {
-        events.emit('ready');
-      }
-    }, true);
+    sync.forceSync(function() {
+      logger.info("Initial sync done.");
+      initialSync = false;
+      setWidgetState(getWidgetState());
+      events.emit('ready');
+    });
   }
 
   function display(setConnectElement, options) {
@@ -298,9 +408,21 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       options = {};
     }
 
+    sync.on('error', function(error) {
+      if(error.message == 'unauthorized') {
+        offlineReason = 'unauthorized';
+        if(initialSync) {
+          // abort initial sync
+          initialSync = false;
+          events.emit('ready');
+        }
+        setWidgetState('offline');
+      }
+    });
+
     connectElement = setConnectElement;
 
-    if(wireClient.getState() == 'connected') {
+    if(wireClient.calcState() == 'connected') {
       nowConnected();
     } else {
       wireClient.on('connected', nowConnected);
@@ -329,7 +451,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       wireClient.setStorageInfo((storageApiHarvested ? storageApiHarvested : '2012.04'), storageRootHarvested);
     }
     if(authorizeEndpointHarvested) {
-      dance(authorizeEndpointHarvested);
+      localStorage['remote_storage_widget_auth_endpoint'] = authorizeEndpointHarvested;
+      dance();
     }
 
     setWidgetStateOnLoad();
@@ -338,8 +461,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       window.onkeydown = function(evt) {
         if(evt.ctrlKey && evt.which == 83) {
           evt.preventDefault();
-          logger.info("CTRL+S - SYNCING");
-          sync.syncNow('/', function(errors) {});
+          sync.fullSync();
           return false;
         }
       }

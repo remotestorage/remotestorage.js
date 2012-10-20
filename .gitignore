@@ -3,5 +3,8 @@
 .#*
 *.swp
 node_modules
+build/
+doc/config/Data
 *.log
 server/server-state
+server-state

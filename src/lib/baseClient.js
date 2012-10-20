@@ -1,6 +1,4 @@
-/* -*- js-indent-level:2 -*- */
-
-define(['./sync', './store', './util'], function (sync, store, util) {
+define(['./sync', './store', './util', './validate'], function (sync, store, util, validate) {
 
   "use strict";
 
@@ -18,43 +16,67 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     }
   }
 
-  function fireChange(moduleName, eventObj) {
-    if(moduleEvents[moduleName]) {
+  var isPublicRE = /^\/public\//;
 
-      if(moduleName !== 'root') {
-        eventObj.relativePath = eventObj.path.replace(new RegExp('^/(?:public/|)' + moduleName + '/'), '');
+  function fireModuleEvent(eventName, moduleName, eventObj) {
+    var isPublic = isPublicRE.test(eventObj.path);
+    var events;
+    if(moduleEvents[moduleName] &&
+       (events = moduleEvents[moduleName][isPublic])) {
+
+      if(moduleName !== 'root' && eventObj.path) {
+        eventObj.relativePath = eventObj.path.replace(
+          (isPublic ? '/public/' : '/') + moduleName + '/', ''
+        );
       }
 
-      moduleEvents[moduleName].emit('change', eventObj);
+      events.emit(eventName, eventObj);
     }
   }
 
-  store.on('change', function(e) {
-    var moduleName = extractModuleName(e.path);
-    fireChange(moduleName, e);//remote-based changes get fired from the store.
-    fireChange('root', e);//root module gets everything
+  function fireError(absPath, error) {
+    var isPublic = isPublicRE.test(absPath);
+    moduleEvents[moduleName][isPublic].emit('error', error);
+  }
+
+  store.on('change', function(event) {
+    var moduleName = extractModuleName(event.path);
+    // remote-based changes get fired from the store.
+    fireModuleEvent('change', moduleName, event);
+    // root module gets everything
+    fireModuleEvent('change', 'root', event);
+  });
+
+  sync.on('conflict', function(event) {
+    var moduleName = extractModuleName(event.path);
+    fireModuleEvent('conflict', moduleName, event);
+    fireModuleEvent('conflict', 'root', event);
   });
 
   function set(path, absPath, value) {
     var moduleName = extractModuleName(absPath);
     if(util.isDir(absPath)) {
-      moduleEvents[moduleName].emit('error', 'attempt to set a value to a directory '+absPath);
+      fireError(absPath, 'attempt to set a value to a directory '+absPath);
       return;
     }
     var changeEvent = {
       origin: 'window',
       oldValue: store.getNodeData(absPath),
       newValue: value,
-      path: path
+      path: absPath
     };
     store.setNodeData(absPath, value, true);
-    fireChange(moduleName, changeEvent);
-    fireChange('root', changeEvent);
+    fireModuleEvent('change', moduleName, changeEvent);
+    fireModuleEvent('change', 'root', changeEvent);
   }
 
   var BaseClient = function(moduleName, isPublic) {
     this.moduleName = moduleName, this.isPublic = isPublic;
-    moduleEvents[moduleName] = util.getEventEmitter('change', 'error');
+    if(! moduleEvents[moduleName]) {
+      moduleEvents[moduleName] = {};
+    }
+    this.events = util.getEventEmitter('change', 'conflict', 'error');
+    moduleEvents[moduleName][isPublic] = this.events;
     util.bindAll(this);
   }
 
@@ -113,15 +135,14 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   
 
     makePath: function(path) {
-      if(this.moduleName == 'root') {
-        return path[0] === '/' ? path : ('/' + path);
-      }
-      return (this.isPublic?'/public/':'/')+this.moduleName+'/'+path;
+      var base = (this.moduleName == 'root' ?
+                  (path[0] === '/' ? '' : '/') :
+                  '/' + this.moduleName + '/');
+      return (this.isPublic ? '/public' + base : base) + path;
     },
 
     nodeGivesAccess: function(path, mode) {
       var node = store.getNode(path);
-      logger.debug("check node access", path, mode, node);
       var access = (new RegExp(mode)).test(node.startAccess);
       if(access) {
         return true
@@ -138,6 +159,11 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       }
     },
 
+    lastUpdateOf: function(path) {
+      var absPath = this.makePath(path);
+      var node = store.getNode(absPath);
+      return node ? node.timestamp : null;
+    },
 
     //  
     // Method: on
@@ -150,7 +176,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   context   - (optional) context to bind handler to
     //  
     on: function(eventType, handler, context) {
-      moduleEvents[this.moduleName].on(eventType, util.bindContext(handler, context));
+      this.events.on(eventType, util.bind(handler, context));
     },
 
     //
@@ -193,20 +219,18 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     getObject: function(path, callback, context) {
       this.ensureAccess('r');
       var absPath = this.makePath(path);
+      var data = store.getNodeData(absPath);
+
       if(callback) {
-        sync.fetchNow(absPath, function(err, node) {
-          var data = store.getNodeData(absPath);
-          if(data && (typeof(data) == 'object')) {
-            delete data['@type'];
-          }
-          util.bindContext(callback, context)(data);
-        });
-      } else {
-        var node = store.getNode(absPath);
-        var data = store.getNodeData(absPath);
-        if(data && (typeof(data) == 'object')) {
-          delete data['@type'];
+        var cb = util.bind(callback, context);
+        if(data && !(typeof(data) == 'object' && Object.keys(data).length == 0)) {
+          cb(data);
+        } else {
+          sync.syncOne(absPath, function(node, data) {
+            cb(data);
+          });
         }
+      } else {
         return data;
       }
     },
@@ -238,7 +262,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
           for(var i in data) {
             arr.push(i);
           }
-          util.bindContext(callback, context)(arr);
+          util.bind(callback, context)(arr);
         });
       } else {
         var node = store.getNode(absPath);
@@ -256,21 +280,28 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //
     // Get all objects directly below a given path.
     //
-    // Receives the same parameters as <getListing>
+    // Receives the same parameters as <getListing> (FIXME!!!)
     //
     // Returns an object in the form { path : object, ... }
     //
-    getAll: function(path, callback, context) {
+    getAll: function(type, path, callback, context) {
+      if(typeof(path) != 'string') {
+        path = type, callback = path, context = callback;
+        type = null;
+      }
       var makeMap = function(listing) {
         var o = {};
-        listing.forEach(function(item) {
-          o[path + item] = this.getObject(path + item);
+        listing.forEach(function(name) {
+          var item = this.getObject(path + name);
+          if((! type) || type == item['@type'].split('/').slice(-1)[0]) {
+            o[path + name] = item;
+          }
         }, this);
         return o;
       }.bind(this);
       if(callback) {
         this.getListing(path, function(listing) {
-          util.bindContext(callback, context)(makeMap(listing));
+          util.bind(callback, context)(makeMap(listing));
         }, this);
       } else {
         return makeMap(this.getListing(path));
@@ -299,19 +330,32 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     getDocument: function(path, callback, context) {
       this.ensureAccess('r');
       var absPath = this.makePath(path);
-      if(callback) {
-        sync.fetchNow(absPath, function(err, node) {
-          util.bindContext(callback, context)({
+
+      function makeResult() {
+        var node = store.getNode(absPath);
+        if(node) {
+          return {
             mimeType: node.mimeType,
             data: store.getNodeData(absPath)
+          };
+        } else {
+          return null;
+        }
+      }
+
+      var result = makeResult();
+
+      if(callback) {
+        var cb = util.bind(callback, context);
+        if(result) {
+          cb(result);
+        } else {
+          sync.syncOne(absPath, function() {
+            cb(makeResult());
           });
-        });
+        }
       } else {
-        var node = store.getNode(absPath);
-        return {
-          mimeType: node.mimeType,
-          data: store.getNodeData(absPath)
-        };
+        return result;
       }
     },
 
@@ -323,13 +367,14 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //
     // Parameters:
     //   path     - Path relative to the module root.
-    //   callback - (optional) passed on to <syncNow>
-    //   context  - (optional) passed on to <syncNow>
+    //   callback - (optional) called when the change has been propagated to remotestorage
+    //   context  - (optional)
     //
     remove: function(path, callback, context) {
       this.ensureAccess('w');
-      set(path, this.makePath(path), undefined);
-      this.syncNow(util.containingDir(path), callback, context);
+      var absPath = this.makePath(path);
+      set(path, absPath, undefined);
+      sync.syncOne(absPath, util.bind(callback, context));
     },
 
     //
@@ -342,8 +387,11 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   type     - unique type of this object within this module. See description below.
     //   path     - path relative to the module root.
     //   object   - an object to be saved to the given node. It must be serializable as JSON.
-    //   callback - (optional) passed on to <syncNow>
-    //   context  - (optional) passed on to <syncNow>
+    //   callback - (optional) called when the change has been propagated to remotestorage
+    //   context  - (optional) 
+    //
+    // Returns:
+    //   An array of errors, when the validation failed, otherwise null.
     //
     // What about the type?:
     //
@@ -367,17 +415,28 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   storeObject, you should make sure that once your code is in the wild, future
     //   versions of the code are compatible with the same JSON structure.
     //
+    // How to define types?:
+    //
+    //   See <declareType> or the calendar module (src/modules/calendar.js) for examples.
     // 
     storeObject: function(type, path, obj, callback, context) {
       this.ensureAccess('w');
       if(typeof(obj) !== 'object') {
         throw "storeObject needs to get an object as value!"
       }
-      obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+this.moduleName+'/'+type;
-      set(path, this.makePath(path), obj, 'application/json');
-      var parentPath = util.containingDir(path);
-      this.use(parentPath);
-      this.syncNow(parentPath, callback, context);
+      obj['@type'] = this.resolveType(type);
+
+      var errors = this.validateObject(obj);
+
+      if(errors) {
+        console.error("Error saving this ", type, ": ", obj, errors);
+        return errors;
+      } else {
+        var absPath = this.makePath(path);
+        set(path, absPath, obj, 'application/json');
+        sync.syncOne(absPath, util.bind(callback, context));
+        return null;
+      }
     },
 
     //
@@ -389,16 +448,21 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   mimeType - MIME media type of the data being stored
     //   path     - path relative to the module root. MAY NOT end in a forward slash.
     //   data     - string of raw data to store
-    //   callback - (optional) passed to <syncNow>
-    //   context  - (optional) passed to <syncNow>
+    //   callback - (optional) called when the change has been propagated to remotestorage
+    //   context  - (optional)
     //
     // The given mimeType will later be returned, when retrieving the data
     // using getDocument.
     //
     storeDocument: function(mimeType, path, data, callback, context) {
       this.ensureAccess('w');
-      set(path, this.makePath(path), data, mimeType);
-      this.syncNow(path, callback, context);
+      var absPath = this.makePath(path);
+      set(path, absPath, data, mimeType);
+      sync.syncOne(absPath, util.bind(callback, context));
+    },
+
+    getStorageHref: function() {
+      return remoteStorage.getStorageHref();
     },
 
     //
@@ -414,7 +478,7 @@ define(['./sync', './store', './util'], function (sync, store, util) {
     //   a String - when currently connected
     //   null - when currently disconnected
     getItemURL: function(path) {
-      var base = remoteStorage.getStorageHref();
+      var base = this.getStorageHref();
       if(! base) {
         return null;
       }
@@ -424,61 +488,157 @@ define(['./sync', './store', './util'], function (sync, store, util) {
       return base + this.makePath(path);
     },
 
+    syncOnce: function(path, callback) {
+      var previousTreeForce = store.getNode(path).startForceTree;
+      this.use(path, false);
+      sync.partialSync(path, 1, function() {
+        if(previousTreeForce) {
+          this.use(path, true);
+        } else {
+          this.release(path);
+        }
+        if(callback) {
+          callback();
+        }
+      }.bind(this));
+
+    },
+
     //
     // Method: use
     //
-    // Force given path to be synchronized in the future.
+    // Set force flags on given path.
     //
-    // In order for a given path to be synchronized with remotestorage by
-    // <syncNow>, it has to be marked as "interesting". This is done via the
-    // *force* flag. Forcing sync on a directory causes the entire branch
-    // to be considered "forced".
+    // See <sync> for details.
     //
     // Parameters:
     //   path      - path relative to the module root
-    //   switchVal - optional boolean flag to set force value. Use "false" to remove the force flag.
+    //   treeOnly  - boolean value, whether only the tree should be synced.
     //
-    use: function(path, switchVal) {
+    use: function(path, treeOnly) {
       var absPath = this.makePath(path);
-      store.setNodeForce(absPath, (switchVal != false));
+      store.setNodeForce(absPath, !treeOnly, true);
     },
 
-    sync: function() {
-      util.deprecate('BaseClient.sync', 'BaseClient.use');
-      this.use.apply(this, arguments);
+    // Method: release
+    //
+    // Remove force flags from given node.
+    //
+    // See <sync> for details.
+    // 
+    release: function(path) {
+      var absPath = this.makePath(path);
+      store.setNodeForce(absPath, false, false);
     },
 
+    hasDiff: function(path) {
+      var absPath = this.makePath(path);
+      if(util.isDir(absPath)) {
+        return Object.keys(store.getNode(absPath).diff).length > 0;
+      } else {
+        var parentPath = util.containingDir(absPath);
+        return !! store.getNode(parentPath).diff[path.split('/').slice(-1)[0]];
+      }
+    },
+
+    /**** TYPE HANDLING ****/
+
+    types: {},
+    schemas: {},
+
+    resolveType: function(alias) {
+      var type = this.types[alias];
+      if(! type) {
+        // FIXME: support custom namespace. don't fall back to remotestoragejs.com.
+        type = 'https://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+        logger.error("WARNING: type alias not declared: " + alias, '(have:', this.types, this.schemas, ')');
+      }
+      return type;
+    },
+
+    resolveSchema: function(type) {
+      var schema = this.schemas[type];
+      if(! schema) {
+        schema = {};
+        logger.error("WARNING: can't find schema for type: ", type);
+      }
+      return schema;
+    },
+
+    // Method: declareType
     //
-    // Method: syncNow
-    //
-    // Start synchronization at given path.
-    //
-    // Note that only those nodes will be synchronized, that have a *force* flag
-    // set. Use <BaseClient.sync> to set the force flag on a node.
+    // Declare a type and assign it a schema.
+    // Once a type has a schema set, all data that is stored with that type will be validated before saving it.
     //
     // Parameters:
-    //   path     - relative path from the module root. 
-    //   callback - (optional) callback to call once synchronization finishes.
-    //   context  - (optional) context to bind callback to.
+    //   alias  - an alias to refer to the type. Must be unique within one scope / module.
+    //   type   - (optional) full type-identifier to identify the type. used as @type attribute.
+    //   schema - an object containing the schema for this new type.
     //
-    syncNow: function(path, callback, context) {
-      sync.syncNow(
-        this.makePath(path),
-        ( callback ?
-          util.bindContext(callback, context) :
-          util.bindContext(function(errors) {
-            if(errors && errors.length > 0) {
-              if(! (errors.length == 1 && errors[0] == 'not connected')) {
-                logger.error("Error syncing: ", errors);
-              }
-              moduleEvents[this.moduleName].emit('error', errors);
-            }
-          }, this) )
-      );
+    // if "type" is ommitted, it will be generated based on the module name.
+    //
+    // Example:
+    //   (start code)
+    //   client.declareType('drink', {
+    //     "description": "A representation of a drink",
+    //     "type": "object",
+    //     "properties": {
+    //       "name": {
+    //         "type": "string",
+    //         "description": "Human readable name of the drink",
+    //         "required": true
+    //       }
+    //     }
+    //   });
+    //
+    //   client.storeObject('drink', 'foo', {});
+    //   // returns errors:
+    //   // [{ "property": "name",
+    //   //    "message": "is missing and it is required" }]
+    //
+    //   
+    //   (end code)
+    declareType: function(alias, type, schema) {
+      if(this.types[alias]) {
+        logger.error("WARNING: re-declaring already declared alias " + alias);
+      }
+      if(! schema) {
+        schema = type;
+        type = 'https://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+      }
+      this.types[alias] = type;
+      this.schemas[type] = schema;
     },
 
-    deactivateSync: function() { sync.sleep(); },
-    activateSync: function() { sync.wakeup(); }
+    // Method: validateObject
+    //
+    // Validate an object with it's schema.
+    //
+    // Parameters:
+    //   object - the object to validate
+    //   alias  - (optional) the type-alias to use, in case the object doesn't have a @type attribute.
+    //
+    // Returns:
+    //   null   - when the object is valid
+    //   array of errors - when validation fails.
+    //
+    // The errors are objects of the form:
+    // > { "property": "foo", "message": "is named badly" }
+    //
+    validateObject: function(object, alias) {
+      var type = object['@type'];
+      if(! type) {
+        if(alias) {
+          type = this.resolveType(alias);
+        } else {
+          return [{"property":"@type","message":"missing"}];
+        }
+      }
+      var schema = this.resolveSchema(type);
+      var result = validate(object, schema);
+
+      return result.valid ? null : result.errors;
+    }
     
   };
 

@@ -1,181 +1,139 @@
-define(
-  ['./util', './webfinger', './store', './getputdelete'],
-  function(util, webfinger, store, getputdelete) {
+define(['./util', './baseClient', './getputdelete', './store'], function(util, BaseClient, getputdelete, store) {
 
-    var logger = util.getLogger('foreign client');
-    var clients = {};
-    var defaultSyncInterval = 300000;
+  var logger = util.getLogger('foreignClient');
 
-    // Namespace: foreignClient
-    //
-    // Foreign clients represent connections to other people's storage.
-    //
-    //
-    // Working with foreign clients:
-    //
-    // (start code)
-    // foreignClient.getClient('alice@wonderland.lit', function(err, client) {
-    //   if(err) {
-    //     alert("Sorry dude, who the fuck is alice?");
-    //   } else {
-    //     client.setInterest('/location/current');
-    //   }
-    // });
-    //
-    // (end code)
+  var knownClients = {}
 
-    // Method: getClient
+  store.on('foreign-change', function(event) {
+    var userAddress = event.path.split(':')[0];
+    var client = knownClients[userAddress];
+    if(client) {
+      client.events.emit('change', event);
+    }
+  });
+
+  /*
+    Class: ForeignClient
+    
+    A modified <BaseClient>, to query other people's storage.
+   */
+
+  // Constructor: ForeignClient
+  //
+  // Parameters:
+  //   userAddress - A userAddress string in the form user@host.
+  //
+  // The userAddress must be known to wireClient.
+  //
+  var ForeignClient = function(userAddress) {
+    this.userAddress = userAddress;
+    this.pathPrefix = userAddress + ':';
+
+    this.moduleName = 'root', this.isPublic = true;
+    this.events = util.getEventEmitter('change', 'error');
+    knownClients[userAddress] = this;
+    util.bindAll(this);
+  }
+  
+  ForeignClient.prototype = {
+
+    // Method: getPublished
     //
-    // Create a ForeignClient instance.
+    // Get the 'publishedItems' object for the given module.
+    //
+    // publishedItems is an object of the form { path : timestamp, ... }.
     //
     // Parameters:
-    //   userAddress - webfinger user address to discover the storage info
-    //   callback    - callback to call, once the client is ready to go
+    //   moduleName - (optional) module name to get the publishedItems object for
+    //   callback   - callback to call with the result
     //
-    // Callback parameters:
-    //   err    - errors, if any
-    //   client - the created ForeignClient instance
-    //
-    //
-    // You can safely call this multiple times, it will give you the same
-    // client for the same user address every time.
-    //
-    function getClient(userAddress, callback) {
-      if(userAddress in clients) {
-        callback(null, clients[userAddress]);
+    // Example:
+    //   (start code)
+    //   remoteStorage.getForeignClient('user@host', function(client) {
+    //     client.getPublished(object, function(publishedItems) {
+    //       for(var key in publishedItems) {
+    //         console.log("Item: ", key, " published at: ", publishedItems[key]);
+    //       }
+    //     });
+    //   });
+    //   (end code)
+    getPublished: function(moduleName, callback) {
+      var fullPath;
+      if(typeof(moduleName) == 'function') {
+        callback = moduleName;
+        fullPath = '/publishedItems';
+      } else {
+        fullPath = '/' + moduleName + '/publishedItems';
       }
-      webfinger.getStorageInfo(
-        userAddress, { timeout: 3000 },
-        function(err, storageInfo) {
-          if(err) {
-            callback(err);
+      this.getObject(fullPath, function(data) {
+        if(data) { delete data['@type']; }
+        callback(data || {});
+      });
+    },
+
+    getPublishedObjects: function(moduleName, callback) {
+      this.getPublished(moduleName, function(list) {
+        var paths = Object.keys(list);
+        var i = 0;
+        var objects = {};
+        function loadOne() {
+          if(i < paths.length) {
+            var key = paths[i++];
+            var path = '/' + moduleName + '/' + key;
+            this.getObject(path, function(object) {
+              objects[path] = object;
+                
+              loadOne.call(this);
+            }.bind(this));
           } else {
-            var client = new ForeignClient(userAddress, storageInfo);
-            clients.push(client)
-            callback(null, client);
+            callback(objects);
           }
         }
-      );
+
+        loadOne.call(this);
+      }.bind(this));
+    },
+
+    makePath: function(path) {
+      return this.pathPrefix + BaseClient.prototype.makePath.call(this, path);
+    },
+
+    nodeGivesAccess: function(path, mode) {
+      return mode == 'r';
+    },
+
+    on: function(eventName, handler) {
+      this.events.on(eventName, handler);
     }
-
-
-    // Class: ForeignClient
-    //
-    var ForeignClient = function(userAddress, storageInfo) {
-      // Property: userAddress
-      this.userAddress = userAddress,
-      // Property: storageInfo
-      this.storageInfo = storageInfo;
-
-      this.store = store.getForeign(userAddress);
-
-      util.bindAll(this);
-    }
-
-    ForeignClient.prototype = {
-
-      // Property: interestingNodes
-      // Object, mapping paths to interesting nodes to callbacks to call, when
-      // those nodes get updated.
-      // You don't need to mess with this. Use <addInterest>/<loseInterest> instead.
-      interestingNodes: {},
-      // Property: syncInterval
-      // Interval for syncing. Whether a node that the app is interested it will
-      // actually be synced depends on the likelyhood that this node will have
-      // updates, based on past experience.
-      // Defaults to 5 minutes.
-      syncInterval: defaultSyncInterval,
-      _intervalRef: null,
-
-      // Method: addInterest
-      //
-      // Signal interest in a node. The given callback will be called once the
-      // node is updated.
-      //
-      // Parameters:
-      //   path              - path to the node in question.
-      //   callback          - callback to call when the node changes.
-      //
-      addInterest: function(path, callback) {
-        this.interestingNodes[path] = callback;
-        this.queueSync();
-      },
-
-      // Method: loseInterest
-      //
-      // Remove a node from interesting nodes.
-      loseInterest: function(path) {
-        delete this.interestingNodes[path];
-      },
-      
-      get: function(path, callback) {
-        if(! path)     { throw "path is required"; }
-        var cachedNode = this.store.getNode(path).data;
-        if(callback) {
-          this.updateNodeNow(path, cachedNode, function(err, node) {
-            callback(err, node && node.data);
-          });
-        } else {
-          return cachedNode.data;
-        }
-      },
-
-      updateNodeNow: function(path, cachedNode, callback) {
-        if(! cachedNode) {
-          cachedNode = this.store.getNode(path);
-        }
-        function setFailed() {
-          cachedNode.lastFailed = now;
-          cachedNode.failureCount += 1;
-        }
-        getputdelete.get(this.buildUrl(path), null, function(err, data, mimeType) {
-          if(err) {
-            setFailed();
-          } else {
-            cachedNode.mimeType = mimeType;
-            if(mimeType === 'application/json') {
-              try {
-                cachedNode.data
-              } catch(exc) {
-                logger.error('Foreign remote gave invalid JSON: ' + exc.message
-              }
-            }
-            cachedNode.data = data;
-          }
-          this.calcNextSync(cachedNode);
-          
-        })
-      }
-
-      queueSync: function() {
-        if(! this._intervalRef) {
-          this.setupInterval();
-        }
-      },
-
-      setupInterval: function() {
-        this._intervalRef = setInterval(this.syncIteration, this.syncInterval);
-      },
-
-      syncIteration: function() {
-        var now = (new Date()).getTime();
-        for(var path in this.interestingNodes) {
-          var cachedNode = this.store.getNode(path);
-          if(cachedNode.nextSyncAt > 0 && cachedNode.nextSyncAt < now) {
-            this.updateNodeNow(path, cachedNode, function(err, node) {
-              if(! err) {
-                this.interestingNodes[path](node.data);
-              }
-            });
-          }
-        }
-      }
-
-    };
-
-    return {
-      getClient: getClient
-    };
 
   }
-);
+
+  var methodBlacklist = {
+    makePath: true,
+    getListing: true,
+    getAll: true,
+    storeDocument: true,
+    storeObject: true,
+    remove: true,
+    nodeGivesAccess: true,
+    fetchNow: true,
+    syncNow: true,
+    on: true
+  }
+
+  // inherit some stuff from BaseClient
+
+  for(var key in BaseClient.prototype) {
+    if(! methodBlacklist[key]) {
+      ForeignClient.prototype[key] = BaseClient.prototype[key];
+    }
+  }
+
+  return {
+    getClient: function(userAddress) {
+      var client = knownClients[userAddress];
+      return client || new ForeignClient(userAddress);
+    }
+  };
+
+});

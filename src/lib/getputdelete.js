@@ -18,23 +18,28 @@ define(
     }
 
     function doCall(method, url, value, mimeType, token, cb, deadLine) {
+      logger.info(method, url);
       var platformObj = {
         url: url,
         method: method,
         error: function(err) {
+          if(err == 401) {
+            err = 'unauthorized';
+          } else {
+            logger.error(method + ' ' + url + ': ', err);
+          }
           cb(err);
         },
         success: function(data, headers) {
           //logger.debug('doCall cb '+url, 'headers:', headers);
           cb(null, data, getContentType(headers));
         },
-        timeout: deadLine || 5000
+        timeout: deadLine || 5000,
+        headers: {}
       }
 
       if(token) {
-        platformObj.headers = {
-          'Authorization': 'Bearer ' + token
-        }
+        platformObj.headers['Authorization'] = 'Bearer ' + token;
       }
       if(mimeType) {
         platformObj.headers['Content-Type'] = mimeType;
@@ -52,6 +57,8 @@ define(
       doCall('GET', url, null, null, token, function(err, data, mimetype) {
         if(err == 404) {
           cb(null, undefined);
+        } else if(err) {
+          cb(err);
         } else {
           if(util.isDir(url)) {
             try {
@@ -61,7 +68,7 @@ define(
               return;
             }
           }
-          cb(err, data, mimetype);
+          cb(null, data, mimetype);
         }
       });
     }

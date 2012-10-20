@@ -1,8 +1,10 @@
 
-def eval_js(code)
-  js = "(function() { try { return #{code}; } catch(exc) { return 'CUKE-ERR:' + exc; } })()"
+def eval_js(code, do_eval=true)
+  js = "(function() { try {" +
+    (do_eval ? "return " : "") +
+    "#{code}; } catch(exc) { return 'CUKE-ERR:' + exc; } })()"
 
-  response = page.evaluate_script(js)
+  response = page.__send__(do_eval ? :evaluate_script : :execute_script, js)
 
   if response =~ /^CUKE-ERR\:(.+)$/
     raise "JS error: #{$~[1]}"
@@ -11,8 +13,25 @@ def eval_js(code)
   return response
 end
 
-Given(/^(?:my localStorage is empty|I clear my localStorage)$/) do
+def notify(code, close=true)
+  eval_js("notify(#{code}, #{close});")
+  if close
+    wait_until { eval_js("window.noticeDone") }
+  end
+end
+
+def show_widget_state
+  notify('"widget state now: " + (typeof(remoteStorage) == "object" ? remoteStorage.getWidgetState() : "not present")')
+end
+
+
+Given(/^my localStorage is empty$/) do
   step("I am on the test app")
+  step("I clear my localStorage")
+end
+
+Given(/^I clear my localStorage$/) do
+  #show_widget_state
   page.evaluate_script('localStorage.clear();')
 end
 
@@ -58,8 +77,9 @@ Then(/^I should end up on the test app$/) do
 end
 
 Then(/^the widget state should have changed to "([^"]*)"$/) do |state|
-  eval_js("stateChanges").should include state
-  page.execute_script("clearStateChanges()")
+  wait_until { eval_js("remoteStorage.getWidgetState() == '#{state}'") }
+  # eval_js("stateChanges").should include state
+  # page.execute_script("clearStateChanges()")
 end
 
 When(/^I get the listing of "([^"]*)"$/) do |path|
@@ -68,6 +88,7 @@ end
 
 When(/^I get the key "([^"]+)"$/) do |path|
   @response = eval_js("remoteStorage.root.getObject('#{path}')")
+  #notify("'keys (' + localStorage.length + '): ' + Object.keys(localStorage)")
 end
 
 When(/^I set the key "([^"]+)" of type "([^"]+)" to '([^']+)'$/) do |key, type, value|
@@ -82,6 +103,12 @@ Then(/^I should receive '([^']*)'$/) do |json|
   json.length > 0 ? (@response.to_json.should eq json) : ("#{@response}".should eq json)
 end
 
+Then(/^I should receive! '([^']*)'$/) do |json|
+  notify("'received: #{@response}'", false)
+  debugger
+  step "I should receive '#{json}'"
+end
+
 When(/^I connect to remotestorage$/) do
   step "I have a user address"
   step "I am on the test app"
@@ -92,12 +119,14 @@ When(/^I connect to remotestorage$/) do
   step "I authorize the app"
   step "I should end up on the test app"
   step 'the widget state should have changed to "connected"'
+  #show_widget_state
 end
 
 When(/^I disconnect from remotestorage$/) do
   page.find(:css, '#remotestorage-cube').click
+  wait_until { eval_js("remoteStorage.getWidgetState() == 'anonymous'") }
 end
 
 When(/^I wait a second$/) do
-  sleep(1)
+  sleep(1.25)
 end

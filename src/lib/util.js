@@ -10,7 +10,10 @@ define([], function() {
 
   var loggers = {}, silentLogger = {};
 
-  var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform', 'baseClient', 'widget', 'store'];
+  var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform',
+                      'baseClient', 'widget', 'store', 'foreignClient'];
+
+  var logFn = null;
 
   var util = {
 
@@ -30,6 +33,23 @@ define([], function() {
     // Convenience method to check if given path is a directory.
     isDir: function(path) {
       return path.substr(-1) == '/';
+    },
+    
+    pathParts: function(path) {
+      var parts = ['/'];
+      var md;
+      while(md = path.match(/^(.*?)([^\/]+\/?)$/)) {
+        parts.unshift(md[2]);
+        path = md[1];
+      }
+      return parts;
+    },
+
+    extend: function(a, b) {
+      for(var key in b) {
+        a[key] = b[key];
+      }
+      return a;
     },
 
     // Method: containingDir
@@ -58,13 +78,24 @@ define([], function() {
     bindAll: function(object) {
       for(var key in object) {
         if(typeof(object[key]) === 'function') {
-          object[key] = this.bindContext(object[key], object);
+          object[key] = this.bind(object[key], object);
         }
       }
       return object;
     },
 
-    bindContext: function(callback, context) {
+    curry: function(f) {
+      var _a = Array.prototype.slice.call(arguments, 1);
+      return function() {
+        var a = Array.prototype.slice.call(arguments);
+        for(var i=(_a.length-1);i>=0;i--) {
+          a.unshift(_a[i]);
+        }
+        return f.apply(this, a);
+      }
+    },
+
+    bind: function(callback, context) {
       if(context) {
         return function() { return callback.apply(context, arguments); };
       } else {
@@ -73,7 +104,12 @@ define([], function() {
     },
 
     deprecate: function(methodName, replacement) {
+      console.trace();
       console.log('WARNING: ' + methodName + ' is deprecated, use ' + replacement + ' instead');
+    },
+
+    highestAccess: function(a, b) {
+      return (a == 'rw' || b == 'rw') ? 'rw' : (a == 'r' || b == 'r') ? 'r' : null;
     },
 
     // Method: getEventEmitter
@@ -104,17 +140,34 @@ define([], function() {
 
         emit: function(eventName) {
           var handlerArgs = Array.prototype.slice.call(arguments, 1);
+          // console.log("EMIT", eventName, handlerArgs);
           if(! this._handlers[eventName]) {
             throw "Unknown event: " + eventName;
           }
           this._handlers[eventName].forEach(function(handler) {
-            handler.apply(null, handlerArgs);
+            if(handler) {
+              handler.apply(null, handlerArgs);
+            }
           });
+        },
+
+        once: function(eventName, handler) {
+          var i = this._handlers[eventName].length;
+          if(typeof(handler) !== 'function') {
+            throw "Expected function as handler, got: " + typeof(handler);
+          }
+          this.on(eventName, function() {
+            delete this._handlers[eventName][i];
+            handler.apply(this, arguments);
+          }.bind(this));
         },
 
         on: function(eventName, handler) {
           if(! this._handlers[eventName]) {
             throw "Unknown event: " + eventName;
+          }
+          if(typeof(handler) !== 'function') {
+            throw "Expected function as handler, got: " + typeof(handler);
           }
           this._handlers[eventName].push(handler);
         }
@@ -153,6 +206,9 @@ define([], function() {
           },
 
           log: function(level, args, type) {
+            if(logFn) {
+              return logFn(name, level, args);
+            }
             if(silentLogger[name]) {
               return;
             }
@@ -169,6 +225,20 @@ define([], function() {
       }
 
       return loggers[name];
+    },
+
+    // Method: setLogFunction
+    //
+    // Override the default logger with a custom function.
+    // After the remotestorage will no longer log to the browser console, but
+    // instead pass each logger call to the provided function.
+    //
+    // Log function parameters:
+    //   name  - Name of the logger.
+    //   level - loglevel, one of 'info', 'debug', 'error'
+    //   args  - Array of arguments passed to the logger. can be anything.
+    setLogFunction: function(logFunction) {
+      logFn = logFunction;
     },
 
     // Method: silenceLogger
@@ -204,6 +274,22 @@ define([], function() {
     // opposite of <silenceAllLoggers>
     unsilenceAllLoggers: function() {
       this.unsilenceLogger.apply(this, knownLoggers);
+    },
+
+    // Method: grepLocalStorage
+    // Find a list of keys that match a given pattern.
+    //
+    // Iterates over all localStorage keys and calls given 'iter'
+    // for each key that matches given 'pattern'.
+    //
+    // The iter receives the matching key as it's only argument.
+    grepLocalStorage: function(pattern, iter) {
+      for(var i=0;i<localStorage.length;i++) {
+        var key = localStorage.key(i);
+        if(pattern.test(key)) {
+          iter(key);
+        }
+      }
     }
   }
 

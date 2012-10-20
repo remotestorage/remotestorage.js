@@ -143,14 +143,11 @@ define(['./util'], function(util) {
         xhr.setRequestHeader(header, params.headers[header]);
       }
     }
-    logger.debug('A '+params.url);
     xhr.onreadystatechange = function() {
       if((xhr.readyState==4)) {
-        logger.debug('B '+params.url);
         if(timer) {
           window.clearTimeout(timer);
         }
-        logger.debug('xhr cb '+params.url);
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
           var headers = browserParseHeaders(xhr.getAllResponseHeaders());
           if(! headers) {
@@ -167,7 +164,6 @@ define(['./util'], function(util) {
         }
       }
     }
-    logger.debug('xhr '+params.url);
     if(typeof(params.data) === 'string') {
       xhr.send(params.data);
     } else {

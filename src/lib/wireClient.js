@@ -6,17 +6,23 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
   var events = util.getEventEmitter('connected', 'error');
 
-  function set(key, value) {
+  var state = 'anonymous';
+
+  function setSetting(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
 
-    if(getState() == 'connected') {
+    calcState();
+
+    if(state == 'connected') {
       events.emit('connected');
     }
   }
-  function remove(key) {
+
+  function removeSetting(key) {
     localStorage.removeItem(prefix+key);
   }
-  function get(key) {
+
+  function getSetting(key) {
     var valStr = localStorage.getItem(prefix+key);
     if(typeof(valStr) == 'string') {
       try {
@@ -27,48 +33,43 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     }
     return null;
   }
+
   function disconnectRemote() {
-    remove('storageType');
-    remove('storageHref');
-    remove('bearerToken');
+    util.grepLocalStorage(new RegExp('^' + prefix), function(key) {
+      localStorage.removeItem(key);
+    });
   }
+
   function getState() {
-    if(get('storageType') && get('storageHref')) {
-      if(get('bearerToken')) {
-        return 'connected';
+    return state;
+  }
+
+  function calcState() {
+    if(getSetting('storageType') && getSetting('storageHref')) {
+      if(getSetting('bearerToken')) {
+        state = 'connected';
       } else {
-        return 'authing';
+        state = 'authing';
       }
     } else {
-      return 'anonymous';
+      state = 'anonymous';
     }
+    return state;
   }
+
   function on(eventType, cb) {
     events.on(eventType, cb);
   }
 
-  function resolveKey(storageType, storageHref, basePath, relPath) {
-    var item = ((basePath.length?(basePath + '/'):'') + relPath);
-    return storageHref + item;
+  function resolveKey(path) {
+    var storageHref = getSetting('storageHref');
+    return storageHref + path;
   }
-  function setChain(driver, hashMap, mimeType, token, cb, timestamp) {
-    var i;
-    for(i in hashMap) {
-      break;
-    }
-    if(i) {
-      var thisOne = hashMap[i];
-      delete hashMap[i];
-      driver.set(i, thisOne, mimeType, token, function(err, timestamp) {
-        if(err) {
-          cb(err);
-        } else {
-          setChain(driver, hashMap, mimeType, token, cb, timestamp);
-        }
-      });
-    } else {
-      cb(null, timestamp);
-    }
+
+  var foreignKeyRE = /^([^\/][^:]+):(\/.*)$/;
+
+  function isForeign(path) {
+    return foreignKeyRE.test(path);
   }
 
   // Namespace: wireClient
@@ -78,45 +79,98 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   // Event: connected
   //
   // Fired once everything is configured.
+
+  // Method: get
+  //
+  // Get data from given path from remotestorage
+  //
+  // Parameters:
+  //   path     - absolute path (starting from storage root)
+  //   callback - see <getputdelete.get> for details on the callback parameters
+  function get(path, cb) {
+    if(isForeign(path)) {
+      return getForeign(path, cb);
+    } else if(state != 'connected') {
+      cb(new Error('not-connected'));
+    }
+    var token = getSetting('bearerToken');
+    if(typeof(path) != 'string') {
+      cb(new Error('argument "path" should be a string'));
+    } else {
+      getputdelete.get(resolveKey(path), token, cb);
+    }
+  }
+
+  function getForeign(fullPath, cb) {
+    var md = fullPath.match(foreignKeyRE);
+    var userAddress = md[1];
+    var path = md[2];
+    var base = getStorageHrefForUser(userAddress);
+    getputdelete.get(base + path, null, cb);
+  }
+
+  // Method: set
+  //
+  // Write data to given path in remotestorage
+  //
+  // Parameters:
+  //   path     - absolute path (starting from storage root)
+  //   valueStr - raw data to write
+  //   mimeType - MIME type to set as Content-Type header
+  //   callback - see <getputdelete.set> for details on the callback parameters.
+  function set(path, valueStr, mimeType, cb) {
+    if(isForeign(path)) {
+      return cb(new Error("Foreign storage is read-only"));
+    } else if(state != 'connected') {
+      cb(new Error('not-connected'));
+    }
+    var token = getSetting('bearerToken');
+    if(typeof(path) != 'string') {
+      cb(new Error('argument "path" should be a string'));
+    } else {
+      if(valueStr && typeof(valueStr) != 'string') {
+        valueStr = JSON.stringify(valueStr);
+      }
+      getputdelete.set(resolveKey(path), valueStr, mimeType, token, cb);
+    }
+  }
+
+  // Method: remove
+  //
+  // Remove data at given path from remotestorage
+  //
+  // Parameters:
+  //   path     - absolute path (starting from storage root)
+  //   callback - see <getputdelete.set> for details on the callback parameters.
+  function remove(path, cb) {
+    if(isForeign(path)) {
+      return cb(new Error("Foreign storage is read-only"));
+    }
+    var token = getSetting('bearerToken');
+    getputdelete.set(resolveKey(path), undefined, undefined, token, cb);
+  }
+
+  function getStorageHrefForUser(userAddress) {
+    var info = getSetting('storageInfo:' + userAddress);
+    if(! info) {
+      throw new Error("userAddress unknown to wireClient: " + userAddress);
+    }
+    return info.href;
+  }
+
+  function addStorageInfo(userAddress, storageInfo) {
+    setSetting('storageInfo:' + userAddress, storageInfo);
+  }
+
+  function hasStorageInfo(userAddress) {
+    return !! getSetting('storageInfo:' + userAddress);
+  }
+
   return {
 
-    // Method: get
-    //
-    // Get data from given path from remotestorage
-    //
-    // Parameters:
-    //   path     - absolute path (starting from storage root)
-    //   callback - see <getputdelete.get> for details on the callback parameters
-    get: function (path, cb) {
-      var storageType = get('storageType'),
-        storageHref = get('storageHref'),
-        token = get('bearerToken');
-      if(typeof(path) != 'string') {
-        cb('argument "path" should be a string');
-      } else {
-        getputdelete.get(resolveKey(storageType, storageHref, '', path), token, cb);
-      }
-    },
-
-    // Method: set
-    //
-    // Write data to given path in remotestorage
-    //
-    // Parameters:
-    //   path     - absolute path (starting from storage root)
-    //   valueStr - raw data to write
-    //   mimeType - MIME type to set as Content-Type header
-    //   callback - see <getputdelete.set> for details on the callback parameters.
-    set: function (path, valueStr, mimeType, cb) {
-      var storageType = get('storageType'),
-        storageHref = get('storageHref'),
-        token = get('bearerToken');
-      if(typeof(path) != 'string') {
-        cb('argument "path" should be a string');
-      } else {
-        getputdelete.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
-      }
-    },
+    get: get,
+    set: set,
+    remove: remove,
 
     // Method: setStorageInfo
     //
@@ -129,12 +183,17 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     // Fires:
     //   configured - if wireClient is now fully configured
     //
-    setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
+    setStorageInfo   : function(type, href) {
+      setSetting('storageType', type);
+      setSetting('storageHref', href);
+    },
 
     // Method: getStorageHref
     //
     // Get base URL of the user's remotestorage.
-    getStorageHref   : function() { return get('storageHref') },
+    getStorageHref   : function() {
+      return getSetting('storageHref')
+    },
     
     // Method: SetBearerToken
     //
@@ -146,7 +205,27 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     // Fires:
     //   configured - if wireClient is now fully configured.
     //
-    setBearerToken   : function(bearerToken) { set('bearerToken', bearerToken); },
+    setBearerToken   : function(bearerToken) {
+      setSetting('bearerToken', bearerToken);
+    },
+
+    // Method: addStorageInfo
+    //
+    // Add another user's storage info.
+    // After calling this, keys in the form userAddress:path can be resolved.
+    //
+    // Parameters:
+    //   userAddress - a user address in the form user@host
+    //   storageInfo - an object, with at least an 'href' attribute
+    addStorageInfo: addStorageInfo,
+
+    // Method: hasStorageInfo
+    //
+    // Find out if the wireClient has cached storageInfo for the given userAddress.
+    //
+    // Parameters:
+    //   userAddress - a user address to look up
+    hasStorageInfo: hasStorageInfo,
 
     // Method: disconnectRemote
     //
@@ -168,6 +247,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     //   anonymous - no information set
     //   authing   - storage's type & href set, but no token received yet
     //   connected - all information present.
-    getState         : getState
+    getState         : getState,
+    calcState: calcState
   };
 });
