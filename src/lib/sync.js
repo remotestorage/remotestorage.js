@@ -140,7 +140,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     function rootCb() {
       synced++;
       if(synced == roots.length) {
-        callback.apply(this, arguments);
+        if(callback) {
+          callback.apply(this, arguments);
+        }
       }
     }
 
