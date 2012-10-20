@@ -27,7 +27,8 @@ Footer: remoteStorage.js is developed by some people. It's open source (MIT lice
 # These are indexes you deleted, so Natural Docs will not add them again
 # unless you remove them from this line.
 
-Don't Index: Functions, Files, Classes, Types, Events, Build Targets, Properties
+Don't Index: Functions, Files, Types, Classes, Build Targets, Events, Properties
+
 
 # --------------------------------------------------------------------------
 # 
@@ -46,6 +47,11 @@ Don't Index: Functions, Files, Classes, Types, Events, Build Targets, Properties
 # time it is run.  When working with groups, just deal with the braces and
 # forget about the indentation and comments.
 # 
+# You can use this file on other computers even if they use different
+# directories.  As long as the command line points to the same source files,
+# Natural Docs will be able to correct the locations automatically.
+# 
+# --------------------------------------------------------------------------
 
 
 Group: Intro  {
@@ -81,7 +87,7 @@ Group: API  {
       File: nodeConnect  (/home/nil/src/remoteStorage.js/src/lib/nodeConnect.js)
       File: hardcoded  (/home/nil/src/remoteStorage.js/src/lib/hardcoded.js)
       File: widget  (/home/nil/src/remoteStorage.js/src/lib/widget.js)
-      File: foreignClient  (/home/nil/src/remoteStorage.js/src/lib/foreignClient.js)
+      File: ForeignClient  (/home/nil/src/remoteStorage.js/src/lib/foreignClient.js)
       }  # Group: Internals
 
    Group: Docs Index  {
