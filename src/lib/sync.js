@@ -144,6 +144,11 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       }
     }
 
+    if(roots.length == 0) {
+      logger.info('full sync not happening. no access claimed.');
+      return;
+    }
+
     roots.forEach(function(root) {
       enqueueTask(function() {
         traverseTree(root, processNode, {
@@ -269,7 +274,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
 
   events.on('ready', function() {
-    logger.info("READY", currentFinalizer, taskQueue);
+    logger.info("READY", 'queued tasks: ', taskQueue.length);
     if(currentFinalizer) {
       currentFinalizer();
       currentFinalizer = null;
@@ -550,7 +555,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         var baseName = util.baseName(path);
         var parent = store.getNode(parentPath);
         var parentData = store.getNodeData(parentPath);
-        console.log("PARENT DATA", parentData);
         isDeleted = (! parentData[baseName]) && parent.diff[baseName];
       } else {
         // root node can't be deleted.
@@ -564,7 +568,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   function fetchNode(path, callback) {
     logger.info("fetch remote", path);
     wireClient.get(path, function(err, data, mimeType) {
-      console.log("GET result", err, data, mimeType);
       if(err) {
         fireError(path, err);
       } else {
@@ -850,10 +853,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     return function(solution) {
       if(solution == 'local') {
         // outgoing update!
-        updateRemote(path, local);
+        updateRemote(path, local, remote);
       } else if(solution == 'remote') {
         // incoming update!
-        updateLocal(path, remote);
+        updateLocal(path, local, remote);
       } else {
         throw "Invalid conflict resolution: " + solution;
       }

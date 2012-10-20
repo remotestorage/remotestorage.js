@@ -438,6 +438,10 @@ define([
           }
         );
       }
+    },
+
+    getClient: function(scope) {
+      return new BaseClient(scope);
     }
 
   };
