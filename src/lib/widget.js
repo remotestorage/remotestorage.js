@@ -458,23 +458,23 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     setWidgetStateOnLoad();
 
     if(options.syncShortcut !== false) {
-      window.onkeydown = function(evt) {
+      window.addEventListener('keydown', function(evt) {
         if(evt.ctrlKey && evt.which == 83) {
           evt.preventDefault();
           sync.fullSync();
           return false;
         }
-      }
+      });
     }
 
-    window.onbeforeunload = function(event) {
+    window.addEventListener('beforeunload', function(event) {
       if(widgetState != 'anonymous' && sync.needsSync()) {
         sync.fullPush();
         var message = "Synchronizing your data now. Please wait until the cube stops spinning."
         event.returnValue = message
         return message;
       }
-    }
+    });
     
   }
 
