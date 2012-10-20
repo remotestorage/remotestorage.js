@@ -19,11 +19,10 @@
 
 ### Adding remoteStorage.js v0.7 to your app:
 
-#### add "remoteStorage.js" (you can copy it from this repo)
+#### add "remoteStorage-modules.js" (you can download it from http://remotestoragejs.com/build/0.7.0-head/remoteStorage-modules.js)
 #### in index.html, include this script and any modules you plan to load:
 
-    <script src="remoteStorage.js"></script>
-    <script src="tasks-0.1.js"></script>
+    <script src="remoteStorage-modules.js"></script>
 
 #### in the place where you want the remoteStorage element to go, add a div:
 
