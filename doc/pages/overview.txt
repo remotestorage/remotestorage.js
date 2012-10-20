@@ -1,4 +1,3 @@
-
 File: Overview
 
 Welcome to the developer documentation for remoteStorage.js, a client side implementation of the <remotestorage at http://remotestorage.io/> specification.
@@ -19,8 +18,8 @@ Where to start reading?:
 
 Where to get help?:
 
-* Subscribe our <mailinglist at https://lists.riseup.net/www/info/remotestorage> about remotestorage
 * Join our IRC channel #remotestorage on <freenode at https://webchat.freenode.net/?channels=remotestorage>
+* We use Github Issues for discussion, join us in the <remotestorage.io repository https://github.com/remotestorage/remotestorage.io/issues>
 
 If you're interested in unhosted web apps in general, you can also join the <unhosted mailinglist at https://groups.google.com/forum/#forum/unhosted>.
 
