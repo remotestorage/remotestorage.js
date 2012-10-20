@@ -284,11 +284,12 @@ define([
     flushLocal       : store.forgetAll,
 
     //
-    // Method: syncNow(path, callback)
+    // Method: fullSync
     //
     // Synchronize local <-> remote storage.
     //
-    // Syncing starts at given path and bubbles down.
+    // Syncing starts at the access roots (the once you claimed using claimAccess)
+    // and moves down the directory tree.
     // The actual changes to either local or remote storage happen in the
     // future, so you should attach change handlers on the modules you're
     // interested in.
@@ -302,17 +303,19 @@ define([
     //   >   // handle change event (update UI etc)
     //   > });
     //   >
-    //   > remoteStorage.syncNow('/money/', function(errors) {
+    //   > remoteStorage.fullSync('/money/', function(errors) {
     //   >   // handle errors, if any.
     //   > });
     //
-    // Modules may bring their own syncNow method, which should take preference
-    // over the one here.
-    //
     // Yields:
-    //   Array of error messages - when errors occured. When syncNow is called and the user is not connected, this is also considered an error.
+    //   Array of error messages - when errors occured. When fullSync is called and the user is not connected, this is also considered an error.
     //   null - no error occured, synchronization finished gracefully.
     //
+    fullSync: sync.fullSync,
+
+    // Method: syncNow
+    //
+    // DEPRECATED!!! use fullSync instead.
     syncNow          : function(path, depth, callback) {
       if(! depth) {
         callback = depth;
