@@ -2457,7 +2457,16 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   //   >   console.log("received object is: ", object);
   //   > });
   //
-  
+
+  function needsSync(path) {
+    var listing = store.getNodeData('/');
+    for(var key in listing) {
+      if(util.isDir(key) && Object.keys(store.getNode('/' + key).diff).length > 0) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   /**************************************/
 
@@ -3329,15 +3338,17 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     fullSync: limitedFullSync,
 
     forceSync: fullSync,
-    // Method: partialSync
-    // <partialSync>, limited to act at max once every 30 seconds per (path, depth) pair.
-    partialSync: limitedPartialSync,
     // Method: fullPush
     // <fullPush>
     fullPush: fullPush,
+    // Method: partialSync
+    // <partialSync>, limited to act at max once every 30 seconds per (path, depth) pair.
+    partialSync: limitedPartialSync,
     // Method: syncOne
     // <syncOne>
     syncOne: syncOne,
+
+    needsSync: needsSync,
 
     // Method: getState
     // <getState>
@@ -3916,9 +3927,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
 
     window.onbeforeunload = function(event) {
-      if(widgetState == 'anonymous') {
-        return null;
-      } else {
+      if(widgetState != 'anonymous' && sync.needsSync()) {
         sync.fullPush();
         var message = "Synchronizing your data now. Please wait until the cube stops spinning."
         event.returnValue = message
