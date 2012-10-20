@@ -866,6 +866,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         // outgoing update!
         if(newData) {
           local.data = newData;
+          // a hack to also update local data, when the resolution specifies new data
+          updateLocal(path, local, local);
         }
         updateRemote(path, local, remote);
       } else if(solution == 'remote') {
