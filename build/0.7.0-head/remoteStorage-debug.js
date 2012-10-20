@@ -2082,7 +2082,7 @@ define('lib/store',['./util'], function (util) {
     }
   }
 
-  function removeNode(path) {
+  function removeNode(path, timestamp) {
     setNodeData(path, undefined, false);
   }
 
@@ -2780,7 +2780,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   function deleteLocal(path, local, remote) {
     logger.info('DELETE', path, 'REMOTE -> LOCAL');
     var oldValue = store.getNodeData(path);
-    store.removeNode(path);
+    store.removeNode(path, remote.timestamp);
   }
 
   // Function: deleteRemote
