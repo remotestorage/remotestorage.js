@@ -1,5 +1,5 @@
 
-File: Adding remotestorage to your app
+File: Adding remoteStorage to your app
 
 Section: Built version
 
@@ -43,7 +43,7 @@ Section: Using an AMD loader
 
 (like <requirejs at http://requirejs.org/>)
 
-RemotestorageJS uses AMD to manage internal dependencies. So if your app uses AMD as well, you can just include remoteStorage.js and use your regular build process.
+remoteStorage.js uses AMD to manage internal dependencies. So if your app uses AMD as well, you can just include remoteStorage.js and use your regular build process.
 
 Just clone the repository somewhere and copy the src/ folder to your app:
 > cp -r remoteStorage.js/src/ MYAPP/lib/remotestorage/
@@ -57,7 +57,7 @@ Then add the path where you put remotestorage to your require configuration as n
 >   }
 > })
 
-In your application or module code, you can then load remotestoragejs:
+In your application or module code, you can then load remoteStorage.js:
 > define(['remotestorage/remoteStorage'], function(remoteStorage) {
 >   // ...
 > });
