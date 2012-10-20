@@ -385,7 +385,7 @@ define('lib/assets',[], function () {
       +'   @-o-keyframes remotestorage-loading { from{-o-transform:rotate(0deg)} to{-o-transform:rotate(360deg)} }\n' 
       +'   @-ms-keyframes remotestorage-loading { from{-ms-transform:rotate(0deg)} to{ -ms-transform:rotate(360deg)} }\n' 
       //hide all elements by default:
-      +'#remotestorage-connect-button, #remotestorage-questionmark, #remotestorage-register-button, #remotestorage-cube, #remotestorage-useraddress, #remotestorage-infotext, #remotestorage-devsonly, #remotestorage-disconnect { display:none }\n' 
+      +'#remotestorage-connect-button, #remotestorage-questionmark, #remotestorage-register-button, #remotestorage-cube, #remotestorage-useraddress, #remotestorage-infotext, #remotestorage-devsonly, #remotestorage-bubble { display:none }\n' 
       //in anonymous, interrupted, authing and failed state, display register-button, connect-button, cube, questionmark:
       +'#remotestorage-state.anonymous #remotestorage-cube, #remotestorage-state.anonymous #remotestorage-connect-button, #remotestorage-state.anonymous #remotestorage-register-button, #remotestorage-state.anonymous #remotestorage-questionmark { display: block }\n'
       +'#remotestorage-state.connecting #remotestorage-cube, #remotestorage-state.connecting #remotestorage-connect-button, #remotestorage-state.connecting #remotestorage-useraddress, #remotestorage-state.connecting #remotestorage-questionmark { display: block }\n'
@@ -398,12 +398,13 @@ define('lib/assets',[], function () {
       +'#remotestorage-state.connected #remotestorage-cube, #remotestorage-state.busy #remotestorage-cube, #remotestorage-state.offline #remotestorage-cube { right:0; opacity:.5; cursor:pointer; display: block }\n'
       //display the devsonly text when in devsonly state:
       +'#remotestorage-state.devsonly #remotestorage-devsonly { display: block }\n'
-      //style for disconnect hover only while hovering of widget:
-      +'#remotestorage-disconnect { position:absolute; right:6px; top:9px; padding:5px 28px 2px 6px; height:17px; white-space:nowrap; font-size:10px; background:#000; color:#fff; border-radius:5px; opacity:.5; text-decoration:none; z-index:99996; }\n' 
-      +'#remotestorage-disconnect strong { font-weight:bold; }\n' 
+      //style for bubble only while hovering of widget:
+      +'#remotestorage-bubble { position:absolute; right:6px; top:9px; padding:5px 28px 2px 6px; height:17px; white-space:nowrap; font-size:10px; background:#000; color:#fff; border-radius:5px; opacity:.5; text-decoration:none; z-index:99996; }\n' 
+      +'#remotestorage-state.connected #remotestorage-bubble, #remotestorage-state.busy #remotestorage-bubble, #remotestorage-state.offline #remotestorage-bubble { cursor:pointer; }\n'
+      +'#remotestorage-bubble strong { font-weight:bold; }\n' 
       +'#remotestorage-state.connected #remotestorage-cube:hover, #remotestorage-state.busy #remotestorage-cube:hover, #remotestorage-state.offline #remotestorage-cube:hover { opacity:1; }\n' 
-      +'#remotestorage-state.connected #remotestorage-disconnect:hover, #remotestorage-state.busy #remotestorage-disconnect:hover, #remotestorage-state.offline #remotestorage-disconnect:hover { display:inline; }\n' 
-      +'#remotestorage-state.connected #remotestorage-cube:hover+#remotestorage-disconnect, #remotestorage-state.busy #remotestorage-cube:hover+#remotestorage-disconnect, #remotestorage-state.offline #remotestorage-cube:hover+#remotestorage-disconnect { display:inline; }\n'
+      +'#remotestorage-state.connected #remotestorage-bubble:hover, #remotestorage-state.busy #remotestorage-bubble:hover, #remotestorage-state.offline #remotestorage-bubble:hover { display:inline; }\n'
+      +'#remotestorage-state.connected #remotestorage-cube:hover+#remotestorage-bubble, #remotestorage-state.busy #remotestorage-cube:hover+#remotestorage-bubble, #remotestorage-state.offline #remotestorage-cube:hover+#remotestorage-bubble { display:inline; }\n'
   };
 });
 
@@ -419,7 +420,10 @@ define('lib/util',[], function() {
 
   var loggers = {}, silentLogger = {};
 
-  var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform', 'baseClient', 'widget', 'store'];
+  var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform',
+                      'baseClient', 'widget', 'store', 'foreignClient'];
+
+  var logFn = null;
 
   var util = {
 
@@ -439,6 +443,23 @@ define('lib/util',[], function() {
     // Convenience method to check if given path is a directory.
     isDir: function(path) {
       return path.substr(-1) == '/';
+    },
+    
+    pathParts: function(path) {
+      var parts = ['/'];
+      var md;
+      while(md = path.match(/^(.*?)([^\/]+\/?)$/)) {
+        parts.unshift(md[2]);
+        path = md[1];
+      }
+      return parts;
+    },
+
+    extend: function(a, b) {
+      for(var key in b) {
+        a[key] = b[key];
+      }
+      return a;
     },
 
     // Method: containingDir
@@ -467,13 +488,24 @@ define('lib/util',[], function() {
     bindAll: function(object) {
       for(var key in object) {
         if(typeof(object[key]) === 'function') {
-          object[key] = this.bindContext(object[key], object);
+          object[key] = this.bind(object[key], object);
         }
       }
       return object;
     },
 
-    bindContext: function(callback, context) {
+    curry: function(f) {
+      var _a = Array.prototype.slice.call(arguments, 1);
+      return function() {
+        var a = Array.prototype.slice.call(arguments);
+        for(var i=(_a.length-1);i>=0;i--) {
+          a.unshift(_a[i]);
+        }
+        return f.apply(this, a);
+      }
+    },
+
+    bind: function(callback, context) {
       if(context) {
         return function() { return callback.apply(context, arguments); };
       } else {
@@ -482,7 +514,12 @@ define('lib/util',[], function() {
     },
 
     deprecate: function(methodName, replacement) {
+      console.trace();
       console.log('WARNING: ' + methodName + ' is deprecated, use ' + replacement + ' instead');
+    },
+
+    highestAccess: function(a, b) {
+      return (a == 'rw' || b == 'rw') ? 'rw' : (a == 'r' || b == 'r') ? 'r' : null;
     },
 
     // Method: getEventEmitter
@@ -513,17 +550,34 @@ define('lib/util',[], function() {
 
         emit: function(eventName) {
           var handlerArgs = Array.prototype.slice.call(arguments, 1);
+          // console.log("EMIT", eventName, handlerArgs);
           if(! this._handlers[eventName]) {
             throw "Unknown event: " + eventName;
           }
           this._handlers[eventName].forEach(function(handler) {
-            handler.apply(null, handlerArgs);
+            if(handler) {
+              handler.apply(null, handlerArgs);
+            }
           });
+        },
+
+        once: function(eventName, handler) {
+          var i = this._handlers[eventName].length;
+          if(typeof(handler) !== 'function') {
+            throw "Expected function as handler, got: " + typeof(handler);
+          }
+          this.on(eventName, function() {
+            delete this._handlers[eventName][i];
+            handler.apply(this, arguments);
+          }.bind(this));
         },
 
         on: function(eventName, handler) {
           if(! this._handlers[eventName]) {
             throw "Unknown event: " + eventName;
+          }
+          if(typeof(handler) !== 'function') {
+            throw "Expected function as handler, got: " + typeof(handler);
           }
           this._handlers[eventName].push(handler);
         }
@@ -562,6 +616,9 @@ define('lib/util',[], function() {
           },
 
           log: function(level, args, type) {
+            if(logFn) {
+              return logFn(name, level, args);
+            }
             if(silentLogger[name]) {
               return;
             }
@@ -578,6 +635,20 @@ define('lib/util',[], function() {
       }
 
       return loggers[name];
+    },
+
+    // Method: setLogFunction
+    //
+    // Override the default logger with a custom function.
+    // After the remotestorage will no longer log to the browser console, but
+    // instead pass each logger call to the provided function.
+    //
+    // Log function parameters:
+    //   name  - Name of the logger.
+    //   level - loglevel, one of 'info', 'debug', 'error'
+    //   args  - Array of arguments passed to the logger. can be anything.
+    setLogFunction: function(logFunction) {
+      logFn = logFunction;
     },
 
     // Method: silenceLogger
@@ -613,6 +684,22 @@ define('lib/util',[], function() {
     // opposite of <silenceAllLoggers>
     unsilenceAllLoggers: function() {
       this.unsilenceLogger.apply(this, knownLoggers);
+    },
+
+    // Method: grepLocalStorage
+    // Find a list of keys that match a given pattern.
+    //
+    // Iterates over all localStorage keys and calls given 'iter'
+    // for each key that matches given 'pattern'.
+    //
+    // The iter receives the matching key as it's only argument.
+    grepLocalStorage: function(pattern, iter) {
+      for(var i=0;i<localStorage.length;i++) {
+        var key = localStorage.key(i);
+        if(pattern.test(key)) {
+          iter(key);
+        }
+      }
     }
   }
 
@@ -798,14 +885,11 @@ define('lib/platform',['./util'], function(util) {
         xhr.setRequestHeader(header, params.headers[header]);
       }
     }
-    logger.debug('A '+params.url);
     xhr.onreadystatechange = function() {
       if((xhr.readyState==4)) {
-        logger.debug('B '+params.url);
         if(timer) {
           window.clearTimeout(timer);
         }
-        logger.debug('xhr cb '+params.url);
         if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
           var headers = browserParseHeaders(xhr.getAllResponseHeaders());
           if(! headers) {
@@ -822,7 +906,6 @@ define('lib/platform',['./util'], function(util) {
         }
       }
     }
-    logger.debug('xhr '+params.url);
     if(typeof(params.data) === 'string') {
       xhr.send(params.data);
     } else {
@@ -1424,23 +1507,28 @@ define('lib/getputdelete',
     }
 
     function doCall(method, url, value, mimeType, token, cb, deadLine) {
+      logger.info(method, url);
       var platformObj = {
         url: url,
         method: method,
         error: function(err) {
+          if(err == 401) {
+            err = 'unauthorized';
+          } else {
+            logger.error(method + ' ' + url + ': ', err);
+          }
           cb(err);
         },
         success: function(data, headers) {
           //logger.debug('doCall cb '+url, 'headers:', headers);
           cb(null, data, getContentType(headers));
         },
-        timeout: deadLine || 5000
+        timeout: deadLine || 5000,
+        headers: {}
       }
 
       if(token) {
-        platformObj.headers = {
-          'Authorization': 'Bearer ' + token
-        }
+        platformObj.headers['Authorization'] = 'Bearer ' + token;
       }
       if(mimeType) {
         platformObj.headers['Content-Type'] = mimeType;
@@ -1458,6 +1546,8 @@ define('lib/getputdelete',
       doCall('GET', url, null, null, token, function(err, data, mimetype) {
         if(err == 404) {
           cb(null, undefined);
+        } else if(err) {
+          cb(err);
         } else {
           if(util.isDir(url)) {
             try {
@@ -1467,7 +1557,7 @@ define('lib/getputdelete',
               return;
             }
           }
-          cb(err, data, mimetype);
+          cb(null, data, mimetype);
         }
       });
     }
@@ -1539,17 +1629,23 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
 
   var events = util.getEventEmitter('connected', 'error');
 
-  function set(key, value) {
+  var state = 'anonymous';
+
+  function setSetting(key, value) {
     localStorage.setItem(prefix+key, JSON.stringify(value));
 
-    if(getState() == 'connected') {
+    calcState();
+
+    if(state == 'connected') {
       events.emit('connected');
     }
   }
-  function remove(key) {
+
+  function removeSetting(key) {
     localStorage.removeItem(prefix+key);
   }
-  function get(key) {
+
+  function getSetting(key) {
     var valStr = localStorage.getItem(prefix+key);
     if(typeof(valStr) == 'string') {
       try {
@@ -1560,48 +1656,43 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
     }
     return null;
   }
+
   function disconnectRemote() {
-    remove('storageType');
-    remove('storageHref');
-    remove('bearerToken');
+    util.grepLocalStorage(new RegExp('^' + prefix), function(key) {
+      localStorage.removeItem(key);
+    });
   }
+
   function getState() {
-    if(get('storageType') && get('storageHref')) {
-      if(get('bearerToken')) {
-        return 'connected';
+    return state;
+  }
+
+  function calcState() {
+    if(getSetting('storageType') && getSetting('storageHref')) {
+      if(getSetting('bearerToken')) {
+        state = 'connected';
       } else {
-        return 'authing';
+        state = 'authing';
       }
     } else {
-      return 'anonymous';
+      state = 'anonymous';
     }
+    return state;
   }
+
   function on(eventType, cb) {
     events.on(eventType, cb);
   }
 
-  function resolveKey(storageType, storageHref, basePath, relPath) {
-    var item = ((basePath.length?(basePath + '/'):'') + relPath);
-    return storageHref + item;
+  function resolveKey(path) {
+    var storageHref = getSetting('storageHref');
+    return storageHref + path;
   }
-  function setChain(driver, hashMap, mimeType, token, cb, timestamp) {
-    var i;
-    for(i in hashMap) {
-      break;
-    }
-    if(i) {
-      var thisOne = hashMap[i];
-      delete hashMap[i];
-      driver.set(i, thisOne, mimeType, token, function(err, timestamp) {
-        if(err) {
-          cb(err);
-        } else {
-          setChain(driver, hashMap, mimeType, token, cb, timestamp);
-        }
-      });
-    } else {
-      cb(null, timestamp);
-    }
+
+  var foreignKeyRE = /^([^\/][^:]+):(\/.*)$/;
+
+  function isForeign(path) {
+    return foreignKeyRE.test(path);
   }
 
   // Namespace: wireClient
@@ -1611,45 +1702,98 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
   // Event: connected
   //
   // Fired once everything is configured.
+
+  // Method: get
+  //
+  // Get data from given path from remotestorage
+  //
+  // Parameters:
+  //   path     - absolute path (starting from storage root)
+  //   callback - see <getputdelete.get> for details on the callback parameters
+  function get(path, cb) {
+    if(isForeign(path)) {
+      return getForeign(path, cb);
+    } else if(state != 'connected') {
+      cb(new Error('not-connected'));
+    }
+    var token = getSetting('bearerToken');
+    if(typeof(path) != 'string') {
+      cb(new Error('argument "path" should be a string'));
+    } else {
+      getputdelete.get(resolveKey(path), token, cb);
+    }
+  }
+
+  function getForeign(fullPath, cb) {
+    var md = fullPath.match(foreignKeyRE);
+    var userAddress = md[1];
+    var path = md[2];
+    var base = getStorageHrefForUser(userAddress);
+    getputdelete.get(base + path, null, cb);
+  }
+
+  // Method: set
+  //
+  // Write data to given path in remotestorage
+  //
+  // Parameters:
+  //   path     - absolute path (starting from storage root)
+  //   valueStr - raw data to write
+  //   mimeType - MIME type to set as Content-Type header
+  //   callback - see <getputdelete.set> for details on the callback parameters.
+  function set(path, valueStr, mimeType, cb) {
+    if(isForeign(path)) {
+      return cb(new Error("Foreign storage is read-only"));
+    } else if(state != 'connected') {
+      cb(new Error('not-connected'));
+    }
+    var token = getSetting('bearerToken');
+    if(typeof(path) != 'string') {
+      cb(new Error('argument "path" should be a string'));
+    } else {
+      if(valueStr && typeof(valueStr) != 'string') {
+        valueStr = JSON.stringify(valueStr);
+      }
+      getputdelete.set(resolveKey(path), valueStr, mimeType, token, cb);
+    }
+  }
+
+  // Method: remove
+  //
+  // Remove data at given path from remotestorage
+  //
+  // Parameters:
+  //   path     - absolute path (starting from storage root)
+  //   callback - see <getputdelete.set> for details on the callback parameters.
+  function remove(path, cb) {
+    if(isForeign(path)) {
+      return cb(new Error("Foreign storage is read-only"));
+    }
+    var token = getSetting('bearerToken');
+    getputdelete.set(resolveKey(path), undefined, undefined, token, cb);
+  }
+
+  function getStorageHrefForUser(userAddress) {
+    var info = getSetting('storageInfo:' + userAddress);
+    if(! info) {
+      throw new Error("userAddress unknown to wireClient: " + userAddress);
+    }
+    return info.href;
+  }
+
+  function addStorageInfo(userAddress, storageInfo) {
+    setSetting('storageInfo:' + userAddress, storageInfo);
+  }
+
+  function hasStorageInfo(userAddress) {
+    return !! getSetting('storageInfo:' + userAddress);
+  }
+
   return {
 
-    // Method: get
-    //
-    // Get data from given path from remotestorage
-    //
-    // Parameters:
-    //   path     - absolute path (starting from storage root)
-    //   callback - see <getputdelete.get> for details on the callback parameters
-    get: function (path, cb) {
-      var storageType = get('storageType'),
-        storageHref = get('storageHref'),
-        token = get('bearerToken');
-      if(typeof(path) != 'string') {
-        cb('argument "path" should be a string');
-      } else {
-        getputdelete.get(resolveKey(storageType, storageHref, '', path), token, cb);
-      }
-    },
-
-    // Method: set
-    //
-    // Write data to given path in remotestorage
-    //
-    // Parameters:
-    //   path     - absolute path (starting from storage root)
-    //   valueStr - raw data to write
-    //   mimeType - MIME type to set as Content-Type header
-    //   callback - see <getputdelete.set> for details on the callback parameters.
-    set: function (path, valueStr, mimeType, cb) {
-      var storageType = get('storageType'),
-        storageHref = get('storageHref'),
-        token = get('bearerToken');
-      if(typeof(path) != 'string') {
-        cb('argument "path" should be a string');
-      } else {
-        getputdelete.set(resolveKey(storageType, storageHref, '', path), valueStr, mimeType, token, cb);
-      }
-    },
+    get: get,
+    set: set,
+    remove: remove,
 
     // Method: setStorageInfo
     //
@@ -1662,12 +1806,17 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
     // Fires:
     //   configured - if wireClient is now fully configured
     //
-    setStorageInfo   : function(type, href) { set('storageType', type); set('storageHref', href); },
+    setStorageInfo   : function(type, href) {
+      setSetting('storageType', type);
+      setSetting('storageHref', href);
+    },
 
     // Method: getStorageHref
     //
     // Get base URL of the user's remotestorage.
-    getStorageHref   : function() { return get('storageHref') },
+    getStorageHref   : function() {
+      return getSetting('storageHref')
+    },
     
     // Method: SetBearerToken
     //
@@ -1679,7 +1828,27 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
     // Fires:
     //   configured - if wireClient is now fully configured.
     //
-    setBearerToken   : function(bearerToken) { set('bearerToken', bearerToken); },
+    setBearerToken   : function(bearerToken) {
+      setSetting('bearerToken', bearerToken);
+    },
+
+    // Method: addStorageInfo
+    //
+    // Add another user's storage info.
+    // After calling this, keys in the form userAddress:path can be resolved.
+    //
+    // Parameters:
+    //   userAddress - a user address in the form user@host
+    //   storageInfo - an object, with at least an 'href' attribute
+    addStorageInfo: addStorageInfo,
+
+    // Method: hasStorageInfo
+    //
+    // Find out if the wireClient has cached storageInfo for the given userAddress.
+    //
+    // Parameters:
+    //   userAddress - a user address to look up
+    hasStorageInfo: hasStorageInfo,
 
     // Method: disconnectRemote
     //
@@ -1701,7 +1870,8 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
     //   anonymous - no information set
     //   authing   - storage's type & href set, but no token received yet
     //   connected - all information present.
-    getState         : getState
+    getState         : getState,
+    calcState: calcState
   };
 });
 
@@ -1713,48 +1883,77 @@ define('lib/store',['./util'], function (util) {
   //
   // The store stores data locally. It treats all data as raw nodes, that have *metadata* and *payload*.
   // Metadata and payload are stored under separate keys.
+
+
+  var logger = util.getLogger('store');
+
+  // node metadata key prefix
+  var prefixNodes = 'remote_storage_nodes:';
+  // note payload data key prefix
+  var prefixNodesData = 'remote_storage_node_data:';
+  // foreign nodes are prefixed with a user address
+  var userAddressRE = /^[^@]+@[^:]+:\//;
+
+  var events = util.getEventEmitter('error', 'change', 'foreign-change');
+
   //
   // Type: Node
   //
-  // Represents a node within the primary store.
+  // Represents a node within the local store.
   //
   // Properties:
   //   startAccess - either "r" or "rw". Flag means, that this node has been claimed access on (see <remoteStorage.claimAccess>) (default: null)
   //   startForce  - boolean flag to indicate that this node shall always be synced. (see <BaseClient.sync>) (default: null)
   //   timestamp   - last time this node was (apparently) updated (default: 0)
-  //   keep        - A flag to indicate, whether this node should be kept in cache. Currently unused. (default: true)
-  //   diff        - difference in the node's data since the last synchronization.
+  //   lastUpdatedAt - Last time this node was upated from remotestorage
   //   mimeType    - MIME media type
+  //   diff        - (directories only) marks children that have been modified.
   //
+
+
   // Event: change
   // See <BaseClient.Events>
+
+  function fireChange(origin, path, oldValue) {
+    var node = getNode(path);
+    events.emit('change', {
+      path: path,
+      origin: origin,
+      oldValue: oldValue,
+      newValue: getNodeData(path),
+      timestamp: node.timestamp
+    });
+  }
+
+  // Event: foreign-change
+  // Fired when a foreign node is updated.
+
+  function fireForeignChange(path, oldValue) {
+    var node = getNode(path);
+    events.emit('foreign-change', {
+      path: path,
+      oldValue: oldValue,
+      newValue: getNodeData(path),
+      timestamp: node.timestamp
+    });
+  }
+  
   //
   // Event: error
   // See <BaseClient.Events>
+
   //
   // Method: on
   //
   // Install an event handler
   // See <util.EventEmitter.on> for documentation.
 
-  var logger = util.getLogger('store');
-
-  var events = util.getEventEmitter('change', 'error');
-
-  var prefixNodes = 'remote_storage_nodes:',
-      prefixNodesData = 'remote_storage_node_data:';
-
-  function isPrefixed(key) {
-    return key.substring(0, prefixNodes.length) == prefixNodes;
-  }
-
+  // forward events from other tabs
   if(typeof(window) !== 'undefined') {
     window.addEventListener('storage', function(event) {
       if(isPrefixed(event.key)) {
-        if(! util.isDir(event.path)) {
-          event.path = event.key.substring(prefixNodes.length);
-          event.origin = 'device';
-          events.emit('change', event);
+        if(! util.isDir(event.key)) {
+          fireChange('device', event.key.substring(prefixNodes.length), event.oldValue);
         }
       }
     });
@@ -1771,7 +1970,7 @@ define('lib/store',['./util'], function (util) {
   //   node object is constructed instead.
   function getNode(path) {
     if(! path) {
-      throw "No path given!";
+      throw new Error("No path given!");
     }
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodes+path);
@@ -1788,140 +1987,18 @@ define('lib/store',['./util'], function (util) {
       value = {//this is what an empty node looks like
         startAccess: null,
         startForce: null,
+        startForceTree: null,
         timestamp: 0,
-        mimeType: "application/json",
-        keep: true,
-        diff: {}
+        lastUpdatedAt: 0,
+        mimeType: "application/json"
       };
+      if(util.isDir(path)) {
+        value.diff = {};
+      }
     }
     return value;
   }
 
-  function getFileName(path) {
-    var parts = path.split('/');
-    if(util.isDir(path)) {
-      return parts[parts.length-2]+'/';
-    } else {
-      return parts[parts.length-1];
-    }
-  }
-
-  function getCurrTimestamp() {
-    return new Date().getTime();
-  }
-
-  function validPath(path) {
-    if(path[0] != '/') {
-      throw "Invalid path: " + path;
-    }
-  }
-
-  function updateNodeData(path, data) {
-    validPath(path);
-    if(! path) {
-      console.trace();
-      throw "Path is required!";
-    }
-    var encodedData;
-    if(typeof(data) !== 'undefined') {
-      if(typeof(data) === 'object') {
-        encodedData = JSON.stringify(data);
-      } else {
-        encodedData = data;
-      }
-      localStorage.setItem(prefixNodesData+path, encodedData)
-    } else {
-      localStorage.removeItem(prefixNodesData+path)
-    }
-  }
-
-  function determineDirTimestamp(path) {
-    var data = getNodeData(path);
-    if(data) {
-      var times = [];
-      for(var key in data) {
-        times.push(data[key]);
-      }
-      return Math.max.apply(Math, times);
-    } else {
-      return getCurrTimestamp();
-    }
-  }
-
-  function updateNode(path, node, outgoing, meta, timestamp) {
-    validPath(path);
-
-    if((!meta) && (! timestamp)) {
-      if(outgoing) {
-        timestamp = getCurrTimestamp();
-      } else if(util.isDir(path)) {
-        timestamp = determineDirTimestamp(path)
-      } else {
-        throw ('no timestamp given for node' + path);
-        timestamp = 0;
-      }
-    }
-
-    if(node && typeof(timestamp) !== 'undefined') {
-      node.timestamp = timestamp;
-    }
-
-    if(node) {
-      localStorage.setItem(prefixNodes+path, JSON.stringify(node));
-    } else {
-      localStorage.removeItem(prefixNodes+path);
-    }
-    var containingDir = util.containingDir(path);
-
-    if(containingDir) {
-
-      var parentNode=getNode(containingDir);
-      var parentData = getNodeData(containingDir) || {};
-      var baseName = getFileName(path);
-
-      if(meta) {
-        if(! (parentData && parentData[baseName])) {
-          parentData[baseName] = 0;
-          updateNodeData(containingDir, parentData);
-        }
-        updateNode(containingDir, parentNode, false, true, timestamp);
-      } else if(outgoing) {
-        if(node) {
-          parentData[baseName] = timestamp;
-        } else {
-          delete parentData[baseName];
-        }
-        parentNode.diff[baseName] = timestamp;
-        updateNodeData(containingDir, parentData);
-        updateNode(containingDir, parentNode, true, false, timestamp);
-      } else {//incoming
-        if(node) {//incoming add or change
-          if(!parentData[baseName] || parentData[baseName] < timestamp) {
-            parentData[baseName] = timestamp;
-            delete parentNode.diff[baseName];
-            updateNodeData(containingDir, parentData);
-            updateNode(containingDir, parentNode, false, false, timestamp);
-          }
-        } else {//incoming deletion
-          if(parentData[baseName]) {
-            delete parentData[baseName];
-            delete parentNode.diff[baseName];
-            updateNodeData(containingDir, parentData);
-            updateNode(containingDir, parentNode, false, false, timestamp);
-          }
-        }
-        if(! util.isDir(path)) {
-          events.emit('change', {
-            path: path,
-            origin: 'remote',
-            oldValue: undefined,
-            newValue: (node ? getNodeData(path) : undefined),
-            timestamp: timestamp
-          });
-        }
-      }
-    }
-  }
 
   // Method: forget
   // Forget node at given path
@@ -1963,12 +2040,19 @@ define('lib/store',['./util'], function (util) {
   //
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     var node = getNode(path);
+    var oldValue;
+
+    if(! outgoing) {
+      node.lastUpdatedAt = timestamp;
+      oldValue = getNodeData(path);
+    }
+
     if(!mimeType) {
       mimeType='application/json';
     }
     node.mimeType = mimeType;
     updateNodeData(path, data);
-    updateNode(path, (data ? node : undefined), outgoing, false, timestamp);
+    updateNode(path, (data ? node : undefined), outgoing, false, timestamp, oldValue);
   }
 
   // Method: getNodeData
@@ -2020,39 +2104,61 @@ define('lib/store',['./util'], function (util) {
 
   // Method: setNodeForce
   //
-  // Set startForce flag on a node.
+  // Set startForce and startForceTree flags on a node.
   //
   // Parameters:
-  //   path  - absolute path to the node
-  //   force - value to set for the force flag (boolean)
+  //   path      - absolute path to the node
+  //   dataFlag  - whether to sync data
+  //   treeFlag  - whether to sync the tree
   //
-  function setNodeForce(path, force) {
+  function setNodeForce(path, dataFlag, treeFlag) {
     var node = getNode(path);
-    node.startForce = force;
+    node.startForce = dataFlag;
+    node.startForceTree = treeFlag;
     updateNode(path, node, false, true);//meta
+  }
+
+  function setNodeError(path, error) {
+    var node = getNode(path);
+    if(! error) {
+      delete node.error;
+    } else {
+      node.error = error;
+    }
+    updateNode(path, node, false, true);
   }
 
   // Method: clearDiff
   //
-  // Clear current diff on the node. This only applies to
-  // directory nodes.
+  // Clear diff flag of given node on it's parent.
+  //
+  // Recurses upwards, when the parent's diff becomes empty.
   //
   // Clearing the diff is usually done, once the changes have been
   // propagated through sync.
   //
   // Parameters:
-  //   path      - absolute path to the directory node
-  //   childName - name of the child who's change has been propagated
+  //   path      - absolute path to the node
+  //   timestamp - new timestamp (received from remote) to set on the node.
   //
-  function clearDiff(path, childName) {
-    logger.debug('clearDiff', path, childName);
+  function clearDiff(path, timestamp) {
+    logger.debug('clearDiff', path);
     var node = getNode(path);
-    delete node.diff[childName];
-    updateNode(path, node, false, true);//meta
+    if(timestamp) {
+      node.timestamp = node.lastUpdatedAt = timestamp;
+      updateNode(path, node, false, true);
+    }
+    var parentPath = util.containingDir(path);
+    var baseName = util.baseName(path);
+    if(parentPath) {
+      var parent = getNode(parentPath);
+      delete parent.diff[baseName];
+      
+      updateNode(parentPath, parent, false, true);
 
-    var parentPath;
-    if(Object.keys(node.diff).length === 0 && (parentPath = util.containingDir(path))) {
-      clearDiff(parentPath, util.baseName(path));
+      if(Object.keys(parent.diff).length === 0) {
+        clearDiff(parentPath);
+      }
     }
   }
 
@@ -2064,117 +2170,30 @@ define('lib/store',['./util'], function (util) {
   // listings to fill their views.
   //
   function fireInitialEvents() {
-    for(var i=0; i<localStorage.length; i++) {
-      var key = localStorage.key(i)
-      if(isPrefixed(key)) {
-        var path = key.substring(prefixNodes.length);
-        if(! util.isDir(path)) {
-          events.emit('change', {
-            path: path,
-            newValue: getNodeData(path),
-            oldValue: undefined,
-            origin: 'device'
-          });
-        }
-      }
-    }
-  }
+    logger.info('fire initial events');
 
-  return {
-    on                : events.on,
-    getNode           : getNode,
-    getNodeData       : getNodeData,
-    setNodeData       : setNodeData,
-    setNodeAccess     : setNodeAccess,
-    setNodeForce      : setNodeForce,
-    clearDiff         : clearDiff,
-    removeNode        : removeNode,
-    forget            : forget,
-    forgetAll         : forgetAll,
-    fireInitialEvents : fireInitialEvents
-  };
-});
-
-define('lib/sync',['./wireClient', './store', './util'], function(wireClient, store, util) {
-
-  
-
-  // Namespace: sync
-  //
-  // Sync is where all the magic happens. It connects the <store> and <wireClient>
-  //
-
-  var sync; // set below.
-
-  var prefix = '_remoteStorage_', busy=false, syncOkNow=true;
-
-  var logger = util.getLogger('sync');
-  var events = util.getEventEmitter('state');
-
-  function getState(path) {//should also distinguish between synced and locally modified for the path probably
-    if(busy) {
-      return 'busy';
-    } else {
-      return 'connected';
-    }
-  }
-  function setBusy(val) {
-    busy=val;
-
-    events.emit('state', val ? 'busy' : 'connected');
-  }
-
-  var syncTimestamps = {};
-
-  function dirMerge(dirPath, remote, cached, diff, force, access, startOne, finishOne, clearCb) {
-    for(var i in remote) {
-      if((!cached[i] && !diff[i]) || cached[i] < remote[i]) {//should probably include force and keep in this decision
-        if(! util.isDir(dirPath + i)) {
-          syncTimestamps[dirPath + i] = remote[i];
-        }
-        pullNode(dirPath+i, force, access, startOne, finishOne);
-      }
-    }
-    for(var i in cached) {
-      if(!remote[i] && !diff[i]) { // incoming delete
-        store.removeNode(dirPath + i);
-      } else if(!remote[i] || cached[i] > remote[i]) {
-        if(util.isDir(i)) {
-          pullNode(dirPath+i, force, access, startOne, finishOne);
-        } else {//recurse
-          var childNode = store.getNode(dirPath+i);
-          var childData = store.getNodeData(dirPath + i);
-          startOne();
-          if(typeof(childData) === 'object') {
-            childData = JSON.stringify(childData);
+    function iter(path) {
+      if(util.isDir(path)) {
+        var listing = getNodeData(path);
+        if(listing) {
+          for(var key in listing) {
+            iter(path + key);
           }
-          wireClient.set(dirPath+i, childData, childNode.mimeType, function(err) {
-            if(err) {
-              logger.error('wireclient said error', err);
-            }
-            finishOne(err);
-          });
-        }
-      } else if(remote[i]) {
-        if(! util.isDir(dirPath + i)) {
-          syncTimestamps[dirPath + i] = remote[i];
-        }
-      }
-    }
-    for(var i in diff) {
-      if(!cached[i]) {//outgoing delete
-        if(remote[i]) {
-          startOne();
-          wireClient.set(dirPath+i, undefined, undefined, function(err) {
-            finishOne();
-          });
-        } else {
-          clearCb(i);
         }
       } else {
-        clearCb(i);
+        fireChange('device', path);
       }
     }
+
+    iter('/');
+
+  }
+
+
+
+
+  function isPrefixed(key) {
+    return key.substring(0, prefixNodes.length) == prefixNodes;
   }
 
   function getFileName(path) {
@@ -2186,196 +2205,1246 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     }
   }
 
-  function findForce(path, node) {
-    if(! node) {
-      return null;
-    } else if(! node.startForce) {
-      var parentPath = util.containingDir(path);
-      if((!path) || (parentPath == path)) {
-        return false;
-      } else if(parentPath) {
-        return findForce(parentPath, store.getNode(parentPath));
+  function getCurrTimestamp() {
+    return new Date().getTime();
+  }
+
+  function validPath(path) {
+    if(! (path[0] == '/' || userAddressRE.test(path))) {
+      throw new Error("Invalid path: " + path);
+    }
+  }
+
+  function isForeign(path) {
+    return path[0] != '/';
+  }
+
+
+  function determineDirTimestamp(path) {
+    var data = getNodeData(path);
+    if(data) {
+      var times = [];
+      for(var key in data) {
+        times.push(data[key]);
       }
+      return Math.max.apply(Math, times);
     } else {
-      return node.startForce;
+      return getCurrTimestamp();
     }
   }
 
-  function hasDiff(parentPath, fname) {
-    var parent = store.getNode(parentPath);
-    return !! parent.diff[fname];
-  }
-
-  function pushNode(path, startOne, finishOne) {
-    if(util.isDir(path)) {
-      var dirNode = store.getNode(path);
-      dirMerge(path, store.getNodeData(path), dirNode.diff, false, false, startOne, finishOne, function(i) { store.clearDiff(path, i); });
+  function updateNodeData(path, data) {
+    validPath(path);
+    if(! path) {
+      throw new Error("Path is required!");
     }
-    logger.debug('pushNode', path);
-    var parentPath = util.containingDir(path);
-    var fname = getFileName(path)
-    if(hasDiff(parentPath, fname)) {
-      logger.debug('pushNode!', path);
-      var data = store.getNodeData(path, true);
-      var node = store.getNode(path);
-      if(! data) {
-        logger.error("ATTEMPTED TO PUSH EMPTY DATA", node, data);
-        return;
+    var encodedData;
+    if(typeof(data) !== 'undefined') {
+      if(typeof(data) === 'object') {
+        encodedData = JSON.stringify(data);
+      } else {
+        encodedData = data;
       }
-      wireClient.set(path, data, node.mimeType, function(err) {
-        logger.debug("wire client set result", arguments);
-        if(! err) {
-          store.clearDiff(parentPath, fname);
-        } else {
-          logger.error('pushNode', err);
-        }
-        finishOne(err);
-      });
+      localStorage.setItem(prefixNodesData+path, encodedData)
+    } else {
+      localStorage.removeItem(prefixNodesData+path)
     }
   }
 
-  function pullNode(path, force, access, startOne, finishOne) {
-    var thisNode = store.getNode(path);
-    var thisData = store.getNodeData(path);
-    var isDir = util.isDir(path);
-    if((! thisData) && isDir) {
-      thisData = {};
-    }
-    logger.debug('pullNode "'+path+'"', thisNode);
+  function updateNode(path, node, outgoing, meta, timestamp, oldValue) {
+    validPath(path);
 
-    if(thisNode.startAccess == 'rw' || !access) {
-      force = thisNode.startAccess;
+    if((!meta) && (! timestamp)) {
+      if(outgoing) {
+        timestamp = getCurrTimestamp();
+      } else if(util.isDir(path)) {
+        timestamp = determineDirTimestamp(path)
+      } else {
+        throw new Error('no timestamp given for node ' + path);
+        timestamp = 0;
+      }
     }
 
-    if(! force) {
-      force = findForce(path, thisNode);
+    if(node && typeof(timestamp) !== 'undefined') {
+      node.timestamp = timestamp;
     }
-    
-    startOne();
 
-    if(force || access) {
-      wireClient.get(path, function(err, data, mimeType) {
-        if(!err && data) {
-          if(isDir) {
-            dirMerge(path, data, thisData, thisNode.diff, force, access, startOne, finishOne, function(i) {
-              store.clearDiff(path, i);
-            });
-          } else {
-            var t = syncTimestamps[path];
-            delete syncTimestamps[path];
-            store.setNodeData(path, data, false, t, mimeType);
+    if(node) {
+      localStorage.setItem(prefixNodes+path, JSON.stringify(node));
+    } else {
+      localStorage.removeItem(prefixNodes+path);
+    }
+    var containingDir = util.containingDir(path);
+
+    if(containingDir) {
+
+      var parentNode=getNode(containingDir);
+      var parentData = getNodeData(containingDir) || {};
+      var baseName = getFileName(path);
+
+      if(meta) {
+        if(! (parentData && parentData[baseName])) {
+          parentData[baseName] = 0;
+          updateNodeData(containingDir, parentData);
+        }
+        updateNode(containingDir, parentNode, false, true, timestamp);
+      } else if(outgoing) {
+        // outgoing
+        if(node) {
+          parentData[baseName] = timestamp;
+        } else {
+          delete parentData[baseName];
+        }
+        parentNode.diff[baseName] = timestamp;
+        updateNodeData(containingDir, parentData);
+        updateNode(containingDir, parentNode, true, false, timestamp);
+      } else {
+        // incoming
+        if(node) {
+          // incoming add or change
+          if(!parentData[baseName] || parentData[baseName] < timestamp) {
+            parentData[baseName] = timestamp;
+            delete parentNode.diff[baseName];
+            updateNodeData(containingDir, parentData);
+            updateNode(containingDir, parentNode, false, false, timestamp);
           }
         } else {
-          pushNode(path, startOne, finishOne);
+          // incoming deletion
+          if(parentData[baseName]) {
+            delete parentData[baseName];
+            delete parentNode.diff[baseName];
+            updateNodeData(containingDir, parentData);
+            updateNode(containingDir, parentNode, false, false, timestamp);
+          }
         }
-        
-        finishOne(err);
-        
+        if(! util.isDir(path)) {
+          // fire changes
+          if(isForeign(path)) {
+            fireForeignChange(path, oldValue);
+          } else {
+            fireChange('remote', path, oldValue);
+          }
+        }
+      }
+    }
+  }
+
+  return {
+
+    // method         , local              , used by
+                                           
+    getNode           : getNode,          // sync
+    getNodeData       : getNodeData,      // sync
+    setNodeData       : setNodeData,      // sync
+    clearDiff         : clearDiff,        // sync
+    removeNode        : removeNode,       // sync
+
+    setNodeError: setNodeError,
+
+    on                : events.on,
+    setNodeAccess     : setNodeAccess,
+    setNodeForce      : setNodeForce,
+    forget            : forget,
+    
+    forgetAll         : forgetAll,        // widget
+    fireInitialEvents : fireInitialEvents // widget
+  };
+
+});
+
+define('lib/sync',['./wireClient', './store', './util'], function(wireClient, store, util) {
+
+  
+
+  var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready');
+  var logger = util.getLogger('sync');
+
+  /*******************/
+  /* Namespace: sync */
+  /*******************/
+
+  // Settings. Trivial.
+
+  var settingsPrefix = 'remote_storage_sync:';
+
+  function getSetting(key) {
+    var data = localStorage.getItem(settingsPrefix + key);
+    try { data = JSON.parse(data); } catch(e) {};
+    return data;
+  }
+
+  function setSetting(key, value) {
+    if(typeof(value) !== 'string') {
+      value = JSON.stringify(value);
+    }
+    return localStorage.setItem(settingsPrefix + key, value);
+  }
+
+  function clearSettings() {
+    for(var i=0;i<localStorage.length;i++) {
+      var key = localStorage.key(i);
+      if(key.match(new RegExp('^' + settingsPrefix))) {
+        localStorage.removeItem(key);
+      }
+    }
+  }
+
+
+  // Section: How to configure sync
+  //
+  // remotestorageJS takes care of all the synchronization of remote and local data.
+  //
+  // As an app developer you need to do three things, to make it work:
+  // * claim access on the root of the tree in question (see <remoteStorage.claimAccess>)
+  // * state which branches you wish to have synced
+  // * release paths you no longer need from the sync plan, so they won't impact performance
+  //     
+  // Now suppose you have a data tree like this:
+  //   (start code)
+  //
+  //         A
+  //        / \
+  //       B   C
+  //      / \   \
+  //     d   E   f
+  //        / \
+  //       g   h
+  // 
+  //   (end code)
+  //
+  // Let's consider *A* to be our root node (it may be a module root, doesn't
+  // really matter for this example), and let's say we have a <BaseClient>
+  // instance called *client*, that treats paths relative to *A*.
+  //
+  // The simplest thing we can do, is request everything:
+  //   > client.use('');
+  // Now as soon as sync is triggered (usually this happens when connecting
+  // through the widget), the entire tree, with all it's nodes, including data
+  // nodes (files) will be synchronized and cached to localStorage.
+  // 
+  // If we previously set up a 'change' handler, it will now be called for each
+  // data node, as it has been synchronized.
+  //
+  // At this point, we can use the synchronous versions of the <BaseClient>
+  // methods for getting data. These methods will only hit the local cache (they
+  // may trigger <syncOne>, but we'll get to that later).
+  //   > client.getListing('B/'); // -> ['d', 'E/']
+  //   > client.getObject('B/d'); // -> { ... }
+  //
+  // That was the simplest usecase. Let's look at another one:
+  //
+  // Suppose that all the data files within our tree contain a lot of data. They
+  // could be music, videos, large images etc. Given that, it would be very
+  // impractical to transfer all of them, even though we don't know at this point
+  // if the user even wants to use them in the current session.
+  // So one option we have, is to tell remoteStorage only to synchronize the
+  // *directory tree*, but not the content of files.
+  //   > client.use('', true);
+  // The second argument given is called *treeOnly*.
+  //
+  // When we now (after the 'ready' event has been fired) use *getListing*, we
+  // still get a listing of all known paths:
+  //   > client.getListing(''); // -> ['B/', 'C/']
+  //   > client.getListing('B/'); // -> ['d', 'E/']
+  //
+  // Getting an object on the other hand, will not return anything.
+  //   > client.getObject('B/d'); // -> undefined
+  //
+  // We can use this scenario, to display a *tree of available data* to the user.
+  // As soon as the user chooses one of the items, we can retrieve it, by passing
+  // a callback to getObject:
+  //   > client.getObject('B/d', function(object) {
+  //   >   console.log("received object is: ", object);
+  //   > });
+  //
+  
+
+  /**************************************/
+
+  // Section: High-level sync functions
+  //
+  // These are the functions that are usually called from outside this
+  // file to initiate some synchronization task.
+  //
+  //
+
+  // Function: fullSync
+  //
+  // Perform a full sync cycle.
+  //
+  // Will update local and remote data as needed.
+  //
+  // Calls it's callback once 'ready' is fired.
+  //
+  // Fires:
+  //   ready    - when the sync queue is empty afterwards
+  //   conflict - when there are two incompatible versions of the same node
+  //   change   - when the local store is updated
+  //
+  function fullSync(callback, pushOnly) {
+    if(! isConnected()) {
+      return callback && callback('not-connected');
+    }
+
+    logger.info("full " + (pushOnly ? "push" : "sync") + " started");
+
+    var roots = findRoots();
+    var synced = 0;
+
+    function rootCb() {
+      synced++;
+      if(synced == roots.length) {
+        if(callback) {
+          callback.apply(this, arguments);
+        }
+      }
+    }
+
+    if(roots.length == 0) {
+      logger.info('full sync not happening. no access claimed.');
+      return;
+    }
+
+    roots.forEach(function(root) {
+      enqueueTask(function() {
+        traverseTree(root, processNode, {
+          pushOnly: pushOnly
+        });
+      }, rootCb);
+    });
+  }
+
+  // Function: fullPush
+  //
+  // Perform a full sync cycle, but only update remote data.
+  //
+  // Used before disconnecting, to clear local diffs.
+  //
+  // Fires:
+  //   ready    - when the sync queue is empty afterwards
+  //   conflict - when there are two incompatible versions of the same node
+  //   change   - when the local store is updated
+  //
+  function fullPush(callback) {
+    fullSync(callback, true);
+  }
+
+  // Function: partialSync
+  //
+  // Sync a partial tree, starting at given path.
+  //
+  // Parameters:
+  //   startPath - path to start at. Must be a directory path.
+  //   depth     - maximum depth of directories to traverse. null for infinite depth.
+  //   callback  - callback to call when done. receives no parameters.
+  //
+  // Fires:
+  //   ready    - when the sync queue is empty afterwards
+  //   conflict - when there are two incompatible versions of the same node
+  //   change   - when the local store is updated
+  //
+  function partialSync(startPath, depth, callback) {
+    if(! isConnected()) {
+      return callback && callback('not-connected');
+    }
+
+    validatePath(startPath);
+    logger.info("partial sync requested: " + startPath);
+    enqueueTask(function() {
+      logger.info("partial sync started from: " + startPath);
+      events.once('ready', callback);
+      traverseTree(startPath, processNode, {
+        depth: depth
+      });
+    });
+  }
+
+  // Function: syncOne
+  //
+  // Sync a single path. Call the callback when done.
+  //
+  // This function ignores all flags (access, force, forceTree) set on the node.
+  //
+  // Parameters:
+  //   path     - the path to synchronize
+  //   callback - (optional) callback to call when done
+  //
+  // Callback parameters:
+  //   node - local node after sync
+  //   data - data of local node after sync
+  //
+  // Fires:
+  //   ready    - when the sync queue is empty afterwards
+  //   conflict - when there are two incompatible versions of the same node
+  //   change   - when the local store is updated
+  //
+  function syncOne(path, callback) {
+    if(! isConnected()) {
+      return callback && callback('not-connected');
+    }
+
+    validatePath(path, true);
+    logger.info("single sync requested: " + path);
+    enqueueTask(function() {
+      logger.info("single sync started: " + path);
+      fetchRemoteNode(path, function(remoteNode) {
+        var localNode = fetchLocalNode(path);
+        processNode(path, localNode, remoteNode);
+        if(callback) {
+          // FIXME: document error parameter.
+          callback(null, store.getNode(path), store.getNodeData(path));
+        }
+      });
+    });
+  }
+
+  /**************************************/
+
+  // Section: Scheduling and state
+  //
+  // Scheduling happens using three variables:
+  //
+  //   ready state - a boolean, set to false when any task is in progress
+  //
+  //   task queue  - a queue of procedures to call when 'ready' is fired.
+  //                 All <High-level sync functions> enqueue their task here,
+  //                 when the the ready state is currently false.
+  //
+  //   deferred iteration queue - a queue of spawnQueue tasks to start, when the
+  //                 'ready' event *would* be fired. Enqueued from spawnQueue,
+  //                 when it's called with ready state set to false.
+  //
+
+
+  var ready = true;
+
+  // queue of spawnQueue calls
+  // (for queueing *within* a sync cycle)
+  var deferredIterationQueue = [];
+  // queue of sync tasks
+  // (if requested, while not ready)
+  var taskQueue = [];
+
+  // function to call when current task is done, before next task is popped from taskQueue.
+  var currentFinalizer = null;
+
+
+  events.on('ready', function() {
+    logger.info("READY", 'queued tasks: ', taskQueue.length);
+    if(currentFinalizer) {
+      currentFinalizer();
+      currentFinalizer = null;
+    }
+    if(taskQueue.length > 0) {
+      var nextTask = taskQueue.shift();
+      currentFinalizer = nextTask.finalizer;
+      nextTask.run();
+    }
+  });
+
+  function enqueueTask(callback, finalizer) {
+    if(ready) {
+      currentFinalizer = finalizer;
+      callback();
+    } else {
+      taskQueue.push({
+        run: callback,
+        finalizer: finalizer
+      });
+    }
+  }
+
+  function setBusy() {
+    ready = false;
+    events.emit('state', 'busy');
+    events.emit('busy');
+  }
+  function setReady() {
+    ready = true;
+    if(deferredIterationQueue.length > 0) {
+      spawnQueue.apply(this, deferredIterationQueue.shift());
+    } else {
+      events.emit('state', 'connected');
+      events.emit('ready');
+    }
+  }
+
+  // see if we can fire 'ready', or if there's more to do
+  function tryReady() {
+    if(ready && deferredIterationQueue.length == 0) {
+      events.emit('ready');
+    }
+  }
+
+  // Function: getState
+  // Get the current ready state of synchronization. Either 'connected' or 'busy'.
+  function getState() { return ready ? 'connected' : 'busy'; }
+
+  // Section: Events
+
+  // Event: ready
+  //
+  // Fired when sync becomes ready. This means the current sync cycle has ended.
+  //
+  // Shouldn't be used from application code, as the state may move back to 'busy'
+  // immediately afterwards, in case tasks have been enqueued by the high-level
+  // sync functions.
+
+  // Event: conflict
+  //
+  // Both local and remote data of a node has been modified.
+  // You need to specify a resolution.
+  //
+  // Properties:
+  //   path        - path of the conflicting node
+  //   localValue  - locally cached (and modified) value
+  //   remoteValue - new value seen on the remote server
+  //   localTime   - Date object, representing last local update
+  //   remoteTime  - Date object, representing last remote update
+  //   lastUpdate  - Date object, representing last synchronization of this node
+  //   resolve     - Function to call, in order to specify a resolution
+  //   type        - type of conflict, either "delete" or "merge"
+  //
+  // Example:
+  //   (start code)
+  //
+  //   remoteStorage.on('conflict', function(event) {
+  //
+  //     console.log(event.type, ' conflict at ', event.path,
+  //                 event.localTime, 'vs', event.remoteTime,
+  //                 '(last seen: ', event.lastUpdate, ')');
+  //
+  //     event.resolve('local'); // overwrite remote version
+  //     // OR
+  //     event.resolve('remote'); // overwrite local version
+  //   });
+  //
+  //   (end code)
+  //
+
+  function fireConflict(type, path, local, remote) {
+    events.emit('conflict', {
+      type: type,
+      path: path,
+      localValue: local.data,
+      remoteValue: remote.data,
+      localTime: new Date(local.timestamp),
+      remoteTime: new Date(remote.timestamp),
+      lastUpdate: new Date(local.lastUpdatedAt),
+      resolve: makeConflictResolver(path, local, remote)
+    });
+  }
+
+  // Event: error
+  //
+  // Fired when either one of the underlying layers propagates an error,
+  // or an exception is called within a sync callback.
+  //
+  // Properties:
+  //   path  - path that is associated with this error. May be null.
+  //   error - Either an error message (string) or a Error object.
+  //   stack - If this was an error and the browser supports the error.stack
+  //           property, this holds the stack as an array of lines.
+
+
+  function fireError(path, error) {
+    var event = { path: path, };
+    if(typeof(error) == 'object') {
+      event.stack = error.stack;
+      if(typeof(event.stack == 'string')) {
+        event.stack = event.stack.split('\n');
+      }
+      event.message = error.message;
+      event.exception = error;
+    } else {
+      event.message = error;
+    }
+    events.emit('error', event);
+  }
+
+  // Section: Update functions
+
+  // Function: deleteLocal
+  //
+  // remove local data at path.
+  // Fires: change
+  function deleteLocal(path, local, remote) {
+    logger.info('DELETE', path, 'REMOTE -> LOCAL');
+    var oldValue = store.getNodeData(path);
+    store.removeNode(path);
+  }
+
+  // Function: deleteRemote
+  //
+  // remove remote data, then clear local diff.
+  // Fires: error
+  function deleteRemote(path, local, remote) {
+    logger.info('DELETE', path, 'LOCAL -> REMOTE');
+    wireClient.remove(
+      path,
+      makeErrorCatcher(path, util.curry(store.clearDiff, path))
+    );
+  }
+
+  // Function: updateLocal
+  //
+  // update local data at path.
+  function updateLocal(path, local, remote) {
+    logger.info('UPDATE', path, 'REMOTE -> LOCAL');
+    store.setNodeData(path, remote.data, false, remote.timestamp, remote.mimeType);
+  }
+
+  // Function: updateRemote
+  //
+  // update remote data at path, then clear local diff.
+  // Fires: error
+  function updateRemote(path, local, remote) {
+    logger.info('UPDATE', path, 'LOCAL -> REMOTE');
+    wireClient.set(
+      path, local.data, local.mimeType,
+      makeErrorCatcher(path, function() {
+        // update lastUpdatedAt for this node to exact remote time.
+        // this is a totally unnecessary step and should be handled better
+        // in the protocol (e.g. by returning the new timestamp with the PUT
+        // request).
+        fetchNode(util.containingDir(path), function(listing) {
+          store.clearDiff(path, listing[util.baseName(path)]);
+        });
+      })
+    );
+  }
+
+
+  // Function: processNode
+  //
+  // Decides which action to perform on the node in order to synchronize it.
+  //
+  // Used as a callback for <traverseNode>.
+  function processNode(path, local, remote) {
+
+    var action = null;
+
+    if(local.deleted) {
+      // outgoing delete!
+      logger.debug(path, 'outgoing delete');
+      action = deleteRemote;
+
+    } else if(remote.deleted && local.lastUpdatedAt > 0) {
+      if(local.timestamp == local.lastUpdatedAt) {
+        // incoming delete!
+        logger.debug(path, 'incoming delete');
+        action = deleteLocal;
+
+      } else {
+        // deletion conflict!
+        logger.debug(path, 'deletion conflict', 'remote', remote, 'local', local);
+        action = util.curry(fireConflict, 'delete');
+
+      }
+    } else if(local.timestamp == remote.timestamp) {
+      // no action today!
+      logger.debug(path, 'no action today');
+      return;
+
+    } else if(local.timestamp > remote.timestamp) {
+      // local updated happpened before remote update
+      if(local.lastUpdatedAt == remote.timestamp) {
+        // outgoing update!
+        logger.debug(path, 'outgoing update');
+        action = updateRemote;
+
+      } else {
+        // merge conflict!
+        logger.debug(path, 'merge conflict (local > remote)', 'remote', remote, 'local', local);
+        action = util.curry(fireConflict, 'merge');
+
+      }
+    } else if(local.timestamp < remote.timestamp) {
+      // remote updated happened before local update
+      if(local.lastUpdatedAt == local.timestamp) {
+        // incoming update!
+        logger.debug(path, 'incoming update');
+        action = updateLocal;
+
+      } else {
+        // merge conflict!
+        logger.debug(path, 'merge conflict (local < remote)', 'remote', remote, 'local', local);
+        action = util.curry(fireConflict, 'merge');
+
+      }
+    }
+
+    if(! action) {
+      var exc = new Error("Something went terribly wrong.");
+      exc.path = path;
+      exc.localNode = local;
+      exc.remoteNode = remote;
+      throw exc;
+    }
+
+    action(path, local, remote);
+  }
+
+  /**************************************/
+
+  // Function: fetchLocalNode
+  //
+  // Fetch a local node at given path.
+  //
+  // Loads a <store.Node> and extends it with the following:
+  //   data - data of the node, as received from <store.getNodeData>
+  //   deleted - whether this node is considered deleted.
+  function fetchLocalNode(path, isDeleted) {
+    logger.info("fetch local", path);
+    var localNode = store.getNode(path);
+    localNode.data = store.getNodeData(path);
+
+    if(isForeignPath(path)) {
+      // can't modify foreign data locally
+      isDeleted = false;
+    }
+
+    if(typeof(isDeleted) == 'undefined') {
+      // in some contexts we don't have the parent present already to check.
+      var parentPath = util.containingDir(path);
+      if(parentPath) {
+        var baseName = util.baseName(path);
+        var parent = store.getNode(parentPath);
+        var parentData = store.getNodeData(parentPath);
+        isDeleted = (! parentData[baseName]) && parent.diff[baseName];
+      } else {
+        // root node can't be deleted.
+        isDeleted = false;
+      }
+    }
+    localNode.deleted = isDeleted;
+    return localNode;
+  }
+
+  function fetchNode(path, callback) {
+    logger.info("fetch remote", path);
+    wireClient.get(path, function(err, data, mimeType) {
+      if(err) {
+        fireError(path, err);
+      } else {
+        try {
+          callback(data, mimeType);
+        } catch(exc) {
+          fireError(path, exc);
+        }
+      }
+    });
+  }
+
+  function prepareRemoteNode(data, mimeType, timestamp) {
+    return {
+      timestamp: timestamp,
+      data: data,
+      deleted: timestamp == 0,
+      mimeType: mimeType
+    }
+  }
+
+  // Function: fetchRemoteNode
+  //
+  // Fetch node at given path from remote.
+  //
+  // Constructs a node like this:
+  //   timestamp - last update of the node, if known. Otherwise 0.
+  //   data - data of the node received from remotestorage, or undefined
+  //   deleted - whether remotestorage knows this node.
+  //   mimeType - MIME type of the node
+  //
+  function fetchRemoteNode(path, parentData, callback) {
+    var isForeign = isForeignPath(path);
+
+    function done(data, mimeType) {
+      callback(prepareRemoteNode(
+        data, mimeType,
+        (parentData && parentData[util.baseName(path)]) || (
+          isForeign ? new Date().getTime() : 0
+        )
+      ));
+    }
+
+    if(callback) {
+      fetchNode(path, done);
+    } else {
+      callback = parentData, parentData = null;
+      var parentPath = util.containingDir(path);
+      if(isForeign) {
+        // foreign node (no listing possible)
+        fetchNode(path, done);
+      } else if(parentPath) {
+        // get parent listing (to get a timestamp), then continue
+        fetchNode(parentPath, function(data) {
+          parentData = data;
+          fetchNode(path, done);
+        });
+      } else {
+        // root node, doesn't have a parent to consult
+        fetchNode(path, done);
+      }
+    }
+  }
+
+  // Section: Trivial helpers
+
+  function isConnected() {
+    return wireClient.getState() == 'connected';
+  }
+
+  function makeSet(a, b) {
+    var o = {};
+    for(var i=0;i<a.length;i++) { o[a[i]] = true; }
+    for(var j=0;j<b.length;j++) { o[b[j]] = true; }
+    return Object.keys(o);
+  }
+
+  var foreignPathRE = /^[^\/][^:]+:\//;
+  var ownPathRE = /^\//;
+
+  function isOwnPath(path) {
+    return ownPathRE.test(path);
+  }
+
+  function isForeignPath(path) {
+    return foreignPathRE.test(path);
+  }
+
+  function validPath(path, foreignOk) {
+    return isOwnPath(path) || (foreignOk ? isForeignPath(path) : false);
+  }
+
+  function validatePath(path, foreignOk) {
+    if(! validPath(path, foreignOk)) {
+      throw new Error("Invalid path: " + path);
+    }
+  }
+
+  function findRoots(path) {
+    var root = store.getNode('/');
+    var roots = []
+    if(root.startAccess) {
+      roots.push('/');
+    } else {
+      Object.keys(store.getNodeData('/')).forEach(function(key) {
+        if(store.getNode('/' + key).startAccess) {
+          roots.push('/' + key);
+        }
+      });
+    }
+    return roots;
+  }
+
+  function findAccess(path) {
+    if(! path) {
+      return null;
+    } else {
+      var node = store.getNode(path);
+      if(node.startAccess) {
+        return node.startAccess;
+      } else {
+        return findAccess(util.containingDir(path));
+      }
+    }
+  }
+
+  // Function: traverseTree
+  //
+  // Traverse the full tree of nodes, passing each visited data node to the callback for processing.
+  //
+  // Parameters:
+  //   root     - Path to the root to start traversal at.
+  //   callback - callback called for each node. see below.
+  //   options  - (optional) Object with options. see below.
+  //
+  // Callback parameters:
+  //   The callback is called for each node, that is present either
+  //   locally or remote (or both).
+  //
+  //   path       - path to current node
+  //   localNode  - local node at current path. See <fetchLocalNode> for a description.
+  //   remoteNode - remote node at current path. See <fetchRemoteNode> for a description.
+  //
+  // Options:
+  //   depth - When given, a positive number, setting the maximum depth of traversal.
+  //           Depth will be decremented in each recursion
+  function traverseTree(root, callback, opts) {
+    logger.info('traverse', root);
+    
+    if(! util.isDir(root)) {
+      throw "Can't traverse data node: " + root;
+    }
+
+    if(! opts) { opts = {}; }
+
+    var done = opts.done || function() {};
+
+    if(opts.depth || opts.depth == 0) {
+      logger.debug("traverse depth", opts.depth, root);
+    }
+
+    // fetch local listing
+    var localRootNode = store.getNode(root);
+    var localListing = store.getNodeData(root);
+
+    if(! localListing) {
+      // create empty directory node, if it doesn't exist.
+      localListing = {};
+      store.setNodeData(root, localListing, false, 0, 'application/json');
+    }
+
+    opts.access = util.highestAccess(opts.access, localRootNode.startAccess);
+    opts.force = opts.force || localRootNode.startForce;
+    opts.forceTree = opts.forceTree || localRootNode.startForceTree;
+
+    if(! opts.access) {
+      // in case of a partial sync, we have not been informed about
+      // access inherited from the parent.
+      opts.access = findAccess(util.containingDir(root));
+    }
+
+    if((! opts.access) && (root != '/') && ! (opts.force || opts.forceTree)) {
+      // no access and no interest.
+      // -> bail!
+      logger.debug('skipping', root, 'no interest', '(access: ', opts.access, ' force: ', opts.force, ' forceTree: ', opts.forceTree, ')');
+      tryReady();
+      done();
+      return;
+    }
+
+    var localDiff = Object.keys(localRootNode.diff).length > 0;
+
+    if(! localDiff) {
+      if(opts.pushOnly) {
+        tryReady();
+        done();
+        return;
+      }
+    }
+
+    // fetch remote listing
+    fetchNode(root, function(remoteListing) {
+
+      if(! remoteListing) { remoteListing = {}; }
+
+      // not really "done", but no more immediate requests in this
+      // function.
+      done();
+
+      // all keys in local and/or remote listing
+      var fullListing = makeSet(
+        Object.keys(remoteListing),
+        Object.keys(localListing)
+      );
+
+      if(opts.forceTree && (! opts.force) && Object.keys(localListing).length == 0) {
+        // empty listing, only trees are synced.
+        // -> copy children, but don't sync..
+        fullListing.forEach(function(key) {
+          localListing[key] = 0;
+        });
+        store.setNodeData(root, localListing, false, 0, 'application/json');
+      }
+
+      // check if we can skip this node.
+      //
+      if(! localDiff) {
+        var remoteDiff = false;
+        for(var i=0;i<fullListing.length;i++) {
+          var item = fullListing[i];
+          if(localListing[item] != remoteListing[item]) {
+            // remote diff detected.
+            // -> continue!
+            remoteDiff = true;
+            break;
+          }
+        }
+        if(! remoteDiff) {
+          // no remote diff.
+          // -> bail!
+          logger.debug('skipping', root, 'no changes');
+          tryReady();
+          return;
+        }
+      }
+
+      spawnQueue(fullListing, 6, function(item, next) {
+        var path = root + item;
+        if(util.isDir(item)) {
+          if(opts.depth && opts.depth == 1) {
+            next();
+          } else {
+            var newOpts = util.extend({}, opts);
+            if(newOpts.depth) { newOpts.depth--; }
+            newOpts.done = next;
+            traverseTree(path, callback, newOpts);
+          }
+        } else if(opts.force) {
+          fetchRemoteNode(path, remoteListing, function(remoteNode) {
+            var localNode = fetchLocalNode(
+              path,
+              // local deletions only appear in the diff of the parent.
+              ( (! localListing[item]) &&
+                (localRootNode.diff[item]) )
+            );
+            callback(path, localNode, remoteNode);
+            next();
+          });
+        } else {
+          next();
+        }
       });
 
-      return;
+    });
+  }
 
-    } else if(thisData && isDir) {
-      for(var i in thisData) {
-        if(util.isDir(i)) {
-          pullNode(path+i, force, access, startOne, finishOne);
+  // Section: Meta helpers
+
+  // Function: makeConflictResolver
+  // returns a function that can be called to resolve the conflict
+  // at the given path.
+  function makeConflictResolver(path, local, remote) {
+    return function(solution, newData) {
+      if(solution == 'local') {
+        // outgoing update!
+        if(newData) {
+          local.data = newData;
         }
+        updateRemote(path, local, remote);
+      } else if(solution == 'remote') {
+        // incoming update!
+        updateLocal(path, local, remote);
+      } else {
+        throw "Invalid conflict resolution: " + solution;
       }
     }
-
-    // this is an edge case, reached when all of the following are true:
-    // * this is NOT a directory node
-    // * neither this node nor any of it's parent have startForce set
-    // * this node doesn't have it's startAccess flag set
-    // * neither 'force' nor 'access' are forced by this pullNode call
-    finishOne();
-
   }
 
-  // TODO: DRY those two:
-
-  function fetchNow(path, callback) {
-    var outstanding = 0, errors=[];
-    function startOne() {
-      outstanding++;
-    }
-    function finishOne(err) {
-      if(err) {
-        errors.push(err);
-      }
-      outstanding--;
-      if(outstanding == 0) {
-        setBusy(false);
-        callback(errors || null, store.getNode(path));
+  // Function: makeErrorCatcher
+  // returns a function, that receives an error as it's only parameter.
+  // if the error resolves to true, an error event is fired.
+  //
+  // If an optional callback is supplied, and the error resolves to false,
+  // the callback will be called with all additional arguments.
+  function makeErrorCatcher(path, callback) {
+    return function(error) {
+      if(error) {
+        fireError(path, error);
+      } else if(callback) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        callback.apply(this, args);
       }
     }
-    setBusy(true);
-    pullNode(path, false, true, startOne, finishOne)
   }
 
-  function syncNow(path, callback, force) {
-
-    if(! path) {
-      throw "path is required";
-    }
-
-    if((! syncOkNow) && (! force) || busy) {
-      return callback(null);
-    }
-
-    if(wireClient.getState() == 'anonymous') {
-      if(callback) {
-        callback(['not connected']);
-      }
+  // Function: spawnQueue
+  // run a procedure for each item in list.
+  //
+  // Parameters:
+  //   list - an array of items to pass to the iter
+  //   max  - maximum number of simultaneously running versions of iter
+  //   iter - iterator to call
+  //
+  // Iterator parameters:
+  //   item - an item from the list
+  //   done - a callback function to call, when the iterator is finished
+  //
+  function spawnQueue(list, max, iter) {
+    if(! ready) {
+      deferredIterationQueue.push([list, max, iter]);
       return;
     }
 
-    var outstanding=0, errors=[];
-    function startOne() {
-      outstanding++;
+    setBusy();
+
+    var n = 0;
+    var i = 0;
+    function next() {
+      n++;
+      iter(list[i++], done);
     }
-    function finishOne(err) {
-      if(err) {
-        errors.push(path);
+    function done() {
+      n--;
+      if(i == list.length && n == 0) {
+        setReady();
+      } else if(i < list.length) {
+        spawn();
       }
-      outstanding--;
-      if(outstanding==0) {
-        setBusy(false);
-        setTimeout(function() {
-          syncOkNow = true;
-        }, sync.minPollInterval);
+    }
+    function spawn() {
+      while(n < max && i < list.length) {
+        next();
+      }
+    }
+    setTimeout(spawn, 1);
+  }
+
+  // Limit calls to the given function to the given interval.
+  // If the function receives a callback, it must be the last argument.
+  // If the call is intercepted, as minInterval has not passed yet, the callback
+  // will be called immediately. No parameters will be passed on to the callback.
+  function limit(name, syncFunction, minInterval) {
+    return function() {
+      var args = Array.prototype.slice.call(arguments);
+      var callback = args.slice(-1)[0];
+      var plainArgs = args;
+      if(typeof(callback) == 'function') {
+        plainArgs = args.slice(0, -1);
+      } else {
+        callback = null;
+      }
+      var now = new Date().getTime();
+      var cacheKey = [name, plainArgs];
+      var limitCache = getSetting('limitCache') || {};
+      if(limitCache[cacheKey] && limitCache[cacheKey] > (now - minInterval)) {
+        logger.debug('limit', name, '-> replay');
         if(callback) {
-          callback(errors.length > 0 ? errors : null);
-        } else {
-          logger.info('syncNow done');
+          callback();
         }
+      } else {
+        logger.debug('limit', name, '-> call through');
+        limitCache[cacheKey] = now;
+        setSetting('limitCache', limitCache);
+        syncFunction.apply(this, args);
       }
     }
-    logger.info('syncNow '+path);
-    setBusy(true);
-    syncOkNow = false;
-    pullNode(path, false, false, startOne, finishOne);
   }
 
-  sync = {
-    // Property: minPollInterval
-    // Minimal interval between syncNow calls.
-    // All calls that happen in between, immediately succeed
-    // (call their callbacks) without doing anything.
-    minPollInterval: 3000,
-    syncNow: syncNow,
-    fetchNow: fetchNow,
-    getState : getState,
+
+  events.on('error', function(error) {
+    logger.error("Error: ", error);
+  });
+
+  var limitedFullSync = limit('fullSync', fullSync, 30000);
+  var limitedPartialSync = limit('partialSync', partialSync, 30000);
+  
+  var sync = {
+
+    // Section: exported functions
+
+    // Method: fullSync
+    // <fullSync>, limited to act at max once every 30 seconds
+    fullSync: limitedFullSync,
+
+    forceSync: fullSync,
+    // Method: partialSync
+    // <partialSync>, limited to act at max once every 30 seconds per (path, depth) pair.
+    partialSync: limitedPartialSync,
+    // Method: fullPush
+    // <fullPush>
+    fullPush: fullPush,
+    // Method: syncOne
+    // <syncOne>
+    syncOne: syncOne,
+
+    // Method: getState
+    // <getState>
+    getState: getState,
+
+    // Method: on
+    // Install an event handler.
     on: events.on,
 
-    sleep: function() { syncOkNow = false; },
-    wakeup: function() { syncOkNow = true; }
+    // Method: clearSettings
+    // Clear all data from localStorage that this file put there.
+    clearSettings: clearSettings,
 
-  };
+    // Method: syncNow
+    // DEPRECATED. calls <fullSync>
+    syncNow: function(path, callback) {
+      util.deprecate('sync.syncNow', 'sync.fullSync');
+      this.fullSync(callback);
+    },
+    // Method: fetchNow
+    // DEPRECATED. calls <syncOne>
+    fetchNow: function(path, callback) {
+      util.deprecate('sync.fetchNow', 'sync.syncOne or sync.partialSync');
+      this.syncOne(path, callback);
+    },
+
+    // Method: disableThrottling
+    // Disable throttling of <fullSync>/<partialSync> for debugging purposes.
+    // Cannot be undone!
+    disableThrottling: function() {
+      sync.fullSync = fullSync;
+      sync.partialSync = partialSync;
+    }
+
+  }
 
   return sync;
 
+  /*
+    Section: Notes
+
+    Some example I made up to visualize some of the situations that can happen.
+
+    Legend:
+      L - has local modifications
+      R - has remote modifications
+      D - modification is a delete
+
+    Suppose a tree like this:
+
+      >    /
+      >    /messages/
+      >    /messages/pool/
+      >    /messages/pool/1
+      >    /messages/pool/2
+      > L  /messages/pool/3
+      > R  /messages/pool/4
+      >    /messages/index/read/true/1
+      > L  /messages/index/read/true/3
+      >    /messages/index/read/false/2
+      > LD /messages/index/read/false/3
+      > R  /messages/index/read/false/4
+
+
+    Now a sync cycle for /messages/ begins:
+
+      > GET /messages/
+      >   -> mark remote diff for pool/ and index/
+      > GET /messages/index/
+      >   -> mark local and remote diff for read/
+      > GET /messages/index/read/
+      >   -> mark remote diff for false/
+      > GET /messages/index/read/false/
+      >   -> mark remote diff for 4
+      > DELETE /messages/index/read/false/3
+      >   -> clear local diff for 3
+      > GET /messages/index/read/false/4
+      >   -> update local node 4
+      >   -> clear remote diff for 4
+      >   (pop back to /messages/index/read/)
+      >   -> clear remote and local diff for false/
+      > GET /messages/index/read/true/
+      > PUT /messages/index/read/true/3
+      >   -> clear local diff for 3
+      >   (pop back to /messages/index/read/)
+      >   -> clear local diff for true/)
+      >   (pop back to /messages/index/)
+      >   -> clear local and remote diff for read/
+      >   (pop back to /messages/)
+      > GET /messages/pool/
+      >   -> mark remote diff for 4
+      > PUT /messages/pool/3
+      >   -> clear local diff for 3
+      > GET /messages/pool/4
+      >   -> update local node 4
+      >   -> clear remote diff for 4
+      >   (pop back to /messages/)
+      >   -> clear local and remote diff for pool/
+      >   (pop back to /)
+      >   -> clear local and remote diff for messages/
+
+    Sync cycle all done.
+
+   */
+
 });
+
 
 define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util) {
 
@@ -2399,7 +3468,11 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     userAddress,
     authDialogStrategy = 'redirect',
     authPopupRef,
+    initialSync,
     scopesObj = {};
+
+  var widget;
+  var offlineReason;
 
   var events = util.getEventEmitter('state', 'ready');
 
@@ -2434,37 +3507,132 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     return widgetState;
   }
 
+  function buildWidget() {
+
+    function el(tag, id, attrs) {
+      var e = document.createElement(tag);
+      if(id) {
+        e.setAttribute('id', id);
+      }
+      if(attrs && attrs._content) {
+        e.innerHTML = attrs._content;
+        delete attrs._content;
+      }
+      for(var key in attrs) {
+        e.setAttribute(key, attrs[key]);
+      }
+      return e;
+    }
+
+    var widget = {
+      root: el('div', 'remotestorage-state'),
+      connectButton: el('input', 'remotestorage-connect-button', {
+        'class': 'remotestorage-button',
+        'type': 'submit',
+        'value': translate('connect')
+      }),
+      registerButton: el('span', 'remotestorage-register-button', {
+        'class': 'remotestorage-button',
+        '_content': translate('get remotestorage')
+      }),
+      cube: el('img', 'remotestorage-cube', {
+        'src': assets.remoteStorageCube
+      }),
+      bubble: el('span', 'remotestorage-bubble'),
+      helpHint: el('a', 'remotestorage-questionmark', {
+        'href': 'http://unhosted.org/#remotestorage',
+        'target': '_blank'
+      }),
+      helpText: el('span', 'remotestorage-infotext', {
+        'class': 'infotext',
+        '_content': 'This app allows you to use your own data storage!<br/>Click for more info on the Unhosted movement.'
+      }),
+      userAddress: el('input', 'remotestorage-useraddress', {
+        'placeholder': 'user@host'
+      }),
+
+      style: el('style')
+    };
+
+    widget.root.appendChild(widget.connectButton);
+    widget.root.appendChild(widget.registerButton);
+    widget.root.appendChild(widget.cube);
+    widget.root.appendChild(widget.bubble);
+    widget.root.appendChild(widget.helpHint);
+    widget.root.appendChild(widget.helpText);
+    widget.root.appendChild(widget.userAddress);
+
+    widget.style.innerHTML = assets.widgetCss;
+
+    return widget;
+  }
+
   function displayWidgetState(state, userAddress) {
     if(state === 'authing') {
       platform.alert("Authentication was aborted. Please try again.");
       return setWidgetState('typing')
     }
 
+    if(! widget) {
+      var root = document.getElementById(connectElement);
+      widget = buildWidget();
+
+      widget.registerButton.addEventListener('click', handleRegisterButtonClick);
+      widget.connectButton.addEventListener('click', handleConnectButtonClick);
+      widget.bubble.addEventListener('click', handleBubbleClick);
+      widget.cube.addEventListener('click', handleCubeClick);
+      widget.userAddress.addEventListener('keyup', handleWidgetTypeUserAddress);
+
+      root.appendChild(widget.style);
+      root.appendChild(widget.root);
+    }
+
+    widget.root.setAttribute('class', state);
+
+
     var userAddress = localStorage['remote_storage_widget_useraddress'] || '';
-    var html = 
-      '<style>'+assets.widgetCss+'</style>'
-      +'<div id="remotestorage-state" class="'+state+'">'
-      +'  <input id="remotestorage-connect-button" class="remotestorage-button" type="submit" value="'+translate('connect')+'"/>'//connect button
-      +'  <span id="remotestorage-register-button" class="remotestorage-button">'+translate('get remotestorage')+'</span>'//register
-      +'  <img id="remotestorage-cube" src="'+assets.remoteStorageCube+'"/>'//cube
-      +'  <span id="remotestorage-disconnect">Disconnect ' + (userAddress ? '<strong>'+userAddress+'</strong>' : '') + '</span>'//disconnect hover; should be immediately preceded by cube because of https://developer.mozilla.org/en/CSS/Adjacent_sibling_selectors:
-      +'  <a id="remotestorage-questionmark" href="http://unhosted.org/#remotestorage" target="_blank">?</a>'//question mark
-      +'  <span class="infotext" id="remotestorage-infotext">This app allows you to use your own data storage!<br/>Click for more info on the Unhosted movement.</span>'//info text
-      //+'  <input id="remotestorage-useraddress" type="text" placeholder="you@remotestorage" autofocus >'//text input
-      +'  <input id="remotestorage-useraddress" ' + (state == 'connecting' || state == 'authing' ? 'disabled="disabled" ' : '') + 'type="text" value="' + userAddress + '" placeholder="user@host" autofocus="" />'//text input
-      +'  <a class="infotext" href="http://remotestoragejs.com/" target="_blank" id="remotestorage-devsonly">RemoteStorageJs is still in developer preview!<br/>Click for more info.</a>'
-      +'</div>';
-    platform.setElementHTML(connectElement, html);
-    platform.eltOn('remotestorage-register-button', 'click', handleRegisterButtonClick);
-    platform.eltOn('remotestorage-connect-button', 'click', handleConnectButtonClick);
-    platform.eltOn('remotestorage-disconnect', 'click', handleDisconnectClick);
-    platform.eltOn('remotestorage-cube', 'click', handleCubeClick);
-    platform.eltOn('remotestorage-useraddress', 'type', handleWidgetTypeUserAddress);
+
+    if(userAddress) {
+      widget.userAddress.value = userAddress;
+      userAddress = '<strong>' + userAddress + '</strong>';
+    } else {
+      userAddress = '<strong>(n/a)</strong>';
+    }
+
+    var bubbleText = '';
+    var bubbleVisible = false;
+    if(initialSync) {
+      bubbleText = 'Connecting ' + userAddress;
+      bubbleVisible = true
+    } else if(state == 'connected') {
+      bubbleText = 'Disconnect ' + userAddress;
+    } else if(state == 'busy') {
+      bubbleText = 'Synchronizing ' + userAddress + '...';
+    } else if(state == 'offline') {
+      if(offlineReason == 'unauthorized') {
+        bubbleText = 'Access denied by remotestorage. Click to reconnect.';
+        bubbleVisible = true;
+      } else {
+        bubbleText = 'Offline (' + userAddress + ')';
+      }
+    }
+    
+    widget.bubble.innerHTML = bubbleText;
+
+    if(bubbleVisible) {
+      // always show cube & bubble while connecting or error
+      widget.cube.setAttribute('style', 'opacity:1');
+      widget.bubble.setAttribute('style', 'display:inline');
+    } else {
+      widget.cube.removeAttribute('style');
+      widget.bubble.removeAttribute('style');
+    }
 
     if(state === 'typing') {
-      document.getElementById('remotestorage-useraddress').focus();
+      widget.userAddress.focus();
     }
   }
+
   function handleRegisterButtonClick() {
     window.open(
       'http://unhosted.org/en/a/register.html',
@@ -2472,6 +3640,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       popupSettings
     );
   }
+
   function redirectUriToClientId(loc) {
     //TODO: add some serious unit testing to this function
     if(loc.substring(0, 'http://'.length) == 'http://') {
@@ -2534,7 +3703,8 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     window.close();
   }
 
-  function dance(endpoint) {
+  function dance() {
+    var endpoint = localStorage['remote_storage_widget_auth_endpoint'];
     var endPointParts = endpoint.split('?');
     var queryParams = [];
     if(endPointParts.length == 2) {
@@ -2615,15 +3785,16 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
         }
         setWidgetState('failed');
       } else {
-        dance(auth);
+        localStorage['remote_storage_widget_auth_endpoint'] = auth;
+        dance();
       }
     });
   }
 
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
-      userAddress = platform.getElementValue('remotestorage-useraddress');
-      localStorage['remote_storage_widget_useraddress']=userAddress;
+      userAddress = widget.userAddress.value;
+      localStorage['remote_storage_widget_useraddress'] = userAddress;
       setWidgetState('connecting');
       if(authDialogStrategy == 'popup') {
         prepareAuthPopup();
@@ -2633,23 +3804,30 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       setWidgetState('typing');
     }
   }
-  function handleDisconnectClick() {
-    sync.syncNow('/', function() {
-      wireClient.disconnectRemote();
-      store.forgetAll();
-      // trigger 'disconnected' once, so the app can clear it's views.
-      setWidgetState('disconnected', true);
-      setWidgetState('anonymous');
-    }, true);
+
+  function handleBubbleClick() {
+    if(widgetState == 'connected' || widgetState == 'busy') {
+      // DISCONNECT
+      sync.fullPush(function() {
+        wireClient.disconnectRemote();
+        store.forgetAll();
+        sync.clearSettings();
+        // trigger 'disconnected' once, so the app can clear it's views.
+        setWidgetState('disconnected', true);
+        setWidgetState('anonymous');
+      });
+    } else if(widgetState == 'offline' && offlineReason == 'unauthorized') {
+      dance();
+    }
   }
   function handleCubeClick() {
-    if(widgetState == 'connected') {
-     handleDisconnectClick();
+    if(widgetState == 'connected' || widgetState == 'connected') {
+      handleBubbleClick();
     }
   }
   function handleWidgetTypeUserAddress(event) {
     if(event.keyCode === 13) {
-      document.getElementById('remotestorage-connect-button').click();
+      widget.connectButton.click();
     }
   }
   function handleWidgetHover() {
@@ -2657,15 +3835,16 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   }
 
   function nowConnected() {
+    console.log("NOW CONNECTED");
     setWidgetState('connected');
+    initialSync = true;
     store.fireInitialEvents();
-    sync.syncNow('/', function(err) {
-      if(err) {
-        logger.error("Initial sync failed: ", err)
-      } else {
-        events.emit('ready');
-      }
-    }, true);
+    sync.forceSync(function() {
+      logger.info("Initial sync done.");
+      initialSync = false;
+      setWidgetState(getWidgetState());
+      events.emit('ready');
+    });
   }
 
   function display(setConnectElement, options) {
@@ -2677,9 +3856,21 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       options = {};
     }
 
+    sync.on('error', function(error) {
+      if(error.message == 'unauthorized') {
+        offlineReason = 'unauthorized';
+        if(initialSync) {
+          // abort initial sync
+          initialSync = false;
+          events.emit('ready');
+        }
+        setWidgetState('offline');
+      }
+    });
+
     connectElement = setConnectElement;
 
-    if(wireClient.getState() == 'connected') {
+    if(wireClient.calcState() == 'connected') {
       nowConnected();
     } else {
       wireClient.on('connected', nowConnected);
@@ -2708,7 +3899,8 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       wireClient.setStorageInfo((storageApiHarvested ? storageApiHarvested : '2012.04'), storageRootHarvested);
     }
     if(authorizeEndpointHarvested) {
-      dance(authorizeEndpointHarvested);
+      localStorage['remote_storage_widget_auth_endpoint'] = authorizeEndpointHarvested;
+      dance();
     }
 
     setWidgetStateOnLoad();
@@ -2717,8 +3909,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       window.onkeydown = function(evt) {
         if(evt.ctrlKey && evt.which == 83) {
           evt.preventDefault();
-          logger.info("CTRL+S - SYNCING");
-          sync.syncNow('/', function(errors) {});
+          sync.fullSync();
           return false;
         }
       }
@@ -2738,494 +3929,6 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     getState: getWidgetState,
     on: events.on
   };
-});
-
-/* -*- js-indent-level:2 -*- */
-
-define('lib/baseClient',['./sync', './store', './util'], function (sync, store, util) {
-
-  
-
-  var logger = util.getLogger('baseClient');
-  var moduleEvents = {};
-
-  function extractModuleName(path) {
-    if (path && typeof(path) == 'string') {
-      var parts = path.split('/');
-      if(parts.length > 3 && parts[1] == 'public') {
-        return parts[2];
-      } else if(parts.length > 2){
-        return parts[1];
-      }
-    }
-  }
-
-  function fireChange(moduleName, eventObj) {
-    if(moduleEvents[moduleName]) {
-
-      if(moduleName !== 'root') {
-        eventObj.relativePath = eventObj.path.replace(new RegExp('^/(?:public/|)' + moduleName + '/'), '');
-      }
-
-      moduleEvents[moduleName].emit('change', eventObj);
-    }
-  }
-
-  store.on('change', function(e) {
-    var moduleName = extractModuleName(e.path);
-    fireChange(moduleName, e);//remote-based changes get fired from the store.
-    fireChange('root', e);//root module gets everything
-  });
-
-  function set(path, absPath, value) {
-    var moduleName = extractModuleName(absPath);
-    if(util.isDir(absPath)) {
-      moduleEvents[moduleName].emit('error', 'attempt to set a value to a directory '+absPath);
-      return;
-    }
-    var changeEvent = {
-      origin: 'window',
-      oldValue: store.getNodeData(absPath),
-      newValue: value,
-      path: path
-    };
-    store.setNodeData(absPath, value, true);
-    fireChange(moduleName, changeEvent);
-    fireChange('root', changeEvent);
-  }
-
-  var BaseClient = function(moduleName, isPublic) {
-    this.moduleName = moduleName, this.isPublic = isPublic;
-    moduleEvents[moduleName] = util.getEventEmitter('change', 'error');
-    util.bindAll(this);
-  }
-
-  // Class: BaseClient
-  //
-  // A BaseClient allows you to get, set or remove data. It is the basic
-  // interface for building "modules".
-  //
-  // See <remoteStorage.defineModule> for details.
-  //
-  BaseClient.prototype = {
-
-    // Event: error
-    //
-    // Fired when an error occurs.
-    //
-    // The event object is either a string or an array of error messages.
-    //
-    // Example:
-    //   > client.on('error', function(err) {
-    //   >   console.error('something went wrong:', err);
-    //   > });
-    //
-    //
-    // Event: change
-    //
-    // Fired when data concerning this module is updated.
-    //
-    // Properties:
-    //   path         - path to the node that changed
-    //   newValue     - new value of the node. if the node has been removed, this is undefined.
-    //   oldValue     - previous value of the node. if the node has been newly created, this is undefined.
-    //   origin       - either "tab", "device" or "remote". Elaborated below.
-    //   relativePath - path relative to the module root (*not* present in the root module. Use path there instead)
-    //
-    // Change origins:
-    //   Change events can come from different origins. In order for your app to
-    //   update it's state appropriately, every change event knows about it's origin.
-    //
-    //   The following origins are defined,
-    //
-    //   window - this event was generated from the same *browser tab* or window that received the event
-    //   device - this event was generated from the same *app*, but a differnent tab or window
-    //   remote - this event came from the *remotestorage server*. that means another app or the same app on another device caused the event.
-    //
-    // Example:
-    //   > client.on('change', function(event) {
-    //   >   if(event.newValue && event.oldValue) {
-    //   >     console.log(event.origin + ' updated ' + event.path + ':', event.oldValue, '->', event.newValue);
-    //   >   } else if(event.newValue) {
-    //   >     console.log(event.origin + ' created ' + event.path + ':', undefined, '->', event.newValue);
-    //   >   } else {
-    //   >     console.log(event.origin + ' removed ' + event.path + ':', event.oldValue, '->', undefined);
-    //   >   }
-    //   > });
-    //   
-
-    makePath: function(path) {
-      if(this.moduleName == 'root') {
-        return path[0] === '/' ? path : ('/' + path);
-      }
-      return (this.isPublic?'/public/':'/')+this.moduleName+'/'+path;
-    },
-
-    nodeGivesAccess: function(path, mode) {
-      var node = store.getNode(path);
-      logger.debug("check node access", path, mode, node);
-      var access = (new RegExp(mode)).test(node.startAccess);
-      if(access) {
-        return true
-      } else if(path.length > 0) {
-        return this.nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''))
-      }
-    },
-
-    ensureAccess: function(mode) {
-      var path = this.makePath(this.moduleName == 'root' ? '/' : '');
-
-      if(! this.nodeGivesAccess(path, mode)) {
-        throw "Not sufficient access claimed for node at " + path;
-      }
-    },
-
-
-    //  
-    // Method: on
-    //  
-    // Install an event handler for the given type.
-    // 
-    // Parameters:
-    //   eventType - type of event, either "change" or "error"
-    //   handler   - event handler function
-    //   context   - (optional) context to bind handler to
-    //  
-    on: function(eventType, handler, context) {
-      moduleEvents[this.moduleName].on(eventType, util.bindContext(handler, context));
-    },
-
-    //
-    // Method: getObject
-    //
-    // Get a JSON object from given path.
-    //
-    // Parameters:
-    //   path     - relative path from the module root (without leading slash)
-    //   callback - (optional) callback, see below
-    //   context  - context for callback.
-    //
-    // Sync vs. async:
-    //
-    //   getObject can be called with or without a callback. When the callback is
-    //   omitted, an object is returned immediately, from local cache.
-    //   If on the other hand a callback is given, this forces a synchronization
-    //   with remotestorage and calls the callback once that synchronization has
-    //   happened.
-    //
-    // When do I use what?:
-    //
-    //   It very much depends on your circumstances, but roughly put,
-    //   * if you are interested in a whole *branch* of objects, then force
-    //     synchronization on the root of that branch using <BaseClient.use>,
-    //     and after that use getObject *without* a callback to get your data from
-    //     local cache.
-    //   * if you only want to access a *single object* without syncing an entire
-    //     branch, use the *asynchronous* variant. That way you only cause that
-    //     particular object to be synchronized.
-    //   * another reason to use the *asynchronous* call sequence would be, if you
-    //     want to be very sure, that the local version of a certain object is
-    //     *up-to-date*, when you retrieve it, without triggering a full-blown sync
-    //     cycle.
-    //
-    // Returns:
-    //   undefined              - When called with a callback
-    //   an object or undefined - when called without a callback
-    //
-    getObject: function(path, callback, context) {
-      this.ensureAccess('r');
-      var absPath = this.makePath(path);
-      if(callback) {
-        sync.fetchNow(absPath, function(err, node) {
-          var data = store.getNodeData(absPath);
-          if(data && (typeof(data) == 'object')) {
-            delete data['@type'];
-          }
-          util.bindContext(callback, context)(data);
-        });
-      } else {
-        var node = store.getNode(absPath);
-        var data = store.getNodeData(absPath);
-        if(data && (typeof(data) == 'object')) {
-          delete data['@type'];
-        }
-        return data;
-      }
-    },
-
-    //
-    // Method: getListing
-    //
-    // Get a list of child nodes below a given path.
-    //
-    // The callback semantics of getListing are identical to those of getObject.
-    //
-    // Parameters:
-    //   path     - The path to query. It MUST end with a forward slash.
-    //   callback - see getObject
-    //   context  - see getObject
-    //
-    // Returns:
-    //   An Array of keys, representing child nodes.
-    //   Those keys ending in a forward slash, represent *directory nodes*, all
-    //   other keys represent *data nodes*.
-    //
-    getListing: function(path, callback, context) {
-      this.ensureAccess('r');
-      var absPath = this.makePath(path);
-      if(callback) {
-        sync.fetchNow(absPath, function(err, node) {
-          var data = store.getNodeData(absPath);
-          var arr = [];
-          for(var i in data) {
-            arr.push(i);
-          }
-          util.bindContext(callback, context)(arr);
-        });
-      } else {
-        var node = store.getNode(absPath);
-        var data = store.getNodeData(absPath);
-        var arr = [];
-        for(var i in data) {
-          arr.push(i);
-        }
-        return arr;
-      }
-    },
-
-    //
-    // Method: getAll
-    //
-    // Get all objects directly below a given path.
-    //
-    // Receives the same parameters as <getListing>
-    //
-    // Returns an object in the form { path : object, ... }
-    //
-    getAll: function(path, callback, context) {
-      var makeMap = function(listing) {
-        var o = {};
-        listing.forEach(function(item) {
-          o[path + item] = this.getObject(path + item);
-        }, this);
-        return o;
-      }.bind(this);
-      if(callback) {
-        this.getListing(path, function(listing) {
-          util.bindContext(callback, context)(makeMap(listing));
-        }, this);
-      } else {
-        return makeMap(this.getListing(path));
-      }
-    },
-
-    //
-    // Method: getDocument
-    //
-    // Get the document at the given path. A Document is raw data, as opposed to
-    // a JSON object (use <getObject> for that).
-    //
-    // Except for the return value structure, getDocument works exactly like
-    // getObject.
-    //
-    // Parameters:
-    //   path     - see getObject
-    //   callback - see getObject
-    //   context  - see getObject
-    //
-    // Returns:
-    //   An object,
-    //   mimeType - String representing the MIME Type of the document.
-    //   data     - Raw data of the document.
-    //
-    getDocument: function(path, callback, context) {
-      this.ensureAccess('r');
-      var absPath = this.makePath(path);
-      if(callback) {
-        sync.fetchNow(absPath, function(err, node) {
-          util.bindContext(callback, context)({
-            mimeType: node.mimeType,
-            data: store.getNodeData(absPath)
-          });
-        });
-      } else {
-        var node = store.getNode(absPath);
-        return {
-          mimeType: node.mimeType,
-          data: store.getNodeData(absPath)
-        };
-      }
-    },
-
-
-    //
-    // Method: remove
-    //
-    // Remove node at given path from storage. Triggers synchronization.
-    //
-    // Parameters:
-    //   path     - Path relative to the module root.
-    //   callback - (optional) passed on to <syncNow>
-    //   context  - (optional) passed on to <syncNow>
-    //
-    remove: function(path, callback, context) {
-      this.ensureAccess('w');
-      set(path, this.makePath(path), undefined);
-      this.syncNow(util.containingDir(path), callback, context);
-    },
-
-    //
-    // Method: storeObject
-    //
-    // Store object at given path. Triggers synchronization.
-    //
-    // Parameters:
-    //
-    //   type     - unique type of this object within this module. See description below.
-    //   path     - path relative to the module root.
-    //   object   - an object to be saved to the given node. It must be serializable as JSON.
-    //   callback - (optional) passed on to <syncNow>
-    //   context  - (optional) passed on to <syncNow>
-    //
-    // What about the type?:
-    //
-    //   A great thing about having data on the web, is to be able to link to
-    //   it and rearrange it to fit the current circumstances. To facilitate
-    //   that, eventually you need to know how the data at hand is structured.
-    //   For documents on the web, this is usually done via a MIME type. The
-    //   MIME type of JSON objects however, is always application/json.
-    //   To add that extra layer of "knowing what this object is", remotestorage
-    //   aims to use <JSON-LD at http://json-ld.org/>.
-    //   A first step in that direction, is to add a *@type attribute* to all
-    //   JSON data put into remotestorage.
-    //   Now that is what the *type* is for. 
-    //   
-    //   Within remoteStorage.js, @type values are built using three components:
-    //     https://remotestoragejs.com/spec/modules/ - A prefix to guarantee unqiueness
-    //     the module name     - module names should be unique as well
-    //     the type given here - naming this particular kind of object within this module
-    //
-    //   In retrospect that means, that whenever you introduce a new "type" in calls to
-    //   storeObject, you should make sure that once your code is in the wild, future
-    //   versions of the code are compatible with the same JSON structure.
-    //
-    // 
-    storeObject: function(type, path, obj, callback, context) {
-      this.ensureAccess('w');
-      if(typeof(obj) !== 'object') {
-        throw "storeObject needs to get an object as value!"
-      }
-      obj['@type'] = 'https://remotestoragejs.com/spec/modules/'+this.moduleName+'/'+type;
-      set(path, this.makePath(path), obj, 'application/json');
-      var parentPath = util.containingDir(path);
-      this.use(parentPath);
-      this.syncNow(parentPath, callback, context);
-    },
-
-    //
-    // Method: storeDocument
-    //
-    // Store raw data at a given path. Triggers synchronization.
-    //
-    // Parameters:
-    //   mimeType - MIME media type of the data being stored
-    //   path     - path relative to the module root. MAY NOT end in a forward slash.
-    //   data     - string of raw data to store
-    //   callback - (optional) passed to <syncNow>
-    //   context  - (optional) passed to <syncNow>
-    //
-    // The given mimeType will later be returned, when retrieving the data
-    // using getDocument.
-    //
-    storeDocument: function(mimeType, path, data, callback, context) {
-      this.ensureAccess('w');
-      set(path, this.makePath(path), data, mimeType);
-      this.syncNow(path, callback, context);
-    },
-
-    //
-    // Method: getItemURL
-    //
-    // Get the full URL of the item at given path. This will only
-    // work, if the user is connected to a remotestorage account.
-    //
-    // Parameter:
-    //   path - path relative to the module root
-    //
-    // Returns:
-    //   a String - when currently connected
-    //   null - when currently disconnected
-    getItemURL: function(path) {
-      var base = remoteStorage.getStorageHref();
-      if(! base) {
-        return null;
-      }
-      if(base.substr(-1) != '/') {
-        base = base + '/';
-      }
-      return base + this.makePath(path);
-    },
-
-    //
-    // Method: use
-    //
-    // Force given path to be synchronized in the future.
-    //
-    // In order for a given path to be synchronized with remotestorage by
-    // <syncNow>, it has to be marked as "interesting". This is done via the
-    // *force* flag. Forcing sync on a directory causes the entire branch
-    // to be considered "forced".
-    //
-    // Parameters:
-    //   path      - path relative to the module root
-    //   switchVal - optional boolean flag to set force value. Use "false" to remove the force flag.
-    //
-    use: function(path, switchVal) {
-      var absPath = this.makePath(path);
-      store.setNodeForce(absPath, (switchVal != false));
-    },
-
-    sync: function() {
-      util.deprecate('BaseClient.sync', 'BaseClient.use');
-      this.use.apply(this, arguments);
-    },
-
-    //
-    // Method: syncNow
-    //
-    // Start synchronization at given path.
-    //
-    // Note that only those nodes will be synchronized, that have a *force* flag
-    // set. Use <BaseClient.sync> to set the force flag on a node.
-    //
-    // Parameters:
-    //   path     - relative path from the module root. 
-    //   callback - (optional) callback to call once synchronization finishes.
-    //   context  - (optional) context to bind callback to.
-    //
-    syncNow: function(path, callback, context) {
-      sync.syncNow(
-        this.makePath(path),
-        ( callback ?
-          util.bindContext(callback, context) :
-          util.bindContext(function(errors) {
-            if(errors && errors.length > 0) {
-              if(! (errors.length == 1 && errors[0] == 'not connected')) {
-                logger.error("Error syncing: ", errors);
-              }
-              moduleEvents[this.moduleName].emit('error', errors);
-            }
-          }, this) )
-      );
-    },
-
-    deactivateSync: function() { sync.sleep(); },
-    activateSync: function() { sync.wakeup(); }
-    
-  };
-
-  return BaseClient;
-
 });
 
 
@@ -3307,16 +4010,1067 @@ define('lib/nodeConnect',['./wireClient', './webfinger'], function(wireClient, w
   }
 
 });
+/**
+ * JSONSchema Validator - Validates JavaScript objects using JSON Schemas
+ *	(http://www.json.com/json-schema-proposal/)
+ *
+ * Copyright (c) 2007 Kris Zyp SitePen (www.sitepen.com)
+ * Licensed under the MIT (MIT-LICENSE.txt) license.
+To use the validator call the validate function with an instance object and an optional schema object.
+If a schema is provided, it will be used to validate. If the instance object refers to a schema (self-validating),
+that schema will be used to validate and the schema parameter is not necessary (if both exist,
+both validations will occur).
+The validate method will return an array of validation errors. If there are no errors, then an
+empty list will be returned. A validation error will have two properties:
+"property" which indicates which property had the error
+"message" which indicates what the error was
+ */
+//({define:typeof define!="undefined"?define:function(deps, factory){module.exports = factory();}}).
+define('lib/validate',[], function(){
+var exports = validate;
+// setup primitive classes to be JSON Schema types
+exports.Integer = {type:"integer"};
+var primitiveConstructors = {
+	String: String,
+	Boolean: Boolean,
+	Number: Number,
+	Object: Object,
+	Array: Array,
+	Date: Date
+}
+exports.validate = validate;
+function validate(/*Any*/instance,/*Object*/schema) {
+		// Summary:
+		//  	To use the validator call JSONSchema.validate with an instance object and an optional schema object.
+		// 		If a schema is provided, it will be used to validate. If the instance object refers to a schema (self-validating),
+		// 		that schema will be used to validate and the schema parameter is not necessary (if both exist,
+		// 		both validations will occur).
+		// 		The validate method will return an object with two properties:
+		// 			valid: A boolean indicating if the instance is valid by the schema
+		// 			errors: An array of validation errors. If there are no errors, then an
+		// 					empty list will be returned. A validation error will have two properties:
+		// 						property: which indicates which property had the error
+		// 						message: which indicates what the error was
+		//
+		return validate(instance, schema, {changing: false});//, coerce: false, existingOnly: false});
+	};
+exports.checkPropertyChange = function(/*Any*/value,/*Object*/schema, /*String*/property) {
+		// Summary:
+		// 		The checkPropertyChange method will check to see if an value can legally be in property with the given schema
+		// 		This is slightly different than the validate method in that it will fail if the schema is readonly and it will
+		// 		not check for self-validation, it is assumed that the passed in value is already internally valid.
+		// 		The checkPropertyChange method will return the same object type as validate, see JSONSchema.validate for
+		// 		information.
+		//
+		return validate(value, schema, {changing: property || "property"});
+	};
+var validate = exports._validate = function(/*Any*/instance,/*Object*/schema,/*Object*/options) {
+
+	if (!options) options = {};
+	var _changing = options.changing;
+
+	function getType(schema){
+		return schema.type || (primitiveConstructors[schema.name] == schema && schema.name.toLowerCase());
+	}
+	var errors = [];
+	// validate a value against a property definition
+	function checkProp(value, schema, path,i){
+
+		var l;
+		path += path ? typeof i == 'number' ? '[' + i + ']' : typeof i == 'undefined' ? '' : '.' + i : i;
+		function addError(message){
+			errors.push({property:path,message:message});
+		}
+
+		if((typeof schema != 'object' || schema instanceof Array) && (path || typeof schema != 'function') && !(schema && getType(schema))){
+			if(typeof schema == 'function'){
+				if(!(value instanceof schema)){
+					addError("is not an instance of the class/constructor " + schema.name);
+				}
+			}else if(schema){
+				addError("Invalid schema/property definition " + schema);
+			}
+			return null;
+		}
+		if(_changing && schema.readonly){
+			addError("is a readonly field, it can not be changed");
+		}
+		if(schema['extends']){ // if it extends another schema, it must pass that schema as well
+			checkProp(value,schema['extends'],path,i);
+		}
+		// validate a value against a type definition
+		function checkType(type,value){
+			if(type){
+				if(typeof type == 'string' && type != 'any' &&
+						(type == 'null' ? value !== null : typeof value != type) &&
+						!(value instanceof Array && type == 'array') &&
+						!(value instanceof Date && type == 'date') &&
+						!(type == 'integer' && value%1===0)){
+					return [{property:path,message:(typeof value) + " value found, but a " + type + " is required"}];
+				}
+				if(type instanceof Array){
+					var unionErrors=[];
+					for(var j = 0; j < type.length; j++){ // a union type
+						if(!(unionErrors=checkType(type[j],value)).length){
+							break;
+						}
+					}
+					if(unionErrors.length){
+						return unionErrors;
+					}
+				}else if(typeof type == 'object'){
+					var priorErrors = errors;
+					errors = [];
+					checkProp(value,type,path);
+					var theseErrors = errors;
+					errors = priorErrors;
+					return theseErrors;
+				}
+			}
+			return [];
+		}
+		if(value === undefined){
+			if(schema.required){
+				addError("is missing and it is required");
+			}
+		}else{
+			errors = errors.concat(checkType(getType(schema),value));
+			if(schema.disallow && !checkType(schema.disallow,value).length){
+				addError(" disallowed value was matched");
+			}
+			if(value !== null){
+				if(value instanceof Array){
+					if(schema.items){
+						var itemsIsArray = schema.items instanceof Array;
+						var propDef = schema.items;
+						for (i = 0, l = value.length; i < l; i += 1) {
+							if (itemsIsArray)
+								propDef = schema.items[i];
+							if (options.coerce)
+								value[i] = options.coerce(value[i], propDef);
+							errors.concat(checkProp(value[i],propDef,path,i));
+						}
+					}
+					if(schema.minItems && value.length < schema.minItems){
+						addError("There must be a minimum of " + schema.minItems + " in the array");
+					}
+					if(schema.maxItems && value.length > schema.maxItems){
+						addError("There must be a maximum of " + schema.maxItems + " in the array");
+					}
+				}else if(schema.properties || schema.additionalProperties){
+					errors.concat(checkObj(value, schema.properties, path, schema.additionalProperties));
+				}
+				if(schema.pattern && typeof value == 'string' && !value.match(schema.pattern)){
+					addError("does not match the regex pattern " + schema.pattern);
+				}
+				if(schema.maxLength && typeof value == 'string' && value.length > schema.maxLength){
+					addError("may only be " + schema.maxLength + " characters long");
+				}
+				if(schema.minLength && typeof value == 'string' && value.length < schema.minLength){
+					addError("must be at least " + schema.minLength + " characters long");
+				}
+				if(typeof schema.minimum !== undefined && typeof value == typeof schema.minimum &&
+						schema.minimum > value){
+					addError("must have a minimum value of " + schema.minimum);
+				}
+				if(typeof schema.maximum !== undefined && typeof value == typeof schema.maximum &&
+						schema.maximum < value){
+					addError("must have a maximum value of " + schema.maximum);
+				}
+				if(schema['enum']){
+					var enumer = schema['enum'];
+					l = enumer.length;
+					var found;
+					for(var j = 0; j < l; j++){
+						if(enumer[j]===value){
+							found=1;
+							break;
+						}
+					}
+					if(!found){
+						addError("does not have a value in the enumeration " + enumer.join(", "));
+					}
+				}
+				if(typeof schema.maxDecimal == 'number' &&
+					(value.toString().match(new RegExp("\\.[0-9]{" + (schema.maxDecimal + 1) + ",}")))){
+					addError("may only have " + schema.maxDecimal + " digits of decimal places");
+				}
+			}
+		}
+		return null;
+	}
+	// validate an object against a schema
+	function checkObj(instance,objTypeDef,path,additionalProp){
+
+		if(typeof objTypeDef =='object'){
+			if(typeof instance != 'object' || instance instanceof Array){
+				errors.push({property:path,message:"an object is required"});
+			}
+			
+			for(var i in objTypeDef){ 
+				if(objTypeDef.hasOwnProperty(i)){
+					var value = instance[i];
+					// skip _not_ specified properties
+					if (value === undefined && options.existingOnly) continue;
+					var propDef = objTypeDef[i];
+					// set default
+					if(value === undefined && propDef["default"]){
+						value = instance[i] = propDef["default"];
+					}
+					if(options.coerce && i in instance){
+						value = instance[i] = options.coerce(value, propDef);
+					}
+					checkProp(value,propDef,path,i);
+				}
+			}
+		}
+		for(i in instance){
+			if(instance.hasOwnProperty(i) && !(i.charAt(0) == '_' && i.charAt(1) == '_') && objTypeDef && !objTypeDef[i] && additionalProp===false){
+				if (options.filter) {
+					delete instance[i];
+					continue;
+				} else {
+					errors.push({property:path,message:(typeof value) + "The property " + i +
+						" is not defined in the schema and the schema does not allow additional properties"});
+				}
+			}
+			var requires = objTypeDef && objTypeDef[i] && objTypeDef[i].requires;
+			if(requires && !(requires in instance)){
+				errors.push({property:path,message:"the presence of the property " + i + " requires that " + requires + " also be present"});
+			}
+			value = instance[i];
+			if(additionalProp && (!(objTypeDef && typeof objTypeDef == 'object') || !(i in objTypeDef))){
+				if(options.coerce){
+					value = instance[i] = options.coerce(value, additionalProp);
+				}
+				checkProp(value,additionalProp,path,i);
+			}
+			if(!_changing && value && value.$schema){
+				errors = errors.concat(checkProp(value,value.$schema,path,i));
+			}
+		}
+		return errors;
+	}
+	if(schema){
+		checkProp(instance,schema,'',_changing || '');
+	}
+	if(!_changing && instance && instance.$schema){
+		checkProp(instance,instance.$schema,'','');
+	}
+	return {valid:!errors.length,errors:errors};
+};
+exports.mustBeValid = function(result){
+	//	summary:
+	//		This checks to ensure that the result is valid and will throw an appropriate error message if it is not
+	// result: the result returned from checkPropertyChange or validate
+	if(!result.valid){
+		throw new TypeError(result.errors.map(function(error){return "for property " + error.property + ': ' + error.message;}).join(", \n"));
+	}
+}
+
+return exports;
+});
+
+define('lib/baseClient',['./sync', './store', './util', './validate'], function (sync, store, util, validate) {
+
+  
+
+  var logger = util.getLogger('baseClient');
+  var moduleEvents = {};
+
+  function extractModuleName(path) {
+    if (path && typeof(path) == 'string') {
+      var parts = path.split('/');
+      if(parts.length > 3 && parts[1] == 'public') {
+        return parts[2];
+      } else if(parts.length > 2){
+        return parts[1];
+      }
+    }
+  }
+
+  var isPublicRE = /^\/public\//;
+
+  function fireModuleEvent(eventName, moduleName, eventObj) {
+    var isPublic = isPublicRE.test(eventObj.path);
+    var events;
+    if(moduleEvents[moduleName] &&
+       (events = moduleEvents[moduleName][isPublic])) {
+
+      if(moduleName !== 'root' && eventObj.path) {
+        eventObj.relativePath = eventObj.path.replace(
+          (isPublic ? '/public/' : '/') + moduleName + '/', ''
+        );
+      }
+
+      events.emit(eventName, eventObj);
+    }
+  }
+
+  function fireError(absPath, error) {
+    var isPublic = isPublicRE.test(absPath);
+    moduleEvents[moduleName][isPublic].emit('error', error);
+  }
+
+  store.on('change', function(event) {
+    var moduleName = extractModuleName(event.path);
+    // remote-based changes get fired from the store.
+    fireModuleEvent('change', moduleName, event);
+    // root module gets everything
+    fireModuleEvent('change', 'root', event);
+  });
+
+  sync.on('conflict', function(event) {
+    var moduleName = extractModuleName(event.path);
+    fireModuleEvent('conflict', moduleName, event);
+    fireModuleEvent('conflict', 'root', event);
+  });
+
+  function set(path, absPath, value) {
+    var moduleName = extractModuleName(absPath);
+    if(util.isDir(absPath)) {
+      fireError(absPath, 'attempt to set a value to a directory '+absPath);
+      return;
+    }
+    var changeEvent = {
+      origin: 'window',
+      oldValue: store.getNodeData(absPath),
+      newValue: value,
+      path: absPath
+    };
+    store.setNodeData(absPath, value, true);
+    fireModuleEvent('change', moduleName, changeEvent);
+    fireModuleEvent('change', 'root', changeEvent);
+  }
+
+  var BaseClient = function(moduleName, isPublic) {
+    this.moduleName = moduleName, this.isPublic = isPublic;
+    if(! moduleEvents[moduleName]) {
+      moduleEvents[moduleName] = {};
+    }
+    this.events = util.getEventEmitter('change', 'conflict', 'error');
+    moduleEvents[moduleName][isPublic] = this.events;
+    util.bindAll(this);
+  }
+
+  // Class: BaseClient
+  //
+  // A BaseClient allows you to get, set or remove data. It is the basic
+  // interface for building "modules".
+  //
+  // See <remoteStorage.defineModule> for details.
+  //
+  BaseClient.prototype = {
+
+    // Event: error
+    //
+    // Fired when an error occurs.
+    //
+    // The event object is either a string or an array of error messages.
+    //
+    // Example:
+    //   > client.on('error', function(err) {
+    //   >   console.error('something went wrong:', err);
+    //   > });
+    //
+    //
+    // Event: change
+    //
+    // Fired when data concerning this module is updated.
+    //
+    // Properties:
+    //   path         - path to the node that changed
+    //   newValue     - new value of the node. if the node has been removed, this is undefined.
+    //   oldValue     - previous value of the node. if the node has been newly created, this is undefined.
+    //   origin       - either "tab", "device" or "remote". Elaborated below.
+    //   relativePath - path relative to the module root (*not* present in the root module. Use path there instead)
+    //
+    // Change origins:
+    //   Change events can come from different origins. In order for your app to
+    //   update it's state appropriately, every change event knows about it's origin.
+    //
+    //   The following origins are defined,
+    //
+    //   window - this event was generated from the same *browser tab* or window that received the event
+    //   device - this event was generated from the same *app*, but a differnent tab or window
+    //   remote - this event came from the *remotestorage server*. that means another app or the same app on another device caused the event.
+    //
+    // Example:
+    //   > client.on('change', function(event) {
+    //   >   if(event.newValue && event.oldValue) {
+    //   >     console.log(event.origin + ' updated ' + event.path + ':', event.oldValue, '->', event.newValue);
+    //   >   } else if(event.newValue) {
+    //   >     console.log(event.origin + ' created ' + event.path + ':', undefined, '->', event.newValue);
+    //   >   } else {
+    //   >     console.log(event.origin + ' removed ' + event.path + ':', event.oldValue, '->', undefined);
+    //   >   }
+    //   > });
+    //   
+
+    makePath: function(path) {
+      var base = (this.moduleName == 'root' ?
+                  (path[0] === '/' ? '' : '/') :
+                  '/' + this.moduleName + '/');
+      return (this.isPublic ? '/public' + base : base) + path;
+    },
+
+    nodeGivesAccess: function(path, mode) {
+      var node = store.getNode(path);
+      var access = (new RegExp(mode)).test(node.startAccess);
+      if(access) {
+        return true
+      } else if(path.length > 0) {
+        return this.nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''))
+      }
+    },
+
+    ensureAccess: function(mode) {
+      var path = this.makePath(this.moduleName == 'root' ? '/' : '');
+
+      if(! this.nodeGivesAccess(path, mode)) {
+        throw "Not sufficient access claimed for node at " + path;
+      }
+    },
+
+    lastUpdateOf: function(path) {
+      var absPath = this.makePath(path);
+      var node = store.getNode(absPath);
+      return node ? node.timestamp : null;
+    },
+
+    //  
+    // Method: on
+    //  
+    // Install an event handler for the given type.
+    // 
+    // Parameters:
+    //   eventType - type of event, either "change" or "error"
+    //   handler   - event handler function
+    //   context   - (optional) context to bind handler to
+    //  
+    on: function(eventType, handler, context) {
+      this.events.on(eventType, util.bind(handler, context));
+    },
+
+    //
+    // Method: getObject
+    //
+    // Get a JSON object from given path.
+    //
+    // Parameters:
+    //   path     - relative path from the module root (without leading slash)
+    //   callback - (optional) callback, see below
+    //   context  - context for callback.
+    //
+    // Sync vs. async:
+    //
+    //   getObject can be called with or without a callback. When the callback is
+    //   omitted, an object is returned immediately, from local cache.
+    //   If on the other hand a callback is given, this forces a synchronization
+    //   with remotestorage and calls the callback once that synchronization has
+    //   happened.
+    //
+    // When do I use what?:
+    //
+    //   It very much depends on your circumstances, but roughly put,
+    //   * if you are interested in a whole *branch* of objects, then force
+    //     synchronization on the root of that branch using <BaseClient.use>,
+    //     and after that use getObject *without* a callback to get your data from
+    //     local cache.
+    //   * if you only want to access a *single object* without syncing an entire
+    //     branch, use the *asynchronous* variant. That way you only cause that
+    //     particular object to be synchronized.
+    //   * another reason to use the *asynchronous* call sequence would be, if you
+    //     want to be very sure, that the local version of a certain object is
+    //     *up-to-date*, when you retrieve it, without triggering a full-blown sync
+    //     cycle.
+    //
+    // Returns:
+    //   undefined              - When called with a callback
+    //   an object or undefined - when called without a callback
+    //
+    getObject: function(path, callback, context) {
+      this.ensureAccess('r');
+      var absPath = this.makePath(path);
+      var data = store.getNodeData(absPath);
+
+      if(callback) {
+        var cb = util.bind(callback, context);
+        if(data && !(typeof(data) == 'object' && Object.keys(data).length == 0)) {
+          cb(data);
+        } else {
+          sync.syncOne(absPath, function(node, data) {
+            cb(data);
+          });
+        }
+      } else {
+        return data;
+      }
+    },
+
+    //
+    // Method: getListing
+    //
+    // Get a list of child nodes below a given path.
+    //
+    // The callback semantics of getListing are identical to those of getObject.
+    //
+    // Parameters:
+    //   path     - The path to query. It MUST end with a forward slash.
+    //   callback - see getObject
+    //   context  - see getObject
+    //
+    // Returns:
+    //   An Array of keys, representing child nodes.
+    //   Those keys ending in a forward slash, represent *directory nodes*, all
+    //   other keys represent *data nodes*.
+    //
+    getListing: function(path, callback, context) {
+      this.ensureAccess('r');
+      var absPath = this.makePath(path);
+      if(callback) {
+        sync.fetchNow(absPath, function(err, node) {
+          var data = store.getNodeData(absPath);
+          var arr = [];
+          for(var i in data) {
+            arr.push(i);
+          }
+          util.bind(callback, context)(arr);
+        });
+      } else {
+        var node = store.getNode(absPath);
+        var data = store.getNodeData(absPath);
+        var arr = [];
+        for(var i in data) {
+          arr.push(i);
+        }
+        return arr;
+      }
+    },
+
+    //
+    // Method: getAll
+    //
+    // Get all objects directly below a given path.
+    //
+    // Receives the same parameters as <getListing> (FIXME!!!)
+    //
+    // Returns an object in the form { path : object, ... }
+    //
+    getAll: function(type, path, callback, context) {
+      if(typeof(path) != 'string') {
+        path = type, callback = path, context = callback;
+        type = null;
+      }
+      var makeMap = function(listing) {
+        var o = {};
+        listing.forEach(function(name) {
+          var item = this.getObject(path + name);
+          if((! type) || type == item['@type'].split('/').slice(-1)[0]) {
+            o[path + name] = item;
+          }
+        }, this);
+        return o;
+      }.bind(this);
+      if(callback) {
+        this.getListing(path, function(listing) {
+          util.bind(callback, context)(makeMap(listing));
+        }, this);
+      } else {
+        return makeMap(this.getListing(path));
+      }
+    },
+
+    //
+    // Method: getDocument
+    //
+    // Get the document at the given path. A Document is raw data, as opposed to
+    // a JSON object (use <getObject> for that).
+    //
+    // Except for the return value structure, getDocument works exactly like
+    // getObject.
+    //
+    // Parameters:
+    //   path     - see getObject
+    //   callback - see getObject
+    //   context  - see getObject
+    //
+    // Returns:
+    //   An object,
+    //   mimeType - String representing the MIME Type of the document.
+    //   data     - Raw data of the document.
+    //
+    getDocument: function(path, callback, context) {
+      this.ensureAccess('r');
+      var absPath = this.makePath(path);
+
+      function makeResult() {
+        var node = store.getNode(absPath);
+        if(node) {
+          return {
+            mimeType: node.mimeType,
+            data: store.getNodeData(absPath)
+          };
+        } else {
+          return null;
+        }
+      }
+
+      var result = makeResult();
+
+      if(callback) {
+        var cb = util.bind(callback, context);
+        if(result) {
+          cb(result);
+        } else {
+          sync.syncOne(absPath, function() {
+            cb(makeResult());
+          });
+        }
+      } else {
+        return result;
+      }
+    },
+
+
+    //
+    // Method: remove
+    //
+    // Remove node at given path from storage. Triggers synchronization.
+    //
+    // Parameters:
+    //   path     - Path relative to the module root.
+    //   callback - (optional) called when the change has been propagated to remotestorage
+    //   context  - (optional)
+    //
+    remove: function(path, callback, context) {
+      this.ensureAccess('w');
+      var absPath = this.makePath(path);
+      set(path, absPath, undefined);
+      sync.syncOne(absPath, util.bind(callback, context));
+    },
+
+    //
+    // Method: storeObject
+    //
+    // Store object at given path. Triggers synchronization.
+    //
+    // Parameters:
+    //
+    //   type     - unique type of this object within this module. See description below.
+    //   path     - path relative to the module root.
+    //   object   - an object to be saved to the given node. It must be serializable as JSON.
+    //   callback - (optional) called when the change has been propagated to remotestorage
+    //   context  - (optional) 
+    //
+    // Returns:
+    //   An array of errors, when the validation failed, otherwise null.
+    //
+    // What about the type?:
+    //
+    //   A great thing about having data on the web, is to be able to link to
+    //   it and rearrange it to fit the current circumstances. To facilitate
+    //   that, eventually you need to know how the data at hand is structured.
+    //   For documents on the web, this is usually done via a MIME type. The
+    //   MIME type of JSON objects however, is always application/json.
+    //   To add that extra layer of "knowing what this object is", remotestorage
+    //   aims to use <JSON-LD at http://json-ld.org/>.
+    //   A first step in that direction, is to add a *@type attribute* to all
+    //   JSON data put into remotestorage.
+    //   Now that is what the *type* is for. 
+    //   
+    //   Within remoteStorage.js, @type values are built using three components:
+    //     https://remotestoragejs.com/spec/modules/ - A prefix to guarantee unqiueness
+    //     the module name     - module names should be unique as well
+    //     the type given here - naming this particular kind of object within this module
+    //
+    //   In retrospect that means, that whenever you introduce a new "type" in calls to
+    //   storeObject, you should make sure that once your code is in the wild, future
+    //   versions of the code are compatible with the same JSON structure.
+    //
+    // How to define types?:
+    //
+    //   See <declareType> or the calendar module (src/modules/calendar.js) for examples.
+    // 
+    storeObject: function(type, path, obj, callback, context) {
+      this.ensureAccess('w');
+      if(typeof(obj) !== 'object') {
+        throw "storeObject needs to get an object as value!"
+      }
+      obj['@type'] = this.resolveType(type);
+
+      var errors = this.validateObject(obj);
+
+      if(errors) {
+        console.error("Error saving this ", type, ": ", obj, errors);
+        return errors;
+      } else {
+        var absPath = this.makePath(path);
+        set(path, absPath, obj, 'application/json');
+        sync.syncOne(absPath, util.bind(callback, context));
+        return null;
+      }
+    },
+
+    //
+    // Method: storeDocument
+    //
+    // Store raw data at a given path. Triggers synchronization.
+    //
+    // Parameters:
+    //   mimeType - MIME media type of the data being stored
+    //   path     - path relative to the module root. MAY NOT end in a forward slash.
+    //   data     - string of raw data to store
+    //   callback - (optional) called when the change has been propagated to remotestorage
+    //   context  - (optional)
+    //
+    // The given mimeType will later be returned, when retrieving the data
+    // using getDocument.
+    //
+    storeDocument: function(mimeType, path, data, callback, context) {
+      this.ensureAccess('w');
+      var absPath = this.makePath(path);
+      set(path, absPath, data, mimeType);
+      sync.syncOne(absPath, util.bind(callback, context));
+    },
+
+    getStorageHref: function() {
+      return remoteStorage.getStorageHref();
+    },
+
+    //
+    // Method: getItemURL
+    //
+    // Get the full URL of the item at given path. This will only
+    // work, if the user is connected to a remotestorage account.
+    //
+    // Parameter:
+    //   path - path relative to the module root
+    //
+    // Returns:
+    //   a String - when currently connected
+    //   null - when currently disconnected
+    getItemURL: function(path) {
+      var base = this.getStorageHref();
+      if(! base) {
+        return null;
+      }
+      if(base.substr(-1) != '/') {
+        base = base + '/';
+      }
+      return base + this.makePath(path);
+    },
+
+    syncOnce: function(path, callback) {
+      var previousTreeForce = store.getNode(path).startForceTree;
+      this.use(path, false);
+      sync.partialSync(path, 1, function() {
+        if(previousTreeForce) {
+          this.use(path, true);
+        } else {
+          this.release(path);
+        }
+        if(callback) {
+          callback();
+        }
+      }.bind(this));
+
+    },
+
+    //
+    // Method: use
+    //
+    // Set force flags on given path.
+    //
+    // See <sync> for details.
+    //
+    // Parameters:
+    //   path      - path relative to the module root
+    //   treeOnly  - boolean value, whether only the tree should be synced.
+    //
+    use: function(path, treeOnly) {
+      var absPath = this.makePath(path);
+      store.setNodeForce(absPath, !treeOnly, true);
+    },
+
+    // Method: release
+    //
+    // Remove force flags from given node.
+    //
+    // See <sync> for details.
+    // 
+    release: function(path) {
+      var absPath = this.makePath(path);
+      store.setNodeForce(absPath, false, false);
+    },
+
+    hasDiff: function(path) {
+      var absPath = this.makePath(path);
+      if(util.isDir(absPath)) {
+        return Object.keys(store.getNode(absPath).diff).length > 0;
+      } else {
+        var parentPath = util.containingDir(absPath);
+        return !! store.getNode(parentPath).diff[path.split('/').slice(-1)[0]];
+      }
+    },
+
+    /**** TYPE HANDLING ****/
+
+    types: {},
+    schemas: {},
+
+    resolveType: function(alias) {
+      var type = this.types[alias];
+      if(! type) {
+        // FIXME: support custom namespace. don't fall back to remotestoragejs.com.
+        type = 'https://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+        logger.error("WARNING: type alias not declared: " + alias, '(have:', this.types, this.schemas, ')');
+      }
+      return type;
+    },
+
+    resolveSchema: function(type) {
+      var schema = this.schemas[type];
+      if(! schema) {
+        schema = {};
+        logger.error("WARNING: can't find schema for type: ", type);
+      }
+      return schema;
+    },
+
+    // Method: declareType
+    //
+    // Declare a type and assign it a schema.
+    // Once a type has a schema set, all data that is stored with that type will be validated before saving it.
+    //
+    // Parameters:
+    //   alias  - an alias to refer to the type. Must be unique within one scope / module.
+    //   type   - (optional) full type-identifier to identify the type. used as @type attribute.
+    //   schema - an object containing the schema for this new type.
+    //
+    // if "type" is ommitted, it will be generated based on the module name.
+    //
+    // Example:
+    //   (start code)
+    //   client.declareType('drink', {
+    //     "description": "A representation of a drink",
+    //     "type": "object",
+    //     "properties": {
+    //       "name": {
+    //         "type": "string",
+    //         "description": "Human readable name of the drink",
+    //         "required": true
+    //       }
+    //     }
+    //   });
+    //
+    //   client.storeObject('drink', 'foo', {});
+    //   // returns errors:
+    //   // [{ "property": "name",
+    //   //    "message": "is missing and it is required" }]
+    //
+    //   
+    //   (end code)
+    declareType: function(alias, type, schema) {
+      if(this.types[alias]) {
+        logger.error("WARNING: re-declaring already declared alias " + alias);
+      }
+      if(! schema) {
+        schema = type;
+        type = 'https://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+      }
+      this.types[alias] = type;
+      this.schemas[type] = schema;
+    },
+
+    // Method: validateObject
+    //
+    // Validate an object with it's schema.
+    //
+    // Parameters:
+    //   object - the object to validate
+    //   alias  - (optional) the type-alias to use, in case the object doesn't have a @type attribute.
+    //
+    // Returns:
+    //   null   - when the object is valid
+    //   array of errors - when validation fails.
+    //
+    // The errors are objects of the form:
+    // > { "property": "foo", "message": "is named badly" }
+    //
+    validateObject: function(object, alias) {
+      var type = object['@type'];
+      if(! type) {
+        if(alias) {
+          type = this.resolveType(alias);
+        } else {
+          return [{"property":"@type","message":"missing"}];
+        }
+      }
+      var schema = this.resolveSchema(type);
+      var result = validate(object, schema);
+
+      return result.valid ? null : result.errors;
+    }
+    
+  };
+
+  return BaseClient;
+
+});
+
+define('lib/foreignClient',['./util', './baseClient', './getputdelete', './store'], function(util, BaseClient, getputdelete, store) {
+
+  var logger = util.getLogger('foreignClient');
+
+  var knownClients = {}
+
+  store.on('foreign-change', function(event) {
+    var userAddress = event.path.split(':')[0];
+    var client = knownClients[userAddress];
+    if(client) {
+      client.events.emit('change', event);
+    }
+  });
+
+  /*
+    Class: ForeignClient
+    
+    A modified <BaseClient>, to query other people's storage.
+   */
+
+  // Constructor: ForeignClient
+  //
+  // Parameters:
+  //   userAddress - A userAddress string in the form user@host.
+  //
+  // The userAddress must be known to wireClient.
+  //
+  var ForeignClient = function(userAddress) {
+    this.userAddress = userAddress;
+    this.pathPrefix = userAddress + ':';
+
+    this.moduleName = 'root', this.isPublic = true;
+    this.events = util.getEventEmitter('change', 'error');
+    knownClients[userAddress] = this;
+    util.bindAll(this);
+  }
+  
+  ForeignClient.prototype = {
+
+    // Method: getPublished
+    //
+    // Get the 'publishedItems' object for the given module.
+    //
+    // publishedItems is an object of the form { path : timestamp, ... }.
+    //
+    // Parameters:
+    //   moduleName - (optional) module name to get the publishedItems object for
+    //   callback   - callback to call with the result
+    //
+    // Example:
+    //   (start code)
+    //   remoteStorage.getForeignClient('user@host', function(client) {
+    //     client.getPublished(object, function(publishedItems) {
+    //       for(var key in publishedItems) {
+    //         console.log("Item: ", key, " published at: ", publishedItems[key]);
+    //       }
+    //     });
+    //   });
+    //   (end code)
+    getPublished: function(moduleName, callback) {
+      var fullPath;
+      if(typeof(moduleName) == 'function') {
+        callback = moduleName;
+        fullPath = '/publishedItems';
+      } else {
+        fullPath = '/' + moduleName + '/publishedItems';
+      }
+      this.getObject(fullPath, function(data) {
+        if(data) { delete data['@type']; }
+        callback(data || {});
+      });
+    },
+
+    getPublishedObjects: function(moduleName, callback) {
+      this.getPublished(moduleName, function(list) {
+        var paths = Object.keys(list);
+        var i = 0;
+        var objects = {};
+        function loadOne() {
+          if(i < paths.length) {
+            var key = paths[i++];
+            var path = '/' + moduleName + '/' + key;
+            this.getObject(path, function(object) {
+              objects[path] = object;
+                
+              loadOne.call(this);
+            }.bind(this));
+          } else {
+            callback(objects);
+          }
+        }
+
+        loadOne.call(this);
+      }.bind(this));
+    },
+
+    makePath: function(path) {
+      return this.pathPrefix + BaseClient.prototype.makePath.call(this, path);
+    },
+
+    nodeGivesAccess: function(path, mode) {
+      return mode == 'r';
+    },
+
+    on: function(eventName, handler) {
+      this.events.on(eventName, handler);
+    }
+
+  }
+
+  var methodBlacklist = {
+    makePath: true,
+    getListing: true,
+    getAll: true,
+    storeDocument: true,
+    storeObject: true,
+    remove: true,
+    nodeGivesAccess: true,
+    fetchNow: true,
+    syncNow: true,
+    on: true
+  }
+
+  // inherit some stuff from BaseClient
+
+  for(var key in BaseClient.prototype) {
+    if(! methodBlacklist[key]) {
+      ForeignClient.prototype[key] = BaseClient.prototype[key];
+    }
+  }
+
+  return {
+    getClient: function(userAddress) {
+      var client = knownClients[userAddress];
+      return client || new ForeignClient(userAddress);
+    }
+  };
+
+});
+
 define('remoteStorage',[
   'require',
   './lib/widget',
-  './lib/baseClient',
   './lib/store',
   './lib/sync',
   './lib/wireClient',
   './lib/nodeConnect',
-  './lib/util'
-], function(require, widget, BaseClient, store, sync, wireClient, nodeConnect, util) {
+  './lib/util',
+  './lib/webfinger',
+  './lib/foreignClient',
+  './lib/baseClient'
+], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient) {
 
   
 
@@ -3401,7 +5155,6 @@ define('remoteStorage',[
         throw 'Invalid moduleName: "'+moduleName+'", only a-z lowercase allowed.'
       }
 
-      logger.debug('DEFINE MODULE', moduleName);
       var module = builder(
         // private client:
         new BaseClient(moduleName, false),
@@ -3410,7 +5163,6 @@ define('remoteStorage',[
       );
       modules[moduleName] = module;
       this[moduleName] = module.exports;
-      logger.debug('Module defined: ' + moduleName, module, this);
     },
 
     //
@@ -3622,7 +5374,15 @@ define('remoteStorage',[
     //   Array of error messages - when errors occured. When syncNow is called and the user is not connected, this is also considered an error.
     //   null - no error occured, synchronization finished gracefully.
     //
-    syncNow          : sync.syncNow,
+    syncNow          : function(path, depth, callback) {
+      if(! depth) {
+        callback = depth;
+        depth = null;
+      }
+
+      sync.partialSync(path, depth, callback);
+    },
+
 
     //  
     // Method: displayWidget
@@ -3685,12 +5445,65 @@ define('remoteStorage',[
     //                  afterwards.
     //
     getWidgetState   : widget.getState,
+
+    //
+    getSyncState     : sync.getState,
+    //
     setStorageInfo   : wireClient.setStorageInfo,
+
     getStorageHref   : wireClient.getStorageHref,
+
+    disableSyncThrottling: sync.disableThrottling,
 
     nodeConnect: nodeConnect,
 
-    util: util
+    util: util,
+
+    // Method: getForeignClient
+    //
+    // Get a <ForeignClient> instance for a given user.
+    //
+    // Parameters:
+    //   userAddress - a user address in the form user@host
+    //   callback - a callback to receive the client
+    //
+    // If there is no storageInfo cached for this userAddress, this will trigger
+    // a webfinger discovery and when that succeeded, return the client through
+    // the callback.
+    //
+    // Example:
+    //   (start code)
+    //   var client = remoteStorage.getForeignClient('alice@wonderland.lit', function(error, client) {
+    //     if(error) {
+    //       console.error("Discovery failed: ", error);
+    //     } else {
+    //       client.getPublishedObjects(function(objects) {
+    //         console.log('public stuff', objects);
+    //       });
+    //     }
+    //   });
+    //   (end code)
+    getForeignClient: function(userAddress, callback) {
+      var client = foreignClient.getClient(userAddress);
+      if(wireClient.hasStorageInfo(userAddress)) {
+        callback(null, client);
+      } else {
+        webfinger.getStorageInfo(
+          userAddress, { timeout: 5000 }, function(err, storageInfo) {
+            if(err) {
+              callback(err);
+            } else {
+              wireClient.addStorageInfo(userAddress, storageInfo);
+              callback(null, client);
+            }
+          }
+        );
+      }
+    },
+
+    getClient: function(scope) {
+      return new BaseClient(scope);
+    }
 
   };
 
