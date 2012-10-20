@@ -256,14 +256,18 @@ a:active, a:hover {
   color: #DF2A00;
 }
 
+.MGroup .MEntry {
+    padding-left: 20px;
+}
+
 .MGroup .MEntry a {
   display: block;
-  padding: 6px 20px 6px 30px;
+  padding: 6px 20px 6px 10px;
   font-weight: normal;
 }
 
 .MGroup #MSelected {
-  padding-left: 30px;
+  padding-left: 10px;
   border: none;
 }
 
