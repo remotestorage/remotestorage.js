@@ -852,9 +852,12 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   // returns a function that can be called to resolve the conflict
   // at the given path.
   function makeConflictResolver(path, local, remote) {
-    return function(solution) {
+    return function(solution, newData) {
       if(solution == 'local') {
         // outgoing update!
+        if(newData) {
+          local.data = newData;
+        }
         updateRemote(path, local, remote);
       } else if(solution == 'remote') {
         // incoming update!
