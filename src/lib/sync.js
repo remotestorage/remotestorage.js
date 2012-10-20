@@ -103,7 +103,16 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //   >   console.log("received object is: ", object);
   //   > });
   //
-  
+
+  function needsSync(path) {
+    var listing = store.getNodeData('/');
+    for(var key in listing) {
+      if(util.isDir(key) && Object.keys(store.getNode('/' + key).diff).length > 0) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   /**************************************/
 
@@ -975,15 +984,17 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     fullSync: limitedFullSync,
 
     forceSync: fullSync,
-    // Method: partialSync
-    // <partialSync>, limited to act at max once every 30 seconds per (path, depth) pair.
-    partialSync: limitedPartialSync,
     // Method: fullPush
     // <fullPush>
     fullPush: fullPush,
+    // Method: partialSync
+    // <partialSync>, limited to act at max once every 30 seconds per (path, depth) pair.
+    partialSync: limitedPartialSync,
     // Method: syncOne
     // <syncOne>
     syncOne: syncOne,
+
+    needsSync: needsSync,
 
     // Method: getState
     // <getState>
