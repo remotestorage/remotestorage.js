@@ -1,32 +1,32 @@
 1.52
 JavaScript
-/Users/basti/src/unhosted/remoteStorage.js/src/lib/getputdelete.js	1350754792	1	getputdelete
+/Users/basti/src/unhosted/remoteStorage.js/src/lib/getputdelete.js	1350833654	1	getputdelete
 /Users/basti/src/unhosted/remoteStorage.js/src/modules/money.js	1350593532	0	/Users/basti/src/unhosted/remoteStorage.js/src/modules/money.js
-/Users/basti/src/unhosted/remoteStorage.js/doc/pages/download.txt	1350756245	1	Getting remoteStorage.js
-/Users/basti/src/unhosted/remoteStorage.js/src/lib/widget.js	1350754792	1	widget
-/Users/basti/src/unhosted/remoteStorage.js/src/modules/bookmarks.js	1350738188	0	/Users/basti/src/unhosted/remoteStorage.js/src/modules/bookmarks.js
+/Users/basti/src/unhosted/remoteStorage.js/doc/pages/download.txt	1350834674	1	Getting remoteStorage.js
+/Users/basti/src/unhosted/remoteStorage.js/src/lib/widget.js	1350834674	1	widget
+/Users/basti/src/unhosted/remoteStorage.js/src/modules/bookmarks.js	1350833654	0	/Users/basti/src/unhosted/remoteStorage.js/src/modules/bookmarks.js
 /Users/basti/src/unhosted/remoteStorage.js/src/modules/contacts.js	1350593532	1	remoteStorage.contacts
-/Users/basti/src/unhosted/remoteStorage.js/src/modules/calendar.js	1350754792	0	/Users/basti/src/unhosted/remoteStorage.js/src/modules/calendar.js
-/Users/basti/src/unhosted/remoteStorage.js/src/lib/sync.js	1350754792	1	sync
+/Users/basti/src/unhosted/remoteStorage.js/src/modules/calendar.js	1350833654	0	/Users/basti/src/unhosted/remoteStorage.js/src/modules/calendar.js
+/Users/basti/src/unhosted/remoteStorage.js/src/lib/sync.js	1350834674	1	sync
 /Users/basti/src/unhosted/remoteStorage.js/src/lib/hardcoded.js	1350593532	1	hardcoded
-/Users/basti/src/unhosted/remoteStorage.js/src/modules/root.js	1350756245	0	/Users/basti/src/unhosted/remoteStorage.js/src/modules/root.js
-/Users/basti/src/unhosted/remoteStorage.js/doc/pages/howto-include.txt	1350756843	1	Adding remoteStorage to your app
+/Users/basti/src/unhosted/remoteStorage.js/src/modules/root.js	1350834674	0	/Users/basti/src/unhosted/remoteStorage.js/src/modules/root.js
+/Users/basti/src/unhosted/remoteStorage.js/doc/pages/howto-include.txt	1350834674	1	Adding remoteStorage to your app
 /Users/basti/src/unhosted/remoteStorage.js/src/modules/deps/vcardjs-0.2.js	1350593532	0	/Users/basti/src/unhosted/remoteStorage.js/src/modules/deps/vcardjs-0.2.js
-/Users/basti/src/unhosted/remoteStorage.js/src/remoteStorage.js	1350756245	1	remoteStorage
+/Users/basti/src/unhosted/remoteStorage.js/src/remoteStorage.js	1350834674	1	remoteStorage
 /Users/basti/src/unhosted/remoteStorage.js/src/modules/tasks.js	1350593532	1	remoteStorage.tasks
-/Users/basti/src/unhosted/remoteStorage.js/src/lib/validate.js	1350754792	0	/Users/basti/src/unhosted/remoteStorage.js/src/lib/validate.js
+/Users/basti/src/unhosted/remoteStorage.js/src/lib/validate.js	1350833654	0	/Users/basti/src/unhosted/remoteStorage.js/src/lib/validate.js
 /Users/basti/src/unhosted/remoteStorage.js/src/lib/nodeConnect.js	1350593532	1	nodeConnect
-/Users/basti/src/unhosted/remoteStorage.js/src/lib/assets.js	1350754792	0	/Users/basti/src/unhosted/remoteStorage.js/src/lib/assets.js
+/Users/basti/src/unhosted/remoteStorage.js/src/lib/assets.js	1350833654	0	/Users/basti/src/unhosted/remoteStorage.js/src/lib/assets.js
 /Users/basti/src/unhosted/remoteStorage.js/src/require.js	1350593532	0	/Users/basti/src/unhosted/remoteStorage.js/src/require.js
 /Users/basti/src/unhosted/remoteStorage.js/src/remoteStorage-modules.js	1350593532	0	/Users/basti/src/unhosted/remoteStorage.js/src/remoteStorage-modules.js
 /Users/basti/src/unhosted/remoteStorage.js/src/modules/documents.js	1350593532	0	/Users/basti/src/unhosted/remoteStorage.js/src/modules/documents.js
-/Users/basti/src/unhosted/remoteStorage.js/src/lib/util.js	1350754792	1	util
-/Users/basti/src/unhosted/remoteStorage.js/doc/pages/overview.txt	1350756508	1	Overview
+/Users/basti/src/unhosted/remoteStorage.js/src/lib/util.js	1350833654	1	util
+/Users/basti/src/unhosted/remoteStorage.js/doc/pages/overview.txt	1350834674	1	Overview
 /Users/basti/src/unhosted/remoteStorage.js/src/remoteStorage-with-modules.js	1350593532	0	/Users/basti/src/unhosted/remoteStorage.js/src/remoteStorage-with-modules.js
 /Users/basti/src/unhosted/remoteStorage.js/src/lib/webfinger.js	1350593532	1	webfinger
-/Users/basti/src/unhosted/remoteStorage.js/src/lib/foreignClient.js	1350754792	1	ForeignClient
-/Users/basti/src/unhosted/remoteStorage.js/src/lib/baseClient.js	1350756245	1	BaseClient
-/Users/basti/src/unhosted/remoteStorage.js/src/lib/store.js	1350754792	1	store
-/Users/basti/src/unhosted/remoteStorage.js/src/lib/platform.js	1350754792	1	platform
+/Users/basti/src/unhosted/remoteStorage.js/src/lib/foreignClient.js	1350833654	1	ForeignClient
+/Users/basti/src/unhosted/remoteStorage.js/src/lib/baseClient.js	1350834674	1	BaseClient
+/Users/basti/src/unhosted/remoteStorage.js/src/lib/store.js	1350834674	1	store
+/Users/basti/src/unhosted/remoteStorage.js/src/lib/platform.js	1350833654	1	platform
 /Users/basti/src/unhosted/remoteStorage.js/src/modules/skel.js	1350593532	0	/Users/basti/src/unhosted/remoteStorage.js/src/modules/skel.js
-/Users/basti/src/unhosted/remoteStorage.js/src/lib/wireClient.js	1350754792	1	wireClient
+/Users/basti/src/unhosted/remoteStorage.js/src/lib/wireClient.js	1350833654	1	wireClient
