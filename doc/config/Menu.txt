@@ -1,7 +1,7 @@
 Format: 1.51
 
 
-Title: remotestorage JS
+Title: remoteStorage.js
 
 # You can also add a sub-title to your menu like this:
 # SubTitle: [subtitle]
