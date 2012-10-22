@@ -130,22 +130,36 @@ define(['remotestorage/lib/sync'], function(sync) {
   }
 
   var wireClientStore;
+  var wireClientTimeout;
 
   function setupWireClient(config) {
     wireClientStore = makeDummyStore(config.data, false);
+    wireClientTimeout = false;
 
     spyOn(wireClient, 'get').andCallFake(function(path, callback) {
-      var data = wireClientStore.getData(path);
-      callback(null, data, 'application/json');
+      if(wireClientTimeout) {
+        callback('timeout');
+      } else {
+        var data = wireClientStore.getData(path);
+        callback(null, data, 'application/json');
+      }
     });
 
     spyOn(wireClient, 'set').andCallFake(
       function(path, data, mimeType, callback) {
-        callback(null);
+        if(wireClientTimeout) {
+          callback('timeout');
+        } else {
+          callback(null);
+        }
       }
     );
 
     spyOn(wireClient, 'getState').andReturn('connected');
+  }
+
+  function injectRemoteTimeout() {
+    wireClientTimeout = true;
   }
 
   function injectRemoteChange(path, data) {
@@ -265,6 +279,21 @@ define(['remotestorage/lib/sync'], function(sync) {
 
           it("updates the local store", function () {
             expectLocalPUT('/e/f/l', {"new":"data"});
+          });
+        });
+
+        describe("when a timeout occurs", function() {
+          var timeoutCb;
+          beforeEach(function() {
+            timeoutCb = makeCb();
+            injectLocalChange('/e/f/l', '{"new":"local"}');
+            injectRemoteTimeout();
+            sync.on('timeout', timeoutCb);
+            sync.syncOne('/e/f/l', cb);
+          });
+
+          it("triggers a 'timeout' event", function() {
+            expect(timeoutCb.calls.length).toEqual(1);
           });
         });
 

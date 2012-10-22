@@ -2,7 +2,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
   "use strict";
 
-  var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready');
+  var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready', 'timeout');
   var logger = util.getLogger('sync');
 
   /*******************/
@@ -411,6 +411,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       }
       event.message = error.message;
       event.exception = error;
+    } else if(error == 'timeout') {
+      events.emit('timeout');
+      return;
     } else {
       event.message = error;
     }
