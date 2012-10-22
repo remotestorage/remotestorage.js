@@ -430,8 +430,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       options = {};
     }
 
-    // sync access roots every ten minutes.
-    schedule.watch('/', 600000);
+    // sync access roots every minute.
+    schedule.watch('/', 60000);
 
     sync.on('error', function(error) {
       if(error.message == 'unauthorized') {
