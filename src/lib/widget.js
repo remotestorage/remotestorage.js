@@ -468,7 +468,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
 
     window.addEventListener('beforeunload', function(event) {
-      if(widgetState != 'anonymous' && sync.needsSync()) {
+      if(widgetState != 'anonymous' && widgetState != 'authing' && sync.needsSync()) {
         sync.fullPush();
         var message = "Synchronizing your data now. Please wait until the cube stops spinning."
         event.returnValue = message

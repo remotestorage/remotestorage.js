@@ -606,6 +606,15 @@ define(['./sync', './store', './util', './validate'], function (sync, store, uti
         schema = type;
         type = 'https://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
       }
+      if(schema['extends']) {
+        var extendedType = this.types[ schema['extends'] ];
+        if(! extendedType) {
+          logger.error("Type '" + alias + "' tries to extend unknown schema '" + schema['extends'] + "'");
+          return;
+        }
+        schema['extends'] = this.schemas[extendedType];
+      }
+
       this.types[alias] = type;
       this.schemas[type] = schema;
     },
