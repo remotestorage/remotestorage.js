@@ -763,14 +763,16 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       opts.access = findAccess(util.containingDir(root));
     }
 
-    if((! opts.access) && (root != '/') && ! (opts.force || opts.forceTree)) {
-      // no access and no interest.
+    if(! (opts.force || opts.forceTree)) {
+      // no interest.
       // -> bail!
       logger.debug('skipping', root, 'no interest', '(access: ', opts.access, ' force: ', opts.force, ' forceTree: ', opts.forceTree, ')');
       tryReady();
       done();
       return;
     }
+    logger.debug('not skipping', root, 'interest', '(access: ', opts.access, ' force: ', opts.force, ' forceTree: ', opts.forceTree, ')');
+    
 
     var localDiff = Object.keys(localRootNode.diff).length > 0;
 
