@@ -364,9 +364,9 @@ define(['remotestorage/lib/sync'], function(sync) {
 
 
     describe('fullSync', function() {
+      var cb;
 
       describe('when disconnected', function() {
-        var cb;
         
         beforeEach(function() {
           sync.disableThrottling();
@@ -384,8 +384,32 @@ define(['remotestorage/lib/sync'], function(sync) {
 
       });
 
+      describe("when there are no force flags set", function() {
+        beforeEach(function() {
+          var data = util.extend({}, defaultFixtures);
+          data.force = {};
+          data.access = { '/': 'rw' };
+          setupStore(data, {});
+          cb = makeCb();
+          runs(function() { sync.fullSync(cb); });
+          waits(200);
+        });
+
+        it("syncs the root node", function() {
+          runs(function() {
+            expectRemoteGET('/');
+          });
+        });
+
+        it("doesn't sync any other directories", function() {
+          runs(function() {
+            expectNoRemoteGET('/a/');
+            expectNoRemoteGET('/e/');
+          });
+        });
+      });
+
       describe("when there is no local data", function() {
-        var cb;
         beforeEach(function() {
           sync.disableThrottling();
           setupStore({
@@ -506,8 +530,8 @@ define(['remotestorage/lib/sync'], function(sync) {
           });
         });
       });
-    });
 
+    });
 
   });
 
