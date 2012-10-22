@@ -996,6 +996,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     // <syncOne>
     syncOne: syncOne,
 
+    // Method: needsSync
+    // Returns true, if there are local changes that have not been synced.
     needsSync: needsSync,
 
     // Method: getState
