@@ -421,7 +421,7 @@ define('lib/util',[], function() {
   var loggers = {}, silentLogger = {};
 
   var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform',
-                      'baseClient', 'widget', 'store', 'foreignClient'];
+                      'baseClient', 'widget', 'store', 'foreignClient', 'schedule'];
 
   var logFn = null;
 
@@ -2717,7 +2717,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   // Example:
   //   (start code)
   //
-  //   remoteStorage.on('conflict', function(event) {
+  //   client.on('conflict', function(event) {
   //
   //     console.log(event.type, ' conflict at ', event.path,
   //                 event.localTime, 'vs', event.remoteTime,
@@ -2831,7 +2831,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   //
   // Decides which action to perform on the node in order to synchronize it.
   //
-  // Used as a callback for <traverseNode>.
+  // Used as a callback for <traverseTree>.
   function processNode(path, local, remote) {
 
     var action = null;
@@ -3062,6 +3062,23 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     }
   }
 
+  function findNextForceRoots(path) {
+    var roots = [];
+    var listing = store.getNodeData(path)
+    for(var key in listing) {
+      var node = store.getNode(path + key);
+      if(node.startForce || node.startForceTree) {
+        roots.push(path + key);
+      } else if(util.isDir(key)) {
+        findNextForceRoots(path + key).forEach(function(root) {
+          roots.push(root);
+        });
+      }
+    }
+    logger.debug('findNextForceRoots', path, JSON.stringify(roots));
+    return roots;
+  }
+
   // Function: traverseTree
   //
   // Traverse the full tree of nodes, passing each visited data node to the callback for processing.
@@ -3083,7 +3100,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   //   depth - When given, a positive number, setting the maximum depth of traversal.
   //           Depth will be decremented in each recursion
   function traverseTree(root, callback, opts) {
-    logger.info('traverse', root);
+    logger.info('traverse', root, opts, 'callback?', !!callback);
     
     if(! util.isDir(root)) {
       throw "Can't traverse data node: " + root;
@@ -3121,12 +3138,27 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       // no interest.
       // -> bail!
       logger.debug('skipping', root, 'no interest', '(access: ', opts.access, ' force: ', opts.force, ' forceTree: ', opts.forceTree, ')');
+      if(opts.access || root == '/') { // (access can begin only on the root or it's direct children, so we don't need to descend further)
+        var nextRoots = findNextForceRoots(root);
+        if(nextRoots.length > 0) {
+          var nextRoot;
+          while(nextRoot = nextRoots.shift()) {
+            var thisParts = util.pathParts(root);
+            var nextParts = util.pathParts(nextRoot);
+            var newOpts = util.extend({}, opts);
+            newOpts.done = done;
+            newOpts.depth = opts.depth ? (nextParts.length - thisParts.length) : null;
+            if((newOpts.depth == null) || (newOpts.depth > 0)) {
+              traverseTree(nextRoot, callback, newOpts);
+            }
+          }
+          return;
+        } // no more roots.
+      } // no access anyway.
       tryReady();
       done();
-      return;
+      return; // done.
     }
-    logger.debug('not skipping', root, 'interest', '(access: ', opts.access, ' force: ', opts.force, ' forceTree: ', opts.forceTree, ')');
-    
 
     var localDiff = Object.keys(localRootNode.diff).length > 0;
 
@@ -3140,7 +3172,6 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 
     // fetch remote listing
     fetchNode(root, function(remoteListing) {
-
       if(! remoteListing) { remoteListing = {}; }
 
       // not really "done", but no more immediate requests in this
@@ -3180,6 +3211,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
           // -> bail!
           logger.debug('skipping', root, 'no changes');
           tryReady();
+          done();
           return;
         }
       }
@@ -3660,13 +3692,13 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       }),
       bubble: el('span', 'remotestorage-bubble'),
       helpHint: el('a', 'remotestorage-questionmark', {
-        'href': 'http://unhosted.org/#remotestorage',
+        'href': 'http://remotestorage.io',
         'target': '_blank',
         '_content': '?'
       }),
       helpText: el('span', 'remotestorage-infotext', {
         'class': 'infotext',
-        '_content': 'This app allows you to use your own data storage!<br/>Click for more info on the Unhosted movement.'
+        '_content': 'This app allows you to use your own data storage!<br/>Click for more info on remotestorage.'
       }),
       userAddress: el('input', 'remotestorage-useraddress', {
         'placeholder': 'user@host'
