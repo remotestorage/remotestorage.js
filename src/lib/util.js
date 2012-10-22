@@ -11,7 +11,7 @@ define([], function() {
   var loggers = {}, silentLogger = {};
 
   var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform',
-                      'baseClient', 'widget', 'store', 'foreignClient'];
+                      'baseClient', 'widget', 'store', 'foreignClient', 'schedule'];
 
   var logFn = null;
 

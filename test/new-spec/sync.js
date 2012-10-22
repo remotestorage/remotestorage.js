@@ -497,6 +497,51 @@ define(['remotestorage/lib/sync'], function(sync) {
         });
       });
 
+      describe("when the force flag is deeply nested", function() {
+        beforeEach(function() {
+          sync.disableThrottling();
+          setupStore({
+            data: { 'e': { 'f' : { 'i': {} } } },
+            noPreviousUpdate: true,
+            access: { '/e/': 'rw' },
+            force: { '/e/f/i/': true }
+          }, defaultFixtures);
+          cb = makeCb();
+          runs(function() { sync.fullSync(cb); });
+          waits(200);
+        });
+
+        it("fetches all local nodes leading there", function() {
+          runs(function() {
+            expectLocalGET('/e/');
+            expectLocalGET('/e/f/');
+            expectLocalGET('/e/f/i/');
+          });
+        });
+
+        it("doesn't update nodes higher in the tree", function() {
+          runs(function() {
+            expectNoRemoteGET('/e/');
+            expectNoRemoteGET('/e/f/');
+          });
+        });
+
+        it("fetches the flagged node and it's children from remote", function() {
+          runs(function() {
+            expectRemoteGET('/e/f/i/');
+            expectRemoteGET('/e/f/i/j');
+            expectRemoteGET('/e/f/i/k');
+          });
+        });
+
+        it("updates the fetched nodes locally", function() {
+          runs(function() {
+            expectLocalPUT('/e/f/i/j', {test:5}, initialTime);
+            expectLocalPUT('/e/f/i/k', {test:6}, initialTime);
+          });
+        });
+      });
+
       describe("when there is no remote data", function() {
         var cb;
 
