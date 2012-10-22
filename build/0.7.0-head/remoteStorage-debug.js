@@ -1514,7 +1514,7 @@ define('lib/getputdelete',
         error: function(err) {
           if(err == 401) {
             err = 'unauthorized';
-          } else {
+          } else if(err != 404) {
             logger.error(method + ' ' + url + ': ', err);
           }
           cb(err);
@@ -2356,7 +2356,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 
   
 
-  var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready');
+  var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready', 'timeout');
   var logger = util.getLogger('sync');
 
   /*******************/
@@ -2765,6 +2765,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       }
       event.message = error.message;
       event.exception = error;
+    } else if(error == 'timeout') {
+      events.emit('timeout');
+      return;
     } else {
       event.message = error;
     }
@@ -3461,7 +3464,103 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 });
 
 
-define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util) {
+define('lib/schedule',['./util', './sync'], function(util, sync) {
+
+  var logger = util.getLogger('schedule');
+
+  var watchedPaths = {};
+  var lastPathSync = {};
+  var runInterval = 30000;
+  var enabled = false;
+  var timer = null;
+
+  function scheduleNextRun() {
+    timer = setTimeout(run, runInterval);
+  }
+
+  function run() {
+    if(! enabled) {
+      return;
+    }
+    if(timer) {
+      clearTimeout(timer);
+    }
+
+    logger.info('check');
+
+    var syncNow = [];
+    var syncedCount = 0;
+
+    var now = new Date().getTime();
+
+    // assemble list of paths that need action
+    for(var path in watchedPaths) {
+      var lastSync = lastPathSync[path];
+      if((! lastSync) || (lastSync + watchedPaths[path]) <= now) {
+        syncNow.push(path);
+      }
+    }
+
+    if(syncNow.length == 0) {
+      scheduleNextRun();
+      return;
+    }
+
+    logger.info("Paths to refresh: ", syncNow);
+
+    // request a sync for each path
+    for(var i=0;i<syncNow.length;i++) {
+      var path = syncNow[i];
+      var syncer = function(path, cb) {
+        if(path == '/') {
+          sync.fullSync(cb);
+        } else {
+          sync.partialSync(path, null, cb);
+        }
+      };
+      syncer(path, function() {
+        lastPathSync[path] = new Date().getTime();
+
+        syncedCount++;
+
+        if(syncedCount == syncNow.length) {
+          scheduleNextRun();
+        }
+      });
+    }
+  }
+
+  return {
+
+    enable: function() {
+      enabled = true;
+      logger.info('enabled');
+      scheduleNextRun();
+    },
+
+    disable: function() {
+      enabled = false;
+      logger.info('disabled');
+    },
+
+    watch: function(path, interval) {
+      watchedPaths[path] = interval;
+      if(! lastPathSync[path]) {
+        // mark path as synced now, so it won't get synced on the next scheduler
+        // cycle, but instead when it's interval has passed.
+        lastPathSync[path] = new Date().getTime();
+      }
+    },
+
+    unwatch: function(path) {
+      delete watchedPaths[path];
+      delete lastPathSync[path];
+    }
+
+  }
+
+});
+define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util', './schedule'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util, schedule) {
 
   // Namespace: widget
   //
@@ -3477,14 +3576,15 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
 
   
 
-  var locale='en',
-    connectElement,
-    widgetState,
-    userAddress,
-    authDialogStrategy = 'redirect',
-    authPopupRef,
-    initialSync,
-    scopesObj = {};
+  var locale='en';
+  var connectElement;
+  var widgetState;
+  var userAddress;
+  var authDialogStrategy = 'redirect';
+  var authPopupRef;
+  var initialSync;
+  var scopesObj = {};
+  var timeoutCount = 0;
 
   var widget;
   var offlineReason;
@@ -3514,6 +3614,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     widgetState = state;
     if(updateView !== false) {
       displayWidgetState(state, userAddress);
+    }
+    if(state == 'offline') {
+      schedule.disable();
     }
     events.emit('state', state);
   }
@@ -3556,7 +3659,8 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       bubble: el('span', 'remotestorage-bubble'),
       helpHint: el('a', 'remotestorage-questionmark', {
         'href': 'http://unhosted.org/#remotestorage',
-        'target': '_blank'
+        'target': '_blank',
+        '_content': '?'
       }),
       helpText: el('span', 'remotestorage-infotext', {
         'class': 'infotext',
@@ -3629,6 +3733,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
         bubbleVisible = true;
       } else {
         bubbleText = 'Offline (' + userAddress + ')';
+        bubbleVisible = true;
       }
     }
     
@@ -3858,8 +3963,24 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       logger.info("Initial sync done.");
       initialSync = false;
       setWidgetState(getWidgetState());
+      schedule.enable();
       events.emit('ready');
     });
+  }
+
+  function tryReconnect() {
+    var tCount = timeoutCount;
+    sync.fullSync(function() {
+      if(timeoutCount == tCount) {
+        timeoutCount = 0;
+        setWidgetState('connected');
+        schedule.enable();
+      }
+    });
+  }
+
+  function scheduleReconnect(milliseconds) {
+    setTimeout(tryReconnect, milliseconds);
   }
 
   function display(setConnectElement, options) {
@@ -3871,6 +3992,9 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       options = {};
     }
 
+    // sync access roots every minute.
+    schedule.watch('/', 60000);
+
     sync.on('error', function(error) {
       if(error.message == 'unauthorized') {
         offlineReason = 'unauthorized';
@@ -3881,6 +4005,13 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
         }
         setWidgetState('offline');
       }
+    });
+
+    sync.on('timeout', function() {
+      setWidgetState('offline');
+      timeoutCount++;
+      // first timeout: 5 minutes, second timeout: 10 minutes, ...
+      scheduleReconnect(timeoutCount * 300000);
     });
 
     connectElement = setConnectElement;
