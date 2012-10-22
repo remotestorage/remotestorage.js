@@ -1,4 +1,4 @@
-define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util) {
+define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util', './schedule'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util, schedule) {
 
   // Namespace: widget
   //
@@ -14,14 +14,15 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
   "use strict";
 
-  var locale='en',
-    connectElement,
-    widgetState,
-    userAddress,
-    authDialogStrategy = 'redirect',
-    authPopupRef,
-    initialSync,
-    scopesObj = {};
+  var locale='en';
+  var connectElement;
+  var widgetState;
+  var userAddress;
+  var authDialogStrategy = 'redirect';
+  var authPopupRef;
+  var initialSync;
+  var scopesObj = {};
+  var timeoutCount = 0;
 
   var widget;
   var offlineReason;
@@ -51,6 +52,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     widgetState = state;
     if(updateView !== false) {
       displayWidgetState(state, userAddress);
+    }
+    if(state == 'offline') {
+      schedule.disable();
     }
     events.emit('state', state);
   }
@@ -93,7 +97,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       bubble: el('span', 'remotestorage-bubble'),
       helpHint: el('a', 'remotestorage-questionmark', {
         'href': 'http://unhosted.org/#remotestorage',
-        'target': '_blank'
+        'target': '_blank',
+        '_content': '?'
       }),
       helpText: el('span', 'remotestorage-infotext', {
         'class': 'infotext',
@@ -166,6 +171,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         bubbleVisible = true;
       } else {
         bubbleText = 'Offline (' + userAddress + ')';
+        bubbleVisible = true;
       }
     }
     
@@ -395,8 +401,24 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       logger.info("Initial sync done.");
       initialSync = false;
       setWidgetState(getWidgetState());
+      schedule.enable();
       events.emit('ready');
     });
+  }
+
+  function tryReconnect() {
+    var tCount = timeoutCount;
+    sync.fullSync(function() {
+      if(timeoutCount == tCount) {
+        timeoutCount = 0;
+        setWidgetState('connected');
+        schedule.enable();
+      }
+    });
+  }
+
+  function scheduleReconnect(milliseconds) {
+    setTimeout(tryReconnect, milliseconds);
   }
 
   function display(setConnectElement, options) {
@@ -408,6 +430,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       options = {};
     }
 
+    // sync access roots every minute.
+    schedule.watch('/', 60000);
+
     sync.on('error', function(error) {
       if(error.message == 'unauthorized') {
         offlineReason = 'unauthorized';
@@ -418,6 +443,13 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         }
         setWidgetState('offline');
       }
+    });
+
+    sync.on('timeout', function() {
+      setWidgetState('offline');
+      timeoutCount++;
+      // first timeout: 5 minutes, second timeout: 10 minutes, ...
+      scheduleReconnect(timeoutCount * 300000);
     });
 
     connectElement = setConnectElement;
