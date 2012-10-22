@@ -363,7 +363,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   // Example:
   //   (start code)
   //
-  //   remoteStorage.on('conflict', function(event) {
+  //   client.on('conflict', function(event) {
   //
   //     console.log(event.type, ' conflict at ', event.path,
   //                 event.localTime, 'vs', event.remoteTime,
@@ -477,7 +477,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //
   // Decides which action to perform on the node in order to synchronize it.
   //
-  // Used as a callback for <traverseNode>.
+  // Used as a callback for <traverseTree>.
   function processNode(path, local, remote) {
 
     var action = null;
@@ -708,6 +708,23 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     }
   }
 
+  function findNextForceRoots(path) {
+    var roots = [];
+    var listing = store.getNodeData(path)
+    for(var key in listing) {
+      var node = store.getNode(path + key);
+      if(node.startForce || node.startForceTree) {
+        roots.push(path + key);
+      } else if(util.isDir(key)) {
+        findNextForceRoots(path + key).forEach(function(root) {
+          roots.push(root);
+        });
+      }
+    }
+    logger.debug('findNextForceRoots', path, JSON.stringify(roots));
+    return roots;
+  }
+
   // Function: traverseTree
   //
   // Traverse the full tree of nodes, passing each visited data node to the callback for processing.
@@ -729,7 +746,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //   depth - When given, a positive number, setting the maximum depth of traversal.
   //           Depth will be decremented in each recursion
   function traverseTree(root, callback, opts) {
-    logger.info('traverse', root);
+    logger.info('traverse', root, opts, 'callback?', !!callback);
     
     if(! util.isDir(root)) {
       throw "Can't traverse data node: " + root;
@@ -767,12 +784,27 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       // no interest.
       // -> bail!
       logger.debug('skipping', root, 'no interest', '(access: ', opts.access, ' force: ', opts.force, ' forceTree: ', opts.forceTree, ')');
+      if(opts.access || root == '/') { // (access can begin only on the root or it's direct children, so we don't need to descend further)
+        var nextRoots = findNextForceRoots(root);
+        if(nextRoots.length > 0) {
+          var nextRoot;
+          while(nextRoot = nextRoots.shift()) {
+            var thisParts = util.pathParts(root);
+            var nextParts = util.pathParts(nextRoot);
+            var newOpts = util.extend({}, opts);
+            newOpts.done = done;
+            newOpts.depth = opts.depth ? (nextParts.length - thisParts.length) : null;
+            if((newOpts.depth == null) || (newOpts.depth > 0)) {
+              traverseTree(nextRoot, callback, newOpts);
+            }
+          }
+          return;
+        } // no more roots.
+      } // no access anyway.
       tryReady();
       done();
-      return;
+      return; // done.
     }
-    logger.debug('not skipping', root, 'interest', '(access: ', opts.access, ' force: ', opts.force, ' forceTree: ', opts.forceTree, ')');
-    
 
     var localDiff = Object.keys(localRootNode.diff).length > 0;
 
@@ -786,7 +818,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
     // fetch remote listing
     fetchNode(root, function(remoteListing) {
-
       if(! remoteListing) { remoteListing = {}; }
 
       // not really "done", but no more immediate requests in this
@@ -826,6 +857,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
           // -> bail!
           logger.debug('skipping', root, 'no changes');
           tryReady();
+          done();
           return;
         }
       }
