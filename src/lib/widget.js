@@ -93,7 +93,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       bubble: el('span', 'remotestorage-bubble'),
       helpHint: el('a', 'remotestorage-questionmark', {
         'href': 'http://unhosted.org/#remotestorage',
-        'target': '_blank'
+        'target': '_blank',
+        '_content': '?'
       }),
       helpText: el('span', 'remotestorage-infotext', {
         'class': 'infotext',
