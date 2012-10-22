@@ -395,14 +395,9 @@ define(['remotestorage/lib/sync'], function(sync) {
           waits(200);
         });
 
-        it("syncs the root node", function() {
+        it("doesn't sync anything", function() {
           runs(function() {
-            expectRemoteGET('/');
-          });
-        });
-
-        it("doesn't sync any other directories", function() {
-          runs(function() {
+            expectNoRemoteGET('/');
             expectNoRemoteGET('/a/');
             expectNoRemoteGET('/e/');
           });
@@ -464,7 +459,42 @@ define(['remotestorage/lib/sync'], function(sync) {
             expectLocalPUT('/e/f/i/', {'j':0,'k':0}, 0);
           });
         });
+      });
 
+
+      describe("when there is no local data and force is set", function() {
+        beforeEach(function( ){
+          sync.disableThrottling();
+          setupStore({
+            data: { 'e': {} },
+            noPreviousUpdate: true,
+            access: { '/e/': 'rw' },
+            force: { '/e/' : true }
+          }, defaultFixtures);
+          cb = makeCb();
+          runs(function() {
+            sync.fullSync(cb);
+          });
+          waits(200);
+        });
+
+        it("also requests data nodes", function() {
+          runs(function() {
+            expectRemoteGET('/e/f/l');
+            expectRemoteGET('/e/f/g/h');
+            expectRemoteGET('/e/f/i/j');
+            expectRemoteGET('/e/f/i/k');
+          });
+        });
+
+        it("updates local data nodes", function() {
+          runs(function() {
+            expectLocalPUT('/e/f/l', {test:7}, initialTime);
+            expectLocalPUT('/e/f/g/h', {test:4}, initialTime);
+            expectLocalPUT('/e/f/i/j', {test:5}, initialTime);
+            expectLocalPUT('/e/f/i/k', {test:6}, initialTime);
+          });
+        });
       });
 
       describe("when there is no remote data", function() {
