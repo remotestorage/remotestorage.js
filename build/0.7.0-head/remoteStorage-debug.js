@@ -3220,6 +3220,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
         // outgoing update!
         if(newData) {
           local.data = newData;
+          // a hack to also update local data, when the resolution specifies new data
+          updateLocal(path, local, local);
         }
         updateRemote(path, local, remote);
       } else if(solution == 'remote') {
@@ -3348,6 +3350,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     // <syncOne>
     syncOne: syncOne,
 
+    // Method: needsSync
+    // Returns true, if there are local changes that have not been synced.
     needsSync: needsSync,
 
     // Method: getState
@@ -3927,7 +3931,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
 
     window.addEventListener('beforeunload', function(event) {
-      if(widgetState != 'anonymous' && sync.needsSync()) {
+      if(widgetState != 'anonymous' && widgetState != 'authing' && sync.needsSync()) {
         sync.fullPush();
         var message = "Synchronizing your data now. Please wait until the cube stops spinning."
         event.returnValue = message
@@ -4899,6 +4903,15 @@ define('lib/baseClient',['./sync', './store', './util', './validate'], function 
         schema = type;
         type = 'https://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
       }
+      if(schema['extends']) {
+        var extendedType = this.types[ schema['extends'] ];
+        if(! extendedType) {
+          logger.error("Type '" + alias + "' tries to extend unknown schema '" + schema['extends'] + "'");
+          return;
+        }
+        schema['extends'] = this.schemas[extendedType];
+      }
+
       this.types[alias] = type;
       this.schemas[type] = schema;
     },
