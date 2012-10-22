@@ -1,4 +1,4 @@
-Format: 1.52
+Format: 1.51
 
 
 Title: remoteStorage.js
@@ -27,7 +27,7 @@ Footer: remoteStorage.js is developed by some people. It's open source (MIT lice
 # These are indexes you deleted, so Natural Docs will not add them again
 # unless you remove them from this line.
 
-Don't Index: Functions, Files, Types, Classes, Build Targets, Events, Properties
+Don't Index: Functions, Files, Classes, Types, Events, Build Targets, Properties
 
 
 # --------------------------------------------------------------------------
@@ -56,38 +56,38 @@ Don't Index: Functions, Files, Types, Classes, Build Targets, Events, Properties
 
 Group: Intro  {
 
-   File: Overview  (/Users/basti/src/unhosted/remoteStorage.js/doc/pages/overview.txt)
-   File: Get remoteStorage.js  (no auto-title, /Users/basti/src/unhosted/remoteStorage.js/doc/pages/download.txt)
-   File: Adding remoteStorage to your app  (/Users/basti/src/unhosted/remoteStorage.js/doc/pages/howto-include.txt)
+   File: Overview  (/home/nil/src/remoteStorage.js/doc/pages/overview.txt)
+   File: Get remoteStorage.js  (no auto-title, /home/nil/src/remoteStorage.js/doc/pages/download.txt)
+   File: Adding remoteStorage to your app  (/home/nil/src/remoteStorage.js/doc/pages/howto-include.txt)
    }  # Group: Intro
 
 Group: API  {
 
    Group: Public API  {
 
-      File: remoteStorage  (/Users/basti/src/unhosted/remoteStorage.js/src/remoteStorage.js)
-      File: BaseClient  (/Users/basti/src/unhosted/remoteStorage.js/src/lib/baseClient.js)
+      File: remoteStorage  (/home/nil/src/remoteStorage.js/src/remoteStorage.js)
+      File: BaseClient  (/home/nil/src/remoteStorage.js/src/lib/baseClient.js)
       }  # Group: Public API
 
    Group: Modules  {
 
-      File: contacts  (no auto-title, /Users/basti/src/unhosted/remoteStorage.js/src/modules/contacts.js)
-      File: tasks  (no auto-title, /Users/basti/src/unhosted/remoteStorage.js/src/modules/tasks.js)
+      File: contacts  (no auto-title, /home/nil/src/remoteStorage.js/src/modules/contacts.js)
+      File: tasks  (no auto-title, /home/nil/src/remoteStorage.js/src/modules/tasks.js)
       }  # Group: Modules
 
    Group: Internals  {
 
-      File: wireClient  (/Users/basti/src/unhosted/remoteStorage.js/src/lib/wireClient.js)
-      File: getputdelete  (/Users/basti/src/unhosted/remoteStorage.js/src/lib/getputdelete.js)
-      File: store  (/Users/basti/src/unhosted/remoteStorage.js/src/lib/store.js)
-      File: sync  (/Users/basti/src/unhosted/remoteStorage.js/src/lib/sync.js)
-      File: util  (/Users/basti/src/unhosted/remoteStorage.js/src/lib/util.js)
-      File: webfinger  (/Users/basti/src/unhosted/remoteStorage.js/src/lib/webfinger.js)
-      File: platform  (/Users/basti/src/unhosted/remoteStorage.js/src/lib/platform.js)
-      File: nodeConnect  (/Users/basti/src/unhosted/remoteStorage.js/src/lib/nodeConnect.js)
-      File: hardcoded  (/Users/basti/src/unhosted/remoteStorage.js/src/lib/hardcoded.js)
-      File: widget  (/Users/basti/src/unhosted/remoteStorage.js/src/lib/widget.js)
-      File: ForeignClient  (/Users/basti/src/unhosted/remoteStorage.js/src/lib/foreignClient.js)
+      File: wireClient  (/home/nil/src/remoteStorage.js/src/lib/wireClient.js)
+      File: getputdelete  (/home/nil/src/remoteStorage.js/src/lib/getputdelete.js)
+      File: store  (/home/nil/src/remoteStorage.js/src/lib/store.js)
+      File: sync  (/home/nil/src/remoteStorage.js/src/lib/sync.js)
+      File: util  (/home/nil/src/remoteStorage.js/src/lib/util.js)
+      File: webfinger  (/home/nil/src/remoteStorage.js/src/lib/webfinger.js)
+      File: platform  (/home/nil/src/remoteStorage.js/src/lib/platform.js)
+      File: nodeConnect  (/home/nil/src/remoteStorage.js/src/lib/nodeConnect.js)
+      File: hardcoded  (/home/nil/src/remoteStorage.js/src/lib/hardcoded.js)
+      File: widget  (/home/nil/src/remoteStorage.js/src/lib/widget.js)
+      File: ForeignClient  (/home/nil/src/remoteStorage.js/src/lib/foreignClient.js)
       }  # Group: Internals
 
    Group: Docs Index  {
@@ -100,5 +100,5 @@ Group: API  {
 
 
 ##### Do not change or remove these lines. #####
-Data: 1(D3333a6GH63Yp6t836H93N\Ru6tGf3HGEutGrtuHp`GMl636H9)
-Data: 1(h3333a6GH63Yp6t836H93N\Ru6tGf3HGEutGrtuHp`GMl63fu93Ip`G6)
+Data: 1(D3333RuEG3\8o36H93HGEutGrtuHp`GMl636H9)
+Data: 1(h3333RuEG3\8o36H93HGEutGrtuHp`GMl63fu93Ip`G6)
