@@ -96,13 +96,13 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       }),
       bubble: el('span', 'remotestorage-bubble'),
       helpHint: el('a', 'remotestorage-questionmark', {
-        'href': 'http://unhosted.org/#remotestorage',
+        'href': 'http://remotestorage.io',
         'target': '_blank',
         '_content': '?'
       }),
       helpText: el('span', 'remotestorage-infotext', {
         'class': 'infotext',
-        '_content': 'This app allows you to use your own data storage!<br/>Click for more info on the Unhosted movement.'
+        '_content': 'This app allows you to use your own data storage!<br/>Click for more info on remotestorage.'
       }),
       userAddress: el('input', 'remotestorage-useraddress', {
         'placeholder': 'user@host'
