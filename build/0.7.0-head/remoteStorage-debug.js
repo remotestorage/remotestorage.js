@@ -3998,6 +3998,8 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     sync.on('error', function(error) {
       if(error.message == 'unauthorized') {
         offlineReason = 'unauthorized';
+        // clear bearer token, so the wireClient state is correct.
+        wireClient.setBearerToken(null);
         if(initialSync) {
           // abort initial sync
           initialSync = false;
@@ -4062,7 +4064,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
     }
 
     window.addEventListener('beforeunload', function(event) {
-      if(widgetState != 'anonymous' && widgetState != 'authing' && sync.needsSync()) {
+      if(widgetState != 'anonymous' && widgetState != 'authing' && widgetState != 'connecting' && sync.needsSync()) {
         sync.fullPush();
         var message = "Synchronizing your data now. Please wait until the cube stops spinning."
         event.returnValue = message
