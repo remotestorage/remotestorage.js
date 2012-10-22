@@ -25,7 +25,7 @@ define(
         error: function(err) {
           if(err == 401) {
             err = 'unauthorized';
-          } else {
+          } else if(err != 404) {
             logger.error(method + ' ' + url + ': ', err);
           }
           cb(err);
