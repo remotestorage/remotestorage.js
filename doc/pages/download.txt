@@ -1,0 +1,62 @@
+
+File: Getting remoteStorage.js
+
+Group: For development
+
+Topic: Getting the source
+
+Our sources are hosted on <github at http://github.com/RemoteStorage/remoteStorage.js>.
+
+You can clone them like this:
+
+> git clone git://github.com/RemoteStorage/remoteStorage.js
+
+Or download a tarball:
+
+> wget https://github.com/RemoteStorage/remoteStorage.js/tarball/master
+
+
+Group: Ready made builds
+
+We provide different builds of remoteStorage.js. This section describes what is what
+
+Build Target: remoteStorage.js
+
+Minified build.
+
+<download at http://remotestoragejs.com/build/0.7.0-head/remoteStorage.js>
+
+Build Target: remoteStorage-debug.js
+
+Not minified build. Use this if you're getting errors and want to be able to read the code.
+
+<download at http://remotestoragejs.com/build/0.7.0-head/remoteStorage-debug.js>
+
+Build Target: remoteStorage-modules.js
+
+Same as regular build, but with all modules included in the core. Currently this includes
+* tasks
+* contacts
+* calendar
+* documents
+
+<download at http://remotestoragejs.com/build/0.7.0-head/remoteStorage-modules.js>
+
+Build Target: remoteStorage-modules-debug.js
+
+Same as debug build, but with all core modules included.
+
+<download at http://remotestoragejs.com/build/0.7.0-head/remoteStorage-modules-debug.js>
+
+Build Target: remoteStorage-node.js
+
+Minified build for use in nodejs.
+
+<download at http://remotestoragejs.com/build/0.7.0-head/remoteStorage-node.js>
+
+Build Target: remoteStorage-node-debug.js
+
+Debug build for use in nodejs.
+
+<download at http://remotestoragejs.com/build/0.7.0-head/remoteStorage-node-debug.js>
+
