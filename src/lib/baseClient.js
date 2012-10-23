@@ -36,6 +36,7 @@ define(['./sync', './store', './util', './validate'], function (sync, store, uti
 
   function fireError(absPath, error) {
     var isPublic = isPublicRE.test(absPath);
+    var moduleName = extractModuleName(absPath);
     moduleEvents[moduleName][isPublic].emit('error', error);
   }
 
