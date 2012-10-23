@@ -4500,6 +4500,7 @@ define('lib/baseClient',['./sync', './store', './util', './validate'], function 
 
   function fireError(absPath, error) {
     var isPublic = isPublicRE.test(absPath);
+    var moduleName = extractModuleName(absPath);
     moduleEvents[moduleName][isPublic].emit('error', error);
   }
 
