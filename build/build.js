@@ -2,6 +2,62 @@ var fs=require('fs'),
   requirejs = require('requirejs'),
   modules = require('./modules');
 
+// fs.extra - from https://gist.github.com/992478
+(function () {
+  "use strict";
+
+  var fs = require('fs')
+    , util = require('util')
+    ;
+
+  fs.copy = function (src, dst, cb) {
+    function copy(err) {
+      var is
+        , os
+        ;
+
+      if (!err) {
+        return cb(new Error("File " + dst + " exists."));
+      }
+
+      fs.stat(src, function (err) {
+        if (err) {
+          return cb(err);
+        }
+        is = fs.createReadStream(src);
+        os = fs.createWriteStream(dst);
+        util.pump(is, os, cb);
+      });
+    }
+
+    fs.stat(dst, copy);
+  };
+
+  fs.move = function (src, dst, cb) {
+    function copyIfFailed(err) {
+      if (!err) {
+        return cb(null);
+      }
+      fs.copy(src, dst, function(err) {
+        if (!err) {
+          // TODO 
+          // should we revert the copy if the unlink fails?
+          fs.unlink(src, cb);
+        } else {
+          cb(err);
+        }
+      });
+    }
+
+    fs.stat(dst, function (err) {
+      if (!err) {
+        return cb(new Error("File " + dst + " exists."));
+      }
+      fs.rename(src, dst, copyIfFailed);
+    });
+  };
+}());
+
 function deepCopy(object) {
   var o = {}, keys = Object.keys(object);
   for(var i=0;i<keys.length;i++) {
@@ -52,15 +108,18 @@ if(process.argv[2] == 'debug') {
   build('latest/remoteStorage-debug', 'remoteStorage', { debug: true });
   build('latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
 } else {
-  build('latest/remoteStorage', 'remoteStorage');
+  build('latest/remoteStorage.min', 'remoteStorage');
   build('latest/remoteStorage-debug', 'remoteStorage', { debug: true });
-  build('latest/remoteStorage-node', 'remoteStorage', { end: 'endNode.frag' });
+  build('latest/remoteStorage-node.min', 'remoteStorage', { end: 'endNode.frag' });
   build('latest/remoteStorage-node-debug', 'remoteStorage', { end: 'endNode.frag', debug: true });
 
 
-  build('latest/remoteStorage-modules', 'remoteStorage-modules', { end: 'endModules.frag' });
+  build('latest/remoteStorage-modules.min', 'remoteStorage-modules', { end: 'endModules.frag' });
   build('latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
 
+  fs.copy('latest/remoteStorage.min.js', 'latest/remoteStorage.js');
+  fs.copy('latest/remoteStorage-node.min.js', 'latest/remoteStorage-node.js');
+  fs.copy('latest/remoteStorage-modules.min.js', 'latest/remoteStorage-modules.js');
 }
 
 // var mods = modules.map(function(module) {
