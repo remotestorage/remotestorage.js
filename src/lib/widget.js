@@ -342,7 +342,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         if(authDialogStrategy == 'popup') {
           closeAuthPopup();
         }
-        setWidgetState('failed');
+        setWidgetState('typing');
       } else {
         localStorage['remote_storage_widget_auth_endpoint'] = auth;
         dance();
