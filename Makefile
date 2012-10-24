@@ -5,6 +5,9 @@ DOC_CONFIG_DIR=./doc/config
 DOC_CUSTOM_CSS=custom-1
 SOURCE_DIR=./src
 
+ASSETS_DIR=./assets
+ASSETS_OUT=$(SOURCE_DIR)/lib/assets.js
+
 DOC_INPUTS=-i $(SOURCE_DIR) -i ./doc/pages/
 
 NODEJS=node
@@ -36,7 +39,6 @@ commit-docs: prepare-gh-pages doc
 
 push-build: commit-build push-gh-pages
 push-docs: commit-docs push-gh-pages
-push-assets: commit-build commit-docs push-gh-pages
 
 doc:
 	mkdir -p $(DOC_DIR) $(DOC_CONFIG_DIR)
@@ -45,4 +47,7 @@ doc:
 clean-doc:
 	rm -rf $(DOC_DIR) $(DOC_CONFIG_DIR)/Data
 
-.PHONY: doc clean-doc build commit-build push-build prepare-gh-pages
+compile-assets: assets/*
+	$(NODEJS) build/compile-assets.js $(ASSETS_DIR) $(ASSETS_OUT)
+
+.PHONY: doc clean-doc build commit-build push-build prepare-gh-pages compile-assets
