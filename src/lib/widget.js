@@ -188,10 +188,17 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       root.appendChild(widget.root);
     }
 
+    if(state == 'connecting') {
+      widget.connectButton.setAttribute('disabled');
+      widget.userAddress.setAttribute('disabled');
+    } else {
+      widget.connectButton.removeAttribute('disabled');
+      widget.userAddress.removeAttribute('disabled');
+    }
+
     hideMenu();
 
     widget.root.setAttribute('class', state);
-
 
     var userAddress = localStorage['remote_storage_widget_useraddress'] || '';
 
