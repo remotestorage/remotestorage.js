@@ -121,9 +121,9 @@ if(process.argv[2] == 'debug') {
   build('latest/remoteStorage-modules.min', 'remoteStorage-modules', { end: 'endModules.frag' });
   build('latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
 
-  fs.copy('latest/remoteStorage.min.js', 'latest/remoteStorage.js', function(err) { console.log("copy failed: " + err), true);
-  fs.copy('latest/remoteStorage-node.min.js', 'latest/remoteStorage-node.js', function(err) { console.log("copy failed: " + err), true);
-  fs.copy('latest/remoteStorage-modules.min.js', 'latest/remoteStorage-modules.js', function(err) { console.log("copy failed: " + err), true);
+  fs.copy('latest/remoteStorage.min.js', 'latest/remoteStorage.js', function(err) { console.log("copy failed: " + err) }, true);
+  fs.copy('latest/remoteStorage-node.min.js', 'latest/remoteStorage-node.js', function(err) { console.log("copy failed: " + err) }, true);
+  fs.copy('latest/remoteStorage-modules.min.js', 'latest/remoteStorage-modules.js', function(err) { console.log("copy failed: " + err) }, true);
 }
 
 // var mods = modules.map(function(module) {
