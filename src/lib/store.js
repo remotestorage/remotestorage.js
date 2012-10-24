@@ -166,6 +166,9 @@ define(['./util'], function (util) {
     var oldValue;
 
     if(! outgoing) {
+      if(typeof(timestamp) !== 'number') {
+        throw "Attempted to set non-number timestamp in incoming change: " + timestamp + ' (' + typeof(timestamp) + ')';
+      }
       node.lastUpdatedAt = timestamp;
       oldValue = getNodeData(path);
     }
@@ -388,7 +391,7 @@ define(['./util'], function (util) {
       }
     }
 
-    if(node && typeof(timestamp) !== 'undefined') {
+    if(node && typeof(timestamp) == 'number') {
       node.timestamp = timestamp;
     }
 
@@ -401,7 +404,7 @@ define(['./util'], function (util) {
 
     if(containingDir) {
 
-      var parentNode=getNode(containingDir);
+      var parentNode = getNode(containingDir);
       var parentData = getNodeData(containingDir) || {};
       var baseName = getFileName(path);
 

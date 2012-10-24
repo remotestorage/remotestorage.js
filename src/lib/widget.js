@@ -1,4 +1,4 @@
-define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util', './schedule'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util, schedule) {
+define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util', './schedule', './mailcheck', './levenshtein'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util, schedule, mailcheck, levenshtein) {
 
   // Namespace: widget
   //
@@ -105,10 +105,21 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         '_content': 'This app allows you to use your own data storage!<br/>Click for more info on remotestorage.'
       }),
       userAddress: el('input', 'remotestorage-useraddress', {
-        'placeholder': 'user@host'
+        'placeholder': 'user@host',
+        'type': 'email'
       }),
+      style: el('style'),
 
-      style: el('style')
+      menu: el('div', 'remotestorage-menu'),
+      menuItemSync: el('div', null, {
+        'class': 'item',
+        '_content': 'foobar'
+      }),
+      syncButton: el('button', 'remotestorage-sync-button', {
+        '_content': 'Sync now',
+        'class': 'remotestoage-button'
+      })
+
     };
 
     widget.root.appendChild(widget.connectButton);
@@ -118,10 +129,40 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     widget.root.appendChild(widget.helpHint);
     widget.root.appendChild(widget.helpText);
     widget.root.appendChild(widget.userAddress);
+    widget.root.appendChild(widget.menu);
+
+    widget.menu.appendChild(widget.menuItemSync);
 
     widget.style.innerHTML = assets.widgetCss;
 
     return widget;
+  }
+
+  function handleSyncNowClick() {
+    if(widgetState == 'connected' || widgetState == 'busy') {
+      sync.fullSync();
+    }
+  }
+
+  function showMenu() {
+    if(widgetState == 'connected' || widgetState == 'busy') {
+      if(widget.menu.style.display != 'block') {
+        widget.menu.style.display = 'block';
+        if(widgetState == 'busy') {
+          widget.menuItemSync.innerHTML = "Syncing";
+        } else if(sync.needsSync()) {
+          widget.menuItemSync.innerHTML = "Unsynced";
+        } else {
+          var t = (new Date().getTime()) - sync.lastSyncAt.getTime()
+          widget.menuItemSync.innerHTML = "Synced " + Math.round(t / 1000) + ' seconds ago';
+        }
+        widget.menuItemSync.appendChild(widget.syncButton);
+      }
+    }
+  }
+
+  function hideMenu() {
+    widget.menu.style.display = 'none';
   }
 
   function displayWidgetState(state, userAddress) {
@@ -139,10 +180,15 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       widget.bubble.addEventListener('click', handleBubbleClick);
       widget.cube.addEventListener('click', handleCubeClick);
       widget.userAddress.addEventListener('keyup', handleWidgetTypeUserAddress);
+      widget.syncButton.addEventListener('click', handleSyncNowClick);
+      widget.root.addEventListener('mouseover', showMenu);
+      widget.root.addEventListener('mouseout', hideMenu);
 
       root.appendChild(widget.style);
       root.appendChild(widget.root);
     }
+
+    hideMenu();
 
     widget.root.setAttribute('class', state);
 
@@ -158,7 +204,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
     var bubbleText = '';
     var bubbleVisible = false;
-    if(initialSync) {
+    if(initialSync && state != 'offline') {
       bubbleText = 'Connecting ' + userAddress;
       bubbleVisible = true
     } else if(state == 'connected') {
@@ -341,7 +387,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         if(authDialogStrategy == 'popup') {
           closeAuthPopup();
         }
-        setWidgetState('failed');
+        setWidgetState('typing');
       } else {
         localStorage['remote_storage_widget_auth_endpoint'] = auth;
         dance();
@@ -360,6 +406,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       tryWebfinger(userAddress);
     } else {
       setWidgetState('typing');
+      tweakConnectButton();
     }
   }
 
@@ -370,12 +417,16 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         wireClient.disconnectRemote();
         store.forgetAll();
         sync.clearSettings();
+        localStorage.removeItem('remote_storage_widget_useraddress');
+        widget.userAddress.value = '';
         // trigger 'disconnected' once, so the app can clear it's views.
         setWidgetState('disconnected', true);
         setWidgetState('anonymous');
       });
     } else if(widgetState == 'offline' && offlineReason == 'unauthorized') {
       dance();
+    } else if(widgetState == 'offline' && offlineReason == 'timeout') {
+      tryReconnect();
     }
   }
   function handleCubeClick() {
@@ -383,9 +434,20 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       handleBubbleClick();
     }
   }
+
+  function tweakConnectButton() {
+    if(widget.userAddress.value.length > 0) {
+      widget.connectButton.removeAttribute('disabled');
+    } else {
+      widget.connectButton.setAttribute('disabled', 'disabled');
+    }
+  }
+
   function handleWidgetTypeUserAddress(event) {
     if(event.keyCode === 13) {
       widget.connectButton.click();
+    } else {
+      tweakConnectButton();
     }
   }
   function handleWidgetHover() {
@@ -393,7 +455,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   }
 
   function nowConnected() {
-    console.log("NOW CONNECTED");
+    logger.info("NOW CONNECTED");
     setWidgetState('connected');
     initialSync = true;
     store.fireInitialEvents();
@@ -448,10 +510,10 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     });
 
     sync.on('timeout', function() {
+      offlineReason = 'timeout';
       setWidgetState('offline');
       timeoutCount++;
-      // first timeout: 5 minutes, second timeout: 10 minutes, ...
-      scheduleReconnect(timeoutCount * 300000);
+      scheduleReconnect(Math.max(timeoutCount * 10000, 300000));
     });
 
     connectElement = setConnectElement;
