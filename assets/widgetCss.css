@@ -52,7 +52,7 @@
     font-weight:normal;
 }
 
-#remotestorage-connect-button:hover, #remotestorage-connect-button:focus, .remotestorage-button:hover, .remotestorage-button:focus {
+#remotestorage-connect-button:hover, #remotestorage-connect-button:focus, .remotestorage-button:hover, .remotestorage-button:focus, #remotestorage-sync-button:hover, #remotestorage-sync-button:focus {
     background:#eee;
     color:#000;
     text-decoration:none;
@@ -218,6 +218,31 @@
     display:inline;
 }
 
-#remotestorage-state.connected #remotestorage-cube:hover+#remotestorage-bubble, #remotestorage-state.busy #remotestorage-cube:hover+#remotestorage-bubble, #remotestorage-state.offline #remotestorage-cube:hover+#remotestorage-bubble {
+#remotestorage-state.connected:hover #remotestorage-bubble, #remotestorage-state.busy:hover #remotestorage-bubble, #remotestorage-state.offline:hover #remotestorage-bubble {
     display:inline;
+}
+
+/* #remotestorage-state.connected #remotestorage-cube:hover+#remotestorage-bubble, #remotestorage-state.busy #remotestorage-cube:hover+#remotestorage-bubble, #remotestorage-state.offline #remotestorage-cube:hover+#remotestorage-bubble { */
+/*     display:inline; */
+/* } */
+
+#remotestorage-menu {
+    background: #000;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 10px;
+    opacity: .5;
+    padding: 6px;
+    position: absolute;
+    right: 5px;
+    top: 40px;
+}
+
+#remotestorage-menu .item {
+    white-space: nowrap;
+}
+
+#remotestorage-menu .item button {
+    font-size: 10px;
+    margin-left: 6px;
 }

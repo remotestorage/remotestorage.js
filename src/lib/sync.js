@@ -149,6 +149,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     function rootCb() {
       synced++;
       if(synced == roots.length) {
+        sync.lastSyncAt = new Date();
         if(callback) {
           callback.apply(this, arguments);
         }
@@ -1015,6 +1016,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   var limitedPartialSync = limit('partialSync', partialSync, 30000);
   
   var sync = {
+
+    lastSyncAt: null,
 
     // Section: exported functions
 
