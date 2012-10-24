@@ -27,7 +27,7 @@ fs.readdirSync(sourcePath).forEach(function(fileName) {
   if(ext == 'png') {
     content = 'data:image/png;base64,' + fs.readFileSync(fullPath, 'base64');
   } else {
-    content = fs.readFileSync(fullPath, 'ascii');
+    content = fs.readFileSync(fullPath, 'ascii').replace(/\n/g, ' ');
   }
 
   output += '\n    ' + name + ": '" + content.replace(/'/g, "\\'") + "',";
@@ -35,6 +35,6 @@ fs.readdirSync(sourcePath).forEach(function(fileName) {
 
 output = output.replace(/,$/, '');
 
-output += '\n});\n';
+output += '\n}\n});\n';
 
 fs.writeFileSync(targetPath, output);
