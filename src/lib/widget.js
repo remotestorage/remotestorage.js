@@ -372,6 +372,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         wireClient.disconnectRemote();
         store.forgetAll();
         sync.clearSettings();
+        localStorage.removeItem('remote_storage_widget_useraddress');
+        widget.userAddress.value = '';
         // trigger 'disconnected' once, so the app can clear it's views.
         setWidgetState('disconnected', true);
         setWidgetState('anonymous');
