@@ -105,7 +105,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         '_content': 'This app allows you to use your own data storage!<br/>Click for more info on remotestorage.'
       }),
       userAddress: el('input', 'remotestorage-useraddress', {
-        'placeholder': 'user@host'
+        'placeholder': 'user@host',
+        'type': 'email'
       }),
 
       style: el('style')
