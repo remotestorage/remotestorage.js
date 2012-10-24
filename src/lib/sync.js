@@ -440,7 +440,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     logger.info('DELETE', path, 'LOCAL -> REMOTE');
     wireClient.remove(
       path,
-      makeErrorCatcher(path, util.curry(store.clearDiff, path))
+      makeErrorCatcher(path, util.curry(store.clearDiff, path, undefined))
     );
   }
 
