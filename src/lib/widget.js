@@ -159,7 +159,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
     var bubbleText = '';
     var bubbleVisible = false;
-    if(initialSync) {
+    if(initialSync && state != 'offline') {
       bubbleText = 'Connecting ' + userAddress;
       bubbleVisible = true
     } else if(state == 'connected') {
@@ -380,6 +380,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       });
     } else if(widgetState == 'offline' && offlineReason == 'unauthorized') {
       dance();
+    } else if(widgetState == 'offline' && offlineReason == 'timeout') {
+      tryReconnect();
     }
   }
   function handleCubeClick() {
@@ -408,7 +410,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   }
 
   function nowConnected() {
-    console.log("NOW CONNECTED");
+    logger.info("NOW CONNECTED");
     setWidgetState('connected');
     initialSync = true;
     store.fireInitialEvents();
@@ -463,10 +465,10 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     });
 
     sync.on('timeout', function() {
+      offlineReason = 'timeout';
       setWidgetState('offline');
       timeoutCount++;
-      // first timeout: 5 minutes, second timeout: 10 minutes, ...
-      scheduleReconnect(timeoutCount * 300000);
+      scheduleReconnect(Math.max(timeoutCount * 10000, 300000));
     });
 
     connectElement = setConnectElement;
