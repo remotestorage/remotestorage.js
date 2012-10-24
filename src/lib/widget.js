@@ -361,6 +361,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       tryWebfinger(userAddress);
     } else {
       setWidgetState('typing');
+      tweakConnectButton();
     }
   }
 
@@ -384,9 +385,20 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       handleBubbleClick();
     }
   }
+
+  function tweakConnectButton() {
+    if(widget.userAddress.value.length > 0) {
+      widget.connectButton.removeAttribute('disabled');
+    } else {
+      widget.connectButton.setAttribute('disabled', 'disabled');
+    }
+  }
+
   function handleWidgetTypeUserAddress(event) {
     if(event.keyCode === 13) {
       widget.connectButton.click();
+    } else {
+      tweakConnectButton();
     }
   }
   function handleWidgetHover() {
