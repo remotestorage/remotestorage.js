@@ -6,4 +6,4 @@ gem 'cucumber'
 gem 'capybara'
 gem 'adsf'
 gem 'selenium-webdriver'
-gem 'ruby-debug19', :require => 'ruby-debug'
+
