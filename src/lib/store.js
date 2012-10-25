@@ -275,7 +275,7 @@ define(['./util'], function (util) {
       updateNode(path, node, false, true);
     }
 
-    if(util.isDir(path) && Object.keys(getNodeData(path)).length == 0) {
+    if(util.isDir(path) && Object.keys(getNodeData(path)).length == 0 && !(node.startAccess || node.startForce || node.startForceTree)) {
       updateNodeData(path, undefined);
       updateNode(path, undefined, false);
     }
