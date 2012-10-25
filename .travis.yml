@@ -1,3 +1,3 @@
 before_script:
-    - "cd test/integration && bundle install"
+    - "cd test/integration && bundle install; cd ../.."
 script: test/integration/run
