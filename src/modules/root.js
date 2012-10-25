@@ -123,7 +123,7 @@ define(['../remoteStorage'], function(remoteStorage) {
      **/
     function getObject(path, cb, context) {
       var client = getClient(path);
-      return client.getObject(path, cb, context);
+      return client.getObject(path.replace(/^\/public/, ''), cb, context);
     }
 
     function getDocument(path, cb, context) {

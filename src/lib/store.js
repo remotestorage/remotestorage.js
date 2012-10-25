@@ -274,6 +274,12 @@ define(['./util'], function (util) {
       node.timestamp = node.lastUpdatedAt = timestamp;
       updateNode(path, node, false, true);
     }
+
+    if(util.isDir(path) && Object.keys(getNodeData(path)).length == 0) {
+      updateNodeData(path, undefined);
+      updateNode(path, undefined, false);
+    }
+
     var parentPath = util.containingDir(path);
     var baseName = util.baseName(path);
     if(parentPath) {
@@ -456,6 +462,8 @@ define(['./util'], function (util) {
   }
 
   return {
+    
+    events: events,
 
     // method         , local              , used by
                                            

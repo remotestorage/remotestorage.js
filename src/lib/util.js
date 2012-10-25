@@ -126,17 +126,19 @@ define([], function() {
     // (end code)
     //
     getEventEmitter: function() {
+      var eventNames = Array.prototype.slice.call(arguments);
+
+      function setupHandlers() {
+        var handlers = {};
+        eventNames.forEach(function(name) {
+          handlers[name] = [];
+        });
+        return handlers;
+      }
 
       return this.bindAll({
 
-        _handlers: (function() {
-          var eventNames = Array.prototype.slice.call(arguments);
-          var handlers = {};
-          eventNames.forEach(function(name) {
-            handlers[name] = [];
-          });
-          return handlers;
-        }).apply(null, arguments),
+        _handlers: setupHandlers(),
 
         emit: function(eventName) {
           var handlerArgs = Array.prototype.slice.call(arguments, 1);
@@ -170,6 +172,10 @@ define([], function() {
             throw "Expected function as handler, got: " + typeof(handler);
           }
           this._handlers[eventName].push(handler);
+        },
+
+        reset: function() {
+          this._handlers = setupHandlers();
         }
 
       });
