@@ -5,7 +5,6 @@ set -e
 
 cd $(dirname $0)
 
-trap 'sudo kill -9 %1 %2' EXIT
 cd ../../
 adsf -p 3000 > adsf.log &
 cd -
