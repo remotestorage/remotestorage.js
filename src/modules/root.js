@@ -122,18 +122,15 @@ define(['../remoteStorage'], function(remoteStorage) {
      **
      **/
     function getObject(path, cb, context) {
-      var client = getClient(path);
-      return client.getObject(path.replace(/^\/public/, ''), cb, context);
+      return myPrivateBaseClient.getObject(path, cb, context);
     }
 
     function getDocument(path, cb, context) {
-      var client = getClient(path);
-      return client.getDocument(path, cb, context);
+      return myPrivateBaseClient.getDocument(path, cb, context);
     }
 
     function setDocument(mimeType, path, data, cb, context) {
-      var client = getClient(path);
-      return client.storeDocument(mimeType, path, data, cb, context);
+      return myPrivateBaseClient.storeDocument(mimeType, path, data, cb, context);
     }
 
     /** setObject(type, path, object) - store the given object at the given path.
@@ -143,19 +140,17 @@ define(['../remoteStorage'], function(remoteStorage) {
      **
      **/
     function setObject(type, path, obj) {
-      var client = getClient(path);
       if(typeof(obj) === 'object') {
-        client.storeObject(type, path, obj);
+        myPrivateBaseClient.storeObject(type, path, obj);
       } else {
-        client.storeDocument(type, path, obj);
+        myPrivateBaseClient.storeDocument(type, path, obj);
       }
     }
 
     /** removeObject(path) - remove node at given path
      **/
     function removeObject(path) {
-      var client = getClient(path);
-      client.remove(path);
+      myPrivateBaseClient.remove(path);
     }
 
     /** getListing(path, [callback, [context]]) - get a listing of the given
@@ -167,8 +162,7 @@ define(['../remoteStorage'], function(remoteStorage) {
       if(! path) {
         throw "Path is required"
       }
-      var client = getClient(path);
-      return client.getListing(path, cb, context);
+      return myPrivateBaseClient.getListing(path, cb, context);
     }
 
     function on(eventName, callback) {
