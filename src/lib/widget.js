@@ -505,6 +505,13 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     setTimeout(tryReconnect, milliseconds);
   }
 
+  function handleSyncTimeout() {
+    offlineReason = 'timeout';
+    setWidgetState('offline');
+    timeoutCount++;
+    scheduleReconnect(Math.min(timeoutCount * 10000, 300000));
+  }
+
   function display(setConnectElement, options) {
     var tokenHarvested = platform.harvestParam('access_token');
     var storageRootHarvested = platform.harvestParam('storage_root');
@@ -514,29 +521,34 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       options = {};
     }
 
-    // sync access roots every minute.
-    schedule.watch('/', 60000);
-
     sync.on('error', function(error) {
       if(error.message == 'unauthorized') {
         offlineReason = 'unauthorized';
         // clear bearer token, so the wireClient state is correct.
         wireClient.setBearerToken(null);
-        if(initialSync) {
-          // abort initial sync
-          initialSync = false;
-          events.emit('ready');
-        }
         setWidgetState('offline');
+      } else if(error.message == 'unknown error') {
+        // "unknown error" happens when the XHR doesn't
+        // have any status code set. this usually means
+        // a network error occured. We handle it exactly
+        // like we handle a timeout.
+        handleSyncTimeout();
+      } else {
+        logger.error("unhandled sync error: ", error);
+      }
+      
+      if(initialSync) {
+        // abort initial sync
+        initialSync = false;
+        // give control to the app (it runs in offline-mode now)
+        events.emit('ready');
       }
     });
 
-    sync.on('timeout', function() {
-      offlineReason = 'timeout';
-      setWidgetState('offline');
-      timeoutCount++;
-      scheduleReconnect(Math.min(timeoutCount * 10000, 300000));
-    });
+    sync.on('timeout', handleSyncTimeout);
+
+    // sync access-roots every minute.
+    schedule.watch('/', 60000);
 
     connectElement = setConnectElement;
 
