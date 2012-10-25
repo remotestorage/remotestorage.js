@@ -54,7 +54,7 @@ define(['./sync', './store', './util', './validate'], function (sync, store, uti
     fireModuleEvent('conflict', 'root', event);
   });
 
-  function set(path, absPath, value) {
+  function set(path, absPath, value, mimeType) {
     var moduleName = extractModuleName(absPath);
     if(util.isDir(absPath)) {
       fireError(absPath, 'attempt to set a value to a directory '+absPath);
@@ -66,7 +66,7 @@ define(['./sync', './store', './util', './validate'], function (sync, store, uti
       newValue: value,
       path: absPath
     };
-    store.setNodeData(absPath, value, true);
+    store.setNodeData(absPath, value, true, undefined, mimeType);
     fireModuleEvent('change', moduleName, changeEvent);
     fireModuleEvent('change', 'root', changeEvent);
   }

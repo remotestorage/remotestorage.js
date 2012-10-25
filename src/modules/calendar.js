@@ -42,7 +42,7 @@ define(['../remoteStorage'], function(remoteStorage) {
 	    }
     });
 
-    client.use('');
+    //client.use('');
 
     function getEventsForDay(day) {
       var ids = client.getListing(day+'/');

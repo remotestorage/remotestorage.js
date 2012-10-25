@@ -1,4 +1,5 @@
 GEM
+  remote: http://rubygems.org/
   specs:
     addressable (2.2.8)
     adsf (1.1.1)
@@ -32,6 +33,14 @@ GEM
     rack (1.4.1)
     rack-test (0.6.1)
       rack (>= 1.0)
+    rspec (2.8.0)
+      rspec-core (~> 2.8.0)
+      rspec-expectations (~> 2.8.0)
+      rspec-mocks (~> 2.8.0)
+    rspec-core (2.8.0)
+    rspec-expectations (2.8.0)
+      diff-lcs (~> 1.1.2)
+    rspec-mocks (2.8.0)
     rubyzip (0.9.7)
     selenium-webdriver (2.21.2)
       childprocess (>= 0.2.5)
@@ -50,4 +59,5 @@ DEPENDENCIES
   adsf
   capybara
   cucumber
+  rspec
   selenium-webdriver

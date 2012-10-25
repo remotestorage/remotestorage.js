@@ -5,6 +5,17 @@ var fs = require('fs');
 
 var dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
 
+if(! fs.existsSync) {
+  fs.existsSync = function(path) {
+    try {
+      fs.statSync(path);
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
+}
+
 exports.handler = (function() {
   var url=require('url'),
     crypto=require('crypto'),

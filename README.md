@@ -1,5 +1,7 @@
 # remoteStorage.js
 
+[![Build Status](https://secure.travis-ci.org/RemoteStorage/remoteStorage.js.png)](http://travis-ci.org/RemoteStorage/remoteStorage.js)
+
 ### Where to get help?
 
 * Consult this README

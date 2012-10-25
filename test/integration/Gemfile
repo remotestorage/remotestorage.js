@@ -4,5 +4,7 @@ source :gemcutter
 
 gem 'cucumber'
 gem 'capybara'
+gem 'rspec'
 gem 'adsf'
 gem 'selenium-webdriver'
+

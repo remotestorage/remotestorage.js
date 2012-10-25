@@ -100,7 +100,7 @@ When(/^I remove the key "([^"]+)"$/) do |key|
 end
 
 Then(/^I should receive '([^']*)'$/) do |json|
-  json.length > 0 ? (@response.to_json.should eq json) : ("#{@response}".should eq json)
+  json.length > 0 ? (@response.should eq JSON.parse(json)) : ("#{@response}".should eq json)
 end
 
 Then(/^I should receive! '([^']*)'$/) do |json|

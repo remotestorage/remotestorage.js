@@ -117,6 +117,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       syncButton: el('button', 'remotestorage-sync-button', {
         '_content': 'Sync now',
         'class': 'remotestoage-button'
+      }),
+      error: el('div', 'remotestorage-error', {
+        'style': 'display:none'
       })
 
     };
@@ -129,6 +132,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     widget.root.appendChild(widget.helpText);
     widget.root.appendChild(widget.userAddress);
     widget.root.appendChild(widget.menu);
+    widget.root.appendChild(widget.error);
 
     widget.menu.appendChild(widget.menuItemSync);
 
@@ -168,7 +172,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
   function displayWidgetState(state, userAddress) {
     if(state === 'authing') {
-      platform.alert("Authentication was aborted. Please try again.");
+      displayError("Authentication was aborted. Please try again.");
       return setWidgetState('typing')
     }
 
@@ -190,8 +194,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
 
     if(state == 'connecting') {
-      widget.connectButton.setAttribute('disabled');
-      widget.userAddress.setAttribute('disabled');
+      widget.connectButton.setAttribute('disabled', 'disabled');
+      widget.userAddress.setAttribute('disabled', 'disabled');
     } else {
       widget.connectButton.removeAttribute('disabled');
       widget.userAddress.removeAttribute('disabled');
@@ -248,6 +252,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     if(state === 'typing') {
       widget.userAddress.focus();
     }
+  }
+
+  function displayError(message) {
+    widget.error.style.display = 'block'
+    widget.error.innerHTML = message;
   }
 
   function handleRegisterButtonClick() {
@@ -395,7 +404,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         if(err == 'timeout' && retryCount != maxRetryCount) {
           tryWebfinger(userAddress, retryCount + 1);
         } else {
-          platform.alert('webfinger discovery failed! Please check if your user address is correct and try again. If the problem persists, contact your storage provider for support. (Error is: ' + err + ')');
+          displayError('webfinger discovery failed! Please check if your user address is correct and try again. If the problem persists, contact your storage provider for support. (Error is: ' + err + ')');
         }
         if(authDialogStrategy == 'popup') {
           closeAuthPopup();
@@ -496,6 +505,13 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     setTimeout(tryReconnect, milliseconds);
   }
 
+  function handleSyncTimeout() {
+    offlineReason = 'timeout';
+    setWidgetState('offline');
+    timeoutCount++;
+    scheduleReconnect(Math.min(timeoutCount * 10000, 300000));
+  }
+
   function display(setConnectElement, options) {
     var tokenHarvested = platform.harvestParam('access_token');
     var storageRootHarvested = platform.harvestParam('storage_root');
@@ -505,29 +521,34 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       options = {};
     }
 
-    // sync access roots every minute.
-    schedule.watch('/', 60000);
-
     sync.on('error', function(error) {
       if(error.message == 'unauthorized') {
         offlineReason = 'unauthorized';
         // clear bearer token, so the wireClient state is correct.
         wireClient.setBearerToken(null);
-        if(initialSync) {
-          // abort initial sync
-          initialSync = false;
-          events.emit('ready');
-        }
         setWidgetState('offline');
+      } else if(error.message == 'unknown error') {
+        // "unknown error" happens when the XHR doesn't
+        // have any status code set. this usually means
+        // a network error occured. We handle it exactly
+        // like we handle a timeout.
+        handleSyncTimeout();
+      } else {
+        logger.error("unhandled sync error: ", error);
+      }
+      
+      if(initialSync) {
+        // abort initial sync
+        initialSync = false;
+        // give control to the app (it runs in offline-mode now)
+        events.emit('ready');
       }
     });
 
-    sync.on('timeout', function() {
-      offlineReason = 'timeout';
-      setWidgetState('offline');
-      timeoutCount++;
-      scheduleReconnect(Math.min(timeoutCount * 10000, 300000));
-    });
+    sync.on('timeout', handleSyncTimeout);
+
+    // sync access-roots every minute.
+    schedule.watch('/', 60000);
 
     connectElement = setConnectElement;
 
@@ -538,7 +559,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
 
     wireClient.on('error', function(err) {
-      platform.alert(translate(err));
+      displayError(translate(err));
     });
 
     sync.on('state', setWidgetState);
