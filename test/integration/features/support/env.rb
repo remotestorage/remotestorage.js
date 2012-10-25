@@ -1,7 +1,11 @@
 
 require 'capybara/cucumber'
 
-require 'ruby-debug' rescue nil
+begin
+  require 'ruby-debug'
+rescue Exception
+  ## ignored
+end
 
 Capybara.default_wait_time = 5
 Capybara.default_driver = :selenium
