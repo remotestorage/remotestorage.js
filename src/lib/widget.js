@@ -194,8 +194,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
 
     if(state == 'connecting') {
-      widget.connectButton.setAttribute('disabled');
-      widget.userAddress.setAttribute('disabled');
+      widget.connectButton.setAttribute('disabled', 'disabled');
+      widget.userAddress.setAttribute('disabled', 'disabled');
     } else {
       widget.connectButton.removeAttribute('disabled');
       widget.userAddress.removeAttribute('disabled');
