@@ -1,3 +1,6 @@
+before_install:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
 before_script:
     - "cd test/integration && bundle install; cd ../.."
 script: test/integration/run
