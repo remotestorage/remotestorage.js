@@ -92,7 +92,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         '_content': translate('get remotestorage')
       }),
       cube: el('img', 'remotestorage-cube', {
-        'src': assets.remoteStorageCube
+        'src': assets.remotestorageIcon
       }),
       bubble: el('span', 'remotestorage-bubble'),
       helpHint: el('a', 'remotestorage-questionmark', {
@@ -112,8 +112,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
       menu: el('div', 'remotestorage-menu'),
       menuItemSync: el('div', null, {
-        'class': 'item',
-        '_content': 'foobar'
+        'class': 'item'
       }),
       syncButton: el('button', 'remotestorage-sync-button', {
         '_content': 'Sync now',
@@ -152,9 +151,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
           widget.menuItemSync.innerHTML = "Syncing";
         } else if(sync.needsSync()) {
           widget.menuItemSync.innerHTML = "Unsynced";
-        } else {
-          var t = (new Date().getTime()) - sync.lastSyncAt.getTime()
+        } else if(sync.lastSyncAt > 0) {
+          var t = new Date().getTime() - sync.lastSyncAt.getTime();
           widget.menuItemSync.innerHTML = "Synced " + Math.round(t / 1000) + ' seconds ago';
+        } else {
+          widget.menuItemSync.innerHTML = "(never synced)";
         }
         widget.menuItemSync.appendChild(widget.syncButton);
       }
@@ -188,10 +189,17 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       root.appendChild(widget.root);
     }
 
+    if(state == 'connecting') {
+      widget.connectButton.setAttribute('disabled');
+      widget.userAddress.setAttribute('disabled');
+    } else {
+      widget.connectButton.removeAttribute('disabled');
+      widget.userAddress.removeAttribute('disabled');
+    }
+
     hideMenu();
 
     widget.root.setAttribute('class', state);
-
 
     var userAddress = localStorage['remote_storage_widget_useraddress'] || '';
 
@@ -204,6 +212,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
     var bubbleText = '';
     var bubbleVisible = false;
+    var cubeIcon = assets.remotestorageIcon;
     if(initialSync && state != 'offline') {
       bubbleText = 'Connecting ' + userAddress;
       bubbleVisible = true
@@ -213,13 +222,17 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       bubbleText = 'Synchronizing ' + userAddress + '...';
     } else if(state == 'offline') {
       if(offlineReason == 'unauthorized') {
+        cubeIcon = assets.remotestorageIconError;
         bubbleText = 'Access denied by remotestorage. Click to reconnect.';
         bubbleVisible = true;
       } else {
+        cubeIcon = assets.remotestorageIconOffline;
         bubbleText = 'Offline (' + userAddress + ')';
         bubbleVisible = true;
       }
     }
+
+    widget.cube.setAttribute('src', cubeIcon);
     
     widget.bubble.innerHTML = bubbleText;
 
@@ -513,7 +526,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       offlineReason = 'timeout';
       setWidgetState('offline');
       timeoutCount++;
-      scheduleReconnect(Math.max(timeoutCount * 10000, 300000));
+      scheduleReconnect(Math.min(timeoutCount * 10000, 300000));
     });
 
     connectElement = setConnectElement;
