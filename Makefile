@@ -47,9 +47,7 @@ doc:
 clean-doc:
 	rm -rf $(DOC_DIR) $(DOC_CONFIG_DIR)/Data
 
-$(ASSETS_OUT): assets/*
+compile-assets: $(ASSETS_DIR)/*
 	$(NODEJS) build/compile-assets.js $(ASSETS_DIR) $(ASSETS_OUT)
-
-compile-assets: $(ASSETS_OUT)
 
 .PHONY: doc clean-doc build commit-build push-build prepare-gh-pages compile-assets
