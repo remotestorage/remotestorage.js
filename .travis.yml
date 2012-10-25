@@ -1,5 +1,5 @@
 before_install:
-  - "sudo bash -c '127.0.0.1 localhost local.dev > /etc/hosts'"
+  - "sudo bash -c 'echo 127.0.0.1 localhost local.dev > /etc/hosts'"
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
   - "wget https://selenium.googlecode.com/files/selenium-server-standalone-2.25.0.jar"
