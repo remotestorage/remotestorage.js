@@ -291,8 +291,11 @@ define(['./util'], function(util) {
   function harvestParamNode() {
   }
   function harvestParamBrowser(param) {
-    if(location.hash.length) {
-      var pairs = location.hash.substring(1).split('&');
+    // location.hash in firefox has all URI entities decoded, so we can't
+    // differentiate between %26 and & in URIs passed as parameters.
+    var hash = String(location).split(/^.*?#/)[1];
+    if(hash) {
+      var pairs = hash.split('&');
       for(var i=0; i<pairs.length; i++) {
         if(pairs[i].substring(0, (param+'=').length) == param+'=') {
           var ret = decodeURIComponent(pairs[i].substring((param+'=').length));
