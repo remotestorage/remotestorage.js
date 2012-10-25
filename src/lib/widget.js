@@ -117,6 +117,9 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       syncButton: el('button', 'remotestorage-sync-button', {
         '_content': 'Sync now',
         'class': 'remotestoage-button'
+      }),
+      error: el('div', 'remotestorage-error', {
+        'style': 'display:none'
       })
 
     };
@@ -129,6 +132,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     widget.root.appendChild(widget.helpText);
     widget.root.appendChild(widget.userAddress);
     widget.root.appendChild(widget.menu);
+    widget.root.appendChild(widget.error);
 
     widget.menu.appendChild(widget.menuItemSync);
 
@@ -168,7 +172,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
   function displayWidgetState(state, userAddress) {
     if(state === 'authing') {
-      platform.alert("Authentication was aborted. Please try again.");
+      displayError("Authentication was aborted. Please try again.");
       return setWidgetState('typing')
     }
 
@@ -248,6 +252,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     if(state === 'typing') {
       widget.userAddress.focus();
     }
+  }
+
+  function displayError(message) {
+    widget.error.style.display = 'block'
+    widget.error.innerHTML = message;
   }
 
   function handleRegisterButtonClick() {
@@ -395,7 +404,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         if(err == 'timeout' && retryCount != maxRetryCount) {
           tryWebfinger(userAddress, retryCount + 1);
         } else {
-          platform.alert('webfinger discovery failed! Please check if your user address is correct and try again. If the problem persists, contact your storage provider for support. (Error is: ' + err + ')');
+          displayError('webfinger discovery failed! Please check if your user address is correct and try again. If the problem persists, contact your storage provider for support. (Error is: ' + err + ')');
         }
         if(authDialogStrategy == 'popup') {
           closeAuthPopup();
@@ -538,7 +547,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
 
     wireClient.on('error', function(err) {
-      platform.alert(translate(err));
+      displayError(translate(err));
     });
 
     sync.on('state', setWidgetState);

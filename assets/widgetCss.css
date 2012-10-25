@@ -246,3 +246,14 @@
     font-size: 10px;
     margin-left: 6px;
 }
+
+#remotestorage-error {
+    background: #000;
+    color: #fcc;
+    opacity: .5;
+    font-size: 10px;
+    position: absolute;
+    top: 40px;
+    right: 5px;
+    padding: 5px;
+}
