@@ -1012,8 +1012,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     logger.error("Error: ", error);
   });
 
-  var limitedFullSync = limit('fullSync', fullSync, 30000);
-  var limitedPartialSync = limit('partialSync', partialSync, 30000);
+  var limitedFullSync = limit('fullSync', fullSync, 10000);
+  var limitedPartialSync = limit('partialSync', partialSync, 5000);
   
   var sync = {
 

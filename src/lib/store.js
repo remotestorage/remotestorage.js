@@ -189,7 +189,7 @@ define(['./util'], function (util) {
   //   raw  - (optional) if given and true, don't attempt to unpack JSON data
   //
   function getNodeData(path, raw) {
-    logger.info('GET', path);
+    logger.debug('GET', path);
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodesData+path);
     var node = getNode(path);
