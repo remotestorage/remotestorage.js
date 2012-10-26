@@ -18,7 +18,7 @@ define(
     }
 
     function doCall(method, url, value, mimeType, token, cb, deadLine) {
-      logger.info(method, url);
+      logger.debug(method, url);
       var platformObj = {
         url: url,
         method: method,
@@ -78,7 +78,6 @@ define(
         cb("invalid value given to PUT, only strings allowed, got " + typeof(value));
       }
 
-      logger.info('calling PUT '+url, ' (' + value.length + ')');
       doCall('PUT', url, value, mimeType, token, function(err, data) {
         //logger.debug('cb from PUT '+url);
         cb(err, data);

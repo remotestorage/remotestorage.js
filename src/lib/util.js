@@ -15,7 +15,14 @@ define([], function() {
 
   var logFn = null;
 
+  var logLevels = {
+    error: true,
+    info: true,
+    debug: false
+  };
+
   var util = {
+
 
     // Method: toArray
     // Convert something into an Array.
@@ -212,11 +219,11 @@ define([], function() {
           },
 
           log: function(level, args, type) {
+            if(silentLogger[name] || logLevels[level] == false) {
+              return;
+            }
             if(logFn) {
               return logFn(name, level, args);
-            }
-            if(silentLogger[name]) {
-              return;
             }
 
             if(! type) {
@@ -280,6 +287,36 @@ define([], function() {
     // opposite of <silenceAllLoggers>
     unsilenceAllLoggers: function() {
       this.unsilenceLogger.apply(this, knownLoggers);
+    },
+
+    // Method: setLogLevel
+    // Set the maximum log level to use. Messages with
+    // a lower log level won't be displayed.
+    //
+    // Log levels are:
+    //   > debug < info < error
+    //
+    // Example:
+    //   (start code)
+    //   util.setLogLevel('info');
+    //   var logger = util.getLogger('my-logger');
+    //   logger.error("something went wrong"); // displayed
+    //   logger.info("hey, how's it going?");  // displayed
+    //   logger.debug("foo bar baz"); // not displayed
+    //   (end code)
+    setLogLevel: function(level) {
+      if(level == 'debug') {
+        logLevels.debug = true;
+        logLevels.info = true;
+      } else if(level == 'info') {
+        logLevels.info = true;
+        logLevels.debug = false;
+      } else if(level == 'error') {
+        logLevels.info = false;
+        logLevels.debug = false;
+      } else {
+        throw "Unknown log level: " + level;
+      }
     },
 
     // Method: grepLocalStorage
