@@ -143,7 +143,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
   function handleSyncNowClick() {
     if(widgetState == 'connected' || widgetState == 'busy') {
-      sync.fullSync();
+      sync.forceSync();
     }
   }
 
