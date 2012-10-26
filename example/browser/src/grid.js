@@ -109,8 +109,13 @@ define([
       table.append(tbody);
 
       var items = root.getObject(path);
+
       if(! items) {
-        alert("Something went wrong, loading path at: " + path);
+        if(path != '/') {
+          common.jumpTo(util.containingDir(path));
+        } else {
+          alert("BUG: root node doesn't exist.");
+        }
         return;
       }
       var keys = sortKeys(Object.keys(items));
