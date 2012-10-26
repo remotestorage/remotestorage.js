@@ -369,7 +369,14 @@ define('lib/util',[], function() {
 
   var logFn = null;
 
+  var logLevels = {
+    error: true,
+    info: true,
+    debug: false
+  };
+
   var util = {
+
 
     // Method: toArray
     // Convert something into an Array.
@@ -566,11 +573,11 @@ define('lib/util',[], function() {
           },
 
           log: function(level, args, type) {
+            if(silentLogger[name] || logLevels[level] == false) {
+              return;
+            }
             if(logFn) {
               return logFn(name, level, args);
-            }
-            if(silentLogger[name]) {
-              return;
             }
 
             if(! type) {
@@ -634,6 +641,36 @@ define('lib/util',[], function() {
     // opposite of <silenceAllLoggers>
     unsilenceAllLoggers: function() {
       this.unsilenceLogger.apply(this, knownLoggers);
+    },
+
+    // Method: setLogLevel
+    // Set the maximum log level to use. Messages with
+    // a lower log level won't be displayed.
+    //
+    // Log levels are:
+    //   > debug < info < error
+    //
+    // Example:
+    //   (start code)
+    //   util.setLogLevel('info');
+    //   var logger = util.getLogger('my-logger');
+    //   logger.error("something went wrong"); // displayed
+    //   logger.info("hey, how's it going?");  // displayed
+    //   logger.debug("foo bar baz"); // not displayed
+    //   (end code)
+    setLogLevel: function(level) {
+      if(level == 'debug') {
+        logLevels.debug = true;
+        logLevels.info = true;
+      } else if(level == 'info') {
+        logLevels.info = true;
+        logLevels.debug = false;
+      } else if(level == 'error') {
+        logLevels.info = false;
+        logLevels.debug = false;
+      } else {
+        throw "Unknown log level: " + level;
+      }
     },
 
     // Method: grepLocalStorage
@@ -1460,7 +1497,7 @@ define('lib/getputdelete',
     }
 
     function doCall(method, url, value, mimeType, token, cb, deadLine) {
-      logger.info(method, url);
+      logger.debug(method, url);
       var platformObj = {
         url: url,
         method: method,
@@ -1520,7 +1557,6 @@ define('lib/getputdelete',
         cb("invalid value given to PUT, only strings allowed, got " + typeof(value));
       }
 
-      logger.info('calling PUT '+url, ' (' + value.length + ')');
       doCall('PUT', url, value, mimeType, token, function(err, data) {
         //logger.debug('cb from PUT '+url);
         cb(err, data);
@@ -2019,7 +2055,7 @@ define('lib/store',['./util'], function (util) {
   //   raw  - (optional) if given and true, don't attempt to unpack JSON data
   //
   function getNodeData(path, raw) {
-    logger.info('GET', path);
+    logger.debug('GET', path);
     validPath(path);
     var valueStr = localStorage.getItem(prefixNodesData+path);
     var node = getNode(path);
@@ -3330,8 +3366,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     logger.error("Error: ", error);
   });
 
-  var limitedFullSync = limit('fullSync', fullSync, 30000);
-  var limitedPartialSync = limit('partialSync', partialSync, 30000);
+  var limitedFullSync = limit('fullSync', fullSync, 10000);
+  var limitedPartialSync = limit('partialSync', partialSync, 5000);
   
   var sync = {
 
@@ -3941,7 +3977,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
 
   function handleSyncNowClick() {
     if(widgetState == 'connected' || widgetState == 'busy') {
-      sync.fullSync();
+      sync.forceSync();
     }
   }
 
