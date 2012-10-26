@@ -4089,8 +4089,12 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   }
 
   function displayError(message) {
-    widget.error.style.display = 'block'
-    widget.error.innerHTML = message;
+    if(widget) {
+      widget.error.style.display = 'block'
+      widget.error.innerHTML = message;
+    } else {
+      alert(message);
+    }
   }
 
   function handleRegisterButtonClick() {
