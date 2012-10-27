@@ -262,6 +262,10 @@ define([
       wireClient.setBearerToken(bearerToken);
     },
 
+    getBearerToken: function() {
+      wireClient.getBearerToken();
+    },
+
     disconnectRemote : wireClient.disconnectRemote,
 
     // 
