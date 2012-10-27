@@ -1610,7 +1610,7 @@ define('lib/getputdelete',
     }
 });
 
-define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, util) {
+define(['./getputdelete', './util'], function (getputdelete, util) {
 
   
 
@@ -1819,6 +1819,10 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
     //
     setBearerToken   : function(bearerToken) {
       setSetting('bearerToken', bearerToken);
+    },
+
+    setBearerToken   : function(bearerToken) {
+      return getSetting('bearerToken');
     },
 
     // Method: addStorageInfo
@@ -4530,9 +4534,7 @@ define('lib/nodeConnect',['./wireClient', './webfinger'], function(wireClient, w
 
     // Method: setBearerToken
     //
-    // Set bearer token directly. This practice is currently heavily discussed and
-    // criticized on the mailinglist, as it apparently goes against the principles
-    // of oauth.
+    // Set bearer token directly.
     //
     setBearerToken: wireClient.setBearerToken
 
@@ -5860,6 +5862,10 @@ define('remoteStorage',[
     // PRIVATE
     setBearerToken: function(bearerToken, claimedScopes) {
       wireClient.setBearerToken(bearerToken);
+    },
+
+    getBearerToken: function() {
+      wireClient.getBearerToken();
     },
 
     disconnectRemote : wireClient.disconnectRemote,
