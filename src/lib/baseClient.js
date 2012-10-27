@@ -1,4 +1,4 @@
-define(['./sync', './store', './util', './validate'], function (sync, store, util, validate) {
+define(['./sync', './store', './util', './validate', './wireClient'], function (sync, store, util, validate, wireClient) {
 
   "use strict";
 
@@ -463,7 +463,7 @@ define(['./sync', './store', './util', './validate'], function (sync, store, uti
     },
 
     getStorageHref: function() {
-      return remoteStorage.getStorageHref();
+      return wireClient.getStorageHref();
     },
 
     //
