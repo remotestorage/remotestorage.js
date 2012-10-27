@@ -74,7 +74,8 @@ define(
     }
 
     function put(url, value, mimeType, token, cb) {
-      if(typeof(value) !== 'string') {
+      if(! (typeof(value) === 'string' || (typeof(value) === 'object' && value instanceof Blob))) {
+        window.xyz = value;
         cb("invalid value given to PUT, only strings allowed, got " + typeof(value));
       }
 

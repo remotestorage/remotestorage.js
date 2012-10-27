@@ -167,6 +167,13 @@ define(['./util'], function(util) {
     };
     if(typeof(params.data) === 'string') {
       xhr.send(params.data);
+    } else if(typeof(params.data) === 'object' && params.data instanceof Blob) {
+      logger.debug("SENDING BLOB");
+      var reader = new FileReader();
+      reader.onload = function() {
+        xhr.send(reader.result);
+      }
+      reader.readAsArrayBuffer(params.data);
     } else {
       xhr.send();
     }

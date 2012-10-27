@@ -19,6 +19,8 @@ define(['./util'], function (util) {
 
   var events = util.getEventEmitter('error', 'change', 'foreign-change');
 
+  var cachedBlobs = {};
+
   //
   // Type: Node
   //
@@ -192,6 +194,12 @@ define(['./util'], function (util) {
   function getNodeData(path, raw) {
     logger.debug('GET', path);
     validPath(path);
+
+    if(path in cachedBlobs) {
+      logger.debug("GET BLOB");
+      return cachedBlobs[path];
+    }
+
     var valueStr = localStorage.getItem(prefixNodesData+path);
     var node = getNode(path);
     if(valueStr) {
@@ -322,9 +330,6 @@ define(['./util'], function (util) {
 
   }
 
-
-
-
   function isPrefixed(key) {
     return key.substring(0, prefixNodes.length) == prefixNodes;
   }
@@ -352,7 +357,6 @@ define(['./util'], function (util) {
     return path[0] != '/';
   }
 
-
   function determineDirTimestamp(path) {
     var data = getNodeData(path);
     if(data) {
@@ -374,6 +378,10 @@ define(['./util'], function (util) {
     var encodedData;
     if(typeof(data) !== 'undefined') {
       if(typeof(data) === 'object') {
+        if(data instanceof Blob) {
+          cachedBlobs[path] = data;
+          return;
+        }
         encodedData = JSON.stringify(data);
       } else {
         encodedData = data;
