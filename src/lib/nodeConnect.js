@@ -68,9 +68,7 @@ define(['./wireClient', './webfinger'], function(wireClient, webfinger) {
 
     // Method: setBearerToken
     //
-    // Set bearer token directly. This practice is currently heavily discussed and
-    // criticized on the mailinglist, as it apparently goes against the principles
-    // of oauth.
+    // Set bearer token directly.
     //
     setBearerToken: wireClient.setBearerToken
 

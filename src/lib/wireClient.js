@@ -209,6 +209,10 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
       setSetting('bearerToken', bearerToken);
     },
 
+    setBearerToken   : function(bearerToken) {
+      return getSetting('bearerToken');
+    },
+
     // Method: addStorageInfo
     //
     // Add another user's storage info.
