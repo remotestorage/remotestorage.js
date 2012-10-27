@@ -209,7 +209,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
       setSetting('bearerToken', bearerToken);
     },
 
-    setBearerToken   : function(bearerToken) {
+    getBearerToken   : function(bearerToken) {
       return getSetting('bearerToken');
     },
 
