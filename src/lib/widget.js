@@ -173,7 +173,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   function displayWidgetState(state, userAddress) {
     if(state === 'authing') {
       displayError("Authentication was aborted. Please try again.");
-      return setWidgetState('typing')
+      return setWidgetState('typing');
     }
 
     if(! widget) {
@@ -219,7 +219,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     var cubeIcon = assets.remotestorageIcon;
     if(initialSync && state != 'offline') {
       bubbleText = 'Connecting ' + userAddress;
-      bubbleVisible = true
+      bubbleVisible = true;
     } else if(state == 'connected') {
       bubbleText = 'Disconnect ' + userAddress;
     } else if(state == 'busy') {
@@ -256,7 +256,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
   function displayError(message) {
     if(widget) {
-      widget.error.style.display = 'block'
+      widget.error.style.display = 'block';
       widget.error.innerHTML = message;
     } else {
       alert(message);
@@ -604,8 +604,8 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     window.addEventListener('beforeunload', function(event) {
       if(widgetState != 'anonymous' && widgetState != 'authing' && widgetState != 'connecting' && sync.needsSync()) {
         sync.fullPush();
-        var message = "Synchronizing your data now. Please wait until the cube stops spinning."
-        event.returnValue = message
+        var message = "Synchronizing your data now. Please wait until the cube stops spinning.";
+        event.returnValue = message;
         return message;
       }
     });

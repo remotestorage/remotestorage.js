@@ -72,6 +72,6 @@ define(['./wireClient', './webfinger'], function(wireClient, webfinger) {
     //
     setBearerToken: wireClient.setBearerToken
 
-  }
+  };
 
 });

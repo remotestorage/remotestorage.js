@@ -15,7 +15,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
   function getSetting(key) {
     var data = localStorage.getItem(settingsPrefix + key);
-    try { data = JSON.parse(data); } catch(e) {};
+    try { data = JSON.parse(data); } catch(e) {}
     return data;
   }
 
@@ -27,7 +27,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   }
 
   function clearSettings() {
-    for(var i=0;i<localStorage.length;i++) {
+    var numLocalStorage = localStorage.length;
+    for(var i=0;i<numLocalStorage;i++) {
       var key = localStorage.key(i);
       if(key.match(new RegExp('^' + settingsPrefix))) {
         localStorage.removeItem(key);
@@ -156,7 +157,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       }
     }
 
-    if(roots.length == 0) {
+    if(roots.length === 0) {
       logger.info('full sync not happening. no access claimed.');
       return;
     }
@@ -404,7 +405,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
 
   function fireError(path, error) {
-    var event = { path: path, };
+    var event = { path: path };
     if(typeof(error) == 'object') {
       event.stack = error.stack;
       if(typeof(event.stack == 'string')) {
@@ -599,9 +600,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     return {
       timestamp: timestamp,
       data: data,
-      deleted: timestamp == 0,
+      deleted: timestamp === 0,
       mimeType: mimeType
-    }
+    };
   }
 
   // Function: fetchRemoteNode
@@ -683,7 +684,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
   function findRoots(path) {
     var root = store.getNode('/');
-    var roots = []
+    var roots = [];
     if(root.startAccess) {
       roots.push('/');
     } else {
@@ -711,7 +712,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
   function findNextForceRoots(path) {
     var roots = [];
-    var listing = store.getNodeData(path)
+    var listing = store.getNodeData(path);
     for(var key in listing) {
       var node = store.getNode(path + key);
       if(node.startForce || node.startForceTree) {
@@ -757,7 +758,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
     var done = opts.done || function() {};
 
-    if(opts.depth || opts.depth == 0) {
+    if(opts.depth || opts.depth === 0) {
       logger.debug("traverse depth", opts.depth, root);
     }
 
@@ -795,7 +796,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
             var newOpts = util.extend({}, opts);
             newOpts.done = done;
             newOpts.depth = opts.depth ? (nextParts.length - thisParts.length) : null;
-            if((newOpts.depth == null) || (newOpts.depth > 0)) {
+            if((newOpts.depth === null) || (newOpts.depth > 0)) {
               traverseTree(nextRoot, callback, newOpts);
             }
           }
@@ -831,7 +832,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         Object.keys(localListing)
       );
 
-      if(opts.forceTree && (! opts.force) && Object.keys(localListing).length == 0) {
+      if(opts.forceTree && (! opts.force) && Object.keys(localListing).length === 0) {
         // empty listing, only trees are synced.
         // -> copy children, but don't sync..
         fullListing.forEach(function(key) {
@@ -914,7 +915,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       } else {
         throw "Invalid conflict resolution: " + solution;
       }
-    }
+    };
   }
 
   // Function: makeErrorCatcher
@@ -931,7 +932,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         var args = Array.prototype.slice.call(arguments, 1);
         callback.apply(this, args);
       }
-    }
+    };
   }
 
   // Function: spawnQueue
@@ -962,7 +963,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     }
     function done() {
       n--;
-      if(i == list.length && n == 0) {
+      if(i === list.length && n === 0) {
         setReady();
       } else if(i < list.length) {
         spawn();
@@ -1004,7 +1005,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         setSetting('limitCache', limitCache);
         syncFunction.apply(this, args);
       }
-    }
+    };
   }
 
 
@@ -1073,7 +1074,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       sync.partialSync = partialSync;
     }
 
-  }
+  };
 
   return sync;
 

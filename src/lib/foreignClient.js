@@ -2,7 +2,7 @@ define(['./util', './baseClient', './getputdelete', './store'], function(util, B
 
   var logger = util.getLogger('foreignClient');
 
-  var knownClients = {}
+  var knownClients = {};
 
   store.on('foreign-change', function(event) {
     var userAddress = event.path.split(':')[0];
@@ -33,7 +33,7 @@ define(['./util', './baseClient', './getputdelete', './store'], function(util, B
     this.events = util.getEventEmitter('change', 'error');
     knownClients[userAddress] = this;
     util.bindAll(this);
-  }
+  };
   
   ForeignClient.prototype = {
 
@@ -106,7 +106,7 @@ define(['./util', './baseClient', './getputdelete', './store'], function(util, B
       this.events.on(eventName, handler);
     }
 
-  }
+  };
 
   var methodBlacklist = {
     makePath: true,
@@ -119,7 +119,7 @@ define(['./util', './baseClient', './getputdelete', './store'], function(util, B
     fetchNow: true,
     syncNow: true,
     on: true
-  }
+  };
 
   // inherit some stuff from BaseClient
 

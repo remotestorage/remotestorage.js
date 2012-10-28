@@ -88,7 +88,8 @@ define([], function() {
           distanceFunction = this.sift3Distance;
         }
 
-        for (var i = 0; i < domains.length; i++) {
+        var numDomains = domains.length;
+        for (var i = 0; i < numDomains; i++) {
           if (domain === domains[i]) {
             return domain;
           }
@@ -108,36 +109,38 @@ define([], function() {
 
       sift3Distance: function(s1, s2) {
         // sift3: http://siderite.blogspot.com/2007/04/super-fast-and-accurate-string-distance.html
-        if (s1 == null || s1.length === 0) {
-          if (s2 == null || s2.length === 0) {
+        if (s1 === null || s1.length === 0) {
+          if (s2 === null || s2.length === 0) {
             return 0;
           } else {
             return s2.length;
           }
         }
 
-        if (s2 == null || s2.length === 0) {
+        if (s2 === null || s2.length === 0) {
           return s1.length;
         }
 
+        var s1Length = s1.length;
+        var s2Length = s2.length;
         var c = 0;
         var offset1 = 0;
         var offset2 = 0;
         var lcs = 0;
         var maxOffset = 5;
 
-        while ((c + offset1 < s1.length) && (c + offset2 < s2.length)) {
+        while ((c + offset1 < s1Length) && (c + offset2 < s2Length)) {
           if (s1.charAt(c + offset1) == s2.charAt(c + offset2)) {
             lcs++;
           } else {
             offset1 = 0;
             offset2 = 0;
             for (var i = 0; i < maxOffset; i++) {
-              if ((c + i < s1.length) && (s1.charAt(c + i) == s2.charAt(c))) {
+              if ((c + i < s1Length) && (s1.charAt(c + i) == s2.charAt(c))) {
                 offset1 = i;
                 break;
               }
-              if ((c + i < s2.length) && (s1.charAt(c) == s2.charAt(c + i))) {
+              if ((c + i < s2Length) && (s1.charAt(c) == s2.charAt(c + i))) {
                 offset2 = i;
                 break;
               }
@@ -145,7 +148,7 @@ define([], function() {
           }
           c++;
         }
-        return (s1.length + s2.length) /2 - lcs;
+        return (s1Length + s2Length) /2 - lcs;
       },
 
       splitEmail: function(email) {
@@ -155,7 +158,8 @@ define([], function() {
           return false;
         }
 
-        for (var i = 0; i < parts.length; i++) {
+        var numParts = parts.length;
+        for (var i = 0; i < numParts; i++) {
           if (parts[i] === '') {
             return false;
           }
@@ -165,7 +169,7 @@ define([], function() {
         var domainParts = domain.split('.');
         var tld = '';
 
-        if (domainParts.length == 0) {
+        if (domainParts.length === 0) {
           // The address does not have a top-level domain
           return false;
         } else if (domainParts.length == 1) {
@@ -173,10 +177,11 @@ define([], function() {
           tld = domainParts[0];
         } else {
           // The address has a domain and a top-level domain
-          for (var i = 1; i < domainParts.length; i++) {
+          var numDomainParts = domainParts.length;
+          for (i = 1; i < numDomainParts; i++) {
             tld += domainParts[i] + '.';
           }
-          if (domainParts.length >= 2) {
+          if (numDomainParts >= 2) {
             tld = tld.substring(0, tld.length - 1);
           }
         }
@@ -185,11 +190,10 @@ define([], function() {
           topLevelDomain: tld,
           domain: domain,
           address: parts.join('@')
-        }
+        };
       }
     }
   };
 
   return Kicksend;
-
 });

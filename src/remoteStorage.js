@@ -91,7 +91,7 @@ define([
     defineModule: function(moduleName, builder) {
 
       if(! moduleNameRE.test(moduleName)) {
-        throw 'Invalid moduleName: "'+moduleName+'", only a-z lowercase allowed.'
+        throw 'Invalid moduleName: "'+moduleName+'", only a-z lowercase allowed.';
       }
 
       var module = builder(
@@ -225,7 +225,7 @@ define([
       } else {
         testMode(moduleName, mode);
         moduleObj = {};
-        moduleObj[moduleName] = mode
+        moduleObj[moduleName] = mode;
       }
       for(var _moduleName in moduleObj) {
         var _mode = moduleObj[_moduleName];
@@ -263,7 +263,7 @@ define([
     },
 
     getBearerToken: function() {
-      wireClient.getBearerToken();
+      return wireClient.getBearerToken();
     },
 
     disconnectRemote : wireClient.disconnectRemote,

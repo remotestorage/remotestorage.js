@@ -138,7 +138,8 @@ define(['./util'], function (util) {
   // Forget all data stored by <store>.
   //
   function forgetAll() {
-    for(var i=0; i<localStorage.length; i++) {
+    var numLocalStorage = localStorage.length;
+    for(var i=0; i<numLocalStorage; i++) {
       if(localStorage.key(i).substr(0, prefixNodes.length) == prefixNodes ||
          localStorage.key(i).substr(0, prefixNodesData.length) == prefixNodesData) {
         localStorage.removeItem(localStorage.key(i));
@@ -222,7 +223,7 @@ define(['./util'], function (util) {
   //
   function setNodeAccess(path, claim) {
     var node = getNode(path);
-    if((claim != node.startAccess) && (claim == 'rw' || node.startAccess == null)) {
+    if((claim !== node.startAccess) && (claim === 'rw' || node.startAccess === null)) {
       node.startAccess = claim;
       updateNode(path, node, false, true);//meta
     }
@@ -275,7 +276,7 @@ define(['./util'], function (util) {
       updateNode(path, node, false, true);
     }
 
-    if(util.isDir(path) && Object.keys(getNodeData(path)).length == 0 && !(node.startAccess || node.startForce || node.startForceTree)) {
+    if(util.isDir(path) && Object.keys(getNodeData(path)).length === 0 && !(node.startAccess || node.startForce || node.startForceTree)) {
       updateNodeData(path, undefined);
       updateNode(path, undefined, false);
     }
@@ -377,9 +378,9 @@ define(['./util'], function (util) {
       } else {
         encodedData = data;
       }
-      localStorage.setItem(prefixNodesData+path, encodedData)
+      localStorage.setItem(prefixNodesData+path, encodedData);
     } else {
-      localStorage.removeItem(prefixNodesData+path)
+      localStorage.removeItem(prefixNodesData+path);
     }
   }
 
@@ -390,10 +391,10 @@ define(['./util'], function (util) {
       if(outgoing) {
         timestamp = getCurrTimestamp();
       } else if(util.isDir(path)) {
-        timestamp = determineDirTimestamp(path)
+        timestamp = determineDirTimestamp(path);
       } else {
-        throw new Error('no timestamp given for node ' + path);
         timestamp = 0;
+        throw new Error('no timestamp given for node ' + path);
       }
     }
 

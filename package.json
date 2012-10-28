@@ -1,0 +1,12 @@
+{
+  "name": "remoteStorage.js",
+  "version": "0.7.0-RC1",
+  "devDependencies": {
+    "requirejs": "*",
+    "amdefine": "*",
+    "teste": "*"
+  },
+  "scripts": {
+    "test": "node_modules/.bin/teste"
+  }
+}

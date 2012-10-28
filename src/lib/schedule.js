@@ -35,7 +35,7 @@ define(['./util', './sync'], function(util, sync) {
       }
     }
 
-    if(syncNow.length == 0) {
+    if(syncNow.length === 0) {
       scheduleNextRun();
       return;
     }
@@ -43,7 +43,8 @@ define(['./util', './sync'], function(util, sync) {
     logger.info("Paths to refresh: ", syncNow);
 
     // request a sync for each path
-    for(var i=0;i<syncNow.length;i++) {
+    var numSyncNow = syncNow.length;
+    for(var i=0;i<numSyncNow;i++) {
       var path = syncNow[i];
       var syncer = function(path, cb) {
         if(path == '/') {
@@ -91,6 +92,6 @@ define(['./util', './sync'], function(util, sync) {
       delete lastPathSync[path];
     }
 
-  }
+  };
 
 });

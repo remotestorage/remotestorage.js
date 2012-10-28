@@ -218,5 +218,5 @@ define(
     }
     return {
       getStorageInfo: getStorageInfo
-    }
+    };
 });

@@ -36,7 +36,7 @@ define(
         },
         timeout: deadLine || 5000,
         headers: {}
-      }
+      };
 
       if(token) {
         platformObj.headers['Authorization'] = 'Bearer ' + token;
@@ -128,5 +128,5 @@ define(
       //   mimeType - value of the response's Content-Type header. If none was returned, this defaults to application/octet-stream.
       //
       set:    set
-    }
+    };
 });
