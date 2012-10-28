@@ -151,7 +151,7 @@ suites.push({
         {
             desc: 'util.getEventEmiter()',
             run: function(env) {
-                env.events = env.util.getEventEmitter('change', 'error');
+                env.events = env.util.getEventEmitter('change', 'error', 'ready');
                 this.assertType(env.events, 'object');
             }
         },
@@ -173,6 +173,32 @@ suites.push({
                     _this.assert(what, 'happened');
                 });
                 env.events.emit('change', 'happened');
+            }
+        },
+        {
+            desc: "events.emit('change')",
+            willFail: true,
+            timeout: 1000,
+            run: function(env) {
+                var _this = this;
+                try {
+                    env.events.on('oogabooga', function(what) {
+                        _this.assert(what, 'happened');
+                    });
+                    env.events.emit('change', 'happened');
+                } catch(err) {
+                    this.result(false, err);
+                }
+            }
+        },
+        {
+            desc: "events.once()",
+            run: function(env) {
+                var _this = this;
+                env.events.once('ready', function(what) {
+                    _this.assert(what, 'happened');
+                });
+                env.events.emit('ready', 'happened');
             }
         }
     ]

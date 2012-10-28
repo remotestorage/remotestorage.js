@@ -161,6 +161,9 @@ define([], function() {
         },
 
         once: function(eventName, handler) {
+          if(! this._handlers[eventName]) {
+            throw "Unknown event: " + eventName;
+          }
           var i = this._handlers[eventName].length;
           if(typeof(handler) !== 'function') {
             throw "Expected function as handler, got: " + typeof(handler);
