@@ -192,7 +192,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     //
     // Get base URL of the user's remotestorage.
     getStorageHref   : function() {
-      return getSetting('storageHref')
+      return getSetting('storageHref');
     },
     
     // Method: SetBearerToken

@@ -99,7 +99,7 @@ define([], function() {
           a.unshift(_a[i]);
         }
         return f.apply(this, a);
-      }
+      };
     },
 
     bind: function(callback, context) {
@@ -219,7 +219,7 @@ define([], function() {
           },
 
           log: function(level, args, type) {
-            if(silentLogger[name] || logLevels[level] == false) {
+            if(silentLogger[name] || logLevels[level] === false) {
               return;
             }
             if(logFn) {
@@ -234,7 +234,7 @@ define([], function() {
             
             (console[type] || console.log).apply(console, args);
           }
-        }
+        };
       }
 
       return loggers[name];
@@ -262,7 +262,8 @@ define([], function() {
     //
     silenceLogger: function() {
       var names = util.toArray(arguments);
-      for(var i=0;i<names.length;i++) {
+      var numNames = names.length;
+      for(var i=0;i<numNames;i++) {
         silentLogger[ names[i] ] = true;
       }
     },
@@ -272,7 +273,8 @@ define([], function() {
     // The opposite of <silenceLogger>
     unsilenceLogger: function() {
       var names = util.toArray(arguments);
-      for(var i=0;i<names.length;i++) {
+      var numNames = names.length;
+      for(var i=0;i<numNames;i++) {
         delete silentLogger[ names[i] ];
       }
     },
@@ -327,14 +329,15 @@ define([], function() {
     //
     // The iter receives the matching key as it's only argument.
     grepLocalStorage: function(pattern, iter) {
-      for(var i=0;i<localStorage.length;i++) {
+      var numLocalStorage = localStorage.length;
+      for(var i=0;i<numLocalStorage;i++) {
         var key = localStorage.key(i);
         if(pattern.test(key)) {
           iter(key);
         }
       }
     }
-  }
+  };
 
   // Class: Logger
   //

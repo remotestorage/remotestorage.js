@@ -79,7 +79,7 @@ define(['./sync', './store', './util', './validate'], function (sync, store, uti
     this.events = util.getEventEmitter('change', 'conflict', 'error');
     moduleEvents[moduleName][isPublic] = this.events;
     util.bindAll(this);
-  }
+  };
 
   // Class: BaseClient
   //
@@ -146,9 +146,9 @@ define(['./sync', './store', './util', './validate'], function (sync, store, uti
       var node = store.getNode(path);
       var access = (new RegExp(mode)).test(node.startAccess);
       if(access) {
-        return true
+        return true;
       } else if(path.length > 0) {
-        return this.nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''))
+        return this.nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''));
       }
     },
 
@@ -224,7 +224,7 @@ define(['./sync', './store', './util', './validate'], function (sync, store, uti
 
       if(callback) {
         var cb = util.bind(callback, context);
-        if(data && !(typeof(data) == 'object' && Object.keys(data).length == 0)) {
+        if(data && !(typeof(data) === 'object' && Object.keys(data).length === 0)) {
           cb(data);
         } else {
           sync.syncOne(absPath, function(node, data) {
@@ -423,7 +423,7 @@ define(['./sync', './store', './util', './validate'], function (sync, store, uti
     storeObject: function(type, path, obj, callback, context) {
       this.ensureAccess('w');
       if(typeof(obj) !== 'object') {
-        throw "storeObject needs to get an object as value!"
+        throw "storeObject needs to get an object as value!";
       }
       obj['@type'] = this.resolveType(type);
 

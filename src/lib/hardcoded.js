@@ -52,10 +52,13 @@ define(
         'hzeeland.nl', 'hotelschool.nl', 'ichtus-rdam.nl', 'larenstein.nl', 'iselinge.nl', 'koncon.nl', 'kabk.nl', 'lhump.nl', 'msm.nl', 'hsmarnix.nl',
         'nhtv.nl', 'nth.nl', 'nhl.nl', 'sandberg.nl', 'hsij.nl', 'stoas.nl', 'thrijswijk.nl', 'tio.nl', 'vhall.nl', 'chw.nl', 'hogeschoolrotterdam.nl'];
       var dutchUniversitiesSaml= ['surfnet.nl', 'fontys.nl'];
-      for(var i=0;i<dutchUniversitiesSaml.length;i++) {
+
+      var num_dutchUniversitiesSaml = dutchUniversitiesSaml.length;
+      for(var i=0;i<num_dutchUniversitiesSaml;i++) {
         guesses[dutchUniversitiesSaml[i]]=surfnetSaml;
       }
-      for(var i=0;i<dutchUniversitiesNoSaml.length;i++) {
+      var num_dutchUniversitiesNoSaml = dutchUniversitiesNoSaml.length;
+      for(i=0;i<num_dutchUniversitiesNoSaml;i++) {
         guesses[dutchUniversitiesNoSaml[i]]=surfnetBrowserId;
       }
     })();
@@ -105,7 +108,7 @@ define(
         } else {
           while(parts[1].indexOf('.') != -1) {
             if(guesses[parts[1]]) {
-              blueprint=guesses[parts[1]];
+              var blueprint = guesses[parts[1]];
               cb(null, {
                 rel: 'https://www.w3.org/community/unhosted/wiki/personal-data-service-00',
                 type: blueprint.type,
@@ -131,5 +134,5 @@ define(
     }
     return {
       guessStorageInfo: guessStorageInfo
-    }
+    };
 });

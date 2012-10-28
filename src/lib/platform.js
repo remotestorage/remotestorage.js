@@ -98,8 +98,9 @@ define(['./util'], function(util) {
     var headers = {};
     var lines = rawHeaders.split(/\r?\n/);
     var lastKey = null, md, key, value;
-    for(var i=0;i<lines.length;i++) {
-      if(lines[i].length == 0) {
+    var numLines = lines.length;
+    for(var i=0;i<numLines;i++) {
+      if(lines[i].length === 0) {
         // empty line. obviously.
         continue;
       } else if((md = lines[i].match(/^([^:]+):\s*(.+)$/))) {
@@ -156,14 +157,14 @@ define(['./util'], function(util) {
             // Any additional headers that are needed by other code, should be added here.
             headers = {
               'content-type': xhr.getResponseHeader('Content-Type')
-            }
+            };
           }
           params.success(xhr.responseText, headers);
         } else {
           params.error(xhr.status || 'unknown error');
         }
       }
-    }
+    };
     if(typeof(params.data) === 'string') {
       xhr.send(params.data);
     } else {
@@ -256,7 +257,7 @@ define(['./util'], function(util) {
     }
   }
   function parseXmlBrowser(str, cb) {
-    var tree=(new DOMParser()).parseFromString(str, 'text/xml')
+    var tree=(new DOMParser()).parseFromString(str, 'text/xml');
     var nodes=tree.getElementsByTagName('Link');
     var obj={
       Link: []
@@ -269,7 +270,7 @@ define(['./util'], function(util) {
         }
       }
       var props = nodes[i].getElementsByTagName('Property');
-      link.properties = {}
+      link.properties = {};
       for(var k=0; k<props.length;k++) {
         link.properties[
           props[k].getAttribute('type')
@@ -359,7 +360,7 @@ define(['./util'], function(util) {
       getLocation: getLocationNode,
       setLocation: setLocationNode,
       alert: alertNode
-    }
+    };
   } else {
     if(window.XDomainRequest) {
       return {
