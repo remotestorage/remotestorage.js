@@ -41,7 +41,7 @@ define([], function() {
     isDir: function(path) {
       return path.substr(-1) == '/';
     },
-    
+
     pathParts: function(path) {
       var parts = ['/'];
       var md;
@@ -231,7 +231,7 @@ define([], function() {
             }
 
             args.unshift("[" + name.toUpperCase() + "] -- " + level + " ");
-            
+
             (console[type] || console.log).apply(console, args);
           }
         };
