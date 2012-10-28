@@ -15,16 +15,49 @@ suites.push({
             baseUrl: __dirname+'/../src/',
             nodeRequire: require
         });
+
+        global.localStorage = require('localStorage');
         var _this = this;
-        var remoteStorage = requirejs(['remoteStorage'], function(remoteStorage) {
-            _this.assertType(remoteStorage.defineModule, 'function');
+        requirejs(['remoteStorage'], function(remoteStorage) {
+            _this.assertTypeAnd(remoteStorage.defineModule, 'function');
+            global.remoteStorage = remoteStorage;
+            // define test module
+            var moduleName = 'test';
+            remoteStorage.defineModule(moduleName, function(privateClient, publicClient) {
+                return {
+                    name: 'test',
+                    exports: {
+                        makePath: function(path) {
+                            return privateClient.makePath(path);
+                        }
+                    }
+                };
+            });
+            var moduleList = remoteStorage.getModuleList();
+
+            _this.assert(moduleList, ['test']);
         });
+    },
+    takedown: function(env) {
+        env = '';
+        this.result(true);
     },
     tests: [
         {
-            desc: "initial test",
+            desc: "claimAccess()",
             run: function(env) {
-                this.result(true);
+                remoteStorage.claimAccess('test', 'rw');
+                this.assertAnd(remoteStorage.getClaimedModuleList, ['test']);
+                env.tm = remoteStorage.getClient();
+                this.assertType(env.tm, 'object');
+            }
+        },
+        {
+            desc: "makePath()",
+            run: function(env) {
+                var ret = env.tm.makePath('this/is/a/path');
+                console.log(ret);
+                this.assert(ret, '/test/this/is/a/path');
             }
         }
     ]

@@ -17,12 +17,17 @@ suites.push({
         });
         var _this = this;
         requirejs(['lib/baseClient'], function(baseClient) {
+            env.bc = baseClient;
             _this.assertType(baseClient, 'function');
         });
     },
+    takedown: function(env) {
+        env = '';
+        this.result(true);
+    },
     tests: [
         {
-            desc: "initial test",
+            desc: "extractModuleName()",
             run: function(env) {
                 this.result(true);
             }

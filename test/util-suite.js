@@ -22,6 +22,10 @@ suites.push({
             _this.assertType(env.util.baseName, 'function');
         });
     },
+    takedown: function(env) {
+        env = '';
+        this.result(true);
+    },
     tests: [
         {
             desc: "util.toArray()",
