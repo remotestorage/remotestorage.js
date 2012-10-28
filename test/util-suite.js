@@ -181,14 +181,10 @@ suites.push({
             timeout: 1000,
             run: function(env) {
                 var _this = this;
-                try {
-                    env.events.on('oogabooga', function(what) {
-                        _this.assert(what, 'happened');
-                    });
-                    env.events.emit('change', 'happened');
-                } catch(err) {
-                    this.result(false, err);
-                }
+                env.events.on('oogabooga', function(what) {
+                    _this.assert(what, 'happened');
+                });
+                env.events.emit('change', 'happened');
             }
         },
         {
@@ -199,6 +195,73 @@ suites.push({
                     _this.assert(what, 'happened');
                 });
                 env.events.emit('ready', 'happened');
+            }
+        },
+        {
+            desc: "events.reset()",
+            timeout: 1000,
+            willFail: true,
+            run: function(env) {
+                var _this = this;
+                env.events.on('change', function(what) {
+                    _this.result(true, what);
+                });
+                env.events.reset();
+                env.events.emit('change', 'yoyo');
+            }
+        },
+        {
+            desc: "util.getLogger()",
+            run: function(env) {
+                env.logger = env.util.getLogger('test');
+                this.assertTypeAnd(env.logger.log, 'function');
+
+                var _this = this;
+                env.util.setLogFunction(function(name, msg) {
+                    _this.assert(msg, 'hello log function');
+                });
+                env.logger.log('hello log function');
+            }
+        },
+        {
+            desc: "util.silenceLogger()",
+            willFail: true,
+            timeout: 1000,
+            run: function(env) {
+                var _this = this;
+                env.util.setLogFunction(function(name, level, msg) {
+                    _this.assert(msg.toString(), 'hello log function');
+                });
+                env.util.silenceLogger('test');
+                env.logger.info('hello log function');
+            }
+        },
+        {
+            desc: "util.unsilenceLogger()",
+            run: function(env) {
+                var _this = this;
+                env.util.setLogFunction(function(name, level, msg) {
+                    _this.write('log function called: '+typeof msg+' '+msg);
+                    _this.assert(msg.toString(), 'helloworld');
+                });
+                env.util.silenceLogger('test');
+                env.logger.info('blah blah');
+                env.util.unsilenceLogger('test');
+                env.logger.info('helloworld');
+            }
+        },
+        {
+            desc: "util.setLogLevel()",
+            run: function(env) {
+                var _this = this;
+                env.util.setLogFunction(function(name, level, msg) {
+                    _this.write('log function called: '+typeof msg+' '+msg);
+                    _this.assert(msg.toString(), 'helloworld');
+                });
+                env.util.setLogLevel('error');
+                env.logger.info('blah blah');
+                env.util.setLogLevel('info');
+                env.logger.info('helloworld');
             }
         }
     ]
