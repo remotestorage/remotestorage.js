@@ -21,8 +21,56 @@ define([], function() {
     debug: false
   };
 
+  var atob, btoa;
+
+  // btoa / atob for nodejs implemented here, so util/platform don't form
+  // a circular dependency.
+  if(typeof(window) === 'undefined') {
+    atob = function(str) {
+      var buffer = str instanceof Buffer ? str : new Buffer(str, 'base64');
+      return buffer.toString('binary');
+    };
+    btoa = function(str) {
+      var buffer = str instanceof Buffer ? str : new Buffer(str, 'binary');
+      return buffer.toString('base64');
+    };
+  } else {
+    atob = window.atob;
+    btoa = window.btoa;
+  }
+
   var util = {
 
+    bufferToRaw: function(buffer) {
+      var view = new Uint8Array(buffer);
+      var nData = view.length;
+      var rawData = '';
+      for(var i=0;i<nData;i++) {
+        rawData += String.fromCharCode(view[i]);
+      }
+      console.log("BUFFER TO RAW", view.length, '->', rawData.length);
+      return rawData
+    },
+
+    rawToBuffer: function(rawData) {
+      var nData = rawData.length;
+      var buffer = new ArrayBuffer(nData);
+      var view = new Uint8Array(buffer);
+
+      for(var i=0;i<nData;i++) {
+        view[i] = rawData.charCodeAt(i);
+      }
+      console.log("RAW TO BUFFER", rawData.length, '->', view.length);
+      return buffer;
+    },
+
+    encodeBinary: function(buffer) {
+      return btoa(this.bufferToRaw(buffer));
+    },
+
+    decodeBinary: function(data) {
+      return this.rawToBuffer(atob(data));
+    },
 
     // Method: toArray
     // Convert something into an Array.

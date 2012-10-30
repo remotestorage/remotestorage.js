@@ -128,7 +128,8 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     if(typeof(path) != 'string') {
       cb(new Error('argument "path" should be a string'));
     } else {
-      if(valueStr && typeof(valueStr) != 'string' && !(typeof(valueStr) == 'object' && valueStr instanceof Blob)) {
+      if(valueStr && typeof(valueStr) != 'string' &&
+         !(typeof(valueStr) == 'object' && valueStr instanceof ArrayBuffer)) {
         valueStr = JSON.stringify(valueStr);
       }
       getputdelete.set(resolveKey(path), valueStr, mimeType, token, cb);

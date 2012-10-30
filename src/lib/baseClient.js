@@ -12,6 +12,8 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
         return parts[2];
       } else if(parts.length > 2){
         return parts[1];
+      } else if(parts.length == 2) {
+        return 'root';
       }
     }
   }
@@ -37,7 +39,12 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
   function fireError(absPath, error) {
     var isPublic = isPublicRE.test(absPath);
     var moduleName = extractModuleName(absPath);
-    moduleEvents[moduleName][isPublic].emit('error', error);
+    var modEvents = moduleEvents[moduleName];
+    if(! (modEvents && modEvents[isPublic])) {
+      moduleEvents['root'][isPublic].emit('error', error);
+    } else {
+      modEvents[isPublic].emit('error', error);
+    }
   }
 
   store.on('change', function(event) {
@@ -449,6 +456,10 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
 
       var errors = this.validateObject(obj);
 
+      if(util.isDir(path)) {
+        throw new Error("Can't store directory node");
+      }
+
       if(errors) {
         console.error("Error saving this ", type, ": ", obj, errors);
         return errors;
@@ -478,6 +489,12 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
     storeDocument: function(mimeType, path, data, callback, context) {
       this.ensureAccess('w');
       var absPath = this.makePath(path);
+      if(util.isDir(path)) {
+        throw new Error("Can't store directory node");
+      }
+      if(typeof(data) !== 'string' && !(data instanceof ArrayBuffer)) {
+        throw new Error("storeDocument received " + typeof(data) + ", but expected a string or an ArrayBuffer!");
+      }
       set(this.moduleName, path, absPath, data, mimeType);
       sync.syncOne(absPath, util.bind(callback, context));
     },
@@ -502,9 +519,6 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
       var base = this.getStorageHref();
       if(! base) {
         return null;
-      }
-      if(base.substr(-1) != '/') {
-        base = base + '/';
       }
       return base + this.makePath(path);
     },

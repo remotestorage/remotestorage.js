@@ -1,4 +1,4 @@
-define(['./util'], function (util) {
+define(['./util', './platform'], function (util, platform) {
 
   "use strict";
 
@@ -18,8 +18,6 @@ define(['./util'], function (util) {
   var userAddressRE = /^[^@]+@[^:]+:\//;
 
   var events = util.getEventEmitter('error', 'change', 'foreign-change');
-
-  var cachedBlobs = {};
 
   //
   // Type: Node
@@ -141,13 +139,17 @@ define(['./util'], function (util) {
   //
   function forgetAll() {
     var numLocalStorage = localStorage.length;
+    var keys = [];
     for(var i=0; i<numLocalStorage; i++) {
       if(localStorage.key(i).substr(0, prefixNodes.length) == prefixNodes ||
          localStorage.key(i).substr(0, prefixNodesData.length) == prefixNodesData) {
-        localStorage.removeItem(localStorage.key(i));
-        i--;
+        keys.push(localStorage.key(i));
       }
     }
+
+    keys.forEach(function(key) {
+      localStorage.removeItem(key);
+    });
   }
 
   // Function: setNodeData
@@ -165,6 +167,7 @@ define(['./util'], function (util) {
   //   change w/ origin=remote - unless this is an outgoing change
   //
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
+    logger.debug('PUT', path, { data: data, mimeType: mimeType });
     var node = getNode(path);
     var oldValue;
 
@@ -180,6 +183,12 @@ define(['./util'], function (util) {
       mimeType='application/json';
     }
     node.mimeType = mimeType;
+
+    if(typeof(data) == 'object' && data instanceof ArrayBuffer) {
+      node.binary = true;
+      data = util.encodeBinary(data);
+    }
+
     updateNodeData(path, data);
     updateNode(path, (data ? node : undefined), outgoing, false, timestamp, oldValue);
   }
@@ -195,15 +204,14 @@ define(['./util'], function (util) {
     logger.debug('GET', path);
     validPath(path);
 
-    if(path in cachedBlobs) {
-      logger.debug("GET BLOB");
-      return cachedBlobs[path];
-    }
-
     var valueStr = localStorage.getItem(prefixNodesData+path);
     var node = getNode(path);
+
     if(valueStr) {
-      if((!raw) && (node.mimeType == "application/json")) {
+
+      if(node.binary) {
+        valueStr = util.decodeBinary(valueStr);
+      } else if((!raw) && (node.mimeType == "application/json")) {
         try {
           return JSON.parse(valueStr);
         } catch(exc) {
@@ -378,10 +386,6 @@ define(['./util'], function (util) {
     var encodedData;
     if(typeof(data) !== 'undefined') {
       if(typeof(data) === 'object') {
-        if(data instanceof Blob) {
-          cachedBlobs[path] = data;
-          return;
-        }
         encodedData = JSON.stringify(data);
       } else {
         encodedData = data;

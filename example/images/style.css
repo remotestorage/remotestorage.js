@@ -1,0 +1,34 @@
+
+#target {
+    border: solid 1px black;
+    float: right;
+    margin-right: 10em;
+    min-height: 300px;
+    min-width: 300px;
+    position: relative;
+}
+
+#target input {
+    border: none;
+    bottom: 0;
+    font-family: monospace;
+    left: 0;
+    position: absolute;
+    width: 100%;
+}
+
+#list li {
+    cursor: pointer;
+}
+
+#list li .delete {
+    color: #eee;
+    font-size: 1.5em;
+    font-weight: bold;
+    padding-left: 5px;
+    vertical-align: middle;
+}
+
+#list li .delete:hover {
+    color: #ccc;
+}
