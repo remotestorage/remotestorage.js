@@ -133,7 +133,7 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
     //   >     console.log(event.origin + ' removed ' + event.path + ':', event.oldValue, '->', undefined);
     //   >   }
     //   > });
-    //   
+    //
 
     makePath: function(path) {
       var base = (this.moduleName == 'root' ?
