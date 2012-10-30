@@ -4,7 +4,8 @@
   "devDependencies": {
     "requirejs": "*",
     "amdefine": "*",
-    "teste": "*"
+    "teste": "*",
+    "localStorage": "*"
   },
   "scripts": {
     "test": "node_modules/.bin/teste"
