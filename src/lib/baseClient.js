@@ -54,8 +54,7 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
     fireModuleEvent('conflict', 'root', event);
   });
 
-  function set(path, absPath, value, mimeType) {
-    var moduleName = extractModuleName(absPath);
+  function set(moduleName, path, absPath, value, mimeType) {
     if(util.isDir(absPath)) {
       fireError(absPath, 'attempt to set a value to a directory '+absPath);
       return;
@@ -70,6 +69,8 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
     fireModuleEvent('change', moduleName, changeEvent);
     fireModuleEvent('change', 'root', changeEvent);
   }
+
+  /** FROM HERE ON PUBLIC INTERFACE **/
 
   var BaseClient = function(moduleName, isPublic) {
     if(! moduleName) {
@@ -163,6 +164,22 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
       }
     },
 
+    // Method: lastUpdateOf
+    // Get the time a node was last updated.
+    //
+    // Parameters:
+    //   path - Relative path from the module root
+    //
+    // Returns:
+    //   a Number - when the node exists
+    //   null - when the node doesn't exist
+    //
+    // The timestamp is represented as Number of milliseconds.
+    // Use this snippet to get a Date object from it
+    //   > var timestamp = client.lastUpdateOf('path/to/node');
+    //   > // (normally you should check that 'timestamp' isn't null now)
+    //   > new Date(timestamp);
+    //
     lastUpdateOf: function(path) {
       var absPath = this.makePath(path);
       var node = store.getNode(absPath);
@@ -260,7 +277,7 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
       this.ensureAccess('r');
       var absPath = this.makePath(path);
       if(callback) {
-        sync.fetchNow(absPath, function(err, node) {
+        sync.syncOne(absPath, function(err, node) {
           var data = store.getNodeData(absPath);
           var arr = [];
           for(var i in data) {
@@ -377,7 +394,7 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
     remove: function(path, callback, context) {
       this.ensureAccess('w');
       var absPath = this.makePath(path);
-      set(path, absPath, undefined);
+      set(this.moduleName, path, absPath, undefined);
       sync.syncOne(absPath, util.bind(callback, context));
     },
 
@@ -437,7 +454,7 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
         return errors;
       } else {
         var absPath = this.makePath(path);
-        set(path, absPath, obj, 'application/json');
+        set(this.moduleName, path, absPath, obj, 'application/json');
         sync.syncOne(absPath, util.bind(callback, context));
         return null;
       }
@@ -461,7 +478,7 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
     storeDocument: function(mimeType, path, data, callback, context) {
       this.ensureAccess('w');
       var absPath = this.makePath(path);
-      set(path, absPath, data, mimeType);
+      set(this.moduleName, path, absPath, data, mimeType);
       sync.syncOne(absPath, util.bind(callback, context));
     },
 
@@ -535,6 +552,11 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
       store.setNodeForce(absPath, false, false);
     },
 
+    // Method: hasDiff
+    //
+    // Returns true if the node at the given path has a diff set.
+    // Having a "diff" means, that the node or one of it's descendants
+    // has been updated since it was last pulled from remotestorage.
     hasDiff: function(path) {
       var absPath = this.makePath(path);
       if(util.isDir(absPath)) {
