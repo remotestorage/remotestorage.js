@@ -72,6 +72,9 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
   }
 
   var BaseClient = function(moduleName, isPublic) {
+    if(! moduleName) {
+      throw new Error("moduleName is required");
+    }
     this.moduleName = moduleName, this.isPublic = isPublic;
     if(! moduleEvents[moduleName]) {
       moduleEvents[moduleName] = {};
