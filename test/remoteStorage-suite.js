@@ -52,16 +52,8 @@ module.exports = function() {
         run: function(env) {
           remoteStorage.claimAccess('test', 'rw');
           this.assertAnd(remoteStorage.getClaimedModuleList, ['test']);
-          env.tm = remoteStorage.getClient();
+          env.tm = remoteStorage.test;
           this.assertType(env.tm, 'object');
-        }
-      },
-      {
-        desc: "makePath()",
-        run: function(env) {
-          var ret = env.tm.makePath('this/is/a/path');
-          console.log(ret);
-          this.assert(ret, '/test/this/is/a/path');
         }
       }
     ]

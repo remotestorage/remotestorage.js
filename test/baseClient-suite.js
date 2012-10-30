@@ -16,9 +16,9 @@ module.exports = function() {
         nodeRequire: require
       });
       var _this = this;
-      requirejs(['lib/baseClient'], function(baseClient) {
-        env.bc = baseClient;
-        _this.assertType(baseClient, 'function');
+      requirejs(['lib/baseClient'], function(BaseClient) {
+        env.BaseClient = BaseClient;
+        _this.assertType(BaseClient, 'function');
       });
     },
     takedown: function(env) {
@@ -31,9 +31,32 @@ module.exports = function() {
     },
     tests: [
       {
-        desc: "extractModuleName()",
+        desc: "constructor w/o moduleName throws an exception",
         run: function(env) {
-          this.result(true);
+          try {
+            new env.BaseClient();
+          } catch(exc) {
+            this.result(true);
+            return;
+          }
+          this.result(false);
+        }
+      },
+      {
+        desc: "constructor w/ moduleName returns a new client instance",
+        run: function(env) {
+          var client = new env.BaseClient('test');
+          this.assertTypeAnd(client, 'object');
+          this.assertAnd(client instanceof env.BaseClient, true);
+          this.assert(client.moduleName, 'test');
+          env.client = client;
+        }
+      },
+      {
+        desc: "makePath prefixes paths correctly",
+        run: function(env) {
+          var path = env.client.makePath('foo/bar/baz');
+          this.assert(path, '/test/foo/bar/baz');
         }
       }
     ]
