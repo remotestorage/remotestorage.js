@@ -48,7 +48,6 @@ define([], function() {
       for(var i=0;i<nData;i++) {
         rawData += String.fromCharCode(view[i]);
       }
-      console.log("BUFFER TO RAW", view.length, '->', rawData.length);
       return rawData
     },
 
@@ -60,7 +59,6 @@ define([], function() {
       for(var i=0;i<nData;i++) {
         view[i] = rawData.charCodeAt(i);
       }
-      console.log("RAW TO BUFFER", rawData.length, '->', view.length);
       return buffer;
     },
 

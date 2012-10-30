@@ -461,7 +461,7 @@ define(['./sync', './store', './util', './validate', './wireClient'], function (
       }
 
       if(errors) {
-        console.error("Error saving this ", type, ": ", obj, errors);
+        logger.error("Error saving this ", type, ": ", obj, errors);
         return errors;
       } else {
         var absPath = this.makePath(path);

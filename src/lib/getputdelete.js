@@ -38,8 +38,6 @@ define(
             data = util.rawToBuffer(data);
           }
 
-          console.log("RECEIVED", typeof(data), mimeType);
-          
           cb(null, data, mimeType);
         },
         timeout: deadLine || 5000,
@@ -54,7 +52,6 @@ define(
           mimeType += '; charset=binary';
         }
         platformObj.headers['Content-Type'] = mimeType;
-        console.log("PLATFORM CONTENT TYPE", mimeType);
       }
 
       platformObj.fields = {withCredentials: 'true'};
