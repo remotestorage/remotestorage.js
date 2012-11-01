@@ -27,13 +27,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   }
 
   function clearSettings() {
-    var numLocalStorage = localStorage.length;
-    for(var i=0;i<numLocalStorage;i++) {
-      var key = localStorage.key(i);
-      if(key.match(new RegExp('^' + settingsPrefix))) {
-        localStorage.removeItem(key);
-      }
-    }
+    util.grepLocalStorage(new RegExp('^' + settingsPrefix), function(key) {
+      localStorage.removeItem(key);
+    });
   }
 
 
