@@ -703,11 +703,14 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       if(root.startAccess) {
         roots.push(path);
       } else {
-        Object.keys(store.getNodeData(path)).forEach(function(key) {
-          if(store.getNode(path + key).startAccess) {
-            roots.push(path + key);
-          }
-        });
+        var listing = store.getNodeData(path)
+        if(listing) {
+          Object.keys(listing).forEach(function(key) {
+            if(store.getNode(path + key).startAccess) {
+              roots.push(path + key);
+            }
+          });
+        }
       }
       return roots;
     }
@@ -881,7 +884,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
           // -> bail!
           logger.debug('skipping', root, 'no changes');
           tryReady();
-          done();
           return;
         }
       }

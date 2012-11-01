@@ -10,7 +10,7 @@ define(
 
     function getContentType(headers) {
       if(headers['content-type']) {
-        return headers['content-type'].split(';')[0];
+        return headers['content-type'];
       } else {
         logger.error("Falling back to default content type: ", defaultContentType, JSON.stringify(headers));
         return defaultContentType;
@@ -38,7 +38,7 @@ define(
             data = util.rawToBuffer(data);
           }
 
-          cb(null, data, mimeType);
+          cb(null, data, mimeType.split(';')[0]);
         },
         timeout: deadLine || 5000,
         headers: {}
@@ -73,7 +73,7 @@ define(
             try {
               data = JSON.parse(data);
             } catch (e) {
-              cb('unparseable directory index');
+              cb('unparseable directory index: ' + data);
               return;
             }
           }
