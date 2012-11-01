@@ -379,12 +379,14 @@ define([], function() {
     // The iter receives the matching key as it's only argument.
     grepLocalStorage: function(pattern, iter) {
       var numLocalStorage = localStorage.length;
+      var keys = [];
       for(var i=0;i<numLocalStorage;i++) {
         var key = localStorage.key(i);
         if(pattern.test(key)) {
-          iter(key);
+          keys.push(key);
         }
       }
+      keys.forEach(iter);
     }
   };
 
