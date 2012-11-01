@@ -1,0 +1,37 @@
+
+File: Howto contribute
+
+Section: Getting the code, building
+
+See <here at http://remotestoragejs.com/doc/code/files2/howto-include-txt.html#Build_it_yourself>
+
+Section: Asset management
+
+remoteStorage.js contains a few assets (CSS, images) for the widget. Those can be found in the top-level directory assets/. To reduce the number of files needed to include remoteStorage.js in an app, assets are being pulled into the JavaScript before being used. The resulting file is src/lib/assets.js.
+
+Adding a new asset:
+
+* Create a file in assets/
+  > echo "#something { background:blue; }" > assets/somethingCss.css
+* Build assets.js
+  > make compile-assets
+* Access the asset data
+  (start code)
+  define(['lib/assets'], function(assets) {
+    return {
+      buildSomethign: function() {
+        var something = document.createElement('style');
+        something.innerHTML = assets.somethingCss;
+        return something;
+      }
+    }
+  });
+  (end code)
+
+How are assets included?:
+
+* build/compile-assets.js decides how to include the asset based on the file-extension.
+* PNG and SVG files are included as data URIs, so they can directly be used as values for the "src" attribute of an "img" element.
+* All other files are stored as raw octets, with the exception of newlines being replaced by spaces.
+
+If you wish to add an asset a different way, please alter build/compile-assets.js according to you needs.
