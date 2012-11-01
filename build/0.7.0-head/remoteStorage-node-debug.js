@@ -5438,7 +5438,7 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
     // DEPRECATED in favor of <getFile>
     getDocument: function() {
       util.deprecate('getDocument', 'getFile');
-      this.getFile.apply(this, arguments);
+      return this.getFile.apply(this, arguments);
     },
 
     //
@@ -5578,7 +5578,7 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
     // DEPRECATED in favor of <storeFile>
     storeDocument: function() {
       util.deprecate('storeDocument', 'storeFile');
-      this.storeFile.apply(this, arguments);
+      return this.storeFile.apply(this, arguments);
     },
 
     getStorageHref: function() {
