@@ -375,8 +375,54 @@ define('lib/util',[], function() {
     debug: false
   };
 
+  var atob, btoa;
+
+  // btoa / atob for nodejs implemented here, so util/platform don't form
+  // a circular dependency.
+  if(typeof(window) === 'undefined') {
+    atob = function(str) {
+      var buffer = str instanceof Buffer ? str : new Buffer(str, 'base64');
+      return buffer.toString('binary');
+    };
+    btoa = function(str) {
+      var buffer = str instanceof Buffer ? str : new Buffer(str, 'binary');
+      return buffer.toString('base64');
+    };
+  } else {
+    atob = window.atob;
+    btoa = window.btoa;
+  }
+
   var util = {
 
+    bufferToRaw: function(buffer) {
+      var view = new Uint8Array(buffer);
+      var nData = view.length;
+      var rawData = '';
+      for(var i=0;i<nData;i++) {
+        rawData += String.fromCharCode(view[i]);
+      }
+      return rawData
+    },
+
+    rawToBuffer: function(rawData) {
+      var nData = rawData.length;
+      var buffer = new ArrayBuffer(nData);
+      var view = new Uint8Array(buffer);
+
+      for(var i=0;i<nData;i++) {
+        view[i] = rawData.charCodeAt(i);
+      }
+      return buffer;
+    },
+
+    encodeBinary: function(buffer) {
+      return btoa(this.bufferToRaw(buffer));
+    },
+
+    decodeBinary: function(data) {
+      return this.rawToBuffer(atob(data));
+    },
 
     // Method: toArray
     // Convert something into an Array.
@@ -902,10 +948,15 @@ define('lib/platform',['./util'], function(util) {
     };
     if(typeof(params.data) === 'string') {
       xhr.send(params.data);
+    } else if(typeof(params.data) === 'object' &&
+              params.data instanceof ArrayBuffer) {
+      //xhr.send(util.bufferToRaw(params.data));
+      xhr.send(params.data);
     } else {
       xhr.send();
     }
   }
+
   function ajaxExplorer(params) {
     //this won't work, because we have no way of sending the Authorization header. It might work for GET to the 'public' category, though.
     var xdr=new XDomainRequest();
@@ -930,7 +981,13 @@ define('lib/platform',['./util'], function(util) {
       xdr.send();
     }
   }
+
   function ajaxNode(params) {
+
+    if(typeof(params.data) === 'object' && params.data instanceof Blob) {
+      throw new Error("Sending binary data not yet implemented for nodejs");
+    }
+
     var http=require('http'),
       https=require('https'),
       url=require('url');
@@ -991,6 +1048,7 @@ define('lib/platform',['./util'], function(util) {
       request.end();
     }
   }
+
   function parseXmlBrowser(str, cb) {
     var tree=(new DOMParser()).parseFromString(str, 'text/xml');
     var nodes=tree.getElementsByTagName('Link');
@@ -1019,6 +1077,7 @@ define('lib/platform',['./util'], function(util) {
     }
     cb(null, obj);
   }
+
   function parseXmlNode(str, cb) {
     var xml2js=require('xml2js');
     new xml2js.Parser().parseString(str, cb);
@@ -1026,6 +1085,7 @@ define('lib/platform',['./util'], function(util) {
 
   function harvestParamNode() {
   }
+
   function harvestParamBrowser(param) {
     // location.hash in firefox has all URI entities decoded, so we can't
     // differentiate between %26 and & in URIs passed as parameters.
@@ -1042,8 +1102,10 @@ define('lib/platform',['./util'], function(util) {
       }
     }
   }
+
   function setElementHtmlNode(eltName, html) {
   }
+
   function setElementHtmlBrowser(eltName, html) {
     var elt = eltName;
     if(! (elt instanceof Element)) {
@@ -1051,13 +1113,17 @@ define('lib/platform',['./util'], function(util) {
     }
     elt.innerHTML = html;
   }
+
   function getElementValueNode(eltName) {
   }
+
   function getElementValueBrowser(eltName) {
     return document.getElementById(eltName).value;
   }
+
   function eltOnNode(eltName, eventType, cb) {
   }
+
   function eltOnBrowser(eltName, eventType, cb) {
     if(eventType == 'click') {
       document.getElementById(eltName).onclick = cb;
@@ -1067,23 +1133,31 @@ define('lib/platform',['./util'], function(util) {
       document.getElementById(eltName).onkeyup = cb;
     }
   }
+
   function getLocationBrowser() {
     //TODO: deal with http://user:a#aa@host.com/ although i doubt someone would actually use that even once between now and the end of the internet
     return window.location.href.split('#')[0];
   }
+
   function getLocationNode() {
   }
+
   function setLocationBrowser(location) {
     window.location = location;
   }
+
   function setLocationNode() {
   }
+
   function alertBrowser(str) {
     alert(str);
   }
+
   function alertNode(str) {
     console.log(str);
   }
+
+
   if(typeof(window) === 'undefined') {
     return {
       ajax: ajaxNode,
@@ -1521,7 +1595,13 @@ define('lib/getputdelete',
         },
         success: function(data, headers) {
           //logger.debug('doCall cb '+url, 'headers:', headers);
-          cb(null, data, getContentType(headers));
+          var mimeType = getContentType(headers);
+
+          if(mimeType.match(/charset=binary/)) {
+            data = util.rawToBuffer(data);
+          }
+
+          cb(null, data, mimeType);
         },
         timeout: deadLine || 5000,
         headers: {}
@@ -1531,6 +1611,9 @@ define('lib/getputdelete',
         platformObj.headers['Authorization'] = 'Bearer ' + token;
       }
       if(mimeType) {
+        if(typeof(value) == 'object' && value instanceof ArrayBuffer) {
+          mimeType += '; charset=binary';
+        }
         platformObj.headers['Content-Type'] = mimeType;
       }
 
@@ -1563,8 +1646,10 @@ define('lib/getputdelete',
     }
 
     function put(url, value, mimeType, token, cb) {
-      if(typeof(value) !== 'string') {
-        cb("invalid value given to PUT, only strings allowed, got " + typeof(value));
+      if(! (typeof(value) === 'string' || (typeof(value) === 'object' &&
+                                           value instanceof ArrayBuffer))) {
+        cb(new Error("invalid value given to PUT, only strings allowed, got "
+                     + typeof(value)));
       }
 
       doCall('PUT', url, value, mimeType, token, function(err, data) {
@@ -1750,7 +1835,8 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
     if(typeof(path) != 'string') {
       cb(new Error('argument "path" should be a string'));
     } else {
-      if(valueStr && typeof(valueStr) != 'string') {
+      if(valueStr && typeof(valueStr) != 'string' &&
+         !(typeof(valueStr) == 'object' && valueStr instanceof ArrayBuffer)) {
         valueStr = JSON.stringify(valueStr);
       }
       getputdelete.set(resolveKey(path), valueStr, mimeType, token, cb);
@@ -1878,7 +1964,7 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
   };
 });
 
-define('lib/store',['./util'], function (util) {
+define('lib/store',['./util', './platform'], function (util, platform) {
 
   
 
@@ -2019,13 +2105,17 @@ define('lib/store',['./util'], function (util) {
   //
   function forgetAll() {
     var numLocalStorage = localStorage.length;
+    var keys = [];
     for(var i=0; i<numLocalStorage; i++) {
       if(localStorage.key(i).substr(0, prefixNodes.length) == prefixNodes ||
          localStorage.key(i).substr(0, prefixNodesData.length) == prefixNodesData) {
-        localStorage.removeItem(localStorage.key(i));
-        i--;
+        keys.push(localStorage.key(i));
       }
     }
+
+    keys.forEach(function(key) {
+      localStorage.removeItem(key);
+    });
   }
 
   // Function: setNodeData
@@ -2043,6 +2133,7 @@ define('lib/store',['./util'], function (util) {
   //   change w/ origin=remote - unless this is an outgoing change
   //
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
+    logger.debug('PUT', path, { data: data, mimeType: mimeType });
     var node = getNode(path);
     var oldValue;
 
@@ -2058,6 +2149,12 @@ define('lib/store',['./util'], function (util) {
       mimeType='application/json';
     }
     node.mimeType = mimeType;
+
+    if(typeof(data) == 'object' && data instanceof ArrayBuffer) {
+      node.binary = true;
+      data = util.encodeBinary(data);
+    }
+
     updateNodeData(path, data);
     updateNode(path, (data ? node : undefined), outgoing, false, timestamp, oldValue);
   }
@@ -2072,10 +2169,15 @@ define('lib/store',['./util'], function (util) {
   function getNodeData(path, raw) {
     logger.debug('GET', path);
     validPath(path);
+
     var valueStr = localStorage.getItem(prefixNodesData+path);
     var node = getNode(path);
+
     if(valueStr) {
-      if((!raw) && (node.mimeType == "application/json")) {
+
+      if(node.binary) {
+        valueStr = util.decodeBinary(valueStr);
+      } else if((!raw) && (node.mimeType == "application/json")) {
         try {
           return JSON.parse(valueStr);
         } catch(exc) {
@@ -2202,9 +2304,6 @@ define('lib/store',['./util'], function (util) {
 
   }
 
-
-
-
   function isPrefixed(key) {
     return key.substring(0, prefixNodes.length) == prefixNodes;
   }
@@ -2231,7 +2330,6 @@ define('lib/store',['./util'], function (util) {
   function isForeign(path) {
     return path[0] != '/';
   }
-
 
   function determineDirTimestamp(path) {
     var data = getNodeData(path);
@@ -2499,7 +2597,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   //
   // Will update local and remote data as needed.
   //
-  // Calls it's callback once 'ready' is fired.
+  // Calls it's callback once the cycle is complete.
   //
   // Fires:
   //   ready    - when the sync queue is empty afterwards
@@ -2516,12 +2614,15 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     var roots = findRoots();
     var synced = 0;
 
-    function rootCb() {
-      synced++;
-      if(synced == roots.length) {
-        sync.lastSyncAt = new Date();
-        if(callback) {
-          callback.apply(this, arguments);
+    function rootCb(path) {
+      return function() {
+        synced++;
+        logger.info("SYNCED", synced, "OF", roots.length, '(', path, ')');
+        if(synced == roots.length) {
+          sync.lastSyncAt = new Date();
+          if(callback) {
+            callback.apply(this, arguments);
+          }
         }
       }
     }
@@ -2536,7 +2637,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
         traverseTree(root, processNode, {
           pushOnly: pushOnly
         });
-      }, rootCb);
+      }, rootCb(root));
     });
   }
 
@@ -2687,6 +2788,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   }
   function setReady() {
     ready = true;
+    logger.info("READY, ITERATIONS: ", deferredIterationQueue.length);
     if(deferredIterationQueue.length > 0) {
       spawnQueue.apply(this, deferredIterationQueue.shift());
     } else {
@@ -2697,7 +2799,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 
   // see if we can fire 'ready', or if there's more to do
   function tryReady() {
+    logger.info('tryReady?');
     if(ready && deferredIterationQueue.length == 0) {
+      logger.info('ready!');
       events.emit('ready');
     }
   }
@@ -2832,6 +2936,10 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     wireClient.set(
       path, local.data, local.mimeType,
       makeErrorCatcher(path, function() {
+        var parentPath = util.containingDir(path);
+        if(! parentPath) {
+          throw "Node has no parent path: " + path;
+        }
         // update lastUpdatedAt for this node to exact remote time.
         // this is a totally unnecessary step and should be handled better
         // in the protocol (e.g. by returning the new timestamp with the PUT
@@ -2850,6 +2958,10 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   //
   // Used as a callback for <traverseTree>.
   function processNode(path, local, remote) {
+
+    if(util.isDir(path)) {
+      throw new Error("Attempt to process directory node: " + path);
+    }
 
     var action = null;
 
@@ -3051,18 +3163,26 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     }
   }
 
-  function findRoots(path) {
-    var root = store.getNode('/');
-    var roots = [];
-    if(root.startAccess) {
-      roots.push('/');
-    } else {
-      Object.keys(store.getNodeData('/')).forEach(function(key) {
-        if(store.getNode('/' + key).startAccess) {
-          roots.push('/' + key);
-        }
-      });
+  function findRoots() {
+    function findIn(path) {
+      var root = store.getNode(path);
+      var roots = [];
+      if(root.startAccess) {
+        roots.push(path);
+      } else {
+        Object.keys(store.getNodeData(path)).forEach(function(key) {
+          if(store.getNode(path + key).startAccess) {
+            roots.push(path + key);
+          }
+        });
+      }
+      return roots;
     }
+    var roots = findIn('/');
+    var pubRoots = findIn('/public/');
+    pubRoots.forEach(function(r) {
+      roots.push(r);
+    });
     return roots;
   }
 
@@ -3155,7 +3275,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       // no interest.
       // -> bail!
       logger.debug('skipping', root, 'no interest', '(access: ', opts.access, ' force: ', opts.force, ' forceTree: ', opts.forceTree, ')');
-      if(opts.access || root == '/') { // (access can begin only on the root or it's direct children, so we don't need to descend further)
+      if(opts.access || root == '/' || root == '/public/') { // (access can begin only on the root or it's direct children, so we don't need to descend further)
         var nextRoots = findNextForceRoots(root);
         if(nextRoots.length > 0) {
           var nextRoot;
@@ -3334,6 +3454,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       n--;
       if(i === list.length && n === 0) {
         setReady();
+      } else if(n < 0) {
+        throw new Error("BUG: done() called more often than expected");
       } else if(i < list.length) {
         spawn();
       }
@@ -3916,7 +4038,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   }
 
   function getWidgetState() {
-    return widgetState;
+    return widgetState || 'anonymous';
   }
 
   function buildWidget() {
@@ -4820,7 +4942,110 @@ exports.mustBeValid = function(result){
 return exports;
 });
 
-define('lib/baseClient',['./sync', './store', './util', './validate', './wireClient'], function (sync, store, util, validate, wireClient) {
+/*!
+  Math.uuid.js (v1.4)
+  http://www.broofa.com
+  mailto:robert@broofa.com
+
+  Copyright (c) 2010 Robert Kieffer
+  Dual licensed under the MIT and GPL licenses.
+
+  ********
+
+  Changes within remoteStorage.js:
+  2012-10-31:
+  - added AMD wrapper <niklas@unhosted.org>
+  - moved extensions for Math object into exported object.
+*/
+
+/*
+ * Generate a random uuid.
+ *
+ * USAGE: Math.uuid(length, radix)
+ *   length - the desired number of characters
+ *   radix  - the number of allowable values for each character.
+ *
+ * EXAMPLES:
+ *   // No arguments  - returns RFC4122, version 4 ID
+ *   >>> Math.uuid()
+ *   "92329D39-6F5C-4520-ABFC-AAB64544E172"
+ *
+ *   // One argument - returns ID of the specified length
+ *   >>> Math.uuid(15)     // 15 character ID (default base=62)
+ *   "VcydxgltxrVZSTV"
+ *
+ *   // Two arguments - returns ID of the specified length, and radix. (Radix must be <= 62)
+ *   >>> Math.uuid(8, 2)  // 8 character ID (base=2)
+ *   "01001010"
+ *   >>> Math.uuid(8, 10) // 8 character ID (base=10)
+ *   "47473046"
+ *   >>> Math.uuid(8, 16) // 8 character ID (base=16)
+ *   "098F4D35"
+ */
+define('lib/Math.uuid',[], function() {
+  // Private array of chars to use
+  var CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+
+  return {
+    uuid: function (len, radix) {
+      var chars = CHARS, uuid = [], i;
+      radix = radix || chars.length;
+
+      if (len) {
+        // Compact form
+        for (i = 0; i < len; i++) uuid[i] = chars[0 | Math.random()*radix];
+      } else {
+        // rfc4122, version 4 form
+        var r;
+
+        // rfc4122 requires these characters
+        uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+        uuid[14] = '4';
+
+        // Fill in random data.  At i==19 set the high bits of clock sequence as
+        // per rfc4122, sec. 4.1.5
+        for (i = 0; i < 36; i++) {
+          if (!uuid[i]) {
+            r = 0 | Math.random()*16;
+            uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+          }
+        }
+      }
+
+      return uuid.join('');
+    },
+
+    // A more performant, but slightly bulkier, RFC4122v4 solution.  We boost performance
+    // by minimizing calls to random()
+    uuidFast: function() {
+      var chars = CHARS, uuid = new Array(36), rnd=0, r;
+      for (var i = 0; i < 36; i++) {
+        if (i==8 || i==13 ||  i==18 || i==23) {
+          uuid[i] = '-';
+        } else if (i==14) {
+          uuid[i] = '4';
+        } else {
+          if (rnd <= 0x02) rnd = 0x2000000 + (Math.random()*0x1000000)|0;
+          r = rnd & 0xf;
+          rnd = rnd >> 4;
+          uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+        }
+      }
+      return uuid.join('');
+    },
+
+    // A more compact, but less performant, RFC4122v4 solution:
+    uuidCompact: function() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+        return v.toString(16);
+      });
+    }
+  };
+
+});
+
+define('lib/baseClient',['./sync', './store', './util', './validate', './wireClient', './Math.uuid'], function (sync, store, util, validate, wireClient, MathUUID) {
 
   
 
@@ -4834,6 +5059,8 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
         return parts[2];
       } else if(parts.length > 2){
         return parts[1];
+      } else if(parts.length == 2) {
+        return 'root';
       }
     }
   }
@@ -4859,7 +5086,12 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
   function fireError(absPath, error) {
     var isPublic = isPublicRE.test(absPath);
     var moduleName = extractModuleName(absPath);
-    moduleEvents[moduleName][isPublic].emit('error', error);
+    var modEvents = moduleEvents[moduleName];
+    if(! (modEvents && modEvents[isPublic])) {
+      moduleEvents['root'][isPublic].emit('error', error);
+    } else {
+      modEvents[isPublic].emit('error', error);
+    }
   }
 
   store.on('change', function(event) {
@@ -4876,8 +5108,7 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
     fireModuleEvent('conflict', 'root', event);
   });
 
-  function set(path, absPath, value, mimeType) {
-    var moduleName = extractModuleName(absPath);
+  function set(moduleName, path, absPath, value, mimeType) {
     if(util.isDir(absPath)) {
       fireError(absPath, 'attempt to set a value to a directory '+absPath);
       return;
@@ -4893,7 +5124,12 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
     fireModuleEvent('change', 'root', changeEvent);
   }
 
+  /** FROM HERE ON PUBLIC INTERFACE **/
+
   var BaseClient = function(moduleName, isPublic) {
+    if(! moduleName) {
+      throw new Error("moduleName is required");
+    }
     this.moduleName = moduleName, this.isPublic = isPublic;
     if(! moduleEvents[moduleName]) {
       moduleEvents[moduleName] = {};
@@ -4982,6 +5218,22 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
       }
     },
 
+    // Method: lastUpdateOf
+    // Get the time a node was last updated.
+    //
+    // Parameters:
+    //   path - Relative path from the module root
+    //
+    // Returns:
+    //   a Number - when the node exists
+    //   null - when the node doesn't exist
+    //
+    // The timestamp is represented as Number of milliseconds.
+    // Use this snippet to get a Date object from it
+    //   > var timestamp = client.lastUpdateOf('path/to/node');
+    //   > // (normally you should check that 'timestamp' isn't null now)
+    //   > new Date(timestamp);
+    //
     lastUpdateOf: function(path) {
       var absPath = this.makePath(path);
       var node = store.getNode(absPath);
@@ -5079,7 +5331,7 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
       this.ensureAccess('r');
       var absPath = this.makePath(path);
       if(callback) {
-        sync.fetchNow(absPath, function(err, node) {
+        sync.syncOne(absPath, function(err, node) {
           var data = store.getNodeData(absPath);
           var arr = [];
           for(var i in data) {
@@ -5132,12 +5384,12 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
     },
 
     //
-    // Method: getDocument
+    // Method: getFile
     //
-    // Get the document at the given path. A Document is raw data, as opposed to
+    // Get the file at the given path. A file is raw data, as opposed to
     // a JSON object (use <getObject> for that).
     //
-    // Except for the return value structure, getDocument works exactly like
+    // Except for the return value structure, getFile works exactly like
     // getObject.
     //
     // Parameters:
@@ -5145,12 +5397,11 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
     //   callback - see getObject
     //   context  - see getObject
     //
-    // Returns:
-    //   An object,
+    // Returned object:
     //   mimeType - String representing the MIME Type of the document.
-    //   data     - Raw data of the document.
+    //   data     - Raw data of the document (either a string or an ArrayBuffer)
     //
-    getDocument: function(path, callback, context) {
+    getFile: function(path, callback, context) {
       this.ensureAccess('r');
       var absPath = this.makePath(path);
 
@@ -5182,6 +5433,13 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
       }
     },
 
+    // Method: getDocument
+    //
+    // DEPRECATED in favor of <getFile>
+    getDocument: function() {
+      util.deprecate('getDocument', 'getFile');
+      this.getFile.apply(this, arguments);
+    },
 
     //
     // Method: remove
@@ -5196,7 +5454,7 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
     remove: function(path, callback, context) {
       this.ensureAccess('w');
       var absPath = this.makePath(path);
-      set(path, absPath, undefined);
+      set(this.moduleName, path, absPath, undefined);
       sync.syncOne(absPath, util.bind(callback, context));
     },
 
@@ -5251,37 +5509,76 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
 
       var errors = this.validateObject(obj);
 
+      if(util.isDir(path)) {
+        throw new Error("Can't store directory node");
+      }
+
       if(errors) {
-        console.error("Error saving this ", type, ": ", obj, errors);
+        logger.error("Error saving this ", type, ": ", obj, errors);
         return errors;
       } else {
         var absPath = this.makePath(path);
-        set(path, absPath, obj, 'application/json');
+        set(this.moduleName, path, absPath, obj, 'application/json');
         sync.syncOne(absPath, util.bind(callback, context));
         return null;
       }
     },
 
     //
-    // Method: storeDocument
+    // Method: storeFile
     //
     // Store raw data at a given path. Triggers synchronization.
     //
     // Parameters:
     //   mimeType - MIME media type of the data being stored
     //   path     - path relative to the module root. MAY NOT end in a forward slash.
-    //   data     - string of raw data to store
+    //   data     - string or ArrayBuffer of raw data to store
     //   callback - (optional) called when the change has been propagated to remotestorage
     //   context  - (optional)
     //
     // The given mimeType will later be returned, when retrieving the data
-    // using getDocument.
+    // using <getFile>.
     //
-    storeDocument: function(mimeType, path, data, callback, context) {
+    // Example (UTF-8 data):
+    //   (start code)
+    //   client.storeFile('text/html', 'index.html', '<h1>Hello World!</h1>');
+    //   (end code)
+    //
+    // Example (Binary data):
+    //   (start code)
+    //   // MARKUP:
+    //   <input type="file" id="file-input">
+    //   // CODE:
+    //   var input = document.getElementById('file-input');
+    //   var file = input.files[0];
+    //   var fileReader = new FileReader();
+    //
+    //   fileReader.onload = function() {
+    //     client.storeFile(file.type, file.name, fileReader.result);
+    //   }
+    //
+    //   fileReader.readAsArrayBuffer(file);
+    //   (end code)
+    //
+    storeFile: function(mimeType, path, data, callback, context) {
       this.ensureAccess('w');
       var absPath = this.makePath(path);
-      set(path, absPath, data, mimeType);
+      if(util.isDir(path)) {
+        throw new Error("Can't store directory node");
+      }
+      if(typeof(data) !== 'string' && !(data instanceof ArrayBuffer)) {
+        throw new Error("storeFile received " + typeof(data) + ", but expected a string or an ArrayBuffer!");
+      }
+      set(this.moduleName, path, absPath, data, mimeType);
       sync.syncOne(absPath, util.bind(callback, context));
+    },
+
+    // Method: storeDocument
+    //
+    // DEPRECATED in favor of <storeFile>
+    storeDocument: function() {
+      util.deprecate('storeDocument', 'storeFile');
+      this.storeFile.apply(this, arguments);
     },
 
     getStorageHref: function() {
@@ -5304,9 +5601,6 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
       var base = this.getStorageHref();
       if(! base) {
         return null;
-      }
-      if(base.substr(-1) != '/') {
-        base = base + '/';
       }
       return base + this.makePath(path);
     },
@@ -5354,6 +5648,11 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
       store.setNodeForce(absPath, false, false);
     },
 
+    // Method: hasDiff
+    //
+    // Returns true if the node at the given path has a diff set.
+    // Having a "diff" means, that the node or one of it's descendants
+    // has been updated since it was last pulled from remotestorage.
     hasDiff: function(path) {
       var absPath = this.makePath(path);
       if(util.isDir(absPath)) {
@@ -5386,6 +5685,28 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
         logger.error("WARNING: can't find schema for type: ", type);
       }
       return schema;
+    },
+
+    // Method: buildObject
+    //
+    // Build an object of the designated type.
+    //
+    // Parameters:
+    //   alias - a type alias, registered via <declareType>
+    //
+    // Example:
+    //   (start code)
+    //   var drink = client.buildObject('drink');
+    //   client.validateObject(drink); // validates against schema declared for "drink"
+    //   (end code)
+    //
+    // TODO:
+    //   > This should also generate an ID for all top-level properties
+    //   > of { "type":"string", "format":"id" }. 
+    buildObject: function(alias, attributes) {
+      return util.extend({
+        "@type": this.resolveType(alias)
+      }, attributes || {});
     },
 
     // Method: declareType
@@ -5470,6 +5791,15 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
       var result = validate(object, schema);
 
       return result.valid ? null : result.errors;
+    },
+
+    // Method: uuid
+    //
+    // Generates a Universally Unique IDentifuer and returns it.
+    //
+    // The UUID is prefixed with the string 'uuid:', to become a valid URI.
+    uuid: function() {
+      return 'uuid:' + MathUUID.uuid();
     }
     
   };

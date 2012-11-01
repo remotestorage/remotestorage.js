@@ -375,8 +375,54 @@ define('lib/util',[], function() {
     debug: false
   };
 
+  var atob, btoa;
+
+  // btoa / atob for nodejs implemented here, so util/platform don't form
+  // a circular dependency.
+  if(typeof(window) === 'undefined') {
+    atob = function(str) {
+      var buffer = str instanceof Buffer ? str : new Buffer(str, 'base64');
+      return buffer.toString('binary');
+    };
+    btoa = function(str) {
+      var buffer = str instanceof Buffer ? str : new Buffer(str, 'binary');
+      return buffer.toString('base64');
+    };
+  } else {
+    atob = window.atob;
+    btoa = window.btoa;
+  }
+
   var util = {
 
+    bufferToRaw: function(buffer) {
+      var view = new Uint8Array(buffer);
+      var nData = view.length;
+      var rawData = '';
+      for(var i=0;i<nData;i++) {
+        rawData += String.fromCharCode(view[i]);
+      }
+      return rawData
+    },
+
+    rawToBuffer: function(rawData) {
+      var nData = rawData.length;
+      var buffer = new ArrayBuffer(nData);
+      var view = new Uint8Array(buffer);
+
+      for(var i=0;i<nData;i++) {
+        view[i] = rawData.charCodeAt(i);
+      }
+      return buffer;
+    },
+
+    encodeBinary: function(buffer) {
+      return btoa(this.bufferToRaw(buffer));
+    },
+
+    decodeBinary: function(data) {
+      return this.rawToBuffer(atob(data));
+    },
 
     // Method: toArray
     // Convert something into an Array.
@@ -902,10 +948,15 @@ define('lib/platform',['./util'], function(util) {
     };
     if(typeof(params.data) === 'string') {
       xhr.send(params.data);
+    } else if(typeof(params.data) === 'object' &&
+              params.data instanceof ArrayBuffer) {
+      //xhr.send(util.bufferToRaw(params.data));
+      xhr.send(params.data);
     } else {
       xhr.send();
     }
   }
+
   function ajaxExplorer(params) {
     //this won't work, because we have no way of sending the Authorization header. It might work for GET to the 'public' category, though.
     var xdr=new XDomainRequest();
@@ -930,7 +981,13 @@ define('lib/platform',['./util'], function(util) {
       xdr.send();
     }
   }
+
   function ajaxNode(params) {
+
+    if(typeof(params.data) === 'object' && params.data instanceof Blob) {
+      throw new Error("Sending binary data not yet implemented for nodejs");
+    }
+
     var http=require('http'),
       https=require('https'),
       url=require('url');
@@ -991,6 +1048,7 @@ define('lib/platform',['./util'], function(util) {
       request.end();
     }
   }
+
   function parseXmlBrowser(str, cb) {
     var tree=(new DOMParser()).parseFromString(str, 'text/xml');
     var nodes=tree.getElementsByTagName('Link');
@@ -1019,6 +1077,7 @@ define('lib/platform',['./util'], function(util) {
     }
     cb(null, obj);
   }
+
   function parseXmlNode(str, cb) {
     var xml2js=require('xml2js');
     new xml2js.Parser().parseString(str, cb);
@@ -1026,6 +1085,7 @@ define('lib/platform',['./util'], function(util) {
 
   function harvestParamNode() {
   }
+
   function harvestParamBrowser(param) {
     // location.hash in firefox has all URI entities decoded, so we can't
     // differentiate between %26 and & in URIs passed as parameters.
@@ -1042,8 +1102,10 @@ define('lib/platform',['./util'], function(util) {
       }
     }
   }
+
   function setElementHtmlNode(eltName, html) {
   }
+
   function setElementHtmlBrowser(eltName, html) {
     var elt = eltName;
     if(! (elt instanceof Element)) {
@@ -1051,13 +1113,17 @@ define('lib/platform',['./util'], function(util) {
     }
     elt.innerHTML = html;
   }
+
   function getElementValueNode(eltName) {
   }
+
   function getElementValueBrowser(eltName) {
     return document.getElementById(eltName).value;
   }
+
   function eltOnNode(eltName, eventType, cb) {
   }
+
   function eltOnBrowser(eltName, eventType, cb) {
     if(eventType == 'click') {
       document.getElementById(eltName).onclick = cb;
@@ -1067,23 +1133,31 @@ define('lib/platform',['./util'], function(util) {
       document.getElementById(eltName).onkeyup = cb;
     }
   }
+
   function getLocationBrowser() {
     //TODO: deal with http://user:a#aa@host.com/ although i doubt someone would actually use that even once between now and the end of the internet
     return window.location.href.split('#')[0];
   }
+
   function getLocationNode() {
   }
+
   function setLocationBrowser(location) {
     window.location = location;
   }
+
   function setLocationNode() {
   }
+
   function alertBrowser(str) {
     alert(str);
   }
+
   function alertNode(str) {
     console.log(str);
   }
+
+
   if(typeof(window) === 'undefined') {
     return {
       ajax: ajaxNode,
@@ -1521,7 +1595,13 @@ define('lib/getputdelete',
         },
         success: function(data, headers) {
           //logger.debug('doCall cb '+url, 'headers:', headers);
-          cb(null, data, getContentType(headers));
+          var mimeType = getContentType(headers);
+
+          if(mimeType.match(/charset=binary/)) {
+            data = util.rawToBuffer(data);
+          }
+
+          cb(null, data, mimeType);
         },
         timeout: deadLine || 5000,
         headers: {}
@@ -1531,6 +1611,9 @@ define('lib/getputdelete',
         platformObj.headers['Authorization'] = 'Bearer ' + token;
       }
       if(mimeType) {
+        if(typeof(value) == 'object' && value instanceof ArrayBuffer) {
+          mimeType += '; charset=binary';
+        }
         platformObj.headers['Content-Type'] = mimeType;
       }
 
@@ -1563,8 +1646,10 @@ define('lib/getputdelete',
     }
 
     function put(url, value, mimeType, token, cb) {
-      if(typeof(value) !== 'string') {
-        cb("invalid value given to PUT, only strings allowed, got " + typeof(value));
+      if(! (typeof(value) === 'string' || (typeof(value) === 'object' &&
+                                           value instanceof ArrayBuffer))) {
+        cb(new Error("invalid value given to PUT, only strings allowed, got "
+                     + typeof(value)));
       }
 
       doCall('PUT', url, value, mimeType, token, function(err, data) {
@@ -1750,7 +1835,8 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
     if(typeof(path) != 'string') {
       cb(new Error('argument "path" should be a string'));
     } else {
-      if(valueStr && typeof(valueStr) != 'string') {
+      if(valueStr && typeof(valueStr) != 'string' &&
+         !(typeof(valueStr) == 'object' && valueStr instanceof ArrayBuffer)) {
         valueStr = JSON.stringify(valueStr);
       }
       getputdelete.set(resolveKey(path), valueStr, mimeType, token, cb);
@@ -1878,7 +1964,7 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
   };
 });
 
-define('lib/store',['./util'], function (util) {
+define('lib/store',['./util', './platform'], function (util, platform) {
 
   
 
@@ -2019,13 +2105,17 @@ define('lib/store',['./util'], function (util) {
   //
   function forgetAll() {
     var numLocalStorage = localStorage.length;
+    var keys = [];
     for(var i=0; i<numLocalStorage; i++) {
       if(localStorage.key(i).substr(0, prefixNodes.length) == prefixNodes ||
          localStorage.key(i).substr(0, prefixNodesData.length) == prefixNodesData) {
-        localStorage.removeItem(localStorage.key(i));
-        i--;
+        keys.push(localStorage.key(i));
       }
     }
+
+    keys.forEach(function(key) {
+      localStorage.removeItem(key);
+    });
   }
 
   // Function: setNodeData
@@ -2043,6 +2133,7 @@ define('lib/store',['./util'], function (util) {
   //   change w/ origin=remote - unless this is an outgoing change
   //
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
+    logger.debug('PUT', path, { data: data, mimeType: mimeType });
     var node = getNode(path);
     var oldValue;
 
@@ -2058,6 +2149,12 @@ define('lib/store',['./util'], function (util) {
       mimeType='application/json';
     }
     node.mimeType = mimeType;
+
+    if(typeof(data) == 'object' && data instanceof ArrayBuffer) {
+      node.binary = true;
+      data = util.encodeBinary(data);
+    }
+
     updateNodeData(path, data);
     updateNode(path, (data ? node : undefined), outgoing, false, timestamp, oldValue);
   }
@@ -2072,10 +2169,15 @@ define('lib/store',['./util'], function (util) {
   function getNodeData(path, raw) {
     logger.debug('GET', path);
     validPath(path);
+
     var valueStr = localStorage.getItem(prefixNodesData+path);
     var node = getNode(path);
+
     if(valueStr) {
-      if((!raw) && (node.mimeType == "application/json")) {
+
+      if(node.binary) {
+        valueStr = util.decodeBinary(valueStr);
+      } else if((!raw) && (node.mimeType == "application/json")) {
         try {
           return JSON.parse(valueStr);
         } catch(exc) {
@@ -2202,9 +2304,6 @@ define('lib/store',['./util'], function (util) {
 
   }
 
-
-
-
   function isPrefixed(key) {
     return key.substring(0, prefixNodes.length) == prefixNodes;
   }
@@ -2231,7 +2330,6 @@ define('lib/store',['./util'], function (util) {
   function isForeign(path) {
     return path[0] != '/';
   }
-
 
   function determineDirTimestamp(path) {
     var data = getNodeData(path);
@@ -2499,7 +2597,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   //
   // Will update local and remote data as needed.
   //
-  // Calls it's callback once 'ready' is fired.
+  // Calls it's callback once the cycle is complete.
   //
   // Fires:
   //   ready    - when the sync queue is empty afterwards
@@ -2516,12 +2614,15 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     var roots = findRoots();
     var synced = 0;
 
-    function rootCb() {
-      synced++;
-      if(synced == roots.length) {
-        sync.lastSyncAt = new Date();
-        if(callback) {
-          callback.apply(this, arguments);
+    function rootCb(path) {
+      return function() {
+        synced++;
+        logger.info("SYNCED", synced, "OF", roots.length, '(', path, ')');
+        if(synced == roots.length) {
+          sync.lastSyncAt = new Date();
+          if(callback) {
+            callback.apply(this, arguments);
+          }
         }
       }
     }
@@ -2536,7 +2637,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
         traverseTree(root, processNode, {
           pushOnly: pushOnly
         });
-      }, rootCb);
+      }, rootCb(root));
     });
   }
 
@@ -2687,6 +2788,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   }
   function setReady() {
     ready = true;
+    logger.info("READY, ITERATIONS: ", deferredIterationQueue.length);
     if(deferredIterationQueue.length > 0) {
       spawnQueue.apply(this, deferredIterationQueue.shift());
     } else {
@@ -2697,7 +2799,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 
   // see if we can fire 'ready', or if there's more to do
   function tryReady() {
+    logger.info('tryReady?');
     if(ready && deferredIterationQueue.length == 0) {
+      logger.info('ready!');
       events.emit('ready');
     }
   }
@@ -2832,6 +2936,10 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     wireClient.set(
       path, local.data, local.mimeType,
       makeErrorCatcher(path, function() {
+        var parentPath = util.containingDir(path);
+        if(! parentPath) {
+          throw "Node has no parent path: " + path;
+        }
         // update lastUpdatedAt for this node to exact remote time.
         // this is a totally unnecessary step and should be handled better
         // in the protocol (e.g. by returning the new timestamp with the PUT
@@ -2850,6 +2958,10 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   //
   // Used as a callback for <traverseTree>.
   function processNode(path, local, remote) {
+
+    if(util.isDir(path)) {
+      throw new Error("Attempt to process directory node: " + path);
+    }
 
     var action = null;
 
@@ -3051,18 +3163,26 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     }
   }
 
-  function findRoots(path) {
-    var root = store.getNode('/');
-    var roots = [];
-    if(root.startAccess) {
-      roots.push('/');
-    } else {
-      Object.keys(store.getNodeData('/')).forEach(function(key) {
-        if(store.getNode('/' + key).startAccess) {
-          roots.push('/' + key);
-        }
-      });
+  function findRoots() {
+    function findIn(path) {
+      var root = store.getNode(path);
+      var roots = [];
+      if(root.startAccess) {
+        roots.push(path);
+      } else {
+        Object.keys(store.getNodeData(path)).forEach(function(key) {
+          if(store.getNode(path + key).startAccess) {
+            roots.push(path + key);
+          }
+        });
+      }
+      return roots;
     }
+    var roots = findIn('/');
+    var pubRoots = findIn('/public/');
+    pubRoots.forEach(function(r) {
+      roots.push(r);
+    });
     return roots;
   }
 
@@ -3155,7 +3275,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       // no interest.
       // -> bail!
       logger.debug('skipping', root, 'no interest', '(access: ', opts.access, ' force: ', opts.force, ' forceTree: ', opts.forceTree, ')');
-      if(opts.access || root == '/') { // (access can begin only on the root or it's direct children, so we don't need to descend further)
+      if(opts.access || root == '/' || root == '/public/') { // (access can begin only on the root or it's direct children, so we don't need to descend further)
         var nextRoots = findNextForceRoots(root);
         if(nextRoots.length > 0) {
           var nextRoot;
@@ -3334,6 +3454,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       n--;
       if(i === list.length && n === 0) {
         setReady();
+      } else if(n < 0) {
+        throw new Error("BUG: done() called more often than expected");
       } else if(i < list.length) {
         spawn();
       }
@@ -3916,7 +4038,7 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
   }
 
   function getWidgetState() {
-    return widgetState;
+    return widgetState || 'anonymous';
   }
 
   function buildWidget() {
@@ -4820,7 +4942,110 @@ exports.mustBeValid = function(result){
 return exports;
 });
 
-define('lib/baseClient',['./sync', './store', './util', './validate', './wireClient'], function (sync, store, util, validate, wireClient) {
+/*!
+  Math.uuid.js (v1.4)
+  http://www.broofa.com
+  mailto:robert@broofa.com
+
+  Copyright (c) 2010 Robert Kieffer
+  Dual licensed under the MIT and GPL licenses.
+
+  ********
+
+  Changes within remoteStorage.js:
+  2012-10-31:
+  - added AMD wrapper <niklas@unhosted.org>
+  - moved extensions for Math object into exported object.
+*/
+
+/*
+ * Generate a random uuid.
+ *
+ * USAGE: Math.uuid(length, radix)
+ *   length - the desired number of characters
+ *   radix  - the number of allowable values for each character.
+ *
+ * EXAMPLES:
+ *   // No arguments  - returns RFC4122, version 4 ID
+ *   >>> Math.uuid()
+ *   "92329D39-6F5C-4520-ABFC-AAB64544E172"
+ *
+ *   // One argument - returns ID of the specified length
+ *   >>> Math.uuid(15)     // 15 character ID (default base=62)
+ *   "VcydxgltxrVZSTV"
+ *
+ *   // Two arguments - returns ID of the specified length, and radix. (Radix must be <= 62)
+ *   >>> Math.uuid(8, 2)  // 8 character ID (base=2)
+ *   "01001010"
+ *   >>> Math.uuid(8, 10) // 8 character ID (base=10)
+ *   "47473046"
+ *   >>> Math.uuid(8, 16) // 8 character ID (base=16)
+ *   "098F4D35"
+ */
+define('lib/Math.uuid',[], function() {
+  // Private array of chars to use
+  var CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+
+  return {
+    uuid: function (len, radix) {
+      var chars = CHARS, uuid = [], i;
+      radix = radix || chars.length;
+
+      if (len) {
+        // Compact form
+        for (i = 0; i < len; i++) uuid[i] = chars[0 | Math.random()*radix];
+      } else {
+        // rfc4122, version 4 form
+        var r;
+
+        // rfc4122 requires these characters
+        uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+        uuid[14] = '4';
+
+        // Fill in random data.  At i==19 set the high bits of clock sequence as
+        // per rfc4122, sec. 4.1.5
+        for (i = 0; i < 36; i++) {
+          if (!uuid[i]) {
+            r = 0 | Math.random()*16;
+            uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+          }
+        }
+      }
+
+      return uuid.join('');
+    },
+
+    // A more performant, but slightly bulkier, RFC4122v4 solution.  We boost performance
+    // by minimizing calls to random()
+    uuidFast: function() {
+      var chars = CHARS, uuid = new Array(36), rnd=0, r;
+      for (var i = 0; i < 36; i++) {
+        if (i==8 || i==13 ||  i==18 || i==23) {
+          uuid[i] = '-';
+        } else if (i==14) {
+          uuid[i] = '4';
+        } else {
+          if (rnd <= 0x02) rnd = 0x2000000 + (Math.random()*0x1000000)|0;
+          r = rnd & 0xf;
+          rnd = rnd >> 4;
+          uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+        }
+      }
+      return uuid.join('');
+    },
+
+    // A more compact, but less performant, RFC4122v4 solution:
+    uuidCompact: function() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+        return v.toString(16);
+      });
+    }
+  };
+
+});
+
+define('lib/baseClient',['./sync', './store', './util', './validate', './wireClient', './Math.uuid'], function (sync, store, util, validate, wireClient, MathUUID) {
 
   
 
@@ -4834,6 +5059,8 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
         return parts[2];
       } else if(parts.length > 2){
         return parts[1];
+      } else if(parts.length == 2) {
+        return 'root';
       }
     }
   }
@@ -4859,7 +5086,12 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
   function fireError(absPath, error) {
     var isPublic = isPublicRE.test(absPath);
     var moduleName = extractModuleName(absPath);
-    moduleEvents[moduleName][isPublic].emit('error', error);
+    var modEvents = moduleEvents[moduleName];
+    if(! (modEvents && modEvents[isPublic])) {
+      moduleEvents['root'][isPublic].emit('error', error);
+    } else {
+      modEvents[isPublic].emit('error', error);
+    }
   }
 
   store.on('change', function(event) {
@@ -4876,8 +5108,7 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
     fireModuleEvent('conflict', 'root', event);
   });
 
-  function set(path, absPath, value, mimeType) {
-    var moduleName = extractModuleName(absPath);
+  function set(moduleName, path, absPath, value, mimeType) {
     if(util.isDir(absPath)) {
       fireError(absPath, 'attempt to set a value to a directory '+absPath);
       return;
@@ -4893,7 +5124,12 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
     fireModuleEvent('change', 'root', changeEvent);
   }
 
+  /** FROM HERE ON PUBLIC INTERFACE **/
+
   var BaseClient = function(moduleName, isPublic) {
+    if(! moduleName) {
+      throw new Error("moduleName is required");
+    }
     this.moduleName = moduleName, this.isPublic = isPublic;
     if(! moduleEvents[moduleName]) {
       moduleEvents[moduleName] = {};
@@ -4982,6 +5218,22 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
       }
     },
 
+    // Method: lastUpdateOf
+    // Get the time a node was last updated.
+    //
+    // Parameters:
+    //   path - Relative path from the module root
+    //
+    // Returns:
+    //   a Number - when the node exists
+    //   null - when the node doesn't exist
+    //
+    // The timestamp is represented as Number of milliseconds.
+    // Use this snippet to get a Date object from it
+    //   > var timestamp = client.lastUpdateOf('path/to/node');
+    //   > // (normally you should check that 'timestamp' isn't null now)
+    //   > new Date(timestamp);
+    //
     lastUpdateOf: function(path) {
       var absPath = this.makePath(path);
       var node = store.getNode(absPath);
@@ -5079,7 +5331,7 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
       this.ensureAccess('r');
       var absPath = this.makePath(path);
       if(callback) {
-        sync.fetchNow(absPath, function(err, node) {
+        sync.syncOne(absPath, function(err, node) {
           var data = store.getNodeData(absPath);
           var arr = [];
           for(var i in data) {
@@ -5132,12 +5384,12 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
     },
 
     //
-    // Method: getDocument
+    // Method: getFile
     //
-    // Get the document at the given path. A Document is raw data, as opposed to
+    // Get the file at the given path. A file is raw data, as opposed to
     // a JSON object (use <getObject> for that).
     //
-    // Except for the return value structure, getDocument works exactly like
+    // Except for the return value structure, getFile works exactly like
     // getObject.
     //
     // Parameters:
@@ -5145,12 +5397,11 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
     //   callback - see getObject
     //   context  - see getObject
     //
-    // Returns:
-    //   An object,
+    // Returned object:
     //   mimeType - String representing the MIME Type of the document.
-    //   data     - Raw data of the document.
+    //   data     - Raw data of the document (either a string or an ArrayBuffer)
     //
-    getDocument: function(path, callback, context) {
+    getFile: function(path, callback, context) {
       this.ensureAccess('r');
       var absPath = this.makePath(path);
 
@@ -5182,6 +5433,13 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
       }
     },
 
+    // Method: getDocument
+    //
+    // DEPRECATED in favor of <getFile>
+    getDocument: function() {
+      util.deprecate('getDocument', 'getFile');
+      this.getFile.apply(this, arguments);
+    },
 
     //
     // Method: remove
@@ -5196,7 +5454,7 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
     remove: function(path, callback, context) {
       this.ensureAccess('w');
       var absPath = this.makePath(path);
-      set(path, absPath, undefined);
+      set(this.moduleName, path, absPath, undefined);
       sync.syncOne(absPath, util.bind(callback, context));
     },
 
@@ -5251,37 +5509,76 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
 
       var errors = this.validateObject(obj);
 
+      if(util.isDir(path)) {
+        throw new Error("Can't store directory node");
+      }
+
       if(errors) {
-        console.error("Error saving this ", type, ": ", obj, errors);
+        logger.error("Error saving this ", type, ": ", obj, errors);
         return errors;
       } else {
         var absPath = this.makePath(path);
-        set(path, absPath, obj, 'application/json');
+        set(this.moduleName, path, absPath, obj, 'application/json');
         sync.syncOne(absPath, util.bind(callback, context));
         return null;
       }
     },
 
     //
-    // Method: storeDocument
+    // Method: storeFile
     //
     // Store raw data at a given path. Triggers synchronization.
     //
     // Parameters:
     //   mimeType - MIME media type of the data being stored
     //   path     - path relative to the module root. MAY NOT end in a forward slash.
-    //   data     - string of raw data to store
+    //   data     - string or ArrayBuffer of raw data to store
     //   callback - (optional) called when the change has been propagated to remotestorage
     //   context  - (optional)
     //
     // The given mimeType will later be returned, when retrieving the data
-    // using getDocument.
+    // using <getFile>.
     //
-    storeDocument: function(mimeType, path, data, callback, context) {
+    // Example (UTF-8 data):
+    //   (start code)
+    //   client.storeFile('text/html', 'index.html', '<h1>Hello World!</h1>');
+    //   (end code)
+    //
+    // Example (Binary data):
+    //   (start code)
+    //   // MARKUP:
+    //   <input type="file" id="file-input">
+    //   // CODE:
+    //   var input = document.getElementById('file-input');
+    //   var file = input.files[0];
+    //   var fileReader = new FileReader();
+    //
+    //   fileReader.onload = function() {
+    //     client.storeFile(file.type, file.name, fileReader.result);
+    //   }
+    //
+    //   fileReader.readAsArrayBuffer(file);
+    //   (end code)
+    //
+    storeFile: function(mimeType, path, data, callback, context) {
       this.ensureAccess('w');
       var absPath = this.makePath(path);
-      set(path, absPath, data, mimeType);
+      if(util.isDir(path)) {
+        throw new Error("Can't store directory node");
+      }
+      if(typeof(data) !== 'string' && !(data instanceof ArrayBuffer)) {
+        throw new Error("storeFile received " + typeof(data) + ", but expected a string or an ArrayBuffer!");
+      }
+      set(this.moduleName, path, absPath, data, mimeType);
       sync.syncOne(absPath, util.bind(callback, context));
+    },
+
+    // Method: storeDocument
+    //
+    // DEPRECATED in favor of <storeFile>
+    storeDocument: function() {
+      util.deprecate('storeDocument', 'storeFile');
+      this.storeFile.apply(this, arguments);
     },
 
     getStorageHref: function() {
@@ -5304,9 +5601,6 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
       var base = this.getStorageHref();
       if(! base) {
         return null;
-      }
-      if(base.substr(-1) != '/') {
-        base = base + '/';
       }
       return base + this.makePath(path);
     },
@@ -5354,6 +5648,11 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
       store.setNodeForce(absPath, false, false);
     },
 
+    // Method: hasDiff
+    //
+    // Returns true if the node at the given path has a diff set.
+    // Having a "diff" means, that the node or one of it's descendants
+    // has been updated since it was last pulled from remotestorage.
     hasDiff: function(path) {
       var absPath = this.makePath(path);
       if(util.isDir(absPath)) {
@@ -5386,6 +5685,28 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
         logger.error("WARNING: can't find schema for type: ", type);
       }
       return schema;
+    },
+
+    // Method: buildObject
+    //
+    // Build an object of the designated type.
+    //
+    // Parameters:
+    //   alias - a type alias, registered via <declareType>
+    //
+    // Example:
+    //   (start code)
+    //   var drink = client.buildObject('drink');
+    //   client.validateObject(drink); // validates against schema declared for "drink"
+    //   (end code)
+    //
+    // TODO:
+    //   > This should also generate an ID for all top-level properties
+    //   > of { "type":"string", "format":"id" }. 
+    buildObject: function(alias, attributes) {
+      return util.extend({
+        "@type": this.resolveType(alias)
+      }, attributes || {});
     },
 
     // Method: declareType
@@ -5470,6 +5791,15 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
       var result = validate(object, schema);
 
       return result.valid ? null : result.errors;
+    },
+
+    // Method: uuid
+    //
+    // Generates a Universally Unique IDentifuer and returns it.
+    //
+    // The UUID is prefixed with the string 'uuid:', to become a valid URI.
+    uuid: function() {
+      return 'uuid:' + MathUUID.uuid();
     }
     
   };
@@ -6358,774 +6688,480 @@ define('modules/calendar',['../remoteStorage'], function(remoteStorage) {
 });
 
 /**
- * vCardJS - a vCard 4.0 implementation in JavaScript
- *
- * (c) 2012 - Niklas Cathor
- *
- * Latest source: https://github.com/nilclass/vcardjs
+ ** VCF - Parser for the vcard format.
+ **
+ ** This is purely a vCard 4.0 implementation, as described in RFC 6350.
+ **
+ ** The generated VCard object roughly corresponds to the JSON representation
+ ** of a hCard, as described here: http://microformats.org/wiki/jcard
+ ** (Retrieved May 17, 2012)
+ **
+ ** (c) 2012 Niklas Cathor <niklas@unhosted.org> https://github.com/nilclass
+ ** Available under MIT License terms, for details see LICENSE file.
+ **
  **/
 
-define('modules/deps/vcardjs-0.2',[], function() {
-
-  /*!
-    Math.uuid.js (v1.4)
-    http://www.broofa.com
-    mailto:robert@broofa.com
-
-    Copyright (c) 2010 Robert Kieffer
-    Dual licensed under the MIT and GPL licenses.
-  */
-
-  /*
-   * Generate a random uuid.
-   *
-   * USAGE: Math.uuid(length, radix)
-   *   length - the desired number of characters
-   *   radix  - the number of allowable values for each character.
-   *
-   * EXAMPLES:
-   *   // No arguments  - returns RFC4122, version 4 ID
-   *   >>> Math.uuid()
-   *   "92329D39-6F5C-4520-ABFC-AAB64544E172"
-   *
-   *   // One argument - returns ID of the specified length
-   *   >>> Math.uuid(15)     // 15 character ID (default base=62)
-   *   "VcydxgltxrVZSTV"
-   *
-   *   // Two arguments - returns ID of the specified length, and radix. (Radix must be <= 62)
-   *   >>> Math.uuid(8, 2)  // 8 character ID (base=2)
-   *   "01001010"
-   *   >>> Math.uuid(8, 10) // 8 character ID (base=10)
-   *   "47473046"
-   *   >>> Math.uuid(8, 16) // 8 character ID (base=16)
-   *   "098F4D35"
-   */
-  (function() {
-    // Private array of chars to use
-    var CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
-
-    Math.uuid = function (len, radix) {
-      var chars = CHARS, uuid = [], i;
-      radix = radix || chars.length;
-
-      if (len) {
-        // Compact form
-        for (i = 0; i < len; i++) uuid[i] = chars[0 | Math.random()*radix];
-      } else {
-        // rfc4122, version 4 form
-        var r;
-
-        // rfc4122 requires these characters
-        uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
-        uuid[14] = '4';
-
-        // Fill in random data.  At i==19 set the high bits of clock sequence as
-        // per rfc4122, sec. 4.1.5
-        for (i = 0; i < 36; i++) {
-          if (!uuid[i]) {
-            r = 0 | Math.random()*16;
-            uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
-          }
-        }
-      }
-
-      return uuid.join('');
-    };
-
-    // A more performant, but slightly bulkier, RFC4122v4 solution.  We boost performance
-    // by minimizing calls to random()
-    Math.uuidFast = function() {
-      var chars = CHARS, uuid = new Array(36), rnd=0, r;
-      for (var i = 0; i < 36; i++) {
-        if (i==8 || i==13 ||  i==18 || i==23) {
-          uuid[i] = '-';
-        } else if (i==14) {
-          uuid[i] = '4';
-        } else {
-          if (rnd <= 0x02) rnd = 0x2000000 + (Math.random()*0x1000000)|0;
-          r = rnd & 0xf;
-          rnd = rnd >> 4;
-          uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
-        }
-      }
-      return uuid.join('');
-    };
-
-    // A more compact, but less performant, RFC4122v4 solution:
-    Math.uuidCompact = function() {
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
-        return v.toString(16);
-      });
-    };
-  })();
-
-  // exported globals
-  var VCard;
-
-  (function() {
-
-    VCard = function(attributes) {
-	    this.changed = false;
-      if(typeof(attributes) === 'object') {
-        for(var key in attributes) {
-          this[key] = attributes[key];
-	        this.changed = true;
-        }
-      }
-    };
-
-    VCard.prototype = {
-
-	    // Check validity of this VCard instance. Properties that can be generated,
-	    // will be generated. If any error is found, false is returned and vcard.errors
-	    // set to an Array of [attribute, errorType] arrays.
-	    // Otherwise true is returned.
-	    //
-	    // In case of multivalued properties, the "attribute" part of the error is
-	    // the attribute name, plus it's index (starting at 0). Example: email0, tel7, ...
-	    //
-	    // It is recommended to call this method even if this VCard object was imported,
-	    // as some software (e.g. Gmail) doesn't generate UIDs.
-	    validate: function() {
-	      var errors = [];
-
-	      function addError(attribute, type) {
-		      errors.push([attribute, type]);
-	      }
-
-	      if(! this.fn) { // FN is a required attribute
-		      addError("fn", "required");
-	      }
-
-	      // make sure multivalued properties are *always* in array form
-	      for(var key in VCard.multivaluedKeys) {
-		      if(this[key] && ! (this[key] instanceof Array)) {
-            this[key] = [this[key]];
-		      }
-	      }
-
-	      // make sure compound fields have their type & value set
-	      // (to prevent mistakes such as vcard.addAttribute('email', 'foo@bar.baz')
-	      function validateCompoundWithType(attribute, values) {
-		      for(var i in values) {
-		        var value = values[i];
-		        if(typeof(value) !== 'object') {
-			        errors.push([attribute + '-' + i, "not-an-object"]);
-		        } else if(! value.type) {
-			        errors.push([attribute + '-' + i, "missing-type"]);
-		        } else if(! value.value) { // empty values are not allowed.
-			        errors.push([attribute + '-' + i, "missing-value"]);
-		        }
-		      }
-	      }
-
-	      if(this.email) {
-		      validateCompoundWithType('email', this.email);
-	      }
-
-	      if(this.tel) {
-		      validateCompoundWithType('email', this.tel);
-	      }
-
-	      if(! this.uid) {
-		      this.addAttribute('uid', this.generateUID());
-	      }
-
-	      if(! this.rev) {
-		      this.addAttribute('rev', this.generateRev());
-	      }
-
-	      this.errors = errors;
-
-	      return ! (errors.length > 0);
-	    },
-
-	    // generate a UID. This generates a UUID with uuid: URN namespace, as suggested
-	    // by RFC 6350, 6.7.6
-	    generateUID: function() {
-	      return 'uuid:' + Math.uuid();
-	    },
-
-	    // generate revision timestamp (a full ISO 8601 date/time string in basic format)
-	    generateRev: function() {
-	      return (new Date()).toISOString().replace(/[\.\:\-]/g, '');
-	    },
-
-	    // Set the given attribute to the given value.
-	    // This sets vcard.changed to true, so you can check later whether anything
-	    // was updated by your code.
-      setAttribute: function(key, value) {
-        this[key] = value;
-	      this.changed = true;
-      },
-
-	    // Set the given attribute to the given value.
-	    // If the given attribute's key has cardinality > 1, instead of overwriting
-	    // the current value, an additional value is appended.
-      addAttribute: function(key, value) {
-        console.log('add attribute', key, value);
-        if(! value) {
-          return;
-        }
-        if(VCard.multivaluedKeys[key]) {
-          if(this[key]) {
-            console.log('multivalued push');
-            this[key].push(value)
-          } else {
-            console.log('multivalued set');
-            this.setAttribute(key, [value]);
-          }
-        } else {
-          this.setAttribute(key, value);
-        }
-      },
-
-	    // convenience method to get a JSON serialized jCard.
-	    toJSON: function() {
-	      return JSON.stringify(this.toJCard());
-	    },
-
-	    // Copies all properties (i.e. all specified in VCard.allKeys) to a new object
-	    // and returns it.
-	    // Useful to serialize to JSON afterwards.
-      toJCard: function() {
-        var jcard = {};
-        for(var k in VCard.allKeys) {
-          var key = VCard.allKeys[k];
-          if(this[key]) {
-            jcard[key] = this[key];
-          }
-        }
-        return jcard;
-      },
-
-      // synchronizes two vcards, using the mechanisms described in
-      // RFC 6350, Section 7.
-      // Returns a new VCard object.
-      // If a property is present in both source vcards, and that property's
-      // maximum cardinality is 1, then the value from the second (given) vcard
-      // precedes.
-      //
-      // TODO: implement PID matching as described in 7.3.1
-      merge: function(other) {
-        if(typeof(other.uid) !== 'undefined' &&
-           typeof(this.uid) !== 'undefined' &&
-           other.uid !== this.uid) {
-          // 7.1.1
-          throw "Won't merge vcards without matching UIDs.";
-        }
-
-        var result = new VCard();
-
-        function mergeProperty(key) {
-          if(other[key]) {
-            if(other[key] == this[key]) {
-              result.setAttribute(this[key]);
-            } else {
-              result.addAttribute(this[key]);
-              result.addAttribute(other[key]);
-            }
-          } else {
-            result[key] = this[key];
-          }
-        }
-
-        for(key in this) { // all properties of this
-          mergeProperty(key);
-        }
-        for(key in other) { // all properties of other *not* in this
-          if(! result[key]) {
-            mergeProperty(key);
-          }
-        }
-      }
-    };
-
-    VCard.enums = {
-      telType: ["text", "voice", "fax", "cell", "video", "pager", "textphone"],
-      relatedType: ["contact", "acquaintance", "friend", "met", "co-worker",
-                    "colleague", "co-resident", "neighbor", "child", "parent",
-                    "sibling", "spouse", "kin", "muse", "crush", "date",
-                    "sweetheart", "me", "agent", "emergency"],
-      // FIXME: these aren't actually defined anywhere. just very commmon.
-      //        maybe there should be more?
-      emailType: ["work", "home", "internet"],
-      langType: ["work", "home"],
-      
-    };
-
-    VCard.allKeys = [
-      'fn', 'n', 'nickname', 'photo', 'bday', 'anniversary', 'gender',
-      'tel', 'email', 'impp', 'lang', 'tz', 'geo', 'title', 'role', 'logo',
-      'org', 'member', 'related', 'categories', 'note', 'prodid', 'rev',
-      'sound', 'uid'
-    ];
-
-    VCard.multivaluedKeys = {
-      email: true,
-      tel: true,
-      geo: true,
-      title: true,
-      role: true,
-      logo: true,
-      org: true,
-      member: true,
-      related: true,
-      categories: true,
-      note: true
-    };
-
-  })();
-  /**
-   ** VCF - Parser for the vcard format.
-   **
-   ** This is purely a vCard 4.0 implementation, as described in RFC 6350.
-   **
-   ** The generated VCard object roughly corresponds to the JSON representation
-   ** of a hCard, as described here: http://microformats.org/wiki/jcard
-   ** (Retrieved May 17, 2012)
-   **
-   **/
+define('modules/deps/vcf',[], function() {
 
   var VCF;
 
-  (function() {
-    VCF = {
+  var multivaluedKeys = {
+    email: true,
+    tel: true,
+    geo: true,
+    title: true,
+    role: true,
+    logo: true,
+    org: true,
+    member: true,
+    related: true,
+    categories: true,
+    note: true
+  };
 
-      simpleKeys: [
-        'VERSION',
-        'FN', // 6.2.1
-        'PHOTO', // 6.2.4 (we don't care about URIs [yet])
-        'GEO', // 6.5.2 (SHOULD also b a URI)
-        'TITLE', // 6.6.1
-        'ROLE', // 6.6.2
-        'LOGO', // 6.6.3 (also [possibly data:] URI)
-        'MEMBER', // 6.6.5
-        'NOTE', // 6.7.2
-        'PRODID', // 6.7.3
-        'SOUND', // 6.7.5
-        'UID', // 6.7.6
-      ],
-      csvKeys: [
-        'NICKNAME', // 6.2.3
-        'CATEGORIES', // 6.7.1
-      ],
-      dateAndOrTimeKeys: [
-        'BDAY',        // 6.2.5
-        'ANNIVERSARY', // 6.2.6
-        'REV', // 6.7.4
-      ],
+  function addAttribute(vcard, key, value) {
+    if(! value) {
+      return;
+    }
+    if(multivaluedKeys[key]) {
+      if(vcard[key]) {
+        vcard[key].push(value)
+      } else {
+        vcard[key] = [value];
+      }
+    } else {
+      vcard[key] = value;
+    }
+  }
 
-      // parses the given input, constructing VCard objects.
-      // if the input contains multiple (properly seperated) vcards,
-      // the callback may be called multiple times, with one vcard given
-      // each time.
-      // The third argument specifies the context in which to evaluate
-      // the given callback.
-      parse: function(input, callback, context) {
-        var vcard = null;
+  VCF = {
 
-        if(! context) {
-          context = this;
-        }
+    simpleKeys: [
+      'VERSION',
+      'FN', // 6.2.1
+      'PHOTO', // 6.2.4 (we don't care about URIs [yet])
+      'GEO', // 6.5.2 (SHOULD also b a URI)
+      'TITLE', // 6.6.1
+      'ROLE', // 6.6.2
+      'LOGO', // 6.6.3 (also [possibly data:] URI)
+      'MEMBER', // 6.6.5
+      'NOTE', // 6.7.2
+      'PRODID', // 6.7.3
+      'SOUND', // 6.7.5
+      'UID', // 6.7.6
+    ],
+    csvKeys: [
+      'NICKNAME', // 6.2.3
+      'CATEGORIES', // 6.7.1
+    ],
+    dateAndOrTimeKeys: [
+      'BDAY',        // 6.2.5
+      'ANNIVERSARY', // 6.2.6
+      'REV', // 6.7.4
+    ],
 
-        this.lex(input, function(key, value, attrs) {
-          function setAttr(val) {
-            if(vcard) {
-              vcard.addAttribute(key.toLowerCase(), val);
-            }
+    // parses the given input, constructing VCard objects.
+    // if the input contains multiple (properly seperated) vcards,
+    // the callback may be called multiple times, with one vcard given
+    // each time.
+    // The third argument specifies the context in which to evaluate
+    // the given callback.
+    parse: function(input, callback, context) {
+      var vcard = null;
+
+      if(! context) {
+        context = this;
+      }
+
+      this.lex(input, function(key, value, attrs) {
+        function setAttr(val) {
+          if(vcard) {
+            addAttribute(vcard, key.toLowerCase(), val);
           }
-          if(key == 'BEGIN') {
-            vcard = new VCard();
-          } else if(key == 'END') {
-            if(vcard) {
-              callback.apply(context, [vcard]);
-              vcard = null;
-            }
+        }
+        if(key == 'BEGIN') {
+          vcard = {};
+        } else if(key == 'END') {
+          if(vcard) {
+            callback.apply(context, [vcard]);
+            vcard = null;
+          }
 
-          } else if(this.simpleKeys.indexOf(key) != -1) {
+        } else if(this.simpleKeys.indexOf(key) != -1) {
+          setAttr(value);
+
+        } else if(this.csvKeys.indexOf(key) != -1) {
+          setAttr(value.split(','));
+
+        } else if(this.dateAndOrTimeKeys.indexOf(key) != -1) {
+          if(attrs.VALUE == 'text') {
+            // times can be expressed as "text" as well,
+            // e.g. "ca 1800", "next week", ...
             setAttr(value);
-
-          } else if(this.csvKeys.indexOf(key) != -1) {
-            setAttr(value.split(','));
-
-          } else if(this.dateAndOrTimeKeys.indexOf(key) != -1) {
-            if(attrs.VALUE == 'text') {
-              // times can be expressed as "text" as well,
-              // e.g. "ca 1800", "next week", ...
-              setAttr(value);
-            } else if(attrs.CALSCALE && attrs.CALSCALE != 'gregorian') {
-              // gregorian calendar is the only calscale mentioned
-              // in RFC 6350. I do not intend to support anything else
-              // (yet).
-            } else {
-              // FIXME: handle TZ attribute.
-              setAttr(this.parseDateAndOrTime(value));
-            }
-
-          } else if(key == 'N') { // 6.2.2
-            setAttr(this.parseName(value));
-
-          } else if(key == 'GENDER') { // 6.2.7
-            setAttr(this.parseGender(value));
-
-          } else if(key == 'TEL') { // 6.4.1
-            setAttr({
-              type: (attrs.TYPE || 'voice'),
-              pref: attrs.PREF,
-              value: value
-            });
-
-          } else if(key == 'EMAIL') { // 6.4.2
-            setAttr({
-              type: attrs.TYPE,
-              pref: attrs.PREF,
-              value: value
-            });
-
-          } else if(key == 'IMPP') { // 6.4.3
-            // RFC 6350 doesn't define TYPEs for IMPP addresses.
-            // It just seems odd to me to have multiple email addresses and phone numbers,
-            // but not multiple IMPP addresses.
-            setAttr({ value: value });
-
-          } else if(key == 'LANG') { // 6.4.4
-            setAttr({
-              type: attrs.TYPE,
-              pref: attrs.PREF,
-              value: value
-            });
-
-          } else if(key == 'TZ') { // 6.5.1
-            // neither hCard nor jCard mention anything about the TZ
-            // property, except that it's singular (which it is *not* in
-            // RFC 6350).
-            // using compound representation.
-            if(attrs.VALUE == 'utc-offset') {
-              setAttr({ 'utc-offset': this.parseTimezone(value) });
-            } else {
-              setAttr({ name: value });
-            }
-
-          } else if(key == 'ORG') { // 6.6.4
-            var parts = value.split(';');
-            setAttr({
-              'organization-name': parts[0],
-              'organization-unit': parts[1]
-            });
-
-          } else if(key == 'RELATED') { // 6.6.6
-            setAttr({
-              type: attrs.TYPE,
-              pref: attrs.PREF,
-              value: attrs.VALUE
-            });
-
+          } else if(attrs.CALSCALE && attrs.CALSCALE != 'gregorian') {
+            // gregorian calendar is the only calscale mentioned
+            // in RFC 6350. I do not intend to support anything else
+            // (yet).
           } else {
-            console.log('WARNING: unhandled key: ', key);
+            // FIXME: handle TZ attribute.
+            setAttr(this.parseDateAndOrTime(value));
           }
-        });
-      },
-      
-      nameParts: [
-        'family-name', 'given-name', 'additional-name',
-        'honorific-prefix', 'honorific-suffix'
-      ],
 
-      parseName: function(name) { // 6.2.2
-        var parts = name.split(';');
-        var n = {};
-        for(var i in parts) {
-          if(parts[i]) {
-            n[this.nameParts[i]] = parts[i].split(',');
+        } else if(key == 'N') { // 6.2.2
+          setAttr(this.parseName(value));
+
+        } else if(key == 'GENDER') { // 6.2.7
+          setAttr(this.parseGender(value));
+
+        } else if(key == 'TEL') { // 6.4.1
+          setAttr({
+            type: (attrs.TYPE || 'voice'),
+            pref: attrs.PREF,
+            value: value
+          });
+
+        } else if(key == 'EMAIL') { // 6.4.2
+          setAttr({
+            type: attrs.TYPE,
+            pref: attrs.PREF,
+            value: value
+          });
+
+        } else if(key == 'IMPP') { // 6.4.3
+          // RFC 6350 doesn't define TYPEs for IMPP addresses.
+          // It just seems odd to me to have multiple email addresses and phone numbers,
+          // but not multiple IMPP addresses.
+          setAttr({ value: value });
+
+        } else if(key == 'LANG') { // 6.4.4
+          setAttr({
+            type: attrs.TYPE,
+            pref: attrs.PREF,
+            value: value
+          });
+
+        } else if(key == 'TZ') { // 6.5.1
+          // neither hCard nor jCard mention anything about the TZ
+          // property, except that it's singular (which it is *not* in
+          // RFC 6350).
+          // using compound representation.
+          if(attrs.VALUE == 'utc-offset') {
+            setAttr({ 'utc-offset': this.parseTimezone(value) });
+          } else {
+            setAttr({ name: value });
           }
-        }
-        return n;
-      },
 
-      /**
-       * The representation of gender for hCards (and hence their JSON
-       * representation) is undefined, as hCard is based on RFC 2436, which
-       * doesn't define the GENDER attribute.
-       * This method uses a compound representation.
-       *
-       * Examples:
-       *   "GENDER:M"              -> {"sex":"male"}
-       *   "GENDER:M;man"          -> {"sex":"male","identity":"man"}
-       *   "GENDER:F;girl"         -> {"sex":"female","identity":"girl"}
-       *   "GENDER:M;girl"         -> {"sex":"male","identity":"girl"}
-       *   "GENDER:F;boy"          -> {"sex":"female","identity":"boy"}
-       *   "GENDER:N;woman"        -> {"identity":"woman"}
-       *   "GENDER:O;potted plant" -> {"sex":"other","identity":"potted plant"}
-       */
-      parseGender: function(value) { // 6.2.7
-        var gender = {};
-        var parts = value.split(';');
-        switch(parts[0]) {
-        case 'M':
-          gender.sex = 'male';
-          break;
-        case 'F':
-          gender.sex = 'female';
-          break;
-        case 'O':
-          gender.sex = 'other';
-        }
-        if(parts[1]) {
-          gender.identity = parts[1];
-        }
-        return gender;
-      },
+        } else if(key == 'ORG') { // 6.6.4
+          var parts = value.split(';');
+          setAttr({
+            'organization-name': parts[0],
+            'organization-unit': parts[1]
+          });
 
-      /** Date/Time parser.
-       * 
-       * This implements only the parts of ISO 8601, that are
-       * allowed by RFC 6350.
-       * Paranthesized examples all represent (parts of):
-       *   31st of January 1970, 23 Hours, 59 Minutes, 30 Seconds
-       **/
+        } else if(key == 'RELATED') { // 6.6.6
+          setAttr({
+            type: attrs.TYPE,
+            pref: attrs.PREF,
+            value: attrs.VALUE
+          });
 
-      /** DATE **/
-
-      // [ISO.8601.2004], 4.1.2.2, basic format:
-      dateRE: /^(\d{4})(\d{2})(\d{2})$/, // (19700131)
-
-      // [ISO.8601.2004], 4.1.2.3 a), basic format:
-      dateReducedARE: /^(\d{4})\-(\d{2})$/, // (1970-01)
-
-      // [ISO.8601.2004], 4.1.2.3 b), basic format:
-      dateReducedBRE: /^(\d{4})$/, // (1970)
-
-      // truncated representation from [ISO.8601.2000], 5.3.1.4.
-      // I don't have access to that document, so relying on examples
-      // from RFC 6350:
-      dateTruncatedMDRE: /^\-{2}(\d{2})(\d{2})$/, // (--0131)
-      dateTruncatedDRE: /^\-{3}(\d{2})$/, // (---31)
-
-      /** TIME **/
-
-      // (Note: it is unclear to me which of these are supposed to support
-      //        timezones. Allowing them for all. If timezones are ommitted,
-      //        defaulting to UTC)
-
-      // [ISO.8601.2004, 4.2.2.2, basic format:
-      timeRE: /^(\d{2})(\d{2})(\d{2})([+\-]\d+|Z|)$/, // (235930)
-      // [ISO.8601.2004, 4.2.2.3 a), basic format:
-      timeReducedARE: /^(\d{2})(\d{2})([+\-]\d+|Z|)$/, // (2359)
-      // [ISO.8601.2004, 4.2.2.3 b), basic format:
-      timeReducedBRE: /^(\d{2})([+\-]\d+|Z|)$/, // (23)
-      // truncated representation from [ISO.8601.2000], see above.
-      timeTruncatedMSRE: /^\-{2}(\d{2})(\d{2})([+\-]\d+|Z|)$/, // (--5930)
-      timeTruncatedSRE: /^\-{3}(\d{2})([+\-]\d+|Z|)$/, // (---30)
-
-      parseDate: function(data) {
-        var md;
-        var y, m, d;
-        if((md = data.match(this.dateRE))) {
-          y = md[1]; m = md[2]; d = md[3];
-        } else if((md = data.match(this.dateReducedARE))) {
-          y = md[1]; m = md[2];
-        } else if((md = data.match(this.dateReducedBRE))) {
-          y = md[1];
-        } else if((md = data.match(this.dateTruncatedMDRE))) {
-          m = md[1]; d = md[2];
-        } else if((md = data.match(this.dateTruncatedDRE))) {
-          d = md[1];
         } else {
-          console.error("WARNING: failed to parse date: ", data);
-          return null;
+          console.log('WARNING: unhandled key: ', key);
         }
-        var dt = new Date(0);
-        if(typeof(y) != 'undefined') { dt.setUTCFullYear(y); }
-        if(typeof(m) != 'undefined') { dt.setUTCMonth(m - 1); }
-        if(typeof(d) != 'undefined') { dt.setUTCDate(d); }
-        return dt;
-      },
+      });
+    },
+    
+    nameParts: [
+      'family-name', 'given-name', 'additional-name',
+      'honorific-prefix', 'honorific-suffix'
+    ],
 
-      parseTime: function(data) {
-        var md;
-        var h, m, s, tz;
-        if((md = data.match(this.timeRE))) {
-          h = md[1]; m = md[2]; s = md[3];
-          tz = md[4];
-        } else if((md = data.match(this.timeReducedARE))) {
-          h = md[1]; m = md[2];
-          tz = md[3];
-        } else if((md = data.match(this.timeReducedBRE))) {
-          h = md[1];
-          tz = md[2];
-        } else if((md = data.match(this.timeTruncatedMSRE))) {
-          m = md[1]; s = md[2];
-          tz = md[3];
-        } else if((md = data.match(this.timeTruncatedSRE))) {
-          s = md[1];
-          tz = md[2];
-        } else {
-          console.error("WARNING: failed to parse time: ", data);
-          return null;
+    parseName: function(name) { // 6.2.2
+      var parts = name.split(';');
+      var n = {};
+      for(var i in parts) {
+        if(parts[i]) {
+          n[this.nameParts[i]] = parts[i].split(',');
         }
+      }
+      return n;
+    },
 
-        var dt = new Date(0);
-        if(typeof(h) != 'undefined') { dt.setUTCHours(h); }
-        if(typeof(m) != 'undefined') { dt.setUTCMinutes(m); }           
-        if(typeof(s) != 'undefined') { dt.setUTCSeconds(s); }
+    /**
+     * The representation of gender for hCards (and hence their JSON
+     * representation) is undefined, as hCard is based on RFC 2436, which
+     * doesn't define the GENDER attribute.
+     * This method uses a compound representation.
+     *
+     * Examples:
+     *   "GENDER:M"              -> {"sex":"male"}
+     *   "GENDER:M;man"          -> {"sex":"male","identity":"man"}
+     *   "GENDER:F;girl"         -> {"sex":"female","identity":"girl"}
+     *   "GENDER:M;girl"         -> {"sex":"male","identity":"girl"}
+     *   "GENDER:F;boy"          -> {"sex":"female","identity":"boy"}
+     *   "GENDER:N;woman"        -> {"identity":"woman"}
+     *   "GENDER:O;potted plant" -> {"sex":"other","identity":"potted plant"}
+     */
+    parseGender: function(value) { // 6.2.7
+      var gender = {};
+      var parts = value.split(';');
+      switch(parts[0]) {
+      case 'M':
+        gender.sex = 'male';
+        break;
+      case 'F':
+        gender.sex = 'female';
+        break;
+      case 'O':
+        gender.sex = 'other';
+      }
+      if(parts[1]) {
+        gender.identity = parts[1];
+      }
+      return gender;
+    },
 
-        if(tz) {
-          dt = this.applyTimezone(dt, tz);
-        }
+    /** Date/Time parser.
+     * 
+     * This implements only the parts of ISO 8601, that are
+     * allowed by RFC 6350.
+     * Paranthesized examples all represent (parts of):
+     *   31st of January 1970, 23 Hours, 59 Minutes, 30 Seconds
+     **/
 
-        return dt;
-      },
+    /** DATE **/
 
-      // add two dates. if addSub is false, substract instead of add.
-      addDates: function(aDate, bDate, addSub) {
-        if(typeof(addSub) == 'undefined') { addSub = true };
-        if(! aDate) { return bDate; }
-        if(! bDate) { return aDate; }
-        var a = Number(aDate);
-        var b = Number(bDate);
-        var c = addSub ? a + b : a - b;
-        return new Date(c);
-      },
+    // [ISO.8601.2004], 4.1.2.2, basic format:
+    dateRE: /^(\d{4})(\d{2})(\d{2})$/, // (19700131)
 
-      parseTimezone: function(tz) {
-        var md;
-        if((md = tz.match(/^([+\-])(\d{2})(\d{2})?/))) {
-          var offset = new Date(0);
-          offset.setUTCHours(md[2]);
-          offset.setUTCMinutes(md[3] || 0);
-          return Number(offset) * (md[1] == '+' ? +1 : -1);
-        } else {
-          return null;
-        }
-      },
+    // [ISO.8601.2004], 4.1.2.3 a), basic format:
+    dateReducedARE: /^(\d{4})\-(\d{2})$/, // (1970-01)
 
-      applyTimezone: function(date, tz) {
-        var offset = this.parseTimezone(tz);
-        if(offset) {
-          return new Date(Number(date) + offset);
-        } else {
-          return date;
-        }
-      },
+    // [ISO.8601.2004], 4.1.2.3 b), basic format:
+    dateReducedBRE: /^(\d{4})$/, // (1970)
 
-      parseDateTime: function(data) {
-        var parts = data.split('T');
-        var t = this.parseDate(parts[0]);
-        var d = this.parseTime(parts[1]);
-        return this.addDates(t, d);
-      },
+    // truncated representation from [ISO.8601.2000], 5.3.1.4.
+    // I don't have access to that document, so relying on examples
+    // from RFC 6350:
+    dateTruncatedMDRE: /^\-{2}(\d{2})(\d{2})$/, // (--0131)
+    dateTruncatedDRE: /^\-{3}(\d{2})$/, // (---31)
 
-      parseDateAndOrTime: function(data) {
-        switch(data.indexOf('T')) {
-        case 0:
-          return this.parseTime(data.slice(1));
-        case -1:
-          return this.parseDate(data);
-        default:
-          return this.parseDateTime(data);
-        }
-      },
+    /** TIME **/
 
-      lineRE: /^([^\s].*)(?:\r?\n|$)/, // spec wants CRLF, but we're on the internet. reality is chaos.
-      foldedLineRE:/^\s(.+)(?:\r?\n|$)/,
+    // (Note: it is unclear to me which of these are supposed to support
+    //        timezones. Allowing them for all. If timezones are ommitted,
+    //        defaulting to UTC)
 
-      // lex the given input, calling the callback for each line, with
-      // the following arguments:
-      //   * key - key of the statement, such as 'BEGIN', 'FN', 'N', ...
-      //   * value - value of the statement, i.e. everything after the first ':'
-      //   * attrs - object containing attributes, such as {"TYPE":"work"}
-      lex: function(input, callback) {
+    // [ISO.8601.2004, 4.2.2.2, basic format:
+    timeRE: /^(\d{2})(\d{2})(\d{2})([+\-]\d+|Z|)$/, // (235930)
+    // [ISO.8601.2004, 4.2.2.3 a), basic format:
+    timeReducedARE: /^(\d{2})(\d{2})([+\-]\d+|Z|)$/, // (2359)
+    // [ISO.8601.2004, 4.2.2.3 b), basic format:
+    timeReducedBRE: /^(\d{2})([+\-]\d+|Z|)$/, // (23)
+    // truncated representation from [ISO.8601.2000], see above.
+    timeTruncatedMSRE: /^\-{2}(\d{2})(\d{2})([+\-]\d+|Z|)$/, // (--5930)
+    timeTruncatedSRE: /^\-{3}(\d{2})([+\-]\d+|Z|)$/, // (---30)
 
-        var md, line = null, length = 0;
+    parseDate: function(data) {
+      var md;
+      var y, m, d;
+      if((md = data.match(this.dateRE))) {
+        y = md[1]; m = md[2]; d = md[3];
+      } else if((md = data.match(this.dateReducedARE))) {
+        y = md[1]; m = md[2];
+      } else if((md = data.match(this.dateReducedBRE))) {
+        y = md[1];
+      } else if((md = data.match(this.dateTruncatedMDRE))) {
+        m = md[1]; d = md[2];
+      } else if((md = data.match(this.dateTruncatedDRE))) {
+        d = md[1];
+      } else {
+        console.error("WARNING: failed to parse date: ", data);
+        return null;
+      }
+      var dt = new Date(0);
+      if(typeof(y) != 'undefined') { dt.setUTCFullYear(y); }
+      if(typeof(m) != 'undefined') { dt.setUTCMonth(m - 1); }
+      if(typeof(d) != 'undefined') { dt.setUTCDate(d); }
+      return dt;
+    },
 
-        for(;;) {
-          if((md = input.match(this.lineRE))) {
-            if(line) {
-              this.lexLine(line, callback);
-            }
-            line = md[1];
+    parseTime: function(data) {
+      var md;
+      var h, m, s, tz;
+      if((md = data.match(this.timeRE))) {
+        h = md[1]; m = md[2]; s = md[3];
+        tz = md[4];
+      } else if((md = data.match(this.timeReducedARE))) {
+        h = md[1]; m = md[2];
+        tz = md[3];
+      } else if((md = data.match(this.timeReducedBRE))) {
+        h = md[1];
+        tz = md[2];
+      } else if((md = data.match(this.timeTruncatedMSRE))) {
+        m = md[1]; s = md[2];
+        tz = md[3];
+      } else if((md = data.match(this.timeTruncatedSRE))) {
+        s = md[1];
+        tz = md[2];
+      } else {
+        console.error("WARNING: failed to parse time: ", data);
+        return null;
+      }
+
+      var dt = new Date(0);
+      if(typeof(h) != 'undefined') { dt.setUTCHours(h); }
+      if(typeof(m) != 'undefined') { dt.setUTCMinutes(m); }           
+      if(typeof(s) != 'undefined') { dt.setUTCSeconds(s); }
+
+      if(tz) {
+        dt = this.applyTimezone(dt, tz);
+      }
+
+      return dt;
+    },
+
+    // add two dates. if addSub is false, substract instead of add.
+    addDates: function(aDate, bDate, addSub) {
+      if(typeof(addSub) == 'undefined') { addSub = true };
+      if(! aDate) { return bDate; }
+      if(! bDate) { return aDate; }
+      var a = Number(aDate);
+      var b = Number(bDate);
+      var c = addSub ? a + b : a - b;
+      return new Date(c);
+    },
+
+    parseTimezone: function(tz) {
+      var md;
+      if((md = tz.match(/^([+\-])(\d{2})(\d{2})?/))) {
+        var offset = new Date(0);
+        offset.setUTCHours(md[2]);
+        offset.setUTCMinutes(md[3] || 0);
+        return Number(offset) * (md[1] == '+' ? +1 : -1);
+      } else {
+        return null;
+      }
+    },
+
+    applyTimezone: function(date, tz) {
+      var offset = this.parseTimezone(tz);
+      if(offset) {
+        return new Date(Number(date) + offset);
+      } else {
+        return date;
+      }
+    },
+
+    parseDateTime: function(data) {
+      var parts = data.split('T');
+      var t = this.parseDate(parts[0]);
+      var d = this.parseTime(parts[1]);
+      return this.addDates(t, d);
+    },
+
+    parseDateAndOrTime: function(data) {
+      switch(data.indexOf('T')) {
+      case 0:
+        return this.parseTime(data.slice(1));
+      case -1:
+        return this.parseDate(data);
+      default:
+        return this.parseDateTime(data);
+      }
+    },
+
+    lineRE: /^([^\s].*)(?:\r?\n|$)/, // spec wants CRLF, but we're on the internet. reality is chaos.
+    foldedLineRE:/^\s(.+)(?:\r?\n|$)/,
+
+    // lex the given input, calling the callback for each line, with
+    // the following arguments:
+    //   * key - key of the statement, such as 'BEGIN', 'FN', 'N', ...
+    //   * value - value of the statement, i.e. everything after the first ':'
+    //   * attrs - object containing attributes, such as {"TYPE":"work"}
+    lex: function(input, callback) {
+
+      var md, line = null, length = 0;
+
+      for(;;) {
+        if((md = input.match(this.lineRE))) {
+          if(line) {
+            this.lexLine(line, callback);
+          }
+          line = md[1];
+          length = md[0].length;
+        } else if((md = input.match(this.foldedLineRE))) {
+          if(line) {
+            line += md[1];
             length = md[0].length;
-          } else if((md = input.match(this.foldedLineRE))) {
-            if(line) {
-              line += md[1];
-              length = md[0].length;
-            } else {
-              // ignore folded junk.
-            }
           } else {
-            console.error("Unmatched line: " + line);
+            // ignore folded junk.
           }
-
-          input = input.slice(length);
-
-          if(! input) {
-            break;
-          }
+        } else {
+          console.error("Unmatched line: " + line);
         }
 
-        if(line) {
-          // last line.
-          this.lexLine(line, callback);
-        }
+        input = input.slice(length);
 
-        line = null;
-      },
-
-      lexLine: function(line, callback) {
-        var tmp = '';
-        var key = null, attrs = {}, value = null, attrKey = null;
-
-        function finalizeKeyOrAttr() {
-          if(key) {
-            if(attrKey) {
-              attrs[attrKey] = tmp;
-            } else {
-              console.error("Invalid attribute: ", tmp, 'Line dropped.');
-              return;
-            }
-          } else {
-            key = tmp;
-          }
-        }
-
-        for(var i in line) {
-          var c = line[i];
-
-          switch(c) {
-          case ':':
-            finalizeKeyOrAttr();
-            value = line.slice(Number(i) + 1);
-            callback.apply(
-              this,
-              [key, value, attrs]
-            );
-            return;
-          case ';':
-            finalizeKeyOrAttr();
-            tmp = '';
-            break;
-          case '=':
-            attrKey = tmp;
-            tmp = '';
-            break;
-          default:
-            tmp += c;
-          }
+        if(! input) {
+          break;
         }
       }
 
-    };
+      if(line) {
+        // last line.
+        this.lexLine(line, callback);
+      }
 
-  })();
+      line = null;
+    },
 
+    lexLine: function(line, callback) {
+      var tmp = '';
+      var key = null, attrs = {}, value = null, attrKey = null;
 
-  return {
-    VCard: VCard,
-    VCF: VCF
-  }
+      function finalizeKeyOrAttr() {
+        if(key) {
+          if(attrKey) {
+            attrs[attrKey] = tmp;
+          } else {
+            console.error("Invalid attribute: ", tmp, 'Line dropped.');
+            return;
+          }
+        } else {
+          key = tmp;
+        }
+      }
 
+      for(var i in line) {
+        var c = line[i];
+
+        switch(c) {
+        case ':':
+          finalizeKeyOrAttr();
+          value = line.slice(Number(i) + 1);
+          callback.apply(
+            this,
+            [key, value, attrs]
+          );
+          return;
+        case ';':
+          finalizeKeyOrAttr();
+          tmp = '';
+          break;
+        case '=':
+          attrKey = tmp;
+          tmp = '';
+          break;
+        default:
+          tmp += c;
+        }
+      }
+    }
+
+  };
+
+  return VCF;
 });
 
 /**
@@ -7133,12 +7169,9 @@ define('modules/deps/vcardjs-0.2',[], function() {
  **/
 
 define('modules/contacts',[
-  // don't change these weird paths.
-  // required due to builder issues hopefully to be resolved by
-  // https://github.com/RemoteStorage/remoteStorage.js/issues/84
   '../remoteStorage',
-  '../modules/deps/vcardjs-0.2'
-], function(remoteStorage, vCardJS) {
+  '../modules/deps/vcf'
+], function(remoteStorage, VCF) {
 
   // Namespace: remoteStorage.contacts
   //
@@ -7174,268 +7207,206 @@ define('modules/contacts',[
 
   var moduleName = "contacts";
 
-  var VCard = vCardJS.VCard, VCF = vCardJS.VCF;
-
   remoteStorage.defineModule(moduleName, function(base) {
 
-    var DEBUG = true, contacts = {};
+    base.declareType('vcard', {
 
-    // Copy over all properties from source to destination.
-    // Return destination.
-    function extend() {
-      var destination = arguments[0], source;
-      for(var i=1;i<arguments.length;i++) {
-        source = arguments[i];
-        var keys = Object.keys(source);
-        for(var j=0;j<keys.length;j++) {
-          var key = keys[j];
-          destination[key] = source[key];
+      "description": "a vcard",
+
+      "type": "object",
+
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+
+        "fn": {
+          "type": "string",
+          "description": "formatted name",
+          "required": true,
+        },
+
+        "uid": {
+          "description": "unique identifier",
+          "type": "string",
+          "format": "uri"
+        },
+
+        "n": {
+          "type": "object",
+          "description": "structured name",
+          "properties": {
+            "family-name": { "type": "array", "items": { "type": "string" } },
+            "given-name": { "type": "array", "items": { "type": "string" } },
+            "additional-name": { "type": "array", "items": { "type": "string" } },
+            "horifific-prefix": { "type": "array", "items": { "type": "string" } },
+            "honorific-suffix": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+
+        "nickname": {
+          "type": "string"
+        },
+
+        "photo": {
+          "type": "string",
+          "format": "uri"
+        },
+
+        "logo": {
+          "type": "string",
+          "format": "uri"
+        },
+
+        "title": {
+          "type": "string"
+        },
+
+        "org": {
+          "type": "string",
+          "description": "Name of an organization"
+        },
+
+        "role": {
+          "type": "string",
+          "description": "role of a person within an organization"
+        },
+
+        "kind": {
+          "type": "string",
+          "enum": ["individual", "group", "event"],
+          "description": "nature of the thing being described by this vcard"
+        },
+
+        "email": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "type of this email address. common values are 'work', 'home'",
+                "required": true
+              },
+              "value": {
+                "type": "string",
+                "description": "the actual email address",
+                "required": true
+              }
+            }
+          }
+        },
+
+        "tel": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "type of this telephone number, such as text, voice, fax, cell, video, pager, textphone",
+                "required": true
+              },
+              "value": {
+                "type": "string",
+                "regex": "^[\d+-\s]+$"
+              }
+            }
+          }
+        },
+
+        "related": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "nature of this relation",
+                "required": true
+              },
+              "value": {
+                "type": "string",
+                "description": "URI pointing to related thing",
+                "format": "uri",
+                "required": true
+              }
+            }
+          }
+        },
+
+        "member": {
+          "type": "array",
+          "description": "members of a group",
+          "items": {
+            "type": "string",
+            "description": "URI pointing to member thing",
+            "format": "uri"
+          }
+        },
+        "geo": {
+          "type": "string",
+          "description": "geographical coordinates associated with this thing"
+        },
+        "rev": {
+          "type": "string",
+          "description": "revision of this object."
         }
       }
-      return destination;
-    }
+    });
 
-
-    var bindContext = (
-      ( (typeof (function() {}).bind === 'function') ?
-        // native version
-        function(cb, context) { return cb.bind(context); } :
-        // custom version
-        function(cb, context) {
-          return function() { return cb.apply(context, arguments); }
-        } )
-    );
-
-    var debug = DEBUG ? bindContext(console.log, console) : function() {};
-
-    // VCard subtypes:
-
-    var Contact = function() {
-      VCard.apply(this, arguments);
-      this.setAttribute('kind', 'individual');
-    }
-
-    function makeVcardInstance(data) {
-      var type = (data.kind == 'individual' ? Contact :
-                  (data.kind == 'group' ? Group : VCard));
-      return new type(data);
-    }
-
-    var Group = function(name) {
-      VCard.apply(this, arguments);
-      this.setAttribute('kind', 'group');
-    }
-
-    var groupMembers = {
-
-      getMembers: function() {
-        var members = [];
-        for(var i=0;i<this.member.length;i++) {
-          members.push(this.lookupMember(member[i]));
-        }
-        return members;
-      },
-
-      // resolve a URI to a contact an return it.
-      lookupMember: function(uri) {
-        var md = uri.match(/^([^:]):(.*)$/), scheme = md[1], rest = md[2];
-        var key;
-        switch(scheme) {
-          // URN and UUID directly resolve to the contact's key.
-          // if they don't, there is nothing we can do about it.
-        case 'urn':
-        case 'uuid':
-          return contacts.get(uri);
-        case 'mailto':
-        case 'xmpp':
-        case 'sip':
-        case 'tel':
-          var query = {};
-          query[{
-            mailto: 'email',
-            xmpp: 'impp',
-            sip: 'impp',
-            tel: 'tel'
-          }[scheme]] = rest;
-          var results = contacts.search(query);
-          if(results.length > 0) {
-            return results[0];
-          }
-          if(scheme == 'tel') {
-            break; // no fallback for TEL
-          }
-          // fallback for MAILTO, XMPP, SIP schems is webfinger:
-        case 'acct':
-          console.error("FIXME: implement contact-lookup via webfinger!");
-          break;
-          // HTTP could resolve to a foaf profile, a vcard, a jcard...
-        case 'http':
-          console.error("FIXME: implement contact-lookup via HTTP!");
-          break;
-        default:
-          console.error("FIXME: unknown URI scheme " + scheme);
-        }
-        return undefined;
+    function searchMatch(item, filter, filterKeys) {
+      if(! filterKeys) {
+        filterKeys = Object.keys(filter);
       }
 
-    };
-
-    // Namespace: exports
-
-    extend(contacts, {
-
-      // Property: Contact
-      // A VCard constructor for contacts (kind: "individual")
-      Contact: Contact,
-
-      // Property: Group
-      // A VCard constructor for groups (kind: "group")
-      //
-      Group: Group,
-
-      //
-      // Method: on
-      //
-      // Install an event handler.
-      //
-      // "change" events will be altered, so the newValue and oldValue attributes contain VCard instances.
-      //
-      // For documentation on events see <BaseClient> and <BaseClient.on>.
-      on: function(eventType, callback) {
-        base.on(eventType, function(event) {
-          if(event.oldValue) {
-            event.oldValue = contacts._wrap(event.oldValue);
+      var check = function(value, ref) {
+        if(value instanceof Array) {
+          // multiples, such as MEMBER, EMAIL, TEL
+          for(var i=0;i<value.length;i++) {
+            check(value[i], ref);
           }
-          if(event.newValue) {
-            event.newValue = contacts._wrap(event.newValue);
-          }
-          callback(event);
-        });
-      },
-
-      //
-      // Method: use
-      //
-      // Set the "force sync" flag for all contacts.
-      //
-      // This causes the complete data to be synced, next time <syncNow> is called on either /contacts/ or /.
-      //
-      use: function() {
-        debug("contacts.sync()");
-        base.use('');
-      },
-
-      //
-      // Method: list
-      //
-      // Get a list of contact objects.
-      //
-      // Parameters:
-      //   limit - (optional) maximum number of objects to return
-      //   offset - (optional) index to start at.
-      //
-      //   you can use limit / offset to implement pagination or load-on-scroll flows.
-      //
-      // Returns:
-      //   An Array of VCard objects (or descendants)
-      //
-      // Example:
-      //   > remoteStorage.contacts.list().forEach(function(contact) {
-      //   >   console.log(contact.getAttribute('fn'));
-      //   > });
-      //
-      list: function(limit, offset) {
-        var list = base.getListing('');
-        if(! offset) {
-          offset = 0;
-        }
-        if(! limit) {
-          limit = list.length - offset;
-        }
-        for(var i=0;i<limit;i++) {
-          if(list[i + offset]) {
-            list[i + offset] = this.get(list[i + offset]);
-          }
-        }
-        return list;
-      },
-
-      //
-      // Method: get
-      //
-      // Retrieve a single contact.
-      //
-      // Parameters:
-      //   uid - UID of the contact
-      //   callback - (optional)
-      //   context - (optional)
-      //
-      // The callbacks follow the semantics described in <BaseClient.getObject>
-      //
-      get: function(uid, cb, context) {
-        if(cb) {
-          base.getObject(uid, function(data) {
-            bindContext(cb, context)(this._wrap(data));
-          }, this);
+        } else if(typeof value === 'object' && value.value) {
+          // compounds, such as EMAIL, TEL, IMPP
+          check(value.value, ref);
         } else {
-          return this._wrap(base.getObject(uid));
+          if(typeof(ref) === 'string' && ref.length === 0) {
+            return true; // the empty string always matches
+          } else if(ref instanceof RegExp) {
+            if(! ref.test(value)) {
+              return false;
+            }
+          } else if(value !== ref) {
+            // equality is fallback.
+            return false;
+          }
         }
+      }
+      for(var key in filterKeys) {
+        if(! check(item[key], filterKeys[key])) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    remoteStorage.util.extend(base, {
+
+      buildVCard: function(attributes) {
+        var vcard = buildObject('vcard', attributes);
+        if(! vcard.uid) {
+          vcard.uid = base.uuid();
+        }
+        return vcard;
       },
 
-      //
-      // Method: build
-      //
-      // Build a new (unsaved) contact object.
-      //
-      // If you want to store the object later, use <put>.
-      //
-      // Parameters:
-      //   attributes - (optional) initial attributes to add
-      //
-      build: function(attributes) {
-        return this._wrap(attributes);
-      },
-
-      //
-      // Method: put
-      //
-      // Update or create a contact.
-      //
-      // Parameters:
-      //   contact - a VCard object
-      //
-      // Returns:
-      //   the (possibly altered) VCard object
-      //
-      // Sets UID and REV attributes as needed.
-      //
-      //
-      // Example:
-      //   (start code)
-      //   var contact = remoteStorage.contacts.build({ "kind":"individual" });
-      //   contact.fn = "Donald Duck";
-      //   // (at this point you could contact.validate(), to check if everything is in order)
-      //   remoteStorage.contacts.put(contact);
-      //   // contact now persisted.
-      //   (end code)
-      //
-      put: function(contact) {
-        var contact = this.build(contact);
-        contact.validate();
-        // TODO: do something with the errors!
-        base.storeObject('vcard+' + (contact.kind || 'individual'), contact.uid, contact.attributes);
-        return contact;
-      },
-
-      filter: function(cb, context) {
-        // this is highly ineffective. go fix it!
-        var list = this.list();
+      filter: function(cb) {
+        var items = base.getAll('');
         var results = [];
-        var item;
-        for(var i=0;i<list.length;i++) {
-          item = bindContext(cb, context)(list[i]);
-          if(item) {
-            results.push(item)
+        for(var key in items) {
+          var item = items[key];
+          if(cb(item)) {
+            results.push(item);
           }
         }
         return results;
@@ -7444,66 +7415,359 @@ define('modules/contacts',[
       search: function(filter) {
         var keys = Object.keys(filter);
 
-        return this.filter(function(item) {
-          return this.searchMatch(item, filter, keys);
-        }, this);
-      },
-
-      searchMatch: function(item, filter, filterKeys) {
-        if(! filterKeys) {
-          filterKeys = Object.keys(filter);
-        }
-
-        var check = function(value, ref) {
-          if(value instanceof Array) {
-            // multiples, such as MEMBER, EMAIL, TEL
-            for(var i=0;i<value.length;i++) {
-              check(value[i], ref);
-            }
-          } else if(typeof value === 'object' && value.value) {
-            // compounds, such as EMAIL, TEL, IMPP
-            check(value.value, ref);
-          } else {
-            if(typeof(ref) === 'string' && ref.length === 0) {
-              return true; // the empty string always matches
-            } else if(ref instanceof RegExp) {
-              if(! ref.test(value)) {
-                return false;
-              }
-            } else if(value !== ref) {
-              // equality is fallback.
-              return false;
-            }
-          }
-        }
-
-        return this.filter(function(item) {
-          for(var i=0;i<keys.length;i++) {
-            var k = keys[i], v = filter[k];
-            if(! check(item[k], v)) {
-              return false;
-            }
-          }
-          debug('success');
-          return item;
+        var results = base.filter(function(item) {
+          return searchMatch(item, filter, keys);
         });
+        console.log("SEARCH", filter, results);
+        return results;
       },
 
-      _wrap: function(data) {
-        return(data instanceof VCard ? data : makeVcardInstance(data));
+      addVCards: function(fileList) {
+        for(var i=0;i<fileList.length;i++) {
+          var reader = new FileReader();
+          var file = fileList[i];
+          reader.onload = function() {
+            VCF.parse(reader.result, function(vcard) {
+              if(! vcard.uid) {
+                vcard.uid = base.uuid();
+              }
+              base.storeObject('vcard', vcard.uid, vcard);
+            });
+          }
+          reader.readAsText(file);
+        }
       }
 
     });
 
+    return { exports: base };
 
-    return {
-      name: moduleName,
+    // var DEBUG = true, contacts = {};
 
-      dataHints: {
-      },
+    // // Copy over all properties from source to destination.
+    // // Return destination.
+    // function extend() {
+    //   var destination = arguments[0], source;
+    //   for(var i=1;i<arguments.length;i++) {
+    //     source = arguments[i];
+    //     var keys = Object.keys(source);
+    //     for(var j=0;j<keys.length;j++) {
+    //       var key = keys[j];
+    //       destination[key] = source[key];
+    //     }
+    //   }
+    //   return destination;
+    // }
 
-      exports: contacts
-    }
+
+    // var bindContext = (
+    //   ( (typeof (function() {}).bind === 'function') ?
+    //     // native version
+    //     function(cb, context) { return cb.bind(context); } :
+    //     // custom version
+    //     function(cb, context) {
+    //       return function() { return cb.apply(context, arguments); }
+    //     } )
+    // );
+
+    // var debug = DEBUG ? bindContext(console.log, console) : function() {};
+
+    // // VCard subtypes:
+
+    // var Contact = function() {
+    //   VCard.apply(this, arguments);
+    //   this.setAttribute('kind', 'individual');
+    // }
+
+    // function makeVcardInstance(data) {
+    //   var type = (data.kind == 'individual' ? Contact :
+    //               (data.kind == 'group' ? Group : VCard));
+    //   return new type(data);
+    // }
+
+    // var Group = function(name) {
+    //   VCard.apply(this, arguments);
+    //   this.setAttribute('kind', 'group');
+    // }
+
+    // var groupMembers = {
+
+    //   getMembers: function() {
+    //     var members = [];
+    //     for(var i=0;i<this.member.length;i++) {
+    //       members.push(this.lookupMember(member[i]));
+    //     }
+    //     return members;
+    //   },
+
+    //   // resolve a URI to a contact an return it.
+    //   lookupMember: function(uri) {
+    //     var md = uri.match(/^([^:]):(.*)$/), scheme = md[1], rest = md[2];
+    //     var key;
+    //     switch(scheme) {
+    //       // URN and UUID directly resolve to the contact's key.
+    //       // if they don't, there is nothing we can do about it.
+    //     case 'urn':
+    //     case 'uuid':
+    //       return contacts.get(uri);
+    //     case 'mailto':
+    //     case 'xmpp':
+    //     case 'sip':
+    //     case 'tel':
+    //       var query = {};
+    //       query[{
+    //         mailto: 'email',
+    //         xmpp: 'impp',
+    //         sip: 'impp',
+    //         tel: 'tel'
+    //       }[scheme]] = rest;
+    //       var results = contacts.search(query);
+    //       if(results.length > 0) {
+    //         return results[0];
+    //       }
+    //       if(scheme == 'tel') {
+    //         break; // no fallback for TEL
+    //       }
+    //       // fallback for MAILTO, XMPP, SIP schems is webfinger:
+    //     case 'acct':
+    //       console.error("FIXME: implement contact-lookup via webfinger!");
+    //       break;
+    //       // HTTP could resolve to a foaf profile, a vcard, a jcard...
+    //     case 'http':
+    //       console.error("FIXME: implement contact-lookup via HTTP!");
+    //       break;
+    //     default:
+    //       console.error("FIXME: unknown URI scheme " + scheme);
+    //     }
+    //     return undefined;
+    //   }
+
+    // };
+
+    // // Namespace: exports
+
+    // extend(contacts, {
+
+    //   // Property: Contact
+    //   // A VCard constructor for contacts (kind: "individual")
+    //   Contact: Contact,
+
+    //   // Property: Group
+    //   // A VCard constructor for groups (kind: "group")
+    //   //
+    //   Group: Group,
+
+    //   //
+    //   // Method: on
+    //   //
+    //   // Install an event handler.
+    //   //
+    //   // "change" events will be altered, so the newValue and oldValue attributes contain VCard instances.
+    //   //
+    //   // For documentation on events see <BaseClient> and <BaseClient.on>.
+    //   on: function(eventType, callback) {
+    //     base.on(eventType, function(event) {
+    //       if(event.oldValue) {
+    //         event.oldValue = contacts._wrap(event.oldValue);
+    //       }
+    //       if(event.newValue) {
+    //         event.newValue = contacts._wrap(event.newValue);
+    //       }
+    //       callback(event);
+    //     });
+    //   },
+
+    //   //
+    //   // Method: use
+    //   //
+    //   // Set the "force sync" flag for all contacts.
+    //   //
+    //   // This causes the complete data to be synced, next time <syncNow> is called on either /contacts/ or /.
+    //   //
+    //   use: function() {
+    //     debug("contacts.sync()");
+    //     base.use('');
+    //   },
+
+    //   //
+    //   // Method: list
+    //   //
+    //   // Get a list of contact objects.
+    //   //
+    //   // Parameters:
+    //   //   limit - (optional) maximum number of objects to return
+    //   //   offset - (optional) index to start at.
+    //   //
+    //   //   you can use limit / offset to implement pagination or load-on-scroll flows.
+    //   //
+    //   // Returns:
+    //   //   An Array of VCard objects (or descendants)
+    //   //
+    //   // Example:
+    //   //   > remoteStorage.contacts.list().forEach(function(contact) {
+    //   //   >   console.log(contact.getAttribute('fn'));
+    //   //   > });
+    //   //
+    //   list: function(limit, offset) {
+    //     var list = base.getListing('');
+    //     if(! offset) {
+    //       offset = 0;
+    //     }
+    //     if(! limit) {
+    //       limit = list.length - offset;
+    //     }
+    //     for(var i=0;i<limit;i++) {
+    //       if(list[i + offset]) {
+    //         list[i + offset] = this.get(list[i + offset]);
+    //       }
+    //     }
+    //     return list;
+    //   },
+
+    //   //
+    //   // Method: get
+    //   //
+    //   // Retrieve a single contact.
+    //   //
+    //   // Parameters:
+    //   //   uid - UID of the contact
+    //   //   callback - (optional)
+    //   //   context - (optional)
+    //   //
+    //   // The callbacks follow the semantics described in <BaseClient.getObject>
+    //   //
+    //   get: function(uid, cb, context) {
+    //     if(cb) {
+    //       base.getObject(uid, function(data) {
+    //         bindContext(cb, context)(this._wrap(data));
+    //       }, this);
+    //     } else {
+    //       return this._wrap(base.getObject(uid));
+    //     }
+    //   },
+
+    //   //
+    //   // Method: build
+    //   //
+    //   // Build a new (unsaved) contact object.
+    //   //
+    //   // If you want to store the object later, use <put>.
+    //   //
+    //   // Parameters:
+    //   //   attributes - (optional) initial attributes to add
+    //   //
+    //   build: function(attributes) {
+    //     return this._wrap(attributes);
+    //   },
+
+    //   //
+    //   // Method: put
+    //   //
+    //   // Update or create a contact.
+    //   //
+    //   // Parameters:
+    //   //   contact - a VCard object
+    //   //
+    //   // Returns:
+    //   //   the (possibly altered) VCard object
+    //   //
+    //   // Sets UID and REV attributes as needed.
+    //   //
+    //   //
+    //   // Example:
+    //   //   (start code)
+    //   //   var contact = remoteStorage.contacts.build({ "kind":"individual" });
+    //   //   contact.fn = "Donald Duck";
+    //   //   // (at this point you could contact.validate(), to check if everything is in order)
+    //   //   remoteStorage.contacts.put(contact);
+    //   //   // contact now persisted.
+    //   //   (end code)
+    //   //
+    //   put: function(contact) {
+    //     var contact = this.build(contact);
+    //     contact.validate();
+    //     // TODO: do something with the errors!
+    //     base.storeObject('vcard+' + (contact.kind || 'individual'), contact.uid, contact.attributes);
+    //     return contact;
+    //   },
+
+    //   filter: function(cb, context) {
+    //     // this is highly ineffective. go fix it!
+    //     var list = this.list();
+    //     var results = [];
+    //     var item;
+    //     for(var i=0;i<list.length;i++) {
+    //       item = bindContext(cb, context)(list[i]);
+    //       if(item) {
+    //         results.push(item)
+    //       }
+    //     }
+    //     return results;
+    //   },
+
+    //   search: function(filter) {
+    //     var keys = Object.keys(filter);
+
+    //     return this.filter(function(item) {
+    //       return this.searchMatch(item, filter, keys);
+    //     }, this);
+    //   },
+
+    //   searchMatch: function(item, filter, filterKeys) {
+    //     if(! filterKeys) {
+    //       filterKeys = Object.keys(filter);
+    //     }
+
+    //     var check = function(value, ref) {
+    //       if(value instanceof Array) {
+    //         // multiples, such as MEMBER, EMAIL, TEL
+    //         for(var i=0;i<value.length;i++) {
+    //           check(value[i], ref);
+    //         }
+    //       } else if(typeof value === 'object' && value.value) {
+    //         // compounds, such as EMAIL, TEL, IMPP
+    //         check(value.value, ref);
+    //       } else {
+    //         if(typeof(ref) === 'string' && ref.length === 0) {
+    //           return true; // the empty string always matches
+    //         } else if(ref instanceof RegExp) {
+    //           if(! ref.test(value)) {
+    //             return false;
+    //           }
+    //         } else if(value !== ref) {
+    //           // equality is fallback.
+    //           return false;
+    //         }
+    //       }
+    //     }
+
+    //     return this.filter(function(item) {
+    //       for(var i=0;i<keys.length;i++) {
+    //         var k = keys[i], v = filter[k];
+    //         if(! check(item[k], v)) {
+    //           return false;
+    //         }
+    //       }
+    //       debug('success');
+    //       return item;
+    //     });
+    //   },
+
+    //   _wrap: function(data) {
+    //     return(data instanceof VCard ? data : makeVcardInstance(data));
+    //   }
+
+    // });
+
+
+    // return {
+    //   name: moduleName,
+
+    //   dataHints: {
+    //   },
+
+    //   exports: contacts
+    // }
   });
 
 
