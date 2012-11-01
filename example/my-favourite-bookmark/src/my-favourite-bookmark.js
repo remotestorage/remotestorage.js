@@ -23,7 +23,7 @@
       remoteStorage.bookmarks.addUrl(document.getElementById('url-input').value);
 
       return false;
-    }
+    };
 
     var bookmarks = remoteStorage.bookmarks.listBookmarks();
     bookmarks.forEach(function(bookmark) {
@@ -41,6 +41,6 @@
         deleteBookmarkRow(event.path);
       }
     });
-  }
+  };
 
 })();

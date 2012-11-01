@@ -60,7 +60,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   }
 
   function getWidgetState() {
-    return widgetState;
+    return widgetState || 'anonymous';
   }
 
   function buildWidget() {

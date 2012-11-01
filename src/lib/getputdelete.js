@@ -32,7 +32,13 @@ define(
         },
         success: function(data, headers) {
           //logger.debug('doCall cb '+url, 'headers:', headers);
-          cb(null, data, getContentType(headers));
+          var mimeType = getContentType(headers);
+
+          if(mimeType.match(/charset=binary/)) {
+            data = util.rawToBuffer(data);
+          }
+
+          cb(null, data, mimeType);
         },
         timeout: deadLine || 5000,
         headers: {}
@@ -42,6 +48,9 @@ define(
         platformObj.headers['Authorization'] = 'Bearer ' + token;
       }
       if(mimeType) {
+        if(typeof(value) == 'object' && value instanceof ArrayBuffer) {
+          mimeType += '; charset=binary';
+        }
         platformObj.headers['Content-Type'] = mimeType;
       }
 
@@ -74,8 +83,10 @@ define(
     }
 
     function put(url, value, mimeType, token, cb) {
-      if(typeof(value) !== 'string') {
-        cb("invalid value given to PUT, only strings allowed, got " + typeof(value));
+      if(! (typeof(value) === 'string' || (typeof(value) === 'object' &&
+                                           value instanceof ArrayBuffer))) {
+        cb(new Error("invalid value given to PUT, only strings allowed, got "
+                     + typeof(value)));
       }
 
       doCall('PUT', url, value, mimeType, token, function(err, data) {

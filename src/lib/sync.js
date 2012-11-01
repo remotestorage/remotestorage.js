@@ -130,7 +130,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //
   // Will update local and remote data as needed.
   //
-  // Calls it's callback once 'ready' is fired.
+  // Calls it's callback once the cycle is complete.
   //
   // Fires:
   //   ready    - when the sync queue is empty afterwards
@@ -147,12 +147,15 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     var roots = findRoots();
     var synced = 0;
 
-    function rootCb() {
-      synced++;
-      if(synced == roots.length) {
-        sync.lastSyncAt = new Date();
-        if(callback) {
-          callback.apply(this, arguments);
+    function rootCb(path) {
+      return function() {
+        synced++;
+        logger.info("SYNCED", synced, "OF", roots.length, '(', path, ')');
+        if(synced == roots.length) {
+          sync.lastSyncAt = new Date();
+          if(callback) {
+            callback.apply(this, arguments);
+          }
         }
       }
     }
@@ -167,7 +170,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         traverseTree(root, processNode, {
           pushOnly: pushOnly
         });
-      }, rootCb);
+      }, rootCb(root));
     });
   }
 
@@ -318,6 +321,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   }
   function setReady() {
     ready = true;
+    logger.info("READY, ITERATIONS: ", deferredIterationQueue.length);
     if(deferredIterationQueue.length > 0) {
       spawnQueue.apply(this, deferredIterationQueue.shift());
     } else {
@@ -328,7 +332,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
   // see if we can fire 'ready', or if there's more to do
   function tryReady() {
+    logger.info('tryReady?');
     if(ready && deferredIterationQueue.length == 0) {
+      logger.info('ready!');
       events.emit('ready');
     }
   }
@@ -463,6 +469,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     wireClient.set(
       path, local.data, local.mimeType,
       makeErrorCatcher(path, function() {
+        var parentPath = util.containingDir(path);
+        if(! parentPath) {
+          throw "Node has no parent path: " + path;
+        }
         // update lastUpdatedAt for this node to exact remote time.
         // this is a totally unnecessary step and should be handled better
         // in the protocol (e.g. by returning the new timestamp with the PUT
@@ -481,6 +491,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //
   // Used as a callback for <traverseTree>.
   function processNode(path, local, remote) {
+
+    if(util.isDir(path)) {
+      throw new Error("Attempt to process directory node: " + path);
+    }
 
     var action = null;
 
@@ -682,18 +696,26 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     }
   }
 
-  function findRoots(path) {
-    var root = store.getNode('/');
-    var roots = [];
-    if(root.startAccess) {
-      roots.push('/');
-    } else {
-      Object.keys(store.getNodeData('/')).forEach(function(key) {
-        if(store.getNode('/' + key).startAccess) {
-          roots.push('/' + key);
-        }
-      });
+  function findRoots() {
+    function findIn(path) {
+      var root = store.getNode(path);
+      var roots = [];
+      if(root.startAccess) {
+        roots.push(path);
+      } else {
+        Object.keys(store.getNodeData(path)).forEach(function(key) {
+          if(store.getNode(path + key).startAccess) {
+            roots.push(path + key);
+          }
+        });
+      }
+      return roots;
     }
+    var roots = findIn('/');
+    var pubRoots = findIn('/public/');
+    pubRoots.forEach(function(r) {
+      roots.push(r);
+    });
     return roots;
   }
 
@@ -786,7 +808,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       // no interest.
       // -> bail!
       logger.debug('skipping', root, 'no interest', '(access: ', opts.access, ' force: ', opts.force, ' forceTree: ', opts.forceTree, ')');
-      if(opts.access || root == '/') { // (access can begin only on the root or it's direct children, so we don't need to descend further)
+      if(opts.access || root == '/' || root == '/public/') { // (access can begin only on the root or it's direct children, so we don't need to descend further)
         var nextRoots = findNextForceRoots(root);
         if(nextRoots.length > 0) {
           var nextRoot;
@@ -965,6 +987,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       n--;
       if(i === list.length && n === 0) {
         setReady();
+      } else if(n < 0) {
+        throw new Error("BUG: done() called more often than expected");
       } else if(i < list.length) {
         spawn();
       }
