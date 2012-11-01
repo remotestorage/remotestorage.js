@@ -4,10 +4,15 @@ define(['../remoteStorage'], function(remoteStorage) {
 
   remoteStorage.defineModule(moduleName, function(client) {
 
-    client.declareType('event', {
+    client.declareType('event', 'http://json-schema.org/calendar', {
 	    "description": "A representation of an event",
 	    "type": "object",
 	    "properties": {
+        "id": {
+          "format": "id",
+          "type": "string",
+          "description": "Unique identifier for this event"
+        },
 		    "dtstart": {
 			    "format": "date-time",
 			    "type": "string",
