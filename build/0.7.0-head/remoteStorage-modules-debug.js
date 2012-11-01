@@ -733,12 +733,14 @@ define('lib/util',[], function() {
     // The iter receives the matching key as it's only argument.
     grepLocalStorage: function(pattern, iter) {
       var numLocalStorage = localStorage.length;
+      var keys = [];
       for(var i=0;i<numLocalStorage;i++) {
         var key = localStorage.key(i);
         if(pattern.test(key)) {
-          iter(key);
+          keys.push(key);
         }
       }
+      keys.forEach(iter);
     }
   };
 
@@ -2494,13 +2496,9 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   }
 
   function clearSettings() {
-    var numLocalStorage = localStorage.length;
-    for(var i=0;i<numLocalStorage;i++) {
-      var key = localStorage.key(i);
-      if(key.match(new RegExp('^' + settingsPrefix))) {
-        localStorage.removeItem(key);
-      }
-    }
+    util.grepLocalStorage(new RegExp('^' + settingsPrefix), function(key) {
+      localStorage.removeItem(key);
+    });
   }
 
 
