@@ -10,7 +10,8 @@ JavaScript
 /home/nil/src/remoteStorage.js/src/lib/webfinger.js	1351462373	1	webfinger
 /home/nil/src/remoteStorage.js/src/lib/platform.js	1351776949	1	platform
 /home/nil/src/remoteStorage.js/src/lib/foreignClient.js	1351462373	1	ForeignClient
-/home/nil/src/remoteStorage.js/src/modules/root.js	1351776948	0	/home/nil/src/remoteStorage.js/src/modules/root.js
+/home/nil/src/remoteStorage.js/doc/pages/howto-contribute.txt	1351777814	1	Howto contribute
+/home/nil/src/remoteStorage.js/src/modules/root.js	1351777842	0	/home/nil/src/remoteStorage.js/src/modules/root.js
 /home/nil/src/remoteStorage.js/src/lib/wireClient.js	1351776949	1	wireClient
 /home/nil/src/remoteStorage.js/src/modules/calendar.js	1351195980	0	/home/nil/src/remoteStorage.js/src/modules/calendar.js
 /home/nil/src/remoteStorage.js/src/require.js	1349263874	0	/home/nil/src/remoteStorage.js/src/require.js
@@ -25,9 +26,9 @@ JavaScript
 /home/nil/src/remoteStorage.js/src/lib/store.js	1351776949	1	store
 /home/nil/src/remoteStorage.js/src/modules/documents.js	1349624617	0	/home/nil/src/remoteStorage.js/src/modules/documents.js
 /home/nil/src/remoteStorage.js/src/lib/validate.js	1350753140	0	/home/nil/src/remoteStorage.js/src/lib/validate.js
-/home/nil/src/remoteStorage.js/src/remoteStorage.js	1351776948	1	remoteStorage
+/home/nil/src/remoteStorage.js/src/remoteStorage.js	1351777842	1	remoteStorage
 /home/nil/src/remoteStorage.js/src/modules/money.js	1347474672	0	/home/nil/src/remoteStorage.js/src/modules/money.js
-/home/nil/src/remoteStorage.js/src/lib/baseClient.js	1351776950	1	BaseClient
+/home/nil/src/remoteStorage.js/src/lib/baseClient.js	1351777842	1	BaseClient
 /home/nil/src/remoteStorage.js/src/lib/getputdelete.js	1351776949	1	getputdelete
 /home/nil/src/remoteStorage.js/src/lib/nodeConnect.js	1351462373	1	nodeConnect
 /home/nil/src/remoteStorage.js/src/lib/util.js	1351776949	1	util
