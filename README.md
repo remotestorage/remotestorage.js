@@ -5,6 +5,11 @@
 ### Where to get help?
 
 * Consult this README
+* Read the Guides:
+  * [Adding remoteStorage to your app](http://remotestoragejs.com/doc/code/files2/howto-include-txt.html)
+  * [Howto contribute](http://remotestoragejs.com/doc/code/files2/howto-contribute-txt.html)
+  * [Working with schemas](http://remotestoragejs.com/doc/code/files2/howto-include-txt.html)
+  * [How to configure synchronization](http://remotestoragejs.com/doc/code/files/lib/sync-js.html#How_to_configure_sync)
 * Consult the [API documentation](http://remotestoragejs.com/doc/code)
 * Ask in the [IRC Channel](http://webchat.freenode.net/?channels=remotestorage) (#remotestorage on freenode)
 * Open an issue for discussion, either in the relevant repository or [the website repo for general discussion](https://github.com/remotestorage/remotestorage.io/issues)
