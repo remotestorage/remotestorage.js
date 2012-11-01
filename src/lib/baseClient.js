@@ -359,11 +359,12 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
       var absPath = this.makePath(path);
 
       function makeResult() {
-        var node = store.getNode(absPath);
-        if(node) {
+        var data = store.getNodeData(absPath);
+        if(data) {
+          var node = store.getNode(absPath);
           return {
             mimeType: node.mimeType,
-            data: store.getNodeData(absPath)
+            data: data
           };
         } else {
           return null;
