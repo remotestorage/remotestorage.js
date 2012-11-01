@@ -412,6 +412,35 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
       sync.syncOne(absPath, util.bind(callback, context));
     },
 
+    // Method: saveObject
+    //
+    // Save a typed JSON object.
+    // This only works for objects with a @type attribute corresponding to a schema
+    // that has been declared via <declareType> and a ID attribute declared within
+    // that schema.
+    //
+    // For details on using saveObject and typed JSON objects,
+    // see <Working with schemas>.
+    //
+    // Parameters:
+    //   object - a typed JSON object
+    //   callback - (optional) callback
+    //   context - (optional)
+    //   
+    //
+    saveObject: function(object, callback, context) {
+      var type = object['@type'];
+      var alias = this.resolveTypeAlias(type);
+      var idKey = this.resolveIdKey(type);
+      if(! idKey) {
+        throw "Invalid typed JSON object! ID attribute could not be resolved.";
+      }
+      if(! object[idKey]) {
+        object[idKey] = this.uuid();
+      }
+      return this.storeObject(alias, object[idKey], object, callback, context);
+    },
+
     //
     // Method: storeObject
     //
@@ -456,8 +485,11 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     // 
     storeObject: function(type, path, obj, callback, context) {
       this.ensureAccess('w');
+      if(typeof(path) !== 'string') {
+        throw "given path must be a string (got: " + typeof(path) + ")";
+      }
       if(typeof(obj) !== 'object') {
-        throw "storeObject needs to get an object as value!";
+        throw "given object must be an object (got: " + typeof(obj) + ")";
       }
       obj['@type'] = this.resolveType(type);
 
@@ -620,7 +652,9 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     /**** TYPE HANDLING ****/
 
     types: {},
+    typeAliases: {},
     schemas: {},
+    typeIdKeys: {},
 
     resolveType: function(alias) {
       var type = this.types[alias];
@@ -632,6 +666,10 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
       return type;
     },
 
+    resolveTypeAlias: function(type) {
+      return this.typeAliases[type];
+    },
+
     resolveSchema: function(type) {
       var schema = this.schemas[type];
       if(! schema) {
@@ -641,6 +679,10 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
       return schema;
     },
 
+    resolveIdKey: function(type) {
+      return this.typeIdKeys[type];
+    },
+
     // Method: buildObject
     //
     // Build an object of the designated type.
@@ -648,19 +690,29 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     // Parameters:
     //   alias - a type alias, registered via <declareType>
     //
+    // If the associated schema specifies a top-level attribute with "format":"id",
+    // and the given attributes don't contain that key, a UUID is generated for
+    // that column.
+    //
     // Example:
     //   (start code)
     //   var drink = client.buildObject('drink');
     //   client.validateObject(drink); // validates against schema declared for "drink"
     //   (end code)
     //
-    // TODO:
-    //   > This should also generate an ID for all top-level properties
-    //   > of { "type":"string", "format":"id" }. 
     buildObject: function(alias, attributes) {
-      return util.extend({
-        "@type": this.resolveType(alias)
-      }, attributes || {});
+      var object = {}
+      var type = this.resolveType(alias);
+      var idKey = this.resolveIdKey(type);
+      if(! attributes) {
+        attributes = {};
+      }
+
+      object['@type'] = type;
+      if(idKey && ! attributes[idKey]) {
+        object[idKey] = this.uuid();
+      }
+      return util.extend(object, attributes || {});
     },
 
     // Method: declareType
@@ -713,7 +765,17 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
         schema['extends'] = this.schemas[extendedType];
       }
 
+      if(schema.properties) {
+        for(var key in schema.properties) {
+          if(schema.properties[key].format == 'id') {
+            this.typeIdKeys[type] = key;
+            break;
+          }
+        }
+      }
+
       this.types[alias] = type;
+      this.typeAliases[type] = alias;
       this.schemas[type] = schema;
     },
 
