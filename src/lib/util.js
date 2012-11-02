@@ -157,7 +157,6 @@ define([], function() {
     },
 
     deprecate: function(methodName, replacement) {
-      console.trace();
       console.log('WARNING: ' + methodName + ' is deprecated, use ' + replacement + ' instead');
     },
 

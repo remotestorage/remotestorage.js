@@ -566,7 +566,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       displayError(translate(err));
     });
 
-    sync.on('state', setWidgetState);
+    sync.on('state', function(syncState) {
+      if(wireClient.getState() == 'connected') {
+        setWidgetState(syncState);
+      }
+    });
 
     if(typeof(options.authDialog) !== 'undefined') {
       authDialogStrategy = options.authDialog;

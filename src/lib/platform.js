@@ -207,9 +207,9 @@ define(['./util'], function(util) {
       throw new Error("Sending binary data not yet implemented for nodejs");
     }
 
-    var http=require('http'),
-      https=require('https'),
-      url=require('url');
+    var http=nodeRequire('http'),
+      https=nodeRequire('https'),
+      url=nodeRequire('url');
     if(!params.method) {
       params.method='GET';
     }
@@ -298,7 +298,7 @@ define(['./util'], function(util) {
   }
 
   function parseXmlNode(str, cb) {
-    var xml2js=require('xml2js');
+    var xml2js=nodeRequire('xml2js');
     new xml2js.Parser().parseString(str, cb);
   }
 

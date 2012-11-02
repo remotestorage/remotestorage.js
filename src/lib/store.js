@@ -187,6 +187,8 @@ define(['./util', './platform'], function (util, platform) {
     if(typeof(data) == 'object' && data instanceof ArrayBuffer) {
       node.binary = true;
       data = util.encodeBinary(data);
+    } else {
+      node.binary = false;
     }
 
     updateNodeData(path, data);

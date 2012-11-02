@@ -254,7 +254,7 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
         if(data && !(typeof(data) === 'object' && Object.keys(data).length === 0)) {
           cb(data);
         } else {
-          sync.syncOne(absPath, function(node, data) {
+          sync.syncOne(absPath, function(err, node, data) {
             cb(data);
           });
         }
