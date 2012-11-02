@@ -38,6 +38,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     util.grepLocalStorage(new RegExp('^' + prefix), function(key) {
       localStorage.removeItem(key);
     });
+    calcState();
   }
 
   function getState() {
