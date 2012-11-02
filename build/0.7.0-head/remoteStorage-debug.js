@@ -511,7 +511,6 @@ define('lib/util',[], function() {
     },
 
     deprecate: function(methodName, replacement) {
-      console.trace();
       console.log('WARNING: ' + methodName + ' is deprecated, use ' + replacement + ' instead');
     },
 
@@ -990,9 +989,9 @@ define('lib/platform',['./util'], function(util) {
       throw new Error("Sending binary data not yet implemented for nodejs");
     }
 
-    var http=require('http'),
-      https=require('https'),
-      url=require('url');
+    var http=nodeRequire('http'),
+      https=nodeRequire('https'),
+      url=nodeRequire('url');
     if(!params.method) {
       params.method='GET';
     }
@@ -1081,7 +1080,7 @@ define('lib/platform',['./util'], function(util) {
   }
 
   function parseXmlNode(str, cb) {
-    var xml2js=require('xml2js');
+    var xml2js=nodeRequire('xml2js');
     new xml2js.Parser().parseString(str, cb);
   }
 
@@ -1747,6 +1746,7 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
     util.grepLocalStorage(new RegExp('^' + prefix), function(key) {
       localStorage.removeItem(key);
     });
+    calcState();
   }
 
   function getState() {
@@ -2155,6 +2155,8 @@ define('lib/store',['./util', './platform'], function (util, platform) {
     if(typeof(data) == 'object' && data instanceof ArrayBuffer) {
       node.binary = true;
       data = util.encodeBinary(data);
+    } else {
+      node.binary = false;
     }
 
     updateNodeData(path, data);
@@ -2615,7 +2617,6 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     function rootCb(path) {
       return function() {
         synced++;
-        logger.info("SYNCED", synced, "OF", roots.length, '(', path, ')');
         if(synced == roots.length) {
           sync.lastSyncAt = new Date();
           if(callback) {
@@ -2633,7 +2634,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     roots.forEach(function(root) {
       enqueueTask(function() {
         traverseTree(root, processNode, {
-          pushOnly: pushOnly
+          pushOnly: pushOnly,
+          done: finishTask
         });
       }, rootCb(root));
     });
@@ -2679,7 +2681,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       logger.info("partial sync started from: " + startPath);
       events.once('ready', callback);
       traverseTree(startPath, processNode, {
-        depth: depth
+        depth: depth,
+        done: finishTask
       });
     });
   }
@@ -2715,6 +2718,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
       fetchRemoteNode(path, function(remoteNode) {
         var localNode = fetchLocalNode(path);
         processNode(path, localNode, remoteNode);
+        finishTask();
         if(callback) {
           // FIXME: document error parameter.
           callback(null, store.getNode(path), store.getNodeData(path));
@@ -2753,29 +2757,34 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   // function to call when current task is done, before next task is popped from taskQueue.
   var currentFinalizer = null;
 
+  function beginTask() {
+    setBusy();
+    var task = taskQueue.shift();
+    if(! task) {
+      throw new Error("Can't begin task, queue is empty");
+    }
+    currentFinalizer = task.finalizer;
+    task.run();
+  }
 
-  events.on('ready', function() {
-    logger.info("READY", 'queued tasks: ', taskQueue.length);
+  function finishTask() {
     if(currentFinalizer) {
       currentFinalizer();
-      currentFinalizer = null;
     }
     if(taskQueue.length > 0) {
-      var nextTask = taskQueue.shift();
-      currentFinalizer = nextTask.finalizer;
-      nextTask.run();
+      beginTask();
+    } else {
+      setReady();
     }
-  });
+  }
 
   function enqueueTask(callback, finalizer) {
+    taskQueue.push({
+      run: callback,
+      finalizer: finalizer
+    });
     if(ready) {
-      currentFinalizer = finalizer;
-      callback();
-    } else {
-      taskQueue.push({
-        run: callback,
-        finalizer: finalizer
-      });
+      beginTask();
     }
   }
 
@@ -2786,22 +2795,8 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   }
   function setReady() {
     ready = true;
-    logger.info("READY, ITERATIONS: ", deferredIterationQueue.length);
-    if(deferredIterationQueue.length > 0) {
-      spawnQueue.apply(this, deferredIterationQueue.shift());
-    } else {
-      events.emit('state', 'connected');
-      events.emit('ready');
-    }
-  }
-
-  // see if we can fire 'ready', or if there's more to do
-  function tryReady() {
-    logger.info('tryReady?');
-    if(ready && deferredIterationQueue.length == 0) {
-      logger.info('ready!');
-      events.emit('ready');
-    }
+    events.emit('state', 'connected');
+    events.emit('ready');
   }
 
   // Function: getState
@@ -3293,7 +3288,6 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
           return;
         } // no more roots.
       } // no access anyway.
-      tryReady();
       done();
       return; // done.
     }
@@ -3302,7 +3296,6 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
 
     if(! localDiff) {
       if(opts.pushOnly) {
-        tryReady();
         done();
         return;
       }
@@ -3311,10 +3304,6 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     // fetch remote listing
     fetchNode(root, function(remoteListing) {
       if(! remoteListing) { remoteListing = {}; }
-
-      // not really "done", but no more immediate requests in this
-      // function.
-      done();
 
       // all keys in local and/or remote listing
       var fullListing = makeSet(
@@ -3348,7 +3337,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
           // no remote diff.
           // -> bail!
           logger.debug('skipping', root, 'no changes');
-          tryReady();
+          done();
           return;
         }
       }
@@ -3378,7 +3367,7 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
         } else {
           next();
         }
-      });
+      }, done);
 
     });
   }
@@ -3431,19 +3420,13 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
   //   list - an array of items to pass to the iter
   //   max  - maximum number of simultaneously running versions of iter
   //   iter - iterator to call
+  //   allDone - callback to call when all iterations are done
   //
   // Iterator parameters:
   //   item - an item from the list
   //   done - a callback function to call, when the iterator is finished
   //
-  function spawnQueue(list, max, iter) {
-    if(! ready) {
-      deferredIterationQueue.push([list, max, iter]);
-      return;
-    }
-
-    setBusy();
-
+  function spawnQueue(list, max, iter, allDone) {
     var n = 0;
     var i = 0;
     function next() {
@@ -3453,10 +3436,10 @@ define('lib/sync',['./wireClient', './store', './util'], function(wireClient, st
     function done() {
       n--;
       if(i === list.length && n === 0) {
-        setReady();
+        allDone();
       } else if(n < 0) {
         throw new Error("BUG: done() called more often than expected");
-      } else if(i < list.length) {
+      } else if(n < list.length) {
         spawn();
       }
     }
@@ -4544,7 +4527,11 @@ define('lib/widget',['./assets', './webfinger', './hardcoded', './wireClient', '
       displayError(translate(err));
     });
 
-    sync.on('state', setWidgetState);
+    sync.on('state', function(syncState) {
+      if(wireClient.getState() == 'connected') {
+        setWidgetState(syncState);
+      }
+    });
 
     if(typeof(options.authDialog) !== 'undefined') {
       authDialogStrategy = options.authDialog;
@@ -5301,7 +5288,7 @@ define('lib/baseClient',['./sync', './store', './util', './validate', './wireCli
         if(data && !(typeof(data) === 'object' && Object.keys(data).length === 0)) {
           cb(data);
         } else {
-          sync.syncOne(absPath, function(node, data) {
+          sync.syncOne(absPath, function(err, node, data) {
             cb(data);
           });
         }

@@ -1,4 +1,5 @@
 /* remoteStorage.js 0.7.0-head remoteStoragejs.com, MIT-licensed */
+var nodeRequire = require;
 (function() {
 
 /**
@@ -8287,6 +8288,17 @@ define('remoteStorage-modules',[
 });
 
 
-  remoteStorage = require('remoteStorage-modules');
+  global.localStorage = {
+    getItem: function(key) {
+      return this[key];
+    },
+    setItem: function(key, value) {
+      this[key] = value;
+    },
+    removeItem: function(key) {
+      delete this[key];
+    }
+  }
 
+  module.exports = require('remoteStorage-modules');
 })();
