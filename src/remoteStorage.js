@@ -294,20 +294,25 @@ define([
     //
     // Syncing starts at the access roots (the once you claimed using claimAccess)
     // and moves down the directory tree.
+    // Only nodes with a 'force' flag on themselves or one of their ancestors will
+    // be synchronized. Use <BaseClient.use> and <BaseClient.release> to set / unset
+    // force flags.
     // The actual changes to either local or remote storage happen in the
     // future, so you should attach change handlers on the modules you're
     // interested in.
     //
     // Parameters:
-    //   path - relative path from the storage root.
     //   callback - (optional) callback to be notified when synchronization has finished or failed.
     // 
     // Example:
+    //   >
+    //   > remoteStorage.claimAccess('money', 'rw');
+    //   >
     //   > remoteStorage.money.on('change', function(changeEvent) {
     //   >   // handle change event (update UI etc)
     //   > });
     //   >
-    //   > remoteStorage.fullSync('/money/', function(errors) {
+    //   > remoteStorage.fullSync(function(errors) {
     //   >   // handle errors, if any.
     //   > });
     //
