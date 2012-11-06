@@ -44,12 +44,14 @@ define([], function() {
   }
 
   Promise.prototype = {
-    fulfill: function(result) {
+    fulfill: function() {
+      var args = util.toArray(arguments);
+      if(! this.handlers.fulfilled) {
+        return;
+      }
       try {
         var nextResult;
-        if(this.handlers.fulfilled) {
-          nextResult = this.handlers.fulfilled(result);
-        }
+        nextResult = this.handlers.fulfilled.apply(null, args);
       } catch(exc) {
         if(this.nextPromise) {
           this.nextPromise.fail(exc);
@@ -59,17 +61,43 @@ define([], function() {
         }
         return;
       }
-      if(this.nextPromise) {
-        this.nextPromise.fulfill(nextResult);
+      var nextPromise = this.nextPromise;
+      if(nextPromise) {
+        if(nextResult instanceof Promise) {
+          nextResult.then(function() {
+            nextPromise.fulfill.apply(nextPromise, arguments);
+          }, function() {
+            nextPromise.fail.apply(nextPromise, arguments);
+          });
+        } else {
+          nextPromise.fulfill(nextResult);
+        }
       }
     },
 
-    fail: function(error) {
+    fail: function() {
+      var args = util.toArray(arguments);
       if(this.handlers.error) {
-        this.handlers.error(error);
+        this.handlers.error.apply(null, args);
       } else if(this.nextPromise) {
-        this.nextPromise.fail(error);
+        this.nextPromise.fail.apply(this.nextPromise, args);
       }
+    },
+
+    fulfillLater: function() {
+      var args = util.toArray(arguments);
+      util.nextTick(function() {
+        this.fulfill.apply(this, args);
+      }.bind(this));
+      return this;
+    },
+
+    failLater: function() {
+      var args = util.toArray(arguments);
+      util.nextTick(function() {
+        this.fail.apply(this, args);
+      }.bind(this));
+      return this;
     },
 
     then: function(fulfilledHandler, errorHandler) {
@@ -79,9 +107,20 @@ define([], function() {
       return this.nextPromise;
     },
 
-    get: function(propertyName) {
+    get: function() {
+      var propertyNames = util.toArray(arguments);
       return this.then(function(result) {
-        return result[propertyName];
+        var promise = new Promise();
+        var values = [];
+        if(typeof(result) !== 'object') {
+          promise.failLater("Can't get properties of non-object");
+        } else {
+          propertyNames.forEach(function(propertyName) {
+            values.push(result[propertyName]);
+          });
+          promise.fulfillLater.apply(promise, values);
+        }
+        return promise;
       });
     },
 
@@ -135,6 +174,10 @@ define([], function() {
     // > }
     toArray: function(arrayLike) {
       return Array.prototype.slice.call(arrayLike);
+    },
+
+    nextTick: function(action) {
+      setTimeout(action, 0);
     },
 
     // Method: isDir
@@ -195,7 +238,7 @@ define([], function() {
     curry: function(f) {
       var _a = Array.prototype.slice.call(arguments, 1);
       return function() {
-        var a = Array.prototype.slice.call(arguments);
+        var a = util.toArray(arguments);
         for(var i=(_a.length-1);i>=0;i--) {
           a.unshift(_a[i]);
         }
@@ -233,7 +276,7 @@ define([], function() {
     // (end code)
     //
     getEventEmitter: function() {
-      var eventNames = Array.prototype.slice.call(arguments);
+      var eventNames = util.toArray(arguments);
 
       function setupHandlers() {
         var handlers = {};

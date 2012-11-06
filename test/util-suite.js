@@ -382,6 +382,26 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         }
       },
       {
+        desc: "util.Promise yielding multiple values",
+        run: function(env) {
+          var _this = this;
+          function asyncYieldTwoValues() {
+            var promise = env.util.getPromise();
+            setTimeout(function() {
+              promise.fulfill(1, 2);
+            }, 1);
+            return promise;
+          }
+          function checkResult(a, b) {
+            _this.assertAnd(a, 1);
+            _this.assert(b, 2);
+          }
+          function onError() { _this.result(false); }
+          asyncYieldTwoValues().
+            then(checkResult, onError);
+        }
+      },
+      {
         desc: "util.Promise.get",
         run: function(env) {
           var _this = this;
@@ -396,6 +416,24 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           function onError() { _this.result(false); }
           promiseSomething().
             get('foo').
+            then(checkResult, onError);
+        }
+      },
+      {
+        desc: "util.Promise.get multiple properties",
+        run: function(env) {
+          var _this = this;
+          function promiseSomething() {
+            var promise = env.util.getPromise();
+            setTimeout(function() {
+              promise.fulfill({ foo: "bla", bar: "blubb" });
+            }, 1);
+            return promise;
+          }
+          function checkResult(a, b) { _this.assert([a, b], ['bla', 'blubb']); }
+          function onError() { _this.result(false); }
+          promiseSomething().
+            get('foo', 'bar').
             then(checkResult, onError);
         }
       },
@@ -419,6 +457,61 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           promiseSomething().
             call('method', 1, 2, 3).
             then(checkResult, onError);
+        }
+      },
+      {
+        desc: "util.Promise chained promises",
+        run: function(env) {
+          var _this = this;
+          function asyncComputeAnswerToEverything() {
+            var promise = env.util.getPromise();
+            setTimeout(function() {
+              promise.fulfill(42);
+            }, 1);
+            return promise;
+          }
+          function asyncAddTwo(n) {
+            var promise = env.util.getPromise();
+            setTimeout(function() {
+              promise.fulfill(n + 2);
+            }, 1);
+            return promise;
+          }
+          function checkResult(result) { _this.assert(result, 44); }
+          function onError() { _this.result(false); }
+          asyncComputeAnswerToEverything().
+            then(asyncAddTwo).
+            then(checkResult, onError);
+        }
+      },
+      {
+        desc: "util.Promise.fulfillLater",
+        run: function(env) {
+          var _this = this;
+          function fakePromiseForAnswer() {
+            return env.util.getPromise().fulfillLater(42);
+          }
+          fakePromiseForAnswer().
+            then(function(answer) {
+              _this.assert(answer, 42);
+            }, function() {
+              _this.result(false);
+            });
+        }
+      },
+      {
+        desc: "util.Promise.failLater",
+        run: function(env) {
+          var _this = this;
+          function fakePromiseForError() {
+            return env.util.getPromise().failLater("no way!");
+          }
+          fakePromiseForError().
+            then(function() {
+              _this.result(false);
+            }, function(error) {
+              _this.assert(error, "no way!");
+            });
         }
       }
     ]
