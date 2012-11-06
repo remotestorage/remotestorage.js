@@ -310,6 +310,116 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           env.util.setLogLevel('info');
           env.logger.info('helloworld');
         }
+      },
+      {
+        desc: "util.Promise fulfilled",
+        run: function(env) {
+          var _this = this;
+          function asyncComputeAnswerToEverything() {
+            var promise = env.util.getPromise();
+            setTimeout(function() {
+              promise.fulfill(42);
+            }, 1);
+            return promise;
+          }
+          function addTwo(n) {
+            return n + 2;
+          }
+          function checkResult(n) {
+            _this.assert(n, 44);
+          }
+          function onError() {
+            _this.result(false);
+          }
+
+          asyncComputeAnswerToEverything().
+            then(addTwo).
+            then(checkResult, onError);
+        }
+      },
+      {
+        desc: "util.Promise failed",
+        run: function(env) {
+          var _this = this;
+          function failAfterAWhile() {
+            var promise = env.util.getPromise();
+            setTimeout(function() {
+              promise.fail("something went wrong");
+            }, 1);
+            return promise;
+          }
+          function onSuccess() { _this.result(false); }
+          function onError() { _this.result(true); }
+          failAfterAWhile().
+            then(onSuccess, onError);
+        }
+      },
+      {
+        desc: "util.Promise eventually failed",
+        run: function(env) {
+          var _this = this;
+          function asyncComputeAnswerToEverything() {
+            var promise = env.util.getPromise();
+            setTimeout(function() {
+              promise.fulfill(42);
+            }, 1);
+            return promise;
+          }
+          function addTwo(n) {
+            return n + 2;
+          }
+          function checkAnswer(n) {
+            if(n != 42) {
+              throw "Wrong answer!";
+            }
+          }
+          function onSuccess() { _this.result(false); }
+          function onError() { _this.result(true); }
+          asyncComputeAnswerToEverything().
+            then(addTwo).
+            then(checkAnswer).
+            then(onSuccess, onError);
+        }
+      },
+      {
+        desc: "util.Promise.get",
+        run: function(env) {
+          var _this = this;
+          function promiseSomething() {
+            var promise = env.util.getPromise();
+            setTimeout(function() {
+              promise.fulfill({ foo: "bar", bla: "blubb" });
+            }, 1);
+            return promise;
+          }
+          function checkResult(s) { _this.assert(s, 'bar'); }
+          function onError() { _this.result(false); }
+          promiseSomething().
+            get('foo').
+            then(checkResult, onError);
+        }
+      },
+      {
+        desc: "util.Promise.call",
+        run: function(env) {
+          var _this = this;
+          function promiseSomething() {
+            var promise = env.util.getPromise();
+            setTimeout(function() {
+              promise.fulfill({
+                method: function() {
+                  return Array.prototype.slice.call(arguments);
+                }
+              });
+            }, 1);
+            return promise;
+          }
+          function checkResult(args) { _this.assert(args, [1, 2, 3]); }
+          function onError() { _this.result(false); }
+          promiseSomething().
+            call('method', 1, 2, 3).
+            then(checkResult, onError);
+        }
       }
     ]
   });

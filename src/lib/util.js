@@ -39,6 +39,61 @@ define([], function() {
     btoa = window.btoa;
   }
 
+  var Promise = function() {
+    this.handlers = {};
+  }
+
+  Promise.prototype = {
+    fulfill: function(result) {
+      try {
+        var nextResult;
+        if(this.handlers.fulfilled) {
+          nextResult = this.handlers.fulfilled(result);
+        }
+      } catch(exc) {
+        if(this.nextPromise) {
+          this.nextPromise.fail(exc);
+        } else {
+          // FIXME: what to do if there's no next promise?
+          throw exc;
+        }
+        return;
+      }
+      if(this.nextPromise) {
+        this.nextPromise.fulfill(nextResult);
+      }
+    },
+
+    fail: function(error) {
+      if(this.handlers.error) {
+        this.handlers.error(error);
+      } else if(this.nextPromise) {
+        this.nextPromise.fail(error);
+      }
+    },
+
+    then: function(fulfilledHandler, errorHandler) {
+      this.handlers.fulfilled = fulfilledHandler;
+      this.handlers.error = errorHandler;
+      this.nextPromise = new Promise();
+      return this.nextPromise;
+    },
+
+    get: function(propertyName) {
+      return this.then(function(result) {
+        return result[propertyName];
+      });
+    },
+
+    call: function(methodName) {
+      var args = Array.prototype.slice.call(arguments, 1);
+      return this.then(function(result) {
+        return result[methodName].apply(result, args);
+      });
+    }
+  }
+
+
   var util = {
 
     bufferToRaw: function(buffer) {
@@ -386,6 +441,10 @@ define([], function() {
         }
       }
       keys.forEach(iter);
+    },
+
+    getPromise: function() {
+      return new Promise();
     }
   };
 
