@@ -152,7 +152,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
             callback.apply(this, arguments);
           }
         }
-      }
+      };
     }
 
     if(roots.length === 0) {
@@ -692,7 +692,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       if(root.startAccess) {
         roots.push(path);
       } else {
-        var listing = store.getNodeData(path)
+        var listing = store.getNodeData(path);
         if(listing) {
           Object.keys(listing).forEach(function(key) {
             if(store.getNode(path + key).startAccess) {
@@ -763,7 +763,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //           Depth will be decremented in each recursion
   function traverseTree(root, callback, opts) {
     logger.info('traverse', root, opts, 'callback?', !!callback);
-    
+
     if(! util.isDir(root)) {
       throw "Can't traverse data node: " + root;
     }
@@ -1149,4 +1149,3 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
    */
 
 });
-
