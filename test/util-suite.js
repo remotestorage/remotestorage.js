@@ -1,25 +1,16 @@
-var fs = require('fs');
-
-module.exports = function() {
+if (typeof define !== 'function') {
+    var define = require('amdefine')(module);
+}
+define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
   var suites = [];
 
   suites.push({
     name: "util.js tests",
     desc: "a collection of tests for util.js",
     setup: function(env) {
-      if (typeof define !== 'function') {
-        var define = require('amdefine')(module);
-      }
-      var requirejs = require('requirejs');
-      requirejs.config({
-        // can't we specify the base repository dir instead of having to
-        // juggle relative paths?
-        baseUrl: __dirname+'/../src/',
-        nodeRequire: require
-      });
       var _this = this;
       var _env = env;
-      requirejs(['lib/util'], function(util) {
+      requirejs(['./src/lib/util'], function(util) {
         _env.util = util;
         _this.assertType(env.util.baseName, 'function');
       });
@@ -27,10 +18,6 @@ module.exports = function() {
     takedown: function(env) {
       env = '';
       this.result(true);
-    },
-    takedown: function(env) {
-        env = '';
-        this.result(true);
     },
     tests: [
       {
@@ -327,4 +314,4 @@ module.exports = function() {
     ]
   });
   return suites;
-}();
+});
