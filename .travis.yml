@@ -8,3 +8,7 @@ before_install:
 before_script:
     - "cd test/integration && bundle install; cd ../.."
 script: test/integration/run
+language: node_js
+node_js:
+  - 0.6
+script: npm install && npm test 
