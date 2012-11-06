@@ -21,8 +21,54 @@ define([], function() {
     debug: false
   };
 
+  var atob, btoa;
+
+  // btoa / atob for nodejs implemented here, so util/platform don't form
+  // a circular dependency.
+  if(typeof(window) === 'undefined') {
+    atob = function(str) {
+      var buffer = str instanceof Buffer ? str : new Buffer(str, 'base64');
+      return buffer.toString('binary');
+    };
+    btoa = function(str) {
+      var buffer = str instanceof Buffer ? str : new Buffer(str, 'binary');
+      return buffer.toString('base64');
+    };
+  } else {
+    atob = window.atob;
+    btoa = window.btoa;
+  }
+
   var util = {
 
+    bufferToRaw: function(buffer) {
+      var view = new Uint8Array(buffer);
+      var nData = view.length;
+      var rawData = '';
+      for(var i=0;i<nData;i++) {
+        rawData += String.fromCharCode(view[i]);
+      }
+      return rawData
+    },
+
+    rawToBuffer: function(rawData) {
+      var nData = rawData.length;
+      var buffer = new ArrayBuffer(nData);
+      var view = new Uint8Array(buffer);
+
+      for(var i=0;i<nData;i++) {
+        view[i] = rawData.charCodeAt(i);
+      }
+      return buffer;
+    },
+
+    encodeBinary: function(buffer) {
+      return btoa(this.bufferToRaw(buffer));
+    },
+
+    decodeBinary: function(data) {
+      return this.rawToBuffer(atob(data));
+    },
 
     // Method: toArray
     // Convert something into an Array.
@@ -111,7 +157,6 @@ define([], function() {
     },
 
     deprecate: function(methodName, replacement) {
-      console.trace();
       console.log('WARNING: ' + methodName + ' is deprecated, use ' + replacement + ' instead');
     },
 
@@ -333,12 +378,14 @@ define([], function() {
     // The iter receives the matching key as it's only argument.
     grepLocalStorage: function(pattern, iter) {
       var numLocalStorage = localStorage.length;
+      var keys = [];
       for(var i=0;i<numLocalStorage;i++) {
         var key = localStorage.key(i);
         if(pattern.test(key)) {
-          iter(key);
+          keys.push(key);
         }
       }
+      keys.forEach(iter);
     }
   };
 

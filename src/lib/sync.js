@@ -27,13 +27,9 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   }
 
   function clearSettings() {
-    var numLocalStorage = localStorage.length;
-    for(var i=0;i<numLocalStorage;i++) {
-      var key = localStorage.key(i);
-      if(key.match(new RegExp('^' + settingsPrefix))) {
-        localStorage.removeItem(key);
-      }
-    }
+    util.grepLocalStorage(new RegExp('^' + settingsPrefix), function(key) {
+      localStorage.removeItem(key);
+    });
   }
 
 
@@ -130,7 +126,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //
   // Will update local and remote data as needed.
   //
-  // Calls it's callback once 'ready' is fired.
+  // Calls it's callback once the cycle is complete.
   //
   // Fires:
   //   ready    - when the sync queue is empty afterwards
@@ -147,12 +143,14 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     var roots = findRoots();
     var synced = 0;
 
-    function rootCb() {
-      synced++;
-      if(synced == roots.length) {
-        sync.lastSyncAt = new Date();
-        if(callback) {
-          callback.apply(this, arguments);
+    function rootCb(path) {
+      return function() {
+        synced++;
+        if(synced == roots.length) {
+          sync.lastSyncAt = new Date();
+          if(callback) {
+            callback.apply(this, arguments);
+          }
         }
       }
     }
@@ -165,9 +163,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     roots.forEach(function(root) {
       enqueueTask(function() {
         traverseTree(root, processNode, {
-          pushOnly: pushOnly
+          pushOnly: pushOnly,
+          done: finishTask
         });
-      }, rootCb);
+      }, rootCb(root));
     });
   }
 
@@ -211,7 +210,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       logger.info("partial sync started from: " + startPath);
       events.once('ready', callback);
       traverseTree(startPath, processNode, {
-        depth: depth
+        depth: depth,
+        done: finishTask
       });
     });
   }
@@ -247,6 +247,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       fetchRemoteNode(path, function(remoteNode) {
         var localNode = fetchLocalNode(path);
         processNode(path, localNode, remoteNode);
+        finishTask();
         if(callback) {
           // FIXME: document error parameter.
           callback(null, store.getNode(path), store.getNodeData(path));
@@ -285,29 +286,34 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   // function to call when current task is done, before next task is popped from taskQueue.
   var currentFinalizer = null;
 
+  function beginTask() {
+    setBusy();
+    var task = taskQueue.shift();
+    if(! task) {
+      throw new Error("Can't begin task, queue is empty");
+    }
+    currentFinalizer = task.finalizer;
+    task.run();
+  }
 
-  events.on('ready', function() {
-    logger.info("READY", 'queued tasks: ', taskQueue.length);
+  function finishTask() {
     if(currentFinalizer) {
       currentFinalizer();
-      currentFinalizer = null;
     }
     if(taskQueue.length > 0) {
-      var nextTask = taskQueue.shift();
-      currentFinalizer = nextTask.finalizer;
-      nextTask.run();
+      beginTask();
+    } else {
+      setReady();
     }
-  });
+  }
 
   function enqueueTask(callback, finalizer) {
+    taskQueue.push({
+      run: callback,
+      finalizer: finalizer
+    });
     if(ready) {
-      currentFinalizer = finalizer;
-      callback();
-    } else {
-      taskQueue.push({
-        run: callback,
-        finalizer: finalizer
-      });
+      beginTask();
     }
   }
 
@@ -318,19 +324,8 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   }
   function setReady() {
     ready = true;
-    if(deferredIterationQueue.length > 0) {
-      spawnQueue.apply(this, deferredIterationQueue.shift());
-    } else {
-      events.emit('state', 'connected');
-      events.emit('ready');
-    }
-  }
-
-  // see if we can fire 'ready', or if there's more to do
-  function tryReady() {
-    if(ready && deferredIterationQueue.length == 0) {
-      events.emit('ready');
-    }
+    events.emit('state', 'connected');
+    events.emit('ready');
   }
 
   // Function: getState
@@ -463,6 +458,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     wireClient.set(
       path, local.data, local.mimeType,
       makeErrorCatcher(path, function() {
+        var parentPath = util.containingDir(path);
+        if(! parentPath) {
+          throw "Node has no parent path: " + path;
+        }
         // update lastUpdatedAt for this node to exact remote time.
         // this is a totally unnecessary step and should be handled better
         // in the protocol (e.g. by returning the new timestamp with the PUT
@@ -481,6 +480,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //
   // Used as a callback for <traverseTree>.
   function processNode(path, local, remote) {
+
+    if(util.isDir(path)) {
+      throw new Error("Attempt to process directory node: " + path);
+    }
 
     var action = null;
 
@@ -682,18 +685,29 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     }
   }
 
-  function findRoots(path) {
-    var root = store.getNode('/');
-    var roots = [];
-    if(root.startAccess) {
-      roots.push('/');
-    } else {
-      Object.keys(store.getNodeData('/')).forEach(function(key) {
-        if(store.getNode('/' + key).startAccess) {
-          roots.push('/' + key);
+  function findRoots() {
+    function findIn(path) {
+      var root = store.getNode(path);
+      var roots = [];
+      if(root.startAccess) {
+        roots.push(path);
+      } else {
+        var listing = store.getNodeData(path)
+        if(listing) {
+          Object.keys(listing).forEach(function(key) {
+            if(store.getNode(path + key).startAccess) {
+              roots.push(path + key);
+            }
+          });
         }
-      });
+      }
+      return roots;
     }
+    var roots = findIn('/');
+    var pubRoots = findIn('/public/');
+    pubRoots.forEach(function(r) {
+      roots.push(r);
+    });
     return roots;
   }
 
@@ -786,7 +800,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
       // no interest.
       // -> bail!
       logger.debug('skipping', root, 'no interest', '(access: ', opts.access, ' force: ', opts.force, ' forceTree: ', opts.forceTree, ')');
-      if(opts.access || root == '/') { // (access can begin only on the root or it's direct children, so we don't need to descend further)
+      if(opts.access || root == '/' || root == '/public/') { // (access can begin only on the root or it's direct children, so we don't need to descend further)
         var nextRoots = findNextForceRoots(root);
         if(nextRoots.length > 0) {
           var nextRoot;
@@ -803,7 +817,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
           return;
         } // no more roots.
       } // no access anyway.
-      tryReady();
       done();
       return; // done.
     }
@@ -812,7 +825,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
 
     if(! localDiff) {
       if(opts.pushOnly) {
-        tryReady();
         done();
         return;
       }
@@ -821,10 +833,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     // fetch remote listing
     fetchNode(root, function(remoteListing) {
       if(! remoteListing) { remoteListing = {}; }
-
-      // not really "done", but no more immediate requests in this
-      // function.
-      done();
 
       // all keys in local and/or remote listing
       var fullListing = makeSet(
@@ -858,7 +866,6 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
           // no remote diff.
           // -> bail!
           logger.debug('skipping', root, 'no changes');
-          tryReady();
           done();
           return;
         }
@@ -889,7 +896,7 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
         } else {
           next();
         }
-      });
+      }, done);
 
     });
   }
@@ -942,19 +949,13 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
   //   list - an array of items to pass to the iter
   //   max  - maximum number of simultaneously running versions of iter
   //   iter - iterator to call
+  //   allDone - callback to call when all iterations are done
   //
   // Iterator parameters:
   //   item - an item from the list
   //   done - a callback function to call, when the iterator is finished
   //
-  function spawnQueue(list, max, iter) {
-    if(! ready) {
-      deferredIterationQueue.push([list, max, iter]);
-      return;
-    }
-
-    setBusy();
-
+  function spawnQueue(list, max, iter, allDone) {
     var n = 0;
     var i = 0;
     function next() {
@@ -964,8 +965,10 @@ define(['./wireClient', './store', './util'], function(wireClient, store, util) 
     function done() {
       n--;
       if(i === list.length && n === 0) {
-        setReady();
-      } else if(i < list.length) {
+        allDone();
+      } else if(n < 0) {
+        throw new Error("BUG: done() called more often than expected");
+      } else if(n < list.length) {
         spawn();
       }
     }

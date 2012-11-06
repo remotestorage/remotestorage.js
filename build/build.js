@@ -110,12 +110,15 @@ if(process.argv[2] == 'debug') {
 } else {
   build('latest/remoteStorage.min', 'remoteStorage');
   build('latest/remoteStorage-debug', 'remoteStorage', { debug: true });
-  build('latest/remoteStorage-node.min', 'remoteStorage', { end: 'endNode.frag' });
-  build('latest/remoteStorage-node-debug', 'remoteStorage', { end: 'endNode.frag', debug: true });
+  build('latest/remoteStorage-node.min', 'remoteStorage', { start: 'startNode.frag', end: 'endNode.frag' });
+  build('latest/remoteStorage-node-debug', 'remoteStorage', { start: 'startNode.frag', end: 'endNode.frag', debug: true });
 
 
   build('latest/remoteStorage-modules.min', 'remoteStorage-modules', { end: 'endModules.frag' });
   build('latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
+
+  build('latest/remoteStorage-node-modules.min', 'remoteStorage-modules', { start: 'startNode.frag', end: 'endNodeModules.frag' });
+  build('latest/remoteStorage-node-modules-debug', 'remoteStorage-modules', { start: 'startNode.frag', end: 'endNodeModules.frag', debug: true });
 
   function cp(s, d) {
     if(fs.existsSync(d)) {

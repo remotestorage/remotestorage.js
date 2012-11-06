@@ -167,10 +167,15 @@ define(['./util'], function(util) {
     };
     if(typeof(params.data) === 'string') {
       xhr.send(params.data);
+    } else if(typeof(params.data) === 'object' &&
+              params.data instanceof ArrayBuffer) {
+      //xhr.send(util.bufferToRaw(params.data));
+      xhr.send(params.data);
     } else {
       xhr.send();
     }
   }
+
   function ajaxExplorer(params) {
     //this won't work, because we have no way of sending the Authorization header. It might work for GET to the 'public' category, though.
     var xdr=new XDomainRequest();
@@ -195,10 +200,16 @@ define(['./util'], function(util) {
       xdr.send();
     }
   }
+
   function ajaxNode(params) {
-    var http=require('http'),
-      https=require('https'),
-      url=require('url');
+
+    if(typeof(params.data) === 'object' && params.data instanceof Blob) {
+      throw new Error("Sending binary data not yet implemented for nodejs");
+    }
+
+    var http=nodeRequire('http'),
+      https=nodeRequire('https'),
+      url=nodeRequire('url');
     if(!params.method) {
       params.method='GET';
     }
@@ -256,6 +267,7 @@ define(['./util'], function(util) {
       request.end();
     }
   }
+
   function parseXmlBrowser(str, cb) {
     var tree=(new DOMParser()).parseFromString(str, 'text/xml');
     var nodes=tree.getElementsByTagName('Link');
@@ -284,13 +296,15 @@ define(['./util'], function(util) {
     }
     cb(null, obj);
   }
+
   function parseXmlNode(str, cb) {
-    var xml2js=require('xml2js');
+    var xml2js=nodeRequire('xml2js');
     new xml2js.Parser().parseString(str, cb);
   }
 
   function harvestParamNode() {
   }
+
   function harvestParamBrowser(param) {
     // location.hash in firefox has all URI entities decoded, so we can't
     // differentiate between %26 and & in URIs passed as parameters.
@@ -307,8 +321,10 @@ define(['./util'], function(util) {
       }
     }
   }
+
   function setElementHtmlNode(eltName, html) {
   }
+
   function setElementHtmlBrowser(eltName, html) {
     var elt = eltName;
     if(! (elt instanceof Element)) {
@@ -316,13 +332,17 @@ define(['./util'], function(util) {
     }
     elt.innerHTML = html;
   }
+
   function getElementValueNode(eltName) {
   }
+
   function getElementValueBrowser(eltName) {
     return document.getElementById(eltName).value;
   }
+
   function eltOnNode(eltName, eventType, cb) {
   }
+
   function eltOnBrowser(eltName, eventType, cb) {
     if(eventType == 'click') {
       document.getElementById(eltName).onclick = cb;
@@ -332,23 +352,31 @@ define(['./util'], function(util) {
       document.getElementById(eltName).onkeyup = cb;
     }
   }
+
   function getLocationBrowser() {
     //TODO: deal with http://user:a#aa@host.com/ although i doubt someone would actually use that even once between now and the end of the internet
     return window.location.href.split('#')[0];
   }
+
   function getLocationNode() {
   }
+
   function setLocationBrowser(location) {
     window.location = location;
   }
+
   function setLocationNode() {
   }
+
   function alertBrowser(str) {
     alert(str);
   }
+
   function alertNode(str) {
     console.log(str);
   }
+
+
   if(typeof(window) === 'undefined') {
     return {
       ajax: ajaxNode,

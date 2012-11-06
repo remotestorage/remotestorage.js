@@ -1,3 +1,5 @@
+var fs = require('fs');
+
 module.exports = function() {
   var suites = [];
 
@@ -31,6 +33,56 @@ module.exports = function() {
         this.result(true);
     },
     tests: [
+      {
+        desc: "util.encodeBinary",
+        run: function(env) {
+          var buffer = new ArrayBuffer(10);
+          var view = new Uint8Array(buffer);
+          for(var i=0;i<10;i++) {
+            view[i] = i;
+          }
+          this.assert(
+            env.util.encodeBinary(buffer),
+            'AAECAwQFBgcICQ==' // 10 octets, 0x00 through 0x09
+          );
+        }
+      },
+      {
+        desc: "util.decodeBinary",
+        run: function(env) {
+          var data = 'AAECAwQFBgcICQ==';
+          var buffer = env.util.decodeBinary(data);
+          var view = new Uint8Array(buffer);
+          var nData = view.length;
+          var bytes = [];
+          for(var i=0;i<nData;i++) {
+            bytes.push(view[i]);
+          }
+          this.assert([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], bytes);
+        }
+      },
+      {
+        desc: "encode / decode binary",
+        run: function(env) {
+          fs.readFile('test/assets/test-image.png', function(err, data) {
+            var origView = new Uint8Array(data);
+            var encoded = env.util.encodeBinary(data);
+            this.assertTypeAnd(encoded, 'string');
+            var decoded = env.util.decodeBinary(data);
+            this.assertTypeAnd(decoded, 'object');
+            this.assertAnd(decoded instanceof ArrayBuffer, true);
+            this.assert(decoded.byteLength, data.length);
+
+          }.bind(this));
+        }
+      },
+      {
+        desc: "util.rawToBuffer",
+        run: function(env) {
+          var data = "\1\2\3\5\4\2\3\12\142\32\23\12";
+          this.assert(env.util.bufferToRaw(env.util.rawToBuffer(data)), data);
+        }
+      },
       {
         desc: "util.toArray()",
         run: function(env) {
