@@ -513,6 +513,76 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
               _this.assert(error, "no way!");
             });
         }
+      },
+      {
+        desc: "util.Promise bubbling errors",
+        run: function(env) {
+          var _this = this;
+          function asyncFunction() {
+            var promise = env.util.getPromise();
+            env.util.nextTick(function() {
+              promise.fail("I'm supposed to fail!");
+            });
+            return promise;
+          }
+          function syncFunction() {
+            return 123;
+          }
+          function undefinedFunction() {
+            return undefined;
+          }
+          function promiseReturningFunction() {
+            return util.env.getPromise().fulfillLater();
+          }
+          asyncFunction().
+            then(syncFunction).
+            then(undefinedFunction).
+            then(promiseReturningFunction).
+            then(
+              function() {
+                _this.result(false);
+              }, function(error) {
+                _this.assert("I'm supposed to fail!", error);
+              }
+            );
+        }
+      },
+      {
+        desc: "util.Promise bubbling exceptions",
+        run: function(env) {
+          var _this = this;
+          env.util.getPromise().fulfillLater().
+            then(function() {
+              throw new Error("I'm failing, what a shame!");
+            }).
+            then(function() {
+              _this.result(false);
+            }, function(error) {
+              _this.assertAnd(error instanceof Error, true);
+              _this.assert(error.message, "I'm failing, what a shame!");
+            });
+        }
+      },
+      {
+        desc: "util.Promise treats onsuccess / onerror attributes like a then() call",
+        run: function(env) {
+          var _this = this;
+          var promise = env.util.getPromise().fulfillLater();
+          promise.onsuccess = function() {
+            _this.assertAnd(true, true);
+          };
+          promise.onerror = function() {
+            _this.result(false);
+          };
+
+          var promise = env.util.getPromise().failLater();
+          promise.onsuccess = function() {
+            _this.result(false);
+          };
+          promise.onerror = function() {
+            _this.result(true);
+          };
+        }
       }
     ]
   });

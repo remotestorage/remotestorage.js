@@ -1,7 +1,0 @@
-
-(function() {
-
-  describe('wireClient', function() {
-  });
-
-})();
