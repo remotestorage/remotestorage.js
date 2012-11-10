@@ -10,8 +10,7 @@ define([], function() {
 
   var loggers = {}, silentLogger = {};
 
-  var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform',
-                      'baseClient', 'widget', 'store', 'foreignClient', 'schedule'];
+  var knownLoggers = [];
 
   var logFn = null;
 
@@ -40,30 +39,55 @@ define([], function() {
   }
 
   var Promise = function() {
+    this.result = undefined;
+    this.success = undefined;
     this.handlers = {};
+    this.__defineSetter__('onsuccess', function(fulfilledHandler) {
+      if(typeof(fulfilledHandler) !== 'function') {
+        throw "Success callback must be a function!";
+      }
+      this.handlers.fulfilled = fulfilledHandler;
+      if(! this.nextPromise) {
+        this.nextPromise = new Promise();
+      }
+    });
+    this.__defineSetter__('onerror', function(failedHandler) {
+      if(typeof(failedHandler) !== 'function') {
+        throw "Error callback must be a function!";
+      }
+      this.handlers.failed = failedHandler;
+      if(! this.nextPromise) {
+        this.nextPromise = new Promise();
+      }
+    });
   }
 
   Promise.prototype = {
     fulfill: function() {
-      var args = util.toArray(arguments);
+      if(typeof(this.success) !== 'undefined') {
+        throw new Error("Can't fail promise, already resolved as: " +
+                        (this.success ? 'fulfilled' : 'failed'));
+      }
+      this.result = util.toArray(arguments);
+      this.success = true;
       if(! this.handlers.fulfilled) {
         return;
       }
       try {
         var nextResult;
-        nextResult = this.handlers.fulfilled.apply(null, args);
+        nextResult = this.handlers.fulfilled.apply(null, this.result);
       } catch(exc) {
         if(this.nextPromise) {
           this.nextPromise.fail(exc);
         } else {
-          // FIXME: what to do if there's no next promise?
-          throw exc;
+          console.error("Uncaught exception: ", exc, exc.getStack());
         }
         return;
       }
       var nextPromise = this.nextPromise;
       if(nextPromise) {
-        if(nextResult instanceof Promise) {
+        if(nextResult && typeof(nextResult.then) === 'function') {
+          // chain our promise after this one.
           nextResult.then(function() {
             nextPromise.fulfill.apply(nextPromise, arguments);
           }, function() {
@@ -76,11 +100,18 @@ define([], function() {
     },
 
     fail: function() {
-      var args = util.toArray(arguments);
-      if(this.handlers.error) {
-        this.handlers.error.apply(null, args);
+      if(typeof(this.success) !== 'undefined') {
+        throw new Error("Can't fail promise, already resolved as: " +
+                        (this.success ? 'fulfilled' : 'failed'));
+      }
+      this.result = util.toArray(arguments);
+      this.success = false;
+      if(this.handlers.failed) {
+        this.handlers.failed.apply(null, this.result);
       } else if(this.nextPromise) {
-        this.nextPromise.fail.apply(this.nextPromise, args);
+        this.nextPromise.fail.apply(this.nextPromise, this.result);
+      } else {
+        console.error("Uncaught error: ", this.result, (this.result[0] && this.result[0].stack));
       }
     },
 
@@ -102,7 +133,7 @@ define([], function() {
 
     then: function(fulfilledHandler, errorHandler) {
       this.handlers.fulfilled = fulfilledHandler;
-      this.handlers.error = errorHandler;
+      this.handlers.failed = errorHandler;
       this.nextPromise = new Promise();
       return this.nextPromise;
     },
@@ -113,7 +144,10 @@ define([], function() {
         var promise = new Promise();
         var values = [];
         if(typeof(result) !== 'object') {
-          promise.failLater("Can't get properties of non-object");
+          promise.failLater(new Error(
+            "Can't get properties of non-object (properties: " + 
+              propertyNames.join(', ') + ')'
+          ));
         } else {
           propertyNames.forEach(function(propertyName) {
             values.push(result[propertyName]);
@@ -236,6 +270,9 @@ define([], function() {
     },
 
     curry: function(f) {
+      if(typeof(f) !== 'function') {
+        throw "Can only curry functions!";
+      }
       var _a = Array.prototype.slice.call(arguments, 1);
       return function() {
         var a = util.toArray(arguments);
@@ -350,6 +387,7 @@ define([], function() {
     getLogger: function(name) {
 
       if(! loggers[name]) {
+        knownLoggers.push(name);
         loggers[name] = {
 
           info: function() {
