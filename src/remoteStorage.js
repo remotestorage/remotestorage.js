@@ -13,7 +13,7 @@ define([
 
   "use strict";
 
-  var claimedModules = {}, modules = {}, moduleNameRE = /^[a-z]+$/;
+  var claimedModules = {}, modules = {}, moduleNameRE = /^[a-z\-]+$/;
 
   var logger = util.getLogger('base');
 
