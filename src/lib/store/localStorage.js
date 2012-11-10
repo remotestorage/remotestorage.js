@@ -52,9 +52,10 @@ define(['../util'], function(util) {
         try {
           node = JSON.parse(rawMetadata);
         } catch(exc) {
-          node = {};
         }
-        node.data = payload;
+        if(node) {
+          node.data = payload;
+        }
         
         return util.getPromise().fulfillLater(node);
       },

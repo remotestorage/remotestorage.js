@@ -8,7 +8,6 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
       - forget
       - forgetAll
       - setNodeData
-      - getNodeData
       - setNodeAccess
       - setNodeForce
       - clearDiff
@@ -131,9 +130,7 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
           node.data = {};
         }
       } else {
-        if(node.mimeType == 'application/json') {
-          node.data = JSON.parse(node.data);
-        }
+        node = unpackData(node);
       }
       return node;
     });
@@ -174,6 +171,11 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     logger.debug('PUT', path, { data: data, mimeType: mimeType });
     return getNode(path).then(function(node) {
+
+      var oldValue = node.data;
+
+      node.data = data;
+
       if(! outgoing) {
         if(typeof(timestamp) !== 'number') {
           throw "Attempted to set non-number timestamp in incoming change: " + timestamp + ' (' + typeof(timestamp) + ')';
@@ -186,42 +188,7 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
       }
       node.mimeType = mimeType;
 
-      if(typeof(node.data) == 'object' && node.data instanceof ArrayBuffer) {
-        metadata.binary = true;
-        node.data = util.encodeBinary(node.data);
-      } else {
-        metadata.binary = false;
-      }
-
       return updateNode(path, (node.data ? node : undefined), outgoing, false, timestamp, oldValue);
-    });
-  }
-
-  // Method: getNodeData
-  // get a node's data
-  //
-  // Parameters:
-  //   path - absolute path
-  //   raw  - (optional) don't attempt to unpack JSON data
-  //
-  function getNodeData(path, raw) {
-    logger.debug('GET', path);
-    validPath(path);
-
-    return getNode(path, function(node) {
-      var data = node.data;
-      if(data) {
-        if(node.binary) {
-          data = util.decodeBinary(node.data);
-        } else if((!raw) && (node.mimeType == "application/json")) {
-          try {
-            data = JSON.parse(node.data);
-          } catch(exc) {
-            events.emit('error', "Invalid JSON node at " + path + ": " + node.data);
-          }
-        }
-      }
-      return data;
     });
   }
 
@@ -272,7 +239,7 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
   function setNodeForce(path, dataFlag, treeFlag) {
     return updateMetadata(path, {
       startForce: dataFlag,
-      startForceTree: treeFrag
+      startForceTree: treeFlag
     });
   }
 
@@ -301,7 +268,7 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
             delete parent.diff[baseName];
             return updateNode(parentPath, parent, false, true).then(function() {
               if(Object.keys(parent.diff).length === 0) {
-                return clearDiff(parentPath, timestamp, callback);
+                return clearDiff(parentPath, timestamp);
               }
             });
           });
@@ -391,6 +358,32 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
       });
   }
 
+  function unpackData(node) {
+    node = util.extend({}, node);
+    if(node.mimeType === 'application/json') {
+      node.data = JSON.parse(node.data);
+    } else if(node.binary) {
+      node.data = util.decodeBinary(node.data);
+    }
+    return node;
+  }
+
+  function packData(node) {
+    node = util.extend({}, node);
+    if(typeof(node.data) === 'object' && node.data instanceof ArrayBuffer) {
+      node.binary = true;
+      node.data = util.encodeBinary(node.data);
+    } else {
+      node.binary = false;
+      if(typeof(node.data) === 'object') {
+        node.data = JSON.stringify(node.data);
+      } else {
+        node.data = node.data;
+      }
+    }
+    return node;
+  }
+
   // FIXME: this argument list is getting too long!!!
   function updateNode(path, node, outgoing, meta, timestamp, oldValue) {
     validPath(path);
@@ -414,13 +407,14 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
           return promise.failLater(new Error('no timestamp given for node ' + path));
         }
       }
+      return promise.fulfillLater();
     }
 
     function storeNode() {
       if(node) {
-        return dataStore.remove(path);
+        return dataStore.set(path, packData(node));
       } else {
-        return dataStore.set(path, node);
+        return dataStore.set(path);
       }
     }
 
@@ -442,7 +436,7 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
                 delete parent.data[baseName];
               }
               parent.diff[baseName] = timestamp;
-              return updateNode(parentPath, parent, false, false, timestamp);
+              return updateNode(parentPath, parent, true, false, timestamp);
             } else { // INCOMING
               if(node) { // add or change
                 if((! parent.data[baseName]) || parent.data[baseName] < timestamp) {
@@ -484,7 +478,6 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
     // method         , local              , used by
                                            
     getNode           : getNode,          // sync
-    getNodeData       : getNodeData,      // sync
     setNodeData       : setNodeData,      // sync
     clearDiff         : clearDiff,        // sync
     removeNode        : removeNode,       // sync
