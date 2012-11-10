@@ -89,6 +89,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   //   path     - absolute path (starting from storage root)
   //   callback - see <getputdelete.get> for details on the callback parameters
   function get(path, cb) {
+    var promise = util.getPromise();
     if(isForeign(path)) {
       return getForeign(path, cb);
     } else if(state != 'connected') {
@@ -98,8 +99,15 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     if(typeof(path) != 'string') {
       cb(new Error('argument "path" should be a string'));
     } else {
-      getputdelete.get(resolveKey(path), token, cb);
+      getputdelete.get(resolveKey(path), token, function(err, data, mimeType) {
+        if(err) {
+          promise.fail(err);
+        } else {
+          promise.fulfill(data, mimeType);
+        }
+      });
     }
+    return promise;
   }
 
   function getForeign(fullPath, cb) {

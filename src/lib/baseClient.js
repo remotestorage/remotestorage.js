@@ -41,7 +41,7 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     var moduleName = extractModuleName(absPath);
     var modEvents = moduleEvents[moduleName];
     if(! (modEvents && modEvents[isPublic])) {
-      moduleEvents['root'][isPublic].emit('error', error);
+      moduleEvents.root[isPublic].emit('error', error);
     } else {
       modEvents[isPublic].emit('error', error);
     }
@@ -63,18 +63,23 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
 
   function set(moduleName, path, absPath, value, mimeType) {
     if(util.isDir(absPath)) {
-      fireError(absPath, 'attempt to set a value to a directory '+absPath);
+      throw new Error('attempt to set a value to a directory ' + absPath);
       return;
     }
-    var changeEvent = {
-      origin: 'window',
-      oldValue: store.getNodeData(absPath),
-      newValue: value,
-      path: absPath
-    };
-    store.setNodeData(absPath, value, true, undefined, mimeType);
-    fireModuleEvent('change', moduleName, changeEvent);
-    fireModuleEvent('change', 'root', changeEvent);
+    var changeEvent;
+    return store.getNode(absPath).
+      then(function(node) {
+        changeEvent = {
+          origin: 'window',
+          oldValue: node.data,
+          newValue: value,
+          path: absPath
+        };
+        return store.setNodeData(absPath, value, true, undefined, mimeType);
+      }).then(function() {
+        fireModuleEvent('change', moduleName, changeEvent);
+        fireModuleEvent('change', 'root', changeEvent);
+      });
   }
 
   /** FROM HERE ON PUBLIC INTERFACE **/
@@ -90,6 +95,12 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     this.events = util.getEventEmitter('change', 'conflict', 'error');
     moduleEvents[moduleName][isPublic] = this.events;
     util.bindAll(this);
+  };
+
+  var ValidationError = function(object, errors) {
+    Error.call(this, "Validation failed!");
+    this.object = object;
+    this.errors = errors;
   };
 
   // Class: BaseClient
@@ -154,21 +165,24 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     },
 
     nodeGivesAccess: function(path, mode) {
-      var node = store.getNode(path);
-      var access = (new RegExp(mode)).test(node.startAccess);
-      if(access) {
-        return true;
-      } else if(path.length > 0) {
-        return this.nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''));
-      }
+      return store.getNode(path).then(function(node) {
+        var access = (new RegExp(mode)).test(node.startAccess);
+        if(access) {
+          return true;
+        } else if(path.length > 0) {
+          return this.nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''));
+        }
+      }.bind(this));
     },
 
     ensureAccess: function(mode) {
       var path = this.makePath(this.moduleName == 'root' ? '/' : '');
 
-      if(! this.nodeGivesAccess(path, mode)) {
-        throw "Not sufficient access claimed for node at " + path;
-      }
+      return this.nodeGivesAccess(path, mode).then(function(access) {
+        if(! access) {
+          throw "Not sufficient access claimed for node at " + path;
+        }
+      });
     },
 
     // Method: lastUpdateOf
@@ -214,53 +228,14 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     //
     // Parameters:
     //   path     - relative path from the module root (without leading slash)
-    //   callback - (optional) callback, see below
-    //   context  - context for callback.
-    //
-    // Sync vs. async:
-    //
-    //   getObject can be called with or without a callback. When the callback is
-    //   omitted, an object is returned immediately, from local cache.
-    //   If on the other hand a callback is given, this forces a synchronization
-    //   with remotestorage and calls the callback once that synchronization has
-    //   happened.
-    //
-    // When do I use what?:
-    //
-    //   It very much depends on your circumstances, but roughly put,
-    //   * if you are interested in a whole *branch* of objects, then force
-    //     synchronization on the root of that branch using <BaseClient.use>,
-    //     and after that use getObject *without* a callback to get your data from
-    //     local cache.
-    //   * if you only want to access a *single object* without syncing an entire
-    //     branch, use the *asynchronous* variant. That way you only cause that
-    //     particular object to be synchronized.
-    //   * another reason to use the *asynchronous* call sequence would be, if you
-    //     want to be very sure, that the local version of a certain object is
-    //     *up-to-date*, when you retrieve it, without triggering a full-blown sync
-    //     cycle.
     //
     // Returns:
-    //   undefined              - When called with a callback
-    //   an object or undefined - when called without a callback
+    //   A promise for the object.
     //
-    getObject: function(path, callback, context) {
-      this.ensureAccess('r');
-      var absPath = this.makePath(path);
-      var data = store.getNodeData(absPath);
-
-      if(callback) {
-        var cb = util.bind(callback, context);
-        if(data && !(typeof(data) === 'object' && Object.keys(data).length === 0)) {
-          cb(data);
-        } else {
-          sync.syncOne(absPath, function(err, node, data) {
-            cb(data);
-          });
-        }
-      } else {
-        return data;
-      }
+    getObject: function(path) {
+      return this.ensureAccess('r').
+        then(util.curry(store.getNode, this.makePath(path))).
+        get('data');
     },
 
     //
@@ -272,35 +247,18 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     //
     // Parameters:
     //   path     - The path to query. It MUST end with a forward slash.
-    //   callback - see getObject
-    //   context  - see getObject
     //
     // Returns:
-    //   An Array of keys, representing child nodes.
+    //   A promise for an Array of keys, representing child nodes.
     //   Those keys ending in a forward slash, represent *directory nodes*, all
     //   other keys represent *data nodes*.
     //
-    getListing: function(path, callback, context) {
-      this.ensureAccess('r');
-      var absPath = this.makePath(path);
-      if(callback) {
-        sync.syncOne(absPath, function(err, node) {
-          var data = store.getNodeData(absPath);
-          var arr = [];
-          for(var i in data) {
-            arr.push(i);
-          }
-          util.bind(callback, context)(arr);
+    getListing: function(path) {
+      return this.ensureAccess('r').
+        then(util.curry(store.getNode, this.makePath(path))).
+        get('data').then(function(listing) {
+          return Object.keys(listing);
         });
-      } else {
-        var node = store.getNode(absPath);
-        var data = store.getNodeData(absPath);
-        var arr = [];
-        for(var i in data) {
-          arr.push(i);
-        }
-        return arr;
-      }
     },
 
     //
@@ -308,32 +266,53 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     //
     // Get all objects directly below a given path.
     //
-    // Receives the same parameters as <getListing> (FIXME!!!)
+    // Parameters:
+    //   path      - path to the direcotry
+    //   typeAlias - (optional) local type-alias to filter for
     //
-    // Returns an object in the form { path : object, ... }
+    // Returns:
+    //   a promise for an object in the form { path : object, ... }
     //
-    getAll: function(type, path, callback, context) {
-      if(typeof(path) != 'string') {
-        path = type, callback = path, context = callback;
-        type = null;
-      }
-      var makeMap = function(listing) {
-        var o = {};
-        listing.forEach(function(name) {
-          var item = this.getObject(path + name);
-          if((! type) || type == item['@type'].split('/').slice(-1)[0]) {
-            o[path + name] = item;
+    getAll: function(path, typeAlias) {
+
+      function filterByType(objectMap) {
+        if(typeAlias) {
+          var type = this.resolveTypeAlias(typeAlias);
+          for(var key in objectMap) {
+            if(objectMap[key]['@type'] != type) {
+              delete objectMap[key];
+            }
           }
-        }, this);
-        return o;
-      }.bind(this);
-      if(callback) {
-        this.getListing(path, function(listing) {
-          util.bind(callback, context)(makeMap(listing));
-        }, this);
-      } else {
-        return makeMap(this.getListing(path));
+        } else {
+          return objectMap;
+        }
       }
+
+      function retrieveObjects(listing) {
+        var promise = util.getPromise();
+
+        var objectMap = {};
+
+        function retrieveOne() {
+          var key = listing.shift();
+          if(key) {
+            var itemPath = path + key;
+            this.getObject(itemPath).
+              then(function(object) {
+                objectMap[itemPath] = object;
+                retrieveOne();
+              }, promise.fail.bind(promise));
+          } else {
+            promise.fulfill(objectMap);
+          }
+        }
+
+        return promise;
+      }
+
+      return this.getListing(path).
+        then(retrieveObjects.bind(this)).
+        then(filterByType.bind(this));
     },
 
     //
@@ -347,44 +326,22 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     //
     // Parameters:
     //   path     - see getObject
-    //   callback - see getObject
-    //   context  - see getObject
     //
-    // Returned object:
+    // Returns:
+    //   A promise for an object:
+    //
     //   mimeType - String representing the MIME Type of the document.
     //   data     - Raw data of the document (either a string or an ArrayBuffer)
     //
-    getFile: function(path, callback, context) {
-      this.ensureAccess('r');
-      var absPath = this.makePath(path);
-
-      function makeResult() {
-        var data = store.getNodeData(absPath);
-        if(data) {
-          var node = store.getNode(absPath);
+    getFile: function(path) {
+      return this.ensureAccess('r').
+        then(util.curry(store.getNode, this.makePath(path))).
+        then(function(node) {
           return {
             mimeType: node.mimeType,
-            data: data
+            data: node.data
           };
-        } else {
-          return null;
-        }
-      }
-
-      var result = makeResult();
-
-      if(callback) {
-        var cb = util.bind(callback, context);
-        if(result) {
-          cb(result);
-        } else {
-          sync.syncOne(absPath, function() {
-            cb(makeResult());
-          });
-        }
-      } else {
-        return result;
-      }
+        });
     },
 
     // Method: getDocument
@@ -402,14 +359,12 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     //
     // Parameters:
     //   path     - Path relative to the module root.
-    //   callback - (optional) called when the change has been propagated to remotestorage
-    //   context  - (optional)
     //
-    remove: function(path, callback, context) {
-      this.ensureAccess('w');
+    remove: function(path) {
       var absPath = this.makePath(path);
-      set(this.moduleName, path, absPath, undefined);
-      sync.syncOne(absPath, util.bind(callback, context));
+      return this.ensureAccess('w').
+        then(util.curry(set, this.moduleName, path, absPath, undefined)).
+        then(util.curry(sync.syncOne, absPath));
     },
 
     // Method: saveObject
@@ -424,11 +379,9 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     //
     // Parameters:
     //   object - a typed JSON object
-    //   callback - (optional) callback
-    //   context - (optional)
     //   
     //
-    saveObject: function(object, callback, context) {
+    saveObject: function(object) {
       var type = object['@type'];
       var alias = this.resolveTypeAlias(type);
       var idKey = this.resolveIdKey(type);
@@ -438,7 +391,7 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
       if(! object[idKey]) {
         object[idKey] = this.uuid();
       }
-      return this.storeObject(alias, object[idKey], object, callback, context);
+      return this.storeObject(alias, object[idKey], object);
     },
 
     //
@@ -451,8 +404,6 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     //   type     - unique type of this object within this module. See description below.
     //   path     - path relative to the module root.
     //   object   - an object to be saved to the given node. It must be serializable as JSON.
-    //   callback - (optional) called when the change has been propagated to remotestorage
-    //   context  - (optional) 
     //
     // Returns:
     //   An array of errors, when the validation failed, otherwise null.
@@ -483,31 +434,29 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     //
     //   See <declareType> or the calendar module (src/modules/calendar.js) for examples.
     // 
-    storeObject: function(type, path, obj, callback, context) {
-      this.ensureAccess('w');
+    storeObject: function(typeAlias, path, obj) {
       if(typeof(path) !== 'string') {
-        throw "given path must be a string (got: " + typeof(path) + ")";
+        throw new Error("given path must be a string (got: " + typeof(path) + ")");
       }
       if(typeof(obj) !== 'object') {
-        throw "given object must be an object (got: " + typeof(obj) + ")";
+        throw new Error("given object must be an object (got: " + typeof(obj) + ")");
       }
-      obj['@type'] = this.resolveType(type);
-
-      var errors = this.validateObject(obj);
-
       if(util.isDir(path)) {
         throw new Error("Can't store directory node");
       }
 
-      if(errors) {
-        logger.error("Error saving this ", type, ": ", obj, errors);
-        return errors;
-      } else {
-        var absPath = this.makePath(path);
-        set(this.moduleName, path, absPath, obj, 'application/json');
-        sync.syncOne(absPath, util.bind(callback, context));
-        return null;
-      }
+      var absPath = this.makePath(path);
+
+      return this.ensureAccess('w').
+        then(function() {
+          obj['@type'] = this.resolveType(typeAlias);
+          var errors = this.validateObject(obj);
+          if(errors) {
+            throw new ValidationError(obj, errors);
+          }
+          return set(this.moduleName, path, absPath, obj, 'application/json');
+        }.bind(this)).
+        then(util.curry(sync.syncOne, absPath));
     },
 
     //
@@ -519,8 +468,6 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     //   mimeType - MIME media type of the data being stored
     //   path     - path relative to the module root. MAY NOT end in a forward slash.
     //   data     - string or ArrayBuffer of raw data to store
-    //   callback - (optional) called when the change has been propagated to remotestorage
-    //   context  - (optional)
     //
     // The given mimeType will later be returned, when retrieving the data
     // using <getFile>.
@@ -546,17 +493,17 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     //   fileReader.readAsArrayBuffer(file);
     //   (end code)
     //
-    storeFile: function(mimeType, path, data, callback, context) {
-      this.ensureAccess('w');
-      var absPath = this.makePath(path);
+    storeFile: function(mimeType, path, data) {
       if(util.isDir(path)) {
         throw new Error("Can't store directory node");
       }
       if(typeof(data) !== 'string' && !(data instanceof ArrayBuffer)) {
         throw new Error("storeFile received " + typeof(data) + ", but expected a string or an ArrayBuffer!");
       }
-      set(this.moduleName, path, absPath, data, mimeType);
-      sync.syncOne(absPath, util.bind(callback, context));
+      var absPath = this.makePath(path);
+      return this.ensureAccess('w').
+        then(util.curry(set, this.moduleName, path, absPath, data, mimeType)).
+        then(util.curry(sync.syncOne, absPath));
     },
 
     // Method: storeDocument
@@ -701,7 +648,7 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     //   (end code)
     //
     buildObject: function(alias, attributes) {
-      var object = {}
+      var object = {};
       var type = this.resolveType(alias);
       var idKey = this.resolveIdKey(type);
       if(! attributes) {
