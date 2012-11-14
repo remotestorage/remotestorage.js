@@ -1,7 +1,6 @@
 define([
   './assets',
   './webfinger',
-  './hardcoded',
   './wireClient',
   './sync',
   './store',
@@ -11,7 +10,7 @@ define([
   '../vendor/mailcheck',
   '../vendor/levenshtein',
   './store/localStorage'
-], function(assets, webfinger, hardcoded, wireClient, sync, store, platform, util, schedule, mailcheck, levenshtein, localStorageAdapter) {
+], function(assets, webfinger, wireClient, sync, store, platform, util, schedule, mailcheck, levenshtein, localStorageAdapter) {
 
   // Namespace: widget
   //
