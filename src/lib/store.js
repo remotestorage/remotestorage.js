@@ -1,4 +1,6 @@
-define(['./util', './platform'], function (util, platform, localStorageAdapter) {
+define([
+  './util', './platform', './store/memory', './store/localStorage'
+], function (util, platform, memoryAdapter, localStorageAdapter) {
 
   "use strict";
 
@@ -28,7 +30,7 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
 
   var events = util.getEventEmitter('error', 'change', 'foreign-change');
 
-  var dataStore = null;
+  var dataStore;
 
   // Method: setAdapter
   // Set the storage adapter. See <StorageAdapter> for a description of
@@ -41,6 +43,13 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
         fireChange('device', event.path, event.oldValue);
       }
     });
+  }
+
+  if(typeof(window) !== 'undefined' &&
+     typeof(window.localStorage !== 'undefined')) {
+    setAdapter(localStorageAdapter(window.localStorage));
+  } else {
+    setAdapter(memoryAdapter());
   }
 
   //
@@ -110,6 +119,7 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
   //   a node object. If no node is found at the given path, a new empty
   //   node object is constructed instead.
   function getNode(path) {
+    logger.info('getNode', path);
     if(! path) {
       // FIXME: fail returned promise instead.
       throw new Error("No path given!");
@@ -237,6 +247,7 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
   //   treeFlag  - whether to sync the tree
   //
   function setNodeForce(path, dataFlag, treeFlag) {
+    logger.debug('setNodeForce', path, dataFlag, treeFlag);
     return updateMetadata(path, {
       startForce: dataFlag,
       startForceTree: treeFlag
@@ -360,7 +371,7 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
 
   function unpackData(node) {
     node = util.extend({}, node);
-    if(node.mimeType === 'application/json') {
+    if(node.mimeType === 'application/json' && typeof(node.data) !== 'object') {
       node.data = JSON.parse(node.data);
     } else if(node.binary) {
       node.data = util.decodeBinary(node.data);
@@ -389,25 +400,27 @@ define(['./util', './platform'], function (util, platform, localStorageAdapter) 
     validPath(path);
 
     function adjustTimestamp() {
-      function setTimestamp(t) {
-        if(t) { timestamp = t };
-        if(node && typeof(timestamp) == 'number') {
-          node.timestamp = timestamp;
+      return util.makePromise(function(promise) {
+        function setTimestamp(t) {
+          if(t) { timestamp = t };
+          if(node && typeof(timestamp) == 'number') {
+            node.timestamp = timestamp;
+          }
+          promise.fulfill();
         }
-      }
-      var promise = util.getPromise();
-      if((!meta) && (! timestamp)) {
-        if(outgoing) {
-          timestamp = getCurrTimestamp();
-          setTimestamp();
-          return promise.fulfillLater();
-        } else if(util.isDir(path)) {
-          return determineDirTimestamp(path).then(setTimestamp);
+        if((!meta) && (! timestamp)) {
+          if(outgoing) {
+            timestamp = getCurrTimestamp();
+            setTimestamp();
+          } else if(util.isDir(path)) {
+            determineDirTimestamp(path).then(setTimestamp);
+          } else {
+            throw new Error('no timestamp given for node ' + path);
+          }
         } else {
-          return promise.failLater(new Error('no timestamp given for node ' + path));
+          setTimestamp();
         }
-      }
-      return promise.fulfillLater();
+      });
     }
 
     function storeNode() {

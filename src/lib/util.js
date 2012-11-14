@@ -1,3 +1,10 @@
+/*global Buffer */
+/*global window */
+/*global console */
+/*global Uint8Array */
+/*global setTimeout */
+/*global localStorage */
+/*global ArrayBuffer */
 
 define([], function() {
 
@@ -60,7 +67,7 @@ define([], function() {
         this.nextPromise = new Promise();
       }
     });
-  }
+  };
 
   Promise.prototype = {
     fulfill: function() {
@@ -73,9 +80,9 @@ define([], function() {
       if(! this.handlers.fulfilled) {
         return;
       }
+      var nextResult;
       try {
-        var nextResult;
-        nextResult = this.handlers.fulfilled.apply(null, this.result);
+        nextResult = this.handlers.fulfilled.apply(this, this.result);
       } catch(exc) {
         if(this.nextPromise) {
           this.nextPromise.fail(exc);
@@ -107,7 +114,7 @@ define([], function() {
       this.result = util.toArray(arguments);
       this.success = false;
       if(this.handlers.failed) {
-        this.handlers.failed.apply(null, this.result);
+        this.handlers.failed.apply(this, this.result);
       } else if(this.nextPromise) {
         this.nextPromise.fail.apply(this.nextPromise, this.result);
       } else {
@@ -164,7 +171,7 @@ define([], function() {
         return result[methodName].apply(result, args);
       });
     }
-  }
+  };
 
 
   var util = {
@@ -176,7 +183,7 @@ define([], function() {
       for(var i=0;i<nData;i++) {
         rawData += String.fromCharCode(view[i]);
       }
-      return rawData
+      return rawData;
     },
 
     rawToBuffer: function(rawData) {
@@ -223,7 +230,7 @@ define([], function() {
     pathParts: function(path) {
       var parts = ['/'];
       var md;
-      while(md = path.match(/^(.*?)([^\/]+\/?)$/)) {
+      while((md = path.match(/^(.*?)([^\/]+\/?)$/))) {
         parts.unshift(md[2]);
         path = md[1];
       }
@@ -279,6 +286,20 @@ define([], function() {
         for(var i=(_a.length-1);i>=0;i--) {
           a.unshift(_a[i]);
         }
+        return f.apply(this, a);
+      };
+    },
+
+    rcurry: function(f) {
+      if(typeof(f) !== 'function') {
+        throw "Can only curry functions!";
+      }
+      var _a = Array.prototype.slice.call(arguments, 1);
+      return function() {
+        var a = util.toArray(arguments);
+        _a.forEach(function(item) {
+          a.push(item);
+        });
         return f.apply(this, a);
       };
     },
@@ -526,6 +547,126 @@ define([], function() {
 
     getPromise: function() {
       return new Promise();
+    },
+
+    isPromise: function(object) {
+      return typeof(object) === 'object' && typeof(object.then) === 'function';
+    },
+
+    makePromise: function(futureCallback) {
+      var promise = new Promise();
+      util.nextTick(function() {
+        try {
+          var result = futureCallback(promise);
+          if(result && result.then && typeof(result.then) === 'function') {
+            result.then(
+              promise.fulfill.bind(promise),
+              promise.fail.bind(promise)
+            );
+          }
+        } catch(exc) {
+          promise.fail(exc);
+        }
+      });
+      return promise;
+    },
+
+    asyncGroup: function() {
+      var functions = util.toArray(arguments);
+      var results = [];
+      var todo = functions.length;
+      var errors = [];
+      return util.makePromise(function(promise) {
+        if(functions.length === 0) {
+          return promise.fulfill([], []);
+        }
+        function finishOne(result, index) {
+          results[index] = result;
+          todo--;
+          if(todo === 0) {
+            promise.fulfill(results, errors);
+          }
+        }
+        function failOne(error) {
+          console.error("asyncGroup part failed: ", error.stack || error);
+          errors.push(error);
+          finishOne();
+        }
+        functions.forEach(function(fun, index) {
+          if(typeof(fun) !== 'function') {
+            throw new Error("asyncGroup got non-function: " + fun);
+          }
+          var _result = fun();
+          if(_result && _result.then && typeof(_result.then) === 'function') {
+            _result.then(function(result) {
+              finishOne(result, index);
+            }, failOne);
+          } else {
+            finishOne(_result, index);
+          }
+        });
+      });
+    },
+
+    asyncEach: function(array, iterator) {
+      return util.makePromise(function(promise) {
+        util.asyncGroup.apply(
+          util, array.map(function(element, index) {
+            return util.curry(iterator, element, index);
+          })
+        ).then(function(results, errors) {
+          promise.fulfill(array, errors);
+        });
+      });
+    },
+
+    asyncMap: function(array, mapper) {
+      return util.asyncGroup.apply(
+        util, array.map(function(element) {
+          return util.curry(mapper, element);
+        })
+      );
+    },
+    
+
+    asyncSelect: function(array, testFunction) {
+      var a = [];
+      return util.asyncEach(array, function(element) {
+        return testFunction(element).then(function(result) {
+          if(result) {
+            a.push(element);
+          }
+        });
+      }).then(function() {
+        return a;
+      });
+    },
+
+    getSettingStore: function(prefix) {
+      function makeKey(key) {
+        return prefix + ':' + key;
+      }
+      return {
+        get: function(key) {
+          var data = localStorage.getItem(makeKey(key));
+          try { data = JSON.parse(data); } catch(e) {}
+          return data;
+        },
+        set: function(key, value) {
+          if(typeof(value) !== 'string') {
+            value = JSON.stringify(value);
+          }
+          return localStorage.setItem(makeKey(key), value);
+        },
+        remove: function(key) {
+          return localStorage.removeItem(makeKey(key));
+        },
+        clear: function() {
+          util.grepLocalStorage(new RegExp('^' + prefix), function(key) {
+            localStorage.removeItem(key);
+          });
+        }
+      }
     }
   };
 

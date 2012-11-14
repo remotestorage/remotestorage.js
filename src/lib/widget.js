@@ -1,4 +1,4 @@
-define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util', './schedule', './mailcheck', './levenshtein'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util, schedule, mailcheck, levenshtein) {
+define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './store', './platform', './util', './schedule', './mailcheck', './levenshtein', './store/localStorage'], function (assets, webfinger, hardcoded, wireClient, sync, store, platform, util, schedule, mailcheck, levenshtein, localStorageAdapter) {
 
   // Namespace: widget
   //
@@ -23,11 +23,13 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   var initialSync;
   var scopesObj = {};
   var timeoutCount = 0;
+  var pendingError;
 
   var widget;
   var offlineReason;
 
   var events = util.getEventEmitter('state', 'ready');
+  var settings = util.getSettingStore('remotestorage_widget');
 
   var popupSettings = 'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,width=820,height=800,top=0,left=0';
 
@@ -153,15 +155,20 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
         widget.menu.style.display = 'block';
         if(widgetState == 'busy') {
           widget.menuItemSync.innerHTML = "Syncing";
-        } else if(sync.needsSync()) {
-          widget.menuItemSync.innerHTML = "Unsynced";
-        } else if(sync.lastSyncAt > 0) {
-          var t = new Date().getTime() - sync.lastSyncAt.getTime();
-          widget.menuItemSync.innerHTML = "Synced " + Math.round(t / 1000) + ' seconds ago';
         } else {
-          widget.menuItemSync.innerHTML = "(never synced)";
+          sync.needsSync().
+            then(function(result) {
+              if(result) {
+                widget.menuItemSync.innerHTML = "Unsynced";
+              } else if(sync.lastSyncAt > 0) {
+                var t = new Date().getTime() - sync.lastSyncAt.getTime();
+                widget.menuItemSync.innerHTML = "Synced " + Math.round(t / 1000) + ' seconds ago';
+              } else {
+                widget.menuItemSync.innerHTML = "(never synced)";
+              }
+              widget.menuItemSync.appendChild(widget.syncButton);
+            });
         }
-        widget.menuItemSync.appendChild(widget.syncButton);
       }
     }
   }
@@ -205,7 +212,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
 
     widget.root.setAttribute('class', state);
 
-    var userAddress = localStorage['remote_storage_widget_useraddress'] || '';
+    var userAddress = settings.get('useraddress') || '';
 
     if(userAddress) {
       widget.userAddress.value = userAddress;
@@ -252,6 +259,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     if(state === 'typing') {
       widget.userAddress.focus();
     }
+
+    if(pendingError) {
+      displayError(pendingError);
+      pendingError = undefined;
+    }
   }
 
   function displayError(message) {
@@ -259,7 +271,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       widget.error.style.display = 'block';
       widget.error.innerHTML = message;
     } else {
-      alert(message);
+      pendingError = message;
     }
   }
 
@@ -334,7 +346,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   }
 
   function dance() {
-    var endpoint = localStorage['remote_storage_widget_auth_endpoint'];
+    var endpoint = settings.get('auth_endpoint');
     var endPointParts = endpoint.split('?');
     var queryParams = [];
     if(endPointParts.length == 2) {
@@ -370,31 +382,13 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     }
   }
 
-  function discoverStorageInfo(userAddress, cb) {
-    webfinger.getStorageInfo(userAddress, {timeout: 5000}, function(err, data) {
-      if(err) {
-        hardcoded.guessStorageInfo(userAddress, {timeout: 5000}, function(err2, data2) {
-          if(err2) {
-            logger.debug("Error from fakefinger: " + err2);
-            cb(err);
-          } else {
-            if(data2.type && data2.href && data.properties && data.properties['auth-endpoint']) {
-              wireClient.setStorageInfo(data2.type, data2.href);
-              cb(null, data2.properties['auth-endpoint']);
-            } else {
-              cb('cannot make sense of storageInfo from webfinger');
-            }
-          }
-        });
-      } else {
-        if(data.type && data.href && data.properties && data.properties['auth-endpoint']) {
-          wireClient.setStorageInfo(data.type, data.href);
-          cb(null, data.properties['auth-endpoint']);
-        } else {
-          cb('cannot make sense of storageInfo from hardcoded');
-        }
-      }
-    });
+  function acquireAuthEndpoint(userAddress, cb) {
+    return webfinger.getStorageInfo(userAddress, {timeout: 5000}).
+      then(function(storageInfo) {
+        console.log("Discovered storage info: ", storageInfo);
+        wireClient.setStorageInfo(storageInfo);
+        return storageInfo.properties['auth-endpoint'];
+      });
   }
 
   var maxRetryCount = 2;
@@ -403,28 +397,22 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     if(typeof(retryCount) == 'undefined') {
       retryCount = 0;
     }
-    discoverStorageInfo(userAddress, function(err, auth) {
-      if(err) {
-        if(err == 'timeout' && retryCount != maxRetryCount) {
-          tryWebfinger(userAddress, retryCount + 1);
-        } else {
-          displayError('webfinger discovery failed! Please check if your user address is correct and try again. If the problem persists, contact your storage provider for support. (Error is: ' + err + ')');
-        }
-        if(authDialogStrategy == 'popup') {
-          closeAuthPopup();
-        }
-        setWidgetState('typing');
-      } else {
-        localStorage['remote_storage_widget_auth_endpoint'] = auth;
-        dance();
+    acquireAuthEndpoint(userAddress).then(function(authEndpoint) {
+      settings.set('auth_endpoint', authEndpoint);
+      dance();
+    }, function(error) {
+      if(authDialogStrategy === 'popup') {
+        closeAuthPopup();
       }
+      logger.error("Webfinger discovery failed: ", error);
+      displayError('Failed to find your storage. Please check your user address and try again.');
     });
   }
 
   function handleConnectButtonClick() {
     if(widgetState == 'typing') {
       userAddress = widget.userAddress.value;
-      localStorage['remote_storage_widget_useraddress'] = userAddress;
+      settings.set('useraddress', userAddress);
       setWidgetState('connecting');
       if(authDialogStrategy == 'popup') {
         prepareAuthPopup();
@@ -439,11 +427,11 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
   function handleBubbleClick() {
     if(widgetState == 'connected' || widgetState == 'busy') {
       // DISCONNECT
-      sync.fullPush(function() {
+      sync.fullPush().then(function() {
         wireClient.disconnectRemote();
         store.forgetAll();
         sync.clearSettings();
-        localStorage.removeItem('remote_storage_widget_useraddress');
+        settings.clear();
         widget.userAddress.value = '';
         // trigger 'disconnected' once, so the app can clear it's views.
         setWidgetState('disconnected', true);
@@ -484,14 +472,15 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
     logger.info("NOW CONNECTED");
     setWidgetState('connected');
     initialSync = true;
-    store.fireInitialEvents();
-    sync.forceSync(function() {
-      logger.info("Initial sync done.");
-      initialSync = false;
-      setWidgetState(getWidgetState());
-      schedule.enable();
-      events.emit('ready');
-    });
+    store.fireInitialEvents().
+      then(sync.forceSync).
+      then(function() {
+        logger.info("Initial sync done.");
+        initialSync = false;
+        setWidgetState(getWidgetState());
+        schedule.enable();
+        events.emit('ready');
+      });
   }
 
   function tryReconnect() {
@@ -589,7 +578,7 @@ define(['./assets', './webfinger', './hardcoded', './wireClient', './sync', './s
       wireClient.setStorageInfo((storageApiHarvested ? storageApiHarvested : '2012.04'), storageRootHarvested);
     }
     if(authorizeEndpointHarvested) {
-      localStorage['remote_storage_widget_auth_endpoint'] = authorizeEndpointHarvested;
+      settings.set('auth_endpoint', authorizeEndpointHarvested);
       dance();
     }
 

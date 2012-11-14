@@ -64,7 +64,6 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
   function set(moduleName, path, absPath, value, mimeType) {
     if(util.isDir(absPath)) {
       throw new Error('attempt to set a value to a directory ' + absPath);
-      return;
     }
     var changeEvent;
     return store.getNode(absPath).
@@ -254,10 +253,13 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
     //   other keys represent *data nodes*.
     //
     getListing: function(path) {
+      if(! util.isDir(path)) {
+        throw "Not a directory: " + path;
+      }
       return this.ensureAccess('r').
         then(util.curry(store.getNode, this.makePath(path))).
         get('data').then(function(listing) {
-          return Object.keys(listing);
+          return listing ? Object.keys(listing) : [];
         });
     },
 
@@ -279,7 +281,7 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
         if(typeAlias) {
           var type = this.resolveTypeAlias(typeAlias);
           for(var key in objectMap) {
-            if(objectMap[key]['@type'] != type) {
+            if(objectMap[key]['@type'] !== type) {
               delete objectMap[key];
             }
           }
@@ -293,11 +295,13 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
 
         var objectMap = {};
 
+        var _this = this;
+
         function retrieveOne() {
           var key = listing.shift();
           if(key) {
             var itemPath = path + key;
-            this.getObject(itemPath).
+            _this.getObject(itemPath).
               then(function(object) {
                 objectMap[itemPath] = object;
                 retrieveOne();
@@ -306,6 +310,8 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
             promise.fulfill(objectMap);
           }
         }
+
+        retrieveOne();
 
         return promise;
       }
@@ -503,7 +509,9 @@ define(['./sync', './store', './util', './validate', './wireClient', './Math.uui
       var absPath = this.makePath(path);
       return this.ensureAccess('w').
         then(util.curry(set, this.moduleName, path, absPath, data, mimeType)).
-        then(util.curry(sync.syncOne, absPath));
+        then(function() {
+          sync.syncOne(absPath);
+        });
     },
 
     // Method: storeDocument

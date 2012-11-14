@@ -46,65 +46,34 @@ define(
      // Webfinger //
     ///////////////
 
-    function userAddress2hostMetas(userAddress, cb) {
+    // PARSE
+
+    // parse user address
+    function extractHostname(userAddress) {
       var parts = userAddress.toLowerCase().split('@');
+      var error;
       if(parts.length < 2) {
-        cb('That is not a user address. There is no @-sign in it');
+        error = 'That is not a user address. There is no @-sign in it';
       } else if(parts.length > 2) {
-        cb('That is not a user address. There is more than one @-sign in it');
+        error = 'That is not a user address. There is more than one @-sign in it';
       } else {
         if(!(/^[\.0-9a-z\-\_]+$/.test(parts[0]))) {
-          cb('That is not a user address. There are non-dotalphanumeric symbols before the @-sign: "'+parts[0]+'"');
+          error = 'That is not a user address. There are non-dotalphanumeric symbols before the @-sign: "'+parts[0]+'"';
         } else if(!(/^[\.0-9a-z\-]+$/.test(parts[1]))) {
-          cb('That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"');
-        } else {
-          var query = '?resource=acct:'+encodeURIComponent(userAddress);
-          cb(null, [
-            'https://'+parts[1]+'/.well-known/host-meta.json'+query,
-            'https://'+parts[1]+'/.well-known/host-meta'+query,
-            'http://'+parts[1]+'/.well-known/host-meta.json'+query,
-            'http://'+parts[1]+'/.well-known/host-meta'+query
-            ]);
+          error = 'That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"';
         }
       }
-    }
-    function fetchXrd(addresses, timeout, cb, errors) {
-      var firstAddress = addresses.shift();
-      if(! errors) {
-        errors = [];
+      if(error) {
+        throw error;
       }
-      if(firstAddress) {
-        platform.ajax({
-          url: firstAddress,
-          success: function(data) {
-            parseAsJrd(data, function(err, obj){
-              if(err) {
-                parseAsXrd(data, function(err, obj){
-                  if(err) {
-                    fetchXrd(addresses, timeout, cb);
-                  } else {
-                    cb(null, obj);
-                  }
-                });
-              } else {
-                cb(null, obj);
-              }
-            });
-          },
-          error: function(error) {
-            errors.push(error);
-            fetchXrd(addresses, timeout, cb, errors);
-          },
-          timeout: timeout
-        });
-      } else {
-        cb('could not fetch XRD: ' + errors[0]);
-      }
+      return parts[1];
     }
-    function parseAsXrd(str, cb) {
+
+    function parseXRD(str) {
+      var promise = util.getPromise();
       platform.parseXml(str, function(err, obj) {
         if(err) {
-          cb(err);
+          promise.fail(err);
         } else {
           if(obj && obj.Link) {
             var links = {};
@@ -119,52 +88,96 @@ define(
                 }
               }
             }
-            cb(null, links);
+            promise.fulfill(links);
           } else {
-            cb('found valid xml but with no Link elements in there');
+            promise.fail('found valid xml but with no Link elements in there');
           }
         }
       });
+      return promise;
     }
-    function parseAsJrd(str, cb) {
-      var obj;
-      try {
-        obj = JSON.parse(str);
-      } catch(e) {
-        cb('not valid JSON');
-        return;
-      }
-      if(! obj.links) {
-        cb('JRD contains no links');
+
+    function parseJRD(data) {
+      var object = JSON.parse(data);
+      if(! object.links) {
+        throw new Error('JRD contains no links: ' + JSON.stringify(object));
       }
       var links = {};
-      for(var i=0; i<obj.links.length; i++) {
-        //just take the first one of each rel:
-        if(obj.links[i].rel) {
-          links[obj.links[i].rel]=obj.links[i];
+      object.links.forEach(function(link) {
+        // just take the first one of each rel:
+        if(link.rel && (! links[link.rel])) {
+          links[link.rel] = link;
         }
-      }
-      cb(null, links);
+      });
+      return links;
     }
 
-    function parseRemoteStorageLink(obj, cb) {
-      // TODO:
-      //   * check for and validate properties.auth-method
-      //   * validate type
-      if(obj
-          && obj['href']
-          && obj['type']
-          && obj['properties']
-          && obj['properties']['auth-endpoint']
-        ) {
-        cb(null, obj);
-      } else {
-        cb('could not extract storageInfo from lrdd');
+    // request a single profile
+    function fetchProfile(address, timeout) {
+      console.log('fetch profile', address, timeout);
+      return platform.ajax({
+        url: address,
+        timeout: timeout
+      }).then(function(body, headers) {
+        var mimeType = headers && headers['content-type'] && headers['content-type'].split(';')[0];
+        console.log('fetched', body, mimeType);
+        if(mimeType && mimeType.match(/^application\/json/)) {
+          return parseJRD(body);
+        } else {
+          return util.makePromise(function(jrdPromise) {
+            parseXRD(body).then(
+              function(xrd) {
+                jrdPromise.fulfill(xrd);
+              }, function(error) {
+                jrdPromise.fulfill(parseJRD(body));
+              });
+          });
+        }
+      });
+    }
+
+    // fetch profile from all given addresses and yield the first one that
+    // succeeds.
+    function fetchHostMeta(addresses, timeout) {
+      console.log('fetch host meta', addresses, timeout);
+      return util.asyncMap(addresses, util.rcurry(fetchProfile, timeout, true)).
+        then(function(profiles, errors) {
+          console.log('host meta mapped', profiles);
+          for(var i=0;i<profiles.length;i++) {
+            if(profiles[i]) {
+              return profiles[i];
+            }
+          }
+          throw new Error(
+            "Failed to fetch webfinger profile. All requests failed."
+          );
+        });
+    }
+
+    function extractRemoteStorageLink(links) {
+      console.log('extract remoteStorage link', links);
+      var remoteStorageLink = links.remoteStorage || links.remotestorage;
+      var lrddLink;
+      if(remoteStorageLink) {
+        console.log('remoteStorageLink', remoteStorageLink);
+        if(remoteStorageLink.href &&
+           remoteStorageLink.type &&
+           remoteStorageLink.properties &&
+           remoteStorageLink.properties['auth-endpoint']) {
+          return remoteStorageLink;
+        } else {
+          throw new Error("Invalid remoteStorage link. Required properties are:" +
+                          "href, type, properties, properties.auth-endpoint. " +
+                          JSON.stringify(remoteStorageLink));
+        }
+      } else if(lrddLink = links.lrdd) {
+        return fetchProfile(
+          lrddLink.template.replace('{uri}', 'acct:' + userAddress)
+        ).then(extractRemoteStorageLink);
       }
     }
 
-
-    // Method: getStorageInfo
+    // method: getStorageInfo
     // Get the storage information of a given user address.
     //
     // Parameters:
@@ -179,43 +192,32 @@ define(
     //   err         - either an error message or null if discovery succeeded
     //   storageInfo - the format is equivalent to that of the JSON representation of the remotestorage link (see above)
     //
-    function getStorageInfo(userAddress, options, cb) {
-      userAddress2hostMetas(userAddress, function(err1, hostMetaAddresses) {
-        logger.debug("HOST META ADDRESSES", hostMetaAddresses, '(error: ', err1, ')');
-        if(err1) {
-          cb(err1);
-        } else {
-          fetchXrd(hostMetaAddresses, options.timeout, function(err2, hostMetaLinks) {
-            if(err2) {
-              cb('could not fetch host-meta for '+userAddress + ' (' + err2 + ')');
-            } else {
-              if(hostMetaLinks['remoteStorage'] || hostMetaLinks['remotestorage']) {
-                parseRemoteStorageLink(
-                  hostMetaLinks['remoteStorage'] || hostMetaLinks['remotestorage'],
-                  cb
-                );
-              } else if(hostMetaLinks['lrdd'] && hostMetaLinks['lrdd'].template) {
-                var parts = hostMetaLinks['lrdd'].template.split('{uri}');
-                var lrddAddresses=[parts.join('acct:'+userAddress), parts.join(userAddress)];
-                 fetchXrd(lrddAddresses, options.timeout, function(err4, lrddLinks) {
-                  if(err4) {
-                    cb('could not fetch lrdd for '+userAddress);
-                  } else if(lrddLinks['remoteStorage']) {
-                    parseRemoteStorageLink(lrddLinks['remoteStorage'], cb);
-                  } else if(lrddLinks['remotestorage']) {
-                    parseRemoteStorageLink(lrddLinks['remotestorage'], cb);
-                  } else {
-                    cb('could not extract storageInfo from lrdd');
-                  }
-                });
-              } else {
-                cb('could not extract lrdd template from host-meta');
-              }
-            }
-          });
-        }
-      });
+    function getStorageInfo(userAddress, options) {
+
+      /*
+
+        - validate userAddres
+        - fetch host-meta
+        - parse host-meta
+        - (optionally) fetch lrdd
+        - (optionally) parse lrdd
+        - extract links
+
+       */
+
+      var hostname = extractHostname(userAddress)
+      var query = '?resource=acct:' + encodeURIComponent(userAddress);
+      var addresses = [
+        'https://' + hostname + '/.well-known/host-meta.json' + query,
+        'https://' + hostname + '/.well-known/host-meta' + query,
+        'http://'  + hostname + '/.well-known/host-meta.json' + query,
+        'http://'  + hostname + '/.well-known/host-meta' + query
+      ];
+
+      return fetchHostMeta(addresses, options.timeout).
+        then(extractRemoteStorageLink);
     }
+
     return {
       getStorageInfo: getStorageInfo
     };
