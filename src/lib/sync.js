@@ -143,6 +143,7 @@ define([
     return util.makePromise(function(promise) {
       if(! isConnected()) {
         promise.fail('not-connected');
+        return;
       }
 
       logger.info("full " + (pushOnly ? "push" : "sync") + " started");
