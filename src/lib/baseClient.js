@@ -1,4 +1,11 @@
-define(['./sync', './store', './util', './validate', './wireClient', './Math.uuid'], function (sync, store, util, validate, wireClient, MathUUID) {
+define([
+  './util',
+  './store',
+  './wireClient',
+  './sync',
+  '../vendor/validate',
+  '../vendor/Math.uuid'
+], function(util, store, wireClient, sync, validate, MathUUID) {
 
   "use strict";
 
