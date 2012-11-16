@@ -112,23 +112,6 @@ define(['requirejs', 'fs'], function(requirejs, fs) {
             });
         }
       },
-      {
-        desc: "store.getNode unpacks JSON data",
-        run: function(env) {
-          var _this = this;
-          var t = new Date().getTime();
-          env.storageAdapter.set("/foo/bar", {
-            timestamp: t,
-            mimeType: "application/json",
-            data: '{"foo":"bar"}'
-          }).then(curry(env.store.getNode, '/foo/bar'))
-            .get('data')
-            .then(function(data) {
-              _this.assertTypeAnd(data, 'object');
-              _this.assert(data, { foo: 'bar' });
-            });
-        }
-      },
 
       {
         desc: "store.setNodeData stores incoming data correctly",

@@ -45,7 +45,6 @@ define(['../util', './pending'], function(util, pendingAdapter) {
         }
         
         dbRequest.onupgradeneeded = function(event) {
-          console.log('creating object store (onupgradeneeded)');
           upgrade(event.target.result);
         };
 
@@ -54,7 +53,6 @@ define(['../util', './pending'], function(util, pendingAdapter) {
           if(typeof(database.setVersion) === 'function') {
             var versionRequest = database.setVersion(DB_VERSION);
             versionRequest.onsuccess = function(event) {
-              console.log('version request', event);
               upgrade(database);
               event.target.transaction.oncomplete = function() {
                 promise.fulfill(database);
@@ -62,13 +60,12 @@ define(['../util', './pending'], function(util, pendingAdapter) {
             };
           } else {
             // assume onupgradeneeded is supported.
-            console.log('DB VERSION', database.version);
             promise.fulfill(database);
           }
         };
 
         dbRequest.onerror = function(event) {
-          console.error("indexedDB.open failed: ", event);
+          logger.error("indexedDB.open failed: ", event);
           promise.fail(new Error("Failed to open database!"));
         }; 
       });
@@ -81,11 +78,9 @@ define(['../util', './pending'], function(util, pendingAdapter) {
           objectStore(OBJECT_STORE_NAME);
         var request = store[methodName].apply(store, args);
         request.onsuccess = function() {
-          console.log('SUCCESS', methodName, args[0], request.result);
           promise.fulfill(request.result);
         };
         request.onerror = function(event) {
-          console.log('FAILURE', methodName);
           promise.fail(event.error);
         };
       });

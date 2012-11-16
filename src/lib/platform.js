@@ -176,7 +176,7 @@ define(['./util'], function(util) {
             window.clearTimeout(timer);
           }
           if(isSuccessful(xhr)) {
-            console.log("SUCCESSFUL", params.url, xhr.responseText);
+            logger.debug("REQUEST SUCCESSFUL", params.url, xhr.responseText);
             var headers = browserParseHeaders(xhr.getAllResponseHeaders());
             if(! headers) {
               // Firefox' getAllResponseHeaders is broken for CORS requests since forever.
@@ -188,7 +188,7 @@ define(['./util'], function(util) {
             }
             promise.fulfill(xhr.responseText, headers);
           } else {
-            console.log("FAILED", xhr.status, params.url);
+            logger.debug("REQUEST FAILED", xhr.status, params.url);
             promise.fail(xhr.status || new Error('network error'));
           }
         }

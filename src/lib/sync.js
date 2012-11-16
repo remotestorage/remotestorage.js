@@ -96,7 +96,7 @@ define([
       return util.getPromise().fulfillLater(false);
     }
     return store.getNode(path).then(function(root) {
-      if(Object.keys(root.diff) > 0) {
+      if(Object.keys(root.diff).length > 0) {
         return true;
       }
       var keys = Object.keys(root.data);
@@ -149,12 +149,12 @@ define([
       logger.info("full " + (pushOnly ? "push" : "sync") + " started");
 
       findRoots().then(function(roots) {
-        console.log("SYNCING ROOTS", roots);
+        logger.debug("SYNCING ROOTS", roots);
         var synced = 0;
 
         function rootCb(path) {
           return function() {
-            console.log("SYNCED ROOT", path); 
+            logger.debug("SYNCED ROOT", path); 
             synced++;
             if(synced == roots.length) {
               sync.lastSyncAt = new Date();
@@ -303,7 +303,7 @@ define([
     var result = task.run();
     if(util.isPromise(result)) {
       result.then(finishTask, function(error) {
-        console.error("TASK FAILED", error.stack || error);
+        logger.error("TASK FAILED", error.stack || error);
         finishTask();
         fireError(null, error);
       });
@@ -794,7 +794,7 @@ define([
     };
 
     function mergeDataNode(path, localNode, remoteNode, options) {
-      console.log("traverseTree.mergeDataNode", path);
+      logger.debug("traverseTree.mergeDataNode", path);
       if(util.isDir(path)) {
         throw new Error("Not a data node: " + path);
       }
@@ -804,7 +804,7 @@ define([
     }
 
     function mergeDirectory(path, localNode, remoteNode, options) {
-      console.log("traverseTree.mergeDirectory", path);
+      logger.debug("traverseTree.mergeDirectory", path);
       var fullListing = makeSet(
         Object.keys(localNode.data),
         Object.keys(remoteNode.data)
@@ -831,18 +831,17 @@ define([
     }
 
     function mergeTree(path, options) {
-      console.log("traverseTree.mergeTree", path);
+      logger.debug("traverseTree.mergeTree", path);
       options.path = path;
       return fetchLocalNode(path).
         then(util.rcurry(determineLocalInterest, options)).
         then(function(localNode, localInterest, nextRoots) {
           if(localInterest) {
-            console.log('getting remote node');
             return fetchRemoteNode(path).
               then(function(remoteNode) {
                 return mergeDirectory(path, localNode, remoteNode, options).
                   then(function() {
-                    console.log('mergeDirectory done');
+                    logger.debug('mergeDirectory done');
                   });
               });
           } else if(nextRoots) {
@@ -852,7 +851,7 @@ define([
               });
             }
           } else {
-            console.log("NO INTEREST & NO NEXT ROOTS", path);
+            logger.debug("NO INTEREST & NO NEXT ROOTS", path);
           }
         });
     }

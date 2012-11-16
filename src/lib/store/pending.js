@@ -6,7 +6,7 @@ define(['../util'], function(util) {
     var requestQueue = [];
 
     function queueRequest(name, args, dontPromise) {
-      logger.info(name, args[0]);
+      logger.debug(name, args[0]);
       if(! dontPromise) {
         return util.makePromise(function(promise) {
           requestQueue.push({
@@ -41,7 +41,7 @@ define(['../util'], function(util) {
       },
       flush: function(adapter) {
         requestQueue.forEach(function(request) {
-          console.log('QUEUE FLUSH', request.method, request.args[0]);
+          logger.debug('QUEUE FLUSH', request.method, request.args[0]);
           if(request.promise) {
             adapter[request.method].apply(adapter, request.args).
               then(request.promise.fulfill.bind(request.promise),

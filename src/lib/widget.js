@@ -162,6 +162,17 @@ define([
     }
   }
 
+  function timeAgo(usec) {
+    var sec = usec / 1000;
+    if(sec > 3600) {
+      return (sec / 3600) + ' hours ago';
+    } else if(sec > 60) {
+      return (sec / 60) + ' minutes ago';
+    } else {
+      return Math.round(sec) + ' seconds ago';
+    }
+  }
+
   function showMenu() {
     if(widgetState == 'connected' || widgetState == 'busy') {
       if(widget.menu.style.display != 'block') {
@@ -175,7 +186,7 @@ define([
                 widget.menuItemSync.innerHTML = "Unsynced";
               } else if(sync.lastSyncAt > 0) {
                 var t = new Date().getTime() - sync.lastSyncAt.getTime();
-                widget.menuItemSync.innerHTML = "Synced " + Math.round(t / 1000) + ' seconds ago';
+                widget.menuItemSync.innerHTML = "Synced " + timeAgo(t);
               } else {
                 widget.menuItemSync.innerHTML = "(never synced)";
               }

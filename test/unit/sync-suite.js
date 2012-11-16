@@ -320,8 +320,53 @@ define(['requirejs'], function(requirejs) {
               _this.result(false);
             });
         }
-      }
+      },
+      
+      {
+        desc: "sync~needsSync yields true, when there is a diff",
+        run: function(env) {
+          var _this = this;
+          var needsSync = env.sync.getInternal('needsSync');
+          env.store.setNodeAccess('/foo/', 'rw').
+            then(function() {
+              return env.store.setNodeData(
+                '/foo/bar', 'some-text', true, 12345, 'text/plain'
+              );
+            }).
+            then(function() {
+              return needsSync();
+            }).
+            then(function(result) {
+              _this.result(result);
+            }, function(error) {
+              console.error('needsSync failed: ', error, error.stack);
+              _this.result(false);
+            });
+        }
+      },
 
+      {
+        desc: "sync~needsSync yields false, when there is no diff",
+        run: function(env) {
+          var _this = this;
+          var needsSync = env.sync.getInternal('needsSync');
+          env.store.setNodeAccess('/foo/', 'rw').
+            then(function() {
+              return env.store.setNodeData(
+                '/foo/bar', 'some-text', false, 12345, 'text/plain'
+              );
+            }).
+            then(function() {
+              return needsSync();
+            }).
+            then(function(result) {
+              _this.result(!result);
+            }, function(error) {
+              console.error('needsSync failed: ', error, error.stack);
+              _this.result(false);
+            });
+        }
+      }
 
     ]
   });

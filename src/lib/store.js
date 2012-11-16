@@ -8,19 +8,6 @@ define([
 
   "use strict";
 
-  /*
-    Methods that should return promises
-      - getNode
-      - forget
-      - forgetAll
-      - setNodeData
-      - setNodeAccess
-      - setNodeForce
-      - clearDiff
-      - determineDirTimestamp
-      - updateNode
-   */
-
   // Namespace: store
   //
   // The store stores data locally. It treats all data as raw nodes, that have *metadata* and *payload*.
@@ -491,7 +478,8 @@ define([
     forgetAll         : forgetAll,        // widget
     fireInitialEvents : fireInitialEvents,// widget
 
-    setAdapter        : setAdapter
+    setAdapter        : setAdapter,
+    getAdapter        : function() { return dataStore; }
   };
 
   // Interface: StorageAdapter
