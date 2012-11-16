@@ -261,7 +261,9 @@ define([
     //
     getListing: function(path) {
       if(! util.isDir(path)) {
-        throw "Not a directory: " + path;
+        return util.getPromise().failLater(
+          new Error("Not a directory: " + path)
+        );
       }
       return this.ensureAccess('r').
         then(util.curry(store.getNode, this.makePath(path))).
