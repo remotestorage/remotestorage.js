@@ -1,4 +1,4 @@
-define(['../util'], function(util) {
+define(['../util', './common'], function(util, common) {
 
   // Namespace: store.localStorage
   // <StorageAdapter> implementation that keeps data localStorage.
@@ -58,17 +58,18 @@ define(['../util'], function(util) {
             node.data = payload;
           }
         
-          promise.fulfill(node);
+          promise.fulfill(common.unpackData(node));
         });
       },
 
       set: function(path, node) {
         return util.makePromise(function(promise) {
-          var metadata = util.extend({}, node);
+          var metadata = common.packData(node);
+          var rawData = metadata.data;
           delete metadata.data;
           var rawMetadata = JSON.stringify(metadata);
           localStorage.setItem(prefixNode(path), rawMetadata);
-          localStorage.setItem(prefixData(path), node.data);
+          localStorage.setItem(prefixData(path), data);
           promise.fulfill();
         });
       },

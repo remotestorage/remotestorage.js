@@ -1,6 +1,10 @@
 define([
-  './util', './platform', './store/memory', './store/localStorage'
-], function (util, platform, memoryAdapter, localStorageAdapter) {
+  './util',
+  './platform',
+  './store/memory',
+  './store/localStorage',
+  './store/indexedDb'
+], function (util, platform, memoryAdapter, localStorageAdapter, indexedDbAdapter) {
 
   "use strict";
 
@@ -45,12 +49,21 @@ define([
     });
   }
 
-  if(typeof(window) !== 'undefined' &&
-     typeof(window.localStorage !== 'undefined')) {
-    setAdapter(localStorageAdapter(window.localStorage));
-  } else {
-    setAdapter(memoryAdapter());
-  }
+  (function() {
+    if(typeof(window) !== 'undefined') {
+      var idb = indexedDbAdapter.detect();
+      if(idb) {
+        setAdapter(indexedDbAdapter(idb));
+      } else if(typeof(window.localStorage !== 'undefined')) {
+        setAdapter(localStorageAdapter(window.localStorage));
+      } else {
+        throw "Running in browser, but no storage adapter supported!";
+      }
+    } else {
+      console.error("WARNING: falling back to in-memory storage");
+      setAdapter(memoryAdapter());
+    }
+  })();
 
   //
   // Type: Node
@@ -139,8 +152,6 @@ define([
           node.diff = {};
           node.data = {};
         }
-      } else {
-        node = unpackData(node);
       }
       return node;
     });
@@ -227,6 +238,7 @@ define([
   //   claim - claim to set. Either "r" or "rw"
   //
   function setNodeAccess(path, claim) {
+    logger.debug('setNodeAccess', path, claim);
     return getNode(path).then(function(node) {
       if((claim !== node.startAccess) &&
          (claim === 'rw' || node.startAccess === null)) {
@@ -369,34 +381,10 @@ define([
       });
   }
 
-  function unpackData(node) {
-    node = util.extend({}, node);
-    if(node.mimeType === 'application/json' && typeof(node.data) !== 'object') {
-      node.data = JSON.parse(node.data);
-    } else if(node.binary) {
-      node.data = util.decodeBinary(node.data);
-    }
-    return node;
-  }
-
-  function packData(node) {
-    node = util.extend({}, node);
-    if(typeof(node.data) === 'object' && node.data instanceof ArrayBuffer) {
-      node.binary = true;
-      node.data = util.encodeBinary(node.data);
-    } else {
-      node.binary = false;
-      if(typeof(node.data) === 'object') {
-        node.data = JSON.stringify(node.data);
-      } else {
-        node.data = node.data;
-      }
-    }
-    return node;
-  }
-
   // FIXME: this argument list is getting too long!!!
   function updateNode(path, node, outgoing, meta, timestamp, oldValue) {
+    logger.info('updateNode', path, node, outgoing, meta, timestamp);
+
     validPath(path);
 
     function adjustTimestamp() {
@@ -425,9 +413,9 @@ define([
 
     function storeNode() {
       if(node) {
-        return dataStore.set(path, packData(node));
+        return dataStore.set(path, node);
       } else {
-        return dataStore.set(path);
+        return dataStore.remove(path);
       }
     }
 
