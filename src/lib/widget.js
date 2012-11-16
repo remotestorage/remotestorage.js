@@ -9,8 +9,9 @@ define([
   './schedule',
   '../vendor/mailcheck',
   '../vendor/levenshtein',
-  './store/localStorage'
-], function(assets, webfinger, wireClient, sync, store, platform, util, schedule, mailcheck, levenshtein, localStorageAdapter) {
+  './store/localStorage',
+  './store/indexedDb'
+], function(assets, webfinger, wireClient, sync, store, platform, util, schedule, mailcheck, levenshtein, localStorageAdapter, indexedDbAdapter) {
 
   // Namespace: widget
   //
@@ -532,7 +533,7 @@ define([
         // clear bearer token, so the wireClient state is correct.
         wireClient.setBearerToken(null);
         setWidgetState('offline');
-      } else if(error.message == 'unknown error') {
+      } else if(error.message == 'network error') {
         // "unknown error" happens when the XHR doesn't
         // have any status code set. this usually means
         // a network error occured. We handle it exactly

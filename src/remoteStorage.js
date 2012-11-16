@@ -227,6 +227,7 @@ define([
         moduleObj = {};
         moduleObj[moduleName] = mode;
       }
+
       return util.asyncEach(Object.keys(moduleObj), function(_moduleName) {
         var _mode = moduleObj[_moduleName];
         testMode(_moduleName, _mode);
@@ -247,7 +248,7 @@ define([
 
       claimedModules[moduleName] = true;
 
-      if(moduleName == 'root') {
+      if(moduleName === 'root') {
         moduleName = '';
         widget.addScope('', mode);
         return store.setNodeAccess('/', mode).
