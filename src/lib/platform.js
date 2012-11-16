@@ -189,7 +189,7 @@ define(['./util'], function(util) {
             promise.fulfill(xhr.responseText, headers);
           } else {
             console.log("FAILED", xhr.status, params.url);
-            promise.fail(xhr.status || new Error('unknown error'));
+            promise.fail(xhr.status || new Error('network error'));
           }
         }
       };
