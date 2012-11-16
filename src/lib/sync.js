@@ -305,6 +305,7 @@ define([
       result.then(finishTask, function(error) {
         console.error("TASK FAILED", error.stack || error);
         finishTask();
+        fireError(null, error);
       });
     }
   }
