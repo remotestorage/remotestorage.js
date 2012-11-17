@@ -88,24 +88,24 @@ define(['../util', './pending'], function(util, pendingAdapter) {
 
     var indexedDbStore = {
       on: function(eventName, handler) {
-        logger.info("WARNING: indexedDB event handling not implemented");
+        logger.debug("WARNING: indexedDB event handling not implemented");
       },
       get: function(key) {
-        logger.info("GET " + key);
+        logger.debug("GET " + key);
         return storeRequest('get', key);
       },
       set: function(key, value) {
-        logger.info("SET " + key);
+        logger.debug("SET " + key);
         var node = value;
         node.key = key;
         return storeRequest('put', node);
       },
       remove: function(key) {
-        logger.info("REMOVE " + key);
+        logger.debug("REMOVE " + key);
         return storeRequest('delete', key);
       },
       forgetAll: function() {
-        logger.info("FORGET ALL");
+        logger.debug("FORGET ALL");
         return storeRequest('clear', store);
       }
     };
