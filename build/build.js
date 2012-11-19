@@ -110,15 +110,15 @@ if(process.argv[2] == 'debug') {
 } else {
   build('latest/remoteStorage.min', 'remoteStorage');
   build('latest/remoteStorage-debug', 'remoteStorage', { debug: true });
-  build('latest/remoteStorage-node.min', 'remoteStorage', { start: 'startNode.frag', end: 'endNode.frag' });
-  build('latest/remoteStorage-node-debug', 'remoteStorage', { start: 'startNode.frag', end: 'endNode.frag', debug: true });
+  build('latest/remoteStorage-node.min', 'remoteStorage', { end: 'endNode.frag' });
+  build('latest/remoteStorage-node-debug', 'remoteStorage', { end: 'endNode.frag', debug: true });
 
 
   build('latest/remoteStorage-modules.min', 'remoteStorage-modules', { end: 'endModules.frag' });
   build('latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
 
-  build('latest/remoteStorage-node-modules.min', 'remoteStorage-modules', { start: 'startNode.frag', end: 'endNodeModules.frag' });
-  build('latest/remoteStorage-node-modules-debug', 'remoteStorage-modules', { start: 'startNode.frag', end: 'endNodeModules.frag', debug: true });
+  // build('latest/remoteStorage-node-modules.min', 'remoteStorage-modules', { end: 'endNodeModules.frag' });
+  // build('latest/remoteStorage-node-modules-debug', 'remoteStorage-modules', { end: 'endNodeModules.frag', debug: true });
 
   function cp(s, d) {
     if(fs.existsSync(d)) {
@@ -127,9 +127,9 @@ if(process.argv[2] == 'debug') {
     fs.copy(s, d, function(err) { if(err) console.log("copy failed: " + err) });
   }
 
-  cp('latest/remoteStorage.min.js', 'latest/remoteStorage.js');
-  cp('latest/remoteStorage-node.min.js', 'latest/remoteStorage-node.js');
-  cp('latest/remoteStorage-modules.min.js', 'latest/remoteStorage-modules.js');
+  cp('./latest/remoteStorage.min.js', 'latest/remoteStorage.js');
+  cp('./latest/remoteStorage-node.min.js', 'latest/remoteStorage-node.js');
+  cp('./latest/remoteStorage-modules.min.js', 'latest/remoteStorage-modules.js');
 }
 
 // var mods = modules.map(function(module) {
