@@ -69,7 +69,7 @@ define(['../util', './common'], function(util, common) {
           delete metadata.data;
           var rawMetadata = JSON.stringify(metadata);
           localStorage.setItem(prefixNode(path), rawMetadata);
-          localStorage.setItem(prefixData(path), data);
+          localStorage.setItem(prefixData(path), rawData);
           promise.fulfill();
         });
       },
