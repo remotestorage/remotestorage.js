@@ -260,7 +260,7 @@ define([
     //   other keys represent *data nodes*.
     //
     getListing: function(path) {
-      if(! util.isDir(path)) {
+      if(! (util.isDir(path) || path === '')) {
         return util.getPromise().failLater(
           new Error("Not a directory: " + path)
         );

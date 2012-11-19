@@ -51,13 +51,17 @@ define(['../util', './pending'], function(util, pendingAdapter) {
         dbRequest.onsuccess = function(event) {
           var database = event.target.result;
           if(typeof(database.setVersion) === 'function') {
-            var versionRequest = database.setVersion(DB_VERSION);
-            versionRequest.onsuccess = function(event) {
-              upgrade(database);
-              event.target.transaction.oncomplete = function() {
-                promise.fulfill(database);
+            if(database.version != DB_VERSION) {
+              var versionRequest = database.setVersion(DB_VERSION);
+              versionRequest.onsuccess = function(event) {
+                upgrade(database);
+                event.target.transaction.oncomplete = function() {
+                  promise.fulfill(database);
+                };
               };
-            };
+            } else {
+              promise.fulfill(database);
+            }
           } else {
             // assume onupgradeneeded is supported.
             promise.fulfill(database);
@@ -106,7 +110,7 @@ define(['../util', './pending'], function(util, pendingAdapter) {
       },
       forgetAll: function() {
         logger.debug("FORGET ALL");
-        return storeRequest('clear', store);
+        return removeDatabase();
       }
     };
 
@@ -117,8 +121,7 @@ define(['../util', './pending'], function(util, pendingAdapter) {
       util.extend(tempStore, indexedDbStore);
     }
 
-    removeDatabase().
-      then(openDatabase).
+    openDatabase().
       then(function(db) {
         DB = db;
         replaceAdapter();
