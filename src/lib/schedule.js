@@ -28,10 +28,10 @@ define(['./util', './sync'], function(util, sync) {
     var now = new Date().getTime();
 
     // assemble list of paths that need action
-    for(var path in watchedPaths) {
-      var lastSync = lastPathSync[path];
-      if((! lastSync) || (lastSync + watchedPaths[path]) <= now) {
-        syncNow.push(path);
+    for(var p in watchedPaths) {
+      var lastSync = lastPathSync[p];
+      if((! lastSync) || (lastSync + watchedPaths[p]) <= now) {
+        syncNow.push(p);
       }
     }
 

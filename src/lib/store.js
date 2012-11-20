@@ -1,3 +1,6 @@
+/*global window */
+/*global console */
+
 define([
   './util',
   './platform',
@@ -318,7 +321,7 @@ define([
               if(keys.length > 0) {
                 return iter(path + keys.shift()).then(next);
               }
-            }
+            };
             return next();
           }
         });
@@ -377,7 +380,7 @@ define([
     function adjustTimestamp() {
       return util.makePromise(function(promise) {
         function setTimestamp(t) {
-          if(t) { timestamp = t };
+          if(t) { timestamp = t; }
           if(node && typeof(timestamp) == 'number') {
             node.timestamp = timestamp;
           }
