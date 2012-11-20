@@ -133,6 +133,26 @@ define(['requirejs'], function(requirejs, undefined) {
               _this.assert(object, { json: 'object' });
             }, catchError(this));
         }
+      },
+
+      {
+        desc: "BaseClient#saveObject returns a promise",
+        run: function(env) {
+          this.assertType(env.client.saveObject({}).then, 'function');
+        }
+      },
+
+      {
+        desc: "BaseClient#saveObject fails when no @type is given",
+        run: function(env) {
+          var _this = this;
+          env.client.saveObject({}).
+            then(function() {
+              _this.result(false);
+            }, function(error) {
+              _this.result(!! error);
+            });
+        }
       }
     ]
   });
