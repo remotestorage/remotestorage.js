@@ -110,22 +110,28 @@ define(['../util', './pending'], function(util, pendingAdapter) {
       },
       forgetAll: function() {
         logger.debug("FORGET ALL");
-        return removeDatabase();
+        return removeDatabase().then(doOpenDatabase);
       }
     };
 
     var tempStore = pendingAdapter();
 
     function replaceAdapter() {
-      tempStore.flush(indexedDbStore);
-      util.extend(tempStore, indexedDbStore);
+      if(tempStore.flush) {
+        tempStore.flush(indexedDbStore);
+        util.extend(tempStore, indexedDbStore);
+      }
     }
 
-    openDatabase().
-      then(function(db) {
-        DB = db;
-        replaceAdapter();
-      });
+    function doOpenDatabase() {
+      openDatabase().
+        then(function(db) {
+          DB = db;
+          replaceAdapter();
+        });
+    }
+
+    doOpenDatabase();
 
     return tempStore;
   };
