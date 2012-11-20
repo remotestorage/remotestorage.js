@@ -17,18 +17,6 @@ define(
           timeout: deadLine || 5000,
           headers: {}
         };
-        //   error: function(err) {
-        //     if(err == 404) {
-        //       promise.fulfill(undefined);
-        //     } if(err == 401) {
-        //       err = 'unauthorized';
-        //     }
-        //     throw err;
-        //   },
-        //   success: function(data, headers) {
-        //     //logger.debug('doCall cb '+url, 'headers:', headers);
-        //   },
-        // };
 
         if(token) {
           platformObj.headers['Authorization'] = 'Bearer ' + token;
@@ -44,7 +32,7 @@ define(
         if(method != 'GET') {
           platformObj.data = body;
         }
-        //logger.debug('platform.ajax '+url);
+
         platform.ajax(platformObj).
           then(function(data, headers) {
             var contentType = headers['content-type'] || defaultContentType;
@@ -76,26 +64,20 @@ define(
       return doCall('GET', url, null, null, token);
     }
 
-    function put(url, value, mimeType, token, cb) {
+    function put(url, value, mimeType, token) {
       if(! (typeof(value) === 'string' || (typeof(value) === 'object' &&
                                            value instanceof ArrayBuffer))) {
-        cb(new Error("invalid value given to PUT, only strings allowed, got "
+        cb(new Error("invalid value given to PUT, only strings or ArrayBuffers allowed, got "
                      + typeof(value)));
       }
-        /// TODO:
-// typeof(params.data) === 'object' &&
-//               params.data instanceof ArrayBuffer
-      doCall('PUT', url, value, mimeType, token, function(err, data) {
-        //logger.debug('cb from PUT '+url);
-        cb(err, data);
-      });
+      return doCall('PUT', url, value, mimeType, token);
     }
 
-    function set(url, valueStr, mimeType, token, cb) {
+    function set(url, valueStr, mimeType, token) {
       if(typeof(valueStr) == 'undefined') {
-        doCall('DELETE', url, null, null, token, cb);
+        return doCall('DELETE', url, null, null, token);
       } else {
-        put(url, valueStr, mimeType, token, cb);
+        return put(url, valueStr, mimeType, token);
       }
     }
 
