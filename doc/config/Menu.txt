@@ -27,7 +27,7 @@ Footer: remoteStorage.js is developed by some people. It's open source (MIT lice
 # These are indexes you deleted, so Natural Docs will not add them again
 # unless you remove them from this line.
 
-Don't Index: Functions, Files, Classes, Types, Events, Build Targets, Properties
+Don't Index: Functions, Files, Events, Interfaces, Classes, Types, Build Targets, Properties
 
 
 # --------------------------------------------------------------------------
@@ -64,6 +64,7 @@ Group: Guides  {
 
    File: Adding remoteStorage to your app  (/home/nil/src/remoteStorage.js/doc/pages/howto-include.txt)
    File: Howto contribute  (/home/nil/src/remoteStorage.js/doc/pages/howto-contribute.txt)
+   File: Promises  (/home/nil/src/remoteStorage.js/doc/pages/promises.txt)
    File: Working with schemas  (/home/nil/src/remoteStorage.js/doc/pages/schema.txt)
    }  # Group: Guides
 
@@ -91,9 +92,10 @@ Group: API  {
       File: webfinger  (/home/nil/src/remoteStorage.js/src/lib/webfinger.js)
       File: platform  (/home/nil/src/remoteStorage.js/src/lib/platform.js)
       File: nodeConnect  (/home/nil/src/remoteStorage.js/src/lib/nodeConnect.js)
-      File: hardcoded  (/home/nil/src/remoteStorage.js/src/lib/hardcoded.js)
       File: widget  (/home/nil/src/remoteStorage.js/src/lib/widget.js)
       File: ForeignClient  (/home/nil/src/remoteStorage.js/src/lib/foreignClient.js)
+      File: store.localStorage  (/home/nil/src/remoteStorage.js/src/lib/store/localStorage.js)
+      File: store.memory  (/home/nil/src/remoteStorage.js/src/lib/store/memory.js)
       }  # Group: Internals
 
    Group: Docs Index  {
