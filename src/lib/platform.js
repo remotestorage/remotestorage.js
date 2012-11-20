@@ -66,32 +66,10 @@ define(['./util'], function(util) {
   //   node - yes, if xml2js is available
   //
   //
-  // Method: setElementHTML
-  //
-  // Set the HTML content of an element.
-  //
-  // Parameters:
-  //   element - either an Element or a DOM ID resolving to an element
-  //   content - HTML content to set
-  //
-  // Platform support:
-  //   browser - Yes
-  //   node - not implemented
-  //
-  //
-  // Method: getElementValue
-  //
-  //
-  // Method: eltOn
-  //
-  //
   // Method: getLocation
   //
   //
   // Method: setLocation
-  //
-  //
-  // Method: alert
   //
 
   var logger = util.getLogger('platform');
@@ -352,37 +330,6 @@ define(['./util'], function(util) {
     }
   }
 
-  function setElementHtmlNode(eltName, html) {
-  }
-
-  function setElementHtmlBrowser(eltName, html) {
-    var elt = eltName;
-    if(! (elt instanceof Element)) {
-      elt = document.getElementById(eltName);
-    }
-    elt.innerHTML = html;
-  }
-
-  function getElementValueNode(eltName) {
-  }
-
-  function getElementValueBrowser(eltName) {
-    return document.getElementById(eltName).value;
-  }
-
-  function eltOnNode(eltName, eventType, cb) {
-  }
-
-  function eltOnBrowser(eltName, eventType, cb) {
-    if(eventType == 'click') {
-      document.getElementById(eltName).onclick = cb;
-    } else if(eventType == 'hover') {
-      document.getElementById(eltName).onmouseover = cb;
-    } else if(eventType == 'type') {
-      document.getElementById(eltName).onkeyup = cb;
-    }
-  }
-
   function getLocationBrowser() {
     //TODO: deal with http://user:a#aa@host.com/ although i doubt someone would actually use that even once between now and the end of the internet
     return window.location.href.split('#')[0];
@@ -398,45 +345,15 @@ define(['./util'], function(util) {
   function setLocationNode() {
   }
 
-  function alertBrowser(str) {
-    window.alert(str);
-  }
-
-  function alertNode(str) {
-    console.log(str);
-  }
-
-  var inTestMode = false;
-
   var platform;
-
-  function testMode() {
-    platform.ajax = function(params) {
-      this.calls.push(params);
-      return util.getPromise.fulfillLater(
-        this.testResponseText, this.testHeaders
-      );
-    };
-
-    platform.prepareTest = function(responseText, headers) {
-      this.calls = [];
-      this.testResponseText = responseText;
-      this.testHeaders = headers;
-    };
-  }
 
   if(typeof(window) === 'undefined') {
     platform = {
       ajax: ajaxNode,
       parseXml: parseXmlNode,
       harvestParam: harvestParamNode,
-      setElementHTML: setElementHtmlNode,
-      getElementValue: getElementValueNode,
-      eltOn: eltOnNode,
       getLocation: getLocationNode,
-      setLocation: setLocationNode,
-      alert: alertNode,
-      testMode: testMode
+      setLocation: setLocationNode
     };
   } else {
     if(window.XDomainRequest) {
@@ -444,26 +361,16 @@ define(['./util'], function(util) {
         ajax: ajaxExplorer,
         parseXml: parseXmlBrowser,
         harvestParam: harvestParamBrowser,
-        setElementHTML: setElementHtmlBrowser,
-        getElementValue: getElementValueBrowser,
-        eltOn: eltOnBrowser,
         getLocation: getLocationBrowser,
-        setLocation: setLocationBrowser,
-        alert: alertBrowser,
-        testMode: testMode
+        setLocation: setLocationBrowser
       };
     } else {
       platform = {
         ajax: ajaxBrowser,
         parseXml: parseXmlBrowser,
         harvestParam: harvestParamBrowser,
-        setElementHTML: setElementHtmlBrowser,
-        getElementValue: getElementValueBrowser,
-        eltOn: eltOnBrowser,
         getLocation: getLocationBrowser,
-        setLocation: setLocationBrowser,
-        alert: alertBrowser,
-        testMode: testMode
+        setLocation: setLocationBrowser
       };
     }
 
