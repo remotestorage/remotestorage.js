@@ -10,7 +10,7 @@ define(['../remoteStorage'], function(remoteStorage) {
         getPublicItems: getPublicItems,
         getObject: client.getObject
       }
-    }
+    };
   });
 
   remoteStorage.defineModule('root', function(myPrivateBaseClient, myPublicBaseClient) {

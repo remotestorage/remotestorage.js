@@ -72,7 +72,7 @@ define(['../remoteStorage'], function(remoteStorage) {
             publicClient.storeObject('bookmark', key, bookmark);
 
             var listing = publicClient.getListing('');
-            delete listing['published'];
+            delete listing.published;
             publicClient.storeObject('bookmark-list', 'published', listing);
           }
 

@@ -58,7 +58,7 @@ define([
         "fn": {
           "type": "string",
           "description": "formatted name",
-          "required": true,
+          "required": true
         },
 
         "uid": {
@@ -144,7 +144,7 @@ define([
               },
               "value": {
                 "type": "string",
-                "regex": "^[\d+-\s]+$"
+                "regex": "^[\\d+-\\s]+$"
               }
             }
           }
@@ -216,7 +216,7 @@ define([
             return false;
           }
         }
-      }
+      };
       for(var key in filterKeys) {
         if(! check(item[key], filterKeys[key])) {
           return false;
@@ -268,7 +268,7 @@ define([
               }
               base.storeObject('vcard', vcard.uid, vcard);
             });
-          }
+          };
           reader.readAsText(file);
         }
       }

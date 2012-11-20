@@ -44,7 +44,7 @@ define(['../remoteStorage'], function(remoteStorage) {
         return getContent(id).slice(0, 50);
       }
       function setContent(id, content) {
-        if(content == '') {
+        if(content === '') {
           myBaseClient.remove(listName+'/'+id);
         } else {
           myBaseClient.storeObject('text', listName+'/'+id, {
