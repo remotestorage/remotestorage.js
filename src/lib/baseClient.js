@@ -68,9 +68,13 @@ define([
     fireModuleEvent('conflict', 'root', event);
   });
 
+  function failedPromise(error) {
+    return util.getPromise().failLater(error);
+  }
+
   function set(moduleName, path, absPath, value, mimeType) {
     if(util.isDir(absPath)) {
-      throw new Error('attempt to set a value to a directory ' + absPath);
+      return failedPromise(new Error('attempt to set a value to a directory ' + absPath));
     }
     var changeEvent;
     return store.getNode(absPath).
@@ -198,14 +202,17 @@ define([
     //   path - Relative path from the module root
     //
     // Returns:
-    //   a Number - when the node exists
+    //   a promise for a timestamp, which is either
+    //   a Number - when the node exists OR
     //   null - when the node doesn't exist
     //
     // The timestamp is represented as Number of milliseconds.
     // Use this snippet to get a Date object from it
-    //   > var timestamp = client.lastUpdateOf('path/to/node');
-    //   > // (normally you should check that 'timestamp' isn't null now)
-    //   > new Date(timestamp);
+    //   > client.lastUpdateOf('path/to/node').
+    //   >   then(function(timestamp) {
+    //   >     // (normally you should check that 'timestamp' isn't null now)
+    //   >     console.log('last update: ', new Date(timestamp));
+    //   >   });
     //
     lastUpdateOf: function(path) {
       var absPath = this.makePath(path);
@@ -238,6 +245,12 @@ define([
     // Returns:
     //   A promise for the object.
     //
+    // Example:
+    //   > client.getObject('/path/to/object').
+    //   >   then(function(object) {
+    //   >     // object is either an object or null
+    //   >   });
+    //
     getObject: function(path) {
       return this.ensureAccess('r').
         then(util.curry(store.getNode, this.makePath(path))).
@@ -258,6 +271,13 @@ define([
     //   A promise for an Array of keys, representing child nodes.
     //   Those keys ending in a forward slash, represent *directory nodes*, all
     //   other keys represent *data nodes*.
+    //
+    // Example:
+    //   > client.getListing('').then(function(listing) {
+    //   >   listing.forEach(function(item) {
+    //   >     console.log('- ' + item);
+    //   >   });
+    //   > });
     //
     getListing: function(path) {
       if(! (util.isDir(path) || path === '')) {
@@ -283,6 +303,13 @@ define([
     //
     // Returns:
     //   a promise for an object in the form { path : object, ... }
+    //
+    // Example:
+    //   > client.getAll('').then(function(objects) {
+    //   >   for(var key in objects) {
+    //   >     console.log('- ' + key + ': ', objects[key]);
+    //   >   }
+    //   > });
     //
     getAll: function(path, typeAlias) {
 
@@ -348,6 +375,15 @@ define([
     //   mimeType - String representing the MIME Type of the document.
     //   data     - Raw data of the document (either a string or an ArrayBuffer)
     //
+    // Example:
+    //   (start code)
+    //   // Display an image:
+    //   client.getFile('path/to/some/image').then(function(file) {
+    //     var blob = new Blob([file.data], { type: file.mimeType });
+    //     var targetElement = document.findElementById('my-image-element');
+    //     targetElement.src = window.URL.createObjectURL(blob);
+    //   });
+    //   (end code)
     getFile: function(path) {
       return this.ensureAccess('r').
         then(util.curry(store.getNode, this.makePath(path))).
@@ -394,14 +430,14 @@ define([
     //
     // Parameters:
     //   object - a typed JSON object
-    //   
+    // 
     //
     saveObject: function(object) {
       var type = object['@type'];
       var alias = this.resolveTypeAlias(type);
       var idKey = this.resolveIdKey(type);
       if(! idKey) {
-        throw "Invalid typed JSON object! ID attribute could not be resolved.";
+        return failedPromise("Invalid typed JSON object! ID attribute could not be resolved.");
       }
       if(! object[idKey]) {
         object[idKey] = this.uuid();
@@ -421,7 +457,8 @@ define([
     //   object   - an object to be saved to the given node. It must be serializable as JSON.
     //
     // Returns:
-    //   An array of errors, when the validation failed, otherwise null.
+    //   A promise to store the object. The promise fails with a ValidationError, when validations fail.
+    //
     //
     // What about the type?:
     //
@@ -451,13 +488,13 @@ define([
     // 
     storeObject: function(typeAlias, path, obj) {
       if(typeof(path) !== 'string') {
-        throw new Error("given path must be a string (got: " + typeof(path) + ")");
+        return failedPromise(new Error("given path must be a string (got: " + typeof(path) + ")"));
       }
       if(typeof(obj) !== 'object') {
-        throw new Error("given object must be an object (got: " + typeof(obj) + ")");
+        return failedPromise(new Error("given object must be an object (got: " + typeof(obj) + ")"));
       }
       if(util.isDir(path)) {
-        throw new Error("Can't store directory node");
+        return failedPromise(new Error("Can't store directory node"));
       }
 
       var absPath = this.makePath(path);
@@ -503,17 +540,17 @@ define([
     //
     //   fileReader.onload = function() {
     //     client.storeFile(file.type, file.name, fileReader.result);
-    //   }
+    //   };
     //
     //   fileReader.readAsArrayBuffer(file);
     //   (end code)
     //
     storeFile: function(mimeType, path, data) {
       if(util.isDir(path)) {
-        throw new Error("Can't store directory node");
+        return failedPromise(new Error("Can't store directory node"));
       }
       if(typeof(data) !== 'string' && !(data instanceof ArrayBuffer)) {
-        throw new Error("storeFile received " + typeof(data) + ", but expected a string or an ArrayBuffer!");
+        return failedPromise(new Error("storeFile received " + typeof(data) + ", but expected a string or an ArrayBuffer!"));
       }
       var absPath = this.makePath(path);
       return this.ensureAccess('w').
@@ -558,7 +595,7 @@ define([
     syncOnce: function(path, callback) {
       var previousTreeForce = store.getNode(path).startForceTree;
       this.use(path, false);
-      sync.partialSync(path, 1, function() {
+      return sync.partialSync(path, 1, function() {
         if(previousTreeForce) {
           this.use(path, true);
         } else {
@@ -584,7 +621,7 @@ define([
     //
     use: function(path, treeOnly) {
       var absPath = this.makePath(path);
-      store.setNodeForce(absPath, !treeOnly, true);
+      return store.setNodeForce(absPath, !treeOnly, true);
     },
 
     // Method: release
@@ -595,22 +632,29 @@ define([
     // 
     release: function(path) {
       var absPath = this.makePath(path);
-      store.setNodeForce(absPath, false, false);
+      return store.setNodeForce(absPath, false, false);
     },
 
     // Method: hasDiff
     //
-    // Returns true if the node at the given path has a diff set.
+    // Yields true if the node at the given path has a diff set.
     // Having a "diff" means, that the node or one of it's descendants
     // has been updated since it was last pulled from remotestorage.
     hasDiff: function(path) {
       var absPath = this.makePath(path);
-      if(util.isDir(absPath)) {
-        return Object.keys(store.getNode(absPath).diff).length > 0;
-      } else {
-        var parentPath = util.containingDir(absPath);
-        return !! store.getNode(parentPath).diff[path.split('/').slice(-1)[0]];
+      var item = null;
+      if(! util.isDir(absPath)) {
+        item = util.baseName(absPath);
+        absPath = util.containingDir(absPath);
       }
+      return store.getNode(absPath).get('diff').
+        then(function(diff) {
+          if(item) {
+            return !! diff[item];
+          } else {
+            return Object.keys(diff).length > 0;
+          }
+        });
     },
 
     /**** TYPE HANDLING ****/
@@ -705,13 +749,18 @@ define([
     //     }
     //   });
     //
-    //   client.storeObject('drink', 'foo', {});
-    //   // returns errors:
-    //   // [{ "property": "name",
-    //   //    "message": "is missing and it is required" }]
-    //
-    //   
+    //   client.storeObject('drink', 'foo', {}).
+    //     then(function() {
+    //       // object saved
+    //     }, function(error) {
+    //       // error.errors holds validation errors:
+    //       // [{ "property": "name",
+    //       //    "message": "is missing and it is required" }]    
+    //       //
+    //       // error.object holds a copy of the object
+    //     });
     //   (end code)
+    //
     declareType: function(alias, type, schema) {
       if(this.types[alias]) {
         logger.error("WARNING: re-declaring already declared alias " + alias);
