@@ -617,20 +617,6 @@ define([
         }
       });
     }
-
-    window.addEventListener('beforeunload', function(event) {
-      if(widgetState != 'anonymous' && widgetState !== 'authing' && widgetState !== 'connecting') {
-        sync.needsSync().
-          then(function(result) {
-            if(result) {
-              sync.fullPush();
-              var message = "Synchronizing your data now. Please wait until the cube stops spinning.";
-              event.returnValue = message;
-              return message;
-            }
-          });
-      }
-    });
     
   }
 
