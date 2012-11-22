@@ -136,15 +136,20 @@ var event = client.buildObject('event');
 event.dtstart = new Date();
 event.summary = "Something happening";
 
-var errors = client.saveObject(event);
-console.log(errors);
-// null
-
-// verify it was saved (just for demonstration, you don't need to do that):
-var reloadedEvent = client.getObject(event.id);
-console.log(reloadedEvent);
-// { "@type": "http://json-schema.org/calendar",
-//   "id": "uuid:DA115EF9-42F6-4A73-8AFB-F5DC773F5AA3",
-//   "dtstart": "2012-11-01T18:07:37.373Z",
-//   "summary": "Something happening" }
+client.saveObject(event).
+  then(function() {
+    // success
+  }, function(error) {
+    // failed, error.errors holds validation errors
+  }).
+  then(function() {
+    // verify it was saved (just for demonstration, you don't need to do that):
+    return client.getObject(event.id);
+  }).then(function(reloadedEvent) {
+    console.log(reloadedEvent);
+    // { "@type": "http://json-schema.org/calendar",
+    //   "id": "uuid:DA115EF9-42F6-4A73-8AFB-F5DC773F5AA3",
+    //   "dtstart": "2012-11-01T18:07:37.373Z",
+    //   "summary": "Something happening" }
+  });
 (end code)
