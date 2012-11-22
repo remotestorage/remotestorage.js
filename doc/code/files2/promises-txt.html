@@ -13,40 +13,40 @@ if (browserType) {document.write("<div class=" + browserType + ">");if (browserV
 
 <div id=Content><div class="CFile"><div class=CTopic id=MainTopic><h1 class=CTitle><a name="Promises"></a>Promises</h1><div class=CBody><p>A lot of methods in remoteStorage.js return <b>Promises</b>.&nbsp; &ldquo;Promises&rdquo; is a pattern to handle chaining and error bubbling in an asynchronous environment.</p><p>This page aims to provide an overview how promises work in remoteStorage.js.</p><!--START_ND_SUMMARY--><div class=Summary><div class=STitle>Summary</div><div class=SBorder><table border=0 cellspacing=0 cellpadding=0 class=STable><tr class="SMain"><td class=SEntry><a href="#Promises" >Promises</a></td><td class=SDescription>A lot of methods in remoteStorage.js return <b>Promises</b>. </td></tr><tr class="SSection"><td class=SEntry><a href="#Getting_the_result_of_a_promise" >Getting the result of a promise</a></td><td class=SDescription>This is the most simple usecase. </td></tr><tr class="SSection"><td class=SEntry><a href="#Handling_errors" >Handling errors</a></td><td class=SDescription>If a method that returns a promise fails for some reason, that promise fails. </td></tr><tr class="SSection"><td class=SEntry><a href="#chaining_promises" >chaining promises</a></td><td class=SDescription>The most useful property of promises is that they are chainable. </td></tr><tr class="SSection"><td class=SEntry><a href="#handlers_returning_promises" >handlers returning promises</a></td><td class=SDescription></td></tr><tr class="SSection"><td class=SEntry><a href="#Bubbling_errors" >Bubbling errors</a></td><td class=SDescription>As mentioned earlier, you can install a handler that is called when a promise fails. </td></tr><tr class="SSection"><td class=SEntry><a href="#Using_promises_yourself" >Using promises yourself</a></td><td class=SDescription></td></tr><tr class="SSection"><td class=SEntry><a href="#Interoperating_with_other_promise_implementations" >Interoperating with other promise implementations</a></td><td class=SDescription>There are other implementations of promises in the wild. </td></tr></table></div></div><!--END_ND_SUMMARY--></div></div></div>
 
-<div class="CSection"><div class=CTopic><h2 class=CTitle><a name="Getting_the_result_of_a_promise"></a>Getting the result of a promise</h2><div class=CBody><p>This is the most simple usecase.&nbsp; You call a method that returns a promise and want to get the result.&nbsp; This is done by installing a &lsquo;fulfilled&rsquo; handler through the &lsquo;then&rsquo; method.</p><blockquote><pre>client.getObject('/foo/bar').
+<div class="CSection"><div class=CTopic><h2 class=CTitle><a name="Getting_the_result_of_a_promise"></a>Getting the result of a promise</h2><div class=CBody><p>This is the most simple usecase.&nbsp; You call a method that returns a promise and want to get the result.&nbsp; This is done by installing a &lsquo;fulfilled&rsquo; handler through the &lsquo;then&rsquo; method.</p><blockquote><pre class="prettyprint">client.getObject('/foo/bar').
   then(function(result) {
     // this function is called at some point in the future with the result of getObject
   });</pre></blockquote><p>Pretty simple, and not so different from regular callbacks.</p></div></div></div>
 
-<div class="CSection"><div class=CTopic><h2 class=CTitle><a name="Handling_errors"></a>Handling errors</h2><div class=CBody><p>If a method that returns a promise fails for some reason, that promise fails.&nbsp; You can install an error handler by passing it as the second parameter to &lsquo;then&rsquo;.</p><blockquote><pre>client.getObject('/foo/bar').
+<div class="CSection"><div class=CTopic><h2 class=CTitle><a name="Handling_errors"></a>Handling errors</h2><div class=CBody><p>If a method that returns a promise fails for some reason, that promise fails.&nbsp; You can install an error handler by passing it as the second parameter to &lsquo;then&rsquo;.</p><blockquote><pre class="prettyprint">client.getObject('/foo/bar').
   then(function(result) {
     // everything OK
   }, function(error) {
     // something went wrong
   });</pre></blockquote></div></div></div>
 
-<div class="CSection"><div class=CTopic><h2 class=CTitle><a name="chaining_promises"></a>chaining promises</h2><div class=CBody><p>The most useful property of promises is that they are chainable.&nbsp; That means, that the &lsquo;then&rsquo; method returns another promise, which will be fulfilled as soon as the fulfilled-handler (i.e. the first argument to &lsquo;then&rsquo;) is done.</p><blockquote><pre>client.getObject('/foo/bar').
+<div class="CSection"><div class=CTopic><h2 class=CTitle><a name="chaining_promises"></a>chaining promises</h2><div class=CBody><p>The most useful property of promises is that they are chainable.&nbsp; That means, that the &lsquo;then&rsquo; method returns another promise, which will be fulfilled as soon as the fulfilled-handler (i.e. the first argument to &lsquo;then&rsquo;) is done.</p><blockquote><pre class="prettyprint">client.getObject('/foo/bar').
   then(function(object) {
     return Object.keys(object);
   }).
   then(function(keys) {
     // 'keys' is the return value of the function above.
-  });</pre></blockquote><h4 class=CHeading>On a first glance the use of this may not be apparent.&nbsp; But consider this function</h4><blockquote><pre>function getDocumentTitle(path) {
+  });</pre></blockquote><h4 class=CHeading>On a first glance the use of this may not be apparent.&nbsp; But consider this function</h4><blockquote><pre class="prettyprint">function getDocumentTitle(path) {
   return client.getObject(path).
     then(function(document) {
       return document.title;
     });
-}</pre></blockquote><h4 class=CHeading>Now this function will return a promise yielding the title of the document at the given path.&nbsp; Actually for this usecase there is also a helper function</h4><blockquote><pre>function getDocumentTitle(path) {
+}</pre></blockquote><h4 class=CHeading>Now this function will return a promise yielding the title of the document at the given path.&nbsp; Actually for this usecase there is also a helper function</h4><blockquote><pre class="prettyprint">function getDocumentTitle(path) {
   return client.getObject(path).get('title');
 }</pre></blockquote><p>Which does exactly the same.</p></div></div></div>
 
-<div class="CSection"><div class=CTopic><h2 class=CTitle><a name="handlers_returning_promises"></a>handlers returning promises</h2><div class=CBody><h4 class=CHeading>Chaining becomes especially useful, when your handler returns a promise.&nbsp; Consider this piece of code</h4><blockquote><pre>client.getObject('/foo/bar').
+<div class="CSection"><div class=CTopic><h2 class=CTitle><a name="handlers_returning_promises"></a>handlers returning promises</h2><div class=CBody><h4 class=CHeading>Chaining becomes especially useful, when your handler returns a promise.&nbsp; Consider this piece of code</h4><blockquote><pre class="prettyprint">client.getObject('/foo/bar').
   then(function(object) {
     client.getObject(object.pathToSomeOtherObject).
       then(function(otherObject) {
         // do something with otherObject.
       });
-  });</pre></blockquote><p>As two asynchronous methods have been called, the code becomes nested two levels.&nbsp; The more asynchronous methods you call, the deeper the nesting.&nbsp; Ugly.&nbsp; The promise implementation in remoteStorage.js has a solution for that: Whenever a handler returns a promise, instead of fulfilling the next promise immediately with the returned promise as it&rsquo;s result, it delays fulfilling the next promise until the returned promise is fulfilled.&nbsp; So the code above could instead look like this:</p><blockquote><pre>client.getObject('/foo/bar').
+  });</pre></blockquote><p>As two asynchronous methods have been called, the code becomes nested two levels.&nbsp; The more asynchronous methods you call, the deeper the nesting.&nbsp; Ugly.&nbsp; The promise implementation in remoteStorage.js has a solution for that: Whenever a handler returns a promise, instead of fulfilling the next promise immediately with the returned promise as it&rsquo;s result, it delays fulfilling the next promise until the returned promise is fulfilled.&nbsp; So the code above could instead look like this:</p><blockquote><pre class="prettyprint">client.getObject('/foo/bar').
   then(function(object) {
     return client.getObject(object.pathToSomeOtherObject);
   }).
@@ -54,7 +54,7 @@ if (browserType) {document.write("<div class=" + browserType + ">");if (browserV
     // do something with otherObject
   });</pre></blockquote><p>As you can imagine, you can easily add as many asynchronous calls to the chain as you want, without nesting your code deeper and deeper.&nbsp; Beautiful.</p></div></div></div>
 
-<div class="CSection"><div class=CTopic><h2 class=CTitle><a name="Bubbling_errors"></a>Bubbling errors</h2><div class=CBody><p>As mentioned earlier, you can install a handler that is called when a promise fails.&nbsp; But in many situations you don&rsquo;t want to do that, because you don&rsquo;t want to pass errors on through all layers of your code.&nbsp; Instead you want to handle errors centrally, in the outer layers where you can easily pass them to your UI.&nbsp; To achieve this, promises that fail and don&rsquo;t have an error handler installed, will instead fail the next promise in the chain.&nbsp; This goes on and on, until a promise is reached that has an error handler installed.</p><h4 class=CHeading>Example</h4><blockquote><pre>client.getObject('/foo/bar').
+<div class="CSection"><div class=CTopic><h2 class=CTitle><a name="Bubbling_errors"></a>Bubbling errors</h2><div class=CBody><p>As mentioned earlier, you can install a handler that is called when a promise fails.&nbsp; But in many situations you don&rsquo;t want to do that, because you don&rsquo;t want to pass errors on through all layers of your code.&nbsp; Instead you want to handle errors centrally, in the outer layers where you can easily pass them to your UI.&nbsp; To achieve this, promises that fail and don&rsquo;t have an error handler installed, will instead fail the next promise in the chain.&nbsp; This goes on and on, until a promise is reached that has an error handler installed.</p><h4 class=CHeading>Example</h4><blockquote><pre class="prettyprint">client.getObject('/foo/bar').
   then(function(object) {
     return client.getObject(object.pathToSomeOtherObject);
   }).
@@ -67,7 +67,7 @@ if (browserType) {document.write("<div class=" + browserType + ">");if (browserV
     // any of the above failed.
   });</pre></blockquote><p>Note that whenever one of your supplied handler functions throws an Exception, that will cause the next promise in the chain to fail.&nbsp; This way you don&rsquo;t have to worry about exceptions in your synchronous methods.</p></div></div></div>
 
-<div class="CSection"><div class=CTopic><h2 class=CTitle><a name="Using_promises_yourself"></a>Using promises yourself</h2><div class=CBody><h4 class=CHeading>Normally you don&rsquo;t have to do this, but in case you&rsquo;re hacking around the internas of remoteStorage.js or just want to re-use the promises implementation, here&rsquo;s a quick overview</h4><blockquote><pre>function myPromiseReturningFunction() {
+<div class="CSection"><div class=CTopic><h2 class=CTitle><a name="Using_promises_yourself"></a>Using promises yourself</h2><div class=CBody><h4 class=CHeading>Normally you don&rsquo;t have to do this, but in case you&rsquo;re hacking around the internas of remoteStorage.js or just want to re-use the promises implementation, here&rsquo;s a quick overview</h4><blockquote><pre class="prettyprint">function myPromiseReturningFunction() {
   var promise = util.getPromise();
   doSomethingAsynchronously(function(err, result) {
     if(err) {
@@ -77,7 +77,17 @@ if (browserType) {document.write("<div class=" + browserType + ">");if (browserV
     }
   });
   return promise;
-}</pre></blockquote></div></div></div>
+}</pre></blockquote><h4 class=CHeading>Another way to do this is</h4><blockquote><pre class="prettyprint">function myPromiseReturningFunction() {
+  return util.makePromise(function(promise) }
+    doSomethingAsynchronously(function(err, result) {
+      if(err) {
+        promise.fail(err);
+      } else {
+        promise.fulfill(result);
+      }
+    });
+  });
+}</pre></blockquote><h4 class=CHeading>Using &lsquo;makePromise&rsquo; over &lsquo;getPromise&rsquo; brings a few advantages</h4><ul><li>The promise will also fail if the provided callback throws an exception</li><li>The callback will not be called immediately but put on the event queue instead.&nbsp; That way it behaves consistently, even if doSomethingAsynchronously should call it&rsquo;s callback immediately.</li></ul></div></div></div>
 
 <div class="CSection"><div class=CTopic><h2 class=CTitle><a name="Interoperating_with_other_promise_implementations"></a>Interoperating with other promise implementations</h2><div class=CBody><p>There are other implementations of promises in the wild.&nbsp; Some of them are broken, see <a href="https://gist.github.com/3889970" class=LURL target=_top>this article</a> for details.&nbsp; The promises implementation in remoteStorage.js treats all objects that have a &lsquo;then&rsquo; attribute which has a function as it&rsquo;s value as promises.&nbsp; So if your handler returns a promise generated by a different implementation, chaining will still work.</p></div></div></div>
 
