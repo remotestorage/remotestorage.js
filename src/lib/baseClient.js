@@ -120,6 +120,9 @@ define([
   //
   // See <remoteStorage.defineModule> for details.
   //
+  //
+  // Most methods here return promises. See the guide for and introduction: <Promises>
+  //
   BaseClient.prototype = {
 
     // Event: error
@@ -156,15 +159,17 @@ define([
     //   remote - this event came from the *remotestorage server*. that means another app or the same app on another device caused the event.
     //
     // Example:
-    //   > client.on('change', function(event) {
-    //   >   if(event.newValue && event.oldValue) {
-    //   >     console.log(event.origin + ' updated ' + event.path + ':', event.oldValue, '->', event.newValue);
-    //   >   } else if(event.newValue) {
-    //   >     console.log(event.origin + ' created ' + event.path + ':', undefined, '->', event.newValue);
-    //   >   } else {
-    //   >     console.log(event.origin + ' removed ' + event.path + ':', event.oldValue, '->', undefined);
-    //   >   }
-    //   > });
+    //   (start code)
+    //   client.on('change', function(event) {
+    //     if(event.newValue && event.oldValue) {
+    //       console.log(event.origin + ' updated ' + event.path + ':', event.oldValue, '->', event.newValue);
+    //     } else if(event.newValue) {
+    //       console.log(event.origin + ' created ' + event.path + ':', undefined, '->', event.newValue);
+    //     } else {
+    //       console.log(event.origin + ' removed ' + event.path + ':', event.oldValue, '->', undefined);
+    //     }
+    //   });
+    //   (end code)
     //
 
     makePath: function(path) {
@@ -208,11 +213,13 @@ define([
     //
     // The timestamp is represented as Number of milliseconds.
     // Use this snippet to get a Date object from it
-    //   > client.lastUpdateOf('path/to/node').
-    //   >   then(function(timestamp) {
-    //   >     // (normally you should check that 'timestamp' isn't null now)
-    //   >     console.log('last update: ', new Date(timestamp));
-    //   >   });
+    //   (start code)
+    //   client.lastUpdateOf('path/to/node').
+    //     then(function(timestamp) {
+    //       // (normally you should check that 'timestamp' isn't null now)
+    //       console.log('last update: ', new Date(timestamp));
+    //     });
+    //   (end code)
     //
     lastUpdateOf: function(path) {
       var absPath = this.makePath(path);
@@ -246,10 +253,12 @@ define([
     //   A promise for the object.
     //
     // Example:
-    //   > client.getObject('/path/to/object').
-    //   >   then(function(object) {
-    //   >     // object is either an object or null
-    //   >   });
+    //   (start code)
+    //   client.getObject('/path/to/object').
+    //     then(function(object) {
+    //       // object is either an object or null
+    //     });
+    //   (end code)
     //
     getObject: function(path) {
       return this.ensureAccess('r').
@@ -273,11 +282,13 @@ define([
     //   other keys represent *data nodes*.
     //
     // Example:
-    //   > client.getListing('').then(function(listing) {
-    //   >   listing.forEach(function(item) {
-    //   >     console.log('- ' + item);
-    //   >   });
-    //   > });
+    //   (start code)
+    //   client.getListing('').then(function(listing) {
+    //     listing.forEach(function(item) {
+    //       console.log('- ' + item);
+    //     });
+    //   });
+    //   (end code)
     //
     getListing: function(path) {
       if(! (util.isDir(path) || path === '')) {
@@ -305,11 +316,13 @@ define([
     //   a promise for an object in the form { path : object, ... }
     //
     // Example:
-    //   > client.getAll('').then(function(objects) {
-    //   >   for(var key in objects) {
-    //   >     console.log('- ' + key + ': ', objects[key]);
-    //   >   }
-    //   > });
+    //   (start code)
+    //   client.getAll('').then(function(objects) {
+    //     for(var key in objects) {
+    //       console.log('- ' + key + ': ', objects[key]);
+    //     }
+    //   });
+    //   (end code)
     //
     getAll: function(path, typeAlias) {
 
@@ -805,7 +818,9 @@ define([
     //   array of errors - when validation fails.
     //
     // The errors are objects of the form:
-    // > { "property": "foo", "message": "is named badly" }
+    // (start code)
+    // { "property": "foo", "message": "is named badly" }
+    // (end code)
     //
     validateObject: function(object, alias) {
       var type = object['@type'];

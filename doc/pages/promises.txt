@@ -9,10 +9,12 @@ Section: Getting the result of a promise
 
 This is the most simple usecase. You call a method that returns a promise and want to get the result. This is done by installing a 'fulfilled' handler through the 'then' method.
 
-> client.getObject('/foo/bar').
->   then(function(result) {
->     // this function is called at some point in the future with the result of getObject
->   });
+(start code)
+client.getObject('/foo/bar').
+  then(function(result) {
+    // this function is called at some point in the future with the result of getObject
+  });
+(end code)
 
 Pretty simple, and not so different from regular callbacks.
 
@@ -20,39 +22,47 @@ Section: Handling errors
 
 If a method that returns a promise fails for some reason, that promise fails. You can install an error handler by passing it as the second parameter to 'then'.
 
-> client.getObject('/foo/bar').
->   then(function(result) {
->     // everything OK
->   }, function(error) {
->     // something went wrong
->   });
+(start code)
+client.getObject('/foo/bar').
+  then(function(result) {
+    // everything OK
+  }, function(error) {
+    // something went wrong
+  });
+(end code)
 
 Section: chaining promises
 
 The most useful property of promises is that they are chainable. That means, that the 'then' method returns another promise, which will be fulfilled as soon as the fulfilled-handler (i.e. the first argument to 'then') is done.
 
-> client.getObject('/foo/bar').
->   then(function(object) {
->     return Object.keys(object);
->   }).
->   then(function(keys) {
->     // 'keys' is the return value of the function above.
->   });
+(start code)
+client.getObject('/foo/bar').
+  then(function(object) {
+    return Object.keys(object);
+  }).
+  then(function(keys) {
+    // 'keys' is the return value of the function above.
+  });
+(end code)
 
 On a first glance the use of this may not be apparent. But consider this function:
 
-> function getDocumentTitle(path) {
->   return client.getObject(path).
->     then(function(document) {
->       return document.title;
->     });
-> }
+(start code)
+function getDocumentTitle(path) {
+  return client.getObject(path).
+    then(function(document) {
+      return document.title;
+    });
+}
+(end code)
 
 Now this function will return a promise yielding the title of the document at the given path. Actually for this usecase there is also a helper function:
 
-> function getDocumentTitle(path) {
->   return client.getObject(path).get('title');
-> }
+(start code)
+function getDocumentTitle(path) {
+  return client.getObject(path).get('title');
+}
+(end code)
 
 Which does exactly the same.
 
@@ -60,24 +70,28 @@ Section: handlers returning promises
 
 Chaining becomes especially useful, when your handler returns a promise. Consider this piece of code:
 
-> client.getObject('/foo/bar').
->   then(function(object) {
->     client.getObject(object.pathToSomeOtherObject).
->       then(function(otherObject) {
->         // do something with otherObject.
->       });
->   });
+(start code)
+client.getObject('/foo/bar').
+  then(function(object) {
+    client.getObject(object.pathToSomeOtherObject).
+      then(function(otherObject) {
+        // do something with otherObject.
+      });
+  });
+(end code)
 
 As two asynchronous methods have been called, the code becomes nested two levels. The more asynchronous methods you call, the deeper the nesting. Ugly.
 The promise implementation in remoteStorage.js has a solution for that: Whenever a handler returns a promise, instead of fulfilling the next promise immediately with the returned promise as it's result, it delays fulfilling the next promise until the returned promise is fulfilled. So the code above could instead look like this:
 
-> client.getObject('/foo/bar').
->   then(function(object) {
->     return client.getObject(object.pathToSomeOtherObject);
->   }).
->   then(function(otherObject) {
->     // do something with otherObject
->   });
+(start code)
+client.getObject('/foo/bar').
+  then(function(object) {
+    return client.getObject(object.pathToSomeOtherObject);
+  }).
+  then(function(otherObject) {
+    // do something with otherObject
+  });
+(end code)
 
 As you can imagine, you can easily add as many asynchronous calls to the chain as you want, without nesting your code deeper and deeper. Beautiful.
 
@@ -87,19 +101,20 @@ As mentioned earlier, you can install a handler that is called when a promise fa
 
 Example:
 
-
-> client.getObject('/foo/bar').
->   then(function(object) {
->     return client.getObject(object.pathToSomeOtherObject);
->   }).
->   then(function(otherObject) {
->     // do something with otherObject
->   }).
->   then(function() {
->     // do more stuff
->   }, function(error) {
->     // any of the above failed.
->   });
+(start code)
+client.getObject('/foo/bar').
+  then(function(object) {
+    return client.getObject(object.pathToSomeOtherObject);
+  }).
+  then(function(otherObject) {
+    // do something with otherObject
+  }).
+  then(function() {
+    // do more stuff
+  }, function(error) {
+    // any of the above failed.
+  });
+(end code)
 
 Note that whenever one of your supplied handler functions throws an Exception, that will cause the next promise in the chain to fail. This way you don't have to worry about exceptions in your synchronous methods.
 
@@ -107,17 +122,39 @@ Section: Using promises yourself
 
 Normally you don't have to do this, but in case you're hacking around the internas of remoteStorage.js or just want to re-use the promises implementation, here's a quick overview:
 
-> function myPromiseReturningFunction() {
->   var promise = util.getPromise();
->   doSomethingAsynchronously(function(err, result) {
->     if(err) {
->       promise.fail(err);
->     } else {
->       promise.fulfill(result);
->     }
->   });
->   return promise;
-> }
+(start code)
+function myPromiseReturningFunction() {
+  var promise = util.getPromise();
+  doSomethingAsynchronously(function(err, result) {
+    if(err) {
+      promise.fail(err);
+    } else {
+      promise.fulfill(result);
+    }
+  });
+  return promise;
+}
+(end code)
+
+Another way to do this is:
+
+(start code)
+function myPromiseReturningFunction() {
+  return util.makePromise(function(promise) }
+    doSomethingAsynchronously(function(err, result) {
+      if(err) {
+        promise.fail(err);
+      } else {
+        promise.fulfill(result);
+      }
+    });
+  });
+}
+(end code)
+
+Using 'makePromise' over 'getPromise' brings a few advantages:
+* The promise will also fail if the provided callback throws an exception
+* The callback will not be called immediately but put on the event queue instead. That way it behaves consistently, even if doSomethingAsynchronously should call it's callback immediately.
 
 Section: Interoperating with other promise implementations
 
