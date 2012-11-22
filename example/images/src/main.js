@@ -12,17 +12,18 @@ define([
   remoteStorage.util.setLogLevel('debug');
 
   remoteStorage.defineModule('images', function(privClient, pubClient) {
-    pubClient.use('');
+    //pubClient.use('');
 
     return {
       exports: {
         addPublic: function(file, callback) {
           var reader = new FileReader();
           reader.onload = function() {
-            pubClient.storeDocument(file.type, file.name, reader.result, function() {
-              callback(pubClient.getItemURL(file.name));
-            });
-          };      
+            pubClient.storeFile(file.type, file.name, reader.result).
+              then(function() {
+                callback(pubClient.getItemURL(file.name));
+              });
+          };
           reader.readAsArrayBuffer(file);
         },
 
@@ -122,8 +123,10 @@ define([
       });
     });
 
-    remoteStorage.claimAccess('images', 'rw');
-    remoteStorage.displayWidget('remotestorage-connect');
+    remoteStorage.claimAccess('images', 'rw').
+      then(function() {
+        remoteStorage.displayWidget('remotestorage-connect');
+      });
 
   });
 

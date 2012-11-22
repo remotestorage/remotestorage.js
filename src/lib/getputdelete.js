@@ -8,98 +8,76 @@ define(
 
     var defaultContentType = 'application/octet-stream';
 
-    function getContentType(headers) {
-      if(headers['content-type']) {
-        return headers['content-type'];
-      } else {
-        logger.error("Falling back to default content type: ", defaultContentType, JSON.stringify(headers));
-        return defaultContentType;
-      }
-    }
+    function doCall(method, url, body, mimeType, token, deadLine) {
+      return util.makePromise(function(promise) {
+        logger.debug(method, url);
+        var platformObj = {
+          url: url,
+          method: method,
+          timeout: deadLine || 5000,
+          headers: {}
+        };
 
-    function doCall(method, url, value, mimeType, token, cb, deadLine) {
-      logger.debug(method, url);
-      var platformObj = {
-        url: url,
-        method: method,
-        error: function(err) {
-          if(err == 401) {
-            err = 'unauthorized';
-          } else if(err != 404) {
-            logger.error(method + ' ' + url + ': ', err);
-          }
-          cb(err);
-        },
-        success: function(data, headers) {
-          //logger.debug('doCall cb '+url, 'headers:', headers);
-          var mimeType = getContentType(headers);
-
-          if(mimeType.match(/charset=binary/)) {
-            data = util.rawToBuffer(data);
-          }
-
-          cb(null, data, mimeType.split(';')[0]);
-        },
-        timeout: deadLine || 5000,
-        headers: {}
-      };
-
-      if(token) {
-        platformObj.headers['Authorization'] = 'Bearer ' + token;
-      }
-      if(mimeType) {
-        if(typeof(value) == 'object' && value instanceof ArrayBuffer) {
-          mimeType += '; charset=binary';
+        if(token) {
+          platformObj.headers['Authorization'] = 'Bearer ' + token;
         }
-        platformObj.headers['Content-Type'] = mimeType;
-      }
+        if(mimeType) {
+          if(typeof(body) == 'object' && body instanceof ArrayBuffer) {
+            mimeType += '; charset=binary';
+          }
+          platformObj.headers['Content-Type'] = mimeType;
+        }
 
-      platformObj.fields = {withCredentials: 'true'};
-      if(method != 'GET') {
-        platformObj.data =value;
-      }
-      //logger.debug('platform.ajax '+url);
-      platform.ajax(platformObj);
-    }
+        platformObj.fields = {withCredentials: 'true'};
+        if(method != 'GET') {
+          platformObj.data = body;
+        }
 
-    function get(url, token, cb) {
-      doCall('GET', url, null, null, token, function(err, data, mimetype) {
-        if(err == 404) {
-          cb(null, undefined);
-        } else if(err) {
-          cb(err);
-        } else {
-          if(util.isDir(url)) {
-            try {
-              data = JSON.parse(data);
-            } catch (e) {
-              cb('unparseable directory index: ' + data);
-              return;
+        platform.ajax(platformObj).
+          then(function(data, headers) {
+            var contentType = headers['content-type'] || defaultContentType;
+            var mimeType = contentType.split(';')[0]
+
+            if(contentType.match(/charset=binary/)) {
+              data = util.rawToBuffer(data);
+            } else if(mimeType === 'application/json') {
+              try {
+                data = JSON.parse(data);
+              } catch(exc) {
+                // ignore invalid JSON
+              }
             }
-          }
-          cb(null, data, mimetype);
-        }
+
+            promise.fulfill(data, mimeType);            
+          }, function(error) {
+            if(error === 404) {
+              return promise.fulfill(undefined);
+            } else if(error === 401) {
+              error = 'unauthorized'
+            };
+            promise.fail(error);
+          });
       });
     }
 
-    function put(url, value, mimeType, token, cb) {
+    function get(url, token) {
+      return doCall('GET', url, null, null, token);
+    }
+
+    function put(url, value, mimeType, token) {
       if(! (typeof(value) === 'string' || (typeof(value) === 'object' &&
                                            value instanceof ArrayBuffer))) {
-        cb(new Error("invalid value given to PUT, only strings allowed, got "
+        cb(new Error("invalid value given to PUT, only strings or ArrayBuffers allowed, got "
                      + typeof(value)));
       }
-
-      doCall('PUT', url, value, mimeType, token, function(err, data) {
-        //logger.debug('cb from PUT '+url);
-        cb(err, data);
-      });
+      return doCall('PUT', url, value, mimeType, token);
     }
 
-    function set(url, valueStr, mimeType, token, cb) {
+    function set(url, valueStr, mimeType, token) {
       if(typeof(valueStr) == 'undefined') {
-        doCall('DELETE', url, null, null, token, cb);
+        return doCall('DELETE', url, null, null, token);
       } else {
-        put(url, valueStr, mimeType, token, cb);
+        return put(url, valueStr, mimeType, token);
       }
     }
 

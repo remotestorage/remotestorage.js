@@ -1,3 +1,6 @@
+/*global localStorage */
+/*global ArrayBuffer */
+
 define(['./getputdelete', './util'], function (getputdelete, util) {
 
   "use strict";
@@ -8,8 +11,10 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
   var state = 'anonymous';
 
+  var settings = util.getSettingStore('remotestorage_wire');
+
   function setSetting(key, value) {
-    localStorage.setItem(prefix+key, JSON.stringify(value));
+    settings.set(key, value);
 
     calcState();
 
@@ -19,25 +24,15 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   }
 
   function removeSetting(key) {
-    localStorage.removeItem(prefix+key);
+    settings.remove(key);
   }
 
   function getSetting(key) {
-    var valStr = localStorage.getItem(prefix+key);
-    if(typeof(valStr) == 'string') {
-      try {
-        return JSON.parse(valStr);
-      } catch(e) {
-        localStorage.removeItem(prefix+key);
-      }
-    }
-    return null;
+    return settings.get(key);
   }
 
   function disconnectRemote() {
-    util.grepLocalStorage(new RegExp('^' + prefix), function(key) {
-      localStorage.removeItem(key);
-    });
+    settings.clear();
     calcState();
   }
 
@@ -87,27 +82,25 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   //
   // Parameters:
   //   path     - absolute path (starting from storage root)
-  //   callback - see <getputdelete.get> for details on the callback parameters
-  function get(path, cb) {
+  //
+  function get(path) {
     if(isForeign(path)) {
-      return getForeign(path, cb);
+      return getForeign(path);
     } else if(state != 'connected') {
-      cb(new Error('not-connected'));
+      throw new Error('not-connected');
     }
-    var token = getSetting('bearerToken');
-    if(typeof(path) != 'string') {
-      cb(new Error('argument "path" should be a string'));
-    } else {
-      getputdelete.get(resolveKey(path), token, cb);
-    }
+    return getputdelete.get(
+      resolveKey(path),
+      getSetting('bearerToken')
+    );
   }
 
-  function getForeign(fullPath, cb) {
+  function getForeign(fullPath) {
     var md = fullPath.match(foreignKeyRE);
     var userAddress = md[1];
     var path = md[2];
     var base = getStorageHrefForUser(userAddress);
-    getputdelete.get(base + path, null, cb);
+    return getputdelete.get(base + path, null);
   }
 
   // Method: set
@@ -121,19 +114,19 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   //   callback - see <getputdelete.set> for details on the callback parameters.
   function set(path, valueStr, mimeType, cb) {
     if(isForeign(path)) {
-      return cb(new Error("Foreign storage is read-only"));
+      throw new Error("Foreign storage is read-only");
     } else if(state != 'connected') {
-      cb(new Error('not-connected'));
+      throw new Error('not-connected');
     }
     var token = getSetting('bearerToken');
     if(typeof(path) != 'string') {
-      cb(new Error('argument "path" should be a string'));
+      throw new Error('argument "path" should be a string');
     } else {
       if(valueStr && typeof(valueStr) != 'string' &&
          !(typeof(valueStr) == 'object' && valueStr instanceof ArrayBuffer)) {
         valueStr = JSON.stringify(valueStr);
       }
-      getputdelete.set(resolveKey(path), valueStr, mimeType, token, cb);
+      return getputdelete.set(resolveKey(path), valueStr, mimeType, token);
     }
   }
 
@@ -178,16 +171,17 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     //
     // Configure wireClient.
     //
-    // Parameters:
+    // Storage info object:
     //   type - the storage type (see specification)
     //   href - base URL of the storage server
     //
     // Fires:
     //   configured - if wireClient is now fully configured
     //
-    setStorageInfo   : function(type, href) {
-      setSetting('storageType', type);
-      setSetting('storageHref', href);
+    setStorageInfo   : function(info) {
+      setSetting('storageType', info.type);
+      setSetting('storageHref', info.href);
+      return info;
     },
 
     // Method: getStorageHref

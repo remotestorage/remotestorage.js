@@ -1,3 +1,18 @@
+/*global window */
+/*global console */
+/*global XMLHttpRequest */
+/*global XDomainRequest */
+/*global Blob */
+/*global setTimeout */
+/*global clearTimeout */
+/*global DOMParser */
+/*global Element */
+/*global document */
+
+if(typeof(global) !== 'undefined' && typeof(nodeRequire) === 'undefined') {
+  var nodeRequire = require;
+}
+
 define(['./util'], function(util) {
 
   "use strict";
@@ -51,32 +66,10 @@ define(['./util'], function(util) {
   //   node - yes, if xml2js is available
   //
   //
-  // Method: setElementHTML
-  //
-  // Set the HTML content of an element.
-  //
-  // Parameters:
-  //   element - either an Element or a DOM ID resolving to an element
-  //   content - HTML content to set
-  //
-  // Platform support:
-  //   browser - Yes
-  //   node - not implemented
-  //
-  //
-  // Method: getElementValue
-  //
-  //
-  // Method: eltOn
-  //
-  //
   // Method: getLocation
   //
   //
   // Method: setLocation
-  //
-  //
-  // Method: alert
   //
 
   var logger = util.getLogger('platform');
@@ -124,75 +117,90 @@ define(['./util'], function(util) {
     return normalizeHeaders(headers);
   }
 
+  var successStates = { 200:true, 201:true, 204:true, 207:true };
+
+  function isSuccessful(xhr) {
+    return !! successStates[xhr.status];
+  }
+
   function ajaxBrowser(params) {
-    var timedOut = false;
-    var timer;
-    var xhr = new XMLHttpRequest();
-    if(params.timeout) {
-      timer = window.setTimeout(function() {
-        timedOut = true;
-        xhr.abort();
-        params.error('timeout');
-      }, params.timeout);
-    }
-    if(!params.method) {
-      params.method='GET';
-    }
-    xhr.open(params.method, params.url, true);
-    if(params.headers) {
-      for(var header in params.headers) {
-        xhr.setRequestHeader(header, params.headers[header]);
+    return util.makePromise(function(promise) {
+      var timedOut = false;
+      var timer;
+      var xhr = new XMLHttpRequest();
+      if(params.timeout) {
+        timer = window.setTimeout(function() {
+          timedOut = true;
+          xhr.abort();
+          promise.fail('timeout');
+        }, params.timeout);
       }
-    }
-    xhr.onreadystatechange = function() {
-      if((xhr.readyState==4)) {
-        if(timer) {
-          window.clearTimeout(timer);
+
+      if(!params.method) {
+        params.method = 'GET';
+      }
+
+      xhr.open(params.method, params.url, true);
+
+      if(params.headers) {
+        for(var header in params.headers) {
+          xhr.setRequestHeader(header, params.headers[header]);
         }
-        if(xhr.status==200 || xhr.status==201 || xhr.status==204 || xhr.status==207) {
-          var headers = browserParseHeaders(xhr.getAllResponseHeaders());
-          if(! headers) {
-            // Firefox' getAllResponseHeaders is broken for CORS requests since forever.
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=608735
-            // Any additional headers that are needed by other code, should be added here.
-            headers = {
-              'content-type': xhr.getResponseHeader('Content-Type')
-            };
+      }
+
+      xhr.onreadystatechange = function() {
+        if((xhr.readyState == 4)) {
+          if(timer) {
+            window.clearTimeout(timer);
           }
-          params.success(xhr.responseText, headers);
-        } else {
-          params.error(xhr.status || 'unknown error');
+          if(isSuccessful(xhr)) {
+            logger.debug("REQUEST SUCCESSFUL", params.url, xhr.responseText);
+            var headers = browserParseHeaders(xhr.getAllResponseHeaders());
+            if(! headers) {
+              // Firefox' getAllResponseHeaders is broken for CORS requests since forever.
+              // https://bugzilla.mozilla.org/show_bug.cgi?id=608735
+              // Any additional headers that are needed by other code, should be added here.
+              headers = {
+                'content-type': xhr.getResponseHeader('Content-Type')
+              };
+            }
+            promise.fulfill(xhr.responseText, headers);
+          } else {
+            logger.debug("REQUEST FAILED", xhr.status, params.url);
+            promise.fail(xhr.status || new Error('network error'));
+          }
         }
+      };
+
+      if(typeof(params.data) === 'string') {
+        xhr.send(params.data);
+      } else {
+        xhr.send();
       }
-    };
-    if(typeof(params.data) === 'string') {
-      xhr.send(params.data);
-    } else if(typeof(params.data) === 'object' &&
-              params.data instanceof ArrayBuffer) {
-      //xhr.send(util.bufferToRaw(params.data));
-      xhr.send(params.data);
-    } else {
-      xhr.send();
-    }
+    });
   }
 
   function ajaxExplorer(params) {
-    //this won't work, because we have no way of sending the Authorization header. It might work for GET to the 'public' category, though.
-    var xdr=new XDomainRequest();
-    xdr.timeout=params.timeout || 3000;//is this milliseconds? documentation doesn't say
+    // this won't work, because we have no way of sending
+    // the Authorization header. It might work for GET to
+    // the 'public' category, though.
+    var promise = util.getPromise();
+    var xdr = new XDomainRequest();
+    xdr.timeout = params.timeout || 3000;//is this milliseconds? documentation doesn't say
     xdr.open(params.method, params.url);
-    xdr.onload=function() {
-      if(xdr.status==200 || xdr.status==201 || xdr.status==204) {
-        params.success(xhr.responseText);
+    xdr.onload = function() {
+      if(xdr.status == 200 || xdr.status == 201 || xdr.status == 204) {
+        promise.fulfill(xdr.responseText);
       } else {
-        params.error(xhr.status);
+        params.fail(xdr.status);
       }
     };
     xdr.onerror = function() {
-      err('unknown error');//See http://msdn.microsoft.com/en-us/library/ms536930%28v=vs.85%29.aspx
+      // See http://msdn.microsoft.com/en-us/library/ms536930%28v=vs.85%29.aspx
+      promise.fail(new Error('unknown error'));
     };
     xdr.ontimeout = function() {
-      err(timeout);
+      promise.fail('timeout');
     };
     if(params.data) {
       xdr.send(params.data);
@@ -223,7 +231,7 @@ define(['./util'], function(util) {
       method: params.method,
       host: urlObj.hostname,
       path: urlObj.path,
-      port: (urlObj.port?port:(urlObj.protocol=='https:'?443:80)),
+      port: (urlObj.port ? urlObj.port : (urlObj.protocol=='https:'?443:80)),
       headers: params.headers
     };
     var timer, timedOut;
@@ -288,7 +296,7 @@ define(['./util'], function(util) {
           props[k].getAttribute('type')
         ] = props[k].childNodes[0].nodeValue;
       }
-      if(link['rel']) {
+      if(link.rel) {
         obj.Link.push({
           '@': link
         });
@@ -308,48 +316,17 @@ define(['./util'], function(util) {
   function harvestParamBrowser(param) {
     // location.hash in firefox has all URI entities decoded, so we can't
     // differentiate between %26 and & in URIs passed as parameters.
-    var hash = String(location).split(/^.*?#/)[1];
+    var hash = String(document.location).split(/^.*?#/)[1];
     if(hash) {
       var pairs = hash.split('&');
       for(var i=0; i<pairs.length; i++) {
         if(pairs[i].substring(0, (param+'=').length) == param+'=') {
           var ret = decodeURIComponent(pairs[i].substring((param+'=').length));
           delete pairs[i];
-          location = '#'+pairs.join('&');
+          document.location = '#'+pairs.join('&');
           return ret;
         }
       }
-    }
-  }
-
-  function setElementHtmlNode(eltName, html) {
-  }
-
-  function setElementHtmlBrowser(eltName, html) {
-    var elt = eltName;
-    if(! (elt instanceof Element)) {
-      elt = document.getElementById(eltName);
-    }
-    elt.innerHTML = html;
-  }
-
-  function getElementValueNode(eltName) {
-  }
-
-  function getElementValueBrowser(eltName) {
-    return document.getElementById(eltName).value;
-  }
-
-  function eltOnNode(eltName, eventType, cb) {
-  }
-
-  function eltOnBrowser(eltName, eventType, cb) {
-    if(eventType == 'click') {
-      document.getElementById(eltName).onclick = cb;
-    } else if(eventType == 'hover') {
-      document.getElementById(eltName).onmouseover = cb;
-    } else if(eventType == 'type') {
-      document.getElementById(eltName).onkeyup = cb;
     }
   }
 
@@ -368,52 +345,35 @@ define(['./util'], function(util) {
   function setLocationNode() {
   }
 
-  function alertBrowser(str) {
-    alert(str);
-  }
-
-  function alertNode(str) {
-    console.log(str);
-  }
-
+  var platform;
 
   if(typeof(window) === 'undefined') {
-    return {
+    platform = {
       ajax: ajaxNode,
       parseXml: parseXmlNode,
       harvestParam: harvestParamNode,
-      setElementHTML: setElementHtmlNode,
-      getElementValue: getElementValueNode,
-      eltOn: eltOnNode,
       getLocation: getLocationNode,
-      setLocation: setLocationNode,
-      alert: alertNode
+      setLocation: setLocationNode
     };
   } else {
     if(window.XDomainRequest) {
-      return {
+      platform = {
         ajax: ajaxExplorer,
         parseXml: parseXmlBrowser,
         harvestParam: harvestParamBrowser,
-        setElementHTML: setElementHtmlBrowser,
-        getElementValue: getElementValueBrowser,
-        eltOn: eltOnBrowser,
         getLocation: getLocationBrowser,
-        setLocation: setLocationBrowser,
-        alert: alertBrowser
+        setLocation: setLocationBrowser
       };
     } else {
-      return {
+      platform = {
         ajax: ajaxBrowser,
         parseXml: parseXmlBrowser,
         harvestParam: harvestParamBrowser,
-        setElementHTML: setElementHtmlBrowser,
-        getElementValue: getElementValueBrowser,
-        eltOn: eltOnBrowser,
         getLocation: getLocationBrowser,
-        setLocation: setLocationBrowser,
-        alert: alertBrowser
+        setLocation: setLocationBrowser
       };
     }
+
+    return platform;
   }
 });

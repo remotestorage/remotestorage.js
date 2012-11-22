@@ -13,7 +13,7 @@ define([
 
   "use strict";
 
-  var claimedModules = {}, modules = {}, moduleNameRE = /^[a-z]+$/;
+  var claimedModules = {}, modules = {}, moduleNameRE = /^[a-z\-]+$/;
 
   var logger = util.getLogger('base');
 
@@ -227,11 +227,12 @@ define([
         moduleObj = {};
         moduleObj[moduleName] = mode;
       }
-      for(var _moduleName in moduleObj) {
+
+      return util.asyncEach(Object.keys(moduleObj), function(_moduleName) {
         var _mode = moduleObj[_moduleName];
         testMode(_moduleName, _mode);
-        this.claimModuleAccess(_moduleName, _mode);
-      }
+        return this.claimModuleAccess(_moduleName, _mode);
+      }.bind(this));
     },
 
     // PRIVATE
@@ -245,16 +246,22 @@ define([
         return;
       }
 
-      if(moduleName == 'root') {
+      claimedModules[moduleName] = true;
+
+      if(moduleName === 'root') {
         moduleName = '';
         widget.addScope('', mode);
-        store.setNodeAccess('/', mode);
+        return store.setNodeAccess('/', mode).
+          then(util.curry(store.setNodeForce, '/', true, true));
       } else {
         widget.addScope(moduleName, mode);
-        store.setNodeAccess('/'+moduleName+'/', mode);
-        store.setNodeAccess('/public/'+moduleName+'/', mode);
+        var privPath = '/'+moduleName+'/';
+        var pubPath = '/public/'+moduleName+'/';
+        return store.setNodeAccess(privPath, mode).
+          then(util.curry(store.setNodeForce, privPath, true, true)).
+          then(util.curry(store.setNodeAccess, pubPath, mode)).
+          then(util.curry(store.setNodeForce, pubPath, true, true));
       }
-      claimedModules[moduleName] = true;
     },
 
     // PRIVATE

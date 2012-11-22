@@ -22,7 +22,7 @@ define(['../remoteStorage'], function(remoteStorage) {
       exports: {
         // module's public interface goes here
       }
-    }
+    };
 
   });
 

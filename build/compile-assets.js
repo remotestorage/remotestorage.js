@@ -32,6 +32,17 @@ fs.readdirSync(sourcePath).forEach(function(fileName) {
     content = fs.readFileSync(fullPath, 'ascii').replace(/\n/g, ' ');
   }
 
+  if(ext == 'css') {
+    content = content.
+      replace(/\s+/g, ' ').
+      replace(/\s?\{\s?/g, '{').
+      replace(/\s?\}\s?/g, '}').
+      replace(/\n/g, '').
+      replace(/;\s/g, ';').
+      replace(/:\s/g, ':').
+      replace(/,\s/g, ':');
+  }
+
   output += '\n    ' + name + ": '" + content.replace(/'/g, "\\'") + "',";
 });
 

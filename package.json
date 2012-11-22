@@ -5,7 +5,9 @@
     "requirejs": "*",
     "amdefine": "*",
     "teste": "*",
-    "localStorage": "*"
+    "localStorage": "*",
+    "jsindexeddb": "*",
+    "sqlite3": "*"
   },
   "scripts": {
     "test": "node_modules/.bin/teste"

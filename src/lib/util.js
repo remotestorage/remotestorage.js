@@ -1,3 +1,10 @@
+/*global Buffer */
+/*global window */
+/*global console */
+/*global Uint8Array */
+/*global setTimeout */
+/*global localStorage */
+/*global ArrayBuffer */
 
 define([], function() {
 
@@ -10,8 +17,7 @@ define([], function() {
 
   var loggers = {}, silentLogger = {};
 
-  var knownLoggers = ['base', 'sync', 'webfinger', 'getputdelete', 'platform',
-                      'baseClient', 'widget', 'store', 'foreignClient', 'schedule'];
+  var knownLoggers = [];
 
   var logFn = null;
 
@@ -39,6 +45,135 @@ define([], function() {
     btoa = window.btoa;
   }
 
+  var Promise = function() {
+    this.result = undefined;
+    this.success = undefined;
+    this.handlers = {};
+    this.__defineSetter__('onsuccess', function(fulfilledHandler) {
+      if(typeof(fulfilledHandler) !== 'function') {
+        throw "Success callback must be a function!";
+      }
+      this.handlers.fulfilled = fulfilledHandler;
+      if(! this.nextPromise) {
+        this.nextPromise = new Promise();
+      }
+    });
+    this.__defineSetter__('onerror', function(failedHandler) {
+      if(typeof(failedHandler) !== 'function') {
+        throw "Error callback must be a function!";
+      }
+      this.handlers.failed = failedHandler;
+      if(! this.nextPromise) {
+        this.nextPromise = new Promise();
+      }
+    });
+  };
+
+  Promise.prototype = {
+    fulfill: function() {
+      if(typeof(this.success) !== 'undefined') {
+        throw new Error("Can't fail promise, already resolved as: " +
+                        (this.success ? 'fulfilled' : 'failed'));
+      }
+      this.result = util.toArray(arguments);
+      this.success = true;
+      if(! this.handlers.fulfilled) {
+        return;
+      }
+      var nextResult;
+      try {
+        nextResult = this.handlers.fulfilled.apply(this, this.result);
+      } catch(exc) {
+        if(this.nextPromise) {
+          this.nextPromise.fail(exc);
+        } else {
+          console.error("Uncaught exception: ", exc, exc.getStack());
+        }
+        return;
+      }
+      var nextPromise = this.nextPromise;
+      if(nextPromise) {
+        if(nextResult && typeof(nextResult.then) === 'function') {
+          // chain our promise after this one.
+          nextResult.then(function() {
+            nextPromise.fulfill.apply(nextPromise, arguments);
+          }, function() {
+            nextPromise.fail.apply(nextPromise, arguments);
+          });
+        } else {
+          nextPromise.fulfill(nextResult);
+        }
+      }
+    },
+
+    fail: function() {
+      if(typeof(this.success) !== 'undefined') {
+        throw new Error("Can't fail promise, already resolved as: " +
+                        (this.success ? 'fulfilled' : 'failed'));
+      }
+      this.result = util.toArray(arguments);
+      this.success = false;
+      if(this.handlers.failed) {
+        this.handlers.failed.apply(this, this.result);
+      } else if(this.nextPromise) {
+        this.nextPromise.fail.apply(this.nextPromise, this.result);
+      } else {
+        console.error("Uncaught error: ", this.result, (this.result[0] && this.result[0].stack));
+      }
+    },
+
+    fulfillLater: function() {
+      var args = util.toArray(arguments);
+      util.nextTick(function() {
+        this.fulfill.apply(this, args);
+      }.bind(this));
+      return this;
+    },
+
+    failLater: function() {
+      var args = util.toArray(arguments);
+      util.nextTick(function() {
+        this.fail.apply(this, args);
+      }.bind(this));
+      return this;
+    },
+
+    then: function(fulfilledHandler, errorHandler) {
+      this.handlers.fulfilled = fulfilledHandler;
+      this.handlers.failed = errorHandler;
+      this.nextPromise = new Promise();
+      return this.nextPromise;
+    },
+
+    get: function() {
+      var propertyNames = util.toArray(arguments);
+      return this.then(function(result) {
+        var promise = new Promise();
+        var values = [];
+        if(typeof(result) !== 'object') {
+          promise.failLater(new Error(
+            "Can't get properties of non-object (properties: " + 
+              propertyNames.join(', ') + ')'
+          ));
+        } else {
+          propertyNames.forEach(function(propertyName) {
+            values.push(result[propertyName]);
+          });
+          promise.fulfillLater.apply(promise, values);
+        }
+        return promise;
+      });
+    },
+
+    call: function(methodName) {
+      var args = Array.prototype.slice.call(arguments, 1);
+      return this.then(function(result) {
+        return result[methodName].apply(result, args);
+      });
+    }
+  };
+
+
   var util = {
 
     bufferToRaw: function(buffer) {
@@ -48,7 +183,7 @@ define([], function() {
       for(var i=0;i<nData;i++) {
         rawData += String.fromCharCode(view[i]);
       }
-      return rawData
+      return rawData;
     },
 
     rawToBuffer: function(rawData) {
@@ -82,6 +217,10 @@ define([], function() {
       return Array.prototype.slice.call(arrayLike);
     },
 
+    nextTick: function(action) {
+      setTimeout(action, 0);
+    },
+
     // Method: isDir
     // Convenience method to check if given path is a directory.
     isDir: function(path) {
@@ -91,7 +230,7 @@ define([], function() {
     pathParts: function(path) {
       var parts = ['/'];
       var md;
-      while(md = path.match(/^(.*?)([^\/]+\/?)$/)) {
+      while((md = path.match(/^(.*?)([^\/]+\/?)$/))) {
         parts.unshift(md[2]);
         path = md[1];
       }
@@ -138,12 +277,29 @@ define([], function() {
     },
 
     curry: function(f) {
+      if(typeof(f) !== 'function') {
+        throw "Can only curry functions!";
+      }
       var _a = Array.prototype.slice.call(arguments, 1);
       return function() {
-        var a = Array.prototype.slice.call(arguments);
+        var a = util.toArray(arguments);
         for(var i=(_a.length-1);i>=0;i--) {
           a.unshift(_a[i]);
         }
+        return f.apply(this, a);
+      };
+    },
+
+    rcurry: function(f) {
+      if(typeof(f) !== 'function') {
+        throw "Can only curry functions!";
+      }
+      var _a = Array.prototype.slice.call(arguments, 1);
+      return function() {
+        var a = util.toArray(arguments);
+        _a.forEach(function(item) {
+          a.push(item);
+        });
         return f.apply(this, a);
       };
     },
@@ -178,7 +334,7 @@ define([], function() {
     // (end code)
     //
     getEventEmitter: function() {
-      var eventNames = Array.prototype.slice.call(arguments);
+      var eventNames = util.toArray(arguments);
 
       function setupHandlers() {
         var handlers = {};
@@ -252,6 +408,7 @@ define([], function() {
     getLogger: function(name) {
 
       if(! loggers[name]) {
+        knownLoggers.push(name);
         loggers[name] = {
 
           info: function() {
@@ -386,6 +543,130 @@ define([], function() {
         }
       }
       keys.forEach(iter);
+    },
+
+    getPromise: function() {
+      return new Promise();
+    },
+
+    isPromise: function(object) {
+      return typeof(object) === 'object' && typeof(object.then) === 'function';
+    },
+
+    makePromise: function(futureCallback) {
+      var promise = new Promise();
+      util.nextTick(function() {
+        try {
+          var result = futureCallback(promise);
+          if(result && result.then && typeof(result.then) === 'function') {
+            result.then(
+              promise.fulfill.bind(promise),
+              promise.fail.bind(promise)
+            );
+          }
+        } catch(exc) {
+          promise.fail(exc);
+        }
+      });
+      return promise;
+    },
+
+    asyncGroup: function() {
+      var functions = util.toArray(arguments);
+      var results = [];
+      var todo = functions.length;
+      var errors = [];
+      return util.makePromise(function(promise) {
+        if(functions.length === 0) {
+          return promise.fulfill([], []);
+        }
+        function finishOne(result, index) {
+          results[index] = result;
+          todo--;
+          if(todo === 0) {
+            promise.fulfill(results, errors);
+          }
+        }
+        function failOne(error) {
+          console.error("asyncGroup part failed: ", error.stack || error);
+          errors.push(error);
+          finishOne();
+        }
+        functions.forEach(function(fun, index) {
+          if(typeof(fun) !== 'function') {
+            throw new Error("asyncGroup got non-function: " + fun);
+          }
+          var _result = fun();
+          if(_result && _result.then && typeof(_result.then) === 'function') {
+            _result.then(function(result) {
+              finishOne(result, index);
+            }, failOne);
+          } else {
+            finishOne(_result, index);
+          }
+        });
+      });
+    },
+
+    asyncEach: function(array, iterator) {
+      return util.makePromise(function(promise) {
+        util.asyncGroup.apply(
+          util, array.map(function(element, index) {
+            return util.curry(iterator, element, index);
+          })
+        ).then(function(results, errors) {
+          promise.fulfill(array, errors);
+        });
+      });
+    },
+
+    asyncMap: function(array, mapper) {
+      return util.asyncGroup.apply(
+        util, array.map(function(element) {
+          return util.curry(mapper, element);
+        })
+      );
+    },
+    
+
+    asyncSelect: function(array, testFunction) {
+      var a = [];
+      return util.asyncEach(array, function(element) {
+        return testFunction(element).then(function(result) {
+          if(result) {
+            a.push(element);
+          }
+        });
+      }).then(function() {
+        return a;
+      });
+    },
+
+    getSettingStore: function(prefix) {
+      function makeKey(key) {
+        return prefix + ':' + key;
+      }
+      return {
+        get: function(key) {
+          var data = localStorage.getItem(makeKey(key));
+          try { data = JSON.parse(data); } catch(e) {}
+          return data;
+        },
+        set: function(key, value) {
+          if(typeof(value) !== 'string') {
+            value = JSON.stringify(value);
+          }
+          return localStorage.setItem(makeKey(key), value);
+        },
+        remove: function(key) {
+          return localStorage.removeItem(makeKey(key));
+        },
+        clear: function() {
+          util.grepLocalStorage(new RegExp('^' + prefix), function(key) {
+            localStorage.removeItem(key);
+          });
+        }
+      }
     }
   };
 

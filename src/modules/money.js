@@ -11,8 +11,8 @@ define(['../remoteStorage'], function(remoteStorage) {
           for(var i=0; i<transactions.length;i++) {
             myPrivateBaseClient.storeObject('transaction', datePath+'transaction/'+i, transactions[i]);
           }
-          for(var i in endBalances) {
-            myPrivateBaseClient.storeObject('balance', datePath+'balance/'+i, endBalances[i]);
+          for(var j in endBalances) {
+            myPrivateBaseClient.storeObject('balance', datePath+'balance/'+j, endBalances[j]);
           }
         }
       }
