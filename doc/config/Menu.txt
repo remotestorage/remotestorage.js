@@ -27,7 +27,7 @@ Footer: remoteStorage.js is developed by some people. It's open source (MIT lice
 # These are indexes you deleted, so Natural Docs will not add them again
 # unless you remove them from this line.
 
-Don't Index: Functions, Interfaces, Files, Types, Classes, Build Targets, Events, Properties
+Don't Index: Functions, Files, Interfaces, Classes, Types, Events, Build Targets, Properties
 
 
 # --------------------------------------------------------------------------
