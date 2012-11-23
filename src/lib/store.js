@@ -505,7 +505,7 @@ define([
   // Returns a promise.
   //
   // Method: set(path, node)
-  // Create / update node at given path. See <Node> for a reference on how nodes look.
+  // Create / update node at given path. See <store.Node> for a reference on how nodes look.
   // Returns a promise.
   //
   // Method: remove(path)
