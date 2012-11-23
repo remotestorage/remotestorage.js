@@ -92,6 +92,12 @@ define([
       });
   }
 
+  var ValidationError = function(object, errors) {
+    Error.call(this, "Validation failed!");
+    this.object = object;
+    this.errors = errors;
+  };
+
   /** FROM HERE ON PUBLIC INTERFACE **/
 
   var BaseClient = function(moduleName, isPublic) {
@@ -105,12 +111,6 @@ define([
     this.events = util.getEventEmitter('change', 'conflict', 'error');
     moduleEvents[moduleName][isPublic] = this.events;
     util.bindAll(this);
-  };
-
-  var ValidationError = function(object, errors) {
-    Error.call(this, "Validation failed!");
-    this.object = object;
-    this.errors = errors;
   };
 
   // Class: BaseClient

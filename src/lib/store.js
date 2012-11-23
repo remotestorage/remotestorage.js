@@ -61,12 +61,15 @@ define([
   // Represents a node within the local store.
   //
   // Properties:
-  //   startAccess - either "r" or "rw". Flag means, that this node has been claimed access on (see <remoteStorage.claimAccess>) (default: null)
-  //   startForce  - boolean flag to indicate that this node shall always be synced. (see <BaseClient.use> and <BaseClient.release>) (default: null)
-  //   timestamp   - last time this node was (apparently) updated (default: 0)
-  //   lastUpdatedAt - Last time this node was upated from remotestorage
-  //   mimeType    - MIME media type
-  //   diff        - (directories only) marks children that have been modified.
+  //   startAccess    - either "r" or "rw". Flag means, that this node has been claimed access on (see <remoteStorage.claimAccess>) (default: null)
+  //   startForce     - boolean flag to indicate that this node shall always be synced. (see <BaseClient.use> and <BaseClient.release>) (default: null)
+  //   startForceTree - boolean flag that all directory children of this node shall be synced.
+  //   timestamp      - last time this node was (apparently) updated (default: 0)
+  //   lastUpdatedAt  - Last time this node was upated from remotestorage
+  //   mimeType       - MIME media type
+  //   diff           - (directories only) marks children that have been modified.
+  //   data           - Actual data of the node. A String, a JSON-Object or an ArrayBuffer.
+  //   binary         - boolean indicating if this node is binary. If true, 'data' is an ArrayBuffer.
   //
 
   // Event: change
@@ -492,21 +495,21 @@ define([
   // Currently supported:
   // * memory
   // * localStorage
+  // * indexedDB
   //
   // Planned:
-  // * indexedDB
   // * WebSQL
   //
   // Method: get(path)
-  // Get node metadata and payload for given path
+  // Get node from given path
   // Returns a promise.
   //
-  // Method: set(path, metadata, payload)
-  // Set node metadata and payload for given path
+  // Method: set(path, node)
+  // Create / update node at given path. See <Node> for a reference on how nodes look.
   // Returns a promise.
   //
   // Method: remove(path)
-  // Remove node metadata and payload for given path
+  // Remove node from given path
   // Returns a promise.
   //
   // Method: forgetAll()
@@ -518,9 +521,6 @@ define([
   //
   // Event: change
   // Fired when the store changes from another source (such as another tab / window).
-  //
-  // Event: ready
-  // Fired when the store is ready.
   //
 
 });
