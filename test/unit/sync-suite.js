@@ -19,6 +19,7 @@ define(['requirejs'], function(requirejs) {
       ], function(_util, store, sync, memoryAdapter) {
         util = _util;
         env.store = store;
+        env.store.setAdapter(memoryAdapter());
         env.sync = sync;
         env.remoteAdapter = memoryAdapter();
         env.conflicts = [];
@@ -36,9 +37,9 @@ define(['requirejs'], function(requirejs) {
         return;
       }
       try {
-      env.store.forgetAll().
-        then(env.remoteAdapter.forgetAll.bind(env.remoteAdapter)).
-        then(util.curry(this.result.bind(this), true));
+        env.store.forgetAll().
+          then(env.remoteAdapter.forgetAll.bind(env.remoteAdapter)).
+          then(util.curry(this.result.bind(this), true));
       } catch(exc) {
         console.error(exc.stack);
       }
