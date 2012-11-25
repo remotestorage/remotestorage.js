@@ -461,7 +461,11 @@ define([
 
     getClient: function(scope) {
       return new BaseClient(scope);
-    }
+    },
+
+    // Property: store
+    // Public access to <store>
+    store: store
 
   };
 

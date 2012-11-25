@@ -466,6 +466,10 @@ define([
   }
 
   return {
+
+    memory: memoryAdapter,
+    localStorage: localStorageAdapter,
+    indexedDb: indexedDbAdapter,
     
     events: events,
 
