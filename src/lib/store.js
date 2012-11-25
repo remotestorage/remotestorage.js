@@ -6,8 +6,9 @@ define([
   './platform',
   './store/memory',
   './store/localStorage',
-  './store/indexedDb'
-], function (util, platform, memoryAdapter, localStorageAdapter, indexedDbAdapter) {
+  './store/indexedDb',
+  './store/pending'
+], function (util, platform, memoryAdapter, localStorageAdapter, indexedDbAdapter, pendingAdapter) {
 
   "use strict";
 
@@ -470,6 +471,7 @@ define([
     memory: memoryAdapter,
     localStorage: localStorageAdapter,
     indexedDb: indexedDbAdapter,
+    pending: pendingAdapter,
     
     events: events,
 
