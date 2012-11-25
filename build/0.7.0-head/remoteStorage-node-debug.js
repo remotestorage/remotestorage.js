@@ -2561,12 +2561,15 @@ define('lib/store',[
   // Represents a node within the local store.
   //
   // Properties:
-  //   startAccess - either "r" or "rw". Flag means, that this node has been claimed access on (see <remoteStorage.claimAccess>) (default: null)
-  //   startForce  - boolean flag to indicate that this node shall always be synced. (see <BaseClient.use> and <BaseClient.release>) (default: null)
-  //   timestamp   - last time this node was (apparently) updated (default: 0)
-  //   lastUpdatedAt - Last time this node was upated from remotestorage
-  //   mimeType    - MIME media type
-  //   diff        - (directories only) marks children that have been modified.
+  //   startAccess    - either "r" or "rw". Flag means, that this node has been claimed access on (see <remoteStorage.claimAccess>) (default: null)
+  //   startForce     - boolean flag to indicate that this node shall always be synced. (see <BaseClient.use> and <BaseClient.release>) (default: null)
+  //   startForceTree - boolean flag that all directory children of this node shall be synced.
+  //   timestamp      - last time this node was (apparently) updated (default: 0)
+  //   lastUpdatedAt  - Last time this node was upated from remotestorage
+  //   mimeType       - MIME media type
+  //   diff           - (directories only) marks children that have been modified.
+  //   data           - Actual data of the node. A String, a JSON-Object or an ArrayBuffer.
+  //   binary         - boolean indicating if this node is binary. If true, 'data' is an ArrayBuffer.
   //
 
   // Event: change
@@ -2963,6 +2966,10 @@ define('lib/store',[
   }
 
   return {
+
+    memory: memoryAdapter,
+    localStorage: localStorageAdapter,
+    indexedDb: indexedDbAdapter,
     
     events: events,
 
@@ -2992,21 +2999,21 @@ define('lib/store',[
   // Currently supported:
   // * memory
   // * localStorage
+  // * indexedDB
   //
   // Planned:
-  // * indexedDB
   // * WebSQL
   //
   // Method: get(path)
-  // Get node metadata and payload for given path
+  // Get node from given path
   // Returns a promise.
   //
-  // Method: set(path, metadata, payload)
-  // Set node metadata and payload for given path
+  // Method: set(path, node)
+  // Create / update node at given path. See <store.Node> for a reference on how nodes look.
   // Returns a promise.
   //
   // Method: remove(path)
-  // Remove node metadata and payload for given path
+  // Remove node from given path
   // Returns a promise.
   //
   // Method: forgetAll()
@@ -3018,9 +3025,6 @@ define('lib/store',[
   //
   // Event: change
   // Fired when the store changes from another source (such as another tab / window).
-  //
-  // Event: ready
-  // Fired when the store is ready.
   //
 
 });
@@ -5699,6 +5703,12 @@ define('lib/baseClient',[
       });
   }
 
+  var ValidationError = function(object, errors) {
+    Error.call(this, "Validation failed!");
+    this.object = object;
+    this.errors = errors;
+  };
+
   /** FROM HERE ON PUBLIC INTERFACE **/
 
   var BaseClient = function(moduleName, isPublic) {
@@ -5714,18 +5724,15 @@ define('lib/baseClient',[
     util.bindAll(this);
   };
 
-  var ValidationError = function(object, errors) {
-    Error.call(this, "Validation failed!");
-    this.object = object;
-    this.errors = errors;
-  };
-
   // Class: BaseClient
   //
   // A BaseClient allows you to get, set or remove data. It is the basic
   // interface for building "modules".
   //
   // See <remoteStorage.defineModule> for details.
+  //
+  //
+  // Most methods here return promises. See the guide for and introduction: <Promises>
   //
   BaseClient.prototype = {
 
@@ -5763,15 +5770,17 @@ define('lib/baseClient',[
     //   remote - this event came from the *remotestorage server*. that means another app or the same app on another device caused the event.
     //
     // Example:
-    //   > client.on('change', function(event) {
-    //   >   if(event.newValue && event.oldValue) {
-    //   >     console.log(event.origin + ' updated ' + event.path + ':', event.oldValue, '->', event.newValue);
-    //   >   } else if(event.newValue) {
-    //   >     console.log(event.origin + ' created ' + event.path + ':', undefined, '->', event.newValue);
-    //   >   } else {
-    //   >     console.log(event.origin + ' removed ' + event.path + ':', event.oldValue, '->', undefined);
-    //   >   }
-    //   > });
+    //   (start code)
+    //   client.on('change', function(event) {
+    //     if(event.newValue && event.oldValue) {
+    //       console.log(event.origin + ' updated ' + event.path + ':', event.oldValue, '->', event.newValue);
+    //     } else if(event.newValue) {
+    //       console.log(event.origin + ' created ' + event.path + ':', undefined, '->', event.newValue);
+    //     } else {
+    //       console.log(event.origin + ' removed ' + event.path + ':', event.oldValue, '->', undefined);
+    //     }
+    //   });
+    //   (end code)
     //
 
     makePath: function(path) {
@@ -5815,11 +5824,13 @@ define('lib/baseClient',[
     //
     // The timestamp is represented as Number of milliseconds.
     // Use this snippet to get a Date object from it
-    //   > client.lastUpdateOf('path/to/node').
-    //   >   then(function(timestamp) {
-    //   >     // (normally you should check that 'timestamp' isn't null now)
-    //   >     console.log('last update: ', new Date(timestamp));
-    //   >   });
+    //   (start code)
+    //   client.lastUpdateOf('path/to/node').
+    //     then(function(timestamp) {
+    //       // (normally you should check that 'timestamp' isn't null now)
+    //       console.log('last update: ', new Date(timestamp));
+    //     });
+    //   (end code)
     //
     lastUpdateOf: function(path) {
       var absPath = this.makePath(path);
@@ -5853,10 +5864,12 @@ define('lib/baseClient',[
     //   A promise for the object.
     //
     // Example:
-    //   > client.getObject('/path/to/object').
-    //   >   then(function(object) {
-    //   >     // object is either an object or null
-    //   >   });
+    //   (start code)
+    //   client.getObject('/path/to/object').
+    //     then(function(object) {
+    //       // object is either an object or null
+    //     });
+    //   (end code)
     //
     getObject: function(path) {
       return this.ensureAccess('r').
@@ -5880,11 +5893,13 @@ define('lib/baseClient',[
     //   other keys represent *data nodes*.
     //
     // Example:
-    //   > client.getListing('').then(function(listing) {
-    //   >   listing.forEach(function(item) {
-    //   >     console.log('- ' + item);
-    //   >   });
-    //   > });
+    //   (start code)
+    //   client.getListing('').then(function(listing) {
+    //     listing.forEach(function(item) {
+    //       console.log('- ' + item);
+    //     });
+    //   });
+    //   (end code)
     //
     getListing: function(path) {
       if(! (util.isDir(path) || path === '')) {
@@ -5912,11 +5927,13 @@ define('lib/baseClient',[
     //   a promise for an object in the form { path : object, ... }
     //
     // Example:
-    //   > client.getAll('').then(function(objects) {
-    //   >   for(var key in objects) {
-    //   >     console.log('- ' + key + ': ', objects[key]);
-    //   >   }
-    //   > });
+    //   (start code)
+    //   client.getAll('').then(function(objects) {
+    //     for(var key in objects) {
+    //       console.log('- ' + key + ': ', objects[key]);
+    //     }
+    //   });
+    //   (end code)
     //
     getAll: function(path, typeAlias) {
 
@@ -6412,7 +6429,9 @@ define('lib/baseClient',[
     //   array of errors - when validation fails.
     //
     // The errors are objects of the form:
-    // > { "property": "foo", "message": "is named badly" }
+    // (start code)
+    // { "property": "foo", "message": "is named badly" }
+    // (end code)
     //
     validateObject: function(object, alias) {
       var type = object['@type'];
@@ -7047,7 +7066,11 @@ define('remoteStorage',[
 
     getClient: function(scope) {
       return new BaseClient(scope);
-    }
+    },
+
+    // Property: store
+    // Public access to <store>
+    store: store
 
   };
 
