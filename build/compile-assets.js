@@ -39,8 +39,7 @@ fs.readdirSync(sourcePath).forEach(function(fileName) {
       replace(/\s?\}\s?/g, '}').
       replace(/\n/g, '').
       replace(/;\s/g, ';').
-      replace(/:\s/g, ':').
-      replace(/,\s/g, ':');
+      replace(/:\s/g, ':');
   }
 
   output += '\n    ' + name + ": '" + content.replace(/'/g, "\\'") + "',";
