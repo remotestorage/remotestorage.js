@@ -267,6 +267,21 @@ define([], function() {
       }
     },
 
+    // Function: bindAll
+    // Bind all function properties of given object to it's object.
+    //
+    // Makes it a lot easier to use methods as callbacks.
+    //
+    // Example:
+    //   (start code)
+    //   var o = { foo: function() { return this; } };
+    //   util.bindAll(o);
+    //    
+    //   var f = o.foo; // detach function from object
+    //    
+    //   f() === o; // -> true, function is still bound to object "o".
+    //   (end code)
+    //
     bindAll: function(object) {
       for(var key in object) {
         if(typeof(object[key]) === 'function') {
@@ -276,6 +291,19 @@ define([], function() {
       return object;
     },
 
+    // Function: curry
+    // <Curry at http://www.cs.nott.ac.uk/~gmh/faq.html#currying> given function.
+    //
+    // Example:
+    //   (start code)
+    //   function f(n, m) {
+    //     console.log("N: " + n + ", M: " + m);
+    //   }
+    //   var f3 = curry(f, 3);
+    //   // later:
+    //   f3(4);
+    //   // prints "N: 3, M: 4";
+    //   (end code)
     curry: function(f) {
       if(typeof(f) !== 'function') {
         throw "Can only curry functions!";
@@ -290,6 +318,20 @@ define([], function() {
       };
     },
 
+    // Function: rcurry
+    // Same as <curry>, but append instead of prepend given arguments.
+    //
+    // Example:
+    //   (start code)
+    //   function f(n, m) {
+    //     console.log("N: " + n + ", M: " + m);
+    //   }
+    //   var f3 = rcurry(f, 3);
+    //   // later:
+    //   f3(4);
+    //   // prints "N: 4, M: 3";
+    //   (end code)
+    //
     rcurry: function(f) {
       if(typeof(f) !== 'function') {
         throw "Can only curry functions!";
@@ -316,6 +358,14 @@ define([], function() {
       console.log('WARNING: ' + methodName + ' is deprecated, use ' + replacement + ' instead');
     },
 
+    // Function: highestAccess
+    // Combine two access modes and return the highest one.
+    //
+    // Parameters:
+    //   a, b - Access modes. Either 'r', 'rw' or undefined.
+    //
+    // Returns:
+    //   'rw' or 'r' or null.
     highestAccess: function(a, b) {
       return (a == 'rw' || b == 'rw') ? 'rw' : (a == 'r' || b == 'r') ? 'r' : null;
     },
@@ -448,8 +498,8 @@ define([], function() {
     // Method: setLogFunction
     //
     // Override the default logger with a custom function.
-    // After the remotestorage will no longer log to the browser console, but
-    // instead pass each logger call to the provided function.
+    // After this, remoteStorage.js will no longer log through the global console object,
+    // but instead pass each logger call to the provided function.
     //
     // Log function parameters:
     //   name  - Name of the logger.
@@ -549,10 +599,57 @@ define([], function() {
       return new Promise();
     },
 
+    // Function: isPromise
+    // Tests whether the given Object is a <Promise>.
+    //
+    // This method only checks for a "then" property, that is a function.
+    // That way it can interact with other implementations of Promises/A
+    // as well.
     isPromise: function(object) {
       return typeof(object) === 'object' && typeof(object.then) === 'function';
     },
 
+    // Function: makePromise
+    // Create a new <Promise> object, and run given function.
+    //
+    // Returns: the created promise.
+    //
+    // The given callback function will be run in the future.
+    // If the callback throws an exception, that will cause the
+    // supplied callback to fail.
+    // If the callback returns a promise, that promise will be
+    // chained to the returned one.
+    //
+    // Example:
+    //   (start code)
+    //   function a() {
+    //     return util.makePromise(function(promise) {
+    //       // promise will be fulfilled in next tick
+    //       promise.fulfill(a + b);
+    //     });
+    //   }
+    //
+    //   function b() {
+    //     return util.makePromise(function(promise) {
+    //       // promise will be fulfilled as soon as the returned promise is fulfilled
+    //       return asyncFunctionReturningPromise();
+    //     });
+    //   }
+    //
+    //   function c() {
+    //     return util.makePromise(function(promise) {
+    //       // promise will fail with the thrown exception as it's result value
+    //       throw new Error("Something went wrong!");
+    //     });
+    //   }
+    //
+    //   a().then(b).then(c).then(function() {
+    //     // everything alright (never reached, "c" fails)
+    //   }, function(error) {
+    //     // one of the above failed.
+    //   });
+    //   (end code)
+    //
     makePromise: function(futureCallback) {
       var promise = new Promise();
       util.nextTick(function() {
@@ -571,6 +668,45 @@ define([], function() {
       return promise;
     },
 
+    // Function: asyncGroup
+    // Run a bunch of asynchronous functions in parallel
+    //
+    // Returns a <Promise>.
+    //
+    // All given parameters must be functions. All functions will be
+    // run in the given order. The returned promise will be fulfilled,
+    // when for all given functions one of the following is true,
+    //
+    // Either:
+    //   The function returned no promise.
+    //
+    // Or:
+    //   The function returned a promise and that promise has been
+    //   fulfilled or failed.
+    //
+    // The promise fill be fulfilled with:
+    //   results - An array of return or fulfill values of the given
+    //             functions in the same order.
+    //   errors  - Array of errors reported by promise-returning
+    //             functions.
+    //
+    // Example:
+    //   (start code)
+    //   return util.asyncGroup(
+    //     function() { // asynchronous function
+    //       return util.makePromise(function(p) {
+    //         asyncGetSomeNumber(function(number) { p.fulfill(number) });
+    //       });
+    //     },
+    //     function() { // synchronous function
+    //       return 50 - 8;
+    //     }
+    //   ).then(function(numbers, errors) {
+    //     numbers[0]; // -> (whatever 'number' was in the async function)
+    //     numbers[1]; // -> 42
+    //   });
+    //   (end code)
+    // 
     asyncGroup: function() {
       var functions = util.toArray(arguments);
       var results = [];
@@ -608,6 +744,17 @@ define([], function() {
       });
     },
 
+    // Function: asyncEach
+    // Asynchronously iterate over array.
+    //
+    // Returns a <Promise>.
+    //
+    // Calls the given iterator function for each element in 'array',
+    // passing in the element itself and the index within the array.
+    //
+    // The iterator function and returned promise are subject to the
+    // same semantics as in <util.asyncGroup>.
+    //
     asyncEach: function(array, iterator) {
       return util.makePromise(function(promise) {
         util.asyncGroup.apply(
@@ -620,6 +767,15 @@ define([], function() {
       });
     },
 
+    // Function: asyncMap
+    //
+    // Asynchronously map an array.
+    //
+    // Returns a <Promise>.
+    //
+    // Calls the given "mapper" for each element in the given "array",
+    // through <util.asyncGroup>.
+    //
     asyncMap: function(array, mapper) {
       return util.asyncGroup.apply(
         util, array.map(function(element) {
