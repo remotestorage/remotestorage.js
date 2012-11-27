@@ -127,9 +127,12 @@ if(process.argv[2] == 'debug') {
     fs.copy(s, d, function(err) { if(err) console.log("copy failed: " + err) });
   }
 
-  cp('./latest/remoteStorage.min.js', 'latest/remoteStorage.js');
-  cp('./latest/remoteStorage-node.min.js', 'latest/remoteStorage-node.js');
-  cp('./latest/remoteStorage-modules.min.js', 'latest/remoteStorage-modules.js');
+  cp(__dirname + '/latest/remoteStorage.min.js',
+     __dirname + '/latest/remoteStorage.js');
+  cp(__dirname + '/latest/remoteStorage-node.min.js',
+     __dirname + '/latest/remoteStorage-node.js');
+  cp(__dirname + '/latest/remoteStorage-modules.min.js',
+     __dirname + '/latest/remoteStorage-modules.js');
 }
 
 // var mods = modules.map(function(module) {
