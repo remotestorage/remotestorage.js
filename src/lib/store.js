@@ -196,6 +196,8 @@ define([
           throw "Attempted to set non-number timestamp in incoming change: " + timestamp + ' (' + typeof(timestamp) + ')';
         }
         node.lastUpdatedAt = timestamp;
+
+        delete node.error;
       }
       
       if(! mimeType) {
@@ -240,6 +242,13 @@ define([
           startAccess: claim
         }, node);
       }
+    });
+  }
+
+  function setNodeError(path, error) {
+    logger.debug('setNodeError', path, error);
+    return updateMetadata(path, {
+      error: error
     });
   }
 
@@ -486,6 +495,7 @@ define([
     setNodeAccess     : setNodeAccess,
     setNodeForce      : setNodeForce,
     forget            : forget,
+    setNodeError      : setNodeError,
     
     forgetAll         : forgetAll,        // widget
     fireInitialEvents : fireInitialEvents,// widget

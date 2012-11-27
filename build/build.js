@@ -121,15 +121,24 @@ if(process.argv[2] == 'debug') {
   // build('latest/remoteStorage-node-modules-debug', 'remoteStorage-modules', { end: 'endNodeModules.frag', debug: true });
 
   function cp(s, d) {
-    if(fs.existsSync(d)) {
-      fs.unlink(d);
-    }
-    fs.copy(s, d, function(err) { if(err) console.log("copy failed: " + err) });
+    console.log("CP", s, d);
+    fs.exists(d, function(exist) {
+      if(exist) {
+        console.log("REPLACE ", d);
+        fs.unlinkSync(d);
+      } else {
+        console.log("CREATE", d);
+      }
+      fs.copy(s, d, function(err) { if(err) console.log("copy failed: " + err) });
+    });
   }
 
-  cp('./latest/remoteStorage.min.js', 'latest/remoteStorage.js');
-  cp('./latest/remoteStorage-node.min.js', 'latest/remoteStorage-node.js');
-  cp('./latest/remoteStorage-modules.min.js', 'latest/remoteStorage-modules.js');
+  cp(__dirname + '/latest/remoteStorage.min.js',
+     __dirname + '/latest/remoteStorage.js');
+  cp(__dirname + '/latest/remoteStorage-node.min.js',
+     __dirname + '/latest/remoteStorage-node.js');
+  cp(__dirname + '/latest/remoteStorage-modules.min.js',
+     __dirname + '/latest/remoteStorage-modules.js');
 }
 
 // var mods = modules.map(function(module) {

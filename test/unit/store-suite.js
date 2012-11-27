@@ -211,6 +211,28 @@ define(['requirejs', 'fs'], function(requirejs, fs) {
       },
 
       {
+        desc: "store.setNodeData clears the node error",
+        run: function(env) {
+          var _this = this;
+          env.store.setNodeError('/a/b/c', "ERROR!!!").
+            then(curry(env.store.getNode, '/a/b/c')).
+            get('error').
+            then(function(error) {
+              // check that error is set
+              _this.assertAnd("ERROR!!!", error);
+            }).
+            then(curry(
+              env.store.setNodeData, '/a/b/c', 'test-adata', false, 12345, 'text/plain'
+            )).
+            then(curry(env.store.getNode, '/a/b/c')).
+            get('error').
+            then(function(error) {
+              _this.assertType(error, 'undefined');
+            });
+        }
+      },
+
+      {
         desc: "store.clearDiff bubbles up the tree and updates all timestamps",
         run: function(env) {
           var _this = this;
@@ -338,6 +360,18 @@ define(['requirejs', 'fs'], function(requirejs, fs) {
             then(function() {
               _this.assert(env.allForgotten, true);
             }, catchError(this));
+        }
+      },
+
+      {
+        desc: "store.setNodeError sets the node error",
+        run: function(env) {
+          var _this = this;
+          env.store.setNodeError('/foo', 'bar').
+            then(curry(env.store.getNode, '/foo')).get('error').
+            then(function(error) {
+              _this.assert(error, 'bar')
+            });
         }
       }
     ]

@@ -12,6 +12,8 @@ DOC_INPUTS=-i $(SOURCE_DIR) -i ./doc/pages/
 
 NODEJS=node
 
+VERSION=$(shell cat VERSION)
+
 default: debug-only
 
 build:
@@ -50,4 +52,20 @@ clean-doc:
 compile-assets: $(ASSETS_DIR)/*
 	$(NODEJS) build/compile-assets.js $(ASSETS_DIR) $(ASSETS_OUT)
 
-.PHONY: doc clean-doc build commit-build push-build prepare-gh-pages compile-assets
+.PHONY: doc clean-doc build commit-build push-build prepare-gh-pages compile-assets release test
+
+test:
+	npm test
+
+release: build
+	rm -rf release/$(VERSION)
+	cp -r build/latest release/$(VERSION)
+
+	node build/update-version.js component.json $(VERSION) > component.json.tmp
+	mv component.json.tmp component.json
+	node build/update-version.js package.json $(VERSION) > package.json.tmp
+	mv package.json.tmp package.json
+
+	git add release/$(VERSION) component.json package.json
+	git commit -m "Release build: $(VERSION)"
+	git tag v$(VERSION)
