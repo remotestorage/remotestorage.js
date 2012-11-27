@@ -52,8 +52,10 @@ clean-doc:
 compile-assets: $(ASSETS_DIR)/*
 	$(NODEJS) build/compile-assets.js $(ASSETS_DIR) $(ASSETS_OUT)
 
-.PHONY: doc clean-doc build commit-build push-build prepare-gh-pages compile-assets release
+.PHONY: doc clean-doc build commit-build push-build prepare-gh-pages compile-assets release test
 
+test:
+	npm test
 
 release: build
 	rm -rf release/$(VERSION)
