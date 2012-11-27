@@ -163,13 +163,20 @@ define([
   }
 
   function timeAgo(usec) {
+    function format(time, unit) {
+      time = Math.round(time);
+      if(time != 1) {
+        unit += 's';
+      }
+      return time + ' ' + unit + ' ago';
+    }
     var sec = usec / 1000;
     if(sec > 3600) {
-      return (sec / 3600) + ' hours ago';
+      return  format(sec / 3600, 'hour')
     } else if(sec > 60) {
-      return (sec / 60) + ' minutes ago';
+      return format(sec / 60, 'minute');
     } else {
-      return Math.round(sec) + ' seconds ago';
+      return format(sec, 'second');
     }
   }
 
