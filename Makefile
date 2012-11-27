@@ -54,9 +54,16 @@ compile-assets: $(ASSETS_DIR)/*
 
 .PHONY: doc clean-doc build commit-build push-build prepare-gh-pages compile-assets release
 
-release: 
+
+release: build
 	rm -rf release/$(VERSION)
 	cp -r build/latest release/$(VERSION)
-	git add release/$(VERSION)
+
+	node build/update-version.js component.json $(VERSION) > component.json.tmp
+	mv component.json.tmp component.json
+	node build/update-version.js package.json $(VERSION) > package.json.tmp
+	mv package.json.tmp package.json
+
+	git add release/$(VERSION) component.json package.json
 	git commit -m "Release build: $(VERSION)"
 	git tag v$(VERSION)

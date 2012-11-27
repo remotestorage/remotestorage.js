@@ -121,10 +121,16 @@ if(process.argv[2] == 'debug') {
   // build('latest/remoteStorage-node-modules-debug', 'remoteStorage-modules', { end: 'endNodeModules.frag', debug: true });
 
   function cp(s, d) {
-    if(fs.existsSync(d)) {
-      fs.unlink(d);
-    }
-    fs.copy(s, d, function(err) { if(err) console.log("copy failed: " + err) });
+    console.log("CP", s, d);
+    fs.exists(d, function(exist) {
+      if(exist) {
+        console.log("REPLACE ", d);
+        fs.unlinkSync(d);
+      } else {
+        console.log("CREATE", d);
+      }
+      fs.copy(s, d, function(err) { if(err) console.log("copy failed: " + err) });
+    });
   }
 
   cp(__dirname + '/latest/remoteStorage.min.js',
