@@ -823,8 +823,13 @@ define([
           return util.asyncGroup(
             util.curry(fetchLocalNode, childPath),
             util.curry(fetchRemoteNode, childPath)
-          ).then(function(nodes) {
-            mergeDataNode(childPath, nodes[0], nodes[1], options);
+          ).then(function(nodes, errors) {
+            if(errors.length > 0) {
+              logger.error("Failed to sync node", childPath, errors);
+              return store.setNodeError(childPath, errors);
+            } else {
+              return mergeDataNode(childPath, nodes[0], nodes[1], options);
+            }
           });
         }
       });
@@ -975,19 +980,6 @@ define([
     // Method: clearSettings
     // Clear all data from localStorage that this file put there.
     clearSettings: settings.clear,
-
-    // Method: syncNow
-    // DEPRECATED. calls <fullSync>
-    syncNow: function(path, callback) {
-      util.deprecate('sync.syncNow', 'sync.fullSync');
-      this.fullSync(callback);
-    },
-    // Method: fetchNow
-    // DEPRECATED. calls <syncOne>
-    fetchNow: function(path, callback) {
-      util.deprecate('sync.fetchNow', 'sync.syncOne or sync.partialSync');
-      this.syncOne(path, callback);
-    },
 
     // Method: disableThrottling
     // Disable throttling of <fullSync>/<partialSync> for debugging purposes.
