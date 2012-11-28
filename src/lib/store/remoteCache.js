@@ -33,14 +33,13 @@ define([
     return {
       get: function(path) {
         if(cache.hasKey(path)) {
-          logger.info('GET HIT', path);
+          logger.debug('GET HIT', path);
           return cache.get(path);
         } else {
-          logger.info('GET MISS', path);
+          logger.debug('GET MISS', path);
           var node = {};
           return wireClient.get(path).
             then(function(data, mimeType) {
-              logger.info("WIRE CLIENT GET RETURNED", data, mimeType);
               node.data = data;
               node.mimeType = mimeType;
               node.binary = data instanceof ArrayBuffer;
@@ -60,19 +59,24 @@ define([
       },
 
       set: function(path, node) {
-        logger.info('SET', path);
+        logger.debug('SET', path);
         return cache.set(path, node).
           then(util.curry(wireClient.set, path, node.data, node.mimeType));
       },
 
       remove: function(path) {
-        logger.info('REMOVE', path);
+        logger.debug('REMOVE', path);
         return cache.remove(path).
           then(util.curry(wireClient.remove, path));
       },
 
       getState: function() {
         return wireClient.getState();
+      },
+
+      expireKey: function(path) {
+        logger.debug('EXPIRE', path);
+        return cache.remove(path);
       },
 
       clearCache: function() {
