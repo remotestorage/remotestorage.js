@@ -311,13 +311,13 @@ define([
   }
 
   function finishTask() {
+    remoteAdapter.clearCache();
     if(currentFinalizer) {
       currentFinalizer();
     }
     if(taskQueue.length > 0) {
       beginTask();
     } else {
-      remoteAdapter.clearCache();
       setReady();
     }
   }
@@ -471,8 +471,14 @@ define([
   // Fires: error
   function updateRemote(path, local, remote) {
     logger.info('UPDATE', path, 'LOCAL -> REMOTE');
+    var parentPath = util.containingDir(path);
+    var baseName = util.baseName(path);
     return remoteAdapter.set(path, local).
-      then(util.curry(store.clearDiff, path));
+      then(util.curry(remoteAdapter.expireKey, parentPath)).
+      then(util.curry(remoteAdapter.get, parentPath)).
+      then(function(remoteNode) {
+        return store.clearDiff(path, remoteNode.data[baseName]);
+      });
   }
 
 
