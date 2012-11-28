@@ -10,8 +10,9 @@ define([
   '../vendor/mailcheck',
   '../vendor/levenshtein',
   './store/localStorage',
-  './store/indexedDb'
-], function(assets, webfinger, wireClient, sync, store, platform, util, schedule, mailcheck, levenshtein, localStorageAdapter, indexedDbAdapter) {
+  './store/indexedDb',
+  './widget/default'
+], function(assets, webfinger, wireClient, sync, store, platform, util, schedule, mailcheck, levenshtein, localStorageAdapter, indexedDbAdapter, defaultView) {
 
   // Namespace: widget
   //
@@ -34,7 +35,6 @@ define([
   var authDialogStrategy = 'redirect';
   var authPopupRef;
   var initialSync;
-  var scopesObj = {};
   var timeoutCount = 0;
   var pendingError;
 
@@ -47,114 +47,6 @@ define([
   var popupSettings = 'resizable,toolbar=yes,location=yes,scrollbars=yes,menubar=yes,width=820,height=800,top=0,left=0';
 
   var logger = util.getLogger('widget');
-  function translate(text) {
-    return text;
-  }
-
-  function calcWidgetState() {
-    var wireClientState = wireClient.getState();
-    if(wireClientState == 'connected') {
-      return sync.getState();// 'connected', 'busy'
-    }
-    return wireClientState;//'connected', 'authing', 'anonymous'
-  }
-
-  function setWidgetStateOnLoad() {
-    setWidgetState(calcWidgetState());
-  }
-
-  function setWidgetState(state, updateView) {
-    widgetState = state;
-    if(updateView !== false) {
-      displayWidgetState(state, userAddress);
-    }
-    if(state == 'offline') {
-      schedule.disable();
-    }
-    events.emit('state', state);
-  }
-
-  function getWidgetState() {
-    return widgetState || 'anonymous';
-  }
-
-  function buildWidget() {
-
-    function el(tag, id, attrs) {
-      var e = document.createElement(tag);
-      if(id) {
-        e.setAttribute('id', id);
-      }
-      if(attrs && attrs._content) {
-        e.innerHTML = attrs._content;
-        delete attrs._content;
-      }
-      for(var key in attrs) {
-        e.setAttribute(key, attrs[key]);
-      }
-      return e;
-    }
-
-    var widget = {
-      root: el('div', 'remotestorage-state'),
-      connectButton: el('input', 'remotestorage-connect-button', {
-        'class': 'remotestorage-button',
-        'type': 'submit',
-        'value': translate('connect')
-      }),
-      registerButton: el('span', 'remotestorage-register-button', {
-        'class': 'remotestorage-button',
-        '_content': translate('get remotestorage')
-      }),
-      cube: el('img', 'remotestorage-cube', {
-        'src': assets.remotestorageIcon
-      }),
-      bubble: el('span', 'remotestorage-bubble'),
-      helpHint: el('a', 'remotestorage-questionmark', {
-        'href': 'http://remotestorage.io',
-        'target': '_blank',
-        '_content': '?'
-      }),
-      helpText: el('span', 'remotestorage-infotext', {
-        'class': 'infotext',
-        '_content': 'This app allows you to use your own data storage!<br/>Click for more info on remotestorage.'
-      }),
-      userAddress: el('input', 'remotestorage-useraddress', {
-        'placeholder': 'user@host',
-        'type': 'email'
-      }),
-      style: el('style'),
-
-      menu: el('div', 'remotestorage-menu'),
-      menuItemSync: el('div', null, {
-        'class': 'item'
-      }),
-      syncButton: el('button', 'remotestorage-sync-button', {
-        '_content': 'Sync now',
-        'class': 'remotestoage-button'
-      }),
-      error: el('div', 'remotestorage-error', {
-        'style': 'display:none'
-      })
-
-    };
-
-    widget.root.appendChild(widget.connectButton);
-    widget.root.appendChild(widget.registerButton);
-    widget.root.appendChild(widget.cube);
-    widget.root.appendChild(widget.bubble);
-    widget.root.appendChild(widget.helpHint);
-    widget.root.appendChild(widget.helpText);
-    widget.root.appendChild(widget.userAddress);
-    widget.root.appendChild(widget.menu);
-    widget.root.appendChild(widget.error);
-
-    widget.menu.appendChild(widget.menuItemSync);
-
-    widget.style.innerHTML = assets.widgetCss;
-
-    return widget;
-  }
 
   function handleSyncNowClick() {
     if(widgetState == 'connected' || widgetState == 'busy') {
@@ -614,29 +506,127 @@ define([
     }
 
     setWidgetStateOnLoad();
-
-    if(options.syncShortcut !== false) {
-      window.addEventListener('keydown', function(evt) {
-        if(evt.ctrlKey && evt.which == 83) {
-          evt.preventDefault();
-          sync.fullSync();
-          return false;
-        }
-      });
-    }
     
   }
+
+  //////////////// NEW
+
+  var view = defaultView;
+
+  var scopesObj = {};
 
   function addScope(module, mode) {
     if(!scopesObj[module] || mode == 'rw') {
       scopesObj[module] = mode;
     }
   }
+
+  function buildScopeRequest() {
+    return Object.keys(scopesObj).map(function(module) {
+      return module + ':' + scopesObj[module];
+    }).join(' ');
+  }
+
+  function requestToken(authEndpoint) {
+    logger.info('requestToken', authEndpoint);
+    authEndpoint += authEndpoint.indexOf('?') > 0 ? '&' : '?';
+    authEndpoint += [
+      ['redirect_uri', document.location.href.split('#')[0]],
+      ['scope', buildScopeRequest()],
+      ['response_type', 'token']
+    ].map(function(kv) {
+      return kv[0] + '=' + encodeURIComponent(kv[1]);
+    }).join('&');
+    return view.redirectTo(authEndpoint);
+  }
+
+  function connectStorage(userAddress) {
+    settings.set('userAddress', userAddress);
+    return webfinger.getStorageInfo(userAddress).
+      then(wireClient.setStorageInfo).
+      then(function(storageInfo) {
+        logger.info("STORAGE INFO", storageInfo);
+        return storageInfo;
+      }).
+      get('properties').get('auth-endpoint').
+      then(requestToken).
+      then(undefined, view.displayError);
+  }
+
+  function disconnectStorage() {
+    remoteStorage.flushLocal();
+  }
+
+  // destructively parse query string from URI fragment
+  function parseParams() {
+    var md = String(document.location).match(/^(.*?)#(.*)$/);
+    console.log("HASH MD", md);
+    var hash = md[2];
+    var result = {};
+    if(hash) {
+      hash.split('&').forEach(function(param) {
+        var kv = param.split('=');
+        result[kv[0]] = decodeURIComponent(kv[1]);
+      })
+      document.location = md[1] + '#';
+    }
+    console.log("PARAMS RESULT", result);
+    return result; 
+  }
+
+  function processParams() {
+    var params = parseParams();
+
+    // Query parameter: access_token
+    if(params.access_token) {
+      wireClient.setBearerToken(params.access_token);
+    }
+    // Query parameter: storage_root, storage_api
+    if(params.storage_root && params.storage_api) {
+      wireClient.setStorageInfo({
+        type: params.storage_api,
+        href: params.storage_root
+      });
+    }
+    // Query parameter: authorize_endpoint
+    if(params.authorize_endpoint) {
+      requestToken(params.authorize_endpoint);
+    }
+    // Query parameter: user_address
+    if(params.user_address) {
+      view.setUserAddress(params.user_address);
+    } else {
+      var userAddress = settings.get('userAddress');
+      if(userAddress) {
+        view.setUserAddress(userAddress);
+      }
+    }
+  }
+
+  function display(domId, options) {
+    if(! options) {
+      options = {};
+    }
+    options.scopes = scopesObj;
+    view.display(domId, options);
+
+    view.on('sync', sync.forceSync);
+    view.on('connect', connectStorage);
+    view.on('disconnect', disconnectStorage);
+
+    sync.on('busy', util.curry(view.setState, 'busy'));
+    sync.on('ready', util.curry(view.setState, 'connected'));
+    wireClient.on('connected', util.curry(view.setState, 'connected'));
+    wireClient.on('disconnected', util.curry(view.setState, 'initial'));
+    
+    processParams();
+
+    wireClient.calcState();
+  }
   
-  return {
+  return util.extend({
     display : display,
     addScope: addScope,
-    getState: getWidgetState,
-    on: events.on
-  };
+    clearSettings: settings.clear
+  }, events);
 });

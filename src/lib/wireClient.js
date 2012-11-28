@@ -7,7 +7,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
   var prefix = 'remote_storage_wire_';
 
-  var events = util.getEventEmitter('connected', 'error');
+  var events = util.getEventEmitter('connected', 'disconnected', 'error');
 
   var state = 'anonymous';
 
@@ -17,10 +17,6 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     settings.set(key, value);
 
     calcState();
-
-    if(state == 'connected') {
-      events.emit('connected');
-    }
   }
 
   function removeSetting(key) {
@@ -41,6 +37,8 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
   }
 
   function calcState() {
+    var oldState = state;
+
     if(getSetting('storageType') && getSetting('storageHref')) {
       if(getSetting('bearerToken')) {
         state = 'connected';
@@ -49,6 +47,12 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
       }
     } else {
       state = 'anonymous';
+    }
+
+    if(state === 'connected') {
+      events.emit('connected');
+    } else if(state === 'anonymous' && oldState === 'connected') {
+      events.emit('disconnected');
     }
     return state;
   }
