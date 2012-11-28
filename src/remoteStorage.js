@@ -292,7 +292,12 @@ define([
     // Example:
     //   > remoteStorage.flushLocal();
     //
-    flushLocal       : store.forgetAll,
+    flushLocal       : function() {
+      store.forgetAll();
+      sync.clearSettings();
+      widget.clearSettings();
+      wireClient.disconnectRemote();
+    },
 
     //
     // Method: fullSync
