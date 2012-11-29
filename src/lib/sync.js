@@ -477,10 +477,12 @@ define([
       then(util.curry(remoteAdapter.expireKey, parentPath)).
       then(util.curry(remoteAdapter.get, parentPath)).
       then(function(remoteNode) {
-        return store.clearDiff(path, remoteNode.data[baseName]);
+        // FIXME: in specs remoteNode is not defined!!!
+        var timestamp = (remoteNode ? remoteNode.data[baseName] :
+                         new Date().getTime());
+        return store.clearDiff(path, timestamp);
       });
   }
-
 
   // Function: processNode
   //

@@ -306,7 +306,7 @@ define([], function() {
     //   (end code)
     curry: function(f) {
       if(typeof(f) !== 'function') {
-        throw "Can only curry functions!";
+        throw new Error("Can only curry functions!");
       }
       var _a = Array.prototype.slice.call(arguments, 1);
       return function() {

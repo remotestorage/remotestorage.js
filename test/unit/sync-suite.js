@@ -22,6 +22,7 @@ define(['requirejs'], function(requirejs) {
         env.store.setAdapter(memoryAdapter());
         env.sync = sync;
         env.remoteAdapter = memoryAdapter();
+        env.remoteAdapter.expireKey = function() {};
         env.conflicts = [];
         env.sync.on('conflict', function(event) {
           env.conflicts.push(event);
@@ -225,7 +226,7 @@ define(['requirejs'], function(requirejs) {
             }).then(function(parentNode) {
               _this.assert(parentNode.diff, {});
             }, function(error) {
-              console.error("processNode failed: ", error);
+              console.error("processNode failed: ", error, error.stack);
               _this.result(false);
             });
         }
