@@ -246,15 +246,13 @@ define([
         return;
       }
 
-      claimedModules[moduleName] = true;
+      claimedModules[moduleName] = mode;
 
       if(moduleName === 'root') {
         moduleName = '';
-        widget.addScope('', mode);
         return store.setNodeAccess('/', mode).
           then(util.curry(store.setNodeForce, '/', true, true));
       } else {
-        widget.addScope(moduleName, mode);
         var privPath = '/'+moduleName+'/';
         var pubPath = '/public/'+moduleName+'/';
         return store.setNodeAccess(privPath, mode).
@@ -377,7 +375,17 @@ define([
     //
     //    > remoteStorage.displayWidget('remotestorage-connect', { authDialog: 'popup' });
     //    
-    displayWidget    : widget.display,
+    displayWidget    : function(domId, options) {
+      var scopes = util.extend(claimedModules);
+      if(scopes.root) {
+        scopes[''] = scopes.root;
+        delete scopes.root;
+      }
+      var defaultOptions = {
+        scopes: scopes
+      };
+      widget.display(domId, util.extend({}, defaultOptions, options));
+    },
 
     //
     // Method: onWidget

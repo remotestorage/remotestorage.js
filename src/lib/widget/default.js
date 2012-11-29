@@ -40,11 +40,13 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
    */
 
-  var t = i18n('widget');
+  var t = util.curry(i18n.t, 'widget');
 
   var events = util.getEventEmitter('connect', 'disconnect', 'sync');
 
   var browserEvents = [];
+
+  var widgetOptions = {};
 
   function addEvent(element, eventName, handler) {
     browserEvents.push([element, eventName, handler]);
@@ -134,7 +136,9 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
         events.emit('disconnect');
         return false;
       });
-      content.appendChild(elements.scopeInfo);
+      // if(elements.scopeInfo) {
+      //   content.appendChild(elements.scopeInfo);
+      // }
 
       elements.bubble.appendChild(content);
 
@@ -156,6 +160,20 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       addClass(elements.bubble, 'hidden');
       addClass(elements.cube, 'spinning');
       setBubbleText('Synchronizing <strong>' + userAddress + '</strong>');
+    },
+
+    error: function(error) {
+      elements.widget.appendChild(elements.bubble);
+      elements.widget.appendChild(elements.cube);
+      setCubeState('error');
+      setBubbleText("An error occured: ");
+      var trace = document.createElement('pre');
+      elements.bubble.appendChild(trace);
+      if(error instanceof Error) {
+        trace.innerHTML = error.stack;
+      } else {
+        trace.innerHTML = error;
+      }
     }
 
   };
@@ -222,25 +240,27 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     elements.disconnectButton.setAttribute('class', 'disconnect');
     elements.disconnectButton.innerHTML = t('disconnect');
     // .scope-info
-    elements.scopeInfo = document.createElement('div');
-    elements.scopeInfo.setAttribute('class', 'scope-info');
-    var permLabel = document.createElement('strong');
-    permLabel.innerHTML = t('permissions') + ':';
-    elements.scopeInfo.appendChild(permLabel);
-    var scopeList = document.createElement('ul');
-    for(var scope in widgetOptions.scopes) {
-      var el = document.createElement('li');
-      el.innerHTML = scope || t('all-data');
-      switch(widgetOptions.scopes[scope]) {
-      case 'r':
-        el.innerHTML += ' (read-only)';
-        break;
-      case 'rw':
-        el.innerHTML += ' (read and write)';
+    if(widgetOptions.scopes) {
+      elements.scopeInfo = document.createElement('div');
+      elements.scopeInfo.setAttribute('class', 'scope-info');
+      var permLabel = document.createElement('strong');
+      permLabel.innerHTML = t('permissions') + ':';
+      elements.scopeInfo.appendChild(permLabel);
+      var scopeList = document.createElement('ul');
+      for(var scope in widgetOptions.scopes) {
+        var el = document.createElement('li');
+        el.innerHTML = scope || t('all-data');
+        switch(widgetOptions.scopes[scope]) {
+        case 'r':
+          el.innerHTML += ' (read-only)';
+          break;
+        case 'rw':
+          el.innerHTML += ' (read and write)';
+        }
+        scopeList.appendChild(el);
       }
-      scopeList.appendChild(el);
+      elements.scopeInfo.appendChild(scopeList);
     }
-    elements.scopeInfo.appendChild(scopeList);
   }
 
   function clearWidget() {
@@ -255,7 +275,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     var stateView = stateViews[currentState];
     if(stateView) {
       clearWidget();
-      stateView();
+      stateView.apply(this, arguments);
     }
   }
 
@@ -293,10 +313,15 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
   // PUBLIC
 
-  var widgetOptions;
-
   function display(domId, options) {
+    if(! options) {
+      options = {};
+    }
     widgetOptions = options;
+
+    if(widgetOptions.locale) {
+      i18n.setLocale(widgetOptions.locale);
+    }
     prepareWidget();
     document.getElementById(domId).appendChild(elements.style);
     document.getElementById(domId).appendChild(elements.widget);
@@ -304,12 +329,11 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
   }
 
   function setState(state) {
+    var args = Array.prototype.slice.call(arguments, 1);
     currentState = state;
-    util.nextTick(updateWidget);
-  }
-
-  function displayError(error) {
-    alert("ERROR: " + error);
+    util.nextTick(function() {
+      updateWidget.apply(undefined, args);
+    });
   }
 
   function redirectTo(url) {
@@ -325,7 +349,6 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     display: display,
     setState: setState,
-    displayError: displayError,
     redirectTo: redirectTo,
     setUserAddress: setUserAddress
 
