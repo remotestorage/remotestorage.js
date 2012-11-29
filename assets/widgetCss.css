@@ -84,11 +84,11 @@
     color: inherit;
 }
 
-#remotestorage-widget .connect-form {
+#remotestorage-widget form {
     margin: 0.7em 0;
 }
 
-#remotestorage-widget .connect-form input {
+#remotestorage-widget form input {
     border: none;
     border-radius: 6px;
     font-weight: bold;
@@ -98,13 +98,13 @@
     line-height: 1.5em;
 }
 
-#remotestorage-widget .connect-form input[type=email] {
+#remotestorage-widget form input[type=email] {
     background: #333;
     width: 12em;
     height: 1.5em;
 }
 
-#remotestorage-widget .connect-form input[type=submit] {
+#remotestorage-widget form input[type=submit] {
     background: #000;
     position: absolute;
     display: inline-block;
@@ -118,4 +118,15 @@
 }
 
 #remotestorage-widget .bubble button {
+    background: #333;
+    border: none;
+    color: white;
+    font-weight: bold;
+    font-size: 1.3em;
+}
+
+#remotestorage-widget .bubble button.sync {
+    display: block;
+    float: left;
+    margin-left: -6px;
 }
