@@ -146,7 +146,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
       return cb(new Error("Foreign storage is read-only"));
     }
     var token = getSetting('bearerToken');
-    getputdelete.set(resolveKey(path), undefined, undefined, token, cb);
+    return getputdelete.set(resolveKey(path), undefined, undefined, token, cb);
   }
 
   function getStorageHrefForUser(userAddress) {
