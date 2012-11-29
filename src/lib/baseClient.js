@@ -10,6 +10,7 @@ define([
   "use strict";
 
   var logger = util.getLogger('baseClient');
+  var globalEvents = util.getEventEmitter('error');
   var moduleEvents = {};
 
   function extractModuleName(path) {
@@ -52,6 +53,8 @@ define([
     } else {
       modEvents[isPublic].emit('error', error);
     }
+
+    globalEvents.emit('error', error);
   }
 
   store.on('change', function(event) {
@@ -847,6 +850,8 @@ define([
     }
     
   };
+
+  util.extend(BaseClient, globalEvents);
 
   return BaseClient;
 
