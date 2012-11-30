@@ -7,12 +7,13 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     A stateful view providing interaction with remotestorage.
 
     States:
-      initial   - not connected
-      authing   - in auth flow
-      connected - connected to remotestorage, not syncing at the moment
-      busy      - connected, syncing at the moment
-      offline   - connected, but no network connectivity
-      error     - connected, but sync error happened
+      initial      - not connected
+      authing      - in auth flow
+      connected    - connected to remotestorage, not syncing at the moment
+      busy         - connected, syncing at the moment
+      offline      - connected, but no network connectivity
+      error        - connected, but sync error happened
+      unauthorized - connected, but request returned 401
 
     Event: connect
     Fired when the "connect" action is caused by the user.
@@ -25,6 +26,9 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     Event: sync
     Fired when "sync" action is requested
+
+    Event: reconnect
+    Fired when reconnect is requested in 'unauthorized' state.
 
     Method: display
     Display the widget in "initial" state
@@ -42,7 +46,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
   var t = util.curry(i18n.t, 'widget');
 
-  var events = util.getEventEmitter('connect', 'disconnect', 'sync');
+  var events = util.getEventEmitter('connect', 'disconnect', 'sync', 'reconnect');
 
   var browserEvents = [];
 
@@ -72,12 +76,12 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     offline: assets.remotestorageIconOffline
   };
 
+  var stillInitialSync = false;
+
   var stateViews = {
 
     initial: function() {
       userAddress = '';
-      elements.widget.appendChild(elements.bubble);
-      elements.widget.appendChild(elements.cube);
 
       addClass(elements.bubble, 'one-line');
 
@@ -106,8 +110,9 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     },
 
     connected: function() {
-      elements.widget.appendChild(elements.bubble);
-      elements.widget.appendChild(elements.cube);
+      if(stillInitialSync) {
+        stillInitialSync = false;
+      }
 
       if(widgetOptions.syncShortcut !== false) {
         addEvent(window, 'keydown', function(evt) {
@@ -136,9 +141,6 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
         events.emit('disconnect');
         return false;
       });
-      // if(elements.scopeInfo) {
-      //   content.appendChild(elements.scopeInfo);
-      // }
 
       elements.bubble.appendChild(content);
 
@@ -153,18 +155,19 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       });
     },
 
-    busy: function() {
-      elements.widget.appendChild(elements.bubble);
-      elements.widget.appendChild(elements.cube);
-
-      addClass(elements.bubble, 'hidden');
+    busy: function(initialSync) {
+      setCubeState('connected');
       addClass(elements.cube, 'spinning');
-      setBubbleText('Synchronizing <strong>' + userAddress + '</strong>');
+      if(! (initialSync || stillInitialSync)) {
+        addClass(elements.bubble, 'hidden');
+        setBubbleText(t('synchronizing', { userAddress: userAddress }));
+      } else if(initialSync) {
+        stillInitialSync = true;
+        setBubbleText(t('connecting', { userAddress: userAddress }));
+      }
     },
 
     error: function(error) {
-      elements.widget.appendChild(elements.bubble);
-      elements.widget.appendChild(elements.cube);
       setCubeState('error');
       setBubbleText("An error occured: ");
       var trace = document.createElement('pre');
@@ -174,6 +177,19 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       } else {
         trace.innerHTML = error;
       }
+    },
+
+    offline: function(error) {
+      setCubeState('offline');
+      addClass(elements.bubble, 'one-line');
+      setBubbleText(t('offline', { userAddress: userAddress }));
+    },
+
+    unauthorized: function() {
+      setCubeState('error');
+      setBubbleText('<strong>' + userAddress + '</strong><br/>' + t('unauthorized'));
+      setCubeAction(util.curry(events.emit, 'reconnect'));
+      setBubbleAction(util.curry(events.emit, 'reconnect'));
     }
 
   };
@@ -207,6 +223,10 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     elements.cube.setAttribute('class', 'cube');
     elements.bubble.setAttribute('class', 'bubble');
     elements.connectForm.userAddress.setAttribute('value', '');
+
+    elements.connectForm.connect.value = t('connect');
+    elements.syncButton.innerHTML = t('sync');
+    elements.disconnectButton.innerHTML = t('disconnect');
   }
   
   function prepareWidget() {
@@ -219,53 +239,28 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     elements.cube = document.createElement('img');
     // .bubble
     elements.bubble = document.createElement('div');
+
+    elements.widget.appendChild(elements.bubble);
+    elements.widget.appendChild(elements.cube);
+
     // form.connect
     elements.connectForm = document.createElement('form');
-    var userAddressInput = document.createElement('input');
-    userAddressInput.setAttribute('type', 'email');
-    userAddressInput.setAttribute('placeholder', 'user@host');
-    userAddressInput.setAttribute('name', 'userAddress');
-    elements.connectForm.appendChild(userAddressInput);
-    var connectButton = document.createElement('input');
-    connectButton.setAttribute('type', 'submit');
-    connectButton.setAttribute('value', t('connect'));
-    elements.connectForm.appendChild(connectButton);
-    resetElementState();
+    elements.connectForm.innerHTML = [
+      '<input type="email" placeholder="user@host" name="userAddress">',
+      '<input type="submit" value="" name="connect">'
+    ].join();
     // button.sync
     elements.syncButton = document.createElement('button');
     elements.syncButton.setAttribute('class', 'sync');
-    elements.syncButton.innerHTML = t('sync');
     // button.disconnect
     elements.disconnectButton = document.createElement('button');
     elements.disconnectButton.setAttribute('class', 'disconnect');
-    elements.disconnectButton.innerHTML = t('disconnect');
-    // .scope-info
-    if(widgetOptions.scopes) {
-      elements.scopeInfo = document.createElement('div');
-      elements.scopeInfo.setAttribute('class', 'scope-info');
-      var permLabel = document.createElement('strong');
-      permLabel.innerHTML = t('permissions') + ':';
-      elements.scopeInfo.appendChild(permLabel);
-      var scopeList = document.createElement('ul');
-      for(var scope in widgetOptions.scopes) {
-        var el = document.createElement('li');
-        el.innerHTML = scope || t('all-data');
-        switch(widgetOptions.scopes[scope]) {
-        case 'r':
-          el.innerHTML += ' (read-only)';
-          break;
-        case 'rw':
-          el.innerHTML += ' (read and write)';
-        }
-        scopeList.appendChild(el);
-      }
-      elements.scopeInfo.appendChild(scopeList);
-    }
+    resetElementState();
   }
 
   function clearWidget() {
-    Array.prototype.forEach.call(elements.widget.children, function(child) {
-      elements.widget.removeChild(child);
+    Array.prototype.forEach.call(elements.bubble.children, function(child) {
+      elements.bubble.removeChild(child);
     });
     clearEvents();
     resetElementState();
@@ -337,7 +332,10 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
   }
 
   function redirectTo(url) {
-    document.location = url;
+    console.log("REDIRECTING TO", url);
+    setTimeout(function() {
+      document.location = url;
+    }, 5000);
   }
 
   function setUserAddress(addr) {

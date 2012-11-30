@@ -376,15 +376,10 @@ define([
     //    > remoteStorage.displayWidget('remotestorage-connect', { authDialog: 'popup' });
     //    
     displayWidget    : function(domId, options) {
-      var scopes = util.extend(claimedModules);
-      if(scopes.root) {
-        scopes[''] = scopes.root;
-        delete scopes.root;
-      }
       var defaultOptions = {
-        scopes: scopes
+        scopes: claimedModules
       };
-      widget.display(domId, util.extend({}, defaultOptions, options));
+      widget.display(remoteStorage, domId, util.extend({}, defaultOptions, options));
     },
 
     //

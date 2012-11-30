@@ -1,19 +1,11 @@
 define([
-  './assets',
+  './util',
   './webfinger',
   './wireClient',
   './sync',
-  './store',
-  './platform',
-  './util',
-  './schedule',
-  '../vendor/mailcheck',
-  '../vendor/levenshtein',
-  './store/localStorage',
-  './store/indexedDb',
+  './baseClient',
   './widget/default'
-  './BaseClient'
-], function(assets, webfinger, wireClient, sync, store, platform, util, schedule, mailcheck, levenshtein, localStorageAdapter, indexedDbAdapter, defaultView, BaseClient) {
+], function(util, webfinger, wireClient, sync, BaseClient, defaultView) {
 
   // Namespace: widget
   //
@@ -24,15 +16,20 @@ define([
 
   "use strict";
 
-  var view = defaultView;
   var settings = util.getSettingStore('remotestorage_widget');
-  var events = util.getEventEmitter();
+  var events = util.getEventEmitter('ready');
   var logger = util.getLogger('widget');
+
+  // the view.
+  var view = defaultView;
+  // options passed to displayWidget
   var widgetOptions = {};
+  // passed to display() to avoid circular deps
+  var remoteStorage;
 
   function buildScopeRequest() {
     return Object.keys(widgetOptions.scopes).map(function(module) {
-      return module + ':' + widgetOptions.scopes[module];
+      return (module === 'root' ? '' : module) + ':' + widgetOptions.scopes[module];
     }).join(' ');
   }
 
@@ -58,6 +55,10 @@ define([
       then(undefined, util.curry(view.setState, 'error'));
   }
 
+  function reconnectStorage() {
+    connectStorage(settings.get('userAddress'));
+  }
+
   function disconnectStorage() {
     remoteStorage.flushLocal();
   }
@@ -65,9 +66,9 @@ define([
   // destructively parse query string from URI fragment
   function parseParams() {
     var md = String(document.location).match(/^(.*?)#(.*)$/);
-    var hash = md[2];
     var result = {};
-    if(hash) {
+    if(md) {
+      var hash = md[2];
       hash.split('&').forEach(function(param) {
         var kv = param.split('=');
         result[kv[0]] = decodeURIComponent(kv[1]);
@@ -106,7 +107,25 @@ define([
     }
   }
 
-  function display(domId, options) {
+  function handleSyncError(error) {
+    if(error.message === 'unauthorized') {
+      view.setState('unauthorized');
+    } else {
+      view.setState('error', error);
+    }
+  }
+
+  function handleSyncTimeout() {
+    view.setState('offline');
+  }
+
+  function initialSync() {
+    view.setState('busy', true);
+    sync.forceSync().then(util.curry(events.emit, 'ready'));
+  }
+
+  function display(_remoteStorage, domId, options) {
+    remoteStorage = _remoteStorage;
     widgetOptions = options;
     if(! options) {
       options = {};
@@ -117,14 +136,19 @@ define([
     view.on('sync', sync.forceSync);
     view.on('connect', connectStorage);
     view.on('disconnect', disconnectStorage);
+    view.on('reconnect', reconnectStorage);
 
     sync.on('busy', util.curry(view.setState, 'busy'));
     sync.on('ready', util.curry(view.setState, 'connected'));
-    wireClient.on('connected', util.curry(view.setState, 'connected'));
+    wireClient.on('connected', function() {
+      view.setState('connected');
+      initialSync();
+    });
     wireClient.on('disconnected', util.curry(view.setState, 'initial'));
 
     BaseClient.on('error', util.curry(view.setState, 'error'));
-    sync.on('error', util.curry(view.setState, 'error'));
+    sync.on('error', handleSyncError);
+    sync.on('timeout', handleSyncTimeout);
 
     processParams();
 
