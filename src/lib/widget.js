@@ -17,7 +17,7 @@ define([
   "use strict";
 
   var settings = util.getSettingStore('remotestorage_widget');
-  var events = util.getEventEmitter('ready');
+  var events = util.getEventEmitter('ready', 'state');
   var logger = util.getLogger('widget');
 
   // the view.
@@ -26,6 +26,11 @@ define([
   var widgetOptions = {};
   // passed to display() to avoid circular deps
   var remoteStorage;
+
+  function setState(state) {
+    view.setState.apply(view, arguments);
+    events.emit('state', state);    
+  }
 
   function buildScopeRequest() {
     return Object.keys(widgetOptions.scopes).map(function(module) {
@@ -52,7 +57,7 @@ define([
       then(wireClient.setStorageInfo).
       get('properties').get('auth-endpoint').
       then(requestToken).
-      then(undefined, util.curry(view.setState, 'error'));
+      then(undefined, util.curry(setState, 'error'));
   }
 
   function reconnectStorage() {
@@ -109,18 +114,18 @@ define([
 
   function handleSyncError(error) {
     if(error.message === 'unauthorized') {
-      view.setState('unauthorized');
+      setState('unauthorized');
     } else {
-      view.setState('error', error);
+      setState('error', error);
     }
   }
 
   function handleSyncTimeout() {
-    view.setState('offline');
+    setState('offline');
   }
 
   function initialSync() {
-    view.setState('busy', true);
+    setState('busy', true);
     sync.forceSync().then(util.curry(events.emit, 'ready'));
   }
 
@@ -138,15 +143,15 @@ define([
     view.on('disconnect', disconnectStorage);
     view.on('reconnect', reconnectStorage);
 
-    sync.on('busy', util.curry(view.setState, 'busy'));
-    sync.on('ready', util.curry(view.setState, 'connected'));
+    sync.on('busy', util.curry(setState, 'busy'));
+    sync.on('ready', util.curry(setState, 'connected'));
     wireClient.on('connected', function() {
-      view.setState('connected');
+      setState('connected');
       initialSync();
     });
-    wireClient.on('disconnected', util.curry(view.setState, 'initial'));
+    wireClient.on('disconnected', util.curry(setState, 'initial'));
 
-    BaseClient.on('error', util.curry(view.setState, 'error'));
+    BaseClient.on('error', util.curry(setState, 'error'));
     sync.on('error', handleSyncError);
     sync.on('timeout', handleSyncTimeout);
 
