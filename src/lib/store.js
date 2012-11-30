@@ -292,6 +292,9 @@ define([
           var baseName = util.baseName(path);
           return getNode(parentPath).then(function(parent) {
             delete parent.diff[baseName];
+            if(Object.keys(parent.diff).length === 0) {
+              parent.lastUpdatedAt = parent.timestamp;
+            }
             return updateNode(parentPath, parent, false, true).then(function() {
               if(Object.keys(parent.diff).length === 0) {
                 return clearDiff(parentPath, timestamp);
