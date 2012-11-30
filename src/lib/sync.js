@@ -415,7 +415,7 @@ define([
 
 
   function fireError(path, error) {
-    var event = { path: path };
+    var event = { path: path, source: 'sync' };
     if(typeof(error) == 'object') {
       event.stack = error.stack;
       if(typeof(event.stack == 'string')) {
