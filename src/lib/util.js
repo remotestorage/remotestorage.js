@@ -394,6 +394,12 @@ define([], function() {
         return handlers;
       }
 
+      function validEvent(eventName) {
+        if(! this._handlers[eventName]) {
+          throw new Error("Unknown event: " + eventName);
+        }
+      }
+
       return this.bindAll({
 
         _handlers: setupHandlers(),
@@ -401,9 +407,7 @@ define([], function() {
         emit: function(eventName) {
           var handlerArgs = Array.prototype.slice.call(arguments, 1);
           // console.log("EMIT", eventName, handlerArgs);
-          if(! this._handlers[eventName]) {
-            throw "Unknown event: " + eventName;
-          }
+          validEvent.call(this, eventName);
           this._handlers[eventName].forEach(function(handler) {
             if(handler) {
               handler.apply(null, handlerArgs);
@@ -412,9 +416,7 @@ define([], function() {
         },
 
         once: function(eventName, handler) {
-          if(! this._handlers[eventName]) {
-            throw "Unknown event: " + eventName;
-          }
+          validEvent.call(this, eventName);
           var i = this._handlers[eventName].length;
           if(typeof(handler) !== 'function') {
             throw "Expected function as handler, got: " + typeof(handler);
@@ -426,9 +428,7 @@ define([], function() {
         },
 
         on: function(eventName, handler) {
-          if(! this._handlers[eventName]) {
-            throw "Unknown event: " + eventName;
-          }
+          validEvent.call(this, eventName);
           if(typeof(handler) !== 'function') {
             throw "Expected function as handler, got: " + typeof(handler);
           }
@@ -437,6 +437,11 @@ define([], function() {
 
         reset: function() {
           this._handlers = setupHandlers();
+        },
+
+        hasHandler: function(eventName) {
+          validEvent.call(this, eventName);
+          return this._handlers[eventName].length;
         }
 
       });
