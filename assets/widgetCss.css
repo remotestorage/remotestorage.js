@@ -28,22 +28,12 @@
     padding-bottom: 0px;
 }
 
-#remotestorage-widget .bubble.hidden {
+#remotestorage-widget .bubble.hidden, #remotestorage-widget .bubble.hidden .content {
     display: none;
 }
-
-#remotestorage-widget .bubble.hidden .content {
-    display: none;
-}
-
-#remotestorage-widget:hover .bubble.hidden {
+#remotestorage-widget:hover .bubble.hidden, #remotestorage-widget .bubble.hidden:hover .content {
     display: block;
 }
-
-#remotestorage-widget .bubble.hidden:hover .content {
-    display: block;
-}
-
 
 #remotestorage-widget .action {
     cursor: pointer;
@@ -110,6 +100,7 @@
     display: inline-block;
     right: 1em;
     top: 2.1em;
+    cursor: pointer;
 }
 
 #remotestorage-widget .info {
@@ -123,6 +114,7 @@
     color: white;
     font-weight: bold;
     font-size: 1.3em;
+    cursor: pointer;
 }
 
 #remotestorage-widget .bubble button.sync {
