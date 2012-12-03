@@ -136,11 +136,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       addEvent(elements.syncButton, 'click', function() {
         events.emit('sync');
       });
-      addEvent(elements.disconnectButton, 'click', function(event) {
-        event.preventDefault();
-        events.emit('disconnect');
-        return false;
-      });
+      addEvent(elements.disconnectButton, 'click', disconnectAction);
 
       elements.bubble.appendChild(content);
 
@@ -174,9 +170,13 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       elements.bubble.appendChild(trace);
       if(error instanceof Error) {
         trace.innerHTML = error.stack;
+      } else if(typeof(error) === 'object') {
+        trace.innerHTML = JSON.stringify(error, null, 2);
       } else {
         trace.innerHTML = error;
       }
+      elements.bubble.appendChild(elements.disconnectButton);
+      addEvent(elements.disconnectButton, 'click', disconnectAction);
     },
 
     offline: function(error) {
@@ -187,12 +187,20 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     unauthorized: function() {
       setCubeState('error');
-      setBubbleText('<strong>' + userAddress + '</strong><br/>' + t('unauthorized'));
+      setBubbleText('<strong>' + userAddress + '</strong><br/>' + t('unauthorized') + '<br/>');
       setCubeAction(util.curry(events.emit, 'reconnect'));
       setBubbleAction(util.curry(events.emit, 'reconnect'));
+      elements.bubble.appendChild(elements.disconnectButton);
+      addEvent(elements.disconnectButton, 'click', disconnectAction);
     }
 
   };
+
+  function disconnectAction(event) {
+    event.preventDefault();
+    events.emit('disconnect');
+    return false;
+  }
 
   function getClassNameMap(element) {
     var classNames = (element.getAttribute('class') || '').split(/\s+/);

@@ -66,6 +66,7 @@ define([
 
   function disconnectStorage() {
     remoteStorage.flushLocal();
+    events.emit('state', 'disconnected');
   }
 
   // destructively parse query string from URI fragment
