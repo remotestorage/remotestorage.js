@@ -90,7 +90,7 @@
 
 #remotestorage-widget form input[type=email] {
     background: #333;
-    width: 12em;
+    width: 60%;
     height: 1.5em;
 }
 

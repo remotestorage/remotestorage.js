@@ -52,7 +52,7 @@ define(['../util'], function(util) {
         });
         requestQueue = [];
       }
-    }
+    };
   };
 
 });

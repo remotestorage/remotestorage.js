@@ -80,7 +80,7 @@ define([
       hash.split('&').forEach(function(param) {
         var kv = param.split('=');
         result[kv[0]] = decodeURIComponent(kv[1]);
-      })
+      });
       document.location = md[1] + '#';
     }
     return result; 

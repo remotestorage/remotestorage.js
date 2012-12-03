@@ -84,6 +84,6 @@ define([
       clearCache: function() {
         return cache.forgetAll();
       }
-    }
+    };
   };
 });

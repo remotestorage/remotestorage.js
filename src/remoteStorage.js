@@ -8,8 +8,9 @@ define([
   './lib/util',
   './lib/webfinger',
   './lib/foreignClient',
-  './lib/baseClient'
-], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient) {
+  './lib/baseClient',
+  './lib/schedule'
+], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient, schedule) {
 
   "use strict";
 
