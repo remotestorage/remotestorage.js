@@ -332,10 +332,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
   }
 
   function redirectTo(url) {
-    console.log("REDIRECTING TO", url);
-    setTimeout(function() {
-      document.location = url;
-    }, 5000);
+    document.location = url;
   }
 
   function setUserAddress(addr) {
