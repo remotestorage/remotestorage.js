@@ -64,8 +64,15 @@ define([
 
   sync.on('conflict', function(event) {
     var moduleName = extractModuleName(event.path);
-    fireModuleEvent('conflict', moduleName, event);
-    fireModuleEvent('conflict', 'root', event);
+    var eventEmitter = moduleEvents[moduleName];
+    if(eventEmitter && eventEmitter.hasHandler('conflict')) {
+      fireModuleEvent('conflict', moduleName, event);
+      fireModuleEvent('conflict', 'root', event);
+    } else if(moduleEvents.root.hasHandler('conflict')) {
+      fireModuleEvent('conflict', 'root', event);
+    } else {
+      event.resolve('remote');
+    }
   });
 
   function failedPromise(error) {
