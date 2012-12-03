@@ -296,6 +296,7 @@ define([
       store.forgetAll();
       sync.clearSettings();
       widget.clearSettings();
+      schedule.reset();
       wireClient.disconnectRemote();
     },
 
