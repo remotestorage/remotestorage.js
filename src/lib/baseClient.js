@@ -69,7 +69,6 @@ define([
     var moduleName = extractModuleName(event.path);
     var isPublic = isPublicRE.test(event.path);
     var eventEmitter = moduleEvents[moduleName] && moduleEvents[moduleName][isPublic];
-    console.log("EVENT EMITTER", eventEmitter);
     if(eventEmitter && eventEmitter.hasHandler('conflict')) {
       fireModuleEvent('conflict', moduleName, event);
       fireModuleEvent('conflict', 'root', event);
