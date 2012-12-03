@@ -3,9 +3,10 @@ define([
   './webfinger',
   './wireClient',
   './sync',
+  './schedule',
   './baseClient',
   './widget/default'
-], function(util, webfinger, wireClient, sync, BaseClient, defaultView) {
+], function(util, webfinger, wireClient, sync, schedule, BaseClient, defaultView) {
 
   // Namespace: widget
   //
@@ -57,7 +58,7 @@ define([
       then(wireClient.setStorageInfo).
       get('properties').get('auth-endpoint').
       then(requestToken).
-      then(undefined, util.curry(setState, 'error'));
+      then(schedule.enable, util.curry(setState, 'error'));
   }
 
   function reconnectStorage() {
@@ -65,6 +66,7 @@ define([
   }
 
   function disconnectStorage() {
+    schedule.disable();
     remoteStorage.flushLocal();
     events.emit('state', 'disconnected');
   }
@@ -122,12 +124,16 @@ define([
   }
 
   function handleSyncTimeout() {
+    schedule.disable();
     setState('offline');
   }
 
   function initialSync() {
     setState('busy', true);
-    sync.forceSync().then(util.curry(events.emit, 'ready'));
+    sync.forceSync().then(function() {
+      schedule.enable();
+      events.emit('ready');
+    });
   }
 
   function display(_remoteStorage, domId, options) {
@@ -136,6 +142,8 @@ define([
     if(! options) {
       options = {};
     }
+
+    schedule.watch('/', 30000);
 
     view.display(domId, options);
 
