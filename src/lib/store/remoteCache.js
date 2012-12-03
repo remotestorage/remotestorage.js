@@ -39,17 +39,19 @@ define([
           logger.debug('GET MISS', path);
           var node = {};
           return wireClient.get(path).
+            // build node
             then(function(data, mimeType) {
               node.data = data;
               node.mimeType = mimeType;
               node.binary = data instanceof ArrayBuffer;
               if(typeof(data) === 'undefined') {
-                return 0;
+                node.deleted = true;
+                return undefined;
               } else {
+                node.deleted = false;
                 return determineTimestamp(path);
               }
             }).then(function(timestamp) {
-              logger.info("GOT TIMESTAMP", timestamp);
               node.timestamp = timestamp;
               return cache.set(path, node);
             }).then(function() {

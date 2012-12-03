@@ -599,11 +599,6 @@ define([
       });
   }
 
-  function fetchNode(path) {
-    logger.info("fetch remote", path);
-    return remoteAdapter.get(path);
-  }
-
   // Function: fetchRemoteNode
   //
   // Fetch node at given path from remote.
@@ -615,17 +610,8 @@ define([
   //   mimeType - MIME type of the node
   //
   function fetchRemoteNode(path, isDeleted) {
-    return fetchNode(path).
-      then(function(node) {
-        if(typeof(isDeleted) === 'undefined') {
-          isDeleted = ! node;
-        }
-        if(! node) {
-          node = {};
-        }
-        node.deleted = isDeleted;
-        return node;
-      });
+    logger.info("fetch remote", path);
+    return remoteAdapter.get(path);
   }
 
   // Section: Trivial helpers
