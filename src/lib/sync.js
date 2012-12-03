@@ -440,7 +440,6 @@ define([
   // Fires: change
   function deleteLocal(path, local, remote) {
     logger.info('DELETE', path, 'REMOTE -> LOCAL');
-    var oldValue = store.getNodeData(path);
     return store.removeNode(path, remote.timestamp);
   }
 
@@ -491,6 +490,10 @@ define([
   // Used as a callback for <traverseTree>.
   function processNode(path, local, remote) {
 
+    if(! path) {
+      throw new Error("Can't process node without a path!");
+    }
+
     if(util.isDir(path)) {
       throw new Error("Attempt to process directory node: " + path);
     }
@@ -519,9 +522,9 @@ define([
       logger.debug(path, 'no action today', 'remote', remote, 'local', local);
       return;
 
-    } else if(local.timestamp > remote.timestamp) {
+    } else if((!remote.timestamp) || local.timestamp > remote.timestamp) {
       // local updated happpened before remote update
-      if(local.lastUpdatedAt == remote.timestamp) {
+      if((!remote.timestamp) || local.lastUpdatedAt == remote.timestamp) {
         // outgoing update!
         logger.debug(path, 'outgoing update');
         action = updateRemote;
