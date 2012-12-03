@@ -90,6 +90,15 @@ define(['./util', './sync'], function(util, sync) {
     unwatch: function(path) {
       delete watchedPaths[path];
       delete lastPathSync[path];
+    },
+
+    reset: function() {
+      watchedPaths = {};
+      lastPathSync = {};
+      if(timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
     }
 
   };
