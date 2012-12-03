@@ -126,6 +126,7 @@ define(['../util', './pending'], function(util, pendingAdapter) {
     function doOpenDatabase() {
       openDatabase().
         then(function(db) {
+          logger.info("Database opened.");
           DB = db;
           replaceAdapter();
         });
