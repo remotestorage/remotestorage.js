@@ -49,23 +49,27 @@ define(['../util', './pending'], function(util, pendingAdapter) {
         };
 
         dbRequest.onsuccess = function(event) {
-          var database = event.target.result;
-          if(typeof(database.setVersion) === 'function') {
-            if(database.version != DB_VERSION) {
-              var versionRequest = database.setVersion(DB_VERSION);
-              versionRequest.onsuccess = function(event) {
-                upgrade(database);
-                event.target.transaction.oncomplete = function() {
-                  promise.fulfill(database);
+          try {
+            var database = event.target.result;
+            if(typeof(database.setVersion) === 'function') {
+              if(database.version != DB_VERSION) {
+                var versionRequest = database.setVersion(DB_VERSION);
+                versionRequest.onsuccess = function(event) {
+                  upgrade(database);
+                  event.target.transaction.oncomplete = function() {
+                    promise.fulfill(database);
+                  };
                 };
-              };
+              } else {
+                promise.fulfill(database);
+              }
             } else {
+              // assume onupgradeneeded is supported.
               promise.fulfill(database);
             }
-          } else {
-            // assume onupgradeneeded is supported.
-            promise.fulfill(database);
-          }
+          } catch(exc) {
+            promise.fail(exc);
+          };
         };
 
         dbRequest.onerror = function(event) {
