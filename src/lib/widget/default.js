@@ -296,7 +296,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     // form.connect
     elements.connectForm = cEl('form');
     elements.connectForm.innerHTML = [
-      '<input type="email" placeholder="user@host" name="userAddress">',
+      '<input type="email" placeholder="user@host" name="userAddress" autocomplete="off">',
       '<input type="submit" value="" name="connect">'
     ].join('');
     // button.sync

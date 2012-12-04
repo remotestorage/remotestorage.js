@@ -41,6 +41,7 @@
     display: none;
 }
 #remotestorage-widget:hover .bubble.hidden, #remotestorage-widget .bubble.hidden:hover .content {
+    min-width: 18em;
     display: block;
 }
 
@@ -123,6 +124,7 @@
     font-weight: bold;
     font-size: 1.3em;
     cursor: pointer;
+    margin-right: 1em;
 }
 
 #remotestorage-widget .bubble button.sync {
