@@ -44,6 +44,9 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
    */
 
+  var gEl = util.bind(document.getElementById, document);
+  var cEl = util.bind(document.createElement, document);
+
   var t = util.curry(i18n.t, 'widget');
 
   var events = util.getEventEmitter('connect', 'disconnect', 'sync', 'reconnect');
@@ -94,8 +97,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     typing: function() {
       elements.connectForm.userAddress.setAttribute('value', userAddress);
-      elements.widget.appendChild(elements.bubble);
-      elements.widget.appendChild(elements.cube);
+      setCubeState('offline');
       setBubbleText(t('connect-remotestorage'));
       elements.bubble.appendChild(elements.connectForm);
       addEvent(elements.connectForm, 'submit', function(event) {
@@ -104,9 +106,28 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
         events.emit('connect', userAddress);
       });
 
+      addBubbleHint(t('typing-hint'));
+
+      elements.bubble.appendChild(elements.localeChooser);
+
+      addEvent(elements.localeChooser, 'change', function() {
+        i18n.setLocale(elements.localeChooser.value);
+        setState(currentState);
+      });
+      
       setCubeAction(jumpAction('initial'));
 
       elements.connectForm.userAddress.focus();
+    },
+
+    authing: function() {
+      setBubbleText(t('connecting', { userAddress: userAddress }));
+      elements.bubble.appendChild(elements.connectForm);
+      elements.connectForm.userAddress.setAttribute('disabled', 'disabled');
+      elements.connectForm.connect.setAttribute('disabled', 'disabled');
+      elements.connectForm.userAddress.setAttribute('value', userAddress);
+      setCubeState('offline');
+      addClass(elements.cube, 'spinning');
     },
 
     connected: function() {
@@ -125,12 +146,14 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       }
       addClass(elements.bubble, 'hidden');
 
+      setCubeState('connected');
+
       setBubbleText('<strong class="userAddress">' + userAddress + '</strong>');
 
-      var content = document.createElement('div');
+      var content = cEl('div');
       addClass(content, 'content');
 
-      content.appendChild(document.createElement('br'));
+      content.appendChild(cEl('br'));
       content.appendChild(elements.syncButton);
       content.appendChild(elements.disconnectButton);
       addEvent(elements.syncButton, 'click', function() {
@@ -166,7 +189,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     error: function(error) {
       setCubeState('error');
       setBubbleText("An error occured: ");
-      var trace = document.createElement('pre');
+      var trace = cEl('pre');
       elements.bubble.appendChild(trace);
       if(error instanceof Error) {
         trace.innerHTML = error.stack;
@@ -238,31 +261,47 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
   }
   
   function prepareWidget() {
-    elements.style = document.createElement('style');
+    elements.style = cEl('style');
     elements.style.innerHTML = assets.widgetCss;
     // #remotestorage-widget
-    elements.widget = document.createElement('div');
+    elements.widget = cEl('div');
     elements.widget.setAttribute('id', 'remotestorage-widget');
     // .cube
-    elements.cube = document.createElement('img');
+    elements.cube = cEl('img');
     // .bubble
-    elements.bubble = document.createElement('div');
+    elements.bubble = cEl('div');
 
     elements.widget.appendChild(elements.bubble);
     elements.widget.appendChild(elements.cube);
 
     // form.connect
-    elements.connectForm = document.createElement('form');
+    elements.connectForm = cEl('form');
     elements.connectForm.innerHTML = [
       '<input type="email" placeholder="user@host" name="userAddress">',
       '<input type="submit" value="" name="connect">'
-    ].join();
+    ].join('');
     // button.sync
-    elements.syncButton = document.createElement('button');
+    elements.syncButton = cEl('button');
     elements.syncButton.setAttribute('class', 'sync');
     // button.disconnect
-    elements.disconnectButton = document.createElement('button');
+    elements.disconnectButton = cEl('button');
     elements.disconnectButton.setAttribute('class', 'disconnect');
+
+    // select.locale
+    elements.localeChooser = cEl('select');
+    addClass(elements.localeChooser, 'locale');
+
+    var currentLocale = i18n.getLocale();
+    i18n.locales.forEach(function(locale) {
+      var option = cEl('option');
+      option.setAttribute('value', locale);
+      option.innerHTML = locale;
+      if(locale === currentLocale) {
+        option.setAttribute('selected', 'selected');
+      }
+      elements.localeChooser.appendChild(option);
+    });
+
     resetElementState();
   }
 
@@ -280,6 +319,13 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       clearWidget();
       stateView.apply(this, arguments);
     }
+  }
+
+  function addBubbleHint(text) {
+    var hint = cEl('div');
+    addClass(hint, 'hint');
+    hint.innerHTML = text;
+    elements.bubble.appendChild(hint);
   }
 
   function setBubbleText(text) {
@@ -322,12 +368,11 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     }
     widgetOptions = options;
 
-    if(widgetOptions.locale) {
-      i18n.setLocale(widgetOptions.locale);
-    }
+    i18n.autoLocale();
+
     prepareWidget();
-    document.getElementById(domId).appendChild(elements.style);
-    document.getElementById(domId).appendChild(elements.widget);
+    gEl(domId).appendChild(elements.style);
+    gEl(domId).appendChild(elements.widget);
     updateWidget();
   }
 
@@ -340,7 +385,13 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
   }
 
   function redirectTo(url) {
-    document.location = url;
+    var md = url.match(/^https?:\/\/([^\/]+)/);
+    if(md) {
+      setBubbleText(t('redirecting', { hostName: md[1] }));
+    }
+    setTimeout(function() {
+      document.location = url;
+    }, 1000);
   }
 
   function setUserAddress(addr) {

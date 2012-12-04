@@ -1,5 +1,7 @@
 define(['./util'], function(util) {
 
+  var settings = util.getSettingStore('remotestorage_i18n');
+
   var translations = {
     en: {
       widget: {
@@ -14,7 +16,9 @@ define(['./util'], function(util) {
         'synchronizing': 'Synchronizing <strong>{userAddress}</strong>',
         'connecting': 'Connecting <strong>{userAddress}</strong>...',
         'offline': '<strong>{userAddress}</strong> (offline)',
-        'unauthorized': 'Unauthorized! Click to reconnect.'
+        'unauthorized': 'Unauthorized! Click to reconnect.',
+        'redirecting': 'Redirecting to <strong>{hostName}</strong>...',
+        'typing-hint': 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/">remotestorage.io</a>'
       }
     },
     de: {
@@ -28,20 +32,48 @@ define(['./util'], function(util) {
         'synchronizing': 'Synchronisiere <strong>{userAddress}</strong>',
         'connecting': 'Verbinde <strong>{userAddress}</strong>...',
         'offline': '<strong>{userAddress}</strong> (offline)',
-        'unauthorized': 'Zugriff fehlgeschlagen. Klicke um neu zu verbinden.'
+        'unauthorized': 'Zugriff fehlgeschlagen. Klicke um neu zu verbinden.',
+        'redirecting': 'Leite weiter zu <strong>{hostName}</strong>...',
+        'typing-hint': 'Du kannst diese App mit deinem eigenen Cloud-Storage verbinden! Mehr Infos auf <a href="http://remotestorage.io/">remotestorage.io</a>'
       }
     }
   };
 
-  var currentTable = translations.en;
+  var defaultLocale = 'en';
+
+  var storedLocale = settings.get('locale');
+
+  var currentTable = translations[storedLocale || defaultLocale];
 
   var NotFound = function(keyPath) {
     this.message = "Translation not found: " + keyPath.join(', ');
   };
 
   return {
+    locales: Object.keys(translations),
+
+    getLocale: function() {
+      return settings.get('locale') || defaultLocale;
+    },
+
     setLocale: function(locale) {
+      if(! translations[locale]) {
+        throw new Error("Locale not found: " + locale);
+      }
       currentTable = translations[locale];
+      settings.set('locale', locale);
+    },
+
+    autoLocale: function() {
+      if(storedLocale) {
+        return;
+      }
+      if(typeof(navigator) !== 'undefined') {
+        var key = navigator.language.split('-')[0];
+        if(key in translations) {
+          this.setLocale(key);
+        }
+      }
     },
 
     t: function() {
@@ -74,6 +106,8 @@ define(['./util'], function(util) {
           throw exception;
         }
       }
-    }
+    },
+
+    clearSettings: settings.clear
   };
 });

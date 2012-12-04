@@ -54,6 +54,7 @@ define([
 
   function connectStorage(userAddress) {
     settings.set('userAddress', userAddress);
+    setState('authing');
     return webfinger.getStorageInfo(userAddress).
       then(wireClient.setStorageInfo).
       get('properties').get('auth-endpoint').
@@ -142,6 +143,10 @@ define([
     if(! options) {
       options = {};
     }
+
+    options.getLastSyncAt = function() {
+      return sync.lastSyncAt;
+    };
 
     schedule.watch('/', 30000);
 

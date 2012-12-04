@@ -9,7 +9,8 @@ define([
   './lib/webfinger',
   './lib/foreignClient',
   './lib/baseClient',
-  './lib/schedule'
+  './lib/schedule',
+  './lib/i18n'
 ], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient, schedule) {
 
   "use strict";
@@ -297,6 +298,7 @@ define([
       widget.clearSettings();
       schedule.reset();
       wireClient.disconnectRemote();
+      i18n.clearSettings();
     },
 
     //

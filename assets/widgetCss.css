@@ -24,6 +24,15 @@
     text-decoration: none;
 }
 
+#remotestorage-widget .bubble .hint {
+    white-space: normal;
+    margin-bottom: 1em;
+}
+
+#remotestorage-widget .bubble .hint a {
+    font-weight: bold;
+}
+
 #remotestorage-widget .bubble.one-line {
     padding-bottom: 0px;
 }
@@ -75,7 +84,7 @@
 }
 
 #remotestorage-widget form {
-    margin: 0.7em 0;
+    margin: 0.7em -2em 0.7em 0;
 }
 
 #remotestorage-widget form input {
@@ -90,17 +99,16 @@
 
 #remotestorage-widget form input[type=email] {
     background: #333;
-    width: 60%;
+    width: 16em;
     height: 1.5em;
 }
 
 #remotestorage-widget form input[type=submit] {
     background: #000;
-    position: absolute;
     display: inline-block;
-    right: 1em;
     top: 2.1em;
     cursor: pointer;
+    margin-left: -1em;
 }
 
 #remotestorage-widget .info {
@@ -121,4 +129,10 @@
     display: block;
     float: left;
     margin-left: -6px;
+}
+
+#remotestorage-widget .bubble select.locale {
+    position: absolute;
+    bottom: 0;
+    right: 0;
 }
