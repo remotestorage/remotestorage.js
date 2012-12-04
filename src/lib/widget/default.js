@@ -271,6 +271,9 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     elements.bubble.setAttribute('class', 'bubble');
     elements.connectForm.userAddress.setAttribute('value', '');
 
+    elements.connectForm.userAddress.removeAttribute('disabled');
+    elements.connectForm.connect.removeAttribute('disabled');
+
     elements.connectForm.connect.value = t('connect');
     elements.syncButton.innerHTML = t('sync');
     elements.disconnectButton.innerHTML = t('disconnect');
