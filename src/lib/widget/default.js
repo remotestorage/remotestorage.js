@@ -154,6 +154,22 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       addClass(content, 'content');
 
       content.appendChild(cEl('br'));
+
+      var hint = cEl('div');
+      addClass(hint, 'hint');
+
+      function updateLastSynced() {
+        hint.innerHTML = t('last-synced', {
+          t: i18n.timeAgo(new Date().getTime() - widgetOptions.getLastSyncAt())
+        });
+      }
+      addEvent(elements.bubble, 'mouseover', updateLastSynced);
+
+      updateLastSynced();
+
+      content.appendChild(hint);
+
+      content.appendChild(cEl('br'));
       content.appendChild(elements.syncButton);
       content.appendChild(elements.disconnectButton);
       addEvent(elements.syncButton, 'click', function() {

@@ -18,7 +18,8 @@ define(['./util'], function(util) {
         'offline': '<strong>{userAddress}</strong> (offline)',
         'unauthorized': 'Unauthorized! Click to reconnect.',
         'redirecting': 'Redirecting to <strong>{hostName}</strong>...',
-        'typing-hint': 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/">remotestorage.io</a>'
+        'typing-hint': 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/">remotestorage.io</a>',
+        'last-synced': '<strong>Last synced:</strong> {t}'
       }
     },
     de: {
@@ -34,10 +35,49 @@ define(['./util'], function(util) {
         'offline': '<strong>{userAddress}</strong> (offline)',
         'unauthorized': 'Zugriff fehlgeschlagen. Klicke um neu zu verbinden.',
         'redirecting': 'Leite weiter zu <strong>{hostName}</strong>...',
-        'typing-hint': 'Du kannst diese App mit deinem eigenen Cloud-Storage verbinden! Mehr Infos auf <a href="http://remotestorage.io/">remotestorage.io</a>'
+        'typing-hint': 'Du kannst diese App mit deinem eigenen Cloud-Storage verbinden! Mehr Infos auf <a href="http://remotestorage.io/">remotestorage.io</a>',
+        'last-synced': '<strong>Zuletzt synchronisiert:</strong> {t}'
       }
     }
   };
+
+  var timeAgo = {
+    en: function(usec) {
+      function format(time, unit) {
+        time = Math.round(time);
+        if(time != 1) {
+          unit += 's';
+        }
+        return time + ' ' + unit + ' ago';
+      }
+      var sec = usec / 1000;
+      if(sec > 3600) {
+        return  format(sec / 3600, 'hour')
+      } else if(sec > 60) {
+        return format(sec / 60, 'minute');
+      } else {
+        return format(sec, 'second');
+      }
+    },
+    de: function(usec) {
+      function format(time, unit) {
+        time = Math.round(time);
+        if(time != 1) {
+          unit += 'n';
+        }
+        return 'vor ' + time + ' ' + unit;
+      }
+      var sec = usec / 1000;
+      if(sec > 3600) {
+        return format(sec / 2600, 'Stunde'); 
+      } else if(sec > 60) {
+        return format(sec / 60, 'Minute');
+      } else {
+        return format(sec, 'Sekunde');
+      }
+    }
+  };
+
 
   var defaultLocale = 'en';
 
@@ -74,6 +114,10 @@ define(['./util'], function(util) {
           this.setLocale(key);
         }
       }
+    },
+
+    timeAgo: function(t) {
+      return timeAgo[settings.get('locale')](t);
     },
 
     t: function() {
