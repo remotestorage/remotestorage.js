@@ -11,7 +11,7 @@ define([
   './lib/baseClient',
   './lib/schedule',
   './lib/i18n'
-], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient, schedule) {
+], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient, schedule, i18n) {
 
   "use strict";
 
