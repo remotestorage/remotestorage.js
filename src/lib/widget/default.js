@@ -1,5 +1,9 @@
 define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
+  if(typeof(document) === 'undefined') {
+    return { display: function() { throw "Widget not supported"; } };
+  }
+
   /*
 
     Interface: WidgetView
@@ -404,13 +408,10 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
   }
 
   function redirectTo(url) {
-    var md = url.match(/^https?:\/\/([^\/]+)/);
-    if(md) {
-      setBubbleText(t('redirecting', { hostName: md[1] }));
-    }
+    setBubbleText(t('redirecting', { hostName: util.hostNameFromUri(url) }));
     setTimeout(function() {
       document.location = url;
-    }, 1000);
+    }, 500);
   }
 
   function setUserAddress(addr) {
