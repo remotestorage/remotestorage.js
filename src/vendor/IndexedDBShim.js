@@ -1,6 +1,13 @@
+define([], function(undefined) {
+
+  if(typeof(window) === 'undefined') {
+    return undefined;
+  }
+
 /**
  * An initialization file that checks for conditions, removes console.log and warn, etc
  */
+
 var idbModules = {};
 (function(idbModules){
     /**
@@ -1262,3 +1269,5 @@ var idbModules = {};
     
 }(window, idbModules));
 
+  return undefined;
+});
