@@ -1,86 +1,19 @@
-define(['./util'], function(util) {
+define([
+  './util',
+  './i18n/locales'
+], function(util, locales) {
+
+  // Namespace: i18n
+  //
+  // Internationalization & Localization for remoteStorage.js
+  //
 
   var settings = util.getSettingStore('remotestorage_i18n');
 
-  var translations = {
-    en: {
-      widget: {
-        // Bubble text in initial state
-        'connect-remotestorage': 'Connect <strong>remotestorage</strong>',
-        // Connect button label
-        'connect': 'connect',
-        'sync': 'sync',
-        'disconnect': 'disconnect',
-        'permissions': 'Permissions',
-        'all-data': 'All data',
-        'synchronizing': 'Synchronizing <strong>{userAddress}</strong>',
-        'connecting': 'Connecting <strong>{userAddress}</strong>...',
-        'offline': '<strong>{userAddress}</strong> (offline)',
-        'unauthorized': 'Unauthorized! Click to reconnect.',
-        'redirecting': 'Redirecting to <strong>{hostName}</strong>...',
-        'typing-hint': 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/">remotestorage.io</a>',
-        'last-synced': '<strong>Last synced:</strong> {t}'
-      }
-    },
-    de: {
-      widget: {
-        'connect-remotestorage': 'Verbinde <strong>remotestorage</strong>',
-        'connect': 'Verbinden',
-        'sync': 'Sync',
-        'disconnect': 'Verbindung trennen',
-        'permissions': "Zugriffsrechte",
-        'all-data': "Alle Daten",
-        'synchronizing': 'Synchronisiere <strong>{userAddress}</strong>',
-        'connecting': 'Verbinde <strong>{userAddress}</strong>...',
-        'offline': '<strong>{userAddress}</strong> (offline)',
-        'unauthorized': 'Zugriff fehlgeschlagen. Klicke um neu zu verbinden.',
-        'redirecting': 'Leite weiter zu <strong>{hostName}</strong>...',
-        'typing-hint': 'Du kannst diese App mit deinem eigenen Cloud-Storage verbinden! Mehr Infos auf <a href="http://remotestorage.io/">remotestorage.io</a>',
-        'last-synced': '<strong>Zuletzt synchronisiert:</strong> {t}'
-      }
-    }
-  };
-
-  var timeAgo = {
-    en: function(usec) {
-      function format(time, unit) {
-        time = Math.round(time);
-        if(time != 1) {
-          unit += 's';
-        }
-        return time + ' ' + unit + ' ago';
-      }
-      var sec = usec / 1000;
-      if(sec > 3600) {
-        return  format(sec / 3600, 'hour')
-      } else if(sec > 60) {
-        return format(sec / 60, 'minute');
-      } else {
-        return format(sec, 'second');
-      }
-    },
-    de: function(usec) {
-      function format(time, unit) {
-        time = Math.round(time);
-        if(time != 1) {
-          unit += 'n';
-        }
-        return 'vor ' + time + ' ' + unit;
-      }
-      var sec = usec / 1000;
-      if(sec > 3600) {
-        return format(sec / 2600, 'Stunde'); 
-      } else if(sec > 60) {
-        return format(sec / 60, 'Minute');
-      } else {
-        return format(sec, 'Sekunde');
-      }
-    }
-  };
-
+  var translations = locales.translations;
+  var helpers = locales.helpers;
 
   var defaultLocale = 'en';
-
   var storedLocale = settings.get('locale');
 
   var currentTable = translations[storedLocale || defaultLocale];
@@ -89,37 +22,113 @@ define(['./util'], function(util) {
     this.message = "Translation not found: " + keyPath.join(', ');
   };
 
+  var UndefinedLocale = function(locale) {
+    Error.apply(this, ["Locale not defined: " + locale]);
+  };
+  UndefinedLocale.prototype = Error.prototype;
+
   return {
+
+    // Property: helpers
+    // Object of helpers for i18n/l10n.
+    // Do not cache or extend this property, it gets replaced when the locale
+    // changes.
+    //
+    // Methods:
+    //   timeAgo(usec) - Example: timeAgo(3000); // -> "3 seconds ago"
+    //
+    helpers: helpers[storedLocale || defaultLocale],
+
+    // Property: defaultLocale
+    // Default locale to use when detection fails.
+    // Initially set to 'en'.
+    defaultLocale: defaultLocale,
+
+    // Property: locales
+    // Array of available locales.
     locales: Object.keys(translations),
 
+    // Method: getLocale
+    // Get currently used locale.
     getLocale: function() {
-      return settings.get('locale') || defaultLocale;
+      return settings.get('locale') || this.defaultLocale;
     },
 
+    // Method: setLocale
+    // Set locale.
+    //
+    // Parameters:
+    //   locale - A string. Must be included in <locales>.
+    //
+    // Throws <UndefinedLocale> when the locale is unknown.
     setLocale: function(locale) {
-      if(! translations[locale]) {
+      if(! (locale in translations)) {
         throw new Error("Locale not found: " + locale);
       }
       currentTable = translations[locale];
+      this.helpers = helpers[locale];
       settings.set('locale', locale);
     },
 
-    autoLocale: function() {
-      if(storedLocale) {
-        return;
-      }
+    // Method: autoDetect
+    // Automatically determines and sets locale.
+    // This won't overwrite a stored locale.
+    autoDetect: function() {
+      var locale;
+      ( storedLocale || (
+        (locale = this.detectLocale()) &&
+          (locale in translations) &&
+          this.setLocale(locale) ) );
+    },
+
+    // Method: detectLocale
+    //
+    // Detects current locale from environment.
+    //
+    // Sources:
+    //   (nodejs)  - process.env.LANG
+    //   (browser) - navigator.language
+    //
+    // Returns:
+    //   a locale string or undefined.
+    detectLocale: function() {
+      var key;
       if(typeof(navigator) !== 'undefined') {
-        var key = navigator.language.split('-')[0];
-        if(key in translations) {
-          this.setLocale(key);
+        key = navigator.language.split('-')[0];
+      } else if(typeof(process) !== 'undefined') {
+        var lang = process.env.LANG;
+        if(lang) {
+          key = lang.split('_')[0];
         }
       }
+      return key;
     },
 
-    timeAgo: function(t) {
-      return timeAgo[settings.get('locale')](t);
-    },
-
+    // Method: t
+    // Look up a translation.
+    //
+    // Parameters:
+    //   (any number of strings) - list of keys to follow in translation tree
+    //   variables - (optional) Object, containing variables to replae.
+    //
+    // Example:
+    //   (start code)
+    //   // given the translations are as follows:
+    //   {
+    //     "a": {
+    //       "b": {
+    //         "c": "Hello {who}!"
+    //       }
+    //     }
+    //   }
+    //
+    //   // Then the following call:
+    //   i18n.t('a', 'b', 'c', { who: 'World' });
+    //
+    //   // returns:
+    //   "Hello World!"
+    //
+    //
     t: function() {
       try {
         var keys = util.toArray(arguments);
@@ -152,6 +161,17 @@ define(['./util'], function(util) {
       }
     },
 
-    clearSettings: settings.clear
+    // Method: clearSettings
+    // Clear cached locale settings.
+    // Doesn't reset the current in-memory state
+    // (i.e. current locale and default locale)
+    clearSettings: settings.clear,
+
+    // Exception: UndefinedLocale
+    // Thrown when trying to set a locale that isn't defined.
+    //
+    // Own properties:
+    //   locale - the locale string as passed to <setLocale>
+    UndefinedLocale: UndefinedLocale
   };
 });

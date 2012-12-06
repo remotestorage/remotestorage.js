@@ -67,6 +67,12 @@ define([], function() {
         this.nextPromise = new Promise();
       }
     });
+
+    var _this = this;
+    this.debugTimer = setTimeout(function() {
+      console.error("WARNING: promise timed out, failing!");
+      _this.fail();
+    }, 10000);
   };
 
   Promise.prototype = {
@@ -75,6 +81,7 @@ define([], function() {
         throw new Error("Can't fail promise, already resolved as: " +
                         (this.success ? 'fulfilled' : 'failed'));
       }
+      clearTimeout(this.debugTimer);
       this.result = util.toArray(arguments);
       this.success = true;
       if(! this.handlers.fulfilled) {
@@ -111,11 +118,14 @@ define([], function() {
         throw new Error("Can't fail promise, already resolved as: " +
                         (this.success ? 'fulfilled' : 'failed'));
       }
+      clearTimeout(this.debugTimer);
       this.result = util.toArray(arguments);
       this.success = false;
       if(this.handlers.failed) {
+        console.error("Failing error: ", this.result, (this.result[0] && this.result[0].stack));
         this.handlers.failed.apply(this, this.result);
       } else if(this.nextPromise) {
+        console.error("Bubbling error: ", this.result, (this.result[0] && this.result[0].stack));
         this.nextPromise.fail.apply(this.nextPromise, this.result);
       } else {
         console.error("Uncaught error: ", this.result, (this.result[0] && this.result[0].stack));
@@ -306,7 +316,7 @@ define([], function() {
     //   (end code)
     curry: function(f) {
       if(typeof(f) !== 'function') {
-        throw "Can only curry functions!";
+        throw new Error("Can only curry functions!");
       }
       var _a = Array.prototype.slice.call(arguments, 1);
       return function() {
@@ -334,7 +344,7 @@ define([], function() {
     //
     rcurry: function(f) {
       if(typeof(f) !== 'function') {
-        throw "Can only curry functions!";
+        throw new Error("Can only curry functions!");
       }
       var _a = Array.prototype.slice.call(arguments, 1);
       return function() {
@@ -352,6 +362,11 @@ define([], function() {
       } else {
         return callback;
       }
+    },
+
+    hostNameFromUri: function(url) {
+      var md = url.match(/^https?:\/\/([^\/]+)/);
+      return md ? md[1] : '';
     },
 
     deprecate: function(methodName, replacement) {

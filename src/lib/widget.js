@@ -34,16 +34,20 @@ define([
   }
 
   function buildScopeRequest() {
-    return Object.keys(widgetOptions.scopes).map(function(module) {
-      return (module === 'root' ? '' : module) + ':' + widgetOptions.scopes[module];
+    var scopes = remoteStorage.claimedModules;
+    return Object.keys(remoteStorage.claimedModules).map(function(module) {
+      return (module === 'root' ? '' : module) + ':' + scopes[module];
     }).join(' ');
   }
 
   function requestToken(authEndpoint) {
     logger.info('requestToken', authEndpoint);
+    var redirectUri = document.location.href.split('#')[0];
+    var clientId = util.hostNameFromUri(redirectUri);
     authEndpoint += authEndpoint.indexOf('?') > 0 ? '&' : '?';
     authEndpoint += [
-      ['redirect_uri', document.location.href.split('#')[0]],
+      ['redirect_uri', redirectUri],
+      ['client_id', clientId],
       ['scope', buildScopeRequest()],
       ['response_type', 'token']
     ].map(function(kv) {
@@ -177,6 +181,10 @@ define([
   return util.extend({
     display : display,
 
-    clearSettings: settings.clear
+    clearSettings: settings.clear,
+
+    setView: function(_view) {
+      view = _view;
+    }
   }, events);
 });

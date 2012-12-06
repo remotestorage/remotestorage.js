@@ -8,7 +8,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     Interface: WidgetView
 
-    A stateful view providing interaction with remotestorage.
+      A stateful view providing interaction with remotestorage.
 
     States:
       initial      - not connected
@@ -19,29 +19,39 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       error        - connected, but sync error happened
       unauthorized - connected, but request returned 401
 
+
     Event: connect
-    Fired when the "connect" action is caused by the user.
+      Fired when the "connect" action is caused by the user.
     
     Parameters:
       userAddress - The user address to connect to
 
+
     Event: disconnect
-    Fired when "disconnect" action is requested.
+      Fired when "disconnect" action is requested.
+
 
     Event: sync
-    Fired when "sync" action is requested
+      Fired when "sync" action is requested
+
 
     Event: reconnect
-    Fired when reconnect is requested in 'unauthorized' state.
+      Fired when reconnect is requested in 'unauthorized' state.
+
 
     Method: display
-    Display the widget in "initial" state
+      Display the widget in "initial" state
     
     Parameters:
-    any
+      domId   - String, id attribute of element to place the widget in (FIXME: put this in the options)
+      options - Object, see below.
+
+    Options:
+      locale - locale to use. only present when provided by app.
+
 
     Method: setState
-    Set widget state to given value.
+      Set widget state to given value.
 
     Parameters:
       state - a string. one of the states listed above.
@@ -163,9 +173,9 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       addClass(hint, 'hint');
 
       function updateLastSynced() {
-        hint.innerHTML = t('last-synced', {
-          t: i18n.timeAgo(new Date().getTime() - widgetOptions.getLastSyncAt())
-        });
+        hint.innerHTML = t('last-synced', { t: i18n.helpers.timeAgo(
+          new Date().getTime() - widgetOptions.getLastSyncAt()
+        ) });
       }
       addEvent(elements.bubble, 'mouseover', updateLastSynced);
 
@@ -242,6 +252,9 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
   function disconnectAction(event) {
     event.preventDefault();
     events.emit('disconnect');
+    if(currentState === 'error') {
+      setState('initial');
+    }
     return false;
   }
 
@@ -391,7 +404,11 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     }
     widgetOptions = options;
 
-    i18n.autoLocale();
+    if(options.locale) {
+      i18n.setLocale(options.locale);
+    } else {
+      i18n.autoDetect();
+    }
 
     prepareWidget();
     gEl(domId).appendChild(elements.style);
