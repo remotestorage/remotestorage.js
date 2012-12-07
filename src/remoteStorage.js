@@ -106,6 +106,8 @@ define([
       this[moduleName] = module.exports;
     },
 
+    claimedModules: claimedModules,
+
     //
     // Method: getModuleList
     //
@@ -336,18 +338,7 @@ define([
     //
     fullSync: sync.fullSync,
 
-    // Method: syncNow
-    //
-    // DEPRECATED!!! use fullSync instead.
-    syncNow          : function(path, depth, callback) {
-      if(! depth) {
-        callback = depth;
-        depth = null;
-      }
-
-      sync.partialSync(path, depth, callback);
-    },
-
+    setWidgetView: widget.setView,
 
     //  
     // Method: displayWidget
@@ -379,11 +370,8 @@ define([
     //
     //    > remoteStorage.displayWidget('remotestorage-connect', { authDialog: 'popup' });
     //    
-    displayWidget    : function(domId, options) {
-      var defaultOptions = {
-        scopes: claimedModules
-      };
-      widget.display(remoteStorage, domId, util.extend({}, defaultOptions, options));
+    displayWidget: function(domId, options) {
+      widget.display(remoteStorage, domId, util.extend({}, options));
     },
 
     //
@@ -414,14 +402,14 @@ define([
     //                  app's views of the data. immediately transitions to 'anonymous'
     //                  afterwards.
     //
-    getWidgetState   : widget.getState,
+    getWidgetState: widget.getState,
 
     //
-    getSyncState     : sync.getState,
+    getSyncState: sync.getState,
     //
-    setStorageInfo   : wireClient.setStorageInfo,
+    setStorageInfo: wireClient.setStorageInfo,
 
-    getStorageHref   : wireClient.getStorageHref,
+    getStorageHref: wireClient.getStorageHref,
 
     disableSyncThrottling: sync.disableThrottling,
 
@@ -477,7 +465,9 @@ define([
 
     // Property: store
     // Public access to <store>
-    store: store
+    store: store,
+
+    i18n: i18n
 
   };
 
