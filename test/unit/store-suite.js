@@ -241,7 +241,9 @@ define(['requirejs', 'fs'], function(requirejs, fs) {
           
           function assertDiff(key) {
             return function(node) {
-              _this.assertAnd(node.diff, { key: t });
+              var diff = {};
+              diff[key] = t;
+              _this.assertAnd(node.diff, diff);
               return node;
             }
           }
@@ -253,6 +255,7 @@ define(['requirejs', 'fs'], function(requirejs, fs) {
 
           function assertTimestampUpdate(node) {
             _this.assertAnd(node.timestamp, t * 2);
+            _this.assertAnd(node.lastUpdatedAt, node.timestamp);
             return node;
           }
 

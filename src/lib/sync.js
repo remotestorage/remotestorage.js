@@ -415,7 +415,7 @@ define([
 
 
   function fireError(path, error) {
-    var event = { path: path };
+    var event = { path: path, source: 'sync' };
     if(typeof(error) == 'object') {
       event.stack = error.stack;
       if(typeof(event.stack == 'string')) {
@@ -476,10 +476,9 @@ define([
       then(util.curry(remoteAdapter.expireKey, parentPath)).
       then(util.curry(remoteAdapter.get, parentPath)).
       then(function(remoteNode) {
-        // FIXME: in specs remoteNode is not defined!!!
-        var timestamp = (remoteNode ? remoteNode.data[baseName] :
-                         new Date().getTime());
-        return store.clearDiff(path, timestamp);
+        return store.clearDiff(
+          path, remoteNode ? remoteNode.data[baseName] : undefined
+        );
       });
   }
 

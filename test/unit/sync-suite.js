@@ -255,7 +255,7 @@ define(['requirejs'], function(requirejs) {
             _this.assertAnd(localNode.data, 'some text');
             _this.assert(localNode.mimeType, 'text/plain');
           }, function(error) {
-            console.error("processNode failed: ", error);
+            console.error("processNode failed: ", error, error.stack);
             _this.result(false);
           });
         }

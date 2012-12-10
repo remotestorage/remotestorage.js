@@ -19,8 +19,12 @@ define(['../util'], function(util) {
 
     unpackData: function(node) {
       node = util.extend({}, node);
-      if(node.mimeType === 'application/json' && typeof(node.data) !== 'object') {
-        node.data = JSON.parse(node.data);
+      if(node.mimeType === 'application/json' && node.data && typeof(node.data) !== 'object') {
+        try {
+          node.data = JSON.parse(node.data);
+        } catch(exc) {
+          throw new Error("Failed to parse JSON data: " + node.data + " (Error was: " + exc.message + ')');
+        };
       } else if(node.binary) {
         node.data = util.decodeBinary(node.data);
       }

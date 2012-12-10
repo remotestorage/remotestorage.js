@@ -7,8 +7,9 @@ define([
   './store/memory',
   './store/localStorage',
   './store/indexedDb',
+  './store/webSql',
   './store/pending'
-], function (util, platform, memoryAdapter, localStorageAdapter, indexedDbAdapter, pendingAdapter) {
+], function (util, platform, memoryAdapter, localStorageAdapter, indexedDbAdapter, webSqlAdapter, pendingAdapter) {
 
   "use strict";
 
@@ -43,8 +44,10 @@ define([
   (function() {
     if(typeof(window) !== 'undefined') {
       var idb = indexedDbAdapter.detect();
-      if(idb) {
+      if(idb && (! window.webkitIndexedDB)) {
         setAdapter(indexedDbAdapter(idb));
+      } else if(typeof(window.openDatabase !== 'undefined')) {
+        setAdapter(webSqlAdapter());
       } else if(typeof(window.localStorage !== 'undefined')) {
         setAdapter(localStorageAdapter(window.localStorage));
       } else {
@@ -292,6 +295,9 @@ define([
           var baseName = util.baseName(path);
           return getNode(parentPath).then(function(parent) {
             delete parent.diff[baseName];
+            if(Object.keys(parent.diff).length === 0) {
+              parent.lastUpdatedAt = parent.timestamp;
+            }
             return updateNode(parentPath, parent, false, true).then(function() {
               if(Object.keys(parent.diff).length === 0) {
                 return clearDiff(parentPath, timestamp);
