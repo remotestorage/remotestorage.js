@@ -27,7 +27,7 @@ Footer: remoteStorage.js is developed by some people. It's open source (MIT lice
 # These are indexes you deleted, so Natural Docs will not add them again
 # unless you remove them from this line.
 
-Don't Index: Functions, Interfaces, Files, Types, Classes, Build Targets, Events, Properties
+Don't Index: Functions, Files, Interfaces, Classes, Types, Events, Build Targets, Properties
 
 
 # --------------------------------------------------------------------------
@@ -97,6 +97,8 @@ Group: API  {
       File: ForeignClient  (/home/nil/src/remoteStorage.js/src/lib/foreignClient.js)
       File: store.localStorage  (/home/nil/src/remoteStorage.js/src/lib/store/localStorage.js)
       File: store.memory  (/home/nil/src/remoteStorage.js/src/lib/store/memory.js)
+      File: i18n  (/home/nil/src/remoteStorage.js/src/lib/i18n.js)
+      File: WidgetView  (/home/nil/src/remoteStorage.js/src/lib/widget/default.js)
       }  # Group: Internals
 
    Group: Docs Index  {

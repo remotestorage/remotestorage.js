@@ -1,0 +1,12 @@
+
+File: The Connect Widget
+
+The only user-visible element of remoteStorage.js is the *Connect Widget*.
+
+It serves a number of purposes:
+* Inform about remotestorage support
+* Enable entering a user address and connecting to it's storage server
+* Represent state of the connection
+* Enable disconnecting from the storage server, and wiping of local traces.
+
+Throughout it's lifetime, the widget passes a number of states.
