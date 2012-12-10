@@ -476,7 +476,9 @@ define([
       then(util.curry(remoteAdapter.expireKey, parentPath)).
       then(util.curry(remoteAdapter.get, parentPath)).
       then(function(remoteNode) {
-        return store.clearDiff(path, remoteNode.data[baseName]);
+        return store.clearDiff(
+          path, remoteNode ? remoteNode.data[baseName] : undefined
+        );
       });
   }
 
