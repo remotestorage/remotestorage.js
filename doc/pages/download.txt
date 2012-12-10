@@ -20,11 +20,11 @@ Group: Ready made builds
 
 We provide different builds of remoteStorage.js. This section describes what is what
 
-Build Target: remoteStorage.js
+Build Target: remoteStorage.min.js
 
 Minified build.
 
-<download at http://remotestoragejs.com/build/0.7.0-head/remoteStorage.js>
+<download at http://remotestoragejs.com/build/0.7.0-head/remoteStorage.min.js>
 
 Build Target: remoteStorage-debug.js
 
