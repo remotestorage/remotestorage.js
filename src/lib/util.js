@@ -70,8 +70,10 @@ define([], function() {
 
     var _this = this;
     this.debugTimer = setTimeout(function() {
-      console.error("WARNING: promise timed out, failing!");
-      _this.fail();
+      if(_this.handlers.fulfilled) { // only care if someone's listening
+        console.error("WARNING: promise timed out, failing!");
+        _this.fail();
+      }
     }, 10000);
   };
 
