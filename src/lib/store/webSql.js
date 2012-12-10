@@ -25,6 +25,7 @@ define([
     function openDatabase() {
       logger.info('Opening database...');
       DB = window.openDatabase(DB_NAME, DB_VERSION, DB_HINT, DB_SIZE);
+      logger.info("DB is ", DB);
       return executeWrite("CREATE TABLE IF NOT EXISTS nodes (key, meta, data)").
         then(function() {
           logger.info("Database opened.", DB);
@@ -32,6 +33,8 @@ define([
             logger.info("FLUSHING!");
             tempAdapter.replaceWith(webSqlStore);
           }
+        }, function() {
+          logger.error("OPEN DB FAILED", arguments);
         });
     }
 

@@ -746,7 +746,7 @@ define([], function() {
           }
         }
         function failOne(error) {
-          console.error("asyncGroup part failed: ", error.stack || error);
+          console.error("asyncGroup part failed: ", (error && error.stack) || error);
           errors.push(error);
           finishOne();
         }

@@ -46,6 +46,10 @@ define([
           logger.debug("Upgrade database: ", db);
           db.createObjectStore(OBJECT_STORE_NAME, { keyPath: 'key' });
         }
+
+        dbRequest.onupgradeneeded = function(event) {
+          upgrade(event.target.result);
+        };
         
         dbRequest.onsuccess = function(event) {
           logger.debug("DB REQUEST SUCCESS", event);
@@ -72,9 +76,6 @@ define([
             } else {
               // assume onupgradeneeded is supported.
               logger.debug("onupgradeneeded supported");
-              dbRequest.onupgradeneeded = function(event) {
-                upgrade(event.target.result);
-              };
               promise.fulfill(database);
             }
           } catch(exc) {
@@ -152,12 +153,14 @@ define([
   };
 
   adapter.detect = function() {
-    var indexedDB = undefined;
+    var indexedDB;
     if(typeof(window) !== 'undefined') {
+      // indexedDB = (window.indexedDB || window.webkitIndexedDB ||
+      //              window.mozIndexedDB || window.msIndexedDB);
       if(window.webkitIndexedDB) {
         window.shimIndexedDB.__useShim();
-        return window.indexedDB;
       }
+      indexedDB = window.indexedDB;
     }
     return indexedDB;
   };
