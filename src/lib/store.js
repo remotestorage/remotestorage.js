@@ -7,15 +7,16 @@ define([
   './store/memory',
   './store/localStorage',
   './store/indexedDb',
+  './store/webSql',
   './store/pending'
-], function (util, platform, memoryAdapter, localStorageAdapter, indexedDbAdapter, pendingAdapter) {
+], function (util, platform, memoryAdapter, localStorageAdapter, indexedDbAdapter, webSqlAdapter, pendingAdapter) {
 
   "use strict";
 
   // Namespace: store
   //
   // The store stores data locally. It treats all data as raw nodes, that have *metadata* and *payload*.
-  // Metadata and payload are stored under separate keys.
+  // Where the actual data is stored is determined by the <StorageAdapter> that is being used.
 
 
   var logger = util.getLogger('store');
@@ -32,7 +33,7 @@ define([
   // the required interface.
   function setAdapter(adapter) {
     dataStore = adapter;
-    // forward changes from data store (e.g. made in other tabs)  
+    // forward changes from data store (e.g. made in other tabs)
     dataStore.on('change', function(event) {
       if(! util.isDir(event.path)) {
         fireChange('device', event.path, event.oldValue);
@@ -45,7 +46,9 @@ define([
       var idb = indexedDbAdapter.detect();
       if(idb) {
         setAdapter(indexedDbAdapter(idb));
-      } else if(typeof(window.localStorage !== 'undefined')) {
+      } else if(typeof(window.openDatabase) !== 'undefined') {
+        setAdapter(webSqlAdapter());
+      } else if(typeof(window.localStorage) !== 'undefined') {
         setAdapter(localStorageAdapter(window.localStorage));
       } else {
         throw "Running in browser, but no storage adapter supported!";
@@ -292,6 +295,9 @@ define([
           var baseName = util.baseName(path);
           return getNode(parentPath).then(function(parent) {
             delete parent.diff[baseName];
+            if(Object.keys(parent.diff).length === 0) {
+              parent.lastUpdatedAt = parent.timestamp;
+            }
             return updateNode(parentPath, parent, false, true).then(function() {
               if(Object.keys(parent.diff).length === 0) {
                 return clearDiff(parentPath, timestamp);

@@ -311,13 +311,13 @@ define([
   }
 
   function finishTask() {
+    remoteAdapter.clearCache();
     if(currentFinalizer) {
       currentFinalizer();
     }
     if(taskQueue.length > 0) {
       beginTask();
     } else {
-      remoteAdapter.clearCache();
       setReady();
     }
   }
@@ -415,7 +415,7 @@ define([
 
 
   function fireError(path, error) {
-    var event = { path: path };
+    var event = { path: path, source: 'sync' };
     if(typeof(error) == 'object') {
       event.stack = error.stack;
       if(typeof(event.stack == 'string')) {
@@ -440,7 +440,6 @@ define([
   // Fires: change
   function deleteLocal(path, local, remote) {
     logger.info('DELETE', path, 'REMOTE -> LOCAL');
-    var oldValue = store.getNodeData(path);
     return store.removeNode(path, remote.timestamp);
   }
 
@@ -471,10 +470,17 @@ define([
   // Fires: error
   function updateRemote(path, local, remote) {
     logger.info('UPDATE', path, 'LOCAL -> REMOTE');
+    var parentPath = util.containingDir(path);
+    var baseName = util.baseName(path);
     return remoteAdapter.set(path, local).
-      then(util.curry(store.clearDiff, path));
+      then(util.curry(remoteAdapter.expireKey, parentPath)).
+      then(util.curry(remoteAdapter.get, parentPath)).
+      then(function(remoteNode) {
+        return store.clearDiff(
+          path, remoteNode ? remoteNode.data[baseName] : undefined
+        );
+      });
   }
-
 
   // Function: processNode
   //
@@ -482,6 +488,10 @@ define([
   //
   // Used as a callback for <traverseTree>.
   function processNode(path, local, remote) {
+
+    if(! path) {
+      throw new Error("Can't process node without a path!");
+    }
 
     if(util.isDir(path)) {
       throw new Error("Attempt to process directory node: " + path);
@@ -511,9 +521,9 @@ define([
       logger.debug(path, 'no action today', 'remote', remote, 'local', local);
       return;
 
-    } else if(local.timestamp > remote.timestamp) {
+    } else if((!remote.timestamp) || local.timestamp > remote.timestamp) {
       // local updated happpened before remote update
-      if(local.lastUpdatedAt == remote.timestamp) {
+      if((!remote.timestamp) || local.lastUpdatedAt == remote.timestamp) {
         // outgoing update!
         logger.debug(path, 'outgoing update');
         action = updateRemote;
@@ -593,11 +603,6 @@ define([
       });
   }
 
-  function fetchNode(path) {
-    logger.info("fetch remote", path);
-    return remoteAdapter.get(path);
-  }
-
   // Function: fetchRemoteNode
   //
   // Fetch node at given path from remote.
@@ -609,17 +614,8 @@ define([
   //   mimeType - MIME type of the node
   //
   function fetchRemoteNode(path, isDeleted) {
-    return fetchNode(path).
-      then(function(node) {
-        if(typeof(isDeleted) === 'undefined') {
-          isDeleted = ! node;
-        }
-        if(! node) {
-          node = {};
-        }
-        node.deleted = isDeleted;
-        return node;
-      });
+    logger.info("fetch remote", path);
+    return remoteAdapter.get(path);
   }
 
   // Section: Trivial helpers

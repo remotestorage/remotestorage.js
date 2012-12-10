@@ -8,8 +8,10 @@ define([
   './lib/util',
   './lib/webfinger',
   './lib/foreignClient',
-  './lib/baseClient'
-], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient) {
+  './lib/baseClient',
+  './lib/schedule',
+  './lib/i18n'
+], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient, schedule, i18n) {
 
   "use strict";
 
@@ -103,6 +105,8 @@ define([
       modules[moduleName] = module;
       this[moduleName] = module.exports;
     },
+
+    claimedModules: claimedModules,
 
     //
     // Method: getModuleList
@@ -246,15 +250,13 @@ define([
         return;
       }
 
-      claimedModules[moduleName] = true;
+      claimedModules[moduleName] = mode;
 
       if(moduleName === 'root') {
         moduleName = '';
-        widget.addScope('', mode);
         return store.setNodeAccess('/', mode).
           then(util.curry(store.setNodeForce, '/', true, true));
       } else {
-        widget.addScope(moduleName, mode);
         var privPath = '/'+moduleName+'/';
         var pubPath = '/public/'+moduleName+'/';
         return store.setNodeAccess(privPath, mode).
@@ -292,7 +294,14 @@ define([
     // Example:
     //   > remoteStorage.flushLocal();
     //
-    flushLocal       : store.forgetAll,
+    flushLocal       : function() {
+      store.forgetAll();
+      sync.clearSettings();
+      widget.clearSettings();
+      schedule.reset();
+      wireClient.disconnectRemote();
+      i18n.clearSettings();
+    },
 
     //
     // Method: fullSync
@@ -329,18 +338,7 @@ define([
     //
     fullSync: sync.fullSync,
 
-    // Method: syncNow
-    //
-    // DEPRECATED!!! use fullSync instead.
-    syncNow          : function(path, depth, callback) {
-      if(! depth) {
-        callback = depth;
-        depth = null;
-      }
-
-      sync.partialSync(path, depth, callback);
-    },
-
+    setWidgetView: widget.setView,
 
     //  
     // Method: displayWidget
@@ -372,7 +370,9 @@ define([
     //
     //    > remoteStorage.displayWidget('remotestorage-connect', { authDialog: 'popup' });
     //    
-    displayWidget    : widget.display,
+    displayWidget: function(domId, options) {
+      widget.display(remoteStorage, domId, util.extend({}, options));
+    },
 
     //
     // Method: onWidget
@@ -402,14 +402,14 @@ define([
     //                  app's views of the data. immediately transitions to 'anonymous'
     //                  afterwards.
     //
-    getWidgetState   : widget.getState,
+    getWidgetState: widget.getState,
 
     //
-    getSyncState     : sync.getState,
+    getSyncState: sync.getState,
     //
-    setStorageInfo   : wireClient.setStorageInfo,
+    setStorageInfo: wireClient.setStorageInfo,
 
-    getStorageHref   : wireClient.getStorageHref,
+    getStorageHref: wireClient.getStorageHref,
 
     disableSyncThrottling: sync.disableThrottling,
 
@@ -465,7 +465,9 @@ define([
 
     // Property: store
     // Public access to <store>
-    store: store
+    store: store,
+
+    i18n: i18n
 
   };
 

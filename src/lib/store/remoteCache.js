@@ -33,24 +33,25 @@ define([
     return {
       get: function(path) {
         if(cache.hasKey(path)) {
-          logger.info('GET HIT', path);
+          logger.debug('GET HIT', path);
           return cache.get(path);
         } else {
-          logger.info('GET MISS', path);
+          logger.debug('GET MISS', path);
           var node = {};
           return wireClient.get(path).
+            // build node
             then(function(data, mimeType) {
-              logger.info("WIRE CLIENT GET RETURNED", data, mimeType);
               node.data = data;
               node.mimeType = mimeType;
               node.binary = data instanceof ArrayBuffer;
               if(typeof(data) === 'undefined') {
-                return 0;
+                node.deleted = true;
+                return undefined;
               } else {
+                node.deleted = false;
                 return determineTimestamp(path);
               }
             }).then(function(timestamp) {
-              logger.info("GOT TIMESTAMP", timestamp);
               node.timestamp = timestamp;
               return cache.set(path, node);
             }).then(function() {
@@ -60,13 +61,13 @@ define([
       },
 
       set: function(path, node) {
-        logger.info('SET', path);
+        logger.debug('SET', path);
         return cache.set(path, node).
           then(util.curry(wireClient.set, path, node.data, node.mimeType));
       },
 
       remove: function(path) {
-        logger.info('REMOVE', path);
+        logger.debug('REMOVE', path);
         return cache.remove(path).
           then(util.curry(wireClient.remove, path));
       },
@@ -75,9 +76,14 @@ define([
         return wireClient.getState();
       },
 
+      expireKey: function(path) {
+        logger.debug('EXPIRE', path);
+        return cache.remove(path);
+      },
+
       clearCache: function() {
         return cache.forgetAll();
       }
-    }
+    };
   };
 });

@@ -65,12 +65,6 @@ define(['./util'], function(util) {
   //   browser - yes, if DOMParser is available
   //   node - yes, if xml2js is available
   //
-  //
-  // Method: getLocation
-  //
-  //
-  // Method: setLocation
-  //
 
   var logger = util.getLogger('platform');
 
@@ -310,67 +304,23 @@ define(['./util'], function(util) {
     new xml2js.Parser().parseString(str, cb);
   }
 
-  function harvestParamNode() {
-  }
-
-  function harvestParamBrowser(param) {
-    // location.hash in firefox has all URI entities decoded, so we can't
-    // differentiate between %26 and & in URIs passed as parameters.
-    var hash = String(document.location).split(/^.*?#/)[1];
-    if(hash) {
-      var pairs = hash.split('&');
-      for(var i=0; i<pairs.length; i++) {
-        if(pairs[i].substring(0, (param+'=').length) == param+'=') {
-          var ret = decodeURIComponent(pairs[i].substring((param+'=').length));
-          delete pairs[i];
-          document.location = '#'+pairs.join('&');
-          return ret;
-        }
-      }
-    }
-  }
-
-  function getLocationBrowser() {
-    //TODO: deal with http://user:a#aa@host.com/ although i doubt someone would actually use that even once between now and the end of the internet
-    return window.location.href.split('#')[0];
-  }
-
-  function getLocationNode() {
-  }
-
-  function setLocationBrowser(location) {
-    window.location = location;
-  }
-
-  function setLocationNode() {
-  }
-
   var platform;
 
   if(typeof(window) === 'undefined') {
     platform = {
       ajax: ajaxNode,
-      parseXml: parseXmlNode,
-      harvestParam: harvestParamNode,
-      getLocation: getLocationNode,
-      setLocation: setLocationNode
+      parseXml: parseXmlNode
     };
   } else {
     if(window.XDomainRequest) {
       platform = {
         ajax: ajaxExplorer,
-        parseXml: parseXmlBrowser,
-        harvestParam: harvestParamBrowser,
-        getLocation: getLocationBrowser,
-        setLocation: setLocationBrowser
+        parseXml: parseXmlBrowser
       };
     } else {
       platform = {
         ajax: ajaxBrowser,
-        parseXml: parseXmlBrowser,
-        harvestParam: harvestParamBrowser,
-        getLocation: getLocationBrowser,
-        setLocation: setLocationBrowser
+        parseXml: parseXmlBrowser
       };
     }
 

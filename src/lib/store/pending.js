@@ -23,7 +23,7 @@ define(['../util'], function(util) {
       }
     }
 
-    return {
+    var pendingAdapter = {
       on: function(eventName, handler) {
         return queueRequest('on', [eventName, handler], true);
       },
@@ -51,8 +51,16 @@ define(['../util'], function(util) {
           }
         });
         requestQueue = [];
+      },
+      replaceWith: function(adapter) {
+        pendingAdapter.flush(adapter);
+        util.extend(pendingAdapter, adapter);
+        delete pendingAdapter.flush;
+        delete pendingAdapter.replaceWith;
       }
-    }
+    };
+
+    return pendingAdapter;
   };
 
 });

@@ -1,4 +1,6 @@
-define(['../util', './pending'], function(util, pendingAdapter) {
+define([
+  '../util', './pending', '../../vendor/IndexedDBShim'
+], function(util, pendingAdapter, _) {
 
   var DB_NAME = 'remoteStorage';
   var DB_VERSION = 1;
@@ -41,34 +43,47 @@ define(['../util', './pending'], function(util, pendingAdapter) {
         var dbRequest = indexedDB.open(DB_NAME, DB_VERSION);
 
         function upgrade(db) {
+          logger.debug("Upgrade database: ", db);
           db.createObjectStore(OBJECT_STORE_NAME, { keyPath: 'key' });
         }
-        
+
         dbRequest.onupgradeneeded = function(event) {
           upgrade(event.target.result);
         };
-
+        
         dbRequest.onsuccess = function(event) {
-          var database = event.target.result;
-          if(typeof(database.setVersion) === 'function') {
-            if(database.version != DB_VERSION) {
-              var versionRequest = database.setVersion(DB_VERSION);
-              versionRequest.onsuccess = function(event) {
-                upgrade(database);
-                event.target.transaction.oncomplete = function() {
-                  promise.fulfill(database);
+          logger.debug("DB REQUEST SUCCESS", event);
+          try {
+            var database = event.target.result;
+            if(typeof(database.setVersion) === 'function') {
+              logger.debug("setVersion supported");
+              if(database.version != DB_VERSION) {
+                var versionRequest = database.setVersion(DB_VERSION);
+                versionRequest.onsuccess = function(event) {
+                  logger.debug("VERSION REQUEST SUCCESS");
+                  upgrade(database);
+                  event.target.transaction.oncomplete = function() {
+                    promise.fulfill(database);
+                  };
                 };
-              };
+                versionRequest.onerror = function(event) {
+                  logger.error("Version request failed", event);
+                  promise.fail("Version request failed!");
+                };
+              } else {
+                promise.fulfill(database);
+              }
             } else {
+              // assume onupgradeneeded is supported.
+              logger.debug("onupgradeneeded supported");
               promise.fulfill(database);
             }
-          } else {
-            // assume onupgradeneeded is supported.
-            promise.fulfill(database);
-          }
+          } catch(exc) {
+            promise.fail(exc);
+          };
         };
 
-        dbRequest.onerror = function(event) {
+        dbRequest.onerror = dbRequest.onfailure = function(event) {
           logger.error("indexedDB.open failed: ", event);
           promise.fail(new Error("Failed to open database!"));
         }; 
@@ -126,6 +141,7 @@ define(['../util', './pending'], function(util, pendingAdapter) {
     function doOpenDatabase() {
       openDatabase().
         then(function(db) {
+          logger.info("Database opened.");
           DB = db;
           replaceAdapter();
         });
@@ -137,13 +153,17 @@ define(['../util', './pending'], function(util, pendingAdapter) {
   };
 
   adapter.detect = function() {
-    var indexedDB = undefined;
+    var indexedDB;
     if(typeof(window) !== 'undefined') {
-      indexedDB = (window.indexedDB || window.webkitIndexedDB ||
-                   window.mozIndexedDB || window.msIndexedDB);
+      // indexedDB = (window.indexedDB || window.webkitIndexedDB ||
+      //              window.mozIndexedDB || window.msIndexedDB);
+      if(window.webkitIndexedDB) {
+        window.shimIndexedDB.__useShim();
+      }
+      indexedDB = window.indexedDB;
     }
     return indexedDB;
-  }
+  };
 
   return adapter;
 });

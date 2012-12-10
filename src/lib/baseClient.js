@@ -10,6 +10,7 @@ define([
   "use strict";
 
   var logger = util.getLogger('baseClient');
+  var globalEvents = util.getEventEmitter('error');
   var moduleEvents = {};
 
   function extractModuleName(path) {
@@ -52,6 +53,8 @@ define([
     } else {
       modEvents[isPublic].emit('error', error);
     }
+
+    globalEvents.emit('error', error);
   }
 
   store.on('change', function(event) {
@@ -64,8 +67,17 @@ define([
 
   sync.on('conflict', function(event) {
     var moduleName = extractModuleName(event.path);
-    fireModuleEvent('conflict', moduleName, event);
-    fireModuleEvent('conflict', 'root', event);
+    var isPublic = isPublicRE.test(event.path);
+    var eventEmitter = moduleEvents[moduleName] && moduleEvents[moduleName][isPublic];
+    var rootEmitter = moduleEvents.root && moduleEvents.root[isPublic];
+    if(eventEmitter && eventEmitter.hasHandler('conflict')) {
+      fireModuleEvent('conflict', moduleName, event);
+      fireModuleEvent('conflict', 'root', event);
+    } else if(rootEmitter && rootEmitter.hasHandler('conflict')) {
+      fireModuleEvent('conflict', 'root', event);
+    } else {
+      event.resolve('remote');
+    }
   });
 
   function failedPromise(error) {
@@ -847,6 +859,8 @@ define([
     }
     
   };
+
+  util.extend(BaseClient, globalEvents);
 
   return BaseClient;
 
