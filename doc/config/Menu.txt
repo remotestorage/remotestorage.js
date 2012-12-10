@@ -74,7 +74,6 @@ Group: API  {
 
       File: remoteStorage  (/home/nil/src/remoteStorage.js/src/remoteStorage.js)
       File: BaseClient  (/home/nil/src/remoteStorage.js/src/lib/baseClient.js)
-      File: remoteStorage  (/home/nil/src/remoteStorage.js/src/tmp/rs-builder-in-17040.tmp.js)
       }  # Group: Public API
 
    Group: Modules  {
