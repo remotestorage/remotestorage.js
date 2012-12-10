@@ -37,7 +37,7 @@ define([], function() {
         } else {
           return format(sec, 'second');
         }
-      },
+      }
     }
   };
 });
