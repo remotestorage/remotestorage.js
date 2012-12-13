@@ -32,23 +32,31 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
         });
     },
     tests: [
+
       {
         desc: "all methods return promises",
         run: function(env) {
           this.assertTypeAnd(
-            env.adapter.get('/foo').then, 'function'
-          );
-          this.assertTypeAnd(
-            env.adapter.set('/foo', { data: 'bar' }).then, 'function'
-          );
-          this.assertTypeAnd(
-            env.adapter.remove('/foo').then, 'function'
+            env.adapter.transaction(true, function() {}).then, 'function'
           );
           this.assertType(
             env.adapter.forgetAll().then, 'function'
           );
         }
       },
+
+      {
+        desc: "transactions yield a get/set/remove object",
+        run: function(env) {
+          var _this = this;
+          env.adapter.transaction(true, function(transaction) {
+            _this.assertTypeAnd(transaction.get, 'function');
+            _this.assertTypeAnd(transaction.set, 'function');
+            _this.assertType(transaction.remove, 'function');
+          });
+        }
+      },
+
       {
         desc: "results are consistent",
         run: function(env) {
@@ -59,31 +67,38 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
             return curry(_this.assertAnd.bind(_this), a);
           }
 
-          env.adapter.
+          env.adapter.transaction(true, function(transaction) {
             // set
-            set('/one-path', 'data').
-            // get
-            then(curry(env.adapter.get, '/one-path')).
-            then(assertAnd('data')).
-            then(curry(env.adapter.get, '/other-path')).
-            then(assertAnd(undefined)).
-            // remove
-            then(curry(env.adapter.remove, '/one-path')).
-            then(curry(env.adapter.get, '/one-path')).
-            then(assertAnd(undefined)).
-            // forgetAll
-            then(curry(env.adapter.set, '/a', 1)).
-            then(curry(env.adapter.set, '/b', 2)).
-            then(env.adapter.forgetAll).
-            then(curry(env.adapter.get, '/a')).
-            then(assertAnd(undefined)).
-            then(curry(env.adapter.get, '/b')).
-            then(assertAnd(undefined)).
-            // final result
-            then(curry(this.result.bind(this), true),   // success
-                 curry(this.result.bind(this), false)); // error
+            transaction.set('/one-path', 'data').
+              // get
+              then(curry(transaction.get, '/one-path')).
+              then(assertAnd('data')).
+              then(curry(transaction.get, '/other-path')).
+              then(assertAnd(undefined)).
+              // remove
+              then(curry(transaction.remove, '/one-path')).
+              then(curry(transaction.get, '/one-path')).
+              then(assertAnd(undefined)).
+              // forgetAll
+              then(curry(transaction.set, '/a', 1)).
+              then(curry(transaction.set, '/b', 2));
+          }).then(function() {
+            return env.adapter.forgetAll().
+              then(function() {
+                env.adapter.transaction(true, function(transaction) {
+                  transaction.get('/a').
+                    then(assertAnd(undefined)).
+                    then(curry(transaction.get, '/b')).
+                    then(assertAnd(undefined)).
+                    // final result
+                    then(curry(_this.result.bind(_this), true),   // success
+                         curry(_this.result.bind(_this), false)); // error
+                });
+              });
+          });
         }
       }
+
     ]
   });
 

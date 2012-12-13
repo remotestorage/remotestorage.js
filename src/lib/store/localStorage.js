@@ -43,44 +43,51 @@ define(['../util', './common'], function(util, common) {
 
     return {
 
+      transaction: function(write, body) {
+        return util.makePromise(function(promise) {          
+          body({
+            get: function(path) {
+              return util.makePromise(function(promise) {
+                var rawMetadata = localStorage.getItem(prefixNode(path));
+                var payload = localStorage.getItem(prefixData(path));
+                var node;
+                try {
+                  node = JSON.parse(rawMetadata);
+                } catch(exc) {
+                }
+                if(node) {
+                  node.data = payload;
+                }
+                
+                promise.fulfill(common.unpackData(node));
+              });
+            },
+
+            set: function(path, node) {
+              return util.makePromise(function(promise) {
+                var metadata = common.packData(node);
+                var rawData = metadata.data;
+                delete metadata.data;
+                var rawMetadata = JSON.stringify(metadata);
+                localStorage.setItem(prefixNode(path), rawMetadata);
+                localStorage.setItem(prefixData(path), rawData);
+                promise.fulfill();
+              });
+            },
+
+            remove: function(path) {
+              return util.makePromise(function(promise) {
+                localStorage.removeItem(prefixNode(path));
+                localStorage.removeItem(prefixData(path));
+                promise.fulfill();
+              });
+            },
+          });
+          promise.fulfillLater();
+        });
+      },
+
       on: events.on,
-
-      get: function(path) {
-        return util.makePromise(function(promise) {
-          var rawMetadata = localStorage.getItem(prefixNode(path));
-          var payload = localStorage.getItem(prefixData(path));
-          var node;
-          try {
-            node = JSON.parse(rawMetadata);
-          } catch(exc) {
-          }
-          if(node) {
-            node.data = payload;
-          }
-        
-          promise.fulfill(common.unpackData(node));
-        });
-      },
-
-      set: function(path, node) {
-        return util.makePromise(function(promise) {
-          var metadata = common.packData(node);
-          var rawData = metadata.data;
-          delete metadata.data;
-          var rawMetadata = JSON.stringify(metadata);
-          localStorage.setItem(prefixNode(path), rawMetadata);
-          localStorage.setItem(prefixData(path), rawData);
-          promise.fulfill();
-        });
-      },
-
-      remove: function(path) {
-        return util.makePromise(function(promise) {
-          localStorage.removeItem(prefixNode(path));
-          localStorage.removeItem(prefixData(path));
-          promise.fulfill();
-        });
-      },
 
       forgetAll: function() {
         return util.makePromise(function(promise) {
