@@ -940,11 +940,15 @@ define([
   var limitedFullSync = limit('fullSync', fullSync, 10000);
   var limitedPartialSync = limit('partialSync', partialSync, 5000);
   
-  var sync = {
+
+  var sync = util.extend(events, {
 
     lastSyncAt: null,
 
     // Section: exported functions
+
+    // Method: on
+    // Install an event handler.
 
     // Method: fullSync
     // <fullSync>
@@ -969,10 +973,6 @@ define([
     // <getState>
     getState: getState,
 
-    // Method: on
-    // Install an event handler.
-    on: events.on,
-
     // Method: clearSettings
     // Clear all data from localStorage that this file put there.
     clearSettings: settings.clear,
@@ -994,7 +994,7 @@ define([
       remoteAdapter = adapter;
     }
 
-  };
+  });
 
   return sync;
 
