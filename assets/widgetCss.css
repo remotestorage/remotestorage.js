@@ -1,3 +1,9 @@
+/** encoding:utf-8 **/
+
+#remotestorage-widget, #remotestorage-widget * {
+    box-sizing: border-box;
+}
+
 #remotestorage-widget {
     position: absolute;
     right: 10px;
@@ -14,7 +20,7 @@
     border-radius: 5px 15px 5px 5px;
     color: white;
     font-size: 0.8em;
-    padding: 5px 28px 2px 6px;
+    padding: 5px 28px 1.5em 6px;
     position: absolute;
     right: 3px;
     top: 9px;
@@ -24,17 +30,8 @@
     text-decoration: none;
 }
 
-#remotestorage-widget .bubble .hint {
-    white-space: normal;
-    margin-bottom: 1em;
-}
-
-#remotestorage-widget .bubble .hint a {
-    font-weight: bold;
-}
-
 #remotestorage-widget .bubble.one-line {
-    padding-bottom: 0px;
+    padding-bottom: 2px;
 }
 
 #remotestorage-widget .bubble.hidden, #remotestorage-widget .bubble.hidden .content {
@@ -85,37 +82,51 @@
 }
 
 #remotestorage-widget form {
+    position: relative;
+    width: 24em;
     margin: 0.7em -2em 0.7em 0;
 }
 
 #remotestorage-widget form input {
+    display: block;
     border: none;
     border-radius: 6px;
     font-weight: bold;
-    padding: 0.2em 1em;
     color: white;
     outline: none;
     line-height: 1.5em;
+    height: 2em;
 }
 
 #remotestorage-widget form input[type=email] {
     background: #333;
     width: 16em;
-    height: 1.5em;
+    padding: 0.2em 1em 0.2em 0.5em;
 }
 
 #remotestorage-widget form input[type=submit] {
+    position: absolute;
+    top:0;
+    right:0;
     background: #000;
-    display: inline-block;
-    top: 2.1em;
     cursor: pointer;
-    margin-left: -1em;
+    width: 8em;
 }
 
 #remotestorage-widget .info {
     padding: 0.7em 0 0.2em 0;
-    font-size: 0.8em;
+    font-size: 12px;
 }
+
+#remotestorage-widget .info {
+    white-space: normal;
+    margin-bottom: 1em;
+}
+
+#remotestorage-widget .info a {
+    font-weight: bold;
+}
+
 
 #remotestorage-widget .bubble button {
     background: #333;
@@ -133,8 +144,33 @@
     margin-left: -6px;
 }
 
-#remotestorage-widget .bubble select.locale {
+#remotestorage-widget select.locale {
     position: absolute;
     bottom: 0;
     right: 0;
+    background: #333;
+    color: #ddd;
+    border: none;
+    font-weight: bold;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    outline: none;
+    cursor: pointer;
+}
+
+#remotestorage-widget select.locale::after {
+    content: "▼";
+}
+
+#remotestorage-widget select.locale:hover {
+    color: white;
+}
+
+#remotestorage-widget select.locale option {
+    color: black;
+}
+
+#remotestorage-widget pre {
+    width: 22em;
+    overflow: auto;
 }
