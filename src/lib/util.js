@@ -70,6 +70,10 @@ define([], function() {
 
     var _this = this;
     this.debugTimer = setTimeout(function() {
+      if(_this.result) {
+        // already resolved for some reason, without clearing the timer.
+        return;
+      }
       if(_this.handlers.fulfilled) { // only care if someone's listening
         console.error("WARNING: promise timed out, failing!");
         _this.fail();
@@ -124,10 +128,8 @@ define([], function() {
       this.result = util.toArray(arguments);
       this.success = false;
       if(this.handlers.failed) {
-        console.error("Failing error: ", this.result, (this.result[0] && this.result[0].stack));
         this.handlers.failed.apply(this, this.result);
       } else if(this.nextPromise) {
-        console.error("Bubbling error: ", this.result, (this.result[0] && this.result[0].stack));
         this.nextPromise.fail.apply(this.nextPromise, this.result);
       } else {
         console.error("Uncaught error: ", this.result, (this.result[0] && this.result[0].stack));
@@ -249,11 +251,17 @@ define([], function() {
       return parts;
     },
 
-    extend: function(a, b) {
-      for(var key in b) {
-        a[key] = b[key];
-      }
-      return a;
+    extend: function() {
+      var result = arguments[0];
+      var objs = Array.prototype.slice.call(arguments, 1);
+      objs.forEach(function(obj) {
+        if(obj) {
+          for(var key in obj) {
+            result[key] = obj[key];
+          }
+        }
+      });
+      return result;
     },
 
     // Method: containingDir
@@ -458,7 +466,7 @@ define([], function() {
 
         hasHandler: function(eventName) {
           validEvent.call(this, eventName);
-          return this._handlers[eventName].length;
+          return this._handlers[eventName].length > 0;
         }
 
       });
