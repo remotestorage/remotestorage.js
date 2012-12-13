@@ -57,10 +57,6 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     return state;
   }
 
-  function on(eventType, cb) {
-    events.on(eventType, cb);
-  }
-
   function resolveKey(path) {
     var storageHref = getSetting('storageHref');
     return storageHref + path;
@@ -165,7 +161,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     return !! getSetting('storageInfo:' + userAddress);
   }
 
-  return {
+  return util.extend(events, {
 
     get: get,
     set: set,
@@ -241,7 +237,6 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     // Install an event handler
     //
     // 
-    on               : on,
 
     // Method: getState
     //
@@ -253,5 +248,5 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     //   connected - all information present.
     getState         : getState,
     calcState: calcState
-  };
+  });
 });
