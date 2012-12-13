@@ -56,6 +56,12 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     Parameters:
       state - a string. one of the states listed above.
 
+    Method: redirectTo
+      Navigate to given url.
+
+    Parameters:
+      url - a string representing https URL to redirect to.
+
    */
 
   var gEl = util.bind(document.getElementById, document);
@@ -170,7 +176,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       content.appendChild(cEl('br'));
 
       var hint = cEl('div');
-      addClass(hint, 'hint');
+      addClass(hint, 'info');
 
       function updateLastSynced() {
         hint.innerHTML = t('last-synced', { t: i18n.helpers.timeAgo(
@@ -359,7 +365,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
   function addBubbleHint(text) {
     var hint = cEl('div');
-    addClass(hint, 'hint');
+    addClass(hint, 'info');
     hint.innerHTML = text;
     elements.bubble.appendChild(hint);
   }
@@ -436,12 +442,22 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     elements.connectForm.userAddress.setAttribute('value', addr);
   }
 
+  function getLocation() {
+    return document.location.href;
+  }
+
+  function setLocation(url) {
+    document.location = url;
+  }
+
   return util.extend({
 
     display: display,
     setState: setState,
     redirectTo: redirectTo,
-    setUserAddress: setUserAddress
+    setUserAddress: setUserAddress,
+    getLocation: getLocation,
+    setLocation: setLocation
 
   }, events);
 

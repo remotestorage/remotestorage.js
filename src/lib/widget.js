@@ -42,7 +42,7 @@ define([
 
   function requestToken(authEndpoint) {
     logger.info('requestToken', authEndpoint);
-    var redirectUri = document.location.href.split('#')[0];
+    var redirectUri = view.getLocation().split('#')[0];
     var clientId = util.hostNameFromUri(redirectUri);
     authEndpoint += authEndpoint.indexOf('?') > 0 ? '&' : '?';
     authEndpoint += [
@@ -78,7 +78,7 @@ define([
 
   // destructively parse query string from URI fragment
   function parseParams() {
-    var md = String(document.location).match(/^(.*?)#(.*)$/);
+    var md = view.getLocation().match(/^(.*?)#(.*)$/);
     var result = {};
     if(md) {
       var hash = md[2];
@@ -86,7 +86,7 @@ define([
         var kv = param.split('=');
         result[kv[0]] = decodeURIComponent(kv[1]);
       });
-      document.location = md[1] + '#';
+      view.setLocation(md[1] + '#');
     }
     return result; 
   }
