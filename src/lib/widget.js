@@ -84,9 +84,13 @@ define([
       var hash = md[2];
       hash.split('&').forEach(function(param) {
         var kv = param.split('=');
-        result[kv[0]] = decodeURIComponent(kv[1]);
+        if(kv[1]) {
+          result[kv[0]] = decodeURIComponent(kv[1]);
+        }
       });
-      view.setLocation(md[1] + '#');
+      if(Object.keys(result).length > 0) {
+        view.setLocation(md[1] + '#');
+      }
     }
     return result; 
   }
