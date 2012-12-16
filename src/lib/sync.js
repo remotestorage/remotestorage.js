@@ -8,8 +8,10 @@ define([
 
   var remoteAdapter = remoteCacheAdapter();
 
-  var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready', 'timeout');
+  var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready', 'timeout', 'debug');
   var logger = util.getLogger('sync');
+
+  events.enableEventCache('debug');
 
   /*******************/
   /* Namespace: sync */
@@ -117,6 +119,17 @@ define([
     });
   }
 
+  var disabled = false;
+
+  function disable() {
+    disabled = true;
+    events.emit('ready');
+  }
+
+  function enable() {
+    enabled = true;
+  }
+
   /**************************************/
 
   // Section: High-level sync functions
@@ -141,6 +154,10 @@ define([
   //
   function fullSync(pushOnly) {
     return util.makePromise(function(promise) {
+      if(disabled) {
+        promise.fulfillLater()
+        return;
+      }
       if(! isConnected()) {
         promise.fail('not-connected');
         return;
@@ -164,7 +181,7 @@ define([
         }
       
         if(roots.length === 0) {
-          return promise.fail('full sync not happening. no access claimed.');
+          return promise.fail(new Error("No access claimed!"));
         }
 
         roots.forEach(function(root) {
@@ -217,9 +234,8 @@ define([
     enqueueTask(function() {
       logger.info("partial sync started from: " + startPath);
       events.once('ready', callback);
-      traverseTree(startPath, processNode, {
-        depth: depth,
-        done: finishTask
+      return traverseTree(startPath, processNode, {
+        depth: depth
       });
     });
   }
@@ -303,7 +319,7 @@ define([
     var result = task.run();
     if(util.isPromise(result)) {
       result.then(finishTask, function(error) {
-        logger.error("TASK FAILED", error.stack || error);
+        logger.error("TASK FAILED", (error && error.stack) || error);
         finishTask();
         fireError(null, error);
       });
@@ -329,6 +345,8 @@ define([
     });
     if(ready) {
       beginTask();
+    } else {
+      console.log('not ready, enqueued task');
     }
   }
 
@@ -345,7 +363,9 @@ define([
 
   // Function: getState
   // Get the current ready state of synchronization. Either 'connected' or 'busy'.
-  function getState() { return ready ? 'connected' : 'busy'; }
+  function getState() {
+    return disabled ? 'disabled' : (ready ? 'connected' : 'busy');
+  }
 
   // Section: Events
 
@@ -418,7 +438,7 @@ define([
     var event = { path: path, source: 'sync' };
     if(typeof(error) == 'object') {
       event.stack = error.stack;
-      if(typeof(event.stack == 'string')) {
+      if(typeof(event.stack) == 'string') {
         event.stack = event.stack.split('\n');
       }
       event.message = error.message;
@@ -489,6 +509,15 @@ define([
   // Used as a callback for <traverseTree>.
   function processNode(path, local, remote) {
 
+    function debugEvent(message) {
+      events.emit('debug', {
+        path: path,
+        method: 'processNode',
+        message: message,
+        timestamp: new Date()
+      });
+    }
+
     if(! path) {
       throw new Error("Can't process node without a path!");
     }
@@ -501,36 +530,36 @@ define([
 
     if(local.deleted) {
       // outgoing delete!
-      logger.debug(path, 'outgoing delete');
+      debugEvent('outgoing delete');
       action = deleteRemote;
 
     } else if(remote.deleted && local.lastUpdatedAt > 0) {
       if(local.timestamp == local.lastUpdatedAt) {
         // incoming delete!
-        logger.debug(path, 'incoming delete');
+        debugEvent('incoming delete');
         action = deleteLocal;
 
       } else {
         // deletion conflict!
-        logger.debug(path, 'deletion conflict', 'remote', remote, 'local', local);
+        debugEvent('deletion conflict', 'remote', remote, 'local', local);
         action = util.curry(fireConflict, 'delete');
 
       }
     } else if(local.timestamp == remote.timestamp) {
       // no action today!
-      logger.debug(path, 'no action today', 'remote', remote, 'local', local);
+      debugEvent('no action today', 'remote', remote, 'local', local);
       return;
 
     } else if((!remote.timestamp) || local.timestamp > remote.timestamp) {
       // local updated happpened before remote update
       if((!remote.timestamp) || local.lastUpdatedAt == remote.timestamp) {
         // outgoing update!
-        logger.debug(path, 'outgoing update');
+        debugEvent('outgoing update');
         action = updateRemote;
 
       } else {
         // merge conflict!
-        logger.debug(path, 'merge conflict (local > remote)', 'remote', remote, 'local', local);
+        debugEvent('merge conflict (local > remote)', 'remote', remote, 'local', local);
         action = util.curry(fireConflict, 'merge');
 
       }
@@ -538,18 +567,19 @@ define([
       // remote updated happened before local update
       if(local.lastUpdatedAt == local.timestamp) {
         // incoming update!
-        logger.debug(path, 'incoming update');
+        debugEvent('incoming update');
         action = updateLocal;
 
       } else {
         // merge conflict!
-        logger.debug(path, 'merge conflict (local < remote)', 'remote', remote, 'local', local);
+        debugEvent('merge conflict (local < remote)', 'remote', remote, 'local', local);
         action = util.curry(fireConflict, 'merge');
 
       }
     }
 
     if(! action) {
+      console.error("NO ACTION DETERMINED!!!", path, local, 'vs', remote);
       var exc = new Error("Something went terribly wrong.");
       exc.path = path;
       exc.localNode = local;
@@ -572,7 +602,7 @@ define([
   function fetchLocalNode(path, isDeleted) {
     return store.getNode(path).
       then(function(localNode) {
-        logger.info("fetch local", path);
+        logger.info("fetch local", path, localNode);
 
         if(isForeignPath(path)) {
           // can't modify foreign data locally
@@ -754,6 +784,15 @@ define([
       logger.debug("traverse depth", opts.depth, root);
     }
 
+    function debugEvent(path, message) {
+      events.emit('debug', {
+        path: path,
+        method: 'traverseTree',
+        message: message,
+        timestamp: new Date()
+      });
+    }
+
     function determineLocalInterest(node, options) {
       logger.debug('traverseNode.determineLocalInterest', node, options);
       return util.makePromise(function(promise) {
@@ -790,6 +829,7 @@ define([
     };
 
     function mergeDataNode(path, localNode, remoteNode, options) {
+      debugEvent(path, 'mergeDataNode');
       logger.debug("traverseTree.mergeDataNode", path);
       if(util.isDir(path)) {
         throw new Error("Not a data node: " + path);
@@ -800,38 +840,45 @@ define([
     }
 
     function mergeDirectory(path, localNode, remoteNode, options) {
-      logger.debug("traverseTree.mergeDirectory", path);
+      debugEvent(path, 'mergeDirectory');
+      logger.debug("traverseTree.mergeDirectory", path, localNode);
       var fullListing = makeSet(
         Object.keys(localNode.data),
         Object.keys(remoteNode.data)
       );
       return util.asyncEach(fullListing, function(key) {
         var childPath = path + key;
-        if(util.isDir(childPath)) {
-          if(options.forceTree && options.depth !== 0) {
-            var childOptions = util.extend({}, options);
-            if(childOptions.depth) {
-              childOptions.depth--;
+        var remoteVersion = remoteNode.data[key];
+        var localVersion = localNode.data[key];
+        logger.debug("traverseTree.mergeDirectory[" + childPath + "]", remoteVersion, 'vs', localVersion);
+        if(remoteVersion !== localVersion) {
+          if(util.isDir(childPath)) {
+            if(options.forceTree && options.depth !== 0) {
+              var childOptions = util.extend({}, options);
+              if(childOptions.depth) {
+                childOptions.depth--;
+              }
+              return mergeTree(childPath, childOptions);
             }
-            return mergeTree(childPath, childOptions);
+          } else {
+            return util.asyncGroup(
+              util.curry(fetchLocalNode, childPath),
+              util.curry(fetchRemoteNode, childPath)
+            ).then(function(nodes, errors) {
+              if(errors.length > 0) {
+                logger.error("Failed to sync node", childPath, errors);
+                return store.setNodeError(childPath, errors);
+              } else {
+                return mergeDataNode(childPath, nodes[0], nodes[1], options);
+              }
+            });
           }
-        } else {
-          return util.asyncGroup(
-            util.curry(fetchLocalNode, childPath),
-            util.curry(fetchRemoteNode, childPath)
-          ).then(function(nodes, errors) {
-            if(errors.length > 0) {
-              logger.error("Failed to sync node", childPath, errors);
-              return store.setNodeError(childPath, errors);
-            } else {
-              return mergeDataNode(childPath, nodes[0], nodes[1], options);
-            }
-          });
         }
       });
     }
 
     function mergeTree(path, options) {
+      debugEvent(path, 'mergeTree');
       logger.debug("traverseTree.mergeTree", path);
       options.path = path;
       return fetchLocalNode(path).
@@ -843,6 +890,7 @@ define([
                 return mergeDirectory(path, localNode, remoteNode, options).
                   then(function() {
                     logger.debug('mergeDirectory done');
+                    return store.setLastSynced(path, remoteNode.timestamp);
                   });
               });
           } else if(nextRoots) {
@@ -942,6 +990,11 @@ define([
   
 
   var sync = util.extend(events, {
+
+    enable: enable,
+    disable: disable,
+
+    getQueue: function() { return taskQueue; },
 
     lastSyncAt: null,
 

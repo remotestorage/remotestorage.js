@@ -13,6 +13,7 @@
     -webkit-user-select: none;
     -moz-user-select: none;
     cursor: default;
+    z-index: 10000;
 }
 
 #remotestorage-widget .bubble {
@@ -34,10 +35,11 @@
     padding-bottom: 2px;
 }
 
-#remotestorage-widget .bubble.hidden, #remotestorage-widget .bubble.hidden .content {
+#remotestorage-widget .bubble.hidden {
     display: none;
 }
-#remotestorage-widget:hover .bubble.hidden, #remotestorage-widget .bubble.hidden:hover .content {
+
+#remotestorage-widget:hover .bubble.hidden {
     min-width: 18em;
     display: block;
 }
@@ -123,6 +125,11 @@
     margin-bottom: 1em;
 }
 
+#remotestorage-widget .info.error {
+    font-weight: bold;
+    color: #f92;
+}
+
 #remotestorage-widget .info a {
     font-weight: bold;
 }
@@ -156,6 +163,11 @@
     -moz-appearance: none;
     outline: none;
     cursor: pointer;
+    height: 1.2em;
+    color: white;
+    line-height: 1em;
+    width: 8em;
+    padding: 0.2em;
 }
 
 #remotestorage-widget select.locale::after {
@@ -163,7 +175,6 @@
 }
 
 #remotestorage-widget select.locale:hover {
-    color: white;
 }
 
 #remotestorage-widget select.locale option {

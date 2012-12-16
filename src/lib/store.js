@@ -7,9 +7,8 @@ define([
   './store/memory',
   './store/localStorage',
   './store/indexedDb',
-  './store/webSql',
   './store/pending'
-], function (util, platform, memoryAdapter, localStorageAdapter, indexedDbAdapter, webSqlAdapter, pendingAdapter) {
+], function (util, platform, memoryAdapter, localStorageAdapter, indexedDbAdapter, pendingAdapter) {
 
   "use strict";
 
@@ -41,23 +40,28 @@ define([
     });
   }
 
-  (function() {
-    if(typeof(window) !== 'undefined') {
-      var idb = indexedDbAdapter.detect();
-      if(idb) {
-        setAdapter(indexedDbAdapter(idb));
-      } else if(typeof(window.openDatabase) !== 'undefined') {
-        setAdapter(webSqlAdapter());
-      } else if(typeof(window.localStorage) !== 'undefined') {
-        setAdapter(localStorageAdapter(window.localStorage));
-      } else {
-        throw "Running in browser, but no storage adapter supported!";
-      }
-    } else {
-      console.error("WARNING: falling back to in-memory storage");
-      setAdapter(memoryAdapter());
-    }
-  })();
+  // DEBUG
+  var directoryUpdates = [];
+
+  // (function() {
+  //   if(typeof(window) !== 'undefined') {
+  //     var idb = indexedDbAdapter.detect();
+  //     if(idb) {
+  //       setAdapter(indexedDbAdapter(idb));
+  //     } else if(typeof(window.openDatabase) !== 'undefined') {
+  //       setAdapter(webSqlAdapter());
+  //     } else if(typeof(window.localStorage) !== 'undefined') {
+  //       setAdapter(localStorageAdapter(window.localStorage));
+  //     } else {
+  //       throw "Running in browser, but no storage adapter supported!";
+  //     }
+  //   } else {
+  //     console.error("WARNING: falling back to in-memory storage");
+  //     setAdapter(memoryAdapter());
+  //   }
+  // })();
+
+  setAdapter(localStorageAdapter(window.localStorage));
 
   //
   // Type: Node
@@ -150,20 +154,11 @@ define([
           node.data = {};
         }
       }
+      
       return node;
     });
   }
-
-
-  // Method: forget
-  // Forget node at given path
-  //
-  // Parameters:
-  //   path - absolute path
-  function forget(path) {
-    validPath(path);
-    return dataStore.remove(path);
-  }
+  
 
   // Method: forgetAll
   // Forget all data stored by <store>.
@@ -209,6 +204,13 @@ define([
       node.mimeType = mimeType;
 
       return updateNode(path, (node.data ? node : undefined), outgoing, false, timestamp, oldValue);
+    });
+  }
+
+  function setLastSynced(path, timestamp) {
+    return getNode(path).then(function(node) {
+      node.lastUpdatedAt = timestamp;
+      return updateNode(path, node, false, true);
     });
   }
 
@@ -375,8 +377,8 @@ define([
     return path[0] != '/';
   }
 
-  function determineDirTimestamp(path) {
-    return getNode(path).
+  function determineDirTimestamp(path, transaction) {
+    return getNode(path, transaction).
       get('data').then(function(data) {
         var t = 0;
         if(data) {
@@ -391,12 +393,18 @@ define([
   }
 
   // FIXME: this argument list is getting too long!!!
-  function updateNode(path, node, outgoing, meta, timestamp, oldValue) {
+  function updateNode(path, node, outgoing, meta, timestamp, oldValue,
+                      transaction) {
     logger.info('updateNode', path, node, outgoing, meta, timestamp);
 
     validPath(path);
 
-    function adjustTimestamp() {
+    if(util.isDir(path)) {
+      directoryUpdates.push([path, node.data, oldValue, !!transaction]);
+    }
+
+    function adjustTimestamp(transaction) {
+      logger.debug('updateNode.adjustTimestamp', transaction);
       return util.makePromise(function(promise) {
         function setTimestamp(t) {
           if(t) { timestamp = t; }
@@ -410,7 +418,7 @@ define([
             timestamp = getCurrTimestamp();
             setTimestamp();
           } else if(util.isDir(path)) {
-            determineDirTimestamp(path).then(setTimestamp);
+            determineDirTimestamp(path, transaction).then(setTimestamp);
           } else {
             throw new Error('no timestamp given for node ' + path);
           }
@@ -420,44 +428,51 @@ define([
       });
     }
 
-    function storeNode() {
+    function storeNode(transaction) {
+      logger.debug('updateNode.storeNode', transaction, node);
       if(node) {
-        return dataStore.set(path, node);
+        return transaction.set(path, node);
       } else {
-        return dataStore.remove(path);
+        return transaction.remove(path);
       }
     }
 
-    function updateParent() {
+    function updateParent(transaction) {
       var parentPath = util.containingDir(path);
       var baseName = util.baseName(path);
       if(parentPath) {
-        return getNode(parentPath).
+        return getNode(parentPath, transaction).
           then(function(parent) {
             if(meta) { // META
               if(! parent.data[baseName]) {
+                logger.debug('-> meta, create');
                 parent.data[baseName] = 0;
-                return updateNode(parentPath, parent, false, true, timestamp);
+                return updateNode(parentPath, parent, false, true, timestamp, undefined, transaction);
               }
             } else if(outgoing) { // OUTGOING
               if(node) {
+                logger.debug('-> outgoing, set');
                 parent.data[baseName] = timestamp;
               } else {
+                logger.debug('-> outgoing, remove');
                 delete parent.data[baseName];
               }
               parent.diff[baseName] = timestamp;
-              return updateNode(parentPath, parent, true, false, timestamp);
+              logger.debug('-> diff, update');
+              return updateNode(parentPath, parent, true, false, timestamp, undefined, transaction);
             } else { // INCOMING
               if(node) { // add or change
                 if((! parent.data[baseName]) || parent.data[baseName] < timestamp) {
+                  logger.debug('-> incoming, set');
                   parent.data[baseName] = timestamp;
                   delete parent.diff[baseName];
-                  return updateNode(parentPath, parent, false, false, timestamp);
+                  return updateNode(parentPath, parent, false, false, timestamp, undefined, transaction);
                 }
               } else { // deletion
+                logger.debug('-> incoming, remove');
                 delete parent.data[baseName];
                 delete parent.diff[baseName];
-                return updateNode(parentPath, parent, false, false, timestamp);
+                return updateNode(parentPath, parent, false, false, timestamp, undefined, transaction);
               }
             }
           });
@@ -475,10 +490,23 @@ define([
       }
     }
 
-    return adjustTimestamp().
-      then(storeNode).
-      then(updateParent).
-      then(fireEvents);
+    function doUpdate(transaction, dontCommit) {
+      return adjustTimestamp(transaction).
+        then(util.curry(storeNode, transaction)).
+        then(util.curry(updateParent, transaction)).
+        then(function() {
+          if(! dontCommit) {
+            transaction.commit();
+          }
+        }).
+        then(fireEvents);
+    };
+
+    if(transaction) {
+      return doUpdate(transaction, true);
+    } else {
+      return dataStore.transaction(true, doUpdate);
+    }
   }
 
   return {
@@ -496,18 +524,21 @@ define([
     setNodeData       : setNodeData,      // sync
     clearDiff         : clearDiff,        // sync
     removeNode        : removeNode,       // sync
+    setLastSynced     : setLastSynced,    // sync
 
     on                : events.on,
     setNodeAccess     : setNodeAccess,
     setNodeForce      : setNodeForce,
-    forget            : forget,
     setNodeError      : setNodeError,
     
     forgetAll         : forgetAll,        // widget
     fireInitialEvents : fireInitialEvents,// widget
 
     setAdapter        : setAdapter,
-    getAdapter        : function() { return dataStore; }
+    getAdapter        : function() { return dataStore; },
+
+    // DEBUG
+    directoryUpdates: directoryUpdates
   };
 
   // Interface: StorageAdapter
