@@ -16,7 +16,8 @@ define([], function() {
         'unauthorized': 'Unauthorized! Click to reconnect.',
         'redirecting': 'Redirecting to <strong>{hostName}</strong>...',
         'typing-hint': 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/">remotestorage.io</a>',
-        'last-synced': '<strong>Last synced:</strong> {t}'
+        'last-synced': '<strong>Last synced:</strong> {t}',
+        'webfinger-failed': "Can't find your storage server. Please check your user address"
       }
     },
 

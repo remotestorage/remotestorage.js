@@ -53,7 +53,7 @@ define(
             if(error === 404) {
               return promise.fulfill(undefined);
             } else if(error === 401) {
-              error = 'unauthorized'
+              error = 'unauthorized';
             };
             promise.fail(error);
           });

@@ -161,7 +161,7 @@ define(['./util'], function(util) {
             promise.fulfill(xhr.responseText, headers);
           } else {
             logger.debug("REQUEST FAILED", xhr.status, params.url);
-            promise.fail(xhr.status || new Error('network error'));
+            promise.fail(xhr.status || 'network error');
           }
         }
       };
@@ -191,7 +191,7 @@ define(['./util'], function(util) {
     };
     xdr.onerror = function() {
       // See http://msdn.microsoft.com/en-us/library/ms536930%28v=vs.85%29.aspx
-      promise.fail(new Error('unknown error'));
+      promise.fail('network error');
     };
     xdr.ontimeout = function() {
       promise.fail('timeout');
