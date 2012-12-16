@@ -467,6 +467,8 @@ define([
     // Public access to <store>
     store: store,
 
+    sync: sync,
+
     i18n: i18n
 
   };
