@@ -2,6 +2,8 @@ var fs=require('fs'),
   requirejs = require('requirejs'),
   modules = require('./modules');
 
+var Promise = require('./lib/promise');
+
 // fs.extra - from https://gist.github.com/992478
 (function () {
   "use strict";
@@ -101,47 +103,78 @@ function build(output, inputs, options) {
 
   console.log('BUILD', output, 'FROM', inputs, 'WITH', options);
 
-  requirejs.optimize(config, function() {
-    console.log(output, 'done.');
+  var promise = new Promise();
+
+  requirejs.optimize(config, function(err) {
+    promise.fulfill();
   });
+
+  return promise;
 }
 
+var builds = [];
+var debugOnly = false;
+
 if(process.argv[2] == 'debug') {
-  build('latest/remoteStorage-debug', 'remoteStorage', { debug: true });
-  build('latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
+  debugOnly = true;
+  builds.push(['latest/remoteStorage-debug', 'remoteStorage', { debug: true }]);
+  builds.push(['latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true }]);
 } else {
-  build('latest/remoteStorage.min', 'remoteStorage');
-  build('latest/remoteStorage-debug', 'remoteStorage', { debug: true });
-  build('latest/remoteStorage-node.min', 'remoteStorage', { end: 'endNode.frag' });
-  build('latest/remoteStorage-node-debug', 'remoteStorage', { end: 'endNode.frag', debug: true });
+  builds.push(['latest/remoteStorage.min', 'remoteStorage']);
+  builds.push(['latest/remoteStorage-debug', 'remoteStorage', { debug: true }]);
+  builds.push(['latest/remoteStorage-node.min', 'remoteStorage', { end: 'endNode.frag' }]);
+  builds.push(['latest/remoteStorage-node-debug', 'remoteStorage', { end: 'endNode.frag', debug: true }]);
 
 
-  build('latest/remoteStorage-modules.min', 'remoteStorage-modules', { end: 'endModules.frag' });
-  build('latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
+  builds.push(['latest/remoteStorage-modules.min', 'remoteStorage-modules', { end: 'endModules.frag' }]);
+  builds.push(['latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true }]);
 
   // build('latest/remoteStorage-node-modules.min', 'remoteStorage-modules', { end: 'endNodeModules.frag' });
   // build('latest/remoteStorage-node-modules-debug', 'remoteStorage-modules', { end: 'endNodeModules.frag', debug: true });
-
-  function cp(s, d) {
-    console.log("CP", s, d);
-    fs.exists(d, function(exist) {
-      if(exist) {
-        console.log("REPLACE ", d);
-        fs.unlinkSync(d);
-      } else {
-        console.log("CREATE", d);
-      }
-      fs.copy(s, d, function(err) { if(err) console.log("copy failed: " + err) });
-    });
-  }
-
-  // cp(__dirname + '/latest/remoteStorage.min.js',
-  //    __dirname + '/latest/remoteStorage.js');
-  // cp(__dirname + '/latest/remoteStorage-node.min.js',
-  //    __dirname + '/latest/remoteStorage-node.js');
-  // cp(__dirname + '/latest/remoteStorage-modules.min.js',
-  //    __dirname + '/latest/remoteStorage-modules.js');
 }
+
+function cp(s, d) {
+  var promise = new Promise();
+  console.log("CP", s, d);
+  fs.exists(d, function(exist) {
+    if(exist) {
+      console.log("REPLACE ", d);
+      fs.unlinkSync(d);
+    } else {
+      console.log("CREATE", d);
+    }
+    fs.copy(s, d, function(err) {
+      if(err) {
+        promise.fail(err);
+      } else {
+        promise.fulfill();
+      }
+    });
+  });
+  return promise;
+}
+
+function buildNext() {
+  var args = builds.shift();
+  console.log('buildNext', builds);
+  if(args) {
+    return build.apply(this, args).then(buildNext);
+  }
+}
+
+buildNext().
+  then(function() {
+    return cp(__dirname + '/latest/remoteStorage.min.js',
+              __dirname + '/latest/remoteStorage.js');
+  }).
+  then(function() {
+    return cp(__dirname + '/latest/remoteStorage-node.min.js',
+              __dirname + '/latest/remoteStorage-node.js');
+  }).
+  then(function() {
+    return cp(__dirname + '/latest/remoteStorage-modules.min.js',
+              __dirname + '/latest/remoteStorage-modules.js');
+  });
 
 // var mods = modules.map(function(module) {
 //   return 'modules/' + module.name;
