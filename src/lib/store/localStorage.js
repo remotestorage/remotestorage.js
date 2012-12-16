@@ -5,7 +5,11 @@ define(['../util', './common'], function(util, common) {
 
   var localStorage;
 
-  var events = util.getEventEmitter('change');
+  var logger = util.getLogger('store::localStorage');
+
+  var events = util.getEventEmitter('change', 'debug');
+
+  events.enableEventCache('debug');
 
   // node metadata key prefix
   var prefixNodes = 'remote_storage_nodes:';
@@ -34,6 +38,14 @@ define(['../util', './common'], function(util, common) {
     });
   }
 
+  function debugEvent(method, path) {
+    events.emit('debug', {
+      method: method,
+      path: path,
+      timestamp: new Date()
+    });
+  }
+
   return function(_localStorage) {
     localStorage = _localStorage || (typeof(window) !== 'undefined' && window.localStorage);
 
@@ -41,53 +53,116 @@ define(['../util', './common'], function(util, common) {
       throw new Error("Not supported: localStorage not found.");
     }
 
-    return {
-
-      transaction: function(write, body) {
-        return util.makePromise(function(promise) {          
-          body({
-            get: function(path) {
-              return util.makePromise(function(promise) {
-                var rawMetadata = localStorage.getItem(prefixNode(path));
-                var payload = localStorage.getItem(prefixData(path));
-                var node;
-                try {
-                  node = JSON.parse(rawMetadata);
-                } catch(exc) {
-                }
-                if(node) {
-                  node.data = payload;
-                }
-                
-                promise.fulfill(common.unpackData(node));
-              });
-            },
-
-            set: function(path, node) {
-              return util.makePromise(function(promise) {
-                var metadata = common.packData(node);
-                var rawData = metadata.data;
-                delete metadata.data;
-                var rawMetadata = JSON.stringify(metadata);
-                localStorage.setItem(prefixNode(path), rawMetadata);
-                localStorage.setItem(prefixData(path), rawData);
-                promise.fulfill();
-              });
-            },
-
-            remove: function(path) {
-              return util.makePromise(function(promise) {
-                localStorage.removeItem(prefixNode(path));
-                localStorage.removeItem(prefixData(path));
-                promise.fulfill();
-              });
-            },
-          });
-          promise.fulfillLater();
+    var store = {
+      get: function(path) {
+        debugEvent('GET', path);
+        logger.debug('GET', path);
+        return util.makePromise(function(promise) {
+          var rawMetadata = localStorage.getItem(prefixNode(path));
+          if(! rawMetadata) {
+            promise.fulfill(undefined);
+            return;
+          }
+          var payload = localStorage.getItem(prefixData(path));
+          var node;
+          try {
+            node = JSON.parse(rawMetadata);
+          } catch(exc) {
+          }
+          if(node) {
+            node.data = payload;
+          }
+          promise.fulfill(common.unpackData(node));
         });
       },
 
+      set: function(path, node) {
+        debugEvent('SET', path);
+        logger.debug('SET', path, node);
+        return util.makePromise(function(promise) {
+          var metadata = common.packData(node);
+          var rawData = metadata.data;
+          delete metadata.data;
+          var rawMetadata = JSON.stringify(metadata);
+          localStorage.setItem(prefixNode(path), rawMetadata);
+          localStorage.setItem(prefixData(path), rawData);
+          promise.fulfill();
+        });
+      },
+
+      remove: function(path) {
+        debugEvent('REMOVE', path);
+        logger.debug('SET', path);
+        return util.makePromise(function(promise) {
+          localStorage.removeItem(prefixNode(path));
+          localStorage.removeItem(prefixData(path));
+          promise.fulfill();
+        });
+      }
+    };
+
+    var errorStub = function() { throw new Error("Transaction already committed!"); };
+    var staleStore = { get: errorStub, set: errorStub, remove: errorStub, commit: errorStub };
+
+    var tid = 0;
+
+    function makeTransaction(write, body) {
+      var promise = util.getPromise();
+      var transaction = util.extend({
+        id: ++tid,
+        commit: function() {
+          finish();
+        }
+      }, store);
+      function finish(implicit) {
+        debugEvent('END TRANSACTION #' + transaction.id + ' (' + (implicit ? 'implicit' : 'explicit') + ')');
+        logger.debug(transaction.id, 'FINISH Transaction (', write ? 'read-write' : 'read-only', ')');
+        busy = false;
+        util.extend(transaction, staleStore);
+        promise.fulfill();
+        runIfReady();
+      };
+
+      return {
+        run: function() {
+          busy = true;
+          debugEvent('BEGIN TRANSACTION #' + transaction.id);
+          logger.debug(transaction.id, 'BEGIN Transaction (', write ? 'read-write' : 'read-only', ')');
+          var result = body(transaction);
+          if(! write) {
+            logger.debug(transaction.id, 'schedule implicit commit (read-only transaction)');
+            finish(true);
+          }
+        },
+        promise: promise
+      };
+    }
+
+    var busy = false;
+    var transactions = [];
+
+    function runIfReady() {
+      if(! busy) {
+        var transaction = transactions.shift();
+        if(transaction) {
+          logger.debug('SHIFT TRANSACTION', transactions.length, 'left');
+          transaction.run();
+        }
+      }
+    }
+
+    return {
+
+      transaction: function(write, body) {
+        var transaction = makeTransaction(write, body);
+        transactions.push(transaction);
+        util.nextTick(runIfReady);
+        return transaction.promise;
+      },
+
       on: events.on,
+
+      get: store.get,
 
       forgetAll: function() {
         return util.makePromise(function(promise) {

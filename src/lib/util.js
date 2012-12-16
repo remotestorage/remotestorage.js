@@ -45,7 +45,7 @@ define([], function() {
     btoa = window.btoa;
   }
 
-  var Promise = function() {
+  var Promise = function(chained) {
     this.result = undefined;
     this.success = undefined;
     this.handlers = {};
@@ -55,7 +55,7 @@ define([], function() {
       }
       this.handlers.fulfilled = fulfilledHandler;
       if(! this.nextPromise) {
-        this.nextPromise = new Promise();
+        this.nextPromise = new Promise(true);
       }
     });
     this.__defineSetter__('onerror', function(failedHandler) {
@@ -64,27 +64,32 @@ define([], function() {
       }
       this.handlers.failed = failedHandler;
       if(! this.nextPromise) {
-        this.nextPromise = new Promise();
+        this.nextPromise = new Promise(true);
       }
     });
 
-    var _this = this;
-    this.debugTimer = setTimeout(function() {
-      if(_this.result) {
-        // already resolved for some reason, without clearing the timer.
-        return;
-      }
-      if(_this.handlers.fulfilled) { // only care if someone's listening
-        console.error("WARNING: promise timed out, failing!");
-        _this.fail();
-      }
-    }, 10000);
+    if(! chained) {
+      var _this = this;
+      var stack;
+      try { throw new Error(); } catch(exc) { stack = exc.stack; };
+      this.debugTimer = setTimeout(function() {
+        if(_this.result) {
+          // already resolved for some reason, without clearing the timer.
+          return;
+        }
+        if(_this.handlers.fulfilled) { // only care if someone's listening
+          console.error("WARNING: promise timed out, failing!", stack);
+          _this.fail();
+        }
+      }, 10000);
+    }
   };
 
   Promise.prototype = {
     fulfill: function() {
       if(typeof(this.success) !== 'undefined') {
-        throw new Error("Can't fail promise, already resolved as: " +
+        console.error("Fulfillment value: ", arguments);
+        throw new Error("Can't fulfill promise, already resolved as: " +
                         (this.success ? 'fulfilled' : 'failed'));
       }
       clearTimeout(this.debugTimer);
@@ -121,6 +126,7 @@ define([], function() {
 
     fail: function() {
       if(typeof(this.success) !== 'undefined') {
+        console.error("Failure value: ", arguments);
         throw new Error("Can't fail promise, already resolved as: " +
                         (this.success ? 'fulfilled' : 'failed'));
       }
@@ -155,7 +161,7 @@ define([], function() {
     then: function(fulfilledHandler, errorHandler) {
       this.handlers.fulfilled = fulfilledHandler;
       this.handlers.failed = errorHandler;
-      this.nextPromise = new Promise();
+      this.nextPromise = new Promise(true);
       return this.nextPromise;
     },
 
@@ -428,16 +434,21 @@ define([], function() {
       return this.bindAll({
 
         _handlers: setupHandlers(),
+        _eventCache: {},
 
         emit: function(eventName) {
           var handlerArgs = Array.prototype.slice.call(arguments, 1);
           // console.log("EMIT", eventName, handlerArgs);
           validEvent.call(this, eventName);
-          this._handlers[eventName].forEach(function(handler) {
-            if(handler) {
-              handler.apply(null, handlerArgs);
-            }
-          });
+          if(this.hasHandler(eventName)) {
+            this._handlers[eventName].forEach(function(handler) {
+              if(handler) {
+                handler.apply(null, handlerArgs);
+              }
+            });
+          } else if(eventName in this._eventCache) {
+            this._eventCache[eventName].push(handlerArgs);
+          }
         },
 
         once: function(eventName, handler) {
@@ -458,6 +469,12 @@ define([], function() {
             throw "Expected function as handler, got: " + typeof(handler);
           }
           this._handlers[eventName].push(handler);
+          if(this._eventCache[eventName]) {
+            this._eventCache[eventName].forEach(function(args) {
+              handler.apply(null, args);
+            });
+            delete this._eventCache[eventName];
+          }
         },
 
         reset: function() {
@@ -467,6 +484,12 @@ define([], function() {
         hasHandler: function(eventName) {
           validEvent.call(this, eventName);
           return this._handlers[eventName].length > 0;
+        },
+
+        enableEventCache: function() {
+          util.toArray(arguments).forEach(util.bind(function(eventName) {
+            this._eventCache[eventName] = [];
+          }, this));
         }
 
       });
@@ -743,6 +766,7 @@ define([], function() {
       var todo = functions.length;
       var errors = [];
       return util.makePromise(function(promise) {
+        clearTimeout(promise.debugTimer);
         if(functions.length === 0) {
           return promise.fulfill([], []);
         }

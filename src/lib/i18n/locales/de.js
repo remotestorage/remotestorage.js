@@ -14,7 +14,8 @@ define([], function() {
         'unauthorized': 'Zugriff fehlgeschlagen. Klicke um neu zu verbinden.',
         'redirecting': 'Leite weiter zu <strong>{hostName}</strong>...',
         'typing-hint': 'Du kannst diese App mit deinem eigenen Cloud-Storage verbinden! Mehr Infos auf <a href="http://remotestorage.io/">remotestorage.io</a>',
-        'last-synced': '<strong>Zuletzt synchronisiert:</strong> {t}'
+        'last-synced': '<strong>Zuletzt synchronisiert:</strong> {t}',
+        'webfinger-failed': 'Konnte deinen storage nicht finden. Bist du sicher, dass die Adresse stimmt?'
       }
     },
 

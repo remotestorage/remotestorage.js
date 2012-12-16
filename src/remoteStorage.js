@@ -469,7 +469,16 @@ define([
 
     getClient: function(scope) {
       return new BaseClient(scope);
-    }
+    },
+
+    // Property: store
+    // Public access to <store>
+    store: store,
+
+    sync: sync,
+    widget: widget,
+
+    i18n: i18n
 
   };
 

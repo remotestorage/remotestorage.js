@@ -533,7 +533,11 @@ define([
           }
           return set(this.moduleName, path, absPath, obj, 'application/json');
         }.bind(this)).
-        then(util.curry(sync.syncOne, absPath));
+        then(function() {
+          // don't return, otherwise app-code gets delayed until the request
+          // is done.
+          sync.syncOne(absPath);
+        });
     },
 
     //

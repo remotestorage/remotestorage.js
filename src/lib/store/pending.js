@@ -24,6 +24,9 @@ define(['../util'], function(util) {
     }
 
     var pendingAdapter = {
+      transaction: function(write, body) {
+        return queueRequest('transaction', [write, body]);
+      },
       on: function(eventName, handler) {
         return queueRequest('on', [eventName, handler], true);
       },

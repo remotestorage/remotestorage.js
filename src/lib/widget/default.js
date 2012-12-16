@@ -115,7 +115,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       setCubeAction(jumpAction('typing'));
     },
 
-    typing: function() {
+    typing: function(connectionError) {
       elements.connectForm.userAddress.setAttribute('value', userAddress);
       setCubeState('offline');
       setBubbleText(t('connect-remotestorage'));
@@ -126,7 +126,15 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
         events.emit('connect', userAddress);
       });
 
-      addBubbleHint(t('typing-hint'));
+      if(connectionError) {
+        // error bubbled from webfinger
+        addClass(
+          addBubbleHint(t('webfinger-failed')),
+          'error'
+        );
+      } else {
+        addBubbleHint(t('typing-hint'));
+      }
 
       elements.bubble.appendChild(elements.localeChooser);
 
@@ -368,6 +376,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     addClass(hint, 'info');
     hint.innerHTML = text;
     elements.bubble.appendChild(hint);
+    return hint;
   }
 
   function setBubbleText(text) {

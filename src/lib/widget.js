@@ -5,8 +5,11 @@ define([
   './sync',
   './schedule',
   './baseClient',
+  './platform',
+  './getputdelete',
   './widget/default'
-], function(util, webfinger, wireClient, sync, schedule, BaseClient, defaultView) {
+], function(util, webfinger, wireClient, sync, schedule, BaseClient,
+            platform, getputdelete, defaultView) {
 
   // Namespace: widget
   //
@@ -28,7 +31,33 @@ define([
   // passed to display() to avoid circular deps
   var remoteStorage;
 
+  var reconnectInterval = 10000;
+
+  var offlineTimer = null;
+
+  var stateActions = {
+    offline: function() {
+      if(! offlineTimer) {
+        offlineTimer = setTimeout(function() {
+          offlineTimer = null;
+          sync.fullSync();
+        }, reconnectInterval);
+      }
+    },
+    connected: function() {
+      if(offlineTimer) {
+        clearTimeout(offlineTimer);
+        offlineTimer = null;
+      }
+    }
+  };
+  
+
   function setState(state) {
+    var action = stateActions[state];
+    if(action) {
+      action.apply(null, arguments);
+    }
     view.setState.apply(view, arguments);
     events.emit('state', state);    
   }
@@ -60,7 +89,7 @@ define([
     settings.set('userAddress', userAddress);
     setState('authing');
     return webfinger.getStorageInfo(userAddress).
-      then(wireClient.setStorageInfo).
+      then(wireClient.setStorageInfo, util.curry(setState, 'typing')).
       get('properties').get('auth-endpoint').
       then(requestToken).
       then(schedule.enable, util.curry(setState, 'error'));
@@ -84,9 +113,13 @@ define([
       var hash = md[2];
       hash.split('&').forEach(function(param) {
         var kv = param.split('=');
-        result[kv[0]] = decodeURIComponent(kv[1]);
+        if(kv[1]) {
+          result[kv[0]] = decodeURIComponent(kv[1]);
+        }
       });
-      view.setLocation(md[1] + '#');
+      if(Object.keys(result).length > 0) {
+        view.setLocation(md[1] + '#');
+      }
     }
     return result; 
   }
@@ -123,6 +156,8 @@ define([
   function handleSyncError(error) {
     if(error.message === 'unauthorized') {
       setState('unauthorized');
+    } else if(error.message === 'network error') {
+      setState('offline', error);
     } else {
       setState('error', error);
     }
@@ -138,7 +173,7 @@ define([
     sync.forceSync().then(function() {
       schedule.enable();
       events.emit('ready');
-    });
+    }, handleSyncError);
   }
 
   function display(_remoteStorage, domId, options) {
@@ -152,7 +187,7 @@ define([
       return sync.lastSyncAt && sync.lastSyncAt.getTime();
     };
 
-    schedule.watch('/', 30000);
+    schedule.watch('/', 10000);
 
     view.display(domId, options);
 

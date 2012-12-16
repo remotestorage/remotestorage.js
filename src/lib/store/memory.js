@@ -8,29 +8,31 @@ define(['../util'], function(util) {
   return function() {
     var nodes = {};
 
-    return {
+    var pseudoTransaction = {
+      get: function(path) {
+        logger.info('get', path);
+        return util.getPromise().fulfillLater(nodes[path]);
+      },
+
+      set: function(path, node) {
+        logger.info('set', path);
+        nodes[path] = node;
+        return util.getPromise().fulfillLater();
+      },
+
+      remove: function(path) {
+        logger.info('remove', path);
+        delete nodes[path];
+        return util.getPromise().fulfillLater();
+      }
+    };
+
+    return util.extend(pseudoTransaction, {
       on: function() {},
 
       transaction: function(write, body) {
         return util.makePromise(function(promise) {
-          body({
-            get: function(path) {
-              logger.info('get', path);
-              return util.getPromise().fulfillLater(nodes[path]);
-            },
-
-            set: function(path, node) {
-              logger.info('set', path);
-              nodes[path] = node;
-              return util.getPromise().fulfillLater();
-            },
-
-            remove: function(path) {
-              logger.info('remove', path);
-              delete nodes[path];
-              return util.getPromise().fulfillLater();
-            }
-          });
+          body(pseudoTransaction);
           promise.fulfillLater();
         });
       },
@@ -110,6 +112,6 @@ define(['../util'], function(util) {
 
         initNode('/', dataTree);
       }
-    };
+    });
   };
 });

@@ -142,7 +142,8 @@ define([
         keys.forEach(function(key, index) {
           result = result[key];
           if(! result) {
-            throw new NotFound(keys.slice(0, index));
+            console.log("Translation not found in ", result, '(', currentTable, ')', keys, key, index);
+            throw new NotFound(keys.slice(0, index + 1));
           }
         });
         if(replacements) {
