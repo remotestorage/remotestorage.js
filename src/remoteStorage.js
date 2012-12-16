@@ -468,6 +468,7 @@ define([
     store: store,
 
     sync: sync,
+    widget: widget,
 
     i18n: i18n
 
