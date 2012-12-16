@@ -4,7 +4,7 @@ define(['./util', './sync'], function(util, sync) {
 
   var watchedPaths = {};
   var lastPathSync = {};
-  var runInterval = 30000;
+  var runInterval = 5000;
   var enabled = false;
   var timer = null;
 
@@ -48,7 +48,7 @@ define(['./util', './sync'], function(util, sync) {
       var path = syncNow[i];
       var syncer = function(path, cb) {
         if(path == '/') {
-          sync.fullSync(cb);
+          sync.fullSync().then(cb)
         } else {
           sync.partialSync(path, null, cb);
         }
@@ -58,7 +58,9 @@ define(['./util', './sync'], function(util, sync) {
 
         syncedCount++;
 
-        if(syncedCount == syncNow.length) {
+        logger.debug('now synced', syncedCount, 'of', numSyncNow);
+
+        if(syncedCount == numSyncNow) {
           scheduleNextRun();
         }
       });
@@ -66,6 +68,14 @@ define(['./util', './sync'], function(util, sync) {
   }
 
   return {
+
+    get: function(path) {
+      if(path) {
+        return watchedPaths[path];
+      } else {
+        return watchedPaths;
+      }
+    },
 
     enable: function() {
       enabled = true;
@@ -78,7 +88,12 @@ define(['./util', './sync'], function(util, sync) {
       logger.info('disabled');
     },
 
+    isEnabled: function() {
+      return enabled;
+    },
+
     watch: function(path, interval) {
+      logger.info("Schedule sync of", path, "every", interval / 1000.0, "seconds");
       watchedPaths[path] = interval;
       if(! lastPathSync[path]) {
         // mark path as synced now, so it won't get synced on the next scheduler
