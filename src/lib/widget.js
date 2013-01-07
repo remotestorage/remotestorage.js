@@ -187,7 +187,7 @@ define([
       return sync.lastSyncAt && sync.lastSyncAt.getTime();
     };
 
-    schedule.watch('/', 10000);
+    schedule.watch('/', 30000);
 
     view.display(domId, options);
 

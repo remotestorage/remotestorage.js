@@ -8,13 +8,13 @@ define(
 
     var defaultContentType = 'application/octet-stream';
 
-    function doCall(method, url, body, mimeType, token, deadLine) {
+    function doCall(method, url, body, mimeType, token) {
       return util.makePromise(function(promise) {
         logger.debug(method, url);
         var platformObj = {
           url: url,
           method: method,
-          timeout: deadLine || 5000,
+          timeout: 10000,
           headers: {}
         };
 
