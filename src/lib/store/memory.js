@@ -24,7 +24,9 @@ define(['../util'], function(util) {
         logger.info('remove', path);
         delete nodes[path];
         return util.getPromise().fulfillLater();
-      }
+      },
+
+      commit: function() {}
     };
 
     return util.extend(pseudoTransaction, {
