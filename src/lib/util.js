@@ -68,21 +68,23 @@ define([], function() {
       }
     });
 
-    if(! chained) {
-      var _this = this;
-      var stack;
-      try { throw new Error(); } catch(exc) { stack = exc.stack; };
-      this.debugTimer = setTimeout(function() {
-        if(_this.result) {
-          // already resolved for some reason, without clearing the timer.
-          return;
-        }
-        if(_this.handlers.fulfilled) { // only care if someone's listening
-          console.error("WARNING: promise timed out, failing!", stack);
-          _this.fail();
-        }
-      }, 10000);
-    }
+    // //BEGIN-DEBUG
+    // if(! chained) {
+    //   var _this = this;
+    //   var stack;
+    //   try { throw new Error(); } catch(exc) { stack = exc.stack; };
+    //   this.debugTimer = setTimeout(function() {
+    //     if(_this.result) {
+    //       // already resolved for some reason, without clearing the timer.
+    //       return;
+    //     }
+    //     if(_this.handlers.fulfilled) { // only care if someone's listening
+    //       console.error("WARNING: promise timed out, failing!", stack);
+    //       _this.fail();
+    //     }
+    //   }, 10000);
+    // }
+    // //END-DEBUG
   };
 
   Promise.prototype = {
@@ -92,7 +94,9 @@ define([], function() {
         throw new Error("Can't fulfill promise, already resolved as: " +
                         (this.success ? 'fulfilled' : 'failed'));
       }
+      //BEGIN-DEBUG
       clearTimeout(this.debugTimer);
+      //END-DEBUG
       this.result = util.toArray(arguments);
       this.success = true;
       if(! this.handlers.fulfilled) {
@@ -130,7 +134,9 @@ define([], function() {
         throw new Error("Can't fail promise, already resolved as: " +
                         (this.success ? 'fulfilled' : 'failed'));
       }
+      //BEGIN-DEBUG
       clearTimeout(this.debugTimer);
+      //END-DEBUG
       this.result = util.toArray(arguments);
       this.success = false;
       if(this.handlers.failed) {
@@ -434,7 +440,11 @@ define([], function() {
       return this.bindAll({
 
         _handlers: setupHandlers(),
+        //BEGIN-DEBUG
+        // Event cache is only used by debug-events at the moment, so
+        // doesn't have to be part of regular build.
         _eventCache: {},
+        //END-DEBUG
 
         emit: function(eventName) {
           var handlerArgs = Array.prototype.slice.call(arguments, 1);
@@ -446,9 +456,12 @@ define([], function() {
                 handler.apply(null, handlerArgs);
               }
             });
-          } else if(eventName in this._eventCache) {
+          }
+          //BEGIN-DEBUG
+          else if(eventName in this._eventCache) {
             this._eventCache[eventName].push(handlerArgs);
           }
+          //END-DEBUG
         },
 
         once: function(eventName, handler) {
@@ -469,12 +482,14 @@ define([], function() {
             throw "Expected function as handler, got: " + typeof(handler);
           }
           this._handlers[eventName].push(handler);
+          //BEGIN-DEBUG
           if(this._eventCache[eventName]) {
             this._eventCache[eventName].forEach(function(args) {
               handler.apply(null, args);
             });
             delete this._eventCache[eventName];
           }
+          //END-DEBUG
         },
 
         reset: function() {
@@ -484,13 +499,16 @@ define([], function() {
         hasHandler: function(eventName) {
           validEvent.call(this, eventName);
           return this._handlers[eventName].length > 0;
-        },
+        }
 
+        //BEGIN-DEBUG
+        ,
         enableEventCache: function() {
           util.toArray(arguments).forEach(util.bind(function(eventName) {
             this._eventCache[eventName] = [];
           }, this));
         }
+        //END-DEBUG
 
       });
 
@@ -766,7 +784,9 @@ define([], function() {
       var todo = functions.length;
       var errors = [];
       return util.makePromise(function(promise) {
+        //BEGIN-DEBUG
         clearTimeout(promise.debugTimer);
+        //END-DEBUG
         if(functions.length === 0) {
           return promise.fulfill([], []);
         }
