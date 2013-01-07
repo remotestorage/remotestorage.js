@@ -60,7 +60,12 @@ define([
   //   }
   // })();
 
-  setAdapter(localStorageAdapter(window.localStorage));
+  if(typeof(window) !== 'undefined') {
+    setAdapter(localStorageAdapter(window.localStorage));
+  } else {
+    console.error("WARNING: falling back to in-memory storage");
+    setAdapter(memoryAdapter());
+  }
 
   //
   // Type: Node
