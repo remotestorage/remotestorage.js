@@ -9,7 +9,17 @@ define(['../util', './common'], function(util, common) {
 
   var events = util.getEventEmitter('change', 'debug');
 
+  //BEGIN-DEBUG
+  function debugEvent(method, path) {
+    events.emit('debug', {
+      method: method,
+      path: path,
+      timestamp: new Date()
+    });
+  }
+  
   events.enableEventCache('debug');
+  //END-DEBUG
 
   // node metadata key prefix
   var prefixNodes = 'remote_storage_nodes:';
@@ -38,14 +48,6 @@ define(['../util', './common'], function(util, common) {
     });
   }
 
-  function debugEvent(method, path) {
-    events.emit('debug', {
-      method: method,
-      path: path,
-      timestamp: new Date()
-    });
-  }
-
   return function(_localStorage) {
     localStorage = _localStorage || (typeof(window) !== 'undefined' && window.localStorage);
 
@@ -55,7 +57,9 @@ define(['../util', './common'], function(util, common) {
 
     var store = {
       get: function(path) {
+        //BEGIN-DEBUG
         debugEvent('GET', path);
+        //END-DEBUG
         logger.debug('GET', path);
         return util.makePromise(function(promise) {
           var rawMetadata = localStorage.getItem(prefixNode(path));
@@ -77,7 +81,9 @@ define(['../util', './common'], function(util, common) {
       },
 
       set: function(path, node) {
+        //BEGIN-DEBUG
         debugEvent('SET', path);
+        //END-DEBUG
         logger.debug('SET', path, node);
         return util.makePromise(function(promise) {
           var metadata = common.packData(node);
@@ -85,13 +91,17 @@ define(['../util', './common'], function(util, common) {
           delete metadata.data;
           var rawMetadata = JSON.stringify(metadata);
           localStorage.setItem(prefixNode(path), rawMetadata);
-          localStorage.setItem(prefixData(path), rawData);
+          if(rawData) {
+            localStorage.setItem(prefixData(path), rawData);
+          }
           promise.fulfill();
         });
       },
 
       remove: function(path) {
+        //BEGIN-DEBUG
         debugEvent('REMOVE', path);
+        //END-DEBUG
         logger.debug('SET', path);
         return util.makePromise(function(promise) {
           localStorage.removeItem(prefixNode(path));
@@ -115,7 +125,9 @@ define(['../util', './common'], function(util, common) {
         }
       }, store);
       function finish(implicit) {
+        //BEGIN-DEBUG
         debugEvent('END TRANSACTION #' + transaction.id + ' (' + (implicit ? 'implicit' : 'explicit') + ')');
+        //END-DEBUG
         logger.debug(transaction.id, 'FINISH Transaction (', write ? 'read-write' : 'read-only', ')');
         busy = false;
         util.extend(transaction, staleStore);
@@ -126,7 +138,9 @@ define(['../util', './common'], function(util, common) {
       return {
         run: function() {
           busy = true;
+          //BEGIN-DEBUG
           debugEvent('BEGIN TRANSACTION #' + transaction.id);
+          //END-DEBUG
           logger.debug(transaction.id, 'BEGIN Transaction (', write ? 'read-write' : 'read-only', ')');
           var result = body(transaction);
           if(! write) {
