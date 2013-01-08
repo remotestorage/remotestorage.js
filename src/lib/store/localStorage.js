@@ -1,4 +1,4 @@
-define(['../util', './common'], function(util, common) {
+define(['../util', './common', './syncTransaction'], function(util, common, syncTransactionAdapter) {
 
   // Namespace: store.localStorage
   // <StorageAdapter> implementation that keeps data localStorage.
@@ -9,7 +9,17 @@ define(['../util', './common'], function(util, common) {
 
   var events = util.getEventEmitter('change', 'debug');
 
+  //BEGIN-DEBUG
+  function debugEvent(method, path) {
+    events.emit('debug', {
+      method: method,
+      path: path,
+      timestamp: new Date()
+    });
+  }
+  
   events.enableEventCache('debug');
+  //END-DEBUG
 
   // node metadata key prefix
   var prefixNodes = 'remote_storage_nodes:';
@@ -38,14 +48,6 @@ define(['../util', './common'], function(util, common) {
     });
   }
 
-  function debugEvent(method, path) {
-    events.emit('debug', {
-      method: method,
-      path: path,
-      timestamp: new Date()
-    });
-  }
-
   return function(_localStorage) {
     localStorage = _localStorage || (typeof(window) !== 'undefined' && window.localStorage);
 
@@ -55,7 +57,9 @@ define(['../util', './common'], function(util, common) {
 
     var store = {
       get: function(path) {
+        //BEGIN-DEBUG
         debugEvent('GET', path);
+        //END-DEBUG
         logger.debug('GET', path);
         return util.makePromise(function(promise) {
           var rawMetadata = localStorage.getItem(prefixNode(path));
@@ -77,7 +81,9 @@ define(['../util', './common'], function(util, common) {
       },
 
       set: function(path, node) {
+        //BEGIN-DEBUG
         debugEvent('SET', path);
+        //END-DEBUG
         logger.debug('SET', path, node);
         return util.makePromise(function(promise) {
           var metadata = common.packData(node);
@@ -85,13 +91,17 @@ define(['../util', './common'], function(util, common) {
           delete metadata.data;
           var rawMetadata = JSON.stringify(metadata);
           localStorage.setItem(prefixNode(path), rawMetadata);
-          localStorage.setItem(prefixData(path), rawData);
+          if(rawData) {
+            localStorage.setItem(prefixData(path), rawData);
+          }
           promise.fulfill();
         });
       },
 
       remove: function(path) {
+        //BEGIN-DEBUG
         debugEvent('REMOVE', path);
+        //END-DEBUG
         logger.debug('SET', path);
         return util.makePromise(function(promise) {
           localStorage.removeItem(prefixNode(path));
@@ -101,68 +111,9 @@ define(['../util', './common'], function(util, common) {
       }
     };
 
-    var errorStub = function() { throw new Error("Transaction already committed!"); };
-    var staleStore = { get: errorStub, set: errorStub, remove: errorStub, commit: errorStub };
-
-    var tid = 0;
-
-    function makeTransaction(write, body) {
-      var promise = util.getPromise();
-      var transaction = util.extend({
-        id: ++tid,
-        commit: function() {
-          finish();
-        }
-      }, store);
-      function finish(implicit) {
-        debugEvent('END TRANSACTION #' + transaction.id + ' (' + (implicit ? 'implicit' : 'explicit') + ')');
-        logger.debug(transaction.id, 'FINISH Transaction (', write ? 'read-write' : 'read-only', ')');
-        busy = false;
-        util.extend(transaction, staleStore);
-        promise.fulfill();
-        runIfReady();
-      };
-
-      return {
-        run: function() {
-          busy = true;
-          debugEvent('BEGIN TRANSACTION #' + transaction.id);
-          logger.debug(transaction.id, 'BEGIN Transaction (', write ? 'read-write' : 'read-only', ')');
-          var result = body(transaction);
-          if(! write) {
-            logger.debug(transaction.id, 'schedule implicit commit (read-only transaction)');
-            finish(true);
-          }
-        },
-        promise: promise
-      };
-    }
-
-    var busy = false;
-    var transactions = [];
-
-    function runIfReady() {
-      if(! busy) {
-        var transaction = transactions.shift();
-        if(transaction) {
-          logger.debug('SHIFT TRANSACTION', transactions.length, 'left');
-          transaction.run();
-        }
-      }
-    }
-
-    return {
-
-      transaction: function(write, body) {
-        var transaction = makeTransaction(write, body);
-        transactions.push(transaction);
-        util.nextTick(runIfReady);
-        return transaction.promise;
-      },
+    return util.extend({
 
       on: events.on,
-
-      get: store.get,
 
       forgetAll: function() {
         return util.makePromise(function(promise) {
@@ -182,7 +133,7 @@ define(['../util', './common'], function(util, common) {
           promise.fulfill();
         });
       }
-    }
-  }
+    }, syncTransactionAdapter(store, logger));
+  };
 });
 

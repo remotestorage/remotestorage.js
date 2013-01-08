@@ -214,7 +214,7 @@ define(
         'http://'  + hostname + '/.well-known/host-meta' + query
       ];
 
-      return fetchHostMeta(addresses, (options && options.timeout) || 5000).
+      return fetchHostMeta(addresses, (options && options.timeout) || 10000).
         then(extractRemoteStorageLink);
     }
 

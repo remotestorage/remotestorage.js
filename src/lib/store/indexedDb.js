@@ -32,7 +32,7 @@ define([
         };
 
         request.onerror = function() {
-          promise.fail();
+          promise.fail('indexedDB.deleteDatabase failed!', request.error);
         };
       });
     }
@@ -105,24 +105,61 @@ define([
       });
     }
 
+    function wrapStore(store) {
+      function req(method) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        return util.makePromise(function(promise) {
+          var request = store[method].apply(store, args);
+          request.onsuccess = function() {
+            promise.fulfill(request.result);
+          };
+          request.onerror  = function(event) {
+            promise.fail(event.error);
+          };
+        });
+      }
+      return {
+        get: util.curry(req, 'get'),
+        set: function(key, value) {
+          value.key = key;
+          return req('put', value);
+        },
+        remove: util.curry(req, 'remove')
+      };
+    }
+
+    function makeTransaction(mode, body) {
+      return util.makePromise(function(promise) {
+        var transaction = DB.transaction(OBJECT_STORE_NAME, mode);
+        var store = transaction.objectStore(OBJECT_STORE_NAME);
+        transaction.oncomplete = util.bind(promise.fulfill, promise);
+        transaction.onerror = util.bind(promise.fail, promise);
+        body(wrapStore(store));
+      });
+    }
+
     var indexedDbStore = {
+      transaction: function(write, body) {
+        return makeTransaction(write ? 'readwrite' : 'readonly', body);
+      },
+
       on: function(eventName, handler) {
         logger.debug("WARNING: indexedDB event handling not implemented");
       },
-      get: function(key) {
-        logger.debug("GET " + key);
-        return storeRequest('get', key);
-      },
-      set: function(key, value) {
-        logger.debug("SET " + key);
-        var node = value;
-        node.key = key;
-        return storeRequest('put', node);
-      },
-      remove: function(key) {
-        logger.debug("REMOVE " + key);
-        return storeRequest('delete', key);
-      },
+      // get: function(key) {
+      //   logger.debug("GET " + key);
+      //   return storeRequest('get', key);
+      // },
+      // set: function(key, value) {
+      //   logger.debug("SET " + key);
+      //   var node = value;
+      //   node.key = key;
+      //   return storeRequest('put', node);
+      // },
+      // remove: function(key) {
+      //   logger.debug("REMOVE " + key);
+      //   return storeRequest('delete', key);
+      // },
       forgetAll: function() {
         logger.debug("FORGET ALL");
         return removeDatabase().then(doOpenDatabase);

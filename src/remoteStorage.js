@@ -478,7 +478,9 @@ define([
     sync: sync,
     widget: widget,
 
-    i18n: i18n
+    i18n: i18n,
+
+    schedule: schedule
 
   };
 

@@ -127,7 +127,7 @@ define(['requirejs', 'fs'], function(requirejs, fs) {
             // check node
             then(curry(env.storageAdapter.get, '/foo/bar')).
             then(function(node) {
-              _this.assertAnd(typeof(node) !== 'undefined');
+              _this.assertTypeAnd(node, 'object');
               return node;
             }).
             get('timestamp', 'lastUpdatedAt', 'mimeType', 'data').
@@ -147,6 +147,7 @@ define(['requirejs', 'fs'], function(requirejs, fs) {
             }, catchError(this));
         }
       },
+
       {
         desc: "store.setNodeData sets outgoing data correctly",
         run: function(env) {
@@ -186,6 +187,7 @@ define(['requirejs', 'fs'], function(requirejs, fs) {
             }, catchError(this));
         }
       },
+
       {
         desc: "store.setNodeData store incoming, then remove outgoing",
         run: function(env) {
