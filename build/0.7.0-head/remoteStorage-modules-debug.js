@@ -7026,7 +7026,7 @@ define('lib/foreignClient',['./util', './baseClient', './getputdelete', './store
 
 });
 
-define([
+define('remoteStorage', [
   'require',
   './lib/widget',
   './lib/store',
