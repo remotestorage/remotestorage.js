@@ -1,5 +1,20 @@
 define(['../util'], function(util) {
 
+  // Namespace: syncTranscation
+  //
+  // Shared transaction implementation for synchronous storage backends (memory, localStorage).
+  // Takes a 'store' (methods: get, set, remove) and a logger.
+  // Makes sure that only one transaction runs at the same time.
+
+  // Method: syncTransaction
+  // Returns a new syncTransactionAdapter.
+  //
+  // You can extend it with your own stuff (to create a proper storageAdapter you
+  // at least need 'forgetAll' and 'on')
+  //
+  // Parameters:
+  //   store  - actual store implementation (get, set, remove)
+  //   logger - a logger, to log begin / end of transaction and implicit commits.
   return function(store, logger) {
 
     var errorStub = function() { throw new Error("Transaction already committed!"); };
@@ -15,6 +30,12 @@ define(['../util'], function(util) {
           finish();
         }
       }, store);
+
+      if(! write) {
+        delete transaction.set;
+        delete transaction.remove;
+      }
+
       function finish(implicit) {
         logger.debug(transaction.id, 'FINISH Transaction (', write ? 'read-write' : 'read-only', ')');
         busy = false;
@@ -52,6 +73,13 @@ define(['../util'], function(util) {
 
     return {
 
+      // Object: syncTransactionAdapter
+
+      // Method: transaction
+      //
+      // Parameters:
+      //   write - boolean. whether this is a write or read-only transaction.
+      //   body  - method to call with the actual transaction object
       transaction: function(write, body) {
         var transaction = makeTransaction(write, body);
         transactions.push(transaction);
@@ -59,6 +87,8 @@ define(['../util'], function(util) {
         return transaction.promise;
       },
 
+      // Method: get
+      // Forwarded from store (to simplify transaction-less 'get's in tests).
       get: store.get,
     };
   };
