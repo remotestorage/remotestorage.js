@@ -101,7 +101,9 @@ function build(output, inputs, options) {
 
   console.log('BUILD', output, 'FROM', inputs, 'WITH', options);
 
-  requirejs.optimize(config);
+  requirejs.optimize(config, function() {
+    console.log(output, 'done.');
+  });
 }
 
 if(process.argv[2] == 'debug') {
@@ -133,12 +135,12 @@ if(process.argv[2] == 'debug') {
     });
   }
 
-  cp(__dirname + '/latest/remoteStorage.min.js',
-     __dirname + '/latest/remoteStorage.js');
-  cp(__dirname + '/latest/remoteStorage-node.min.js',
-     __dirname + '/latest/remoteStorage-node.js');
-  cp(__dirname + '/latest/remoteStorage-modules.min.js',
-     __dirname + '/latest/remoteStorage-modules.js');
+  // cp(__dirname + '/latest/remoteStorage.min.js',
+  //    __dirname + '/latest/remoteStorage.js');
+  // cp(__dirname + '/latest/remoteStorage-node.min.js',
+  //    __dirname + '/latest/remoteStorage-node.js');
+  // cp(__dirname + '/latest/remoteStorage-modules.min.js',
+  //    __dirname + '/latest/remoteStorage-modules.js');
 }
 
 // var mods = modules.map(function(module) {

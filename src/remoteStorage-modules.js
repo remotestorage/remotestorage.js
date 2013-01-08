@@ -6,7 +6,8 @@ define([
   './modules/documents',
   './modules/money',
   './modules/tasks',
-  './modules/bookmarks'
+  './modules/bookmarks',
+  './modules/music'
 ], function(remoteStorage) {
   return remoteStorage;
 });

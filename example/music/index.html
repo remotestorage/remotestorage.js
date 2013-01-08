@@ -7,68 +7,57 @@
   <body>
     <div id="remotestorage-connect"></div>
     <h1>Music.</h1>
-    <div>
-      <input id="iPath" />
-      <input type="submit" value="Play!" onclick="play();" />
+    <div id="online" style="display:none;">
+      <div>
+        <input id="iPath" />
+        <input type="submit" value="Play!" onclick="play();" />
+      </div>
+      <div>
+        <input onchange="localLoad(this.files);" type="file">
+      </div>
     </div>
-    <div>
-      <input onchange="localLoad(this.files);" type="file">
+    <div id="offline">
+      Please connect, using the widget.
     </div>
   </body>
-  <script src="/build/0.7.0-head/remoteStorage-debug.js"></script>
+  <script src="/build/0.7.0-head/remoteStorage-modules-debug.js"></script>
   <script>
-    remoteStorage.displayWidget('remotestorage-connect');
-    remoteStorage.defineModule('music', function(privateClient, publicClient) {
-      function getPlayer(id) {
-        if(!id) {
-          id = 'remotestorage-music-player';
-        }
-        var player = document.getElementById(id);
-        if(!player) {
-          player = document.createElement('audio');
-          document.body.appendChild(player);
-        }
-        return player;
-      }
 
-      return {
-        exports: {
+    remoteStorage.onWidget('ready', function() {
+      document.getElementById('offline').style.display = 'none';
+      document.getElementById('online').style.display = 'block';
+    });
 
-          clear: function() {
-            return publicClient.getListing('').then(function(listing) {
-              return remoteStorage.util.asyncEach(listing, function(item) {
-                return publicClient.remove(item);
-              });
-            });
-          },
-
-          storeSong: function(path, arrayBuffer) {
-            if(false) {
-              var url = localStorage['remotestorage_wire:storageHref']+'/public/music/'+path;
-              var authHeader = 'Bearer '+localStorage['remotestorage_wire:bearerToken'];
-              var xhr = new XMLHttpRequest();
-              xhr.open('PUT', url, true);
-              xhr.setRequestHeader('Authorization', authHeader);
-              xhr.setRequestHeader('Content-Type', 'audio/ogg; charset=binary');
-              xhr.onreadystatechange = function() {
-              };
-              xhr.send(arrayBuffer);
-            } else {
-              console.log('publicClient.storeFile(audio/ogg', path, arrayBuffer);
-              publicClient.storeFile('audio/ogg', path, arrayBuffer);
-            }
-          },
-          playSong: function(path) {
-            var player = getPlayer();
-            player.src = publicClient.getItemURL(path);
-            player.play();
-          }
-        }
+    remoteStorage.onWidget('state', function(state) {
+      if(state === 'disconnected') {
+        document.getElementById('online').style.display = 'none';
+        document.getElementById('offline').style.display = 'block';
       }
     });
+
+    remoteStorage.displayWidget('remotestorage-connect');
+
+    function getPlayer(id) {
+      if(!id) {
+        id = 'remotestorage-music-player';
+      }
+      var player = document.getElementById(id);
+      if(!player) {
+        player = document.createElement('audio');
+        document.body.appendChild(player);
+      }
+      return player;
+    }
+
+    function playSong(name) {
+      var player = getPlayer();
+      player.src = remoteStorage.music.getSongURL(name);
+      player.play();
+    }
+
     remoteStorage.claimAccess('music', 'rw');
     function play() {
-      remoteStorage.music.playSong(document.getElementById('iPath').value);
+      playSong(document.getElementById('iPath').value);
     }
 
     function localLoad(files) {
