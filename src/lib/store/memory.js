@@ -1,4 +1,4 @@
-define(['../util'], function(util) {
+define(['../util', './syncTransaction'], function(util, syncTransactionAdapter) {
 
   // Namespace: store.memory
   // <StorageAdapter> implementation that keeps data in memory.
@@ -8,7 +8,7 @@ define(['../util'], function(util) {
   return function() {
     var nodes = {};
 
-    var pseudoTransaction = {
+    var store = {
       get: function(path) {
         logger.info('get', path);
         return util.getPromise().fulfillLater(nodes[path]);
@@ -24,20 +24,11 @@ define(['../util'], function(util) {
         logger.info('remove', path);
         delete nodes[path];
         return util.getPromise().fulfillLater();
-      },
-
-      commit: function() {}
+      }
     };
 
-    return util.extend(pseudoTransaction, {
+    return util.extend({
       on: function() {},
-
-      transaction: function(write, body) {
-        return util.makePromise(function(promise) {
-          body(pseudoTransaction);
-          promise.fulfillLater();
-        });
-      },
 
       forgetAll: function() {
         logger.info('forgetAll');
@@ -114,6 +105,7 @@ define(['../util'], function(util) {
 
         initNode('/', dataTree);
       }
-    });
+      
+    }, store, syncTransactionAdapter(store, logger));
   };
 });

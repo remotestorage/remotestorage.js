@@ -71,11 +71,6 @@ define([
   });
 
   window.addEventListener('load', function() {
-    console.log("STATE", remoteStorage.getWidgetState());
-    if(remoteStorage.getWidgetState() == 'anonymous') {
-      document.getElementById('disconnected').style.display = 'block';
-    }
-
     var target = document.getElementById('target');
 
     function displayImage(url) {

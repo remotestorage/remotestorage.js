@@ -1,4 +1,4 @@
-define(['../util', './common'], function(util, common) {
+define(['../util', './common', './syncTransaction'], function(util, common, syncTransactionAdapter) {
 
   // Namespace: store.localStorage
   // <StorageAdapter> implementation that keeps data localStorage.
@@ -111,72 +111,9 @@ define(['../util', './common'], function(util, common) {
       }
     };
 
-    var errorStub = function() { throw new Error("Transaction already committed!"); };
-    var staleStore = { get: errorStub, set: errorStub, remove: errorStub, commit: errorStub };
-
-    var tid = 0;
-
-    function makeTransaction(write, body) {
-      var promise = util.getPromise();
-      var transaction = util.extend({
-        id: ++tid,
-        commit: function() {
-          finish();
-        }
-      }, store);
-      function finish(implicit) {
-        //BEGIN-DEBUG
-        debugEvent('END TRANSACTION #' + transaction.id + ' (' + (implicit ? 'implicit' : 'explicit') + ')');
-        //END-DEBUG
-        logger.debug(transaction.id, 'FINISH Transaction (', write ? 'read-write' : 'read-only', ')');
-        busy = false;
-        util.extend(transaction, staleStore);
-        promise.fulfill();
-        runIfReady();
-      };
-
-      return {
-        run: function() {
-          busy = true;
-          //BEGIN-DEBUG
-          debugEvent('BEGIN TRANSACTION #' + transaction.id);
-          //END-DEBUG
-          logger.debug(transaction.id, 'BEGIN Transaction (', write ? 'read-write' : 'read-only', ')');
-          var result = body(transaction);
-          if(! write) {
-            logger.debug(transaction.id, 'schedule implicit commit (read-only transaction)');
-            finish(true);
-          }
-        },
-        promise: promise
-      };
-    }
-
-    var busy = false;
-    var transactions = [];
-
-    function runIfReady() {
-      if(! busy) {
-        var transaction = transactions.shift();
-        if(transaction) {
-          logger.debug('SHIFT TRANSACTION', transactions.length, 'left');
-          transaction.run();
-        }
-      }
-    }
-
-    return {
-
-      transaction: function(write, body) {
-        var transaction = makeTransaction(write, body);
-        transactions.push(transaction);
-        util.nextTick(runIfReady);
-        return transaction.promise;
-      },
+    return util.extend({
 
       on: events.on,
-
-      get: store.get,
 
       forgetAll: function() {
         return util.makePromise(function(promise) {
@@ -196,7 +133,7 @@ define(['../util', './common'], function(util, common) {
           promise.fulfill();
         });
       }
-    }
-  }
+    }, syncTransactionAdapter(store, logger));
+  };
 });
 
