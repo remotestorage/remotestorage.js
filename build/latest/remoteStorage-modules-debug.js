@@ -412,21 +412,23 @@ define('lib/util',[], function() {
       }
     });
 
-    if(! chained) {
-      var _this = this;
-      var stack;
-      try { throw new Error(); } catch(exc) { stack = exc.stack; };
-      this.debugTimer = setTimeout(function() {
-        if(_this.result) {
-          // already resolved for some reason, without clearing the timer.
-          return;
-        }
-        if(_this.handlers.fulfilled) { // only care if someone's listening
-          console.error("WARNING: promise timed out, failing!", stack);
-          _this.fail();
-        }
-      }, 10000);
-    }
+    // //BEGIN-DEBUG
+    // if(! chained) {
+    //   var _this = this;
+    //   var stack;
+    //   try { throw new Error(); } catch(exc) { stack = exc.stack; };
+    //   this.debugTimer = setTimeout(function() {
+    //     if(_this.result) {
+    //       // already resolved for some reason, without clearing the timer.
+    //       return;
+    //     }
+    //     if(_this.handlers.fulfilled) { // only care if someone's listening
+    //       console.error("WARNING: promise timed out, failing!", stack);
+    //       _this.fail();
+    //     }
+    //   }, 10000);
+    // }
+    // //END-DEBUG
   };
 
   Promise.prototype = {
@@ -436,7 +438,9 @@ define('lib/util',[], function() {
         throw new Error("Can't fulfill promise, already resolved as: " +
                         (this.success ? 'fulfilled' : 'failed'));
       }
+      //BEGIN-DEBUG
       clearTimeout(this.debugTimer);
+      //END-DEBUG
       this.result = util.toArray(arguments);
       this.success = true;
       if(! this.handlers.fulfilled) {
@@ -474,7 +478,9 @@ define('lib/util',[], function() {
         throw new Error("Can't fail promise, already resolved as: " +
                         (this.success ? 'fulfilled' : 'failed'));
       }
+      //BEGIN-DEBUG
       clearTimeout(this.debugTimer);
+      //END-DEBUG
       this.result = util.toArray(arguments);
       this.success = false;
       if(this.handlers.failed) {
@@ -778,7 +784,11 @@ define('lib/util',[], function() {
       return this.bindAll({
 
         _handlers: setupHandlers(),
+        //BEGIN-DEBUG
+        // Event cache is only used by debug-events at the moment, so
+        // doesn't have to be part of regular build.
         _eventCache: {},
+        //END-DEBUG
 
         emit: function(eventName) {
           var handlerArgs = Array.prototype.slice.call(arguments, 1);
@@ -790,9 +800,12 @@ define('lib/util',[], function() {
                 handler.apply(null, handlerArgs);
               }
             });
-          } else if(eventName in this._eventCache) {
+          }
+          //BEGIN-DEBUG
+          else if(eventName in this._eventCache) {
             this._eventCache[eventName].push(handlerArgs);
           }
+          //END-DEBUG
         },
 
         once: function(eventName, handler) {
@@ -813,12 +826,14 @@ define('lib/util',[], function() {
             throw "Expected function as handler, got: " + typeof(handler);
           }
           this._handlers[eventName].push(handler);
+          //BEGIN-DEBUG
           if(this._eventCache[eventName]) {
             this._eventCache[eventName].forEach(function(args) {
               handler.apply(null, args);
             });
             delete this._eventCache[eventName];
           }
+          //END-DEBUG
         },
 
         reset: function() {
@@ -828,13 +843,16 @@ define('lib/util',[], function() {
         hasHandler: function(eventName) {
           validEvent.call(this, eventName);
           return this._handlers[eventName].length > 0;
-        },
+        }
 
+        //BEGIN-DEBUG
+        ,
         enableEventCache: function() {
           util.toArray(arguments).forEach(util.bind(function(eventName) {
             this._eventCache[eventName] = [];
           }, this));
         }
+        //END-DEBUG
 
       });
 
@@ -1110,7 +1128,9 @@ define('lib/util',[], function() {
       var todo = functions.length;
       var errors = [];
       return util.makePromise(function(promise) {
+        //BEGIN-DEBUG
         clearTimeout(promise.debugTimer);
+        //END-DEBUG
         if(functions.length === 0) {
           return promise.fulfill([], []);
         }
@@ -1807,7 +1827,7 @@ define('lib/webfinger',
         'http://'  + hostname + '/.well-known/host-meta' + query
       ];
 
-      return fetchHostMeta(addresses, (options && options.timeout) || 5000).
+      return fetchHostMeta(addresses, (options && options.timeout) || 10000).
         then(extractRemoteStorageLink);
     }
 
@@ -1826,13 +1846,13 @@ define('lib/getputdelete',
 
     var defaultContentType = 'application/octet-stream';
 
-    function doCall(method, url, body, mimeType, token, deadLine) {
+    function doCall(method, url, body, mimeType, token) {
       return util.makePromise(function(promise) {
         logger.debug(method, url);
         var platformObj = {
           url: url,
           method: method,
-          timeout: deadLine || 5000,
+          timeout: 10000,
           headers: {}
         };
 
@@ -2191,7 +2211,73 @@ define('lib/wireClient',['./getputdelete', './util'], function (getputdelete, ut
   });
 });
 
-define('lib/store/memory',['../util'], function(util) {
+define('lib/store/syncTransaction',['../util'], function(util) {
+
+  return function(store, logger) {
+
+    var errorStub = function() { throw new Error("Transaction already committed!"); };
+    var staleStore = { get: errorStub, set: errorStub, remove: errorStub, commit: errorStub };
+
+    var tid = 0;
+
+    function makeTransaction(write, body) {
+      var promise = util.getPromise();
+      var transaction = util.extend({
+        id: ++tid,
+        commit: function() {
+          finish();
+        }
+      }, store);
+      function finish(implicit) {
+        logger.debug(transaction.id, 'FINISH Transaction (', write ? 'read-write' : 'read-only', ')');
+        busy = false;
+        util.extend(transaction, staleStore);
+        promise.fulfill();
+        runIfReady();
+      };
+
+      return {
+        run: function() {
+          busy = true;
+          logger.debug(transaction.id, 'BEGIN Transaction (', write ? 'read-write' : 'read-only', ')');
+          var result = body(transaction);
+          if(! write) {
+            logger.debug(transaction.id, 'schedule implicit commit (read-only transaction)');
+            finish(true);
+          }
+        },
+        promise: promise
+      };
+    }
+
+    var busy = false;
+    var transactions = [];
+
+    function runIfReady() {
+      if(! busy) {
+        var transaction = transactions.shift();
+        if(transaction) {
+          logger.debug('SHIFT TRANSACTION', transactions.length, 'left');
+          transaction.run();
+        }
+      }
+    }
+
+    return {
+
+      transaction: function(write, body) {
+        var transaction = makeTransaction(write, body);
+        transactions.push(transaction);
+        util.nextTick(runIfReady);
+        return transaction.promise;
+      },
+
+      get: store.get,
+    };
+  };
+});
+
+define('lib/store/memory',['../util', './syncTransaction'], function(util, syncTransactionAdapter) {
 
   // Namespace: store.memory
   // <StorageAdapter> implementation that keeps data in memory.
@@ -2201,7 +2287,7 @@ define('lib/store/memory',['../util'], function(util) {
   return function() {
     var nodes = {};
 
-    var pseudoTransaction = {
+    var store = {
       get: function(path) {
         logger.info('get', path);
         return util.getPromise().fulfillLater(nodes[path]);
@@ -2220,15 +2306,8 @@ define('lib/store/memory',['../util'], function(util) {
       }
     };
 
-    return util.extend(pseudoTransaction, {
+    return util.extend({
       on: function() {},
-
-      transaction: function(write, body) {
-        return util.makePromise(function(promise) {
-          body(pseudoTransaction);
-          promise.fulfillLater();
-        });
-      },
 
       forgetAll: function() {
         logger.info('forgetAll');
@@ -2305,7 +2384,8 @@ define('lib/store/memory',['../util'], function(util) {
 
         initNode('/', dataTree);
       }
-    });
+      
+    }, store, syncTransactionAdapter(store, logger));
   };
 });
 
@@ -2344,7 +2424,7 @@ define('lib/store/common',['../util'], function(util) {
   };
 
 });
-define('lib/store/localStorage',['../util', './common'], function(util, common) {
+define('lib/store/localStorage',['../util', './common', './syncTransaction'], function(util, common, syncTransactionAdapter) {
 
   // Namespace: store.localStorage
   // <StorageAdapter> implementation that keeps data localStorage.
@@ -2355,7 +2435,17 @@ define('lib/store/localStorage',['../util', './common'], function(util, common) 
 
   var events = util.getEventEmitter('change', 'debug');
 
+  //BEGIN-DEBUG
+  function debugEvent(method, path) {
+    events.emit('debug', {
+      method: method,
+      path: path,
+      timestamp: new Date()
+    });
+  }
+  
   events.enableEventCache('debug');
+  //END-DEBUG
 
   // node metadata key prefix
   var prefixNodes = 'remote_storage_nodes:';
@@ -2384,14 +2474,6 @@ define('lib/store/localStorage',['../util', './common'], function(util, common) 
     });
   }
 
-  function debugEvent(method, path) {
-    events.emit('debug', {
-      method: method,
-      path: path,
-      timestamp: new Date()
-    });
-  }
-
   return function(_localStorage) {
     localStorage = _localStorage || (typeof(window) !== 'undefined' && window.localStorage);
 
@@ -2401,7 +2483,9 @@ define('lib/store/localStorage',['../util', './common'], function(util, common) 
 
     var store = {
       get: function(path) {
+        //BEGIN-DEBUG
         debugEvent('GET', path);
+        //END-DEBUG
         logger.debug('GET', path);
         return util.makePromise(function(promise) {
           var rawMetadata = localStorage.getItem(prefixNode(path));
@@ -2423,7 +2507,9 @@ define('lib/store/localStorage',['../util', './common'], function(util, common) 
       },
 
       set: function(path, node) {
+        //BEGIN-DEBUG
         debugEvent('SET', path);
+        //END-DEBUG
         logger.debug('SET', path, node);
         return util.makePromise(function(promise) {
           var metadata = common.packData(node);
@@ -2431,13 +2517,17 @@ define('lib/store/localStorage',['../util', './common'], function(util, common) 
           delete metadata.data;
           var rawMetadata = JSON.stringify(metadata);
           localStorage.setItem(prefixNode(path), rawMetadata);
-          localStorage.setItem(prefixData(path), rawData);
+          if(rawData) {
+            localStorage.setItem(prefixData(path), rawData);
+          }
           promise.fulfill();
         });
       },
 
       remove: function(path) {
+        //BEGIN-DEBUG
         debugEvent('REMOVE', path);
+        //END-DEBUG
         logger.debug('SET', path);
         return util.makePromise(function(promise) {
           localStorage.removeItem(prefixNode(path));
@@ -2447,68 +2537,9 @@ define('lib/store/localStorage',['../util', './common'], function(util, common) 
       }
     };
 
-    var errorStub = function() { throw new Error("Transaction already committed!"); };
-    var staleStore = { get: errorStub, set: errorStub, remove: errorStub, commit: errorStub };
-
-    var tid = 0;
-
-    function makeTransaction(write, body) {
-      var promise = util.getPromise();
-      var transaction = util.extend({
-        id: ++tid,
-        commit: function() {
-          finish();
-        }
-      }, store);
-      function finish(implicit) {
-        debugEvent('END TRANSACTION #' + transaction.id + ' (' + (implicit ? 'implicit' : 'explicit') + ')');
-        logger.debug(transaction.id, 'FINISH Transaction (', write ? 'read-write' : 'read-only', ')');
-        busy = false;
-        util.extend(transaction, staleStore);
-        promise.fulfill();
-        runIfReady();
-      };
-
-      return {
-        run: function() {
-          busy = true;
-          debugEvent('BEGIN TRANSACTION #' + transaction.id);
-          logger.debug(transaction.id, 'BEGIN Transaction (', write ? 'read-write' : 'read-only', ')');
-          var result = body(transaction);
-          if(! write) {
-            logger.debug(transaction.id, 'schedule implicit commit (read-only transaction)');
-            finish(true);
-          }
-        },
-        promise: promise
-      };
-    }
-
-    var busy = false;
-    var transactions = [];
-
-    function runIfReady() {
-      if(! busy) {
-        var transaction = transactions.shift();
-        if(transaction) {
-          logger.debug('SHIFT TRANSACTION', transactions.length, 'left');
-          transaction.run();
-        }
-      }
-    }
-
-    return {
-
-      transaction: function(write, body) {
-        var transaction = makeTransaction(write, body);
-        transactions.push(transaction);
-        util.nextTick(runIfReady);
-        return transaction.promise;
-      },
+    return util.extend({
 
       on: events.on,
-
-      get: store.get,
 
       forgetAll: function() {
         return util.makePromise(function(promise) {
@@ -2528,8 +2559,8 @@ define('lib/store/localStorage',['../util', './common'], function(util, common) 
           promise.fulfill();
         });
       }
-    }
-  }
+    }, syncTransactionAdapter(store, logger));
+  };
 });
 
 
@@ -2665,7 +2696,12 @@ define('lib/store',[
   //   }
   // })();
 
-  setAdapter(localStorageAdapter(window.localStorage));
+  if(typeof(window) !== 'undefined') {
+    setAdapter(localStorageAdapter(window.localStorage));
+  } else {
+    console.error("WARNING: falling back to in-memory storage");
+    setAdapter(memoryAdapter());
+  }
 
   //
   // Type: Node
@@ -3284,7 +3320,9 @@ define('lib/sync',[
   var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready', 'timeout', 'debug');
   var logger = util.getLogger('sync');
 
+  //BEGIN-DEBUG
   events.enableEventCache('debug');
+  //END-DEBUG
 
   /*******************/
   /* Namespace: sync */
@@ -3782,6 +3820,7 @@ define('lib/sync',[
   // Used as a callback for <traverseTree>.
   function processNode(path, local, remote) {
 
+    //BEGIN-DEBUG
     function debugEvent(message) {
       events.emit('debug', {
         path: path,
@@ -3790,6 +3829,7 @@ define('lib/sync',[
         timestamp: new Date()
       });
     }
+    //END-DEBUG
 
     if(! path) {
       throw new Error("Can't process node without a path!");
@@ -3803,36 +3843,48 @@ define('lib/sync',[
 
     if(local.deleted) {
       // outgoing delete!
+      //BEGIN-DEBUG
       debugEvent('outgoing delete');
+      //END-DEBUG
       action = deleteRemote;
 
     } else if(remote.deleted && local.lastUpdatedAt > 0) {
       if(local.timestamp == local.lastUpdatedAt) {
         // incoming delete!
+        //BEGIN-DEBUG
         debugEvent('incoming delete');
+        //END-DEBUG
         action = deleteLocal;
 
       } else {
         // deletion conflict!
+        //BEGIN-DEBUG
         debugEvent('deletion conflict', 'remote', remote, 'local', local);
+        //END-DEBUG
         action = util.curry(fireConflict, 'delete');
 
       }
     } else if(local.timestamp == remote.timestamp) {
       // no action today!
+      //BEGIN-DEBUG
       debugEvent('no action today', 'remote', remote, 'local', local);
+      //END-DEBUG
       return;
 
     } else if((!remote.timestamp) || local.timestamp > remote.timestamp) {
       // local updated happpened before remote update
       if((!remote.timestamp) || local.lastUpdatedAt == remote.timestamp) {
         // outgoing update!
+        //BEGIN-DEBUG
         debugEvent('outgoing update');
+        //END-DEBUG
         action = updateRemote;
 
       } else {
         // merge conflict!
+        //BEGIN-DEBUG
         debugEvent('merge conflict (local > remote)', 'remote', remote, 'local', local);
+        //END-DEBUG
         action = util.curry(fireConflict, 'merge');
 
       }
@@ -3840,12 +3892,16 @@ define('lib/sync',[
       // remote updated happened before local update
       if(local.lastUpdatedAt == local.timestamp) {
         // incoming update!
+        //BEGIN-DEBUG
         debugEvent('incoming update');
+        //END-DEBUG
         action = updateLocal;
 
       } else {
         // merge conflict!
+        //BEGIN-DEBUG
         debugEvent('merge conflict (local < remote)', 'remote', remote, 'local', local);
+        //END-DEBUG
         action = util.curry(fireConflict, 'merge');
 
       }
@@ -4057,6 +4113,7 @@ define('lib/sync',[
       logger.debug("traverse depth", opts.depth, root);
     }
 
+    //BEGIN-DEBUG
     function debugEvent(path, message) {
       events.emit('debug', {
         path: path,
@@ -4065,6 +4122,7 @@ define('lib/sync',[
         timestamp: new Date()
       });
     }
+    //END-DEBUG
 
     function determineLocalInterest(node, options) {
       logger.debug('traverseNode.determineLocalInterest', node, options);
@@ -4102,7 +4160,9 @@ define('lib/sync',[
     };
 
     function mergeDataNode(path, localNode, remoteNode, options) {
+      //BEGIN-DEBUG
       debugEvent(path, 'mergeDataNode');
+      //END-DEBUG
       logger.debug("traverseTree.mergeDataNode", path);
       if(util.isDir(path)) {
         throw new Error("Not a data node: " + path);
@@ -4113,7 +4173,9 @@ define('lib/sync',[
     }
 
     function mergeDirectory(path, localNode, remoteNode, options) {
+      //BEGIN-DEBUG
       debugEvent(path, 'mergeDirectory');
+      //END-DEBUG
       logger.debug("traverseTree.mergeDirectory", path, localNode);
       var fullListing = makeSet(
         Object.keys(localNode.data),
@@ -4151,7 +4213,9 @@ define('lib/sync',[
     }
 
     function mergeTree(path, options) {
+      //BEGIN-DEBUG
       debugEvent(path, 'mergeTree');
+      //END-DEBUG
       logger.debug("traverseTree.mergeTree", path);
       options.path = path;
       return fetchLocalNode(path).
@@ -6707,7 +6771,7 @@ define('lib/widget',[
       return sync.lastSyncAt && sync.lastSyncAt.getTime();
     };
 
-    schedule.watch('/', 10000);
+    schedule.watch('/', 30000);
 
     view.display(domId, options);
 
@@ -7442,7 +7506,9 @@ define([
     sync: sync,
     widget: widget,
 
-    i18n: i18n
+    i18n: i18n,
+
+    schedule: schedule
 
   };
 
