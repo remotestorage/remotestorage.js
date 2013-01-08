@@ -166,11 +166,7 @@ define(['./util'], function(util) {
         }
       };
 
-      if(typeof(params.data) === 'string') {
-        xhr.send(params.data);
-      } else {
-        xhr.send();
-      }
+      xhr.send(params.data);
     });
   }
 
