@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Music</title>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <div id="remotestorage-connect"></div>
+    <h1>Music.</h1>
+    <div>
+      <input id="iPath" />
+      <input type="submit" value="Play!" onclick="play();" />
+    </div>
+    <div>
+      <input onchange="localLoad(this.files);" type="file">
+    </div>
+  </body>
+  <script src="/build/0.7.0-head/remoteStorage-debug.js"></script>
+  <script>
+    remoteStorage.displayWidget('remotestorage-connect');
+    remoteStorage.defineModule('music', function(privateClient, publicClient) {
+      function getPlayer(id) {
+        if(!id) {
+          id = 'remotestorage-music-player';
+        }
+        var player = document.getElementById(id);
+        if(!player) {
+          player = document.createElement('audio');
+          document.body.appendChild(player);
+        }
+        return player;
+      }
+
+      return {
+        exports: {
+
+          clear: function() {
+            return publicClient.getListing('').then(function(listing) {
+              return remoteStorage.util.asyncEach(listing, function(item) {
+                return publicClient.remove(item);
+              });
+            });
+          },
+
+          storeSong: function(path, arrayBuffer) {
+            if(false) {
+              var url = localStorage['remotestorage_wire:storageHref']+'/public/music/'+path;
+              var authHeader = 'Bearer '+localStorage['remotestorage_wire:bearerToken'];
+              var xhr = new XMLHttpRequest();
+              xhr.open('PUT', url, true);
+              xhr.setRequestHeader('Authorization', authHeader);
+              xhr.setRequestHeader('Content-Type', 'audio/ogg; charset=binary');
+              xhr.onreadystatechange = function() {
+              };
+              xhr.send(arrayBuffer);
+            } else {
+              console.log('publicClient.storeFile(audio/ogg', path, arrayBuffer);
+              publicClient.storeFile('audio/ogg', path, arrayBuffer);
+            }
+          },
+          playSong: function(path) {
+            var player = getPlayer();
+            player.src = publicClient.getItemURL(path);
+            player.play();
+          }
+        }
+      }
+    });
+    remoteStorage.claimAccess('music', 'rw');
+    function play() {
+      remoteStorage.music.playSong(document.getElementById('iPath').value);
+    }
+
+    function localLoad(files) {
+      var fileReader = new FileReader();
+      fileReader.onload = function() {
+        document.getElementById('iPath').value = files[0].name;
+        remoteStorage.music.storeSong(document.getElementById('iPath').value, fileReader.result);
+      };
+      fileReader.readAsArrayBuffer(files[0]);
+    }
+  </script>
+</html>
