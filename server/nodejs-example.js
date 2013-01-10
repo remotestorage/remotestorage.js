@@ -1,6 +1,4 @@
 
-var config = require('./config').config;
-
 var fs = require('fs');
 
 var dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
@@ -15,6 +13,8 @@ if(! fs.existsSync) {
     }
   }
 }
+
+var config = {};
 
 exports.server = (function() {
   var url=require('url'),
@@ -390,6 +390,7 @@ exports.server = (function() {
 })();
 
 if(require.main==module) {//if this file is directly called from the CLI
+  config = require('./config').config;
   require('http').createServer(exports.server.serve).listen(config.port);
   console.log("Example server started on 0.0.0.0:" + config.port);
 }
