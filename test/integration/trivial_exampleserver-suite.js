@@ -38,8 +38,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage, undefine
         env.remoteStorage.util.silenceAllLoggers();
         env.remoteStorage.util.unsilenceLogger('getputdelete');
 
-        env.httpServer = http.createServer(nodejsServer.server.serve)
-        env.httpServer.setTimeout(0);
+        env.httpServer = http.createServer(nodejsServer.server.serve);
         env.httpServer.listen(env.port, function() {
           env.server = nodejsServer.server;
           _this.result(true);
@@ -255,11 +254,11 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage, undefine
             then(function(obj) {
               _this.assertType(obj, 'undefined');
             });
-        }        
+        }
       }
 
     ]
-  }
+  };
 
   var slowSuite = {};
   for(var key in normalSuite) {
@@ -284,8 +283,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage, undefine
     );
   };
 
+  suites.push(normalSuite);
   suites.push(slowSuite);
-  
+
 
   return suites;
 });
