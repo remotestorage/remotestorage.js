@@ -39,9 +39,6 @@ define([
     });
   }
 
-  // DEBUG
-  var directoryUpdates = [];
-
   // (function() {
   //   if(typeof(window) !== 'undefined') {
   //     var idb = indexedDbAdapter.detect();
@@ -399,13 +396,9 @@ define([
   // FIXME: this argument list is getting too long!!!
   function updateNode(path, node, outgoing, meta, timestamp, oldValue,
                       transaction) {
-    logger.info('updateNode', path, node, outgoing, meta, timestamp);
+    logger.debug('updateNode', path, node, outgoing, meta, timestamp);
 
     validPath(path);
-
-    if(util.isDir(path)) {
-      directoryUpdates.push([path, node.data, oldValue, !!transaction]);
-    }
 
     function adjustTimestamp(transaction) {
       logger.debug('updateNode.adjustTimestamp', transaction);
@@ -538,10 +531,7 @@ define([
     fireInitialEvents : fireInitialEvents,// widget
 
     setAdapter        : setAdapter,
-    getAdapter        : function() { return dataStore; },
-
-    // DEBUG
-    directoryUpdates: directoryUpdates
+    getAdapter        : function() { return dataStore; }
   };
 
   // Interface: StorageAdapter
