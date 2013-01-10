@@ -960,61 +960,10 @@ define([
     };
   }
 
-  // // Function: makeErrorCatcher
-  // // returns a function, that receives an error as it's only parameter.
-  // // if the error resolves to true, an error event is fired.
-  // //
-  // // If an optional callback is supplied, and the error resolves to false,
-  // // the callback will be called with all additional arguments.
-  // function makeErrorCatcher(path, callback) {
-  //   return function(error) {
-  //     if(error) {
-  //       fireError(path, error);
-  //     } else if(callback) {
-  //       var args = Array.prototype.slice.call(arguments, 1);
-  //       callback.apply(this, args);
-  //     }
-  //   };
-  // }
-
-  // Limit calls to the given function to the given interval.
-  // If the function receives a callback, it must be the last argument.
-  // If the call is intercepted, as minInterval has not passed yet, the callback
-  // will be called immediately. No parameters will be passed on to the callback.
-  function limit(name, syncFunction, minInterval) {
-    return function() {
-      var args = Array.prototype.slice.call(arguments);
-      var callback = args.slice(-1)[0];
-      var plainArgs = args;
-      if(typeof(callback) == 'function') {
-        plainArgs = args.slice(0, -1);
-      } else {
-        callback = null;
-      }
-      var now = new Date().getTime();
-      var cacheKey = [name, plainArgs];
-      var limitCache = settings.get('limitCache') || {};
-      if(limitCache[cacheKey] && limitCache[cacheKey] > (now - minInterval)) {
-        logger.debug('limit', name, '-> replay');
-        if(callback) {
-          callback();
-        }
-      } else {
-        logger.debug('limit', name, '-> call through');
-        limitCache[cacheKey] = now;
-        settings.set('limitCache', limitCache);
-        syncFunction.apply(this, args);
-      }
-    };
-  }
-
 
   events.on('error', function(error) {
-    logger.error("Error: ", error);
+    logger.error("Sync Error: ", error);
   });
-
-  var limitedFullSync = limit('fullSync', fullSync, 10000);
-  var limitedPartialSync = limit('partialSync', partialSync, 5000);
   
 
   var sync = util.extend(events, {
