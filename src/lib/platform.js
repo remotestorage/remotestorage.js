@@ -226,12 +226,11 @@ define(['./util'], function(util) {
         port: (urlObj.port ? urlObj.port : (urlObj.protocol=='https:'?443:80)),
         headers: params.headers
       };
-      console.log('URL', params.url, 'AJAX NODE OPTIONS', options);
       var timer, timedOut;
 
       if(params.timeout) {
         timer = setTimeout(function() {
-          params.error('timeout');
+          promise.fail('timeout');
           timedOut=true;
         }, params.timeout);
       }

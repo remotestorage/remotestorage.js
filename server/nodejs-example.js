@@ -1,7 +1,7 @@
 
 var fs = require('fs');
 
-var dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
+var dontPersist = true;
 
 if(! fs.existsSync) {
   fs.existsSync = function(path) {
@@ -27,8 +27,11 @@ exports.server = (function() {
     crypto=require('crypto'),
     tokens, lastModified, contentType, content;
 
+  var responseDelay = null;
+
   function resetState() {
     tokens = {}, lastModified = {}, contentType = {}, content = {};
+    responseDelay = null;
   }
 
   function getState() {
@@ -38,6 +41,10 @@ exports.server = (function() {
       contentType: contentType,
       content: content
     };
+  }
+
+  function delayResponse(msec) {
+    responseDelay = msec;
   }
 
   function saveState(name, value) {
@@ -222,8 +229,8 @@ exports.server = (function() {
       (function(i) {
         createToken(config.defaultUserName, scopes[i], function(token) {
           res.write('<li><a href="'+i+'#storage_root=http://'+config.host+'/storage/'+config.defaultUserName
-            //+'&authorize_endpoint=http://'+config.host+'/auth/'+config.defaultUserName+'">'+i+'</a></li>');
-            +'&access_token='+token+'">'+i+'</a></li>');
+                    //+'&authorize_endpoint=http://'+config.host+'/auth/'+config.defaultUserName+'">'+i+'</a></li>');
+                    +'&access_token='+token+'">'+i+'</a></li>');
           outstanding--;
           if(outstanding==0) {
             res.write('</ul></body></html>');
@@ -254,10 +261,10 @@ exports.server = (function() {
   function oauth(urlObj, res) {
     console.log('OAUTH');
     var scopes = decodeURIComponent(urlObj.query['scope']).split(' '),
-      clientId = decodeURIComponent(urlObj.query['client_id']),
-      redirectUri = decodeURIComponent(urlObj.query['redirect_uri']),
-      clientIdToMatch,
-      userName;
+    clientId = decodeURIComponent(urlObj.query['client_id']),
+    redirectUri = decodeURIComponent(urlObj.query['redirect_uri']),
+    clientIdToMatch,
+    userName;
     if(redirectUri.split('://').length<2) {
       clientIdToMatch=redirectUri;
     } else {
@@ -338,19 +345,19 @@ exports.server = (function() {
     } else if(req.method=='DELETE') {
       console.log('DELETE');
       if(mayWrite(req.headers.authorization, path)) {
-          var timestamp = new Date().getTime();
-          delete content[path];
-          delete contentType[path];
-          lastModified[path]=timestamp;
-          saveData();
-          var pathParts=path.split('/');
-          var thisPart = pathParts.pop();
-          if(content[pathParts.join('/')+'/']) {
-            console.log('delete content['+pathParts.join('/')+'/]['+thisPart+']');
-            delete content[pathParts.join('/')+'/'][thisPart];
-          }
-          console.log(content);
-          writeJson(res, null, req.headers.origin, timestamp);
+        var timestamp = new Date().getTime();
+        delete content[path];
+        delete contentType[path];
+        lastModified[path]=timestamp;
+        saveData();
+        var pathParts=path.split('/');
+        var thisPart = pathParts.pop();
+        if(content[pathParts.join('/')+'/']) {
+          console.log('delete content['+pathParts.join('/')+'/]['+thisPart+']');
+          delete content[pathParts.join('/')+'/'][thisPart];
+        }
+        console.log(content);
+        writeJson(res, null, req.headers.origin, timestamp);
       } else {
         computerSaysNo(res, req.headers.origin);
       }
@@ -359,27 +366,40 @@ exports.server = (function() {
       computerSaysNo(res, req.headers.origin);
     }
   }
-  function serve(req, res, staticsMap) {
-    var urlObj = url.parse(req.url, true), userAddress, userName;
-    console.log(urlObj);
-    if(urlObj.pathname == '/') {
-      console.log('PORTAL');
-      portal(urlObj, res);
-    } else if(urlObj.pathname == '/.well-known/host-meta.json') {//TODO: implement rest of webfinger
-      console.log('HOST-META');
-      webfinger(urlObj, res);
-    } else if(urlObj.pathname.substring(0, '/auth/'.length) == '/auth/') {
-      console.log('OAUTH');
-      oauth(urlObj, res);
-    } else if(urlObj.pathname.substring(0, '/storage/'.length) == '/storage/') {
-      console.log('STORAGE');
-      storage(req, urlObj, res);
-    } else if(req.method == 'POST' && urlObj.pathname.substring(0, '/reset'.length) == '/reset') { // clear data; used in tests.
-      resetState();
-      writeJson(res, { forgot: 'everything' });
+  var delayCounter = 0;
+  function serve(req, res) {
+    var doServe = function() {
+      var urlObj = url.parse(req.url, true), userAddress, userName;
+      console.log(urlObj);
+      if(urlObj.pathname == '/') {
+        console.log('PORTAL');
+        portal(urlObj, res);
+      } else if(urlObj.pathname == '/.well-known/host-meta.json') {//TODO: implement rest of webfinger
+        console.log('HOST-META');
+        webfinger(urlObj, res);
+      } else if(urlObj.pathname.substring(0, '/auth/'.length) == '/auth/') {
+        console.log('OAUTH');
+        oauth(urlObj, res);
+      } else if(urlObj.pathname.substring(0, '/storage/'.length) == '/storage/') {
+        console.log('STORAGE');
+        storage(req, urlObj, res);
+      } else if(req.method == 'POST' && urlObj.pathname.substring(0, '/reset'.length) == '/reset') { // clear data; used in tests.
+        resetState();
+        writeJson(res, { forgot: 'everything' });
+      } else {
+        console.log('UNKNOWN');
+        writeJson(res, urlObj.query);
+      }
+    };
+    if(responseDelay) {
+      delayCounter++;
+      console.log(delayCounter + " DELAYING", req.method, req.url);
+      setTimeout(function() {
+        console.log(delayCounter + " SERVING", req.method, req.url);
+        doServe();
+      }, responseDelay);
     } else {
-      console.log('UNKNOWN');
-      writeJson(res, urlObj.query);
+      doServe();
     }
   }
 
@@ -391,12 +411,14 @@ exports.server = (function() {
     serve: serve,
     getState: getState,
     resetState: resetState,
-    addToken: addToken
+    addToken: addToken,
+    delayResponse: delayResponse
   };
 })();
 
 if((!amd) && (require.main==module)) {//if this file is directly called from the CLI
   config = require('./config').config;
+  dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
   require('http').createServer(exports.server.serve).listen(config.port);
   console.log("Example server started on 0.0.0.0:" + config.port);
 }

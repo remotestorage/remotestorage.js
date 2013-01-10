@@ -70,14 +70,11 @@ define(
         inProgress--;
         if(pendingQueue.length > 0) {
           var c = pendingQueue.shift();
-          logger.info('SHIFT', c.a);
           doCall.apply(this, c.a).then(c.p.fulfill.bind(c.p), c.p.fail.bind(c.p));
         } else {
-          logger.info('QUEUE EMPTY');
         }
       }
       if(inProgress < maxInProgress) {
-        logger.info('PROCESS', args);
         inProgress++;
         return realDoCall.apply(this, arguments).then(function(data, mimeType) {
           finishOne();
@@ -87,7 +84,6 @@ define(
           throw error;
         });
       } else {
-        logger.info('ENQUEUE', args);
         return util.makePromise(function(p) {
           pendingQueue.push({
             a: args,
