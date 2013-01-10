@@ -319,7 +319,7 @@ define(['./util'], function(util) {
         parseXml: parseXmlBrowser
       };
     }
-
-    return platform;
   }
+
+  return platform;
 });
