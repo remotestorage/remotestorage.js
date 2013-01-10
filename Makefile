@@ -12,7 +12,7 @@ DOC_INPUTS=-i $(SOURCE_DIR) -i ./doc/pages/
 
 NODEJS=node
 
-VERSION=$(shell cat VERSION)
+VERSION ?= $(shell cat VERSION)
 
 default: debug-only
 
@@ -57,6 +57,9 @@ compile-assets: $(ASSETS_DIR)/*
 test:
 	npm test
 
+snapshot:
+	make release VERSION=`git log -n1 | head -n1 | sed -r 's/commit (\w{8}).*/\1/'`
+
 release: build
 	rm -rf release/$(VERSION)
 	cp -r build/latest release/$(VERSION)
@@ -66,6 +69,7 @@ release: build
 	node build/update-version.js package.json $(VERSION) > package.json.tmp
 	mv package.json.tmp package.json
 
+commit-release: release
 	git add release/$(VERSION) component.json package.json
 	git commit -m "Release build: $(VERSION)"
 	git tag v$(VERSION)
