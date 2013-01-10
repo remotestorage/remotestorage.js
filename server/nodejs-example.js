@@ -395,7 +395,7 @@ exports.server = (function() {
   };
 })();
 
-if(require.main==module) {//if this file is directly called from the CLI
+if((!amd) && (require.main==module)) {//if this file is directly called from the CLI
   config = require('./config').config;
   require('http').createServer(exports.server.serve).listen(config.port);
   console.log("Example server started on 0.0.0.0:" + config.port);

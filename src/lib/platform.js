@@ -55,7 +55,7 @@ define(['./util'], function(util) {
   //   web browser - YES (if browser <supports CORS at http://caniuse.com/#feat=cors>)
   //   IE - Partially, no support for setting headers.
   //   node - YES, CORS not an issue at all
-  // 
+  //
   //
   // Method: parseXml
   //
@@ -94,7 +94,7 @@ define(['./util'], function(util) {
         // The escaped colon in the following (previously added) comment is
         // necessary, to prevent NaturalDocs from generating a toplevel
         // document called "value line" to the documentation. True story.
-        
+
         // key\: value line
         key = md[1], value = md[2];
         headers[key] = value;
@@ -226,6 +226,7 @@ define(['./util'], function(util) {
         port: (urlObj.port ? urlObj.port : (urlObj.protocol=='https:'?443:80)),
         headers: params.headers
       };
+      console.log('URL', params.url, 'AJAX NODE OPTIONS', options);
       var timer, timedOut;
 
       if(params.timeout) {

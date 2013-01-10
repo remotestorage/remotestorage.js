@@ -3,7 +3,7 @@ if(typeof(define) !== 'function') {
 }
 
 define([
-  'requirejs', 'sqlite3', 'jsindexeddb'
+//  'requirejs', 'sqlite3', 'jsindexeddb'
 ], function(requirejs, sqlite3, jsindexeddb) {
   var suites = [];
 
