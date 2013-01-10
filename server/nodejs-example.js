@@ -14,6 +14,12 @@ if(! fs.existsSync) {
   }
 }
 
+var amd = false;
+if(typeof(exports) === 'undefined') {
+  var exports = {};
+  amd = true;
+}
+
 var config = {};
 
 exports.server = (function() {
@@ -395,3 +401,6 @@ if(require.main==module) {//if this file is directly called from the CLI
   console.log("Example server started on 0.0.0.0:" + config.port);
 }
 
+if(amd) {
+  define([], exports);
+}
