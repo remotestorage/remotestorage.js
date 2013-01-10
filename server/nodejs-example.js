@@ -16,13 +16,22 @@ if(! fs.existsSync) {
   }
 }
 
-exports.handler = (function() {
+exports.server = (function() {
   var url=require('url'),
     crypto=require('crypto'),
     tokens, lastModified, contentType, content;
 
   function resetState() {
     tokens = {}, lastModified = {}, contentType = {}, content = {};
+  }
+
+  function getState() {
+    return {
+      tokens: tokens,
+      lastModified: lastModified,
+      contentType: contentType,
+      content: content
+    };
   }
 
   function saveState(name, value) {
@@ -75,6 +84,11 @@ exports.handler = (function() {
       }
     }
     return scopePaths;
+  }
+
+
+  function addToken(token, scopes) {
+    tokens[token] = makeScopePaths('me', scopes);
   }
 
   function createInitialTokens() {
@@ -368,12 +382,15 @@ exports.handler = (function() {
   createInitialTokens();
 
   return {
-    serve: serve
+    serve: serve,
+    getState: getState,
+    resetState: resetState,
+    addToken: addToken
   };
 })();
 
 if(require.main==module) {//if this file is directly called from the CLI
-  require('http').createServer(exports.handler.serve).listen(config.port);
+  require('http').createServer(exports.server.serve).listen(config.port);
   console.log("Example server started on 0.0.0.0:" + config.port);
 }
 
