@@ -11,7 +11,7 @@ if(! fs.existsSync) {
     } catch(e) {
       return false;
     }
-  }
+  };
 }
 
 var config = {};
@@ -35,7 +35,7 @@ exports.server = (function() {
   }
 
   function saveState(name, value) {
-    fs.writeFile("server-state/" + name + ".json", JSON.stringify(value), function() { });    
+    fs.writeFile("server-state/" + name + ".json", JSON.stringify(value), function() { });
   }
 
   function loadState(name) {
