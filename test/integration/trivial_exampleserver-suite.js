@@ -72,7 +72,14 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage, undefine
       });
     },
     afterEach: function (env) {
-      env.remoteStorage.flushLocal().then(curry(this.result.bind(this), true));
+      var _this = this;
+      env.remoteStorage.sync.needsSync('/').then(function(unsynced) {
+        // if unsynced is true, somethings wrong
+        if (unsynced) {
+          _this.result(false, 'client needsSync = true, thats not good');
+        }
+        env.remoteStorage.flushLocal().then(curry(_this.result.bind(_this), true));
+      });
     },
     tests: [
 
@@ -87,22 +94,22 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage, undefine
         }
       },
 
-      // {
-      //   desc: "write a file",
-      //   run: function(env) {
-      //     var _this = this;
-      //     var file = {
-      //       hello: "world"
-      //     };
-      //     try {
-      //       env.client.storeObject('test', 'testobject', file).then(function() {
-      //         _this.result(true);
-      //       });
-      //     } catch(e) {
-      //       _this.result(false);
-      //     }
-      //   }
-      // },
+      {
+        desc: "write a file",
+        run: function(env) {
+          var _this = this;
+          var file = {
+            hello: "world"
+          };
+          try {
+            env.client.storeObject('test', 'testobject', file).then(function() {
+              _this.result(true);
+            });
+          } catch(e) {
+            _this.result(false);
+          }
+        }
+      },
 
       {
         desc: "write an object and check it's there",
