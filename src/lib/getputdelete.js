@@ -8,7 +8,7 @@ define(
 
     var defaultContentType = 'application/octet-stream';
 
-    function doCall(method, url, body, mimeType, token) {
+    function realDoCall(method, url, body, mimeType, token) {
       return util.makePromise(function(promise) {
         logger.debug(method, url);
         var platformObj = {
@@ -58,6 +58,43 @@ define(
             promise.fail(error);
           });
       });
+    }
+
+    var inProgress = 0;
+    var maxInProgress = 10;
+    var pendingQueue = [];
+
+    function doCall() {
+      var args = util.toArray(arguments);
+      function finishOne() {
+        inProgress--;
+        if(pendingQueue.length > 0) {
+          var c = pendingQueue.shift();
+          logger.info('SHIFT', c.a);
+          doCall.apply(this, c.a).then(c.p.fulfill.bind(c.p), c.p.fail.bind(c.p));
+        } else {
+          logger.info('QUEUE EMPTY');
+        }
+      }
+      if(inProgress < maxInProgress) {
+        logger.info('PROCESS', args);
+        inProgress++;
+        return realDoCall.apply(this, arguments).then(function(data, mimeType) {
+          finishOne();
+          return util.makePromise(function(p) { p.fulfill(data, mimeType); });
+        }, function(error) {
+          finishOne();
+          throw error;
+        });
+      } else {
+        logger.info('ENQUEUE', args);
+        return util.makePromise(function(p) {
+          pendingQueue.push({
+            a: args,
+            p: p
+          });
+        });
+      }
     }
 
     function get(url, token) {
