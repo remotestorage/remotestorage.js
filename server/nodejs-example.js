@@ -172,14 +172,19 @@ exports.server = (function() {
     }
     res.writeHead(status, headers);
   }
+
   function writeRaw(res, contentType, content, origin, timestamp) {
-    console.log('access-control-allow-origin:'+ (origin?origin:'*'));
-    console.log(contentType);
-    console.log(content);
-    writeHead(res, 200, origin, timestamp, contentType);
-    res.write(content);
-    res.end();
+    function doWrite() {
+      console.log('access-control-allow-origin:'+ (origin?origin:'*'));
+      console.log(contentType);
+      console.log(content);
+      writeHead(res, 200, origin, timestamp, contentType);
+      res.write(content);
+      res.end();
+    }
+    responseDelay ? setTimeout(doWrite, responseDelay) : doWrite();
   }
+
   function writeJson(res, obj, origin, timestamp) {
     writeRaw(res, 'application/json', JSON.stringify(obj), origin, timestamp);
   }
@@ -279,6 +284,7 @@ exports.server = (function() {
       });
     }
   }
+
   function storage(req, urlObj, res) {
     var path=urlObj.pathname.substring('/storage/'.length);
     if(req.method=='OPTIONS') {
@@ -332,11 +338,11 @@ exports.server = (function() {
               content[pathParts.join('/')+'/'] = {};
             }
             content[pathParts.join('/')+'/'][thisPart]=timestamp;
-            console.log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
+            // console.log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
           }
-          console.log('content:', content);
-          console.log('contentType:', contentType);
-          console.log('lastModified:', lastModified);
+          // console.log('content:', content);
+          // console.log('contentType:', contentType);
+          // console.log('lastModified:', lastModified);
           writeJson(res, null, req.headers.origin, timestamp);
         });
       } else {
@@ -366,40 +372,28 @@ exports.server = (function() {
       computerSaysNo(res, req.headers.origin);
     }
   }
-  var delayCounter = 0;
+
   function serve(req, res) {
-    var doServe = function() {
-      var urlObj = url.parse(req.url, true), userAddress, userName;
-      console.log(urlObj);
-      if(urlObj.pathname == '/') {
-        console.log('PORTAL');
-        portal(urlObj, res);
-      } else if(urlObj.pathname == '/.well-known/host-meta.json') {//TODO: implement rest of webfinger
-        console.log('HOST-META');
-        webfinger(urlObj, res);
-      } else if(urlObj.pathname.substring(0, '/auth/'.length) == '/auth/') {
-        console.log('OAUTH');
-        oauth(urlObj, res);
-      } else if(urlObj.pathname.substring(0, '/storage/'.length) == '/storage/') {
-        console.log('STORAGE');
-        storage(req, urlObj, res);
-      } else if(req.method == 'POST' && urlObj.pathname.substring(0, '/reset'.length) == '/reset') { // clear data; used in tests.
-        resetState();
-        writeJson(res, { forgot: 'everything' });
-      } else {
-        console.log('UNKNOWN');
-        writeJson(res, urlObj.query);
-      }
-    };
-    if(responseDelay) {
-      delayCounter++;
-      console.log(delayCounter + " DELAYING", req.method, req.url);
-      setTimeout(function() {
-        console.log(delayCounter + " SERVING", req.method, req.url);
-        doServe();
-      }, responseDelay);
+    var urlObj = url.parse(req.url, true), userAddress, userName;
+    console.log(urlObj);
+    if(urlObj.pathname == '/') {
+      console.log('PORTAL');
+      portal(urlObj, res);
+    } else if(urlObj.pathname == '/.well-known/host-meta.json') {//TODO: implement rest of webfinger
+      console.log('HOST-META');
+      webfinger(urlObj, res);
+    } else if(urlObj.pathname.substring(0, '/auth/'.length) == '/auth/') {
+      console.log('OAUTH');
+      oauth(urlObj, res);
+    } else if(urlObj.pathname.substring(0, '/storage/'.length) == '/storage/') {
+      console.log('STORAGE');
+      storage(req, urlObj, res);
+    } else if(req.method == 'POST' && urlObj.pathname.substring(0, '/reset'.length) == '/reset') { // clear data; used in tests.
+      resetState();
+      writeJson(res, { forgot: 'everything' });
     } else {
-      doServe();
+      console.log('UNKNOWN');
+      writeJson(res, urlObj.query);
     }
   }
 

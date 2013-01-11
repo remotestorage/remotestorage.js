@@ -192,7 +192,7 @@ define([
 
       if(! outgoing) {
         if(typeof(timestamp) !== 'number') {
-          throw "Attempted to set non-number timestamp in incoming change: " + timestamp + ' (' + typeof(timestamp) + ')';
+          throw "Attempted to set non-number timestamp in incoming change: " + timestamp + ' (' + typeof(timestamp) + ') at path ' + path;
         }
         node.lastUpdatedAt = timestamp;
 

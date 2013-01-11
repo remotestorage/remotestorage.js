@@ -2,20 +2,12 @@ if (typeof define !== 'function') {
     var define = require('amdefine')(module);
 }
 
-define(['requirejs', 'localStorage'], function(requirejs, localStorage, undefined) {
+define([
+  'requirejs', 'localStorage'
+], function(requirejs, localStorage) {
   var suites = [];
   global.localStorage = localStorage;
   var curry, util;
-
-  function catchError(test) {
-    return function(error) {
-      console.error("Caught error: ", error, error && error.stack);
-      test.result(false);
-    };
-  }
-
-  var http = require('http');
-  var nodejsServer = require('./server/nodejs-example');
 
   var normalSuite = {
     name: "trivial exampleserver",
@@ -25,29 +17,24 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage, undefine
       requirejs([
         './src/lib/util',
         './src/remoteStorage',
-        './src/modules/root'
-      ], function(_util, remoteStorage, root) {
+        './src/modules/root',
+        './test/helper/server'
+      ], function(_util, remoteStorage, root, serverHelper) {
         util = _util;
         curry = util.curry;
-        env.port = '10999';
-        env.url = 'http://localhost:'+env.port+'/storage/me';
-        env.token = 'testing123';
         env.remoteStorage = remoteStorage;
         env.client = root;
+        env.serverHelper = serverHelper;
 
         env.remoteStorage.util.silenceAllLoggers();
         env.remoteStorage.util.unsilenceLogger('getputdelete');
 
-        env.httpServer = http.createServer(nodejsServer.server.serve);
-        env.httpServer.listen(env.port, function() {
-          env.server = nodejsServer.server;
-          _this.result(true);
-        });
+        env.serverHelper.start(curry(_this.result.bind(_this), true));
       });
     },
     takedown: function(env) {
       var _this = this;
-      env.httpServer.close(function() {
+      env.serverHelper.stop(function() {
         env = '';
         _this.result(true);
       });
@@ -56,15 +43,13 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage, undefine
       // BEFORE EACH TEST
       var _this = this;
 
-      env.server.resetState();
-      env.server.addToken(env.token, [':rw']); // gives read-write access on the root path
-
       env.rsConnect = function() {
-          env.remoteStorage.nodeConnect.setStorageInfo({
-          type: 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple',
-          href: env.url
-        });
-        env.remoteStorage.nodeConnect.setBearerToken(env.token);
+        env.remoteStorage.nodeConnect.setStorageInfo(
+          env.serverHelper.getStorageInfo()
+        );
+        env.remoteStorage.nodeConnect.setBearerToken(
+          env.serverHelper.getBearerToken()
+        );
         return env.remoteStorage.claimAccess('root', 'rw');
       };
       env.rsConnect().then(function() {
@@ -113,7 +98,6 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage, undefine
 
       {
         desc: "write an object and check it's there",
-        timeout: 20000,
         run: function(env) {
           var _this = this;
           var obj = {
@@ -124,7 +108,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage, undefine
             then(env.remoteStorage.fullSync).
             then(function() {
               console.log('FULL SYNC DONE *************************************');
-              var state = env.server.getState();
+              var state = env.serverHelper.getState();
               console.log('SERVER STATE NOW', state);
               _this.assertTypeAnd(state.content['me/testobject'], 'string');
               var robj = JSON.parse(state.content['me/testobject']);
@@ -273,13 +257,16 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage, undefine
   }
   slowSuite.name = normalSuite.name.replace(/trivial/, 'slow');
   slowSuite.desc = normalSuite.desc.replace(/trivial/, 'slow');
+  slowSuite.tests.forEach(function(test) {
+    test.timeout = 20000;
+  });
   slowSuite.beforeEach = function(env) {
     var _this = this;
     normalSuite.beforeEach.apply(
       {
         result: function(res) {
           if(res) {
-            env.server.delayResponse(1000);
+            env.serverHelper.delayResponse(750);
             _this.result(true);
           } else {
             _this.result.apply(_this, arguments);
@@ -291,7 +278,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage, undefine
   };
 
   suites.push(normalSuite);
-  suites.push(slowSuite);
+  // suites.push(slowSuite);
 
 
   return suites;
