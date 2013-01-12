@@ -534,9 +534,7 @@ define([
           return set(this.moduleName, path, absPath, obj, 'application/json');
         }.bind(this)).
         then(function() {
-          // don't return, otherwise app-code gets delayed until the request
-          // is done.
-          sync.syncOne(absPath);
+          return sync.syncOne(absPath);
         });
     },
 
@@ -585,7 +583,7 @@ define([
       return this.ensureAccess('w').
         then(util.curry(set, this.moduleName, path, absPath, data, mimeType)).
         then(function() {
-          sync.syncOne(absPath);
+          return sync.syncOne(absPath);
         });
     },
 

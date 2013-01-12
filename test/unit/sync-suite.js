@@ -314,8 +314,8 @@ define(['requirejs'], function(requirejs) {
               _this.assertAnd(env.conflicts.length, 1);
               var conflict = env.conflicts.shift();
               _this.assertAnd(conflict.path, '/foo/bar');
-              _this.assertAnd(conflict.remoteTime, 23456);
-              _this.assertAnd(conflict.localTime, 34567);
+              _this.assertAnd(conflict.remoteTime, new Date(23456));
+              _this.assertAnd(conflict.localTime, new Date(34567));
               _this.assert(true, true);
             }, function(error) {
               console.error("processNode failed: ", error, error.stack);

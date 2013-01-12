@@ -2,8 +2,10 @@ if(typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
 
-define(['requirejs', 'fs'], function(requirejs, fs) {
+define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage) {
   var suites = [];
+
+  global.localStorage = localStorage;
 
   // set from util in setup
   var curry = null, util = null;
@@ -161,29 +163,23 @@ define(['requirejs', 'fs'], function(requirejs, fs) {
           ).
             then(curry(env.storageAdapter.get, '/a/b')).
             then(function(node) {
-              _this.assertAnd(typeof(node) !== 'undefined', true);
-              return node;
-            }).
-            get('timestamp', 'lastUpdatedAt', 'mimeType', 'data').
-            then(function(timestamp, lastUpdatedAt, mimeType, data) {
-              _this.assertAnd(timestamp, 23456); 
-              _this.assertAnd(lastUpdatedAt, 0);
-              _this.assertAnd(mimeType, 'application/json'); 
-              _this.assertAnd(data, '{"json":"object"}');
+              _this.assertTypeAnd(node, 'object');
+              _this.assertAnd(node.timestamp, 23456); 
+              _this.assertAnd(node.lastUpdatedAt, 0);
+              _this.assertAnd(node.mimeType, 'application/json'); 
+              _this.assertAnd(node.data, { json: 'object' });
             }).
             then(curry(env.storageAdapter.get, '/a/')).
-            get('data', 'diff', 'timestamp', 'lastUpdatedAt').
-            then(function(data, diff, timestamp, lastUpdatedAt) {
-              _this.assertAnd(data, { "b": 23456 });
-              _this.assertAnd(diff, { "b": 23456 });
-              _this.assertAnd(timestamp, 23456);
-              _this.assertAnd(lastUpdatedAt, 0);
+            then(function(node) {
+              _this.assertAnd(node.data, { "b": 23456 });
+              _this.assertAnd(node.diff, { "b": 23456 });
+              _this.assertAnd(node.timestamp, 23456);
+              _this.assertAnd(node.lastUpdatedAt, 0);
             }).
             then(curry(env.storageAdapter.get, '/')).
-            get('data', 'diff').
-            then(function(data, diff) {
-              _this.assertAnd(data, { "a/": 23456 });
-              _this.assert(diff, { "a/": 23456 });
+            then(function(node) {
+              _this.assertAnd(node.data, { "a/": 23456 });
+              _this.assert(node.diff, { "a/": 23456 });
             }, catchError(this));
         }
       },
@@ -378,7 +374,60 @@ define(['requirejs', 'fs'], function(requirejs, fs) {
               _this.assert(error, 'bar')
             });
         }
+      },
+
+      {
+        desc: "store.touchNode adds non-existent node to parent",
+        run: function(env) {
+          var _this = this;
+          env.store.touchNode('/something').
+            then(curry(env.store.getNode, '/')).
+            then(function(parentNode) {
+              _this.assert(parentNode.data.something, 0);
+            });
+        }
+      },
+
+      {
+        desc: "store.touchNode creates a node with a 'pending' flag",
+        run: function(env) {
+          var _this = this;
+          env.store.touchNode('/something-else').
+            then(curry(env.store.getNode, '/something-else')).
+            then(function(node) {
+              _this.assert(node.pending, true, 'pending-flag not found');
+            });
+        }
+      },
+
+      {
+        desc: "store.touchNode doesn't set the 'pending' flag on existing nodes",
+        run: function(env) {
+          var _this = this;
+          env.store.setNodeData(
+            '/existing-node', 'foo', false, 12345, 'text/plain'
+          ).then(curry(env.store.touchNode, '/existing-node')).
+            then(curry(env.store.getNode, '/existing-node')).
+            then(function(node) {
+              _this.assertType(node.pending, 'undefined', "pending-flag is set, but it shouldn't be");
+            });
+        }
+      },
+
+      {
+        desc: "store.setNodeData clears the 'pending' flag",
+        run: function(env) {
+          var _this = this;
+          env.store.touchNode('/pending-node').
+            then(curry(env.store.setNodeData, '/pending-node',
+                       'foo', false, 23456, 'text/plain')).
+            then(curry(env.store.getNode, '/pending-node')).
+            then(function(node) {
+              _this.assertType(node.pending, 'undefined');
+            });
+        }
       }
+
     ]
   });
 

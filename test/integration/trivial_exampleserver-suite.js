@@ -17,17 +17,19 @@ define([
       requirejs([
         './src/lib/util',
         './src/remoteStorage',
+        './src/lib/store',
         './src/modules/root',
         './test/helper/server'
-      ], function(_util, remoteStorage, root, serverHelper) {
+      ], function(_util, remoteStorage, store, root, serverHelper) {
         util = _util;
         curry = util.curry;
         env.remoteStorage = remoteStorage;
+        env.store = store
         env.client = root;
         env.serverHelper = serverHelper;
 
         env.remoteStorage.util.silenceAllLoggers();
-        env.remoteStorage.util.unsilenceLogger('getputdelete');
+        env.remoteStorage.util.unsilenceLogger('store');
 
         env.serverHelper.start(curry(_this.result.bind(_this), true));
       });
@@ -35,13 +37,15 @@ define([
     takedown: function(env) {
       var _this = this;
       env.serverHelper.stop(function() {
-        env = '';
         _this.result(true);
       });
     },
     beforeEach: function (env) {
       // BEFORE EACH TEST
       var _this = this;
+
+      env.serverHelper.resetState();
+      env.serverHelper.setScope([':rw']);
 
       env.rsConnect = function() {
         env.remoteStorage.nodeConnect.setStorageInfo(
@@ -161,9 +165,15 @@ define([
             then(env.rsConnect).
             then(curry(env.remoteStorage.root.use, '', true)).
             then(env.remoteStorage.fullSync).
-            then(curry(env.remoteStorage.root.getListing, 'test-dir/')).
+            then(curry(env.client.getListing, '')).
+            then(function(rootListing) {
+              _this.assertAnd(rootListing, ['test-dir/']);
+              console.log("KEYS", Object.keys(env.store.getAdapter()._nodes));
+              return env.store.getNode('/test-dir/');
+            }).
+            then(curry(env.client.getListing, 'test-dir/')).
             then(function(listing) {
-              _this.assertAnd(listing, ['a', 'b', 'c']);
+              _this.assertAnd(listing, ['a', 'b', 'c'], "Listing doesn't match (expected [a, b, c], got: " + JSON.stringify(listing) + ")");
             }).
             then(curry(env.client.getObject, 'test-dir/a')).
             then(function(obj) {

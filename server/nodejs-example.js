@@ -28,10 +28,20 @@ exports.server = (function() {
     tokens, lastModified, contentType, content;
 
   var responseDelay = null;
+  var capturedRequests = [];
+  var doCapture = false;
+
+  function captureRequests() {
+    doCapture = true;
+  }
 
   function resetState() {
     tokens = {}, lastModified = {}, contentType = {}, content = {};
     responseDelay = null;
+    while(capturedRequests.length > 0) {
+      capturedRequests.shift();
+    }
+    doCapture = false;
   }
 
   function getState() {
@@ -287,6 +297,15 @@ exports.server = (function() {
 
   function storage(req, urlObj, res) {
     var path=urlObj.pathname.substring('/storage/'.length);
+    var capt = {
+      method: req.method,
+      path: path
+    };
+
+    if(doCapture) {
+      capturedRequests.push(capt);
+    }
+
     if(req.method=='OPTIONS') {
       console.log('OPTIONS ', req.headers);
       writeJson(res, null, req.headers.origin);
@@ -318,6 +337,7 @@ exports.server = (function() {
         });
         req.on('end', function(chunk) {
           var timestamp = new Date().getTime();
+          capt.body = dataStr;
           content[path]=dataStr;
           contentType[path]=req.headers['content-type'];
           console.log('stored '+path, content[path], contentType[path]);
@@ -406,7 +426,9 @@ exports.server = (function() {
     getState: getState,
     resetState: resetState,
     addToken: addToken,
-    delayResponse: delayResponse
+    delayResponse: delayResponse,
+    captureRequests: captureRequests,
+    captured: capturedRequests
   };
 })();
 

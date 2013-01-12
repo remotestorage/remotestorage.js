@@ -261,22 +261,24 @@ define([
   //   conflict - when there are two incompatible versions of the same node
   //   change   - when the local store is updated
   //
-  function syncOne(path, callback) {
-    if(! isConnected()) {
-      return callback && callback('not-connected');
-    }
+  function syncOne(path) {
+    return util.makePromise(function(promise) {
+      if(! isConnected()) {
+        return promise.fulfill();
+      }
 
-    validatePath(path, true);
-    logger.info("single sync requested: " + path);
-    enqueueTask(function() {
-      logger.info("single sync started: " + path);
-      return util.asyncGroup(
-        util.curry(fetchLocalNode, path),
-        util.curry(fetchRemoteNode, path)
-      ).then(function(nodes) {
-        return processNode(path, nodes[0], nodes[1]);
-      }).then(function() {
-        return fetchLocalNode(path);
+      validatePath(path, true);
+      logger.info("single sync requested: " + path);
+      return enqueueTask(function() {
+        logger.info("single sync started: " + path);
+        return util.asyncGroup(
+          util.curry(fetchLocalNode, path),
+          util.curry(fetchRemoteNode, path)
+        ).then(function(nodes) {
+          return processNode(path, nodes[0], nodes[1]);
+        }).then(function() {
+          return fetchLocalNode(path);
+        }).then(promise.fulfill.bind(promise), promise.fail.bind(promise));
       });
     });
   }
@@ -858,9 +860,7 @@ define([
       if(util.isDir(path)) {
         throw new Error("Not a data node: " + path);
       }
-      if(options.force) {
-        return callback(path, localNode, remoteNode);
-      }
+      return callback(path, localNode, remoteNode);
     }
 
     function mergeDirectory(path, localNode, remoteNode, options) {
@@ -886,7 +886,7 @@ define([
               }
               return mergeTree(childPath, childOptions);
             }
-          } else {
+          } else if(options.force) {
             return util.asyncGroup(
               util.curry(fetchLocalNode, childPath),
               util.curry(fetchRemoteNode, childPath)
@@ -898,6 +898,8 @@ define([
                 return mergeDataNode(childPath, nodes[0], nodes[1], options);
               }
             });
+          } else {
+            store.touchNode(childPath);
           }
         }
       });

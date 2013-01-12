@@ -39,10 +39,13 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "claimAccess()",
         run: function(env) {
-          remoteStorage.claimAccess('test', 'rw');
-          this.assertAnd(remoteStorage.getClaimedModuleList, ['test']);
-          env.tm = remoteStorage.test;
-          this.assertType(env.tm, 'object');
+          var _this = this;
+          remoteStorage.claimAccess('test', 'rw').
+            then(function() {
+              _this.assertAnd(remoteStorage.getClaimedModuleList(), ['test'], JSON.stringify(remoteStorage.getClaimedModuleList()) + ' vs. ' + '["test"]');
+              env.tm = remoteStorage.test;
+              _this.assertType(env.tm, 'object');
+            });
         }
       }
     ]

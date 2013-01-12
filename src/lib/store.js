@@ -204,6 +204,9 @@ define([
       }
       node.mimeType = mimeType;
 
+      // FIXME: only set this when incoming data is set?
+      delete node.pending;
+
       return updateNode(path, (node.data ? node : undefined), outgoing, false, timestamp, oldValue);
     });
   }
@@ -393,10 +396,25 @@ define([
       });
   }
 
+  function touchNode(path) {
+    logger.info("touchNode", path);
+    return getNode(path).
+      then(function(node) {
+        if(typeof(node.data) === 'undefined') {
+          node.pending = true;
+        }
+        return updateNode(path, node, false, true);
+      });
+  }
+
   // FIXME: this argument list is getting too long!!!
   function updateNode(path, node, outgoing, meta, timestamp, oldValue,
                       transaction) {
     logger.debug('updateNode', path, node, outgoing, meta, timestamp);
+
+    if(util.isDir(path)) {
+      logger.info('UPDATE DIRECTORY', path, node.data);
+    }
 
     validPath(path);
 
@@ -526,6 +544,7 @@ define([
     setNodeAccess     : setNodeAccess,
     setNodeForce      : setNodeForce,
     setNodeError      : setNodeError,
+    touchNode         : touchNode,
     
     forgetAll         : forgetAll,        // widget
     fireInitialEvents : fireInitialEvents,// widget

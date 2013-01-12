@@ -17,8 +17,6 @@ define([
         if(typeof(httpServer) !== 'undefined') {
           throw "Server already started. Stop it first.";
         }
-        this.resetState();
-        this.addToken(token, [':rw']);
         httpServer = http.createServer(this.serve);
         httpServer.listen(port, function() {
           console.log("Test server started");
@@ -35,6 +33,10 @@ define([
       });
     },
 
+    setScope: function(scope) {
+      this.addToken(token, scope);
+    },
+
     getBearerToken: function() {
       return token;
     },
@@ -44,6 +46,35 @@ define([
         type: 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple',
         href: 'http://localhost:' + port + '/storage/me'
       };
+    },
+
+    expectRequest: function(test, method, path, body) {
+      var req, r;
+      var cl = this.captured.length;
+      for(var i=0;i<cl;i++) {
+        r = this.captured[i];
+        if(r.method === method && r.path === path) {
+          // remove, in case we expect a request twice.
+          this.captured.splice(i, 1);
+          req = r;
+          break;
+        }
+      }
+      test.assertTypeAnd(req, 'object', "Expected request " + method + " " + path + ", but no such request was received");
+      
+      if(body) {
+        test.assertAnd(body, req.body);
+      }
+    },
+
+    expectNoMoreRequest: function(test) {
+      test.assertAnd(this.captured.length, 0, "Expected captured request list to be empty, but still has " + this.captured.length + " elements!");
+    },
+
+    clearCaptured: function() {
+      while(this.captured.length > 0) {
+        this.captured.shift();
+      }
     }
 
   };

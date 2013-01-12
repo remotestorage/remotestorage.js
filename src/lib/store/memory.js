@@ -28,11 +28,14 @@ define(['../util', './syncTransaction'], function(util, syncTransactionAdapter) 
     };
 
     return util.extend({
+
+      _nodes: nodes,
+
       on: function() {},
 
       forgetAll: function() {
         logger.info('forgetAll');
-        nodes = {};
+        this._nodes = nodes = {};
         return util.getPromise().fulfillLater();
       },
 
