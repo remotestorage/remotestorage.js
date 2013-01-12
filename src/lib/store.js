@@ -29,7 +29,7 @@ define([
   // Method: setAdapter
   // Set the storage adapter. See <StorageAdapter> for a description of
   // the required interface.
-  function setAdapter(adapter) {26
+  function setAdapter(adapter) {
     dataStore = adapter;
     // forward changes from data store (e.g. made in other tabs)
     dataStore.on('change', function(event) {
