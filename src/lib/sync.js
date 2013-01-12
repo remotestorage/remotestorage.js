@@ -32,7 +32,7 @@ define([
   // * claim access on the root of the tree in question (see <remoteStorage.claimAccess>)
   // * state which branches you wish to have synced
   // * release paths you no longer need from the sync plan, so they won't impact performance
-  //     
+  //
   // Now suppose you have a data tree like this:
   //   (start code)
   //
@@ -43,7 +43,7 @@ define([
   //     d   E   f
   //        / \
   //       g   h
-  // 
+  //
   //   (end code)
   //
   // Let's consider *A* to be our root node (it may be a module root, doesn't
@@ -55,7 +55,7 @@ define([
   // Now as soon as sync is triggered (usually this happens when connecting
   // through the widget), the entire tree, with all it's nodes, including data
   // nodes (files) will be synchronized and cached to localStorage.
-  // 
+  //
   // If we previously set up a 'change' handler, it will now be called for each
   // data node, as it has been synchronized.
   //
@@ -173,7 +173,7 @@ define([
 
         function rootCb(path) {
           return function() {
-            logger.debug("SYNCED ROOT", path); 
+            logger.debug("SYNCED ROOT", path);
             synced++;
             if(synced == roots.length) {
               sync.lastSyncAt = new Date();
@@ -181,7 +181,7 @@ define([
             }
           };
         }
-      
+
         if(roots.length === 0) {
           return promise.fail(new Error("No access claimed!"));
         }
@@ -826,7 +826,7 @@ define([
 
         function determineForce() {
           logger.debug('determineForce', options);
-          var force = (options.force || options.forceTree)
+          var force = (options.force || options.forceTree);
           if((! force) && options.path == '/' || options.path == '/public/') {
             findNextForceRoots(options.path).
               then(function(roots) {
@@ -838,7 +838,7 @@ define([
             promise.fulfill(node, force);
           }
         }
-        
+
         if(! options.access) {
           // in case of a partial sync, we have not been informed about
           // access inherited from the parent.
@@ -850,7 +850,7 @@ define([
           determineForce();
         }
       });
-    };
+    }
 
     function mergeDataNode(path, localNode, remoteNode, options) {
       //BEGIN-DEBUG
@@ -867,7 +867,7 @@ define([
       //BEGIN-DEBUG
       debugEvent(path, 'mergeDirectory');
       //END-DEBUG
-      logger.debug("traverseTree.mergeDirectory", path, localNode);
+      logger.debug("traverseTree.mergeDirectory", path, localNode, options);
       var fullListing = makeSet(
         Object.keys(localNode.data),
         Object.keys(remoteNode.data)
@@ -966,7 +966,7 @@ define([
   events.on('error', function(error) {
     logger.error("Sync Error: ", error);
   });
-  
+
 
   var sync = util.extend(events, {
 

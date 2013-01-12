@@ -239,16 +239,16 @@ define([
       return node ? node.timestamp : null;
     },
 
-    //  
+    //
     // Method: on
-    //  
+    //
     // Install an event handler for the given type.
-    // 
+    //
     // Parameters:
     //   eventType - type of event, either "change" or "error"
     //   handler   - event handler function
     //   context   - (optional) context to bind handler to
-    //  
+    //
     on: function(eventType, handler, context) {
       this.events.on(eventType, util.bind(handler, context));
     },
@@ -455,7 +455,7 @@ define([
     //
     // Parameters:
     //   object - a typed JSON object
-    // 
+    //
     //
     saveObject: function(object) {
       var type = object['@type'];
@@ -496,8 +496,8 @@ define([
     //   aims to use <JSON-LD at http://json-ld.org/>.
     //   A first step in that direction, is to add a *@type attribute* to all
     //   JSON data put into remotestorage.
-    //   Now that is what the *type* is for. 
-    //   
+    //   Now that is what the *type* is for.
+    //
     //   Within remoteStorage.js, @type values are built using three components:
     //     https://remotestoragejs.com/spec/modules/ - A prefix to guarantee unqiueness
     //     the module name     - module names should be unique as well
@@ -510,7 +510,7 @@ define([
     // How to define types?:
     //
     //   See <declareType> or the calendar module (src/modules/calendar.js) for examples.
-    // 
+    //
     storeObject: function(typeAlias, path, obj) {
       if(typeof(path) !== 'string') {
         return failedPromise(new Error("given path must be a string (got: " + typeof(path) + ")"));
@@ -656,7 +656,7 @@ define([
     // Remove force flags from given node.
     //
     // See <sync> for details.
-    // 
+    //
     release: function(path) {
       var absPath = this.makePath(path);
       return store.setNodeForce(absPath, false, false);
@@ -782,7 +782,7 @@ define([
     //     }, function(error) {
     //       // error.errors holds validation errors:
     //       // [{ "property": "name",
-    //       //    "message": "is missing and it is required" }]    
+    //       //    "message": "is missing and it is required" }]
     //       //
     //       // error.object holds a copy of the object
     //     });
@@ -859,7 +859,7 @@ define([
     uuid: function() {
       return 'uuid:' + MathUUID.uuid();
     }
-    
+
   };
 
   util.extend(BaseClient, globalEvents);

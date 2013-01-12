@@ -29,7 +29,6 @@ define([
         env.serverHelper = serverHelper;
 
         env.remoteStorage.util.silenceAllLoggers();
-        env.remoteStorage.util.unsilenceLogger('store');
 
         env.serverHelper.start(curry(_this.result.bind(_this), true));
       });
@@ -111,9 +110,7 @@ define([
             env.client.storeObject('test', 'testobject', obj).
             then(env.remoteStorage.fullSync).
             then(function() {
-              console.log('FULL SYNC DONE *************************************');
               var state = env.serverHelper.getState();
-              console.log('SERVER STATE NOW', state);
               _this.assertTypeAnd(state.content['me/testobject'], 'string');
               var robj = JSON.parse(state.content['me/testobject']);
               _this.assertAnd(obj, robj);
@@ -282,44 +279,6 @@ define([
             then(function(obj) {
               _this.assertType(obj, 'undefined');
             });
-        }
-      },
-
-      {
-        desc: "writing some objects, then syncing just the tree w/o data - version 2.0",
-        run: function(env) {
-          var _this = this;
-          util.asyncGroup(
-            curry(env.client.storeObject, 'test', 'test-dir/a', { n: 'a' }),
-            curry(env.client.storeObject, 'test', 'test-dir/b', { n: 'b' }),
-            curry(env.client.storeObject, 'test', 'test-dir/c', { n: 'c' }),
-            curry(env.client.storeObject, 'test', 'test-dir/d', { n: 'd' }),
-            curry(env.client.storeObject, 'test', 'other-dir/a', { n: 'a' }),
-            curry(env.client.storeObject, 'test', 'other-dir/b', { n: 'b' }),
-            curry(env.client.storeObject, 'test', 'other-dir/c', { n: 'c' }),
-            curry(env.client.storeObject, 'test', 'other-dir/d', { n: 'd' }),
-            curry(env.client.storeObject, 'test', 'other-dir/e', { n: 'e' })
-          ).
-            then(env.remoteStorage.fullSync).
-            then(env.remoteStorage.flushLocal).
-            then(env.rsConnect).
-            then(curry(env.remoteStorage.root.release, '')).
-            then(curry(env.remoteStorage.root.use, '', true)).
-            then(env.remoteStorage.fullSync).
-            //then(curry(env.client.getListing, '')).
-            //then(function(rootListing) {
-            //  _this.assertAnd(rootListing, ['test-dir/', 'other-dir/']);
-            //  //console.log("KEYS", Object.keys(env.store.getAdapter()._nodes));
-            //  //return env.store.getNode('/test-dir/');
-            //}).
-            then(curry(env.client.getListing, 'test-dir/')).
-            then(function(listing) {
-              _this.assertAnd(listing, ['a', 'b', 'c'], "Listing doesn't match (expected [a, b, c], got: " + JSON.stringify(listing) + ")");
-            });
-            //then(curry(env.client.getObject, 'test-dir/a')).
-            //then(function(obj) {
-            //  _this.assertType(obj, 'undefined');
-            //});
         }
       },
 

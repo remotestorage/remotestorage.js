@@ -42,7 +42,7 @@ define(['../util'], function(util) {
         util.extend(transaction, staleStore);
         promise.fulfill();
         runIfReady();
-      };
+      }
 
       return {
         run: function() {

@@ -15,7 +15,7 @@ define(['../util', './syncTransaction'], function(util, syncTransactionAdapter) 
       },
 
       set: function(path, node) {
-        logger.info('set', path);
+        logger.info('set', path, node.data);
         nodes[path] = node;
         return util.getPromise().fulfillLater();
       },
@@ -108,7 +108,7 @@ define(['../util', './syncTransaction'], function(util, syncTransactionAdapter) 
 
         initNode('/', dataTree);
       }
-      
+
     }, store, syncTransactionAdapter(store, logger));
   };
 });
