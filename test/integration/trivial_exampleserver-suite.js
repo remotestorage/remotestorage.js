@@ -24,7 +24,7 @@ define([
         util = _util;
         curry = util.curry;
         env.remoteStorage = remoteStorage;
-        env.store = store
+        env.store = store;
         env.client = root;
         env.serverHelper = serverHelper;
 
@@ -152,6 +152,108 @@ define([
       },
 
       {
+        desc: "write a file, list it",
+        run: function(env) {
+          var _this = this;
+          env.client.storeObject('test', 'test-dir/z', {phu: 'quoc'}).then(function(){
+            env.client.getListing('test-dir/').then(function(r){
+              _this.assert(r, ['z']);
+            });
+          });
+        }
+      },
+
+      {
+        desc: "write a file, sync, list it",
+        run: function(env) {
+          var _this = this;
+          env.client.storeObject('test', 'test-dir/z', {phu: 'quoc'}).then(function(){
+            return env.remoteStorage.fullSync();
+          }).then(function() {
+            return env.client.getListing('test-dir/');
+          }).then(function(r) {
+            _this.assert(r, ['z']);
+          });
+        }
+      },
+
+      {
+        desc: "write a file, sync, list it",
+        willFail: true,
+        run: function(env) {
+          var _this = this;
+          env.client.storeObject('test', 'test-dir/z', {phu: 'quoc'}).then(function(){
+            return env.remoteStorage.fullSync();
+          }).then(function() {
+            return env.client.getListing('test-dir/');
+          }).then(function(r) {
+            _this.assert(r, ['superdong']);
+          });
+        }
+      },
+
+      {
+        desc: "write 3 files, sync, list them",
+        run: function(env) {
+          var _this = this;
+          env.client.storeObject('test', 'test-dir/z', {phu: 'quoc'}).then(function(){
+            return env.client.storeObject('test', 'test-dir/z', {phu: 'quoc'});
+          }).then(function(){
+            return env.client.storeObject('test', 'test-dir/z', {phu: 'quoc'});
+          }).then(function(){
+            return env.remoteStorage.fullSync();
+          }).then(function() {
+            return env.client.getListing('test-dir/');
+          }).then(function(r) {
+            _this.assert(r, ['z']);
+          });
+        }
+      },
+
+      {
+        desc: "write 3 files, sync, list them",
+        run: function(env) {
+          var _this = this;
+          env.client.storeObject('test', 'test-dir/z', {phu: 'quoc'}).then(function(){
+            return env.client.storeObject('test', 'test-dir/z', {phu: 'quoc'});
+          }).then(function(){
+            return env.client.storeObject('test', 'test-dir/z', {phu: 'quoc'});
+          }).then(function(){
+            return env.remoteStorage.fullSync();
+          }).then(function() {
+            return env.client.getListing('test-dir/');
+          }).then(function(r) {
+            _this.assert(r, ['z']);
+          });
+        }
+      },
+
+      {
+        desc: "writing some objects, then syncing just the tree w/o data",
+        run: function(env) {
+          var _this = this;
+          util.asyncGroup(
+            curry(env.client.storeObject, 'test', 'test-dir/duong-dong/a', { n: 'a' })
+          ).
+            then(env.remoteStorage.fullSync).
+            then(env.remoteStorage.flushLocal).
+            then(env.rsConnect).
+            then(curry(env.remoteStorage.root.release, '')).
+            then(curry(env.remoteStorage.root.use, 'test-dir/', true)).
+            then(env.remoteStorage.fullSync).
+            then(curry(env.client.getListing, 'test-dir/')).
+            then(function(listing) {
+              _this.assertAnd(listing, ['duong-dong/']);
+            }).
+            then(curry(env.client.getListing, 'test-dir/duong-dong/')).
+            then(function(listing) {
+              _this.assert(listing, ['a']);
+            });
+        }
+      },
+
+
+      {
         desc: "writing some objects, then syncing just the tree w/o data",
         run: function(env) {
           var _this = this;
@@ -163,13 +265,14 @@ define([
             then(env.remoteStorage.fullSync).
             then(env.remoteStorage.flushLocal).
             then(env.rsConnect).
+            then(curry(env.remoteStorage.root.release, '')).
             then(curry(env.remoteStorage.root.use, '', true)).
             then(env.remoteStorage.fullSync).
             then(curry(env.client.getListing, '')).
             then(function(rootListing) {
               _this.assertAnd(rootListing, ['test-dir/']);
-              console.log("KEYS", Object.keys(env.store.getAdapter()._nodes));
-              return env.store.getNode('/test-dir/');
+              //console.log("KEYS", Object.keys(env.store.getAdapter()._nodes));
+              //return env.store.getNode('/test-dir/');
             }).
             then(curry(env.client.getListing, 'test-dir/')).
             then(function(listing) {
@@ -179,6 +282,44 @@ define([
             then(function(obj) {
               _this.assertType(obj, 'undefined');
             });
+        }
+      },
+
+      {
+        desc: "writing some objects, then syncing just the tree w/o data - version 2.0",
+        run: function(env) {
+          var _this = this;
+          util.asyncGroup(
+            curry(env.client.storeObject, 'test', 'test-dir/a', { n: 'a' }),
+            curry(env.client.storeObject, 'test', 'test-dir/b', { n: 'b' }),
+            curry(env.client.storeObject, 'test', 'test-dir/c', { n: 'c' }),
+            curry(env.client.storeObject, 'test', 'test-dir/d', { n: 'd' }),
+            curry(env.client.storeObject, 'test', 'other-dir/a', { n: 'a' }),
+            curry(env.client.storeObject, 'test', 'other-dir/b', { n: 'b' }),
+            curry(env.client.storeObject, 'test', 'other-dir/c', { n: 'c' }),
+            curry(env.client.storeObject, 'test', 'other-dir/d', { n: 'd' }),
+            curry(env.client.storeObject, 'test', 'other-dir/e', { n: 'e' })
+          ).
+            then(env.remoteStorage.fullSync).
+            then(env.remoteStorage.flushLocal).
+            then(env.rsConnect).
+            then(curry(env.remoteStorage.root.release, '')).
+            then(curry(env.remoteStorage.root.use, '', true)).
+            then(env.remoteStorage.fullSync).
+            //then(curry(env.client.getListing, '')).
+            //then(function(rootListing) {
+            //  _this.assertAnd(rootListing, ['test-dir/', 'other-dir/']);
+            //  //console.log("KEYS", Object.keys(env.store.getAdapter()._nodes));
+            //  //return env.store.getNode('/test-dir/');
+            //}).
+            then(curry(env.client.getListing, 'test-dir/')).
+            then(function(listing) {
+              _this.assertAnd(listing, ['a', 'b', 'c'], "Listing doesn't match (expected [a, b, c], got: " + JSON.stringify(listing) + ")");
+            });
+            //then(curry(env.client.getObject, 'test-dir/a')).
+            //then(function(obj) {
+            //  _this.assertType(obj, 'undefined');
+            //});
         }
       },
 
@@ -205,7 +346,7 @@ define([
             then(env.remoteStorage.fullSync).
             then(curry(env.remoteStorage.root.getListing, 'test-dir/')).
             then(function(listing) {
-              _this.assertAnd(listing, ['a', 'b', 'c']);
+              _this.assertAnd(listing, ['a', 'b', 'c', 'd']);
             }).
             then(curry(env.remoteStorage.root.getObject, 'test-dir/a')).
             then(function(obj) {
@@ -237,23 +378,23 @@ define([
             then(env.remoteStorage.flushLocal).
             then(env.rsConnect).
             then(curry(env.remoteStorage.root.release, '')).
-            then(curry(env.remoteStorage.root.use, 'test-dir/', true)).
+            then(curry(env.remoteStorage.root.use, 'test-dir/')).
             then(env.remoteStorage.fullSync).
             then(curry(env.remoteStorage.root.getListing, 'test-dir/')).
             then(function(listing) {
-              _this.assertAnd(listing, ['a', 'b', 'c']);
+              _this.assertAnd(listing, ['a', 'b', 'c', 'd'], 'listing abc: '+JSON.stringify(listing));
             }).
             then(curry(env.client.getObject, 'test-dir/a')).
             then(function(obj) {
-              _this.assertAnd(obj, { n: 'c' });
+              _this.assertAnd(obj, { n: 'a', '@type': 'https://remotestoragejs.com/spec/modules/root/test' }, 'object a');
             }).
             then(curry(env.remoteStorage.root.getListing, 'other-dir/')).
             then(function(listing) {
-              _this.assertAnd(listing, []);
+              _this.assertAnd(listing, [], 'listing other-dir');
             }).
             then(curry(env.client.getObject, 'other-dir/a')).
             then(function(obj) {
-              _this.assertType(obj, 'undefined');
+              _this.assertType(obj, 'undefined', 'object other-dir/a');
             });
         }
       }
