@@ -40,9 +40,9 @@ into your app, and do something like:
         notes: 'rw'
     }).then(function() {
         remoteStorage.displayWidget('remotestorage-widget');
-        document.body.innerHTML += '<div>'
-          +remoteStorage.notes.getNote('test.txt')
-          +'</div>';
+        remoteStorage.notes.getNote('test.txt').then(function(text) {
+          document.body.innerHTML += '<div>'+text+'</div>';
+        });
     });
 
 See http://remotestorage.io/ for further documentation.
