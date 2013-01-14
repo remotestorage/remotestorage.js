@@ -1,0 +1,57 @@
+<!DOCTYPE>
+<html>
+  <body>
+    <div id="remotestorage-widget"></div>
+    <input id="text" />
+    <input type="submit" value="up" onclick="up();" />
+    <input type="submit" value="down" onclick="down();" />
+    <p id="status">
+      Please connect your remotestorage (get one at <a href="https://heahdk.net/">https://heahdk.net/</a>)
+    </p>
+  </body>
+  <script src="remoteStorage.js"></script>
+  <script>
+    function $(id) {
+      return document.getElementById(id);
+    }
+    var up = function() {
+      alert('please connect first');
+    }, down = function() {
+      alert('please connect first');
+    };
+    remoteStorage.defineModule('notes', function(privateClient, publicClient) {
+      var path = 'note.txt', contentType = 'text/plain';
+      return {
+        exports: {
+          getNote: function () {
+            return privateClient.getFile(path);
+          },  
+          setNote: function (text) {
+            return privateClient.storeFile(contentType, path, text);
+          }
+        }
+      };
+    });
+    remoteStorage.claimAccess({
+      notes: 'rw'
+    }).then(function() {
+      remoteStorage.displayWidget('remotestorage-widget');
+      remoteStorage.onWidget('ready', function() {
+        $('status').innerHTML = 'ok';
+        up = function() {
+          $('status').innerHTML = 'storing...';
+          remoteStorage.notes.setNote($('text').value).then(function(text) {
+            $('status').innerHTML = 'ok';
+          });
+        };
+        down = function() {
+          $('status').innerHTML = 'retrieving...';
+          remoteStorage.notes.getNote().then(function(text) {
+            $('text').value = text;
+            $('status').innerHTML = 'ok';
+          });
+        };
+      });
+    });
+  </script>
+</html>
