@@ -13,7 +13,36 @@
 
 # Test it:
 
+    npm install teste
+    make test
+
+If there is an error about node requiring localStorage, just repeat the command, it sometimes
+works the second time.
+
 # Try it:
 
-# Use it:
+Copy
 
+    build/latest/remoteStorage.min.js
+
+into your app, and do something like:
+
+    remoteStorage.defineModule('notes', function(privateClient, publicClient) {
+      return {
+        exports: {
+          getNote: function (path) {
+            return publicClient.getFile(path);
+          }
+        }
+      };
+    });
+    remoteStorage.claimAccess({
+        notes: 'rw'
+    }).then(function() {
+        remoteStorage.displayWidget('remotestorage-widget');
+        document.body.innerHTML += '<div>'
+          +remoteStorage.notes.getNote('test.txt')
+          +'</div>';
+    });
+
+See http://remotestorage.io/ for further documentation.
