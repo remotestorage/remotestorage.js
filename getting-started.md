@@ -37,12 +37,14 @@ into your app, and do something like:
       };
     });
     remoteStorage.claimAccess({
-        notes: 'rw'
+      notes: 'rw'
     }).then(function() {
-        remoteStorage.displayWidget('remotestorage-widget');
-        remoteStorage.notes.getNote('test.txt').then(function(text) {
+      remoteStorage.displayWidget('remotestorage-widget');
+      remoteStorage.onWidget('ready', function() {
+       notes.getNote('test.txt').then(function(text) {
           document.body.innerHTML += '<div>'+text+'</div>';
         });
+      });
     });
 
 See http://remotestorage.io/ for further documentation.
