@@ -27,24 +27,6 @@ Copy
 
 into your app, and do something like:
 
-    remoteStorage.defineModule('notes', function(privateClient, publicClient) {
-      return {
-        exports: {
-          getNote: function (path) {
-            return publicClient.getFile(path);
-          }
-        }
-      };
-    });
-    remoteStorage.claimAccess({
-      notes: 'rw'
-    }).then(function() {
-      remoteStorage.displayWidget('remotestorage-widget');
-      remoteStorage.onWidget('ready', function() {
-       notes.getNote('test.txt').then(function(text) {
-          document.body.innerHTML += '<div>'+text+'</div>';
-        });
-      });
-    });
+    example/minimal/index.html
 
 See http://remotestorage.io/ for further documentation.
