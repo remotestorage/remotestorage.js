@@ -1,5 +1,9 @@
 <!DOCTYPE>
-<html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>minimal remoteStorage.js example</title>
+  </head>
   <body>
     <div id="remotestorage-widget"></div>
     <input id="text" />
@@ -24,8 +28,18 @@
       return {
         exports: {
           getNote: function () {
-            return privateClient.getFile(path);
-          },  
+            return (function(p) {
+              var cb;
+              privateClient.getFile(p).then(function(obj) {
+                cb(obj.data);
+              });
+              return {
+                then: function(setCb) {
+                  cb = setCb;
+                }
+              };
+            })(path);
+          },
           setNote: function (text) {
             return privateClient.storeFile(contentType, path, text);
           }
