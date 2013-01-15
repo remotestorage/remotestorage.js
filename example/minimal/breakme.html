@@ -1,0 +1,84 @@
+<!DOCTYPE>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>minimal remoteStorage.js example</title>
+  </head>
+  <body>
+    <div id="remotestorage-widget"></div>
+    <input id="button" type="submit" value="Break me" />
+    <p id="status">
+      Please connect your remotestorage (get one at <a href="https://heahdk.net/">https://heahdk.net/</a>)
+    </p>
+  </body>
+  <script src="remoteStorage.js"></script>
+  <script>
+    function $(id) { return document.getElementById(id); }
+    
+    function connect(scope, divId, onReady) {
+      remoteStorage.claimAccess(scope).then(function() {
+        remoteStorage.displayWidget(divId);
+        remoteStorage.onWidget('ready', onReady);
+      });
+    }
+    
+    remoteStorage.defineModule('notes', function(privateClient, publicClient) {
+      return {
+        exports: {
+          breakMe: function () {
+            privateClient.storeFile('text/plain', 'note.txt', 'foo').then(function() {
+              privateClient.storeFile('text/plain', 'note.txt', 'bar').then(function() {
+                privateClient.getFile('note.txt').then(function(obj) {
+                  if(obj.data == 'bar') {
+                    alert('fixed 1!');
+                  } else {
+                    alert('broken 1! ("'+obj.data+'")');
+                  }
+                  setTimeout(function() {
+                    privateClient.storeFile('text/plain', 'note.txt', 'foo').then(function() {
+                      setTimeout(function() {
+                        privateClient.storeFile('text/plain', 'note.txt', 'bar').then(function() {
+                          setTimeout(function() {
+                            privateClient.getFile('note.txt').then(function(obj) {
+                              if(obj.data == 'bar') {
+                                alert('fixed 2!');
+                              } else {
+                                alert('broken 2! ("'+obj.data+'")');
+                              }
+                              setTimeout(function() {
+                                privateClient.storeFile('text/plain', 'note.txt', 'foo');
+                                setTimeout(function() {
+                                  privateClient.storeFile('text/plain', 'note.txt', 'bar');
+                                  setTimeout(function() {
+                                    privateClient.getFile('note.txt').then(function(obj) {
+                                      if(obj.data == 'bar') {
+                                        alert('fixed 3!');
+                                      } else {
+                                        alert('broken 3! ("'+obj.data+'")');
+                                      }
+                                    });
+                                  }, 5000);
+                                }, 5000);
+                              }, 5000);
+                            });
+                          }, 5000);
+                        });
+                      }, 5000);
+                    });
+                  }, 5000);
+                });
+              });
+            });
+          }
+        }
+      };
+    });
+    
+    connect({ notes: 'rw' }, 'remotestorage-widget', function() {
+      $('status').innerHTML = 'ok';
+      $('button').onclick = function() {
+        remoteStorage.notes.breakMe();
+      };
+    });
+  </script>
+</html>
