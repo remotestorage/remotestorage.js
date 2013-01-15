@@ -239,16 +239,16 @@ define([
       return node ? node.timestamp : null;
     },
 
-    //  
+    //
     // Method: on
-    //  
+    //
     // Install an event handler for the given type.
-    // 
+    //
     // Parameters:
     //   eventType - type of event, either "change" or "error"
     //   handler   - event handler function
     //   context   - (optional) context to bind handler to
-    //  
+    //
     on: function(eventType, handler, context) {
       this.events.on(eventType, util.bind(handler, context));
     },
@@ -440,7 +440,11 @@ define([
       var absPath = this.makePath(path);
       return this.ensureAccess('w').
         then(util.curry(set, this.moduleName, path, absPath, undefined)).
-        then(util.curry(sync.syncOne, absPath));
+        then(function() {
+          return util.makePromise(function(p) {
+            sync.partialSync(util.containingDir(absPath), 1, p.fulfill.bind(p));
+          });
+        });
     },
 
     // Method: saveObject
@@ -455,7 +459,7 @@ define([
     //
     // Parameters:
     //   object - a typed JSON object
-    // 
+    //
     //
     saveObject: function(object) {
       var type = object['@type'];
@@ -496,8 +500,8 @@ define([
     //   aims to use <JSON-LD at http://json-ld.org/>.
     //   A first step in that direction, is to add a *@type attribute* to all
     //   JSON data put into remotestorage.
-    //   Now that is what the *type* is for. 
-    //   
+    //   Now that is what the *type* is for.
+    //
     //   Within remoteStorage.js, @type values are built using three components:
     //     https://remotestoragejs.com/spec/modules/ - A prefix to guarantee unqiueness
     //     the module name     - module names should be unique as well
@@ -510,7 +514,7 @@ define([
     // How to define types?:
     //
     //   See <declareType> or the calendar module (src/modules/calendar.js) for examples.
-    // 
+    //
     storeObject: function(typeAlias, path, obj) {
       if(typeof(path) !== 'string') {
         return failedPromise(new Error("given path must be a string (got: " + typeof(path) + ")"));
@@ -531,13 +535,14 @@ define([
           if(errors) {
             throw new ValidationError(obj, errors);
           }
-          return set(this.moduleName, path, absPath, obj, 'application/json');
+          return set(this.moduleName, path, absPath, obj, 'application/json')
         }.bind(this)).
         then(function() {
-          // don't return, otherwise app-code gets delayed until the request
-          // is done.
-          sync.syncOne(absPath);
-        });
+          var parentPath = util.containingDir(absPath);
+          return util.makePromise(function(p) {
+            sync.partialSync(parentPath, 1, p.fulfill.bind(p));
+          });
+        }.bind(this));
     },
 
     //
@@ -585,8 +590,11 @@ define([
       return this.ensureAccess('w').
         then(util.curry(set, this.moduleName, path, absPath, data, mimeType)).
         then(function() {
-          sync.syncOne(absPath);
-        });
+          var parentPath = util.containingDir(absPath);
+          return util.makePromise(function(p) {
+            sync.partialSync(parentPath, 1, p.fulfill.bind(p));
+          });
+        }.bind(this));
     },
 
     // Method: storeDocument
@@ -658,7 +666,7 @@ define([
     // Remove force flags from given node.
     //
     // See <sync> for details.
-    // 
+    //
     release: function(path) {
       var absPath = this.makePath(path);
       return store.setNodeForce(absPath, false, false);
@@ -784,7 +792,7 @@ define([
     //     }, function(error) {
     //       // error.errors holds validation errors:
     //       // [{ "property": "name",
-    //       //    "message": "is missing and it is required" }]    
+    //       //    "message": "is missing and it is required" }]
     //       //
     //       // error.object holds a copy of the object
     //     });
@@ -861,7 +869,7 @@ define([
     uuid: function() {
       return 'uuid:' + MathUUID.uuid();
     }
-    
+
   };
 
   util.extend(BaseClient, globalEvents);

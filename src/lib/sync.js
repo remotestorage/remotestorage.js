@@ -32,7 +32,7 @@ define([
   // * claim access on the root of the tree in question (see <remoteStorage.claimAccess>)
   // * state which branches you wish to have synced
   // * release paths you no longer need from the sync plan, so they won't impact performance
-  //     
+  //
   // Now suppose you have a data tree like this:
   //   (start code)
   //
@@ -43,7 +43,7 @@ define([
   //     d   E   f
   //        / \
   //       g   h
-  // 
+  //
   //   (end code)
   //
   // Let's consider *A* to be our root node (it may be a module root, doesn't
@@ -55,7 +55,7 @@ define([
   // Now as soon as sync is triggered (usually this happens when connecting
   // through the widget), the entire tree, with all it's nodes, including data
   // nodes (files) will be synchronized and cached to localStorage.
-  // 
+  //
   // If we previously set up a 'change' handler, it will now be called for each
   // data node, as it has been synchronized.
   //
@@ -173,7 +173,7 @@ define([
 
         function rootCb(path) {
           return function() {
-            logger.debug("SYNCED ROOT", path); 
+            logger.debug("SYNCED ROOT", path);
             synced++;
             if(synced == roots.length) {
               sync.lastSyncAt = new Date();
@@ -181,7 +181,7 @@ define([
             }
           };
         }
-      
+
         if(roots.length === 0) {
           return promise.fail(new Error("No access claimed!"));
         }
@@ -242,44 +242,6 @@ define([
     });
   }
 
-  // Function: syncOne
-  //
-  // Sync a single path. Call the callback when done.
-  //
-  // This function ignores all flags (access, force, forceTree) set on the node.
-  //
-  // Parameters:
-  //   path     - the path to synchronize
-  //   callback - (optional) callback to call when done
-  //
-  // Callback parameters:
-  //   node - local node after sync
-  //   data - data of local node after sync
-  //
-  // Fires:
-  //   ready    - when the sync queue is empty afterwards
-  //   conflict - when there are two incompatible versions of the same node
-  //   change   - when the local store is updated
-  //
-  function syncOne(path, callback) {
-    if(! isConnected()) {
-      return callback && callback('not-connected');
-    }
-
-    validatePath(path, true);
-    logger.info("single sync requested: " + path);
-    enqueueTask(function() {
-      logger.info("single sync started: " + path);
-      return util.asyncGroup(
-        util.curry(fetchLocalNode, path),
-        util.curry(fetchRemoteNode, path)
-      ).then(function(nodes) {
-        return processNode(path, nodes[0], nodes[1]);
-      }).then(function() {
-        return fetchLocalNode(path);
-      });
-    });
-  }
 
   /**************************************/
 
@@ -348,7 +310,7 @@ define([
     if(ready) {
       beginTask();
     } else {
-      console.log('not ready, enqueued task');
+      logger.info('not ready, enqueued task');
     }
   }
 
@@ -665,7 +627,10 @@ define([
   //
   function fetchRemoteNode(path, isDeleted) {
     logger.info("fetch remote", path);
-    return remoteAdapter.get(path);
+    return remoteAdapter.get(path).
+      then(function(node) {
+        return node || {};
+      });
   }
 
   // Section: Trivial helpers
@@ -676,8 +641,9 @@ define([
 
   function makeSet(a, b) {
     var o = {};
-    for(var i=0;i<a.length;i++) { o[a[i]] = true; }
-    for(var j=0;j<b.length;j++) { o[b[j]] = true; }
+    var al = a.length, bl = b.length;
+    for(var i=0;i<al;i++) { o[a[i]] = true; }
+    for(var j=0;j<bl;j++) { o[b[j]] = true; }
     return Object.keys(o);
   }
 
@@ -824,7 +790,7 @@ define([
 
         function determineForce() {
           logger.debug('determineForce', options);
-          var force = (options.force || options.forceTree)
+          var force = (options.force || options.forceTree);
           if((! force) && options.path == '/' || options.path == '/public/') {
             findNextForceRoots(options.path).
               then(function(roots) {
@@ -836,7 +802,7 @@ define([
             promise.fulfill(node, force);
           }
         }
-        
+
         if(! options.access) {
           // in case of a partial sync, we have not been informed about
           // access inherited from the parent.
@@ -848,7 +814,7 @@ define([
           determineForce();
         }
       });
-    };
+    }
 
     function mergeDataNode(path, localNode, remoteNode, options) {
       //BEGIN-DEBUG
@@ -858,16 +824,14 @@ define([
       if(util.isDir(path)) {
         throw new Error("Not a data node: " + path);
       }
-      if(options.force) {
-        return callback(path, localNode, remoteNode);
-      }
+      return callback(path, localNode, remoteNode);
     }
 
     function mergeDirectory(path, localNode, remoteNode, options) {
       //BEGIN-DEBUG
       debugEvent(path, 'mergeDirectory');
       //END-DEBUG
-      logger.debug("traverseTree.mergeDirectory", path, localNode);
+      logger.debug("traverseTree.mergeDirectory", path, localNode, options);
       var fullListing = makeSet(
         Object.keys(localNode.data),
         Object.keys(remoteNode.data)
@@ -886,7 +850,7 @@ define([
               }
               return mergeTree(childPath, childOptions);
             }
-          } else {
+          } else if(options.force) {
             return util.asyncGroup(
               util.curry(fetchLocalNode, childPath),
               util.curry(fetchRemoteNode, childPath)
@@ -898,6 +862,8 @@ define([
                 return mergeDataNode(childPath, nodes[0], nodes[1], options);
               }
             });
+          } else {
+            store.touchNode(childPath);
           }
         }
       });
@@ -960,62 +926,11 @@ define([
     };
   }
 
-  // // Function: makeErrorCatcher
-  // // returns a function, that receives an error as it's only parameter.
-  // // if the error resolves to true, an error event is fired.
-  // //
-  // // If an optional callback is supplied, and the error resolves to false,
-  // // the callback will be called with all additional arguments.
-  // function makeErrorCatcher(path, callback) {
-  //   return function(error) {
-  //     if(error) {
-  //       fireError(path, error);
-  //     } else if(callback) {
-  //       var args = Array.prototype.slice.call(arguments, 1);
-  //       callback.apply(this, args);
-  //     }
-  //   };
-  // }
-
-  // Limit calls to the given function to the given interval.
-  // If the function receives a callback, it must be the last argument.
-  // If the call is intercepted, as minInterval has not passed yet, the callback
-  // will be called immediately. No parameters will be passed on to the callback.
-  function limit(name, syncFunction, minInterval) {
-    return function() {
-      var args = Array.prototype.slice.call(arguments);
-      var callback = args.slice(-1)[0];
-      var plainArgs = args;
-      if(typeof(callback) == 'function') {
-        plainArgs = args.slice(0, -1);
-      } else {
-        callback = null;
-      }
-      var now = new Date().getTime();
-      var cacheKey = [name, plainArgs];
-      var limitCache = settings.get('limitCache') || {};
-      if(limitCache[cacheKey] && limitCache[cacheKey] > (now - minInterval)) {
-        logger.debug('limit', name, '-> replay');
-        if(callback) {
-          callback();
-        }
-      } else {
-        logger.debug('limit', name, '-> call through');
-        limitCache[cacheKey] = now;
-        settings.set('limitCache', limitCache);
-        syncFunction.apply(this, args);
-      }
-    };
-  }
-
 
   events.on('error', function(error) {
-    logger.error("Error: ", error);
+    logger.error("Sync Error: ", error);
   });
 
-  var limitedFullSync = limit('fullSync', fullSync, 10000);
-  var limitedPartialSync = limit('partialSync', partialSync, 5000);
-  
 
   var sync = util.extend(events, {
 
@@ -1042,9 +957,6 @@ define([
     // Method: partialSync
     // <partialSync>
     partialSync: partialSync,
-    // Method: syncOne
-    // <syncOne>
-    syncOne: syncOne,
 
     // Method: needsSync
     // Returns true, if there are local changes that have not been synced.

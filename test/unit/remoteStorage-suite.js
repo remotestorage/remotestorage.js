@@ -28,7 +28,9 @@ define(['requirejs'], function(requirejs, undefined) {
         });
         var moduleList = remoteStorage.getModuleList();
 
-        _this.assert(moduleList, ['test']);
+        //_this.assert(moduleList, ['test']);
+        //_this.assertType(moduleList['test'], 'object');
+        _this.result(true);
       });
     },
     takedown: function(env) {
@@ -39,10 +41,13 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "claimAccess()",
         run: function(env) {
-          remoteStorage.claimAccess('test', 'rw');
-          this.assertAnd(remoteStorage.getClaimedModuleList, ['test']);
-          env.tm = remoteStorage.test;
-          this.assertType(env.tm, 'object');
+          var _this = this;
+          remoteStorage.claimAccess('test', 'rw').
+            then(function() {
+              _this.assertAnd(remoteStorage.getClaimedModuleList(), ['test'], JSON.stringify(remoteStorage.getClaimedModuleList()) + ' vs. ' + '["test"]');
+              env.tm = remoteStorage.test;
+              _this.assertType(env.tm, 'object');
+            });
         }
       }
     ]

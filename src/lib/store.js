@@ -39,9 +39,6 @@ define([
     });
   }
 
-  // DEBUG
-  var directoryUpdates = [];
-
   // (function() {
   //   if(typeof(window) !== 'undefined') {
   //     var idb = indexedDbAdapter.detect();
@@ -116,7 +113,7 @@ define([
         });
       });
   }
-  
+
   //
   // Event: error
   // See <BaseClient.Events>
@@ -158,11 +155,11 @@ define([
           node.data = {};
         }
       }
-      
+
       return node;
     });
   }
-  
+
 
   // Method: forgetAll
   // Forget all data stored by <store>.
@@ -195,26 +192,37 @@ define([
 
       if(! outgoing) {
         if(typeof(timestamp) !== 'number') {
-          throw "Attempted to set non-number timestamp in incoming change: " + timestamp + ' (' + typeof(timestamp) + ')';
+          throw "Attempted to set non-number timestamp in incoming change: " + timestamp + ' (' + typeof(timestamp) + ') at path ' + path;
         }
         node.lastUpdatedAt = timestamp;
 
         delete node.error;
       }
-      
+
       if(! mimeType) {
         mimeType = 'application/json';
       }
       node.mimeType = mimeType;
+
+      // FIXME: only set this when incoming data is set?
+      delete node.pending;
 
       return updateNode(path, (node.data ? node : undefined), outgoing, false, timestamp, oldValue);
     });
   }
 
   function setLastSynced(path, timestamp) {
-    return getNode(path).then(function(node) {
-      node.lastUpdatedAt = timestamp;
-      return updateNode(path, node, false, true);
+    logger.info('setLastSynced', path, 'requested');
+    return dataStore.transaction(true, function(transaction) {
+      logger.info('setLastSynced', path, 'started');
+      return getNode(path, transaction).then(function(node) {
+        node.lastUpdatedAt = timestamp;
+        return updateNode(path, node, false, true, undefined, undefined, transaction).
+          then(function() {
+            logger.info('setLastSynced', path, 'done', timestamp);
+            transaction.commit();
+          });
+      });
     });
   }
 
@@ -396,19 +404,29 @@ define([
       });
   }
 
+  function touchNode(path) {
+    return dataStore.transaction(true, function(transaction) {
+      logger.info("touchNode", path);
+      return getNode(path, transaction).
+        then(function(node) {
+          if(typeof(node.data) === 'undefined') {
+            node.pending = true;
+          }
+          return updateNode(path, node, false, true, undefined, undefined, transaction).
+            then(transaction.commit);
+        });
+    });
+  }
+
   // FIXME: this argument list is getting too long!!!
   function updateNode(path, node, outgoing, meta, timestamp, oldValue,
                       transaction) {
-    logger.info('updateNode', path, node, outgoing, meta, timestamp);
+    logger.debug('updateNode', path, node, outgoing, meta, timestamp);
 
     validPath(path);
 
-    if(util.isDir(path)) {
-      directoryUpdates.push([path, node.data, oldValue, !!transaction]);
-    }
-
     function adjustTimestamp(transaction) {
-      logger.debug('updateNode.adjustTimestamp', transaction);
+      logger.debug('updateNode.adjustTimestamp', path);
       return util.makePromise(function(promise) {
         function setTimestamp(t) {
           if(t) { timestamp = t; }
@@ -433,7 +451,7 @@ define([
     }
 
     function storeNode(transaction) {
-      logger.debug('updateNode.storeNode', transaction, node);
+      logger.debug('updateNode.storeNode', path, node);
       if(node) {
         return transaction.set(path, node);
       } else {
@@ -504,7 +522,7 @@ define([
           }
         }).
         then(fireEvents);
-    };
+    }
 
     if(transaction) {
       return doUpdate(transaction, true);
@@ -518,11 +536,11 @@ define([
     memory: memoryAdapter,
     localStorage: localStorageAdapter,
     pending: pendingAdapter,
-    
+
     events: events,
 
     // method         , local              , used by
-                                           
+
     getNode           : getNode,          // sync
     setNodeData       : setNodeData,      // sync
     clearDiff         : clearDiff,        // sync
@@ -533,15 +551,13 @@ define([
     setNodeAccess     : setNodeAccess,
     setNodeForce      : setNodeForce,
     setNodeError      : setNodeError,
-    
+    touchNode         : touchNode,
+
     forgetAll         : forgetAll,        // widget
     fireInitialEvents : fireInitialEvents,// widget
 
     setAdapter        : setAdapter,
-    getAdapter        : function() { return dataStore; },
-
-    // DEBUG
-    directoryUpdates: directoryUpdates
+    getAdapter        : function() { return dataStore; }
   };
 
   // Interface: StorageAdapter

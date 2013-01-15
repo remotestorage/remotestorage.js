@@ -1,9 +1,7 @@
 
-var config = require('./config').config;
-
 var fs = require('fs');
 
-var dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
+var dontPersist = true;
 
 if(! fs.existsSync) {
   fs.existsSync = function(path) {
@@ -13,20 +11,54 @@ if(! fs.existsSync) {
     } catch(e) {
       return false;
     }
-  }
+  };
 }
 
-exports.handler = (function() {
+var amd = false;
+if(typeof(exports) === 'undefined') {
+  var exports = {};
+  amd = true;
+}
+
+var config = {};
+
+exports.server = (function() {
   var url=require('url'),
     crypto=require('crypto'),
     tokens, lastModified, contentType, content;
 
+  var responseDelay = null;
+  var capturedRequests = [];
+  var doCapture = false;
+
+  function captureRequests() {
+    doCapture = true;
+  }
+
   function resetState() {
     tokens = {}, lastModified = {}, contentType = {}, content = {};
+    responseDelay = null;
+    while(capturedRequests.length > 0) {
+      capturedRequests.shift();
+    }
+    doCapture = false;
+  }
+
+  function getState() {
+    return {
+      tokens: tokens,
+      lastModified: lastModified,
+      contentType: contentType,
+      content: content
+    };
+  }
+
+  function delayResponse(msec) {
+    responseDelay = msec;
   }
 
   function saveState(name, value) {
-    fs.writeFile("server-state/" + name + ".json", JSON.stringify(value), function() { });    
+    fs.writeFile("server-state/" + name + ".json", JSON.stringify(value), function() { });
   }
 
   function loadState(name) {
@@ -75,6 +107,11 @@ exports.handler = (function() {
       }
     }
     return scopePaths;
+  }
+
+
+  function addToken(token, scopes) {
+    tokens[token] = makeScopePaths('me', scopes);
   }
 
   function createInitialTokens() {
@@ -145,14 +182,19 @@ exports.handler = (function() {
     }
     res.writeHead(status, headers);
   }
+
   function writeRaw(res, contentType, content, origin, timestamp) {
-    console.log('access-control-allow-origin:'+ (origin?origin:'*'));
-    console.log(contentType);
-    console.log(content);
-    writeHead(res, 200, origin, timestamp, contentType);
-    res.write(content);
-    res.end();
+    function doWrite() {
+      console.log('access-control-allow-origin:'+ (origin?origin:'*'));
+      console.log(contentType);
+      console.log(content);
+      writeHead(res, 200, origin, timestamp, contentType);
+      res.write(content);
+      res.end();
+    }
+    responseDelay ? setTimeout(doWrite, responseDelay) : doWrite();
   }
+
   function writeJson(res, obj, origin, timestamp) {
     writeRaw(res, 'application/json', JSON.stringify(obj), origin, timestamp);
   }
@@ -202,8 +244,8 @@ exports.handler = (function() {
       (function(i) {
         createToken(config.defaultUserName, scopes[i], function(token) {
           res.write('<li><a href="'+i+'#storage_root=http://'+config.host+'/storage/'+config.defaultUserName
-            //+'&authorize_endpoint=http://'+config.host+'/auth/'+config.defaultUserName+'">'+i+'</a></li>');
-            +'&access_token='+token+'">'+i+'</a></li>');
+                    //+'&authorize_endpoint=http://'+config.host+'/auth/'+config.defaultUserName+'">'+i+'</a></li>');
+                    +'&access_token='+token+'">'+i+'</a></li>');
           outstanding--;
           if(outstanding==0) {
             res.write('</ul></body></html>');
@@ -234,10 +276,10 @@ exports.handler = (function() {
   function oauth(urlObj, res) {
     console.log('OAUTH');
     var scopes = decodeURIComponent(urlObj.query['scope']).split(' '),
-      clientId = decodeURIComponent(urlObj.query['client_id']),
-      redirectUri = decodeURIComponent(urlObj.query['redirect_uri']),
-      clientIdToMatch,
-      userName;
+    clientId = decodeURIComponent(urlObj.query['client_id']),
+    redirectUri = decodeURIComponent(urlObj.query['redirect_uri']),
+    clientIdToMatch,
+    userName;
     if(redirectUri.split('://').length<2) {
       clientIdToMatch=redirectUri;
     } else {
@@ -252,8 +294,18 @@ exports.handler = (function() {
       });
     }
   }
+
   function storage(req, urlObj, res) {
     var path=urlObj.pathname.substring('/storage/'.length);
+    var capt = {
+      method: req.method,
+      path: path
+    };
+
+    if(doCapture) {
+      capturedRequests.push(capt);
+    }
+
     if(req.method=='OPTIONS') {
       console.log('OPTIONS ', req.headers);
       writeJson(res, null, req.headers.origin);
@@ -285,6 +337,7 @@ exports.handler = (function() {
         });
         req.on('end', function(chunk) {
           var timestamp = new Date().getTime();
+          capt.body = dataStr;
           content[path]=dataStr;
           contentType[path]=req.headers['content-type'];
           console.log('stored '+path, content[path], contentType[path]);
@@ -305,11 +358,11 @@ exports.handler = (function() {
               content[pathParts.join('/')+'/'] = {};
             }
             content[pathParts.join('/')+'/'][thisPart]=timestamp;
-            console.log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
+            // console.log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
           }
-          console.log('content:', content);
-          console.log('contentType:', contentType);
-          console.log('lastModified:', lastModified);
+          // console.log('content:', content);
+          // console.log('contentType:', contentType);
+          // console.log('lastModified:', lastModified);
           writeJson(res, null, req.headers.origin, timestamp);
         });
       } else {
@@ -318,19 +371,19 @@ exports.handler = (function() {
     } else if(req.method=='DELETE') {
       console.log('DELETE');
       if(mayWrite(req.headers.authorization, path)) {
-          var timestamp = new Date().getTime();
-          delete content[path];
-          delete contentType[path];
-          lastModified[path]=timestamp;
-          saveData();
-          var pathParts=path.split('/');
-          var thisPart = pathParts.pop();
-          if(content[pathParts.join('/')+'/']) {
-            console.log('delete content['+pathParts.join('/')+'/]['+thisPart+']');
-            delete content[pathParts.join('/')+'/'][thisPart];
-          }
-          console.log(content);
-          writeJson(res, null, req.headers.origin, timestamp);
+        var timestamp = new Date().getTime();
+        delete content[path];
+        delete contentType[path];
+        lastModified[path]=timestamp;
+        saveData();
+        var pathParts=path.split('/');
+        var thisPart = pathParts.pop();
+        if(content[pathParts.join('/')+'/']) {
+          console.log('delete content['+pathParts.join('/')+'/]['+thisPart+']');
+          delete content[pathParts.join('/')+'/'][thisPart];
+        }
+        console.log(content);
+        writeJson(res, null, req.headers.origin, timestamp);
       } else {
         computerSaysNo(res, req.headers.origin);
       }
@@ -339,7 +392,8 @@ exports.handler = (function() {
       computerSaysNo(res, req.headers.origin);
     }
   }
-  function serve(req, res, staticsMap) {
+
+  function serve(req, res) {
     var urlObj = url.parse(req.url, true), userAddress, userName;
     console.log(urlObj);
     if(urlObj.pathname == '/') {
@@ -368,12 +422,23 @@ exports.handler = (function() {
   createInitialTokens();
 
   return {
-    serve: serve
+    serve: serve,
+    getState: getState,
+    resetState: resetState,
+    addToken: addToken,
+    delayResponse: delayResponse,
+    captureRequests: captureRequests,
+    captured: capturedRequests
   };
 })();
 
-if(require.main==module) {//if this file is directly called from the CLI
-  require('http').createServer(exports.handler.serve).listen(config.port);
+if((!amd) && (require.main==module)) {//if this file is directly called from the CLI
+  config = require('./config').config;
+  dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
+  require('http').createServer(exports.server.serve).listen(config.port);
   console.log("Example server started on 0.0.0.0:" + config.port);
 }
 
+if(amd) {
+  define([], exports);
+}

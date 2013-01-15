@@ -88,8 +88,8 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "util.isDir()",
         run: function(env) {
-          this.assertAnd(env.util.isDir('yes/i/am/a/path/'));
-          this.assertFail(env.util.isDir('yes/i/am/a/path'));
+          this.assertAnd(env.util.isDir('yes/i/am/a/path/'), true);
+          this.result(!!!env.util.isDir('yes/i/am/a/path'));
         }
       },
       {

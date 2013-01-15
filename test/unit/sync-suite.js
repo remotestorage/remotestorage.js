@@ -22,7 +22,11 @@ define(['requirejs'], function(requirejs) {
         env.store.setAdapter(memoryAdapter());
         env.sync = sync;
         env.remoteAdapter = memoryAdapter();
+        env.remoteAdapter.getState = function() { return 'connected'; };
         env.remoteAdapter.expireKey = function() {};
+        env.remoteAdapter.clearCache = function() {
+          return env.remoteAdapter.forgetAll();
+        };
         env.conflicts = [];
         env.sync.on('conflict', function(event) {
           env.conflicts.push(event);
@@ -314,8 +318,8 @@ define(['requirejs'], function(requirejs) {
               _this.assertAnd(env.conflicts.length, 1);
               var conflict = env.conflicts.shift();
               _this.assertAnd(conflict.path, '/foo/bar');
-              _this.assertAnd(conflict.remoteTime, 23456);
-              _this.assertAnd(conflict.localTime, 34567);
+              _this.assertAnd(conflict.remoteTime, new Date(23456));
+              _this.assertAnd(conflict.localTime, new Date(34567));
               _this.assert(true, true);
             }, function(error) {
               console.error("processNode failed: ", error, error.stack);

@@ -55,7 +55,7 @@ define(['./util'], function(util) {
   //   web browser - YES (if browser <supports CORS at http://caniuse.com/#feat=cors>)
   //   IE - Partially, no support for setting headers.
   //   node - YES, CORS not an issue at all
-  // 
+  //
   //
   // Method: parseXml
   //
@@ -94,7 +94,7 @@ define(['./util'], function(util) {
         // The escaped colon in the following (previously added) comment is
         // necessary, to prevent NaturalDocs from generating a toplevel
         // document called "value line" to the documentation. True story.
-        
+
         // key\: value line
         key = md[1], value = md[2];
         headers[key] = value;
@@ -201,69 +201,72 @@ define(['./util'], function(util) {
 
   function ajaxNode(params) {
 
-    if(typeof(params.data) === 'object' && params.data instanceof Blob) {
-      throw new Error("Sending binary data not yet implemented for nodejs");
-    }
+    return util.makePromise(function(promise) {
 
-    var http=nodeRequire('http'),
+      if(typeof(params.data) === 'object' && params.data instanceof Blob) {
+        throw new Error("Sending binary data not yet implemented for nodejs");
+      }
+
+      var http=nodeRequire('http'),
       https=nodeRequire('https'),
       url=nodeRequire('url');
-    if(!params.method) {
-      params.method='GET';
-    }
-    if(params.data) {
-      params.headers['content-length'] = params.data.length;
-    } else {
-      params.data = null;
-    }
-    var urlObj = url.parse(params.url);
-    var options = {
-      method: params.method,
-      host: urlObj.hostname,
-      path: urlObj.path,
-      port: (urlObj.port ? urlObj.port : (urlObj.protocol=='https:'?443:80)),
-      headers: params.headers
-    };
-    var timer, timedOut;
+      if(!params.method) {
+        params.method='GET';
+      }
+      if(params.data) {
+        params.headers['content-length'] = params.data.length;
+      } else {
+        params.data = null;
+      }
+      var urlObj = url.parse(params.url);
+      var options = {
+        method: params.method,
+        host: urlObj.hostname,
+        path: urlObj.path,
+        port: (urlObj.port ? urlObj.port : (urlObj.protocol=='https:'?443:80)),
+        headers: params.headers
+      };
+      var timer, timedOut;
 
-    if(params.timeout) {
-      timer = setTimeout(function() {
-        params.error('timeout');
-        timedOut=true;
-      }, params.timeout);
-    }
+      if(params.timeout) {
+        timer = setTimeout(function() {
+          promise.fail('timeout');
+          timedOut=true;
+        }, params.timeout);
+      }
 
-    var lib = (urlObj.protocol=='https:'?https:http);
-    var request = lib.request(options, function(response) {
-      var str='';
-      response.setEncoding('utf8');
-      response.on('data', function(chunk) {
-        str+=chunk;
+      var lib = (urlObj.protocol=='https:'?https:http);
+      var request = lib.request(options, function(response) {
+        var str='';
+        response.setEncoding('utf8');
+        response.on('data', function(chunk) {
+          str+=chunk;
+        });
+        response.on('end', function() {
+          if(timer) {
+            clearTimeout(timer);
+          }
+          if(!timedOut) {
+            if(response.statusCode==200 || response.statusCode==201 || response.statusCode==204) {
+              promise.fulfill(str, normalizeHeaders(response.headers));
+            } else {
+              promise.fail(response.statusCode);
+            }
+          }
+        });
       });
-      response.on('end', function() {
+      request.on('error', function(e) {
         if(timer) {
           clearTimeout(timer);
         }
-        if(!timedOut) {
-          if(response.statusCode==200 || response.statusCode==201 || response.statusCode==204) {
-            params.success(str, normalizeHeaders(response.headers));
-          } else {
-            params.error(response.statusCode);
-          }
-        }
+        promise.fail(e.message);
       });
-    });
-    request.on('error', function(e) {
-      if(timer) {
-        clearTimeout(timer);
+      if(params.data) {
+        request.end(params.data);
+      } else {
+        request.end();
       }
-      params.error(e.message);
     });
-    if(params.data) {
-      request.end(params.data);
-    } else {
-      request.end();
-    }
   }
 
   function parseXmlBrowser(str, cb) {
@@ -319,7 +322,7 @@ define(['./util'], function(util) {
         parseXml: parseXmlBrowser
       };
     }
-
-    return platform;
   }
+
+  return platform;
 });

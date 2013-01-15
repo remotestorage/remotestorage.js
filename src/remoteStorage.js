@@ -20,7 +20,7 @@ define('remoteStorage', [
   var logger = util.getLogger('base');
 
   // Namespace: remoteStorage
-  var remoteStorage =  { 
+  var remoteStorage =  {
 
     // Property: store
     // Public access to <store>
@@ -32,7 +32,7 @@ define('remoteStorage', [
 
     //
     // Method: defineModule
-    // 
+    //
     // Define a new module, with given name.
     // Module names MUST be unique. The given builder will be called
     // immediately, with two arguments, which are both instances of
@@ -41,7 +41,7 @@ define('remoteStorage', [
     // be read by any client (not just an authenticated one), while
     // it can only be written by an authenticated client with read-write
     // access claimed on it.
-    // 
+    //
     // The builder is expected to return an object, as described under
     // <getModuleInfo>.
     //
@@ -60,7 +60,7 @@ define('remoteStorage', [
     //
     //     return {
     //       exports: {
-    //   
+    //
     //         addBeer: function(name) {
     //           privateClient.storeObject('beer', nameToKey(name), {
     //             name: name,
@@ -158,25 +158,25 @@ define('remoteStorage', [
     //
     //
     //   Some of the dataHints used are:
-    //  
+    //
     //     objectType <type> - description of an object
     //                         type implemented by the module
     //     "objectType message" - (example)
-    //  
+    //
     //     <attributeType> <objectType>#<attribute> - description of an attribute
-    //  
+    //
     //     "string message#subject" - (example)
-    //  
+    //
     //     directory <path> - description of a path's purpose
-    //  
+    //
     //     "directory documents/notes/" - (example)
-    //  
+    //
     //     item <path> - description of a specific item
-    //  
+    //
     //     "item documents/notes/calendar" - (example)
-    //  
+    //
     //   Hope this helps.
-    // 
+    //
     getModuleInfo: function(moduleName) {
       return modules[moduleName];
     },
@@ -202,7 +202,7 @@ define('remoteStorage', [
     // Parameters:
     //   moduleName - name of the module. For a list of defined modules, use <getModuleList>
     //   claim      - permission to claim, either *r* (read-only) or *rw* (read-write)
-    // 
+    //
     // Example:
     //   > remoteStorage.claimAccess('contacts', 'r');
     //
@@ -223,14 +223,14 @@ define('remoteStorage', [
     //   > });
     //
     claimAccess: function(moduleName, mode) {
-      
+
       var modeTestRegex = /^rw?$/;
       function testMode(moduleName, mode) {
         if(!modeTestRegex.test(mode)) {
           throw "Claimed access to module '" + moduleName + "' but mode not correctly specified ('" + mode + "').";
         }
       }
-      
+
       var moduleObj;
       if(typeof moduleName === 'object') {
         moduleObj = moduleName;
@@ -285,30 +285,34 @@ define('remoteStorage', [
 
     disconnectRemote : wireClient.disconnectRemote,
 
-    // 
+    //
     // Method: flushLocal()
-    // 
+    //
     // Forget this ever happened.
-    // 
+    //
     // Delete all locally stored data.
     // This doesn't clear localStorage, just removes everything
     // remoteStorage.js saved there. Other data your app might
     // have put into localStorage stays there.
-    // 
+    //
     // Call this method to implement "logout".
     //
     // If you are using the widget (which you should!), you don't need this.
-    // 
+    //
     // Example:
     //   > remoteStorage.flushLocal();
     //
     flushLocal       : function() {
-      store.forgetAll();
-      sync.clearSettings();
-      widget.clearSettings();
-      schedule.reset();
-      wireClient.disconnectRemote();
-      i18n.clearSettings();
+      return util.makePromise(function(promise) {
+        logger.info('flushLocal');
+        store.forgetAll().then(promise.fulfill.bind(promise));
+        sync.clearSettings();
+        widget.clearSettings();
+        schedule.reset();
+        wireClient.disconnectRemote();
+        i18n.clearSettings();
+        claimedModules = {};
+      });
     },
 
     //
@@ -327,7 +331,7 @@ define('remoteStorage', [
     //
     // Parameters:
     //   callback - (optional) callback to be notified when synchronization has finished or failed.
-    // 
+    //
     // Example:
     //   >
     //   > remoteStorage.claimAccess('money', 'rw');
@@ -348,11 +352,11 @@ define('remoteStorage', [
 
     setWidgetView: widget.setView,
 
-    //  
+    //
     // Method: displayWidget
     //
     // Add the remotestorage widget to the page.
-    // 
+    //
     // Parameters:
     //   domID - DOM ID of element to attach widget elements to
     //   options - Options, as described below.
@@ -377,7 +381,7 @@ define('remoteStorage', [
     //    (using the same markup as above)
     //
     //    > remoteStorage.displayWidget('remotestorage-connect', { authDialog: 'popup' });
-    //    
+    //
     displayWidget: function(domId, options) {
       widget.display(remoteStorage, domId, util.extend({}, options));
     },
