@@ -172,6 +172,8 @@ define(
         return fetchProfile(
           lrddLink.template.replace('{uri}', 'acct:' + userAddress)
         ).then(extractRemoteStorageLink);
+      } else {
+        throw 'not-supported';
       }
     }
 
