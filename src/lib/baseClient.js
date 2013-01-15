@@ -440,7 +440,11 @@ define([
       var absPath = this.makePath(path);
       return this.ensureAccess('w').
         then(util.curry(set, this.moduleName, path, absPath, undefined)).
-        then(util.curry(sync.syncOne, absPath));
+        then(function() {
+          return util.makePromise(function(p) {
+            sync.partialSync(util.containingDir(absPath), 1, p.fulfill.bind(p));
+          });
+        });
     },
 
     // Method: saveObject
@@ -531,11 +535,14 @@ define([
           if(errors) {
             throw new ValidationError(obj, errors);
           }
-          return set(this.moduleName, path, absPath, obj, 'application/json');
+          return set(this.moduleName, path, absPath, obj, 'application/json')
         }.bind(this)).
         then(function() {
-          return sync.syncOne(absPath);
-        });
+          var parentPath = util.containingDir(absPath);
+          return util.makePromise(function(p) {
+            sync.partialSync(parentPath, 1, p.fulfill.bind(p));
+          });
+        }.bind(this));
     },
 
     //
@@ -583,8 +590,11 @@ define([
       return this.ensureAccess('w').
         then(util.curry(set, this.moduleName, path, absPath, data, mimeType)).
         then(function() {
-          return sync.syncOne(absPath);
-        });
+          var parentPath = util.containingDir(absPath);
+          return util.makePromise(function(p) {
+            sync.partialSync(parentPath, 1, p.fulfill.bind(p));
+          });
+        }.bind(this));
     },
 
     // Method: storeDocument

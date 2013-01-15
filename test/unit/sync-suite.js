@@ -22,7 +22,11 @@ define(['requirejs'], function(requirejs) {
         env.store.setAdapter(memoryAdapter());
         env.sync = sync;
         env.remoteAdapter = memoryAdapter();
+        env.remoteAdapter.getState = function() { return 'connected'; };
         env.remoteAdapter.expireKey = function() {};
+        env.remoteAdapter.clearCache = function() {
+          return env.remoteAdapter.forgetAll();
+        };
         env.conflicts = [];
         env.sync.on('conflict', function(event) {
           env.conflicts.push(event);

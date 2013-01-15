@@ -242,46 +242,6 @@ define([
     });
   }
 
-  // Function: syncOne
-  //
-  // Sync a single path. Call the callback when done.
-  //
-  // This function ignores all flags (access, force, forceTree) set on the node.
-  //
-  // Parameters:
-  //   path     - the path to synchronize
-  //   callback - (optional) callback to call when done
-  //
-  // Callback parameters:
-  //   node - local node after sync
-  //   data - data of local node after sync
-  //
-  // Fires:
-  //   ready    - when the sync queue is empty afterwards
-  //   conflict - when there are two incompatible versions of the same node
-  //   change   - when the local store is updated
-  //
-  function syncOne(path) {
-    return util.makePromise(function(promise) {
-      if(! isConnected()) {
-        return promise.fulfill();
-      }
-
-      validatePath(path, true);
-      logger.info("single sync requested: " + path);
-      return enqueueTask(function() {
-        logger.info("single sync started: " + path);
-        return util.asyncGroup(
-          util.curry(fetchLocalNode, path),
-          util.curry(fetchRemoteNode, path)
-        ).then(function(nodes) {
-          return processNode(path, nodes[0], nodes[1]);
-        }).then(function() {
-          return fetchLocalNode(path);
-        }).then(promise.fulfill.bind(promise), promise.fail.bind(promise));
-      });
-    });
-  }
 
   /**************************************/
 
@@ -350,7 +310,7 @@ define([
     if(ready) {
       beginTask();
     } else {
-      console.log('not ready, enqueued task');
+      logger.info('not ready, enqueued task');
     }
   }
 
@@ -667,7 +627,10 @@ define([
   //
   function fetchRemoteNode(path, isDeleted) {
     logger.info("fetch remote", path);
-    return remoteAdapter.get(path);
+    return remoteAdapter.get(path).
+      then(function(node) {
+        return node || {};
+      });
   }
 
   // Section: Trivial helpers
@@ -678,8 +641,9 @@ define([
 
   function makeSet(a, b) {
     var o = {};
-    for(var i=0;i<a.length;i++) { o[a[i]] = true; }
-    for(var j=0;j<b.length;j++) { o[b[j]] = true; }
+    var al = a.length, bl = b.length;
+    for(var i=0;i<al;i++) { o[a[i]] = true; }
+    for(var j=0;j<bl;j++) { o[b[j]] = true; }
     return Object.keys(o);
   }
 
@@ -993,9 +957,6 @@ define([
     // Method: partialSync
     // <partialSync>
     partialSync: partialSync,
-    // Method: syncOne
-    // <syncOne>
-    syncOne: syncOne,
 
     // Method: needsSync
     // Returns true, if there are local changes that have not been synced.
