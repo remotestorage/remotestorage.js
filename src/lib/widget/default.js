@@ -136,13 +136,6 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
         addBubbleHint(t('typing-hint'));
       }
 
-      elements.bubble.appendChild(elements.localeChooser);
-
-      addEvent(elements.localeChooser, 'change', function() {
-        i18n.setLocale(elements.localeChooser.value);
-        setState(currentState);
-      });
-      
       setCubeAction(jumpAction('initial'));
 
       elements.connectForm.userAddress.focus();
@@ -337,21 +330,6 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     elements.disconnectButton = cEl('button');
     elements.disconnectButton.setAttribute('class', 'disconnect');
 
-    // select.locale
-    elements.localeChooser = cEl('select');
-    addClass(elements.localeChooser, 'locale');
-
-    var currentLocale = i18n.getLocale();
-    i18n.locales.forEach(function(locale) {
-      var option = cEl('option');
-      option.setAttribute('value', locale);
-      option.innerHTML = locale;
-      if(locale === currentLocale) {
-        option.setAttribute('selected', 'selected');
-      }
-      elements.localeChooser.appendChild(option);
-    });
-
     resetElementState();
   }
 
@@ -419,11 +397,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     }
     widgetOptions = options;
 
-    if(options.locale) {
-      i18n.setLocale(options.locale);
-    } else {
-      i18n.autoDetect();
-    }
+    i18n.setLocale('en');
 
     prepareWidget();
     gEl(domId).appendChild(elements.style);
