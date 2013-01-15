@@ -426,6 +426,18 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
               _this.assertType(node.pending, 'undefined');
             });
         }
+      },
+
+      {
+        desc: "store.setLastSynced updates lastUpdatedAt flag",
+        run: function(env) {
+          var _this = this;
+          env.store.setLastSynced('/some-path', 23456).
+            then(curry(env.store.getNode, '/some-path')).
+            then(function(node) {
+              _this.assert(node.lastUpdatedAt, 23456);
+            });
+        }
       }
 
     ]

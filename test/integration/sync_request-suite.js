@@ -79,6 +79,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             then(function() {
               // check current version (we haven't done initial sync)
               env.serverHelper.expectRequest(
+                _this, 'GET', 'me/'
+              );
+              env.serverHelper.expectRequest(
                 _this, 'GET', 'me/testobj'
               );
               // update remote data
@@ -133,6 +136,8 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
       {
         desc: "Syncing trees w/ data",
         run: function(env) {
+          util.silenceAllLoggers();
+          util.unsilenceLogger('sync');
           var _this = this;
           // push initial tree ( a/{1,2,3} and b/{1,2,3} ):
           util.asyncEach(['a', 'b'], function(d) {
@@ -140,6 +145,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               return env.client.storeObject('test', d + '/obj-' + i, { d: d, i: i });
             })
           }).
+            then(env.remoteStorage.fullSync).
             // dis- and reconnect
             then(env.remoteStorage.flushLocal).
             then(env.serverHelper.clearCaptured.bind(env.serverHelper)).
@@ -158,6 +164,21 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectNoMoreRequest(_this);
 
               _this.assert(true, true);
+            });
+        }
+      },
+
+      {
+        desc: "store file, then store it again, then retrieve it",
+        run: function(env) {
+          var _this = this;
+          console.log("STORE foo");
+          env.client.storeFile('text/plain', 'note.txt', 'foo').
+            then(curry(env.client.storeFile, 'text/plain', 'note.txt', 'bar')).
+            then(curry(env.client.getFile, 'note.txt')).
+            then(function(file) {
+              _this.assertAnd(file.mimeType, 'text/plain');
+              _this.assert(file.data, 'bar');
             });
         }
       }

@@ -53,14 +53,14 @@ define(
       var parts = userAddress.toLowerCase().split('@');
       var error;
       if(parts.length < 2) {
-        error = 'That is not a user address. There is no @-sign in it';
+        error = 'no-at';
       } else if(parts.length > 2) {
-        error = 'That is not a user address. There is more than one @-sign in it';
+        error = 'multiple-at';
       } else {
         if(!(/^[\.0-9a-z\-\_]+$/.test(parts[0]))) {
-          error = 'That is not a user address. There are non-dotalphanumeric symbols before the @-sign: "'+parts[0]+'"';
+          error = 'non-dotalphanum';
         } else if(!(/^[\.0-9a-z\-]+$/.test(parts[1]))) {
-          error = 'That is not a user address. There are non-dotalphanumeric symbols after the @-sign: "'+parts[1]+'"';
+          error = 'non-dotalphanum';
         }
       }
       if(error) {
@@ -90,7 +90,7 @@ define(
             }
             promise.fulfill(links);
           } else {
-            promise.fail('found valid xml but with no Link elements in there');
+            promise.fail('invalid-xml');
           }
         }
       });
@@ -100,7 +100,7 @@ define(
     function parseJRD(data) {
       var object = JSON.parse(data);
       if(! object.links) {
-        throw new Error('JRD contains no links: ' + JSON.stringify(object));
+        throw 'invalid-jrd';
       }
       var links = {};
       object.links.forEach(function(link) {
@@ -148,9 +148,7 @@ define(
               return profiles[i];
             }
           }
-          throw new Error(
-            "Failed to fetch webfinger profile. All requests failed."
-          );
+          throw 'requests-failed';
         });
     }
 
@@ -205,7 +203,13 @@ define(
 
        */
 
-      var hostname = extractHostname(userAddress)
+      try {
+        var hostname = extractHostname(userAddress)
+      } catch(error) {
+        if(error) {
+          return util.getPromise().failLater(error);
+        }
+      }
       var query = '?resource=acct:' + encodeURIComponent(userAddress);
       var addresses = [
         'https://' + hostname + '/.well-known/host-meta.json' + query,

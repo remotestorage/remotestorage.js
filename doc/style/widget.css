@@ -1,6 +1,7 @@
 /** encoding:utf-8 **/
 
 #remotestorage-widget, #remotestorage-widget * {
+    -moz-box-sizing: border-box;
     box-sizing: border-box;
 }
 
@@ -17,18 +18,21 @@
 }
 
 #remotestorage-widget .bubble {
-    background: #545454;
+    background: rgba(80, 80, 80, .85);
     border-radius: 5px 15px 5px 5px;
     color: white;
     font-size: 0.8em;
-    padding: 5px 28px 1.5em 6px;
+    padding: 5px;
     position: absolute;
     right: 3px;
     top: 9px;
-    min-height: 18px;
-    opacity: 0.7;
+    min-height: 24px;
     white-space: nowrap;
     text-decoration: none;
+}
+
+#remotestorage-widget .bubble-text {
+    padding-right: 32px;
 }
 
 #remotestorage-widget .bubble.one-line {
@@ -40,7 +44,6 @@
 }
 
 #remotestorage-widget:hover .bubble.hidden {
-    min-width: 18em;
     display: block;
 }
 
@@ -51,7 +54,7 @@
 #remotestorage-widget .cube {
     position: absolute;
     top: 5px;
-    right: 0px;
+    right: 0;
 }
 
 #remotestorage-widget .cube.spinning {
@@ -79,18 +82,17 @@
 
 
 #remotestorage-widget a {
-    text-decoration: none;
+    text-decoration: underline;
     color: inherit;
 }
 
 #remotestorage-widget form {
-    position: relative;
-    width: 24em;
-    margin: 0.7em -2em 0.7em 0;
+    margin-top: 0.7em;
 }
 
 #remotestorage-widget form input {
-    display: block;
+    display: table-cell;
+    vertical-align: top;
     border: none;
     border-radius: 6px;
     font-weight: bold;
@@ -99,30 +101,54 @@
     line-height: 1.5em;
     height: 2em;
 }
+#remotestorage-widget form input:disabled {
+    color: #999;
+    background: #444 !important;
+    cursor: default !important;
+}
 
 #remotestorage-widget form input[type=email] {
-    background: #333;
+    background: #000;
     width: 16em;
-    padding: 0.2em 1em 0.2em 0.5em;
+    padding: 0 5px;
+    margin-right: 5px;
+}
+#remotestorage-widget form input[type=email]:focus {
+    box-shadow: 0 0 4px #ccc;
+}
+
+#remotestorage-widget form input[type=email]::-webkit-input-placeholder {
+    color: #999;
+}
+#remotestorage-widget form input[type=email]:-moz-placeholder {
+    color: #999;
+}
+#remotestorage-widget form input[type=email]::-moz-placeholder {
+    color: #999;
+}
+#remotestorage-widget form input[type=email]:-ms-input-placeholder {
+    color: #999;
 }
 
 #remotestorage-widget form input[type=submit] {
-    position: absolute;
-    top:0;
-    right:0;
     background: #000;
     cursor: pointer;
-    width: 8em;
+    padding: 0 5px;
+}
+#remotestorage-widget form input[type=submit]:hover {
+    background: #333;
 }
 
 #remotestorage-widget .info {
-    padding: 0.7em 0 0.2em 0;
-    font-size: 12px;
-}
-
-#remotestorage-widget .info {
+    font-size: 10px;
+    color: #ddd;
+    margin-top: 0.7em;
     white-space: normal;
-    margin-bottom: 1em;
+}
+
+#remotestorage-widget .info.last-synced-message {
+    white-space: nowrap;
+    margin-bottom: .7em
 }
 
 #remotestorage-widget .info.error {
@@ -130,55 +156,30 @@
     color: #f92;
 }
 
-#remotestorage-widget .info a {
-    font-weight: bold;
+#remotestorage-widget .info a:hover,
+#remotestorage-widget .info a:active {
+    color: #fff;
 }
 
-
 #remotestorage-widget .bubble button {
-    background: #333;
     border: none;
-    color: white;
+    border-radius: 6px;
     font-weight: bold;
-    font-size: 1.3em;
+    color: white;
+    outline: none;
+    line-height: 1.5em;
+    height: 2em;
+    background: #000;
     cursor: pointer;
-    margin-right: 1em;
+    margin: 0;
+    padding: 0 5px;
+}
+#remotestorage-widget .bubble button:hover {
+    background: #333;
 }
 
 #remotestorage-widget .bubble button.sync {
-    display: block;
-    float: left;
-    margin-left: -6px;
-}
-
-#remotestorage-widget select.locale {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    background: #333;
-    color: #ddd;
-    border: none;
-    font-weight: bold;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    outline: none;
-    cursor: pointer;
-    height: 1.2em;
-    color: white;
-    line-height: 1em;
-    width: 8em;
-    padding: 0.2em;
-}
-
-#remotestorage-widget select.locale::after {
-    content: "▼";
-}
-
-#remotestorage-widget select.locale:hover {
-}
-
-#remotestorage-widget select.locale option {
-    color: black;
+    margin-right: 5px;
 }
 
 #remotestorage-widget pre {
