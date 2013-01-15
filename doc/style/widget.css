@@ -182,6 +182,12 @@
 #remotestorage-widget .bubble button.sync {
     margin-right: 5px;
 }
+#remotestorage-widget .bubble button.disconnect {
+    background: #721;
+}
+#remotestorage-widget .bubble button.disconnect:hover {
+    background: #921;
+}
 
 #remotestorage-widget pre {
     user-select: initial;
