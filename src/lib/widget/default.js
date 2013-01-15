@@ -237,7 +237,16 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     offline: function(error) {
       setCubeState('offline');
-      addClass(elements.bubble, 'one-line');
+      addClass(elements.bubble, 'one-line hidden');
+      var visible = false;
+      setCubeAction(function() {
+        if(visible) {
+          addClass(elements.bubble, 'hidden');
+        } else {
+          removeClass(elements.bubble, 'hidden');
+        }
+        visible = !visible;
+      });
       setBubbleText(t('offline', { userAddress: userAddress }));
     },
 
