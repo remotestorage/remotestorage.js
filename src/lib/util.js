@@ -140,7 +140,15 @@ define([], function() {
       this.result = util.toArray(arguments);
       this.success = false;
       if(this.handlers.failed) {
-        this.handlers.failed.apply(this, this.result);
+        try {
+          this.handlers.failed.apply(this, this.result);
+        } catch(exc) {
+          if(this.nextPromise) {
+            this.nextPromise.fail(exc);
+          } else {
+            console.error("Uncaught error: ", this.result, (this.result[0] && this.result[0].stack));
+          }
+        }
       } else if(this.nextPromise) {
         this.nextPromise.fail.apply(this.nextPromise, this.result);
       } else {

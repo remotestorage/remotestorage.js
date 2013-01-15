@@ -75,6 +75,10 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
   var widgetOptions = {};
 
+  function escape(s) {
+    return s.replace(/>/, '&gt;').replace(/</, '&lt;');
+  }
+
   function addEvent(element, eventName, handler) {
     browserEvents.push([element, eventName, handler]);
     element.addEventListener(eventName, handler);
@@ -115,7 +119,6 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     typing: function(connectionError) {
       elements.connectForm.userAddress.setAttribute('value', userAddress);
-      setCubeState('connected');
       setBubbleText(t('connect-remotestorage'));
       elements.bubble.appendChild(elements.connectForm);
       addEvent(elements.connectForm, 'submit', function(event) {
@@ -126,11 +129,13 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
       if(connectionError) {
         // error bubbled from webfinger
+        setCubeState('error');
         addClass(
           addBubbleHint(t('webfinger-failed', { message: t('webfinger-error-' + connectionError) })),
           'error'
         );
       } else {
+        setCubeState('connected');
         addBubbleHint(t('typing-hint'));
       }
 
@@ -216,23 +221,31 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     error: function(error) {
       setCubeState('error');
-      setBubbleText("An error occured: ");
+      setBubbleText(t('error'));
       var trace = cEl('pre');
       elements.bubble.appendChild(trace);
       if(error instanceof Error) {
-        trace.innerHTML = error.stack;
+        trace.innerHTML = '<strong>' + escape(error.message) + '</strong>' +
+          "\n" + escape(error.stack);
       } else if(typeof(error) === 'object') {
         trace.innerHTML = JSON.stringify(error, null, 2);
       } else {
         trace.innerHTML = error;
       }
-      elements.bubble.appendChild(elements.disconnectButton);
-      addEvent(elements.disconnectButton, 'click', disconnectAction);
     },
 
     offline: function(error) {
       setCubeState('offline');
-      addClass(elements.bubble, 'one-line');
+      addClass(elements.bubble, 'one-line hidden');
+      var visible = false;
+      setCubeAction(function() {
+        if(visible) {
+          addClass(elements.bubble, 'hidden');
+        } else {
+          removeClass(elements.bubble, 'hidden');
+        }
+        visible = !visible;
+      });
       setBubbleText(t('offline', { userAddress: userAddress }));
     },
 
