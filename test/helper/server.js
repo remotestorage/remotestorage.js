@@ -60,7 +60,7 @@ define([
           break;
         }
       }
-      test.assertTypeAnd(req, 'object', "Expected request " + method + " " + path + ", but no such request was received");
+      test.assertTypeAnd(req, 'object', "Expected request " + method + " " + path + ", but no such request was received (" + this.captured.map(function(r) { return r.method + ' ' + r.path; }).join(', ') + ')');
       
       if(body) {
         test.assertAnd(body, req.body);
@@ -68,7 +68,7 @@ define([
     },
 
     expectNoMoreRequest: function(test) {
-      test.assertAnd(this.captured.length, 0, "Expected captured request list to be empty, but still has " + this.captured.length + " elements!");
+      test.assertAnd(this.captured.length, 0, "Expected captured request list to be empty, but still has " + this.captured.length + " elements (" + this.captured.map(function(r) { return r.method + ' ' + r.path; }).join(', ') + ")!");
     },
 
     clearCaptured: function() {

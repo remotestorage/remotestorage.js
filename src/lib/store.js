@@ -212,11 +212,14 @@ define([
   }
 
   function setLastSynced(path, timestamp) {
+    logger.info('setLastSynced', path, 'requested');
     return dataStore.transaction(true, function(transaction) {
+      logger.info('setLastSynced', path, 'started');
       return getNode(path, transaction).then(function(node) {
         node.lastUpdatedAt = timestamp;
         return updateNode(path, node, false, true, undefined, undefined, transaction).
           then(function() {
+            logger.info('setLastSynced', path, 'done', timestamp);
             transaction.commit();
           });
       });
