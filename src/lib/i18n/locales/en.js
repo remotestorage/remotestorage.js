@@ -25,6 +25,7 @@ define([], function() {
         'webfinger-error-invalid-jrd': "the JRD returned by the server is invalid",
         'webfinger-error-requests-failed': "failed to contact the storage server",
         'webfinger-error-not-supported': "server doesn't support remotestorage"
+        'error': 'Sorry! An error occurred.'
       }
     },
 

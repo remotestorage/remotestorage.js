@@ -119,7 +119,6 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     typing: function(connectionError) {
       elements.connectForm.userAddress.setAttribute('value', userAddress);
-      setCubeState('connected');
       setBubbleText(t('connect-remotestorage'));
       elements.bubble.appendChild(elements.connectForm);
       addEvent(elements.connectForm, 'submit', function(event) {
@@ -130,11 +129,13 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
       if(connectionError) {
         // error bubbled from webfinger
+        setCubeState('error');
         addClass(
           addBubbleHint(t('webfinger-failed', { message: t('webfinger-error-' + connectionError) })),
           'error'
         );
       } else {
+        setCubeState('connected');
         addBubbleHint(t('typing-hint'));
       }
 
@@ -220,7 +221,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     error: function(error) {
       setCubeState('error');
-      setBubbleText("An error occured: ");
+      setBubbleText(t('error'));
       var trace = cEl('pre');
       elements.bubble.appendChild(trace);
       if(error instanceof Error) {
@@ -231,13 +232,20 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       } else {
         trace.innerHTML = error;
       }
-      elements.bubble.appendChild(elements.disconnectButton);
-      addEvent(elements.disconnectButton, 'click', disconnectAction);
     },
 
     offline: function(error) {
       setCubeState('offline');
-      addClass(elements.bubble, 'one-line');
+      addClass(elements.bubble, 'one-line hidden');
+      var visible = false;
+      setCubeAction(function() {
+        if(visible) {
+          addClass(elements.bubble, 'hidden');
+        } else {
+          removeClass(elements.bubble, 'hidden');
+        }
+        visible = !visible;
+      });
       setBubbleText(t('offline', { userAddress: userAddress }));
     },
 
@@ -317,7 +325,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     elements.connectForm = cEl('form');
     elements.connectForm.setAttribute('novalidate', '');
     elements.connectForm.innerHTML = [
-      '<input type="email" placeholder="user@host" name="userAddress" autocomplete="off" novalidate>',
+      '<input type="email" placeholder="user@host" name="userAddress" novalidate>',
       '<input type="submit" value="" name="connect">'
     ].join('');
     // button.sync
