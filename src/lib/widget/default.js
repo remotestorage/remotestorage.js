@@ -325,7 +325,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     elements.connectForm = cEl('form');
     elements.connectForm.setAttribute('novalidate', '');
     elements.connectForm.innerHTML = [
-      '<input type="email" placeholder="user@host" name="userAddress" autocomplete="off" novalidate>',
+      '<input type="email" placeholder="user@host" name="userAddress" novalidate>',
       '<input type="submit" value="" name="connect">'
     ].join('');
     // button.sync
