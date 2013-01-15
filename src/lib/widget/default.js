@@ -129,7 +129,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       if(connectionError) {
         // error bubbled from webfinger
         addClass(
-          addBubbleHint(t('webfinger-failed')),
+          addBubbleHint(t('webfinger-failed', { message: t('webfinger-error-' + connectionError) })),
           'error'
         );
       } else {
@@ -326,6 +326,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     // form.connect
     elements.connectForm = cEl('form');
+    elements.connectForm.setAttribute('novalidate', '');
     elements.connectForm.innerHTML = [
       '<input type="email" placeholder="user@host" name="userAddress" autocomplete="off">',
       '<input type="submit" value="" name="connect">'

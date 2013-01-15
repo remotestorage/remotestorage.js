@@ -35,6 +35,8 @@ define([
 
   var offlineTimer = null;
 
+  var viewState;
+
   var stateActions = {
     offline: function() {
       if(! offlineTimer) {
@@ -54,6 +56,10 @@ define([
   
 
   function setState(state) {
+    if(state === viewState) {
+      return;
+    }
+    viewState = state;
     var action = stateActions[state];
     if(action) {
       action.apply(null, arguments);
