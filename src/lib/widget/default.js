@@ -99,8 +99,6 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     offline: assets.remotestorageIconOffline
   };
 
-  var stillInitialSync = false;
-
   var stateViews = {
 
     initial: function() {
@@ -117,7 +115,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     typing: function(connectionError) {
       elements.connectForm.userAddress.setAttribute('value', userAddress);
-      setCubeState('offline');
+      setCubeState('connected');
       setBubbleText(t('connect-remotestorage'));
       elements.bubble.appendChild(elements.connectForm);
       addEvent(elements.connectForm, 'submit', function(event) {
@@ -147,15 +145,11 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       elements.connectForm.userAddress.setAttribute('disabled', 'disabled');
       elements.connectForm.connect.setAttribute('disabled', 'disabled');
       elements.connectForm.userAddress.setAttribute('value', userAddress);
-      setCubeState('offline');
+      setCubeState('connected');
       addClass(elements.cube, 'spinning');
     },
 
     connected: function() {
-      if(stillInitialSync) {
-        stillInitialSync = false;
-      }
-
       if(widgetOptions.syncShortcut !== false) {
         addEvent(window, 'keydown', function(evt) {
           if(evt.ctrlKey && evt.which == 83) {
@@ -174,10 +168,8 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       var content = cEl('div');
       addClass(content, 'content');
 
-      content.appendChild(cEl('br'));
-
       var hint = cEl('div');
-      addClass(hint, 'info');
+      addClass(hint, 'info last-synced-message');
 
       function updateLastSynced() {
         hint.innerHTML = t('last-synced', { t: i18n.helpers.timeAgo(
@@ -190,7 +182,6 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
       content.appendChild(hint);
 
-      content.appendChild(cEl('br'));
       content.appendChild(elements.syncButton);
       content.appendChild(elements.disconnectButton);
       addEvent(elements.syncButton, 'click', function() {
@@ -214,12 +205,12 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     busy: function(initialSync) {
       setCubeState('connected');
       addClass(elements.cube, 'spinning');
-      if(! (initialSync || stillInitialSync)) {
+      addClass(elements.bubble, 'one-line');
+      if(initialSync) {
+        setBubbleText(t('connecting', { userAddress: userAddress }));
+      } else {
         addClass(elements.bubble, 'hidden');
         setBubbleText(t('synchronizing', { userAddress: userAddress }));
-      } else if(initialSync) {
-        stillInitialSync = true;
-        setBubbleText(t('connecting', { userAddress: userAddress }));
       }
     },
 
@@ -247,7 +238,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     unauthorized: function() {
       setCubeState('error');
-      setBubbleText('<strong>' + userAddress + '</strong><br/>' + t('unauthorized') + '<br/>');
+      setBubbleText('<strong>' + userAddress + '</strong><br>' + t('unauthorized') + '<br>');
       setCubeAction(util.curry(events.emit, 'reconnect'));
       setBubbleAction(util.curry(events.emit, 'reconnect'));
       elements.bubble.appendChild(elements.disconnectButton);
@@ -319,8 +310,9 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     // form.connect
     elements.connectForm = cEl('form');
+    elements.connectForm.setAttribute('novalidate', '');
     elements.connectForm.innerHTML = [
-      '<input type="email" placeholder="user@host" name="userAddress" autocomplete="off">',
+      '<input type="email" placeholder="user@host" name="userAddress" autocomplete="off" novalidate>',
       '<input type="submit" value="" name="connect">'
     ].join('');
     // button.sync
@@ -358,7 +350,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
   }
 
   function setBubbleText(text) {
-    elements.bubble.innerHTML = text;
+    elements.bubble.innerHTML = '<div class="bubble-text">' + text + '</div>';
   }
 
   function setBubbleAction(action) {
@@ -415,6 +407,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
   function redirectTo(url) {
     setBubbleText(t('redirecting', { hostName: util.hostNameFromUri(url) }));
+    addClass(elements.bubble, 'one-line');
     setTimeout(function() {
       document.location = url;
     }, 500);
