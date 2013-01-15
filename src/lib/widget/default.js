@@ -75,6 +75,10 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
   var widgetOptions = {};
 
+  function escape(s) {
+    return s.replace(/>/, '&gt;').replace(/</, '&lt;');
+  }
+
   function addEvent(element, eventName, handler) {
     browserEvents.push([element, eventName, handler]);
     element.addEventListener(eventName, handler);
@@ -220,7 +224,8 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       var trace = cEl('pre');
       elements.bubble.appendChild(trace);
       if(error instanceof Error) {
-        trace.innerHTML = error.stack;
+        trace.innerHTML = '<strong>' + escape(error.message) + '</strong>' +
+          "\n" + escape(error.stack);
       } else if(typeof(error) === 'object') {
         trace.innerHTML = JSON.stringify(error, null, 2);
       } else {
