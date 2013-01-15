@@ -21,9 +21,10 @@ define([], function() {
         'webfinger-error-no-at': "there is no @-sign in the user address.",
         'webfinger-error-multiple-at': "there is more than one @-sign in the user address.",
         'webfinger-error-non-dotalphanum': "there is more than one @-sign in the user address.",
-        'webfinger-error-invalid-xml': "the XML returned by the server is invalid",
-        'webfinger-error-invalid-jrd': "the JRD returned by the server is invalid",
-        'webfinger-error-requests-failed': "failed to contact the storage server"
+        'webfinger-error-invalid-xml': "the XML returned by the server is invalid.",
+        'webfinger-error-invalid-jrd': "the JRD returned by the server is invalid.",
+        'webfinger-error-requests-failed': "failed to contact the storage server.",
+        'error': 'Sorry! An error occurred.'
       }
     },
 

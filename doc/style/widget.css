@@ -12,7 +12,7 @@
     font: normal 16px/100% sans-serif;
     user-select: none;
     -webkit-user-select: none;
-    -moz-user-select: none;
+    -moz-user-select: -moz-none;
     cursor: default;
     z-index: 10000;
 }
@@ -183,6 +183,10 @@
 }
 
 #remotestorage-widget pre {
-    width: 22em;
+    user-select: initial;
+    -webkit-user-select: initial;
+    -moz-user-select: text;
+    max-width: 27em;
+    margin-top: 1em;
     overflow: auto;
 }
