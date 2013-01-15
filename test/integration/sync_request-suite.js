@@ -71,93 +71,114 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
     },
     
     tests: [
+      // {
+      //   desc: "Simple outgoing requests",
+      //   run: function(env) {
+      //     var _this = this;
+      //     env.client.storeObject('test', 'testobj', { hello: 'world' }).
+      //       then(function() {
+      //         // check current version (we haven't done initial sync)
+      //         env.serverHelper.expectRequest(
+      //           _this, 'GET', 'me/testobj'
+      //         );
+      //         // update remote data
+      //         env.serverHelper.expectRequest(
+      //           _this, 'PUT', 'me/testobj',
+      //           JSON.stringify({ 
+      //             'hello': 'world',
+      //             '@type': 'https://remotestoragejs.com/spec/modules/root/test'
+      //           })
+      //         );
+      //         // fetch timestamp from parent
+      //         env.serverHelper.expectRequest(
+      //           _this, 'GET', 'me/'
+      //         );
+
+      //         env.serverHelper.expectNoMoreRequest(_this);
+
+      //         _this.assert(true, true);
+      //       });
+      //   }
+      // },
+
+      // {
+      //   desc: "Incoming data",
+      //   run: function(env) {
+      //     var _this = this;
+      //     // push initial data to the server:
+      //     util.asyncEach([1,2,3,4,5], function(i) {
+      //       return env.client.storeObject('test', 'obj-' + i, { i: i })
+      //     }).
+      //       then(env.remoteStorage.flushLocal).
+      //       then(env.serverHelper.clearCaptured.bind(env.serverHelper)).
+      //       then(env.rsConnect).
+      //       then(env.remoteStorage.fullSync).
+      //       then(function() {
+      //         // initial root request
+      //         env.serverHelper.expectRequest(_this, 'GET', 'me/');
+      //         // requests for each object
+      //         env.serverHelper.expectRequest(_this, 'GET', 'me/obj-1');
+      //         env.serverHelper.expectRequest(_this, 'GET', 'me/obj-2');
+      //         env.serverHelper.expectRequest(_this, 'GET', 'me/obj-3');
+      //         env.serverHelper.expectRequest(_this, 'GET', 'me/obj-4');
+      //         env.serverHelper.expectRequest(_this, 'GET', 'me/obj-5');
+
+      //         env.serverHelper.expectNoMoreRequest(_this);
+
+      //         _this.assert(true, true);
+      //       });
+      //   }
+      // },
+
+      // {
+      //   desc: "Syncing trees w/ data",
+      //   run: function(env) {
+      //     var _this = this;
+      //     // push initial tree ( a/{1,2,3} and b/{1,2,3} ):
+      //     util.asyncEach(['a', 'b'], function(d) {
+      //       return util.asyncEach([1,2,3], function(i) {
+      //         return env.client.storeObject('test', d + '/obj-' + i, { d: d, i: i });
+      //       })
+      //     }).
+      //       // dis- and reconnect
+      //       then(env.remoteStorage.flushLocal).
+      //       then(env.serverHelper.clearCaptured.bind(env.serverHelper)).
+      //       then(env.rsConnect).
+      //       // release root (which was set up by claimAccess):
+      //       then(curry(env.client.release, '')).
+      //       // use /a/, but not /b/
+      //       then(curry(env.client.use, 'a/')).
+      //       // do a full sync
+      //       then(curry(env.remoteStorage.fullSync)).
+      //       then(function() {
+      //         env.serverHelper.expectRequest(_this, 'GET', 'me/a/');
+      //         env.serverHelper.expectRequest(_this, 'GET', 'me/a/obj-1');
+      //         env.serverHelper.expectRequest(_this, 'GET', 'me/a/obj-2');
+      //         env.serverHelper.expectRequest(_this, 'GET', 'me/a/obj-3');
+      //         env.serverHelper.expectNoMoreRequest(_this);
+
+      //         _this.assert(true, true);
+      //       });
+      //   }
+      // },
+
       {
-        desc: "Simple outgoing requests",
+        desc: "store file, then store it again, then retrieve it",
         run: function(env) {
           var _this = this;
-          env.client.storeObject('test', 'testobj', { hello: 'world' }).
+          console.log("STORE foo");
+          env.client.storeFile('text/plain', 'note.txt', 'foo').
             then(function() {
-              // check current version (we haven't done initial sync)
-              env.serverHelper.expectRequest(
-                _this, 'GET', 'me/testobj'
-              );
-              // update remote data
-              env.serverHelper.expectRequest(
-                _this, 'PUT', 'me/testobj',
-                JSON.stringify({ 
-                  'hello': 'world',
-                  '@type': 'https://remotestoragejs.com/spec/modules/root/test'
-                })
-              );
-              // fetch timestamp from parent
-              env.serverHelper.expectRequest(
-                _this, 'GET', 'me/'
-              );
-
-              env.serverHelper.expectNoMoreRequest(_this);
-
-              _this.assert(true, true);
-            });
-        }
-      },
-
-      {
-        desc: "Incoming data",
-        run: function(env) {
-          var _this = this;
-          // push initial data to the server:
-          util.asyncEach([1,2,3,4,5], function(i) {
-            return env.client.storeObject('test', 'obj-' + i, { i: i })
-          }).
-            then(env.remoteStorage.flushLocal).
-            then(env.serverHelper.clearCaptured.bind(env.serverHelper)).
-            then(env.rsConnect).
-            then(env.remoteStorage.fullSync).
+              console.log("STORE bar");
+              return env.client.storeFile('text/plain', 'note.txt', 'bar');
+            }).
             then(function() {
-              // initial root request
-              env.serverHelper.expectRequest(_this, 'GET', 'me/');
-              // requests for each object
-              env.serverHelper.expectRequest(_this, 'GET', 'me/obj-1');
-              env.serverHelper.expectRequest(_this, 'GET', 'me/obj-2');
-              env.serverHelper.expectRequest(_this, 'GET', 'me/obj-3');
-              env.serverHelper.expectRequest(_this, 'GET', 'me/obj-4');
-              env.serverHelper.expectRequest(_this, 'GET', 'me/obj-5');
-
-              env.serverHelper.expectNoMoreRequest(_this);
-
-              _this.assert(true, true);
-            });
-        }
-      },
-
-      {
-        desc: "Syncing trees w/ data",
-        run: function(env) {
-          var _this = this;
-          // push initial tree ( a/{1,2,3} and b/{1,2,3} ):
-          util.asyncEach(['a', 'b'], function(d) {
-            return util.asyncEach([1,2,3], function(i) {
-              return env.client.storeObject('test', d + '/obj-' + i, { d: d, i: i });
-            })
-          }).
-            // dis- and reconnect
-            then(env.remoteStorage.flushLocal).
-            then(env.serverHelper.clearCaptured.bind(env.serverHelper)).
-            then(env.rsConnect).
-            // release root (which was set up by claimAccess):
-            then(curry(env.client.release, '')).
-            // use /a/, but not /b/
-            then(curry(env.client.use, 'a/')).
-            // do a full sync
-            then(curry(env.remoteStorage.fullSync)).
-            then(function() {
-              env.serverHelper.expectRequest(_this, 'GET', 'me/a/');
-              env.serverHelper.expectRequest(_this, 'GET', 'me/a/obj-1');
-              env.serverHelper.expectRequest(_this, 'GET', 'me/a/obj-2');
-              env.serverHelper.expectRequest(_this, 'GET', 'me/a/obj-3');
-              env.serverHelper.expectNoMoreRequest(_this);
-
-              _this.assert(true, true);
+              console.log("GET");
+              return env.client.getFile('note.txt');
+            }).
+            then(function(file) {
+              _this.assertAnd(file.mimeType, 'text/plain');
+              _this.assert(file.data, 'bar');
             });
         }
       }
