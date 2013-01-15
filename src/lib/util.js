@@ -857,7 +857,6 @@ define([], function() {
         })
       );
     },
-    
 
     asyncSelect: function(array, testFunction) {
       var a = [];

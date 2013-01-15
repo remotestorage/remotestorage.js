@@ -5,19 +5,23 @@
 
 # Build it:
 
-    npm install requirejs
-    sudo apt-get install naturaldocs
-    make build
+    # install dependencies
+    npm install
+    # if you changed any files in assets/
     make compile-assets
+    # build & minify (output is in build/latest/)
+    make build
+
+# Build the docs:
+    sudo apt-get install naturaldocs
     make doc
 
 # Test it:
 
-    npm install teste
+    # install dependencies
+    npm install
+    # run tests
     make test
-
-If there is an error about node requiring localStorage, just repeat the command, it sometimes
-works the second time.
 
 # Try it:
 
