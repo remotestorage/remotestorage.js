@@ -43,6 +43,8 @@ define([], function() {
           return  format(sec / 3600, 'hour')
         } else if(sec > 60) {
           return format(sec / 60, 'minute');
+        } else if(sec < 5) {
+          return 'just now';
         } else {
           return format(sec, 'second');
         }
