@@ -5,7 +5,7 @@
     <title>minimal remoteStorage.js example</title>
   </head>
   <body>
-    <div id="remotestorage-widget"></div>
+    <div id="remotestorage-connect"></div>
     <input id="text" />
     <input id="up" type="submit" value="up" />
     <input id="down" type="submit" value="down" />
@@ -39,7 +39,7 @@
       };
     });
     
-    connect({ notes: 'rw' }, 'remotestorage-widget', function() {
+    connect({ notes: 'rw' }, 'remotestorage-connect', function() {
       $('status').innerHTML = 'ok';
       $('up').onclick = function() {
         $('status').innerHTML = 'storing...';

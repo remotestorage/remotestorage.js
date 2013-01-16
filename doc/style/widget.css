@@ -6,7 +6,7 @@
 }
 
 #remotestorage-widget {
-    position: absolute;
+    position: relative;
     right: 10px;
     top: 10px;
     font: normal 16px/100% sans-serif;
