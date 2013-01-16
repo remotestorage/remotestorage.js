@@ -1833,6 +1833,8 @@ define('lib/webfinger',
       }
       var query = '?resource=acct:' + encodeURIComponent(userAddress);
       var addresses = [
+        'https://' + hostname + '/.well-known/webfinger' + query,
+        'http://'  + hostname + '/.well-known/webfinger' + query,
         'https://' + hostname + '/.well-known/host-meta.json' + query,
         'https://' + hostname + '/.well-known/host-meta' + query,
         'http://'  + hostname + '/.well-known/host-meta.json' + query,
@@ -3629,19 +3631,21 @@ define('lib/sync',[
   //   conflict - when there are two incompatible versions of the same node
   //   change   - when the local store is updated
   //
-  function partialSync(startPath, depth, callback) {
-    if(! isConnected()) {
-      return callback && callback('not-connected');
-    }
+  function partialSync(startPath, depth) {
+    return util.makePromise(function(promise) {
+      if(! isConnected()) {
+        return promise.fulfill();
+      }
 
-    validatePath(startPath);
-    logger.info("partial sync requested: " + startPath);
-    enqueueTask(function() {
-      logger.info("partial sync started from: " + startPath);
-      events.once('ready', callback);
-      return traverseTree(startPath, processNode, {
-        depth: depth
-      });
+      validatePath(startPath);
+      logger.info("partial sync requested: " + startPath);
+      enqueueTask(function() {
+        logger.info("partial sync started from: " + startPath);
+        return traverseTree(startPath, processNode, {
+          depth: depth,
+          force: true
+        });
+      }, promise.fulfill.bind(promise));
     });
   }
 
@@ -4373,14 +4377,6 @@ define('lib/sync',[
     // Clear all data from localStorage that this file put there.
     clearSettings: settings.clear,
 
-    // Method: disableThrottling
-    // Disable throttling of <fullSync>/<partialSync> for debugging purposes.
-    // Cannot be undone!
-    disableThrottling: function() {
-      sync.fullSync = fullSync;
-      sync.partialSync = partialSync;
-    },
-
     // FOR TESTING INTERNALS ONLY!!!
     getInternal: function(symbol) {
       return eval(symbol);
@@ -4511,14 +4507,8 @@ define('lib/schedule',['./util', './sync'], function(util, sync) {
     var numSyncNow = syncNow.length;
     for(var i=0;i<numSyncNow;i++) {
       var path = syncNow[i];
-      var syncer = function(path, cb) {
-        if(path == '/') {
-          sync.fullSync().then(cb)
-        } else {
-          sync.partialSync(path, null, cb);
-        }
-      };
-      syncer(path, function() {
+      var syncer = path === '/' ? sync.fullSync : sync.partialSync;
+      syncer(path).then(function() {
         lastPathSync[path] = new Date().getTime();
 
         syncedCount++;
@@ -5391,11 +5381,7 @@ define('lib/baseClient',[
       var absPath = this.makePath(path);
       return this.ensureAccess('w').
         then(util.curry(set, this.moduleName, path, absPath, undefined)).
-        then(function() {
-          return util.makePromise(function(p) {
-            sync.partialSync(util.containingDir(absPath), 1, p.fulfill.bind(p));
-          });
-        });
+        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
     },
 
     // Method: saveObject
@@ -5488,12 +5474,7 @@ define('lib/baseClient',[
           }
           return set(this.moduleName, path, absPath, obj, 'application/json')
         }.bind(this)).
-        then(function() {
-          var parentPath = util.containingDir(absPath);
-          return util.makePromise(function(p) {
-            sync.partialSync(parentPath, 1, p.fulfill.bind(p));
-          });
-        }.bind(this));
+        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
     },
 
     //
@@ -5540,12 +5521,7 @@ define('lib/baseClient',[
       var absPath = this.makePath(path);
       return this.ensureAccess('w').
         then(util.curry(set, this.moduleName, path, absPath, data, mimeType)).
-        then(function() {
-          var parentPath = util.containingDir(absPath);
-          return util.makePromise(function(p) {
-            sync.partialSync(parentPath, 1, p.fulfill.bind(p));
-          });
-        }.bind(this));
+        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
     },
 
     // Method: storeDocument
@@ -5583,16 +5559,17 @@ define('lib/baseClient',[
     syncOnce: function(path, callback) {
       var previousTreeForce = store.getNode(path).startForceTree;
       this.use(path, false);
-      return sync.partialSync(path, 1, function() {
-        if(previousTreeForce) {
-          this.use(path, true);
-        } else {
-          this.release(path);
-        }
-        if(callback) {
-          callback();
-        }
-      }.bind(this));
+      return sync.partialSync(path, 1).
+        then(function() {
+          if(previousTreeForce) {
+            this.use(path, true);
+          } else {
+            this.release(path);
+          }
+          if(callback) {
+            callback();
+          }
+        }.bind(this));
 
     },
 
