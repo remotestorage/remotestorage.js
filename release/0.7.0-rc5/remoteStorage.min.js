@@ -1,4 +1,4 @@
-/* remoteStorage.js 0.7.0-head remoteStoragejs.com, MIT-licensed */
+/* remoteStorage.js 0.7.0-rc5 remoteStoragejs.com, MIT-licensed */
 
 /**
  * almond 0.1.4 Copyright (c) 2011, The Dojo Foundation All Rights Reserved.
