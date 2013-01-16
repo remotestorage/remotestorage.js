@@ -22,14 +22,6 @@ define('remoteStorage', [
   // Namespace: remoteStorage
   var remoteStorage =  {
 
-    // Property: store
-    // Public access to <store>
-    store: store,
-
-    // Property: i18n
-    // Public access to <i18n>
-    i18n: i18n,
-
     //
     // Method: defineModule
     //
