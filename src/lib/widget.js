@@ -183,6 +183,9 @@ define([
   }
 
   function display(_remoteStorage, domId, options) {
+    if(domId=='remotestorage-widget') {
+      throw new Error('please call your widget element something other than "remotestorage-widget", we already use that id inside the widget.');
+    }
     remoteStorage = _remoteStorage;
     widgetOptions = options;
     if(! options) {
