@@ -207,7 +207,7 @@ define([
       // FIXME: only set this when incoming data is set?
       delete node.pending;
 
-      return updateNode(path, (node.data ? node : undefined), outgoing, false, timestamp, oldValue);
+      return updateNode(path, (typeof(node.data) !== 'undefined' ? node : undefined), outgoing, false, timestamp, oldValue);
     });
   }
 
