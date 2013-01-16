@@ -74,6 +74,10 @@ define(['requirejs'], function(requirejs) {
         env.wireClient = wireClient;
         env.baseClient = baseClient;
 
+        env.fakeRemoteStorage = {
+          claimedModules: { foo: 'rw' }
+        };
+
         env.view._results['getLocation'] = 'http://test.host/';
         _this.result(true);
       });
@@ -83,7 +87,7 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "widget.display sets up event handlers on the view",
         run: function(env) {
-          env.widget.display({}, 'remotestorage-connect', {});
+          env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {});
           this.assertAnd(env.view.hasHandler('connect'), true);
           this.assertAnd(env.view.hasHandler('sync'), true);
           this.assertAnd(env.view.hasHandler('disconnect'), true);
@@ -94,7 +98,7 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "widget.display sets up event handlers on sync, wireClient and baseClient",
         run: function(env) {
-          env.widget.display({}, 'remotestorage-connect', {});
+          env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {});
           this.assertAnd(env.sync.hasHandler('busy'), true);
           this.assertAnd(env.sync.hasHandler('ready'), true);
           this.assertAnd(env.sync.hasHandler('error'), true);
@@ -109,7 +113,7 @@ define(['requirejs'], function(requirejs) {
         desc: "widget.display strips all params from the fragment",
         run: function(env) {
           env.view._results['getLocation'] = 'http://test.host/#abc=def&user_address=foo@bar.baz';
-          env.widget.display({}, 'remotestorage-connect', {});
+          env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {});
           expectCall(this, env.view, 'setLocation', ['http://test.host/#']) &&
             expectCall(this, env.view, 'setUserAddress', ['foo@bar.baz']) &&
             this.result(true);
@@ -119,7 +123,7 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "forwards sync busy / ready state to the view",
         run: function(env) {
-          env.widget.display({}, 'remotestorage-connect', {});
+          env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {});
           env.sync.emit('busy');
           if(! expectCall(this, env.view, 'setState', ['busy'])) {
             return;
@@ -135,7 +139,7 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "forwards wireClient connected / disconnected state to the view",
         run: function(env) {
-          env.widget.display({}, 'remotestorage-connect', {});
+          env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {});
           // FIXME: won't work, because 'initialSync' causes errors
           // env.wireClient.emit('connected');
           // if(! expectCall(this, env.view, 'setState', ['connected'])) {
