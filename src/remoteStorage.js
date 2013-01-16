@@ -103,6 +103,9 @@ define([
         new BaseClient(moduleName, true)
       );
       modules[moduleName] = module;
+      if(typeof(module) !== 'object' || typeof(module.exports) !== 'object') {
+        throw new Error("Invalid module format for module '" + moduleName + "', no 'exports' object returned!");
+      }
       this[moduleName] = module.exports;
     },
 
