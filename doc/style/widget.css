@@ -12,13 +12,13 @@
     font: normal 16px/100% sans-serif;
     user-select: none;
     -webkit-user-select: none;
-    -moz-user-select: none;
+    -moz-user-select: -moz-none;
     cursor: default;
     z-index: 10000;
 }
 
 #remotestorage-widget .bubble {
-    background: rgba(80, 80, 80, .85);
+    background: rgba(80, 80, 80, .7);
     border-radius: 5px 15px 5px 5px;
     color: white;
     font-size: 0.8em;
@@ -113,7 +113,8 @@
     padding: 0 5px;
     margin-right: 5px;
 }
-#remotestorage-widget form input[type=email]:focus {
+#remotestorage-widget button:focus,
+#remotestorage-widget input:focus {
     box-shadow: 0 0 4px #ccc;
 }
 
@@ -181,8 +182,18 @@
 #remotestorage-widget .bubble button.sync {
     margin-right: 5px;
 }
+#remotestorage-widget .bubble button.disconnect {
+    background: #721;
+}
+#remotestorage-widget .bubble button.disconnect:hover {
+    background: #921;
+}
 
 #remotestorage-widget pre {
-    width: 22em;
+    user-select: initial;
+    -webkit-user-select: initial;
+    -moz-user-select: text;
+    max-width: 27em;
+    margin-top: 1em;
     overflow: auto;
 }

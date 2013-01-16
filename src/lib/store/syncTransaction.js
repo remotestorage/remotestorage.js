@@ -89,7 +89,7 @@ define(['../util'], function(util) {
 
       // Method: get
       // Forwarded from store (to simplify transaction-less 'get's in tests).
-      get: store.get,
+      get: store.get
     };
   };
 });

@@ -172,6 +172,8 @@ define(
         return fetchProfile(
           lrddLink.template.replace('{uri}', 'acct:' + userAddress)
         ).then(extractRemoteStorageLink);
+      } else {
+        throw 'not-supported';
       }
     }
 
@@ -212,6 +214,8 @@ define(
       }
       var query = '?resource=acct:' + encodeURIComponent(userAddress);
       var addresses = [
+        'https://' + hostname + '/.well-known/webfinger' + query,
+        'http://'  + hostname + '/.well-known/webfinger' + query,
         'https://' + hostname + '/.well-known/host-meta.json' + query,
         'https://' + hostname + '/.well-known/host-meta' + query,
         'http://'  + hostname + '/.well-known/host-meta.json' + query,

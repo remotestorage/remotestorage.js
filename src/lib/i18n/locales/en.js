@@ -23,7 +23,9 @@ define([], function() {
         'webfinger-error-non-dotalphanum': "there is more than one @-sign in the user address.",
         'webfinger-error-invalid-xml': "the XML returned by the server is invalid",
         'webfinger-error-invalid-jrd': "the JRD returned by the server is invalid",
-        'webfinger-error-requests-failed': "failed to contact the storage server"
+        'webfinger-error-requests-failed': "failed to contact the storage server",
+        'webfinger-error-not-supported': "server doesn't support remotestorage",
+        'error': 'Sorry! An error occurred.'
       }
     },
 
