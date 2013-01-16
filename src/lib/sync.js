@@ -226,19 +226,21 @@ define([
   //   conflict - when there are two incompatible versions of the same node
   //   change   - when the local store is updated
   //
-  function partialSync(startPath, depth, callback) {
-    if(! isConnected()) {
-      return callback && callback('not-connected');
-    }
+  function partialSync(startPath, depth) {
+    return util.makePromise(function(promise) {
+      if(! isConnected()) {
+        return promise.fulfill();
+      }
 
-    validatePath(startPath);
-    logger.info("partial sync requested: " + startPath);
-    enqueueTask(function() {
-      logger.info("partial sync started from: " + startPath);
-      events.once('ready', callback);
-      return traverseTree(startPath, processNode, {
-        depth: depth
-      });
+      validatePath(startPath);
+      logger.info("partial sync requested: " + startPath);
+      enqueueTask(function() {
+        logger.info("partial sync started from: " + startPath);
+        return traverseTree(startPath, processNode, {
+          depth: depth,
+          force: true
+        });
+      }, promise.fulfill.bind(promise));
     });
   }
 
@@ -969,14 +971,6 @@ define([
     // Method: clearSettings
     // Clear all data from localStorage that this file put there.
     clearSettings: settings.clear,
-
-    // Method: disableThrottling
-    // Disable throttling of <fullSync>/<partialSync> for debugging purposes.
-    // Cannot be undone!
-    disableThrottling: function() {
-      sync.fullSync = fullSync;
-      sync.partialSync = partialSync;
-    },
 
     // FOR TESTING INTERNALS ONLY!!!
     getInternal: function(symbol) {

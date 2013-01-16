@@ -18,17 +18,17 @@ define([
         './src/lib/util',
         './src/remoteStorage',
         './src/lib/store',
+        './src/lib/sync',
         './src/modules/root',
         './test/helper/server'
-      ], function(_util, remoteStorage, store, root, serverHelper) {
+      ], function(_util, remoteStorage, store, sync, root, serverHelper) {
         util = _util;
         curry = util.curry;
         env.remoteStorage = remoteStorage;
         env.store = store;
+        env.sync = sync;
         env.client = root;
         env.serverHelper = serverHelper;
-
-        env.remoteStorage.util.silenceAllLoggers();
 
         env.serverHelper.start(curry(_this.result.bind(_this), true));
       });
@@ -152,11 +152,13 @@ define([
         desc: "write a file, list it",
         run: function(env) {
           var _this = this;
-          env.client.storeObject('test', 'test-dir/z', {phu: 'quoc'}).then(function(){
-            env.client.getListing('test-dir/').then(function(r){
-              _this.assert(r, ['z']);
+          env.client.use('').
+            then(curry(env.client.storeObject, 'test', 'test-dir/y', {phu: 'quoc'})).
+            then(function(){
+              env.client.getListing('test-dir/').then(function(r){
+                _this.assert(r, ['y']);
+              });
             });
-          });
         }
       },
 

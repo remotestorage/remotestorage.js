@@ -440,11 +440,7 @@ define([
       var absPath = this.makePath(path);
       return this.ensureAccess('w').
         then(util.curry(set, this.moduleName, path, absPath, undefined)).
-        then(function() {
-          return util.makePromise(function(p) {
-            sync.partialSync(util.containingDir(absPath), 1, p.fulfill.bind(p));
-          });
-        });
+        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
     },
 
     // Method: saveObject
@@ -537,12 +533,7 @@ define([
           }
           return set(this.moduleName, path, absPath, obj, 'application/json')
         }.bind(this)).
-        then(function() {
-          var parentPath = util.containingDir(absPath);
-          return util.makePromise(function(p) {
-            sync.partialSync(parentPath, 1, p.fulfill.bind(p));
-          });
-        }.bind(this));
+        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
     },
 
     //
@@ -589,12 +580,7 @@ define([
       var absPath = this.makePath(path);
       return this.ensureAccess('w').
         then(util.curry(set, this.moduleName, path, absPath, data, mimeType)).
-        then(function() {
-          var parentPath = util.containingDir(absPath);
-          return util.makePromise(function(p) {
-            sync.partialSync(parentPath, 1, p.fulfill.bind(p));
-          });
-        }.bind(this));
+        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
     },
 
     // Method: storeDocument
@@ -632,16 +618,17 @@ define([
     syncOnce: function(path, callback) {
       var previousTreeForce = store.getNode(path).startForceTree;
       this.use(path, false);
-      return sync.partialSync(path, 1, function() {
-        if(previousTreeForce) {
-          this.use(path, true);
-        } else {
-          this.release(path);
-        }
-        if(callback) {
-          callback();
-        }
-      }.bind(this));
+      return sync.partialSync(path, 1).
+        then(function() {
+          if(previousTreeForce) {
+            this.use(path, true);
+          } else {
+            this.release(path);
+          }
+          if(callback) {
+            callback();
+          }
+        }.bind(this));
 
     },
 

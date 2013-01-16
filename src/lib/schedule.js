@@ -46,14 +46,8 @@ define(['./util', './sync'], function(util, sync) {
     var numSyncNow = syncNow.length;
     for(var i=0;i<numSyncNow;i++) {
       var path = syncNow[i];
-      var syncer = function(path, cb) {
-        if(path == '/') {
-          sync.fullSync().then(cb)
-        } else {
-          sync.partialSync(path, null, cb);
-        }
-      };
-      syncer(path, function() {
+      var syncer = path === '/' ? sync.fullSync : sync.partialSync;
+      syncer(path).then(function() {
         lastPathSync[path] = new Date().getTime();
 
         syncedCount++;
