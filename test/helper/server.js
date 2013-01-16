@@ -62,7 +62,7 @@ define([
       }
       test.assertTypeAnd(req, 'object', "Expected request " + method + " " + path + ", but no such request was received (" + this.captured.map(function(r) { return r.method + ' ' + r.path; }).join(', ') + ')');
       
-      if(body) {
+      if(body && req) {
         test.assertAnd(body, req.body);
       }
     },

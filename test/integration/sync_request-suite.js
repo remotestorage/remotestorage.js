@@ -172,7 +172,6 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
         desc: "store file, then store it again, then retrieve it",
         run: function(env) {
           var _this = this;
-          console.log("STORE foo");
           env.client.storeFile('text/plain', 'note.txt', 'foo').
             then(curry(env.client.storeFile, 'text/plain', 'note.txt', 'bar')).
             then(curry(env.client.getFile, 'note.txt')).
@@ -181,8 +180,24 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               _this.assert(file.data, 'bar');
             });
         }
-      }
+      },
 
+      {
+        desc: "store object, then check requests",
+        run: function(env) {
+          var _this = this;
+          env.client.storeObject('test', 'test-dir/obj', { phu: 'quoc' }).
+            then(function() {
+              env.serverHelper.expectRequest(_this, 'GET', 'me/test-dir/');
+              env.serverHelper.expectRequest(_this, 'GET', 'me/test-dir/obj');
+              env.serverHelper.expectRequest(_this, 'PUT', 'me/test-dir/obj', '{"phu":"quoc","@type":"https://remotestoragejs.com/spec/modules/root/test"}');
+              env.serverHelper.expectRequest(_this, 'GET', 'me/test-dir/');
+              env.serverHelper.expectNoMoreRequest(_this);
+              _this.assert(true, true);
+            });
+        }
+      }
+ 
     ]
   });
 
