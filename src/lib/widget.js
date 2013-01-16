@@ -189,6 +189,10 @@ define([
       options = {};
     }
 
+    if(Object.keys(remoteStorage.claimedModules).length === 0) {
+      throw new Error("displayWidget called, but no access claimed! Make sure to call displayWidget after remoteStorage.claimAccess is done.");
+    }
+
     options.getLastSyncAt = function() {
       return sync.lastSyncAt && sync.lastSyncAt.getTime();
     };
