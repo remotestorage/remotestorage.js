@@ -70,31 +70,31 @@ define(
     }
 
     function parseXRD(str) {
-      var promise = util.getPromise();
-      platform.parseXml(str, function(err, obj) {
-        if(err) {
-          promise.fail(err);
-        } else {
-          if(obj && obj.Link) {
-            var links = {};
-            if(obj.Link && obj.Link['@']) {//obj.Link is one element
-              if(obj.Link['@'].rel) {
-                links[obj.Link['@'].rel]=obj.Link['@'];
-              }
-            } else {//obj.Link is an array
-              for(var i=0; i<obj.Link.length; i++) {
-                if(obj.Link[i]['@'] && obj.Link[i]['@'].rel) {
-                  links[obj.Link[i]['@'].rel]=obj.Link[i]['@'];
+      return util.makePromise(function(promise) {
+        platform.parseXml(str, function(err, obj) {
+          if(err) {
+            promise.fail(err);
+          } else {
+            if(obj && obj.Link) {
+              var links = {};
+              if(obj.Link && obj.Link['@']) {//obj.Link is one element
+                if(obj.Link['@'].rel) {
+                  links[obj.Link['@'].rel]=obj.Link['@'];
+                }
+              } else {//obj.Link is an array
+                for(var i=0; i<obj.Link.length; i++) {
+                  if(obj.Link[i]['@'] && obj.Link[i]['@'].rel) {
+                    links[obj.Link[i]['@'].rel]=obj.Link[i]['@'];
+                  }
                 }
               }
+              promise.fulfill(links);
+            } else {
+              promise.fail('invalid-xml');
             }
-            promise.fulfill(links);
-          } else {
-            promise.fail('invalid-xml');
           }
-        }
+        });
       });
-      return promise;
     }
 
     function parseJRD(data) {
