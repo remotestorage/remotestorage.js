@@ -54,7 +54,6 @@
 #remotestorage-widget .cube {
     position: relative;
     top: 5px;
-    right: 0;
 }
 
 #remotestorage-widget .cube.spinning {
