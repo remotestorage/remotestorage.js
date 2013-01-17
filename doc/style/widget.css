@@ -6,7 +6,7 @@
 }
 
 #remotestorage-widget {
-    position: relative;
+    position: absolute;
     right: 10px;
     top: 10px;
     font: normal 16px/100% sans-serif;
@@ -52,7 +52,7 @@
 }
 
 #remotestorage-widget .cube {
-    position: absolute;
+    position: relative;
     top: 5px;
     right: 0;
 }
