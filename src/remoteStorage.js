@@ -393,24 +393,6 @@ define([
     //
     onWidget: widget.on,
 
-    // Method: getWidgetState
-    //
-    // Get the widget state, reflecting the general connection state.
-    //
-    // Defined widget states are:
-    //   anonymous    - initial state
-    //   typing       - userAddress input visible, user typing her address.
-    //   connecting   - pre-authentication, webfinger discovery.
-    //   authing      - about to redirect to the auth endpoint (if authDialog=popup,
-    //                  means the popup is open)
-    //   connected    - Discovery & Auth done, connected to remotestorage.
-    //   busy         - Currently exchaning data. (spinning cube)
-    //   disconnected - fired, when user clicks 'disconnect'. use this to clear your
-    //                  app's views of the data. immediately transitions to 'anonymous'
-    //                  afterwards.
-    //
-    getWidgetState: widget.getState,
-
     //
     getSyncState: sync.getState,
     //
