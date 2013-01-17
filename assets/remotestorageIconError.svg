@@ -15,7 +15,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.48.3.1 r9886"
-   sodipodi:docname="remotestorage-icon-error.svg"
+   sodipodi:docname="remotestorageIconError2.svg"
    inkscape:export-filename="/home/user/remotestorage-icon-error.png"
    inkscape:export-xdpi="90"
    inkscape:export-ydpi="90">
@@ -115,11 +115,11 @@
     <linearGradient
        id="linearGradient3833-1-4">
       <stop
-         style="stop-color:#ff0404;stop-opacity:0.76153845;"
+         style="stop-color:#e90000;stop-opacity:0.76078433;"
          offset="0"
          id="stop3835-7-8" />
       <stop
-         style="stop-color:#ff0404;stop-opacity:1;"
+         style="stop-color:#e90000;stop-opacity:1;"
          offset="1"
          id="stop3837-7-0" />
     </linearGradient>
@@ -1398,16 +1398,16 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="16"
-     inkscape:cx="5.931165"
-     inkscape:cy="16.237225"
+     inkscape:zoom="11.313708"
+     inkscape:cx="15.297525"
+     inkscape:cy="10.933152"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
-     inkscape:window-width="1280"
-     inkscape:window-height="800"
-     inkscape:window-x="0"
-     inkscape:window-y="-31"
+     inkscape:window-width="1215"
+     inkscape:window-height="776"
+     inkscape:window-x="65"
+     inkscape:window-y="24"
      inkscape:window-maximized="1"
      fit-margin-top="0"
      fit-margin-left="0"
