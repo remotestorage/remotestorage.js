@@ -400,6 +400,8 @@ define([
 
     getStorageHref: wireClient.getStorageHref,
 
+    getStorageInfo: wireClient.getStorageInfo,
+
     disableSyncThrottling: sync.disableThrottling,
 
     nodeConnect: nodeConnect,

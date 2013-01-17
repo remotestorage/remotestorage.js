@@ -184,6 +184,13 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
       return info;
     },
 
+    getStorageInfo: function() {
+      return {
+        type: getSetting('storageType'),
+        href: getSetting('storageHref')
+      };
+    },
+
     // Method: getStorageHref
     //
     // Get base URL of the user's remotestorage.
