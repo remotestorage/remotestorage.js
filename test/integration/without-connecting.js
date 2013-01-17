@@ -74,6 +74,32 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               test.assert(collection, {});
             });
         }
+      },
+
+      {
+        desc: "Storing some objects, then retrieving them as a collection",
+        run: function(env, test) {
+          return env.remoteStorage.util.asyncEach(['a', 'b', 'c'], function(x) {
+            return env.root.storeObject('test', 'foo/' + x, { x: x });
+          }).then(function() {
+            return env.root.getAll('foo/');
+          }).then(function(collection) {
+            test.assert(collection, {
+              a: {
+                x: 'a',
+                '@type': 'https://remotestoragejs.com/spec/modules/root/test'
+              },
+              b: {
+                x: 'b',
+                '@type': 'https://remotestoragejs.com/spec/modules/root/test'
+              },
+              c: {
+                x: 'c',
+                '@type': 'https://remotestoragejs.com/spec/modules/root/test'
+              }
+            });
+          });
+        }
       }
 
     ]
