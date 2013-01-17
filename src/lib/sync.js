@@ -631,7 +631,13 @@ define([
     logger.info("fetch remote", path);
     return remoteAdapter.get(path).
       then(function(node) {
-        return node || {};
+        if(! node) {
+          node = {};
+        }
+        if(util.isDir(path) && (! node.data)) {
+          node.data = {};
+        }
+        return node;
       });
   }
 
@@ -834,6 +840,9 @@ define([
       debugEvent(path, 'mergeDirectory');
       //END-DEBUG
       logger.debug("traverseTree.mergeDirectory", path, localNode, options);
+
+      console.log(path, "FULL LISTING ASSEMBLED FROM", localNode, remoteNode);
+
       var fullListing = makeSet(
         Object.keys(localNode.data),
         Object.keys(remoteNode.data)

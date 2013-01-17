@@ -352,29 +352,18 @@ define([
       }
 
       function retrieveObjects(listing) {
-        var promise = util.getPromise();
-
-        var objectMap = {};
-
         var _this = this;
-
-        function retrieveOne() {
-          var key = listing.shift();
-          if(key) {
-            var itemPath = path + key;
-            _this.getObject(itemPath).
+        var objectMap = {};
+        return util.asyncEach(listing, function(key) {
+          if(! util.isDir(key)) {
+            return _this.getObject(path + key).
               then(function(object) {
-                objectMap[itemPath] = object;
-                retrieveOne();
-              }, promise.fail.bind(promise));
-          } else {
-            promise.fulfill(objectMap);
+                objectMap[key] = object;
+              });
           }
-        }
-
-        retrieveOne();
-
-        return promise;
+        }).then(function() {
+          return objectMap;
+        });
       }
 
       return this.getListing(path).

@@ -184,6 +184,8 @@
 }
 #remotestorage-widget .bubble button.disconnect {
     background: #721;
+    position: absolute;
+    right: 5px;
 }
 #remotestorage-widget .bubble button.disconnect:hover {
     background: #921;

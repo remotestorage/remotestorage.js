@@ -71,6 +71,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
     },
     
     tests: [
+
       {
         desc: "Simple outgoing requests",
         run: function(env) {
@@ -192,6 +193,37 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectRequest(_this, 'GET', 'me/test-dir/obj');
               env.serverHelper.expectRequest(_this, 'PUT', 'me/test-dir/obj', '{"phu":"quoc","@type":"https://remotestoragejs.com/spec/modules/root/test"}');
               env.serverHelper.expectRequest(_this, 'GET', 'me/test-dir/');
+              env.serverHelper.expectNoMoreRequest(_this);
+              _this.assert(true, true);
+            });
+        }
+      },
+
+      {
+        desc: "store file with plain text",
+        run: function(env, test) {
+          env.client.storeFile('text/plain', 'text-file', 'some text').
+            then(function() {
+              env.serverHelper.expectRequest(test, 'GET', 'me/');
+              env.serverHelper.expectRequest(test, 'GET', 'me/text-file');
+              env.serverHelper.expectRequest(test, 'PUT', 'me/text-file', 'some text');
+              env.serverHelper.expectRequest(test, 'GET', 'me/');
+              env.serverHelper.expectNoMoreRequest(test);
+              test.assert(true, true);
+            });
+        }
+      },
+
+      {
+        desc: "store empty file",
+        run: function(env) {
+          var _this = this;
+          env.client.storeFile('text/plain', 'empty-file', '').
+            then(function() {
+              env.serverHelper.expectRequest(_this, 'GET', 'me/');
+              env.serverHelper.expectRequest(_this, 'GET', 'me/empty-file');
+              env.serverHelper.expectRequest(_this, 'PUT', 'me/empty-file', '');
+              env.serverHelper.expectRequest(_this, 'GET', 'me/');
               env.serverHelper.expectNoMoreRequest(_this);
               _this.assert(true, true);
             });
