@@ -841,8 +841,6 @@ define([
       //END-DEBUG
       logger.debug("traverseTree.mergeDirectory", path, localNode, options);
 
-      console.log(path, "FULL LISTING ASSEMBLED FROM", localNode, remoteNode);
-
       var fullListing = makeSet(
         Object.keys(localNode.data),
         Object.keys(remoteNode.data)

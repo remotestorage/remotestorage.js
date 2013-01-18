@@ -559,6 +559,12 @@ define([
     //   fileReader.readAsArrayBuffer(file);
     //   (end code)
     //
+    //
+    // Please keep in mind that the storage adapter used may limit the size of
+    // files that can be stored in cache. The current default is localStorage,
+    // which places a very tight limit due to constraints enforced by browsers
+    // and the necessity of base64 encoding binary data.
+    //
     storeFile: function(mimeType, path, data) {
       if(util.isDir(path)) {
         return failedPromise(new Error("Can't store directory node"));
