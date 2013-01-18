@@ -88,7 +88,8 @@
 }
 
 #remotestorage-widget form {
-    margin-top: 0.7em;
+    margin-top: .7em;
+    position: relative;
 }
 
 #remotestorage-widget form input {
@@ -111,8 +112,9 @@
 #remotestorage-widget form input[type=email] {
     background: #000;
     width: 16em;
-    padding: 0 5px;
-    margin-right: 5px;
+    padding: 0 30px 0 5px;
+    border-top: 1px solid #111;
+    border-bottom: 1px solid #999;
 }
 #remotestorage-widget button:focus,
 #remotestorage-widget input:focus {
@@ -149,6 +151,7 @@
 }
 
 #remotestorage-widget .info.last-synced-message {
+    display: inline;
     white-space: nowrap;
     margin-bottom: .7em
 }
@@ -180,16 +183,43 @@
     background: #333;
 }
 
+#remotestorage-widget .bubble button.connect {
+    display: block;
+    background: none;
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: 5px 5px 0 5px;
+}
+#remotestorage-widget .bubble button.connect:hover {
+    background: rgba(150,150,150,.5);
+}
+#remotestorage-widget .bubble button.connect[disabled=disabled] {
+    display: none;
+}
 #remotestorage-widget .bubble button.sync {
-    margin-right: 5px;
+    position: relative;
+    left: -5px;
+    bottom: -5px;
+    padding: 4px 4px 0 4px;
+    background: #555;
+}
+#remotestorage-widget .bubble button.sync:hover {
+    background: #444;
 }
 #remotestorage-widget .bubble button.disconnect {
     background: #721;
     position: absolute;
-    right: 5px;
+    right: 0;
+    bottom: 0;
+    padding: 4px 4px 0 4px;
 }
 #remotestorage-widget .bubble button.disconnect:hover {
     background: #921;
+}
+
+#remotestorage-widget .bubble .content {
+    margin-top: 3px;
 }
 
 #remotestorage-widget pre {

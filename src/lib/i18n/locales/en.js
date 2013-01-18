@@ -4,10 +4,6 @@ define([], function() {
       widget: {
         // Bubble text in initial state
         'connect-remotestorage': 'Connect <strong>remotestorage</strong>',
-        // Connect button label
-        'connect': 'connect',
-        'sync': 'sync',
-        'disconnect': 'disconnect',
         'permissions': 'Permissions',
         'all-data': 'All data',
         'synchronizing': 'Syncing <strong>{userAddress}</strong>',
@@ -16,7 +12,7 @@ define([], function() {
         'unauthorized': 'Unauthorized! Click to reconnect.',
         'redirecting': 'Redirecting to <strong>{hostName}</strong>',
         'typing-hint': 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/">remotestorage.io</a>',
-        'last-synced': 'Synced {t}',
+        'last-synced': '{t}',
         'webfinger-failed': "{message}",
         'webfinger-error-no-at': "There is no @-sign in the user address.",
         'webfinger-error-multiple-at': "There is more than one @-sign in the user address.",
