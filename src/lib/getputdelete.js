@@ -10,7 +10,7 @@ define(
 
     function realDoCall(method, url, body, mimeType, token) {
       return util.makePromise(function(promise) {
-        logger.debug(method, url);
+        logger.info(method, url);
         var platformObj = {
           url: url,
           method: method,

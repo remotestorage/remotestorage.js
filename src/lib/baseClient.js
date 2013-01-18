@@ -515,10 +515,12 @@ define([
 
       return this.ensureAccess('w').
         then(function() {
-          obj['@type'] = this.resolveType(typeAlias);
-          var errors = this.validateObject(obj);
-          if(errors) {
-            throw new ValidationError(obj, errors);
+          if(! (obj instanceof Array)) {
+            obj['@type'] = this.resolveType(typeAlias);
+            var errors = this.validateObject(obj);
+            if(errors) {
+              throw new ValidationError(obj, errors);
+            }
           }
           return set(this.moduleName, path, absPath, obj, 'application/json')
         }.bind(this)).

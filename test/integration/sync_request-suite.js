@@ -19,15 +19,18 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
       requirejs([
         './src/lib/util',
         './src/remoteStorage',
+        './server/nodejs-example',
         './test/helper/server',
         './src/modules/root'
-      ], function(_util, remoteStorage, serverHelper, root) {
+      ], function(_util, remoteStorage, nodejsExampleServer, serverHelper, root) {
         util = _util;
         curry = util.curry;
         env.remoteStorage = remoteStorage;
         env.serverHelper = serverHelper;
 
         env.client = root;
+
+        util.extend(env.serverHelper, nodejsExampleServer.server);
 
         env.serverHelper.start(function() {
           _this.result(true);

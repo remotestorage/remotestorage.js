@@ -53,7 +53,7 @@
 }
 
 #remotestorage-widget .cube {
-    position: absolute;
+    position: relative;
     top: 5px;
     right: 0;
 }

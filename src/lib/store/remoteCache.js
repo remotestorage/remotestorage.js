@@ -7,7 +7,7 @@ define([
   var remoteClient = wireClient;
 
   return function() {
-    var cache = memoryAdapter();
+    var cache = memoryAdapter('store::remote_cache_backend');
 
     function determineTimestamp(path) {
       return util.makePromise(function(promise) {

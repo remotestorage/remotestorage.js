@@ -20,8 +20,9 @@ define([
         './src/lib/store',
         './src/lib/sync',
         './src/modules/root',
+        './server/nodejs-example',
         './test/helper/server'
-      ], function(_util, remoteStorage, store, sync, root, serverHelper) {
+      ], function(_util, remoteStorage, store, sync, root, nodejsExampleServer, serverHelper) {
         util = _util;
         curry = util.curry;
         env.remoteStorage = remoteStorage;
@@ -29,6 +30,8 @@ define([
         env.sync = sync;
         env.client = root;
         env.serverHelper = serverHelper;
+
+        util.extend(env.serverHelper, nodejsExampleServer.server);
 
         env.serverHelper.start(curry(_this.result.bind(_this), true));
       });
