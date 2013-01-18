@@ -3,9 +3,8 @@ define(['../util', './syncTransaction'], function(util, syncTransactionAdapter) 
   // Namespace: store.memory
   // <StorageAdapter> implementation that keeps data in memory.
 
-  var logger = util.getLogger('store::memory');
-
-  return function() {
+  return function(logName) {
+    var logger = util.getLogger(logName || 'store::memory');
     var nodes = {};
 
     var store = {
