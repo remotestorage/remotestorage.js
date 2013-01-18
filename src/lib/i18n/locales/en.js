@@ -4,6 +4,10 @@ define([], function() {
       widget: {
         // Bubble text in initial state
         'connect-remotestorage': 'Connect <strong>remotestorage</strong>',
+        // Connect button label
+        'connect': 'connect',
+        'sync': 'sync',
+        'disconnect': 'disconnect',
         'permissions': 'Permissions',
         'all-data': 'All data',
         'synchronizing': 'Syncing <strong>{userAddress}</strong>',

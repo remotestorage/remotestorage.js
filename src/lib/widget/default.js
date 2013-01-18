@@ -311,6 +311,10 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     elements.connectForm.userAddress.removeAttribute('disabled');
     elements.connectForm.connect.removeAttribute('disabled');
+
+    elements.connectForm.connect.setAttribute('title', t('connect'));
+    elements.syncButton.setAttribute('title', t('sync'));
+    elements.disconnectButton.setAttribute('title', t('disconnect'));
   }
   
   function prepareWidget() {
