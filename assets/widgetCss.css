@@ -190,12 +190,14 @@
     right: 0;
     top: 0;
     padding: 5px 5px 0 5px;
+    opacity: 1;
 }
-#remotestorage-widget .bubble button.connect:hover {
+#remotestorage-widget .bubble button.connect:not([disabled]):hover {
     background: rgba(150,150,150,.5);
 }
-#remotestorage-widget .bubble button.connect[disabled=disabled] {
-    display: none;
+#remotestorage-widget .bubble button.connect[disabled] {
+    opacity: .5;
+    cursor: default !important;
 }
 #remotestorage-widget .bubble button.sync {
     position: relative;
