@@ -10,19 +10,19 @@ define([
   var serverHelper = {
     
     start: function(callback) {
-      // timeout (and the 'requirejs' line below) is here to work around weird
-      // AMD vs commonjs-module problems with requireJS...
-      // (better don't ask)
-      setTimeout(function() {
-        if(typeof(httpServer) !== 'undefined') {
-          throw "Server already started. Stop it first.";
-        }
-        httpServer = http.createServer(this.serve);
-        httpServer.listen(port, function() {
-          console.log("Test server started");
-          callback();
-        });
-      }.bind(this), 100);
+
+      if(! this.serve) {
+        throw "You need to extend the serverHelper with the nodejs example server!";
+      }
+
+      if(typeof(httpServer) !== 'undefined') {
+        throw "Server already started. Stop it first.";
+      }
+      httpServer = http.createServer(this.serve);
+      httpServer.listen(port, function() {
+        console.log("Test server started");
+        callback();
+      });
     },
 
     stop: function(callback) {
@@ -79,11 +79,11 @@ define([
 
   };
 
-  requirejs([
-    './src/lib/util', './server/nodejs-example'
-  ], function(util, nodejsServer) {
-    util.extend(serverHelper, nodejsServer.server);
-  });
+  // requirejs([
+  //   './src/lib/util', './server/nodejs-example'
+  // ], function(util, nodejsServer) {
+  //   util.extend(serverHelper, nodejsServer.server);
+  // });
 
   return serverHelper;
 });
