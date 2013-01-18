@@ -9,7 +9,7 @@
     position: absolute;
     right: 10px;
     top: 10px;
-    font: normal 16px/100% sans-serif;
+    font: normal 16px/100% sans-serif !important;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: -moz-none;
