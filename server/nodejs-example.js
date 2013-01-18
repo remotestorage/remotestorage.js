@@ -30,6 +30,13 @@ exports.server = (function() {
   var responseDelay = null;
   var capturedRequests = [];
   var doCapture = false;
+  var silent = false;
+
+  function log() {
+    if(!silent) {
+      console.log.apply(console, arguments);
+    }
+  }
 
   function captureRequests() {
     doCapture = true;
@@ -91,7 +98,7 @@ exports.server = (function() {
     contentType = loadState('contentType');
     content = loadState('content');
 
-    console.log("DATA LOADED", tokens, lastModified, contentType, content);
+    log("DATA LOADED", tokens, lastModified, contentType, content);
   }
 
 
@@ -122,7 +129,7 @@ exports.server = (function() {
       var scopePaths = makeScopePaths(
         config.defaultUserName, config.initialTokens[token]
       );
-      console.log('adding ',scopePaths,' for', token);
+      log('adding ',scopePaths,' for', token);
       tokens[token] = scopePaths;
     }
   }
@@ -131,8 +138,8 @@ exports.server = (function() {
     crypto.randomBytes(48, function(ex, buf) {
       var token = buf.toString('hex');
       var scopePaths = makeScopePaths(userName, scopes);
-      console.log('createToken ',userName,scopes);
-      console.log('adding ',scopePaths,' for',token);
+      log('createToken ',userName,scopes);
+      log('adding ',scopePaths,' for',token);
       tokens[token] = scopePaths;
       cb(token);
     });
@@ -146,7 +153,7 @@ exports.server = (function() {
           if(path.substring(0, scopeParts[0].length)==scopeParts[0]) {
             return true;
           } else {
-            console.log(path.substring(0, scopeParts[0].length)+' != '+ scopeParts[0]);
+            log(path.substring(0, scopeParts[0].length)+' != '+ scopeParts[0]);
           }
         }
       }
@@ -185,9 +192,9 @@ exports.server = (function() {
 
   function writeRaw(res, contentType, content, origin, timestamp) {
     function doWrite() {
-      console.log('access-control-allow-origin:'+ (origin?origin:'*'));
-      console.log(contentType);
-      console.log(content);
+      log('access-control-allow-origin:'+ (origin?origin:'*'));
+      log(contentType);
+      log(content);
       writeHead(res, 200, origin, timestamp, contentType);
       res.write(content);
       res.end();
@@ -206,14 +213,14 @@ exports.server = (function() {
     res.end();
   }
   function give404(res, origin) {
-    console.log('404');
-    console.log(content);
+    log('404');
+    log(content);
     writeHead(res, 404, origin, 'now');
     res.end();
   }
   function computerSaysNo(res, origin) {
-    console.log('COMPUTER_SAYS_NO');
-    console.log(tokens);
+    log('COMPUTER_SAYS_NO');
+    log(tokens);
     writeHead(res, 401, origin, 'now');
     res.end();
   }
@@ -256,7 +263,7 @@ exports.server = (function() {
     }
   }
   function webfinger(urlObj, res) {
-    console.log('WEBFINGER');
+    log('WEBFINGER');
     if(urlObj.query['resource']) {
       userAddress = urlObj.query['resource'].substring('acct:'.length);
       userName = userAddress.split('@')[0];
@@ -274,7 +281,7 @@ exports.server = (function() {
     });
   }
   function oauth(urlObj, res) {
-    console.log('OAUTH');
+    log('OAUTH');
     var scopes = decodeURIComponent(urlObj.query['scope']).split(' '),
     clientId = decodeURIComponent(urlObj.query['client_id']),
     redirectUri = decodeURIComponent(urlObj.query['redirect_uri']),
@@ -307,10 +314,10 @@ exports.server = (function() {
     }
 
     if(req.method=='OPTIONS') {
-      console.log('OPTIONS ', req.headers);
+      log('OPTIONS ', req.headers);
       writeJson(res, null, req.headers.origin);
     } else if(req.method=='GET') {
-      console.log('GET');
+      log('GET');
       if(mayRead(req.headers.authorization, path)) {
         if(content[path]) {
           if(path.substr(-1)=='/') {
@@ -329,7 +336,7 @@ exports.server = (function() {
         computerSaysNo(res, req.headers.origin);
       }
     } else if(req.method=='PUT') {
-      console.log('PUT');
+      log('PUT');
       if(mayWrite(req.headers.authorization, path) && path.substr(-1)!='/') {
         var dataStr = '';
         req.on('data', function(chunk) {
@@ -340,12 +347,12 @@ exports.server = (function() {
           capt.body = dataStr;
           content[path]=dataStr;
           contentType[path]=req.headers['content-type'];
-          console.log('stored '+path, content[path], contentType[path]);
+          log('stored '+path, content[path], contentType[path]);
           lastModified[path]=timestamp;
           saveData();
           var pathParts=path.split('/');
           var timestamp=new Date().getTime();
-          console.log(pathParts);
+          log(pathParts);
           var fileItself=true;
           while(pathParts.length > 1) {
             var thisPart = pathParts.pop();
@@ -358,18 +365,18 @@ exports.server = (function() {
               content[pathParts.join('/')+'/'] = {};
             }
             content[pathParts.join('/')+'/'][thisPart]=timestamp;
-            // console.log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
+            // log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
           }
-          // console.log('content:', content);
-          // console.log('contentType:', contentType);
-          // console.log('lastModified:', lastModified);
+          // log('content:', content);
+          // log('contentType:', contentType);
+          // log('lastModified:', lastModified);
           writeJson(res, null, req.headers.origin, timestamp);
         });
       } else {
         computerSaysNo(res, req.headers.origin);
       }
     } else if(req.method=='DELETE') {
-      console.log('DELETE');
+      log('DELETE');
       if(mayWrite(req.headers.authorization, path)) {
         var timestamp = new Date().getTime();
         delete content[path];
@@ -379,40 +386,40 @@ exports.server = (function() {
         var pathParts=path.split('/');
         var thisPart = pathParts.pop();
         if(content[pathParts.join('/')+'/']) {
-          console.log('delete content['+pathParts.join('/')+'/]['+thisPart+']');
+          log('delete content['+pathParts.join('/')+'/]['+thisPart+']');
           delete content[pathParts.join('/')+'/'][thisPart];
         }
-        console.log(content);
+        log(content);
         writeJson(res, null, req.headers.origin, timestamp);
       } else {
         computerSaysNo(res, req.headers.origin);
       }
     } else {
-      console.log('ILLEGAL '+req.method);
+      log('ILLEGAL '+req.method);
       computerSaysNo(res, req.headers.origin);
     }
   }
 
   function serve(req, res) {
     var urlObj = url.parse(req.url, true), userAddress, userName;
-    console.log(urlObj);
+    log(urlObj);
     if(urlObj.pathname == '/') {
-      console.log('PORTAL');
+      log('PORTAL');
       portal(urlObj, res);
     } else if(urlObj.pathname == '/.well-known/host-meta.json') {//TODO: implement rest of webfinger
-      console.log('HOST-META');
+      log('HOST-META');
       webfinger(urlObj, res);
     } else if(urlObj.pathname.substring(0, '/auth/'.length) == '/auth/') {
-      console.log('OAUTH');
+      log('OAUTH');
       oauth(urlObj, res);
     } else if(urlObj.pathname.substring(0, '/storage/'.length) == '/storage/') {
-      console.log('STORAGE');
+      log('STORAGE');
       storage(req, urlObj, res);
     } else if(req.method == 'POST' && urlObj.pathname.substring(0, '/reset'.length) == '/reset') { // clear data; used in tests.
       resetState();
       writeJson(res, { forgot: 'everything' });
     } else {
-      console.log('UNKNOWN');
+      log('UNKNOWN');
       writeJson(res, urlObj.query);
     }
   }
@@ -428,7 +435,13 @@ exports.server = (function() {
     addToken: addToken,
     delayResponse: delayResponse,
     captureRequests: captureRequests,
-    captured: capturedRequests
+    captured: capturedRequests,
+    enableLogs: function() {
+      silent = false;
+    },
+    disableLogs: function() {
+      silent = true;
+    }
   };
 })();
 
