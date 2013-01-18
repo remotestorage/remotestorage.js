@@ -159,6 +159,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       setBubbleText(t('connecting', { userAddress: userAddress }));
       elements.bubble.appendChild(elements.connectForm);
       elements.connectForm.userAddress.setAttribute('disabled', 'disabled');
+      elements.connectForm.userAddress.style.width = '100%';
       elements.connectForm.connect.setAttribute('disabled', 'disabled');
       elements.connectForm.userAddress.setAttribute('value', userAddress);
       setCubeState('connected');
