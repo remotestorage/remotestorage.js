@@ -1,5 +1,14 @@
 /** encoding:utf-8 **/
 
+/* RESET */
+#remotestorage-widget {
+    text-align: left;
+}
+#remotestorage-widget form input[type=email] {
+    margin-bottom: 0;  /* HTML5 Boilerplate */
+}
+/* /RESET */
+
 #remotestorage-widget, #remotestorage-widget * {
     -moz-box-sizing: border-box;
     box-sizing: border-box;
