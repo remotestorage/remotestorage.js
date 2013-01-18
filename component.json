@@ -1,6 +1,6 @@
 {
   "name":"remoteStorage.js",
-  "version":"0.7.0-rc5",
-  "main":["release/0.7.0-rc5/remoteStorage.min.js"],
+  "version":"0.7.0-rc6",
+  "main":["release/0.7.0-rc6/remoteStorage.min.js"],
   "dependencies":{}
 }
