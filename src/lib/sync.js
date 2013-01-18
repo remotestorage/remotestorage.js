@@ -720,7 +720,6 @@ define([
     logger.debug('findNextForceRoots', path);
     var roots = [];
     function checkChildren(node) {
-      console.log("CHECK CHILDREN", path, node);
       return util.asyncEach(Object.keys(node.data), function(key) {
         return store.getNode(path + key).then(function(childNode) {
           logger.debug('findNextForceRoots check', path + key, childNode);
