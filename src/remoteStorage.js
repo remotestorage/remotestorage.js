@@ -19,6 +19,9 @@ define([
 
   var logger = util.getLogger('base');
 
+  util.silenceAllLoggers();
+  util.unsilenceLogger('base', 'getputdelete');
+
   // Namespace: remoteStorage
   var remoteStorage =  {
 
