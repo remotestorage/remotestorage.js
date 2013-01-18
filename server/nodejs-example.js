@@ -239,11 +239,14 @@ exports.server = (function() {
     res.write('<!DOCTYPE html lang="en"><head><title>'+config.host+'</title><meta charset="utf-8"></head><body><ul>');
     var scopes = {
       'http://todomvc.michiel.5apps.com/': ['tasks:rw'],
-      'http://litewrite.michiel.5apps.com/': ['documents:rw'],
-      'http://docrastinate.michiel.5apps.com/': ['documents:rw'],
-      'http://expenses.michiel.5apps.com/': ['money:rw'],
-      'http://evanw-continuous-calendar.michiel.5apps.com/': ['calendar:rw'],
-      'http://seven20.epic720.5apps.com/manage.htm': [':rw']
+      'http://litewrite.github.com/litewrite/': ['documents:rw'],
+      'http://todo-mvc.michiel.5apps.com/labs/architecture-examples/remotestorage/': ['tasks:rw'],
+      'http://unhosted-time-tracker.michiel.5apps.com/': ['tasks:rw'],
+      'http://music.michiel.5apps.com/': ['music:rw'],
+      'http://editor.michiel.5apps.com/': ['code:rw'],
+      'http://remotestorage-browser.nilclass.5apps.com': [':rw'],
+      'http://vidmarks.silverbucket.5apps.com': ['videos:rw'],
+      'http://grouptabs.xmartin.5apps.com': ['grouptabs:rw']
     };
     var outstanding = 0;
     for(var i in scopes) {
