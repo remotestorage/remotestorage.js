@@ -358,8 +358,6 @@ define([
     // Parameters:
     //   domID - DOM ID of element to attach widget elements to
     //   options - Options, as described below.
-    //   options.authDialog - Strategy to display OAuth dialog. Either 'redirect', 'popup' or a function. Defaults to 'redirect'. If this is a function, that function will receive the URL of the auth dialog. The OAuth dance will redirect back to the current location, with an access token, so that must be possible.
-    //   options.syncShortcut - Whether to setup CTRL+S as a shortcut for immediate sync. Default is true.
     //   options.locale - Locale to use for the widget. Currently ignored.
     //
     // Minimal Example:
@@ -370,15 +368,7 @@ define([
     //    *in the app's JS*
     //    > remoteStorage.displayWidget('remotestorage-connect');
     //
-    //    Once you're connected, press CTRL+S to observe the spinning cube :)
-    //
     //    *Note* that in real life you would have to call <claimAccess> before calling displayWidget. Otherwise you can't access any actual data.
-    //
-    // Popup Example:
-    //
-    //    (using the same markup as above)
-    //
-    //    > remoteStorage.displayWidget('remotestorage-connect', { authDialog: 'popup' });
     //
     displayWidget: function(domId, options) {
       widget.display(remoteStorage, domId, util.extend({}, options));
