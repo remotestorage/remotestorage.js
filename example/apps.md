@@ -27,12 +27,6 @@
 * Known bugs:
   * css warnings
 
-## Vidmarks:
-* URL: http://vidmarks.silverbucket.5apps.com/
-* Author: Nick
-* Known bugs:
-  * css warnings
-
 ## Grouptabs:
 * URL: http://grouptabs.xmartin.5apps.com/
 * Author: Martin
@@ -53,8 +47,22 @@
   * activity history is still just a stub displaying raw JSON
   * css warnings
 
+## Browser:
+* URL: http://remotestorage-browser.nilclass.5apps.com/
+* Author: Niklas
+* Known bugs:
+  * no way to upload binary files
+  * css warning
 
 ## apps that are not currently working:
+
+## Vidmarks:
+* URL: http://vidmarks.silverbucket.5apps.com/
+* Author: Nick
+* Known bugs:
+  * no data is saved after reload. 
+  * css warnings
+  * Vidmarks "loads" the widget is broken (html5 boilerplate issue)
 
 ### Time tracker:
 * URL: http://unhosted-time-tracker.michiel.5apps.com/
