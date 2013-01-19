@@ -32,6 +32,8 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
 
         util.extend(env.serverHelper, nodejsExampleServer.server);
 
+        env.serverHelper.disableLogs();
+
         env.serverHelper.start(function() {
           _this.result(true);
         });
@@ -229,6 +231,23 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectRequest(_this, 'GET', 'me/');
               env.serverHelper.expectNoMoreRequest(_this);
               _this.assert(true, true);
+            });
+        }
+      },
+
+      {
+        desc: "store public data",
+        run: function(env, test) {
+          util.unsilenceLogger('sync');
+          util.setLogLevel('debug');
+          env.client.storeFile('text/plain', '/public/foo', 'bar').
+            then(function() {
+              env.serverHelper.expectRequest(test, 'GET', 'me/public/');
+              env.serverHelper.expectRequest(test, 'GET', 'me/public/foo');
+              env.serverHelper.expectRequest(test, 'PUT', 'me/public/foo', 'bar');
+              env.serverHelper.expectRequest(test, 'GET', 'me/public/');
+              env.serverHelper.expectNoMoreRequest(test);
+              test.assert(true, true);
             });
         }
       }

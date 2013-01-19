@@ -119,6 +119,9 @@ if(process.argv[2] == 'debug') {
   build('latest/remoteStorage-modules.min', 'remoteStorage-modules', { end: 'endModules.frag' });
   build('latest/remoteStorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
 
+  build('latest/remoteStorage.amd', 'remoteStorage', { debug: true, start: 'startAMD.frag', end: 'endAMD.frag' });
+  build('latest/remoteStorage-modules.amd', 'remoteStorage-modules', { debug: true, start: 'startAMD.frag', end: 'endAMD.frag' });
+
   // build('latest/remoteStorage-node-modules.min', 'remoteStorage-modules', { end: 'endNodeModules.frag' });
   // build('latest/remoteStorage-node-modules-debug', 'remoteStorage-modules', { end: 'endNodeModules.frag', debug: true });
 

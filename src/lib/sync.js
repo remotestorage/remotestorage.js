@@ -725,7 +725,7 @@ define([
           logger.debug('findNextForceRoots check', path + key, childNode);
           if(childNode.startForce || childNode.startForceTree) {
             roots.push(path + key);
-          } else {
+          } else if(util.isDir(key)) {
             return findNextForceRoots(path + key, childNode).
               then(function(innerRoots) {
                 innerRoots.forEach(function(innerRoot) {
@@ -799,7 +799,7 @@ define([
         function determineForce() {
           logger.debug('determineForce', options);
           var force = (options.force || options.forceTree);
-          if((! force) && options.path == '/' || options.path == '/public/') {
+          if((! force) && (options.path == '/' || options.path == '/public/')) {
             findNextForceRoots(options.path).
               then(function(roots) {
                 logger.debug('local interest', options.path, node, false, 'next: ', roots);
