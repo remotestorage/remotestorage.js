@@ -1,19 +1,8 @@
-define(['../remoteStorage', '../lib/util'], function(remoteStorage, util) {
-
-  remoteStorage.defineModule('public', function(client) {
-    function getPublicItems() {
-      return client.getObject("publishedItems");
-    }
-
-    return {
-      exports: {
-        getPublicItems: getPublicItems,
-        getObject: client.getObject
-      }
-    };
-  });
+define(['../remoteStorage'], function(remoteStorage) {
 
   remoteStorage.defineModule('root', function(privClient, pubClient) {
+
+    var util = remoteStorage.util;
 
     function privPubFork(name, pathParamPos) {
       if(! pathParamPos) {
