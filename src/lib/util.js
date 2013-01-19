@@ -45,6 +45,11 @@ define([], function() {
     btoa = window.btoa;
   }
 
+  var Warning = function() {
+    Error.apply(this, arguments);
+  };
+  Warning.prototype = Error.prototype;
+
   var Promise = function(chained) {
     this.result = undefined;
     this.success = undefined;
@@ -91,8 +96,8 @@ define([], function() {
     fulfill: function() {
       if(typeof(this.success) !== 'undefined') {
         console.error("Fulfillment value: ", arguments);
-        throw new Error("Can't fulfill promise, already resolved as: " +
-                        (this.success ? 'fulfilled' : 'failed'));
+        throw new Warning("Can't fulfill promise, already resolved as: " +
+                          (this.success ? 'fulfilled' : 'failed'));
       }
       //BEGIN-DEBUG
       clearTimeout(this.debugTimer);

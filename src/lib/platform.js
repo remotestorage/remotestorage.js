@@ -259,7 +259,7 @@ define(['./util'], function(util) {
         if(timer) {
           clearTimeout(timer);
         }
-        promise.fail(e.message);
+        promise.fail(e && e.message);
       });
       if(params.data) {
         request.end(params.data);

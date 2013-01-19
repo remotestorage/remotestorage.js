@@ -100,8 +100,7 @@ define(
     function put(url, value, mimeType, token) {
       if(! (typeof(value) === 'string' || (typeof(value) === 'object' &&
                                            value instanceof ArrayBuffer))) {
-        cb(new Error("invalid value given to PUT, only strings or ArrayBuffers allowed, got "
-                     + typeof(value)));
+        throw new Error("invalid value given to PUT, only strings or ArrayBuffers allowed, got " + typeof(value));
       }
       return doCall('PUT', url, value, mimeType, token);
     }

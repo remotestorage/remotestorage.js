@@ -61,8 +61,10 @@ define([
     var moduleName = extractModuleName(event.path);
     // remote-based changes get fired from the store.
     fireModuleEvent('change', moduleName, event);
-    // root module gets everything
-    fireModuleEvent('change', 'root', event);
+    if(moduleName !== 'root') {
+      // root module gets everything
+      fireModuleEvent('change', 'root', event);
+    }
   });
 
   sync.on('conflict', function(event) {
@@ -100,7 +102,9 @@ define([
         return store.setNodeData(absPath, value, true, undefined, mimeType);
       }).then(function() {
         fireModuleEvent('change', moduleName, changeEvent);
-        fireModuleEvent('change', 'root', changeEvent);
+        if(moduleName !== 'root') {
+          fireModuleEvent('change', 'root', changeEvent);
+        }
       });
   }
 
