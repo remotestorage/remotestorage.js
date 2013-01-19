@@ -116,7 +116,9 @@ define([
     settings.set('userAddress', userAddress);
     setState('authing');
     return webfinger.getStorageInfo(userAddress).
-      then(wireClient.setStorageInfo, util.curry(setState, 'typing')).
+      then(wireClient.setStorageInfo, function(error) {
+        setState((typeof(error) === 'string') ? 'typing' : 'error', error);
+      }).
       get('properties').get('auth-endpoint').
       then(requestToken).
       then(schedule.enable, util.curry(setState, 'error'));
