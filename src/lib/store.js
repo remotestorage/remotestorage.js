@@ -502,7 +502,7 @@ define([
     }
 
     function fireEvents() {
-      if((! outgoing) && (! util.isDir(path))) {
+      if((!meta) && (! outgoing) && (! util.isDir(path))) {
         // fire changes
         if(isForeign(path)) {
           return fireForeignChange(path, oldValue);

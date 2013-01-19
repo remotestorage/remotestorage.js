@@ -250,6 +250,47 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               test.assert(true, true);
             });
         }
+      },
+
+      {
+        desc: "change events with outgoing changes",
+        run: function(env, test) {
+          var receivedEvents = [];
+          env.client.on('change', function(event) {
+            receivedEvents.push(event);
+          });
+
+          function expectEvent(expected) {
+            var rel = receivedEvents.length;
+            var matching, matchIndex;
+            for(var i=0;i<rel;i++) {
+              var e = receivedEvents[i];
+              for(var key in expected) {
+                if(e[key] !== expected[key]) {
+                  continue;
+                }
+              }
+              matching = e;
+              matchIndex = i;
+              break;
+            }
+            test.assertTypeAnd(matching, 'object', "No event found matching: " + JSON.stringify(expected));
+            if(matching) {
+              receivedEvents.splice(matchIndex, 1);
+            }
+          }
+
+          env.client.storeObject('test', 'foo/bar/test-obj', { phu: 'quoc' }).
+            then(function() {
+              expectEvent({
+                origin: 'window',
+                path: 'foo/bar/test-obj',
+                oldValue: undefined,
+                newValue: { phu: 'quoc', '@type': 'https://remotestoragejs.com/spec/modules/root/test' }
+              });
+              test.assert(receivedEvents, [], "There are still events in the queue: " + JSON.stringify(receivedEvents));
+            });
+        }
       }
  
     ]
