@@ -44,6 +44,11 @@
       $('up').onclick = function() {
         remoteStorage.notes.setNote($('text').value);
       };
+      $('text').addEventListener('keypress', function(e) {
+        if(e.keyCode == 13) {//<enter>
+          $('up').onclick();
+        }
+      }, false);
     });
   </script>
 </html>
