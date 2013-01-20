@@ -34,12 +34,8 @@ define(['../remoteStorage'], function(remoteStorage) {
         getFile: privPubFork('getFile'),
         storeObject: privPubFork('storeObject', 1),
         storeFile: privPubFork('storeFile', 1),
-        hasDiff: privPubFork('hasDiff'),
-        remove: privPubFork('remove')
+        hasDiff: privPubFork('hasDiff')
       }
     };
   });
-
-  return remoteStorage.root;
-
 });

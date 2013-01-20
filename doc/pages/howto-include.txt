@@ -21,11 +21,30 @@ If you haven't already, clone the repository:
 Now install requirejs, unless you have it already:
 > npm install requirejs
 
-Then you can build all targets using:
+If you changed any files in assets/
+> make compile-assets
+
+Build & minify (output is in build/latest/)
 > make build
 
 Or only the debug targets:
 > make debug-only
+
+Build the docs:
+> sudo apt-get install naturaldocs
+> make doc
+
+Section: Test it
+
+Install dependencies
+> npm install
+
+Run tests
+> make test
+
+Section: Try it
+
+Copy the build result from build/latest/remoteStorage.min.js into your app, and do something like <this minimal example at https://remotestoragejs.com/example/minimal/index.html>.
 
 If you wish to add your module to the build, place it in src/modules/, and wrap your code in a define() call:
 > define(['../remoteStorage'], function(remoteStorage) {
