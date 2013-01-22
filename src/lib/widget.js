@@ -206,7 +206,7 @@ define([
     }, handleSyncError);
   }
 
-  function display(_remoteStorage, domId, options) {
+  function display(_remoteStorage, element, options) {
     remoteStorage = _remoteStorage;
     widgetOptions = options;
     if(! options) {
@@ -223,7 +223,7 @@ define([
 
     schedule.watch('/', 30000);
 
-    view.display(domId, options);
+    view.display(element, options);
 
     view.on('sync', sync.forceSync);
     view.on('connect', connectStorage);
