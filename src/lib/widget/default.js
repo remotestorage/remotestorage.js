@@ -404,6 +404,10 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     i18n.setLocale('en');
 
+    if(! element) {
+      element = document.body;
+    }
+
     if(typeof(element) === 'string') {
       element = gEl(element);
     }
