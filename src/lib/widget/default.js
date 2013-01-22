@@ -406,9 +406,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     if(! element) {
       element = document.body;
-    }
-
-    if(typeof(element) === 'string') {
+    } else if(typeof(element) === 'string') {
       element = gEl(element);
     }
 
