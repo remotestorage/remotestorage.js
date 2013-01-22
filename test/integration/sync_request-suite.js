@@ -71,8 +71,8 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
         });
     },
     
-    afterEach: function(env) {
-      env.remoteStorage.flushLocal().then(curry(this.result.bind(this), true));
+    afterEach: function(env, test) {
+      env.remoteStorage.flushLocal().then(curry(test.result.bind(test), true));
     },
     
     tests: [
@@ -291,7 +291,79 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               test.assert(receivedEvents, [], "There are still events in the queue: " + JSON.stringify(receivedEvents));
             });
         }
-      }
+      },
+
+      {
+        desc: "getting an object with tree-only sync",
+        run: function(env, test) {
+          // store the file first
+          return env.client.getObject('locations/hackerbeach/2013').
+            then(function(obj) {
+              return env.client.storeObject('test', 'locations/hackerbeach/2013', { island: "Phu Quoc" });
+            }).
+            // disconnect client
+            then(env.remoteStorage.flushLocal).
+            // reconnect client
+            then(env.rsConnect).
+            then(function() {
+              // configure tree-only sync
+              return env.client.use('', true);
+            }).
+            then(env.remoteStorage.fullSync).
+            then(function() {
+              return env.client.getListing('locations/hackerbeach/');
+            }).
+            then(function(listing) {
+              // verify listing
+              test.assertAnd(listing, ['2013']);
+            }).
+            then(function() {
+              return env.client.getObject('locations/hackerbeach/2013');
+            }).
+            then(function(obj) {
+              // verify file
+              test.assert({
+                island: "Phu Quoc",
+                '@type': 'https://remotestoragejs.com/spec/modules/root/test'
+              }, obj, "got object: " + JSON.stringify(obj));
+            });
+        }
+      },
+
+      {
+        desc: "getting a file with tree-only sync",
+        run: function(env, test) {
+          // store the file first
+          return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island').
+            // disconnect client
+            then(env.remoteStorage.flushLocal).
+            // reconnect client
+            then(env.rsConnect).
+            then(function() {
+              // configure tree-only sync
+              return env.client.use('', true);
+            }).
+            then(env.remoteStorage.fullSync).
+            then(function() {
+              return env.client.getListing('locations/hackerbeach/');
+            }).
+            then(function(listing) {
+              // verify listing
+              test.assertAnd(listing, ['2013']);
+            }).
+            then(function() {
+              return env.client.getFile('locations/hackerbeach/2013');
+            }).
+            then(function(file) {
+              // verify file
+              test.assert({
+                mimeType: 'text/plain',
+                data: 'Phu Quoc Island'
+              }, file, "got object: " + JSON.stringify(file));
+            });
+        }
+      },
+
  
     ]
   });
