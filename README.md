@@ -27,7 +27,7 @@
 
 #### claim access to for instance the 'notes' module, and display the widget:
 
-    remoteStorage.claimAccess({notes: 'rw'}),then(function() {
+    remoteStorage.claimAccess({notes: 'rw'}).then(function() {
       remoteStorage.displayWidget('remotestorage-connect');
       ...
     });
