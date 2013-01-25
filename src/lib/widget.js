@@ -63,7 +63,10 @@ define([
       if(! offlineTimer) {
         offlineTimer = setTimeout(function() {
           offlineTimer = null;
-          sync.fullSync();
+          sync.fullSync().
+            then(function() {
+              schedule.enable();
+            });
         }, reconnectInterval);
       }
     },
