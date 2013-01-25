@@ -8,13 +8,15 @@ define(
 
     var defaultContentType = 'application/octet-stream';
 
+    var timeout = 10000;
+
     function realDoCall(method, url, body, mimeType, token) {
       return util.makePromise(function(promise) {
         logger.info(method, url);
         var platformObj = {
           url: url,
           method: method,
-          timeout: 10000,
+          timeout: timeout,
           headers: {}
         };
 
@@ -148,6 +150,15 @@ define(
       //   data     - raw response data
       //   mimeType - value of the response's Content-Type header. If none was returned, this defaults to application/octet-stream.
       //
-      set:    set
+      set:    set,
+
+      setTimeout: function(t) {
+        timeout = t;
+      },
+
+      getTimeout: function() {
+        return timeout;
+      }
+
     };
 });
