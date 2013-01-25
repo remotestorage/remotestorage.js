@@ -123,6 +123,9 @@ define([
     setState('authing');
     return webfinger.getStorageInfo(userAddress).
       then(wireClient.setStorageInfo, function(error) {
+        if(error === 'timeout') {
+          adjustTimeout();
+        }
         setState((typeof(error) === 'string') ? 'typing' : 'error', error);
       }).
       get('properties').get('auth-endpoint').

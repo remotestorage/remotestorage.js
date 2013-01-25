@@ -150,6 +150,14 @@ define(
               return profiles[i];
             }
           }
+          // if any of the requests failed due to a timeout, that's our
+          // reason as well.
+          for(var j=0;j<errors.length;j++) {
+            if(errors[j] === 'timeout') {
+              throw "timeout";
+            }
+          }
+          // otherwise we just fail with a generic reason.
           throw 'requests-failed';
         });
     }
