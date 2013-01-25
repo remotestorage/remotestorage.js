@@ -170,7 +170,7 @@ define(
                           "href, type, properties, properties.auth-endpoint. " +
                           JSON.stringify(remoteStorageLink));
         }
-      } else if(lrddLink = links.lrdd) {
+      } else if((lrddLink = links.lrdd) && links.lrdd.template) {
         return fetchProfile(
           lrddLink.template.replace('{uri}', 'acct:' + userAddress)
         ).then(extractRemoteStorageLink);
