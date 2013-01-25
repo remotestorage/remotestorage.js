@@ -45,6 +45,9 @@ define([
   var events = util.getEventEmitter('ready', 'disconnect', 'state');
   var logger = util.getLogger('widget');
 
+  var maxTimeout = 45000;
+  var timeoutAdjustmentFactor = 1.5;
+
   // the view.
   var view = defaultView;
   // options passed to displayWidget
@@ -196,7 +199,17 @@ define([
     }
   }
 
+  function adjustTimeout() {
+    var t = getputdelete.getTimeout();
+    if(t < maxTimeout) {
+      t *= timeoutAdjustmentFactor;
+      webfinger.setTimeout(t);
+      getputdelete.setTimeout(t);
+    }
+  }
+
   function handleSyncTimeout() {
+    adjustTimeout();
     schedule.disable();
     setState('offline');
   }
