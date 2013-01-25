@@ -116,13 +116,13 @@ define(
 
     // request a single profile
     function fetchProfile(address) {
-      console.log('fetch profile', address);
+      logger.info('fetch profile', address);
       return platform.ajax({
         url: address,
         timeout: timeout
       }).then(function(body, headers) {
         var mimeType = headers && headers['content-type'] && headers['content-type'].split(';')[0];
-        console.log('fetched', body, mimeType);
+        logger.debug('fetched', body, mimeType);
         if(mimeType && mimeType.match(/^application\/json/)) {
           return parseJRD(body);
         } else {
@@ -141,10 +141,10 @@ define(
     // fetch profile from all given addresses and yield the first one that
     // succeeds.
     function fetchHostMeta(addresses) {
-      console.log('fetch host meta', addresses);
+      logger.info('fetch host meta', addresses);
       return util.asyncMap(addresses, util.rcurry(fetchProfile, true)).
         then(function(profiles, errors) {
-          console.log('host meta mapped', profiles);
+          logger.debug('host meta mapped', profiles);
           for(var i=0;i<profiles.length;i++) {
             if(profiles[i]) {
               return profiles[i];
@@ -155,11 +155,11 @@ define(
     }
 
     function extractRemoteStorageLink(links) {
-      console.log('extract remoteStorage link', links);
+      logger.debug('extract remoteStorage link', links);
       var remoteStorageLink = links.remoteStorage || links.remotestorage;
       var lrddLink;
       if(remoteStorageLink) {
-        console.log('remoteStorageLink', remoteStorageLink);
+        logger.info('remoteStorageLink', remoteStorageLink);
         if(remoteStorageLink.href &&
            remoteStorageLink.type &&
            remoteStorageLink.properties &&
