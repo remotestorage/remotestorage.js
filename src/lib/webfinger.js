@@ -42,6 +42,8 @@ define(
 
     var logger = util.getLogger('webfinger');
 
+    var timeout = 10000;
+
       ///////////////
      // Webfinger //
     ///////////////
@@ -113,8 +115,8 @@ define(
     }
 
     // request a single profile
-    function fetchProfile(address, timeout) {
-      console.log('fetch profile', address, timeout);
+    function fetchProfile(address) {
+      console.log('fetch profile', address);
       return platform.ajax({
         url: address,
         timeout: timeout
@@ -138,9 +140,9 @@ define(
 
     // fetch profile from all given addresses and yield the first one that
     // succeeds.
-    function fetchHostMeta(addresses, timeout) {
-      console.log('fetch host meta', addresses, timeout);
-      return util.asyncMap(addresses, util.rcurry(fetchProfile, timeout, true)).
+    function fetchHostMeta(addresses) {
+      console.log('fetch host meta', addresses);
+      return util.asyncMap(addresses, util.rcurry(fetchProfile, true)).
         then(function(profiles, errors) {
           console.log('host meta mapped', profiles);
           for(var i=0;i<profiles.length;i++) {
@@ -182,17 +184,15 @@ define(
     //
     // Parameters:
     //   userAddress - a string in the form user@host
-    //   options     - see below
-    //   callback    - to receive the discovered storage info
-    //
-    // Options:
-    //   timeout     - time in milliseconds, until resulting in a 'timeout' error.
     //
     // Callback parameters:
     //   err         - either an error message or null if discovery succeeded
     //   storageInfo - the format is equivalent to that of the JSON representation of the remotestorage link (see above)
     //
-    function getStorageInfo(userAddress, options) {
+    // Returns:
+    //   A promise for the user's webfinger profile
+    //
+    function getStorageInfo(userAddress) {
 
       /*
 
@@ -222,11 +222,19 @@ define(
         'http://'  + hostname + '/.well-known/host-meta' + query
       ];
 
-      return fetchHostMeta(addresses, (options && options.timeout) || 10000).
+      return fetchHostMeta(addresses).
         then(extractRemoteStorageLink);
     }
 
     return {
-      getStorageInfo: getStorageInfo
+      getStorageInfo: getStorageInfo,
+
+      setTimeout: function(t) {
+        timeout = t;
+      },
+
+      getTimeout: function() {
+        return timeout;
+      }
     };
 });
