@@ -396,7 +396,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
   // PUBLIC
 
-  function display(domId, options) {
+  function display(element, options) {
     if(! options) {
       options = {};
     }
@@ -404,9 +404,15 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     i18n.setLocale('en');
 
+    if(! element) {
+      element = document.body;
+    } else if(typeof(element) === 'string') {
+      element = gEl(element);
+    }
+
     prepareWidget();
-    gEl(domId).appendChild(elements.style);
-    gEl(domId).appendChild(elements.widget);
+    element.appendChild(elements.style);
+    element.appendChild(elements.widget);
     updateWidget();
   }
 
