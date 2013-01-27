@@ -21,7 +21,7 @@ define([
               if(typeof(error) === 'undefined') {
                 promise.fulfill(new Date().getTime());
               } else {
-                promise.fail(error);
+                promise.reject(error);
               }
             });
         } else {

@@ -97,7 +97,7 @@ define([
       path = '/';
     }
     if(! util.isDir(path)) {
-      return util.getPromise().fulfillLater(false);
+      return util.getPromise().fulfill(false);
     }
     return store.getNode(path).then(function(root) {
       if(Object.keys(root.diff).length > 0) {
@@ -157,11 +157,11 @@ define([
   function fullSync(pushOnly) {
     return util.makePromise(function(promise) {
       if(disabled) {
-        promise.fulfillLater()
+        promise.fulfill()
         return;
       }
       if(! isConnected()) {
-        promise.fail('not-connected');
+        promise.reject('not-connected');
         return;
       }
 
@@ -183,7 +183,7 @@ define([
         }
 
         if(roots.length === 0) {
-          return promise.fail(new Error("No access claimed!"));
+          return promise.reject(new Error("No access claimed!"));
         }
 
         roots.forEach(function(root) {

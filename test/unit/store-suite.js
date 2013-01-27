@@ -345,7 +345,7 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
           env.origForgetAll = env.storageAdapter.forgetAll;
           env.storageAdapter.forgetAll = function() {
             env.allForgotten = true;
-            return util.getPromise().fulfillLater();
+            return util.getPromise().fulfill();
           };
           this.result(true);
         },

@@ -344,7 +344,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           function failAfterAWhile() {
             var promise = env.util.getPromise();
             setTimeout(function() {
-              promise.fail("something went wrong");
+              promise.reject("something went wrong");
             }, 1);
             return promise;
           }
@@ -485,36 +485,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         }
       },
       {
-        desc: "util.Promise.fulfillLater",
-        run: function(env) {
-          var _this = this;
-          function fakePromiseForAnswer() {
-            return env.util.getPromise().fulfillLater(42);
-          }
-          fakePromiseForAnswer().
-            then(function(answer) {
-              _this.assert(answer, 42);
-            }, function() {
-              _this.result(false);
-            });
-        }
-      },
-      {
-        desc: "util.Promise.failLater",
-        run: function(env) {
-          var _this = this;
-          function fakePromiseForError() {
-            return env.util.getPromise().failLater("no way!");
-          }
-          fakePromiseForError().
-            then(function() {
-              _this.result(false);
-            }, function(error) {
-              _this.assert(error, "no way!");
-            });
-        }
-      },
-      {
         desc: "util.Promise bubbling errors",
         run: function(env) {
           var _this = this;
@@ -532,7 +502,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             return undefined;
           }
           function promiseReturningFunction() {
-            return util.env.getPromise().fulfillLater();
+            return util.env.getPromise().fulfill();
           }
           asyncFunction().
             then(syncFunction).
@@ -551,7 +521,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "util.Promise bubbling exceptions",
         run: function(env) {
           var _this = this;
-          env.util.getPromise().fulfillLater().
+          env.util.getPromise().fulfill().
             then(function() {
               throw new Error("I'm failing, what a shame!");
             }).
@@ -561,27 +531,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
               _this.assertAnd(error instanceof Error, true);
               _this.assert(error.message, "I'm failing, what a shame!");
             });
-        }
-      },
-      {
-        desc: "util.Promise treats onsuccess / onerror attributes like a then() call",
-        run: function(env) {
-          var _this = this;
-          var promise = env.util.getPromise().fulfillLater();
-          promise.onsuccess = function() {
-            _this.assertAnd(true, true);
-          };
-          promise.onerror = function() {
-            _this.result(false);
-          };
-
-          var promise = env.util.getPromise().failLater();
-          promise.onsuccess = function() {
-            _this.result(false);
-          };
-          promise.onerror = function() {
-            _this.result(true);
-          };
         }
       }
     ]

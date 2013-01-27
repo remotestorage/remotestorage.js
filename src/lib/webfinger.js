@@ -75,7 +75,7 @@ define(
       return util.makePromise(function(promise) {
         platform.parseXml(str, function(err, obj) {
           if(err) {
-            promise.fail(err);
+            promise.reject(err);
           } else {
             if(obj && obj.Link) {
               var links = {};
@@ -92,7 +92,7 @@ define(
               }
               promise.fulfill(links);
             } else {
-              promise.fail('invalid-xml');
+              promise.reject('invalid-xml');
             }
           }
         });
@@ -219,7 +219,7 @@ define(
         var hostname = extractHostname(userAddress)
       } catch(error) {
         if(error) {
-          return util.getPromise().failLater(error);
+          return util.getPromise().reject(error);
         }
       }
       var query = '?resource=acct:' + encodeURIComponent(userAddress);

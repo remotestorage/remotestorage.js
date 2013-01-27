@@ -57,7 +57,7 @@ define(
             } else if(error === 401 || error === 403) {
               error = 'unauthorized';
             };
-            promise.fail(error);
+            promise.reject(error);
           });
       });
     }
@@ -72,7 +72,7 @@ define(
         inProgress--;
         if(pendingQueue.length > 0) {
           var c = pendingQueue.shift();
-          doCall.apply(this, c.a).then(c.p.fulfill.bind(c.p), c.p.fail.bind(c.p));
+          doCall.apply(this, c.a).then(c.p.fulfill, c.p.reject);
         } else {
         }
       }

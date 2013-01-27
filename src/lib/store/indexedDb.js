@@ -32,7 +32,7 @@ define([
         };
 
         request.onerror = function() {
-          promise.fail('indexedDB.deleteDatabase failed!', request.error);
+          promise.reject('indexedDB.deleteDatabase failed!', request.error);
         };
       });
     }
@@ -68,7 +68,7 @@ define([
                 };
                 versionRequest.onerror = function(event) {
                   logger.error("Version request failed", event);
-                  promise.fail("Version request failed!");
+                  promise.reject("Version request failed!");
                 };
               } else {
                 promise.fulfill(database);
@@ -79,13 +79,13 @@ define([
               promise.fulfill(database);
             }
           } catch(exc) {
-            promise.fail(exc);
+            promise.reject(exc);
           };
         };
 
         dbRequest.onerror = dbRequest.onfailure = function(event) {
           logger.error("indexedDB.open failed: ", event);
-          promise.fail(new Error("Failed to open database!"));
+          promise.reject(new Error("Failed to open database!"));
         }; 
       });
     }
@@ -100,7 +100,7 @@ define([
           promise.fulfill(request.result);
         };
         request.onerror = function(event) {
-          promise.fail(event.error);
+          promise.reject(event.error);
         };
       });
     }
@@ -114,7 +114,7 @@ define([
             promise.fulfill(request.result);
           };
           request.onerror  = function(event) {
-            promise.fail(event.error);
+            promise.reject(event.error);
           };
         });
       }
@@ -132,8 +132,8 @@ define([
       return util.makePromise(function(promise) {
         var transaction = DB.transaction(OBJECT_STORE_NAME, mode);
         var store = transaction.objectStore(OBJECT_STORE_NAME);
-        transaction.oncomplete = util.bind(promise.fulfill, promise);
-        transaction.onerror = util.bind(promise.fail, promise);
+        transaction.oncomplete = promise.fulfill;
+        transaction.onerror = promise.reject;
         body(wrapStore(store));
       });
     }
