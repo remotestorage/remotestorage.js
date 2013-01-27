@@ -42,6 +42,8 @@ define(
 
     var logger = util.getLogger('webfinger');
 
+    var timeout = 10000;
+
       ///////////////
      // Webfinger //
     ///////////////
@@ -113,14 +115,14 @@ define(
     }
 
     // request a single profile
-    function fetchProfile(address, timeout) {
-      console.log('fetch profile', address, timeout);
+    function fetchProfile(address) {
+      logger.info('fetch profile', address);
       return platform.ajax({
         url: address,
         timeout: timeout
       }).then(function(body, headers) {
         var mimeType = headers && headers['content-type'] && headers['content-type'].split(';')[0];
-        console.log('fetched', body, mimeType);
+        logger.debug('fetched', body, mimeType);
         if(mimeType && mimeType.match(/^application\/json/)) {
           return parseJRD(body);
         } else {
@@ -138,26 +140,36 @@ define(
 
     // fetch profile from all given addresses and yield the first one that
     // succeeds.
-    function fetchHostMeta(addresses, timeout) {
-      console.log('fetch host meta', addresses, timeout);
-      return util.asyncMap(addresses, util.rcurry(fetchProfile, timeout, true)).
+    function fetchHostMeta(protocol, addresses) {
+      addresses = addresses.map(function(addr) {
+        return protocol + addr;
+      });
+      return util.asyncMap(addresses, fetchProfile).
         then(function(profiles, errors) {
-          console.log('host meta mapped', profiles);
+          logger.debug('host meta mapped', profiles);
           for(var i=0;i<profiles.length;i++) {
             if(profiles[i]) {
               return profiles[i];
             }
           }
+          // if any of the requests failed due to a timeout, that's our
+          // reason as well.
+          for(var j=0;j<errors.length;j++) {
+            if(errors[j] === 'timeout') {
+              throw "timeout";
+            }
+          }
+          // otherwise we just fail with a generic reason.
           throw 'requests-failed';
         });
     }
 
     function extractRemoteStorageLink(links) {
-      console.log('extract remoteStorage link', links);
+      logger.debug('extract remoteStorage link', links);
       var remoteStorageLink = links.remoteStorage || links.remotestorage;
       var lrddLink;
       if(remoteStorageLink) {
-        console.log('remoteStorageLink', remoteStorageLink);
+        logger.info('remoteStorageLink', remoteStorageLink);
         if(remoteStorageLink.href &&
            remoteStorageLink.type &&
            remoteStorageLink.properties &&
@@ -168,7 +180,7 @@ define(
                           "href, type, properties, properties.auth-endpoint. " +
                           JSON.stringify(remoteStorageLink));
         }
-      } else if(lrddLink = links.lrdd) {
+      } else if((lrddLink = links.lrdd) && links.lrdd.template) {
         return fetchProfile(
           lrddLink.template.replace('{uri}', 'acct:' + userAddress)
         ).then(extractRemoteStorageLink);
@@ -182,17 +194,15 @@ define(
     //
     // Parameters:
     //   userAddress - a string in the form user@host
-    //   options     - see below
-    //   callback    - to receive the discovered storage info
-    //
-    // Options:
-    //   timeout     - time in milliseconds, until resulting in a 'timeout' error.
     //
     // Callback parameters:
     //   err         - either an error message or null if discovery succeeded
     //   storageInfo - the format is equivalent to that of the JSON representation of the remotestorage link (see above)
     //
-    function getStorageInfo(userAddress, options) {
+    // Returns:
+    //   A promise for the user's webfinger profile
+    //
+    function getStorageInfo(userAddress) {
 
       /*
 
@@ -214,19 +224,35 @@ define(
       }
       var query = '?resource=acct:' + encodeURIComponent(userAddress);
       var addresses = [
-        'https://' + hostname + '/.well-known/webfinger' + query,
-        'http://'  + hostname + '/.well-known/webfinger' + query,
-        'https://' + hostname + '/.well-known/host-meta.json' + query,
-        'https://' + hostname + '/.well-known/host-meta' + query,
-        'http://'  + hostname + '/.well-known/host-meta.json' + query,
-        'http://'  + hostname + '/.well-known/host-meta' + query
+        '://' + hostname + '/.well-known/webfinger' + query,
+        '://' + hostname + '/.well-known/host-meta.json' + query,
+        '://' + hostname + '/.well-known/host-meta' + query,
       ];
 
-      return fetchHostMeta(addresses, (options && options.timeout) || 10000).
-        then(extractRemoteStorageLink);
+      return util.makePromise(function(promise) {
+        fetchHostMeta('https', addresses).
+          then(extractRemoteStorageLink, function() {
+            return fetchHostMeta('http', addresses).
+              then(extractRemoteStorageLink).
+              then(function(profile) {
+                promise.fulfill(profile);
+              }, promise.fail.bind(promise));
+          }).
+          then(function(profile) {
+            promise.fulfill(profile);
+          }, promise.fail.bind(promise));
+      });
     }
 
     return {
-      getStorageInfo: getStorageInfo
+      getStorageInfo: getStorageInfo,
+
+      setTimeout: function(t) {
+        timeout = t;
+      },
+
+      getTimeout: function() {
+        return timeout;
+      }
     };
 });

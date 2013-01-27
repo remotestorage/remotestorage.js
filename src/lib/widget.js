@@ -45,6 +45,9 @@ define([
   var events = util.getEventEmitter('ready', 'disconnect', 'state');
   var logger = util.getLogger('widget');
 
+  var maxTimeout = 45000;
+  var timeoutAdjustmentFactor = 1.5;
+
   // the view.
   var view = defaultView;
   // options passed to displayWidget
@@ -63,7 +66,10 @@ define([
       if(! offlineTimer) {
         offlineTimer = setTimeout(function() {
           offlineTimer = null;
-          sync.fullSync();
+          sync.fullSync().
+            then(function() {
+              schedule.enable();
+            });
         }, reconnectInterval);
       }
     },
@@ -117,6 +123,9 @@ define([
     setState('authing');
     return webfinger.getStorageInfo(userAddress).
       then(wireClient.setStorageInfo, function(error) {
+        if(error === 'timeout') {
+          adjustTimeout();
+        }
         setState((typeof(error) === 'string') ? 'typing' : 'error', error);
       }).
       get('properties').get('auth-endpoint').
@@ -193,7 +202,17 @@ define([
     }
   }
 
+  function adjustTimeout() {
+    var t = getputdelete.getTimeout();
+    if(t < maxTimeout) {
+      t *= timeoutAdjustmentFactor;
+      webfinger.setTimeout(t);
+      getputdelete.setTimeout(t);
+    }
+  }
+
   function handleSyncTimeout() {
+    adjustTimeout();
     schedule.disable();
     setState('offline');
   }
