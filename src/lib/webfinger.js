@@ -140,9 +140,11 @@ define(
 
     // fetch profile from all given addresses and yield the first one that
     // succeeds.
-    function fetchHostMeta(addresses) {
-      logger.info('fetch host meta', addresses);
-      return util.asyncMap(addresses, util.rcurry(fetchProfile, true)).
+    function fetchHostMeta(protocol, addresses) {
+      addresses = addresses.map(function(addr) {
+        return protocol + addr;
+      });
+      return util.asyncMap(addresses, fetchProfile).
         then(function(profiles, errors) {
           logger.debug('host meta mapped', profiles);
           for(var i=0;i<profiles.length;i++) {
@@ -222,16 +224,24 @@ define(
       }
       var query = '?resource=acct:' + encodeURIComponent(userAddress);
       var addresses = [
-        'https://' + hostname + '/.well-known/webfinger' + query,
-        'http://'  + hostname + '/.well-known/webfinger' + query,
-        'https://' + hostname + '/.well-known/host-meta.json' + query,
-        'https://' + hostname + '/.well-known/host-meta' + query,
-        'http://'  + hostname + '/.well-known/host-meta.json' + query,
-        'http://'  + hostname + '/.well-known/host-meta' + query
+        '://' + hostname + '/.well-known/webfinger' + query,
+        '://' + hostname + '/.well-known/host-meta.json' + query,
+        '://' + hostname + '/.well-known/host-meta' + query,
       ];
 
-      return fetchHostMeta(addresses).
-        then(extractRemoteStorageLink);
+      return util.makePromise(function(promise) {
+        fetchHostMeta('https', addresses).
+          then(extractRemoteStorageLink, function() {
+            return fetchHostMeta('http', addresses).
+              then(extractRemoteStorageLink).
+              then(function(profile) {
+                promise.fulfill(profile);
+              }, promise.fail.bind(promise));
+          }).
+          then(function(profile) {
+            promise.fulfill(profile);
+          }, promise.fail.bind(promise));
+      });
     }
 
     return {
