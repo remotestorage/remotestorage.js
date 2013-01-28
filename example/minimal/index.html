@@ -5,7 +5,6 @@
     <title>minimal remoteStorage.js example</title>
   </head>
   <body>
-    <div id="remotestorage-connect"></div>
     <div id="app">
       <div id="current">(loading...)</div>
       <input id="text" />
@@ -37,7 +36,7 @@
 
     hideApp();
     remoteStorage.claimAccess({ notes: 'rw' }).then(function() {
-      remoteStorage.displayWidget('remotestorage-connect');
+      remoteStorage.displayWidget();
       remoteStorage.onWidget('ready', showApp);
       remoteStorage.onWidget('disconnect', hideApp);
       remoteStorage.notes.onChange(displayNote);
