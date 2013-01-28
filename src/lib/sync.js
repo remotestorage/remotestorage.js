@@ -121,6 +121,34 @@ define([
     });
   }
 
+  function isForced(path) {
+    var parts = util.pathParts(path);
+
+    return util.makePromise(function(promise) {
+
+      function checkOne(node) {
+        if(node.startForce || node.startForceTree) {
+          promise.fulfill(true);
+        } else {
+          parts.pop();
+          checkNext();
+        }
+      }
+
+      function checkNext() {
+        if(parts.length === 0) {
+          promise.fulfill(false);
+        } else {
+          store.getNode(parts.join('')).
+            then(checkOne, promise.fail.bind(promise));
+        }
+      }
+
+      checkNext();
+
+    });
+  }
+
   var disabled = false;
 
   function disable() {
@@ -965,6 +993,8 @@ define([
     updateDataNode: updateDataNode,
 
     lastSyncAt: null,
+
+    isForced: isForced,
 
     // Section: exported functions
 
