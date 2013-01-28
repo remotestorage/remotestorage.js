@@ -184,30 +184,40 @@ define([
   //
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     logger.debug('PUT', path, { data: data, mimeType: mimeType });
-    return getNode(path).then(function(node) {
+    return dataStore.transaction(true, function(transaction) {
+      return getNode(path, transaction).then(function(node) {
 
-      var oldValue = node.data;
+        var oldValue = node.data;
 
-      node.data = data;
+        node.data = data;
 
-      if(! outgoing) {
-        if(typeof(timestamp) !== 'number') {
-          throw "Attempted to set non-number timestamp in incoming change: " + timestamp + ' (' + typeof(timestamp) + ') at path ' + path;
+        if(! outgoing) {
+          if(typeof(timestamp) !== 'number') {
+            throw "Attempted to set non-number timestamp in incoming change: " + timestamp + ' (' + typeof(timestamp) + ') at path ' + path;
+          }
+          node.lastUpdatedAt = timestamp;
+
+          delete node.error;
         }
-        node.lastUpdatedAt = timestamp;
 
-        delete node.error;
-      }
+        if(! mimeType) {
+          mimeType = 'application/json';
+        }
+        node.mimeType = mimeType;
 
-      if(! mimeType) {
-        mimeType = 'application/json';
-      }
-      node.mimeType = mimeType;
+        // FIXME: only set this when incoming data is set?
+        delete node.pending;
 
-      // FIXME: only set this when incoming data is set?
-      delete node.pending;
+        return updateNode(path, (typeof(node.data) !== 'undefined' ? node : undefined), outgoing, false, timestamp, oldValue, transaction);
+      });      
+    });
+  }
 
-      return updateNode(path, (typeof(node.data) !== 'undefined' ? node : undefined), outgoing, false, timestamp, oldValue);
+  function setNodePending(path, timestamp) {
+    return getNode(path).then(function(node) {
+      delete node.data;
+      node.pending = true;
+      return updateNode(path, node, false, false, 
     });
   }
 
@@ -571,6 +581,7 @@ define([
 
     getNode           : getNode,          // sync
     setNodeData       : setNodeData,      // sync
+    setNodePending    : setNodePending,   // sync
     clearDiff         : clearDiff,        // sync
     removeNode        : removeNode,       // sync
     setLastSynced     : setLastSynced,    // sync
