@@ -45,10 +45,14 @@ exports.server = (function() {
   function resetState() {
     tokens = {}, lastModified = {}, contentType = {}, content = {};
     responseDelay = null;
+    clearCaptured();
+    doCapture = false;
+  }
+
+  function clearCaptured() {
     while(capturedRequests.length > 0) {
       capturedRequests.shift();
     }
-    doCapture = false;
   }
 
   function getState() {
@@ -439,6 +443,7 @@ exports.server = (function() {
     delayResponse: delayResponse,
     captureRequests: captureRequests,
     captured: capturedRequests,
+    clearCaptured: clearCaptured,
     enableLogs: function() {
       silent = false;
     },
