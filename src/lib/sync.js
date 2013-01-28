@@ -244,6 +244,20 @@ define([
     });
   }
 
+  // Function: updateDataNode
+  //
+  // Sync a single data node, bypassing cache. Used by <BaseClient> to
+  // fetch pending nodes.
+  //
+  // TODO: handle pushing nodes as well (if localNode is given)
+  function updateDataNode(path, localNode) {
+    return remoteAdapter.get(path).
+      then(function(node) {
+        remoteAdapter.expireKey(path);
+        return node;
+      });
+  }
+
 
   /**************************************/
 
@@ -947,6 +961,8 @@ define([
     disable: disable,
 
     getQueue: function() { return taskQueue; },
+
+    updateDataNode: updateDataNode,
 
     lastSyncAt: null,
 
