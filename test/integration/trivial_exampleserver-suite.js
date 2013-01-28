@@ -280,9 +280,9 @@ define([
             then(function(listing) {
               _this.assertAnd(listing, ['a', 'b', 'c'], "Listing doesn't match (expected [a, b, c], got: " + JSON.stringify(listing) + ")");
             }).
-            then(curry(env.client.getObject, 'test-dir/a')).
-            then(function(obj) {
-              _this.assertType(obj, 'undefined');
+            then(curry(env.store.getNode, '/test-dir/a')).
+            then(function(node) {
+              _this.assert(node.pending, true);
             });
         }
       },
@@ -312,9 +312,9 @@ define([
             then(function(listing) {
               _this.assertAnd(listing, ['a', 'b', 'c', 'd']);
             }).
-            then(curry(env.remoteStorage.root.getObject, 'test-dir/a')).
-            then(function(obj) {
-              _this.assertTypeAnd(obj, 'undefined');
+            then(curry(env.store.getNode, '/test-dir/a')).
+            then(function(node) {
+              _this.assertAnd(node.pending, true);
             }).
             then(curry(env.remoteStorage.root.getListing, 'other-dir/')).
             then(function(listing) {

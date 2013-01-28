@@ -277,9 +277,22 @@ define([
     //   (end code)
     //
     getObject: function(path) {
+      var fullPath = this.makePath(path);
       return this.ensureAccess('r').
-        then(util.curry(store.getNode, this.makePath(path))).
-        get('data');
+        then(util.curry(store.getNode, fullPath)).
+        then(function(node) {
+          if(node.pending) {
+            return sync.updateDataNode(fullPath);
+          } else {
+            return node;
+          }
+        }).
+        then(function(node) {
+          if(node.mimeType !== 'application/json') {
+            logger.error("WARNING: getObject got called, but retrieved a non-json node at '" + fullPath + "'!");
+          }
+          return node.data;
+        });
     },
 
     //
@@ -403,8 +416,16 @@ define([
     //   });
     //   (end code)
     getFile: function(path) {
+      var fullPath = this.makePath(path);
       return this.ensureAccess('r').
-        then(util.curry(store.getNode, this.makePath(path))).
+        then(util.curry(store.getNode, fullPath)).
+        then(function(node) {
+          if(node.pending) {
+            return sync.updateDataNode(fullPath);
+          } else {
+            return node;
+          }
+        }).
         then(function(node) {
           return {
             mimeType: node.mimeType,
