@@ -607,7 +607,8 @@ define([
     // which places a very tight limit due to constraints enforced by browsers
     // and the necessity of base64 encoding binary data.
     //
-    storeFile: function(mimeType, path, data) {
+    storeFile: function(mimeType, path, data, cache) {
+      cache = (cache !== false);
       if(util.isDir(path)) {
         return failedPromise(new Error("Can't store directory node"));
       }
@@ -616,8 +617,19 @@ define([
       }
       var absPath = this.makePath(path);
       return this.ensureAccess('w').
-        then(util.curry(set, this.moduleName, path, absPath, data, mimeType)).
-        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+        then(function() {
+          if(cache) {
+            return set(this.moduleName, path, absPath, data, mimeType).
+              then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+          } else {
+            return sync.updateDataNode(path, {
+              mimeType: mimeType,
+              data: data
+            }).then(function() {
+              store.setNodePending(path);
+            });
+          }
+        });
     },
 
     // Method: storeDocument
