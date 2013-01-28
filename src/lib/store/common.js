@@ -19,14 +19,23 @@ define(['../util'], function(util) {
 
     unpackData: function(node) {
       node = util.extend({}, node);
-      if(node.mimeType === 'application/json' && node.data && typeof(node.data) !== 'object') {
+      if(node.binary) {
+        node.data = util.decodeBinary(node.data);
+      }
+      if(node.mimeType === 'application/json' && node.data) {
+        if(node.data instanceof ArrayBuffer) {
+          // convert accidental binary data back into a string
+          node.binary = false;
+          node.data = util.bufferToRaw(node.data);
+        } else if(typeof(node.data) === 'object') {
+          return node;
+        }
         try {
           node.data = JSON.parse(node.data);
         } catch(exc) {
+          console.error("Failed to parse node: ", node);
           throw new Error("Failed to parse JSON data: " + node.data + " (Error was: " + exc.message + ')');
         };
-      } else if(node.binary) {
-        node.data = util.decodeBinary(node.data);
       }
       return node;
     }
