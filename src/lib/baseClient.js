@@ -325,8 +325,23 @@ define([
           new Error("Not a directory: " + path)
         );
       }
+      var fullPath = this.makePath(path);
       return this.ensureAccess('r').
-        then(util.curry(store.getNode, this.makePath(path))).
+        then(util.curry(store.getNode, fullPath)).
+        then(function(node) {
+          if((!node) || Object.keys(node.data).length === 0) {
+            return store.isForced(fullPath).
+              then(function(isForced) {
+                if(isForced) {
+                  return node;
+                } else {
+                  return sync.updateDataNode(fullPath);
+                }
+              });
+          } else {
+            return node;
+          }
+        }).
         get('data').then(function(listing) {
           return listing ? Object.keys(listing) : [];
         });
