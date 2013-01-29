@@ -81,7 +81,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
         desc: "Simple outgoing requests",
         run: function(env) {
           var _this = this;
-          env.client.storeObject('test', 'testobj', { hello: 'world' }).
+          return env.client.storeObject('test', 'testobj', { hello: 'world' }).
             then(function() {
               // check current version (we haven't done initial sync)
               env.serverHelper.expectRequest(
@@ -392,6 +392,24 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             }).
             then(function() {
               env.serverHelper.expectNoMoreRequest(test);
+            });
+        }
+      },
+
+      {
+        desc: "storing a file directly to remote, without local caching",
+        run: function(env, test) {
+          return env.client.storeFile('text/plain', 'greetings/default', 'Hello World!', false).
+            then(function() {
+              // check requests
+              env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
+              env.serverHelper.expectNoMoreRequest(test);
+              // check node is set to pending
+              return env.remoteStorage.store.getNode('/greetings/default');
+            }).
+            then(function(node) {
+              console.log("NODE", node);
+              test.assert(node.pending, true);
             });
         }
       }
