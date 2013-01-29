@@ -208,16 +208,24 @@ define([
         // FIXME: only set this when incoming data is set?
         delete node.pending;
 
-        return updateNode(path, (typeof(node.data) !== 'undefined' ? node : undefined), outgoing, false, timestamp, oldValue, transaction);
+        return updateNode(path, (typeof(node.data) !== 'undefined' ? node : undefined), outgoing, false, timestamp, oldValue, transaction).
+          then(function() {
+            transaction.commit();
+          });
       });      
     });
   }
 
   function setNodePending(path, timestamp) {
-    return getNode(path).then(function(node) {
-      delete node.data;
-      node.pending = true;
-      return updateNode(path, node, false, false, 
+    return dataStore.transaction(true, function(transaction) {
+      return getNode(path, transaction).then(function(node) {
+        delete node.data;
+        node.pending = true;
+        return updateNode(path, node, false, false, timestamp, undefined, transaction).
+          then(function() {
+            transaction.commit();
+          });
+      });
     });
   }
 
@@ -512,7 +520,7 @@ define([
     }
 
     function fireEvents() {
-      if((!meta) && (! outgoing) && (! util.isDir(path))) {
+      if((!meta) && (! outgoing) && (! util.isDir(path)) && (! node.pending)) {
         // fire changes
         if(isForeign(path)) {
           return fireForeignChange(path, oldValue);
