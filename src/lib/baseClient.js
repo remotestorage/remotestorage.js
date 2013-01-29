@@ -576,6 +576,7 @@ define([
     //   mimeType - MIME media type of the data being stored
     //   path     - path relative to the module root. MAY NOT end in a forward slash.
     //   data     - string or ArrayBuffer of raw data to store
+    //   cache    - (optional) specify whether to put data in local cache prior to syncing it to the server. defaults to 'true'
     //
     // The given mimeType will later be returned, when retrieving the data
     // using <getFile>.
@@ -602,10 +603,22 @@ define([
     //   (end code)
     //
     //
+    // Example (Without local cache):
+    //   (start code)
+    //   client.storeFile('text/plain', 'hello.txt', 'Hello World!', false);
+    //   (end code)
+    //
     // Please keep in mind that the storage adapter used may limit the size of
     // files that can be stored in cache. The current default is localStorage,
     // which places a very tight limit due to constraints enforced by browsers
     // and the necessity of base64 encoding binary data.
+    //
+    // If you wish to store larger data, set the 'cache' parameter to 'false',
+    // that way data will be pushed to the server immediately. Also make sure
+    // you have only enabled tree-sync (see <BaseClient#use> for details) on
+    // the tree containing the file you store, otherwise the next sync will
+    // fetch the stored file from the server again, which you probably do not
+    // want to happen.
     //
     storeFile: function(mimeType, path, data, cache) {
       cache = (cache !== false);
@@ -622,11 +635,11 @@ define([
             return set(this.moduleName, path, absPath, data, mimeType).
               then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
           } else {
-            return sync.updateDataNode(path, {
+            return sync.updateDataNode(absPath, {
               mimeType: mimeType,
               data: data
             }).then(function() {
-              store.setNodePending(path);
+              return store.setNodePending(absPath, new Date().getTime());
             });
           }
         });
