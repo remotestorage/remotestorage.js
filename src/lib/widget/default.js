@@ -124,8 +124,19 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       addEvent(elements.connectForm, 'submit', function(event) {
         event.preventDefault();
         userAddress = elements.connectForm.userAddress.value;
-        events.emit('connect', userAddress);
+        if(userAddress.length > 0) {
+          events.emit('connect', userAddress);
+        }
       });
+      var adjustButton = function() {
+        if(elements.connectForm.userAddress.value.length > 0) {
+          elements.connectForm.connect.removeAttribute('disabled');
+        } else {
+          elements.connectForm.connect.setAttribute('disabled', 'disabled');
+        }
+      };
+      elements.connectForm.userAddress.addEventListener('keyup', adjustButton);
+	  adjustButton();
 
       if(connectionError) {
         // error bubbled from webfinger
@@ -148,6 +159,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       setBubbleText(t('connecting', { userAddress: userAddress }));
       elements.bubble.appendChild(elements.connectForm);
       elements.connectForm.userAddress.setAttribute('disabled', 'disabled');
+      elements.connectForm.userAddress.style.width = '100%';
       elements.connectForm.connect.setAttribute('disabled', 'disabled');
       elements.connectForm.userAddress.setAttribute('value', userAddress);
       setCubeState('connected');
@@ -185,9 +197,8 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
       updateLastSynced();
 
-      content.appendChild(hint);
-
       content.appendChild(elements.syncButton);
+      content.appendChild(hint);
       content.appendChild(elements.disconnectButton);
       addEvent(elements.syncButton, 'click', function() {
         events.emit('sync');
@@ -302,9 +313,9 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     elements.connectForm.userAddress.removeAttribute('disabled');
     elements.connectForm.connect.removeAttribute('disabled');
 
-    elements.connectForm.connect.value = t('connect');
-    elements.syncButton.innerHTML = t('sync');
-    elements.disconnectButton.innerHTML = t('disconnect');
+    elements.connectForm.connect.setAttribute('title', t('connect'));
+    elements.syncButton.setAttribute('title', t('sync'));
+    elements.disconnectButton.setAttribute('title', t('disconnect'));
   }
   
   function prepareWidget() {
@@ -326,14 +337,23 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     elements.connectForm.setAttribute('novalidate', '');
     elements.connectForm.innerHTML = [
       '<input type="email" placeholder="user@host" name="userAddress" novalidate>',
-      '<input type="submit" value="" name="connect">'
+      '<button class="connect" value="" name="connect">'
     ].join('');
+    var connectIcon = cEl('img');
+    connectIcon.setAttribute('src', assets.connectIcon);
+    elements.connectForm.connect.appendChild(connectIcon);
     // button.sync
     elements.syncButton = cEl('button');
     elements.syncButton.setAttribute('class', 'sync');
+    var syncIcon = cEl('img');
+    syncIcon.setAttribute('src', assets.syncIcon);
+    elements.syncButton.appendChild(syncIcon);
     // button.disconnect
     elements.disconnectButton = cEl('button');
     elements.disconnectButton.setAttribute('class', 'disconnect');
+    var disconnectIcon = cEl('img');
+    disconnectIcon.setAttribute('src', assets.disconnectIcon);
+    elements.disconnectButton.appendChild(disconnectIcon);
 
     resetElementState();
   }
