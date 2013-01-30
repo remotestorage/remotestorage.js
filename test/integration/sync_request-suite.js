@@ -364,6 +364,37 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
         }
       },
 
+      {
+        desc: "getting a listing with no forced sync at all",
+        run: function(env, test) {
+          return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island').
+            then(env.remoteStorage.flushLocal).
+            then(env.rsConnect).
+            then(function() {
+              return env.client.release('');
+            }).
+            then(function() {
+              return env.client.getListing('locations/hackerbeach/');
+            }).
+            then(function(listing) {
+              test.assert(listing, ['2013']);
+            });
+        }
+      },
+
+      {
+        desc: "getting an empty dir with tree-force enabled doesn't cause a request",
+        run: function(env, test) {
+          return env.remoteStorage.fullSync().
+            then(function() {
+              env.serverHelper.clearCaptured();
+              return env.client.getListing('locations/hackerbeach/');
+            }).
+            then(function() {
+              env.serverHelper.expectNoMoreRequest(test);
+            });
+        }
+      }
  
     ]
   });

@@ -531,6 +531,34 @@ define([
     }
   }
 
+  function isForced(path) {
+    var parts = util.pathParts(path);
+
+    return util.makePromise(function(promise) {
+
+      function checkOne(node) {
+        if(node.startForce || node.startForceTree) {
+          promise.fulfill(true);
+        } else {
+          parts.pop();
+          checkNext();
+        }
+      }
+
+      function checkNext() {
+        if(parts.length === 0) {
+          promise.fulfill(false);
+        } else {
+          getNode(parts.join('')).
+            then(checkOne, promise.fail.bind(promise));
+        }
+      }
+
+      checkNext();
+
+    });
+  }
+
   return {
 
     memory: memoryAdapter,
@@ -546,6 +574,8 @@ define([
     clearDiff         : clearDiff,        // sync
     removeNode        : removeNode,       // sync
     setLastSynced     : setLastSynced,    // sync
+
+    isForced          : isForced,         // baseClient
 
     on                : events.on,
     setNodeAccess     : setNodeAccess,

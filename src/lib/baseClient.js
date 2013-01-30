@@ -325,8 +325,23 @@ define([
           new Error("Not a directory: " + path)
         );
       }
+      var fullPath = this.makePath(path);
       return this.ensureAccess('r').
-        then(util.curry(store.getNode, this.makePath(path))).
+        then(util.curry(store.getNode, fullPath)).
+        then(function(node) {
+          if((!node) || Object.keys(node.data).length === 0) {
+            return store.isForced(fullPath).
+              then(function(isForced) {
+                if(isForced) {
+                  return node;
+                } else {
+                  return sync.updateDataNode(fullPath);
+                }
+              });
+          } else {
+            return node;
+          }
+        }).
         get('data').then(function(listing) {
           return listing ? Object.keys(listing) : [];
         });
@@ -592,7 +607,8 @@ define([
     // which places a very tight limit due to constraints enforced by browsers
     // and the necessity of base64 encoding binary data.
     //
-    storeFile: function(mimeType, path, data) {
+    storeFile: function(mimeType, path, data, cache) {
+      cache = (cache !== false);
       if(util.isDir(path)) {
         return failedPromise(new Error("Can't store directory node"));
       }
@@ -601,8 +617,19 @@ define([
       }
       var absPath = this.makePath(path);
       return this.ensureAccess('w').
-        then(util.curry(set, this.moduleName, path, absPath, data, mimeType)).
-        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+        then(function() {
+          if(cache) {
+            return set(this.moduleName, path, absPath, data, mimeType).
+              then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+          } else {
+            return sync.updateDataNode(path, {
+              mimeType: mimeType,
+              data: data
+            }).then(function() {
+              store.setNodePending(path);
+            });
+          }
+        });
     },
 
     // Method: storeDocument

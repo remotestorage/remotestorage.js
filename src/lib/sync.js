@@ -1,8 +1,8 @@
 /*global localStorage */
 
 define([
-  './util', './store', './store/remoteCache'
-], function(util, store, remoteCacheAdapter) {
+  './util', './store', './store/remoteCache', './wireClient'
+], function(util, store, remoteCacheAdapter, wireClient) {
 
   "use strict";
 
@@ -251,11 +251,15 @@ define([
   //
   // TODO: handle pushing nodes as well (if localNode is given)
   function updateDataNode(path, localNode) {
-    return remoteAdapter.get(path).
-      then(function(node) {
-        remoteAdapter.expireKey(path);
-        return node;
-      });
+    if(localNode) {
+      return wireClient.set(path, localNode.data, localNode.mimeType);
+    } else {
+      return remoteAdapter.get(path).
+        then(function(node) {
+          remoteAdapter.expireKey(path);
+          return node;
+        });
+    }
   }
 
 
