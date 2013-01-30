@@ -267,12 +267,13 @@ define([], function() {
     },
 
     pathParts: function(path) {
-      var parts = ['/'];
+      var parts = [];
       var md;
       while((md = path.match(/^(.*?)([^\/]+\/?)$/))) {
         parts.unshift(md[2]);
         path = md[1];
       }
+      parts.unshift('/');
       return parts;
     },
 

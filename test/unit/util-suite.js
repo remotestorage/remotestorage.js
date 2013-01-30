@@ -96,7 +96,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "util.pathParts()",
         run: function(env) {
           var ret = env.util.pathParts('get/me/the/parts');
-          var should_be = ['get/', 'me/', 'the/', 'parts', '/'];
+          var should_be = ['/', 'get/', 'me/', 'the/', 'parts'];
           this.assert(ret, should_be);
         }
       },
