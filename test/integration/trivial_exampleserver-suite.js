@@ -280,6 +280,7 @@ define([
             }).
             then(curry(env.client.getListing, 'test-dir/')).
             then(function(listing) {
+              listing = listing.sort();
               _this.assertAnd(listing, ['a', 'b', 'c'], "Listing doesn't match (expected [a, b, c], got: " + JSON.stringify(listing) + ")");
             }).
             then(curry(env.store.getNode, '/test-dir/a')).
@@ -359,6 +360,7 @@ define([
             then(env.remoteStorage.fullSync).
             then(curry(env.remoteStorage.root.getListing, 'test-dir/')).
             then(function(listing) {
+              listing = listing.sort();
               _this.assertAnd(listing, ['a', 'b', 'c', 'd'], 'listing abc: '+JSON.stringify(listing));
             }).
             then(curry(env.client.getObject, 'test-dir/a')).
