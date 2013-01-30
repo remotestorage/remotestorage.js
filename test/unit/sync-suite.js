@@ -187,8 +187,9 @@ define(['requirejs'], function(requirejs) {
               }).
               then(function() {
                 _this.assertAnd(calls.length, 3);
+                calls = calls.map(function(call) { return call[0]; });
                 _this.assert(
-                  calls.map(function(call) { return call[0]; }),
+                  calls.sort(),
                   ['/a/a/x', '/a/b/y', '/a/z']
                 );
               }, function(error) {

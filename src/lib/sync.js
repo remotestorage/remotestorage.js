@@ -1,8 +1,8 @@
 /*global localStorage */
 
 define([
-  './util', './store', './store/remoteCache'
-], function(util, store, remoteCacheAdapter) {
+  './util', './store', './store/remoteCache', './wireClient'
+], function(util, store, remoteCacheAdapter, wireClient) {
 
   "use strict";
 
@@ -249,13 +249,19 @@ define([
   // Sync a single data node, bypassing cache. Used by <BaseClient> to
   // fetch pending nodes.
   //
-  // TODO: handle pushing nodes as well (if localNode is given)
   function updateDataNode(path, localNode) {
-    return remoteAdapter.get(path).
-      then(function(node) {
-        remoteAdapter.expireKey(path);
-        return node;
-      });
+    if(localNode) {
+      return wireClient.set(path, localNode.data, localNode.mimeType).
+        then(function() {
+          remoteAdapter.expireKey(path);
+        });
+    } else {
+      return remoteAdapter.get(path).
+        then(function(node) {
+          remoteAdapter.expireKey(path);
+          return node;
+        });
+    }
   }
 
 

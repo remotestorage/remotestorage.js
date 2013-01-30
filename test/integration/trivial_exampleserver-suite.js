@@ -33,6 +33,8 @@ define([
 
         util.extend(env.serverHelper, nodejsExampleServer.server);
 
+        env.serverHelper.disableLogs();
+
         env.serverHelper.start(curry(_this.result.bind(_this), true));
       });
     },
@@ -278,6 +280,7 @@ define([
             }).
             then(curry(env.client.getListing, 'test-dir/')).
             then(function(listing) {
+              listing = listing.sort();
               _this.assertAnd(listing, ['a', 'b', 'c'], "Listing doesn't match (expected [a, b, c], got: " + JSON.stringify(listing) + ")");
             }).
             then(curry(env.store.getNode, '/test-dir/a')).
@@ -291,6 +294,7 @@ define([
         desc: "writing some objects, then sync just a subtree w/o data",
         run: function(env) {
           var _this = this;
+          // write initial data
           util.asyncGroup(
             curry(env.client.storeObject, 'test', 'test-dir/a', { n: 'a' }),
             curry(env.client.storeObject, 'test', 'test-dir/b', { n: 'b' }),
@@ -302,23 +306,33 @@ define([
             curry(env.client.storeObject, 'test', 'other-dir/d', { n: 'd' }),
             curry(env.client.storeObject, 'test', 'other-dir/e', { n: 'e' })
           ).
-            then(env.remoteStorage.fullSync).
+            // logout
             then(env.remoteStorage.flushLocal).
+            // login
             then(env.rsConnect).
             then(curry(env.remoteStorage.root.release, '')).
+            // configure tree-only sync
             then(curry(env.remoteStorage.root.use, 'test-dir/', true)).
+            // full sync will fetch a listing of /test-dir/ now
             then(env.remoteStorage.fullSync).
             then(curry(env.remoteStorage.root.getListing, 'test-dir/')).
             then(function(listing) {
-              _this.assertAnd(listing, ['a', 'b', 'c', 'd']);
+              // check that the listing is correct
+              _this.assertAnd(listing.sort(), ['a', 'b', 'c', 'd']);
             }).
             then(curry(env.store.getNode, '/test-dir/a')).
             then(function(node) {
+              // check that data node is pending...
               _this.assertAnd(node.pending, true);
+              // ...and has no data
+              _this.assertTypeAnd(node.data, 'undefined');
             }).
-            then(curry(env.remoteStorage.root.getListing, 'other-dir/')).
-            then(function(listing) {
-              _this.assert(listing, []);
+            // check that other listing is empty (using client.getListing instead
+            // of store.getNode would trigger a request for the listing, which we
+            // don't want in this case)
+            then(curry(env.remoteStorage.store.getNode, '/other-dir/')).
+            then(function(node) {
+              _this.assert(node.data, {});
             });
         }
       },
@@ -346,19 +360,20 @@ define([
             then(env.remoteStorage.fullSync).
             then(curry(env.remoteStorage.root.getListing, 'test-dir/')).
             then(function(listing) {
+              listing = listing.sort();
               _this.assertAnd(listing, ['a', 'b', 'c', 'd'], 'listing abc: '+JSON.stringify(listing));
             }).
             then(curry(env.client.getObject, 'test-dir/a')).
             then(function(obj) {
               _this.assertAnd(obj, { n: 'a', '@type': 'https://remotestoragejs.com/spec/modules/root/test' }, 'object a');
             }).
-            then(curry(env.remoteStorage.root.getListing, 'other-dir/')).
-            then(function(listing) {
-              _this.assertAnd(listing, [], 'listing other-dir');
+            then(curry(env.store.getNode, '/other-dir/')).
+            then(function(node) {
+              _this.assertAnd(node.data, {}, 'listing other-dir');
             }).
-            then(curry(env.client.getObject, 'other-dir/a')).
-            then(function(obj) {
-              _this.assertType(obj, 'undefined', 'object other-dir/a');
+            then(curry(env.store.getNode, '/other-dir/a')).
+            then(function(node) {
+              _this.assertType(node.data, 'undefined', '(object other-dir/a node data)');
             });
         }
       }

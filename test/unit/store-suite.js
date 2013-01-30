@@ -438,6 +438,29 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
               _this.assert(node.lastUpdatedAt, 23456);
             });
         }
+      },
+
+      {
+        desc: "store.setNodePending sets the 'pending' flag",
+        run: function(env, test) {
+          env.store.setNodePending('/foo/bar', 12345).
+            then(curry(env.store.getNode, '/foo/bar')).
+            then(function(node) {
+              test.assert(node.pending, true);
+            });
+        }
+      },
+
+      {
+        desc: "store.setNodePending removes the 'data' attribute",
+        run: function(env, test) {
+          env.store.setNodeData('/foo/bar', 'baz', false, 12345, 'text/plain').
+            then(curry(env.store.setNodePending, '/foo/bar', 23456)).
+            then(curry(env.store.getNode, '/foo/bar')).
+            then(function(node) {
+              test.assertType(node.data, 'undefined');
+            });
+        }
       }
 
     ]

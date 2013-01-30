@@ -184,30 +184,48 @@ define([
   //
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
     logger.debug('PUT', path, { data: data, mimeType: mimeType });
-    return getNode(path).then(function(node) {
+    return dataStore.transaction(true, function(transaction) {
+      return getNode(path, transaction).then(function(node) {
 
-      var oldValue = node.data;
+        var oldValue = node.data;
 
-      node.data = data;
+        node.data = data;
 
-      if(! outgoing) {
-        if(typeof(timestamp) !== 'number') {
-          throw "Attempted to set non-number timestamp in incoming change: " + timestamp + ' (' + typeof(timestamp) + ') at path ' + path;
+        if(! outgoing) {
+          if(typeof(timestamp) !== 'number') {
+            throw "Attempted to set non-number timestamp in incoming change: " + timestamp + ' (' + typeof(timestamp) + ') at path ' + path;
+          }
+          node.lastUpdatedAt = timestamp;
+
+          delete node.error;
         }
-        node.lastUpdatedAt = timestamp;
 
-        delete node.error;
-      }
+        if(! mimeType) {
+          mimeType = 'application/json';
+        }
+        node.mimeType = mimeType;
 
-      if(! mimeType) {
-        mimeType = 'application/json';
-      }
-      node.mimeType = mimeType;
+        // FIXME: only set this when incoming data is set?
+        delete node.pending;
 
-      // FIXME: only set this when incoming data is set?
-      delete node.pending;
+        return updateNode(path, (typeof(node.data) !== 'undefined' ? node : undefined), outgoing, false, timestamp, oldValue, transaction).
+          then(function() {
+            transaction.commit();
+          });
+      });      
+    });
+  }
 
-      return updateNode(path, (typeof(node.data) !== 'undefined' ? node : undefined), outgoing, false, timestamp, oldValue);
+  function setNodePending(path, timestamp) {
+    return dataStore.transaction(true, function(transaction) {
+      return getNode(path, transaction).then(function(node) {
+        delete node.data;
+        node.pending = true;
+        return updateNode(path, node, false, false, timestamp, undefined, transaction).
+          then(function() {
+            transaction.commit();
+          });
+      });
     });
   }
 
@@ -502,7 +520,7 @@ define([
     }
 
     function fireEvents() {
-      if((!meta) && (! outgoing) && (! util.isDir(path))) {
+      if((!meta) && (! outgoing) && (! util.isDir(path)) && (! node.pending)) {
         // fire changes
         if(isForeign(path)) {
           return fireForeignChange(path, oldValue);
@@ -531,6 +549,34 @@ define([
     }
   }
 
+  function isForced(path) {
+    var parts = util.pathParts(path);
+
+    return util.makePromise(function(promise) {
+
+      function checkOne(node) {
+        if(node.startForce || node.startForceTree) {
+          promise.fulfill(true);
+        } else {
+          parts.pop();
+          checkNext();
+        }
+      }
+
+      function checkNext() {
+        if(parts.length === 0) {
+          promise.fulfill(false);
+        } else {
+          getNode(parts.join('')).
+            then(checkOne, promise.fail.bind(promise));
+        }
+      }
+
+      checkNext();
+
+    });
+  }
+
   return {
 
     memory: memoryAdapter,
@@ -543,9 +589,12 @@ define([
 
     getNode           : getNode,          // sync
     setNodeData       : setNodeData,      // sync
+    setNodePending    : setNodePending,   // sync
     clearDiff         : clearDiff,        // sync
     removeNode        : removeNode,       // sync
     setLastSynced     : setLastSynced,    // sync
+
+    isForced          : isForced,         // baseClient
 
     on                : events.on,
     setNodeAccess     : setNodeAccess,
