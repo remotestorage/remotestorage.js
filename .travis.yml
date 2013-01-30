@@ -2,3 +2,5 @@ language: node_js
 node_js:
   - 0.8.9
 script: npm install && npm test 
+notifications:
+  irc: "irc.freenode.org#remotestorage"
