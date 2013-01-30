@@ -311,7 +311,7 @@ define([
             then(env.remoteStorage.fullSync).
             then(curry(env.remoteStorage.root.getListing, 'test-dir/')).
             then(function(listing) {
-              _this.assertAnd(listing, ['a', 'b', 'c', 'd']);
+              _this.assertAnd(listing.sort(), ['a', 'b', 'c', 'd']);
             }).
             then(curry(env.store.getNode, '/test-dir/a')).
             then(function(node) {
