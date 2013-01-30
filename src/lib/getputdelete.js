@@ -8,13 +8,15 @@ define(
 
     var defaultContentType = 'application/octet-stream';
 
+    var timeout = 10000;
+
     function realDoCall(method, url, body, mimeType, token) {
       return util.makePromise(function(promise) {
         logger.info(method, url);
         var platformObj = {
           url: url,
           method: method,
-          timeout: 10000,
+          timeout: timeout,
           headers: {}
         };
 
@@ -52,7 +54,7 @@ define(
           }, function(error) {
             if(error === 404) {
               return promise.fulfill(undefined);
-            } else if(error === 401) {
+            } else if(error === 401 || error === 403) {
               error = 'unauthorized';
             };
             promise.fail(error);
@@ -100,8 +102,7 @@ define(
     function put(url, value, mimeType, token) {
       if(! (typeof(value) === 'string' || (typeof(value) === 'object' &&
                                            value instanceof ArrayBuffer))) {
-        cb(new Error("invalid value given to PUT, only strings or ArrayBuffers allowed, got "
-                     + typeof(value)));
+        throw new Error("invalid value given to PUT, only strings or ArrayBuffers allowed, got " + typeof(value));
       }
       return doCall('PUT', url, value, mimeType, token);
     }
@@ -149,6 +150,15 @@ define(
       //   data     - raw response data
       //   mimeType - value of the response's Content-Type header. If none was returned, this defaults to application/octet-stream.
       //
-      set:    set
+      set:    set,
+
+      setTimeout: function(t) {
+        timeout = t;
+      },
+
+      getTimeout: function() {
+        return timeout;
+      }
+
     };
 });

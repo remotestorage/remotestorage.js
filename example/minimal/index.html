@@ -6,54 +6,49 @@
   </head>
   <body>
     <div id="remotestorage-connect"></div>
-    <input id="text" />
-    <input id="up" type="submit" value="up" />
-    <input id="down" type="submit" value="down" />
-    <p id="status">
+    <div id="app">
+      <div id="current">(loading...)</div>
+      <input id="text" />
+      <input id="up" type="submit" value="up" />
+    </div>
+    <p id="pleaseConnect">
       Please connect your remotestorage (get one at <a href="https://heahdk.net/">https://heahdk.net/</a>)
     </p>
   </body>
-  <script src="remoteStorage.js"></script>
+  <script src="http://remotestoragejs.com/release/0.7.0/remoteStorage.min.js"></script>
+  <script src="notes.js"></script>
   <script>
     function $(id) { return document.getElementById(id); }
     
-    function connect(scope, divId, onReady) {
-      remoteStorage.claimAccess(scope).then(function() {
-        remoteStorage.displayWidget(divId);
-        remoteStorage.onWidget('ready', onReady);
+    function displayNote() {
+      remoteStorage.notes.getNote().then(function(text) {
+          $('current').innerHTML = text || '';
       });
     }
-    
-    remoteStorage.defineModule('notes', function(privateClient, publicClient) {
-      return {
-        exports: {
-          setNote: function (text) {
-            return privateClient.storeFile('text/plain', 'note.txt', text);
-          },
-          getNote: function (cb) {
-            privateClient.getFile('note.txt').then(function(obj) {
-              cb(obj.data);
-            });            
-          }
-        }
-      };
-    });
-    
-    connect({ notes: 'rw' }, 'remotestorage-connect', function() {
-      $('status').innerHTML = 'ok';
+    function showApp() {
+      $('pleaseConnect').style.display='none';
+      $('app').style.display='block';
+      displayNote();
+    }
+    function hideApp() {
+      $('pleaseConnect').style.display='block';
+      $('app').style.display='none';
+    }
+
+    hideApp();
+    remoteStorage.claimAccess({ notes: 'rw' }).then(function() {
+      remoteStorage.displayWidget('remotestorage-connect');
+      remoteStorage.onWidget('ready', showApp);
+      remoteStorage.onWidget('disconnect', hideApp);
+      remoteStorage.notes.onChange(displayNote);
       $('up').onclick = function() {
-        $('status').innerHTML = 'storing...';
-        remoteStorage.notes.setNote($('text').value).then(function(text) {
-          $('status').innerHTML = 'ok';
-        });
+        remoteStorage.notes.setNote($('text').value);
       };
-      $('down').onclick = function() {
-        $('status').innerHTML = 'retrieving...';
-        remoteStorage.notes.getNote(function(text) {
-          $('text').value = text;
-          $('status').innerHTML = 'ok';
-        });
-      };
+      $('text').addEventListener('keypress', function(e) {
+        if(e.keyCode == 13) {//<enter>
+          $('up').onclick();
+        }
+      }, false);
     });
   </script>
 </html>

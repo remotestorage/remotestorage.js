@@ -244,6 +244,20 @@ define([
     });
   }
 
+  // Function: updateDataNode
+  //
+  // Sync a single data node, bypassing cache. Used by <BaseClient> to
+  // fetch pending nodes.
+  //
+  // TODO: handle pushing nodes as well (if localNode is given)
+  function updateDataNode(path, localNode) {
+    return remoteAdapter.get(path).
+      then(function(node) {
+        remoteAdapter.expireKey(path);
+        return node;
+      });
+  }
+
 
   /**************************************/
 
@@ -725,7 +739,7 @@ define([
           logger.debug('findNextForceRoots check', path + key, childNode);
           if(childNode.startForce || childNode.startForceTree) {
             roots.push(path + key);
-          } else {
+          } else if(util.isDir(key)) {
             return findNextForceRoots(path + key, childNode).
               then(function(innerRoots) {
                 innerRoots.forEach(function(innerRoot) {
@@ -799,7 +813,7 @@ define([
         function determineForce() {
           logger.debug('determineForce', options);
           var force = (options.force || options.forceTree);
-          if((! force) && options.path == '/' || options.path == '/public/') {
+          if((! force) && (options.path == '/' || options.path == '/public/')) {
             findNextForceRoots(options.path).
               then(function(roots) {
                 logger.debug('local interest', options.path, node, false, 'next: ', roots);
@@ -947,6 +961,8 @@ define([
     disable: disable,
 
     getQueue: function() { return taskQueue; },
+
+    updateDataNode: updateDataNode,
 
     lastSyncAt: null,
 

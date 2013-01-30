@@ -45,6 +45,9 @@ define([
   var events = util.getEventEmitter('ready', 'disconnect', 'state');
   var logger = util.getLogger('widget');
 
+  var maxTimeout = 45000;
+  var timeoutAdjustmentFactor = 1.5;
+
   // the view.
   var view = defaultView;
   // options passed to displayWidget
@@ -63,7 +66,10 @@ define([
       if(! offlineTimer) {
         offlineTimer = setTimeout(function() {
           offlineTimer = null;
-          sync.fullSync();
+          sync.fullSync().
+            then(function() {
+              schedule.enable();
+            });
         }, reconnectInterval);
       }
     },
@@ -116,7 +122,12 @@ define([
     settings.set('userAddress', userAddress);
     setState('authing');
     return webfinger.getStorageInfo(userAddress).
-      then(wireClient.setStorageInfo, util.curry(setState, 'typing')).
+      then(wireClient.setStorageInfo, function(error) {
+        if(error === 'timeout') {
+          adjustTimeout();
+        }
+        setState((typeof(error) === 'string') ? 'typing' : 'error', error);
+      }).
       get('properties').get('auth-endpoint').
       then(requestToken).
       then(schedule.enable, util.curry(setState, 'error'));
@@ -191,7 +202,17 @@ define([
     }
   }
 
+  function adjustTimeout() {
+    var t = getputdelete.getTimeout();
+    if(t < maxTimeout) {
+      t *= timeoutAdjustmentFactor;
+      webfinger.setTimeout(t);
+      getputdelete.setTimeout(t);
+    }
+  }
+
   function handleSyncTimeout() {
+    adjustTimeout();
     schedule.disable();
     setState('offline');
   }
@@ -204,7 +225,7 @@ define([
     }, handleSyncError);
   }
 
-  function display(_remoteStorage, domId, options) {
+  function display(_remoteStorage, element, options) {
     remoteStorage = _remoteStorage;
     widgetOptions = options;
     if(! options) {
@@ -221,7 +242,7 @@ define([
 
     schedule.watch('/', 30000);
 
-    view.display(domId, options);
+    view.display(element, options);
 
     view.on('sync', sync.forceSync);
     view.on('connect', connectStorage);
