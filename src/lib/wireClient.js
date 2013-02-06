@@ -49,10 +49,12 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
       state = 'anonymous';
     }
 
-    if(state === 'connected') {
-      events.emit('connected');
-    } else if(state === 'anonymous' && oldState === 'connected') {
-      events.emit('disconnected');
+    if(oldState !== state) {
+      if(state === 'connected') {
+        events.emit('connected');
+      } else if(state === 'anonymous' && oldState === 'connected') {
+        events.emit('disconnected');
+      }
     }
     return state;
   }
