@@ -677,6 +677,10 @@ define([
     //
     // See <sync> for details.
     //
+    // Parameters:
+    //   path      - path relative to the module root
+    //
+    // Returns a promise.
     release: function(path) {
       var absPath = this.makePath(path);
       return store.setNodeForce(absPath, false, false);
