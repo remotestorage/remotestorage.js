@@ -98,7 +98,7 @@ define([
   function buildScopeRequest() {
     var scopes = remoteStorage.claimedModules;
     return Object.keys(remoteStorage.claimedModules).map(function(module) {
-      return (module === 'root' ? '' : module) + ':' + scopes[module];
+      return (module === 'root' && remoteStorage.getStorageType() === '2012.04' ? '' : module) + ':' + scopes[module];
     }).join(' ');
   }
 
