@@ -148,7 +148,7 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "widget.display strips all params from the fragment",
         run: function(env) {
-          env.view._results['getLocation'] = 'http://test.host/#abc=def&user_address=foo@bar.baz';
+          env.view._results['getLocation'] = 'http://test.host/#abc=def&remotestorage=foo@bar.baz';
           env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {});
           expectCall(this, env.view, 'setLocation', ['http://test.host/#']) &&
             expectCall(this, env.view, 'setUserAddress', ['foo@bar.baz']) &&
