@@ -393,6 +393,8 @@ define([
 
     getStorageHref: wireClient.getStorageHref,
 
+    getStorageType: wireClient.getStorageType,
+
     getStorageInfo: wireClient.getStorageInfo,
 
     disableSyncThrottling: sync.disableThrottling,
