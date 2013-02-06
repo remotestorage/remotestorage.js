@@ -198,6 +198,13 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
       return getSetting('storageHref');
     },
     
+    // Method: getStorageType
+    //
+    // Get API version of the user's remotestorage, probably '2012.04' or 'remotestorage-00'.
+    getStorageType   : function() {
+      return getSetting('storageType');
+    },
+    
     // Method: SetBearerToken
     //
     // Set the bearer token for authorization
