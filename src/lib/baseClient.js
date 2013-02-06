@@ -665,6 +665,7 @@ define([
     //   path      - path relative to the module root
     //   treeOnly  - boolean value, whether only the tree should be synced.
     //
+    // Returns a promise.
     use: function(path, treeOnly) {
       var absPath = this.makePath(path);
       return store.setNodeForce(absPath, !treeOnly, true);
