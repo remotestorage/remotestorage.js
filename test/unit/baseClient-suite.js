@@ -168,10 +168,39 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "BaseClient#declareType doesn't influence other clients",
         run: function(env, test) {
-          var otherClient = new env.BaseClient('test');
+          var otherClient = new env.BaseClient('other');
           env.client.declareType('foo', { type: 'object', properties: { foo: { type: 'string' } } });
 
           test.assertType(otherClient.types['foo'], 'undefined');
+        }
+      },
+
+      {
+        desc: "'change' events are forwarded from store with the correct path and origin",
+        run: function(env, test) {
+          env.client.on('change', function(event) {
+            test.assertAnd(event.path, '/test/foo');
+            test.assertAnd(event.relativePath, 'foo');
+            test.assert(event.origin, 'remote');
+          });
+          env.store.emit('change', {
+            origin: 'remote',
+            oldValue: undefined,
+            newValue: { foo: 'bar' },
+            path: '/test/foo'
+          });
+        }
+      },
+
+      {
+        desc: "storing data causes a 'change' event with the correct path and origin",
+        run: function(env, test) {
+          env.client.on('change', function(event) {
+            test.assertAnd(event.path, '/test/foo/bar');
+            test.assertAnd(event.relativePath, 'foo/bar');
+            test.assert(event.origin, 'window');
+          });
+          env.client.storeObject('test', 'foo/bar', { foo: 'bar' });
         }
       }
 

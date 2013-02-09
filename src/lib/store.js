@@ -597,6 +597,7 @@ define([
     isForced          : isForced,         // baseClient
 
     on                : events.on,
+    emit              : events.emit,
     setNodeAccess     : setNodeAccess,
     setNodeForce      : setNodeForce,
     setNodeError      : setNodeError,

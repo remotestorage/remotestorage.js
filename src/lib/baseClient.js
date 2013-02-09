@@ -125,7 +125,7 @@ define([
       moduleEvents[moduleName] = {};
     }
     this.events = util.getEventEmitter('change', 'conflict', 'error');
-    moduleEvents[moduleName][isPublic] = this.events;
+    moduleEvents[moduleName][!!isPublic] = this.events;
     util.bindAll(this);
 
     this.types = {};
