@@ -153,7 +153,28 @@ define(['requirejs'], function(requirejs, undefined) {
               _this.result(!! error);
             });
         }
+      },
+
+      {
+        desc: "BaseClient#declareType adds a type & schema",
+        run: function(env, test) {
+          env.client.declareType('foo', { type: 'object', properties: { foo: { type: 'string' } } });
+          var type = env.client.types['foo'];
+          test.assertTypeAnd(type, 'string');
+          test.assertType(env.client.schemas[type], 'object');
+        }
+      },
+
+      {
+        desc: "BaseClient#declareType doesn't influence other clients",
+        run: function(env, test) {
+          var otherClient = new env.BaseClient('test');
+          env.client.declareType('foo', { type: 'object', properties: { foo: { type: 'string' } } });
+
+          test.assertType(otherClient.types['foo'], 'undefined');
+        }
       }
+
     ]
   });
   return suites;

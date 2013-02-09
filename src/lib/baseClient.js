@@ -127,6 +127,11 @@ define([
     this.events = util.getEventEmitter('change', 'conflict', 'error');
     moduleEvents[moduleName][isPublic] = this.events;
     util.bindAll(this);
+
+    this.types = {};
+    this.typeAliases = {};
+    this.schemas = {};
+    this.typeIdKeys = {};
   };
 
   // Class: BaseClient
@@ -749,11 +754,6 @@ define([
     },
 
     /**** TYPE HANDLING ****/
-
-    types: {},
-    typeAliases: {},
-    schemas: {},
-    typeIdKeys: {},
 
     resolveType: function(alias) {
       var type = this.types[alias];
