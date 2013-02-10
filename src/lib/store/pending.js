@@ -8,7 +8,7 @@ define(['../util'], function(util) {
     function queueRequest(name, args, dontPromise) {
       logger.debug(name, args[0]);
       if(! dontPromise) {
-        return util.makePromise(function(promise) {
+        return util.getPromise(function(promise) {
           requestQueue.push({
             method: name,
             args: args,

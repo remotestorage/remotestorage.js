@@ -72,7 +72,7 @@ define(
     }
 
     function parseXRD(str) {
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         platform.parseXml(str, function(err, obj) {
           if(err) {
             promise.reject(err);
@@ -126,7 +126,7 @@ define(
         if(mimeType && mimeType.match(/^application\/json/)) {
           return parseJRD(body);
         } else {
-          return util.makePromise(function(jrdPromise) {
+          return util.getPromise(function(jrdPromise) {
             parseXRD(body).then(
               function(xrd) {
                 jrdPromise.fulfill(xrd);
@@ -215,7 +215,7 @@ define(
 
        */
 
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         try {
           var hostname = extractHostname(userAddress)
         } catch(error) {

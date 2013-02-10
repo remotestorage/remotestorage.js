@@ -301,7 +301,7 @@ define([
     //   > remoteStorage.flushLocal();
     //
     flushLocal       : function() {
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         logger.info('flushLocal');
         store.forgetAll().then(promise.fulfill);
         sync.clearSettings();

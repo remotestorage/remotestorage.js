@@ -459,7 +459,7 @@ define([
 
     function adjustTimestamp(transaction) {
       logger.debug('updateNode.adjustTimestamp', path);
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         function setTimestamp(t) {
           if(t) { timestamp = t; }
           if(node && typeof(timestamp) == 'number') {
@@ -566,7 +566,7 @@ define([
   function isForced(path, transaction) {
     var parts = util.pathParts(path);
 
-    return util.makePromise(function(promise) {
+    return util.getPromise(function(promise) {
 
       function checkOne(node) {
         if(node.startForce || node.startForceTree) {

@@ -118,7 +118,7 @@ define(['./util'], function(util) {
   }
 
   function ajaxBrowser(params) {
-    return util.makePromise(function(promise) {
+    return util.getPromise(function(promise) {
       var timedOut = false;
       var timer;
       var xhr = new XMLHttpRequest();
@@ -201,7 +201,7 @@ define(['./util'], function(util) {
 
   function ajaxNode(params) {
 
-    return util.makePromise(function(promise) {
+    return util.getPromise(function(promise) {
 
       if(typeof(params.data) === 'object' && params.data instanceof ArrayBuffer) {
         throw new Error("Sending binary data not yet implemented for nodejs");

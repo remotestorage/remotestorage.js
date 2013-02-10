@@ -16,7 +16,7 @@ define([
     var DB = undefined;
 
     function removeDatabase() {
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         if(DB) {
           try {
             DB.close();
@@ -39,7 +39,7 @@ define([
 
     function openDatabase() {
       logger.info("Opening database " + DB_NAME + '@' + DB_VERSION);
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         var dbRequest = indexedDB.open(DB_NAME, DB_VERSION);
 
         function upgrade(db) {
@@ -92,7 +92,7 @@ define([
 
     function storeRequest(methodName) {
       var args = Array.prototype.slice.call(arguments, 1);
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         var store = DB.transaction(OBJECT_STORE_NAME, 'readwrite').
           objectStore(OBJECT_STORE_NAME);
         var request = store[methodName].apply(store, args);
@@ -108,7 +108,7 @@ define([
     function wrapStore(store) {
       function req(method) {
         var args = Array.prototype.slice.call(arguments, 1);
-        return util.makePromise(function(promise) {
+        return util.getPromise(function(promise) {
           var request = store[method].apply(store, args);
           request.onsuccess = function() {
             promise.fulfill(request.result);
@@ -129,7 +129,7 @@ define([
     }
 
     function makeTransaction(mode, body) {
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         var transaction = DB.transaction(OBJECT_STORE_NAME, mode);
         var store = transaction.objectStore(OBJECT_STORE_NAME);
         transaction.oncomplete = promise.fulfill;

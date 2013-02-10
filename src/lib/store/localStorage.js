@@ -61,7 +61,7 @@ define(['../util', './common', './syncTransaction'], function(util, common, sync
         debugEvent('GET', path);
         //END-DEBUG
         logger.debug('GET', path);
-        return util.makePromise(function(promise) {
+        return util.getPromise(function(promise) {
           var rawMetadata = localStorage.getItem(prefixNode(path));
           if(! rawMetadata) {
             promise.fulfill(undefined);
@@ -85,7 +85,7 @@ define(['../util', './common', './syncTransaction'], function(util, common, sync
         debugEvent('SET', path);
         //END-DEBUG
         logger.debug('SET', path, node);
-        return util.makePromise(function(promise) {
+        return util.getPromise(function(promise) {
           var metadata = common.packData(node);
           var rawData = metadata.data;
           delete metadata.data;
@@ -103,7 +103,7 @@ define(['../util', './common', './syncTransaction'], function(util, common, sync
         debugEvent('REMOVE', path);
         //END-DEBUG
         logger.debug('SET', path);
-        return util.makePromise(function(promise) {
+        return util.getPromise(function(promise) {
           localStorage.removeItem(prefixNode(path));
           localStorage.removeItem(prefixData(path));
           promise.fulfill();
@@ -116,7 +116,7 @@ define(['../util', './common', './syncTransaction'], function(util, common, sync
       on: events.on,
 
       forgetAll: function() {
-        return util.makePromise(function(promise) {
+        return util.getPromise(function(promise) {
           var numLocalStorage = localStorage.length;
           var keys = [];
           for(var i=0; i<numLocalStorage; i++) {

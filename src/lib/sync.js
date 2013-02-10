@@ -155,7 +155,7 @@ define([
   //   change   - when the local store is updated
   //
   function fullSync(pushOnly) {
-    return util.makePromise(function(promise) {
+    return util.getPromise(function(promise) {
       if(disabled) {
         promise.fulfill()
         return;
@@ -227,7 +227,7 @@ define([
   //   change   - when the local store is updated
   //
   function partialSync(startPath, depth) {
-    return util.makePromise(function(promise) {
+    return util.getPromise(function(promise) {
       if(! isConnected()) {
         return promise.fulfill();
       }
@@ -811,7 +811,7 @@ define([
 
     function determineLocalInterest(node, options) {
       logger.debug('traverseNode.determineLocalInterest', node, options);
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         options.access = util.highestAccess(options.access, node.startAccess);
         options.force = opts.force || node.startForce;
         options.forceTree = opts.forceTree || node.startForceTree;

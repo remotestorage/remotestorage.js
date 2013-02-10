@@ -517,6 +517,47 @@ define([], function() {
       keys.forEach(iter);
     },
 
+    // Function: getPromise
+    // Create a new <Promise> object, and run given function.
+    //
+    // Returns: the created promise.
+    //
+    // The given callback function will be run in the future.
+    // If the callback throws an exception, that will cause the
+    // supplied callback to fail.
+    // If the callback returns a promise, that promise will be
+    // chained to the returned one.
+    //
+    // Example:
+    //   (start code)
+    //   function a() {
+    //     return util.getPromise(function(promise) {
+    //       // promise will be fulfilled in next tick
+    //       promise.fulfill(a + b);
+    //     });
+    //   }
+    //
+    //   function b() {
+    //     return util.getPromise(function(promise) {
+    //       // promise will be fulfilled as soon as the returned promise is fulfilled
+    //       return asyncFunctionReturningPromise();
+    //     });
+    //   }
+    //
+    //   function c() {
+    //     return util.getPromise(function(promise) {
+    //       // promise will fail with the thrown exception as it's result value
+    //       throw new Error("Something went wrong!");
+    //     });
+    //   }
+    //
+    //   a().then(b).then(c).then(function() {
+    //     // everything alright (never reached, "c" fails)
+    //   }, function(error) {
+    //     // one of the above failed.
+    //   });
+    //   (end code)
+    //
     getPromise: function(builder) {
       var promise;
 
@@ -634,51 +675,6 @@ define([], function() {
       return typeof(object) === 'object' && typeof(object.then) === 'function';
     },
 
-    // Function: makePromise
-    // Create a new <Promise> object, and run given function.
-    //
-    // Returns: the created promise.
-    //
-    // The given callback function will be run in the future.
-    // If the callback throws an exception, that will cause the
-    // supplied callback to fail.
-    // If the callback returns a promise, that promise will be
-    // chained to the returned one.
-    //
-    // Example:
-    //   (start code)
-    //   function a() {
-    //     return util.makePromise(function(promise) {
-    //       // promise will be fulfilled in next tick
-    //       promise.fulfill(a + b);
-    //     });
-    //   }
-    //
-    //   function b() {
-    //     return util.makePromise(function(promise) {
-    //       // promise will be fulfilled as soon as the returned promise is fulfilled
-    //       return asyncFunctionReturningPromise();
-    //     });
-    //   }
-    //
-    //   function c() {
-    //     return util.makePromise(function(promise) {
-    //       // promise will fail with the thrown exception as it's result value
-    //       throw new Error("Something went wrong!");
-    //     });
-    //   }
-    //
-    //   a().then(b).then(c).then(function() {
-    //     // everything alright (never reached, "c" fails)
-    //   }, function(error) {
-    //     // one of the above failed.
-    //   });
-    //   (end code)
-    //
-    makePromise: function(futureCallback) {
-      return util.getPromise(futureCallback);
-    },
-
     // Function: asyncGroup
     // Run a bunch of asynchronous functions in parallel
     //
@@ -705,7 +701,7 @@ define([], function() {
     //   (start code)
     //   return util.asyncGroup(
     //     function() { // asynchronous function
-    //       return util.makePromise(function(p) {
+    //       return util.getPromise(function(p) {
     //         asyncGetSomeNumber(function(number) { p.fulfill(number) });
     //       });
     //     },
@@ -723,7 +719,7 @@ define([], function() {
       var results = [];
       var todo = functions.length;
       var errors = [];
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         //BEGIN-DEBUG
         clearTimeout(promise.debugTimer);
         //END-DEBUG
@@ -770,7 +766,7 @@ define([], function() {
     // same semantics as in <util.asyncGroup>.
     //
     asyncEach: function(array, iterator) {
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         util.asyncGroup.apply(
           util, array.map(function(element, index) {
             return util.curry(iterator, element, index);
