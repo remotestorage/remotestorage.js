@@ -291,16 +291,10 @@ define([], function() {
       return this.bindAll({
 
         _handlers: setupHandlers(),
-        //BEGIN-DEBUG
-        // Event cache is only used by debug-events at the moment, so
-        // doesn't have to be part of regular build.
-        _eventCache: {},
-        //END-DEBUG
 
         emit: function(eventName) {
           var handlerArgs = Array.prototype.slice.call(arguments, 1);
-          // console.log("EMIT", eventName, handlerArgs);
-          validEvent.call(this, eventName);
+          // eventName validation happens in hasHandler
           if(this.hasHandler(eventName)) {
             this._handlers[eventName].forEach(function(handler) {
               if(handler) {
@@ -308,23 +302,6 @@ define([], function() {
               }
             });
           }
-          //BEGIN-DEBUG
-          else if(eventName in this._eventCache) {
-            this._eventCache[eventName].push(handlerArgs);
-          }
-          //END-DEBUG
-        },
-
-        once: function(eventName, handler) {
-          validEvent.call(this, eventName);
-          var i = this._handlers[eventName].length;
-          if(typeof(handler) !== 'function') {
-            throw "Expected function as handler, got: " + typeof(handler);
-          }
-          this.on(eventName, util.bind(function() {
-            delete this._handlers[eventName][i];
-            handler.apply(this, arguments);
-          }, this));
         },
 
         on: function(eventName, handler) {
@@ -333,14 +310,6 @@ define([], function() {
             throw "Expected function as handler, got: " + typeof(handler);
           }
           this._handlers[eventName].push(handler);
-          //BEGIN-DEBUG
-          if(this._eventCache[eventName]) {
-            this._eventCache[eventName].forEach(function(args) {
-              handler.apply(null, args);
-            });
-            delete this._eventCache[eventName];
-          }
-          //END-DEBUG
         },
 
         reset: function() {
@@ -351,15 +320,6 @@ define([], function() {
           validEvent.call(this, eventName);
           return this._handlers[eventName].length > 0;
         }
-
-        //BEGIN-DEBUG
-        ,
-        enableEventCache: function() {
-          util.toArray(arguments).forEach(util.bind(function(eventName) {
-            this._eventCache[eventName] = [];
-          }, this));
-        }
-        //END-DEBUG
 
       });
 

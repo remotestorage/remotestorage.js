@@ -235,16 +235,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         }
       },
       {
-        desc: "events.once()",
-        run: function(env) {
-          var _this = this;
-          env.events.once('ready', function(what) {
-            _this.assert(what, 'happened');
-          });
-          env.events.emit('ready', 'happened');
-        }
-      },
-      {
         desc: "events.reset()",
         timeout: 1000,
         willFail: true,

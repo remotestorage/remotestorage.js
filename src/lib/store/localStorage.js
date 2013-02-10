@@ -7,19 +7,7 @@ define(['../util', './common', './syncTransaction'], function(util, common, sync
 
   var logger = util.getLogger('store::localStorage');
 
-  var events = util.getEventEmitter('change', 'debug');
-
-  //BEGIN-DEBUG
-  function debugEvent(method, path) {
-    events.emit('debug', {
-      method: method,
-      path: path,
-      timestamp: new Date()
-    });
-  }
-  
-  events.enableEventCache('debug');
-  //END-DEBUG
+  var events = util.getEventEmitter('change');
 
   // node metadata key prefix
   var prefixNodes = 'remote_storage_nodes:';
@@ -57,9 +45,6 @@ define(['../util', './common', './syncTransaction'], function(util, common, sync
 
     var store = {
       get: function(path) {
-        //BEGIN-DEBUG
-        debugEvent('GET', path);
-        //END-DEBUG
         logger.debug('GET', path);
         return util.getPromise(function(promise) {
           var rawMetadata = localStorage.getItem(prefixNode(path));
@@ -81,9 +66,6 @@ define(['../util', './common', './syncTransaction'], function(util, common, sync
       },
 
       set: function(path, node) {
-        //BEGIN-DEBUG
-        debugEvent('SET', path);
-        //END-DEBUG
         logger.debug('SET', path, node);
         return util.getPromise(function(promise) {
           var metadata = common.packData(node);
@@ -99,9 +81,6 @@ define(['../util', './common', './syncTransaction'], function(util, common, sync
       },
 
       remove: function(path) {
-        //BEGIN-DEBUG
-        debugEvent('REMOVE', path);
-        //END-DEBUG
         logger.debug('SET', path);
         return util.getPromise(function(promise) {
           localStorage.removeItem(prefixNode(path));

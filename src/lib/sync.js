@@ -8,12 +8,8 @@ define([
 
   var remoteAdapter = remoteCacheAdapter();
 
-  var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready', 'timeout', 'debug');
+  var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready', 'timeout');
   var logger = util.getLogger('sync');
-
-  //BEGIN-DEBUG
-  events.enableEventCache('debug');
-  //END-DEBUG
 
   /*******************/
   /* Namespace: sync */
@@ -495,17 +491,6 @@ define([
   // Used as a callback for <traverseTree>.
   function processNode(path, local, remote) {
 
-    //BEGIN-DEBUG
-    function debugEvent(message) {
-      events.emit('debug', {
-        path: path,
-        method: 'processNode',
-        message: message,
-        timestamp: new Date()
-      });
-    }
-    //END-DEBUG
-
     if(! path) {
       throw new Error("Can't process node without a path!");
     }
@@ -518,48 +503,30 @@ define([
 
     if(local.deleted) {
       // outgoing delete!
-      //BEGIN-DEBUG
-      debugEvent('outgoing delete');
-      //END-DEBUG
       action = deleteRemote;
 
     } else if(remote.deleted && local.lastUpdatedAt > 0) {
       if(local.timestamp == local.lastUpdatedAt) {
         // incoming delete!
-        //BEGIN-DEBUG
-        debugEvent('incoming delete');
-        //END-DEBUG
         action = deleteLocal;
 
       } else {
         // deletion conflict!
-        //BEGIN-DEBUG
-        debugEvent('deletion conflict', 'remote', remote, 'local', local);
-        //END-DEBUG
         action = util.curry(fireConflict, 'delete');
 
       }
     } else if(local.timestamp == remote.timestamp) {
       // no action today!
-      //BEGIN-DEBUG
-      debugEvent('no action today', 'remote', remote, 'local', local);
-      //END-DEBUG
       return;
 
     } else if((!remote.timestamp) || local.timestamp > remote.timestamp) {
       // local updated happpened before remote update
       if((!remote.timestamp) || local.lastUpdatedAt == remote.timestamp) {
         // outgoing update!
-        //BEGIN-DEBUG
-        debugEvent('outgoing update');
-        //END-DEBUG
         action = updateRemote;
 
       } else {
         // merge conflict!
-        //BEGIN-DEBUG
-        debugEvent('merge conflict (local > remote)', 'remote', remote, 'local', local);
-        //END-DEBUG
         action = util.curry(fireConflict, 'merge');
 
       }
@@ -567,16 +534,10 @@ define([
       // remote updated happened before local update
       if(local.lastUpdatedAt == local.timestamp) {
         // incoming update!
-        //BEGIN-DEBUG
-        debugEvent('incoming update');
-        //END-DEBUG
         action = updateLocal;
 
       } else {
         // merge conflict!
-        //BEGIN-DEBUG
-        debugEvent('merge conflict (local < remote)', 'remote', remote, 'local', local);
-        //END-DEBUG
         action = util.curry(fireConflict, 'merge');
 
       }
@@ -798,17 +759,6 @@ define([
       logger.debug("traverse depth", opts.depth, root);
     }
 
-    //BEGIN-DEBUG
-    function debugEvent(path, message) {
-      events.emit('debug', {
-        path: path,
-        method: 'traverseTree',
-        message: message,
-        timestamp: new Date()
-      });
-    }
-    //END-DEBUG
-
     function determineLocalInterest(node, options) {
       logger.debug('traverseNode.determineLocalInterest', node, options);
       return util.getPromise(function(promise) {
@@ -845,9 +795,6 @@ define([
     }
 
     function mergeDataNode(path, localNode, remoteNode, options) {
-      //BEGIN-DEBUG
-      debugEvent(path, 'mergeDataNode');
-      //END-DEBUG
       logger.debug("traverseTree.mergeDataNode", path);
       if(util.isDir(path)) {
         throw new Error("Not a data node: " + path);
@@ -856,9 +803,6 @@ define([
     }
 
     function mergeDirectory(path, localNode, remoteNode, options) {
-      //BEGIN-DEBUG
-      debugEvent(path, 'mergeDirectory');
-      //END-DEBUG
       logger.debug("traverseTree.mergeDirectory", path, localNode, options);
 
       var fullListing = makeSet(
@@ -899,9 +843,6 @@ define([
     }
 
     function mergeTree(path, options) {
-      //BEGIN-DEBUG
-      debugEvent(path, 'mergeTree');
-      //END-DEBUG
       logger.debug("traverseTree.mergeTree", path);
       options.path = path;
       return fetchLocalNode(path).
