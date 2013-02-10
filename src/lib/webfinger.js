@@ -215,32 +215,29 @@ define(
 
        */
 
-      try {
-        var hostname = extractHostname(userAddress)
-      } catch(error) {
-        if(error) {
-          return util.getPromise().reject(error);
-        }
-      }
-      var query = '?resource=acct:' + encodeURIComponent(userAddress);
-      var addresses = [
-        '://' + hostname + '/.well-known/webfinger' + query,
-        '://' + hostname + '/.well-known/host-meta.json' + query,
-        '://' + hostname + '/.well-known/host-meta' + query,
-      ];
-
       return util.makePromise(function(promise) {
+        try {
+          var hostname = extractHostname(userAddress)
+        } catch(error) {
+          if(error) {
+            return promise.reject(error);
+          }
+        }
+        var query = '?resource=acct:' + encodeURIComponent(userAddress);
+        var addresses = [
+          '://' + hostname + '/.well-known/webfinger' + query,
+          '://' + hostname + '/.well-known/host-meta.json' + query,
+          '://' + hostname + '/.well-known/host-meta' + query,
+        ];
+
         fetchHostMeta('https', addresses).
           then(extractRemoteStorageLink, function() {
             return fetchHostMeta('http', addresses).
-              then(extractRemoteStorageLink).
-              then(function(profile) {
-                promise.fulfill(profile);
-              }, promise.fail.bind(promise));
+              then(extractRemoteStorageLink);
           }).
           then(function(profile) {
             promise.fulfill(profile);
-          }, promise.fail.bind(promise));
+          }, promise.reject);
       });
     }
 

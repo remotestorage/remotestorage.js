@@ -86,14 +86,13 @@ define([
 
   function fireChange(origin, path, oldValue) {
     return getNode(path).
-      get('data', 'timestamp').
-      then(function(newValue, timestamp) {
+      then(function(node) {
         events.emit('change', {
           path: path,
           origin: origin,
           oldValue: oldValue,
-          newValue: newValue,
-          timestamp: timestamp
+          newValue: node.data,
+          timestamp: node.timestamp
         });
       });
   }
@@ -103,13 +102,12 @@ define([
 
   function fireForeignChange(path, oldValue) {
     return getNode(path).
-      get('data', 'timestamp').
-      then(function(newValue, timestamp) {
+      then(function(node) {
         events.emit('foreign-change', {
           path: path,
           oldValue: oldValue,
-          newValue: newValue,
-          timestamp: timestamp
+          newValue: node.data,
+          timestamp: node.timestamp
         });
       });
   }
@@ -425,12 +423,12 @@ define([
 
   function determineDirTimestamp(path, transaction) {
     return getNode(path, transaction).
-      get('data').then(function(data) {
+      then(function(node) {
         var t = 0;
-        if(data) {
-          for(var key in data) {
-            if(data[key] > t) {
-              t = data[key];
+        if(node.data) {
+          for(var key in node.data) {
+            if(node.data[key] > t) {
+              t = node.data[key];
             }
           }
         }
@@ -583,8 +581,8 @@ define([
         if(parts.length === 0) {
           promise.fulfill(false);
         } else {
-          getNode(parts.join(''), transaction).
-            then(checkOne, promise.fail.bind(promise));
+          getNode(parts.join('')).
+            then(checkOne, promise.reject);
         }
       }
 

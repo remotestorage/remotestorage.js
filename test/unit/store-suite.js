@@ -88,10 +88,9 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
         run: function(env) {
           var _this = this;
           env.store.getNode('/foo/').
-            get('data', 'diff').
-            then(function(data, diff) {
-              _this.assertAnd(data, {});
-              _this.assert(diff, {});
+            then(function(node) {
+              _this.assertAnd(node.data, {});
+              _this.assert(node.diff, {});
             });
         }
       },
@@ -130,21 +129,16 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
             then(curry(env.storageAdapter.get, '/foo/bar')).
             then(function(node) {
               _this.assertTypeAnd(node, 'object');
-              return node;
-            }).
-            get('timestamp', 'lastUpdatedAt', 'mimeType', 'data').
-            then(function(timestamp, lastUpdatedAt, mimeType, data) {
-              _this.assertAnd(timestamp, 12345);
-              _this.assertAnd(lastUpdatedAt, 12345);
-              _this.assertAnd(mimeType, 'text/plain');
-              _this.assertAnd(data, 'some-data');
+              _this.assertAnd(node.timestamp, 12345);
+              _this.assertAnd(node.lastUpdatedAt, 12345);
+              _this.assertAnd(node.mimeType, 'text/plain');
+              _this.assertAnd(node.data, 'some-data');
             }).
             // check parent
             then(curry(env.storageAdapter.get, '/foo/')).
-            get('diff', 'data').
-            then(function(diff, data) {
-              _this.assertAnd(diff, {});
-              _this.assertAnd(data, { 'bar' : 12345 });
+            then(function(node) {
+              _this.assertAnd(node.diff, {});
+              _this.assertAnd(node.data, { 'bar' : 12345 });
               _this.result(true);
             }, catchError(this));
         }
@@ -192,18 +186,16 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
             '/a/b/c', 'test-data', false, 12345, 'text/plain'
           ).
             then(curry(env.store.getNode, '/a/b/c')).
-            get('data').
-            then(function(data) {
-              _this.assertAnd(data, 'test-data');
+            then(function(node) {
+              _this.assertAnd(node.data, 'test-data');
             }).
             then(curry(
               env.store.setNodeData,
               '/a/b/c', undefined, true, 23456, 'text/plain'
             )).
             then(curry(env.store.getNode, '/a/b/c')).
-            get('data').
-            then(function(data) {
-              _this.assertType(data, 'undefined');
+            then(function(node) {
+              _this.assertType(node.data, 'undefined');
             }, catchError(this));
         }
       },
@@ -214,18 +206,16 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
           var _this = this;
           env.store.setNodeError('/a/b/c', "ERROR!!!").
             then(curry(env.store.getNode, '/a/b/c')).
-            get('error').
-            then(function(error) {
+            then(function(node) {
               // check that error is set
-              _this.assertAnd("ERROR!!!", error);
+              _this.assertAnd("ERROR!!!", node.error);
             }).
             then(curry(
               env.store.setNodeData, '/a/b/c', 'test-adata', false, 12345, 'text/plain'
             )).
             then(curry(env.store.getNode, '/a/b/c')).
-            get('error').
-            then(function(error) {
-              _this.assertType(error, 'undefined');
+            then(function(node) {
+              _this.assertType(node.error, 'undefined');
             });
         }
       },
@@ -304,11 +294,12 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
 
       {
         desc: "store.setNodeAccess",
-        run: function(env) {
+        run: function(env, test) {
           env.store.setNodeAccess('/foo/', 'rw').
             then(curry(env.store.getNode, '/foo/')).
-            get('startAccess').
-            then(assertP(this, 'rw')).
+            then(function(node) {
+              test.assertAnd(node.startAccess, 'rw');
+            }).
             then(finalResult(this), catchError(this));
         }
       },
@@ -369,9 +360,9 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
         run: function(env) {
           var _this = this;
           env.store.setNodeError('/foo', 'bar').
-            then(curry(env.store.getNode, '/foo')).get('error').
-            then(function(error) {
-              _this.assert(error, 'bar')
+            then(curry(env.store.getNode, '/foo')).
+            then(function(node) {
+              _this.assert(node.error, 'bar')
             });
         }
       },

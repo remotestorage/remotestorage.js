@@ -321,10 +321,10 @@ define([], function() {
           if(typeof(handler) !== 'function') {
             throw "Expected function as handler, got: " + typeof(handler);
           }
-          this.on(eventName, function() {
+          this.on(eventName, util.bind(function() {
             delete this._handlers[eventName][i];
             handler.apply(this, arguments);
-          }.bind(this));
+          }, this));
         },
 
         on: function(eventName, handler) {
@@ -517,7 +517,7 @@ define([], function() {
       keys.forEach(iter);
     },
 
-    getPromise: function(build) {
+    getPromise: function(builder) {
       var promise;
 
       if(typeof(builder) === 'function') {
@@ -573,6 +573,7 @@ define([], function() {
       function resolve(succ, res) {
         if(result) {
           console.log("WARNING: Can't resolve promise, already resolved!");
+          console.trace();
           return;
         }
         success = succ;
@@ -580,7 +581,8 @@ define([], function() {
         setTimeout(function() {
           var cl = consumers.length;
           if(cl === 0 && (! success)) {
-            console.error("Possibly uncaught error: ", result);
+            var error = result[0] instanceof Error ? (result[0].message + '\n' + result[0].stack) : result;
+            console.error("Possibly uncaught error: ", error);
           }
           for(var i=0;i<cl;i++) {
             notifyConsumer(consumers[i]);
@@ -605,27 +607,6 @@ define([], function() {
             consumers.push(consumer);
           }
           return consumer.promise;
-        },
-
-        call: function(method) {
-          var args = Array.prototype.slice.call(arguments, 1);
-          return this.then(function(value) {
-            return value[method].apply(this, args);
-          });
-        },
-
-        get: function() {
-          var keys = util.toArray(arguments);;
-          return this.then(function(obj) {
-            var values = [];
-            var kl = keys.length;
-            for(var i=0;i<kl;i++) {
-              values.push(obj[ keys[i] ]);
-            }
-            return util.getPromise(function(p) {
-              p.fulfill.apply(this, values);
-            });
-          });
         },
 
         fulfill: function() {

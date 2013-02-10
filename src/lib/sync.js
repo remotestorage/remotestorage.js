@@ -240,7 +240,7 @@ define([
           depth: depth,
           force: true
         });
-      }, promise.fulfill.bind(promise));
+      }, promise.fulfill);
     });
   }
 

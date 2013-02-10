@@ -401,64 +401,64 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             then(checkResult, onError);
         }
       },
-      {
-        desc: "util.Promise.get",
-        run: function(env) {
-          var _this = this;
-          function promiseSomething() {
-            var promise = env.util.getPromise();
-            setTimeout(function() {
-              promise.fulfill({ foo: "bar", bla: "blubb" });
-            }, 1);
-            return promise;
-          }
-          function checkResult(s) { _this.assert(s, 'bar'); }
-          function onError() { _this.result(false); }
-          promiseSomething().
-            get('foo').
-            then(checkResult, onError);
-        }
-      },
-      {
-        desc: "util.Promise.get multiple properties",
-        run: function(env) {
-          var _this = this;
-          function promiseSomething() {
-            var promise = env.util.getPromise();
-            setTimeout(function() {
-              promise.fulfill({ foo: "bla", bar: "blubb" });
-            }, 1);
-            return promise;
-          }
-          function checkResult(a, b) { _this.assert([a, b], ['bla', 'blubb']); }
-          function onError() { _this.result(false); }
-          promiseSomething().
-            get('foo', 'bar').
-            then(checkResult, onError);
-        }
-      },
-      {
-        desc: "util.Promise.call",
-        run: function(env) {
-          var _this = this;
-          function promiseSomething() {
-            var promise = env.util.getPromise();
-            setTimeout(function() {
-              promise.fulfill({
-                method: function() {
-                  return Array.prototype.slice.call(arguments);
-                }
-              });
-            }, 1);
-            return promise;
-          }
-          function checkResult(args) { _this.assert(args, [1, 2, 3]); }
-          function onError() { _this.result(false); }
-          promiseSomething().
-            call('method', 1, 2, 3).
-            then(checkResult, onError);
-        }
-      },
+      // {
+      //   desc: "util.Promise.get",
+      //   run: function(env) {
+      //     var _this = this;
+      //     function promiseSomething() {
+      //       var promise = env.util.getPromise();
+      //       setTimeout(function() {
+      //         promise.fulfill({ foo: "bar", bla: "blubb" });
+      //       }, 1);
+      //       return promise;
+      //     }
+      //     function checkResult(s) { _this.assert(s, 'bar'); }
+      //     function onError() { _this.result(false); }
+      //     promiseSomething().
+      //       get('foo').
+      //       then(checkResult, onError);
+      //   }
+      // },
+      // {
+      //   desc: "util.Promise.get multiple properties",
+      //   run: function(env) {
+      //     var _this = this;
+      //     function promiseSomething() {
+      //       var promise = env.util.getPromise();
+      //       setTimeout(function() {
+      //         promise.fulfill({ foo: "bla", bar: "blubb" });
+      //       }, 1);
+      //       return promise;
+      //     }
+      //     function checkResult(a, b) { _this.assert([a, b], ['bla', 'blubb']); }
+      //     function onError() { _this.result(false); }
+      //     promiseSomething().
+      //       get('foo', 'bar').
+      //       then(checkResult, onError);
+      //   }
+      // },
+      // {
+      //   desc: "util.Promise.call",
+      //   run: function(env) {
+      //     var _this = this;
+      //     function promiseSomething() {
+      //       var promise = env.util.getPromise();
+      //       setTimeout(function() {
+      //         promise.fulfill({
+      //           method: function() {
+      //             return Array.prototype.slice.call(arguments);
+      //           }
+      //         });
+      //       }, 1);
+      //       return promise;
+      //     }
+      //     function checkResult(args) { _this.assert(args, [1, 2, 3]); }
+      //     function onError() { _this.result(false); }
+      //     promiseSomething().
+      //       call('method', 1, 2, 3).
+      //       then(checkResult, onError);
+      //   }
+      // },
       {
         desc: "util.Promise chained promises",
         run: function(env) {
@@ -491,7 +491,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           function asyncFunction() {
             var promise = env.util.getPromise();
             env.util.nextTick(function() {
-              promise.fail("I'm supposed to fail!");
+              promise.reject("I'm supposed to fail!");
             });
             return promise;
           }

@@ -201,14 +201,14 @@ define([
     },
 
     nodeGivesAccess: function(path, mode) {
-      return store.getNode(path).then(function(node) {
+      return store.getNode(path).then(util.bind(function(node) {
         var access = (new RegExp(mode)).test(node.startAccess);
         if(access) {
           return true;
         } else if(path.length > 0) {
           return this.nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''));
         }
-      }.bind(this));
+      }, this));
     },
 
     ensureAccess: function(mode) {
@@ -351,8 +351,8 @@ define([
             return node;
           }
         }).
-        get('data').then(function(listing) {
-          return listing ? Object.keys(listing) : [];
+        then(function(node) {
+          return node.data ? Object.keys(node.data) : [];
         });
     },
 
@@ -408,8 +408,8 @@ define([
       }
 
       return this.getListing(path).
-        then(retrieveObjects.bind(this)).
-        then(filterByType.bind(this));
+        then(util.bind(retrieveObjects.bind, this)).
+        then(util.bind(filterByType, this));
     },
 
     //
@@ -572,7 +572,7 @@ define([
       var absPath = this.makePath(path);
 
       return this.ensureAccess('w').
-        then(function() {
+        then(util.bind(function() {
           if(! (obj instanceof Array)) {
             obj['@context'] = this.resolveType(typeAlias);
             var errors = this.validateObject(obj);
@@ -581,7 +581,7 @@ define([
             }
           }
           return set(this.moduleName, path, absPath, obj, 'application/json')
-        }.bind(this)).
+        }, this)).
         then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
     },
 
@@ -648,7 +648,7 @@ define([
       }
       var absPath = this.makePath(path);
       return this.ensureAccess('w').
-        then(function() {
+        then(util.bind(function() {
           if(cache) {
             return set(this.moduleName, path, absPath, data, mimeType).
               then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
@@ -660,7 +660,7 @@ define([
               return store.setNodePending(absPath, new Date().getTime());
             });
           }
-        });
+        }, this));
     },
 
     // Method: storeDocument
@@ -699,7 +699,7 @@ define([
       var previousTreeForce = store.getNode(path).startForceTree;
       this.use(path, false);
       return sync.partialSync(path, 1).
-        then(function() {
+        then(util.bind(function() {
           if(previousTreeForce) {
             this.use(path, true);
           } else {
@@ -708,7 +708,7 @@ define([
           if(callback) {
             callback();
           }
-        }.bind(this));
+        }, this));
 
     },
 
@@ -756,12 +756,12 @@ define([
         item = util.baseName(absPath);
         absPath = util.containingDir(absPath);
       }
-      return store.getNode(absPath).get('diff').
-        then(function(diff) {
+      return store.getNode(absPath).
+        then(function(node) {
           if(item) {
-            return !! diff[item];
+            return !! node.diff[item];
           } else {
-            return Object.keys(diff).length > 0;
+            return Object.keys(node.diff).length > 0;
           }
         });
     },

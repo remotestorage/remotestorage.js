@@ -72,7 +72,7 @@ define(['./util', './baseClient', './getputdelete', './store'], function(util, B
     },
 
     getPublishedObjects: function(moduleName, callback) {
-      this.getPublished(moduleName, function(list) {
+      this.getPublished(moduleName, util.bind(function(list) {
         var paths = Object.keys(list);
         var i = 0;
         var objects = {};
@@ -80,18 +80,18 @@ define(['./util', './baseClient', './getputdelete', './store'], function(util, B
           if(i < paths.length) {
             var key = paths[i++];
             var path = '/' + moduleName + '/' + key;
-            this.getObject(path, function(object) {
+            this.getObject(path, util.bind(function(object) {
               objects[path] = object;
                 
               loadOne.call(this);
-            }.bind(this));
+            }, this));
           } else {
             callback(objects);
           }
         }
 
         loadOne.call(this);
-      }.bind(this));
+      }, this));
     },
 
     makePath: function(path) {

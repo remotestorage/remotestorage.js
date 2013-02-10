@@ -51,7 +51,7 @@ define(['../util', './syncTransaction'], function(util, syncTransactionAdapter) 
       // TESTS & DEBUGGING
 
       printTree: function() {
-        var printOne = function(path, indent) {
+        var printOne = util.bind(function(path, indent) {
           return this.get(path).
             then(function(node) {
               if(! node) {
@@ -68,7 +68,7 @@ define(['../util', './syncTransaction'], function(util, syncTransactionAdapter) 
                             node.mimeType);
               }
             });
-        }.bind(this);
+        }, this);
 
         return printOne('/', '');
       },
@@ -76,7 +76,7 @@ define(['../util', './syncTransaction'], function(util, syncTransactionAdapter) 
       // FIXME: implement through 'set' and move to common.
       init: function(dataTree, mimeType, timestamp, access) {
         this.forgetAll();
-        var initNode = function (path, tree) {
+        var initNode = util.bind(function(path, tree) {
           var node = {
             startAccess: Object.keys(access).reduce(function(a, k) {
               return (k === path) ? access[k] : a;
@@ -103,7 +103,7 @@ define(['../util', './syncTransaction'], function(util, syncTransactionAdapter) 
             node.data = tree;
           }
           nodes[path] = node;
-        }.bind(this);
+        }, this);
 
         initNode('/', dataTree);
       }
