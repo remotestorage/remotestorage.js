@@ -164,12 +164,10 @@ define([
       logger.info("full " + (pushOnly ? "push" : "sync") + " started");
 
       findRoots().then(function(roots) {
-        logger.debug("SYNCING ROOTS", roots);
         var synced = 0;
 
         function rootCb(path) {
           return function() {
-            logger.debug("SYNCED ROOT", path);
             synced++;
             if(synced == roots.length) {
               sync.lastSyncAt = new Date();
@@ -698,12 +696,10 @@ define([
   }
 
   function findNextForceRoots(path, cachedNode) {
-    logger.debug('findNextForceRoots', path);
     var roots = [];
     function checkChildren(node) {
       return util.asyncEach(Object.keys(node.data), function(key) {
         return store.getNode(path + key).then(function(childNode) {
-          logger.debug('findNextForceRoots check', path + key, childNode);
           if(childNode.startForce || childNode.startForceTree) {
             roots.push(path + key);
           } else if(util.isDir(key)) {
@@ -716,7 +712,6 @@ define([
           }
         });
       }).then(function() {
-        logger.debug('findNextForceRoots return', roots);
         return roots;
       });
     }
@@ -755,28 +750,20 @@ define([
 
     if(! opts) { opts = {}; }
 
-    if(opts.depth || opts.depth === 0) {
-      logger.debug("traverse depth", opts.depth, root);
-    }
-
     function determineLocalInterest(node, options) {
-      logger.debug('traverseNode.determineLocalInterest', node, options);
       return util.getPromise(function(promise) {
         options.access = util.highestAccess(options.access, node.startAccess);
         options.force = opts.force || node.startForce;
         options.forceTree = opts.forceTree || node.startForceTree;
 
         function determineForce() {
-          logger.debug('determineForce', options);
           var force = (options.force || options.forceTree);
           if((! force) && (options.path == '/' || options.path == '/public/')) {
             findNextForceRoots(options.path).
               then(function(roots) {
-                logger.debug('local interest', options.path, node, false, 'next: ', roots);
                 promise.fulfill(node, false, roots);
               });
           } else {
-            logger.debug('local interest', options.path, node, force);
             promise.fulfill(node, force);
           }
         }
@@ -795,7 +782,6 @@ define([
     }
 
     function mergeDataNode(path, localNode, remoteNode, options) {
-      logger.debug("traverseTree.mergeDataNode", path);
       if(util.isDir(path)) {
         throw new Error("Not a data node: " + path);
       }
@@ -803,7 +789,6 @@ define([
     }
 
     function mergeDirectory(path, localNode, remoteNode, options) {
-      logger.debug("traverseTree.mergeDirectory", path, localNode, options);
 
       var fullListing = makeSet(
         Object.keys(localNode.data),
@@ -843,7 +828,6 @@ define([
     }
 
     function mergeTree(path, options) {
-      logger.debug("traverseTree.mergeTree", path);
       options.path = path;
       return fetchLocalNode(path).
         then(util.rcurry(determineLocalInterest, options)).
@@ -853,7 +837,6 @@ define([
               then(function(remoteNode) {
                 return mergeDirectory(path, localNode, remoteNode, options).
                   then(function() {
-                    logger.debug('mergeDirectory done');
                     return store.setLastSynced(path, remoteNode.timestamp);
                   });
               });
@@ -863,8 +846,6 @@ define([
                 return mergeTree(root, options);
               });
             }
-          } else {
-            logger.debug("NO INTEREST & NO NEXT ROOTS", path);
           }
         });
     }

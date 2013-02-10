@@ -181,7 +181,6 @@ define([
   //   change w/ origin=remote - unless this is an outgoing change
   //
   function setNodeData(path, data, outgoing, timestamp, mimeType) {
-    logger.debug('PUT', path, { data: data, mimeType: mimeType });
     return dataStore.transaction(true, function(transaction) {
       return getNode(path, transaction).then(function(node) {
 
@@ -283,7 +282,6 @@ define([
   //   claim - claim to set. Either "r" or "rw"
   //
   function setNodeAccess(path, claim) {
-    logger.debug('setNodeAccess', path, claim);
     return getNode(path).then(function(node) {
       if((claim !== node.startAccess) &&
          (claim === 'rw' || node.startAccess === null)) {
@@ -295,7 +293,6 @@ define([
   }
 
   function setNodeError(path, error) {
-    logger.debug('setNodeError', path, error);
     return updateMetadata(path, {
       error: error
     });
@@ -311,7 +308,6 @@ define([
   //   treeFlag  - whether to sync the tree
   //
   function setNodeForce(path, dataFlag, treeFlag) {
-    logger.debug('setNodeForce', path, dataFlag, treeFlag);
     return updateMetadata(path, {
       startForce: dataFlag,
       startForceTree: treeFlag
@@ -332,7 +328,6 @@ define([
   //   timestamp - new timestamp (received from remote) to set on the node.
   //
   function clearDiff(path, timestamp) {
-    logger.debug('clearDiff', path);
     return getNode(path).then(function(node) {
 
       function clearDiffOnParent() {
@@ -458,7 +453,6 @@ define([
     validPath(path);
 
     function adjustTimestamp(transaction) {
-      logger.debug('updateNode.adjustTimestamp', path);
       return util.getPromise(function(promise) {
         function setTimestamp(t) {
           if(t) { timestamp = t; }
@@ -483,7 +477,6 @@ define([
     }
 
     function storeNode(transaction) {
-      logger.debug('updateNode.storeNode', path, node);
       if(node) {
         return transaction.set(path, node);
       } else {
@@ -499,31 +492,25 @@ define([
           then(function(parent) {
             if(meta) { // META
               if(! parent.data[baseName]) {
-                logger.debug('-> meta, create');
                 parent.data[baseName] = 0;
                 return updateNode(parentPath, parent, false, true, timestamp, undefined, transaction);
               }
             } else if(outgoing) { // OUTGOING
               if(node) {
-                logger.debug('-> outgoing, set');
                 parent.data[baseName] = timestamp;
               } else {
-                logger.debug('-> outgoing, remove');
                 delete parent.data[baseName];
               }
               parent.diff[baseName] = timestamp;
-              logger.debug('-> diff, update');
               return updateNode(parentPath, parent, true, false, timestamp, undefined, transaction);
             } else { // INCOMING
               if(node) { // add or change
                 if((! parent.data[baseName]) || parent.data[baseName] < timestamp) {
-                  logger.debug('-> incoming, set');
                   parent.data[baseName] = timestamp;
                   delete parent.diff[baseName];
                   return updateNode(parentPath, parent, false, false, timestamp, undefined, transaction);
                 }
               } else { // deletion
-                logger.debug('-> incoming, remove');
                 delete parent.data[baseName];
                 delete parent.diff[baseName];
                 return updateNode(parentPath, parent, false, false, timestamp, undefined, transaction);
