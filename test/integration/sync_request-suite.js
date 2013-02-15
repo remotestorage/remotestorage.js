@@ -443,6 +443,56 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               test.assert(file, { mimeType: 'text/plain', data: 'Hello World!' });
             });
         }
+      },
+
+      {
+        desc: "using, then releasing, then getting listing, then getting files",
+        run: function(env, test) {
+          // setup some files
+          return util.asyncEach(['a', 'b', 'c'], function(name) {
+            return env.client.storeFile('text/plain', 'test/' + name,
+                                        'content-' + name);
+          }).
+            then(function(results, errors) {
+              if(errors.length > 0) {
+                console.error("storing failed", errors);
+                test.result(false);
+                return;
+              }
+              // sync
+              return env.remoteStorage.fullSync();
+            }).
+              // logout & log in again
+            then(env.remoteStorage.flushLocal).
+            then(env.serverHelper.clearCaptured.bind(env.serverHelper)).
+            then(env.rsConnect).
+            then(function() {
+              // release root
+              return env.client.release('');
+            }).
+            then(function() {
+              // use test/ (creates dir node, but doesn't populate it)
+              return env.client.use('test/');
+            }).
+            then(function() {
+              // release test/ again
+              return env.client.release('test/');
+            }).
+            then(function() {
+              // get listing
+              return env.client.getListing('test/');
+            }).
+            then(function(listing) {
+              // verify listing
+              test.assertAnd(listing.sort(), ['a', 'b', 'c']);
+              // get file
+              return env.client.getFile('test/a');
+            }).
+            then(function(file) {
+              // verify file
+              test.assert(file, { mimeType: 'text/plain', data: 'content-a' });
+            });
+        }
       }
  
     ]
