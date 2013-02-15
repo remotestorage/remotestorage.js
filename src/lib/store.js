@@ -218,14 +218,30 @@ define([
 
   function setNodePending(path, timestamp) {
     return dataStore.transaction(true, function(transaction) {
-      return getNode(path, transaction).then(function(node) {
-        delete node.data;
-        node.pending = true;
-        return updateNode(path, node, false, false, timestamp, undefined, transaction).
-          then(function() {
-            transaction.commit();
+      return isForced(util.containingDir(path), transaction).
+        then(function(isForced) {
+          var paths = [path];
+          if(! isForced) {
+            var parts = util.pathParts(path);
+            var pl = parts.length;
+            for(var i=parts.length - 1;i>0;i--) {
+              paths.unshift(parts.slice(0, i).join(''));
+            }
+          }
+          return util.asyncEach(paths, function(p) {
+            return getNode(p, transaction).then(function(node) {
+              // clear only data nodes (we want to preserve pending listings)
+              if(! util.isDir(p)) {
+                delete node.data;
+              }
+              node.pending = true;
+              return updateNode(p, node, false, false, timestamp, undefined, transaction);
+            });
           });
-      });
+        }).
+        then(function() {
+          transaction.commit();
+        });
     });
   }
 
@@ -549,7 +565,7 @@ define([
     }
   }
 
-  function isForced(path) {
+  function isForced(path, transaction) {
     var parts = util.pathParts(path);
 
     return util.makePromise(function(promise) {
@@ -567,7 +583,7 @@ define([
         if(parts.length === 0) {
           promise.fulfill(false);
         } else {
-          getNode(parts.join('')).
+          getNode(parts.join(''), transaction).
             then(checkOne, promise.fail.bind(promise));
         }
       }
