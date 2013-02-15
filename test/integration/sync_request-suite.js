@@ -408,8 +408,39 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               return env.remoteStorage.store.getNode('/greetings/default');
             }).
             then(function(node) {
-              console.log("NODE", node);
               test.assert(node.pending, true);
+            });
+        }
+      },
+
+      {
+        desc: "storing a file w/o caching, then listing & getting",
+        run: function(env, test) {
+          return env.client.release('/').
+            then(function() {
+              return env.client.storeFile('text/plain', 'greetings/default', 'Hello World!', false);
+            }).
+            then(function() {
+              env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
+              env.serverHelper.expectNoMoreRequest(test);
+              return env.remoteStorage.store.getNode('/greetings/');
+            }).
+            then(function(dirNode) {
+              console.log('dirNode', dirNode);
+              // check that dirNode is pending
+              test.assertAnd(dirNode.pending, true, "expected dir node to be pending, but it isn't");
+              return env.client.getListing('greetings/');
+            }).
+            then(function(listing) {
+              env.serverHelper.expectRequest(test, 'GET', 'me/greetings/');
+              env.serverHelper.expectNoMoreRequest(test);
+              test.assertAnd(listing, ['default']);
+              return env.client.getFile('greetings/default');
+            }).
+            then(function(file) {
+              env.serverHelper.expectRequest(test, 'GET', 'me/greetings/default');
+              env.serverHelper.expectNoMoreRequest(test);
+              test.assert(file, { mimeType: 'text/plain', data: 'Hello World!' });
             });
         }
       }

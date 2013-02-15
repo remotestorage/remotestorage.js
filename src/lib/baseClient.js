@@ -329,7 +329,7 @@ define([
       return this.ensureAccess('r').
         then(util.curry(store.getNode, fullPath)).
         then(function(node) {
-          if((!node) || Object.keys(node.data).length === 0) {
+          if((!node) || node.pending || Object.keys(node.data).length === 0) {
             return store.isForced(fullPath).
               then(function(isForced) {
                 if(isForced) {
