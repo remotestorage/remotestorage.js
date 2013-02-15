@@ -340,7 +340,11 @@ define([
                 if(isForced) {
                   return node;
                 } else {
-                  return sync.updateDataNode(fullPath);
+                  return sync.updateDataNode(fullPath).
+                    then(function(node) {
+                      return store.setNodePending(fullPath, new Date().getTime()).
+                        then(function() { return node; });
+                    });
                 }
               });
           } else {
@@ -442,6 +446,15 @@ define([
         then(function(node) {
           if(node.pending) {
             return sync.updateDataNode(fullPath);
+          } else if(! node.data) {
+            return store.getNode(util.containingDir(fullPath)).
+              then(function(parentNode) {
+                if(parentNode.pending) {
+                  return sync.updateDataNode(fullPath);
+                } else {
+                  return node;
+                }
+              });
           } else {
             return node;
           }
