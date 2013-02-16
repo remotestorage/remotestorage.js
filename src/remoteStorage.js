@@ -353,7 +353,7 @@ define([
     //
     // Method: displayWidget
     //
-    // Add the remotestorage widget to the page.
+    // Add the remoteStorage widget to the page.
     //
     // Parameters:
     //   domID - DOM ID of element to attach widget elements to

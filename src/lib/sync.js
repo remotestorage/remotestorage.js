@@ -26,7 +26,7 @@ define([
 
   // Section: How to configure sync
   //
-  // remotestorageJS takes care of all the synchronization of remote and local data.
+  // remoteStorage.js takes care of all the synchronization of remote and local data.
   //
   // As an app developer you need to do three things, to make it work:
   // * claim access on the root of the tree in question (see <remoteStorage.claimAccess>)
@@ -643,8 +643,8 @@ define([
   //
   // Constructs a node like this:
   //   timestamp - last update of the node, if known. Otherwise 0.
-  //   data - data of the node received from remotestorage, or undefined
-  //   deleted - whether remotestorage knows this node.
+  //   data - data of the node received from remote storage, or undefined
+  //   deleted - whether remote storage knows this node.
   //   mimeType - MIME type of the node
   //
   function fetchRemoteNode(path, isDeleted) {

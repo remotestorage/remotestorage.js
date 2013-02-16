@@ -2,7 +2,7 @@ define([], function() {
   return {
     strings: {
       widget: {
-        'connect-remotestorage': 'Verbinde <strong>remotestorage</strong>',
+        'connect-remotestorage': 'Verbinde <strong>remoteStorage</strong>',
         'connect': 'Verbinden',
         'sync': 'Sync',
         'disconnect': 'Verbindung trennen',
