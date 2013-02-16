@@ -541,7 +541,7 @@ define([
     //   Now that is what the *type* is for.
     //
     //   Within remoteStorage.js, @type values are built using three components:
-    //     https://remotestoragejs.com/spec/modules/ - A prefix to guarantee unqiueness
+    //     http://remotestoragejs.com/spec/modules/ - A prefix to guarantee unqiueness
     //     the module name     - module names should be unique as well
     //     the type given here - naming this particular kind of object within this module
     //
@@ -772,7 +772,7 @@ define([
       var type = this.types[alias];
       if(! type) {
         // FIXME: support custom namespace. don't fall back to remotestoragejs.com.
-        type = 'https://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+        type = 'http://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
         logger.error("WARNING: type alias not declared: " + alias, '(have:', this.types, this.schemas, ')');
       }
       return type;
@@ -871,7 +871,7 @@ define([
       }
       if(! schema) {
         schema = type;
-        type = 'https://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+        type = 'http://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
       }
       if(schema['extends']) {
         var extendedType = this.types[ schema['extends'] ];
