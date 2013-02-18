@@ -820,7 +820,7 @@ define([
         attributes = {};
       }
 
-      object['@type'] = type;
+      object['@context'] = type;
       if(idKey && ! attributes[idKey]) {
         object[idKey] = this.uuid();
       }
@@ -834,7 +834,7 @@ define([
     //
     // Parameters:
     //   alias  - an alias to refer to the type. Must be unique within one scope / module.
-    //   type   - (optional) full type-identifier to identify the type. used as @type attribute.
+    //   type   - (optional) full type-identifier to identify the type. used as @context attribute.
     //   schema - an object containing the schema for this new type.
     //
     // if "type" is ommitted, it will be generated based on the module name.
@@ -902,7 +902,7 @@ define([
     //
     // Parameters:
     //   object - the object to validate
-    //   alias  - (optional) the type-alias to use, in case the object doesn't have a @type attribute.
+    //   alias  - (optional) the type-alias to use, in case the object doesn't have a @context attribute.
     //
     // Returns:
     //   null   - when the object is valid
@@ -914,12 +914,12 @@ define([
     // (end code)
     //
     validateObject: function(object, alias) {
-      var type = object['@type'];
+      var type = object['@context'];
       if(! type) {
         if(alias) {
           type = this.resolveType(alias);
         } else {
-          return [{"property":"@type","message":"missing"}];
+          return [{"property":"@context","message":"missing"}];
         }
       }
       var schema = this.resolveSchema(type);

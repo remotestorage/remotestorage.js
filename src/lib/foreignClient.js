@@ -66,7 +66,7 @@ define(['./util', './baseClient', './getputdelete', './store'], function(util, B
         fullPath = '/' + moduleName + '/publishedItems';
       }
       this.getObject(fullPath, function(data) {
-        if(data) { delete data['@type']; }
+        if(data) { delete data['@context']; }
         callback(data || {});
       });
     },
