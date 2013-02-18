@@ -3,7 +3,7 @@ define([], function() {
     strings: {
       widget: {
         // Bubble text in initial state
-        'connect-remotestorage': 'Connect <strong>remotestorage</strong>',
+        'connect-remotestorage': 'Connect <strong>remoteStorage</strong>',
         // Connect button label
         'connect': 'connect',
         'sync': 'sync',
@@ -21,10 +21,10 @@ define([], function() {
         'webfinger-error-no-at': "There is no @-sign in the user address.",
         'webfinger-error-multiple-at': "There is more than one @-sign in the user address.",
         'webfinger-error-non-dotalphanum': "There are invalid characters in the user address.",
-        'webfinger-error-invalid-xml': "Server doesn't support remotestorage.",
-        'webfinger-error-invalid-jrd': "Server doesn't support remotestorage.",
+        'webfinger-error-invalid-xml': "Server doesn't support remoteStorage.",
+        'webfinger-error-invalid-jrd': "Server doesn't support remoteStorage.",
         'webfinger-error-requests-failed': "Failed to contact the storage server.",
-        'webfinger-error-not-supported': "Server doesn't support remotestorage.",
+        'webfinger-error-not-supported': "Server doesn't support remoteStorage.",
         'error': 'Sorry! An error occurred.'
       }
     },

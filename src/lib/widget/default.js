@@ -8,12 +8,12 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     Interface: WidgetView
 
-      A stateful view providing interaction with remotestorage.
+      A stateful view providing interaction with remoteStorage.
 
     States:
       initial      - not connected
       authing      - in auth flow
-      connected    - connected to remotestorage, not syncing at the moment
+      connected    - connected to remote storage, not syncing at the moment
       busy         - connected, syncing at the moment
       offline      - connected, but no network connectivity
       error        - connected, but sync error happened
@@ -98,9 +98,9 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
   var elements = {};
 
   var cubeStateIcons = {
-    connected: assets.remotestorageIcon,
-    error: assets.remotestorageIconError,
-    offline: assets.remotestorageIconOffline
+    connected: assets.remoteStorageIcon,
+    error: assets.remoteStorageIconError,
+    offline: assets.remoteStorageIconOffline
   };
 
   var stateViews = {
