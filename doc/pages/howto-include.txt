@@ -51,7 +51,7 @@ If you wish to add your module to the build, place it in src/modules/, and wrap 
 >   // your module code, remoteStorage.defineModule etc.
 >
 >   // change this, for AMD loaders, so module can get loaded directly
->   return remoteStorage.[mymodulename];
+>   return remoteStorage.mymodulename;
 > });
 
 Then add it to the list of modules in src/remoteStorage-modules.js and build as before.
