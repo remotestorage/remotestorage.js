@@ -86,7 +86,7 @@ define([
     //
     //   remoteStorage.displayWidget(/* see documentation */)
     //
-    //   remoteStorage.addBeer('<replace-with-favourite-beer-kind>');
+    //   remoteStorage.beers.addBeer('<replace-with-favourite-beer-kind>');
     //
     //   (end code)
     //
