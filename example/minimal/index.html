@@ -2,52 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>minimal remoteStorage.js example</title>
+    <title>minimal remoteStorage.js examples</title>
   </head>
   <body>
-    <div id="app">
-      <div id="current">(loading...)</div>
-      <input id="text" />
-      <input id="up" type="submit" value="up" />
-    </div>
-    <p id="pleaseConnect">
-      Please connect your remotestorage (get one at <a href="https://heahdk.net/">https://heahdk.net/</a>)
-    </p>
+    After the 0.7.0 release we introduced a simpler way to call
+    remoteStorage.displayWidget(), so this example became even simpler.
+    Please pick which version of the library you would like to see the
+    minimal app example for:
+    <ul>
+      <li>Version <a href="../minimal-0.7.0/">0.7.0</a></li>
+      <li>Version <a href="../minimal-head/">head</a></li>
+    </ul>
   </body>
-  <script src="remoteStorage-5f79be36.min.js"></script>
-  <script src="notes.js"></script>
-  <script>
-    function $(id) { return document.getElementById(id); }
-    
-    function displayNote() {
-      remoteStorage.notes.getNote().then(function(text) {
-          $('current').innerHTML = text || '';
-      });
-    }
-    function showApp() {
-      $('pleaseConnect').style.display='none';
-      $('app').style.display='block';
-      displayNote();
-    }
-    function hideApp() {
-      $('pleaseConnect').style.display='block';
-      $('app').style.display='none';
-    }
-
-    hideApp();
-    remoteStorage.claimAccess({ notes: 'rw' }).then(function() {
-      remoteStorage.displayWidget();
-      remoteStorage.onWidget('ready', showApp);
-      remoteStorage.onWidget('disconnect', hideApp);
-      remoteStorage.notes.onChange(displayNote);
-      $('up').onclick = function() {
-        remoteStorage.notes.setNote($('text').value);
-      };
-      $('text').addEventListener('keypress', function(e) {
-        if(e.keyCode == 13) {//<enter>
-          $('up').onclick();
-        }
-      }, false);
-    });
-  </script>
 </html>
