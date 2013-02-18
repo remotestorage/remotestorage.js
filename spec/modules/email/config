@@ -1,0 +1,27 @@
+//example without PGP:
+{
+  "smtp": {
+    "user@example.com": {
+      "username": "user@example.com",
+      "password": "asdf",
+      "host": "smtp.example.com"
+    }
+  },
+  "@context": "http://remotestoragejs.com/spec/modules/email/config
+}
+
+//example with PGP:
+{
+  "smtp": {
+    "user@example.com": {
+      "username": "user@example.com",
+      "password": "asdf",
+      "host": "smtp.example.com"
+      "gnupg": {
+        "homedir": "/home/user/.gnupg",
+        "passphrasefile": "home/user/secret/passphrase"
+      }
+    }
+  },
+  "@context": "http://remotestoragejs.com/spec/modules/email/config
+}
