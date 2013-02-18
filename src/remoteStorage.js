@@ -353,7 +353,7 @@ define([
     //
     // Method: displayWidget
     //
-    // Add the remotestorage widget to the page.
+    // Add the remoteStorage widget to the page.
     //
     // *Note* call <claimAccess> before calling displayWidget, otherwise you can't access any actual data.
     //
