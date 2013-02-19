@@ -1,0 +1,8 @@
+    privateClient.declareType('reverse', {
+      "description": "a method of tracking tags and references to the module records that they've been related to",
+      "type":"array",
+      "items": {
+        "title": "a collection of tags names associated with this record ID + docType",
+        "type": "string"
+      }
+    });

@@ -95,7 +95,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
                 _this, 'PUT', 'me/testobj',
                 JSON.stringify({ 
                   'hello': 'world',
-                  '@type': 'https://remotestoragejs.com/spec/modules/root/test'
+                  '@context': 'http://remotestoragejs.com/spec/modules/root/test'
                 })
               );
               // fetch timestamp from parent
@@ -196,7 +196,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             then(function() {
               env.serverHelper.expectRequest(_this, 'GET', 'me/test-dir/');
               env.serverHelper.expectRequest(_this, 'GET', 'me/test-dir/obj');
-              env.serverHelper.expectRequest(_this, 'PUT', 'me/test-dir/obj', '{"phu":"quoc","@type":"https://remotestoragejs.com/spec/modules/root/test"}');
+              env.serverHelper.expectRequest(_this, 'PUT', 'me/test-dir/obj', '{"phu":"quoc","@context":"http://remotestoragejs.com/spec/modules/root/test"}');
               env.serverHelper.expectRequest(_this, 'GET', 'me/test-dir/');
               env.serverHelper.expectNoMoreRequest(_this);
               _this.assert(true, true);
@@ -286,7 +286,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
                 origin: 'window',
                 path: 'foo/bar/test-obj',
                 oldValue: undefined,
-                newValue: { phu: 'quoc', '@type': 'https://remotestoragejs.com/spec/modules/root/test' }
+                newValue: { phu: 'quoc', '@context': 'http://remotestoragejs.com/spec/modules/root/test' }
               });
               test.assert(receivedEvents, [], "There are still events in the queue: " + JSON.stringify(receivedEvents));
             });
@@ -324,7 +324,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               // verify file
               test.assert({
                 island: "Phu Quoc",
-                '@type': 'https://remotestoragejs.com/spec/modules/root/test'
+                '@context': 'http://remotestoragejs.com/spec/modules/root/test'
               }, obj, "got object: " + JSON.stringify(obj));
             });
         }

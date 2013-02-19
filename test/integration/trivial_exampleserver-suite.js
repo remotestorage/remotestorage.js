@@ -365,7 +365,7 @@ define([
             }).
             then(curry(env.client.getObject, 'test-dir/a')).
             then(function(obj) {
-              _this.assertAnd(obj, { n: 'a', '@type': 'https://remotestoragejs.com/spec/modules/root/test' }, 'object a');
+              _this.assertAnd(obj, { n: 'a', '@context': 'http://remotestoragejs.com/spec/modules/root/test' }, 'object a');
             }).
             then(curry(env.store.getNode, '/other-dir/')).
             then(function(node) {
