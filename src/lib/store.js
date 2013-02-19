@@ -74,7 +74,7 @@ define([
   //   startForce     - boolean flag to indicate that this node shall always be synced. (see <BaseClient.use> and <BaseClient.release>) (default: null)
   //   startForceTree - boolean flag that all directory children of this node shall be synced.
   //   timestamp      - last time this node was (apparently) updated (default: 0)
-  //   lastUpdatedAt  - Last time this node was upated from remotestorage
+  //   lastUpdatedAt  - Last time this node was upated from remote storage
   //   mimeType       - MIME media type
   //   diff           - (directories only) marks children that have been modified.
   //   data           - Actual data of the node. A String, a JSON-Object or an ArrayBuffer.
@@ -613,6 +613,7 @@ define([
     isForced          : isForced,         // baseClient
 
     on                : events.on,
+    emit              : events.emit,
     setNodeAccess     : setNodeAccess,
     setNodeForce      : setNodeForce,
     setNodeError      : setNodeError,

@@ -13,7 +13,7 @@ define([
 
   // Namespace: widget
   //
-  // The remotestorage widget.
+  // The remoteStorage widget.
   //
   // See <remoteStorage.displayWidget>
   //

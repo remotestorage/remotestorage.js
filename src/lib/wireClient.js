@@ -80,7 +80,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
   // Method: get
   //
-  // Get data from given path from remotestorage
+  // Get data from given path from remote storage.
   //
   // Parameters:
   //   path     - absolute path (starting from storage root)
@@ -107,7 +107,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
   // Method: set
   //
-  // Write data to given path in remotestorage
+  // Write data to given path in remote storage.
   //
   // Parameters:
   //   path     - absolute path (starting from storage root)
@@ -134,7 +134,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
   // Method: remove
   //
-  // Remove data at given path from remotestorage
+  // Remove data at given path from remote storage.
   //
   // Parameters:
   //   path     - absolute path (starting from storage root)
@@ -195,21 +195,21 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
     // Method: getStorageHref
     //
-    // Get base URL of the user's remotestorage.
+    // Get base URL of the user's remote storage.
     getStorageHref   : function() {
       return getSetting('storageHref');
     },
-    
+
     // Method: getStorageType
     //
-    // Get API version of the user's remotestorage, probably '2012.04' or 'remotestorage-00'.
+    // Get API version of the user's remote storage, probably '2012.04' or 'remotestorage-00'.
     getStorageType   : function() {
       return getSetting('storageType');
     },
-    
+
     // Method: SetBearerToken
     //
-    // Set the bearer token for authorization
+    // Set the bearer token for authorization.
     //
     // Parameters:
     //   bearerToken - token to use
@@ -245,12 +245,12 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
     // Method: disconnectRemote
     //
-    // Clear the wireClient configuration
+    // Clear the wireClient configuration.
     disconnectRemote : disconnectRemote,
 
     // Method: on
     //
-    // Install an event handler
+    // Install an event handler.
     //
     // 
 

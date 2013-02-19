@@ -86,7 +86,7 @@ define([
     //
     //   remoteStorage.displayWidget(/* see documentation */)
     //
-    //   remoteStorage.addBeer('<replace-with-favourite-beer-kind>');
+    //   remoteStorage.beers.addBeer('<replace-with-favourite-beer-kind>');
     //
     //   (end code)
     //
@@ -353,25 +353,17 @@ define([
     //
     // Method: displayWidget
     //
-    // Add the remotestorage widget to the page.
+    // Add the remoteStorage widget to the page.
+    //
+    // *Note* call <claimAccess> before calling displayWidget, otherwise you can't access any actual data.
     //
     // Parameters:
-    //   domID - DOM ID of element to attach widget elements to
-    //   options - Options, as described below.
+    //   element - (optional) DOM element to append the widget element, defaults to BODY element. May also be the ID of a DOM element.
+    //   options - (optional) Options, as described below.
     //   options.locale - Locale to use for the widget. Currently ignored.
     //
-    // Minimal Example:
-    //
-    //    *in HTML <body>*
-    //    > <div id="remotestorage-connect"></div>
-    //
-    //    *in the app's JS*
-    //    > remoteStorage.displayWidget('remotestorage-connect');
-    //
-    //    *Note* that in real life you would have to call <claimAccess> before calling displayWidget. Otherwise you can't access any actual data.
-    //
-    displayWidget: function(domId, options) {
-      widget.display(remoteStorage, domId, util.extend({}, options));
+    displayWidget: function(element, options) {
+      widget.display(remoteStorage, element, util.extend({}, options));
     },
 
     //
