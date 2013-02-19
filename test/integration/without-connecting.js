@@ -87,15 +87,15 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             test.assert(collection, {
               a: {
                 x: 'a',
-                '@context': 'https://remotestoragejs.com/spec/modules/root/test'
+                '@context': 'http://remotestoragejs.com/spec/modules/root/test'
               },
               b: {
                 x: 'b',
-                '@context': 'https://remotestoragejs.com/spec/modules/root/test'
+                '@context': 'http://remotestoragejs.com/spec/modules/root/test'
               },
               c: {
                 x: 'c',
-                '@context': 'https://remotestoragejs.com/spec/modules/root/test'
+                '@context': 'http://remotestoragejs.com/spec/modules/root/test'
               }
             });
           });
