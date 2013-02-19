@@ -143,7 +143,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "BaseClient#saveObject fails when no @type is given",
+        desc: "BaseClient#saveObject fails when no @context is given",
         run: function(env) {
           var _this = this;
           env.client.saveObject({}).
