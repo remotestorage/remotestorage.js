@@ -640,6 +640,12 @@ define([
     //
     storeFile: function(mimeType, path, data, cache) {
       cache = (cache !== false);
+      if(typeof(mimeType) !== 'string') {
+        return failedPromise(new Error("given mimeType must be a string (got: " + typeof(mimeType) + ")"));
+      }
+      if(typeof(path) !== 'string') {
+        return failedPromise(new Error("given path must be a string (got: " + typeof(path) + ")"));
+      }
       if(util.isDir(path)) {
         return failedPromise(new Error("Can't store directory node"));
       }
