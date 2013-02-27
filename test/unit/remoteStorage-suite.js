@@ -35,6 +35,7 @@ define(['requirejs'], function(requirejs, undefined) {
     },
     takedown: function(env) {
       env = '';
+      remoteStorage._clearModules();
       this.result(true);
     },
     tests: [
@@ -49,7 +50,51 @@ define(['requirejs'], function(requirejs, undefined) {
               _this.assertType(env.tm, 'object');
             });
         }
+      },
+
+      {
+        desc: "getModuleInfo returns the entire object exported by the returned definition",
+        run: function(env, test) {
+          remoteStorage.defineModule('example', function() {
+            return {
+              bla: 'blubb',
+              exports: {},
+              name: 'example'
+            };
+          });
+          var info = remoteStorage.getModuleInfo('example');
+          test.assertAnd(info.bla, 'blubb');
+          test.assertTypeAnd(info.exports, 'object');
+          test.assert(info.name, 'example');
+        }
+      },
+
+      {
+        desc: "getModuleInfo defaults the dataHints to an empty object",
+        run: function(env, test) {
+          remoteStorage.defineModule('example', function() {
+            return {
+              exports: {},
+            };
+          });
+          var info = remoteStorage.getModuleInfo('example');
+          test.assertType(info.dataHints, 'object');
+        }
+      },
+
+      {
+        desc: "getModuleInfo defaults name to the passed in module name",
+        run: function(env, test) {
+          remoteStorage.defineModule('example', function() {
+            return {
+              exports: {},
+            };
+          });
+          var info = remoteStorage.getModuleInfo('example');
+          test.assert(info.name, 'example');
+        }
       }
+
     ]
   });
   return suites;

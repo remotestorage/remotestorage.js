@@ -185,7 +185,13 @@ define([
     //   Hope this helps.
     //
     getModuleInfo: function(moduleName) {
-      return modules[moduleName];
+      var moduleInfo = modules[moduleName];
+      if(moduleInfo) {
+        return util.extend({
+          name: moduleName,
+          dataHints: {}
+        }, moduleInfo);
+      }
     },
 
     //
@@ -459,7 +465,14 @@ define([
 
     i18n: i18n,
 
-    schedule: schedule
+    schedule: schedule,
+
+    // for tests only.
+    // FIXME: get rid of this by making internas more accessible. can probably be
+    //        done with some general redesign of this file.
+    _clearModules: function() {
+      modules = {};
+    }
 
   };
 
