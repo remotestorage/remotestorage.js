@@ -217,9 +217,12 @@ define([
     //   claim      - permission to claim, either *r* (read-only) or *rw* (read-write)
     //
     // Example:
-    //   > remoteStorage.claimAccess('contacts', 'r');
+    //   > remoteStorage.claimAccess('contacts', 'r').then(remoteStorage.displayWidget).then(initApp);
     //
+    // Returns:
+    //   a Promise, fulfilled when the access has been claimed.
     //
+    // FIXME: this method is currently asynchronous due to internal design issues, but it doesn't need to be.
     //
     // Method: claimAccess(moduleClaimMap)
     //
@@ -233,7 +236,12 @@ define([
     //   >   contacts: 'r',
     //   >   documents: 'rw',
     //   >   money: 'r'
-    //   > });
+    //   > }).then(remoteStorage.displayWidget).then(initApp);
+    //
+    // Returns:
+    //   a Promise, fulfilled when the access has been claimed.
+    //
+    // FIXME: this method is currently asynchronous due to internal design issues, but it doesn't need to be.
     //
     claimAccess: function(moduleName, mode) {
 
