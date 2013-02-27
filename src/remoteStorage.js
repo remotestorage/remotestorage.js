@@ -23,6 +23,13 @@ define([
   util.unsilenceLogger('base', 'getputdelete');
 
   // Namespace: remoteStorage
+  //
+  // Main remoteStorage object, primary namespace.
+  //
+  // Provides an interface for defining modules, controlling the widget and configuring
+  // access.
+  //
+  // Most methods here return promises.  See the guide for and introduction: <Promises>
   var remoteStorage =  {
 
     //
