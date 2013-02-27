@@ -312,7 +312,9 @@ define([
     // Forget this ever happened.
     //
     // Delete all locally stored data.
-    // This doesn't clear localStorage, just removes everything
+    //
+    // Note that if you're using a localStorage backend, this doesn't
+    // clear the entire localStorage, but just removes everything
     // remoteStorage.js saved there. Other data your app might
     // have put into localStorage stays there.
     //
