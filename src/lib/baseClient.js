@@ -383,7 +383,7 @@ define([
         if(typeAlias) {
           var type = this.resolveTypeAlias(typeAlias);
           for(var key in objectMap) {
-            if(objectMap[key]['@type'] !== type) {
+            if(objectMap[key]['@context'] !== type) {
               delete objectMap[key];
             }
           }
@@ -493,7 +493,7 @@ define([
     // Method: saveObject
     //
     // Save a typed JSON object.
-    // This only works for objects with a @type attribute corresponding to a schema
+    // This only works for objects with a @context attribute corresponding to a schema
     // that has been declared via <declareType> and a ID attribute declared within
     // that schema.
     //
@@ -505,7 +505,7 @@ define([
     //
     //
     saveObject: function(object) {
-      var type = object['@type'];
+      var type = object['@context'];
       var alias = this.resolveTypeAlias(type);
       var idKey = this.resolveIdKey(type);
       if(! idKey) {
@@ -541,12 +541,12 @@ define([
     //   MIME type of JSON objects however, is always application/json.
     //   To add that extra layer of "knowing what this object is", remoteStorage
     //   aims to use <JSON-LD at http://json-ld.org/>.
-    //   A first step in that direction, is to add a *@type attribute* to all
+    //   A first step in that direction, is to add a *@context attribute* to all
     //   JSON data put into remoteStorage.
     //   Now that is what the *type* is for.
     //
-    //   Within remoteStorage.js, @type values are built using three components:
-    //     https://remotestoragejs.com/spec/modules/ - A prefix to guarantee unqiueness
+    //   Within remoteStorage.js, @context values are built using three components:
+    //     http://remotestoragejs.com/spec/modules/ - A prefix to guarantee unqiueness
     //     the module name     - module names should be unique as well
     //     the type given here - naming this particular kind of object within this module
     //
@@ -574,7 +574,7 @@ define([
       return this.ensureAccess('w').
         then(function() {
           if(! (obj instanceof Array)) {
-            obj['@type'] = this.resolveType(typeAlias);
+            obj['@context'] = this.resolveType(typeAlias);
             var errors = this.validateObject(obj);
             if(errors) {
               throw new ValidationError(obj, errors);
@@ -772,7 +772,7 @@ define([
       var type = this.types[alias];
       if(! type) {
         // FIXME: support custom namespace. don't fall back to remotestoragejs.com.
-        type = 'https://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+        type = 'http://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
         logger.error("WARNING: type alias not declared: " + alias, '(have:', this.types, this.schemas, ')');
       }
       return type;
@@ -820,7 +820,7 @@ define([
         attributes = {};
       }
 
-      object['@type'] = type;
+      object['@context'] = type;
       if(idKey && ! attributes[idKey]) {
         object[idKey] = this.uuid();
       }
@@ -834,7 +834,7 @@ define([
     //
     // Parameters:
     //   alias  - an alias to refer to the type. Must be unique within one scope / module.
-    //   type   - (optional) full type-identifier to identify the type. used as @type attribute.
+    //   type   - (optional) full type-identifier to identify the type. used as @context attribute.
     //   schema - an object containing the schema for this new type.
     //
     // if "type" is ommitted, it will be generated based on the module name.
@@ -871,7 +871,7 @@ define([
       }
       if(! schema) {
         schema = type;
-        type = 'https://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+        type = 'http://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
       }
       if(schema['extends']) {
         var extendedType = this.types[ schema['extends'] ];
@@ -902,7 +902,7 @@ define([
     //
     // Parameters:
     //   object - the object to validate
-    //   alias  - (optional) the type-alias to use, in case the object doesn't have a @type attribute.
+    //   alias  - (optional) the type-alias to use, in case the object doesn't have a @context attribute.
     //
     // Returns:
     //   null   - when the object is valid
@@ -914,12 +914,12 @@ define([
     // (end code)
     //
     validateObject: function(object, alias) {
-      var type = object['@type'];
+      var type = object['@context'];
       if(! type) {
         if(alias) {
           type = this.resolveType(alias);
         } else {
-          return [{"property":"@type","message":"missing"}];
+          return [{"property":"@context","message":"missing"}];
         }
       }
       var schema = this.resolveSchema(type);

@@ -12,7 +12,7 @@ Section: Declaring a type
 *Declaring* a type means creating a *type alias* that is associated with a *type URI* and a *schema*. Each type being declared is only valid within the current module.
 
 * The *alias* is a String, that is used to refer to the type later on. It has to be unique within each module. An example would be "drink".
-* The *URI* is also a String, used to uniquely identify a type. It is common to point this URI to a public copy of the schema. When the URI is ommitted, remoteStorage.js generates one based on the current module name and the alias. The URI is also stored in the typed object itself as an attribute called "@type".
+* The *URI* is also a String, used to uniquely identify a type. It is common to point this URI to a public copy of the schema. When the URI is ommitted, remoteStorage.js generates one based on the current module name and the alias. The URI is also stored in the typed object itself as an attribute called "@context".
 * The *schema* is a JSON object containing a JSON schema, as described in the <specification at http://tools.ietf.org/html/draft-zyp-json-schema>
 
 This is a complete example of how to declare a type called "event":
@@ -75,12 +75,12 @@ These errors can then be used to display a message to the user.
 
 Section: Preparing and validating typed objects
 
-In order to validate an object, it first needs to be assigned the "@type" property. This is usually done by storeObject, based on the given type alias.
-If you want to validate an object before saving it, you need to pull in that @type property first. You could either do this manually, or remoteStorage.js can do that job for you, via <BaseClient.buildObject>:
+In order to validate an object, it first needs to be assigned the "@context" property. This is usually done by storeObject, based on the given type alias.
+If you want to validate an object before saving it, you need to pull in that @context property first. You could either do this manually, or remoteStorage.js can do that job for you, via <BaseClient.buildObject>:
 (start code)
 var event = client.buildObject('event');
 console.log(event);
-// { "@type":"http://json-schema.org/calendar" }
+// { "@context":"http://json-schema.org/calendar" }
 (end code)
 
 Now you have a typed object, which can be passed to validateObject:
@@ -114,7 +114,7 @@ Now <BaseClient.buildObject> will generate an ID for you, if needed
 (start code)
 var event = client.buildObject('event');
 console.log(event);
-// { "@type":"http://json-schema.org/calendar",
+// { "@context":"http://json-schema.org/calendar",
 //   "id": "uuid:24599E26-F5F8-4698-88C2-1EDB319B9960" }
 (end code)
 
@@ -122,7 +122,7 @@ If you already specified an ID yourself, it won't overwrite it
 (start code)
 var event = client.buildObject('event', { "id": "my-own-id" });
 console.log(event);
-// { "@type":"http://json-schema.org/calendar",
+// { "@context":"http://json-schema.org/calendar",
 //   "id": "my-own-id" }
 (end code)
 
@@ -147,7 +147,7 @@ client.saveObject(event).
     return client.getObject(event.id);
   }).then(function(reloadedEvent) {
     console.log(reloadedEvent);
-    // { "@type": "http://json-schema.org/calendar",
+    // { "@context": "http://json-schema.org/calendar",
     //   "id": "uuid:DA115EF9-42F6-4A73-8AFB-F5DC773F5AA3",
     //   "dtstart": "2012-11-01T18:07:37.373Z",
     //   "summary": "Something happening" }
