@@ -91,11 +91,11 @@ define([
     //
     //   // to use that code from an app, you need to add:
     //
-    //   remoteStorage.claimAccess('beers', 'rw');
+    //   remoteStorage.claimAccess('beers', 'rw').then(function() {
+    //     remoteStorage.displayWidget()
     //
-    //   remoteStorage.displayWidget(/* see documentation */)
-    //
-    //   remoteStorage.beers.addBeer('<replace-with-favourite-beer-kind>');
+    //     remoteStorage.beers.addBeer('<replace-with-favourite-beer-kind>');
+    //   });
     //
     //   (end code)
     //
