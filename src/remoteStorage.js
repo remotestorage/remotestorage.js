@@ -415,16 +415,24 @@ define([
     },
 
     //
-    // Method: onWidget
+    // Method: on
     //
-    // Add event handler to the widget.
+    // Add event handler. Event handlers are bound on the <widget>, which
+    // acts as a controller.
     // See <widget.Events> for available Events.
     //
     // Parameters:
     //   eventType - type of event to add handler to
     //   handler   - handler function
     //
-    onWidget: widget.on,
+    on: widget.on,
+
+    // Method: onWidget
+    // DEPRECATED. Alias for <on>.
+    onWidget: function() {
+      console.log("WARNING: remoteStorage.onWidget is deprecated, use remoteStorage.on instead.");
+      this.on.apply(this, arguments);
+    },
 
     //
     getSyncState: sync.getState,
