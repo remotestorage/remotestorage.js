@@ -343,7 +343,7 @@ define([
     //
     // Synchronize local <-> remote storage.
     //
-    // Syncing starts at the access roots (the once you claimed using claimAccess)
+    // Syncing starts at the access roots (the ones you claimed using claimAccess)
     // and moves down the directory tree.
     // Only nodes with a 'force' flag on themselves or one of their ancestors will
     // be synchronized. Use <BaseClient.use> and <BaseClient.release> to set / unset
@@ -352,8 +352,11 @@ define([
     // future, so you should attach change handlers on the modules you're
     // interested in.
     //
-    // Parameters:
-    //   callback - (optional) callback to be notified when synchronization has finished or failed.
+    // Returns:
+    //   a Promise.
+    //
+    // If you are interested when the sync is done, or if there were any errors,
+    // chain to the promise as shown below.
     //
     // Example:
     //   >
@@ -363,13 +366,11 @@ define([
     //   >   // handle change event (update UI etc)
     //   > });
     //   >
-    //   > remoteStorage.fullSync(function(errors) {
-    //   >   // handle errors, if any.
+    //   > remoteStorage.fullSync().then(function() {
+    //   >   // sync done, do whatever you want.
+    //   > }, function(error) {
+    //   >   // handle error.
     //   > });
-    //
-    // Yields:
-    //   Array of error messages - when errors occured. When fullSync is called and the user is not connected, this is also considered an error.
-    //   null - no error occured, synchronization finished gracefully.
     //
     fullSync: sync.fullSync,
 
