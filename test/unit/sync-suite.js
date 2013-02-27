@@ -166,7 +166,7 @@ define(['requirejs'], function(requirejs) {
           var _this = this;
           var traverseTree = env.sync.getInternal('traverseTree');
           // env.sync.setRemoteAdapter(env.remoteAdapter);
-          util.makePromise(function(promise) {
+          util.getPromise(function(promise) {
             env.remoteAdapter.init({
               'a' : {
                 'a' : { 'x' : 'foo' },

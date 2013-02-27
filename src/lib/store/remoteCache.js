@@ -10,7 +10,7 @@ define([
     var cache = memoryAdapter('store::remote_cache_backend');
 
     function determineTimestamp(path) {
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         var parentPath = util.containingDir(path);
         if(parentPath && cache.hasKey(parentPath)) {
           var baseName = util.baseName(path)
@@ -21,7 +21,7 @@ define([
               if(typeof(error) === 'undefined') {
                 promise.fulfill(new Date().getTime());
               } else {
-                promise.fail(error);
+                promise.reject(error);
               }
             });
         } else {

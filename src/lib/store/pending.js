@@ -8,7 +8,7 @@ define(['../util'], function(util) {
     function queueRequest(name, args, dontPromise) {
       logger.debug(name, args[0]);
       if(! dontPromise) {
-        return util.makePromise(function(promise) {
+        return util.getPromise(function(promise) {
           requestQueue.push({
             method: name,
             args: args,
@@ -47,8 +47,8 @@ define(['../util'], function(util) {
           logger.debug('QUEUE FLUSH', request.method, request.args[0]);
           if(request.promise) {
             adapter[request.method].apply(adapter, request.args).
-              then(request.promise.fulfill.bind(request.promise),
-                   request.promise.fail.bind(request.promise));
+              then(request.promise.fulfill,
+                   request.promise.reject);
           } else {
             adapter[request.method].apply(adapter, request.args);
           }

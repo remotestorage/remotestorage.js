@@ -118,7 +118,7 @@ define(['./util'], function(util) {
   }
 
   function ajaxBrowser(params) {
-    return util.makePromise(function(promise) {
+    return util.getPromise(function(promise) {
       var timedOut = false;
       var timer;
       var xhr = new XMLHttpRequest();
@@ -126,7 +126,7 @@ define(['./util'], function(util) {
         timer = window.setTimeout(function() {
           timedOut = true;
           xhr.abort();
-          promise.fail('timeout');
+          promise.reject('timeout');
         }, params.timeout);
       }
 
@@ -161,7 +161,7 @@ define(['./util'], function(util) {
             promise.fulfill(xhr.responseText, headers);
           } else {
             logger.debug("REQUEST FAILED", xhr.status, params.url);
-            promise.fail(xhr.status || 'network error');
+            promise.reject(xhr.status || 'network error');
           }
         }
       };
@@ -182,15 +182,15 @@ define(['./util'], function(util) {
       if(xdr.status == 200 || xdr.status == 201 || xdr.status == 204) {
         promise.fulfill(xdr.responseText);
       } else {
-        params.fail(xdr.status);
+        params.reject(xdr.status);
       }
     };
     xdr.onerror = function() {
       // See http://msdn.microsoft.com/en-us/library/ms536930%28v=vs.85%29.aspx
-      promise.fail('network error');
+      promise.reject('network error');
     };
     xdr.ontimeout = function() {
-      promise.fail('timeout');
+      promise.reject('timeout');
     };
     if(params.data) {
       xdr.send(params.data);
@@ -201,7 +201,7 @@ define(['./util'], function(util) {
 
   function ajaxNode(params) {
 
-    return util.makePromise(function(promise) {
+    return util.getPromise(function(promise) {
 
       if(typeof(params.data) === 'object' && params.data instanceof ArrayBuffer) {
         throw new Error("Sending binary data not yet implemented for nodejs");
@@ -230,7 +230,7 @@ define(['./util'], function(util) {
 
       if(params.timeout) {
         timer = setTimeout(function() {
-          promise.fail('timeout');
+          promise.reject('timeout');
           timedOut=true;
         }, params.timeout);
       }
@@ -250,7 +250,7 @@ define(['./util'], function(util) {
             if(response.statusCode==200 || response.statusCode==201 || response.statusCode==204) {
               promise.fulfill(str, normalizeHeaders(response.headers));
             } else {
-              promise.fail(response.statusCode);
+              promise.reject(response.statusCode);
             }
           }
         });
@@ -259,7 +259,7 @@ define(['./util'], function(util) {
         if(timer) {
           clearTimeout(timer);
         }
-        promise.fail(e && e.message);
+        promise.reject(e && e.message);
       });
       if(params.data) {
         request.end(params.data);

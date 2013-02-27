@@ -215,7 +215,7 @@ define(['requirejs'], function(requirejs) {
             var storageInfoReq = env.fakefinger.shift();
             test.assertTypeAnd(storageInfoReq, 'object', "expected webfinger.getStoageInfo to have been called!");
             test.assertAnd(storageInfoReq.args[0], 'foo@bar.baz');
-            storageInfoReq.promise.fail('timeout');
+            storageInfoReq.promise.reject('timeout');
             util.nextTick(function() {
               test.assertAnd(env.getputdelete.getTimeout(), 1500);
               test.assert(env.webfinger.getTimeout(), 1500);
