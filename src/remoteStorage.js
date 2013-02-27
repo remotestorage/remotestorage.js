@@ -64,7 +64,7 @@ define([
     //       exports: {
     //
     //         addBeer: function(name) {
-    //           privateClient.storeObject('beer', nameToKey(name), {
+    //           return privateClient.storeObject('beer', nameToKey(name), {
     //             name: name,
     //             drinkCount: 0
     //           });
@@ -72,15 +72,17 @@ define([
     //
     //         logDrink: function(name) {
     //           var key = nameToKey(name);
-    //           var beer = privateClient.getObject(key);
-    //           beer.drinkCount++;
-    //           privateClient.storeObject('beer', key, beer);
+    //           return privateClient.getObject(key).then(function(beer) {
+    //             beer.drinkCount++;
+    //             return privateClient.storeObject('beer', key, beer);
+    //           });
     //         },
     //
     //         publishBeer: function(name) {
     //           var key = nameToKey(name);
-    //           var beer = privateClient.getObject(key);
-    //           publicClient.storeObject('beer', key, beer);
+    //           return privateClient.getObject(key).then(function(beer) {
+    //             return publicClient.storeObject('beer', key, beer);
+    //           });
     //         }
     //
     //       }
