@@ -238,11 +238,11 @@ define([
         moduleObj[moduleName] = mode;
       }
 
-      return util.asyncEach(Object.keys(moduleObj), function(_moduleName) {
+      return util.asyncEach(Object.keys(moduleObj), util.bind(function(_moduleName) {
         var _mode = moduleObj[_moduleName];
         testMode(_moduleName, _mode);
         return this.claimModuleAccess(_moduleName, _mode);
-      }.bind(this));
+      }, this));
     },
 
     // PRIVATE
@@ -301,9 +301,9 @@ define([
     //   > remoteStorage.flushLocal();
     //
     flushLocal       : function() {
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         logger.info('flushLocal');
-        store.forgetAll().then(promise.fulfill.bind(promise));
+        store.forgetAll().then(promise.fulfill);
         sync.clearSettings();
         widget.clearSettings();
         schedule.reset();

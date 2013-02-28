@@ -72,10 +72,10 @@ define(
     }
 
     function parseXRD(str) {
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         platform.parseXml(str, function(err, obj) {
           if(err) {
-            promise.fail(err);
+            promise.reject(err);
           } else {
             if(obj && obj.Link) {
               var links = {};
@@ -92,7 +92,7 @@ define(
               }
               promise.fulfill(links);
             } else {
-              promise.fail('invalid-xml');
+              promise.reject('invalid-xml');
             }
           }
         });
@@ -126,7 +126,7 @@ define(
         if(mimeType && mimeType.match(/^application\/json/)) {
           return parseJRD(body);
         } else {
-          return util.makePromise(function(jrdPromise) {
+          return util.getPromise(function(jrdPromise) {
             parseXRD(body).then(
               function(xrd) {
                 jrdPromise.fulfill(xrd);
@@ -215,32 +215,29 @@ define(
 
        */
 
-      try {
-        var hostname = extractHostname(userAddress)
-      } catch(error) {
-        if(error) {
-          return util.getPromise().failLater(error);
+      return util.getPromise(function(promise) {
+        try {
+          var hostname = extractHostname(userAddress)
+        } catch(error) {
+          if(error) {
+            return promise.reject(error);
+          }
         }
-      }
-      var query = '?resource=acct:' + encodeURIComponent(userAddress);
-      var addresses = [
-        '://' + hostname + '/.well-known/webfinger' + query,
-        '://' + hostname + '/.well-known/host-meta.json' + query,
-        '://' + hostname + '/.well-known/host-meta' + query,
-      ];
+        var query = '?resource=acct:' + encodeURIComponent(userAddress);
+        var addresses = [
+          '://' + hostname + '/.well-known/webfinger' + query,
+          '://' + hostname + '/.well-known/host-meta.json' + query,
+          '://' + hostname + '/.well-known/host-meta' + query,
+        ];
 
-      return util.makePromise(function(promise) {
         fetchHostMeta('https', addresses).
           then(extractRemoteStorageLink, function() {
             return fetchHostMeta('http', addresses).
-              then(extractRemoteStorageLink).
-              then(function(profile) {
-                promise.fulfill(profile);
-              }, promise.fail.bind(promise));
+              then(extractRemoteStorageLink);
           }).
           then(function(profile) {
             promise.fulfill(profile);
-          }, promise.fail.bind(promise));
+          }, promise.reject);
       });
     }
 

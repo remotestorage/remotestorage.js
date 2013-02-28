@@ -8,12 +8,8 @@ define([
 
   var remoteAdapter = remoteCacheAdapter();
 
-  var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready', 'timeout', 'debug');
+  var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready', 'timeout');
   var logger = util.getLogger('sync');
-
-  //BEGIN-DEBUG
-  events.enableEventCache('debug');
-  //END-DEBUG
 
   /*******************/
   /* Namespace: sync */
@@ -97,7 +93,7 @@ define([
       path = '/';
     }
     if(! util.isDir(path)) {
-      return util.getPromise().fulfillLater(false);
+      return util.getPromise().fulfill(false);
     }
     return store.getNode(path).then(function(root) {
       if(Object.keys(root.diff).length > 0) {
@@ -155,25 +151,23 @@ define([
   //   change   - when the local store is updated
   //
   function fullSync(pushOnly) {
-    return util.makePromise(function(promise) {
+    return util.getPromise(function(promise) {
       if(disabled) {
-        promise.fulfillLater()
+        promise.fulfill()
         return;
       }
       if(! isConnected()) {
-        promise.fail('not-connected');
+        promise.reject('not-connected');
         return;
       }
 
       logger.info("full " + (pushOnly ? "push" : "sync") + " started");
 
       findRoots().then(function(roots) {
-        logger.debug("SYNCING ROOTS", roots);
         var synced = 0;
 
         function rootCb(path) {
           return function() {
-            logger.debug("SYNCED ROOT", path);
             synced++;
             if(synced == roots.length) {
               sync.lastSyncAt = new Date();
@@ -183,7 +177,7 @@ define([
         }
 
         if(roots.length === 0) {
-          return promise.fail(new Error("No access claimed!"));
+          return promise.reject(new Error("No access claimed!"));
         }
 
         roots.forEach(function(root) {
@@ -227,7 +221,7 @@ define([
   //   change   - when the local store is updated
   //
   function partialSync(startPath, depth) {
-    return util.makePromise(function(promise) {
+    return util.getPromise(function(promise) {
       if(! isConnected()) {
         return promise.fulfill();
       }
@@ -240,7 +234,7 @@ define([
           depth: depth,
           force: true
         });
-      }, promise.fulfill.bind(promise));
+      }, promise.fulfill);
     });
   }
 
@@ -495,17 +489,6 @@ define([
   // Used as a callback for <traverseTree>.
   function processNode(path, local, remote) {
 
-    //BEGIN-DEBUG
-    function debugEvent(message) {
-      events.emit('debug', {
-        path: path,
-        method: 'processNode',
-        message: message,
-        timestamp: new Date()
-      });
-    }
-    //END-DEBUG
-
     if(! path) {
       throw new Error("Can't process node without a path!");
     }
@@ -518,48 +501,30 @@ define([
 
     if(local.deleted) {
       // outgoing delete!
-      //BEGIN-DEBUG
-      debugEvent('outgoing delete');
-      //END-DEBUG
       action = deleteRemote;
 
     } else if(remote.deleted && local.lastUpdatedAt > 0) {
       if(local.timestamp == local.lastUpdatedAt) {
         // incoming delete!
-        //BEGIN-DEBUG
-        debugEvent('incoming delete');
-        //END-DEBUG
         action = deleteLocal;
 
       } else {
         // deletion conflict!
-        //BEGIN-DEBUG
-        debugEvent('deletion conflict', 'remote', remote, 'local', local);
-        //END-DEBUG
         action = util.curry(fireConflict, 'delete');
 
       }
     } else if(local.timestamp == remote.timestamp) {
       // no action today!
-      //BEGIN-DEBUG
-      debugEvent('no action today', 'remote', remote, 'local', local);
-      //END-DEBUG
       return;
 
     } else if((!remote.timestamp) || local.timestamp > remote.timestamp) {
       // local updated happpened before remote update
       if((!remote.timestamp) || local.lastUpdatedAt == remote.timestamp) {
         // outgoing update!
-        //BEGIN-DEBUG
-        debugEvent('outgoing update');
-        //END-DEBUG
         action = updateRemote;
 
       } else {
         // merge conflict!
-        //BEGIN-DEBUG
-        debugEvent('merge conflict (local > remote)', 'remote', remote, 'local', local);
-        //END-DEBUG
         action = util.curry(fireConflict, 'merge');
 
       }
@@ -567,16 +532,10 @@ define([
       // remote updated happened before local update
       if(local.lastUpdatedAt == local.timestamp) {
         // incoming update!
-        //BEGIN-DEBUG
-        debugEvent('incoming update');
-        //END-DEBUG
         action = updateLocal;
 
       } else {
         // merge conflict!
-        //BEGIN-DEBUG
-        debugEvent('merge conflict (local < remote)', 'remote', remote, 'local', local);
-        //END-DEBUG
         action = util.curry(fireConflict, 'merge');
 
       }
@@ -737,12 +696,10 @@ define([
   }
 
   function findNextForceRoots(path, cachedNode) {
-    logger.debug('findNextForceRoots', path);
     var roots = [];
     function checkChildren(node) {
       return util.asyncEach(Object.keys(node.data), function(key) {
         return store.getNode(path + key).then(function(childNode) {
-          logger.debug('findNextForceRoots check', path + key, childNode);
           if(childNode.startForce || childNode.startForceTree) {
             roots.push(path + key);
           } else if(util.isDir(key)) {
@@ -755,7 +712,6 @@ define([
           }
         });
       }).then(function() {
-        logger.debug('findNextForceRoots return', roots);
         return roots;
       });
     }
@@ -794,39 +750,20 @@ define([
 
     if(! opts) { opts = {}; }
 
-    if(opts.depth || opts.depth === 0) {
-      logger.debug("traverse depth", opts.depth, root);
-    }
-
-    //BEGIN-DEBUG
-    function debugEvent(path, message) {
-      events.emit('debug', {
-        path: path,
-        method: 'traverseTree',
-        message: message,
-        timestamp: new Date()
-      });
-    }
-    //END-DEBUG
-
     function determineLocalInterest(node, options) {
-      logger.debug('traverseNode.determineLocalInterest', node, options);
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         options.access = util.highestAccess(options.access, node.startAccess);
         options.force = opts.force || node.startForce;
         options.forceTree = opts.forceTree || node.startForceTree;
 
         function determineForce() {
-          logger.debug('determineForce', options);
           var force = (options.force || options.forceTree);
           if((! force) && (options.path == '/' || options.path == '/public/')) {
             findNextForceRoots(options.path).
               then(function(roots) {
-                logger.debug('local interest', options.path, node, false, 'next: ', roots);
                 promise.fulfill(node, false, roots);
               });
           } else {
-            logger.debug('local interest', options.path, node, force);
             promise.fulfill(node, force);
           }
         }
@@ -845,10 +782,6 @@ define([
     }
 
     function mergeDataNode(path, localNode, remoteNode, options) {
-      //BEGIN-DEBUG
-      debugEvent(path, 'mergeDataNode');
-      //END-DEBUG
-      logger.debug("traverseTree.mergeDataNode", path);
       if(util.isDir(path)) {
         throw new Error("Not a data node: " + path);
       }
@@ -856,10 +789,6 @@ define([
     }
 
     function mergeDirectory(path, localNode, remoteNode, options) {
-      //BEGIN-DEBUG
-      debugEvent(path, 'mergeDirectory');
-      //END-DEBUG
-      logger.debug("traverseTree.mergeDirectory", path, localNode, options);
 
       var fullListing = makeSet(
         Object.keys(localNode.data),
@@ -899,10 +828,6 @@ define([
     }
 
     function mergeTree(path, options) {
-      //BEGIN-DEBUG
-      debugEvent(path, 'mergeTree');
-      //END-DEBUG
-      logger.debug("traverseTree.mergeTree", path);
       options.path = path;
       return fetchLocalNode(path).
         then(util.rcurry(determineLocalInterest, options)).
@@ -912,7 +837,6 @@ define([
               then(function(remoteNode) {
                 return mergeDirectory(path, localNode, remoteNode, options).
                   then(function() {
-                    logger.debug('mergeDirectory done');
                     return store.setLastSynced(path, remoteNode.timestamp);
                   });
               });
@@ -922,8 +846,6 @@ define([
                 return mergeTree(root, options);
               });
             }
-          } else {
-            logger.debug("NO INTEREST & NO NEXT ROOTS", path);
           }
         });
     }

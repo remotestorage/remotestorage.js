@@ -235,16 +235,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         }
       },
       {
-        desc: "events.once()",
-        run: function(env) {
-          var _this = this;
-          env.events.once('ready', function(what) {
-            _this.assert(what, 'happened');
-          });
-          env.events.emit('ready', 'happened');
-        }
-      },
-      {
         desc: "events.reset()",
         timeout: 1000,
         willFail: true,
@@ -344,7 +334,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           function failAfterAWhile() {
             var promise = env.util.getPromise();
             setTimeout(function() {
-              promise.fail("something went wrong");
+              promise.reject("something went wrong");
             }, 1);
             return promise;
           }
@@ -401,64 +391,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             then(checkResult, onError);
         }
       },
-      {
-        desc: "util.Promise.get",
-        run: function(env) {
-          var _this = this;
-          function promiseSomething() {
-            var promise = env.util.getPromise();
-            setTimeout(function() {
-              promise.fulfill({ foo: "bar", bla: "blubb" });
-            }, 1);
-            return promise;
-          }
-          function checkResult(s) { _this.assert(s, 'bar'); }
-          function onError() { _this.result(false); }
-          promiseSomething().
-            get('foo').
-            then(checkResult, onError);
-        }
-      },
-      {
-        desc: "util.Promise.get multiple properties",
-        run: function(env) {
-          var _this = this;
-          function promiseSomething() {
-            var promise = env.util.getPromise();
-            setTimeout(function() {
-              promise.fulfill({ foo: "bla", bar: "blubb" });
-            }, 1);
-            return promise;
-          }
-          function checkResult(a, b) { _this.assert([a, b], ['bla', 'blubb']); }
-          function onError() { _this.result(false); }
-          promiseSomething().
-            get('foo', 'bar').
-            then(checkResult, onError);
-        }
-      },
-      {
-        desc: "util.Promise.call",
-        run: function(env) {
-          var _this = this;
-          function promiseSomething() {
-            var promise = env.util.getPromise();
-            setTimeout(function() {
-              promise.fulfill({
-                method: function() {
-                  return Array.prototype.slice.call(arguments);
-                }
-              });
-            }, 1);
-            return promise;
-          }
-          function checkResult(args) { _this.assert(args, [1, 2, 3]); }
-          function onError() { _this.result(false); }
-          promiseSomething().
-            call('method', 1, 2, 3).
-            then(checkResult, onError);
-        }
-      },
+
       {
         desc: "util.Promise chained promises",
         run: function(env) {
@@ -485,43 +418,13 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         }
       },
       {
-        desc: "util.Promise.fulfillLater",
-        run: function(env) {
-          var _this = this;
-          function fakePromiseForAnswer() {
-            return env.util.getPromise().fulfillLater(42);
-          }
-          fakePromiseForAnswer().
-            then(function(answer) {
-              _this.assert(answer, 42);
-            }, function() {
-              _this.result(false);
-            });
-        }
-      },
-      {
-        desc: "util.Promise.failLater",
-        run: function(env) {
-          var _this = this;
-          function fakePromiseForError() {
-            return env.util.getPromise().failLater("no way!");
-          }
-          fakePromiseForError().
-            then(function() {
-              _this.result(false);
-            }, function(error) {
-              _this.assert(error, "no way!");
-            });
-        }
-      },
-      {
         desc: "util.Promise bubbling errors",
         run: function(env) {
           var _this = this;
           function asyncFunction() {
             var promise = env.util.getPromise();
             env.util.nextTick(function() {
-              promise.fail("I'm supposed to fail!");
+              promise.reject("I'm supposed to fail!");
             });
             return promise;
           }
@@ -532,7 +435,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             return undefined;
           }
           function promiseReturningFunction() {
-            return util.env.getPromise().fulfillLater();
+            return util.env.getPromise().fulfill();
           }
           asyncFunction().
             then(syncFunction).
@@ -551,7 +454,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "util.Promise bubbling exceptions",
         run: function(env) {
           var _this = this;
-          env.util.getPromise().fulfillLater().
+          env.util.getPromise().fulfill().
             then(function() {
               throw new Error("I'm failing, what a shame!");
             }).
@@ -561,27 +464,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
               _this.assertAnd(error instanceof Error, true);
               _this.assert(error.message, "I'm failing, what a shame!");
             });
-        }
-      },
-      {
-        desc: "util.Promise treats onsuccess / onerror attributes like a then() call",
-        run: function(env) {
-          var _this = this;
-          var promise = env.util.getPromise().fulfillLater();
-          promise.onsuccess = function() {
-            _this.assertAnd(true, true);
-          };
-          promise.onerror = function() {
-            _this.result(false);
-          };
-
-          var promise = env.util.getPromise().failLater();
-          promise.onsuccess = function() {
-            _this.result(false);
-          };
-          promise.onerror = function() {
-            _this.result(true);
-          };
         }
       }
     ]

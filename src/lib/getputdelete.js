@@ -11,7 +11,7 @@ define(
     var timeout = 10000;
 
     function realDoCall(method, url, body, mimeType, token) {
-      return util.makePromise(function(promise) {
+      return util.getPromise(function(promise) {
         logger.info(method, url);
         var platformObj = {
           url: url,
@@ -57,7 +57,7 @@ define(
             } else if(error === 401 || error === 403) {
               error = 'unauthorized';
             };
-            promise.fail(error);
+            promise.reject(error);
           });
       });
     }
@@ -72,7 +72,7 @@ define(
         inProgress--;
         if(pendingQueue.length > 0) {
           var c = pendingQueue.shift();
-          doCall.apply(this, c.a).then(c.p.fulfill.bind(c.p), c.p.fail.bind(c.p));
+          doCall.apply(this, c.a).then(c.p.fulfill, c.p.reject);
         } else {
         }
       }
@@ -80,13 +80,13 @@ define(
         inProgress++;
         return realDoCall.apply(this, arguments).then(function(data, mimeType) {
           finishOne();
-          return util.makePromise(function(p) { p.fulfill(data, mimeType); });
+          return util.getPromise(function(p) { p.fulfill(data, mimeType); });
         }, function(error) {
           finishOne();
           throw error;
         });
       } else {
-        return util.makePromise(function(p) {
+        return util.getPromise(function(p) {
           pendingQueue.push({
             a: args,
             p: p
