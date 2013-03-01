@@ -23,6 +23,14 @@ define([
   util.silenceAllLoggers();
   util.unsilenceLogger('base', 'getputdelete');
 
+  function deprecate(thing, replacement) {
+    console.log("WARNING: " + thing + " is deprecated, " + (replacement ? "use " + replacement + " instead." : "without replacement."));
+  }
+
+  var _access = new Access();
+
+  sync.setAccess(_access);
+
   // Namespace: remoteStorage
   //
   // Main remoteStorage object, primary namespace.
@@ -31,9 +39,9 @@ define([
   // access.
   //
   // Most methods here return promises. See the guide for an introduction: <Promises>
-  var remoteStorage =  {
+  var remoteStorage = {
 
-    access: new Access(),
+    access: _access,
 
     //
     // Method: defineModule
@@ -145,6 +153,7 @@ define([
     //   Array of module names.
     //
     getClaimedModuleList: function() {
+      deprecate('getClaimedModuleList', 'access.scopes');
       return this.access.scopes;
     },
 
@@ -281,9 +290,8 @@ define([
       }
 
       if(moduleName === 'root') {
-        moduleName = '';
         this.access.set(moduleName, mode);
-        store.setNodeForce('/', true, true);
+        return store.setNodeForce('/', true, true);
       } else {
         var privPath = '/'+moduleName+'/';
         var pubPath = '/public/'+moduleName+'/';
@@ -332,7 +340,8 @@ define([
         schedule.reset();
         wireClient.disconnectRemote();
         i18n.clearSettings();
-      });
+        this.access.reset();
+      }.bind(this));
     },
 
     //
@@ -513,6 +522,8 @@ define([
     }
 
   };
+
+  util.bindAll(remoteStorage);
 
   return remoteStorage;
 });
