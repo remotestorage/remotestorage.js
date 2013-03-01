@@ -11,8 +11,9 @@ define([
   './lib/baseClient',
   './lib/schedule',
   './lib/i18n',
-  './lib/access'
-], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient, schedule, i18n, Access) {
+  './lib/access',
+  './lib/caching'
+], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient, schedule, i18n, Access, Caching) {
 
   "use strict";
 
@@ -28,6 +29,7 @@ define([
   }
 
   var _access = new Access();
+  var _caching = new Caching();
 
   sync.setAccess(_access);
 
@@ -42,6 +44,7 @@ define([
   var remoteStorage = {
 
     access: _access,
+    caching: _caching,
 
     //
     // Method: defineModule
@@ -291,14 +294,16 @@ define([
 
       if(moduleName === 'root') {
         this.access.set(moduleName, mode);
-        return store.setNodeForce('/', true, true);
+        this.caching.set('/', { data: true });
       } else {
         var privPath = '/'+moduleName+'/';
         var pubPath = '/public/'+moduleName+'/';
         this.access.set(moduleName, mode);
-        return store.setNodeForce(privPath, true, true).
-          then(util.curry(store.setNodeForce, pubPath, true, true));
+        this.caching.set(privPath, { data: true });
+        this.caching.set(pubPath, { data: true }); 
       }
+      // returned promise is deprecated!!!
+      return util.getPromise().fulfill();
     },
 
     // PRIVATE
