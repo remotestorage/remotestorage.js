@@ -27,7 +27,7 @@ fs.readdirSync(sourcePath).forEach(function(fileName) {
   if(ext == 'png') {
     content = 'data:image/png;base64,' + fs.readFileSync(fullPath, 'base64');
   } else if(ext == 'svg') {
-    content = 'data:image/svg+xml;base64,' + fs.readFileSync(fullPath, 'base64');
+    content = 'data:image/svg+xml;utf-8,' + fs.readFileSync(fullPath, 'utf-8').replace(/\r?\n/g, '').replace(/\s+/g, ' ');
   } else {
     content = fs.readFileSync(fullPath, 'ascii').replace(/\n/g, ' ');
   }
