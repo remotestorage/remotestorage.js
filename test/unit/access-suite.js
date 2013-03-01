@@ -5,8 +5,8 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
   var suites = [];
 
   suites.push({
-    name: "util.js tests",
-    desc: "a collection of tests for util.js",
+    name: "access",
+    desc: "access knows all about the scope we claimed and which paths that gives us access to",
     setup: function(env, test) {
       requirejs(['./src/lib/access'], function(Access) {
         env.Access = Access;
