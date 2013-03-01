@@ -74,13 +74,10 @@ define(['../util', './syncTransaction'], function(util, syncTransactionAdapter) 
       },
 
       // FIXME: implement through 'set' and move to common.
-      init: function(dataTree, mimeType, timestamp, access) {
+      init: function(dataTree, mimeType, timestamp) {
         this.forgetAll();
         var initNode = util.bind(function(path, tree) {
           var node = {
-            startAccess: Object.keys(access).reduce(function(a, k) {
-              return (k === path) ? access[k] : a;
-            }, null),
             startForce: null,
             startForceTree: null,
             timestamp: timestamp,

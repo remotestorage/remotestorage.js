@@ -13,11 +13,13 @@ define(['requirejs'], function(requirejs) {
       var _this = this;
       requirejs([
         './src/lib/util',
+        './src/lib/access',
         './src/lib/store',
         './src/lib/sync',
         './src/lib/store/memory'
-      ], function(_util, store, sync, memoryAdapter) {
+      ], function(_util, Access, store, sync, memoryAdapter) {
         util = _util;
+        env.Access = Access;
         env.store = store;
         env.store.setAdapter(memoryAdapter());
         env.sync = sync;
@@ -34,91 +36,24 @@ define(['requirejs'], function(requirejs) {
         _this.result(true);
       });
     },
-    beforeEach: function(env) {
-      var _this = this;
+    beforeEach: function(env, test) {
+      env.access = new env.Access();
       if(env.conflicts.length > 0) {
         console.error("UNRESOLVED CONFLICTS: ", env.conflicts);
-        this.result(false);
+        test.result(false);
         return;
       }
       try {
         env.store.forgetAll().
           then(env.remoteAdapter.forgetAll.bind(env.remoteAdapter)).
-          then(util.curry(this.result.bind(this), true));
+          then(function() {
+            test.result(true);
+          });
       } catch(exc) {
         console.error(exc.stack);
       }
     },
     tests: [
-
-      {
-        desc: "sync~findRoots works for the root node",
-        run: function(env) {
-          var _this = this;
-          var findRoots = env.sync.getInternal('findRoots');
-          env.store.setNodeAccess('/', 'rw').
-            then(findRoots).
-            then(function(roots) {
-              _this.assert(roots, ['/']);
-            }, function(error) {
-              console.error('findRoots failed', error);
-              _this.result(false);
-            });
-        }
-      },
-
-      {
-        desc: "sync~findRoots works for top-level nodes",
-        run: function(env) {
-          var _this = this;
-          var findRoots = env.sync.getInternal('findRoots');
-          env.store.setNodeAccess('/foo/', 'rw').
-            then(function() {
-              return env.store.setNodeAccess('/public/foo/', 'rw');
-            }).
-            then(findRoots).
-            then(function(roots) {
-              _this.assert(roots, ['/foo/', '/public/foo/']);
-            }, function(error) {
-              console.error("findRoots failed", error);
-              _this.result(false);
-            });
-        }
-      },
-
-      {
-        desc: "sync~findAccess works for direct access nodes",
-        run: function(env) {
-          var _this = this;
-          var findAccess = env.sync.getInternal('findAccess');
-          env.store.setNodeAccess('/foo/', 'r').
-            then(function() {
-              return findAccess('/foo/');
-            }).then(function(access) {
-              _this.assert(access, 'r');
-            }, function(error) {
-              console.error('findAccess failed', error);
-              _this.result(false);
-            });
-        }
-      },
-
-      {
-        desc: "sync~findAccess works for deeply nested nodes",
-        run: function(env) {
-          var _this = this;
-          var findAccess = env.sync.getInternal('findAccess');
-          env.store.setNodeAccess('/foo/', 'rw').
-            then(function() {
-              return findAccess('/foo/bar/baz/blubb');
-            }).then(function(access) {
-              _this.assert(access, 'rw');
-            }, function(error) {
-              console.error('findAccess failed', error);
-              _this.result(false);
-            });
-        }
-      },
 
       {
         desc: "sync~findNextForceRoots finds direct descendents",
@@ -334,21 +269,19 @@ define(['requirejs'], function(requirejs) {
         run: function(env) {
           var _this = this;
           var needsSync = env.sync.getInternal('needsSync');
-          env.store.setNodeAccess('/foo/', 'rw').
-            then(function() {
-              return env.store.setNodeData(
-                '/foo/bar', 'some-text', true, 12345, 'text/plain'
-              );
-            }).
-            then(function() {
-              return needsSync();
-            }).
-            then(function(result) {
-              _this.result(result);
-            }, function(error) {
-              console.error('needsSync failed: ', error, error.stack);
-              _this.result(false);
-            });
+
+          env.access.set('foo', 'rw');
+          
+          return env.store.setNodeData(
+            '/foo/bar', 'some-text', true, 12345, 'text/plain'
+          ).then(function() {
+            return needsSync();
+          }).then(function(result) {
+            _this.result(result);
+          }, function(error) {
+            console.error('needsSync failed: ', error, error.stack);
+            _this.result(false);
+          });
         }
       },
 
@@ -357,12 +290,12 @@ define(['requirejs'], function(requirejs) {
         run: function(env) {
           var _this = this;
           var needsSync = env.sync.getInternal('needsSync');
-          env.store.setNodeAccess('/foo/', 'rw').
-            then(function() {
-              return env.store.setNodeData(
-                '/foo/bar', 'some-text', false, 12345, 'text/plain'
-              );
-            }).
+
+          env.access.set('foo', 'rw');
+
+          return env.store.setNodeData(
+            '/foo/bar', 'some-text', false, 12345, 'text/plain'
+          ).
             then(function() {
               return needsSync();
             }).
