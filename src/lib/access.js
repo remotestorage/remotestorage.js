@@ -4,6 +4,10 @@ define([], function() {
     this._scopeModeMap = {};
 
     this.rootPaths = [];
+
+    this.__defineGetter__('scopes', function() {
+      return Object.keys(this._scopeModeMap);
+    });
   };
 
   Access.prototype = {
