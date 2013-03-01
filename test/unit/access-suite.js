@@ -65,7 +65,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "#rootPaths returns correct private paths",
+        desc: "#rootPaths contain correct private paths",
         run: function(env, test) {
           test.assertFailAnd(env.access.rootPaths.indexOf('/a/'), -1);
           test.assertFail(env.access.rootPaths.indexOf('/b/'), -1);
@@ -73,10 +73,27 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "#rootPaths returns correct public paths",
+        desc: "#rootPaths contain correct public paths",
         run: function(env, test) {
-          test.assertFailAnd(env.access.rootPaths.indexOf('/public/a/'), -1);
-          test.assertFail(env.access.rootPaths.indexOf('/public/b/'), -1);
+          test.assertAnd(env.access.rootPaths.indexOf('/public/a/') !== -1, true);
+          test.assert(env.access.rootPaths.indexOf('/public/b/') !== -1, true);
+        }
+      },
+
+      {
+        desc: "root access causes #rootPaths to only contain '/'",
+        run: function(env, test) {
+          env.access.set('root', 'rw');
+          test.assert(env.access.rootPaths, ['/']);
+        }
+      },
+
+      {
+        desc: "#reset clears all scopes and paths",
+        run: function(env, test) {
+          env.access.reset();
+          test.assertAnd(env.access.scopes, []);
+          test.assert(env.access.rootPaths, []);
         }
       }
 
