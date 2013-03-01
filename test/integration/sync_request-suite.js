@@ -142,8 +142,6 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
       {
         desc: "Syncing trees w/ data",
         run: function(env) {
-          util.silenceAllLoggers();
-          util.unsilenceLogger('sync');
           var _this = this;
           // push initial tree ( a/{1,2,3} and b/{1,2,3} ):
           util.asyncEach(['a', 'b'], function(d) {
@@ -238,8 +236,6 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
       {
         desc: "store public data",
         run: function(env, test) {
-          util.unsilenceLogger('sync');
-          util.setLogLevel('debug');
           env.client.storeFile('text/plain', '/public/foo', 'bar').
             then(function() {
               env.serverHelper.expectRequest(test, 'GET', 'me/public/');
