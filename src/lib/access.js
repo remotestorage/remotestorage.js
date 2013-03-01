@@ -12,10 +12,7 @@ define([], function() {
 
   Access.prototype = {
     set: function(scope, mode) {
-      if(! (scope in this._scopeModeMap)) {
-        this.rootPaths.push('/' + scope + '/');
-        this.rootPaths.push('/public/' + scope + '/');
-      }
+      this._adjustRootPaths(scope);
       this._scopeModeMap[scope] = mode;
     },
 
@@ -26,6 +23,20 @@ define([], function() {
     check: function(scope, mode) {
       var actualMode = this.get(scope);
       return actualMode && (mode === 'r' || actualMode === 'rw');
+    },
+
+    reset: function() {
+      this.rootPaths = [];
+      this._scopeModeMap = {};
+    },
+
+    _adjustRootPaths: function(newScope) {
+      if('root' in this._scopeModeMap || newScope === 'root') {
+        this.rootPaths = ['/'];
+      } else if(! (newScope in this._scopeModeMap)) {
+        this.rootPaths.push('/' + newScope + '/');
+        this.rootPaths.push('/public/' + newScope + '/');
+      }
     }
   };
 
