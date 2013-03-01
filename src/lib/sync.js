@@ -19,6 +19,8 @@ define([
 
   var settings = util.getSettingStore('remotestorage_sync');
 
+  // hack! set from remoteStorage via setAccess.
+  var access;
 
   // Section: How to configure sync
   //
@@ -876,6 +878,10 @@ define([
 
     setRemoteAdapter: function(adapter) {
       remoteAdapter = adapter;
+    },
+
+    setAccess: function(_access) {
+      access = _access
     }
 
   });
