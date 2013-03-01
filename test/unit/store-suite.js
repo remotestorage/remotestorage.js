@@ -74,8 +74,6 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
           var _this = this;
           env.store.getNode('/foo/bar').
             then(function(node) {
-              _this.assertAnd(node.startForce, null);
-              _this.assertAnd(node.startForceTree, null);
               _this.assertAnd(node.timestamp, 0);
               _this.assertAnd(node.lastUpdatedAt, 0);
               _this.assert(node.mimeType, "application/json");
@@ -288,32 +286,6 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
             then(function() {
               _this.result(true);
             }, catchError(this));
-        }
-      },
-
-      {
-        desc: "store.setNodeForce",
-        run: function(env) {
-          var _this = this;
-          env.store.setNodeForce('/foo/', false, true).
-            then(curry(env.store.getNode, '/foo/')).
-            then(function(node) {
-              _this.assertAnd(node.startForce, false);
-              _this.assertAnd(node.startForceTree, true);
-            }).
-            then(curry(env.store.setNodeForce, '/bar/', true, true)).
-            then(curry(env.store.getNode, '/bar/')).
-            then(function(node) {
-              _this.assertAnd(node.startForce, true);
-              _this.assertAnd(node.startForceTree, true);
-            }).
-            then(curry(env.store.setNodeForce, '/baz/', false, false)).
-            then(curry(env.store.getNode, '/baz/')).
-            then(function(node) {
-              _this.assertAnd(node.startForce, false);
-              _this.assertAnd(node.startForceTree, false);
-            }).
-            then(finalResult(this), catchError(this));
         }
       },
 

@@ -140,8 +140,6 @@ define([
     return dataStore.get(path).then(function(node) {
       if(! node) {
         node = {//this is what an empty node looks like
-          startForce: null,
-          startForceTree: null,
           timestamp: 0,
           lastUpdatedAt: 0,
           mimeType: "application/json"
@@ -277,22 +275,6 @@ define([
     });
   }
 
-  // Method: setNodeForce
-  //
-  // Set startForce and startForceTree flags on a node.
-  //
-  // Parameters:
-  //   path      - absolute path to the node
-  //   dataFlag  - whether to sync data
-  //   treeFlag  - whether to sync the tree
-  //
-  function setNodeForce(path, dataFlag, treeFlag) {
-    return updateMetadata(path, {
-      startForce: dataFlag,
-      startForceTree: treeFlag
-    });
-  }
-
   // Method: clearDiff
   //
   // Clear diff flag of given node on it's parent.
@@ -327,8 +309,7 @@ define([
         }
       }
 
-      if(util.isDir(path) && Object.keys(node.data).length === 0 &&
-         !(node.startForce || node.startForceTree)) {
+      if(util.isDir(path) && Object.keys(node.data).length === 0) {
         // remove empty dir
         return updateNode(path, undefined, false, false).then(clearDiffOnParent);
       } else if(timestamp) {
@@ -578,7 +559,6 @@ define([
 
     on                : events.on,
     emit              : events.emit,
-    setNodeForce      : setNodeForce,
     setNodeError      : setNodeError,
     touchNode         : touchNode,
 
