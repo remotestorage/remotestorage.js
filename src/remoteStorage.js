@@ -23,10 +23,18 @@ define([
   util.silenceAllLoggers();
   util.unsilenceLogger('base', 'getputdelete');
 
-  // Namespace: remoteStorage
-  var remoteStorage =  {
+  function deprecate(thing, replacement) {
+    console.log("WARNING: " + thing + " is deprecated, " + (replacement ? "use " + replacement + " instead." : "without replacement."));
+  }
 
-    access: new Access(),
+  var _access = new Access();
+
+  sync.setAccess(_access);
+
+  // Namespace: remoteStorage
+  var remoteStorage = {
+
+    access: _access,
 
     //
     // Method: defineModule
@@ -136,6 +144,7 @@ define([
     //   Array of module names.
     //
     getClaimedModuleList: function() {
+      deprecate('getClaimedModuleList', 'access.scopes');
       return this.access.scopes;
     },
 
@@ -258,9 +267,8 @@ define([
       }
 
       if(moduleName === 'root') {
-        moduleName = '';
         this.access.set(moduleName, mode);
-        store.setNodeForce('/', true, true);
+        return store.setNodeForce('/', true, true);
       } else {
         var privPath = '/'+moduleName+'/';
         var pubPath = '/public/'+moduleName+'/';
@@ -307,7 +315,8 @@ define([
         schedule.reset();
         wireClient.disconnectRemote();
         i18n.clearSettings();
-      });
+        this.access.reset();
+      }.bind(this));
     },
 
     //
@@ -450,6 +459,8 @@ define([
     schedule: schedule
 
   };
+
+  util.bindAll(remoteStorage);
 
   return remoteStorage;
 });
