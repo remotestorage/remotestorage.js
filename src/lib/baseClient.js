@@ -116,6 +116,7 @@ define([
 
   /** FROM HERE ON PUBLIC INTERFACE **/
 
+  // FIXME: add option for access mode
   var BaseClient = function(moduleName, isPublic) {
     if(! moduleName) {
       throw new Error("moduleName is required");
@@ -200,10 +201,6 @@ define([
       return (this.isPublic ? '/public' + base : base) + path;
     },
 
-    ensureAccess: function(mode) {
-      return access.check(this.moduleName, mode);
-    },
-
     // Method: lastUpdateOf
     // Get the time a node was last updated.
     //
@@ -266,8 +263,7 @@ define([
     //
     getObject: function(path) {
       var fullPath = this.makePath(path);
-      return this.ensureAccess('r').
-        then(util.curry(store.getNode, fullPath)).
+      return store.getNode(fullPath).
         then(function(node) {
           if(node.pending) {
             return sync.updateDataNode(fullPath);
@@ -314,8 +310,7 @@ define([
         );
       }
       var fullPath = this.makePath(path);
-      return this.ensureAccess('r').
-        then(util.curry(store.getNode, fullPath)).
+      return store.getNode(fullPath).
         then(function(node) {
           if((!node) || node.pending || Object.keys(node.data).length === 0) {
             return store.isForced(fullPath).
@@ -424,8 +419,7 @@ define([
     //   (end code)
     getFile: function(path) {
       var fullPath = this.makePath(path);
-      return this.ensureAccess('r').
-        then(util.curry(store.getNode, fullPath)).
+      return store.getNode(fullPath).
         then(function(node) {
           if(node.pending) {
             return sync.updateDataNode(fullPath);
@@ -468,8 +462,7 @@ define([
     //
     remove: function(path) {
       var absPath = this.makePath(path);
-      return this.ensureAccess('w').
-        then(util.curry(set, this.moduleName, path, absPath, undefined)).
+      return set(this.moduleName, path, absPath, undefined).
         then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
     },
 
@@ -554,17 +547,14 @@ define([
 
       var absPath = this.makePath(path);
 
-      return this.ensureAccess('w').
-        then(util.bind(function() {
-          if(! (obj instanceof Array)) {
-            obj['@context'] = this.resolveType(typeAlias);
-            var errors = this.validateObject(obj);
-            if(errors) {
-              throw new ValidationError(obj, errors);
-            }
-          }
-          return set(this.moduleName, path, absPath, obj, 'application/json')
-        }, this)).
+      if(! (obj instanceof Array)) {
+        obj['@context'] = this.resolveType(typeAlias);
+        var errors = this.validateObject(obj);
+        if(errors) {
+          throw new ValidationError(obj, errors);
+        }
+      }
+      return set(this.moduleName, path, absPath, obj, 'application/json').
         then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
     },
 
@@ -630,20 +620,17 @@ define([
         return failedPromise(new Error("storeFile received " + typeof(data) + ", but expected a string or an ArrayBuffer!"));
       }
       var absPath = this.makePath(path);
-      return this.ensureAccess('w').
-        then(util.bind(function() {
-          if(cache) {
-            return set(this.moduleName, path, absPath, data, mimeType).
-              then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
-          } else {
-            return sync.updateDataNode(absPath, {
-              mimeType: mimeType,
-              data: data
-            }).then(function() {
-              return store.setNodePending(absPath, new Date().getTime());
-            });
-          }
-        }, this));
+      if(cache) {
+        return set(this.moduleName, path, absPath, data, mimeType).
+          then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+      } else {
+        return sync.updateDataNode(absPath, {
+          mimeType: mimeType,
+          data: data
+        }).then(function() {
+          return store.setNodePending(absPath, new Date().getTime());
+        });
+      }
     },
 
     // Method: storeDocument
