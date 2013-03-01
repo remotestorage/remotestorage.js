@@ -163,30 +163,30 @@ define([
 
       logger.info("full " + (pushOnly ? "push" : "sync") + " started");
 
-      findRoots().then(function(roots) {
-        var synced = 0;
+      var roots = access.rootPaths;
 
-        function rootCb(path) {
-          return function() {
-            synced++;
-            if(synced == roots.length) {
-              sync.lastSyncAt = new Date();
-              promise.fulfill();
-            }
-          };
-        }
+      var synced = 0;
 
-        if(roots.length === 0) {
-          return promise.reject(new Error("No access claimed!"));
-        }
+      function rootCb(path) {
+        return function() {
+          synced++;
+          if(synced == roots.length) {
+            sync.lastSyncAt = new Date();
+            promise.fulfill();
+          }
+        };
+      }
 
-        roots.forEach(function(root) {
-          enqueueTask(function() {
-            return traverseTree(root, processNode, {
-              pushOnly: pushOnly
-            });
-          }, rootCb(root));
-        });
+      if(roots.length === 0) {
+        return promise.reject(new Error("No access claimed!"));
+      }
+
+      roots.forEach(function(root) {
+        enqueueTask(function() {
+          return traverseTree(root, processNode, {
+            pushOnly: pushOnly
+          });
+        }, rootCb(root));
       });
     });
   }
@@ -655,46 +655,6 @@ define([
     }
   }
 
-  function findRoots() {
-    return store.getNode('/').then(function(root) {
-      if(root.startAccess) {
-        return ['/'];
-      } else {
-        return store.getNode('/public/').then(function(publicRoot) {
-          var paths = [];
-          for(var key in root.data) {
-            paths.push('/' + key);
-          }
-          for(var publicKey in publicRoot.data) {
-            paths.push('/public/' + publicKey);
-          }
-          return util.asyncSelect(paths, function(path) {
-            return store.getNode(path).then(function(node) {
-              return !! node.startAccess;
-            });
-          });
-        });
-      }
-    }).then(function(roots) {
-      return roots;
-    });
-  }
-
-  function findAccess(path) {
-    if(! path) {
-      return null;
-    } else {
-      return store.getNode(path).
-        then(function(node) {
-          if(node.startAccess) {
-            return node.startAccess;
-          } else {
-            return findAccess(util.containingDir(path));
-          }
-        });
-    }
-  }
-
   function findNextForceRoots(path, cachedNode) {
     var roots = [];
     function checkChildren(node) {
@@ -752,31 +712,17 @@ define([
 
     function determineLocalInterest(node, options) {
       return util.getPromise(function(promise) {
-        options.access = util.highestAccess(options.access, node.startAccess);
         options.force = opts.force || node.startForce;
         options.forceTree = opts.forceTree || node.startForceTree;
 
-        function determineForce() {
-          var force = (options.force || options.forceTree);
-          if((! force) && (options.path == '/' || options.path == '/public/')) {
-            findNextForceRoots(options.path).
-              then(function(roots) {
-                promise.fulfill(node, false, roots);
-              });
-          } else {
-            promise.fulfill(node, force);
-          }
-        }
-
-        if(! options.access) {
-          // in case of a partial sync, we have not been informed about
-          // access inherited from the parent.
-          findAccess(util.containingDir(root)).
-            then(function(access) {
-              options.access = access;
-            }).then(determineForce);
+        var force = (options.force || options.forceTree);
+        if((! force) && (options.path == '/' || options.path == '/public/')) {
+          findNextForceRoots(options.path).
+            then(function(roots) {
+              promise.fulfill(node, false, roots);
+            });
         } else {
-          determineForce();
+          promise.fulfill(node, force);
         }
       });
     }

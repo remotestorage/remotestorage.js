@@ -70,7 +70,6 @@ define([
   // Represents a node within the local store.
   //
   // Properties:
-  //   startAccess    - either "r" or "rw". Flag means, that this node has been claimed access on (see <remoteStorage.claimAccess>) (default: null)
   //   startForce     - boolean flag to indicate that this node shall always be synced. (see <BaseClient.use> and <BaseClient.release>) (default: null)
   //   startForceTree - boolean flag that all directory children of this node shall be synced.
   //   timestamp      - last time this node was (apparently) updated (default: 0)
@@ -141,7 +140,6 @@ define([
     return dataStore.get(path).then(function(node) {
       if(! node) {
         node = {//this is what an empty node looks like
-          startAccess: null,
           startForce: null,
           startForceTree: null,
           timestamp: 0,
@@ -273,25 +271,6 @@ define([
     }
   }
 
-  // Method: setNodeAccess
-  //
-  // Set startAccess flag on a node.
-  //
-  // Parameters:
-  //   path  - absolute path to the node
-  //   claim - claim to set. Either "r" or "rw"
-  //
-  function setNodeAccess(path, claim) {
-    return getNode(path).then(function(node) {
-      if((claim !== node.startAccess) &&
-         (claim === 'rw' || node.startAccess === null)) {
-        return updateMetadata(path, {
-          startAccess: claim
-        }, node);
-      }
-    });
-  }
-
   function setNodeError(path, error) {
     return updateMetadata(path, {
       error: error
@@ -349,7 +328,7 @@ define([
       }
 
       if(util.isDir(path) && Object.keys(node.data).length === 0 &&
-         !(node.startAccess || node.startForce || node.startForceTree)) {
+         !(node.startForce || node.startForceTree)) {
         // remove empty dir
         return updateNode(path, undefined, false, false).then(clearDiffOnParent);
       } else if(timestamp) {
@@ -599,7 +578,6 @@ define([
 
     on                : events.on,
     emit              : events.emit,
-    setNodeAccess     : setNodeAccess,
     setNodeForce      : setNodeForce,
     setNodeError      : setNodeError,
     touchNode         : touchNode,

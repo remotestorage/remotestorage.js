@@ -74,7 +74,6 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
           var _this = this;
           env.store.getNode('/foo/bar').
             then(function(node) {
-              _this.assertAnd(node.startAccess, null);
               _this.assertAnd(node.startForce, null);
               _this.assertAnd(node.startForceTree, null);
               _this.assertAnd(node.timestamp, 0);
@@ -289,18 +288,6 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
             then(function() {
               _this.result(true);
             }, catchError(this));
-        }
-      },
-
-      {
-        desc: "store.setNodeAccess",
-        run: function(env, test) {
-          env.store.setNodeAccess('/foo/', 'rw').
-            then(curry(env.store.getNode, '/foo/')).
-            then(function(node) {
-              test.assertAnd(node.startAccess, 'rw');
-            }).
-            then(finalResult(this), catchError(this));
         }
       },
 

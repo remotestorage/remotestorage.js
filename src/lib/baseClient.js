@@ -200,25 +200,8 @@ define([
       return (this.isPublic ? '/public' + base : base) + path;
     },
 
-    nodeGivesAccess: function(path, mode) {
-      return store.getNode(path).then(util.bind(function(node) {
-        var access = (new RegExp(mode)).test(node.startAccess);
-        if(access) {
-          return true;
-        } else if(path.length > 0) {
-          return this.nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''));
-        }
-      }, this));
-    },
-
     ensureAccess: function(mode) {
-      var path = this.makePath(this.moduleName == 'root' ? '/' : '');
-
-      return this.nodeGivesAccess(path, mode).then(function(access) {
-        if(! access) {
-          throw "Not sufficient access claimed for node at " + path;
-        }
-      });
+      return access.check(this.moduleName, mode);
     },
 
     // Method: lastUpdateOf
