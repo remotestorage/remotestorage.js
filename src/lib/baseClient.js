@@ -691,33 +691,35 @@ define([
     //
     // Method: use
     //
-    // Set force flags on given path.
+    // Enable local caching for given path.
     //
-    // See <sync> for details.
+    // Opposite of <release>.
     //
     // Parameters:
     //   path      - path relative to the module root
-    //   treeOnly  - boolean value, whether only the tree should be synced.
+    //   skipData  - (optional) don't store actual data, only metadata
     //
-    // Returns a promise.
-    use: function(path, treeOnly) {
-      var absPath = this.makePath(path);
-      return store.setNodeForce(absPath, !treeOnly, true);
+    use: function(path, skipData) {
+      caching.set(this.makePath(path), {
+        data: !skipData
+      });
+      // returned promise is deprecated!!!
+      return util.getPromise().fulfill();
     },
 
     // Method: release
     //
-    // Remove force flags from given node.
+    // Disable local caching on given path.
     //
-    // See <sync> for details.
+    // Opposite of <use>.
     //
     // Parameters:
     //   path      - path relative to the module root
     //
-    // Returns a promise.
     release: function(path) {
-      var absPath = this.makePath(path);
-      return store.setNodeForce(absPath, false, false);
+      caching.set(this.makePath(path), false);
+      // returned promise is deprecated!!!
+      return util.getPromise().fulfill();
     },
 
     // Method: hasDiff
