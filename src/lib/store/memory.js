@@ -78,8 +78,6 @@ define(['../util', './syncTransaction'], function(util, syncTransactionAdapter) 
         this.forgetAll();
         var initNode = util.bind(function(path, tree) {
           var node = {
-            startForce: null,
-            startForceTree: null,
             timestamp: timestamp,
             lastUpdatedAt: timestamp
           };
