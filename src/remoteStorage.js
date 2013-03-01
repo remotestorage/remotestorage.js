@@ -10,12 +10,13 @@ define([
   './lib/foreignClient',
   './lib/baseClient',
   './lib/schedule',
-  './lib/i18n'
-], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient, schedule, i18n) {
+  './lib/i18n',
+  './lib/access'
+], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient, schedule, i18n, Access) {
 
   "use strict";
 
-  var claimedModules = {}, modules = {}, moduleNameRE = /^[a-z\-]+$/;
+  var modules = {}, moduleNameRE = /^[a-z\-]+$/;
 
   var logger = util.getLogger('base');
 
@@ -24,6 +25,8 @@ define([
 
   // Namespace: remoteStorage
   var remoteStorage =  {
+
+    access: new Access(),
 
     //
     // Method: defineModule
@@ -112,8 +115,6 @@ define([
       this[moduleName] = module.exports;
     },
 
-    claimedModules: claimedModules,
-
     //
     // Method: getModuleList
     //
@@ -135,7 +136,7 @@ define([
     //   Array of module names.
     //
     getClaimedModuleList: function() {
-      return Object.keys(claimedModules);
+      return this.access.scopes;
     },
 
     //
@@ -252,22 +253,19 @@ define([
         throw "Module not defined: " + moduleName;
       }
 
-      if(moduleName in claimedModules) {
+      if(this.access.get(moduleName)) {
         return;
       }
 
-      claimedModules[moduleName] = mode;
-
       if(moduleName === 'root') {
         moduleName = '';
-        return store.setNodeAccess('/', mode).
-          then(util.curry(store.setNodeForce, '/', true, true));
+        this.access.set(moduleName, mode);
+        store.setNodeForce('/', true, true);
       } else {
         var privPath = '/'+moduleName+'/';
         var pubPath = '/public/'+moduleName+'/';
-        return store.setNodeAccess(privPath, mode).
-          then(util.curry(store.setNodeForce, privPath, true, true)).
-          then(util.curry(store.setNodeAccess, pubPath, mode)).
+        this.access.set(moduleName, mode);
+        return store.setNodeForce(privPath, true, true).
           then(util.curry(store.setNodeForce, pubPath, true, true));
       }
     },
@@ -309,7 +307,6 @@ define([
         schedule.reset();
         wireClient.disconnectRemote();
         i18n.clearSettings();
-        claimedModules = {};
       });
     },
 
