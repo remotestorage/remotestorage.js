@@ -77,17 +77,6 @@ define([
     tests: [
 
       {
-        desc: "claiming access",
-        run: function(env) {
-          var _this = this;
-          env.remoteStorage.store.getNode('/').
-          then(function(rootNode) {
-            _this.assert(rootNode.startAccess, 'rw');
-          });
-        }
-      },
-
-      {
         desc: "write a file",
         run: function(env) {
           var _this = this;
