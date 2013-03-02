@@ -70,8 +70,6 @@ define([
   // Represents a node within the local store.
   //
   // Properties:
-  //   startForce     - boolean flag to indicate that this node shall always be synced. (see <BaseClient.use> and <BaseClient.release>) (default: null)
-  //   startForceTree - boolean flag that all directory children of this node shall be synced.
   //   timestamp      - last time this node was (apparently) updated (default: 0)
   //   lastUpdatedAt  - Last time this node was upated from remote storage
   //   mimeType       - MIME media type
@@ -198,43 +196,11 @@ define([
         }
         node.mimeType = mimeType;
 
-        // FIXME: only set this when incoming data is set?
-        delete node.pending;
-
         return updateNode(path, (typeof(node.data) !== 'undefined' ? node : undefined), outgoing, false, timestamp, oldValue, transaction).
           then(function() {
             transaction.commit();
           });
       });      
-    });
-  }
-
-  function setNodePending(path, timestamp) {
-    return dataStore.transaction(true, function(transaction) {
-      return isForced(util.containingDir(path), transaction).
-        then(function(isForced) {
-          var paths = [path];
-          if(! isForced) {
-            var parts = util.pathParts(path);
-            var pl = parts.length;
-            for(var i=parts.length - 1;i>0;i--) {
-              paths.unshift(parts.slice(0, i).join(''));
-            }
-          }
-          return util.asyncEach(paths, function(p) {
-            return getNode(p, transaction).then(function(node) {
-              // clear only data nodes (we want to preserve pending listings)
-              if(! util.isDir(p)) {
-                delete node.data;
-              }
-              node.pending = true;
-              return updateNode(p, node, false, false, timestamp, undefined, transaction);
-            });
-          });
-        }).
-        then(function() {
-          transaction.commit();
-        });
     });
   }
 
@@ -393,15 +359,11 @@ define([
 
   function touchNode(path) {
     return dataStore.transaction(true, function(transaction) {
-      logger.info("touchNode", path);
-      return getNode(path, transaction).
-        then(function(node) {
-          if(typeof(node.data) === 'undefined') {
-            node.pending = true;
-          }
-          return updateNode(path, node, false, true, undefined, undefined, transaction).
-            then(transaction.commit);
-        });
+      return getNode(path, transaction).then(function(node) {
+        return updateNode(
+          path, node, false, true, undefined, undefined, transaction
+        ).then(transaction.commit);
+      });
     });
   }
 
@@ -481,7 +443,7 @@ define([
     }
 
     function fireEvents() {
-      if((!meta) && (! outgoing) && (! util.isDir(path)) && (! node.pending)) {
+      if((!meta) && (! outgoing) && (! util.isDir(path))) {
         // fire changes
         if(isForeign(path)) {
           return fireForeignChange(path, oldValue);
@@ -510,34 +472,6 @@ define([
     }
   }
 
-  function isForced(path, transaction) {
-    var parts = util.pathParts(path);
-
-    return util.getPromise(function(promise) {
-
-      function checkOne(node) {
-        if(node.startForce || node.startForceTree) {
-          promise.fulfill(true);
-        } else {
-          parts.pop();
-          checkNext();
-        }
-      }
-
-      function checkNext() {
-        if(parts.length === 0) {
-          promise.fulfill(false);
-        } else {
-          getNode(parts.join('')).
-            then(checkOne, promise.reject);
-        }
-      }
-
-      checkNext();
-
-    });
-  }
-
   return {
 
     memory: memoryAdapter,
@@ -550,17 +484,14 @@ define([
 
     getNode           : getNode,          // sync
     setNodeData       : setNodeData,      // sync
-    setNodePending    : setNodePending,   // sync
     clearDiff         : clearDiff,        // sync
     removeNode        : removeNode,       // sync
     setLastSynced     : setLastSynced,    // sync
-
-    isForced          : isForced,         // baseClient
+    touchNode         : touchNode,        // sync
 
     on                : events.on,
     emit              : events.emit,
     setNodeError      : setNodeError,
-    touchNode         : touchNode,
 
     forgetAll         : forgetAll,        // widget
     fireInitialEvents : fireInitialEvents,// widget
