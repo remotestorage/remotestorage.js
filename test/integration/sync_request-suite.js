@@ -106,6 +106,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectNoMoreRequest(_this);
 
               _this.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -135,6 +138,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectNoMoreRequest(_this);
 
               _this.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -158,6 +164,10 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             then(curry(env.client.release, '')).
             // use /a/, but not /b/
             then(curry(env.client.use, 'a/')).
+            then(function() {
+              console.log('CACHING', env.remoteStorage.caching);
+              env.remoteStorage.util.unsilenceLogger('sync');
+            }).
             // do a full sync
             then(curry(env.remoteStorage.fullSync)).
             then(function() {
@@ -168,6 +178,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectNoMoreRequest(_this);
 
               _this.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -182,6 +195,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             then(function(file) {
               _this.assertAnd(file.mimeType, 'text/plain');
               _this.assert(file.data, 'bar');
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -198,6 +214,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectRequest(_this, 'GET', 'me/test-dir/');
               env.serverHelper.expectNoMoreRequest(_this);
               _this.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -213,6 +232,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectRequest(test, 'GET', 'me/');
               env.serverHelper.expectNoMoreRequest(test);
               test.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -229,6 +251,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectRequest(_this, 'GET', 'me/');
               env.serverHelper.expectNoMoreRequest(_this);
               _this.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -244,6 +269,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectRequest(test, 'GET', 'me/public/');
               env.serverHelper.expectNoMoreRequest(test);
               test.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -285,6 +313,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
                 newValue: { phu: 'quoc', '@context': 'http://remotestoragejs.com/spec/modules/root/test' }
               });
               test.assert(receivedEvents, [], "There are still events in the queue: " + JSON.stringify(receivedEvents));
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -322,6 +353,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
                 island: "Phu Quoc",
                 '@context': 'http://remotestoragejs.com/spec/modules/root/test'
               }, obj, "got object: " + JSON.stringify(obj));
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -356,6 +390,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
                 mimeType: 'text/plain',
                 data: 'Phu Quoc Island'
               }, file, "got object: " + JSON.stringify(file));
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -374,6 +411,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             }).
             then(function(listing) {
               test.assert(listing, ['2013']);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -388,6 +428,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             }).
             then(function() {
               env.serverHelper.expectNoMoreRequest(test);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -405,6 +448,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             }).
             then(function(node) {
               test.assert(node.pending, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -437,6 +483,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectRequest(test, 'GET', 'me/greetings/default');
               env.serverHelper.expectNoMoreRequest(test);
               test.assert(file, { mimeType: 'text/plain', data: 'Hello World!' });
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -485,8 +534,12 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               return env.client.getFile('test/a');
             }).
             then(function(file) {
+              console.log('FILE NOW', file);
               // verify file
               test.assert(file, { mimeType: 'text/plain', data: 'content-a' });
+            }, function(err) {
+              console.log('err', err, err.stack);
+              test.result(false);
             });
         }
       }
