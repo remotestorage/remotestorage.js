@@ -13,6 +13,8 @@ define([
   var globalEvents = util.getEventEmitter('error');
   var moduleEvents = {};
 
+  var caching;
+
   function extractModuleName(path) {
     if (path && typeof(path) == 'string') {
       var parts = path.split('/');
@@ -310,28 +312,13 @@ define([
         );
       }
       var fullPath = this.makePath(path);
-      return store.getNode(fullPath).
-        then(function(node) {
-          if((!node) || node.pending || Object.keys(node.data).length === 0) {
-            return store.isForced(fullPath).
-              then(function(isForced) {
-                if(isForced) {
-                  return node;
-                } else {
-                  return sync.updateDataNode(fullPath).
-                    then(function(node) {
-                      return store.setNodePending(fullPath, new Date().getTime()).
-                        then(function() { return node; });
-                    });
-                }
-              });
-          } else {
-            return node;
-          }
-        }).
-        then(function(node) {
-          return node.data ? Object.keys(node.data) : [];
-        });
+      return (
+        caching.descendIntoPath(fullPath) ?
+          store.getNode :
+          sync.updateDataNode
+      )(fullPath).then(function(node) {
+        return node.data ? Object.keys(node.data) : [];
+      });
     },
 
     //
@@ -419,29 +406,16 @@ define([
     //   (end code)
     getFile: function(path) {
       var fullPath = this.makePath(path);
-      return store.getNode(fullPath).
-        then(function(node) {
-          if(node.pending) {
-            return sync.updateDataNode(fullPath);
-          } else if(! node.data) {
-            return store.getNode(util.containingDir(fullPath)).
-              then(function(parentNode) {
-                if(parentNode.pending) {
-                  return sync.updateDataNode(fullPath);
-                } else {
-                  return node;
-                }
-              });
-          } else {
-            return node;
-          }
-        }).
-        then(function(node) {
-          return {
-            mimeType: node.mimeType,
-            data: node.data
-          };
-        });
+      return (
+        caching.cachePath(fullPath) ?
+          store.getNode :
+          sync.updateDataNode
+      )(fullPath).then(function(node) {
+        return {
+          mimeType: node.mimeType,
+          data: node.data
+        };
+      });
     },
 
     // Method: getDocument
@@ -711,7 +685,7 @@ define([
     //   path      - path relative to the module root
     //
     release: function(path) {
-      caching.set(this.makePath(path), false);
+      caching.remove(this.makePath(path));
       // returned promise is deprecated!!!
       return util.getPromise().fulfill();
     },
@@ -912,6 +886,10 @@ define([
   };
 
   util.extend(BaseClient, globalEvents);
+
+  BaseClient.setCaching = function(_caching) {
+    caching = _caching;
+  };
 
   return BaseClient;
 
