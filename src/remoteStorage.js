@@ -32,6 +32,8 @@ define([
   var _caching = new Caching();
 
   sync.setAccess(_access);
+  sync.setCaching(_caching);
+  BaseClient.setCaching(_caching);
 
   // Namespace: remoteStorage
   //
@@ -274,11 +276,14 @@ define([
         moduleObj[moduleName] = mode;
       }
 
-      return util.asyncEach(Object.keys(moduleObj), util.bind(function(_moduleName) {
+      Object.keys(moduleObj).forEach(util.bind(function(_moduleName) {
         var _mode = moduleObj[_moduleName];
         testMode(_moduleName, _mode);
         return this.claimModuleAccess(_moduleName, _mode);
       }, this));
+
+      // returned promise is deprecated!!!
+      return util.getPromise().fulfill();
     },
 
     // PRIVATE
@@ -289,6 +294,7 @@ define([
       }
 
       if(this.access.get(moduleName)) {
+        console.log('claimModuleAccess bailing', moduleName);
         return;
       }
 
@@ -302,8 +308,6 @@ define([
         this.caching.set(privPath, { data: true });
         this.caching.set(pubPath, { data: true }); 
       }
-      // returned promise is deprecated!!!
-      return util.getPromise().fulfill();
     },
 
     // PRIVATE
@@ -346,6 +350,7 @@ define([
         wireClient.disconnectRemote();
         i18n.clearSettings();
         this.access.reset();
+        this.caching.reset();
       }.bind(this));
     },
 
