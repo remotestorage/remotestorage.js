@@ -97,11 +97,11 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "#descendInto() with no path given throws an error",
+        desc: "#descendIntoPath() with no path given throws an error",
         run: function(env, test) {
           try {
-            env.caching.descendInto();
-            test.result(false, "descendInto() didn't fail");
+            env.caching.descendIntoPath();
+            test.result(false, "descendIntoPath() didn't fail");
           } catch(e) {
             test.result(true);
           };
@@ -109,10 +109,10 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "#cacheDataIn() with no path given throws an error",
+        desc: "#cachePath() with no path given throws an error",
         run: function(env, test) {
           try {
-            env.caching.cacheDataIn();
+            env.caching.cachePath();
             test.result(false, "syncDataIn() didn't fail");
           } catch(e) {
             test.result(true);
@@ -122,11 +122,11 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
 
 
       {
-        desc: "#descendInto() with a file path given throws an error",
+        desc: "#descendIntoPath() with a file path given throws an error",
         run: function(env, test) {
           try {
-            env.caching.descendInto('/foo/bar');
-            test.result(false, "descendInto() didn't fail");
+            env.caching.descendIntoPath('/foo/bar');
+            test.result(false, "descendIntoPath() didn't fail");
           } catch(e) {
             test.result(true);
           };
@@ -134,20 +134,61 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "#descendInto() works for configured paths",
+        desc: "#descendIntoPath() works for configured paths",
         run: function(env, test) {
           env.caching.set('/foo/', { data: true });
-          test.assertAnd(env.caching.descendInto('/foo/'), true);
-          test.assert(env.caching.descendInto('/bar/'), false);
+          test.assertAnd(env.caching.descendIntoPath('/foo/'), true);
+          test.assert(env.caching.descendIntoPath('/bar/'), false);
         }
       },
 
       {
-        desc: "#descendInto() works for subdirectories",
+        desc: "#descendIntoPath() works for subdirectories",
         run: function(env, test) {
           env.caching.set('/foo/', { data: true });
-          test.assertAnd(env.caching.descendInto('/foo/bar/'), true);
-          test.assert(env.caching.descendInto('/foo/bar/baz/'), true);
+          test.assertAnd(env.caching.descendIntoPath('/foo/bar/'), true);
+          test.assert(env.caching.descendIntoPath('/foo/bar/baz/'), true);
+        }
+      },
+
+      {
+        desc: "#rootPaths contains configured paths",
+        run: function(env, test) {
+          env.caching.set('/foo/', { data: true });
+          test.assert(env.caching.rootPaths, ['/foo/']);
+        }
+      },
+
+      {
+        desc: "#rootPaths doesn't contain paths that overlap entirely, but only the shortest one",
+        run: function(env, test) {
+          env.caching.set('/foo/', { data: true });
+          env.caching.set('/bar/', { data: true });
+          env.caching.set('/foo/bar/baz/', { data: true });
+          test.assert(env.caching.rootPaths, ['/foo/', '/bar/']);
+        }
+      },
+
+      {
+        desc: "#rootPaths doesn't contain paths that have been removed",
+        run: function(env, test) {
+          env.caching.set('/foo/', { data: true });
+          env.caching.set('/bar/', { data: true });
+          env.caching.set('/foo/bar/baz/', { data: true });
+          env.caching.remove('/foo/');
+          test.assert(env.caching.rootPaths, ['/foo/bar/baz/', '/bar/']);
+        }
+      },
+
+      {
+        desc: "#reset resets the state",
+        run: function(env, test) {
+          env.caching.set('/foo/', { data: true });
+          env.caching.set('/bar/', { data: false });
+          env.caching.reset();
+          test.assertTypeAnd(env.caching.get('/foo/'), 'undefined');
+          test.assertTypeAnd(env.caching.get('/bar/'), 'undefined');
+          test.assert(env.caching.rootPaths, []);
         }
       }
 
