@@ -1,4 +1,5 @@
 define(['./util'], function(util) {
+
   var Caching = function() {
     this._pathSettingsMap = {};
 
@@ -57,8 +58,9 @@ define(['./util'], function(util) {
     // Returns: true or false
     cachePath: function(path) {
       this._validatePath(path);
-      var settings = this._query(util.isDir(path) ? path : util.containingDir(path));
-      return settings && (util.isDir(path) || settings.data);
+      var isDir = util.isDir(path);
+      var settings = this._query(isDir ? path : util.containingDir(path));
+      return settings && (isDir || settings.data);
     },
 
     /**

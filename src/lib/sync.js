@@ -649,7 +649,7 @@ define([
         var localVersion = localNode.data[key];
         logger.debug("traverseTree.mergeDirectory[" + childPath + "]", remoteVersion, 'vs', localVersion);
         if(remoteVersion !== localVersion) {
-          if(caching.cachePath(path)) {
+          if(caching.cachePath(childPath)) {
             if(util.isDir(childPath)) {
               if(options.depth !== 0) {
                 var childOptions = util.extend({}, options);

@@ -265,20 +265,16 @@ define([
     //
     getObject: function(path) {
       var fullPath = this.makePath(path);
-      return store.getNode(fullPath).
-        then(function(node) {
-          if(node.pending) {
-            return sync.updateDataNode(fullPath);
-          } else {
-            return node;
-          }
-        }).
-        then(function(node) {
-          if(node.mimeType !== 'application/json') {
-            logger.error("WARNING: getObject got called, but retrieved a non-json node at '" + fullPath + "'!");
-          }
-          return node.data;
-        });
+      return (
+        caching.cachePath(fullPath) ?
+          store.getNode :
+          sync.updateDataNode
+      )(fullPath).then(function(node) {
+        if(node.mimeType !== 'application/json') {
+          logger.error("WARNING: getObject got called, but retrieved a non-json node at '" + fullPath + "'!");
+        }
+        return node.data;
+      });
     },
 
     //
@@ -607,8 +603,6 @@ define([
         return sync.updateDataNode(absPath, {
           mimeType: mimeType,
           data: data
-        }).then(function() {
-          return store.setNodePending(absPath, new Date().getTime());
         });
       }
     },

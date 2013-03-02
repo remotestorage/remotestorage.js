@@ -443,11 +443,6 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               // check requests
               env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
               env.serverHelper.expectNoMoreRequest(test);
-              // check node is set to pending
-              return env.remoteStorage.store.getNode('/greetings/default');
-            }).
-            then(function(node) {
-              test.assert(node.pending, true);
             }, function(err) {
               console.log('err', err);
               _this.result(false);
@@ -465,12 +460,6 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             then(function() {
               env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
               env.serverHelper.expectNoMoreRequest(test);
-              return env.remoteStorage.store.getNode('/greetings/');
-            }).
-            then(function(dirNode) {
-              console.log('dirNode', dirNode);
-              // check that dirNode is pending
-              test.assertAnd(dirNode.pending, true, "expected dir node to be pending, but it isn't");
               return env.client.getListing('greetings/');
             }).
             then(function(listing) {
