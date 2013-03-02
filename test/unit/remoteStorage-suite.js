@@ -13,10 +13,10 @@ define(['requirejs'], function(requirejs, undefined) {
       var _this = this;
       requirejs(['./src/remoteStorage'], function(remoteStorage) {
         _this.assertTypeAnd(remoteStorage.defineModule, 'function');
-        global.remoteStorage = remoteStorage;
+        env.remoteStorage = remoteStorage;
         // define test module
         var moduleName = 'test';
-        remoteStorage.defineModule(moduleName, function(privateClient, publicClient) {
+        env.remoteStorage.defineModule(moduleName, function(privateClient, publicClient) {
           return {
             name: 'test',
             exports: {
@@ -26,10 +26,6 @@ define(['requirejs'], function(requirejs, undefined) {
             }
           };
         });
-        var moduleList = remoteStorage.getModuleList();
-
-        //_this.assert(moduleList, ['test']);
-        //_this.assertType(moduleList['test'], 'object');
         _this.result(true);
       });
     },
@@ -41,14 +37,11 @@ define(['requirejs'], function(requirejs, undefined) {
     tests: [
       {
         desc: "claimAccess()",
-        run: function(env) {
+        run: function(env, test) {
           var _this = this;
-          remoteStorage.claimAccess('test', 'rw').
-            then(function() {
-              _this.assertAnd(remoteStorage.getClaimedModuleList(), ['test'], JSON.stringify(remoteStorage.getClaimedModuleList()) + ' vs. ' + '["test"]');
-              env.tm = remoteStorage.test;
-              _this.assertType(env.tm, 'object');
-            });
+          env.remoteStorage.claimAccess('test', 'rw');
+          test.assertAnd(env.remoteStorage.access.scopes, ['test'], JSON.stringify(env.remoteStorage.access.scopes) + ' vs. ' + '["test"]');
+          test.assertType(env.remoteStorage.test, 'object');
         }
       },
 
