@@ -57,7 +57,7 @@ define(['./util'], function(util) {
     // Returns: true or false
     cachePath: function(path) {
       this._validatePath(path);
-      var settings = this._query(path);
+      var settings = this._query(util.isDir(path) ? path : util.containingDir(path));
       return settings && (util.isDir(path) || settings.data);
     },
 
@@ -67,7 +67,7 @@ define(['./util'], function(util) {
 
     // gets settings for given path. walks up the path until it finds something.
     _query: function(path) {
-      return this.get(path) || path !== '/' && this._query(path.replace(/[^\/]+\/?$/, ''));
+      return this.get(path) || path !== '/' && this._query(util.containingDir(path));
     },
 
     _validatePath: function(path) {
