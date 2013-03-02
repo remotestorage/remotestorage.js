@@ -14,12 +14,14 @@ define(['requirejs'], function(requirejs) {
       requirejs([
         './src/lib/util',
         './src/lib/access',
+        './src/lib/caching',
         './src/lib/store',
         './src/lib/sync',
         './src/lib/store/memory'
-      ], function(_util, Access, store, sync, memoryAdapter) {
+      ], function(_util, Access, Caching, store, sync, memoryAdapter) {
         util = _util;
         env.Access = Access;
+        env.Caching = Caching;
         env.store = store;
         env.store.setAdapter(memoryAdapter());
         env.sync = sync;
@@ -38,6 +40,9 @@ define(['requirejs'], function(requirejs) {
     },
     beforeEach: function(env, test) {
       env.access = new env.Access();
+      env.caching = new env.Caching();
+      env.sync.setAccess(env.access);
+      env.sync.setCaching(env.caching);
       if(env.conflicts.length > 0) {
         console.error("UNRESOLVED CONFLICTS: ", env.conflicts);
         test.result(false);
@@ -54,44 +59,6 @@ define(['requirejs'], function(requirejs) {
       }
     },
     tests: [
-
-      {
-        desc: "sync~findNextForceRoots finds direct descendents",
-        run: function(env) {
-          var _this = this;
-          var findNextForceRoots = env.sync.getInternal('findNextForceRoots');
-          env.store.setNodeForce('/foo/bar/', true, true).
-            then(function() {
-              return env.store.setNodeForce('/foo/baz/', false, true);
-            }).
-            then(util.curry(findNextForceRoots, '/foo/')).
-            then(function(roots) {
-              _this.assert(roots, ['/foo/bar/', '/foo/baz/']);
-            }, function(error) {
-              console.error('findNextForceRoots failed', error);
-              _this.result(false);
-            });
-        }
-      },
-
-      {
-        desc: "sync~findNextForceRoots finds nested nodes on different levels",
-        run: function(env) {
-          var _this = this;
-          var findNextForceRoots = env.sync.getInternal('findNextForceRoots');
-          env.store.setNodeForce('/foo/bar/baz/', true, true).
-            then(function() {
-              return env.store.setNodeForce('/foo/a/b/c/d/', true, true);
-            }).
-            then(util.curry(findNextForceRoots, '/foo/')).
-            then(function(roots) {
-              _this.assert(roots, ['/foo/bar/baz/', '/foo/a/b/c/d/']);
-            }, function(error) {
-              console.error('findNextForceRoots failed', error);
-              _this.result(false);
-            });
-        }
-      },
 
       {
         desc: "sync~traverseTree yields each local and remote node",
@@ -114,12 +81,11 @@ define(['requirejs'], function(requirejs) {
 
             var calls = [];
 
-            env.store.setNodeForce('/a/', true, true).
-              then(function() {
-                return traverseTree('/a/', function(local, remote) {
-                  calls.push([local, remote]);
-                });
-              }).
+            env.caching.set('/a/', { data: true });
+
+            return traverseTree('/a/', function(local, remote) {
+              calls.push([local, remote]);
+            }).
               then(function() {
                 _this.assertAnd(calls.length, 3);
                 calls = calls.map(function(call) { return call[0]; });

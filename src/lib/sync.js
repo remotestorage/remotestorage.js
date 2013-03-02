@@ -19,8 +19,8 @@ define([
 
   var settings = util.getSettingStore('remotestorage_sync');
 
-  // hack! set from remoteStorage via setAccess.
-  var access;
+  // hack! set from remoteStorage via setAccess, setCaching.
+  var access, caching;
 
   // Section: How to configure sync
   //
@@ -155,7 +155,7 @@ define([
   function fullSync(pushOnly) {
     return util.getPromise(function(promise) {
       if(disabled) {
-        promise.fulfill()
+        promise.fulfill();
         return;
       }
       if(! isConnected()) {
@@ -165,7 +165,20 @@ define([
 
       logger.info("full " + (pushOnly ? "push" : "sync") + " started");
 
-      var roots = access.rootPaths;
+      var roots = [];
+
+      var cl = caching.rootPaths.length;
+      var al = access.rootPaths.length;
+      for(var i=0;i<cl;i++) {
+        var cachingRoot = caching.rootPaths[i];
+        for(var j=0;i<al;j++) {
+          var accessRoot = access.rootPaths[j];
+          if(util.pathContains(cachingRoot, accessRoot)) {
+            roots.push(cachingRoot);
+            break;
+          }
+        }
+      }
 
       var synced = 0;
 
@@ -233,8 +246,7 @@ define([
       enqueueTask(function() {
         logger.info("partial sync started from: " + startPath);
         return traverseTree(startPath, processNode, {
-          depth: depth,
-          force: true
+          depth: depth
         });
       }, promise.fulfill);
     });
@@ -657,32 +669,6 @@ define([
     }
   }
 
-  function findNextForceRoots(path, cachedNode) {
-    var roots = [];
-    function checkChildren(node) {
-      return util.asyncEach(Object.keys(node.data), function(key) {
-        return store.getNode(path + key).then(function(childNode) {
-          if(childNode.startForce || childNode.startForceTree) {
-            roots.push(path + key);
-          } else if(util.isDir(key)) {
-            return findNextForceRoots(path + key, childNode).
-              then(function(innerRoots) {
-                innerRoots.forEach(function(innerRoot) {
-                  roots.push(innerRoot);
-                });
-              });
-          }
-        });
-      }).then(function() {
-        return roots;
-      });
-    }
-    return (
-      cachedNode ? checkChildren(cachedNode) :
-        store.getNode(path).then(checkChildren)
-    );
-  }
-
   // Function: traverseTree
   //
   // Traverse the full tree of nodes, passing each visited data node to the callback for processing.
@@ -712,23 +698,6 @@ define([
 
     if(! opts) { opts = {}; }
 
-    function determineLocalInterest(node, options) {
-      return util.getPromise(function(promise) {
-        options.force = opts.force || node.startForce;
-        options.forceTree = opts.forceTree || node.startForceTree;
-
-        var force = (options.force || options.forceTree);
-        if((! force) && (options.path == '/' || options.path == '/public/')) {
-          findNextForceRoots(options.path).
-            then(function(roots) {
-              promise.fulfill(node, false, roots);
-            });
-        } else {
-          promise.fulfill(node, force);
-        }
-      });
-    }
-
     function mergeDataNode(path, localNode, remoteNode, options) {
       if(util.isDir(path)) {
         throw new Error("Not a data node: " + path);
@@ -748,28 +717,30 @@ define([
         var localVersion = localNode.data[key];
         logger.debug("traverseTree.mergeDirectory[" + childPath + "]", remoteVersion, 'vs', localVersion);
         if(remoteVersion !== localVersion) {
-          if(util.isDir(childPath)) {
-            if(options.forceTree && options.depth !== 0) {
-              var childOptions = util.extend({}, options);
-              if(childOptions.depth) {
-                childOptions.depth--;
+          if(caching.cachePath(path)) {
+            if(util.isDir(childPath)) {
+              if(options.depth !== 0) {
+                var childOptions = util.extend({}, options);
+                if(childOptions.depth) {
+                  childOptions.depth--;
+                }
+                return mergeTree(childPath, childOptions);
               }
-              return mergeTree(childPath, childOptions);
+            } else {
+              return util.asyncGroup(
+                util.curry(fetchLocalNode, childPath),
+                util.curry(fetchRemoteNode, childPath)
+              ).then(function(nodes, errors) {
+                if(errors.length > 0) {
+                  logger.error("Failed to sync node", childPath, errors);
+                  return store.setNodeError(childPath, errors);
+                } else {
+                  return mergeDataNode(childPath, nodes[0], nodes[1], options);
+                }
+              });
             }
-          } else if(options.force) {
-            return util.asyncGroup(
-              util.curry(fetchLocalNode, childPath),
-              util.curry(fetchRemoteNode, childPath)
-            ).then(function(nodes, errors) {
-              if(errors.length > 0) {
-                logger.error("Failed to sync node", childPath, errors);
-                return store.setNodeError(childPath, errors);
-              } else {
-                return mergeDataNode(childPath, nodes[0], nodes[1], options);
-              }
-            });
           } else {
-            store.touchNode(childPath);
+            return store.touchNode(childPath);
           }
         }
       }).then(function(results, errors) {
@@ -782,25 +753,20 @@ define([
 
     function mergeTree(path, options) {
       options.path = path;
-      return fetchLocalNode(path).
-        then(util.rcurry(determineLocalInterest, options)).
-        then(function(localNode, localInterest, nextRoots) {
-          if(localInterest) {
-            return fetchRemoteNode(path).
-              then(function(remoteNode) {
-                return mergeDirectory(path, localNode, remoteNode, options).
-                  then(function() {
-                    return store.setLastSynced(path, remoteNode.timestamp);
-                  });
-              });
-          } else if(nextRoots) {
-            for(var key in nextRoots) {
-              return util.asyncEach(nextRoots, function(root) {
-                return mergeTree(root, options);
-              });
-            }
-          }
+      if(caching.descendIntoPath(path)) {
+        return util.asyncGroup(
+          util.curry(fetchLocalNode, path),
+          util.curry(fetchRemoteNode, path)
+        ).then(function(nodes) {
+          var localNode = nodes[0];
+          var remoteNode = nodes[1];
+          return mergeDirectory(path, localNode, remoteNode, options).
+            then(util.curry(store.setLastSynced, path, remoteNode.timestamp));
         });
+      } else {
+        // FIXME: do we *need* to return a promise here?
+        return util.getPromise().fulfill();
+      }
     }
 
     return mergeTree(root, opts);
@@ -886,7 +852,11 @@ define([
     },
 
     setAccess: function(_access) {
-      access = _access
+      access = _access;
+    },
+
+    setCaching: function(_caching) {
+      caching = _caching;
     }
 
   });
