@@ -48,8 +48,6 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
     },
 
     beforeEach: function(env) {
-      var _this = this;
-
       env.serverHelper.resetState();
       env.serverHelper.setScope([':rw']);
       env.serverHelper.captureRequests();
@@ -62,13 +60,14 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
           env.serverHelper.getBearerToken()
         );
 
-        return env.remoteStorage.claimAccess('root', 'rw');
+        env.remoteStorage.claimAccess('root', 'rw');
+
       };
 
-      env.rsConnect().
-        then(function() {
-          _this.result(true);
-        });
+      env.rsConnect();
+      console.log('end of beforeEach, state:', 'CACHING', env.remoteStorage.caching, 'ACCESS', env.remoteStorage.access);
+
+      this.result(true);
     },
     
     afterEach: function(env, test) {
@@ -324,19 +323,20 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
         desc: "getting an object with tree-only sync",
         run: function(env, test) {
           // store the file first
-          return env.client.getObject('locations/hackerbeach/2013').
+          return env.remoteStorage.fullSync().
             then(function(obj) {
               return env.client.storeObject('test', 'locations/hackerbeach/2013', { island: "Phu Quoc" });
             }).
             // disconnect client
             then(env.remoteStorage.flushLocal).
-            // reconnect client
-            then(env.rsConnect).
             then(function() {
+              // reconnect client
+              env.rsConnect();
               // configure tree-only sync
-              return env.client.use('', true);
+              env.client.use('', true);
+              // synchronize
+              return env.remoteStorage.fullSync();
             }).
-            then(env.remoteStorage.fullSync).
             then(function() {
               return env.client.getListing('locations/hackerbeach/');
             }).
@@ -364,16 +364,20 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
         desc: "getting a file with tree-only sync",
         run: function(env, test) {
           // store the file first
-          return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island').
+          return env.remoteStorage.fullSync().
+            then(function() {
+              return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island')
+            }).
             // disconnect client
             then(env.remoteStorage.flushLocal).
-            // reconnect client
-            then(env.rsConnect).
             then(function() {
+              // reconnect client
+              env.rsConnect();
               // configure tree-only sync
-              return env.client.use('', true);
+              env.client.use('', true);
+              // synchronize
+              return env.remoteStorage.fullSync();
             }).
-            then(env.remoteStorage.fullSync).
             then(function() {
               return env.client.getListing('locations/hackerbeach/');
             }).
