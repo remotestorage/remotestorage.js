@@ -1,9 +1,7 @@
 define(['./util'], function(util) {
 
   var Caching = function() {
-    this._pathSettingsMap = {};
-
-    this.rootPaths = [];
+    this.reset();
   };
 
   Caching.prototype = {
@@ -33,8 +31,8 @@ define(['./util'], function(util) {
     },
 
     reset: function() {
-      this._pathSettingsMap = {};
       this.rootPaths = [];
+      this._pathSettingsMap = {};
     },
 
     /**
@@ -58,9 +56,8 @@ define(['./util'], function(util) {
     // Returns: true or false
     cachePath: function(path) {
       this._validatePath(path);
-      var isDir = util.isDir(path);
-      var settings = this._query(isDir ? path : util.containingDir(path));
-      return settings && (isDir || settings.data);
+      var settings = this._query(path);
+      return settings && (util.isDir(path) || settings.data);
     },
 
     /**
@@ -69,7 +66,9 @@ define(['./util'], function(util) {
 
     // gets settings for given path. walks up the path until it finds something.
     _query: function(path) {
-      return this.get(path) || path !== '/' && this._query(util.containingDir(path));
+      return this._pathSettingsMap[path] ||
+        path !== '/' &&
+        this._query(util.containingDir(path));
     },
 
     _validatePath: function(path) {
