@@ -23,13 +23,15 @@ define(['requirejs'], function(requirejs, undefined) {
         './src/lib/caching',
         './src/lib/baseClient',
         './src/lib/store',
+        './src/lib/sync',
         './src/lib/store/memory'
-      ], function(_util, Caching, BaseClient, store, memoryAdapter) {
+      ], function(_util, Caching, BaseClient, store, sync, memoryAdapter) {
         util = _util;
         curry = util.curry;
         env.BaseClient = BaseClient;
         var caching = new Caching();
         env.BaseClient.setCaching(caching);
+        sync.setCaching(caching);
 
         caching.set('/', { data: true });
 
