@@ -736,6 +736,18 @@ define([
 
   var sync = util.extend(events, {
 
+    get: function(path) {
+      if(caching.cachePath(path)) {
+        return store.getNode(path)
+      } else {
+        return remoteAdapter.get(path);
+      }
+    },
+
+    set: function(path) {},
+
+    remove: function(path) {},
+
     enable: enable,
     disable: disable,
 
@@ -770,9 +782,10 @@ define([
     // <getState>
     getState: getState,
 
-    // Method: clearSettings
-    // Clear all data from localStorage that this file put there.
-    clearSettings: settings.clear,
+    reset: function() {
+      remoteAdapter.clearCache();
+      settings.clear();
+    },
 
     // FOR TESTING INTERNALS ONLY!!!
     getInternal: function(symbol) {
