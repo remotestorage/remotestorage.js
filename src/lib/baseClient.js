@@ -265,11 +265,7 @@ define([
     //
     getObject: function(path) {
       var fullPath = this.makePath(path);
-      return (
-        caching.cachePath(fullPath) ?
-          store.getNode :
-          sync.updateDataNode
-      )(fullPath).then(function(node) {
+      return sync.get(fullPath).then(function(node) {
         if(node.mimeType !== 'application/json') {
           logger.error("WARNING: getObject got called, but retrieved a non-json node at '" + fullPath + "'!");
         }
@@ -308,11 +304,8 @@ define([
         );
       }
       var fullPath = this.makePath(path);
-      return (
-        caching.descendIntoPath(fullPath) ?
-          store.getNode :
-          sync.updateDataNode
-      )(fullPath).then(function(node) {
+      return sync.get(fullPath).then(function(node) {
+        console.log('getListing got', node);
         return node.data ? Object.keys(node.data) : [];
       });
     },
@@ -402,11 +395,7 @@ define([
     //   (end code)
     getFile: function(path) {
       var fullPath = this.makePath(path);
-      return (
-        caching.cachePath(fullPath) ?
-          store.getNode :
-          sync.updateDataNode
-      )(fullPath).then(function(node) {
+      return sync.get(fullPath).then(function(node) {
         return {
           mimeType: node.mimeType,
           data: node.data
