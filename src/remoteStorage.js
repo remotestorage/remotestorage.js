@@ -343,16 +343,18 @@ define([
     flushLocal       : function() {
       return util.getPromise(function(promise) {
         logger.info('flushLocal');
-        store.forgetAll().then(promise.fulfill);
-        sync.clearSettings();
+        sync.reset();
         widget.clearSettings();
         schedule.reset();
         wireClient.disconnectRemote();
         i18n.clearSettings();
         this.access.reset();
         this.caching.reset();
+        store.forgetAll().then(promise.fulfill);
       }.bind(this));
     },
+
+    wireClient: wireClient,
 
     //
     // Method: fullSync
