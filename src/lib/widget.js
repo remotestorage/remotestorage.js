@@ -95,12 +95,6 @@ define([
     events.emit('state', state);    
   }
 
-  function buildScopeRequest() {
-    return remoteStorage.access.scopes.map(function(module) {
-      return (module === 'root' && remoteStorage.getStorageType() === '2012.04' ? '' : module) + ':' + remoteStorage.access.get(module);
-    }).join(' ');
-  }
-
   function requestToken(authEndpoint) {
     logger.info('requestToken', authEndpoint);
     var redirectUri = view.getLocation().split('#')[0];
@@ -109,11 +103,12 @@ define([
     authEndpoint += [
       ['redirect_uri', redirectUri],
       ['client_id', clientId],
-      ['scope', buildScopeRequest()],
+      ['scope', remoteStorage.access.scopeParameter],
       ['response_type', 'token']
     ].map(function(kv) {
       return kv[0] + '=' + encodeURIComponent(kv[1]);
     }).join('&');
+    console.log('redirecting to', authEndpoint);
     return view.redirectTo(authEndpoint);
   }
 
@@ -128,6 +123,7 @@ define([
         setState((typeof(error) === 'string') ? 'typing' : 'error', error);
       }).
       then(function(storageInfo) {
+        remoteStorage.access.setStorageType(storageInfo.type);
         return requestToken(storageInfo.properties['auth-endpoint']);
       }).
       then(schedule.enable, util.curry(setState, 'error'));

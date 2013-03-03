@@ -6,6 +6,12 @@ define([], function() {
     this.__defineGetter__('scopes', function() {
       return Object.keys(this._scopeModeMap);
     });
+
+    this.__defineGetter__('scopeParameter', function() {
+      return this.scopes.map(function(module) {
+        return (module === 'root' && this.storageType === '2012.04' ? '' : module) + ':' + this.get(module);
+      }.bind(this)).join(' ');
+    });
   };
 
   Access.prototype = {
@@ -41,6 +47,10 @@ define([], function() {
         this.rootPaths.push('/' + newScope + '/');
         this.rootPaths.push('/public/' + newScope + '/');
       }
+    },
+
+    setStorageType: function(type) {
+      this.storageType = type;
     }
   };
 

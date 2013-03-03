@@ -95,6 +95,49 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           test.assertAnd(env.access.scopes, []);
           test.assert(env.access.rootPaths, []);
         }
+      },
+
+      {
+        desc: "#scopeParameter is correct for one module",
+        run: function(env, test) {
+          env.access.reset();
+          env.access.set('foo', 'rw');
+          test.assert(env.access.scopeParameter, 'foo:rw');
+
+          env.access.reset();
+          env.access.set('foo', 'r');
+          test.assert(env.access.scopeParameter, 'foo:r');
+        }
+      },
+
+      {
+        desc: "#scopeParameter is correct for multiple modules",
+        run: function(env, test) {
+          env.access.reset();
+          env.access.set('foo', 'rw');
+          env.access.set('bar', 'r');
+          test.assert(env.access.scopeParameter, 'foo:rw bar:r');
+        }
+      },
+
+      {
+        desc: "[2012.04] #scopeParameter is correct for the root module",
+        run: function(env, test) {
+          env.access.reset();
+          env.access.setStorageType('2012.04');
+          env.access.set('root', 'rw');
+          test.assert(env.access.scopeParameter, ':rw');
+        }
+      },
+
+      {
+        desc: "[remotestorage-00] #scopeParameter is correct for the root module",
+        run: function(env, test) {
+          env.access.reset();
+          env.access.setStorageType('remotestorage-00');
+          env.access.set('root', 'rw');
+          test.assert(env.access.scopeParameter, 'root:rw');
+        }
       }
 
     ]
