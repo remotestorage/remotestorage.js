@@ -1,9 +1,7 @@
 define([], function() {
 
   var Access = function() {
-    this._scopeModeMap = {};
-
-    this.rootPaths = [];
+    this.reset();
 
     this.__defineGetter__('scopes', function() {
       return Object.keys(this._scopeModeMap);
@@ -11,6 +9,12 @@ define([], function() {
   };
 
   Access.prototype = {
+    // not sure yet, if 'set' or 'claim' is better...
+
+    claim: function() {
+      this.set.apply(this, arguments);
+    },
+
     set: function(scope, mode) {
       this._adjustRootPaths(scope);
       this._scopeModeMap[scope] = mode;
