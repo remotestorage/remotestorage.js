@@ -74,7 +74,7 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
           var _this = this;
           env.store.getNode('/foo/bar').
             then(function(node) {
-              _this.assertAnd(node.timestamp, 0);
+              _this.assertAnd(node.version, null);
               _this.assertAnd(node.lastUpdatedAt, 0);
               _this.assert(node.mimeType, "application/json");
             });
@@ -97,14 +97,14 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
           var _this = this;
           var t = new Date().getTime();
           env.storageAdapter.set("/foo/bar", {
-            timestamp: t,
+            version: t,
             mimeType: "text/plain",
             data: 'some text'
           });
 
           env.store.getNode('/foo/bar').
             then(function(node) {
-              _this.assertAnd(node.timestamp, t);
+              _this.assertAnd(node.version, t);
               _this.assertAnd(node.mimeType, 'text/plain');
               _this.assert(node.data, 'some text');
             });
@@ -119,15 +119,14 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
             '/foo/bar', // path
             'some-data', // data
             false, // outgoing
-            12345, // timestamp
+            undefined, // version
             'text/plain' // mimeType
           ).
             // check node
             then(curry(env.storageAdapter.get, '/foo/bar')).
             then(function(node) {
               _this.assertTypeAnd(node, 'object');
-              _this.assertAnd(node.timestamp, 12345);
-              _this.assertAnd(node.lastUpdatedAt, 12345);
+              _this.assertAnd(node.version, null);
               _this.assertAnd(node.mimeType, 'text/plain');
               _this.assertAnd(node.data, 'some-data');
             }).
@@ -149,28 +148,28 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
             '/a/b',
             { json: 'object' },
             true,
-            23456,
+            '23456',
             'application/json'
           ).
             then(curry(env.storageAdapter.get, '/a/b')).
             then(function(node) {
               _this.assertTypeAnd(node, 'object');
-              _this.assertAnd(node.timestamp, 23456); 
+              _this.assertAnd(node.version, '23456'); 
               _this.assertAnd(node.lastUpdatedAt, 0);
               _this.assertAnd(node.mimeType, 'application/json'); 
               _this.assertAnd(node.data, { json: 'object' });
             }).
             then(curry(env.storageAdapter.get, '/a/')).
             then(function(node) {
-              _this.assertAnd(node.data, { "b": 23456 });
-              _this.assertAnd(node.diff, { "b": 23456 });
-              _this.assertAnd(node.timestamp, 23456);
+              _this.assertAnd(node.data, { "b": '23456' });
+              _this.assertAnd(node.diff, { "b": '23456' });
+              _this.assertAnd(node.version, 23456);
               _this.assertAnd(node.lastUpdatedAt, 0);
             }).
             then(curry(env.storageAdapter.get, '/')).
             then(function(node) {
-              _this.assertAnd(node.data, { "a/": 23456 });
-              _this.assert(node.diff, { "a/": 23456 });
+              _this.assertAnd(node.data, { "a/": '23456' });
+              _this.assert(node.diff, { "a/": '23456' });
             }, catchError(this));
         }
       },
@@ -239,8 +238,8 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
           }
 
           function assertTimestampUpdate(node) {
-            _this.assertAnd(node.timestamp, t * 2);
-            _this.assertAnd(node.lastUpdatedAt, node.timestamp);
+            _this.assertAnd(node.version, t * 2);
+            _this.assertAnd(node.lastUpdatedAt, node.version);
             return node;
           }
 
@@ -341,10 +340,21 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
       {
         desc: "store.touchNode creates a directory entry in the parent",
         run: function(env, test) {
-          env.store.touchNode('/foo/bar').
+          env.store.touchNode('/foo/bar', '123').
             then(curry(env.store.getNode, '/foo/')).
             then(function(parentNode) {
               test.assert(Object.keys(parentNode.data), ['bar']);
+            });
+        }
+      },
+
+      {
+        desc: "store.touchNode sets the node's version",
+        run: function(env, test) {
+          env.store.touchNode('/foo/bar', '123').
+            then(curry(env.store.getNode, '/foo/bar')).
+            then(function(node) {
+              test.assert(node.version, '123');
             });
         }
       }

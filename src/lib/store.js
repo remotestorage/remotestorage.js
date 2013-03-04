@@ -136,9 +136,15 @@ define([
     }
     validPath(path);
     return dataStore.get(path).then(function(node) {
-      if(! node) {
+      if(node) {
+        if(node.timestamp) {
+          // legacy data in cache
+          node.version = String(node.timestamp);
+          //delete node.timestamp;
+        }
+      } else {
         node = {//this is what an empty node looks like
-          timestamp: 0,
+          version: null,
           lastUpdatedAt: 0,
           mimeType: "application/json"
         };
@@ -174,7 +180,7 @@ define([
   // Fires:
   //   change w/ origin=remote - unless this is an outgoing change
   //
-  function setNodeData(path, data, outgoing, timestamp, mimeType) {
+  function setNodeData(path, data, outgoing, version, mimeType) {
     return dataStore.transaction(true, function(transaction) {
       return getNode(path, transaction).then(function(node) {
 
@@ -183,10 +189,11 @@ define([
         node.data = data;
 
         if(! outgoing) {
-          if(typeof(timestamp) !== 'number') {
-            throw "Attempted to set non-number timestamp in incoming change: " + timestamp + ' (' + typeof(timestamp) + ') at path ' + path;
+          node.changed = true;
+
+          if(version) {
+            console.log('WARNING: passing a version to setNodeData with outgoing=false has no effect');
           }
-          node.lastUpdatedAt = timestamp;
 
           delete node.error;
         }
@@ -196,7 +203,7 @@ define([
         }
         node.mimeType = mimeType;
 
-        return updateNode(path, (typeof(node.data) !== 'undefined' ? node : undefined), outgoing, false, timestamp, oldValue, transaction).
+        return updateNode(path, (typeof(node.data) !== 'undefined' ? node : undefined), outgoing, false, version, oldValue, transaction).
           then(function() {
             transaction.commit();
           });
@@ -220,7 +227,7 @@ define([
   }
 
   function removeNode(path, timestamp) {
-    return setNodeData(path, undefined, false, timestamp || getCurrTimestamp());
+    return setNodeData(path, undefined, false);
   }
 
   function updateMetadata(path, attributes, node) {
@@ -342,60 +349,25 @@ define([
     return path[0] != '/';
   }
 
-  function determineDirTimestamp(path, transaction) {
-    return getNode(path, transaction).
-      then(function(node) {
-        var t = 0;
-        if(node.data) {
-          for(var key in node.data) {
-            if(node.data[key] > t) {
-              t = node.data[key];
-            }
-          }
-        }
-        return t > 0 ? t : getCurrTimestamp();
-      });
-  }
-
-  function touchNode(path) {
+  function touchNode(path, version) {
     return dataStore.transaction(true, function(transaction) {
       return getNode(path, transaction).then(function(node) {
         return updateNode(
-          path, node, false, true, undefined, undefined, transaction
+          path, node, false, false, version, undefined, transaction
         ).then(transaction.commit);
       });
     });
   }
 
   // FIXME: this argument list is getting too long!!!
-  function updateNode(path, node, outgoing, meta, timestamp, oldValue,
+  function updateNode(path, node, outgoing, meta, version, oldValue,
                       transaction) {
-    logger.debug('updateNode', path, node, outgoing, meta, timestamp);
+    logger.debug('updateNode', path, node, outgoing, meta, version);
 
     validPath(path);
 
-    function adjustTimestamp(transaction) {
-      return util.getPromise(function(promise) {
-        function setTimestamp(t) {
-          if(t) { timestamp = t; }
-          if(node && typeof(timestamp) == 'number') {
-            node.timestamp = timestamp;
-          }
-          promise.fulfill();
-        }
-        if((!meta) && (! timestamp)) {
-          if(outgoing) {
-            timestamp = getCurrTimestamp();
-            setTimestamp();
-          } else if(util.isDir(path)) {
-            determineDirTimestamp(path, transaction).then(setTimestamp);
-          } else {
-            throw new Error('no timestamp given for node ' + path);
-          }
-        } else {
-          setTimestamp();
-        }
-      });
+    if(! version) {
+      version = node.version;
     }
 
     function storeNode(transaction) {
@@ -415,27 +387,27 @@ define([
             if(meta) { // META
               if(! parent.data[baseName]) {
                 parent.data[baseName] = 0;
-                return updateNode(parentPath, parent, false, true, timestamp, undefined, transaction);
+                return updateNode(parentPath, parent, false, true, version, undefined, transaction);
               }
             } else if(outgoing) { // OUTGOING
               if(node) {
-                parent.data[baseName] = timestamp;
+                parent.data[baseName] = version;
               } else {
                 delete parent.data[baseName];
               }
-              parent.diff[baseName] = timestamp;
-              return updateNode(parentPath, parent, true, false, timestamp, undefined, transaction);
+              parent.diff[baseName] = version;
+              return updateNode(parentPath, parent, true, false, version, undefined, transaction);
             } else { // INCOMING
               if(node) { // add or change
-                if((! parent.data[baseName]) || parent.data[baseName] < timestamp) {
-                  parent.data[baseName] = timestamp;
+                if((! parent.data[baseName]) || parent.data[baseName] !== version) {
+                  parent.data[baseName] = version;
                   delete parent.diff[baseName];
-                  return updateNode(parentPath, parent, false, false, timestamp, undefined, transaction);
+                  return updateNode(parentPath, parent, false, false, version, undefined, transaction);
                 }
               } else { // deletion
                 delete parent.data[baseName];
                 delete parent.diff[baseName];
-                return updateNode(parentPath, parent, false, false, timestamp, undefined, transaction);
+                return updateNode(parentPath, parent, false, false, version, undefined, transaction);
               }
             }
           });
@@ -454,8 +426,7 @@ define([
     }
 
     function doUpdate(transaction, dontCommit) {
-      return adjustTimestamp(transaction).
-        then(util.curry(storeNode, transaction)).
+      return storeNode(transaction).
         then(util.curry(updateParent, transaction)).
         then(function() {
           if(! dontCommit) {
@@ -473,6 +444,32 @@ define([
   }
 
   return {
+
+    // get: function(path) {
+    //   return getNode(path);
+    // },
+
+    // set: function(path, data, version) {
+    //   return dataStore.transaction(true, function(transaction) {
+    //     getNode(path, transaction).then(function(node) {
+    //       node.data = data;
+    //       if(version) {
+    //         node.version = version;
+    //       } else {
+    //         node.changed = true;
+    //       }
+    //       return transaction.store(path, node);
+    //     }).then(function() {
+    //       if(version) {
+    //         return updateParents();
+    //       }
+    //     }).then(transaction.commit);
+    //   });
+    // },
+
+    // remove: function() {
+      
+    // },
 
     memory: memoryAdapter,
     localStorage: localStorageAdapter,

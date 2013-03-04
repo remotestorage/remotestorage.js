@@ -630,6 +630,22 @@ define([
 
     if(! opts) { opts = {}; }
 
+    function fetchNodes(path) {
+      return util.asyncGroup(
+        util.curry(fetchLocalNode, path),
+        util.curry(fetchRemoteNode, path)
+      ).then(function(nodes, errors) {
+        if(errors.length > 0) {
+          errors.forEach(function(error) {
+            if(error) {
+              fireError(path, error);
+            }
+          });
+        }
+        return util.getPromise().fulfill(nodes[0], nodes[1]);
+      });
+    }
+
     function mergeDataNode(path, localNode, remoteNode, options) {
       if(util.isDir(path)) {
         throw new Error("Not a data node: " + path);
@@ -659,20 +675,12 @@ define([
                 return mergeTree(childPath, childOptions);
               }
             } else {
-              return util.asyncGroup(
-                util.curry(fetchLocalNode, childPath),
-                util.curry(fetchRemoteNode, childPath)
-              ).then(function(nodes, errors) {
-                if(errors.length > 0) {
-                  logger.error("Failed to sync node", childPath, errors);
-                  return store.setNodeError(childPath, errors);
-                } else {
-                  return mergeDataNode(childPath, nodes[0], nodes[1], options);
-                }
+              return fetchNodes(childPath).then(function(local, remote) {
+                return mergeDataNode(childPath, local, remote, options);
               });
             }
           } else {
-            return store.touchNode(childPath);
+            return store.touchNode(childPath, remoteVersion);
           }
         }
       });
@@ -681,14 +689,8 @@ define([
     function mergeTree(path, options) {
       options.path = path;
       if(caching.descendIntoPath(path)) {
-        return util.asyncGroup(
-          util.curry(fetchLocalNode, path),
-          util.curry(fetchRemoteNode, path)
-        ).then(function(nodes) {
-          var localNode = nodes[0];
-          var remoteNode = nodes[1];
-          return mergeDirectory(path, localNode, remoteNode, options).
-            then(util.curry(store.setLastSynced, path, remoteNode.timestamp));
+        return fetchNodes(path).then(function(local, remote) {
+          return mergeDirectory(path, local, remote, options);
         });
       } else {
         // FIXME: do we *need* to return a promise here?
@@ -731,6 +733,8 @@ define([
 
   var sync = util.extend(events, {
 
+    // BEGIN EXPERIMENT
+
     get: function(path) {
       if(caching.cachePath(path)) {
         return store.getNode(path)
@@ -739,9 +743,22 @@ define([
       }
     },
 
-    set: function(path) {},
+    set: function(path, data, mimeType) {
+      if(caching.cachePath(path)) {
+        return this._setRemote(path, data).
+          then(function(version) {
+            return this._setLocal(path, data, false, version, mimeType);
+          }, function() {
+            return this.setNodeData(path, data, true, undefined, mimeType);
+          });
+      } else {
+        return remoteAdapter.set(path, data, mimeType);
+      }
+    },
 
     remove: function(path) {},
+
+    // END EXPERIMENT
 
     enable: enable,
     disable: disable,
