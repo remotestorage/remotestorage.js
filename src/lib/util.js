@@ -298,9 +298,17 @@ define([], function() {
           if(this.hasHandler(eventName)) {
             this._handlers[eventName].forEach(function(handler) {
               if(handler) {
-                handler.apply(null, handlerArgs);
+                try {
+                  handler.apply(null, handlerArgs);
+                } catch(exc) {
+                  if(eventName !== 'error' && 'error' in this._handlers && this.hasHandler('error')) {
+                    this.emit('error', exc);
+                  } else {
+                    console.error("Error in '" + eventName + "' event handler:", exc);
+                  }
+                }
               }
-            });
+            }.bind(this));
           }
         },
 
