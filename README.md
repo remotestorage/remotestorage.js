@@ -1,6 +1,6 @@
 # remoteStorage.js
 
-[![Build Status](https://secure.travis-ci.org/RemoteStorage/remoteStorage.js.png)](http://travis-ci.org/RemoteStorage/remoteStorage.js)
+[![Build Status](https://secure.travis-ci.org/remotestorage/remotestorage.js.png)](http://travis-ci.org/remotestorage/remotestorage.js)
 
 ### Where to get help?
 
@@ -47,7 +47,7 @@
         redrawApp();
       });
 
-#### see [example/minimal/index.html](https://github.com/RemoteStorage/remoteStorage.js/blob/master/example/minimal/index.html) for the full example code.
+#### see [example/minimal-0.7.0/index.html](https://github.com/remotestorage/remotestorage.js/blob/master/example/minimal-0.7.0/index.html) for the full example code.
 
 ### Running the local Test Server
 
