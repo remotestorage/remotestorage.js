@@ -12,6 +12,22 @@ define(['../util'], function(util) {
     return headers;
   }
 
+  /**
+   * Function: BrowserHTTP
+   * HTTP implementation backed by <XMLHttpRequest at https://developer.mozilla.org/en-US/docs/DOM/XMLHttpRequest>
+   * with <CORS at http://www.w3.org/TR/cors/> support.
+   *
+   * Parameters:
+   *   method  - the HTTP verb to use
+   *   uri     - full URI to request
+   *   headers - Object of request headers to set
+   *   body    - (optional) request body to send along
+   *
+   * Returns a promise, fulfilled with an object containing:
+   *   status  - a Number, status code returned by HTTP server
+   *   body    - the response body as a String
+   *   headers - Object of response headers
+   */
   function http(method, uri, headers, body) {
     logger.debug(method, uri, headers, body);
     return util.getPromise(function(promise) {
