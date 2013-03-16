@@ -1,4 +1,8 @@
+/* -*- test-with:unit/caching -*- */
+
 define(['./util'], function(util) {
+
+  "use strict";
 
   var Caching = function() {
     this.reset();

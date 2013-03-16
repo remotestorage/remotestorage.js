@@ -53,10 +53,10 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
       env.serverHelper.captureRequests();
 
       env.rsConnect = function() {
-        env.remoteStorage.nodeConnect.setStorageInfo(
+        env.remoteStorage.setStorageInfo(
           env.serverHelper.getStorageInfo()
         );
-        env.remoteStorage.nodeConnect.setBearerToken(
+        env.remoteStorage.setBearerToken(
           env.serverHelper.getBearerToken()
         );
 
@@ -270,7 +270,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               test.assert(true, true);
             }, function(err) {
               console.log('err', err);
-              _this.result(false);
+              test.result(false);
             });
         }
       },
