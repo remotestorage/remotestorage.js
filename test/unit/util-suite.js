@@ -225,7 +225,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "events.emit('change')",
         willFail: true,
-        timeout: 1000,
+        timeout: 500,
         run: function(env) {
           var _this = this;
           env.events.on('oogabooga', function(what) {
@@ -236,7 +236,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
       {
         desc: "events.reset()",
-        timeout: 1000,
+        timeout: 500,
         willFail: true,
         run: function(env) {
           var _this = this;
@@ -263,7 +263,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "util.silenceLogger()",
         willFail: true,
-        timeout: 1000,
+        timeout: 500,
         run: function(env) {
           var _this = this;
           env.util.setLogFunction(function(name, level, msg) {
