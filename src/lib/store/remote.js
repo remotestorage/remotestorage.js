@@ -1,16 +1,5 @@
 define(['../util'], function(util) {
 
-  util.declareError = function(namespace, name, builder, parent) {
-    if(! parent) {
-      parent = Error;
-    }
-    namespace[name] = function() {
-      var message = builder ? builder.apply(this, arguments) : arguments[0];
-      parent.call(this, message);
-    };
-    namespace[name].prototype = Object.create(parent.prototype);
-  };
-
   /**
    * Class: RemoteStore
    *
@@ -46,32 +35,49 @@ define(['../util'], function(util) {
   /**
    * Constant: RemoteStore.NOT_FOUND_STATES
    * List of status codes interpreted as not found (404).
+   * (these codes cause a request to succeed with the <RemoteStore.EMPTY_NODE>)
    */
   RemoteStore.NOT_FOUND_STATES = { 404:true };
   /**
    * Constant: RemoteStore.UNAUTHORIZED_STATES
    * List of status codes interpreted as unauthorized (401, 403).
+   * (these codes cause <RemoteStore.Unauthorized> to be thrown)
    */
   RemoteStore.UNAUTHORIZED_STATES = { 401:true, 403:true };
 
   // errors
 
+  /**
+   * Error: RemoteStore.Error
+   */
   util.declareError(RemoteStore, 'Error');
 
+  /**
+   * Error: RemoteStore.Unauthorized
+   */
   util.declareError(RemoteStore, 'Unauthorized', function(response) {
     this.response = response;
     return 'the server denied our request! (status: ' + response.status + ', response text: ' + response.body + ')';
   }, RemoteStore.Error);
 
+  /**
+   * Error: RemoteStore.NotConnected
+   */
   util.declareError(RemoteStore, 'NotConnected', function() {
     return 'not connected';
   }, RemoteStore.Error);
 
+  /**
+   * Error: RemoteStore.UnexpectedResponse
+   */
   util.declareError(RemoteStore, 'UnexpectedResponse', function(response) {
     this.response = response;
     return 'unexpected response (status: ' + response.status + ')';
   }, RemoteStore.Error);
 
+  /**
+   * Error: RemoteStore.InvalidJSON
+   */
   util.declareError(RemoteStore, 'InvalidJSON', function(response) {
     this.response = response;
     return 'received invalid JSON: ' + response.body;
@@ -81,6 +87,10 @@ define(['../util'], function(util) {
 
   RemoteStore.prototype = {
 
+    /**
+     * Method: get
+     * See <Store.get>
+     */
     get: function(path) {
       if(this.state !== 'connected') {
         throw new RemoteStore.NotConnected();
@@ -89,6 +99,10 @@ define(['../util'], function(util) {
         then(util.bind(this._loadNode, this));
     },
 
+    /**
+     * Method: set
+     * See <Store.set>
+     */
     set: function(path, node) {
       if(this.state !== 'connected') {
         throw new RemoteStore.NotConnected();
@@ -113,6 +127,10 @@ define(['../util'], function(util) {
       return this.http('PUT', this._urlFor(path), headers, data);
     },
 
+    /**
+     * Method: remove
+     * See <Store.remove>
+     */
     remove: function(path) {
       if(this.state !== 'connected') {
         throw new RemoteStore.NotConnected();
@@ -123,6 +141,10 @@ define(['../util'], function(util) {
       return this.http('DELETE', this._urlFor(path), this._headers);
     },
 
+    /**
+     * Method: configure
+     * TODO!!!
+     */
     configure: function(options) {
       var state = 'anonymous';
       if(typeof(options) === 'object') {
@@ -142,6 +164,17 @@ define(['../util'], function(util) {
         this.state = state;
         this.emit('state', state);
       }
+    },
+
+    /**
+     * Method: reset
+     * TODO!!!
+     */
+    reset: function() {
+      delete this.storageInfo;
+      delete this.bearerToken;
+      this._headers = {};
+      this.configure();
     },
 
     _urlFor: function(path) {
