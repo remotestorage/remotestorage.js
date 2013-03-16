@@ -103,9 +103,9 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "transitioning states causes a 'state' event",
+        desc: "transitioning states causes a 'state-change' event",
         run: function(env, test) {
-          env.store.on('state', function(state) {
+          env.store.on('state-change', function(state) {
             test.assert(state, 'connecting');
           });
           env.store.configure({ storageInfo: fixtures.storageInfo00 });
