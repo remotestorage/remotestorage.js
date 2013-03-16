@@ -209,32 +209,7 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "parses headers correctly and downcases their keys",
-        run: function(env, test) {
-          BrowserHTTP('GET', 'http://local.dev/').
-            then(function(response) {
-              test.assertAnd(response.status, 200);
-              test.assert(response.headers, {
-                'content-type': 'application/json; charset=utf-8',
-                'etag': 'version-123'
-              }, 'headers: ' + JSON.stringify(response.headers));
-            }, function(error) {
-              test.result(false, 'promise was rejected');
-            });
-          util.nextTick(function() {
-            test.assertAnd(env.xhr.length, 1);
-            var xhr = env.xhr[0];
-            xhr.status = 200;
-            xhr._rawResponseHeaders = 
-              'Content-Type: application/json; charset=utf-8\n' +
-              'ETag: version-123\n';
-            xhr._handlers.load();
-          });
-        }
-      },
-
-      {
-        desc: "requests headers from xhr when getAllResponseHeaders returns the empty string",
+        desc: "extracts the correct headers",
         run: function(env, test) {
           BrowserHTTP('GET', 'http://local.dev/').
             then(function(response) {

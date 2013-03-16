@@ -2,49 +2,13 @@ define(['../util'], function(util) {
 
   var logger = util.getLogger('http::browser');
 
-  // Firefox' getAllResponseHeaders is broken for CORS requests since forever.
-  // https://bugzilla.mozilla.org/show_bug.cgi?id=608735
-  // Any additional headers that are needed by other code, should be added here. 
-  var ESSENTIAL_HEADERS = ['Content-Type', 'ETag'];
-
-  function parseHeaders(rawHeaders) {
-    if(! rawHeaders) {
-      // firefox bug. workaround in ajaxBrowser.
-      return null;
-    }
-    var headers = {};
-    var lines = rawHeaders.split(/\r?\n/);
-    var lastKey = null, md, key, value;
-    var numLines = lines.length;
-    for(var i=0;i<numLines;i++) {
-      if(lines[i].length === 0) {
-        // empty line. obviously.
-        continue;
-      } else if((md = lines[i].match(/^([^:]+):\s*(.+)$/))) {
-        // key/value line
-        key = md[1].toLowerCase(), value = md[2];
-        headers[key] = value;
-        lastKey = key;
-      } else if((md = lines[i].match(/^\s+(.+)$/))) {
-        // continued line (if previous line exceeded 80 bytes)
-        key = lastKey, value= md[1];
-        headers[key] = headers[key] + value;
-      } else {
-        // nothing we recognize.
-        logger.error("Failed to parse header line: " + lines[i]);
-      }
-    }
-    return headers;
-  }
+  var RESPONSE_HEADER_KEYS = ['Content-Type', 'ETag'];
 
   function loadResponseHeaders(xhr) {
-    var headers = parseHeaders(xhr.getAllResponseHeaders());
-    if(! headers) {
-      headers = {};
-      ESSENTIAL_HEADERS.forEach(function(key) {
-        headers[key.toLowerCase()] = xhr.getResponseHeader(key);
-      });
-    }
+    var headers = {};
+    RESPONSE_HEADER_KEYS.forEach(function(key) {
+      headers[key.toLowerCase()] = xhr.getResponseHeader(key);
+    });
     return headers;
   }
 
