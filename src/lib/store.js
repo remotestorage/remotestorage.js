@@ -1,535 +1,79 @@
 /*global window */
 /*global console */
 
-define([
-  './util',
-  './platform',
-  './store/memory',
-  './store/localStorage',
-  './store/pending'
-], function (util, platform, memoryAdapter, localStorageAdapter, pendingAdapter) {
+define([], function() {
 
   "use strict";
 
-  // Namespace: store
-  //
-  // The store stores data locally. It treats all data as raw nodes, that have *metadata* and *payload*.
-  // Where the actual data is stored is determined by the <StorageAdapter> that is being used.
+  /**
+   * Class: Store
+   *
+   * The store interface, which is used by <LocalStore>, <RemoteStore>,
+   * <FallbackStore> and <Sync>.
+   *
+   * This code is not actually included in any final build, but just here for
+   * documentation purposes.
+   *
+   */
+  var Store = function() {};
 
+  Store.prototype = {
 
-  var logger = util.getLogger('store');
+    /**
+     * Method: get
+     *
+     * Fetch a node from this Store.
+     *
+     * Returns: a Promise
+     *
+     * Parameters:
+     *   path - Absolute path to the node
+     */
+    get: function(path) {},
 
-  // foreign nodes are prefixed with a user address
-  var userAddressRE = /^[^@]+@[^:]+:\//;
+    /**
+     * Method: set
+     *
+     * Store a node in this Store.
+     *
+     * Returns: a Promise
+     *
+     * Parameters:
+     *   path - Absolute path to the node
+     *   node - Node object to store. Can be an arbitrary Object.
+     */
+    set: function(path, node) {}
 
-  var events = util.getEventEmitter('error', 'change', 'foreign-change');
+    /**
+     * Method: remove
+     *
+     * Remove a node from this Store.
+     *
+     * Returns: a Promise
+     *
+     * Parameters:
+     *   path - Absolute path to the node
+     */
+    remove: function(path) {},
 
-  var dataStore;
+    /**
+     * Method: transaction
+     *
+     * Enqueues a new transaction to be run in the future.
+     * During the execution of a transaction block the store is guaranteed not to
+     * process any other requests, until the transaction is committed or the
+     * transaction block causes an error.
+     *
+     * Returns: a Promise, fulfilled as soon as the transaction is committed.
+     *
+     * Parameters:
+     *   block - a Function that is passed the Transaction
+     *
+     * Block parameters:
+     *   transaction - a <Store.Transactions.Transaction> Object
+     */
+    transaction: function(block) {},
 
-  // Method: setAdapter
-  // Set the storage adapter. See <StorageAdapter> for a description of
-  // the required interface.
-  function setAdapter(adapter) {
-    dataStore = adapter;
-    // forward changes from data store (e.g. made in other tabs)
-    dataStore.on('change', function(event) {
-      if(! util.isDir(event.path)) {
-        fireChange('device', event.path, event.oldValue);
-      }
-    });
-  }
-
-  // (function() {
-  //   if(typeof(window) !== 'undefined') {
-  //     var idb = indexedDbAdapter.detect();
-  //     if(idb) {
-  //       setAdapter(indexedDbAdapter(idb));
-  //     } else if(typeof(window.openDatabase) !== 'undefined') {
-  //       setAdapter(webSqlAdapter());
-  //     } else if(typeof(window.localStorage) !== 'undefined') {
-  //       setAdapter(localStorageAdapter(window.localStorage));
-  //     } else {
-  //       throw "Running in browser, but no storage adapter supported!";
-  //     }
-  //   } else {
-  //     console.error("WARNING: falling back to in-memory storage");
-  //     setAdapter(memoryAdapter());
-  //   }
-  // })();
-
-  if(typeof(window) !== 'undefined') {
-    setAdapter(localStorageAdapter(window.localStorage));
-  } else {
-    console.error("WARNING: falling back to in-memory storage");
-    setAdapter(memoryAdapter());
-  }
-
-  //
-  // Type: Node
-  //
-  // Represents a node within the local store.
-  //
-  // Properties:
-  //   timestamp      - last time this node was (apparently) updated (default: 0)
-  //   lastUpdatedAt  - Last time this node was upated from remote storage
-  //   mimeType       - MIME media type
-  //   diff           - (directories only) marks children that have been modified.
-  //   data           - Actual data of the node. A String, a JSON-Object or an ArrayBuffer.
-  //   binary         - boolean indicating if this node is binary. If true, 'data' is an ArrayBuffer.
-  //
-
-  // Event: change
-  // See <BaseClient.Events>
-
-  function fireChange(origin, path, oldValue) {
-    return getNode(path).
-      then(function(node) {
-        events.emit('change', {
-          path: path,
-          origin: origin,
-          oldValue: oldValue,
-          newValue: node.data,
-          timestamp: node.timestamp
-        });
-      });
-  }
-
-  // Event: foreign-change
-  // Fired when a foreign node is updated.
-
-  function fireForeignChange(path, oldValue) {
-    return getNode(path).
-      then(function(node) {
-        events.emit('foreign-change', {
-          path: path,
-          oldValue: oldValue,
-          newValue: node.data,
-          timestamp: node.timestamp
-        });
-      });
-  }
-
-  //
-  // Event: error
-  // See <BaseClient.Events>
-
-  //
-  // Method: on
-  //
-  // Install an event handler
-  // See <util.EventEmitter.on> for documentation.
-
-  // Method: getNode
-  // Get a node.
-  //
-  // Parameters:
-  //   path - absolute path
-  //
-  // Returns:
-  //   a node object. If no node is found at the given path, a new empty
-  //   node object is constructed instead.
-  function getNode(path) {
-    logger.info('getNode', path);
-    if(! path) {
-      // FIXME: fail returned promise instead.
-      throw new Error("No path given!");
-    }
-    validPath(path);
-    return dataStore.get(path).then(function(node) {
-      if(node) {
-        if(node.timestamp) {
-          // legacy data in cache
-          node.version = String(node.timestamp);
-          //delete node.timestamp;
-        }
-      } else {
-        node = {//this is what an empty node looks like
-          version: null,
-          lastUpdatedAt: 0,
-          mimeType: "application/json"
-        };
-        if(util.isDir(path)) {
-          node.diff = {};
-          node.data = {};
-        }
-      }
-
-      return node;
-    });
-  }
-
-
-  // Method: forgetAll
-  // Forget all data stored by <store>.
-  //
-  function forgetAll() {
-    return dataStore.forgetAll();
-  }
-
-  // Function: setNodeData
-  //
-  // update a node's payload
-  //
-  // Parameters:
-  //   path      - absolute path from the storage root
-  //   data      - node data to set, or undefined to delete the node
-  //   outgoing  - boolean, whether this update is to be propagated
-  //   timestamp - timestamp to set for the update
-  //   mimeType  - MIME media type of the node's data
-  //
-  // Fires:
-  //   change w/ origin=remote - unless this is an outgoing change
-  //
-  function setNodeData(path, data, outgoing, version, mimeType) {
-    return dataStore.transaction(true, function(transaction) {
-      return getNode(path, transaction).then(function(node) {
-
-        var oldValue = node.data;
-
-        node.data = data;
-
-        if(! outgoing) {
-          node.changed = true;
-
-          if(version) {
-            console.log('WARNING: passing a version to setNodeData with outgoing=false has no effect');
-          }
-
-          delete node.error;
-        }
-
-        if(! mimeType) {
-          mimeType = 'application/json';
-        }
-        node.mimeType = mimeType;
-
-        return updateNode(path, (typeof(node.data) !== 'undefined' ? node : undefined), outgoing, false, version, oldValue, transaction).
-          then(function() {
-            transaction.commit();
-          });
-      });      
-    });
-  }
-
-  function setLastSynced(path, timestamp) {
-    logger.info('setLastSynced', path, 'requested');
-    return dataStore.transaction(true, function(transaction) {
-      logger.info('setLastSynced', path, 'started');
-      return getNode(path, transaction).then(function(node) {
-        node.lastUpdatedAt = timestamp;
-        return updateNode(path, node, false, true, undefined, undefined, transaction).
-          then(function() {
-            logger.info('setLastSynced', path, 'done', timestamp);
-            transaction.commit();
-          });
-      });
-    });
-  }
-
-  function removeNode(path, timestamp) {
-    return setNodeData(path, undefined, false);
-  }
-
-  function updateMetadata(path, attributes, node) {
-    function doUpdate(node) {
-      util.extend(node, attributes);
-      return updateNode(path, node, false, true);
-    }
-    if(node) {
-      return doUpdate(node);
-    } else {
-      return getNode(path).then(doUpdate);
-    }
-  }
-
-  function setNodeError(path, error) {
-    return updateMetadata(path, {
-      error: error
-    });
-  }
-
-  // Method: clearDiff
-  //
-  // Clear diff flag of given node on it's parent.
-  //
-  // Recurses upwards, when the parent's diff becomes empty.
-  //
-  // Clearing the diff is usually done, once the changes have been
-  // propagated through sync.
-  //
-  // Parameters:
-  //   path      - absolute path to the node
-  //   timestamp - new timestamp (received from remote) to set on the node.
-  //
-  function clearDiff(path, timestamp) {
-    return getNode(path).then(function(node) {
-
-      function clearDiffOnParent() {
-        var parentPath = util.containingDir(path);
-        if(parentPath) {
-          var baseName = util.baseName(path);
-          return getNode(parentPath).then(function(parent) {
-            delete parent.diff[baseName];
-            if(Object.keys(parent.diff).length === 0) {
-              parent.lastUpdatedAt = parent.timestamp;
-            }
-            return updateNode(parentPath, parent, false, true).then(function() {
-              if(Object.keys(parent.diff).length === 0) {
-                return clearDiff(parentPath, timestamp);
-              }
-            });
-          });
-        }
-      }
-
-      if(util.isDir(path) && Object.keys(node.data).length === 0) {
-        // remove empty dir
-        return updateNode(path, undefined, false, false).then(clearDiffOnParent);
-      } else if(timestamp) {
-        // set last updated
-        node.timestamp = node.lastUpdatedAt = timestamp;
-        return updateNode(path, node, false, true).then(clearDiffOnParent);
-      } else {
-        return clearDiffOnParent();
-      }
-    });
-  }
-
-  // Method: fireInitialEvents
-  //
-  // Fire a change event with origin=device for each node present in store.
-  //
-  // This is so apps don't need to add event handlers *and* initially request
-  // listings to fill their views.
-  //
-  function fireInitialEvents() {
-    logger.info('fire initial events');
-
-    function iter(path) {
-      if(util.isDir(path)) {
-        return getNode(path).then(function(node) {
-          if(node.data) {
-            var keys = Object.keys(node.data);
-            var next = function() {
-              if(keys.length > 0) {
-                return iter(path + keys.shift()).then(next);
-              }
-            };
-            return next();
-          }
-        });
-      } else {
-        return fireChange('device', path);
-      }
-    }
-
-    return iter('/');
-  }
-
-  function getFileName(path) {
-    var parts = path.split('/');
-    if(util.isDir(path)) {
-      return parts[parts.length-2]+'/';
-    } else {
-      return parts[parts.length-1];
-    }
-  }
-
-  function getCurrTimestamp() {
-    return new Date().getTime();
-  }
-
-  function validPath(path) {
-    if(! (path[0] == '/' || userAddressRE.test(path))) {
-      throw new Error("Invalid path: " + path);
-    }
-  }
-
-  function isForeign(path) {
-    return path[0] != '/';
-  }
-
-  function touchNode(path, version) {
-    return dataStore.transaction(true, function(transaction) {
-      return getNode(path, transaction).then(function(node) {
-        return updateNode(
-          path, node, false, false, version, undefined, transaction
-        ).then(transaction.commit);
-      });
-    });
-  }
-
-  // FIXME: this argument list is getting too long!!!
-  function updateNode(path, node, outgoing, meta, version, oldValue,
-                      transaction) {
-    logger.debug('updateNode', path, node, outgoing, meta, version);
-
-    validPath(path);
-
-    if(! version) {
-      version = node.version;
-    }
-
-    function storeNode(transaction) {
-      if(node) {
-        return transaction.set(path, node);
-      } else {
-        return transaction.remove(path);
-      }
-    }
-
-    function updateParent(transaction) {
-      var parentPath = util.containingDir(path);
-      var baseName = util.baseName(path);
-      if(parentPath) {
-        return getNode(parentPath, transaction).
-          then(function(parent) {
-            if(meta) { // META
-              if(! parent.data[baseName]) {
-                parent.data[baseName] = 0;
-                return updateNode(parentPath, parent, false, true, version, undefined, transaction);
-              }
-            } else if(outgoing) { // OUTGOING
-              if(node) {
-                parent.data[baseName] = version;
-              } else {
-                delete parent.data[baseName];
-              }
-              parent.diff[baseName] = version;
-              return updateNode(parentPath, parent, true, false, version, undefined, transaction);
-            } else { // INCOMING
-              if(node) { // add or change
-                if((! parent.data[baseName]) || parent.data[baseName] !== version) {
-                  parent.data[baseName] = version;
-                  delete parent.diff[baseName];
-                  return updateNode(parentPath, parent, false, false, version, undefined, transaction);
-                }
-              } else { // deletion
-                delete parent.data[baseName];
-                delete parent.diff[baseName];
-                return updateNode(parentPath, parent, false, false, version, undefined, transaction);
-              }
-            }
-          });
-      }
-    }
-
-    function fireEvents() {
-      if((!meta) && (! outgoing) && (! util.isDir(path))) {
-        // fire changes
-        if(isForeign(path)) {
-          return fireForeignChange(path, oldValue);
-        } else {
-          return fireChange('remote', path, oldValue);
-        }
-      }
-    }
-
-    function doUpdate(transaction, dontCommit) {
-      return storeNode(transaction).
-        then(util.curry(updateParent, transaction)).
-        then(function() {
-          if(! dontCommit) {
-            transaction.commit();
-          }
-        }).
-        then(fireEvents);
-    }
-
-    if(transaction) {
-      return doUpdate(transaction, true);
-    } else {
-      return dataStore.transaction(true, doUpdate);
-    }
-  }
-
-  return {
-
-    // get: function(path) {
-    //   return getNode(path);
-    // },
-
-    // set: function(path, data, version) {
-    //   return dataStore.transaction(true, function(transaction) {
-    //     getNode(path, transaction).then(function(node) {
-    //       node.data = data;
-    //       if(version) {
-    //         node.version = version;
-    //       } else {
-    //         node.changed = true;
-    //       }
-    //       return transaction.store(path, node);
-    //     }).then(function() {
-    //       if(version) {
-    //         return updateParents();
-    //       }
-    //     }).then(transaction.commit);
-    //   });
-    // },
-
-    // remove: function() {
-      
-    // },
-
-    memory: memoryAdapter,
-    localStorage: localStorageAdapter,
-    pending: pendingAdapter,
-
-    events: events,
-
-    // method         , local              , used by
-
-    getNode           : getNode,          // sync
-    setNodeData       : setNodeData,      // sync
-    clearDiff         : clearDiff,        // sync
-    removeNode        : removeNode,       // sync
-    setLastSynced     : setLastSynced,    // sync
-    touchNode         : touchNode,        // sync
-
-    on                : events.on,
-    emit              : events.emit,
-    setNodeError      : setNodeError,
-
-    forgetAll         : forgetAll,        // widget
-    fireInitialEvents : fireInitialEvents,// widget
-
-    setAdapter        : setAdapter,
-    getAdapter        : function() { return dataStore; }
   };
-
-  // Interface: StorageAdapter
-  //
-  // Backend for the <store>.
-  //
-  // Currently supported:
-  // * memory
-  // * localStorage
-  // * indexedDB
-  //
-  // Planned:
-  // * WebSQL
-  //
-  // Method: get(path)
-  // Get node from given path
-  // Returns a promise.
-  //
-  // Method: set(path, node)
-  // Create / update node at given path. See <store.Node> for a reference on how nodes look.
-  // Returns a promise.
-  //
-  // Method: remove(path)
-  // Remove node from given path
-  // Returns a promise.
-  //
-  // Method: forgetAll()
-  // Remove all data.
-  // Returns a promise.
-  //
-  // Method: on(eventName)
-  // Install an event handler.
-  //
-  // Event: change
-  // Fired when the store changes from another source (such as another tab / window).
-  //
 
 });
