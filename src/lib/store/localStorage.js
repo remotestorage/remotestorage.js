@@ -20,7 +20,7 @@ define(['../util', './common', './transactions'], function(util, common, Transac
     );
 
     /**
-     * Attribute: transactions
+     * Property: transactions
      * A <Transactions> instance.
      */
     this.transactions = new Transactions();

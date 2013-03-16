@@ -46,17 +46,21 @@ define(['../util'], function(util) {
   };
 
   /**
-   * Error: Store.Transactions.AlreadyCommitted
+   * Class: Store.Transactions.AlreadyCommitted
    *
    * Thrown when get / set / remove is called on a <Store.Transactions.Transaction>
    * that is already committed.
-   *
-   * Attributes:
-   *   method - The method that was attempted. 
-   *   path   - The path passed to the method. 
    */
   util.declareError(Transactions, 'AlreadyCommitted', function(method, path) {
+    /**
+     * Property: method
+     *   The method that was attempted. 
+     */
     this.method = method;
+    /**
+     * Property: path
+     *   The path passed to the method. 
+     */
     this.path = path;
     return "Can't process " + method + "(" + path + ")  request, transaction already committed!";
   });

@@ -1,15 +1,34 @@
 define(['../util'], function(util) {
   
+  /**
+   * Class: LocalStore
+   *
+   * Manages directory listings and provides a <Store> interface.
+   * Forwards all requests to it's <backend>, which is expected to
+   * implement the <Store> and <Store.Transactions> interfaces.
+   */
   var LocalStore = function(backend) {
+    /**
+     * Property: backend
+     * A <Store> implementation to forward to.
+     */
     this.backend = backend;
   };
 
   LocalStore.prototype = {
 
+    /**
+     * Method: get
+     * See <Store.get>
+     */
     get: function(path) {
       return this.backend.get(path);
     },
 
+    /**
+     * Method: set
+     * See <Store.set>
+     */
     set: function(path, node) {
       return this.backend.transaction(util.bind(function(transaction) {
         transaction.set(path, node).
@@ -24,6 +43,10 @@ define(['../util'], function(util) {
       }, this));
     },
     
+    /**
+     * Method: remove
+     * See <Store.remove>
+     */
     remove: function(path) {
       return this.backend.transaction(util.bind(function(transaction) {
         transaction.remove(path).
