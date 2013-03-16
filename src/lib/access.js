@@ -32,7 +32,7 @@ define([], function() {
 
     check: function(scope, mode) {
       var actualMode = this.get(scope);
-      return actualMode && (mode === 'r' || actualMode === 'rw');
+      return actualMode && (mode ? (mode === 'r' || actualMode === 'rw') : actualMode);
     },
 
     reset: function() {

@@ -65,6 +65,13 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
+        desc: "#check returns the mode, with no mode given",
+        run: function(env, test) {
+          test.assert(env.access.check('b'), 'rw');
+        }
+      },
+
+      {
         desc: "#rootPaths contain correct private paths",
         run: function(env, test) {
           test.assertFailAnd(env.access.rootPaths.indexOf('/a/'), -1);
