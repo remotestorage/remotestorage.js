@@ -28,7 +28,7 @@ define([
     this.caching = caching;
 
     /**
-     * Attribute: state
+     * Property: state
      * Currently equal to the state of the 'remote' store
      */
     this.__defineGetter__('state', function() {
@@ -53,6 +53,10 @@ define([
         }.bind(this));
     },
     
+    /**
+     * Method: set
+     * See <Store.set>
+     */
     set: function(path, node) {
       return this.remote.set(path, node).
         then(undefined, function(error) {
@@ -64,6 +68,10 @@ define([
         }.bind(this));
     },
 
+    /**
+     * Method: remove
+     * See <Store.remove>
+     */
     remove: function(path) {
       return this.remote.remove(path).
         then(undefined, function(error) {
@@ -75,10 +83,18 @@ define([
         }.bind(this));
     },
 
+    /**
+     * Method: configure
+     * Forwarded to <RemoteStore.configure>
+     */
     configure: function(config) {
       this.remote.configure(config);
     },
 
+    /**
+     * Method: reset
+     * Forwarded to <RemoteStore.reset>
+     */
     reset: function() {
       this.remote.reset();
     }
