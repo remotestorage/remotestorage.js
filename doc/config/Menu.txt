@@ -70,12 +70,19 @@ Group: Guides  {
 
 Group: API  {
 
+   Group: Settings  {
+
+      File: Access  (/home/nil/src/remoteStorage.js/src/lib/access.js)
+      File: Caching  (/home/nil/src/remoteStorage.js/src/lib/caching.js)
+      }  # Group: Settings
+
    Group: Stores  {
 
       File: Store Interface  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/store.js)
       File: Local  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/store/local.js)
       File: Remote  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/store/remote.js)
       File: Fallback  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/store/fallback.js)
+      File: Sync  (/home/nil/src/remoteStorage.js/src/lib/store/sync.js)
       File: LocalStorage  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/store/localStorage.js)
       File: Transactions  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/store/transactions.js)
       }  # Group: Stores
@@ -93,12 +100,13 @@ Group: API  {
    Group: Lib  {
 
       File: BaseClient  (/home/nil/src/remoteStorage.js/src/lib/baseClient.js)
-      File: caching.js  (/home/nil/src/remoteStorage.js/src/lib/caching.js)
+      File: Controller  (/home/nil/src/remoteStorage.js/src/lib/controller.js)
       File: ForeignClient  (/home/nil/src/remoteStorage.js/src/lib/foreignClient.js)
       File: i18n  (/home/nil/src/remoteStorage.js/src/lib/i18n.js)
       File: modules.js  (/home/nil/src/remoteStorage.js/src/lib/modules.js)
       File: nodeConnect  (/home/nil/src/remoteStorage.js/src/lib/nodeConnect.js)
       File: platform  (/home/nil/src/remoteStorage.js/src/lib/platform.js)
+      File: Sync  (/home/nil/src/remoteStorage.js/src/lib/sync.js)
       File: util  (/home/nil/src/remoteStorage.js/src/lib/util.js)
       File: webfinger  (/home/nil/src/remoteStorage.js/src/lib/webfinger.js)
       File: widget  (/home/nil/src/remoteStorage.js/src/lib/widget.js)

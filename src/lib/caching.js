@@ -4,6 +4,21 @@ define(['./util'], function(util) {
 
   "use strict";
 
+  /**
+   * Class: Caching
+   *
+   * Handles caching settings.
+   *
+   * How does this work?:
+   * - <Caching> holds a list of paths and their corresponding caching settings.
+   * - <get>, <set> and <remove> operate on this list of paths.
+   * - <descendIntoPath> can then tell you if a sync process should descend into the
+   *   given path or ignore it.
+   * - <cachePath> can then tell the sync process whether a given file or directory
+   *   node should be cached locally or only pushed to remote.
+   * - <descendIntoPath> and <cachePath> can operate on arbitrary paths and match them
+   *   with the list of configured path to figure out ideal settings.
+   */
   var Caching = function() {
     this.reset();
   };
@@ -11,14 +26,28 @@ define(['./util'], function(util) {
   Caching.prototype = {
 
     /**
+     * Property: rootPaths
+     *
+     * An Array of paths to give <Sync> a place to start.
+     */
+
+    /**
      ** configuration methods
      **/
 
+    /**
+     * Method: get
+     * Retrieve settings for given path.
+     */
     get: function(path) {
       this._validateDirPath(path);
       return this._pathSettingsMap[path];
     },
 
+    /**
+     * Method: set
+     * Update caching settings for given path.
+     */
     set: function(path, settings) {
       this._validateDirPath(path);
       if(typeof(settings) !== 'object') {
@@ -28,12 +57,20 @@ define(['./util'], function(util) {
       this._updateRoots();
     },
 
+    /**
+     * Method: remove
+     * Remove all caching settings from given path.
+     */
     remove: function(path) {
       this._validateDirPath(path);
       delete this._pathSettingsMap[path];
       this._updateRoots();
     },
 
+    /**
+     * Method: reset
+     * Reset the state to the initial state (i.e. cache nothing).
+     */
     reset: function() {
       this.rootPaths = [];
       this._pathSettingsMap = {};
@@ -43,21 +80,25 @@ define(['./util'], function(util) {
      ** query methods
      **/
 
-    // Method: descendIntoPath
-    //
-    // Checks if the given directory path should be followed.
-    //
-    // Returns: true or false
+    /**
+     * Method: descendIntoPath
+     *
+     * Checks if the given directory path should be followed.
+     *
+     * Returns: true or false
+     */
     descendIntoPath: function(path) {
       this._validateDirPath(path);
       return !! this._query(path);
     },
 
-    // Method: cachePath
-    //
-    // Checks if given path should be cached.
-    //
-    // Returns: true or false
+    /**
+     * Method: cachePath
+     *
+     * Checks if given path should be cached.
+     *
+     * Returns: true or false
+     */
     cachePath: function(path) {
       this._validatePath(path);
       var settings = this._query(path);

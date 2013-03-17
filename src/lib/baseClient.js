@@ -1,11 +1,9 @@
 define([
   './util',
-  './store',
-  './wireClient',
   './sync',
   '../vendor/validate',
   '../vendor/Math.uuid'
-], function(util, store, wireClient, sync, validate, MathUUID) {
+], function(util, sync, validate, MathUUID) {
 
   "use strict";
 
@@ -59,30 +57,30 @@ define([
     globalEvents.emit('error', error);
   }
 
-  store.on('change', function(event) {
-    var moduleName = extractModuleName(event.path);
-    // remote-based changes get fired from the store.
-    fireModuleEvent('change', moduleName, event);
-    if(moduleName !== 'root') {
-      // root module gets everything
-      fireModuleEvent('change', 'root', event);
-    }
-  });
+  // store.on('change', function(event) {
+  //   var moduleName = extractModuleName(event.path);
+  //   // remote-based changes get fired from the store.
+  //   fireModuleEvent('change', moduleName, event);
+  //   if(moduleName !== 'root') {
+  //     // root module gets everything
+  //     fireModuleEvent('change', 'root', event);
+  //   }
+  // });
 
-  sync.on('conflict', function(event) {
-    var moduleName = extractModuleName(event.path);
-    var isPublic = isPublicRE.test(event.path);
-    var eventEmitter = moduleEvents[moduleName] && moduleEvents[moduleName][isPublic];
-    var rootEmitter = moduleEvents.root && moduleEvents.root[isPublic];
-    if(eventEmitter && eventEmitter.hasHandler('conflict')) {
-      fireModuleEvent('conflict', moduleName, event);
-      fireModuleEvent('conflict', 'root', event);
-    } else if(rootEmitter && rootEmitter.hasHandler('conflict')) {
-      fireModuleEvent('conflict', 'root', event);
-    } else {
-      event.resolve('remote');
-    }
-  });
+  // sync.on('conflict', function(event) {
+  //   var moduleName = extractModuleName(event.path);
+  //   var isPublic = isPublicRE.test(event.path);
+  //   var eventEmitter = moduleEvents[moduleName] && moduleEvents[moduleName][isPublic];
+  //   var rootEmitter = moduleEvents.root && moduleEvents.root[isPublic];
+  //   if(eventEmitter && eventEmitter.hasHandler('conflict')) {
+  //     fireModuleEvent('conflict', moduleName, event);
+  //     fireModuleEvent('conflict', 'root', event);
+  //   } else if(rootEmitter && rootEmitter.hasHandler('conflict')) {
+  //     fireModuleEvent('conflict', 'root', event);
+  //   } else {
+  //     event.resolve('remote');
+  //   }
+  // });
 
   function failedPromise(error) {
     return util.getPromise().reject(error);
@@ -93,16 +91,16 @@ define([
       return failedPromise(new Error('attempt to set a value to a directory ' + absPath));
     }
     var changeEvent;
-    return store.getNode(absPath).
-      then(function(node) {
+    return this.store.getNode(absPath).
+      then(util.bind(function(node) {
         changeEvent = {
           origin: 'window',
           oldValue: node.data,
           newValue: value,
           path: absPath
         };
-        return store.setNodeData(absPath, value, true, undefined, mimeType);
-      }).then(function() {
+        return this.store.setNodeData(absPath, value, true, undefined, mimeType);
+      }, this)).then(function() {
         fireModuleEvent('change', moduleName, changeEvent);
         if(moduleName !== 'root') {
           fireModuleEvent('change', 'root', changeEvent);
@@ -119,7 +117,8 @@ define([
   /** FROM HERE ON PUBLIC INTERFACE **/
 
   // FIXME: add option for access mode
-  var BaseClient = function(moduleName, isPublic) {
+  var BaseClient = function(moduleName, isPublic, store) {
+    this.store = store;
     if(! moduleName) {
       throw new Error("moduleName is required");
     }
@@ -226,8 +225,8 @@ define([
     //
     lastUpdateOf: function(path) {
       var absPath = this.makePath(path);
-      var node = store.getNode(absPath);
-      return node ? node.timestamp : null;
+      var node = this.store.getNode(absPath);
+      return node ? node.version : null;
     },
 
     //
@@ -420,9 +419,7 @@ define([
     //   path     - Path relative to the module root.
     //
     remove: function(path) {
-      var absPath = this.makePath(path);
-      return set(this.moduleName, path, absPath, undefined).
-        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+      return this.store.remove(this.makePath(path));
     },
 
     // Method: saveObject
@@ -513,8 +510,10 @@ define([
           throw new ValidationError(obj, errors);
         }
       }
-      return set(this.moduleName, path, absPath, obj, 'application/json').
-        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+      return this.store.set(absPath, {
+        mimeType: 'application/json',
+        data: obj
+      });
     },
 
     //
@@ -580,8 +579,10 @@ define([
       }
       var absPath = this.makePath(path);
       if(cache) {
-        return set(this.moduleName, path, absPath, data, mimeType).
-          then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+        return this.store.set(absPath, {
+          mimeType: mimeType,
+          data: data
+        });
       } else {
         return sync.updateDataNode(absPath, {
           mimeType: mimeType,
@@ -620,23 +621,6 @@ define([
         return null;
       }
       return base + this.makePath(path);
-    },
-
-    syncOnce: function(path, callback) {
-      var previousTreeForce = store.getNode(path).startForceTree;
-      this.use(path, false);
-      return sync.partialSync(path, 1).
-        then(util.bind(function() {
-          if(previousTreeForce) {
-            this.use(path, true);
-          } else {
-            this.release(path);
-          }
-          if(callback) {
-            callback();
-          }
-        }, this));
-
     },
 
     //
@@ -685,7 +669,7 @@ define([
         item = util.baseName(absPath);
         absPath = util.containingDir(absPath);
       }
-      return store.getNode(absPath).
+      return this.store.getNode(absPath).
         then(function(node) {
           if(item) {
             return !! node.diff[item];
