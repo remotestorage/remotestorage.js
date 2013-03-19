@@ -104,7 +104,8 @@ define([
 
   function requestToken(authEndpoint) {
     logger.info('requestToken', authEndpoint);
-    var redirectUri = view.getLocation().split('#')[0];
+    var redirectUri = (widgetOptions.redirectUri ||
+                       view.getLocation().split('#')[0]);
     var clientId = util.hostNameFromUri(redirectUri);
     authEndpoint += authEndpoint.indexOf('?') > 0 ? '&' : '?';
     authEndpoint += [

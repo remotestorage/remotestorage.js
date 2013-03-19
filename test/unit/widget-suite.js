@@ -259,6 +259,40 @@ define(['requirejs'], function(requirejs) {
             }, 150);
           });
         }
+      },
+
+      {
+        desc: "#display() allows overriding the redirect_uri through options",
+        run: function(env, test) {
+          env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {
+            redirectUri: 'http://other/place'
+          });
+          env.view.emit('connect', 'foo@bar.baz');
+          util.nextTick(function() {
+            env.fakefinger.shift().promise.fulfill({
+              rel: 'remotestorage',
+              type: 'remotestorage-00',
+              href: 'http://local.dev/storage/me',
+              properties: {
+                'auth-method': '',
+                'auth-endpoint': 'http://local.dev/auth/me'
+              }
+            });
+            setTimeout(function() {
+              var redirectCall = env.view._calls.pop();
+              test.assertAnd(redirectCall.method, 'redirectTo');
+              test.assertAnd(redirectCall.args.length, 1);
+              var url = redirectCall.args[0];
+              test.assertAnd(url.split('?')[0], 'http://local.dev/auth/me');
+              var params = {};
+              url.split('?')[1].split('&').forEach(function(part) {
+                var kv = part.split('=').map(decodeURIComponent);
+                params[kv[0]] = kv[1];
+              });
+              test.assert(params.redirect_uri, 'http://other/place');
+            }, 150);
+          });
+        }
       }
 
     ]
