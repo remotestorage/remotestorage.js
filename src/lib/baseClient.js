@@ -142,7 +142,7 @@ define([
   // See <remoteStorage.defineModule> for details.
   //
   //
-  // Most methods here return promises. See the guide for and introduction: <Promises>
+  // Most methods here return promises. See the guide for an introduction: <Promises>
   //
   BaseClient.prototype = {
 

@@ -29,7 +29,7 @@ define([
   // Provides an interface for defining modules, controlling the widget and configuring
   // access.
   //
-  // Most methods here return promises.  See the guide for and introduction: <Promises>
+  // Most methods here return promises. See the guide for an introduction: <Promises>
   var remoteStorage =  {
 
     //
@@ -220,7 +220,7 @@ define([
     //   > remoteStorage.claimAccess('contacts', 'r').then(remoteStorage.displayWidget).then(initApp);
     //
     // Returns:
-    //   a Promise, fulfilled when the access has been claimed.
+    //   A Promise, fulfilled when the access has been claimed.
     //
     // FIXME: this method is currently asynchronous due to internal design issues, but it doesn't need to be.
     //
@@ -239,7 +239,7 @@ define([
     //   > }).then(remoteStorage.displayWidget).then(initApp);
     //
     // Returns:
-    //   a Promise, fulfilled when the access has been claimed.
+    //   A Promise, fulfilled when the access has been claimed.
     //
     // FIXME: this method is currently asynchronous due to internal design issues, but it doesn't need to be.
     //
@@ -353,7 +353,7 @@ define([
     // interested in.
     //
     // Returns:
-    //   a Promise.
+    //   A Promise.
     //
     // If you are interested when the sync is done, or if there were any errors,
     // chain to the promise as shown below.
