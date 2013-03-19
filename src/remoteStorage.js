@@ -377,7 +377,7 @@ define([
     //
     // Method: setWidgetView
     //
-    // Set the view object to use by the widget. By default remoteStorage uses it's
+    // Set the view object to use by the widget. By default remoteStorage.js uses it's
     // own default view. The default view is designed to work in a browser. If you
     // are using any other platform, you need to implement your own view. See the
     // interface documentation for <WidgetView> for a description of the methods and
