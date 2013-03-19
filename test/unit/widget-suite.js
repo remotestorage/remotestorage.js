@@ -222,6 +222,43 @@ define(['requirejs'], function(requirejs) {
             });
           });
         }
+      },
+
+      {
+        desc: "#display() redirects correctly after the webfinger discovery",
+        run: function(env, test) {
+          env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {});
+          env.view.emit('connect', 'foo@bar.baz');
+          util.nextTick(function() {
+            env.fakefinger.shift().promise.fulfill({
+              rel: 'remotestorage',
+              type: 'remotestorage-00',
+              href: 'http://local.dev/storage/me',
+              properties: {
+                'auth-method': '',
+                'auth-endpoint': 'http://local.dev/auth/me'
+              }
+            });
+            setTimeout(function() {
+              var redirectCall = env.view._calls.pop();
+              test.assertAnd(redirectCall.method, 'redirectTo');
+              test.assertAnd(redirectCall.args.length, 1);
+              var url = redirectCall.args[0];
+              test.assertAnd(url.split('?')[0], 'http://local.dev/auth/me');
+              var params = {};
+              url.split('?')[1].split('&').forEach(function(part) {
+                var kv = part.split('=').map(decodeURIComponent);
+                params[kv[0]] = kv[1];
+              });
+              // the result from getLocation
+              test.assertAnd(params.redirect_uri, 'http://test.host/');
+              // determined through env.fakeRemoteStorage
+              test.assertAnd(params.scope, 'foo:rw');
+              test.assertAnd(params.response_type, 'token');
+              test.done();
+            }, 150);
+          });
+        }
       }
 
     ]
