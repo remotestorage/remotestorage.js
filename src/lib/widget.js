@@ -131,7 +131,6 @@ define([
       then(function(storageInfo) {
         return requestToken(storageInfo.properties['auth-endpoint']);
       }).
-      then(requestToken).
       then(schedule.enable, util.curry(setState, 'error'));
   }
 
