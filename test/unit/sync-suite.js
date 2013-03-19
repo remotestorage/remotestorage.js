@@ -5,373 +5,309 @@ define(['requirejs'], function(requirejs) {
   var suites = [];
 
   var util;
+  var Sync, Caching, Access;
 
   suites.push({
-    name: "sync internals",
-    desc: "synchronizes remote storage and local cache",
-    setup: function(env) {
-      var _this = this;
+    name: "Sync",
+    desc: "provides synchronization between two stores",
+    setup: function(env, test) {
       requirejs([
         './src/lib/util',
-        './src/lib/store',
         './src/lib/sync',
-        './src/lib/store/memory'
-      ], function(_util, store, sync, memoryAdapter) {
+        './src/lib/caching',
+        './src/lib/access',
+      ], function(_util, _Sync, _Caching, _Access) {
         util = _util;
-        env.store = store;
-        env.store.setAdapter(memoryAdapter());
-        env.sync = sync;
-        env.remoteAdapter = memoryAdapter();
-        env.remoteAdapter.getState = function() { return 'connected'; };
-        env.remoteAdapter.expireKey = function() {};
-        env.remoteAdapter.clearCache = function() {
-          return env.remoteAdapter.forgetAll();
-        };
-        env.conflicts = [];
-        env.sync.on('conflict', function(event) {
-          env.conflicts.push(event);
-        });
-        _this.result(true);
+        Sync = _Sync;
+        Caching = _Caching;
+        Access = _Access;
+        test.result(true);
       });
     },
-    beforeEach: function(env) {
-      var _this = this;
-      if(env.conflicts.length > 0) {
-        console.error("UNRESOLVED CONFLICTS: ", env.conflicts);
-        this.result(false);
-        return;
-      }
-      try {
-        env.store.forgetAll().
-          then(env.remoteAdapter.forgetAll.bind(env.remoteAdapter)).
-          then(util.curry(this.result.bind(this), true));
-      } catch(exc) {
-        console.error(exc.stack);
-      }
+
+    beforeEach: function(env, test) {
+      env.controller = {
+        platform: {
+          http: function() {},
+          localStore: {}
+        },
+        caching: new Caching(),
+        access: new Access()
+      };
+      env.sync = new Sync(env.controller);
+      test.result(true);
     },
+
     tests: [
 
       {
-        desc: "sync~findRoots works for the root node",
-        run: function(env) {
-          var _this = this;
-          var findRoots = env.sync.getInternal('findRoots');
-          env.store.setNodeAccess('/', 'rw').
-            then(findRoots).
-            then(function(roots) {
-              _this.assert(roots, ['/']);
-            }, function(error) {
-              console.error('findRoots failed', error);
-              _this.result(false);
-            });
+        desc: "initializes a remote store",
+        run: function(env, test) {
+          test.assertTypeAnd(env.sync.remote, 'object');
+          test.assertTypeAnd(env.sync.remote.get, 'function');
+          test.assertTypeAnd(env.sync.remote.set, 'function');
+          test.assertType(env.sync.remote.remove, 'function');
         }
       },
 
       {
-        desc: "sync~findRoots works for top-level nodes",
-        run: function(env) {
-          var _this = this;
-          var findRoots = env.sync.getInternal('findRoots');
-          env.store.setNodeAccess('/foo/', 'rw').
-            then(function() {
-              return env.store.setNodeAccess('/public/foo/', 'rw');
-            }).
-            then(findRoots).
-            then(function(roots) {
-              _this.assert(roots, ['/foo/', '/public/foo/']);
-            }, function(error) {
-              console.error("findRoots failed", error);
-              _this.result(false);
-            });
+        desc: "initializes a local store",
+        run: function(env, test) {
+          test.assertTypeAnd(env.sync.local, 'object');
+          test.assertTypeAnd(env.sync.local.get, 'function');
+          test.assertTypeAnd(env.sync.local.set, 'function');
+          test.assertType(env.sync.local.remove, 'function');
         }
       },
 
       {
-        desc: "sync~findAccess works for direct access nodes",
-        run: function(env) {
-          var _this = this;
-          var findAccess = env.sync.getInternal('findAccess');
-          env.store.setNodeAccess('/foo/', 'r').
-            then(function() {
-              return findAccess('/foo/');
-            }).then(function(access) {
-              _this.assert(access, 'r');
-            }, function(error) {
-              console.error('findAccess failed', error);
-              _this.result(false);
-            });
+        desc: "#get() forwards to remote store, when caching is disabled",
+        run: function(env, test) {
+          env.sync.remote.get = function(path) {
+            test.assert(path, '/foo');
+          };
+          env.sync.get('/foo');
         }
       },
 
       {
-        desc: "sync~findAccess works for deeply nested nodes",
-        run: function(env) {
-          var _this = this;
-          var findAccess = env.sync.getInternal('findAccess');
-          env.store.setNodeAccess('/foo/', 'rw').
-            then(function() {
-              return findAccess('/foo/bar/baz/blubb');
-            }).then(function(access) {
-              _this.assert(access, 'rw');
-            }, function(error) {
-              console.error('findAccess failed', error);
-              _this.result(false);
-            });
-        }
-      },
-
-      {
-        desc: "sync~findNextForceRoots finds direct descendents",
-        run: function(env) {
-          var _this = this;
-          var findNextForceRoots = env.sync.getInternal('findNextForceRoots');
-          env.store.setNodeForce('/foo/bar/', true, true).
-            then(function() {
-              return env.store.setNodeForce('/foo/baz/', false, true);
-            }).
-            then(util.curry(findNextForceRoots, '/foo/')).
-            then(function(roots) {
-              _this.assert(roots, ['/foo/bar/', '/foo/baz/']);
-            }, function(error) {
-              console.error('findNextForceRoots failed', error);
-              _this.result(false);
-            });
-        }
-      },
-
-      {
-        desc: "sync~findNextForceRoots finds nested nodes on different levels",
-        run: function(env) {
-          var _this = this;
-          var findNextForceRoots = env.sync.getInternal('findNextForceRoots');
-          env.store.setNodeForce('/foo/bar/baz/', true, true).
-            then(function() {
-              return env.store.setNodeForce('/foo/a/b/c/d/', true, true);
-            }).
-            then(util.curry(findNextForceRoots, '/foo/')).
-            then(function(roots) {
-              _this.assert(roots, ['/foo/bar/baz/', '/foo/a/b/c/d/']);
-            }, function(error) {
-              console.error('findNextForceRoots failed', error);
-              _this.result(false);
-            });
-        }
-      },
-
-      {
-        desc: "sync~traverseTree yields each local and remote node",
-        run: function(env) {
-          util.silenceLogger('store::memory');
-          util.setLogLevel('debug');
-          var _this = this;
-          var traverseTree = env.sync.getInternal('traverseTree');
-          // env.sync.setRemoteAdapter(env.remoteAdapter);
-          util.getPromise(function(promise) {
-            env.remoteAdapter.init({
-              'a' : {
-                'a' : { 'x' : 'foo' },
-                'b' : { 'y' : 'bar' },
-                'z' : 'baz'
-              }
-            }, 'text/plain', 12345, { '/a/' : 'rw' });
-            
-            env.sync.setRemoteAdapter(env.remoteAdapter);
-
-            var calls = [];
-
-            env.store.setNodeForce('/a/', true, true).
-              then(function() {
-                return traverseTree('/a/', function(local, remote) {
-                  calls.push([local, remote]);
-                });
-              }).
-              then(function() {
-                _this.assertAnd(calls.length, 3);
-                calls = calls.map(function(call) { return call[0]; });
-                _this.assert(
-                  calls.sort(),
-                  ['/a/a/x', '/a/b/y', '/a/z']
-                );
-              }, function(error) {
-                console.error("caught error in test: ", error, error.stack);
-                _this.result(false);
-              });
-            
-          });
-        }
-      },
-
-      {
-        desc: "sync~processNode updates remote nodes",
-        run: function(env) {
-          var _this = this;
-          var processNode = env.sync.getInternal('processNode');
-          env.remoteAdapter.init({}, undefined, undefined, {});
-          env.sync.setRemoteAdapter(env.remoteAdapter);
-          env.store.setNodeData('/foo/bar', 'some text', true, 12345, 'text/plain').
-            // make sure that diff was set.
-            then(function() {
-              return env.store.getNode('/foo/');
-            }).then(function(parentNode) {
-              _this.assertAnd(parentNode.diff, { 'bar': 12345 });
-            }).then(function() {
-              return env.store.getNode('/foo/bar');
-            }).then(function(localNode) {
-              return processNode('/foo/bar', localNode, { timestamp: 0 });
-            }).then(function() {
-              return env.remoteAdapter.get('/foo/bar');
-            }).then(function(remoteNode) {
-              // check remote node
-              _this.assertTypeAnd(remoteNode, 'object');
-              _this.assertAnd(remoteNode.timestamp, 12345);
-              _this.assertAnd(remoteNode.data, 'some text');
-              _this.assertAnd(remoteNode.mimeType, 'text/plain');
-              // check that diff was cleared.
-              return env.store.getNode('/foo/');
-            }).then(function(parentNode) {
-              _this.assert(parentNode.diff, {});
-            }, function(error) {
-              console.error("processNode failed: ", error, error.stack);
-              _this.result(false);
-            });
-        }
-      },
-
-      {
-        desc: "sync~processNode updates local nodes",
-        run: function(env) {
-          var _this = this;
-          var processNode = env.sync.getInternal('processNode');
-          env.remoteAdapter.init({}, undefined, undefined, {});
-          env.sync.setRemoteAdapter(env.remoteAdapter);
-          processNode('/foo/bar', { // local
-            timestamp: 0,
-            lastUpdatedAt: 0,
-            deleted: false
-          }, { // remote
-            timestamp: 12345,
-            data: 'some text',
+        desc: "#set() forwards to remote store, when caching is disabled",
+        run: function(env, test) {
+          var testNode = {
             mimeType: 'text/plain',
-            binary: false
-          }).then(function() {
-            return env.store.getNode('/foo/bar');
-          }).then(function(localNode) {
-            _this.assertAnd(localNode.timestamp, 12345);
-            _this.assertAnd(localNode.data, 'some text');
-            _this.assert(localNode.mimeType, 'text/plain');
-          }, function(error) {
-            console.error("processNode failed: ", error, error.stack);
-            _this.result(false);
+            data: 'hello'
+          };
+          env.sync.remote.set = function(path, node) {
+            test.assertAnd(path, '/foo');
+            test.assert(node, testNode);
+          };
+          env.sync.set('/foo', testNode);
+        }
+      },
+
+      {
+        desc: "#remove() forwards to remote store, when caching is disabled",
+        run: function(env, test) {
+          env.sync.remote.remove = function(path) {
+            test.assert('/foo', path);
+          };
+          env.sync.remove('/foo');
+        }
+      },
+
+      {
+        desc: "#get() forwards to the local store, when caching is enabled",
+        run: function(env, test) {
+          env.controller.caching.cachePath = function() { return true; };
+          env.sync.local.get = function(path) {
+            test.assert('/foo', path);
+          };
+          env.sync.get('/foo');
+        }
+      },
+
+      {
+        desc: "#set() forwards to the local and remote store, when caching is enabled",
+        run: function(env, test) {
+          env.controller.caching.cachePath = function() { return true; };
+          var testNode = {
+            mimeType: 'text/plain',
+            data: 'Hello World!'
+          };
+          var localCalled, remoteCalled;
+          env.sync.remote.set = function(path, node) {
+            remoteCalled = true;
+            test.assertAnd(path, '/hello');
+            test.assertAnd(node, testNode);
+            return util.getPromise().fulfill();
+          };
+          env.sync.local.set = function(path, node) {
+            localCalled = true;
+            test.assertAnd(path, '/hello');
+            test.assertAnd(node, testNode);
+            return util.getPromise().fulfill();
+          };
+          env.sync.set('/hello', testNode).
+            then(function() {
+              test.result(localCalled && remoteCalled);
+            });
+        }
+      },
+
+      {
+        desc: "#remove() forwards to the local and remote store, when caching is enabled",
+        run: function(env, test) {
+          env.controller.caching.cachePath = function() { return true; };
+          var localCalled, remoteCalled;
+          env.sync.remote.remove = function(path) {
+            remoteCalled = true;
+            test.assertAnd(path, '/hello');
+            return util.getPromise().fulfill();
+          };
+          env.sync.local.remove = function(path) {
+            localCalled = true;
+            test.assertAnd(path, '/hello');
+            return util.getPromise().fulfill();
+          };
+          env.sync.remove('/hello').then(function() {
+            test.result(localCalled && remoteCalled);
           });
         }
       },
 
       {
-        desc: "sync~processNode deletes remote nodes",
-        run: function(env) {
-          var _this = this;
-          var processNode = env.sync.getInternal('processNode');
-          env.remoteAdapter.init({
-            'foo': {
-              'bar': 'some text'
-            }
-          }, 'text/plain', 12345, {});
-          env.sync.setRemoteAdapter(env.remoteAdapter);
-          env.remoteAdapter.get('/foo/bar').
-            then(function(remoteNode) {
-              return processNode('/foo/bar', { // local
-                timestamp: 23456,
-                lastUpdatedAt: 12345,
-                deleted: true
-              }, remoteNode);
-            }).then(function() {
-              return env.remoteAdapter.get('/foo/bar');
-            }).then(function(remoteNode) {
-              _this.assertType(remoteNode, 'undefined');
-            }, function(error) {
-              console.error("processNode failed: ", error, error.stack);
-              _this.result(false);
+        desc: "#computeSyncSettings() computes the correct paths and modes",
+        run: function(env, test) {
+          env.controller.caching.set('/a/foo/', { data: true });
+          env.controller.caching.set('/a/bar/', { data: true });
+          env.controller.caching.set('/b/', { data: true });
+          env.controller.caching.set('/no-access/', { data: true });
+          env.controller.access.claim('a', 'rw');
+          env.controller.access.claim('b', 'r');
+          test.assert(env.sync.computeSyncSettings(), [
+            { path: '/a/foo/', access: 'rw', caching: { data: true } },
+            { path: '/a/bar/', access: 'rw', caching: { data: true } },
+            { path: '/b/', access: 'r', caching: { data: true } }
+          ]);
+        }
+      },
+
+      {
+        desc: "#syncPath() with full access & caching loads a remote file node and stores it locally",
+        run: function(env, test) {
+          var testNode = {
+            mimeType: 'text/plain',
+            data: 'Hello World!'
+          };
+          var localCalled, remoteCalled;
+          env.sync.remote.get = function(path) {
+            remoteCalled = true;
+            test.assertAnd(path, '/hello');
+            return util.getPromise().fulfill(testNode);
+          };
+          env.sync.local.set = function(path, node) {
+            localCalled = true;
+            test.assertAnd(path, '/hello');
+            test.assertAnd(node, testNode);
+            return util.getPromise().fulfill();
+          };
+          env.sync.syncPath('/hello', 'rw', { data: true }).
+            then(function() {
+              test.result(remoteCalled && localCalled);
             });
         }
       },
 
       {
-        desc: "sync~processNode fires conflict events when both sides are updated",
-        run: function(env) {
-          var _this = this;
-          var processNode = env.sync.getInternal('processNode');
-          env.remoteAdapter.init({
-            'foo': {
-              'bar': 'some-txt'
+        desc: "#syncPath() with full access & caching descends into directories and syncs files",
+        run: function(env, test) {
+          var testDir = {
+            mimeType: 'application/json',
+            data: { 'hello': '123' }
+          };
+          var testFile = {
+            mimeType: 'text/plain',
+            data: 'Hello World!',
+            version: '123'
+          };
+          var localCalled, remoteCalled;
+          env.sync.remote.get = function(path) {
+            var promise = util.getPromise();
+            if(path === '/test/') {
+              return promise.fulfill(testDir);
+            } else if(path === '/test/hello') {
+              remoteCalled = true;
+              return promise.fulfill(testFile);
+            } else {
+              test.result(false, "didn't expect remote to be asked for '" + path + "'");
             }
-          }, 'text/plain', 23456, {});
-          env.sync.setRemoteAdapter(env.remoteAdapter);
-          env.remoteAdapter.get('/foo/bar').
-            then(function(remoteNode) {
-              return processNode('/foo/bar', {
-                timestamp: 34567,
-                lastUpdatedAt: 12345,
-                deleted: false,
-                data: 'some-local-text',
-                mimeType: 'text/plain'
-              }, remoteNode);
-            }).then(function() {
-              _this.assertAnd(env.conflicts.length, 1);
-              var conflict = env.conflicts.shift();
-              _this.assertAnd(conflict.path, '/foo/bar');
-              _this.assertAnd(conflict.remoteTime, new Date(23456));
-              _this.assertAnd(conflict.localTime, new Date(34567));
-              _this.assert(true, true);
-            }, function(error) {
-              console.error("processNode failed: ", error, error.stack);
-              _this.result(false);
-            });
-        }
-      },
-      
-      {
-        desc: "sync~needsSync yields true, when there is a diff",
-        run: function(env) {
-          var _this = this;
-          var needsSync = env.sync.getInternal('needsSync');
-          env.store.setNodeAccess('/foo/', 'rw').
+          };
+          env.sync.local.set = function(path, node) {
+            if(path === '/test/') {
+              test.result(false, "directory nodes should not be set!");
+            } else if(path === '/test/hello') {
+              localCalled = true;
+              test.assertAnd(node, testFile);
+            } else {
+              test.result(false, "didn't expect local to be given a node for '" + path + "'");
+            }
+            return util.getPromise().fulfill();
+          };
+          env.sync.syncPath('/test/', 'rw', { data: true }).
             then(function() {
-              return env.store.setNodeData(
-                '/foo/bar', 'some-text', true, 12345, 'text/plain'
-              );
-            }).
-            then(function() {
-              return needsSync();
-            }).
-            then(function(result) {
-              _this.result(result);
-            }, function(error) {
-              console.error('needsSync failed: ', error, error.stack);
-              _this.result(false);
+              test.result(localCalled && remoteCalled);
             });
         }
       },
 
       {
-        desc: "sync~needsSync yields false, when there is no diff",
-        run: function(env) {
-          var _this = this;
-          var needsSync = env.sync.getInternal('needsSync');
-          env.store.setNodeAccess('/foo/', 'rw').
+        desc: "#syncPath() with tree-only caching doesn't GET files from remote, but still stores the version locally",
+        run: function(env, test) {
+          var testDir = {
+            mimeType: 'application/json',
+            data: { 'hello': '123' }
+          };
+          var localCalled, remoteCalled;
+          env.sync.remote.get = function(path) {
+            var promise = util.getPromise();
+            if(path === '/test/') {
+              remoteCalled = true;
+              return promise.fulfill(testDir);
+            } else if(path === '/test/hello') {
+              test.result(false, "remote was asked for a file");
+            } else {
+              test.result(false, "didn't expect remote to be asked for '" + path + "'");
+            }
+          };
+          env.sync.local.set = function(path, node) {
+            if(path === '/test/') {
+              test.assertAnd(node, testDir);
+            } else if(path === '/test/hello') {
+              test.assertAnd(node, {
+                version: '123'
+              });
+              localCalled = true;
+            } else {
+              test.result(false, "didn't expect local to be given a node for '" + path + "'");
+            }
+            return util.getPromise().fulfill();
+          };
+          env.sync.syncPath('/test/', 'rw', { data: false }).
             then(function() {
-              return env.store.setNodeData(
-                '/foo/bar', 'some-text', false, 12345, 'text/plain'
-              );
-            }).
-            then(function() {
-              return needsSync();
-            }).
-            then(function(result) {
-              _this.result(!result);
-            }, function(error) {
-              console.error('needsSync failed: ', error, error.stack);
-              _this.result(false);
+              test.result(localCalled && remoteCalled);
             });
+        }
+      },
+
+      {
+        desc: "#sync() syncs all paths computed by #computeSyncSettings()",
+        run: function(env, test) {
+          env.controller.caching.set('/a/foo/', { data: true });
+          env.controller.caching.set('/a/bar/', { data: true });
+          env.controller.caching.set('/b/', { data: true });
+          env.controller.caching.set('/no-access/', { data: true });
+          env.controller.access.claim('a', 'rw');
+          env.controller.access.claim('b', 'r');
+          var expected = { '/a/foo/':true, '/a/bar/':true, '/b/':true };
+          env.sync.syncPath = function(path, accessMode, cachingMode) {
+            delete expected[path];
+            if(path === '/a/foo/') {
+              test.assertAnd(accessMode, 'rw');
+              test.assertAnd(cachingMode, { data: true });
+            } else if(path === '/a/bar/') {
+              test.assertAnd(accessMode, 'rw');
+              test.assertAnd(cachingMode, { data: true });
+            } else if(path === '/b/') {
+              test.assertAnd(accessMode, 'r');
+              test.assertAnd(cachingMode, { data: true });
+            } else {
+              test.result(false, "Unexpected path given to #syncPath: " + path);
+            }
+            return util.getPromise().fulfill();
+          };
+          env.sync.sync().then(function() {
+            test.assert(Object.keys(expected).length, 0, "There are still paths left which haven't been synced: " + Object.keys(expected).join(', '));
+          });
         }
       }
 

@@ -1,4 +1,4 @@
-Format: Development Release 12-07-2007 (1.35 base)
+Format: 1.51
 
 
 Title: remoteStorage.js
@@ -56,60 +56,67 @@ Don't Index: Functions, Interfaces, Files, Types, Classes, Build Targets, Events
 
 Group: Intro  {
 
-   File: Overview  (/root/remoteStorage.js/doc/pages/overview.txt)
-   File: Get remoteStorage.js  (no auto-title, /root/remoteStorage.js/doc/pages/download.txt)
+   File: Overview  (/home/nil/src/remoteStorage.js/doc/pages/overview.txt)
+   File: Get remoteStorage.js  (no auto-title, /home/nil/src/remoteStorage.js/doc/pages/download.txt)
    }  # Group: Intro
 
 Group: Guides  {
 
-   File: Adding remoteStorage to your app  (/root/remoteStorage.js/doc/pages/howto-include.txt)
-   File: Howto contribute  (/root/remoteStorage.js/doc/pages/howto-contribute.txt)
-   File: Promises  (/root/remoteStorage.js/doc/pages/promises.txt)
-   File: Working with schemas  (/root/remoteStorage.js/doc/pages/schema.txt)
+   File: Adding remoteStorage to your app  (/home/nil/src/remoteStorage.js/doc/pages/howto-include.txt)
+   File: Howto contribute  (/home/nil/src/remoteStorage.js/doc/pages/howto-contribute.txt)
+   File: Promises  (/home/nil/src/remoteStorage.js/doc/pages/promises.txt)
+   File: Working with schemas  (/home/nil/src/remoteStorage.js/doc/pages/schema.txt)
    }  # Group: Guides
 
 Group: API  {
 
-   Group: Public API  {
+   Group: Settings  {
 
-      File: remoteStorage  (/root/remoteStorage.js/src/remoteStorage.js)
-      File: BaseClient  (/root/remoteStorage.js/src/lib/baseClient.js)
-      }  # Group: Public API
+      File: Access  (/home/nil/src/remoteStorage.js/src/lib/access.js)
+      File: Caching  (/home/nil/src/remoteStorage.js/src/lib/caching.js)
+      }  # Group: Settings
 
-   Group: Modules  {
+   Group: Stores  {
 
-      File: contacts  (no auto-title, /root/remoteStorage.js/src/modules/contacts.js)
-      File: tasks  (no auto-title, /root/remoteStorage.js/src/modules/tasks.js)
-      }  # Group: Modules
+      File: Store Interface  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/store.js)
+      File: Local  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/store/local.js)
+      File: Remote  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/store/remote.js)
+      File: Fallback  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/store/fallback.js)
+      File: Sync  (/home/nil/src/remoteStorage.js/src/lib/store/sync.js)
+      File: LocalStorage  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/store/localStorage.js)
+      File: Transactions  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/store/transactions.js)
+      }  # Group: Stores
 
-   Group: Internals  {
+   Group: HTTP  {
 
-      File: wireClient  (/root/remoteStorage.js/src/lib/wireClient.js)
-      File: getputdelete  (/root/remoteStorage.js/src/lib/getputdelete.js)
-      File: store  (/root/remoteStorage.js/src/lib/store.js)
-      File: sync  (/root/remoteStorage.js/src/lib/sync.js)
-      File: util  (/root/remoteStorage.js/src/lib/util.js)
-      File: webfinger  (/root/remoteStorage.js/src/lib/webfinger.js)
-      File: platform  (/root/remoteStorage.js/src/lib/platform.js)
-      File: nodeConnect  (/root/remoteStorage.js/src/lib/nodeConnect.js)
-      File: widget  (/root/remoteStorage.js/src/lib/widget.js)
-      File: ForeignClient  (/root/remoteStorage.js/src/lib/foreignClient.js)
-      File: i18n  (/root/remoteStorage.js/src/lib/i18n.js)
+      File: Browser  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/http/browser.js)
+      File: Node  (no auto-title, /home/nil/src/remoteStorage.js/src/lib/http/node.js)
+      }  # Group: HTTP
 
-      Group: Store  {
+   File: RemoteStorage  (/home/nil/src/remoteStorage.js/src/remoteStorage.js)
+   File: remoteStorage.contacts  (/home/nil/src/remoteStorage.js/src/modules/contacts.js)
+   File: remoteStorage.tasks  (/home/nil/src/remoteStorage.js/src/modules/tasks.js)
 
-         File: store.localStorage  (/root/remoteStorage.js/src/lib/store/localStorage.js)
-         File: store.memory  (/root/remoteStorage.js/src/lib/store/memory.js)
-         File: syncTranscation  (/root/remoteStorage.js/src/lib/store/syncTransaction.js)
-         }  # Group: Store
+   Group: Lib  {
 
-      File: WidgetView  (/root/remoteStorage.js/src/lib/widget/default.js)
-      }  # Group: Internals
+      File: BaseClient  (/home/nil/src/remoteStorage.js/src/lib/baseClient.js)
+      File: Controller  (/home/nil/src/remoteStorage.js/src/lib/controller.js)
+      File: ForeignClient  (/home/nil/src/remoteStorage.js/src/lib/foreignClient.js)
+      File: i18n  (/home/nil/src/remoteStorage.js/src/lib/i18n.js)
+      File: modules.js  (/home/nil/src/remoteStorage.js/src/lib/modules.js)
+      File: nodeConnect  (/home/nil/src/remoteStorage.js/src/lib/nodeConnect.js)
+      File: platform  (/home/nil/src/remoteStorage.js/src/lib/platform.js)
+      File: Sync  (/home/nil/src/remoteStorage.js/src/lib/sync.js)
+      File: util  (/home/nil/src/remoteStorage.js/src/lib/util.js)
+      File: webfinger  (/home/nil/src/remoteStorage.js/src/lib/webfinger.js)
+      File: widget  (/home/nil/src/remoteStorage.js/src/lib/widget.js)
+      File: WidgetView  (/home/nil/src/remoteStorage.js/src/lib/widget/default.js)
+      }  # Group: Lib
 
    Group: Docs Index  {
 
       Index: Everything
-      Variable Index: Variables
+      Constant Index: Constants
       }  # Group: Docs Index
 
    }  # Group: API
@@ -117,5 +124,5 @@ Group: API  {
 
 
 ##### Do not change or remove these lines. #####
-Data: 1(D3333Huut3HGEutGrtuHp`GMl636H9)
-Data: 1(h3333Huut3HGEutGrtuHp`GMl63fu93Ip`G6)
+Data: 1(D3333RuEG3\8o36H93HGEutGrtuHp`GMl636H9)
+Data: 1(h3333RuEG3\8o36H93HGEutGrtuHp`GMl63fu93Ip`G6)

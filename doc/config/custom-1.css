@@ -189,11 +189,13 @@ a:active, a:hover {
 
 .ContentPage #Menu, .IndexPage #Menu {
   width: 200px !important;
+  background: url(/doc/images/remotestorage.png) no-repeat;
+  background-position: 147px 5px;
 }
 
 .ContentPage, .IndexPage, .FramedMenuPage {
   background-color: #DDD;
-  background: #DDD url(http://remotestorage.io/img/cubes.png) repeat;
+  background: #DDD url(/doc/images/cubes.png) repeat;
 }
 
 #Menu {

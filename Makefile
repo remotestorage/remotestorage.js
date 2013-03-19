@@ -8,7 +8,7 @@ SOURCE_DIR=./src
 ASSETS_DIR=./assets
 ASSETS_OUT=$(SOURCE_DIR)/lib/assets.js
 
-DOC_INPUTS=-i $(SOURCE_DIR) -i ./doc/pages/
+DOC_INPUTS=-i $(SOURCE_DIR) -i ./doc/pages/ -img ./doc/images/
 
 NODEJS=node
 

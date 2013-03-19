@@ -1,17 +1,17 @@
 define([
   './util',
-  './store',
-  './wireClient',
   './sync',
   '../vendor/validate',
   '../vendor/Math.uuid'
-], function(util, store, wireClient, sync, validate, MathUUID) {
+], function(util, sync, validate, MathUUID) {
 
   "use strict";
 
   var logger = util.getLogger('baseClient');
   var globalEvents = util.getEventEmitter('error');
   var moduleEvents = {};
+
+  var caching;
 
   function extractModuleName(path) {
     if (path && typeof(path) == 'string') {
@@ -57,30 +57,30 @@ define([
     globalEvents.emit('error', error);
   }
 
-  store.on('change', function(event) {
-    var moduleName = extractModuleName(event.path);
-    // remote-based changes get fired from the store.
-    fireModuleEvent('change', moduleName, event);
-    if(moduleName !== 'root') {
-      // root module gets everything
-      fireModuleEvent('change', 'root', event);
-    }
-  });
+  // store.on('change', function(event) {
+  //   var moduleName = extractModuleName(event.path);
+  //   // remote-based changes get fired from the store.
+  //   fireModuleEvent('change', moduleName, event);
+  //   if(moduleName !== 'root') {
+  //     // root module gets everything
+  //     fireModuleEvent('change', 'root', event);
+  //   }
+  // });
 
-  sync.on('conflict', function(event) {
-    var moduleName = extractModuleName(event.path);
-    var isPublic = isPublicRE.test(event.path);
-    var eventEmitter = moduleEvents[moduleName] && moduleEvents[moduleName][isPublic];
-    var rootEmitter = moduleEvents.root && moduleEvents.root[isPublic];
-    if(eventEmitter && eventEmitter.hasHandler('conflict')) {
-      fireModuleEvent('conflict', moduleName, event);
-      fireModuleEvent('conflict', 'root', event);
-    } else if(rootEmitter && rootEmitter.hasHandler('conflict')) {
-      fireModuleEvent('conflict', 'root', event);
-    } else {
-      event.resolve('remote');
-    }
-  });
+  // sync.on('conflict', function(event) {
+  //   var moduleName = extractModuleName(event.path);
+  //   var isPublic = isPublicRE.test(event.path);
+  //   var eventEmitter = moduleEvents[moduleName] && moduleEvents[moduleName][isPublic];
+  //   var rootEmitter = moduleEvents.root && moduleEvents.root[isPublic];
+  //   if(eventEmitter && eventEmitter.hasHandler('conflict')) {
+  //     fireModuleEvent('conflict', moduleName, event);
+  //     fireModuleEvent('conflict', 'root', event);
+  //   } else if(rootEmitter && rootEmitter.hasHandler('conflict')) {
+  //     fireModuleEvent('conflict', 'root', event);
+  //   } else {
+  //     event.resolve('remote');
+  //   }
+  // });
 
   function failedPromise(error) {
     return util.getPromise().reject(error);
@@ -91,16 +91,16 @@ define([
       return failedPromise(new Error('attempt to set a value to a directory ' + absPath));
     }
     var changeEvent;
-    return store.getNode(absPath).
-      then(function(node) {
+    return this.store.getNode(absPath).
+      then(util.bind(function(node) {
         changeEvent = {
           origin: 'window',
           oldValue: node.data,
           newValue: value,
           path: absPath
         };
-        return store.setNodeData(absPath, value, true, undefined, mimeType);
-      }).then(function() {
+        return this.store.setNodeData(absPath, value, true, undefined, mimeType);
+      }, this)).then(function() {
         fireModuleEvent('change', moduleName, changeEvent);
         if(moduleName !== 'root') {
           fireModuleEvent('change', 'root', changeEvent);
@@ -116,7 +116,9 @@ define([
 
   /** FROM HERE ON PUBLIC INTERFACE **/
 
-  var BaseClient = function(moduleName, isPublic) {
+  // FIXME: add option for access mode
+  var BaseClient = function(moduleName, isPublic, store) {
+    this.store = store;
     if(! moduleName) {
       throw new Error("moduleName is required");
     }
@@ -200,27 +202,6 @@ define([
       return (this.isPublic ? '/public' + base : base) + path;
     },
 
-    nodeGivesAccess: function(path, mode) {
-      return store.getNode(path).then(util.bind(function(node) {
-        var access = (new RegExp(mode)).test(node.startAccess);
-        if(access) {
-          return true;
-        } else if(path.length > 0) {
-          return this.nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''));
-        }
-      }, this));
-    },
-
-    ensureAccess: function(mode) {
-      var path = this.makePath(this.moduleName == 'root' ? '/' : '');
-
-      return this.nodeGivesAccess(path, mode).then(function(access) {
-        if(! access) {
-          throw "Not sufficient access claimed for node at " + path;
-        }
-      });
-    },
-
     // Method: lastUpdateOf
     // Get the time a node was last updated.
     //
@@ -244,8 +225,8 @@ define([
     //
     lastUpdateOf: function(path) {
       var absPath = this.makePath(path);
-      var node = store.getNode(absPath);
-      return node ? node.timestamp : null;
+      var node = this.store.getNode(absPath);
+      return node ? node.version : null;
     },
 
     //
@@ -283,21 +264,12 @@ define([
     //
     getObject: function(path) {
       var fullPath = this.makePath(path);
-      return this.ensureAccess('r').
-        then(util.curry(store.getNode, fullPath)).
-        then(function(node) {
-          if(node.pending) {
-            return sync.updateDataNode(fullPath);
-          } else {
-            return node;
-          }
-        }).
-        then(function(node) {
-          if(node.mimeType !== 'application/json') {
-            logger.error("WARNING: getObject got called, but retrieved a non-json node at '" + fullPath + "'!");
-          }
-          return node.data;
-        });
+      return sync.get(fullPath).then(function(node) {
+        if(node.mimeType !== 'application/json') {
+          logger.error("WARNING: getObject got called, but retrieved a non-json node at '" + fullPath + "'!");
+        }
+        return node.data;
+      });
     },
 
     //
@@ -331,29 +303,10 @@ define([
         );
       }
       var fullPath = this.makePath(path);
-      return this.ensureAccess('r').
-        then(util.curry(store.getNode, fullPath)).
-        then(function(node) {
-          if((!node) || node.pending || Object.keys(node.data).length === 0) {
-            return store.isForced(fullPath).
-              then(function(isForced) {
-                if(isForced) {
-                  return node;
-                } else {
-                  return sync.updateDataNode(fullPath).
-                    then(function(node) {
-                      return store.setNodePending(fullPath, new Date().getTime()).
-                        then(function() { return node; });
-                    });
-                }
-              });
-          } else {
-            return node;
-          }
-        }).
-        then(function(node) {
-          return node.data ? Object.keys(node.data) : [];
-        });
+      return sync.get(fullPath).then(function(node) {
+        console.log('getListing got', node);
+        return node.data ? Object.keys(node.data) : [];
+      });
     },
 
     //
@@ -441,30 +394,12 @@ define([
     //   (end code)
     getFile: function(path) {
       var fullPath = this.makePath(path);
-      return this.ensureAccess('r').
-        then(util.curry(store.getNode, fullPath)).
-        then(function(node) {
-          if(node.pending) {
-            return sync.updateDataNode(fullPath);
-          } else if(! node.data) {
-            return store.getNode(util.containingDir(fullPath)).
-              then(function(parentNode) {
-                if(parentNode.pending) {
-                  return sync.updateDataNode(fullPath);
-                } else {
-                  return node;
-                }
-              });
-          } else {
-            return node;
-          }
-        }).
-        then(function(node) {
-          return {
-            mimeType: node.mimeType,
-            data: node.data
-          };
-        });
+      return sync.get(fullPath).then(function(node) {
+        return {
+          mimeType: node.mimeType,
+          data: node.data
+        };
+      });
     },
 
     // Method: getDocument
@@ -484,10 +419,7 @@ define([
     //   path     - Path relative to the module root.
     //
     remove: function(path) {
-      var absPath = this.makePath(path);
-      return this.ensureAccess('w').
-        then(util.curry(set, this.moduleName, path, absPath, undefined)).
-        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+      return this.store.remove(this.makePath(path));
     },
 
     // Method: saveObject
@@ -571,18 +503,17 @@ define([
 
       var absPath = this.makePath(path);
 
-      return this.ensureAccess('w').
-        then(util.bind(function() {
-          if(! (obj instanceof Array)) {
-            obj['@context'] = this.resolveType(typeAlias);
-            var errors = this.validateObject(obj);
-            if(errors) {
-              throw new ValidationError(obj, errors);
-            }
-          }
-          return set(this.moduleName, path, absPath, obj, 'application/json')
-        }, this)).
-        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+      if(! (obj instanceof Array)) {
+        obj['@context'] = this.resolveType(typeAlias);
+        var errors = this.validateObject(obj);
+        if(errors) {
+          throw new ValidationError(obj, errors);
+        }
+      }
+      return this.store.set(absPath, {
+        mimeType: 'application/json',
+        data: obj
+      });
     },
 
     //
@@ -647,20 +578,17 @@ define([
         return failedPromise(new Error("storeFile received " + typeof(data) + ", but expected a string or an ArrayBuffer!"));
       }
       var absPath = this.makePath(path);
-      return this.ensureAccess('w').
-        then(util.bind(function() {
-          if(cache) {
-            return set(this.moduleName, path, absPath, data, mimeType).
-              then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
-          } else {
-            return sync.updateDataNode(absPath, {
-              mimeType: mimeType,
-              data: data
-            }).then(function() {
-              return store.setNodePending(absPath, new Date().getTime());
-            });
-          }
-        }, this));
+      if(cache) {
+        return this.store.set(absPath, {
+          mimeType: mimeType,
+          data: data
+        });
+      } else {
+        return sync.updateDataNode(absPath, {
+          mimeType: mimeType,
+          data: data
+        });
+      }
     },
 
     // Method: storeDocument
@@ -695,53 +623,38 @@ define([
       return base + this.makePath(path);
     },
 
-    syncOnce: function(path, callback) {
-      var previousTreeForce = store.getNode(path).startForceTree;
-      this.use(path, false);
-      return sync.partialSync(path, 1).
-        then(util.bind(function() {
-          if(previousTreeForce) {
-            this.use(path, true);
-          } else {
-            this.release(path);
-          }
-          if(callback) {
-            callback();
-          }
-        }, this));
-
-    },
-
     //
     // Method: use
     //
-    // Set force flags on given path.
+    // Enable local caching for given path.
     //
-    // See <sync> for details.
+    // Opposite of <release>.
     //
     // Parameters:
     //   path      - path relative to the module root
-    //   treeOnly  - boolean value, whether only the tree should be synced.
+    //   skipData  - (optional) don't store actual data, only metadata
     //
-    // Returns a promise.
-    use: function(path, treeOnly) {
-      var absPath = this.makePath(path);
-      return store.setNodeForce(absPath, !treeOnly, true);
+    use: function(path, skipData) {
+      caching.set(this.makePath(path), {
+        data: !skipData
+      });
+      // returned promise is deprecated!!!
+      return util.getPromise().fulfill();
     },
 
     // Method: release
     //
-    // Remove force flags from given node.
+    // Disable local caching on given path.
     //
-    // See <sync> for details.
+    // Opposite of <use>.
     //
     // Parameters:
     //   path      - path relative to the module root
     //
-    // Returns a promise.
     release: function(path) {
-      var absPath = this.makePath(path);
-      return store.setNodeForce(absPath, false, false);
+      caching.remove(this.makePath(path));
+      // returned promise is deprecated!!!
+      return util.getPromise().fulfill();
     },
 
     // Method: hasDiff
@@ -756,7 +669,7 @@ define([
         item = util.baseName(absPath);
         absPath = util.containingDir(absPath);
       }
-      return store.getNode(absPath).
+      return this.store.getNode(absPath).
         then(function(node) {
           if(item) {
             return !! node.diff[item];
@@ -940,6 +853,10 @@ define([
   };
 
   util.extend(BaseClient, globalEvents);
+
+  BaseClient.setCaching = function(_caching) {
+    caching = _caching;
+  };
 
   return BaseClient;
 

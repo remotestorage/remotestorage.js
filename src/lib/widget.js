@@ -95,13 +95,6 @@ define([
     events.emit('state', state);    
   }
 
-  function buildScopeRequest() {
-    var scopes = remoteStorage.claimedModules;
-    return Object.keys(remoteStorage.claimedModules).map(function(module) {
-      return (module === 'root' && remoteStorage.getStorageType() === '2012.04' ? '' : module) + ':' + scopes[module];
-    }).join(' ');
-  }
-
   function requestToken(authEndpoint) {
     logger.info('requestToken', authEndpoint);
     var redirectUri = view.getLocation().split('#')[0];
@@ -110,11 +103,12 @@ define([
     authEndpoint += [
       ['redirect_uri', redirectUri],
       ['client_id', clientId],
-      ['scope', buildScopeRequest()],
+      ['scope', remoteStorage.access.scopeParameter],
       ['response_type', 'token']
     ].map(function(kv) {
       return kv[0] + '=' + encodeURIComponent(kv[1]);
     }).join('&');
+    console.log('redirecting to', authEndpoint);
     return view.redirectTo(authEndpoint);
   }
 
@@ -129,9 +123,9 @@ define([
         setState((typeof(error) === 'string') ? 'typing' : 'error', error);
       }).
       then(function(storageInfo) {
+        remoteStorage.access.setStorageType(storageInfo.type);
         return requestToken(storageInfo.properties['auth-endpoint']);
       }).
-      then(requestToken).
       then(schedule.enable, util.curry(setState, 'error'));
   }
 
@@ -221,10 +215,6 @@ define([
     widgetOptions = options;
     if(! options) {
       options = {};
-    }
-
-    if(Object.keys(remoteStorage.claimedModules).length === 0) {
-      throw new Error("displayWidget called, but no access claimed! Make sure to call displayWidget after remoteStorage.claimAccess is done.");
     }
 
     options.getLastSyncAt = function() {

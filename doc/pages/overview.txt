@@ -11,6 +11,10 @@ Some of the goals of remoteStorage.js are:
 * Encourage apps to share common data models, through "modules", which can be shared between apps and even be distributed with remoteStorage.js
 * Transparently cache data locally, to make offline-usage of apps as easy as possible.
 
+A picture?:
+
+(see ../images/flow.png)
+
 Where to start reading?:
 
 * If you are an app developer, all you ever need to use is in the "Public API" section. Start reading about the toplevel module <remoteStorage>.

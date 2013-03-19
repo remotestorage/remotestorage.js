@@ -1,118 +1,103 @@
-define(['../util', './common', './syncTransaction'], function(util, common, syncTransactionAdapter) {
+define(['../util', './common', './transactions'], function(util, common, Transactions) {
 
-  // Namespace: store.localStorage
-  // <StorageAdapter> implementation that keeps data localStorage.
+  /**
+   * Class: LocalStorageStore
+   * <Store> implementation that keeps data localStorage.
+   *
+   * Parameters:
+   *   prefix       - String to prefix all keys in localStorage with.
+   *   localStorage - (optional) Actual <Web Storage at http://dev.w3.org/html5/webstorage/> implementation.
+   *                  Defaults to window.localStorage or global.localStorage. This parameter can for example
+   *                  be used to cache to sessionStorage instead of localStorage or to use a custom
+   *                  implementation for platforms that don't support localStorage.
+   */
+  var LocalStorageStore = function(prefix, localStorage) {
+    this.prefix = prefix;
+    this.localStorage = (
+      localStorage || (
+        typeof(window) !== 'undefined' ? window : global
+      ).localStorage
+    );
 
-  var localStorage;
+    /**
+     * Property: transactions
+     * A <Transactions> instance.
+     */
+    this.transactions = new Transactions();
+  };
 
-  var logger = util.getLogger('store::localStorage');
+  LocalStorageStore.prototype = {
 
-  var events = util.getEventEmitter('change');
+    /**
+     * Method: get
+     * See <Store.get>
+     */
+    get: function(path) {
+      return util.getPromise(util.bind(function(promise) {
+        var rawMetadata = this.localStorage.getItem(this.prefixNode(path));
+        if(! rawMetadata) {
+          promise.fulfill(undefined);
+          return;
+        }
+        var payload = this.localStorage.getItem(this.prefixData(path));
+        var node;
+        try {
+          node = JSON.parse(rawMetadata);
+        } catch(exc) {
+        }
+        if(node) {
+          node.data = payload;
+        }
+        promise.fulfill(common.unpackData(node));
+      }, this));
+    },
 
-  // node metadata key prefix
-  var prefixNodes = 'remote_storage_nodes:';
-  // note payload data key prefix
-  var prefixNodesData = 'remote_storage_node_data:';
+    /**
+     * Method: set
+     * See <Store.set>
+     */
+    set: function(path, node) {
+      return util.getPromise(util.bind(function(promise) {
+        var metadata = common.packData(node);
+        var rawData = metadata.data;
+        delete metadata.data;
+        var rawMetadata = JSON.stringify(metadata);
+        this.localStorage.setItem(this.prefixNode(path), rawMetadata);
+        if(rawData) {
+          this.localStorage.setItem(this.prefixData(path), rawData);
+        }
+        promise.fulfill();
+      }, this));
+    },
 
-  function isMetadataKey(key) {
-    return key.substring(0, prefixNodes.length) == prefixNodes;
-  }
+    /**
+     * Method: remove
+     * See <Store.remove>
+     */
+    remove: function(path) {
+      return util.getPromise(util.bind(function(promise) {
+        this.localStorage.removeItem(this.prefixNode(path));
+        this.localStorage.removeItem(this.prefixData(path));
+        promise.fulfill();
+      }, this));
+    },
 
-  function prefixNode(path) {
-    return prefixNodes + path;
-  }
+    /**
+     * Method: transaction
+     * Delegates to <Transactions.transaction> (via <transactions>)
+     */
+    transaction: function(block) {
+      return this.transactions.transaction(block);
+    },
 
-  function prefixData(path) {
-    return prefixNodesData + path;
-  }
-
-  // forward events from other tabs
-  if(typeof(window) !== 'undefined') {
-    window.addEventListener('storage', function(event) {
-      if(isMetadataKey(event.key)) {
-        event.path = event.key.replace(new RegExp('^' + prefixNodes), '');
-        events.emit('change', event);
-      }
-    });
-  }
-
-  return function(_localStorage) {
-    localStorage = _localStorage || (typeof(window) !== 'undefined' && window.localStorage);
-
-    if(! localStorage) {
-      throw new Error("Not supported: localStorage not found.");
+    _prefixNode: function(path) {
+      return this.prefix + ':meta:' + path;
     }
 
-    var store = {
-      get: function(path) {
-        logger.debug('GET', path);
-        return util.getPromise(function(promise) {
-          var rawMetadata = localStorage.getItem(prefixNode(path));
-          if(! rawMetadata) {
-            promise.fulfill(undefined);
-            return;
-          }
-          var payload = localStorage.getItem(prefixData(path));
-          var node;
-          try {
-            node = JSON.parse(rawMetadata);
-          } catch(exc) {
-          }
-          if(node) {
-            node.data = payload;
-          }
-          promise.fulfill(common.unpackData(node));
-        });
-      },
+    _prefixData: function(path) {
+      return this.prefix + ':data:' + path;
+    }
 
-      set: function(path, node) {
-        logger.debug('SET', path, node);
-        return util.getPromise(function(promise) {
-          var metadata = common.packData(node);
-          var rawData = metadata.data;
-          delete metadata.data;
-          var rawMetadata = JSON.stringify(metadata);
-          localStorage.setItem(prefixNode(path), rawMetadata);
-          if(rawData) {
-            localStorage.setItem(prefixData(path), rawData);
-          }
-          promise.fulfill();
-        });
-      },
-
-      remove: function(path) {
-        logger.debug('SET', path);
-        return util.getPromise(function(promise) {
-          localStorage.removeItem(prefixNode(path));
-          localStorage.removeItem(prefixData(path));
-          promise.fulfill();
-        });
-      }
-    };
-
-    return util.extend({
-
-      on: events.on,
-
-      forgetAll: function() {
-        return util.getPromise(function(promise) {
-          var numLocalStorage = localStorage.length;
-          var keys = [];
-          for(var i=0; i<numLocalStorage; i++) {
-            if(localStorage.key(i).substr(0, prefixNodes.length) == prefixNodes ||
-               localStorage.key(i).substr(0, prefixNodesData.length) == prefixNodesData) {
-              keys.push(localStorage.key(i));
-            }
-          }
-
-          keys.forEach(function(key) {
-            localStorage.removeItem(key);
-          });
-
-          promise.fulfill();
-        });
-      }
-    }, syncTransactionAdapter(store, logger));
   };
 });
 

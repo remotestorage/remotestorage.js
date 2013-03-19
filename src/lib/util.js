@@ -52,6 +52,17 @@ define([], function() {
 
   var util = {
 
+    declareError: function(namespace, name, builder, parent) {
+      if(! parent) {
+        parent = Error;
+      }
+      namespace[name] = function() {
+        var message = builder ? builder.apply(this, arguments) : arguments[0];
+        parent.call(this, message);
+      };
+      namespace[name].prototype = Object.create(parent.prototype);
+    },
+
     bufferToRaw: function(buffer) {
       var view = new Uint8Array(buffer);
       var nData = view.length;
@@ -112,6 +123,15 @@ define([], function() {
       }
       parts.unshift('/');
       return parts;
+    },
+
+    pathContains: function(a, b) {
+      return a.slice(0, b.length) === b;
+    },
+
+    extractScope: function(path) {
+      var match = path.match(/^\/([^\/]+)\//);
+      return match ? match[1] : 'root';
     },
 
     extend: function() {
