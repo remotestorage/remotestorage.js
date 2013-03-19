@@ -23,6 +23,13 @@ define([
   util.unsilenceLogger('base', 'getputdelete');
 
   // Namespace: remoteStorage
+  //
+  // Main remoteStorage object, primary namespace.
+  //
+  // Provides an interface for defining modules, controlling the widget and configuring
+  // access.
+  //
+  // Most methods here return promises. See the guide for an introduction: <Promises>
   var remoteStorage =  {
 
     //
@@ -57,7 +64,7 @@ define([
     //       exports: {
     //
     //         addBeer: function(name) {
-    //           privateClient.storeObject('beer', nameToKey(name), {
+    //           return privateClient.storeObject('beer', nameToKey(name), {
     //             name: name,
     //             drinkCount: 0
     //           });
@@ -65,15 +72,17 @@ define([
     //
     //         logDrink: function(name) {
     //           var key = nameToKey(name);
-    //           var beer = privateClient.getObject(key);
-    //           beer.drinkCount++;
-    //           privateClient.storeObject('beer', key, beer);
+    //           return privateClient.getObject(key).then(function(beer) {
+    //             beer.drinkCount++;
+    //             return privateClient.storeObject('beer', key, beer);
+    //           });
     //         },
     //
     //         publishBeer: function(name) {
     //           var key = nameToKey(name);
-    //           var beer = privateClient.getObject(key);
-    //           publicClient.storeObject('beer', key, beer);
+    //           return privateClient.getObject(key).then(function(beer) {
+    //             return publicClient.storeObject('beer', key, beer);
+    //           });
     //         }
     //
     //       }
@@ -82,11 +91,11 @@ define([
     //
     //   // to use that code from an app, you need to add:
     //
-    //   remoteStorage.claimAccess('beers', 'rw');
+    //   remoteStorage.claimAccess('beers', 'rw').then(function() {
+    //     remoteStorage.displayWidget()
     //
-    //   remoteStorage.displayWidget(/* see documentation */)
-    //
-    //   remoteStorage.beers.addBeer('<replace-with-favourite-beer-kind>');
+    //     remoteStorage.beers.addBeer('<replace-with-favourite-beer-kind>');
+    //   });
     //
     //   (end code)
     //
@@ -176,7 +185,13 @@ define([
     //   Hope this helps.
     //
     getModuleInfo: function(moduleName) {
-      return modules[moduleName];
+      var moduleInfo = modules[moduleName];
+      if(moduleInfo) {
+        return util.extend({
+          name: moduleName,
+          dataHints: {}
+        }, moduleInfo);
+      }
     },
 
     //
@@ -202,9 +217,12 @@ define([
     //   claim      - permission to claim, either *r* (read-only) or *rw* (read-write)
     //
     // Example:
-    //   > remoteStorage.claimAccess('contacts', 'r');
+    //   > remoteStorage.claimAccess('contacts', 'r').then(remoteStorage.displayWidget).then(initApp);
     //
+    // Returns:
+    //   A Promise, fulfilled when the access has been claimed.
     //
+    // FIXME: this method is currently asynchronous due to internal design issues, but it doesn't need to be.
     //
     // Method: claimAccess(moduleClaimMap)
     //
@@ -218,7 +236,12 @@ define([
     //   >   contacts: 'r',
     //   >   documents: 'rw',
     //   >   money: 'r'
-    //   > });
+    //   > }).then(remoteStorage.displayWidget).then(initApp);
+    //
+    // Returns:
+    //   A Promise, fulfilled when the access has been claimed.
+    //
+    // FIXME: this method is currently asynchronous due to internal design issues, but it doesn't need to be.
     //
     claimAccess: function(moduleName, mode) {
 
@@ -289,7 +312,9 @@ define([
     // Forget this ever happened.
     //
     // Delete all locally stored data.
-    // This doesn't clear localStorage, just removes everything
+    //
+    // Note that if you're using a localStorage backend, this doesn't
+    // clear the entire localStorage, but just removes everything
     // remoteStorage.js saved there. Other data your app might
     // have put into localStorage stays there.
     //
@@ -318,7 +343,7 @@ define([
     //
     // Synchronize local <-> remote storage.
     //
-    // Syncing starts at the access roots (the once you claimed using claimAccess)
+    // Syncing starts at the access roots (the ones you claimed using claimAccess)
     // and moves down the directory tree.
     // Only nodes with a 'force' flag on themselves or one of their ancestors will
     // be synchronized. Use <BaseClient.use> and <BaseClient.release> to set / unset
@@ -327,8 +352,11 @@ define([
     // future, so you should attach change handlers on the modules you're
     // interested in.
     //
-    // Parameters:
-    //   callback - (optional) callback to be notified when synchronization has finished or failed.
+    // Returns:
+    //   A Promise.
+    //
+    // If you are interested when the sync is done, or if there were any errors,
+    // chain to the promise as shown below.
     //
     // Example:
     //   >
@@ -338,16 +366,36 @@ define([
     //   >   // handle change event (update UI etc)
     //   > });
     //   >
-    //   > remoteStorage.fullSync(function(errors) {
-    //   >   // handle errors, if any.
+    //   > remoteStorage.fullSync().then(function() {
+    //   >   // sync done, do whatever you want.
+    //   > }, function(error) {
+    //   >   // handle error.
     //   > });
-    //
-    // Yields:
-    //   Array of error messages - when errors occured. When fullSync is called and the user is not connected, this is also considered an error.
-    //   null - no error occured, synchronization finished gracefully.
     //
     fullSync: sync.fullSync,
 
+    //
+    // Method: setWidgetView
+    //
+    // Set the view object to use by the widget. By default remoteStorage.js uses it's
+    // own default view. The default view is designed to work in a browser. If you
+    // are using any other platform, you need to implement your own view. See the
+    // interface documentation for <WidgetView> for a description of the methods and
+    // and events the view should implement.
+    //
+    // Example:
+    //   >
+    //   > var myView = {
+    //   >   display: function() {
+    //   >     // render the widget (or whatever)
+    //   >   },
+    //   >   // (...)
+    //   > };
+    //   >
+    //   > remoteStorage.setWidgetView(myView);
+    //   >
+    //   > // claim access, display widget etc.
+    //
     setWidgetView: widget.setView,
 
     //
@@ -367,16 +415,24 @@ define([
     },
 
     //
-    // Method: onWidget
+    // Method: on
     //
-    // Add event handler to the widget.
+    // Add event handler. Event handlers are bound on the <widget>, which
+    // acts as a controller.
     // See <widget.Events> for available Events.
     //
     // Parameters:
     //   eventType - type of event to add handler to
     //   handler   - handler function
     //
-    onWidget: widget.on,
+    on: widget.on,
+
+    // Method: onWidget
+    // DEPRECATED. Alias for <on>.
+    onWidget: function() {
+      console.log("WARNING: remoteStorage.onWidget is deprecated, use remoteStorage.on instead.");
+      this.on.apply(this, arguments);
+    },
 
     //
     getSyncState: sync.getState,
@@ -450,7 +506,14 @@ define([
 
     i18n: i18n,
 
-    schedule: schedule
+    schedule: schedule,
+
+    // for tests only.
+    // FIXME: get rid of this by making internas more accessible. can probably be
+    //        done with some general redesign of this file.
+    _clearModules: function() {
+      modules = {};
+    }
 
   };
 
