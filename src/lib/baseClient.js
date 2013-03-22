@@ -408,7 +408,7 @@ define([
       }
 
       return this.getListing(path).
-        then(util.bind(retrieveObjects.bind, this)).
+        then(util.bind(retrieveObjects, this)).
         then(util.bind(filterByType, this));
     },
 
