@@ -521,7 +521,7 @@ define([
     }
 
     function fireEvents() {
-      if((!meta) && (! outgoing) && (! util.isDir(path)) && (! node.pending)) {
+      if((!meta) && (! outgoing) && (! util.isDir(path)) && (! (node && node.pending))) {
         // fire changes
         if(isForeign(path)) {
           return fireForeignChange(path, oldValue);
