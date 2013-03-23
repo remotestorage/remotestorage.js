@@ -312,7 +312,7 @@ define([
           }
         });
       } else {
-        return fireChange('device', path);
+        return fireChange('remote', path);
       }
     }
 
