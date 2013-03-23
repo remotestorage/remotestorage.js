@@ -734,7 +734,7 @@ define([
   });
 
 
-  var sync = util.extend(events, {
+  var sync = util.extend({}, events, {
 
     get: function(path) {
       if(caching.cachePath(path)) {
@@ -785,6 +785,7 @@ define([
     reset: function() {
       remoteAdapter.clearCache();
       settings.clear();
+      events.reset();
     },
 
     // FOR TESTING INTERNALS ONLY!!!
