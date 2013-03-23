@@ -7,12 +7,10 @@ define(['requirejs'], function(requirejs, undefined) {
   suites.push({
     name: "remoteStorage.js file tests",
     desc: "a collection of tests for remoteStorage.js",
-    setup: function(env) {
+    setup: function(env, test) {
 
       global.localStorage = require('localStorage');
-      var _this = this;
       requirejs(['./src/remoteStorage'], function(remoteStorage) {
-        _this.assertTypeAnd(remoteStorage.defineModule, 'function');
         env.remoteStorage = remoteStorage;
         // define test module
         var moduleName = 'test';
@@ -26,13 +24,12 @@ define(['requirejs'], function(requirejs, undefined) {
             }
           };
         });
-        _this.result(true);
+        test.done();
       });
     },
-    takedown: function(env) {
-      env = '';
-      remoteStorage._clearModules();
-      this.result(true);
+    takedown: function(env, test) {
+      env.remoteStorage._clearModules();
+      test.done();
     },
     tests: [
       {
@@ -48,14 +45,14 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "getModuleInfo returns the entire object exported by the returned definition",
         run: function(env, test) {
-          remoteStorage.defineModule('example', function() {
+          env.remoteStorage.defineModule('example', function() {
             return {
               bla: 'blubb',
               exports: {},
               name: 'example'
             };
           });
-          var info = remoteStorage.getModuleInfo('example');
+          var info = env.remoteStorage.getModuleInfo('example');
           test.assertAnd(info.bla, 'blubb');
           test.assertTypeAnd(info.exports, 'object');
           test.assert(info.name, 'example');
@@ -65,12 +62,12 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "getModuleInfo defaults the dataHints to an empty object",
         run: function(env, test) {
-          remoteStorage.defineModule('example', function() {
+          env.remoteStorage.defineModule('example', function() {
             return {
               exports: {},
             };
           });
-          var info = remoteStorage.getModuleInfo('example');
+          var info = env.remoteStorage.getModuleInfo('example');
           test.assertType(info.dataHints, 'object');
         }
       },
@@ -78,12 +75,12 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "getModuleInfo defaults name to the passed in module name",
         run: function(env, test) {
-          remoteStorage.defineModule('example', function() {
+          env.remoteStorage.defineModule('example', function() {
             return {
               exports: {},
             };
           });
-          var info = remoteStorage.getModuleInfo('example');
+          var info = env.remoteStorage.getModuleInfo('example');
           test.assert(info.name, 'example');
         }
       }
