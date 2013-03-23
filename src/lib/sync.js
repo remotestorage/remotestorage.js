@@ -824,6 +824,11 @@ define([
             store.touchNode(childPath);
           }
         }
+      }).then(function(results, errors) {
+        if(errors.length > 0) {
+          logger.error("Failed to sync node", path, errors);
+          return store.setNodeError(path, errors);
+        }
       });
     }
 
