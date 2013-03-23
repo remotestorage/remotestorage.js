@@ -3,12 +3,13 @@ define([
   './webfinger',
   './wireClient',
   './sync',
+  './store',
   './schedule',
   './baseClient',
   './platform',
   './getputdelete',
   './widget/default'
-], function(util, webfinger, wireClient, sync, schedule, BaseClient,
+], function(util, webfinger, wireClient, sync, store, schedule, BaseClient,
             platform, getputdelete, defaultView) {
 
   // Namespace: widget
@@ -217,11 +218,16 @@ define([
   }
 
   function initialSync() {
-    setState('busy', true);
-    sync.fullSync().then(function() {
-      schedule.enable();
-      events.emit('ready');
-    }, handleSyncError);
+    if(settings.get('initialSyncDone')) {
+      store.fireInitialEvents();
+    } else {
+      setState('busy', true);
+      sync.fullSync().then(function() {
+        schedule.enable();
+        settings.set('initialSyncDone', true);
+        events.emit('ready');
+      }, handleSyncError);
+    }
   }
 
   function display(_remoteStorage, element, options) {
