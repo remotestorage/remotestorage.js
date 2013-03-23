@@ -144,6 +144,9 @@ define(['./util'], function(util) {
 
       xhr.onreadystatechange = function() {
         if((xhr.readyState == 4)) {
+          if(timedOut) {
+            return;
+          }
           if(timer) {
             window.clearTimeout(timer);
           }
