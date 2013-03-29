@@ -104,15 +104,25 @@ define([
 
   function requestToken(authEndpoint) {
     logger.info('requestToken', authEndpoint);
-    var redirectUri = view.getLocation().split('#')[0];
+    var redirectUri = (widgetOptions.redirectUri || view.getLocation());
+    var state;
+    var md = redirectUri.match(/^(.+)#(.*)$/);
+    if(md) {
+      redirectUri = md[1];
+      state = md[2];
+    }
     var clientId = util.hostNameFromUri(redirectUri);
     authEndpoint += authEndpoint.indexOf('?') > 0 ? '&' : '?';
-    authEndpoint += [
+    var params = [
       ['redirect_uri', redirectUri],
       ['client_id', clientId],
       ['scope', buildScopeRequest()],
       ['response_type', 'token']
-    ].map(function(kv) {
+    ];
+    if(typeof(state) === 'string' && state.length > 0) {
+      params.push(['state', state]);
+    }
+    authEndpoint += params.map(function(kv) {
       return kv[0] + '=' + encodeURIComponent(kv[1]);
     }).join('&');
     return view.redirectTo(authEndpoint);
@@ -131,7 +141,6 @@ define([
       then(function(storageInfo) {
         return requestToken(storageInfo.properties['auth-endpoint']);
       }).
-      then(requestToken).
       then(schedule.enable, util.curry(setState, 'error'));
   }
 
@@ -180,6 +189,10 @@ define([
       if(userAddress) {
         view.setUserAddress(userAddress);
       }
+    }
+    // Query parameter: state
+    if(params.state) {
+      view.setLocation(view.getLocation().split('#')[0] + '#' + params.state);
     }
   }
 
