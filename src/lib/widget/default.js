@@ -208,14 +208,36 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       elements.bubble.appendChild(content);
 
       var visible = false;
-      setCubeAction(function() {
+
+      function handleBodyClick(event) {
+        toggleBubbleVisibility(event);
+        if(event.target !== document.body) {
+          event.target.click();
+        }
+        return false;
+      }
+
+      function toggleBubbleVisibility(event) {
+        if(event.preventDefault) {
+          event.preventDefault();
+        }
+        if(event.stopPropagation) {
+          event.stopPropagation();
+        }
+        event.cancelBubble = true;
+        event.returnValue = false;
         if(visible) {
           addClass(elements.bubble, 'hidden');
+          document.body.removeEventListener('click', handleBodyClick);
         } else {
-          removeClass(elements.bubble, 'hidden');
+          removeClass(elements.bubble, 'hidden'); 
+          document.body.addEventListener('click', handleBodyClick);
         }
         visible = !visible;
-      });
+        return false;
+      }
+
+      setCubeAction(toggleBubbleVisibility);
     },
 
     busy: function(initialSync) {

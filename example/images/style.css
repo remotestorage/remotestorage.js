@@ -1,4 +1,13 @@
 
+body {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 10px;
+}
+
 #target {
     border: solid 1px black;
     float: right;
