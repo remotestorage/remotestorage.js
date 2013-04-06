@@ -136,7 +136,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
         }
       };
       elements.connectForm.userAddress.addEventListener('keyup', adjustButton);
-	  adjustButton();
+	    adjustButton();
 
       if(connectionError) {
         // error bubbled from webfinger
@@ -150,7 +150,16 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
         addBubbleHint(t('typing-hint'));
       }
 
-      setCubeAction(jumpAction('initial'));
+      function hideBubble(evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+        setState('initial');
+        document.body.removeEventListener('click', hideBubble);
+        return false;
+      }
+
+      setCubeAction(hideBubble);
+      document.body.addEventListener('click', hideBubble);
 
       elements.connectForm.userAddress.focus();
     },
