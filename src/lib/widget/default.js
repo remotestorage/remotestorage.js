@@ -439,6 +439,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
   function setState(state) {
     var args = Array.prototype.slice.call(arguments, 1);
     currentState = state;
+    elements.widget.setAttribute('class', 'remotestorage-state-' + state);
     util.nextTick(function() {
       updateWidget.apply(undefined, args);
     });
