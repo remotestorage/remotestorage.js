@@ -74,9 +74,6 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
           var _this = this;
           env.store.getNode('/foo/bar').
             then(function(node) {
-              _this.assertAnd(node.startAccess, null);
-              _this.assertAnd(node.startForce, null);
-              _this.assertAnd(node.startForceTree, null);
               _this.assertAnd(node.timestamp, 0);
               _this.assertAnd(node.lastUpdatedAt, 0);
               _this.assert(node.mimeType, "application/json");
@@ -293,44 +290,6 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
       },
 
       {
-        desc: "store.setNodeAccess",
-        run: function(env, test) {
-          env.store.setNodeAccess('/foo/', 'rw').
-            then(curry(env.store.getNode, '/foo/')).
-            then(function(node) {
-              test.assertAnd(node.startAccess, 'rw');
-            }).
-            then(finalResult(this), catchError(this));
-        }
-      },
-
-      {
-        desc: "store.setNodeForce",
-        run: function(env) {
-          var _this = this;
-          env.store.setNodeForce('/foo/', false, true).
-            then(curry(env.store.getNode, '/foo/')).
-            then(function(node) {
-              _this.assertAnd(node.startForce, false);
-              _this.assertAnd(node.startForceTree, true);
-            }).
-            then(curry(env.store.setNodeForce, '/bar/', true, true)).
-            then(curry(env.store.getNode, '/bar/')).
-            then(function(node) {
-              _this.assertAnd(node.startForce, true);
-              _this.assertAnd(node.startForceTree, true);
-            }).
-            then(curry(env.store.setNodeForce, '/baz/', false, false)).
-            then(curry(env.store.getNode, '/baz/')).
-            then(function(node) {
-              _this.assertAnd(node.startForce, false);
-              _this.assertAnd(node.startForceTree, false);
-            }).
-            then(finalResult(this), catchError(this));
-        }
-      },
-
-      {
         desc: "store.forgetAll delegates to store",
         setup: function(env) {
           env.origForgetAll = env.storageAdapter.forgetAll;
@@ -368,58 +327,6 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
       },
 
       {
-        desc: "store.touchNode adds non-existent node to parent",
-        run: function(env) {
-          var _this = this;
-          env.store.touchNode('/something').
-            then(curry(env.store.getNode, '/')).
-            then(function(parentNode) {
-              _this.assert(parentNode.data.something, 0);
-            });
-        }
-      },
-
-      {
-        desc: "store.touchNode creates a node with a 'pending' flag",
-        run: function(env) {
-          var _this = this;
-          env.store.touchNode('/something-else').
-            then(curry(env.store.getNode, '/something-else')).
-            then(function(node) {
-              _this.assert(node.pending, true, 'pending-flag not found');
-            });
-        }
-      },
-
-      {
-        desc: "store.touchNode doesn't set the 'pending' flag on existing nodes",
-        run: function(env) {
-          var _this = this;
-          env.store.setNodeData(
-            '/existing-node', 'foo', false, 12345, 'text/plain'
-          ).then(curry(env.store.touchNode, '/existing-node')).
-            then(curry(env.store.getNode, '/existing-node')).
-            then(function(node) {
-              _this.assertType(node.pending, 'undefined', "pending-flag is set, but it shouldn't be");
-            });
-        }
-      },
-
-      {
-        desc: "store.setNodeData clears the 'pending' flag",
-        run: function(env) {
-          var _this = this;
-          env.store.touchNode('/pending-node').
-            then(curry(env.store.setNodeData, '/pending-node',
-                       'foo', false, 23456, 'text/plain')).
-            then(curry(env.store.getNode, '/pending-node')).
-            then(function(node) {
-              _this.assertType(node.pending, 'undefined');
-            });
-        }
-      },
-
-      {
         desc: "store.setLastSynced updates lastUpdatedAt flag",
         run: function(env) {
           var _this = this;
@@ -432,24 +339,12 @@ define(['requirejs', 'fs', 'localStorage'], function(requirejs, fs, localStorage
       },
 
       {
-        desc: "store.setNodePending sets the 'pending' flag",
+        desc: "store.touchNode creates a directory entry in the parent",
         run: function(env, test) {
-          env.store.setNodePending('/foo/bar', 12345).
-            then(curry(env.store.getNode, '/foo/bar')).
-            then(function(node) {
-              test.assert(node.pending, true);
-            });
-        }
-      },
-
-      {
-        desc: "store.setNodePending removes the 'data' attribute",
-        run: function(env, test) {
-          env.store.setNodeData('/foo/bar', 'baz', false, 12345, 'text/plain').
-            then(curry(env.store.setNodePending, '/foo/bar', 23456)).
-            then(curry(env.store.getNode, '/foo/bar')).
-            then(function(node) {
-              test.assertType(node.data, 'undefined');
+          env.store.touchNode('/foo/bar').
+            then(curry(env.store.getNode, '/foo/')).
+            then(function(parentNode) {
+              test.assert(Object.keys(parentNode.data), ['bar']);
             });
         }
       }

@@ -19,74 +19,8 @@ define([
 
   var settings = util.getSettingStore('remotestorage_sync');
 
-
-  // Section: How to configure sync
-  //
-  // remoteStorage.js takes care of all the synchronization of remote and local data.
-  //
-  // As an app developer you need to do three things, to make it work:
-  // * claim access on the root of the tree in question (see <remoteStorage.claimAccess>)
-  // * state which branches you wish to have synced
-  // * release paths you no longer need from the sync plan, so they won't impact performance
-  //
-  // Now suppose you have a data tree like this:
-  //   (start code)
-  //
-  //         A
-  //        / \
-  //       B   C
-  //      / \   \
-  //     d   E   f
-  //        / \
-  //       g   h
-  //
-  //   (end code)
-  //
-  // Let's consider *A* to be our root node (it may be a module root, doesn't
-  // really matter for this example), and let's say we have a <BaseClient>
-  // instance called *client*, that treats paths relative to *A*.
-  //
-  // The simplest thing we can do, is request everything:
-  //   > client.use('');
-  // Now as soon as sync is triggered (usually this happens when connecting
-  // through the widget), the entire tree, with all it's nodes, including data
-  // nodes (files) will be synchronized and cached to localStorage.
-  //
-  // If we previously set up a 'change' handler, it will now be called for each
-  // data node, as it has been synchronized.
-  //
-  // At this point, we can use the synchronous versions of the <BaseClient>
-  // methods for getting data. These methods will only hit the local cache (they
-  // may trigger <syncOne>, but we'll get to that later).
-  //   > client.getListing('B/'); // -> ['d', 'E/']
-  //   > client.getObject('B/d'); // -> { ... }
-  //
-  // That was the simplest usecase. Let's look at another one:
-  //
-  // Suppose that all the data files within our tree contain a lot of data. They
-  // could be music, videos, large images etc. Given that, it would be very
-  // impractical to transfer all of them, even though we don't know at this point
-  // if the user even wants to use them in the current session.
-  // So one option we have, is to tell remoteStorage only to synchronize the
-  // *directory tree*, but not the content of files.
-  //   > client.use('', true);
-  // The second argument given is called *treeOnly*.
-  //
-  // When we now (after the 'ready' event has been fired) use *getListing*, we
-  // still get a listing of all known paths:
-  //   > client.getListing(''); // -> ['B/', 'C/']
-  //   > client.getListing('B/'); // -> ['d', 'E/']
-  //
-  // Getting an object on the other hand, will not return anything.
-  //   > client.getObject('B/d'); // -> undefined
-  //
-  // We can use this scenario, to display a *tree of available data* to the user.
-  // As soon as the user chooses one of the items, we can retrieve it, by passing
-  // a callback to getObject:
-  //   > client.getObject('B/d', function(object) {
-  //   >   console.log("received object is: ", object);
-  //   > });
-  //
+  // hack! set from remoteStorage via setAccess, setCaching.
+  var access, caching;
 
   function needsSync(path) {
     if(! path) {
@@ -153,7 +87,7 @@ define([
   function fullSync(pushOnly) {
     return util.getPromise(function(promise) {
       if(disabled) {
-        promise.fulfill()
+        promise.fulfill();
         return;
       }
       if(! isConnected()) {
@@ -163,30 +97,43 @@ define([
 
       logger.info("full " + (pushOnly ? "push" : "sync") + " started");
 
-      findRoots().then(function(roots) {
-        var synced = 0;
+      var roots = [];
 
-        function rootCb(path) {
-          return function() {
-            synced++;
-            if(synced == roots.length) {
-              sync.lastSyncAt = new Date();
-              promise.fulfill();
-            }
-          };
+      var cl = caching.rootPaths.length;
+      var al = access.rootPaths.length;
+      for(var i=0;i<cl;i++) {
+        var cachingRoot = caching.rootPaths[i];
+        for(var j=0;i<al;j++) {
+          var accessRoot = access.rootPaths[j];
+          if(util.pathContains(cachingRoot, accessRoot)) {
+            roots.push(cachingRoot);
+            break;
+          }
         }
+      }
 
-        if(roots.length === 0) {
-          return promise.reject(new Error("No access claimed!"));
-        }
+      var synced = 0;
 
-        roots.forEach(function(root) {
-          enqueueTask(function() {
-            return traverseTree(root, processNode, {
-              pushOnly: pushOnly
-            });
-          }, rootCb(root));
-        });
+      function rootCb(path) {
+        return function() {
+          synced++;
+          if(synced == roots.length) {
+            sync.lastSyncAt = new Date();
+            promise.fulfill();
+          }
+        };
+      }
+
+      if(roots.length === 0) {
+        return promise.reject(new Error("No access claimed!"));
+      }
+
+      roots.forEach(function(root) {
+        enqueueTask(function() {
+          return traverseTree(root, processNode, {
+            pushOnly: pushOnly
+          });
+        }, rootCb(root));
       });
     });
   }
@@ -231,8 +178,7 @@ define([
       enqueueTask(function() {
         logger.info("partial sync started from: " + startPath);
         return traverseTree(startPath, processNode, {
-          depth: depth,
-          force: true
+          depth: depth
         });
       }, promise.fulfill);
     });
@@ -655,72 +601,6 @@ define([
     }
   }
 
-  function findRoots() {
-    return store.getNode('/').then(function(root) {
-      if(root.startAccess) {
-        return ['/'];
-      } else {
-        return store.getNode('/public/').then(function(publicRoot) {
-          var paths = [];
-          for(var key in root.data) {
-            paths.push('/' + key);
-          }
-          for(var publicKey in publicRoot.data) {
-            paths.push('/public/' + publicKey);
-          }
-          return util.asyncSelect(paths, function(path) {
-            return store.getNode(path).then(function(node) {
-              return !! node.startAccess;
-            });
-          });
-        });
-      }
-    }).then(function(roots) {
-      return roots;
-    });
-  }
-
-  function findAccess(path) {
-    if(! path) {
-      return null;
-    } else {
-      return store.getNode(path).
-        then(function(node) {
-          if(node.startAccess) {
-            return node.startAccess;
-          } else {
-            return findAccess(util.containingDir(path));
-          }
-        });
-    }
-  }
-
-  function findNextForceRoots(path, cachedNode) {
-    var roots = [];
-    function checkChildren(node) {
-      return util.asyncEach(Object.keys(node.data), function(key) {
-        return store.getNode(path + key).then(function(childNode) {
-          if(childNode.startForce || childNode.startForceTree) {
-            roots.push(path + key);
-          } else if(util.isDir(key)) {
-            return findNextForceRoots(path + key, childNode).
-              then(function(innerRoots) {
-                innerRoots.forEach(function(innerRoot) {
-                  roots.push(innerRoot);
-                });
-              });
-          }
-        });
-      }).then(function() {
-        return roots;
-      });
-    }
-    return (
-      cachedNode ? checkChildren(cachedNode) :
-        store.getNode(path).then(checkChildren)
-    );
-  }
-
   // Function: traverseTree
   //
   // Traverse the full tree of nodes, passing each visited data node to the callback for processing.
@@ -750,37 +630,6 @@ define([
 
     if(! opts) { opts = {}; }
 
-    function determineLocalInterest(node, options) {
-      return util.getPromise(function(promise) {
-        options.access = util.highestAccess(options.access, node.startAccess);
-        options.force = opts.force || node.startForce;
-        options.forceTree = opts.forceTree || node.startForceTree;
-
-        function determineForce() {
-          var force = (options.force || options.forceTree);
-          if((! force) && (options.path == '/' || options.path == '/public/')) {
-            findNextForceRoots(options.path).
-              then(function(roots) {
-                promise.fulfill(node, false, roots);
-              });
-          } else {
-            promise.fulfill(node, force);
-          }
-        }
-
-        if(! options.access) {
-          // in case of a partial sync, we have not been informed about
-          // access inherited from the parent.
-          findAccess(util.containingDir(root)).
-            then(function(access) {
-              options.access = access;
-            }).then(determineForce);
-        } else {
-          determineForce();
-        }
-      });
-    }
-
     function mergeDataNode(path, localNode, remoteNode, options) {
       if(util.isDir(path)) {
         throw new Error("Not a data node: " + path);
@@ -800,28 +649,30 @@ define([
         var localVersion = localNode.data[key];
         logger.debug("traverseTree.mergeDirectory[" + childPath + "]", remoteVersion, 'vs', localVersion);
         if(remoteVersion !== localVersion) {
-          if(util.isDir(childPath)) {
-            if(options.forceTree && options.depth !== 0) {
-              var childOptions = util.extend({}, options);
-              if(childOptions.depth) {
-                childOptions.depth--;
+          if(caching.cachePath(childPath)) {
+            if(util.isDir(childPath)) {
+              if(options.depth !== 0) {
+                var childOptions = util.extend({}, options);
+                if(childOptions.depth) {
+                  childOptions.depth--;
+                }
+                return mergeTree(childPath, childOptions);
               }
-              return mergeTree(childPath, childOptions);
+            } else {
+              return util.asyncGroup(
+                util.curry(fetchLocalNode, childPath),
+                util.curry(fetchRemoteNode, childPath)
+              ).then(function(nodes, errors) {
+                if(errors.length > 0) {
+                  logger.error("Failed to sync node", childPath, errors);
+                  return store.setNodeError(childPath, errors);
+                } else {
+                  return mergeDataNode(childPath, nodes[0], nodes[1], options);
+                }
+              });
             }
-          } else if(options.force) {
-            return util.asyncGroup(
-              util.curry(fetchLocalNode, childPath),
-              util.curry(fetchRemoteNode, childPath)
-            ).then(function(nodes, errors) {
-              if(errors.length > 0) {
-                logger.error("Failed to sync node", childPath, errors);
-                return store.setNodeError(childPath, errors);
-              } else {
-                return mergeDataNode(childPath, nodes[0], nodes[1], options);
-              }
-            });
           } else {
-            store.touchNode(childPath);
+            return store.touchNode(childPath);
           }
         }
       }).then(function(results, errors) {
@@ -834,25 +685,20 @@ define([
 
     function mergeTree(path, options) {
       options.path = path;
-      return fetchLocalNode(path).
-        then(util.rcurry(determineLocalInterest, options)).
-        then(function(localNode, localInterest, nextRoots) {
-          if(localInterest) {
-            return fetchRemoteNode(path).
-              then(function(remoteNode) {
-                return mergeDirectory(path, localNode, remoteNode, options).
-                  then(function() {
-                    return store.setLastSynced(path, remoteNode.timestamp);
-                  });
-              });
-          } else if(nextRoots) {
-            for(var key in nextRoots) {
-              return util.asyncEach(nextRoots, function(root) {
-                return mergeTree(root, options);
-              });
-            }
-          }
+      if(caching.descendIntoPath(path)) {
+        return util.asyncGroup(
+          util.curry(fetchLocalNode, path),
+          util.curry(fetchRemoteNode, path)
+        ).then(function(nodes) {
+          var localNode = nodes[0];
+          var remoteNode = nodes[1];
+          return mergeDirectory(path, localNode, remoteNode, options).
+            then(util.curry(store.setLastSynced, path, remoteNode.timestamp));
         });
+      } else {
+        // FIXME: do we *need* to return a promise here?
+        return util.getPromise().fulfill();
+      }
     }
 
     return mergeTree(root, opts);
@@ -888,7 +734,19 @@ define([
   });
 
 
-  var sync = util.extend(events, {
+  var sync = util.extend({}, events, {
+
+    get: function(path) {
+      if(caching.cachePath(path)) {
+        return store.getNode(path)
+      } else {
+        return remoteAdapter.get(path);
+      }
+    },
+
+    set: function(path) {},
+
+    remove: function(path) {},
 
     enable: enable,
     disable: disable,
@@ -924,9 +782,11 @@ define([
     // <getState>
     getState: getState,
 
-    // Method: clearSettings
-    // Clear all data from localStorage that this file put there.
-    clearSettings: settings.clear,
+    reset: function() {
+      remoteAdapter.clearCache();
+      settings.clear();
+      events.reset();
+    },
 
     // FOR TESTING INTERNALS ONLY!!!
     getInternal: function(symbol) {
@@ -935,6 +795,14 @@ define([
 
     setRemoteAdapter: function(adapter) {
       remoteAdapter = adapter;
+    },
+
+    setAccess: function(_access) {
+      access = _access;
+    },
+
+    setCaching: function(_caching) {
+      caching = _caching;
     }
 
   });

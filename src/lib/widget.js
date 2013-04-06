@@ -3,12 +3,13 @@ define([
   './webfinger',
   './wireClient',
   './sync',
+  './store',
   './schedule',
   './baseClient',
   './platform',
   './getputdelete',
   './widget/default'
-], function(util, webfinger, wireClient, sync, schedule, BaseClient,
+], function(util, webfinger, wireClient, sync, store, schedule, BaseClient,
             platform, getputdelete, defaultView) {
 
   // Namespace: widget
@@ -95,13 +96,6 @@ define([
     events.emit('state', state);    
   }
 
-  function buildScopeRequest() {
-    var scopes = remoteStorage.claimedModules;
-    return Object.keys(remoteStorage.claimedModules).map(function(module) {
-      return (module === 'root' && remoteStorage.getStorageType() === '2012.04' ? '' : module) + ':' + scopes[module];
-    }).join(' ');
-  }
-
   function requestToken(authEndpoint) {
     logger.info('requestToken', authEndpoint);
     var redirectUri = (widgetOptions.redirectUri || view.getLocation());
@@ -116,7 +110,7 @@ define([
     var params = [
       ['redirect_uri', redirectUri],
       ['client_id', clientId],
-      ['scope', buildScopeRequest()],
+      ['scope', remoteStorage.access.scopeParameter],
       ['response_type', 'token']
     ];
     if(typeof(state) === 'string' && state.length > 0) {
@@ -125,6 +119,7 @@ define([
     authEndpoint += params.map(function(kv) {
       return kv[0] + '=' + encodeURIComponent(kv[1]);
     }).join('&');
+    console.log('redirecting to', authEndpoint);
     return view.redirectTo(authEndpoint);
   }
 
@@ -139,6 +134,7 @@ define([
         setState((typeof(error) === 'string') ? 'typing' : 'error', error);
       }).
       then(function(storageInfo) {
+        remoteStorage.access.setStorageType(storageInfo.type);
         return requestToken(storageInfo.properties['auth-endpoint']);
       }).
       then(schedule.enable, util.curry(setState, 'error'));
@@ -222,11 +218,16 @@ define([
   }
 
   function initialSync() {
-    setState('busy', true);
-    sync.fullSync().then(function() {
-      schedule.enable();
-      events.emit('ready');
-    }, handleSyncError);
+    if(settings.get('initialSyncDone')) {
+      store.fireInitialEvents();
+    } else {
+      setState('busy', true);
+      sync.fullSync().then(function() {
+        schedule.enable();
+        settings.set('initialSyncDone', true);
+        events.emit('ready');
+      }, handleSyncError);
+    }
   }
 
   function display(_remoteStorage, element, options) {
@@ -234,10 +235,6 @@ define([
     widgetOptions = options;
     if(! options) {
       options = {};
-    }
-
-    if(Object.keys(remoteStorage.claimedModules).length === 0) {
-      throw new Error("displayWidget called, but no access claimed! Make sure to call displayWidget after remoteStorage.claimAccess is done.");
     }
 
     options.getLastSyncAt = function() {

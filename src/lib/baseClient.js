@@ -13,6 +13,8 @@ define([
   var globalEvents = util.getEventEmitter('error');
   var moduleEvents = {};
 
+  var caching;
+
   function extractModuleName(path) {
     if (path && typeof(path) == 'string') {
       var parts = path.split('/');
@@ -116,6 +118,7 @@ define([
 
   /** FROM HERE ON PUBLIC INTERFACE **/
 
+  // FIXME: add option for access mode
   var BaseClient = function(moduleName, isPublic) {
     if(! moduleName) {
       throw new Error("moduleName is required");
@@ -200,27 +203,6 @@ define([
       return (this.isPublic ? '/public' + base : base) + path;
     },
 
-    nodeGivesAccess: function(path, mode) {
-      return store.getNode(path).then(util.bind(function(node) {
-        var access = (new RegExp(mode)).test(node.startAccess);
-        if(access) {
-          return true;
-        } else if(path.length > 0) {
-          return this.nodeGivesAccess(path.replace(/[^\/]+\/?$/, ''));
-        }
-      }, this));
-    },
-
-    ensureAccess: function(mode) {
-      var path = this.makePath(this.moduleName == 'root' ? '/' : '');
-
-      return this.nodeGivesAccess(path, mode).then(function(access) {
-        if(! access) {
-          throw "Not sufficient access claimed for node at " + path;
-        }
-      });
-    },
-
     // Method: lastUpdateOf
     // Get the time a node was last updated.
     //
@@ -283,21 +265,12 @@ define([
     //
     getObject: function(path) {
       var fullPath = this.makePath(path);
-      return this.ensureAccess('r').
-        then(util.curry(store.getNode, fullPath)).
-        then(function(node) {
-          if(node.pending) {
-            return sync.updateDataNode(fullPath);
-          } else {
-            return node;
-          }
-        }).
-        then(function(node) {
-          if(node.mimeType !== 'application/json') {
-            logger.error("WARNING: getObject got called, but retrieved a non-json node at '" + fullPath + "'!");
-          }
-          return node.data;
-        });
+      return sync.get(fullPath).then(function(node) {
+        if(node.mimeType !== 'application/json') {
+          logger.error("WARNING: getObject got called, but retrieved a non-json node at '" + fullPath + "'!");
+        }
+        return node.data;
+      });
     },
 
     //
@@ -331,29 +304,10 @@ define([
         );
       }
       var fullPath = this.makePath(path);
-      return this.ensureAccess('r').
-        then(util.curry(store.getNode, fullPath)).
-        then(function(node) {
-          if((!node) || node.pending || Object.keys(node.data).length === 0) {
-            return store.isForced(fullPath).
-              then(function(isForced) {
-                if(isForced) {
-                  return node;
-                } else {
-                  return sync.updateDataNode(fullPath).
-                    then(function(node) {
-                      return store.setNodePending(fullPath, new Date().getTime()).
-                        then(function() { return node; });
-                    });
-                }
-              });
-          } else {
-            return node;
-          }
-        }).
-        then(function(node) {
-          return node.data ? Object.keys(node.data) : [];
-        });
+      return sync.get(fullPath).then(function(node) {
+        console.log('getListing got', node);
+        return node.data ? Object.keys(node.data) : [];
+      });
     },
 
     //
@@ -441,30 +395,12 @@ define([
     //   (end code)
     getFile: function(path) {
       var fullPath = this.makePath(path);
-      return this.ensureAccess('r').
-        then(util.curry(store.getNode, fullPath)).
-        then(function(node) {
-          if(node.pending) {
-            return sync.updateDataNode(fullPath);
-          } else if(! node.data) {
-            return store.getNode(util.containingDir(fullPath)).
-              then(function(parentNode) {
-                if(parentNode.pending) {
-                  return sync.updateDataNode(fullPath);
-                } else {
-                  return node;
-                }
-              });
-          } else {
-            return node;
-          }
-        }).
-        then(function(node) {
-          return {
-            mimeType: node.mimeType,
-            data: node.data
-          };
-        });
+      return sync.get(fullPath).then(function(node) {
+        return {
+          mimeType: node.mimeType,
+          data: node.data
+        };
+      });
     },
 
     // Method: getDocument
@@ -485,8 +421,7 @@ define([
     //
     remove: function(path) {
       var absPath = this.makePath(path);
-      return this.ensureAccess('w').
-        then(util.curry(set, this.moduleName, path, absPath, undefined)).
+      return set(this.moduleName, path, absPath, undefined).
         then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
     },
 
@@ -571,17 +506,14 @@ define([
 
       var absPath = this.makePath(path);
 
-      return this.ensureAccess('w').
-        then(util.bind(function() {
-          if(! (obj instanceof Array)) {
-            obj['@context'] = this.resolveType(typeAlias);
-            var errors = this.validateObject(obj);
-            if(errors) {
-              throw new ValidationError(obj, errors);
-            }
-          }
-          return set(this.moduleName, path, absPath, obj, 'application/json')
-        }, this)).
+      if(! (obj instanceof Array)) {
+        obj['@context'] = this.resolveType(typeAlias);
+        var errors = this.validateObject(obj);
+        if(errors) {
+          throw new ValidationError(obj, errors);
+        }
+      }
+      return set(this.moduleName, path, absPath, obj, 'application/json').
         then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
     },
 
@@ -653,20 +585,15 @@ define([
         return failedPromise(new Error("storeFile received " + typeof(data) + ", but expected a string or an ArrayBuffer!"));
       }
       var absPath = this.makePath(path);
-      return this.ensureAccess('w').
-        then(util.bind(function() {
-          if(cache) {
-            return set(this.moduleName, path, absPath, data, mimeType).
-              then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
-          } else {
-            return sync.updateDataNode(absPath, {
-              mimeType: mimeType,
-              data: data
-            }).then(function() {
-              return store.setNodePending(absPath, new Date().getTime());
-            });
-          }
-        }, this));
+      if(cache) {
+        return set(this.moduleName, path, absPath, data, mimeType).
+          then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+      } else {
+        return sync.updateDataNode(absPath, {
+          mimeType: mimeType,
+          data: data
+        });
+      }
     },
 
     // Method: storeDocument
@@ -721,33 +648,35 @@ define([
     //
     // Method: use
     //
-    // Set force flags on given path.
+    // Enable local caching for given path.
     //
-    // See <sync> for details.
+    // Opposite of <release>.
     //
     // Parameters:
     //   path      - path relative to the module root
-    //   treeOnly  - boolean value, whether only the tree should be synced.
+    //   skipData  - (optional) don't store actual data, only metadata
     //
-    // Returns a promise.
-    use: function(path, treeOnly) {
-      var absPath = this.makePath(path);
-      return store.setNodeForce(absPath, !treeOnly, true);
+    use: function(path, skipData) {
+      caching.set(this.makePath(path), {
+        data: !skipData
+      });
+      // returned promise is deprecated!!!
+      return util.getPromise().fulfill();
     },
 
     // Method: release
     //
-    // Remove force flags from given node.
+    // Disable local caching on given path.
     //
-    // See <sync> for details.
+    // Opposite of <use>.
     //
     // Parameters:
     //   path      - path relative to the module root
     //
-    // Returns a promise.
     release: function(path) {
-      var absPath = this.makePath(path);
-      return store.setNodeForce(absPath, false, false);
+      caching.remove(this.makePath(path));
+      // returned promise is deprecated!!!
+      return util.getPromise().fulfill();
     },
 
     // Method: hasDiff
@@ -946,6 +875,10 @@ define([
   };
 
   util.extend(BaseClient, globalEvents);
+
+  BaseClient.setCaching = function(_caching) {
+    caching = _caching;
+  };
 
   return BaseClient;
 

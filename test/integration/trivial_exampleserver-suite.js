@@ -77,17 +77,6 @@ define([
     tests: [
 
       {
-        desc: "claiming access",
-        run: function(env) {
-          var _this = this;
-          env.remoteStorage.store.getNode('/').
-          then(function(rootNode) {
-            _this.assert(rootNode.startAccess, 'rw');
-          });
-        }
-      },
-
-      {
         desc: "write a file",
         run: function(env) {
           var _this = this;
@@ -281,11 +270,7 @@ define([
             then(curry(env.client.getListing, 'test-dir/')).
             then(function(listing) {
               listing = listing.sort();
-              _this.assertAnd(listing, ['a', 'b', 'c'], "Listing doesn't match (expected [a, b, c], got: " + JSON.stringify(listing) + ")");
-            }).
-            then(curry(env.store.getNode, '/test-dir/a')).
-            then(function(node) {
-              _this.assert(node.pending, true);
+              _this.assert(listing, ['a', 'b', 'c'], "Listing doesn't match (expected [a, b, c], got: " + JSON.stringify(listing) + ")");
             });
         }
       },
@@ -313,6 +298,9 @@ define([
             then(curry(env.remoteStorage.root.release, '')).
             // configure tree-only sync
             then(curry(env.remoteStorage.root.use, 'test-dir/', true)).
+            then(function() {
+              env.remoteStorage.util.unsilenceLogger('sync', 'caching');
+            }).
             // full sync will fetch a listing of /test-dir/ now
             then(env.remoteStorage.fullSync).
             then(curry(env.remoteStorage.root.getListing, 'test-dir/')).
@@ -322,9 +310,8 @@ define([
             }).
             then(curry(env.store.getNode, '/test-dir/a')).
             then(function(node) {
-              // check that data node is pending...
-              _this.assertAnd(node.pending, true);
-              // ...and has no data
+              console.log('node is', node);
+              // check that data node has no data
               _this.assertTypeAnd(node.data, 'undefined');
             }).
             // check that other listing is empty (using client.getListing instead

@@ -48,8 +48,6 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
     },
 
     beforeEach: function(env) {
-      var _this = this;
-
       env.serverHelper.resetState();
       env.serverHelper.setScope([':rw']);
       env.serverHelper.captureRequests();
@@ -62,13 +60,14 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
           env.serverHelper.getBearerToken()
         );
 
-        return env.remoteStorage.claimAccess('root', 'rw');
+        env.remoteStorage.claimAccess('root', 'rw');
+
       };
 
-      env.rsConnect().
-        then(function() {
-          _this.result(true);
-        });
+      env.rsConnect();
+      console.log('end of beforeEach, state:', 'CACHING', env.remoteStorage.caching, 'ACCESS', env.remoteStorage.access);
+
+      this.result(true);
     },
     
     afterEach: function(env, test) {
@@ -106,6 +105,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectNoMoreRequest(_this);
 
               _this.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -135,6 +137,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectNoMoreRequest(_this);
 
               _this.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -142,8 +147,6 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
       {
         desc: "Syncing trees w/ data",
         run: function(env) {
-          util.silenceAllLoggers();
-          util.unsilenceLogger('sync');
           var _this = this;
           // push initial tree ( a/{1,2,3} and b/{1,2,3} ):
           util.asyncEach(['a', 'b'], function(d) {
@@ -160,6 +163,10 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             then(curry(env.client.release, '')).
             // use /a/, but not /b/
             then(curry(env.client.use, 'a/')).
+            then(function() {
+              console.log('CACHING', env.remoteStorage.caching);
+              env.remoteStorage.util.unsilenceLogger('sync');
+            }).
             // do a full sync
             then(curry(env.remoteStorage.fullSync)).
             then(function() {
@@ -170,6 +177,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectNoMoreRequest(_this);
 
               _this.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -184,6 +194,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             then(function(file) {
               _this.assertAnd(file.mimeType, 'text/plain');
               _this.assert(file.data, 'bar');
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -200,6 +213,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectRequest(_this, 'GET', 'me/test-dir/');
               env.serverHelper.expectNoMoreRequest(_this);
               _this.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -215,6 +231,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectRequest(test, 'GET', 'me/');
               env.serverHelper.expectNoMoreRequest(test);
               test.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -231,6 +250,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectRequest(_this, 'GET', 'me/');
               env.serverHelper.expectNoMoreRequest(_this);
               _this.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -238,8 +260,6 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
       {
         desc: "store public data",
         run: function(env, test) {
-          util.unsilenceLogger('sync');
-          util.setLogLevel('debug');
           env.client.storeFile('text/plain', '/public/foo', 'bar').
             then(function() {
               env.serverHelper.expectRequest(test, 'GET', 'me/public/');
@@ -248,6 +268,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectRequest(test, 'GET', 'me/public/');
               env.serverHelper.expectNoMoreRequest(test);
               test.assert(true, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -289,6 +312,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
                 newValue: { phu: 'quoc', '@context': 'http://remotestoragejs.com/spec/modules/root/test' }
               });
               test.assert(receivedEvents, [], "There are still events in the queue: " + JSON.stringify(receivedEvents));
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -297,19 +323,20 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
         desc: "getting an object with tree-only sync",
         run: function(env, test) {
           // store the file first
-          return env.client.getObject('locations/hackerbeach/2013').
+          return env.remoteStorage.fullSync().
             then(function(obj) {
               return env.client.storeObject('test', 'locations/hackerbeach/2013', { island: "Phu Quoc" });
             }).
             // disconnect client
             then(env.remoteStorage.flushLocal).
-            // reconnect client
-            then(env.rsConnect).
             then(function() {
+              // reconnect client
+              env.rsConnect();
               // configure tree-only sync
-              return env.client.use('', true);
+              env.client.use('', true);
+              // synchronize
+              return env.remoteStorage.fullSync();
             }).
-            then(env.remoteStorage.fullSync).
             then(function() {
               return env.client.getListing('locations/hackerbeach/');
             }).
@@ -326,6 +353,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
                 island: "Phu Quoc",
                 '@context': 'http://remotestoragejs.com/spec/modules/root/test'
               }, obj, "got object: " + JSON.stringify(obj));
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -334,16 +364,20 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
         desc: "getting a file with tree-only sync",
         run: function(env, test) {
           // store the file first
-          return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island').
+          return env.remoteStorage.fullSync().
+            then(function() {
+              return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island')
+            }).
             // disconnect client
             then(env.remoteStorage.flushLocal).
-            // reconnect client
-            then(env.rsConnect).
             then(function() {
+              // reconnect client
+              env.rsConnect();
               // configure tree-only sync
-              return env.client.use('', true);
+              env.client.use('', true);
+              // synchronize
+              return env.remoteStorage.fullSync();
             }).
-            then(env.remoteStorage.fullSync).
             then(function() {
               return env.client.getListing('locations/hackerbeach/');
             }).
@@ -360,6 +394,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
                 mimeType: 'text/plain',
                 data: 'Phu Quoc Island'
               }, file, "got object: " + JSON.stringify(file));
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -378,6 +415,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             }).
             then(function(listing) {
               test.assert(listing, ['2013']);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -392,6 +432,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             }).
             then(function() {
               env.serverHelper.expectNoMoreRequest(test);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -404,11 +447,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               // check requests
               env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
               env.serverHelper.expectNoMoreRequest(test);
-              // check node is set to pending
-              return env.remoteStorage.store.getNode('/greetings/default');
-            }).
-            then(function(node) {
-              test.assert(node.pending, true);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -423,12 +464,6 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             then(function() {
               env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
               env.serverHelper.expectNoMoreRequest(test);
-              return env.remoteStorage.store.getNode('/greetings/');
-            }).
-            then(function(dirNode) {
-              console.log('dirNode', dirNode);
-              // check that dirNode is pending
-              test.assertAnd(dirNode.pending, true, "expected dir node to be pending, but it isn't");
               return env.client.getListing('greetings/');
             }).
             then(function(listing) {
@@ -441,6 +476,9 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               env.serverHelper.expectRequest(test, 'GET', 'me/greetings/default');
               env.serverHelper.expectNoMoreRequest(test);
               test.assert(file, { mimeType: 'text/plain', data: 'Hello World!' });
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
             });
         }
       },
@@ -489,8 +527,12 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               return env.client.getFile('test/a');
             }).
             then(function(file) {
+              console.log('FILE NOW', file);
               // verify file
               test.assert(file, { mimeType: 'text/plain', data: 'content-a' });
+            }, function(err) {
+              console.log('err', err, err.stack);
+              test.result(false);
             });
         }
       }
