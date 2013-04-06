@@ -69,8 +69,9 @@ define(['requirejs'], function(requirejs) {
         './src/lib/wireClient', 
         './src/lib/baseClient', 
         './src/lib/getputdelete', 
-        './src/lib/webfinger'
-      ], function(_util, widget, sync, wireClient, baseClient, getputdelete, webfinger) {
+        './src/lib/webfinger',
+        './src/lib/access'
+      ], function(_util, widget, sync, wireClient, baseClient, getputdelete, webfinger, Access) {
         util = _util;
         env.widget = widget;
         env.view = stubWidgetView();
@@ -80,6 +81,7 @@ define(['requirejs'], function(requirejs) {
         env.baseClient = baseClient;
         env.getputdelete = getputdelete;
         env.webfinger = webfinger;
+        env.Access = Access;
 
         env.origGetStorageInfo = env.webfinger.getStorageInfo;
         env.webfinger.getStorageInfo = function() {
@@ -92,8 +94,10 @@ define(['requirejs'], function(requirejs) {
         }
 
         env.fakeRemoteStorage = {
-          claimedModules: { foo: 'rw' }
+          access: new env.Access()
         };
+
+        env.fakeRemoteStorage.access.claim('foo', 'rw');
 
         env.view._results['getLocation'] = 'http://test.host/';
         _this.result(true);
@@ -372,7 +376,7 @@ define(['requirejs'], function(requirejs) {
           expectCall(test, env.view, 'setLocation', ['http://test.host/#foobar']);
           test.done();
         }
-      },
+      }
 
     ]
   });
