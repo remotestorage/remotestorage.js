@@ -220,6 +220,11 @@
     right: 0;
     top: 0;
     opacity: 1;
+    /* increase clickable area of connect button */
+    margin: -5px;
+    padding: 10px;
+    width: 36px;
+    height: 36px;
 }
 #remotestorage-widget .bubble button.connect:not([disabled]):hover {
     background: rgba(150,150,150,.5);
