@@ -678,7 +678,8 @@ define([
       }).then(function(results, errors) {
         if(errors.length > 0) {
           logger.error("Failed to sync node", path, errors);
-          return store.setNodeError(path, errors);
+          store.setNodeError(path, errors);
+          throw errors;
         }
       });
     }
@@ -689,7 +690,15 @@ define([
         return util.asyncGroup(
           util.curry(fetchLocalNode, path),
           util.curry(fetchRemoteNode, path)
-        ).then(function(nodes) {
+        ).then(function(nodes, errors) {
+          if(errors.length > 0) {
+            // throw the first error that we have.
+            errors.forEach(function(e) {
+              if(e) {
+                throw e;
+              }
+            });
+          }
           var localNode = nodes[0];
           var remoteNode = nodes[1];
           return mergeDirectory(path, localNode, remoteNode, options).
