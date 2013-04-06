@@ -54,12 +54,18 @@ define(['../util', './common', './syncTransaction'], function(util, common, sync
           }
           var payload = localStorage.getItem(prefixData(path));
           var node;
-          try {
-            node = JSON.parse(rawMetadata);
-          } catch(exc) {
+          if(rawMetadata !== 'null') {
+            try {
+              node = JSON.parse(rawMetadata);
+            } catch(exc) {
+            }
           }
           if(node) {
-            node.data = payload;
+            if(util.isDir(path) && payload === 'null') {
+              node.data = {};
+            } else {
+              node.data = payload;
+            }
           }
           promise.fulfill(common.unpackData(node));
         });
