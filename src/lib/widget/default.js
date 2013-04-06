@@ -162,11 +162,13 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
         evt.stopPropagation();
         setState('initial');
         document.body.removeEventListener('click', hideBubble);
+        document.body.removeEventListener('touchstart', hideBubble);
         return false;
       }
 
       setCubeAction(hideBubble);
       document.body.addEventListener('click', hideBubble);
+      document.body.addEventListener('touchstart', hideBubble);
 
       elements.connectForm.userAddress.focus();
     },
@@ -240,9 +242,11 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
         if(visible) {
           addClass(elements.bubble, 'hidden');
           document.body.removeEventListener('click', handleBodyClick);
+          document.body.removeEventListener('touchstart', handleBodyClick);
         } else {
           removeClass(elements.bubble, 'hidden'); 
           document.body.addEventListener('click', handleBodyClick);
+          document.body.addEventListener('touchstart', handleBodyClick);
         }
         visible = !visible;
         return false;
