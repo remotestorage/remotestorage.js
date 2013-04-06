@@ -260,6 +260,18 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       } else {
         trace.innerHTML = error;
       }
+      var buttons = document.createElement('div');
+      elements.bubble.appendChild(buttons);
+      var resetButton = document.createElement('button');
+      resetButton.innerHTML = t('reset');
+      resetButton.addEventListener('click', function() {
+        if(confirm(t('reset-confirmation-message'))) {
+          // FIXME: don't clear localStorage here, but instead fire some event.
+          localStorage.clear();
+          document.location = String(document.location).split('#')[0];
+        }
+      });
+      buttons.appendChild(resetButton);
     },
 
     offline: function(error) {

@@ -25,7 +25,10 @@ define([], function() {
         'webfinger-error-invalid-jrd': "Server doesn't support remoteStorage.",
         'webfinger-error-requests-failed': "Failed to contact the storage server.",
         'webfinger-error-not-supported': "Server doesn't support remoteStorage.",
-        'error': 'Sorry! An error occurred.'
+        'error': 'Sorry! An error occurred.',
+        // reset button
+        'reset': "Reset",
+        'reset-confirmation-message': "Are you sure you want to reset everything? That will probably make the error go away, but also clear your entire localStorage and reload the page. Please make sure you know what you are doing, before clicking 'yes' :-)"
       }
     },
 
