@@ -68,6 +68,11 @@
 #remotestorage-widget.remotestorage-state-connected .cube,
 #remotestorage-widget.remotestorage-state-busy .cube {
 	opacity:.3;
+	-webkit-transition: opacity .3s ease;
+	-moz-transition: opacity .3s ease;
+	-ms-transition: opacity .3s ease;
+	-o-transition: opacity .3s ease;
+	transition: opacity .3s ease;
 }
 #remotestorage-widget.remotestorage-state-connected:hover .cube,
 #remotestorage-widget.remotestorage-state-busy:hover .cube,
