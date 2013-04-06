@@ -12,7 +12,7 @@
     <input id="text" />
     <input id="up" type="submit" value="up" />
   </body>
-  <script src="remoteStorage-37ef7b0-debug.js"></script>
+  <script src="remotestorage-debug.4fbb4132.js"></script>
   <script src="notes.js"></script>
   <script>
     function $(id) { return document.getElementById(id); }
@@ -23,18 +23,18 @@
       });
     }
 
-    remoteStorage.claimAccess({ notes: 'rw' }).then(function() {
-      remoteStorage.displayWidget();
-      remoteStorage.notes.onChange(displayNote);
-      $('up').onclick = function() {
-        remoteStorage.notes.setNote($('text').value);
-      };
-      $('text').addEventListener('keypress', function(e) {
-        if(e.keyCode == 13) {//<enter>
-          $('up').onclick();
-        }
-      }, false);
-    });
+    remoteStorage.claimAccess({ notes: 'rw' })
+    remoteStorage.displayWidget();
+    remoteStorage.notes.onChange(displayNote);
+    $('up').onclick = function() {
+      remoteStorage.notes.setNote($('text').value);
+    };
+    $('text').addEventListener('keypress', function(e) {
+      if(e.keyCode == 13) {//<enter>
+        $('up').onclick();
+      }
+    }, false);
+
     displayNote();
   </script>
 </html>

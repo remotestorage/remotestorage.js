@@ -10,17 +10,30 @@ define([
   './lib/foreignClient',
   './lib/baseClient',
   './lib/schedule',
-  './lib/i18n'
-], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient, schedule, i18n) {
+  './lib/i18n',
+  './lib/access',
+  './lib/caching'
+], function(require, widget, store, sync, wireClient, nodeConnect, util, webfinger, foreignClient, BaseClient, schedule, i18n, Access, Caching) {
 
   "use strict";
 
-  var claimedModules = {}, modules = {}, moduleNameRE = /^[a-z\-]+$/;
+  var modules = {}, moduleNameRE = /^[a-z\-]+$/;
 
   var logger = util.getLogger('base');
 
   util.silenceAllLoggers();
   util.unsilenceLogger('base', 'getputdelete');
+
+  function deprecate(thing, replacement) {
+    console.log("WARNING: " + thing + " is deprecated, " + (replacement ? "use " + replacement + " instead." : "without replacement."));
+  }
+
+  var _access = new Access();
+  var _caching = new Caching();
+
+  sync.setAccess(_access);
+  sync.setCaching(_caching);
+  BaseClient.setCaching(_caching);
 
   // Namespace: remoteStorage
   //
@@ -30,7 +43,10 @@ define([
   // access.
   //
   // Most methods here return promises. See the guide for an introduction: <Promises>
-  var remoteStorage =  {
+  var remoteStorage = {
+
+    access: _access,
+    caching: _caching,
 
     //
     // Method: defineModule
@@ -121,8 +137,6 @@ define([
       this[moduleName] = module.exports;
     },
 
-    claimedModules: claimedModules,
-
     //
     // Method: getModuleList
     //
@@ -144,7 +158,8 @@ define([
     //   Array of module names.
     //
     getClaimedModuleList: function() {
-      return Object.keys(claimedModules);
+      deprecate('getClaimedModuleList', 'access.scopes');
+      return this.access.scopes;
     },
 
     //
@@ -261,11 +276,14 @@ define([
         moduleObj[moduleName] = mode;
       }
 
-      return util.asyncEach(Object.keys(moduleObj), util.bind(function(_moduleName) {
+      Object.keys(moduleObj).forEach(util.bind(function(_moduleName) {
         var _mode = moduleObj[_moduleName];
         testMode(_moduleName, _mode);
         return this.claimModuleAccess(_moduleName, _mode);
       }, this));
+
+      // returned promise is deprecated!!!
+      return util.getPromise().fulfill();
     },
 
     // PRIVATE
@@ -275,23 +293,20 @@ define([
         throw "Module not defined: " + moduleName;
       }
 
-      if(moduleName in claimedModules) {
+      if(this.access.get(moduleName)) {
+        console.log('claimModuleAccess bailing', moduleName);
         return;
       }
 
-      claimedModules[moduleName] = mode;
-
       if(moduleName === 'root') {
-        moduleName = '';
-        return store.setNodeAccess('/', mode).
-          then(util.curry(store.setNodeForce, '/', true, true));
+        this.access.set(moduleName, mode);
+        this.caching.set('/', { data: true });
       } else {
         var privPath = '/'+moduleName+'/';
         var pubPath = '/public/'+moduleName+'/';
-        return store.setNodeAccess(privPath, mode).
-          then(util.curry(store.setNodeForce, privPath, true, true)).
-          then(util.curry(store.setNodeAccess, pubPath, mode)).
-          then(util.curry(store.setNodeForce, pubPath, true, true));
+        this.access.set(moduleName, mode);
+        this.caching.set(privPath, { data: true });
+        this.caching.set(pubPath, { data: true }); 
       }
     },
 
@@ -328,15 +343,18 @@ define([
     flushLocal       : function() {
       return util.getPromise(function(promise) {
         logger.info('flushLocal');
-        store.forgetAll().then(promise.fulfill);
-        sync.clearSettings();
+        sync.reset();
         widget.clearSettings();
         schedule.reset();
         wireClient.disconnectRemote();
         i18n.clearSettings();
-        claimedModules = {};
-      });
+        this.access.reset();
+        this.caching.reset();
+        store.forgetAll().then(promise.fulfill);
+      }.bind(this));
     },
+
+    wireClient: wireClient,
 
     //
     // Method: fullSync
@@ -516,6 +534,8 @@ define([
     }
 
   };
+
+  util.bindAll(remoteStorage);
 
   return remoteStorage;
 });

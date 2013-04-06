@@ -20,13 +20,21 @@ define(['requirejs'], function(requirejs, undefined) {
       var _this = this;
       requirejs([
         './src/lib/util',
+        './src/lib/caching',
         './src/lib/baseClient',
         './src/lib/store',
+        './src/lib/sync',
         './src/lib/store/memory'
-      ], function(_util, BaseClient, store, memoryAdapter) {
+      ], function(_util, Caching, BaseClient, store, sync, memoryAdapter) {
         util = _util;
         curry = util.curry;
         env.BaseClient = BaseClient;
+        var caching = new Caching();
+        env.BaseClient.setCaching(caching);
+        sync.setCaching(caching);
+
+        caching.set('/', { data: true });
+
         _this.assertType(BaseClient, 'function');
         env.store = store;
         env.store.setAdapter(memoryAdapter());

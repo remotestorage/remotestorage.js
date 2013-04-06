@@ -127,10 +127,12 @@ define(['requirejs'], function(requirejs) {
             
             setTimeout(function() {
               test.assertTypeAnd(webfingerResult, 'object', 'getStorageInfo promise not fulfilled');
+              console.log('got object: ', webfingerResult);
               test.assert({
                 rel: 'remoteStorage',
                 href: 'https://local.dev/storage/me',
-                type: "https://www.w3.org/community/rww/wiki/read-write-web-00#simple",
+                // translated into an alias, so it can be compared more easily.
+                type: "2012.04",
                 properties: {
                   "auth-method": "https://tools.ietf.org/html/draft-ietf-oauth-v2-26#section-4.2",
                   "auth-endpoint": "https://local.dev/auth/me"
@@ -175,7 +177,8 @@ define(['requirejs'], function(requirejs) {
                 test.assert({
                   rel: 'remoteStorage',
                   href: 'https://local.dev/storage/me',
-                  type: "https://www.w3.org/community/rww/wiki/read-write-web-00#simple",
+                  // translated into an alias, so it can be compared more easily.
+                  type: "2012.04",
                   properties: {
                     "auth-method": "https://tools.ietf.org/html/draft-ietf-oauth-v2-26#section-4.2",
                     "auth-endpoint": "https://local.dev/auth/me"

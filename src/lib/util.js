@@ -114,6 +114,10 @@ define([], function() {
       return parts;
     },
 
+    pathContains: function(a, b) {
+      return a.slice(0, b.length) === b;
+    },
+
     extend: function() {
       var result = arguments[0];
       var objs = Array.prototype.slice.call(arguments, 1);
