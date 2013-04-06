@@ -27,7 +27,8 @@ define([], function() {
         'webfinger-error-not-supported': "Server doesn't support remoteStorage.",
         'error': 'Sorry! An error occurred.',
         // reset button
-        'reset': "Reset",
+        'reset': "Okay, get me out of here",
+        'error-info': 'If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!',
         'reset-confirmation-message': "Are you sure you want to reset everything? That will probably make the error go away, but also clear your entire localStorage and reload the page. Please make sure you know what you are doing, before clicking 'yes' :-)"
       }
     },

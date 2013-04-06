@@ -269,9 +269,11 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       } else {
         trace.innerHTML = error;
       }
-      var buttons = document.createElement('div');
-      elements.bubble.appendChild(buttons);
+      var errorInfo = document.createElement('p');
+      errorInfo.setAttribute('class', 'remotestorage-error-info');
+      errorInfo.innerHTML = t('error-info');
       var resetButton = document.createElement('button');
+      resetButton.setAttribute('class', 'remotestorage-reset');
       resetButton.innerHTML = t('reset');
       resetButton.addEventListener('click', function() {
         if(confirm(t('reset-confirmation-message'))) {
@@ -280,7 +282,8 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
           document.location = String(document.location).split('#')[0];
         }
       });
-      buttons.appendChild(resetButton);
+      elements.bubble.appendChild(errorInfo);
+      elements.bubble.appendChild(resetButton);
     },
 
     offline: function(error) {

@@ -202,7 +202,7 @@
     color: #fff;
 }
 
-#remotestorage-widget .bubble button {
+#remotestorage-widget button {
     border: none;
     border-radius: 6px;
     font-weight: bold;
@@ -216,7 +216,7 @@
     margin: 0;
     padding: 5px;
 }
-#remotestorage-widget .bubble button:hover {
+#remotestorage-widget button:hover {
     background: #333;
 }
 
@@ -258,6 +258,17 @@
     padding: 4px 4px 0 4px;
 }
 #remotestorage-widget .bubble button.disconnect:hover {
+    background: #921;
+}
+
+#remotestorage-widget .remotestorage-error-info {
+    /*color:#f00;*/
+}
+#remotestorage-widget .remotestorage-reset {
+    width: 100%;
+    background: #721;
+}
+#remotestorage-widget .remotestorage-reset:hover {
     background: #921;
 }
 
