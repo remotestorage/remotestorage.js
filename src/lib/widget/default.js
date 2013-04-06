@@ -151,8 +151,12 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       }
 
       function hideBubble(evt) {
-        if(evt.target.tagName === 'BUTTON') {
-          return true;
+        var e = evt.target;
+        while(e) {
+          if(e === elements.widget) {
+            return true;
+          }
+          e = e.parentElement;
         }
         evt.preventDefault();
         evt.stopPropagation();
