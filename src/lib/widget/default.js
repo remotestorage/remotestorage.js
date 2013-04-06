@@ -353,6 +353,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     // #remotestorage-widget
     elements.widget = cEl('div');
     elements.widget.setAttribute('id', 'remotestorage-widget');
+    elements.widget.setAttribute('class', 'remotestorage-state-initial');
     // .cube
     elements.cube = cEl('img');
     // .bubble
