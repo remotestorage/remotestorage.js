@@ -60,10 +60,6 @@
     display: none;
 }
 
-#remotestorage-widget:hover .bubble.hidden {
-    display: block;
-}
-
 #remotestorage-widget .action {
     cursor: pointer;
 }
