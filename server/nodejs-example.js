@@ -163,7 +163,8 @@ exports.server = (function() {
       }
     } else {
       var pathParts = path.split('/');
-      return (pathParts[0]=='' && pathParts[2]=='public' && path.substr(-1) != '/');
+      console.log('pathParts are', pathParts);
+      return (pathParts[0]=='me' && pathParts[1]=='public' && path.substr(-1) != '/');
     }
   }
   function mayWrite(authorizationHeader, path) {
