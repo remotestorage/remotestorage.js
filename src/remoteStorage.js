@@ -472,8 +472,6 @@ define([
 
     disableSyncThrottling: sync.disableThrottling,
 
-    nodeConnect: nodeConnect,
-
     util: util,
 
     // Method: getForeignClient
@@ -541,6 +539,8 @@ define([
     }
 
   };
+
+  remoteStorage.nodeConnect = nodeConnect(remoteStorage);
 
   util.bindAll(remoteStorage);
 

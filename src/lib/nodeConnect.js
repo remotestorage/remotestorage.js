@@ -1,6 +1,6 @@
 /*global console */
 
-define(['./wireClient', './webfinger'], function(wireClient, webfinger) {
+define(['./webfinger'], function(webfinger) {
 
   "use strict";
 
@@ -30,48 +30,62 @@ define(['./wireClient', './webfinger'], function(wireClient, webfinger) {
   //
   //   (end code)
 
-  return {
+  function deprecate(thing, replacement) {
+    console.log("WARNING: " + thing + " is deprecated, " + (replacement ? "use " + replacement + " instead." : "without replacement."));
+  }
+
+  return function(remoteStorage) {
+
+    return {
 
     // Method: setUserAddress
-    //
-    // Set user address and discover storage info.
-    //
-    // Parameters:
-    //   userAddress - the user address as a string
-    //   callback    - callback to call once finished
-    //
-    // As soon as the callback is called, the storage info has been discovered or an error has happened.
-    // It receives a single argument, the error. If it's null or undefined, everything is ok.
-    setUserAddress: function(userAddress, callback) {
-      webfinger.getStorageInfo(userAddress, { timeout: 3000 }, function(err, data) {
-        if(err) {
-          console.error("Failed to look up storage info for user " + userAddress + ": ", err);
-        } else {
-          wireClient.setStorageInfo(data.type, data.href);
-        }
+      //
+      // Set user address and discover storage info.
+      //
+      // Parameters:
+      //   userAddress - the user address as a string
+      //   callback    - callback to call once finished
+      //
+      // As soon as the callback is called, the storage info has been discovered or an error has happened.
+      // It receives a single argument, the error. If it's null or undefined, everything is ok.
+      setUserAddress: function(userAddress, callback) {
+        webfinger.getStorageInfo(userAddress, { timeout: 3000 }, function(err, data) {
+          if(err) {
+            console.error("Failed to look up storage info for user " + userAddress + ": ", err);
+          } else {
+            remoteStorage.setStorageInfo(data.type, data.href);
+          }
 
-        callback(err);
-      });
-    },
+          callback(err);
+        });
+      },
 
-    // Method: setStorageInfo
-    //
-    // Set storage info directly.
-    //
-    // This can be used, if your storage provider doesn't support Webfinger or you
-    // simply don't want the extra overhead of discovery.
-    //
-    // Parameters:
-    //   type - type of storage. If your storage supports remotestorage 2012.04, this is "https://www.w3.org/community/rww/wiki/read-write-web-00#simple"
-    //   href - base URL of your storage
-    //   
-    setStorageInfo: wireClient.setStorageInfo,
+      // Method: setStorageInfo
+      //
+      // Set storage info directly.
+      //
+      // This can be used, if your storage provider doesn't support Webfinger or you
+      // simply don't want the extra overhead of discovery.
+      //
+      // Parameters:
+      //   type - type of storage. If your storage supports remotestorage 2012.04, this is "https://www.w3.org/community/rww/wiki/read-write-web-00#simple"
+      //   href - base URL of your storage
+      //   
+      setStorageInfo: function(storageInfo) {
+        deprecate('remoteStorage.nodeConnect.setStorageInfo', 'remoteStorage.setStorageInfo');
+        return remoteStorage.setStorageInfo(storageInfo);
+      },
 
-    // Method: setBearerToken
-    //
-    // Set bearer token directly.
-    //
-    setBearerToken: wireClient.setBearerToken
+      // Method: setBearerToken
+      //
+      // Set bearer token directly.
+      //
+      setBearerToken: function(bearerToken) {
+        deprecate('remoteStorage.nodeConnect.setBearerToken', 'remoteStorage.setBearerToken');
+        return remoteStorage.setBearerToken(bearerToken);
+      }
+
+    };
 
   };
 
