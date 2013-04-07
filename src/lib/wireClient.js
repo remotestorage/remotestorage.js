@@ -13,8 +13,15 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
   var settings = util.getSettingStore('remotestorage_wire');
 
+  // BUSY handling to indicate busy state in the widget.
+  //
+  // This is happening here instead of in "sync" (where it was before),
+  // because we only want to indicate busyness when pushing out data
+  // (i.e. sending PUT or DELETE requests).
+  //
   var busyCounter = 0;
 
+  // Increment busy counter and emit "busy" event, if needed
   function setBusy() {
     if(busyCounter === 0) {
       events.emit('busy');
@@ -22,6 +29,7 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     busyCounter++;
   }
 
+  // Decrement busy counter and emit "unbusy" event, if the counter hits zero
   function releaseBusy() {
     busyCounter--;
     if(busyCounter === 0) {
