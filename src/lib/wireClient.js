@@ -7,11 +7,27 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
   var prefix = 'remote_storage_wire_';
 
-  var events = util.getEventEmitter('connected', 'disconnected', 'error');
+  var events = util.getEventEmitter('connected', 'disconnected', 'error', 'busy', 'unbusy');
 
   var state = 'anonymous';
 
   var settings = util.getSettingStore('remotestorage_wire');
+
+  var busyCounter = 0;
+
+  function setBusy() {
+    if(busyCounter === 0) {
+      events.emit('busy');
+    }
+    busyCounter++;
+  }
+
+  function releaseBusy() {
+    busyCounter--;
+    if(busyCounter === 0) {
+      events.emit('unbusy');
+    }
+  }
 
   function setSetting(key, value) {
     settings.set(key, value);
@@ -128,7 +144,9 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
          !(typeof(valueStr) == 'object' && valueStr instanceof ArrayBuffer)) {
         valueStr = JSON.stringify(valueStr);
       }
-      return getputdelete.set(resolveKey(path), valueStr, mimeType, token);
+      setBusy();
+      return getputdelete.set(resolveKey(path), valueStr, mimeType, token).
+        then(releaseBusy);
     }
   }
 
@@ -144,7 +162,9 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
       return cb(new Error("Foreign storage is read-only"));
     }
     var token = getSetting('bearerToken');
-    return getputdelete.set(resolveKey(path), undefined, undefined, token, cb);
+    setBusy();
+    return getputdelete.set(resolveKey(path), undefined, undefined, token, cb).
+      then(releaseBusy);
   }
 
   function getStorageHrefForUser(userAddress) {
@@ -161,6 +181,12 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
 
   function hasStorageInfo(userAddress) {
     return !! getSetting('storageInfo:' + userAddress);
+  }
+
+
+  var typeAliasMap = {
+    'draft-dejong-remotestorage-00': 'remotestorage-00',
+    'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': '2012.04'
   }
 
   return util.extend(events, {
@@ -181,6 +207,8 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     //   configured - if wireClient is now fully configured
     //
     setStorageInfo   : function(info) {
+      info = util.extend({}, info);
+      info.type = typeAliasMap[info.type] || info.type;
       setSetting('storageType', info.type);
       setSetting('storageHref', info.href);
       return info;

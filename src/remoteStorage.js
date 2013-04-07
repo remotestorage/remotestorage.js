@@ -310,7 +310,6 @@ define([
       }
     },
 
-    // PRIVATE
     setBearerToken: function(bearerToken, claimedScopes) {
       wireClient.setBearerToken(bearerToken);
     },
@@ -340,7 +339,7 @@ define([
     // Example:
     //   > remoteStorage.flushLocal();
     //
-    flushLocal       : function() {
+    flushLocal       : function(all) {
       return util.getPromise(function(promise) {
         logger.info('flushLocal');
         sync.reset();
@@ -348,8 +347,10 @@ define([
         schedule.reset();
         wireClient.disconnectRemote();
         i18n.clearSettings();
-        this.access.reset();
-        this.caching.reset();
+        if(all === true) {
+          this.access.reset();
+          this.caching.reset();
+        }
         store.forgetAll().then(promise.fulfill);
       }.bind(this));
     },
@@ -455,7 +456,13 @@ define([
     //
     getSyncState: sync.getState,
     //
-    setStorageInfo: wireClient.setStorageInfo,
+    setStorageInfo: function(storageInfo) {
+      var info = wireClient.setStorageInfo(storageInfo);
+      if(info) {
+        this.access.setStorageType(info.type);
+      }
+      return info;
+    },
 
     getStorageHref: wireClient.getStorageHref,
 
@@ -464,8 +471,6 @@ define([
     getStorageInfo: wireClient.getStorageInfo,
 
     disableSyncThrottling: sync.disableThrottling,
-
-    nodeConnect: nodeConnect,
 
     util: util,
 
@@ -534,6 +539,8 @@ define([
     }
 
   };
+
+  remoteStorage.nodeConnect = nodeConnect(remoteStorage);
 
   util.bindAll(remoteStorage);
 

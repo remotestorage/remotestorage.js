@@ -91,8 +91,7 @@ define([
         return;
       }
       if(! isConnected()) {
-        promise.reject('not-connected');
-        return;
+        return promise.fulfill();
       }
 
       logger.info("full " + (pushOnly ? "push" : "sync") + " started");
@@ -125,7 +124,8 @@ define([
       }
 
       if(roots.length === 0) {
-        return promise.reject(new Error("No access claimed!"));
+        events.emit('ready');
+        return promise.fulfill();
       }
 
       roots.forEach(function(root) {
@@ -678,7 +678,8 @@ define([
       }).then(function(results, errors) {
         if(errors.length > 0) {
           logger.error("Failed to sync node", path, errors);
-          return store.setNodeError(path, errors);
+          store.setNodeError(path, errors);
+          throw errors;
         }
       });
     }
@@ -689,7 +690,15 @@ define([
         return util.asyncGroup(
           util.curry(fetchLocalNode, path),
           util.curry(fetchRemoteNode, path)
-        ).then(function(nodes) {
+        ).then(function(nodes, errors) {
+          if(errors.length > 0) {
+            // throw the first error that we have.
+            errors.forEach(function(e) {
+              if(e) {
+                throw e;
+              }
+            });
+          }
           var localNode = nodes[0];
           var remoteNode = nodes[1];
           return mergeDirectory(path, localNode, remoteNode, options).
@@ -746,7 +755,16 @@ define([
 
     set: function(path) {},
 
-    remove: function(path) {},
+    remove: function(path) {
+      if(caching.cachePath(path)) {
+        return store.setNodeData(path, undefined, true).
+          then(function() {
+            return partialSync(util.containingDir(path), 1);
+          });
+      } else {
+        return remoteAdapter.remove(path).then(remoteAdapter.clearCache);
+      }
+    },
 
     enable: enable,
     disable: disable,

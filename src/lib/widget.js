@@ -56,11 +56,19 @@ define([
   // passed to display() to avoid circular deps
   var remoteStorage;
 
-  var reconnectInterval = 10000;
+  var reconnectInterval = 1000;
 
   var offlineTimer = null;
 
   var viewState;
+
+  function calcReconnectInterval() {
+    var i = reconnectInterval;
+    if(reconnectInterval < 10000) {
+      reconnectInterval *= 2;
+    }
+    return i;
+  }
 
   var stateActions = {
     offline: function() {
@@ -71,7 +79,7 @@ define([
             then(function() {
               schedule.enable();
             });
-        }, reconnectInterval);
+        }, calcReconnectInterval());
       }
     },
     connected: function() {
@@ -127,17 +135,18 @@ define([
     settings.set('userAddress', userAddress);
     setState('authing');
     return webfinger.getStorageInfo(userAddress).
-      then(wireClient.setStorageInfo, function(error) {
+      then(remoteStorage.setStorageInfo, function(error) {
         if(error === 'timeout') {
           adjustTimeout();
         }
         setState((typeof(error) === 'string') ? 'typing' : 'error', error);
       }).
       then(function(storageInfo) {
-        remoteStorage.access.setStorageType(storageInfo.type);
-        return requestToken(storageInfo.properties['auth-endpoint']);
-      }).
-      then(schedule.enable, util.curry(setState, 'error'));
+        if(storageInfo) {
+          requestToken(storageInfo.properties['auth-endpoint']);
+          schedule.enable();
+        }
+      }, util.curry(setState, 'error'));
   }
 
   function reconnectStorage() {
@@ -219,12 +228,13 @@ define([
 
   function initialSync() {
     if(settings.get('initialSyncDone')) {
-      store.fireInitialEvents();
+      store.fireInitialEvents().then(util.curry(events.emit, 'ready'));
     } else {
       setState('busy', true);
       sync.fullSync().then(function() {
         schedule.enable();
         settings.set('initialSyncDone', true);
+        setState('connected');
         events.emit('ready');
       }, handleSyncError);
     }
@@ -250,8 +260,8 @@ define([
     view.on('disconnect', disconnectStorage);
     view.on('reconnect', reconnectStorage);
 
-    sync.on('busy', util.curry(setState, 'busy'));
-    sync.on('ready', util.curry(setState, 'connected'));
+    wireClient.on('busy', util.curry(setState, 'busy'));
+    wireClient.on('unbusy', util.curry(setState, 'connected'));
     wireClient.on('connected', function() {
       setState('connected');
       initialSync();
