@@ -103,10 +103,15 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     offline: assets.remoteStorageIconOffline
   };
 
+  // used to keep track of connection error in "typing" state
+  var lastConnectionError, lastFailedAddress;
+
   var stateViews = {
 
     initial: function() {
-      userAddress = '';
+      if(! lastConnectionError) {
+        userAddress = '';
+      }
 
       addClass(elements.bubble, 'one-line');
 
@@ -118,6 +123,12 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     },
 
     typing: function(connectionError) {
+      if(lastConnectionError && lastFailedAddress === userAddress) {
+        connectionError = lastConnectionError;
+      } else {
+        lastConnectionError = connectionError;
+        lastFailedAddress = userAddress;
+      }
       elements.connectForm.userAddress.setAttribute('value', userAddress);
       setBubbleText(t('connect-remotestorage'));
       elements.bubble.appendChild(elements.connectForm);
