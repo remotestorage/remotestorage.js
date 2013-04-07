@@ -53,15 +53,21 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
       env.serverHelper.captureRequests();
 
       env.rsConnect = function() {
+        storageInfo = env.serverHelper.getStorageInfo();
         env.remoteStorage.nodeConnect.setStorageInfo(
-          env.serverHelper.getStorageInfo()
+          storageInfo
         );
         env.remoteStorage.nodeConnect.setBearerToken(
           env.serverHelper.getBearerToken()
         );
 
+        env.remoteStorage.access.setStorageType(
+          storageInfo.type
+        );
+
         env.remoteStorage.claimAccess('root', 'rw');
 
+        console.log('in rsConnect, wireClient state: ', env.remoteStorage.wireClient.getState());
       };
 
       env.rsConnect();
@@ -534,6 +540,79 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               console.log('err', err, err.stack);
               test.result(false);
             });
+        }
+      },
+
+      {
+        desc: "removing a file without using cache",
+        run: function(env, test) {
+          env.remoteStorage.util.unsilenceLogger('store::remote_cache');
+          env.remoteStorage.util.setLogLevel('debug');
+          // * save something
+          env.client.storeFile('text/plain', 'something', 'blue', false).
+            then(function() {
+              console.log('saved something');
+              return env.client.getFile('something');
+            }).
+            then(function(something) {
+              console.log('something contains', something);
+            }).
+          // * disconnect, then reconnect
+            then(env.remoteStorage.flushLocal).
+            then(env.rsConnect).
+            then(curry(env.client.release, '')).
+          // * check that the listing shows the item we saved
+            then(curry(env.client.getListing, '')).
+            then(function(listing) {
+              console.log('got listing', listing);
+              test.assertAnd(listing, ['something']);
+            }).
+            then(function() {
+              env.serverHelper.clearCaptured();
+            }).
+          // * remove the item
+            then(curry(env.client.remove, 'something')).
+          // * check that the right request was sent
+            then(function() {
+              env.serverHelper.expectRequest(
+                test, 'DELETE', 'me/something'
+              );
+            }).
+          // * check that getListing doesn't have the item anymore
+            then(curry(env.client.getListing, '')).
+            then(function(listing) {
+              console.log('listing now', listing);
+              test.assert(listing, []);
+            });
+          // * disconnect, then reconnect again
+          // * check that getListing still doesn't show the item
+        }
+      },
+
+      {
+        desc: "removing a file with cache enabled",
+        run: function(env, test) {
+          env.client.storeFile('text/plain', 'something', 'blue').
+            then(env.remoteStorage.flushLocal).
+            then(env.rsConnect).
+            then(env.remoteStorage.fullSync).
+            then(curry(env.client.getListing, '')).
+            then(function(listing) {
+              test.assertAnd(listing, ['something']);
+            }).
+            then(env.serverHelper.clearCaptured).
+            then(curry(env.client.remove, 'something')).
+            then(function() {
+              console.log('serverHelper', env.serverHelper);
+              env.serverHelper.expectRequest(
+                test, 'DELETE', 'me/something'
+              );
+            }).
+            then(curry(env.client.getListing, '')).
+            then(function(listing) {
+              test.assert(listing, []);
+            });
+
         }
       }
  
