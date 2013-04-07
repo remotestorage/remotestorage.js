@@ -91,8 +91,7 @@ define([
         return;
       }
       if(! isConnected()) {
-        promise.reject('not-connected');
-        return;
+        return promise.fulfill();
       }
 
       logger.info("full " + (pushOnly ? "push" : "sync") + " started");
@@ -125,7 +124,8 @@ define([
       }
 
       if(roots.length === 0) {
-        return promise.reject(new Error("No access claimed!"));
+        events.emit('ready');
+        return promise.fulfill();
       }
 
       roots.forEach(function(root) {
@@ -746,7 +746,16 @@ define([
 
     set: function(path) {},
 
-    remove: function(path) {},
+    remove: function(path) {
+      if(caching.cachePath(path)) {
+        return store.setNodeData(path, undefined, true).
+          then(function() {
+            return partialSync(util.containingDir(path), 1);
+          });
+      } else {
+        return remoteAdapter.remove(path).then(remoteAdapter.clearCache);
+      }
+    },
 
     enable: enable,
     disable: disable,

@@ -305,7 +305,6 @@ define([
       }
       var fullPath = this.makePath(path);
       return sync.get(fullPath).then(function(node) {
-        console.log('getListing got', node);
         return node.data ? Object.keys(node.data) : [];
       });
     },
@@ -421,8 +420,7 @@ define([
     //
     remove: function(path) {
       var absPath = this.makePath(path);
-      return set(this.moduleName, path, absPath, undefined).
-        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+      return sync.remove(absPath);
     },
 
     // Method: saveObject
