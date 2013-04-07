@@ -91,6 +91,42 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     browserEvents = [];
   }
 
+  function bubbleHiddenToggler() {
+    var visible = false;
+
+    function handleBodyClick(event) {
+      toggleBubbleVisibility(event);
+      if(event.target !== document.body) {
+        event.target.click();
+      }
+      return false;
+    }
+
+    function toggleBubbleVisibility(event) {
+      if(event.preventDefault) {
+        event.preventDefault();
+      }
+      if(event.stopPropagation) {
+        event.stopPropagation();
+      }
+      event.cancelBubble = true;
+      event.returnValue = false;
+      if(visible) {
+        addClass(elements.bubble, 'hidden');
+        document.body.removeEventListener('click', handleBodyClick);
+        document.body.removeEventListener('touchstart', handleBodyClick);
+      } else {
+        removeClass(elements.bubble, 'hidden'); 
+        document.body.addEventListener('click', handleBodyClick);
+        document.body.addEventListener('touchstart', handleBodyClick);
+      }
+      visible = !visible;
+      return false;
+    }
+
+    return toggleBubbleVisibility;
+  }
+
   var userAddress = '';
 
   var currentState = 'initial';
@@ -232,39 +268,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
       elements.bubble.appendChild(content);
 
-      var visible = false;
-
-      function handleBodyClick(event) {
-        toggleBubbleVisibility(event);
-        if(event.target !== document.body) {
-          event.target.click();
-        }
-        return false;
-      }
-
-      function toggleBubbleVisibility(event) {
-        if(event.preventDefault) {
-          event.preventDefault();
-        }
-        if(event.stopPropagation) {
-          event.stopPropagation();
-        }
-        event.cancelBubble = true;
-        event.returnValue = false;
-        if(visible) {
-          addClass(elements.bubble, 'hidden');
-          document.body.removeEventListener('click', handleBodyClick);
-          document.body.removeEventListener('touchstart', handleBodyClick);
-        } else {
-          removeClass(elements.bubble, 'hidden'); 
-          document.body.addEventListener('click', handleBodyClick);
-          document.body.addEventListener('touchstart', handleBodyClick);
-        }
-        visible = !visible;
-        return false;
-      }
-
-      setCubeAction(toggleBubbleVisibility);
+      setCubeAction(bubbleHiddenToggler());
     },
 
     busy: function(initialSync) {
@@ -276,6 +280,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       } else {
         addClass(elements.bubble, 'hidden');
         setBubbleText(t('synchronizing', { userAddress: userAddress }));
+        setCubeAction(bubbleHiddenToggler());
       }
     },
 
@@ -312,15 +317,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     offline: function(error) {
       setCubeState('offline');
       addClass(elements.bubble, 'one-line hidden');
-      var visible = false;
-      setCubeAction(function() {
-        if(visible) {
-          addClass(elements.bubble, 'hidden');
-        } else {
-          removeClass(elements.bubble, 'hidden');
-        }
-        visible = !visible;
-      });
+      setCubeAction(bubbleHiddenToggler());
       setBubbleText(t('offline', { userAddress: userAddress }));
     },
 
