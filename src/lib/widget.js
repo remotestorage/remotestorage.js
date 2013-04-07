@@ -234,6 +234,7 @@ define([
       sync.fullSync().then(function() {
         schedule.enable();
         settings.set('initialSyncDone', true);
+        setState('connected');
         events.emit('ready');
       }, handleSyncError);
     }
@@ -259,8 +260,8 @@ define([
     view.on('disconnect', disconnectStorage);
     view.on('reconnect', reconnectStorage);
 
-    sync.on('busy', util.curry(setState, 'busy'));
-    sync.on('ready', util.curry(setState, 'connected'));
+    wireClient.on('busy', util.curry(setState, 'busy'));
+    wireClient.on('unbusy', util.curry(setState, 'connected'));
     wireClient.on('connected', function() {
       setState('connected');
       initialSync();
