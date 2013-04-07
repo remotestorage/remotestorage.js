@@ -56,11 +56,19 @@ define([
   // passed to display() to avoid circular deps
   var remoteStorage;
 
-  var reconnectInterval = 10000;
+  var reconnectInterval = 1000;
 
   var offlineTimer = null;
 
   var viewState;
+
+  function calcReconnectInterval() {
+    var i = reconnectInterval;
+    if(reconnectInterval < 10000) {
+      reconnectInterval *= 2;
+    }
+    return i;
+  }
 
   var stateActions = {
     offline: function() {
@@ -71,7 +79,7 @@ define([
             then(function() {
               schedule.enable();
             });
-        }, reconnectInterval);
+        }, calcReconnectInterval());
       }
     },
     connected: function() {
@@ -134,10 +142,12 @@ define([
         setState((typeof(error) === 'string') ? 'typing' : 'error', error);
       }).
       then(function(storageInfo) {
-        remoteStorage.access.setStorageType(storageInfo.type);
-        return requestToken(storageInfo.properties['auth-endpoint']);
-      }).
-      then(schedule.enable, util.curry(setState, 'error'));
+        if(storageInfo) {
+          remoteStorage.access.setStorageType(storageInfo.type);
+          requestToken(storageInfo.properties['auth-endpoint']);
+          schedule.enable();
+        }
+      }, util.curry(setState, 'error'));
   }
 
   function reconnectStorage() {
