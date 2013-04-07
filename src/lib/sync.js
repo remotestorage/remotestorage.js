@@ -746,7 +746,16 @@ define([
 
     set: function(path) {},
 
-    remove: function(path) {},
+    remove: function(path) {
+      if(caching.cachePath(path)) {
+        return store.setNodeData(path, undefined, true).
+          then(function() {
+            return partialSync(util.containingDir(path), 1);
+          });
+      } else {
+        return remoteAdapter.remove(path).then(remoteAdapter.clearCache);
+      }
+    },
 
     enable: enable,
     disable: disable,
