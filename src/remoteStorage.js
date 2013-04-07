@@ -457,11 +457,11 @@ define([
     getSyncState: sync.getState,
     //
     setStorageInfo: function(storageInfo) {
-      wireClient.setStorageInfo(storageInfo);
-      if(storageInfo) {
-        access.setStorageType(storageInfo.type);
+      var info = wireClient.setStorageInfo(storageInfo);
+      if(info) {
+        this.access.setStorageType(info.type);
       }
-      return storageInfo;
+      return info;
     },
 
     getStorageHref: wireClient.getStorageHref,
