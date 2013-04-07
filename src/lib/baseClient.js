@@ -88,6 +88,19 @@ define([
     return util.getPromise().reject(error);
   }
 
+  function fireChange(moduleName, path, oldValue, newValue) {
+    var event = {
+      origin: "window",
+      path: path,
+      oldValue: oldValue,
+      newValue: newValue
+    };
+    fireModuleEvent('change', moduleName, event);
+    if(moduleName !== 'root') {
+      fireModuleEvent('change', 'root', event);
+    }
+  }
+
   function set(moduleName, path, absPath, value, mimeType) {
     if(util.isDir(absPath)) {
       return failedPromise(new Error('attempt to set a value to a directory ' + absPath));
@@ -420,7 +433,15 @@ define([
     //
     remove: function(path) {
       var absPath = this.makePath(path);
-      return sync.remove(absPath);
+      var oldValue;
+      return sync.get(absPath).
+        then(function(node) {
+          oldValue = node.data;
+          return sync.remove(absPath);
+        }).
+        then(function() {
+          fireChange(this.moduleName, absPath, oldValue, undefined);
+        }.bind(this));
     },
 
     // Method: saveObject

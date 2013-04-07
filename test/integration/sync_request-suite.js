@@ -618,6 +618,42 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             });
 
         }
+      },
+
+      {
+        desc: "deleting something triggers a 'change' event",
+        timeout: 750,
+        run: function(env, test) {
+          env.client.storeFile('text/plain', 'hello', 'hello world').
+            then(function() {
+              env.client.on('change', function(event) {
+                test.assert(event, {
+                  origin: 'window',
+                  path: '/hello',
+                  oldValue: 'hello world',
+                  newValue: undefined
+                });
+              });
+              return env.client.remove('hello');
+            });
+        }
+      },
+
+      {
+        desc: "creating something triggers a 'change' event",
+        timeout: 750,
+        run: function(env, test) {
+          env.client.on('change', function(event) {
+            console.log('got change', event);
+            test.assert(event, {
+              origin: 'window',
+              path: '/hello',
+              oldValue: undefined,
+              newValue: 'hello world'
+            });
+          });
+          env.client.storeFile('text/plain', 'hello', 'hello world');
+        }
       }
  
     ]
