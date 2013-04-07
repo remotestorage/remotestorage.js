@@ -262,7 +262,16 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       content.appendChild(hint);
       content.appendChild(elements.disconnectButton);
       addEvent(elements.syncButton, 'click', function() {
-        events.emit('sync');
+        // emulate "busy" state for a second (i.e. one animation cycle) to
+        // give the user feedback that sync is happening, even though the
+        // cube wouldn't be animated until there are PUT / DELETE requests
+        setState('busy')
+        // actual sync is delayed until after the animation cycle, so there
+        // are no 'busy' / 'connected' race conditions.
+        setTimeout(function() {
+          setState('connected');
+          events.emit('sync');
+        }, 1000);
       });
       addEvent(elements.disconnectButton, 'click', disconnectAction);
 
