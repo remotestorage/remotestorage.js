@@ -144,8 +144,8 @@ define([
       then(function(storageInfo) {
         if(storageInfo) {
           remoteStorage.access.setStorageType(storageInfo.type);
-          return requestToken(storageInfo.properties['auth-endpoint']).
-            then(schedule.enable);
+          requestToken(storageInfo.properties['auth-endpoint']);
+          schedule.enable();
         }
       }, util.curry(setState, 'error'));
   }
