@@ -142,10 +142,12 @@ define([
         setState((typeof(error) === 'string') ? 'typing' : 'error', error);
       }).
       then(function(storageInfo) {
-        remoteStorage.access.setStorageType(storageInfo.type);
-        return requestToken(storageInfo.properties['auth-endpoint']);
-      }).
-      then(schedule.enable, util.curry(setState, 'error'));
+        if(storageInfo) {
+          remoteStorage.access.setStorageType(storageInfo.type);
+          return requestToken(storageInfo.properties['auth-endpoint']).
+            then(schedule.enable);
+        }
+      }, util.curry(setState, 'error'));
   }
 
   function reconnectStorage() {
