@@ -87,28 +87,19 @@
     right: 0;
 }
 
-#remotestorage-widget .cube.spinning {
-    -webkit-animation-name:remotestorage-loading;
-    -webkit-animation-duration:2s;
-    -webkit-animation-iteration-count:infinite;
-    -webkit-animation-timing-function:linear;
-    -moz-animation-name:remotestorage-loading;
-    -moz-animation-duration:2s;
-    -moz-animation-iteration-count:infinite;
-    -moz-animation-timing-function:linear;
-    -o-animation-name:remotestorage-loading;
-    -o-animation-duration:2s;
-    -o-animation-iteration-count:infinite;
-    -o-animation-timing-function:linear;
-    -ms-animation-name:remotestorage-loading;
-    -ms-animation-duration:2s;
-    -ms-animation-iteration-count:infinite;
-    -ms-animation-timing-function:linear;
+/* pulsing animation for cube when loading */
+#remotestorage-widget .cube.remotestorage-loading {
+    -webkit-animation:remotestorage-loading .5s ease-in-out infinite alternate;
+    -moz-animation:remotestorage-loading .5s ease-in-out infinite alternate;
+    -o-animation:remotestorage-loading .5s ease-in-out infinite alternate;
+    -ms-animation:remotestorage-loading .5s ease-in-out infinite alternate;
+    animation:remotestorage-loading .5s ease-in-out infinite alternate;
 }
-@-webkit-keyframes remotestorage-loading { from{-webkit-transform:rotate(0deg)} to{-webkit-transform:rotate(360deg)} }
-@-moz-keyframes remotestorage-loading { from{-moz-transform:rotate(0deg)} to{-moz-transform:rotate(360deg)} }
-@-o-keyframes remotestorage-loading { from{-o-transform:rotate(0deg)} to{-o-transform:rotate(360deg)} }
-@-ms-keyframes remotestorage-loading { from{-ms-transform:rotate(0deg)} to{ -ms-transform:rotate(360deg)} }
+@-webkit-keyframes remotestorage-loading { to{opacity:.7} }
+@-moz-keyframes remotestorage-loading { to{opacity:.7} }
+@-o-keyframes remotestorage-loading { to{opacity:.7} }
+@-ms-keyframes remotestorage-loading { to{opacity:.7} }
+@keyframes remotestorage-loading { to{opacity:.7} }
 
 
 #remotestorage-widget a {
