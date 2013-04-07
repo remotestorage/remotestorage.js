@@ -91,8 +91,7 @@ define([
         return;
       }
       if(! isConnected()) {
-        promise.reject('not-connected');
-        return;
+        return promise.fulfill();
       }
 
       logger.info("full " + (pushOnly ? "push" : "sync") + " started");
@@ -125,7 +124,8 @@ define([
       }
 
       if(roots.length === 0) {
-        return promise.reject(new Error("No access claimed!"));
+        events.emit('ready');
+        return promise.fulfill();
       }
 
       roots.forEach(function(root) {
