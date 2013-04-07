@@ -163,6 +163,12 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     return !! getSetting('storageInfo:' + userAddress);
   }
 
+
+  var typeAliasMap = {
+    'draft-dejong-remotestorage-00': 'remotestorage-00',
+    'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': '2012.04'
+  }
+
   return util.extend(events, {
 
     get: get,
@@ -181,6 +187,8 @@ define(['./getputdelete', './util'], function (getputdelete, util) {
     //   configured - if wireClient is now fully configured
     //
     setStorageInfo   : function(info) {
+      info = util.extend({}, info);
+      info.type = typeAliasMap[info.type] || info.type;
       setSetting('storageType', info.type);
       setSetting('storageHref', info.href);
       return info;
