@@ -177,11 +177,6 @@
     margin-bottom: .7em
 }
 
-#remotestorage-widget .info.error {
-    font-weight: bold;
-    color: #f92;
-}
-
 #remotestorage-widget .info a:hover,
 #remotestorage-widget .info a:active {
     color: #fff;
