@@ -47,12 +47,6 @@
     text-decoration: none;
 }
 
-/* set width to prevent jumping glitch between initial and typing states */
-#remotestorage-widget.remotestorage-state-initial .bubble,
-#remotestorage-widget.remotestorage-state-typing .bubble {
-    width: 185px;
-}
-
 #remotestorage-widget .bubble-text {
     padding-right: 32px;
 }
