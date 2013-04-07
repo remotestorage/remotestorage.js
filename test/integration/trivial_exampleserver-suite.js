@@ -51,6 +51,10 @@ define([
       env.serverHelper.resetState();
       env.serverHelper.setScope([':rw']);
 
+      env.rsDisconnect = function() {
+        return env.remoteStorage.flushLocal(true);
+      }
+
       env.rsConnect = function() {
         env.remoteStorage.nodeConnect.setStorageInfo(
           env.serverHelper.getStorageInfo()
@@ -71,7 +75,7 @@ define([
         if (unsynced) {
           _this.result(false, 'client needsSync = true, thats not good');
         }
-        env.remoteStorage.flushLocal().then(curry(_this.result.bind(_this), true));
+        env.rsDisconnect().then(curry(_this.result.bind(_this), true));
       });
     },
     tests: [
@@ -129,7 +133,7 @@ define([
           try {
             env.client.storeObject('test', 'testobject', obj).
             then(env.remoteStorage.fullSync).
-            then(env.remoteStorage.flushLocal).
+            then(env.rsDisconnect).
             then(env.rsConnect).
             then(env.remoteStorage.fullSync).
             then(curry(env.remoteStorage.root.getObject, 'testobject')).
@@ -229,7 +233,7 @@ define([
             curry(env.client.storeObject, 'test', 'test-dir/duong-dong/a', { n: 'a' })
           ).
             then(env.remoteStorage.fullSync).
-            then(env.remoteStorage.flushLocal).
+            then(env.rsDisconnect).
             then(env.rsConnect).
             then(curry(env.remoteStorage.root.release, '')).
             then(curry(env.remoteStorage.root.use, 'test-dir/', true)).
@@ -256,7 +260,7 @@ define([
             curry(env.client.storeObject, 'test', 'test-dir/c', { n: 'c' })
           ).
             then(env.remoteStorage.fullSync).
-            then(env.remoteStorage.flushLocal).
+            then(env.rsDisconnect).
             then(env.rsConnect).
             then(curry(env.remoteStorage.root.release, '')).
             then(curry(env.remoteStorage.root.use, '', true)).
@@ -292,7 +296,7 @@ define([
             curry(env.client.storeObject, 'test', 'other-dir/e', { n: 'e' })
           ).
             // logout
-            then(env.remoteStorage.flushLocal).
+            then(env.rsDisconnect).
             // login
             then(env.rsConnect).
             then(curry(env.remoteStorage.root.release, '')).
@@ -340,7 +344,7 @@ define([
             curry(env.client.storeObject, 'test', 'other-dir/e', { n: 'e' })
           ).
             then(env.remoteStorage.fullSync).
-            then(env.remoteStorage.flushLocal).
+            then(env.rsDisconnect).
             then(env.rsConnect).
             then(curry(env.remoteStorage.root.release, '')).
             then(curry(env.remoteStorage.root.use, 'test-dir/')).

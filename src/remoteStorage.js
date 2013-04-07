@@ -340,7 +340,7 @@ define([
     // Example:
     //   > remoteStorage.flushLocal();
     //
-    flushLocal       : function() {
+    flushLocal       : function(all) {
       return util.getPromise(function(promise) {
         logger.info('flushLocal');
         sync.reset();
@@ -348,8 +348,10 @@ define([
         schedule.reset();
         wireClient.disconnectRemote();
         i18n.clearSettings();
-        this.access.reset();
-        this.caching.reset();
+        if(all === true) {
+          this.access.reset();
+          this.caching.reset();
+        }
         store.forgetAll().then(promise.fulfill);
       }.bind(this));
     },
