@@ -174,7 +174,6 @@ define(
            remoteStorageLink.type &&
            remoteStorageLink.properties &&
            remoteStorageLink.properties['auth-endpoint']) {
-          console.log('got link', remoteStorageLink);
           return remoteStorageLink;
         } else {
           throw new Error("Invalid remoteStorage link. Required properties are:" +
