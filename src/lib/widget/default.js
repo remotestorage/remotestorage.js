@@ -262,7 +262,11 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       content.appendChild(hint);
       content.appendChild(elements.disconnectButton);
       addEvent(elements.syncButton, 'click', function() {
-        events.emit('sync');
+        setState('busy')
+        setTimeout(function() {
+          setState('connected');
+          events.emit('sync');
+        }, 1000);
       });
       addEvent(elements.disconnectButton, 'click', disconnectAction);
 
