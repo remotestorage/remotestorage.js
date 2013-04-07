@@ -175,6 +175,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     authing: function() {
       setBubbleText(t('connecting', { userAddress: userAddress }));
+      addClass(elements.bubble, 'one-line');
       setCubeState('connected');
       addClass(elements.cube, 'spinning');
     },
