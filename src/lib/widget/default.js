@@ -177,7 +177,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       setBubbleText(t('connecting', { userAddress: userAddress }));
       addClass(elements.bubble, 'one-line');
       setCubeState('connected');
-      addClass(elements.cube, 'spinning');
+      addClass(elements.cube, 'remotestorage-loading');
     },
 
     connected: function() {
@@ -258,7 +258,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
 
     busy: function(initialSync) {
       setCubeState('connected');
-      addClass(elements.cube, 'spinning');
+      addClass(elements.cube, 'remotestorage-loading');
       addClass(elements.bubble, 'one-line');
       if(initialSync) {
         setBubbleText(t('connecting', { userAddress: userAddress }));
