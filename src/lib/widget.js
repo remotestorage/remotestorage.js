@@ -248,7 +248,7 @@ define([
     }
 
     options.getLastSyncAt = function() {
-      return sync.lastSyncAt && sync.lastSyncAt.getTime();
+      return (sync.lastSyncAt || new Date()).getTime();
     };
 
     schedule.watch('/', 30000);
