@@ -310,7 +310,6 @@ define([
       }
     },
 
-    // PRIVATE
     setBearerToken: function(bearerToken, claimedScopes) {
       wireClient.setBearerToken(bearerToken);
     },
@@ -457,7 +456,13 @@ define([
     //
     getSyncState: sync.getState,
     //
-    setStorageInfo: wireClient.setStorageInfo,
+    setStorageInfo: function(storageInfo) {
+      wireClient.setStorageInfo(storageInfo);
+      if(storageInfo) {
+        access.setStorageType(storageInfo.type);
+      }
+      return storageInfo;
+    },
 
     getStorageHref: wireClient.getStorageHref,
 

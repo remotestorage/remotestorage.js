@@ -135,7 +135,7 @@ define([
     settings.set('userAddress', userAddress);
     setState('authing');
     return webfinger.getStorageInfo(userAddress).
-      then(wireClient.setStorageInfo, function(error) {
+      then(remoteStorage.setStorageInfo, function(error) {
         if(error === 'timeout') {
           adjustTimeout();
         }
@@ -143,7 +143,6 @@ define([
       }).
       then(function(storageInfo) {
         if(storageInfo) {
-          remoteStorage.access.setStorageType(storageInfo.type);
           requestToken(storageInfo.properties['auth-endpoint']);
           schedule.enable();
         }
