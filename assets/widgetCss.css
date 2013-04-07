@@ -76,8 +76,7 @@
 }
 #remotestorage-widget.remotestorage-state-connected:hover .cube,
 #remotestorage-widget.remotestorage-state-busy:hover .cube,
-#remotestorage-widget.remotestorage-state-connected .bubble:not(.hidden) + .cube,
-#remotestorage-widget.remotestorage-state-busy .bubble:not(.hidden) + .cube {
+#remotestorage-widget.remotestorage-state-connected .bubble:not(.hidden) + .cube {
 	opacity:1 !important;
 }
 
