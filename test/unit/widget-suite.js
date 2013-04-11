@@ -139,12 +139,12 @@ define(['requirejs'], function(requirejs) {
         desc: "widget.display sets up event handlers on sync, wireClient and baseClient",
         run: function(env) {
           env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {});
-          this.assertAnd(env.sync.hasHandler('busy'), true);
-          this.assertAnd(env.sync.hasHandler('ready'), true);
           this.assertAnd(env.sync.hasHandler('error'), true);
           this.assertAnd(env.sync.hasHandler('timeout'), true);
           this.assertAnd(env.wireClient.hasHandler('connected'), true);
           this.assertAnd(env.wireClient.hasHandler('disconnected'), true);
+          this.assertAnd(env.wireClient.hasHandler('busy'), true);
+          this.assertAnd(env.wireClient.hasHandler('unbusy'), true);
           this.assert(env.baseClient.hasHandler('error'), true);
         }
       },
@@ -161,14 +161,14 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "forwards sync busy / ready state to the view",
+        desc: "forwards wireClient busy / unbusy state to the view",
         run: function(env) {
           env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {});
-          env.sync.emit('busy');
+          env.wireClient.emit('busy');
           if(! expectCall(this, env.view, 'setState', ['busy'])) {
             return;
           }
-          env.sync.emit('ready');
+          env.wireClient.emit('unbusy');
           if(! expectCall(this, env.view, 'setState', ['connected'])) {
             return;
           }
