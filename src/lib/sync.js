@@ -194,6 +194,8 @@ define([
       return wireClient.set(path, localNode.data, localNode.mimeType).
         then(function() {
           remoteAdapter.expireKey(path);
+        }).then(function() {
+          return partialSync(util.containingDir(path), 1);
         });
     } else {
       return remoteAdapter.get(path).
