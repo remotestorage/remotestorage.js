@@ -219,7 +219,7 @@ define([
 
   function initialSync() {
     if(settings.get('initialSyncDone')) {
-      store.fireInitialEvents();
+      store.fireInitialEvents().then(util.curry(events.emit, 'ready'));
     } else {
       setState('busy', true);
       sync.fullSync().then(function() {
