@@ -456,6 +456,10 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             then(function() {
               // check requests
               env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
+
+              // required to update local version
+              env.serverHelper.expectRequest(test, 'GET', 'me/greetings/');
+
               env.serverHelper.expectNoMoreRequest(test);
             }, function(err) {
               console.log('err', err);
