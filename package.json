@@ -1,6 +1,6 @@
 {
   "name": "remoteStorage.js",
-  "version": "0.7.2-rc3",
+  "version": "0.7.2",
   "devDependencies": {
     "sqlite3": "*",
     "requirejs": "*",
