@@ -91,6 +91,42 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     browserEvents = [];
   }
 
+  function bubbleHiddenToggler() {
+    var visible = false;
+
+    function handleBodyClick(event) {
+      toggleBubbleVisibility(event);
+      if(event.target !== document.body) {
+        event.target.click();
+      }
+      return false;
+    }
+
+    function toggleBubbleVisibility(event) {
+      if(event.preventDefault) {
+        event.preventDefault();
+      }
+      if(event.stopPropagation) {
+        event.stopPropagation();
+      }
+      event.cancelBubble = true;
+      event.returnValue = false;
+      if(visible) {
+        addClass(elements.bubble, 'hidden');
+        document.body.removeEventListener('click', handleBodyClick);
+        document.body.removeEventListener('touchstart', handleBodyClick);
+      } else {
+        removeClass(elements.bubble, 'hidden'); 
+        document.body.addEventListener('click', handleBodyClick);
+        document.body.addEventListener('touchstart', handleBodyClick);
+      }
+      visible = !visible;
+      return false;
+    }
+
+    return toggleBubbleVisibility;
+  }
+
   var userAddress = '';
 
   var currentState = 'initial';
@@ -103,10 +139,15 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     offline: assets.remoteStorageIconOffline
   };
 
+  // used to keep track of connection error in "typing" state
+  var lastConnectionError, lastFailedAddress;
+
   var stateViews = {
 
     initial: function() {
-      userAddress = '';
+      if(! lastConnectionError) {
+        userAddress = '';
+      }
 
       addClass(elements.bubble, 'one-line');
 
@@ -118,6 +159,12 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     },
 
     typing: function(connectionError) {
+      if(lastConnectionError && lastFailedAddress === userAddress) {
+        connectionError = lastConnectionError;
+      } else {
+        lastConnectionError = connectionError;
+        lastFailedAddress = userAddress;
+      }
       elements.connectForm.userAddress.setAttribute('value', userAddress);
       setBubbleText(t('connect-remotestorage'));
       elements.bubble.appendChild(elements.connectForm);
@@ -136,7 +183,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
         }
       };
       elements.connectForm.userAddress.addEventListener('keyup', adjustButton);
-	  adjustButton();
+	    adjustButton();
 
       if(connectionError) {
         // error bubbled from webfinger
@@ -150,20 +197,34 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
         addBubbleHint(t('typing-hint'));
       }
 
-      setCubeAction(jumpAction('initial'));
+      function hideBubble(evt) {
+        var e = evt.target;
+        while(e) {
+          if(e === elements.widget) {
+            return true;
+          }
+          e = e.parentElement;
+        }
+        evt.preventDefault();
+        evt.stopPropagation();
+        setState('initial');
+        document.body.removeEventListener('click', hideBubble);
+        document.body.removeEventListener('touchstart', hideBubble);
+        return false;
+      }
+
+      setCubeAction(hideBubble);
+      document.body.addEventListener('click', hideBubble);
+      document.body.addEventListener('touchstart', hideBubble);
 
       elements.connectForm.userAddress.focus();
     },
 
     authing: function() {
       setBubbleText(t('connecting', { userAddress: userAddress }));
-      elements.bubble.appendChild(elements.connectForm);
-      elements.connectForm.userAddress.setAttribute('disabled', 'disabled');
-      elements.connectForm.userAddress.style.width = '100%';
-      elements.connectForm.connect.setAttribute('disabled', 'disabled');
-      elements.connectForm.userAddress.setAttribute('value', userAddress);
+      addClass(elements.bubble, 'one-line');
       setCubeState('connected');
-      addClass(elements.cube, 'spinning');
+      addClass(elements.cube, 'remotestorage-loading');
     },
 
     connected: function() {
@@ -201,32 +262,34 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       content.appendChild(hint);
       content.appendChild(elements.disconnectButton);
       addEvent(elements.syncButton, 'click', function() {
-        events.emit('sync');
+        // emulate "busy" state for a second (i.e. one animation cycle) to
+        // give the user feedback that sync is happening, even though the
+        // cube wouldn't be animated until there are PUT / DELETE requests
+        setState('busy')
+        // actual sync is delayed until after the animation cycle, so there
+        // are no 'busy' / 'connected' race conditions.
+        setTimeout(function() {
+          setState('connected');
+          events.emit('sync');
+        }, 1000);
       });
       addEvent(elements.disconnectButton, 'click', disconnectAction);
 
       elements.bubble.appendChild(content);
 
-      var visible = false;
-      setCubeAction(function() {
-        if(visible) {
-          addClass(elements.bubble, 'hidden');
-        } else {
-          removeClass(elements.bubble, 'hidden');
-        }
-        visible = !visible;
-      });
+      setCubeAction(bubbleHiddenToggler());
     },
 
     busy: function(initialSync) {
       setCubeState('connected');
-      addClass(elements.cube, 'spinning');
+      addClass(elements.cube, 'remotestorage-loading');
       addClass(elements.bubble, 'one-line');
       if(initialSync) {
         setBubbleText(t('connecting', { userAddress: userAddress }));
       } else {
         addClass(elements.bubble, 'hidden');
         setBubbleText(t('synchronizing', { userAddress: userAddress }));
+        setCubeAction(bubbleHiddenToggler());
       }
     },
 
@@ -243,20 +306,27 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
       } else {
         trace.innerHTML = error;
       }
+      var errorInfo = document.createElement('p');
+      errorInfo.setAttribute('class', 'remotestorage-error-info');
+      errorInfo.innerHTML = t('error-info');
+      var resetButton = document.createElement('button');
+      resetButton.setAttribute('class', 'remotestorage-reset');
+      resetButton.innerHTML = t('reset');
+      resetButton.addEventListener('click', function() {
+        if(confirm(t('reset-confirmation-message'))) {
+          // FIXME: don't clear localStorage here, but instead fire some event.
+          localStorage.clear();
+          document.location = String(document.location).split('#')[0];
+        }
+      });
+      elements.bubble.appendChild(errorInfo);
+      elements.bubble.appendChild(resetButton);
     },
 
     offline: function(error) {
       setCubeState('offline');
       addClass(elements.bubble, 'one-line hidden');
-      var visible = false;
-      setCubeAction(function() {
-        if(visible) {
-          addClass(elements.bubble, 'hidden');
-        } else {
-          removeClass(elements.bubble, 'hidden');
-        }
-        visible = !visible;
-      });
+      setCubeAction(bubbleHiddenToggler());
       setBubbleText(t('offline', { userAddress: userAddress }));
     },
 
@@ -324,6 +394,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     // #remotestorage-widget
     elements.widget = cEl('div');
     elements.widget.setAttribute('id', 'remotestorage-widget');
+    elements.widget.setAttribute('class', 'remotestorage-state-initial');
     // .cube
     elements.cube = cEl('img');
     // .bubble
@@ -439,6 +510,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
   function setState(state) {
     var args = Array.prototype.slice.call(arguments, 1);
     currentState = state;
+    elements.widget.setAttribute('class', 'remotestorage-state-' + state);
     util.nextTick(function() {
       updateWidget.apply(undefined, args);
     });

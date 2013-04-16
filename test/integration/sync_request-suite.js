@@ -52,6 +52,10 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
       env.serverHelper.setScope([':rw']);
       env.serverHelper.captureRequests();
 
+      env.rsDisconnect = function() {
+        return env.remoteStorage.flushLocal(true);
+      }
+
       env.rsConnect = function() {
         storageInfo = env.serverHelper.getStorageInfo();
         env.remoteStorage.nodeConnect.setStorageInfo(
@@ -77,7 +81,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
     },
     
     afterEach: function(env, test) {
-      env.remoteStorage.flushLocal().then(curry(test.result.bind(test), true));
+      env.rsDisconnect().then(curry(test.result.bind(test), true));
     },
     
     tests: [
@@ -126,7 +130,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
           util.asyncEach([1,2,3,4,5], function(i) {
             return env.client.storeObject('test', 'obj-' + i, { i: i })
           }).
-            then(env.remoteStorage.flushLocal).
+            then(env.rsDisconnect).
             then(env.serverHelper.clearCaptured.bind(env.serverHelper)).
             then(env.rsConnect).
             then(env.remoteStorage.fullSync).
@@ -162,7 +166,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
           }).
             then(env.remoteStorage.fullSync).
             // dis- and reconnect
-            then(env.remoteStorage.flushLocal).
+            then(env.rsDicsonnect).
             then(env.serverHelper.clearCaptured.bind(env.serverHelper)).
             then(env.rsConnect).
             // release root (which was set up by claimAccess):
@@ -334,7 +338,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               return env.client.storeObject('test', 'locations/hackerbeach/2013', { island: "Phu Quoc" });
             }).
             // disconnect client
-            then(env.remoteStorage.flushLocal).
+            then(env.rsDisconnect).
             then(function() {
               // reconnect client
               env.rsConnect();
@@ -375,7 +379,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island')
             }).
             // disconnect client
-            then(env.remoteStorage.flushLocal).
+            then(env.rsDisconnect).
             then(function() {
               // reconnect client
               env.rsConnect();
@@ -411,7 +415,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
         desc: "getting a listing with no forced sync at all",
         run: function(env, test) {
           return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island').
-            then(env.remoteStorage.flushLocal).
+            then(env.rsDicsonnect).
             then(env.rsConnect).
             then(function() {
               return env.client.release('');
@@ -452,6 +456,10 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
             then(function() {
               // check requests
               env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
+
+              // required to update local version
+              env.serverHelper.expectRequest(test, 'GET', 'me/greetings/');
+
               env.serverHelper.expectNoMoreRequest(test);
             }, function(err) {
               console.log('err', err);
@@ -507,7 +515,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               return env.remoteStorage.fullSync();
             }).
               // logout & log in again
-            then(env.remoteStorage.flushLocal).
+            then(env.rsDisconnect).
             then(env.serverHelper.clearCaptured.bind(env.serverHelper)).
             then(env.rsConnect).
             then(function() {
@@ -613,6 +621,42 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
               test.assert(listing, []);
             });
 
+        }
+      },
+
+      {
+        desc: "deleting something triggers a 'change' event",
+        timeout: 750,
+        run: function(env, test) {
+          env.client.storeFile('text/plain', 'hello', 'hello world').
+            then(function() {
+              env.client.on('change', function(event) {
+                test.assert(event, {
+                  origin: 'window',
+                  path: '/hello',
+                  oldValue: 'hello world',
+                  newValue: undefined
+                });
+              });
+              return env.client.remove('hello');
+            });
+        }
+      },
+
+      {
+        desc: "creating something triggers a 'change' event",
+        timeout: 750,
+        run: function(env, test) {
+          env.client.on('change', function(event) {
+            console.log('got change', event);
+            test.assert(event, {
+              origin: 'window',
+              path: '/hello',
+              oldValue: undefined,
+              newValue: 'hello world'
+            });
+          });
+          env.client.storeFile('text/plain', 'hello', 'hello world');
         }
       }
  

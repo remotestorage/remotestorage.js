@@ -18,14 +18,19 @@ define([], function() {
         'typing-hint': 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/" target="_blank">remotestorage.io</a>',
         'last-synced': '{t}',
         'webfinger-failed': "{message}",
-        'webfinger-error-no-at': "There is no @-sign in the user address.",
-        'webfinger-error-multiple-at': "There is more than one @-sign in the user address.",
-        'webfinger-error-non-dotalphanum': "There are invalid characters in the user address.",
-        'webfinger-error-invalid-xml': "Server doesn't support remoteStorage.",
-        'webfinger-error-invalid-jrd': "Server doesn't support remoteStorage.",
-        'webfinger-error-requests-failed': "Failed to contact the storage server.",
-        'webfinger-error-not-supported': "Server doesn't support remoteStorage.",
-        'error': 'Sorry! An error occurred.'
+        'webfinger-error-no-at': "The user address doesn’t seem to be correct, there is no @-sign in it.",
+        'webfinger-error-multiple-at': "The user address doesn’t seem to be correct, there is more than one @-sign in it.",
+        'webfinger-error-non-dotalphanum': "The user address doesn’t seem to be correct, there are invalid characters in it.",
+        'webfinger-error-invalid-xml': 'The server doesn’t seem to support remoteStorage. Please update it, and <a href="http://remotestorage.io/community/" target="_blank">let us know</a> if you need help.',
+        'webfinger-error-invalid-jrd': 'The server doesn’t seem to support remoteStorage. Please update it, and <a href="http://remotestorage.io/community/" target="_blank">let us know</a> if you need help.',
+        'webfinger-error-not-supported': 'The server doesn’t seem to support remoteStorage. Please update it, and <a href="http://remotestorage.io/community/" target="_blank">let us know</a> if you need help.',
+        'webfinger-error-requests-failed': 'Oops, we couldn’t find the remoteStorage server. Are you sure the address is correct?',
+        'webfinger-error-timeout': 'Oops, the remoteStorage server didn’t reply. Are you sure the address is correct?',
+        'error': 'Sorry! An error occurred.',
+        // reset button
+        'reset': "Okay, get me out of here",
+        'error-info': 'If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!',
+        'reset-confirmation-message': "Are you sure you want to reset everything? That will probably make the error go away, but also clear your entire localStorage and reload the page. Please make sure you know what you are doing, before clicking 'yes' :-)"
       }
     },
 

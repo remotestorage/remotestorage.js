@@ -11,6 +11,8 @@ define([
   var events = util.getEventEmitter('error', 'conflict', 'state', 'busy', 'ready', 'timeout');
   var logger = util.getLogger('sync');
 
+  var curry = util.curry;
+
   /*******************/
   /* Namespace: sync */
   /*******************/
@@ -194,6 +196,18 @@ define([
       return wireClient.set(path, localNode.data, localNode.mimeType).
         then(function() {
           remoteAdapter.expireKey(path);
+        }).then(function() {
+          var parentPath = util.containingDir(path);
+          remoteAdapter.expireKey(parentPath);
+          if(caching.descendIntoPath(parentPath)) {
+            return util.asyncGroup(
+              curry(remoteAdapter.get, parentPath),
+              curry(store.getNode, parentPath)
+            ).then(function(parents) {
+              var baseName = util.baseName(path);
+              parents[1].data[baseName] = parents[0].data[baseName];
+            });
+          }
         });
     } else {
       return remoteAdapter.get(path).
@@ -419,8 +433,8 @@ define([
     var parentPath = util.containingDir(path);
     var baseName = util.baseName(path);
     return remoteAdapter.set(path, local).
-      then(util.curry(remoteAdapter.expireKey, parentPath)).
-      then(util.curry(remoteAdapter.get, parentPath)).
+      then(curry(remoteAdapter.expireKey, parentPath)).
+      then(curry(remoteAdapter.get, parentPath)).
       then(function(remoteNode) {
         return store.clearDiff(
           path, remoteNode ? remoteNode.data[baseName] : undefined
@@ -456,7 +470,7 @@ define([
 
       } else {
         // deletion conflict!
-        action = util.curry(fireConflict, 'delete');
+        action = curry(fireConflict, 'delete');
 
       }
     } else if(local.timestamp == remote.timestamp) {
@@ -471,7 +485,7 @@ define([
 
       } else {
         // merge conflict!
-        action = util.curry(fireConflict, 'merge');
+        action = curry(fireConflict, 'merge');
 
       }
     } else if(local.timestamp < remote.timestamp) {
@@ -482,7 +496,7 @@ define([
 
       } else {
         // merge conflict!
-        action = util.curry(fireConflict, 'merge');
+        action = curry(fireConflict, 'merge');
 
       }
     }
@@ -660,8 +674,8 @@ define([
               }
             } else {
               return util.asyncGroup(
-                util.curry(fetchLocalNode, childPath),
-                util.curry(fetchRemoteNode, childPath)
+                curry(fetchLocalNode, childPath),
+                curry(fetchRemoteNode, childPath)
               ).then(function(nodes, errors) {
                 if(errors.length > 0) {
                   logger.error("Failed to sync node", childPath, errors);
@@ -678,7 +692,8 @@ define([
       }).then(function(results, errors) {
         if(errors.length > 0) {
           logger.error("Failed to sync node", path, errors);
-          return store.setNodeError(path, errors);
+          store.setNodeError(path, errors);
+          throw errors;
         }
       });
     }
@@ -687,13 +702,21 @@ define([
       options.path = path;
       if(caching.descendIntoPath(path)) {
         return util.asyncGroup(
-          util.curry(fetchLocalNode, path),
-          util.curry(fetchRemoteNode, path)
-        ).then(function(nodes) {
+          curry(fetchLocalNode, path),
+          curry(fetchRemoteNode, path)
+        ).then(function(nodes, errors) {
+          if(errors.length > 0) {
+            // throw the first error that we have.
+            errors.forEach(function(e) {
+              if(e) {
+                throw e;
+              }
+            });
+          }
           var localNode = nodes[0];
           var remoteNode = nodes[1];
           return mergeDirectory(path, localNode, remoteNode, options).
-            then(util.curry(store.setLastSynced, path, remoteNode.timestamp));
+            then(curry(store.setLastSynced, path, remoteNode.timestamp));
         });
       } else {
         // FIXME: do we *need* to return a promise here?

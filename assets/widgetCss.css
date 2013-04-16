@@ -60,12 +60,24 @@
     display: none;
 }
 
-#remotestorage-widget:hover .bubble.hidden {
-    display: block;
-}
-
 #remotestorage-widget .action {
     cursor: pointer;
+}
+
+/* less obtrusive cube when connected */
+#remotestorage-widget.remotestorage-state-connected .cube,
+#remotestorage-widget.remotestorage-state-busy .cube {
+	opacity:.3;
+	-webkit-transition: opacity .3s ease;
+	-moz-transition: opacity .3s ease;
+	-ms-transition: opacity .3s ease;
+	-o-transition: opacity .3s ease;
+	transition: opacity .3s ease;
+}
+#remotestorage-widget.remotestorage-state-connected:hover .cube,
+#remotestorage-widget.remotestorage-state-busy:hover .cube,
+#remotestorage-widget.remotestorage-state-connected .bubble:not(.hidden) + .cube {
+	opacity:1 !important;
 }
 
 #remotestorage-widget .cube {
@@ -74,28 +86,19 @@
     right: 0;
 }
 
-#remotestorage-widget .cube.spinning {
-    -webkit-animation-name:remotestorage-loading;
-    -webkit-animation-duration:2s;
-    -webkit-animation-iteration-count:infinite;
-    -webkit-animation-timing-function:linear;
-    -moz-animation-name:remotestorage-loading;
-    -moz-animation-duration:2s;
-    -moz-animation-iteration-count:infinite;
-    -moz-animation-timing-function:linear;
-    -o-animation-name:remotestorage-loading;
-    -o-animation-duration:2s;
-    -o-animation-iteration-count:infinite;
-    -o-animation-timing-function:linear;
-    -ms-animation-name:remotestorage-loading;
-    -ms-animation-duration:2s;
-    -ms-animation-iteration-count:infinite;
-    -ms-animation-timing-function:linear;
+/* pulsing animation for cube when loading */
+#remotestorage-widget .cube.remotestorage-loading {
+    -webkit-animation:remotestorage-loading .5s ease-in-out infinite alternate;
+    -moz-animation:remotestorage-loading .5s ease-in-out infinite alternate;
+    -o-animation:remotestorage-loading .5s ease-in-out infinite alternate;
+    -ms-animation:remotestorage-loading .5s ease-in-out infinite alternate;
+    animation:remotestorage-loading .5s ease-in-out infinite alternate;
 }
-@-webkit-keyframes remotestorage-loading { from{-webkit-transform:rotate(0deg)} to{-webkit-transform:rotate(360deg)} }
-@-moz-keyframes remotestorage-loading { from{-moz-transform:rotate(0deg)} to{-moz-transform:rotate(360deg)} }
-@-o-keyframes remotestorage-loading { from{-o-transform:rotate(0deg)} to{-o-transform:rotate(360deg)} }
-@-ms-keyframes remotestorage-loading { from{-ms-transform:rotate(0deg)} to{ -ms-transform:rotate(360deg)} }
+@-webkit-keyframes remotestorage-loading { to{opacity:.7} }
+@-moz-keyframes remotestorage-loading { to{opacity:.7} }
+@-o-keyframes remotestorage-loading { to{opacity:.7} }
+@-ms-keyframes remotestorage-loading { to{opacity:.7} }
+@keyframes remotestorage-loading { to{opacity:.7} }
 
 
 #remotestorage-widget a {
@@ -127,7 +130,8 @@
 
 #remotestorage-widget form input[type=email] {
     background: #000;
-    width: 16em;
+    width: 100%;
+    height: 26px;
     padding: 0 30px 0 5px;
     border-top: 1px solid #111;
     border-bottom: 1px solid #999;
@@ -172,30 +176,26 @@
     margin-bottom: .7em
 }
 
-#remotestorage-widget .info.error {
-    font-weight: bold;
-    color: #f92;
-}
-
 #remotestorage-widget .info a:hover,
 #remotestorage-widget .info a:active {
     color: #fff;
 }
 
-#remotestorage-widget .bubble button {
+#remotestorage-widget button {
     border: none;
     border-radius: 6px;
     font-weight: bold;
     color: white;
     outline: none;
     line-height: 1.5em;
-    height: 2em;
+    height: 26px;
+    width: 26px;
     background: #000;
     cursor: pointer;
     margin: 0;
-    padding: 0 5px;
+    padding: 5px;
 }
-#remotestorage-widget .bubble button:hover {
+#remotestorage-widget button:hover {
     background: #333;
 }
 
@@ -205,8 +205,12 @@
     position: absolute;
     right: 0;
     top: 0;
-    padding: 5px 5px 0 5px;
     opacity: 1;
+    /* increase clickable area of connect button */
+    margin: -5px;
+    padding: 10px;
+    width: 36px;
+    height: 36px;
 }
 #remotestorage-widget .bubble button.connect:not([disabled]):hover {
     background: rgba(150,150,150,.5);
@@ -233,6 +237,17 @@
     padding: 4px 4px 0 4px;
 }
 #remotestorage-widget .bubble button.disconnect:hover {
+    background: #921;
+}
+
+#remotestorage-widget .remotestorage-error-info {
+    /*color:#f00;*/
+}
+#remotestorage-widget .remotestorage-reset {
+    width: 100%;
+    background: #721;
+}
+#remotestorage-widget .remotestorage-reset:hover {
     background: #921;
 }
 

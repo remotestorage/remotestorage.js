@@ -109,7 +109,7 @@ define([
       }
     });
 
-    remoteStorage.onWidget('ready', function() {
+    remoteStorage.on('ready', function() {
       schedule.disable();
       console.log("READY");
       document.getElementById('disconnected').style.display = 'none';
@@ -138,7 +138,7 @@ define([
       });
     });
 
-    remoteStorage.onWidget('disconnect', function() {
+    remoteStorage.on('disconnect', function() {
       document.getElementById('list').innerHTML = '';
       document.getElementById('disconnected').style.display = 'block';
       document.getElementById('connected').style.display = 'none';      

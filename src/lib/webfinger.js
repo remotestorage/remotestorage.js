@@ -164,11 +164,6 @@ define(
         });
     }
 
-    var typeAliasMap = {
-      'draft-dejong-remotestorage-00': 'remotestorage-00',
-      'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': '2012.04'
-    }
-
     function extractRemoteStorageLink(links) {
       logger.debug('extract remoteStorage link', links);
       var remoteStorageLink = links.remoteStorage || links.remotestorage;
@@ -179,9 +174,6 @@ define(
            remoteStorageLink.type &&
            remoteStorageLink.properties &&
            remoteStorageLink.properties['auth-endpoint']) {
-          console.log('lookup in typeAliasMap', remoteStorageLink.type, typeAliasMap);
-          remoteStorageLink.type = typeAliasMap[remoteStorageLink.type] || remoteStorageLink.type;
-          console.log('->', remoteStorageLink.type);
           return remoteStorageLink;
         } else {
           throw new Error("Invalid remoteStorage link. Required properties are:" +
