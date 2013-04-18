@@ -533,7 +533,10 @@ define([
         }
       }
       return set(this.moduleName, path, absPath, obj, 'application/json').
-        then(util.curry(sync.partialSync, util.containingDir(absPath), 1));
+        then(util.curry(sync.partialSync, util.containingDir(absPath), 1)).
+        then(function() {
+          return obj;
+        });
     },
 
     //
