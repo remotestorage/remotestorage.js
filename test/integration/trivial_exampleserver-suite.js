@@ -19,7 +19,7 @@ define([
         './src/remoteStorage',
         './src/lib/store',
         './src/lib/sync',
-        './src/modules/root',
+        './test/helper/root-module',
         './server/nodejs-example',
         './test/helper/server'
       ], function(_util, remoteStorage, store, sync, root, nodejsExampleServer, serverHelper) {

@@ -13,7 +13,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
     setup: function(env, test) {
       requirejs([
         './src/remoteStorage',
-        './src/modules/root',
+        './test/helper/root-module',
         './src/lib/store'
       ], function(remoteStorage, root, store) {
 
