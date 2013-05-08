@@ -14,40 +14,65 @@
 * Ask in the [IRC Channel](http://webchat.freenode.net/?channels=remotestorage) (#remotestorage on freenode)
 * Open an issue for discussion, either in the relevant repository or [the website repo for general discussion](https://github.com/remotestorage/remotestorage.io/issues)
 
-### Adding remoteStorage.js v0.7 to your app:
+### Adding remotestorage.js v0.7.2 to your app:
 
-#### add "remoteStorage-modules.min.js" (you can download it from http://remotestoragejs.com/release/0.7.0/remoteStorage-modules.min.js)
-#### in index.html, include this script and any modules you plan to load:
+* download "remotestorage.min.js" from http://remotestoragejs.com/release/0.7.2/remotestorage.min.js
+* in index.html, include this script and any modules you plan to load:
 
-    <script src="remoteStorage-modules.js"></script>
+```html
+<script src="remotestorage.min.js"></script>
+<!-- the modules can be found in the modules repository: https://github.com/remotestorage/modules -->
+<script src="remotestorage-contacts.js"></script>
+```
 
-#### at the beginning of the document body, add a div:
+* claim access to the 'pictures' module, and display the widget:
 
-    <div id="remotestorage-connect"></div>
+```javascript
+remoteStorage.claimAccess({ contacts: 'rw' })
+remoteStorage.displayWidget();
+```
 
-#### claim access to for instance the 'notes' module, and display the widget:
+* if your app can only be used while connected, then add this:
 
-    remoteStorage.claimAccess({notes: 'rw'}).then(function() {
-      remoteStorage.displayWidget('remotestorage-connect');
-      ...
-    });
+```javascript
+remoteStorage.on('ready', function() {
+  showApp();
+});
+remoteStorage.on('disconnect', function() {
+  hideApp();
+});
+```
 
-#### if your app can only be used while connected, then add this on the '...':
+* in any case, update the DOM when changes come in (this is module specific):
 
-      remoteStorage.onWidget('ready', function() {
-        showApp();
-      });
-      remoteStorage.onWidget('disconnect', function() {
-        hideApp();
-      });
+```javascript
+remoteStorage.contacts.on('change', function(event) {
+  // handle change event
+  event.origin; // -> "tab", "device" or "remote"
+  event.path; // /contacts/card/... (absolute path)
+  event.relativePath; // card/... (relative to the module root, i.e. /contacts/)
+  event.oldValue; // the previous value stored at the path (or 'undefined', if there was no previous value)
+  event.newValue; // the curretn value stored at the path (or 'undefined', if the change was a deletion)
+});
+```
 
-#### in any case, update the DOM when changes come in. This is module-specific:
+* to handle conflicting changes, install a "conflict" handler as well (if you don't do this, changes on the server will win over local changes):
 
-      remoteStorage.notes.onChange(function() {
-        redrawApp();
-      });
+```javascript
+remoteStorage.contacts.on('conflict', function(event) {
+  // you have the following attributes:
+  event.path;
+  event.localValue;
+  event.remoteValue;
+  event.type; // either "delete" or "merge"
+  // to resolve the conflict, call 'event.resolve' either now or in the future:
+  event.resolve('local'); // take local version
+  // OR
+  event.resolve('remote'); // take remote version
+});
+```
 
-#### see [example/minimal-0.7.0/index.html](https://github.com/remotestorage/remotestorage.js/blob/master/example/minimal-0.7.0/index.html) for the full example code.
+#### see [example/minimal-0.7.0/index.html](https://github.com/remotestorage/remotestorage.js/blob/master/example/minimal-0.7.0/index.html) for a full example code.
 
 ### Running the local Test Server
 
@@ -56,11 +81,12 @@ To find out how to get one, see [Get Storage on remotestorage.io](http://remotes
 
 Additionally, remoteStorage.js brings a tiny example server for nodeJS.
 
-#### To run the test server, first of all add a line
+* To run the test server, first of all add a line
 
     127.0.0.1 local.dev
 
-#### to your /etc/hosts file. then run:
+* to your /etc/hosts file. then run:
 
     sudo node server/nodejs-example.js
 
+* You can then connect as "me@local.dev"
