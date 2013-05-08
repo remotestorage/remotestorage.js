@@ -108,22 +108,14 @@ function build(output, inputs, options) {
 
 if(process.argv[2] == 'debug') {
   build('latest/remotestorage-debug', 'remoteStorage', { debug: true });
-  build('latest/remotestorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
+  build('latest/remotestorage-node-debug', 'remoteStorage', { end: 'endNode.frag', debug: true });
 } else {
   build('latest/remotestorage.min', 'remoteStorage');
   build('latest/remotestorage-debug', 'remoteStorage', { debug: true });
   build('latest/remotestorage-node.min', 'remoteStorage', { end: 'endNode.frag' });
   build('latest/remotestorage-node-debug', 'remoteStorage', { end: 'endNode.frag', debug: true });
 
-
-  build('latest/remotestorage-modules.min', 'remoteStorage-modules', { end: 'endModules.frag' });
-  build('latest/remotestorage-modules-debug', 'remoteStorage-modules', { end: 'endModules.frag', debug: true });
-
   build('latest/remotestorage.amd', 'remoteStorage', { debug: true, start: 'startAMD.frag', end: 'endAMD.frag' });
-  build('latest/remotestorage-modules.amd', 'remoteStorage-modules', { debug: true, start: 'startAMD.frag', end: 'endAMD.frag' });
-
-  // build('latest/remoteStorage-node-modules.min', 'remoteStorage-modules', { end: 'endNodeModules.frag' });
-  // build('latest/remoteStorage-node-modules-debug', 'remoteStorage-modules', { end: 'endNodeModules.frag', debug: true });
 
   function cp(s, d) {
     console.log("CP", s, d);
