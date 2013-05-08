@@ -56,10 +56,10 @@ define([
       }
 
       env.rsConnect = function() {
-        env.remoteStorage.nodeConnect.setStorageInfo(
+        env.remoteStorage.setStorageInfo(
           env.serverHelper.getStorageInfo()
         );
-        env.remoteStorage.nodeConnect.setBearerToken(
+        env.remoteStorage.setBearerToken(
           env.serverHelper.getBearerToken()
         );
         return env.remoteStorage.claimAccess('root', 'rw');

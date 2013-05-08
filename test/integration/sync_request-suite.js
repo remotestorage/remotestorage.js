@@ -58,10 +58,10 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
 
       env.rsConnect = function() {
         storageInfo = env.serverHelper.getStorageInfo();
-        env.remoteStorage.nodeConnect.setStorageInfo(
+        env.remoteStorage.setStorageInfo(
           storageInfo
         );
-        env.remoteStorage.nodeConnect.setBearerToken(
+        env.remoteStorage.setBearerToken(
           env.serverHelper.getBearerToken()
         );
 
