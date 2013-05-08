@@ -151,12 +151,41 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "widget.display strips all params from the fragment",
-        run: function(env) {
+        run: function(env, test) {
           env.view._results['getLocation'] = 'http://test.host/#abc=def&remotestorage=foo@bar.baz';
           env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {});
           expectCall(this, env.view, 'setLocation', ['http://test.host/#']) &&
             expectCall(this, env.view, 'setUserAddress', ['foo@bar.baz']) &&
-            this.result(true);
+            setTimeout(test.done.bind(test), 0);
+        }
+      },
+
+      {
+        desc: "the 'remotestorage' parameter causes an immediate webfinger discovery",
+        run: function(env, test) {
+          env.view._results['getLocation'] = 'http://test.host/#remotestorage=foo@bar.baz';
+          env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {});
+          setTimeout(function() {
+            test.assertAnd(env.fakefinger.length, 1);
+            test.assertAnd(env.fakefinger[0].args[0], 'foo@bar.baz');
+            test.done();
+          }, 150);
+        }
+      },
+
+      {
+        desc: "the 'remotestorage' parameter doesn't cause a webfinger discovery, when storage is already connected",
+        run: function(env, test) {
+          var oldGetState = env.wireClient.getState;
+          env.wireClient.getState = function() {
+            return 'connected';
+          };
+          env.view._results['getLocation'] = 'http://test.host/#remotestorage=foo@bar.baz';
+          env.widget.display(env.fakeRemoteStorage, 'remotestorage-connect', {});
+          setTimeout(function() {
+            env.wireClient.getState = oldGetState;
+            test.assert(env.fakefinger.length, 0);
+          }, 150);
         }
       },
 

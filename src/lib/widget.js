@@ -189,6 +189,11 @@ define([
     // Query parameter: remotestorage
     if(params.remotestorage) {
       view.setUserAddress(params.remotestorage);
+      setTimeout(function() {
+        if(wireClient.getState() !== 'connected') {
+          connectStorage(params.remotestorage);
+        }
+      }, 0);
     } else {
       var userAddress = settings.get('userAddress');
       if(userAddress) {
