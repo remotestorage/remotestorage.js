@@ -100,6 +100,16 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "BaseClient#storeObject yields the object it stored",
+        run: function(env, test) {
+          env.client.storeObject('foo', 'foo', { "json": "object" }).
+            then(function(object) {
+              test.assert(object.json, 'object');
+            });
+        }
+      },
+
+      {
         desc: "BaseClient#getFile returns a promise",
         run: function(env) {
           this.assertType(env.client.getFile('foo').then, 'function');
