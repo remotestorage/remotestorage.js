@@ -407,7 +407,7 @@ define(['../util', '../assets', '../i18n'], function(util, assets, i18n) {
     elements.connectForm = cEl('form');
     elements.connectForm.setAttribute('novalidate', '');
     elements.connectForm.innerHTML = [
-      '<input type="email" placeholder="user@host" name="userAddress" novalidate>',
+      '<input type="email" placeholder="user@provider.com" name="userAddress" novalidate>',
       '<button class="connect" value="" name="connect">'
     ].join('');
     var connectIcon = cEl('img');
