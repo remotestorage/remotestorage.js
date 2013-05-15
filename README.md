@@ -6,73 +6,14 @@
 
 * Consult this README
 * Read the Guides:
-  * [Adding remoteStorage to your app](http://remotestoragejs.com/doc/code/files2/howto-include-txt.html)
+  * [Adding remoteStorage to your app](http://remotestorage.io/integrate/add-to-app.html)
   * [Howto contribute](http://remotestoragejs.com/doc/code/files2/howto-contribute-txt.html)
   * [Working with schemas](http://remotestoragejs.com/doc/code/files2/howto-include-txt.html)
   * [How to configure synchronization](http://remotestoragejs.com/doc/code/files/lib/sync-js.html#How_to_configure_sync)
 * Consult the [API documentation](http://remotestoragejs.com/doc/code)
+* Ask on the [forums](http://community.remotestorage.io/categories)
 * Ask in the [IRC Channel](http://webchat.freenode.net/?channels=remotestorage) (#remotestorage on freenode)
-* Open an issue for discussion, either in the relevant repository or [the website repo for general discussion](https://github.com/remotestorage/remotestorage.io/issues)
-
-### Adding remotestorage.js v0.7.2 to your app:
-
-* download "remotestorage.min.js" from http://remotestoragejs.com/release/0.7.2/remotestorage.min.js
-* in index.html, include this script and any modules you plan to load:
-
-```html
-<script src="remotestorage.min.js"></script>
-<!-- the modules can be found in the modules repository: https://github.com/remotestorage/modules -->
-<script src="remotestorage-contacts.js"></script>
-```
-
-* claim access to the 'pictures' module, and display the widget:
-
-```javascript
-remoteStorage.claimAccess({ contacts: 'rw' })
-remoteStorage.displayWidget();
-```
-
-* if your app can only be used while connected, then add this:
-
-```javascript
-remoteStorage.on('ready', function() {
-  showApp();
-});
-remoteStorage.on('disconnect', function() {
-  hideApp();
-});
-```
-
-* in any case, update the DOM when changes come in (this is module specific):
-
-```javascript
-remoteStorage.contacts.on('change', function(event) {
-  // handle change event
-  event.origin; // -> "tab", "device" or "remote"
-  event.path; // /contacts/card/... (absolute path)
-  event.relativePath; // card/... (relative to the module root, i.e. /contacts/)
-  event.oldValue; // the previous value stored at the path (or 'undefined', if there was no previous value)
-  event.newValue; // the curretn value stored at the path (or 'undefined', if the change was a deletion)
-});
-```
-
-* to handle conflicting changes, install a "conflict" handler as well (if you don't do this, changes on the server will win over local changes):
-
-```javascript
-remoteStorage.contacts.on('conflict', function(event) {
-  // you have the following attributes:
-  event.path;
-  event.localValue;
-  event.remoteValue;
-  event.type; // either "delete" or "merge"
-  // to resolve the conflict, call 'event.resolve' either now or in the future:
-  event.resolve('local'); // take local version
-  // OR
-  event.resolve('remote'); // take remote version
-});
-```
-
-#### see [example/minimal-0.7.0/index.html](https://github.com/remotestorage/remotestorage.js/blob/master/example/minimal-0.7.0/index.html) for a full example code.
+* Open an issue in the relevant repository
 
 ### Running the local Test Server
 
