@@ -10,7 +10,7 @@
 /*global document */
 
 if(typeof(global) !== 'undefined' && typeof(nodeRequire) === 'undefined') {
-  var nodeRequire = require;
+  var nodeRequire = global.require;
 }
 
 define(['./util'], function(util) {
