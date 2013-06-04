@@ -233,6 +233,7 @@ define([
 
   function initialSync() {
     if(settings.get('initialSyncDone')) {
+      schedule.enable();
       store.fireInitialEvents().then(util.curry(events.emit, 'ready'));
     } else {
       setState('busy', true);
