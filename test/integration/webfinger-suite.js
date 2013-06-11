@@ -73,9 +73,9 @@ define(['requirejs'], function(requirejs) {
         run: function(env, test) {
           env.webfinger.getStorageInfo('me@local.dev');
           setTimeout(function() {
-            test.assertTypeAnd(env.findRequest('https://local.dev/.well-known/webfinger?resource=acct:me%40local.dev'), 'object', 'https webfinger');
-            test.assertTypeAnd(env.findRequest('https://local.dev/.well-known/host-meta?resource=acct:me%40local.dev'), 'object', 'https host-meta');
-            test.assertTypeAnd(env.findRequest('https://local.dev/.well-known/host-meta.json?resource=acct:me%40local.dev'), 'object', 'https host-meta.json');
+            test.assertTypeAnd(env.findRequest('https://local.dev/.well-known/webfinger?resource=acct%3Ame%40local.dev'), 'object', 'https webfinger');
+            test.assertTypeAnd(env.findRequest('https://local.dev/.well-known/host-meta?resource=acct%3Ame%40local.dev'), 'object', 'https host-meta');
+            test.assertTypeAnd(env.findRequest('https://local.dev/.well-known/host-meta.json?resource=acct%3Ame%40local.dev'), 'object', 'https host-meta.json');
             env.assertNoRequest(test);
             test.result(true);
           }, 100);
@@ -88,18 +88,18 @@ define(['requirejs'], function(requirejs) {
           env.webfinger.getStorageInfo('me@local.dev');
           setTimeout(function() {
             var reqs = [
-              env.findRequest('https://local.dev/.well-known/webfinger?resource=acct:me%40local.dev'),
-              env.findRequest('https://local.dev/.well-known/host-meta?resource=acct:me%40local.dev'),
-              env.findRequest('https://local.dev/.well-known/host-meta.json?resource=acct:me%40local.dev')
+              env.findRequest('https://local.dev/.well-known/webfinger?resource=acct%3Ame%40local.dev'),
+              env.findRequest('https://local.dev/.well-known/host-meta?resource=acct%3Ame%40local.dev'),
+              env.findRequest('https://local.dev/.well-known/host-meta.json?resource=acct%3Ame%40local.dev')
             ];
             env.assertNoRequest(test);
 
             reqs.forEach(function(req) { req.promise.reject(); });
 
             setTimeout(function() {
-              test.assertTypeAnd(env.findRequest('http://local.dev/.well-known/webfinger?resource=acct:me%40local.dev'), 'object', 'http webfinger');
-              test.assertTypeAnd(env.findRequest('http://local.dev/.well-known/host-meta?resource=acct:me%40local.dev'), 'object', 'http host-meta');
-              test.assertTypeAnd(env.findRequest('http://local.dev/.well-known/host-meta.json?resource=acct:me%40local.dev'), 'object', 'http host-meta.json');
+              test.assertTypeAnd(env.findRequest('http://local.dev/.well-known/webfinger?resource=acct%3Ame%40local.dev'), 'object', 'http webfinger');
+              test.assertTypeAnd(env.findRequest('http://local.dev/.well-known/host-meta?resource=acct%3Ame%40local.dev'), 'object', 'http host-meta');
+              test.assertTypeAnd(env.findRequest('http://local.dev/.well-known/host-meta.json?resource=acct%3Ame%40local.dev'), 'object', 'http host-meta.json');
               env.assertNoRequest(test);
               test.result(true);
             }, 100);
@@ -117,9 +117,9 @@ define(['requirejs'], function(requirejs) {
             });
           setTimeout(function() {
             var reqs = [
-              env.findRequest('https://local.dev/.well-known/webfinger?resource=acct:me%40local.dev'),
-              env.findRequest('https://local.dev/.well-known/host-meta?resource=acct:me%40local.dev'),
-              env.findRequest('https://local.dev/.well-known/host-meta.json?resource=acct:me%40local.dev')
+              env.findRequest('https://local.dev/.well-known/webfinger?resource=acct%3Ame%40local.dev'),
+              env.findRequest('https://local.dev/.well-known/host-meta?resource=acct%3Ame%40local.dev'),
+              env.findRequest('https://local.dev/.well-known/host-meta.json?resource=acct%3Ame%40local.dev')
             ];
             reqs[0].promise.reject();
             reqs[1].promise.reject();
@@ -153,18 +153,18 @@ define(['requirejs'], function(requirejs) {
             });
           setTimeout(function() {
             var httpsReqs = [
-              env.findRequest('https://local.dev/.well-known/webfinger?resource=acct:me%40local.dev'),
-              env.findRequest('https://local.dev/.well-known/host-meta?resource=acct:me%40local.dev'),
-              env.findRequest('https://local.dev/.well-known/host-meta.json?resource=acct:me%40local.dev')
+              env.findRequest('https://local.dev/.well-known/webfinger?resource=acct%3Ame%40local.dev'),
+              env.findRequest('https://local.dev/.well-known/host-meta?resource=acct%3Ame%40local.dev'),
+              env.findRequest('https://local.dev/.well-known/host-meta.json?resource=acct%3Ame%40local.dev')
             ];
 
             httpsReqs.forEach(function(req) { req.promise.reject(); });
 
             setTimeout(function() {
               var reqs = [
-                env.findRequest('http://local.dev/.well-known/webfinger?resource=acct:me%40local.dev'),
-                env.findRequest('http://local.dev/.well-known/host-meta?resource=acct:me%40local.dev'),
-                env.findRequest('http://local.dev/.well-known/host-meta.json?resource=acct:me%40local.dev')
+                env.findRequest('http://local.dev/.well-known/webfinger?resource=acct%3Ame%40local.dev'),
+                env.findRequest('http://local.dev/.well-known/host-meta?resource=acct%3Ame%40local.dev'),
+                env.findRequest('http://local.dev/.well-known/host-meta.json?resource=acct%3Ame%40local.dev')
               ];
 
               reqs[0].promise.reject();
@@ -193,7 +193,7 @@ define(['requirejs'], function(requirejs) {
         run: function(env, test) {
           env.webfinger.getStorageInfo('you@remote.dev');
           setTimeout(function() {
-            var req = env.findRequest('https://remote.dev/.well-known/webfinger?resource=acct:you%40remote.dev');
+            var req = env.findRequest('https://remote.dev/.well-known/webfinger?resource=acct%3Ayou%40remote.dev');
             test.assertTypeAnd(req, 'object', 'request not found');
             test.assert(req.options.timeout, 10000);
           }, 100);
@@ -214,7 +214,7 @@ define(['requirejs'], function(requirejs) {
         run: function(env, test) {
           env.webfinger.getStorageInfo('you@remote.dev');
           setTimeout(function() {
-            var req = env.findRequest('https://remote.dev/.well-known/webfinger?resource=acct:you%40remote.dev');
+            var req = env.findRequest('https://remote.dev/.well-known/webfinger?resource=acct%3Ayou%40remote.dev');
             test.assertTypeAnd(req, 'object', 'request not found');
             test.assert(req.options.timeout, 15000);
           }, 100);
