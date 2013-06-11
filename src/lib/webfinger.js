@@ -223,7 +223,7 @@ define(
             return promise.reject(error);
           }
         }
-        var query = '?resource=acct:' + encodeURIComponent(userAddress);
+        var query = '?resource=' + encodeURIComponent('acct:' + userAddress);
         var addresses = [
           '://' + hostname + '/.well-known/webfinger' + query,
           '://' + hostname + '/.well-known/host-meta.json' + query,
