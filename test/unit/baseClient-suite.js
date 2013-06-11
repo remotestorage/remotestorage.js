@@ -13,6 +13,14 @@ define(['requirejs'], function(requirejs, undefined) {
     };
   }
 
+  function expectFailedPromise(test, promise) {
+    return promise.then(curry(test.result, false), curry(test.assertAnd, true, true));
+  }
+
+  function expectNoFailedPromise(test, promise) {
+    return promise.then(curry(test.assertAnd, true, true), curry(test.result, false));
+  }
+
   suites.push({
     name: "baseClient.js tests",
     desc: "a collection of tests for baseClient.js",
@@ -219,6 +227,58 @@ define(['requirejs'], function(requirejs, undefined) {
             test.assert(event.origin, 'window');
           });
           env.client.storeObject('test', 'foo/bar', { foo: 'bar' });
+        }
+      },
+
+      {
+        desc: "#getAll verifies that the path is a string",
+        run: function(env, test) {
+          expectFailedPromise(test, env.client.getAll()).
+            then(function() {
+              return expectFailedPromise(test, env.client.getAll({}));
+            }).
+            then(function() {
+              test.done();
+            });
+        }
+      },
+
+      {
+        desc: "#getAll verifies that path points to a directory",
+        run: function(env, test) {
+          expectFailedPromise(test, env.client.getAll('foo/bar')).
+            then(function() {
+              return expectNoFailedPromise(test, env.client.getAll('foo/bar/'));
+            }).
+            then(function() {
+              test.done();
+            });
+        }
+      },
+
+      {
+        desc: "#getAll verifies that path is relative",
+        run: function(env, test) {
+          expectFailedPromise(test, env.client.getAll('/foo/bar')).
+            then(function() { test.done(); });
+        }
+      },
+
+      {
+        desc: "#getFile allows both file and directory paths",
+        run: function(env, test) {
+          expectNoFailedPromise(test, env.client.getFile('foo/bar')).
+            then(function() {
+              return expectNoFailedPromise(test, env.client.getFile('foo/'));
+            }).then(function() { test.done(); });
+        }
+      },
+
+      {
+        desc: "#getFile doesn't allow absolute paths",
+        run: function(env, test) {
+          expectFailedPromise(test, env.client.getFile('/foo/bar')).
+            then(function() { test.done(); });
         }
       }
 
