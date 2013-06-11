@@ -277,6 +277,11 @@ define([
     //   (end code)
     //
     getObject: function(path) {
+      try {
+        this._verifyPath(path, { rel: true });
+      } catch(exc) {
+        return failedPromise(exc);
+      }
       var fullPath = this.makePath(path);
       return sync.get(fullPath).then(function(node) {
         if(node.mimeType !== 'application/json') {
@@ -311,10 +316,10 @@ define([
     //   (end code)
     //
     getListing: function(path) {
-      if(! (util.isDir(path) || path === '')) {
-        return util.getPromise().reject(
-          new Error("Not a directory: " + path)
-        );
+      try {
+        this._verifyPath(path, { rel: true, dir: true });
+      } catch(exc) {
+        return util.getPromise().reject(exc);
       }
       var fullPath = this.makePath(path);
       return sync.get(fullPath).then(function(node) {
@@ -406,6 +411,11 @@ define([
     //   });
     //   (end code)
     getFile: function(path) {
+      try {
+        this._verifyPath(path, { rel: true });
+      } catch(exc) {
+        return util.getPromise().reject(exc);
+      }
       var fullPath = this.makePath(path);
       return sync.get(fullPath).then(function(node) {
         return {
@@ -432,6 +442,11 @@ define([
     //   path     - Path relative to the module root.
     //
     remove: function(path) {
+      try {
+        this._verifyPath(path, { rel: true, dir: false });
+      } catch(exc) {
+        return util.getPromise().reject(exc);
+      }
       var absPath = this.makePath(path);
       var oldValue;
       return sync.get(absPath).
@@ -513,14 +528,13 @@ define([
     //   See <declareType> or the calendar module (src/modules/calendar.js) for examples.
     //
     storeObject: function(typeAlias, path, obj) {
-      if(typeof(path) !== 'string') {
-        return failedPromise(new Error("given path must be a string (got: " + typeof(path) + ")"));
+      try {
+        this._verifyPath(path, { rel: true, dir: false });
+      } catch(exc) {
+        return failedPromise(exc);
       }
       if(typeof(obj) !== 'object') {
         return failedPromise(new Error("given object must be an object (got: " + typeof(obj) + ")"));
-      }
-      if(util.isDir(path)) {
-        return failedPromise(new Error("Can't store directory node"));
       }
 
       var absPath = this.makePath(path);
@@ -593,6 +607,11 @@ define([
     // want to happen.
     //
     storeFile: function(mimeType, path, data, cache) {
+      try {
+        this._verifyPath(path, { rel: true, dir: false });
+      } catch(exc) {
+        return failedPromise(exc);
+      }
       cache = (cache !== false);
       if(typeof(mimeType) !== 'string') {
         return failedPromise(new Error("given mimeType must be a string (got: " + typeof(mimeType) + ")"));
@@ -892,6 +911,25 @@ define([
     // The UUID is prefixed with the string 'uuid:', to become a valid URI.
     uuid: function() {
       return 'uuid:' + MathUUID.uuid();
+    },
+
+    _verifyPath: function(path, options) {
+      if(typeof(path) !== 'string') {
+        throw "Invalid path: expected a string!";
+      }
+      if(options.rel && path[0] == '/') {
+        throw "Invalid path: must be relative!";
+      } else if(options.abs) {
+        throw "Invalid path: must be absolute!";
+      }
+      if(typeof(options.dir) !== 'undefined') {
+        var isDir = (util.isDir(path) || path === (options.rel ? '' : '/'));
+        if(options.dir && !isDir) {
+          throw "Invalid path: must be a directory!";
+        } else if( !options.dir && isDir) {
+          throw "Invalid paht: may not be a directory!";
+        }
+      }
     }
 
   };
