@@ -10,7 +10,9 @@
 /*global document */
 
 if(typeof(global) !== 'undefined' && typeof(nodeRequire) === 'undefined') {
-  var nodeRequire = global.require;
+  // some node versions seem to have "global.require" set, while others make
+  // "require" a module-local variable.
+  var nodeRequire = global.require || require;
 }
 
 define(['./util'], function(util) {
