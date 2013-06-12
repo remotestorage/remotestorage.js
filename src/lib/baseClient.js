@@ -114,7 +114,7 @@ define([
           newValue: value,
           path: absPath
         };
-        return store.setNodeData(absPath, value, true, undefined, mimeType);
+        return sync.set(absPath, { data: value, mimeType: mimeType });
       }).then(function() {
         fireModuleEvent('change', moduleName, changeEvent);
         if(moduleName !== 'root') {
