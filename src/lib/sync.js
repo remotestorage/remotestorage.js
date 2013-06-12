@@ -767,7 +767,13 @@ define([
       }
     },
 
-    set: function(path) {},
+    set: function(path, node) {
+      if(caching.cachePath(path)) {
+        return store.setNodeData(path, node.data, true, undefined, node.mimeType);
+      } else {
+        return remoteAdapter.set(path, node);
+      }
+    },
 
     remove: function(path) {
       if(caching.cachePath(path)) {
