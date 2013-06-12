@@ -270,7 +270,7 @@ define(['requirejs', 'localStorage'], function(requirejs, localStorage) {
       {
         desc: "store public data",
         run: function(env, test) {
-          env.client.storeFile('text/plain', '/public/foo', 'bar').
+          env.client.storeFile('text/plain', 'public/foo', 'bar').
             then(function() {
               env.serverHelper.expectRequest(test, 'GET', 'me/public/');
               env.serverHelper.expectRequest(test, 'GET', 'me/public/foo');
