@@ -64,8 +64,8 @@ release: build
 	rm -rf release/$(VERSION)
 	cp -r build/latest release/$(VERSION)
 
-	node build/update-version.js component.json $(VERSION) > component.json.tmp
-	mv component.json.tmp component.json
+	node build/update-version.js bower.json $(VERSION) > bower.json.tmp
+	mv bower.json.tmp bower.json
 	node build/update-version.js package.json $(VERSION) > package.json.tmp
 	mv package.json.tmp package.json
 
