@@ -10,6 +10,7 @@ window.onload = function() {
     var modules = JSON.parse(xhr.responseText);
     for(var key in modules.groups) {
       var group = modules.groups[key];
+      if(group.hidden) continue;
       var groupWrapper = document.createElement('div');
       groupWrapper.className = 'group';
       var checkbox = document.createElement('input');

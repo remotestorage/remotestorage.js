@@ -24,17 +24,18 @@
       "files": ["remotestorage.indexeddb.js", "remotestorage.sync.js"],
       "initial": true
     },
-    "widget": {
-      "label": "Widget",
-      "desc": "\"Connect\" widget, managing discovery and authorization",
-      "files": ["remotestorage.widget.js"],
-      "initial": true
-    },
     "modules": {
       "label": "Modules",
       "desc": "Modules are high-level interfaces, each associated with an access scope (such as contacts, calendar, messages, ...)",
       "files": ["remotestorage.baseclient.js", "remotestorage.modules.js"],
       "initial": true
+    },
+    "widget": {
+      "label": "Widget",
+      "desc": "\"Connect\" widget, managing discovery and authorization",
+      "files": ["remotestorage.widget.js"],
+      "initial": false,
+      "hidden": true
     },
     "debug": {
       "label": "Debug",
