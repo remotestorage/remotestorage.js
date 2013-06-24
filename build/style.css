@@ -1,0 +1,8 @@
+body { font-family: sans-serif; }
+div.group { margin-bottom: 2em; }
+div.group-inner { padding-left: 20px; }
+span.filename {
+    font-family: monospace;
+    display: inline-block;
+    width: 18em;
+}

@@ -2,58 +2,12 @@
 <html>
   <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css">
+    <script src="client.js"></script>
   </head>
   <body data-build-server="http://localhost:8000/">
     <h1>remotestorage.js builder</h1>
     <p>This tool allows you to configure your build of remotestorage.js<br/>
       If you're not sure what you need, just download everything and decide later.</p>
   </body>
-  <script>
-    var buildServer = document.body.getAttribute('data-build-server');
-    var form = document.createElement('form');
-    form.method = 'POST';
-    form.action = buildServer;
-    document.body.appendChild(form);
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', buildServer, true);
-    xhr.onload = function() {
-      var modules = JSON.parse(xhr.responseText);
-      for(var key in modules.groups) {
-        var group = modules.groups[key];
-        var groupWrapper = document.createElement('div');
-        var checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.name = 'groups';
-        checkbox.value = key;
-        checkbox.id = 'group-' + key;
-        if(group.required) {
-          checkbox.checked = 'checked';
-          checkbox.disabled = 'disabled';
-        } else if(group.initial) {
-          checkbox.checked = 'checked';
-        }
-        groupWrapper.appendChild(checkbox);
-        var label = document.createElement('label');
-        label.textContent = group.label;
-        label.setAttribute('for', 'group-' + key);
-        groupWrapper.appendChild(label);
-        var desc = document.createElement('p');
-        desc.textContent = group.desc;
-        groupWrapper.appendChild(desc);
-        var fileList = document.createElement('ul');
-        group.files.forEach(function(f) {
-          var li = document.createElement('li');
-          li.textContent = f + ': ' + modules.files[f];
-          fileList.appendChild(li);
-        });
-        groupWrapper.appendChild(fileList);
-        form.appendChild(groupWrapper);
-      }
-      var submit = document.createElement('input');
-      submit.type = 'submit';
-      submit.value = 'Build';
-      form.appendChild(submit);
-    };
-    xhr.send();
-  </script>
 </html>

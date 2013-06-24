@@ -1,0 +1,45 @@
+{
+  "files": {
+    "promising.js": "A Promises/A+ implementation",
+    "remotestorage.js": "Basic GET/PUT/DELETE client",
+    "remotestorage.discover.js": "Webfinger client",
+    "remotestorage.authorize.js": "OAuth2 client",
+    "remotestorage.indexeddb.js": "IndexedDB caching layer",
+    "remotestorage.sync.js": "Synchronizes remotestorage and local cache",
+    "remotestorage.widget.js": "Widget controller / view implementation",
+    "remotestorage.inspect.js": "Debugging widget that displays local and remote data",
+    "remotestorage.modules.js": "The module definition API",
+    "remotestorage.baseclient.js": "A high-level client, scoped to a path"
+  },
+  "groups": {
+    "core": {
+      "label": "Core",
+      "desc": "Basic requirements to connect to a remotestorage server and send / receive data.",
+      "files": ["promising.js", "remotestorage.js", "remotestorage.discover.js", "remotestorage.authorize.js"],
+      "required": true
+    },
+    "caching": {
+      "label": "Caching",
+      "desc": "Local caching layer and synchronization",
+      "files": ["remotestorage.indexeddb.js", "remotestorage.sync.js"],
+      "initial": true
+    },
+    "widget": {
+      "label": "Widget",
+      "desc": "\"Connect\" widget, managing discovery and authorization",
+      "files": ["remotestorage.widget.js"],
+      "initial": true
+    },
+    "modules": {
+      "label": "Modules",
+      "desc": "Modules are high-level interfaces, each associated with an access scope (such as contacts, calendar, messages, ...)",
+      "files": ["remotestorage.baseclient.js", "remotestorage.modules.js"],
+      "initial": true
+    },
+    "debug": {
+      "label": "Debug",
+      "desc": "Debugging tools, useful for development",
+      "files": ["remotestorage.inspect.js"]
+    }
+  }
+}
