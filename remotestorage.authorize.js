@@ -1,19 +1,15 @@
 (function() {
-  RemoteStorage.authorize = function(authURL, storageApi, scopes, redirectUri, callback) {
-    if(typeof(authURL) === 'function') {
-      callback = authURL;
-      authURL = undefined;
-    }
-    if(document.location.hash) {
-      var md = document.location.hash.match(/access_token=([^&]+)/);
-      if(md) {
-        document.location = '#';
-        callback(decodeURIComponent(md[1]));
-        return;
-      }
-    }
-    if(! authURL) { return; }
-   
+
+  RemoteStorage.authorize.extractParams = function() {
+    if(! document.location.hash) return;
+    return document.location.hash.split('&').reduce(function(m, kvs) {
+      var kv = kvs.split('=');
+      m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+      return m;
+    }, {});
+  };
+
+  RemoteStorage.authorize = function(authURL, storageApi, scopes, redirectUri) {
     var scope = '';
     for(var key in scopes) {
       var mode = scopes[key];

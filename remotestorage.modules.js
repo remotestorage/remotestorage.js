@@ -9,8 +9,8 @@
   RemoteStorage.prototype.loadModule = function(moduleName) {
     var builder = RemoteStorage.MODULES[moduleName];
     if(builder) {
-      this[moduleName] = builder(new RemoteStorage.BaseClient(storage, '/' + moduleName + '/'),
-                                 new RemoteStorage.BaseClient(storage, '/' + moduleName + '/public/'));
+      this[moduleName] = builder(new RemoteStorage.BaseClient(this, '/' + moduleName + '/'),
+                                 new RemoteStorage.BaseClient(this, '/' + moduleName + '/public/'));
     } else {
       throw "Unknown module: " + moduleName;
     }
