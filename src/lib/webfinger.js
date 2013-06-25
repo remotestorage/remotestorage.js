@@ -164,6 +164,8 @@ define(
         });
     }
 
+    var OAUTH_URI = "http://tools.ietf.org/html/rfc6749#section-4.2";
+
     function extractRemoteStorageLink(links) {
       logger.debug('extract remoteStorage link', links);
       var remoteStorageLink = links.remoteStorage || links.remotestorage;
@@ -173,7 +175,11 @@ define(
         if(remoteStorageLink.href &&
            remoteStorageLink.type &&
            remoteStorageLink.properties &&
-           remoteStorageLink.properties['auth-endpoint']) {
+           (/* (2012.04, draft-dejong-00) */ remoteStorageLink.properties['auth-endpoint'] ||
+            /* (draft-dejong-01) */ remoteStorageLink.properties[OAUTH_URI])) {
+          if(remoteStorageLink.properties[OAUTH_URI]) {
+            remoteStorageLink.properties['auth-endpoint'] = remoteStorageLink.properties[OAUTH_URI];
+          }
           return remoteStorageLink;
         } else {
           throw new Error("Invalid remoteStorage link. Required properties are:" +

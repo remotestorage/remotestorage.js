@@ -219,6 +219,42 @@ define(['requirejs'], function(requirejs) {
             test.assert(req.options.timeout, 15000);
           }, 100);
         }
+      },
+
+      {
+        desc: "getStorageInfo understands draft-dejong-remotestorage-01 auth-endpoint format",
+        run: function(env, test) {
+          var webfingerResult;
+          env.webfinger.getStorageInfo('me@local.dev').
+            then(function(result) {
+              webfingerResult = result;
+            });
+          setTimeout(function() {
+            var httpsReqs = [
+              env.findRequest('https://local.dev/.well-known/webfinger?resource=acct%3Ame%40local.dev'),
+              env.findRequest('https://local.dev/.well-known/host-meta?resource=acct%3Ame%40local.dev'),
+              env.findRequest('https://local.dev/.well-known/host-meta.json?resource=acct%3Ame%40local.dev')
+            ];
+
+            httpsReqs.forEach(function(req) { req.promise.reject(); });
+
+            setTimeout(function() {
+              var reqs = [
+                env.findRequest('http://local.dev/.well-known/webfinger?resource=acct%3Ame%40local.dev'),
+                env.findRequest('http://local.dev/.well-known/host-meta?resource=acct%3Ame%40local.dev'),
+                env.findRequest('http://local.dev/.well-known/host-meta.json?resource=acct%3Ame%40local.dev')
+              ];
+
+              reqs[0].promise.reject();
+              reqs[1].promise.reject();
+              reqs[2].promise.fulfill('{"links":[{"rel":"remoteStorage","href":"https://local.dev/storage/me","type":"https://www.w3.org/community/rww/wiki/read-write-web-00#simple","properties":{"http://tools.ietf.org/html/rfc6749#section-4.2":"https://local.dev/auth/me"}}]}');
+
+              setTimeout(function() {
+                test.assert(webfingerResult.properties['auth-endpoint'], 'https://local.dev/auth/me');
+              }, 100);
+            }, 100);
+          }, 100);
+        }
       }
 
     ]
