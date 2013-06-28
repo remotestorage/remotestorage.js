@@ -1,6 +1,14 @@
 {
-  "name": "remoteStorage.js",
+  "name": "remotestoragejs",
+  "desc": "a client side javascript library for the remote-storage protocol",
   "version": "0.7.3",
+  "private": false,
+  "license": "AGPL",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/remotestorage/remoteStorage.js.git"
+  },
+  "homepage": "http://remotestorage.io",
   "devDependencies": {
     "sqlite3": "*",
     "requirejs": "*",
