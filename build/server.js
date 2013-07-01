@@ -52,6 +52,7 @@ http.createServer(function(req, res) {
           fs.readFile(FILE_ROOT + file, function(err, data) {
             if(err) {
               console.log("failed to read file: ", err);
+              res.write('\n/* FILE NOT FOUND: ' + file + ' */\n');
             } else {
               res.write(data);
             }
