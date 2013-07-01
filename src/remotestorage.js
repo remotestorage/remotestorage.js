@@ -36,6 +36,10 @@
     this._cleanups = [];
     this._pathHandlers = {};
 
+    this.__defineGetter__('connected', function() {
+      return this.remote.connected;
+    });
+
     this._init();
   };
 
