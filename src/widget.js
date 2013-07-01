@@ -1,9 +1,15 @@
 (function() {
-    
-    
-    
-  RemoteStorage.Widget = function() {
+
+  function stateSetter(widget, state) {
+    return function() { widget.state = state; };
+  }
+
+  RemoteStorage.Widget = function(remoteStorage) {
+    this.rs = remoteStorage;
     this.view = new View;
+
+    this.rs.on('connected', stateSetter(this, 'connected'));
+    this.rs.on('disconnected', stateSetter(this, 'disconnected'));
   };
 
   RemoteStorage.Widget.prototype = {
@@ -14,14 +20,14 @@
   };
 
   RemoteStorage.prototype.displayWidget = function() {
-    this.widget = new RemoteStorage.Widget().display();
+    this.widget = new RemoteStorage.Widget(this).display();
   };
-  
+
   RemoteStorage.Widget._rs_init = function(remoteStorage){
-    remoteStorage.displayWidget();
+    window.addEventListener('load', function() {
+      remoteStorage.displayWidget();
+    });
   }
-
-
 
   // var settings = util.getSettingStore('remotestorage_widget');
   // var events = util.getEventEmitter('ready', 'disconnect', 'state');

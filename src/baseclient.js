@@ -15,8 +15,8 @@
       this.moduleName = 'root';
     }
 
-    RemoteStorage.eventHandling(this, 'change');
-
+    RemoteStorage.eventHandling(this, 'change', 'conflict');
+    this.on = this.on.bind(this);
     storage.onChange(this.base, this._fireChange.bind(this));
   };
 
@@ -53,7 +53,7 @@
     // folder operations
 
     getListing: function(path) {
-      if(path[path.length - 1] != '/') {
+      if(path.length > 0 && path[path.length - 1] != '/') {
         throw "Not a directory: " + path;
       }
       return this.storage.get(path).then(function(status, body) {
@@ -62,7 +62,7 @@
     },
 
     getAll: function(path) {
-      if(path[path.length - 1] != '/') {
+      if(path.length > 0 && path[path.length - 1] != '/') {
         throw "Not a directory: " + path;
       }
       return this.storage.get(this.makePath(path)).then(function(status, body) {
@@ -115,7 +115,7 @@
       });
     },
 
-    storeObject: function(type, path, object) {
+    storeObject: function(mimeType, path, object) {
       return this.storage.put(this.makePath(path), object, mimeType).then(function(status, _body, _mimeType, revision) {
         if(status == 200 || status == 201) {
           return revision;

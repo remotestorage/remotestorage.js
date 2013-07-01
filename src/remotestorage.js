@@ -32,7 +32,13 @@
 
   var RemoteStorage = function() {
     RemoteStorage.eventHandling(this, 'ready', 'connected', 'disconnected');
-    this.get = this.put = this.delete = this._notReady;
+    // pending get/put/delete calls.
+    this._pending = [];
+    this._setGPD({
+      get: this._pendingGPD('get'),
+      put: this._pendingGPD('put'),
+      delete: this._pendingGPD('delete')
+    });
     this._cleanups = [];
     this._pathHandlers = {};
 
@@ -72,6 +78,7 @@
 
         try {
           this._emit('ready');
+          this._processPending();
         } catch(exc) {
           console.error("remoteStorage#ready block failed: ");
           if(typeof(exc) == 'string') {
@@ -148,6 +155,24 @@
       this.get = impl.get.bind(context);
       this.put = impl.put.bind(context);
       this.delete = impl.delete.bind(context);
+    },
+
+    _pendingGPD: function(methodName) {
+      return function() {
+        var promise = promising();
+        this._pending.push({
+          method: methodName,
+          args: Array.prototype.slice.call(arguments),
+          promise: promise
+        });
+        return promise;
+      }.bind(this);
+    },
+
+    _processPending: function() {
+      this._pending.forEach(function(pending) {
+        this[pending.method].apply(this, pending.args).then(pending.promise.fulfill, pending.promise.reject);
+      }.bind(this));
     },
 
     _notReady: function() {

@@ -99,13 +99,25 @@
     },
     configurable: true
   });
+
+  function setModuleCaching(remoteStorage, key) {
+    if(key == 'root' || key === '') {
+      remoteStorage.caching.set('/', { data: true });
+    } else {
+      remoteStorage.caching.set('/' + key + '/', { data: true });
+      remoteStorage.caching.set('/public/' + key + '/', { data: true });
+    }
+  }
+
   RemoteStorage.prototype.claimAccess = function(scopes) {
     if(typeof(scopes) === 'object') {
       for(var key in scopes) {
         this.access.claim(key, scopes[key]);
+        setModuleCaching(this, key); // legacy hack
       }
     } else {
-      this.access.claim(arguments[0], arguments[1]);
+      this.access.claim(arguments[0], arguments[1])
+      setModuleCaching(this, arguments[0]); // legacy hack;
     }
   };
 
