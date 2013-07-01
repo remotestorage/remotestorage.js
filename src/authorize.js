@@ -23,13 +23,13 @@
    
     var url = authURL;
     url += authURL.indexOf('?') > 0 ? '&' : '?';
-    url += 'redirect_uri=' + encodeURIComponent(redirectUri);
+    url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
     document.location = url;
   };
 
   RemoteStorage.prototype.authorize = function(authURL) {
-    RemoteStorage.Authorize(authURL, this.remote.storageApi, this.access.scopeModeMap, document.location);
+    RemoteStorage.Authorize(authURL, this.remote.storageApi, this.access.scopeModeMap, String(document.location));
   };
 
   RemoteStorage.Authorize._rs_init = function(remoteStorage) {
