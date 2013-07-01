@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+
+    <script src="../lib/promising.js"></script>
+    <script src="../src/remotestorage.js"></script>
+    <script src="../src/version.js"></script>
+    <script src="../src/caching.js"></script>
+    <script src="../src/access.js"></script>
+    <script src="../src/eventhandling.js"></script>
+    <script src="../src/wireclient.js"></script>
+    <script src="../src/indexeddb.js"></script>
+    <script src="../src/debug/inspect.js"></script>
+  </head>
+
+  <!-- LAYOUT -->
+
+  <body>
+    <div id="content"></div>
+    <div id="code"></div>
+  </body>
+
+  <!-- TEMPLATES -->
+
+  <script type="text/mustache" data-template-name="loading">
+    <em>Loading {{version}}...</em>
+  </script>
+
+  <script type="text/mustache" data-template-name="info">
+    <h3>Version:</h3>
+    <div id="version">{{version}}</div>
+    <h3>Supported Features:</h3>
+    <ul id="features">
+      {{#features}}
+        <li>{{name}}</li>
+      {{/features}}
+    </ul>
+    <h3>Access:</h3>
+    <ul id="access">
+      {{#access}}
+        {{#scopes}}
+          <li data-scope="{{name}}">
+            {{name}}: {{mode}}
+            <span class="delete">×</span>
+          </li>
+        {{/scopes}}
+      {{/access}}
+      <li>
+        <form id="add-access-form">
+          <input name="name" type="text" placeholder="Name...">
+          <select name="mode">
+            <option value="r">Read only</option>
+            <option value="rw">Read+Write</option>
+          </select>
+          <input type="submit" value="Add">
+        </form>
+      </li>
+    </ul>
+
+    <label>
+      Access roots:
+      {{#access}}
+        {{#rootPaths}}<span class="root-path">{{.}}</span>{{/rootPaths}}
+      {{/access}}
+    </label>
+
+    <h3>Caching:</h3>
+    <p>Caching tells remotestorage.js which data to keep local copies of.</p>
+    
+    <ul id="caching">
+      {{#caching}}
+        {{#list}}
+          <li data-path="{{path}}">
+            {{path}}:
+            {{#settings}}
+              {{#data}}Tree + Data{{/data}}
+              {{^data}}Tree only{{/data}}
+            {{/settings}}
+            <span class="delete">×</span>
+          <li>
+        {{/list}}
+      {{/caching}}
+      <li>
+        <form id="add-caching-form">
+          <input type="text" placeholder="Path..." name="path">
+          <label>Include Data: <input name="data" type="checkbox"></label>
+          <input type="submit" value="Add">
+        </form>
+      </li>
+    </ul>
+
+    <label>
+      Caching roots:
+      {{#caching}}
+        {{#rootPaths}}<span class="root-path">{{.}}</span>{{/rootPaths}}
+      {{/caching}}
+    </label>
+
+  </script>
+
+  <!-- STYLE -->
+
+  <style type="text/css">
+    body { font-family: sans-serif; }
+    span.delete { cursor: pointer; }
+    span.root-path { font-family: courier; }
+    span.root-path:after { content: ", "; }
+    span.root-path:last-child:after { content: "."; }
+    label { font-weight: bold; }
+
+    #code {
+      position: absolute;
+      top: 5em;
+      left: 34em;
+      font-family: courier;
+      white-space: pre;
+    }
+  </style>
+
+  <!-- APP -->
+
+  <script src="../build/mustache.js"></script>
+  <script src="generator.js"></script>
+
+  <script type="text/javascript">
+
+    function renderTemplate(name, view) {
+      var sel = 'script[data-template-name="' + name + '"]';
+      var template = document.querySelector(sel);
+      if(! template) throw "Template not found: " + name;
+      document.getElementById('content').innerHTML = Mustache.render(template.innerHTML, view);
+    }
+
+    remoteStorage = new RemoteStorage();
+
+    renderTemplate('loading', remoteStorage);
+
+    function main() {
+      renderTemplate('info', remoteStorage);
+      document.getElementById('add-access-form').onsubmit = function(event) {
+        event.preventDefault();
+        var form = event.target;
+        if(! form.name.value) return alert("access.name required");
+        if(! form.mode.value) return alert("access.mode required");
+        remoteStorage.access.set(form.name.value, form.mode.value);
+        main();
+        document.getElementById('add-access-form').name.focus();
+      };
+      document.getElementById('access').onclick = function(event) {
+        if(event.target.tagName === 'SPAN' && event.target.classList.contains('delete')) {
+          remoteStorage.access.remove(event.target.parentElement.getAttribute('data-scope'));
+          main();
+        }
+      };
+      document.getElementById('add-caching-form').onsubmit = function(event) {
+        event.preventDefault();
+        var form = event.target;
+        if(! form.path.value) return alert("caching.path required");
+        try {
+          remoteStorage.caching.set(form.path.value, { data: form.data.checked });
+        } catch(exc) {
+          console.error("Caught: ", exc, exc.stack);
+          alert(exc.message);
+        }
+        main();
+        document.getElementById('add-caching-form').path.focus();
+      };
+      document.getElementById('caching').onclick = function(event) {
+        if(event.target.tagName === 'SPAN' && event.target.classList.contains('delete')) {
+          remoteStorage.caching.remove(event.target.parentElement.getAttribute('data-path'));
+          main();
+        }
+      };
+
+      document.getElementById('code').textContent = generateCode(remoteStorage);
+
+    }
+
+    remoteStorage.on('ready', main);
+
+  </script>
+</html>
