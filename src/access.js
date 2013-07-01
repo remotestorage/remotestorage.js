@@ -89,18 +89,28 @@
     }
   };
 
+  Object.defineProperty(RemoteStorage.prototype, 'access', {
+    get: function() {
+      var access = new RemoteStorage.Access();
+      Object.defineProperty(RemoteStorage.prototype, 'access', {
+        value: access
+      });
+      return access;
+    },
+    configurable: true
+  });
+  RemoteStorage.prototype.claimAccess = function(scopes) {
+    if(typeof(scopes) === 'object') {
+      for(var key in scopes) {
+        this.access.claim(key, scopes[key]);
+      }
+    } else {
+      this.access.claim(arguments[0], arguments[1]);
+    }
+  };
+
   RemoteStorage.Access._rs_init = function() {
     haveLocalStorage = 'localStorage' in global;
-    Object.defineProperty(RemoteStorage.prototype, 'access', {
-      get: function() {
-        var access = new RemoteStorage.Access();
-        Object.defineProperty(RemoteStorage.prototype, 'access', {
-          value: access
-        });
-        return access;
-      },
-      configurable: true
-    });
     return promising().fulfill();
   };
 
