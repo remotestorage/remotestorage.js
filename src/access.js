@@ -1,7 +1,20 @@
-(function() {
+(function(global) {
+  var haveLocalStorage;
+
+  var SETTINGS_KEY = "remotestorage:access";
 
   RemoteStorage.Access = function() {
     this.reset();
+
+    if(haveLocalStorage) {
+      var rawSettings = localStorage[SETTINGS_KEY];
+      if(rawSettings) {
+        var savedSettings = JSON.parse(rawSettings);
+        for(var key in savedSettings) {
+          this.set(key, savedSettings[key]);
+        }
+      }
+    }
 
     this.__defineGetter__('scopes', function() {
       return Object.keys(this.scopeModeMap).map(function(key) {
@@ -26,6 +39,7 @@
     set: function(scope, mode) {
       this._adjustRootPaths(scope);
       this.scopeModeMap[scope] = mode;
+      this._persist();
     },
 
     get: function(scope) {
@@ -42,6 +56,7 @@
       for(var name in savedMap) {
         this.set(name, savedMap[name]);
       }
+      this._persist();
     },
 
     check: function(scope, mode) {
@@ -63,12 +78,19 @@
       }
     },
 
+    _persist: function() {
+      if(haveLocalStorage) {
+        localStorage[SETTINGS_KEY] = JSON.stringify(this.scopeModeMap);
+      }
+    },
+
     setStorageType: function(type) {
       this.storageType = type;
     }
   };
 
   RemoteStorage.Access._rs_init = function() {
+    haveLocalStorage = 'localStorage' in global;
     Object.defineProperty(RemoteStorage.prototype, 'access', {
       get: function() {
         var access = new RemoteStorage.Access();
@@ -82,4 +104,4 @@
     return promising().fulfill();
   };
 
-})();
+})(this);
