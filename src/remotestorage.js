@@ -101,7 +101,7 @@
       var self = this;
       features.forEach(function(feature) {
         console.log("[FEATURE " + feature.name + "] initializing...");
-        feature.init().then(function() {
+        feature.init(self).then(function() {
           i++;
           console.log("[FEATURE " + feature.name + "] initialized. (" + i + "/" + n + ")");
           if(i == n)
