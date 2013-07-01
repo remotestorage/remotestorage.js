@@ -98,6 +98,18 @@
       {{/caching}}
     </label>
 
+    <h3>Test Client (base: /contacts/)</h3>
+    <form id="client-form">
+      <input type="text" name="path" placeholder="Path...">
+      <button id="client-action-get">GET</button>
+      <button id="client-action-put">PUT</button>
+      <button id="client-action-delete">DELETE</button>
+      <br/>
+      <textarea name="data" placeholder="Data..."></textarea>
+    </form>
+    <h4>Events:</h4>
+    <pre id="client-events"></pre>
+
   </script>
 
   <!-- STYLE -->
@@ -174,7 +186,26 @@
         }
       };
 
+      var client = remoteStorage.scope('/contacts/');
+
       document.getElementById('code').textContent = generateCode(remoteStorage);
+
+      var clientForm = document.getElementById('client-form');
+      clientForm.onsubmit = function(event) { event.preventDefault(); };
+      document.getElementById('client-action-get').onclick = function() {
+        client.getFile(clientForm.path.value).then(function(file) { clientForm.data.value = file.data; });
+      }
+      document.getElementById('client-action-put').onclick = function() {
+        client.storeFile('text/plain', clientForm.path.value, clientForm.data.value);
+      }
+      document.getElementById('client-action-delete').onclick = function() {
+        client.remove(clientForm.path.value);
+      }
+
+      var eventsElement = document.getElementById('client-events');
+      client.on('change', function(event) {
+        eventsElement.textContent += JSON.stringify(event) + "\n";
+      });
 
     }
 
