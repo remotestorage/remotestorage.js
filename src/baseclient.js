@@ -14,6 +14,10 @@
     } else {
       this.moduleName = 'root';
     }
+
+    RemoteStorage.eventHandling(this, 'change');
+
+    storage.onChange(this.base, this._fireChange.bind(this));
   };
 
   /**
@@ -124,11 +128,15 @@
     // generic operations
 
     remove: function(path) {
-      return this.storage.remove(this.makePath(path));
+      return this.storage.delete(this.makePath(path));
     },
 
     makePath: function(path) {
       return this.base + path;
+    },
+
+    _fireChange: function(event) {
+      this._emit('change', event);
     }
 
   };

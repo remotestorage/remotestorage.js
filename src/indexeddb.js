@@ -57,6 +57,7 @@
 
   RemoteStorage.IndexedDB = function(database) {
     this.db = database || DEFAULT_DB;
+    RemoteStorage.eventHandling(this, 'change');
   };
   RemoteStorage.IndexedDB.prototype = {
 
@@ -86,11 +87,21 @@
       if(path[path.length - 1] == '/') { throw "Bad: don't PUT folders"; }
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodes = transaction.objectStore('nodes');
-      nodes.put({ path: path, contentType: contentType, body: body }).
-        onsuccess = function() { addToParent(nodes, path, 'body'); };
-      transaction.oncomplete = function() {
-        promise.fulfill(200);
+      var oldNode;
+      nodes.get(path).onsuccess = function(evt) {
+        oldNode = evt.target.result;
+        nodes.put({ path: path, contentType: contentType, body: body }).
+          onsuccess = function() { addToParent(nodes, path, 'body'); };
       };
+      transaction.oncomplete = function() {
+        this._emit('change', {
+          path: path,
+          origin: 'window',
+          oldValue: oldNode ? oldNode.body : undefined,
+          newValue: body
+        });
+        promise.fulfill(200);
+      }.bind(this);
       return promise;
     },
 
@@ -100,7 +111,7 @@
       if(path[path.length - 1] == '/') { throw "Bad: don't DELETE folders"; }
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodes = transaction.objectStore('nodes');
-      nodes.remove(path).onsuccess = function() {
+      nodes.delete(path).onsuccess = function() {
         removeFromParent(nodes, path, 'body');
       };
       transaction.oncomplete = function() {

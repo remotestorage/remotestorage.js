@@ -7,10 +7,6 @@
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
-  RemoteStorage.WireClient = function() {
-    this.connected = false;
-  };
-
   function request(method, path, token, headers, body, getEtag) {
     var promise = promising();
     console.log(method, path);
@@ -37,6 +33,11 @@
     xhr.send(body);
     return promise;
   }
+
+  RemoteStorage.WireClient = function() {
+    this.connected = false;
+    RemoteStorage.eventHandling(this, 'change', 'connected');
+  };
 
   RemoteStorage.WireClient.prototype = {
 

@@ -40,11 +40,15 @@
 
       if(this.local && this.remote) {
         this._setGPD(SyncedGetPutDelete, this);
+        this._bindChange(this.local);
       } else if(this.remote) {
         this._setGPD(this.remote, this.remote);
-        this._delegateEvent('connected', this.remote);
       }
-      
+
+      if(this.remote) {
+        this._delegateEvent('connected', this.remote)
+      }
+
       try {
         this._emit('ready');
       } catch(exc) {
@@ -56,6 +60,8 @@
         }
       }
     });
+
+    this._pathHandlers = {};
   };
 
   RemoteStorage.prototype = {
@@ -120,6 +126,32 @@
 
     _notReady: function() {
       throw "remotestorage not ready!";
+    },
+
+    onChange: function(path, handler) {
+      if(! this._pathHandlers[path]) {
+        this._pathHandlers[path] = [];
+      }
+      this._pathHandlers[path].push(handler);
+    },
+
+    _bindChange: function(object) {
+      object.on('change', this._dispatchChange.bind(this));
+    },
+
+    _dispatchChange: function(event) {
+      console.log('dispatch change', event, '(handlers: ', Object.keys(this._pathHandlers), ')');
+      for(var path in this._pathHandlers) {
+        var pl = path.length;
+        this._pathHandlers[path].forEach(function(handler) {
+          if(event.path.substr(0, pl) == path) {
+            var ev = {};
+            for(var key in event) { ev[key] = event[key]; }
+            ev.relativePath = event.path.replace(new RegExp('^' + path), '');
+            handler(ev);
+          }
+        });
+      }
     }
   };
 
