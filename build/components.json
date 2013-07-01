@@ -1,46 +1,85 @@
 {
   "files": {
-    "promising.js": "A Promises/A+ implementation",
-    "remotestorage.js": "Basic GET/PUT/DELETE client",
-    "remotestorage.discover.js": "Webfinger client",
-    "remotestorage.authorize.js": "OAuth2 client",
-    "remotestorage.indexeddb.js": "IndexedDB caching layer",
-    "remotestorage.sync.js": "Synchronizes remotestorage and local cache",
-    "remotestorage.widget.js": "Widget controller / view implementation",
-    "remotestorage.inspect.js": "Debugging widget that displays local and remote data",
-    "remotestorage.modules.js": "The module definition API",
-    "remotestorage.baseclient.js": "A high-level client, scoped to a path"
+    "lib/promising.js": "A Promises/A+ implementation",
+    "src/remotestorage.js": "Glue Code",
+    "src/eventhandling.js": "Common event handling procedures",
+    "src/wireclient.js": "Basic GET/PUT/DELETE client",
+    "src/discover.js": "Webfinger client",
+    "src/authorize.js": "OAuth2 client",
+    "src/indexeddb.js": "IndexedDB caching layer",
+    "src/websql.js": "WebSQL caching layer",
+    "src/localstorage.js": "LocalStorage caching layer",
+    "src/sync.js": "Synchronizes remotestorage and local cache",
+    "src/caching.js": "Caching configuration",
+    "src/widget.js": "Widget controller / view implementation",
+    "src/debug/inspect.js": "Debugging widget that displays local and remote data",
+    "src/modules.js": "The module definition API",
+    "src/baseclient.js": "A high-level client, scoped to a path",
+    "src/baseclient/types.js": "Type / schema handling, validations"
   },
   "groups": {
     "core": {
       "label": "Core",
       "desc": "Basic requirements to connect to a remotestorage server and send / receive data.",
-      "files": ["promising.js", "remotestorage.js", "remotestorage.discover.js", "remotestorage.authorize.js"],
+      "files": [
+        "lib/promising.js",
+        "src/remotestorage.js",
+        "src/eventhandling.js",
+        "src/wireclient.js",
+        "src/discover.js",
+        "src/authorize.js"
+      ],
       "required": true
     },
+    "widget": {
+      "label": "Connect Widget",
+      "desc": "Provides UI to connect to a user's remotestorage.",
+      "files": [
+        "src/widget.js"
+      ],
+      "default": true,
+      "depends": ["core"]
+    },
+    "baseclient": {
+      "label": "Base Client",
+      "desc": "High-level client",
+      "files": [
+        "src/baseclient.js",
+        "src/baseclient/types.js"
+      ],
+      "default": true,
+      "depends": ["core"]
+    },
     "caching": {
-      "label": "Caching",
-      "desc": "Local caching layer and synchronization",
-      "files": ["remotestorage.indexeddb.js", "remotestorage.sync.js"],
-      "initial": true
+      "label": "Caching / Synchronization",
+      "desc": "Configurable local copy of (parts of) the storage and transparent synchronization.",
+      "files": [
+        "src/caching.js",
+        "src/sync.js",
+        "src/indexeddb.js",
+        "src/websql.js",
+        "src/localstorage.js"
+      ],
+      "default": true,
+      "depends": ["core"]
     },
     "modules": {
-      "label": "Modules",
-      "desc": "Modules are high-level interfaces, each associated with an access scope (such as contacts, calendar, messages, ...)",
-      "files": ["remotestorage.baseclient.js", "remotestorage.modules.js"],
-      "initial": true
-    },
-    "widget": {
-      "label": "Widget",
-      "desc": "\"Connect\" widget, managing discovery and authorization",
-      "files": ["remotestorage.widget.js"],
-      "initial": false,
-      "hidden": true
+      "label": "Module API",
+      "desc": "API to declare and load modules. Each module is associated with an access scope (such as contacts, calendar, messages, ...)",
+      "files": [
+        "src/baseclient.js",
+        "src/modules.js"
+      ],
+      "default": true,
+      "depends": ["core", "baseclient"]
     },
     "debug": {
       "label": "Debug",
       "desc": "Debugging tools, useful for development",
-      "files": ["remotestorage.inspect.js"]
+      "files": [
+        "src/debug/inspect.js"
+      ],
+      "depends": ["core"]
     }
   }
 }
