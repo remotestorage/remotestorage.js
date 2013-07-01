@@ -58,7 +58,7 @@
       if(typeof(token) !== 'undefined') this.token = token;
       if(typeof(this.storageApi) !== 'undefined') {
         this._storageApi = STORAGE_APIS[this.storageApi] || API_HEAD;
-        this.supportsRevs = this._storageApi >= API_00;      
+        this.supportsRevs = this._storageApi >= API_00;
       }
       if(this.href && this.token) {
         this.connected = true;
@@ -111,5 +111,12 @@
     haveLocalStorage = 'localStorage' in global;
     return !! global.XMLHttpRequest;
   };
+
+  RemoteStorage.WireClient._rs_cleanup = function(){
+    if(haveLocalStorage){
+      delete localStorage[SETTINGS_KEY];
+    }
+  }
+
 
 })(this);

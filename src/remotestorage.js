@@ -31,49 +31,53 @@
   }
 
   var RemoteStorage = function() {
-    RemoteStorage.eventHandling(this, 'ready', 'connected');
+    RemoteStorage.eventHandling(this, 'ready', 'connected', 'disconnected');
     this.get = this.put = this.delete = this._notReady;
     this._cleanups = [];
-    this._loadFeatures(function(features) {
-      console.log('all features loaded');
-      this.local = features.local && new features.local();
-      this.remote = new features.remote();
-
-      if(this.local && this.remote) {
-        this._setGPD(SyncedGetPutDelete, this);
-        this._bindChange(this.local);
-      } else if(this.remote) {
-        this._setGPD(this.remote, this.remote);
-      }
-
-      if(this.remote) {
-        this._delegateEvent('connected', this.remote)
-      }
-
-      var fl = features.length;
-      for(var i=0;i<fl;i++) {
-        var cleanup = features[i].cleanup;
-        if(cleanup) {
-          this._cleanups.push(cleanup);
-        }
-      }
-
-      try {
-        this._emit('ready');
-      } catch(exc) {
-        console.error("remoteStorage#ready block failed: ");
-        if(typeof(exc) == 'string') {
-          console.error(exc);
-        } else {
-          console.error(exc.message, exc.stack);
-        }
-      }
-    });
-
     this._pathHandlers = {};
+
+    this._init();
   };
 
   RemoteStorage.prototype = {
+
+    _init: function() {
+      this._loadFeatures(function(features) {
+        console.log('all features loaded');
+        this.local = features.local && new features.local();
+        this.remote = new features.remote();
+
+        if(this.local && this.remote) {
+          this._setGPD(SyncedGetPutDelete, this);
+          this._bindChange(this.local);
+        } else if(this.remote) {
+          this._setGPD(this.remote, this.remote);
+        }
+
+        if(this.remote) {
+          this._delegateEvent('connected', this.remote)
+        }
+
+        var fl = features.length;
+        for(var i=0;i<fl;i++) {
+          var cleanup = features[i].cleanup;
+          if(cleanup) {
+            this._cleanups.push(cleanup);
+          }
+        }
+
+        try {
+          this._emit('ready');
+        } catch(exc) {
+          console.error("remoteStorage#ready block failed: ");
+          if(typeof(exc) == 'string') {
+            console.error(exc);
+          } else {
+            console.error(exc.message, exc.stack);
+          }
+        }
+      });
+    },
 
     _detectFeatures: function() {
       // determine availability
@@ -178,7 +182,22 @@
       }.bind(this));
     },
     disconnect : function() {
-      this._cleanups.forEach(function(f) { f(); });
+      var n = this._cleanups.length, i = 0;
+      var oneDone = function() {
+        i++;
+        if(i == n) {
+          this._init();
+          this._emit('disconnected');
+        }
+      }.bind(this);
+      this._cleanups.forEach(function(cleanup) {
+        var cleanupResult = cleanup(this);
+        if(typeof(cleanup) == 'object' && typeof(cleanup.then) == 'function') {
+          cleanupResult.then(oneDone);
+        } else {
+          oneDone();
+        }
+      }.bind(this));
     }
   };
 
