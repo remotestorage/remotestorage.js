@@ -1,4 +1,7 @@
 (function(global) {
+  var haveLocalStorage;
+  var SETTINGS_KEY = "remotestorage:wireclient";
+
   var API_2012 = 1, API_00 = 2, API_01 = 3, API_HEAD = 4;
 
   var STORAGE_APIS = {
@@ -37,17 +40,33 @@
   RemoteStorage.WireClient = function() {
     this.connected = false;
     RemoteStorage.eventHandling(this, 'change', 'connected');
+
+    if(haveLocalStorage) {
+      var settings;
+      try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {};
+      if(settings) {
+        this.configure(settings.href, settings.storageApi, settings.token);
+      }
+    }
   };
 
   RemoteStorage.WireClient.prototype = {
 
-    connect: function(href, storageApi, token) {
-      this.href = href;
-      this.storageApi = storageApi;
-      this.token = token;
-      this._storageApi = STORAGE_APIS[this.storageApi] || API_HEAD;
-      this.supportsRevs = this._storageApi >= API_00;      
-      this.connected = true;
+    configure: function(href, storageApi, token) {
+      if(typeof(href) !== 'undefined') this.href = href;
+      if(typeof(storageApi) !== 'undefined') this.storageApi = storageApi;
+      if(typeof(token) !== 'undefined') this.token = token;
+      if(typeof(this.storageApi) !== 'undefined') {
+        this._storageApi = STORAGE_APIS[this.storageApi] || API_HEAD;
+        this.supportsRevs = this._storageApi >= API_00;      
+      }
+      if(this.href && this.token) {
+        this.connected = true;
+        this._emit('connected');
+      }
+      if(haveLocalStorage) {
+        localStorage[SETTINGS_KEY] = JSON.stringify({ href: this.href, token: this.token, storageApi: this.storageApi });
+      }
     },
 
     get: function(path, options) {
@@ -86,10 +105,10 @@
   };
 
   RemoteStorage.WireClient._rs_init = function() {
-    return promising().fulfill();
   };
 
   RemoteStorage.WireClient._rs_supported = function() {
+    haveLocalStorage = 'localStorage' in global;
     return !! global.XMLHttpRequest;
   };
 

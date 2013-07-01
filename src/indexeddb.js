@@ -1,4 +1,4 @@
-(function() {
+(function(global) {
   
   var DEFAULT_DB_NAME = 'remotestorage';
   var DEFAULT_DB;
@@ -226,4 +226,8 @@
     return promise;
   };
 
-})();
+  RemoteStorage.IndexedDB._rs_supported = function() {
+    return 'indexedDB' in global;
+  }
+
+})(this);

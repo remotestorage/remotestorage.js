@@ -33,6 +33,7 @@
   var RemoteStorage = function() {
     RemoteStorage.eventHandling(this, 'ready', 'connected');
     this.get = this.put = this.delete = this._notReady;
+    this._cleanups = [];
     this._loadFeatures(function(features) {
       console.log('all features loaded');
       this.local = features.local && new features.local();
@@ -47,6 +48,14 @@
 
       if(this.remote) {
         this._delegateEvent('connected', this.remote)
+      }
+
+      var fl = features.length;
+      for(var i=0;i<fl;i++) {
+        var cleanup = features[i].cleanup;
+        if(cleanup) {
+          this._cleanups.push(cleanup);
+        }
       }
 
       try {
@@ -82,7 +91,8 @@
         return {
           name: featureName,
           init: (impl && impl._rs_init),
-          supported: impl && (impl._rs_supported ? impl._rs_supported() : true)
+          supported: impl && (impl._rs_supported ? impl._rs_supported() : true),
+          cleanup: ( impl && impl._rs_cleanup )
         };
       }).filter(function(feature) {
         var supported = !! (feature.init && feature.supported);
@@ -104,16 +114,25 @@
       var features = this._detectFeatures();
       var n = features.length, i = 0;
       var self = this;
-      features.forEach(function(feature) {
-        console.log("[FEATURE " + feature.name + "] initializing...");
-        feature.init(self).then(function() {
+      function featureDoneCb(name) {
+        return function() {
           i++;
-          console.log("[FEATURE " + feature.name + "] initialized. (" + i + "/" + n + ")");
+          console.log("[FEATURE " + name + "] initialized. (" + i + "/" + n + ")");
           if(i == n)
             setTimeout(function() {
               callback.apply(self, [features]);
             }, 0);
-        });
+        }
+      }
+      features.forEach(function(feature) {
+        console.log("[FEATURE " + feature.name + "] initializing...");
+        var initResult = feature.init(self);
+        var cb = featureDoneCb(feature.name);
+        if(typeof(initResult) == 'object' && typeof(initResult.then) == 'function') {
+          initResult.then(cb);
+        } else {
+          cb();
+        }
       });
     },
 
@@ -151,9 +170,20 @@
           }
         });
       }
+    },
+    connect : function(userAddress) {
+      RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
+        this.remote.configure(href, storageApi);
+        this.authorize(authURL);
+      }.bind(this));
+    },
+    disconnect : function() {
+      this._cleanups.forEach(function(f) { f(); });
     }
   };
 
-  window.RemoteStorage = RemoteStorage;
+
+  
+    window.RemoteStorage = RemoteStorage;
 
 })();

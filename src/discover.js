@@ -9,7 +9,7 @@
 
   RemoteStorage.Discover = function(userAddress, callback) {
     if(userAddress in cachedInfo) {
-      var info = cachedInfo.userAddress;
+      var info = cachedInfo[userAddress];
       callback(info.href, info.type, info.authURL);
       return;
     }
@@ -25,9 +25,14 @@
       var xhr = new XMLHttpRequest();
       var url = urls.shift();
       if(! url) return callback();
+      console.log('try url', url);
       xhr.open('GET', url, true);
+      xhr.onabort = xhr.onerror = function() {
+        console.error("webfinger error", arguments, '(', url, ')');
+        tryOne();
+      }
       xhr.onload = function() {
-        if(status != 200) return tryOne();
+        if(xhr.status != 200) return tryOne();
         var profile = JSON.parse(xhr.responseText);
         var link;
         profile.links.forEach(function(l) {
@@ -37,12 +42,13 @@
             link = l;
           }
         });
+        console.log('got profile', profile, 'and link', link);
         if(link) {
           var authURL = link.properties['auth-endpoint'] ||
             link.properties['http://tools.ietf.org/html/rfc6749#section-4.2'];
           cachedInfo[userAddress] = { href: link.href, type: link.type, authURL: authURL };
           if(haveLocalStorage) {
-            localStorage[SETTINGS_KEY] = { cache: cachedInfo };
+            localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
           }
           callback(link.href, link.type, authURL);
         } else {
@@ -54,16 +60,16 @@
     tryOne();
   },
 
-  RemoteStorage.Discover._rs_init = function() {
-    return promising(function(promise) {
-      if(haveLocalStorage) {
-        var settings = localStorage[SETTINGS_KEY];
-        if(settings) {
-          cachedInfo = settings.cache;
-        }
+
+
+  RemoteStorage.Discover._rs_init = function(remoteStorage) {
+    if(haveLocalStorage) {
+      var settings;
+      try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {};
+      if(settings) {
+        cachedInfo = settings.cache;
       }
-      promise.fulfill();
-    });
+    }
   };
 
   RemoteStorage.Discover._rs_supported = function() {

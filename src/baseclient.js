@@ -172,7 +172,6 @@
     RemoteStorage.prototype.scope = function(path) {
       return new RemoteStorage.BaseClient(this, path);
     };
-    return promising().fulfill();
   };
 
   /* e.g.:

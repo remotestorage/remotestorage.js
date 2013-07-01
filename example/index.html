@@ -14,6 +14,8 @@
     <script src="../src/debug/inspect.js"></script>
     <script src="../src/baseclient.js"></script>
     <script src="../src/widget.js"></script>
+    <script src="../src/discover.js"></script>
+    <script src="../src/authorize.js"></script>
   </head>
 
   <!-- LAYOUT -->
@@ -210,7 +212,13 @@
 
     }
 
-    remoteStorage.on('ready', main);
+    remoteStorage.on('ready', function() {
+      main();
+    });
+
+    remoteStorage.on('connected', function() {
+      alert('connected');
+    });
 
   </script>
 </html>

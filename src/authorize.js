@@ -1,6 +1,15 @@
 (function() {
 
-  RemoteStorage.authorize = function(authURL, storageApi, scopes, redirectUri) {
+  function extractParams() {
+    if(! document.location.hash) return;
+    return document.location.hash.slice(1).split('&').reduce(function(m, kvs) {
+      var kv = kvs.split('=');
+      m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+      return m;
+    }, {});
+  };
+
+  RemoteStorage.Authorize = function(authURL, storageApi, scopes, redirectUri) {
     var scope = '';
     for(var key in scopes) {
       var mode = scopes[key];
@@ -19,13 +28,26 @@
     document.location = url;
   };
 
-  RemoteStorage.authorize.extractParams = function() {
-    if(! document.location.hash) return;
-    return document.location.hash.split('&').reduce(function(m, kvs) {
-      var kv = kvs.split('=');
-      m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
-      return m;
-    }, {});
+  RemoteStorage.prototype.authorize = function(authURL) {
+    RemoteStorage.Authorize(authURL, this.remote.storageApi, this.access.scopeModeMap, document.location);
   };
+
+  RemoteStorage.Authorize._rs_init = function(remoteStorage) {
+    var params = extractParams();
+    if(params) {
+      document.location.hash = '';
+    }
+    console.log("found Params : ", params);
+    remoteStorage.on('ready', function() {
+      if(params) {
+        if(params.access_token) {
+          remoteStorage.remote.configure(undefined, undefined, params.access_token);
+        }
+        if(params.user_address) {
+          remoteStorage.connect(params.user_address);
+        }
+      }
+    });
+  }
 
 })();

@@ -95,6 +95,6 @@
     }.bind(this));
   };
 
-  RemoteStorage.Sync._rs_init = function() { return promising().fulfill(); };
+  RemoteStorage.Sync._rs_init = function() {};
 
 })(this);
