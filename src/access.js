@@ -1,6 +1,6 @@
 (function(global) {
-  var haveLocalStorage;
 
+  var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:access";
 
   RemoteStorage.Access = function() {
@@ -107,11 +107,6 @@
     } else {
       this.access.claim(arguments[0], arguments[1]);
     }
-  };
-
-  RemoteStorage.Access._rs_init = function() {
-    haveLocalStorage = 'localStorage' in global;
-    return promising().fulfill();
   };
 
 })(this);

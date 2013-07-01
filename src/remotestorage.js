@@ -74,8 +74,6 @@
         'Authorize',
         'IndexedDB',
         'LocalStorage',
-        'Caching',
-        'Access',
         'Sync',
         'BaseClient'
       ].map(function(featureName) {

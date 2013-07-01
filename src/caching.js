@@ -1,6 +1,6 @@
 (function(global) {
 
-  var haveLocalStorage;
+  var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:caching";
 
   function containingDir(path) {
@@ -145,18 +145,14 @@
 
   };
 
-  RemoteStorage.Caching._rs_init = function() {
-    haveLocalStorage = 'localStorage' in global;
-    Object.defineProperty(RemoteStorage.prototype, 'caching', {
-      get: function() {
-        var caching = new RemoteStorage.Caching();
-        Object.defineProperty(this, 'caching', {
-          value: caching
-        });
-        return caching;
-      }
-    });
-    return promising().fulfill();
-  };
+  Object.defineProperty(RemoteStorage.prototype, 'caching', {
+    get: function() {
+      var caching = new RemoteStorage.Caching();
+      Object.defineProperty(this, 'caching', {
+        value: caching
+      });
+      return caching;
+    }
+  });
 
 })(this);
