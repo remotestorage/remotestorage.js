@@ -158,8 +158,13 @@
    *   (end code)
    *
    */
-  RemoteStorage.prototype.scope = function(path) {
-    return new RemoteStorage.BaseClient(this, path);
+
+
+  RemoteStorage.BaseClient._rs_init = function() {
+    RemoteStorage.prototype.scope = function(path) {
+      return new RemoteStorage.BaseClient(this, path);
+    };
+    return promising().fulfill();
   };
 
   /* e.g.:

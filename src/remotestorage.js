@@ -70,7 +70,8 @@
         'LocalStorage',
         'Caching',
         'Access',
-        'Sync'
+        'Sync',
+        'BaseClient'
       ].map(function(featureName) {
         var impl = RemoteStorage[featureName];
         return {
