@@ -1,4 +1,4 @@
-(function() {
+(function(global) {
 
   function isDir(path) {
     return path[path.length - 1] == '/';
@@ -58,14 +58,43 @@
     return promise;
   }
 
-  RemoteStorage.sync = function(source, target, path) {
-    return synchronize(source, target, path);
+  RemoteStorage.Sync = {
+    sync: function(source, target, path) {
+      return synchronize(source, target, path);
+    },
+
+    syncTree: function(source, target, path) {
+      return synchronize(source, target, path, {
+        data: false
+      });
+    }
   };
 
-  RemoteStorage.syncTree = function(source, target, path) {
-    return synchronize(source, target, path, {
-      data: false
-    });
+  RemoteStorage.prototype.sync = function() {
+    if(! (this.local && this.caching)) {
+      throw "Sync requires 'local' and 'caching'!";
+    }
+    var roots = this.caching.rootPaths;
+    var n = roots.length, i = 0;
+    var aborted = false;
+    return promising(function(promise) {
+      var path;
+      while((path = roots.shift())) {
+        synchronize(this.remote, this.local, path, this.caching.get(path)).
+          then(function() {
+            if(aborted) return;
+            i++;
+            if(n == i) {
+              promise.fulfill();
+            }
+          }, function(error) {
+            aborted = true;
+            promise.reject(error);
+          });
+      }
+    }.bind(this));
   };
 
-})();
+  RemoteStorage.Sync._rs_init = function() { return promising().fulfill(); };
+
+})(this);

@@ -1,4 +1,8 @@
 (function() {
+  
+  var DEFAULT_DB_NAME = 'remotestorage';
+  var DEFAULT_DB;
+  
   function keepDirNode(node) {
     return Object.keys(node.body).length > 0 ||
       Object.keys(node.cached).length > 0;
@@ -52,7 +56,7 @@
   }
 
   RemoteStorage.IndexedDB = function(database) {
-    this.db = database;
+    this.db = database || DEFAULT_DB;
   };
   RemoteStorage.IndexedDB.prototype = {
 
@@ -77,7 +81,7 @@
     },
 
     put: function(path, body, contentType) {
-      var promise = promisinog();
+      var promise = promising();
       console.log('PUT', path);
       if(path[path.length - 1] == '/') { throw "Bad: don't PUT folders"; }
       var transaction = this.db.transaction(['nodes'], 'readwrite');
@@ -187,7 +191,7 @@
       db.createObjectStore('nodes', { keyPath: 'path' });
     }
     dbOpen.onsuccess = function() {
-      callback(new RemoteStorage.IndexedDB(dbOpen.result));
+      callback(dbOpen.result);
     };
   };
 
@@ -200,6 +204,15 @@
     req.onerror = function(evt) {
       console.error('failed to remove database "' + databaseName + '"', evt);
     };
+  };
+
+  RemoteStorage.IndexedDB._rs_init = function() {
+    var promise = promising();
+    RemoteStorage.IndexedDB.open(DEFAULT_DB_NAME, function(db) {
+      DEFAULT_DB = db;
+      promise.fulfill();
+    });
+    return promise;
   };
 
 })();

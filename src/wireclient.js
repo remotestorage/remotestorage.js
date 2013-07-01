@@ -1,4 +1,4 @@
-(function() {
+(function(global) {
   var API_2012 = 1, API_00 = 2, API_01 = 3, API_HEAD = 4;
 
   var STORAGE_APIS = {
@@ -7,12 +7,8 @@
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
-  RemoteStorage.Client = function(href, storageApi, token) {
-    this.href = href;
-    this.storageApi = storageApi;
-    this.token = token;
-    this._storageApi = STORAGE_APIS[this.storageApi] || API_HEAD;
-    this.supportsRevs = this._storageApi >= API_00;
+  RemoteStorage.WireClient = function() {
+    this.connected = false;
   };
 
   function request(method, path, token, headers, body, getEtag) {
@@ -42,9 +38,19 @@
     return promise;
   }
 
-  RemoteStorage.Client.prototype = {
+  RemoteStorage.WireClient.prototype = {
+
+    connect: function(href, storageApi, token) {
+      this.href = href;
+      this.storageApi = storageApi;
+      this.token = token;
+      this._storageApi = STORAGE_APIS[this.storageApi] || API_HEAD;
+      this.supportsRevs = this._storageApi >= API_00;      
+      this.connected = true;
+    },
 
     get: function(path, options) {
+      if(! this.connected) throw new Error("not connected");
       if(!options) options = {};
       var headers = {};
       if(this.supportsRevs) {
@@ -57,6 +63,7 @@
     },
 
     put: function(path, body, contentType, options) {
+      if(! this.connected) throw new Error("not connected");
       if(!options) options = {};
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
@@ -68,6 +75,7 @@
     },
 
     delete: function(path, callback, options) {
+      if(! this.connected) throw new Error("not connected");
       if(!options) options = {};
       return request('DELETE', this.href + path, this.token,
                      this.supportsRevs ? { 'If-Match': options.ifMatch } : {},
@@ -76,4 +84,12 @@
 
   };
 
-})();
+  RemoteStorage.WireClient._rs_init = function() {
+    return promising().fulfill();
+  };
+
+  RemoteStorage.WireClient._rs_supported = function() {
+    return !! global.XMLHttpRequest;
+  };
+
+})(this);

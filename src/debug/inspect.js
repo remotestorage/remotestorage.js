@@ -76,25 +76,29 @@
     return wrapper;
   }
 
-  RemoteStorage.inspect = function(remote, local) {
+  RemoteStorage.prototype.inspect = function() {
 
     var widget = document.createElement('div');
     widget.id = 'remotestorage-inspect';
 
-    var syncButton = document.createElement('button');
-    syncButton.textContent = "Sync local <-> remote";
-    widget.appendChild(syncButton);
+    if(this.local) {
+      var syncButton = document.createElement('button');
+      syncButton.textContent = "Synchronize";
+      widget.appendChild(syncButton);
+    }
 
     var remoteTable = document.createElement('table');
     var localTable = document.createElement('table');
-    widget.appendChild(renderWrapper("Remote", remoteTable, remote));
-    widget.appendChild(renderWrapper("Local", localTable, local));
+    widget.appendChild(renderWrapper("Remote", remoteTable, this.remote));
+    if(this.local) {
+      widget.appendChild(renderWrapper("Local", localTable, this.local));
 
-    syncButton.onclick = function() {
-      RemoteStorage.syncTree(remote, local, '/').then(function() {
-        loadTable(localTable, local)
-      });
-    };
+      syncButton.onclick = function() {
+        this.sync().then(function() {
+          loadTable(localTable, this.local)
+        }.bind(this));
+      }.bind(this);
+    }
 
     document.body.appendChild(widget);
   };
