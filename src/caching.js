@@ -4,7 +4,7 @@
   var SETTINGS_KEY = "remotestorage:caching";
 
   function containingDir(path) {
-    return path.replace(/[^\/]+\/?$/, '');
+    return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
   }
 
   function isDir(path) {
