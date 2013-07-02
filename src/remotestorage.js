@@ -193,7 +193,6 @@
     },
 
     _dispatchChange: function(event) {
-      console.log('dispatch change', event, '(handlers: ', Object.keys(this._pathHandlers), ')');
       for(var path in this._pathHandlers) {
         var pl = path.length;
         this._pathHandlers[path].forEach(function(handler) {
