@@ -20,11 +20,14 @@
       }
       scope += key + ':' + mode;
     }
-   
+
+    var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
+
     var url = authURL;
     url += authURL.indexOf('?') > 0 ? '&' : '?';
     url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
+    url += '&client_id=' + encodeURIComponent(clientId);
     document.location = url;
   };
 
@@ -45,6 +48,9 @@
         }
         if(params.user_address) {
           remoteStorage.connect(params.user_address);
+        }
+        if(params.error) {
+          throw "Authorization server errored: " + params.error;
         }
       }
     });
