@@ -47,7 +47,7 @@
 
   function renderWrapper(title, table, storage, paths) {
     var wrapper = document.createElement('div');
-    wrapper.style.display = 'inline-block';
+    //wrapper.style.display = 'inline-block';
     var heading = document.createElement('h2');
     heading.textContent = title;
     wrapper.appendChild(heading);
@@ -73,7 +73,7 @@
 
   function renderLocalChanges(local) {
     var wrapper = document.createElement('div');
-    wrapper.style.display = 'inline-block';
+    //wrapper.style.display = 'inline-block';
     var heading = document.createElement('h2');
     heading.textContent = "Outgoing changes";
     wrapper.appendChild(heading);
@@ -107,7 +107,8 @@
     widget.style.position = 'absolute';
     widget.style.top = 0;
     widget.style.left = 0;
-    widget.style.background = 'white';
+    widget.style.background = 'black';
+    widget.style.color = 'white';
     widget.style.border = 'groove 5px #ccc';
 
     var controls = document.createElement('div');

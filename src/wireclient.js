@@ -92,7 +92,7 @@
       } else {
         return promise.then(function(status, body, contentType, revision) {
           if(status == 200 && typeof(body) == 'object') {
-            if(Object.keys(body).length == 0) {
+            if(Object.keys(body).length === 0) {
               // no children (coerce response to 'not found')
               status = 404;
             } else {
@@ -118,7 +118,7 @@
                      headers, body, this.supportsRevs);
     },
 
-    delete: function(path, callback, options) {
+    'delete': function(path, callback, options) {
       if(! this.connected) throw new Error("not connected");
       if(!options) options = {};
       return request('DELETE', this.href + path, this.token,

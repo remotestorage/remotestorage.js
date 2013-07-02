@@ -30,8 +30,8 @@
 
   function allKeys(a, b) {
     var keyObject = {};
-    for(var key in a) keyObject[key] = true;
-    for(var key in b) keyObject[key] = true;
+    for(var ak in a) keyObject[ak] = true;
+    for(var bk in b) keyObject[bk] = true;
     return Object.keys(keyObject);
   }
 
@@ -78,21 +78,21 @@
   function pushChanges(remote, local, path) {
     return local.changesBelow(path).then(function(changes) {
       var n = changes.length, i = 0;
-      if(n > 0) {
-        var promise = promising();
-        function oneDone(path) {
-          function done() {
-            i++;
-            if(i == n) promise.fulfill();
-          }
-          if(path) {
-            // change was propagated -> clear.
-            local.clearChange(path).then(done);
-          } else {
-            // change wasn't propagated (conflict?) -> handle it later.
-            done();
-          }
+      var promise = promising();
+      function oneDone(path) {
+        function done() {
+          i++;
+          if(i == n) promise.fulfill();
         }
+        if(path) {
+          // change was propagated -> clear.
+          local.clearChange(path).then(done);
+        } else {
+          // change wasn't propagated (conflict?) -> handle it later.
+          done();
+        }
+      }
+      if(n > 0) {
         function errored(err) {
           console.error("pushChanges aborted due to error: ", err, err.stack);
         }

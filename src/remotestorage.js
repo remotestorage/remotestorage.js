@@ -19,7 +19,7 @@
       }
     },
 
-    delete: function(path) {
+    'delete': function(path) {
       if(this.caching.cachePath(path)) {
         return this.local.delete(path).then(function() {
           RemoteStorage.sync.push(this.local, this.remote, path);
@@ -193,6 +193,7 @@
     },
 
     _dispatchChange: function(event) {
+      console.log('change', event);
       for(var path in this._pathHandlers) {
         var pl = path.length;
         this._pathHandlers[path].forEach(function(handler) {

@@ -69,7 +69,6 @@
       "label": "Module API",
       "desc": "API to declare and load modules. Each module is associated with an access scope (such as contacts, calendar, messages, ...)",
       "files": [
-        "src/baseclient.js",
         "src/modules.js"
       ],
       "default": true,

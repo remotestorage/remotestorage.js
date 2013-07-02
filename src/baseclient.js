@@ -1,5 +1,5 @@
 
-(function() {
+(function(global) {
 
   RemoteStorage.BaseClient = function(storage, base) {
     if(base[base.length - 1] != '/') {
@@ -115,8 +115,10 @@
       });
     },
 
-    storeObject: function(mimeType, path, object) {
-      return this.storage.put(this.makePath(path), object, mimeType).then(function(status, _body, _mimeType, revision) {
+    storeObject: function(typeAlias, path, object) {
+      console.log('storeObject in ', this);
+      this._attachType(object, typeAlias);
+      return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
         if(status == 200 || status == 201) {
           return revision;
         } else {
@@ -185,4 +187,4 @@
   });
   */
 
-})();
+})(this);
