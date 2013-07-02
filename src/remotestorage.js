@@ -94,13 +94,15 @@
       // determine availability
       var features = [
         'WireClient',
+        'Access'
+        'Caching',
         'Discover',
         'Authorize',
         'IndexedDB',
         'LocalStorage',
         'Sync',
         'BaseClient',
-	'Widget'
+	      'Widget'
       ].map(function(featureName) {
         var impl = RemoteStorage[featureName];
         return {

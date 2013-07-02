@@ -155,4 +155,11 @@
     }
   });
 
+  RemoteStorage.Caching._rs_init = function() {};
+  RemoteStorage.Caching._rs_cleanup = function() {
+    if(haveLocalStorage) {
+      delete localStorage[SETTINGS_KEY];
+    }]
+  };
+
 })(this);
