@@ -10,11 +10,11 @@
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
-  function request(method, path, token, headers, body, getEtag) {
+  function request(method, uri, token, headers, body, getEtag, fakeRevision) {
     var promise = promising();
-    console.log(method, path);
+    console.log(method, uri);
     var xhr = new XMLHttpRequest();
-    xhr.open(method, path, true);
+    xhr.open(method, uri, true);
     xhr.setRequestHeader('Authorization', 'Bearer ' + encodeURIComponent(token));
     for(var key in headers) {
       if(typeof(headers[key]) !== 'undefined') {
@@ -24,7 +24,7 @@
     xhr.onload = function() {
       var mimeType = xhr.getResponseHeader('Content-Type');
       var body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
-      var revision = getEtag ? xhr.getResponseHeader('ETag') : undefined;
+      var revision = getEtag ? xhr.getResponseHeader('ETag') : (xhr.status == 200 ? fakeRevision : undefined);
       promise.fulfill(xhr.status, body, mimeType, revision);
     };
     xhr.onerror = function(error) {
@@ -48,6 +48,8 @@
         this.configure(settings.href, settings.storageApi, settings.token);
       }
     }
+
+    this._revisionCache = {};
   };
 
   RemoteStorage.WireClient.prototype = {
@@ -77,9 +79,31 @@
         // setting '' causes the browser (at least chromium) to ommit
         // the If-None-Match header it would normally send.
         headers['If-None-Match'] = options.ifNoneMatch || '';
+      } else if(options.ifNoneMatch) {
+        var oldRev = this._revisionCache[path];
+        if(oldRev === options.ifNoneMatch) {
+          return promising().fulfill(412);
+        }
       }
-      return request('GET', this.href + path, this.token, headers,
-                     undefined, this.supportsRevs);
+      var promise = request('GET', this.href + path, this.token, headers,
+                            undefined, this.supportsRevs, this._revisionCache[path]);
+      if(this.supportsRevs || path.substr(-1) != '/') {
+        return promise;
+      } else {
+        return promise.then(function(status, body, contentType, revision) {
+          if(status == 200 && typeof(body) == 'object') {
+            if(Object.keys(body).length == 0) {
+              // no children (coerce response to 'not found')
+              status = 404;
+            } else {
+              for(var key in body) {
+                this._revisionCache[path + key] = body[key];
+              }
+            }
+          }
+          return promising().fulfill(status, body, contentType, revision);
+        }.bind(this));
+      }
     },
 
     put: function(path, body, contentType, options) {
