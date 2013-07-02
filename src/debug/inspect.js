@@ -52,7 +52,7 @@
     heading.textContent = title;
     wrapper.appendChild(heading);
     var updateButton = document.createElement('button');
-    updateButton.textContent = "Update";
+    updateButton.textContent = "Refresh";
     updateButton.onclick = function() { loadTable(table, storage, paths); };
     wrapper.appendChild(updateButton);
     if(storage.reset) {
@@ -78,7 +78,7 @@
     heading.textContent = "Outgoing changes";
     wrapper.appendChild(heading);
     var updateButton = document.createElement('button');
-    updateButton.textContent = "Update";
+    updateButton.textContent = "Refresh";
     wrapper.appendChild(updateButton);
     var list = document.createElement('ul');
     list.style.fontFamily = 'courier';
@@ -125,6 +125,13 @@
       syncButton.textContent = "Synchronize";
       controls.appendChild(syncButton);
     }
+
+    var closeButton = document.createElement('button');
+    closeButton.textContent = "Close";
+    closeButton.onclick = function() {
+      document.body.removeChild(widget);
+    }
+    controls.appendChild(closeButton);
 
     widget.appendChild(controls);
 
