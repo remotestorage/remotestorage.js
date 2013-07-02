@@ -7,7 +7,7 @@ function generateCode(remoteStorage) {
       + remoteStorage.access.scopes.map(function(scope) {
         return '  "' + scope.name + '": ' + '"' + scope.mode + '"';
       }).join(",\n")
-      + "\n};\n";
+      + "\n});\n";
   }
   if(remoteStorage.caching.rootPaths.length > 0) {
     output += remoteStorage.caching.rootPaths.map(function(path) {
