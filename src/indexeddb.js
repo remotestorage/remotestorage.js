@@ -187,6 +187,26 @@
           callback(self);
         });
       });
+    },
+
+    _fireInitial: function() {
+      var transaction = this.db.transaction(['nodes'], 'readonly');
+      var cursorReq = transaction.objectStore('nodes').openCursor();
+      cursorReq.onsuccess = function(evt) {
+        var cursor = evt.target.result;
+        if(cursor) {
+          var path = cursor.key;
+          if(path.substr(-1) != '/') {
+            this._emit('change', {
+              path: path,
+              origin: 'window',
+              oldValue: undefined,
+              newValue: cursor.value.body
+            });
+          }
+          cursor.continue();
+        }
+      }.bind(this);
     }
 
   };
@@ -217,8 +237,13 @@
     };
   };
 
-  RemoteStorage.IndexedDB._rs_init = function() {
+  RemoteStorage.IndexedDB._rs_init = function(remoteStorage) {
     var promise = promising();
+    remoteStorage.on('ready', function() {
+      promise.then(function() {
+        remoteStorage.local._fireInitial();
+      });
+    });
     RemoteStorage.IndexedDB.open(DEFAULT_DB_NAME, function(db) {
       DEFAULT_DB = db;
       promise.fulfill();
