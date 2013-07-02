@@ -235,7 +235,6 @@
         changes.put(change);
       };
       transaction.oncomplete = function() {
-        console.log('change recorded: ', path, change);
       };
     },
 

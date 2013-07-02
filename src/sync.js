@@ -6,7 +6,6 @@
 
   function descendInto(remote, local, path, keys, promise) {
     var n = keys.length, i = 0;
-    console.log('descendInto', path, 'n', n);
     if(n == 0) promise.fulfill();
     function oneDone() {
       i++;
@@ -41,28 +40,21 @@
   }
 
   function synchronize(remote, local, path, options) {
-    console.error('SYNC(' + path + ')');
     var promise = promising();
     local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
-      console.log('(' + path + ') sync got local', [localStatus, localBody, localContentType, localRevision]);
       remote.get(path, {
         ifNoneMatch: localRevision
       }).then(function(remoteStatus, remoteBody, remoteContentType, remoteRevision) {
-        console.log('(' + path + ') sync got remote', [remoteStatus, remoteBody, remoteContentType, remoteRevision]);
         if(remoteStatus == 412) {
-          console.log('DECISION', path, '->', 'up to date');
           // up to date.
           promise.fulfill();
         } else if(localStatus == 404 && remoteStatus == 200) {
-          console.log('DECISION', path, '->', 'update local');
           // local doesn't exist, remote does.
           updateLocal(remote, local, path, remoteBody, remoteContentType, remoteRevision, promise);
         } else if(localStatus == 200 && remoteStatus == 404) {
-          console.log('DECISION', path, '->', 'update remote');
           // remote doesn't exist, local does.
           deleteLocal(local, path, promise);
         } else if(localStatus == 200 && remoteStatus == 200) {
-          console.log('DECISION', path, '->', 'same same (update local)');
           if(isDir(path)) {
             local.setRevision(path, remoteRevision).then(function() {
               descendInto(remote, local, path, allKeys(localBody, remoteBody), promise);
@@ -71,7 +63,6 @@
             updateLocal(remote, local, path, remoteBody, remoteContentType, remoteRevision, promise);
           }
         } else {
-          console.log('DECISION', path, '->', 'nothing to do');
           // do nothing.
           promise.fulfill();
         }
@@ -102,8 +93,10 @@
             done();
           }
         }
+        function errored(err) {
+          console.error("pushChanges aborted due to error: ", err, err.stack);
+        }
         changes.forEach(function(change) {
-          console.log('PUSH CHANGE', JSON.stringify(change));
           if(change.conflict) {
             var res = change.conflict.resolution;
             if(res) {
@@ -128,7 +121,7 @@
               }
             }
             local.get(change.path).then(function(status, body, contentType) {
-              return remote.put(change.path, body, contnetType, options);
+              return remote.put(change.path, body, contentType, options);
             }).then(function(status) {
                 if(status == 412) {
                 fireConflict(local, path, {
@@ -137,9 +130,9 @@
                 });
                 oneDone();
               } else {
-                oneDone(path);
+                oneDone(change.path);
               }
-            });
+            }).then(undefined, errored);
             break;
           case 'DELETE':
             remote.delete(change.path, {
@@ -152,9 +145,9 @@
                 });
                 oneDone();
               } else {
-                oneDone(path);
+                oneDone(change.path);
               }
-            });
+            }).then(undefined, errored);
             break;
           }
         });
