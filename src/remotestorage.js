@@ -94,7 +94,7 @@
       // determine availability
       var features = [
         'WireClient',
-        'Access'
+        'Access',
         'Caching',
         'Discover',
         'Authorize',
