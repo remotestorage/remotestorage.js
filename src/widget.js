@@ -1,7 +1,10 @@
 (function() {
 
   function stateSetter(widget, state) {
-    return function() { widget.state = state; };
+    return function() { 
+      console.log('widget:',widget);
+      widget.view.setState(state);
+    };
   }
 
   RemoteStorage.Widget = function(remoteStorage) {
@@ -10,6 +13,12 @@
 
     this.rs.on('connected', stateSetter(this, 'connected'));
     this.rs.on('disconnected', stateSetter(this, 'disconnected'));
+    this.view.on('connect', 
+                 function(a){
+                   console.log(this);
+                   this.rs.connect(a);
+                }.bind(this)
+  )
   };
 
   RemoteStorage.Widget.prototype = {
@@ -20,7 +29,10 @@
   };
 
   RemoteStorage.prototype.displayWidget = function() {
-    this.widget = new RemoteStorage.Widget(this).display();
+    if(typeof(this.widget) === 'undefined')
+      (this.widget = new RemoteStorage.Widget(this)).display();
+    else
+      this.widget.display();
   };
 
   RemoteStorage.Widget._rs_init = function(remoteStorage){
@@ -29,17 +41,119 @@
     });
   }
 
-  // var settings = util.getSettingStore('remotestorage_widget');
-  // var events = util.getEventEmitter('ready', 'disconnect', 'state');
-  // var logger = util.getLogger('widget');
-
-  // var maxTimeout = 45000;
-  // var timeoutAdjustmentFactor = 1.5;
-  function cEl(t){
+    function cEl(t){
     return document.createElement(t);
   }
+  function gCl(parent, className){
+    return parent.getElementsByClassName(className)[0];
+  }
+  function gTl(parent, className){
+    return parent.getElementsByTagName(className)[0];
+  }
+
+  function toggle_bubble(widget){
+    var el = gCl(widget,'bubble-expandable');
+    if(el.style.display === 'none'){
+      show(el);
+    }else{
+      hide(el);
+    }
+  }
+  function show(el, display){
+    if(typeof(display) === 'undefined'){
+      display = 'block';
+    }
+    el.style.display = display
+    return el;
+  }
+  function hide(el){
+    show(el,'none');
+    return el;
+  }
+
+  // MAYBE do those two in a el.className.split(' ') way more safe
+  function removeClass(el, className){
+    el.className = el.className.replace(' '+className+' ', ' ');
+  }
+  function addClass(el, className){
+    el.className += ' '+className;
+  }
+
+
   function View(){
+    if(typeof(document) === 'undefined') {
+      throw "Widget not supported";
+    }
+    RemoteStorage.eventHandling(this, 
+                                'connect', 
+                                'disconnect', 
+                                'sync', 
+                                'reconnect', 
+                                'display')
+    
+    this.display = function() {
+      
+        if( ! (typeof(this.widget) === 'undefined') )
+          return this.widget;
+        
+        var element = cEl('div')
+        var style = cEl('style');
+        style.innerHTML = RemoteStorage.Assets.widgetCss;
+        
+        element.id="remotestorage-widget"
+        
+        element.innerHTML = RemoteStorage.Assets.widget;
+      
+      
+        element.appendChild(style)
+        document.body.appendChild(element);
+      
+      var el;
+        //connect button
+      cb = gCl(element,'connect')
+      gTl(cb, 'img').src=RemoteStorage.Assets.connectIcon;
+      console.log(this);
+      cb.addEventListener('click', this.events.connect.bind(this));
+
+        // input
+      el = gTl(element, 'form').userAddress;
+      el.addEventListener('keyup', function(event){
+        
+        if(event.target.value) cb.removeAttribute('disabled');
+        else cb.setAttribute('disabled','disabled');
+        
+      })
+        
+        //the cube
+      el = gCl(element, 'cube');
+      el.src = RemoteStorage.Assets.remoteStorageIcon
+      el.addEventListener('click', 
+                          function(){
+                            toggle_bubble(this.widget)
+                          }.bind(this)
+                         )
+      
+  
+      this.widget = element;
+      
+      this.states.initial.bind(this)()
+      return this.widget;  
+    }
+
+    this.setState = function(state){
+      var s;
+      if(typeof(this.states[state]) === 'undefined'){
+  	throw "Bad State assigned to view"
+      }
+      this.states[state].call(this);
+      
+    }
+    
+    this.setUserAdress = function(addr){
+      widget.userAdress = addr;
+    }
   };
+  
   View.prototype = {
      // States:
      //  initial      - not connected
@@ -49,43 +163,30 @@
      //  offline      - connected, but no network connectivity
      //  error        - connected, but sync error happened
      //  unauthorized - connected, but request returned 401
-    states : ['initial'
-  	      , 'authing'
-  	      , 'connected'
-  	      , 'busy'
-  	      , 'offline'
-  	      , 'error'
-  	      , 'unauthorized'],
-    widget : undefined,
-    state :  0,
-    display : function(){
-       //TODO this is just a placeholder
-      var element = cEl('div')
-      var state = cEl('p');
-      state.innerHTML = this.states[this.state];
-      state.className = 'state' 
-      element.innerHTML = "widget";
-      element.appendChild(state);
-      element.style.position = "fixed";
-      element.style.top = "0px";
-      element.style.right = "0px";
-      element.style.border = "solid"
-      document.body.appendChild(element);
-      this.widget = element;
-     },
-
-    setState : function(state){
-      var s;
-      if((s = this.states.indexOf(state)) < 0){
-  	throw "Bad State assigned to view"
-      }
-      this.state = s;
-      this.updateWidget();
+    currentState : 'initial',
+    states :  {
+      initial : function(){
+        this.widget.className = "remotestorage-state-initial"
+      },
+      authing : function(){
+      },
+      connected : function(){
+        this.widget.className = "remotestorage-state-connected"
+      },
+      busy : function(){},
+      offline : function(){},
+      error : function(){},
+      unauthorized : function(){}
     },
-    updateWidget : function(){
-      this.widget.getElementsByClassName('state')[0].innerHTML = this.states[this.state];
+    events : {
+      connect : function() {
+        event.preventDefault();
+        console.log('connect button clicked')
+        this._emit('connect', gTl(this.widget, 'form').userAddress.value);
+      }
     }
   }
+ 
 
   // // the view.
   // var view = defaultView;
