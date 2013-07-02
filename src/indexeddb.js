@@ -56,7 +56,7 @@
 
   RemoteStorage.IndexedDB = function(database) {
     this.db = database || DEFAULT_DB;
-    RemoteStorage.eventHandling(this, 'change');
+    RemoteStorage.eventHandling(this, 'change', 'conflict');
   };
   RemoteStorage.IndexedDB.prototype = {
 
@@ -79,7 +79,7 @@
       return promise;
     },
 
-    put: function(path, body, contentType) {
+    put: function(path, body, contentType, incoming) {
       var promise = promising();
       if(path[path.length - 1] == '/') { throw "Bad: don't PUT folders"; }
       var transaction = this.db.transaction(['nodes'], 'readwrite');
@@ -87,22 +87,27 @@
       var oldNode;
       nodes.get(path).onsuccess = function(evt) {
         oldNode = evt.target.result;
-        nodes.put({ path: path, contentType: contentType, body: body }).
-          onsuccess = function() { addToParent(nodes, path, 'body'); };
+        var node = {
+          path: path, contentType: contentType, body: body
+        };
+        nodes.put(node).onsuccess = function() { addToParent(nodes, path, 'body'); };
       };
       transaction.oncomplete = function() {
         this._emit('change', {
           path: path,
-          origin: 'window',
+          origin: incoming ? 'remote' : 'window',
           oldValue: oldNode ? oldNode.body : undefined,
           newValue: body
         });
+        if(! incoming) {
+          this._recordChange(path, { action: 'PUT' });
+        }
         promise.fulfill(200);
       }.bind(this);
       return promise;
     },
 
-    delete: function(path) {
+    delete: function(path, incoming) {
       var promise = promising();
       if(path[path.length - 1] == '/') { throw "Bad: don't DELETE folders"; }
       var transaction = this.db.transaction(['nodes'], 'readwrite');
@@ -111,17 +116,20 @@
       nodes.get(path).onsuccess = function(evt) {
         oldNode = evt.target.result;
         nodes.delete(path).onsuccess = function() {
-          removeFromParent(nodes, path, 'body');
+          removeFromParent(nodes, path, 'body', incoming);
         };
       }
       transaction.oncomplete = function() {
         if(oldNode) {
           this._emit('change', {
             path: path,
-            origin: 'window',
+            origin: incoming ? 'remote' : 'window',
             oldValue: oldNode.body,
             newValue: undefined
           });
+        }
+        if(! incoming) {
+          this._recordChange(path, { action: 'DELETE' });
         }
         promise.fulfill(200);
       }.bind(this);
@@ -212,11 +220,82 @@
           cursor.continue();
         }
       }.bind(this);
+    },
+
+    _recordChange: function(path, attributes) {
+      var transaction = this.db.transaction(['changes'], 'readwrite');
+      var changes = transaction.objectStore('changes');
+      var change;
+      changes.get(path).onsuccess = function(evt) {
+        change = evt.target.result || {};
+        change.path = path;
+        for(var key in attributes) {
+          change[key] = attributes[key];
+        }
+        changes.put(change);
+      };
+      transaction.oncomplete = function() {
+        console.log('change recorded: ', path, change);
+      };
+    },
+
+    clearChange: function(path) {
+      var promise = promising();
+      var transaction = this.db.transaction(['changes'], 'readwrite');
+      var changes = transaction.objectStore('changes');
+      changes.delete(path);
+      transaction.oncomplete = function() {
+        promise.fulfill();
+      }
+      return promise;
+    },
+
+    changesBelow: function(path) {
+      var promise = promising();
+      var transaction = this.db.transaction(['changes'], 'readonly');
+      var cursorReq = transaction.objectStore('changes').
+        openCursor(IDBKeyRange.lowerBound(path));
+      var pl = path.length;
+      var changes = [];
+      cursorReq.onsuccess = function() {
+        var cursor = cursorReq.result;
+        if(cursor) {
+          if(cursor.key.substr(0, pl) == path) {
+            changes.push(cursor.value);
+            cursor.continue();
+          }
+        }
+      };
+      transaction.oncomplete = function() {
+        promise.fulfill(changes);
+      };
+      return promise;
+    },
+
+    setConflict: function(path, attributes) {
+      var event = { path: path };
+      for(var key in attributes) {
+        event[key] = attributes[key];
+      }
+      this._recordChange(path, { conflict: attributes }).
+        then(function() {
+          // fire conflict once conflict has been recorded.
+          this._emit('conflict', event);
+        }.bind(this));
+      event.resolve = function(resolution) {
+        if(resolution == 'remote' || resolution == 'local') {
+          attributes = resolution;
+          this._recordChange(path, { conflict: attributes });
+        } else {
+          throw "Invalid resolution: " + resolution;
+        }
+      }.bind(this);
+      event.resolve = makeResolver(local, path);
     }
 
   };
 
-  var DB_VERSION = 1;
+  var DB_VERSION = 2;
   RemoteStorage.IndexedDB.open = function(name, callback) {
     var dbOpen = indexedDB.open(name, DB_VERSION);
     dbOpen.onerror = function() {
@@ -225,6 +304,7 @@
     dbOpen.onupgradeneeded = function() {
       var db = dbOpen.result;
       db.createObjectStore('nodes', { keyPath: 'path' });
+      db.createObjectStore('changes', { keyPath: 'path' });
     }
     dbOpen.onsuccess = function() {
       callback(dbOpen.result);
@@ -258,6 +338,14 @@
 
   RemoteStorage.IndexedDB._rs_supported = function() {
     return 'indexedDB' in global;
+  }
+
+  RemoteStorage.IndexedDB._rs_cleanup = function() {
+    var promise = promising();
+    RemoteStorage.IndexedDB.clean(DEFAULT_DB_NAME, function() {
+      promise.fulfill();
+    });
+    return promise;
   }
 
 })(this);

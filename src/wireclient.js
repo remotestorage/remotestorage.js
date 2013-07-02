@@ -30,7 +30,7 @@
     xhr.onerror = function(error) {
       promise.reject(error);
     };
-    if(typeof(body) === 'object' && !(object instanceof ArrayBuffer)) {
+    if(typeof(body) === 'object' && !(body instanceof ArrayBuffer)) {
       body = JSON.stringify(body);
     }
     xhr.send(body);

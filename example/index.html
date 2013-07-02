@@ -102,7 +102,7 @@
       {{/caching}}
     </label>
 
-    <h3>Test Client (base: /contacts/)</h3>
+    <h3>Test Client (base: /test-sync/)</h3>
     <form id="client-form">
       <input type="text" name="path" placeholder="Path...">
       <button id="client-action-get">GET</button>
@@ -190,14 +190,20 @@
         }
       };
 
-      var client = remoteStorage.scope('/contacts/');
+      var client = remoteStorage.scope('/test-sync/');
 
       document.getElementById('code').textContent = generateCode(remoteStorage);
 
       var clientForm = document.getElementById('client-form');
       clientForm.onsubmit = function(event) { event.preventDefault(); };
       document.getElementById('client-action-get').onclick = function() {
-        client.getFile(clientForm.path.value).then(function(file) { clientForm.data.value = file.data; });
+        client.getFile(clientForm.path.value).then(function(file) {
+          if(typeof(file.data) === 'object') {
+            clientForm.data.value = JSON.stringify(file.data);
+          } else {
+            clientForm.data.value = file.data;
+          }
+        });
       }
       document.getElementById('client-action-put').onclick = function() {
         client.storeFile('text/plain', clientForm.path.value, clientForm.data.value);
@@ -214,7 +220,12 @@
     }
 
     remoteStorage.on('ready', function() {
-      main();
+      remoteStorage.inspect();
+      remoteStorage.claimAccess('test-sync', 'rw');
+      if(! remoteStorage.connected) {
+        remoteStorage.connect('nil@heahdk.net');
+      }
+      setTimeout(main, 0);
     });
 
     remoteStorage.on('connected', function() {
@@ -224,6 +235,5 @@
     remoteStorage.on('disconnected', function() {
       alert('disconnected');
     });
-
   </script>
 </html>
