@@ -220,11 +220,6 @@
     }
 
     remoteStorage.on('ready', function() {
-      remoteStorage.inspect();
-      remoteStorage.claimAccess('test-sync', 'rw');
-      if(! remoteStorage.connected) {
-        remoteStorage.connect('nil@heahdk.net');
-      }
       setTimeout(main, 0);
     });
 
