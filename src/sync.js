@@ -6,7 +6,6 @@
 
   function synchronize(source, target, path, options) {
     var promise = promising();
-    console.log('synchronize', path, options);
     if(!options) options = {};
     if(typeof(options.data) === 'undefined') options.data = true;
     function syncRev(localRevision) {
@@ -16,7 +15,6 @@
           promise.fulfill();
         } else {
           target.setRevision(path, remoteRevision || options.remRev).then(function() {
-            console.log('have set rev of ' + path + ' to ' + (remoteRevision||options.remRev), 'no descending?', body);
             if(isDir(path)) {
               var keys = Object.keys(body);
               function syncChild() {
@@ -24,7 +22,6 @@
                 if(key) {
                   var childPath = path + key;
                   target.getRevision(childPath).then(function(childRev) {
-                    console.log('got revision', childPath, childRev, 'changed?', childRev != body[key]);
                     if(childRev != body[key]) {
                       if(isDir(key) || options.data) {
                         synchronize(source, target, childPath, {
@@ -95,6 +92,10 @@
     }.bind(this));
   };
 
-  RemoteStorage.Sync._rs_init = function() {};
+  RemoteStorage.Sync._rs_init = function(remoteStorage) {
+    remoteStorage.on('connected', function() {
+      remoteStorage.sync();
+    });
+  };
 
 })(this);
