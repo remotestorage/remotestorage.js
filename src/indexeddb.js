@@ -1,4 +1,6 @@
 (function(global) {
+
+  var RS = RemoteStorage;
   
   var DEFAULT_DB_NAME = 'remotestorage';
   var DEFAULT_DB;
@@ -54,11 +56,11 @@
     }
   }
 
-  RemoteStorage.IndexedDB = function(database) {
+  RS.IndexedDB = function(database) {
     this.db = database || DEFAULT_DB;
-    RemoteStorage.eventHandling(this, 'change', 'conflict');
+    RS.eventHandling(this, 'change', 'conflict');
   };
-  RemoteStorage.IndexedDB.prototype = {
+  RS.IndexedDB.prototype = {
 
     get: function(path) {
       var promise = promising();
@@ -193,8 +195,8 @@
       var dbName = this.db.name;
       this.db.close();
       var self = this;
-      RemoteStorage.IndexedDB.clean(this.db.name, function() {
-        RemoteStorage.IndexedDB.open(dbName, function(other) {
+      RS.IndexedDB.clean(this.db.name, function() {
+        RS.IndexedDB.open(dbName, function(other) {
           // hacky!
           self.db = other.db;
           callback(self);
@@ -295,7 +297,7 @@
   };
 
   var DB_VERSION = 2;
-  RemoteStorage.IndexedDB.open = function(name, callback) {
+  RS.IndexedDB.open = function(name, callback) {
     var dbOpen = indexedDB.open(name, DB_VERSION);
     dbOpen.onerror = function() {
       console.error("Opening db failed: ", dbOpen.errorCode);
@@ -310,7 +312,7 @@
     };
   };
 
-  RemoteStorage.IndexedDB.clean = function(databaseName, callback) {
+  RS.IndexedDB.clean = function(databaseName, callback) {
     var req = indexedDB.deleteDatabase(databaseName);
     req.onsuccess = function() {
       console.log('done removing db');
@@ -321,27 +323,27 @@
     };
   };
 
-  RemoteStorage.IndexedDB._rs_init = function(remoteStorage) {
+  RS.IndexedDB._rs_init = function(remoteStorage) {
     var promise = promising();
     remoteStorage.on('ready', function() {
       promise.then(function() {
         remoteStorage.local._fireInitial();
       });
     });
-    RemoteStorage.IndexedDB.open(DEFAULT_DB_NAME, function(db) {
+    RS.IndexedDB.open(DEFAULT_DB_NAME, function(db) {
       DEFAULT_DB = db;
       promise.fulfill();
     });
     return promise;
   };
 
-  RemoteStorage.IndexedDB._rs_supported = function() {
+  RS.IndexedDB._rs_supported = function() {
     return 'indexedDB' in global;
   }
 
-  RemoteStorage.IndexedDB._rs_cleanup = function() {
+  RS.IndexedDB._rs_cleanup = function() {
     var promise = promising();
-    RemoteStorage.IndexedDB.clean(DEFAULT_DB_NAME, function() {
+    RS.IndexedDB.clean(DEFAULT_DB_NAME, function() {
       promise.fulfill();
     });
     return promise;

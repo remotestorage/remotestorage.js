@@ -1,4 +1,6 @@
 (function(global) {
+  var RS = RemoteStorage;
+
   var haveLocalStorage;
   var SETTINGS_KEY = "remotestorage:wireclient";
 
@@ -37,9 +39,9 @@
     return promise;
   }
 
-  RemoteStorage.WireClient = function() {
+  RS.WireClient = function() {
     this.connected = false;
-    RemoteStorage.eventHandling(this, 'change', 'connected');
+    RS.eventHandling(this, 'change', 'connected');
 
     if(haveLocalStorage) {
       var settings;
@@ -52,7 +54,7 @@
     this._revisionCache = {};
   };
 
-  RemoteStorage.WireClient.prototype = {
+  RS.WireClient.prototype = {
 
     configure: function(href, storageApi, token) {
       if(typeof(href) !== 'undefined') this.href = href;
@@ -128,15 +130,15 @@
 
   };
 
-  RemoteStorage.WireClient._rs_init = function() {
+  RS.WireClient._rs_init = function() {
   };
 
-  RemoteStorage.WireClient._rs_supported = function() {
+  RS.WireClient._rs_supported = function() {
     haveLocalStorage = 'localStorage' in global;
     return !! global.XMLHttpRequest;
   };
 
-  RemoteStorage.WireClient._rs_cleanup = function(){
+  RS.WireClient._rs_cleanup = function(){
     if(haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
