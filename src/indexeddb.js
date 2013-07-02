@@ -15,10 +15,10 @@
       nodes.get(dirname).onsuccess = function(evt) {
         var node = evt.target.result;
         delete node[key][basename];
-        if(keepDirnode(node)) {
+        if(keepDirNode(node)) {
           nodes.put(node);
         } else {
-          nodes.remove(node).onsuccess = function() {
+          nodes.delete(node.path).onsuccess = function() {
             if(dirname != '/') {
               removeFromParent(nodes, dirname, key);
             }
@@ -44,7 +44,6 @@
       var dirname = parts[1], basename = parts[2];
       nodes.get(dirname).onsuccess = function(evt) {
         var node = evt.target.result || makeNode(dirname);
-        console.log('try to set key', key, 'on node', node);
         node[key][basename] = true;
         nodes.put(node).onsuccess = function() {
           if(dirname != '/') {
@@ -63,7 +62,6 @@
 
     get: function(path) {
       var promise = promising();
-      console.log('GET', path);
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var nodes = transaction.objectStore('nodes');
       var nodeReq = nodes.get(path);
@@ -83,7 +81,6 @@
 
     put: function(path, body, contentType) {
       var promise = promising();
-      console.log('PUT', path);
       if(path[path.length - 1] == '/') { throw "Bad: don't PUT folders"; }
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodes = transaction.objectStore('nodes');
@@ -107,16 +104,27 @@
 
     delete: function(path) {
       var promise = promising();
-      console.log('DELETE', path);
       if(path[path.length - 1] == '/') { throw "Bad: don't DELETE folders"; }
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodes = transaction.objectStore('nodes');
-      nodes.delete(path).onsuccess = function() {
-        removeFromParent(nodes, path, 'body');
-      };
+      var oldNode;
+      nodes.get(path).onsuccess = function(evt) {
+        oldNode = evt.target.result;
+        nodes.delete(path).onsuccess = function() {
+          removeFromParent(nodes, path, 'body');
+        };
+      }
       transaction.oncomplete = function() {
+        if(oldNode) {
+          this._emit('change', {
+            path: path,
+            origin: 'window',
+            oldValue: oldNode.body,
+            newValue: undefined
+          });
+        }
         promise.fulfill(200);
-      };
+      }.bind(this);
       return promise;
     },
 
@@ -128,12 +136,10 @@
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       revs.forEach(function(rev) {
-        console.log('set rev', rev);
         var nodes = transaction.objectStore('nodes');
         nodes.get(rev[0]).onsuccess = function(event) {
           var node = event.target.result || makeNode(rev[0]);
           node.revision = rev[1];
-          console.log('putting', node);
           nodes.put(node).onsuccess = function() {
             addToParent(nodes, rev[0], 'cached');
           };
@@ -170,7 +176,6 @@
       var nodes = transaction.objectStore('nodes');
       nodes.get(path).onsuccess = function(evt) {
         var node = evt.target.result || {};
-        console.log('getCached', path, '->', node.cached);
         promise.fulfill(200, node.cached, node.contentType, node.revision);
       };
       return promise;
