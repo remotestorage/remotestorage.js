@@ -10,4 +10,4 @@ RemoteStorage.version.toString = function() {
   return this.productName + ' '
     + [this.product, this.major, this.minor].join('.')
     + (this.postfix ? '-' + this.postfix : '');
-}
+};
