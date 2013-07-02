@@ -10,7 +10,7 @@
     var builder = RemoteStorage.MODULES[moduleName];
     if(builder) {
       var module = builder(new RemoteStorage.BaseClient(this, '/' + moduleName + '/'),
-                           new RemoteStorage.BaseClient(this, '/' + moduleName + '/public/'));
+                           new RemoteStorage.BaseClient(this, '/public/' + moduleName + '/'));
       this[moduleName] = module.exports;
     } else {
       throw "Unknown module: " + moduleName;
