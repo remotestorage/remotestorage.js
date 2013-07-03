@@ -12,5 +12,6 @@ exports.build = function(components, selectedGroups) {
     output += fs.readFileSync(file, 'UTF-8');
     output += "\n";
   });
+  output += 'remoteStorage = new RemoteStorage();'
   return output;
 };
