@@ -7,8 +7,6 @@
     "src/discover.js": "Webfinger client",
     "src/authorize.js": "OAuth2 client",
     "src/indexeddb.js": "IndexedDB caching layer",
-    "src/websql.js": "WebSQL caching layer",
-    "src/localstorage.js": "LocalStorage caching layer",
     "src/sync.js": "Synchronizes remotestorage and local cache",
     "src/access.js": "Access configuration",
     "src/caching.js": "Caching configuration",
@@ -58,9 +56,7 @@
       "files": [
         "src/caching.js",
         "src/sync.js",
-        "src/indexeddb.js",
-        "src/websql.js",
-        "src/localstorage.js"
+        "src/indexeddb.js"
       ],
       "default": true,
       "depends": ["core"]
