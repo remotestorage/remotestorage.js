@@ -30,6 +30,17 @@
     }
   }
 
+  /**
+   * Class: RemoteStorage
+   *
+   * Constructor for global <remoteStorage> object.
+   *
+   * This class primarily contains feature detection code and a global convenience API.
+   *
+   * Depending on which features are built in, it contains different attributes and
+   * functions. See the individual features for more information.
+   *
+   */
   var RemoteStorage = function() {
     RemoteStorage.eventHandling(this, 'ready', 'disconnected', 'disconnect', 'conflict', 'error');
     // pending get/put/delete calls.
@@ -183,6 +194,17 @@
       throw "remotestorage not ready!";
     },
 
+    // Method: onChange
+    //
+    // Adds a 'change' event handler to the given path.
+    // Whenever a 'change' happens (as determined by the backend, such
+    // as <RemoteStorage.IndexedDB>) and the affected path is equal to
+    // or below the given 'path', the given handler is called.
+    //
+    // Parameters:
+    //   path    - Absolute path to attach handler to.
+    //   handler - Handler function.
+    //
     onChange: function(path, handler) {
       if(! this._pathHandlers[path]) {
         this._pathHandlers[path] = [];
@@ -207,12 +229,37 @@
         });
       }
     },
+
+    /**
+     * Method: connect
+     *
+     * Connect to a remotestorage server.
+     *
+     * Parameters:
+     *   userAddress - The user address (user@host) to connect to.
+     *
+     * Discovers the webfinger profile of the given user address and
+     * initiates the OAuth dance.
+     *
+     * This method must be called *after* all required access has been claimed.
+     *
+     */
     connect : function(userAddress) {
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
         this.remote.configure(href, storageApi);
         this.authorize(authURL);
       }.bind(this));
     },
+
+    /**
+     * Method: disconnect
+     *
+     * "Disconnect" from remotestorage server to terminate current session.
+     * This method clears all stored settings and deletes the entire local cache.
+     *
+     * Once the disconnect is complete, the "disconnected" event will be fired.
+     * From that point on you can connect again (using <connect>).
+     */
     disconnect : function() {
       var n = this._cleanups.length, i = 0;
       var oneDone = function() {
@@ -234,8 +281,6 @@
     }
   };
 
-
-  
-    window.RemoteStorage = RemoteStorage;
+  window.RemoteStorage = RemoteStorage;
 
 })();
