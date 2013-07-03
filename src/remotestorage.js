@@ -78,6 +78,9 @@
 
         try {
           this._emit('ready');
+          if(this.connected) {
+            this._emit('connected');
+          }
           this._processPending();
         } catch(exc) {
           console.error("remoteStorage#ready block failed: ");
@@ -193,7 +196,6 @@
     },
 
     _dispatchChange: function(event) {
-      console.log('change', event);
       for(var path in this._pathHandlers) {
         var pl = path.length;
         this._pathHandlers[path].forEach(function(handler) {
