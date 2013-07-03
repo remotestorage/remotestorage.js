@@ -179,7 +179,7 @@
       unauthorized : function(){}
     },
     events : {
-      connect : function() {
+      connect : function(event) {
         event.preventDefault();
         console.log('connect button clicked')
         this._emit('connect', gTl(this.widget, 'form').userAddress.value);
