@@ -31,7 +31,7 @@
   }
 
   var RemoteStorage = function() {
-    RemoteStorage.eventHandling(this, 'ready', 'connected', 'disconnected', 'conflict', 'error');
+    RemoteStorage.eventHandling(this, 'ready', 'connected', 'disconnected', 'disconnect', 'conflict', 'error');
     // pending get/put/delete calls.
     this._pending = [];
     this._setGPD({
@@ -219,6 +219,7 @@
         if(i == n) {
           this._init();
           this._emit('disconnected');
+          this._emit('disconnect');// DEPRECATED?
         }
       }.bind(this);
       this._cleanups.forEach(function(cleanup) {
