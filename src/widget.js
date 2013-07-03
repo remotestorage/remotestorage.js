@@ -11,7 +11,7 @@
     this.rs = remoteStorage;
     this.view = new View;
 
-    this.rs.on('connected', stateSetter(this, 'connected'));
+    this.rs.on('ready', stateSetter(this, 'connected'));
     this.rs.on('disconnected', stateSetter(this, 'disconnected'));
     this.view.on('connect', 
                  function(a){

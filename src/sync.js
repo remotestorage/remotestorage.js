@@ -242,7 +242,7 @@
   };
 
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
-    remoteStorage.on('connected', function() {
+    remoteStorage.on('ready', function() {
       remoteStorage.syncCycle();
     });
   };
