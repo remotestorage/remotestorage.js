@@ -214,7 +214,7 @@
           if(path.substr(-1) != '/') {
             this._emit('change', {
               path: path,
-              origin: 'window',
+              origin: 'remote',
               oldValue: undefined,
               newValue: cursor.value.body
             });
