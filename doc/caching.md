@@ -1,5 +1,6 @@
 
-== Caching in remotestorage.js
+Caching in remotestorage.js
+===========================
 
 remotestorage.js gives you the option to synchronize some or all of the remote data your app has access to, to a local database. Usually this database is a indexedDB.
 
@@ -14,7 +15,8 @@ There are two ways to configure caching:
 * globally through `remoteStorage.caching` - this would usually be done by an app.
 * locally through `BaseClient#cache` - this would usually be done by a module.
 
-=== Configuring caching from a module
+Configuring caching from a module
+---------------------------------
 
 The `BaseClient#cache` interface is only a convenience method that internally uses `remoteStorage.caching`.
 
@@ -41,7 +43,8 @@ RemoteStorage.defineModule('beers', function(privateClient, publicClient) {
 });
 ```
 
-=== Configuring caching from elsewhere
+Configuring caching from elsewhere
+----------------------------------
 
 If you want to alter caching settings outside of a module's context, you can do so using the `remoteStorage.caching` interface.
 
@@ -54,7 +57,9 @@ remoteStorage.caching.disable('/beers/pilsener/');
 
 ```
 
-=== Synchronizing after caching settings have changed
+Synchronizing after caching settings have changed
+-------------------------------------------------
+
 
 Whenever you have changed the caching settings, you can either wait for the next automatic synchronization to happen, or trigger one yourself:
 
