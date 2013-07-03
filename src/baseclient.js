@@ -1,6 +1,11 @@
 
 (function(global) {
 
+  function deprecate(thing, replacement) {
+    console.log('WARNING: ' + thing + ' is deprecated. Use ' +
+                replacement + ' instead.');
+  }
+
   var RS = RemoteStorage;
 
   RS.BaseClient = function(storage, base) {
@@ -40,7 +45,19 @@
    * created and removed implictly).
    */
   RS.BaseClient.prototype = {
-    
+
+    // BEGIN LEGACY
+    use: function(path) {
+      depreacte('BaseClient#use(path)', 'BaseClient#cache(path)');
+      return this.cache(path);
+    },
+
+    release: function(path) {
+      depreacte('BaseClient#release(path)', 'BaseClient#cache(path, false)');
+      return this.cache(path, false);
+    },
+    // END LEGACY
+
     extend: function(object) {
       for(var key in object) {
         this[key] = object[key];
@@ -118,7 +135,6 @@
     },
 
     storeObject: function(typeAlias, path, object) {
-      console.log('storeObject in ', this);
       this._attachType(object, typeAlias);
       return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
         if(status == 200 || status == 201) {
@@ -135,8 +151,15 @@
       return this.storage.delete(this.makePath(path));
     },
 
+    cache: function(path, disable) {
+      this.storage.caching[disable !== false ? 'enable' : 'disable'](
+        this.makePath(path)
+      );
+      return this;
+    },
+
     makePath: function(path) {
-      return this.base + path;
+      return this.base + (path || '');
     },
 
     _fireChange: function(event) {

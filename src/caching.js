@@ -37,6 +37,9 @@
 
   RemoteStorage.Caching.prototype = {
 
+    enable: function(path) { this.set(path, { data: true }); },
+    disable: function(path) { this.remove(path); },
+
     /**
      ** configuration methods
      **/
