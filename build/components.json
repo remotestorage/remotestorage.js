@@ -1,6 +1,8 @@
 {
   "files": {
     "lib/promising.js": "A Promises/A+ implementation",
+    "lib/tv4.js": "Tiny Validator for v4 JSON Schema",
+
     "src/remotestorage.js": "Glue Code",
     "src/eventhandling.js": "Common event handling procedures",
     "src/wireclient.js": "Basic GET/PUT/DELETE client",
@@ -44,6 +46,7 @@
       "label": "Base Client",
       "desc": "High-level client",
       "files": [
+        "lib/tv4.js",
         "src/baseclient.js",
         "src/baseclient/types.js"
       ],

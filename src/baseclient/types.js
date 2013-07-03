@@ -34,10 +34,29 @@
 
     resolveAlias: function(alias) {
       return this.uris[alias];
+    },
+
+    getSchema: function(uri) {
+      return this.schemas[uri];
     }
   };
 
+  var SchemaNotFound = function(uri) {
+    Error.apply(this, ["Schema not found: " + uri]);
+  };
+  SchemaNotFound.prototype = Error.prototype;
+
   RemoteStorage.BaseClient.prototype.extend({
+
+    validate: function(object) {
+      var schema = RemoteStorage.BaseClient.Types.getSchema(object['@context']);
+      if(schema) {
+        return tv4.validateResult(object, schema);
+      } else {
+        throw new SchemaNotFound(object['@context']);
+      }
+    },
+
     // client.declareType(alias, schema);
     //  /* OR */
     // client.declareType(alias, uri, schema);
