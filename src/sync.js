@@ -67,7 +67,7 @@
       remote.get(path, {
         ifNoneMatch: localRevision
       }).then(function(remoteStatus, remoteBody, remoteContentType, remoteRevision) {
-        if(remoteStatus == 412) {
+        if(remoteStatus == 412 || remoteStatus == 304) {
           // up to date.
           promise.fulfill();
         } else if(localStatus == 404 && remoteStatus == 200) {
