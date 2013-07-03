@@ -23,8 +23,8 @@
     });
 
     this.__defineGetter__('scopeParameter', function() {
-      return this.scopes.map(function(module) {
-        return (module === 'root' && this.storageType === '2012.04' ? '' : module) + ':' + this.get(module);
+      return this.scopes.map(function(scope) {
+        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
       }.bind(this)).join(' ');
     });
   };
@@ -92,7 +92,7 @@
   Object.defineProperty(RemoteStorage.prototype, 'access', {
     get: function() {
       var access = new RemoteStorage.Access();
-      Object.defineProperty(RemoteStorage.prototype, 'access', {
+      Object.defineProperty(this, 'access', {
         value: access
       });
       return access;

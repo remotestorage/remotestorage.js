@@ -146,6 +146,7 @@
   };
 
   Object.defineProperty(RemoteStorage.prototype, 'caching', {
+    configurable: true,
     get: function() {
       var caching = new RemoteStorage.Caching();
       Object.defineProperty(this, 'caching', {
