@@ -1,5 +1,25 @@
 (function(global) {
 
+  //
+  // The synchronization algorithm is as follows:
+  //
+  // (for each path in caching.rootPaths)
+  //
+  // (1) Fetch all pending changes from 'local'
+  // (2) Try to push pending changes to 'remote', if that fails mark a
+  //     conflict, otherwise clear the change.
+  // (3) Folder items: GET a listing
+  //     File items: GET the file
+  // (4) Compare versions. If they match the locally cached one, return.
+  //     Otherwise continue.
+  // (5) Folder items: For each child item, run this algorithm starting at (3).
+  //     File items: Fetch remote data and replace locally cached copy.
+  //
+  // Depending on the API version the server supports, the version comparison
+  // can either happen on the server (through ETag, If-Match, If-None-Match
+  // headers), or on the client (through versions specified in the parent listing).
+  //
+
   function isDir(path) {
     return path[path.length - 1] == '/';
   }
@@ -171,6 +191,19 @@
     }
   };
 
+  var SyncError = function(originalError) {
+    var msg = 'Sync failed: ';
+    if('message' in originalError) {
+      msg += originalError.message;
+    } else {
+      msg += originalError;
+    }
+    this.originalError = originalError;
+    Error.apply(this, [msg]);
+  };
+
+  SyncError.prototype = Error.prototype;
+
   RemoteStorage.prototype.sync = function() {
     if(! (this.local && this.caching)) {
       throw "Sync requires 'local' and 'caching'!";
@@ -178,10 +211,11 @@
     var roots = this.caching.rootPaths.slice(0);
     var n = roots.length, i = 0;
     var aborted = false;
+    var rs = this;
     return promising(function(promise) {
       var path;
       while((path = roots.shift())) {
-        RemoteStorage.Sync.sync(this.remote, this.local, path, this.caching.get(path)).
+        RemoteStorage.Sync.sync(rs.remote, rs.local, path, rs.caching.get(path)).
           then(function() {
             if(aborted) return;
             i++;
@@ -191,10 +225,11 @@
           }, function(error) {
             console.error('syncing', path, 'failed:', error);
             aborted = true;
+            rs._emit('error', new SyncError(error));
             promise.reject(error);
           });
       }
-    }.bind(this));
+    });
   };
 
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
