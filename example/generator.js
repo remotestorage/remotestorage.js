@@ -11,7 +11,7 @@ function generateCode(remoteStorage) {
   }
   if(remoteStorage.caching.rootPaths.length > 0) {
     output += remoteStorage.caching.rootPaths.map(function(path) {
-      return 'remoteStorage.caching.set("' + path + '", ' + JSON.stringify(remoteStorage.caching.get(path)) + ');';
+      return 'remoteStorage.caching.enable("' + path + '");';
     }).join("\n");
   }
   return output;

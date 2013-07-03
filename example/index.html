@@ -78,11 +78,7 @@
       {{#caching}}
         {{#list}}
           <li data-path="{{path}}">
-            {{path}}:
-            {{#settings}}
-              {{#data}}Tree + Data{{/data}}
-              {{^data}}Tree only{{/data}}
-            {{/settings}}
+            {{path}}
             <span class="delete">×</span>
           <li>
         {{/list}}
@@ -176,7 +172,7 @@
         var form = event.target;
         if(! form.path.value) return alert("caching.path required");
         try {
-          remoteStorage.caching.set(form.path.value, { data: form.data.checked });
+          remoteStorage.caching.enable(form.path.value);
         } catch(exc) {
           console.error("Caught: ", exc, exc.stack);
           alert(exc.message);
