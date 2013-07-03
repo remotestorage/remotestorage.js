@@ -16,7 +16,8 @@
     "src/debug/inspect.js": "Debugging widget that displays local and remote data",
     "src/modules.js": "The module definition API",
     "src/baseclient.js": "A high-level client, scoped to a path",
-    "src/baseclient/types.js": "Type / schema handling, validations"
+    "src/baseclient/types.js": "Type / schema handling, validations",
+    "src/assets.js": "Icons, CSS and HTML templates for the widget"
   },
   "groups": {
     "core": {
@@ -37,6 +38,7 @@
       "label": "Connect Widget",
       "desc": "Provides UI to connect to a user's remotestorage.",
       "files": [
+        "src/assets.js",
         "src/widget.js"
       ],
       "default": true,
