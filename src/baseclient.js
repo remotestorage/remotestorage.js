@@ -48,12 +48,12 @@
 
     // BEGIN LEGACY
     use: function(path) {
-      depreacte('BaseClient#use(path)', 'BaseClient#cache(path)');
+      deprecate('BaseClient#use(path)', 'BaseClient#cache(path)');
       return this.cache(path);
     },
 
     release: function(path) {
-      depreacte('BaseClient#release(path)', 'BaseClient#cache(path, false)');
+      deprecate('BaseClient#release(path)', 'BaseClient#cache(path, false)');
       return this.cache(path, false);
     },
     // END LEGACY
