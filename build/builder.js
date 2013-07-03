@@ -9,6 +9,7 @@ exports.build = function(components, selectedGroups) {
   });
   var output = '';
   files.forEach(function(file) {
+    console.error("Adding file: " + file);
     output += fs.readFileSync(file, 'UTF-8');
     output += "\n";
   });
