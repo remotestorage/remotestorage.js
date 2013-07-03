@@ -41,7 +41,7 @@
       document.location.hash = '';
     }
     console.log("found Params : ", params);
-    remoteStorage.on('ready', function() {
+    remoteStorage.on('features-loaded', function() {
       if(params) {
         if(params.access_token) {
           remoteStorage.remote.configure(undefined, undefined, params.access_token);
