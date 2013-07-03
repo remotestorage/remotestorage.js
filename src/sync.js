@@ -1,5 +1,7 @@
 (function(global) {
 
+  var SYNC_INTERVAL = 10000;
+
   //
   // The synchronization algorithm is as follows:
   //
@@ -232,9 +234,16 @@
     });
   };
 
+  RemoteStorage.prototype.syncCycle = function() {
+    console.log('syncCycle');
+    this.sync().then(function() {
+      setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
+    }.bind(this));
+  };
+
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
     remoteStorage.on('connected', function() {
-      remoteStorage.sync();
+      remoteStorage.syncCycle();
     });
   };
 

@@ -1,4 +1,4 @@
-(function() {
+(function(global) {
   function getPromise(builder) {
     var promise;
 
@@ -104,15 +104,9 @@
     return promise;
   };
 
-  if(typeof(module) !== 'undefined') {
-    module.exports = getPromise;
-  } else if(typeof(define) === 'function') {
-    define([], function() { return getPromise; });
-  } else if(typeof(window) !== 'undefined') {
-    window.promising = getPromise;
-  }
+  global.promising = getPromise;
 
-})();
+})(this);
 
 (function() {
 
@@ -147,7 +141,7 @@
   }
 
   var RemoteStorage = function() {
-    RemoteStorage.eventHandling(this, 'ready', 'connected', 'disconnected', 'conflict', 'error');
+    RemoteStorage.eventHandling(this, 'ready', 'connected', 'disconnected', 'disconnect', 'conflict', 'error');
     // pending get/put/delete calls.
     this._pending = [];
     this._setGPD({
@@ -335,6 +329,7 @@
         if(i == n) {
           this._init();
           this._emit('disconnected');
+          this._emit('disconnect');// DEPRECATED?
         }
       }.bind(this);
       this._cleanups.forEach(function(cleanup) {
@@ -2127,12 +2122,12 @@ global.tv4 = publicApi;
 
     // BEGIN LEGACY
     use: function(path) {
-      depreacte('BaseClient#use(path)', 'BaseClient#cache(path)');
+      deprecate('BaseClient#use(path)', 'BaseClient#cache(path)');
       return this.cache(path);
     },
 
     release: function(path) {
-      depreacte('BaseClient#release(path)', 'BaseClient#cache(path, false)');
+      deprecate('BaseClient#release(path)', 'BaseClient#cache(path, false)');
       return this.cache(path, false);
     },
     // END LEGACY
@@ -3327,3 +3322,4 @@ global.tv4 = publicApi;
 
 })();
 
+remoteStorage = new RemoteStorage();
