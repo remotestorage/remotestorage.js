@@ -1,3 +1,25 @@
+0.8.0
+=====
+* Overview:
+  * Rewritten: RemoteStorage, WireClient, BaseClient, Sync, IndexedDB
+  * Supports the three latest spec versions:
+    - 2012.04 (http://www.w3.org/community/unhosted/wiki/RemoteStorage-2012.04)
+    - remotestorage-00 (https://tools.ietf.org/html/draft-dejong-remotestorage-00)
+    - remotestorage-01 (https://tools.ietf.org/html/draft-dejong-remotestorage-01)
+  * The default cache backend changed to indexedDB
+  * Modularized build (build/components.json lists groups and their dependencies)
+  * Removed internal use of AMD. Everything is nested below the global RemoteStorage namespace now.
+  * Added 'inspect' debug widget. If debug support is built in, use remoteStorage.inspect() in your app to try it.
+
+* Changes to the API:
+  * Global 'remoteStorage' object is now an instance of RemoteStorage
+  * Caching & Access settings are persisted and survive a redirect
+  * remoteStorage.claimAccess no longer returns a promise (was deprecated in 0.7.1)
+  * BaseClient#use/BaseClient#release are deprecated in favor of BaseClient#cache
+  * Added BaseClient#scope() to get BaseClient instances of paths nested below the module root.
+  * Made validation schemas global (schemas from other modules can be referred to using: <module-name>/<type-alias>)
+  * Added 'inspect' debug widget. If debug support is built in, use remoteStorage.inspect() in your app to try it.
+
 0.7.0
 =====
 * big breaking change!
