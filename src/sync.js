@@ -215,6 +215,7 @@
     var aborted = false;
     var rs = this;
     return promising(function(promise) {
+      if(n == 0) return promise.fulfill();
       rs._emit('sync-busy');
       var path;
       while((path = roots.shift())) {
