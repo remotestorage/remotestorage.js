@@ -10,8 +10,6 @@
   },
   "homepage": "http://remotestorage.io",
   "devDependencies": {
-    "requirejs": "*",
-    "amdefine": "*",
     "teste": "*"
   },
   "scripts": {
