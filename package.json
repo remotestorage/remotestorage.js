@@ -3,7 +3,7 @@
   "desc": "a client side javascript library for the remotestorage protocol",
   "version": "0.8.0-pre",
   "private": false,
-  "license": "AGPL",
+  "license": "AGPL or MIT",
   "repository": {
     "type": "git",
     "url": "git://github.com/remotestorage/remotestorage.js.git"
