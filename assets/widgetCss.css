@@ -56,10 +56,6 @@
     border-radius: 5px 15px 15px 5px;
 }
 
-#remotestorage-widget .bubble.hidden {
-    display: none;
-}
-
 #remotestorage-widget .action {
     cursor: pointer;
 }
@@ -262,4 +258,31 @@
     max-width: 27em;
     margin-top: 1em;
     overflow: auto;
+}
+
+
+.bubble.hidden .bubble-expandable {
+    display: none;
+}
+
+.remotestorage-state-connected .bubble.hidden{
+    display : none;
+}
+
+
+.remotestorage-state-initial .remotestorage-connected {
+    display : none;
+}
+
+
+.remotestorage-state-connected .remotestorage-initial { 
+    display : none;
+}
+
+.remotestorage-state-busy .bubble{
+    display : none;
+}
+
+.remotestorage-state-authing .bubble-expandable{
+    display : none;
 }

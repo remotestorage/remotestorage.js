@@ -52,11 +52,11 @@
   }
 
   function toggle_bubble(widget){
-    var el = gCl(widget,'bubble-expandable');
-    if(el.style.display === 'none'){
-      show(el);
+    var el = gCl(widget,'bubble');
+    if(el.className.search('hidden') < 0){
+      addClass(el, 'hidden');
     }else{
-      hide(el);
+      removeClass(el, 'hidden');
     }
   }
   function show(el, display){
@@ -73,7 +73,9 @@
 
   // MAYBE do those two in a el.className.split(' ') way more safe
   function removeClass(el, className){
-    el.className = el.className.replace(' '+className+' ', ' ');
+    el.className = el.className.split(' ').filter( function(val){
+      return val != className
+    }).join(' ');
   }
   function addClass(el, className){
     el.className += ' '+className;
@@ -109,10 +111,19 @@
         document.body.appendChild(element);
       
       var el;
+        //sync button
+      el = gCl(element, 'sync')
+      gTl(el, 'img').src = RemoteStorage.Assets.syncIcon
+      el.addEventListener('click', this.events.sync.bind(this))
+
+        //disconnect button
+      el = gCl(element, 'disconnect')
+      gTl(el, 'img').src = RemoteStorage.Assets.disconnectIcon
+      el.addEventListener('click', this.events.disconnect.bind(this))
+      
         //connect button
-      cb = gCl(element,'connect')
+      var cb = gCl(element,'connect')
       gTl(cb, 'img').src=RemoteStorage.Assets.connectIcon;
-      console.log(this);
       cb.addEventListener('click', this.events.connect.bind(this));
 
         // input
@@ -129,15 +140,15 @@
       el.src = RemoteStorage.Assets.remoteStorageIcon
       el.addEventListener('click', 
                           function(){
-                            toggle_bubble(this.widget)
+                            toggle_bubble(this.div)
                           }.bind(this)
                          )
       
   
-      this.widget = element;
+      this.div = element;
       
       this.states.initial.bind(this)()
-      return this.widget;  
+      return this.div;  
     }
 
     this.setState = function(state){
@@ -166,23 +177,53 @@
     currentState : 'initial',
     states :  {
       initial : function(){
-        this.widget.className = "remotestorage-state-initial"
+        this.div.className = "remotestorage-state-initial"
+        gCl(this.div,'status-text').innerHTML = "Connect <strong>remotestorage</strong>"
       },
       authing : function(){
+        this.div.className = "remotestorage-state-authing"
+        gCl(this.div,'status-text').innerHTML = "Connecting"
+        addClass(gCl(this.div, 'cube'), 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
       },
       connected : function(){
-        this.widget.className = "remotestorage-state-connected"
+        this.div.className = "remotestorage-state-connected"
+        gCl(this.div,'userAddress').innerHTML = 'user@host'; //TODO where to find the user name
+        gCl(this.div,'cube').src = RemoteStorage.Assets.remoteStorageIcon
       },
-      busy : function(){},
-      offline : function(){},
-      error : function(){},
-      unauthorized : function(){}
+      busy : function(){
+        this.div.className = "remotestorage-state-busy";
+        addClass(gCl(this.div, 'cube'), 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
+      },
+      offline : function(){
+        this.div.className = "remotestorage-state-offline";
+        gCl(this.div,'cube').src = RemoteStorage.Assets.remoteStorageIconOffline;
+      },
+      error : function(){
+        this.div.className = "remotestorage-state-error";
+        gCl(this.div,'cube').src = RemoteStorage.Assets.remoteStorageIconError
+      },
+      unauthorized : function(){
+        this.div.className = "remotestorage-state-unauthorized";
+      }
     },
     events : {
       connect : function(event) {
         event.preventDefault();
         console.log('connect button clicked')
-        this._emit('connect', gTl(this.widget, 'form').userAddress.value);
+        this._emit('connect', gTl(this.div, 'form').userAddress.value);
+      },
+      sync : function() {
+        event.preventDefault();
+        console.log('sync button clicked')
+        this._emit('sync');
+      },
+      disconnect : function() {
+        event.preventDefault();
+        console.log('disconnect button clicked')
+        this._emit('disconnect');
+      },
+      recconnect : function(){},
+      display : function(){
       }
     }
   }

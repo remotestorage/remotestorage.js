@@ -1,21 +1,33 @@
 
 <div class="bubble">
-  <div class="bubble-text">
-    Connect <strong>remotestorage</strong>
+  <div class="bubble-text remotestorage-inital">
+    <span class="status-text">
+      Connect <strong>remotestorage</strong>
+    </span>
   </div>
   <div class="bubble-expandable">
-    <form novalidate>
+    <!-- connected -->
+    <div class="bubble-text remotestorage-connected">
+      <strong class="userAddress"> User Name </strong>
+    </div>
+    <div class="content remotestorage-connected">
+      <button class="sync" title="sync">  <img>  </button>
+      <div class=" info last-synced-message">just now</div>
+      <button class="disconnect" title="disconnect">  <img>  </button>
+    </div>
+    <!-- initial -->
+    <form novalidate class="remotestorage-initial">
       <input  type="email" placeholder="user@host" name="userAddress" novalidate>
       <button class="connect" name="connect" title="connect" disabled="disabled">
         <img>
       </button>
     </form>
-    <div class="info">
+    <div class="info remotestorage-initial">
       This app allows you to use your own storage! Find more info on
       <a href="http://remotestorage.io/" target="_blank">remotestorage.io</a>
     </div>
-  </div>
   
+  </div>
 </div>
 <img class="cube action">
 
