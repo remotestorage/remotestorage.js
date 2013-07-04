@@ -302,9 +302,11 @@
     dbOpen.onerror = function() {
       console.error("Opening db failed: ", dbOpen.errorCode);
     };
-    dbOpen.onupgradeneeded = function() {
+    dbOpen.onupgradeneeded = function(event) {
       var db = dbOpen.result;
-      db.createObjectStore('nodes', { keyPath: 'path' });
+      if(event.oldVersion != 1) {
+        db.createObjectStore('nodes', { keyPath: 'path' });
+      }
       db.createObjectStore('changes', { keyPath: 'path' });
     }
     dbOpen.onsuccess = function() {
