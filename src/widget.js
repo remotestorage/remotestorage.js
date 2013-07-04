@@ -3,6 +3,7 @@
   function stateSetter(widget, state) {
     return function() { 
       console.log('widget:',widget);
+      console.log(state);
       widget.view.setState(state);
     };
   }
@@ -198,7 +199,9 @@
       connected : function(){
         this.div.className = "remotestorage-state-connected"
         gCl(this.div,'userAddress').innerHTML = 'user@host'; //TODO where to find the user name
-        gCl(this.div,'cube').src = RemoteStorage.Assets.remoteStorageIcon
+        var cube = gCl(this.div,'cube');
+        cube.src = RemoteStorage.Assets.remoteStorageIcon;
+        removeClass(cube,'remotestorage-loading');
       },
       busy : function(){
         this.div.className = "remotestorage-state-busy";
