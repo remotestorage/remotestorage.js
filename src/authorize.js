@@ -40,7 +40,6 @@
     if(params) {
       document.location.hash = '';
     }
-    console.log("found Params : ", params);
     remoteStorage.on('features-loaded', function() {
       if(params) {
         if(params.access_token) {
