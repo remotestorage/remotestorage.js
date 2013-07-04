@@ -52,6 +52,10 @@
     }
 
     this._revisionCache = {};
+
+    if(this.connected) {
+      setTimeout(this._emit.bind(this), 0, 'connected');
+    }
   };
 
   RS.WireClient.prototype = {

@@ -76,7 +76,9 @@
         }
 
         if(this.remote) {
-          this._delegateEvent('connected', this.remote)
+          this.remote.on('connected', function() {
+            this._emit('ready');
+          }.bind(this));
         }
 
         var fl = features.length;
@@ -89,9 +91,6 @@
 
         try {
           this._emit('features-loaded');
-          if(this.connected) {
-            this._emit('ready');
-          }
           this._processPending();
         } catch(exc) {
           console.error("remoteStorage#ready block failed: ");
