@@ -215,6 +215,7 @@
     var aborted = false;
     var rs = this;
     return promising(function(promise) {
+      rs._emit('sync-busy');
       var path;
       while((path = roots.shift())) {
         RemoteStorage.Sync.sync(rs.remote, rs.local, path, rs.caching.get(path)).
@@ -222,12 +223,14 @@
             if(aborted) return;
             i++;
             if(n == i) {
+              rs._emit('sync-done');
               promise.fulfill();
             }
           }, function(error) {
             console.error('syncing', path, 'failed:', error);
             aborted = true;
             rs._emit('error', new SyncError(error));
+            rs._emit('sync-done');
             promise.reject(error);
           });
       }

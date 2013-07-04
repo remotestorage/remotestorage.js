@@ -42,7 +42,10 @@
    *
    */
   var RemoteStorage = function() {
-    RemoteStorage.eventHandling(this, 'ready', 'disconnected', 'disconnect', 'conflict', 'error', 'features-loaded');
+    RemoteStorage.eventHandling(
+      this, 'ready', 'disconnected', 'disconnect', 'conflict', 'error',
+      'features-loaded', 'connecting', 'authing', 'sync-busy', 'sync-done'
+    );
     // pending get/put/delete calls.
     this._pending = [];
     this._setGPD({
@@ -80,8 +83,10 @@
      * This method must be called *after* all required access has been claimed.
      *
      */
-    connect : function(userAddress) {
+    connect: function(userAddress) {
+      this._emit('connecting');
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
+        this._emit('authing');
         this.remote.configure(href, storageApi);
         this.authorize(authURL);
       }.bind(this));
@@ -96,7 +101,7 @@
      * Once the disconnect is complete, the "disconnected" event will be fired.
      * From that point on you can connect again (using <connect>).
      */
-    disconnect : function() {
+    disconnect: function() {
       var n = this._cleanups.length, i = 0;
       var oneDone = function() {
         i++;
