@@ -11,9 +11,7 @@
 
     put: function(path, body, contentType) {
       if(this.caching.cachePath(path)) {
-        return this.local.put(path, body, contentType).then(function() {
-          RemoteStorage.sync.push(this.local, this.remote, path);
-        }.bind(this));
+        return this.local.put(path, body, contentType);
       } else {
         return this.remote.put(path, body, contentType);
       }
@@ -21,9 +19,7 @@
 
     'delete': function(path) {
       if(this.caching.cachePath(path)) {
-        return this.local.delete(path).then(function() {
-          RemoteStorage.sync.push(this.local, this.remote, path);
-        }.bind(this));
+        return this.local.delete(path);
       } else {
         return this.remote.delete(path);
       }
