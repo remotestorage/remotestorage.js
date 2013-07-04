@@ -62,6 +62,83 @@
 
   RemoteStorage.prototype = {
 
+    /**
+     ** PUBLIC INTERFACE
+     **/
+
+    /**
+     * Method: connect
+     *
+     * Connect to a remotestorage server.
+     *
+     * Parameters:
+     *   userAddress - The user address (user@host) to connect to.
+     *
+     * Discovers the webfinger profile of the given user address and
+     * initiates the OAuth dance.
+     *
+     * This method must be called *after* all required access has been claimed.
+     *
+     */
+    connect : function(userAddress) {
+      RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
+        this.remote.configure(href, storageApi);
+        this.authorize(authURL);
+      }.bind(this));
+    },
+
+    /**
+     * Method: disconnect
+     *
+     * "Disconnect" from remotestorage server to terminate current session.
+     * This method clears all stored settings and deletes the entire local cache.
+     *
+     * Once the disconnect is complete, the "disconnected" event will be fired.
+     * From that point on you can connect again (using <connect>).
+     */
+    disconnect : function() {
+      var n = this._cleanups.length, i = 0;
+      var oneDone = function() {
+        i++;
+        if(i == n) {
+          this._init();
+          this._emit('disconnected');
+          this._emit('disconnect');// DEPRECATED?
+        }
+      }.bind(this);
+      this._cleanups.forEach(function(cleanup) {
+        var cleanupResult = cleanup(this);
+        if(typeof(cleanup) == 'object' && typeof(cleanup.then) == 'function') {
+          cleanupResult.then(oneDone);
+        } else {
+          oneDone();
+        }
+      }.bind(this));
+    },
+
+    /**
+     * Method: onChange
+     *
+     * Adds a 'change' event handler to the given path.
+     * Whenever a 'change' happens (as determined by the backend, such
+     * as <RemoteStorage.IndexedDB>) and the affected path is equal to
+     * or below the given 'path', the given handler is called.
+     *
+     * Parameters:
+     *   path    - Absolute path to attach handler to.
+     *   handler - Handler function.
+     */
+    onChange: function(path, handler) {
+      if(! this._pathHandlers[path]) {
+        this._pathHandlers[path] = [];
+      }
+      this._pathHandlers[path].push(handler);
+    },
+
+    /**
+     ** INITIALIZATION
+     **/
+
     _init: function() {
       this._loadFeatures(function(features) {
         console.log('all features loaded');
@@ -102,6 +179,10 @@
         }
       });
     },
+
+    /**
+     ** FEATURE DETECTION
+     **/
 
     _detectFeatures: function() {
       // determine availability
@@ -166,6 +247,10 @@
       });
     },
 
+    /**
+     ** GET/PUT/DELETE INTERFACE HELPERS
+     **/
+
     _setGPD: function(impl, context) {
       this.get = impl.get.bind(context);
       this.put = impl.put.bind(context);
@@ -194,23 +279,9 @@
       throw "remotestorage not ready!";
     },
 
-    // Method: onChange
-    //
-    // Adds a 'change' event handler to the given path.
-    // Whenever a 'change' happens (as determined by the backend, such
-    // as <RemoteStorage.IndexedDB>) and the affected path is equal to
-    // or below the given 'path', the given handler is called.
-    //
-    // Parameters:
-    //   path    - Absolute path to attach handler to.
-    //   handler - Handler function.
-    //
-    onChange: function(path, handler) {
-      if(! this._pathHandlers[path]) {
-        this._pathHandlers[path] = [];
-      }
-      this._pathHandlers[path].push(handler);
-    },
+    /**
+     ** CHANGE EVENT HANDLING
+     **/
 
     _bindChange: function(object) {
       object.on('change', this._dispatchChange.bind(this));
@@ -228,56 +299,6 @@
           }
         });
       }
-    },
-
-    /**
-     * Method: connect
-     *
-     * Connect to a remotestorage server.
-     *
-     * Parameters:
-     *   userAddress - The user address (user@host) to connect to.
-     *
-     * Discovers the webfinger profile of the given user address and
-     * initiates the OAuth dance.
-     *
-     * This method must be called *after* all required access has been claimed.
-     *
-     */
-    connect : function(userAddress) {
-      RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
-        this.remote.configure(href, storageApi);
-        this.authorize(authURL);
-      }.bind(this));
-    },
-
-    /**
-     * Method: disconnect
-     *
-     * "Disconnect" from remotestorage server to terminate current session.
-     * This method clears all stored settings and deletes the entire local cache.
-     *
-     * Once the disconnect is complete, the "disconnected" event will be fired.
-     * From that point on you can connect again (using <connect>).
-     */
-    disconnect : function() {
-      var n = this._cleanups.length, i = 0;
-      var oneDone = function() {
-        i++;
-        if(i == n) {
-          this._init();
-          this._emit('disconnected');
-          this._emit('disconnect');// DEPRECATED?
-        }
-      }.bind(this);
-      this._cleanups.forEach(function(cleanup) {
-        var cleanupResult = cleanup(this);
-        if(typeof(cleanup) == 'object' && typeof(cleanup.then) == 'function') {
-          cleanupResult.then(oneDone);
-        } else {
-          oneDone();
-        }
-      }.bind(this));
     }
   };
 
