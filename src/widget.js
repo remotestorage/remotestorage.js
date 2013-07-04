@@ -12,13 +12,22 @@
     this.view = new View;
 
     this.rs.on('ready', stateSetter(this, 'connected'));
-    this.rs.on('disconnected', stateSetter(this, 'disconnected'));
-    this.view.on('connect', 
-                 function(a){
-                   console.log(this);
-                   this.rs.connect(a);
-                }.bind(this)
-  )
+    this.rs.on('disconnected', stateSetter(this, 'initial'));
+    //this.rs.on('connecting', stateSetter(this, 'connecting'))
+    this.rs.on('authing', stateSetter(this, 'authing'))
+    this.rs.on('sync-busy', stateSetter(this, 'busy') );
+    this.rs.on('sync-done', stateSetter(this, 'connected'))
+    this.view.on( 'connect', function(a){
+      console.log(this);
+      this.rs.connect(a);
+    }.bind(this) )
+    this.view.on( 'disconnect', function(){
+      this.rs.disconnect();
+    }.bind(this) )
+    this.view.on( 'sync', function(){
+      this.rs.sync()
+    }.bind(this) )
+                
   };
 
   RemoteStorage.Widget.prototype = {
@@ -148,6 +157,7 @@
       this.div = element;
       
       this.states.initial.bind(this)()
+      this._emit('display');
       return this.div;  
     }
 
