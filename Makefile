@@ -1,6 +1,12 @@
-ASSETS_DIR=./assets
-ASSETS_OUT=./src/assets.js
-NODEJS=node
+NODEJS         = node
+DOC_BIN        = naturaldocs
+DOC_DIR        = ./doc/code
+DOC_CONFIG_DIR = ./doc/config
+DOC_CUSTOM_CSS = custom-1
+SOURCE_DIR     = ./src
+ASSETS_DIR     = ./assets
+ASSETS_OUT     = $(SOURCE_DIR)/assets.js
+DOC_INPUTS     = -i $(SOURCE_DIR)
 
 default: help
 
@@ -25,5 +31,8 @@ build:
 compile-assets: $(ASSETS_DIR)/*
 	$(NODEJS) build/compile-assets.js $(ASSETS_DIR) $(ASSETS_OUT)
 
+doc:
+	mkdir -p $(DOC_DIR) $(DOC_CONFIG_DIR)
+	$(DOC_BIN) $(DOC_INPUTS) -o html $(DOC_DIR) -p $(DOC_CONFIG_DIR) -s Default $(DOC_CUSTOM_CSS)
 
-.PHONY: help buildserver build-all compile-assets minify build
+.PHONY: help buildserver build-all compile-assets minify build doc
