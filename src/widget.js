@@ -157,15 +157,15 @@
   
       this.div = element;
       
-      this.states.initial.bind(this)()
+      this.states.initial.call(this);
       this._emit('display');
       return this.div;  
     }
 
     this.setState = function(state){
       var s;
-      if(typeof(this.states[state]) === 'undefined'){
-  	throw "Bad State assigned to view"
+	    if(typeof(this.states[state]) === 'undefined'){
+  	    throw "Bad State assigned to view"
       }
       this.states[state].call(this);
       
