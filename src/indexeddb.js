@@ -1,6 +1,9 @@
 (function(global) {
 
   /**
+   * Class: RemoteStorage.IndexedDB
+   *
+   *
    * IndexedDB Interface
    * -------------------
    *

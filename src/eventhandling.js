@@ -1,7 +1,7 @@
 (function(global) {
   var methods = {
     /**
-     * Method: on
+     * Method: eventhandling.on
      *
      * Install an event handler for the given event name.
      */
