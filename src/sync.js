@@ -58,7 +58,11 @@
   }
 
   function deleteLocal(local, path, promise) {
-    local.delete(path, true).then(promise.fulfill);
+    if(isDir(path)) {
+      promise.fulfill();
+    } else {
+      local.delete(path, true).then(promise.fulfill);
+    }
   }
 
   function synchronize(remote, local, path, options) {
