@@ -12,6 +12,8 @@ default: help
 
 help:
 	@echo "help           - display this text"
+	@echo "build          - build remotestorage.js"
+	@echo "minify         - minify remotestorage.js -> remotestorage.min.js"
 	@echo "buildserver    - start build server (running on port 8000)"
 	@echo "build-all      - download complete build from build server"
 	@echo "compile-assets - compile $(ASSETS_DIR)/* into $(ASSETS_OUT)"
