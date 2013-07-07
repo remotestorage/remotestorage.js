@@ -6,3 +6,5 @@ node_modules
 *.log
 server/server-state
 server-state
+doc/code
+doc/config
