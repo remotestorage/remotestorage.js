@@ -1,7 +1,7 @@
 (function() {
 
   function stateSetter(widget, state) {
-    return function() { 
+    return function() {
       console.log('widget:',widget);
       console.log(state);
       widget.view.setState(state);
@@ -28,7 +28,7 @@
     this.view.on( 'sync', function(){
       this.rs.sync()
     }.bind(this) )
-                
+
   };
 
   RemoteStorage.Widget.prototype = {
@@ -96,30 +96,30 @@
     if(typeof(document) === 'undefined') {
       throw "Widget not supported";
     }
-    RemoteStorage.eventHandling(this, 
-                                'connect', 
-                                'disconnect', 
-                                'sync', 
-                                'reconnect', 
+    RemoteStorage.eventHandling(this,
+                                'connect',
+                                'disconnect',
+                                'sync',
+                                'reconnect',
                                 'display')
-    
+
     this.display = function() {
-      
+
         if( ! (typeof(this.widget) === 'undefined') )
           return this.widget;
-        
+
         var element = cEl('div')
         var style = cEl('style');
         style.innerHTML = RemoteStorage.Assets.widgetCss;
-        
+
         element.id="remotestorage-widget"
-        
+
         element.innerHTML = RemoteStorage.Assets.widget;
-      
-      
+
+
         element.appendChild(style)
         document.body.appendChild(element);
-      
+
       var el;
         //sync button
       el = gCl(element, 'sync')
@@ -130,7 +130,7 @@
       el = gCl(element, 'disconnect')
       gTl(el, 'img').src = RemoteStorage.Assets.disconnectIcon
       el.addEventListener('click', this.events.disconnect.bind(this))
-      
+
         //connect button
       var cb = gCl(element,'connect')
       gTl(cb, 'img').src=RemoteStorage.Assets.connectIcon;
@@ -139,27 +139,27 @@
         // input
       el = gTl(element, 'form').userAddress;
       el.addEventListener('keyup', function(event){
-        
+
         if(event.target.value) cb.removeAttribute('disabled');
         else cb.setAttribute('disabled','disabled');
-        
+
       })
-        
+
         //the cube
       el = gCl(element, 'cube');
       el.src = RemoteStorage.Assets.remoteStorageIcon
-      el.addEventListener('click', 
+      el.addEventListener('click',
                           function(){
                             toggle_bubble(this.div)
                           }.bind(this)
                          )
-      
-  
+
+
       this.div = element;
-      
+
       this.states.initial.call(this);
       this._emit('display');
-      return this.div;  
+      return this.div;
     }
 
     this.setState = function(state){
@@ -168,14 +168,14 @@
   	    throw "Bad State assigned to view"
       }
       this.states[state].call(this);
-      
+
     }
-    
+
     this.setUserAdress = function(addr){
       widget.userAdress = addr;
     }
   };
-  
+
   View.prototype = {
      // States:
      //  initial      - not connected
@@ -240,7 +240,7 @@
       }
     }
   }
- 
+
 
   // // the view.
   // var view = defaultView;
@@ -282,7 +282,7 @@
   //     }
   //   }
   // };
-  
+
 
   // function setState(state) {
   //   if(state === viewState) {
@@ -294,7 +294,7 @@
   //     action.apply(null, arguments);
   //   }
   //   view.setState.apply(view, arguments);
-  //   events.emit('state', state);    
+  //   events.emit('state', state);
   // }
 
   // function requestToken(authEndpoint) {
@@ -369,7 +369,7 @@
   //       view.setLocation(md[1] + '#');
   //     }
   //   }
-  //   return result; 
+  //   return result;
   // }
 
   // function processParams() {
