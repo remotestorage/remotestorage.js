@@ -117,7 +117,7 @@
       if(path.length > 0 && path[path.length - 1] != '/') {
         throw "Not a directory: " + path;
       }
-      return this.storage.get(path).then(function(status, body) {
+      return this.storage.get(this.makePath(path)).then(function(status, body) {
         return typeof(body) === 'object' ? Object.keys(body) : undefined;
       });
     },
@@ -152,11 +152,12 @@
           var promise = promising();
           var count = Object.keys(body).length, i = 0;
           for(var key in body) {
-            return this.get(this.makePath(path + key)).then(function(status, body) {
-              body[this.key] = body;
-              i++;
-              if(i == count) promise.fulfill(body);
-            }.bind({ key: key }));
+            return this.storage.get(this.makePath(path + key)).
+              then(function(status, body) {
+                body[this.key] = body;
+                i++;
+                if(i == count) promise.fulfill(body);
+              }.bind({ key: key }));
           }
           return promise;
         }
