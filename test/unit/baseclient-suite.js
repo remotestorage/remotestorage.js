@@ -214,7 +214,30 @@ define(['requirejs'], function(requirejs, undefined) {
             });
           });
         }
+      },
+
+      {
+        desc: "#getListing treats undefined paths as ''",
+        run: function(env, test) {
+          env.storage.get = function(path) {
+            test.assert(path, '/foo/');
+            return promising().fulfill(404);
+          }
+          env.client.getListing();
+        }
+      },
+
+      {
+        desc: "#getAll treats undefined paths as ''",
+        run: function(env, test) {
+          env.storage.get = function(path) {
+            test.assert(path, '/foo/');
+            return promising().fulfill(404);
+          }
+          env.client.getAll();
+        }
       }
+
     ]
   });
 

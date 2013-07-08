@@ -114,7 +114,9 @@
      *   (end code)
      */
     getListing: function(path) {
-      if(path.length > 0 && path[path.length - 1] != '/') {
+      if(typeof(path) == 'undefined') {
+        path = '';
+      } else if(path.length > 0 && path[path.length - 1] != '/') {
         throw "Not a directory: " + path;
       }
       return this.storage.get(this.makePath(path)).then(function(status, body) {
@@ -145,7 +147,9 @@
      *   (end code)
      */
     getAll: function(path) {
-      if(path.length > 0 && path[path.length - 1] != '/') {
+      if(typeof(path) == 'undefined') {
+        path = '';
+      } else if(path.length > 0 && path[path.length - 1] != '/') {
         throw "Not a directory: " + path;
       }
       return this.storage.get(this.makePath(path)).then(function(status, body) {
