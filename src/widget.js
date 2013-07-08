@@ -2,8 +2,6 @@
 
   function stateSetter(widget, state) {
     return function() {
-      console.log('widget:',widget);
-      console.log(state);
       widget.view.setState(state);
     };
   }
@@ -19,7 +17,6 @@
     this.rs.on('sync-busy', stateSetter(this, 'busy') );
     this.rs.on('sync-done', stateSetter(this, 'connected'))
     this.view.on( 'connect', function(a){
-      console.log(this);
       this.rs.connect(a);
     }.bind(this) )
     this.view.on( 'disconnect', function(){
@@ -222,17 +219,14 @@
     events : {
       connect : function(event) {
         event.preventDefault();
-        console.log('connect button clicked')
         this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
       sync : function() {
         event.preventDefault();
-        console.log('sync button clicked')
         this._emit('sync');
       },
       disconnect : function() {
         event.preventDefault();
-        console.log('disconnect button clicked')
         this._emit('disconnect');
       },
       recconnect : function(){},
