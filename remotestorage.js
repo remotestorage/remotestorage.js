@@ -621,7 +621,7 @@
     },
 
     get: function(path, options) {
-      if(! this.connected) throw new Error("not connected");
+      if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       var headers = {};
       if(this.supportsRevs) {
@@ -656,7 +656,7 @@
     },
 
     put: function(path, body, contentType, options) {
-      if(! this.connected) throw new Error("not connected");
+      if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
@@ -668,7 +668,7 @@
     },
 
     'delete': function(path, callback, options) {
-      if(! this.connected) throw new Error("not connected");
+      if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       return request('DELETE', this.href + path, this.token,
                      this.supportsRevs ? { 'If-Match': options.ifMatch } : {},
@@ -990,8 +990,6 @@ RemoteStorage.Assets = {
 
   function stateSetter(widget, state) {
     return function() {
-      console.log('widget:',widget);
-      console.log(state);
       widget.view.setState(state);
     };
   }
@@ -1007,7 +1005,6 @@ RemoteStorage.Assets = {
     this.rs.on('sync-busy', stateSetter(this, 'busy') );
     this.rs.on('sync-done', stateSetter(this, 'connected'))
     this.view.on( 'connect', function(a){
-      console.log(this);
       this.rs.connect(a);
     }.bind(this) )
     this.view.on( 'disconnect', function(){
@@ -1210,17 +1207,14 @@ RemoteStorage.Assets = {
     events : {
       connect : function(event) {
         event.preventDefault();
-        console.log('connect button clicked')
         this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
       sync : function() {
         event.preventDefault();
-        console.log('sync button clicked')
         this._emit('sync');
       },
       disconnect : function() {
         event.preventDefault();
-        console.log('disconnect button clicked')
         this._emit('disconnect');
       },
       recconnect : function(){},
@@ -2363,7 +2357,7 @@ global.tv4 = publicApi;
       if(path.length > 0 && path[path.length - 1] != '/') {
         throw "Not a directory: " + path;
       }
-      return this.storage.get(path).then(function(status, body) {
+      return this.storage.get(this.makePath(path)).then(function(status, body) {
         return typeof(body) === 'object' ? Object.keys(body) : undefined;
       });
     },
@@ -2398,11 +2392,12 @@ global.tv4 = publicApi;
           var promise = promising();
           var count = Object.keys(body).length, i = 0;
           for(var key in body) {
-            return this.get(this.makePath(path + key)).then(function(status, body) {
-              body[this.key] = body;
-              i++;
-              if(i == count) promise.fulfill(body);
-            }.bind({ key: key }));
+            return this.storage.get(this.makePath(path + key)).
+              then(function(status, body) {
+                body[this.key] = body;
+                i++;
+                if(i == count) promise.fulfill(body);
+              }.bind({ key: key }));
           }
           return promise;
         }
@@ -2967,7 +2962,11 @@ global.tv4 = publicApi;
   }
 
   function deleteLocal(local, path, promise) {
-    local.delete(path, true).then(promise.fulfill);
+    if(isDir(path)) {
+      promise.fulfill();
+    } else {
+      local.delete(path, true).then(promise.fulfill);
+    }
   }
 
   function synchronize(remote, local, path, options) {
@@ -3148,7 +3147,6 @@ global.tv4 = publicApi;
   };
 
   RemoteStorage.prototype.syncCycle = function() {
-    console.log('syncCycle');
     this.sync().then(function() {
       setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
     }.bind(this));
