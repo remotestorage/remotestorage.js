@@ -118,6 +118,7 @@
         throw "Not a directory: " + path;
       }
       return this.storage.get(this.makePath(path)).then(function(status, body) {
+        if(status == 404) return;
         return typeof(body) === 'object' ? Object.keys(body) : undefined;
       });
     },
@@ -148,13 +149,14 @@
         throw "Not a directory: " + path;
       }
       return this.storage.get(this.makePath(path)).then(function(status, body) {
+        if(status == 404) return;
         if(typeof(body) === 'object') {
           var promise = promising();
           var count = Object.keys(body).length, i = 0;
           for(var key in body) {
-            return this.storage.get(this.makePath(path + key)).
-              then(function(status, body) {
-                body[this.key] = body;
+            this.storage.get(this.makePath(path + key)).
+              then(function(status, b) {
+                body[this.key] = b;
                 i++;
                 if(i == count) promise.fulfill(body);
               }.bind({ key: key }));
