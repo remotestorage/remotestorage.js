@@ -243,7 +243,6 @@
   };
 
   RemoteStorage.prototype.syncCycle = function() {
-    console.log('syncCycle');
     this.sync().then(function() {
       setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
     }.bind(this));
