@@ -114,7 +114,7 @@
     },
 
     get: function(path, options) {
-      if(! this.connected) throw new Error("not connected");
+      if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       var headers = {};
       if(this.supportsRevs) {
@@ -149,7 +149,7 @@
     },
 
     put: function(path, body, contentType, options) {
-      if(! this.connected) throw new Error("not connected");
+      if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
@@ -161,7 +161,7 @@
     },
 
     'delete': function(path, callback, options) {
-      if(! this.connected) throw new Error("not connected");
+      if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       return request('DELETE', this.href + path, this.token,
                      this.supportsRevs ? { 'If-Match': options.ifMatch } : {},
