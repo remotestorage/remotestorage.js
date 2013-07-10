@@ -60,7 +60,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           document.location.hash = '#access_token=my-token';
           RemoteStorage.Authorize._rs_init(storage);
           storage.remote = {
-            configure: function(href, type, token) {
+            configure: function(userAddress, href, type, token) {
               test.assert(token, 'my-token');
             }
           };
