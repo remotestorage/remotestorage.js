@@ -71,6 +71,7 @@
       addClass(el, 'hidden');
     }else{
       removeClass(el, 'hidden');
+      gTl(widget, 'form').userAddress.focus();
     }
   }
   function show(el, display){
