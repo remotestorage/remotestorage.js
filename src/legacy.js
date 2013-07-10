@@ -1,6 +1,6 @@
 
 (function() {
-  RemoteStorage.prototype.util = {
+  var util = RemoteStorage.prototype.util = {
     getEventEmitter: function() {
       console.log('util.getEventEmitter is deprecated.');
       var object = {};
@@ -49,6 +49,24 @@
         }
       });
       return promise;
+    },
+
+    containingDir: function(path) {
+      var dir = path.replace(/[^\/]+\/?$/, '');
+      return dir == path ? null : dir;
+    },
+
+    isDir: function(path) {
+      return path.substr(-1) == '/';
+    },
+
+    baseName: function(path) {
+      var parts = path.split('/');
+      if(util.isDir(path)) {
+        return parts[parts.length-2]+'/';
+      } else {
+        return parts[parts.length-1];
+      }
     }
   };
 })();
