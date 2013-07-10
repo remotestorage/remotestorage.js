@@ -13,7 +13,7 @@
       if(this.caching.cachePath(path)) {
         return this.local.put(path, body, contentType);
       } else {
-        return this._wrapBusyDone(this.remote.put(path, body, contentType));
+        return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
       }
     },
 
@@ -21,7 +21,7 @@
       if(this.caching.cachePath(path)) {
         return this.local.delete(path);
       } else {
-        return this._wrapBusyDone(this.remote.delete(path));
+        return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
       }
     },
 
@@ -31,7 +31,7 @@
         var promise = promising();
         this._emit('sync-done');
         return promise.fulfill.apply(promise, arguments);
-      }, function(err) {
+      }.bind(this), function(err) {
         throw err;
       });
     }
