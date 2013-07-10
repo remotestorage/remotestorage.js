@@ -260,6 +260,10 @@
     overflow: auto;
 }
 
+#remotestorage-widget .bubble.hidden {
+    padding-bottom: 2px;
+    border-radius: 5px 15px 15px 5px;
+}
 
 .bubble.hidden .bubble-expandable {
     display: none;
