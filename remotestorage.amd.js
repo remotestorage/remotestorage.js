@@ -1,3 +1,4 @@
+define([], function() {
 
 /** FILE: lib/promising.js **/
 (function(global) {
@@ -3890,4 +3891,5 @@ global.tv4 = publicApi;
   };
 })();
 
-remoteStorage = new RemoteStorage();
+return new RemoteStorage();
+});
