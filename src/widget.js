@@ -2,6 +2,7 @@
 
   function stateSetter(widget, state) {
     return function() {
+      widget.view.setUserAddress(widget.rs.remote.userAddress);
       widget.view.setState(state);
     };
   }
@@ -25,7 +26,6 @@
     this.view.on( 'sync', function(){
       this.rs.sync()
     }.bind(this) )
-
   };
 
   RemoteStorage.Widget.prototype = {
@@ -169,7 +169,7 @@
     }
 
     this.setUserAddress = function(addr){
-      widget.userAddress = addr;
+      this.userAddress = addr;
     }
   };
 
@@ -195,7 +195,7 @@
       },
       connected : function(){
         this.div.className = "remotestorage-state-connected"
-        gCl(this.div,'userAddress').innerHTML = 'user@host'; //TODO where to find the user name
+        gCl(this.div,'userAddress').innerHTML = this.userAddress;
         var cube = gCl(this.div,'cube');
         cube.src = RemoteStorage.Assets.remoteStorageIcon;
         removeClass(cube,'remotestorage-loading');
