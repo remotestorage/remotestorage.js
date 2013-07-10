@@ -8,27 +8,31 @@ ASSETS_DIR     = ./assets
 ASSETS_OUT     = $(SOURCE_DIR)/assets.js
 DOC_INPUTS     = -i $(SOURCE_DIR)
 
+DEFAULT_COMPONENTS = core widget baseclient caching modules debug legacy
+
 default: help
 
 help:
 	@echo "help           - display this text"
 	@echo "build          - build remotestorage.js"
 	@echo "minify         - minify remotestorage.js -> remotestorage.min.js"
-	@echo "buildserver    - start build server (running on port 8000)"
+	@echo "buildserver    - build regular, minified and AMD targets"
 	@echo "build-all      - download complete build from build server"
 	@echo "compile-assets - compile $(ASSETS_DIR)/* into $(ASSETS_OUT)"
 
 buildserver:
 	cd build/ && node server.js
 
-build-all:
-	curl -X POST -d 'groups=core&groups=widget&groups=baseclient&groups=caching&groups=modules&groups=debug' http://localhost:8000/ -o remotestorage.js
+build-all: build build-amd minify
 
 minify:
 	uglifyjs remotestorage.js -o remotestorage.min.js --mangle --wrap --export-all
 
 build:
-	$(NODEJS) build/do-build.js core widget baseclient caching modules debug
+	$(NODEJS) build/do-build.js remotestorage.js $(DEFAULT_COMPONENTS)
+
+build-amd:
+	$(NODEJS) build/do-build.js remotestorage.amd.js --amd $(DEFAULT_COMPONENTS)
 
 compile-assets: $(ASSETS_DIR)/*
 	$(NODEJS) build/compile-assets.js $(ASSETS_DIR) $(ASSETS_OUT)

@@ -1,6 +1,6 @@
 var fs = require('fs');
 
-exports.build = function(components, selectedGroups) {
+exports.build = function(components, selectedGroups, options) {
   var files = [];
   selectedGroups.forEach(function(group) {
     if(components.groups[group]) {
@@ -10,9 +10,17 @@ exports.build = function(components, selectedGroups) {
   var output = '';
   files.forEach(function(file) {
     console.error("Adding file: " + file);
+    output += '\n/** FILE: ' + file + ' **/\n'
     output += fs.readFileSync(file, 'UTF-8');
     output += "\n";
   });
-  output += 'remoteStorage = new RemoteStorage();'
+  if(options.amd) {
+    output = 'define([], function() {\n' +
+      output +
+      'return new RemoteStorage();\n' +
+      '});\n';
+  } else {
+    output += 'remoteStorage = new RemoteStorage();'
+  }
   return output;
 };
