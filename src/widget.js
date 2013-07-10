@@ -168,8 +168,8 @@
 
     }
 
-    this.setUserAdress = function(addr){
-      widget.userAdress = addr;
+    this.setUserAddress = function(addr){
+      widget.userAddress = addr;
     }
   };
 
@@ -221,11 +221,11 @@
         event.preventDefault();
         this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
-      sync : function() {
+      sync : function(event) {
         event.preventDefault();
         this._emit('sync');
       },
-      disconnect : function() {
+      disconnect : function(event) {
         event.preventDefault();
         this._emit('disconnect');
       },
