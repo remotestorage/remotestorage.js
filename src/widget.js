@@ -32,9 +32,9 @@
 
     setView: function(view) {
       this.view = view;
-      this.view.on('connect', this.rs.connect.bind(this));
-      this.view.on('disconnect', this.rs.disconnect.bind(this));
-      this.view.on('sync', this.rs.sync.bind(this));
+      this.view.on('connect', this.rs.connect.bind(this.rs));
+      this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
+      this.view.on('sync', this.rs.sync.bind(this.rs));
     }
   };
 
