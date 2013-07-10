@@ -186,6 +186,10 @@
       initial : function() {
         this.div.className = "remotestorage-state-initial";
         gCl(this.div, 'status-text').innerHTML = "Connect <strong>remotestorage</strong>";
+        var bubble = this.div.querySelector('.bubble');
+        if(! bubble.classList.contains('hidden')) {
+          bubble.classList.add('hidden');
+        }
       },
       authing : function() {
         this.div.className = "remotestorage-state-authing";
