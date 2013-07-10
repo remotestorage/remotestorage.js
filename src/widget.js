@@ -2,47 +2,54 @@
 
   function stateSetter(widget, state) {
     return function() {
-      widget.view.setUserAddress(widget.rs.remote.userAddress);
-      widget.view.setState(state);
+      if(widget.view) {
+        if(widget.rs.remote) {
+          widget.view.setUserAddress(widget.rs.remote.userAddress);
+        }
+        widget.view.setState(state);
+      }
     };
   }
 
   RemoteStorage.Widget = function(remoteStorage) {
     this.rs = remoteStorage;
-    this.view = new View;
-
     this.rs.on('ready', stateSetter(this, 'connected'));
     this.rs.on('disconnected', stateSetter(this, 'initial'));
     //this.rs.on('connecting', stateSetter(this, 'connecting'))
     this.rs.on('authing', stateSetter(this, 'authing'))
     this.rs.on('sync-busy', stateSetter(this, 'busy') );
     this.rs.on('sync-done', stateSetter(this, 'connected'))
-    this.view.on( 'connect', function(a){
-      this.rs.connect(a);
-    }.bind(this) )
-    this.view.on( 'disconnect', function(){
-      this.rs.disconnect();
-    }.bind(this) )
-    this.view.on( 'sync', function(){
-      this.rs.sync()
-    }.bind(this) )
   };
 
   RemoteStorage.Widget.prototype = {
     display: function() {
+      if(! this.view) {
+        this.setView(new View);
+      }
       this.view.display.apply(this.view, arguments);
       return this;
+    },
+
+    setView: function(view) {
+      this.view = view;
+      this.view.on( 'connect', function(a){
+        this.rs.connect(a);
+      }.bind(this) )
+      this.view.on( 'disconnect', function(){
+        this.rs.disconnect();
+      }.bind(this) )
+      this.view.on( 'sync', function(){
+        this.rs.sync()
+      }.bind(this) )
     }
   };
 
   RemoteStorage.prototype.displayWidget = function() {
-    if(typeof(this.widget) === 'undefined')
-      (this.widget = new RemoteStorage.Widget(this)).display();
-    else
-      this.widget.display();
+    this.widget.display();
   };
 
   RemoteStorage.Widget._rs_init = function(remoteStorage){
+    remoteStorage.widget = new RemoteStorage.Widget(remoteStorage);
     window.addEventListener('load', function() {
       remoteStorage.displayWidget();
     });
