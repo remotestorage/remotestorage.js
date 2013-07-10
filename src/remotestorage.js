@@ -94,7 +94,7 @@
       this._emit('connecting');
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
         this._emit('authing');
-        this.remote.configure(href, storageApi);
+        this.remote.configure(userAddress, href, storageApi);
         this.authorize(authURL);
       }.bind(this));
     },

@@ -43,7 +43,7 @@
     remoteStorage.on('features-loaded', function() {
       if(params) {
         if(params.access_token) {
-          remoteStorage.remote.configure(undefined, undefined, params.access_token);
+          remoteStorage.remote.configure(undefined, undefined, undefined, params.access_token);
         }
         if(params.user_address) {
           remoteStorage.connect(params.user_address);

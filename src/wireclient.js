@@ -83,7 +83,7 @@
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {};
       if(settings) {
-        this.configure(settings.href, settings.storageApi, settings.token);
+        this.configure(settings.userAddress, settings.href, settings.storageApi, settings.token);
       }
     }
 
@@ -96,7 +96,8 @@
 
   RS.WireClient.prototype = {
 
-    configure: function(href, storageApi, token) {
+    configure: function(userAddress, href, storageApi, token) {
+      if(typeof(userAddress) !== 'undefined') this.userAddress = userAddress;
       if(typeof(href) !== 'undefined') this.href = href;
       if(typeof(storageApi) !== 'undefined') this.storageApi = storageApi;
       if(typeof(token) !== 'undefined') this.token = token;
@@ -109,7 +110,12 @@
         this._emit('connected');
       }
       if(haveLocalStorage) {
-        localStorage[SETTINGS_KEY] = JSON.stringify({ href: this.href, token: this.token, storageApi: this.storageApi });
+        localStorage[SETTINGS_KEY] = JSON.stringify({
+          userAddress: this.userAddress,
+          href: this.href,
+          token: this.token,
+          storageApi: this.storageApi
+        });
       }
     },
 
