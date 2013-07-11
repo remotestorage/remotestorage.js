@@ -78,17 +78,7 @@
   function gTl(parent, className) {
     return parent.getElementsByTagName(className)[0];
   }
-
-  function toggle_bubble(widget) {
-    var el = gCl(widget,'bubble');
-    if(el.className.search('hidden') < 0) {
-      addClass(el, 'hidden');
-    } else {
-      removeClass(el, 'hidden');
-      gTl(widget, 'form').userAddress.focus();
-    }
-  }
-
+    
   function show(el, display) {
     if(typeof(display) === 'undefined') {
       display = 'block';
@@ -126,7 +116,26 @@
                                 'display');
 
     this.display = function() {
-
+      function toggle_bubble(event) {
+        if(bubble.className.search('hidden') < 0) {
+          hide_bubble(event);
+        } else {
+          show_bubble(event);
+        }
+      }
+      
+      function hide_bubble(){
+        //console.log('hide bubble',bubble);
+        addClass(bubble, 'hidden')
+        document.body.removeEventListener('click', hide_bubble);
+      }
+      function show_bubble(event){
+        //console.log('show bubble',bubble,event)
+        removeClass(bubble, 'hidden');
+        event.cancelBubble = true;
+        document.body.addEventListener('click', hide_bubble);
+        gTl(bubble,'form').userAddress.focus();
+      }
       if(typeof(this.widget) !== 'undefined')
         return this.widget;
 
@@ -168,11 +177,11 @@
       //the cube
       el = gCl(element, 'cube');
       el.src = RemoteStorage.Assets.remoteStorageIcon;
-      el.addEventListener('click', function() {
-        toggle_bubble(this.div);
-      }.bind(this));
-
-
+      el.addEventListener('click', toggle_bubble);
+      var bubble = gCl(element,'bubble');
+      bubble.addEventListener('click', function(){
+        show_bubble();
+      })
       this.div = element;
 
       this.states.initial.call(this);
