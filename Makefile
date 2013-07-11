@@ -16,12 +16,8 @@ help:
 	@echo "help           - display this text"
 	@echo "build          - build remotestorage.js"
 	@echo "minify         - minify remotestorage.js -> remotestorage.min.js"
-	@echo "buildserver    - build regular, minified and AMD targets"
-	@echo "build-all      - download complete build from build server"
+	@echo "build-all      - build regular, minified and AMD targets"
 	@echo "compile-assets - compile $(ASSETS_DIR)/* into $(ASSETS_OUT)"
-
-buildserver:
-	cd build/ && node server.js
 
 build-all: build build-amd minify
 
