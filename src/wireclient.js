@@ -49,6 +49,9 @@
   };
 
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
+    if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
+      throw "Don't " + method + " on directories!";
+    }
     var promise = promising();
     console.log(method, uri);
     var xhr = new XMLHttpRequest();
