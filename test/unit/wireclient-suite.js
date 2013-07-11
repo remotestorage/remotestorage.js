@@ -143,7 +143,17 @@ define(['requirejs'], function(requirejs, undefined) {
           test.assert(request._open,
                       ['GET', 'https://example.com/storage/test/foo/bar', true]);
         }
+      },
+
+      {
+        desc: "#get strips duplicate slashes from the path",
+        run: function(env, test) {
+          env.connectedClient.get('/foo//baz');
+          var request = XMLHttpRequest.instances.shift();
+          test.assert(request._open[1], 'https://example.com/storage/test/foo/baz');
+        }
       }
+
     ]
   });
 

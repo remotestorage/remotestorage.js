@@ -75,6 +75,11 @@
     return promise;
   }
 
+  function cleanPath(path) {
+    // strip duplicate slashes.
+    return path.replace(/\/+/g, '/');
+  }
+
   RS.WireClient = function() {
     this.connected = false;
     RS.eventHandling(this, 'change', 'connected');
@@ -133,7 +138,7 @@
           return promising().fulfill(412);
         }
       }
-      var promise = request('GET', this.href + path, this.token, headers,
+      var promise = request('GET', this.href + cleanPath(path), this.token, headers,
                             undefined, this.supportsRevs, this._revisionCache[path]);
       if(this.supportsRevs || path.substr(-1) != '/') {
         return promise;
@@ -162,14 +167,14 @@
         headers['If-Match'] = options.ifMatch;
         headers['If-None-Match'] = options.ifNoneMatch;
       }
-      return request('PUT', this.href + path, this.token,
+      return request('PUT', this.href + cleanPath(path), this.token,
                      headers, body, this.supportsRevs);
     },
 
     'delete': function(path, callback, options) {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
-      return request('DELETE', this.href + path, this.token,
+      return request('DELETE', this.href + cleanPath(path), this.token,
                      this.supportsRevs ? { 'If-Match': options.ifMatch } : {},
                      undefined, this.supportsRevs);
     }
