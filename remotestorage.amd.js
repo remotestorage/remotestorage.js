@@ -128,7 +128,7 @@ define([], function() {
       if(this.caching.cachePath(path)) {
         return this.local.put(path, body, contentType);
       } else {
-        return this._wrapBusyDone(this.remote.put(path, body, contentType));
+        return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
       }
     },
 
@@ -136,7 +136,7 @@ define([], function() {
       if(this.caching.cachePath(path)) {
         return this.local.delete(path);
       } else {
-        return this._wrapBusyDone(this.remote.delete(path));
+        return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
       }
     },
 
@@ -146,7 +146,7 @@ define([], function() {
         var promise = promising();
         this._emit('sync-done');
         return promise.fulfill.apply(promise, arguments);
-      }, function(err) {
+      }.bind(this), function(err) {
         throw err;
       });
     }
@@ -591,6 +591,11 @@ define([], function() {
     return promise;
   }
 
+  function cleanPath(path) {
+    // strip duplicate slashes.
+    return path.replace(/\/+/g, '/');
+  }
+
   RS.WireClient = function() {
     this.connected = false;
     RS.eventHandling(this, 'change', 'connected');
@@ -649,7 +654,7 @@ define([], function() {
           return promising().fulfill(412);
         }
       }
-      var promise = request('GET', this.href + path, this.token, headers,
+      var promise = request('GET', this.href + cleanPath(path), this.token, headers,
                             undefined, this.supportsRevs, this._revisionCache[path]);
       if(this.supportsRevs || path.substr(-1) != '/') {
         return promise;
@@ -678,14 +683,14 @@ define([], function() {
         headers['If-Match'] = options.ifMatch;
         headers['If-None-Match'] = options.ifNoneMatch;
       }
-      return request('PUT', this.href + path, this.token,
+      return request('PUT', this.href + cleanPath(path), this.token,
                      headers, body, this.supportsRevs);
     },
 
     'delete': function(path, callback, options) {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
-      return request('DELETE', this.href + path, this.token,
+      return request('DELETE', this.href + cleanPath(path), this.token,
                      this.supportsRevs ? { 'If-Match': options.ifMatch } : {},
                      undefined, this.supportsRevs);
     }
@@ -1011,10 +1016,16 @@ RemoteStorage.Assets = {
 
 
 /** FILE: src/widget.js **/
-(function() {
+(function(window) {
+
+  var haveLocalStorage;
+  var LS_STATE_KEY = "remotestorage:widget:state";
 
   function stateSetter(widget, state) {
     return function() {
+      if(haveLocalStorage) {
+        localStorage[LS_STATE_KEY] = state;
+      }
       if(widget.view) {
         if(widget.rs.remote) {
           widget.view.setUserAddress(widget.rs.remote.userAddress);
@@ -1032,6 +1043,12 @@ RemoteStorage.Assets = {
     this.rs.on('authing', stateSetter(this, 'authing'));
     this.rs.on('sync-busy', stateSetter(this, 'busy'));
     this.rs.on('sync-done', stateSetter(this, 'connected'));
+    if(haveLocalStorage) {
+      var state = localStorage[LS_STATE_KEY] = state;
+      if(state) {
+        this._rememberedState = state;
+      }
+    }
   };
 
   RemoteStorage.Widget.prototype = {
@@ -1045,9 +1062,13 @@ RemoteStorage.Assets = {
 
     setView: function(view) {
       this.view = view;
-      this.view.on('connect', this.rs.connect.bind(this));
-      this.view.on('disconnect', this.rs.disconnect.bind(this));
-      this.view.on('sync', this.rs.sync.bind(this));
+      this.view.on('connect', this.rs.connect.bind(this.rs));
+      this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
+      this.view.on('sync', this.rs.sync.bind(this.rs));
+      if(this._rememberedState) {
+        stateSetter(this, this._rememberedState)();
+        delete this._rememberedState;
+      }
     }
   };
 
@@ -1060,6 +1081,11 @@ RemoteStorage.Assets = {
     window.addEventListener('load', function() {
       remoteStorage.displayWidget();
     });
+  };
+
+  RemoteStorage.Widget._rs_supported = function(remoteStorage) {
+    haveLocalStorage = 'localStorage' in window;
+    return true;
   };
 
   var cEl = document.createElement.bind(document);
@@ -1199,6 +1225,10 @@ RemoteStorage.Assets = {
       initial : function() {
         this.div.className = "remotestorage-state-initial";
         gCl(this.div, 'status-text').innerHTML = "Connect <strong>remotestorage</strong>";
+        var bubble = this.div.querySelector('.bubble');
+        if(! bubble.classList.contains('hidden')) {
+          bubble.classList.add('hidden');
+        }
       },
       authing : function() {
         this.div.className = "remotestorage-state-authing";
@@ -1247,7 +1277,7 @@ RemoteStorage.Assets = {
     }
   };
 
-})();
+})(this);
 
 
 /** FILE: lib/tv4.js **/
