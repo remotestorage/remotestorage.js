@@ -11,6 +11,11 @@ define(['requirejs'], function(requirejs, undefined) {
       global.RemoteStorage = function() {};
       require('./lib/promising');
       require('./src/eventhandling');
+      if(global.rs_eventhandling) {
+        RemoteStorage.eventHandling = global.rs_eventhandling;
+      } else {
+        global.rs_eventhandling = RemoteStorage.eventHandling;
+      }
       require('./src/wireclient');
 
       test.done();

@@ -15,6 +15,11 @@ define(['requirejs'], function(requirejs, undefined) {
         onChange: function() {}
       };
       require('./src/eventhandling');
+      if(global.rs_eventhandling) {
+        RemoteStorage.eventHandling = global.rs_eventhandling;
+      } else {
+        global.rs_eventhandling = RemoteStorage.eventHandling;
+      }
       require('./src/baseclient');
       test.done();
     },
