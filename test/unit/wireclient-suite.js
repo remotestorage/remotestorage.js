@@ -25,6 +25,7 @@ define(['requirejs'], function(requirejs, undefined) {
       global.XMLHttpRequest = function() {
         XMLHttpRequest.instances.push(this);
         this._headers = {};
+        this._responseHeaders = {};
       };
       XMLHttpRequest.instances = [];
       XMLHttpRequest.prototype = {
@@ -36,6 +37,9 @@ define(['requirejs'], function(requirejs, undefined) {
         },
         setRequestHeader: function(key, value) {
           this._headers[key] = value;
+        },
+        getResponseHeader: function(key) {
+          return this._responseHeaders[key];
         }
       };
       ['load', 'abort', 'error'].forEach(function(cb) {
@@ -151,11 +155,136 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "#get sends the request",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar');
+          var req = XMLHttpRequest.instances.shift();
+          test.assertType(req._send, 'object');
+        }
+      },
+
+      {
         desc: "#get strips duplicate slashes from the path",
         run: function(env, test) {
           env.connectedClient.get('/foo//baz');
           var request = XMLHttpRequest.instances.shift();
           test.assert(request._open[1], 'https://example.com/storage/test/foo/baz');
+        }
+      },
+
+      {
+        desc: "#get sets the 'If-None-Match' to the empty string, when revisions are supported",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.get('/foo/bar');
+          var request = XMLHttpRequest.instances.shift();
+          test.assert(request._headers['If-None-Match'], '');
+        }
+      },
+
+      {
+        desc: "#get sets the 'If-None-Match' to the given value, when revisions are supported and the ifNoneMatch option is provided",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.get('/foo/bar', { ifNoneMatch: 'something' });
+          var request = XMLHttpRequest.instances.shift();
+          test.assert(request._headers['If-None-Match'], 'something');
+        }
+      },
+
+      {
+        desc: "#get doesn't set the 'If-None-Match' header, when revisions are not supported",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple');
+          env.connectedClient.get('/foo/bar');
+          var request = XMLHttpRequest.instances.shift();
+          test.assertType(request._headers['If-None-Match'], 'undefined');
+        }
+      },
+
+      {
+        desc: "#get doesn't set the 'If-None-Match' header even though the option is given, when revisions are not supported",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple');
+          env.connectedClient.get('/foo/bar', { ifNoneMatch: 'something' });
+          var request = XMLHttpRequest.instances.shift();
+          test.assertType(request._headers['If-None-Match'], 'undefined');
+        }
+      },
+
+      {
+        desc: "#get sets the 'Authorization' header correctly",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar');
+          var request = XMLHttpRequest.instances.shift();
+          test.assert(request._headers['Authorization'], 'Bearer ' + env.token);
+        }
+      },
+
+      {
+        desc: "#get returns a promise",
+        run: function(env, test) {
+          var result = env.connectedClient.get('/foo/bar');
+          test.assertTypeAnd(result, 'object');
+          test.assertType(result.then, 'function');
+        }
+      },
+
+      {
+        desc: "#get installs onload and onerror handlers on the request",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar/');
+          var req = XMLHttpRequest.instances.shift();
+          test.assertTypeAnd(req._onload, 'function');
+          test.assertTypeAnd(req._onerror, 'function');
+          test.done();
+        }
+      },
+
+      {
+        desc: "#get rejects the promise, if onerror is called",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar/').
+            then(function() {
+              test.result(false);
+            }, function(error) {
+              test.assert('my-error', error);
+            });
+          XMLHttpRequest.instances.shift()._onerror('my-error');
+        }
+      },
+
+      {
+        desc: "#get extracts the Content-Type header, status and responseText and fulfills it's promise with those, once onload is called",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar').
+            then(function(status, body, contentType) {
+              test.assertAnd(status, 200);
+              test.assertAnd(body, 'response-body');
+              test.assert(contentType, 'text/plain; charset=UTF-8');
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+          req.status = 200;
+          req.responseText = 'response-body';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "#get unpacks JSON responses",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar').
+            then(function(status, body, contentType) {
+              test.assertAnd(status, 200);
+              test.assertAnd(body, { response: 'body' });
+              test.assert(contentType, 'application/json; charset=UTF-8');
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
+          req.status = 200;
+          req.responseText = '{"response":"body"}';
+          req._onload();
         }
       }
 
