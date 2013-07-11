@@ -1,7 +1,13 @@
-(function() {
+(function(window) {
+
+  var haveLocalStorage;
+  var LS_STATE_KEY = "remotestorage:widget:state";
 
   function stateSetter(widget, state) {
     return function() {
+      if(haveLocalStorage) {
+        localStorage[LS_STATE_KEY] = state;
+      }
       if(widget.view) {
         if(widget.rs.remote) {
           widget.view.setUserAddress(widget.rs.remote.userAddress);
@@ -19,6 +25,12 @@
     this.rs.on('authing', stateSetter(this, 'authing'));
     this.rs.on('sync-busy', stateSetter(this, 'busy'));
     this.rs.on('sync-done', stateSetter(this, 'connected'));
+    if(haveLocalStorage) {
+      var state = localStorage[LS_STATE_KEY] = state;
+      if(state) {
+        this._rememberedState = state;
+      }
+    }
   };
 
   RemoteStorage.Widget.prototype = {
@@ -35,6 +47,10 @@
       this.view.on('connect', this.rs.connect.bind(this.rs));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
       this.view.on('sync', this.rs.sync.bind(this.rs));
+      if(this._rememberedState) {
+        stateSetter(this, this._rememberedState)();
+        delete this._rememberedState;
+      }
     }
   };
 
@@ -47,6 +63,11 @@
     window.addEventListener('load', function() {
       remoteStorage.displayWidget();
     });
+  };
+
+  RemoteStorage.Widget._rs_supported = function(remoteStorage) {
+    haveLocalStorage = 'localStorage' in window;
+    return true;
   };
 
   var cEl = document.createElement.bind(document);
@@ -238,4 +259,4 @@
     }
   };
 
-})();
+})(this);
