@@ -365,6 +365,14 @@
 
     _fireChange: function(event) {
       this._emit('change', event);
+    },
+
+    getItemURL: function(path) {
+      if(this.storage.connected) {
+        return this.storage.remote.href + path;
+      } else {
+        return undefined;
+      }
     }
 
   };
