@@ -185,6 +185,16 @@
   };
 
   RS.WireClient._rs_init = function() {
+    Object.defineProperty(RS.prototype, 'remote', {
+      configurable: true,
+      get: function() {
+        var wireclient = new RS.WireClient();
+        Object.defineProperty(this, 'remote', {
+          value: wireclient
+        });
+        return wireclient;
+      }
+    });
   };
 
   RS.WireClient._rs_supported = function() {

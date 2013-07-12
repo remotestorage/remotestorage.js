@@ -155,7 +155,8 @@
       this._loadFeatures(function(features) {
         console.log('all features loaded');
         this.local = features.local && new features.local();
-        this.remote = new features.remote();
+        // (this.remote set by WireClient._rs_init
+        //  as lazy property on RS.prototype)
 
         if(this.local && this.remote) {
           this._setGPD(SyncedGetPutDelete, this);
@@ -224,7 +225,6 @@
       });
 
       features.local = RemoteStorage.IndexedDB || RemoteStorage.LocalStorage;
-      features.remote = RemoteStorage.WireClient;
       features.caching = !!RemoteStorage.Caching;
       features.sync = !!RemoteStorage.Sync;
 
