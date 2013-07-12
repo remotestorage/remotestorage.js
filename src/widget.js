@@ -12,7 +12,7 @@
         if(widget.rs.remote) {
           widget.view.setUserAddress(widget.rs.remote.userAddress);
         }
-        widget.view.setState(state);
+        widget.view.setState(state, arguments);
       }
     };
   }
@@ -25,6 +25,7 @@
     this.rs.on('authing', stateSetter(this, 'authing'));
     this.rs.on('sync-busy', stateSetter(this, 'busy'));
     this.rs.on('sync-done', stateSetter(this, 'connected'));
+    this.rs.on('error', stateSetter(this, 'error') );
     if(haveLocalStorage) {
       var state = localStorage[LS_STATE_KEY] = state;
       if(state) {
@@ -132,7 +133,8 @@
       function show_bubble(event){
         //console.log('show bubble',bubble,event)
         removeClass(bubble, 'hidden');
-        event.cancelBubble = true;
+        if(typeof(event) != 'undefined')
+          event.cancelBubble = true;
         document.body.addEventListener('click', hide_bubble);
         gTl(bubble,'form').userAddress.focus();
       }
@@ -189,12 +191,12 @@
       return this.div;
     };
 
-    this.setState = function(state) {
+    this.setState = function(state, args) {
       var s = this.states[state];
       if(typeof(s) === 'undefined') {
         throw new Error("Bad State assigned to view: " + state);
       }
-      s.call(this);
+      s.apply(this,args);
     };
 
     this.setUserAddress = function(addr) {
@@ -241,8 +243,9 @@
         this.div.className = "remotestorage-state-offline";
         gCl(this.div, 'cube').src = RemoteStorage.Assets.remoteStorageIconOffline;
       },
-      error : function() {
+      error : function(err) {
         this.div.className = "remotestorage-state-error";
+        gCl(this.div, 'error-msg').innerHTML = err;
         gCl(this.div, 'cube').src = RemoteStorage.Assets.remoteStorageIconError;
       },
       unauthorized : function() {

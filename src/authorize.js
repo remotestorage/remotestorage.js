@@ -10,6 +10,7 @@
   };
 
   RemoteStorage.Authorize = function(authURL, storageApi, scopes, redirectUri) {
+    console.log('Authorize authURL = ',authURL)
     var scope = '';
     for(var key in scopes) {
       var mode = scopes[key];

@@ -290,3 +290,10 @@
 .remotestorage-state-authing .bubble-expandable{
     display : none;
 }
+.remotestorage-error {
+    display : none;
+}
+.remotestorage-state-error .remotestorage-error {
+    display : block;
+}
+}

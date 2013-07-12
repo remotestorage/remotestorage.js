@@ -93,6 +93,10 @@
     connect: function(userAddress) {
       this._emit('connecting');
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
+        if(!href){
+          this._emit('error', 'discovery failed');
+          return;
+        }
         this._emit('authing');
         this.remote.configure(userAddress, href, storageApi);
         this.authorize(authURL);
