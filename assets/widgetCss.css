@@ -274,13 +274,24 @@
 }
 
 
-.remotestorage-state-initial .remotestorage-connected {
+.remotestorage-connected {
     display : none;
 }
-
-
-.remotestorage-state-connected .remotestorage-initial { 
+.remotestorage-state-connected .remotestorage-connected {
+    display : block;
+}
+.remotestorage-initial { 
     display : none;
+}
+.remotestorage-state-initial .remotestorage-initial {
+    display : block;
+}
+
+.remotestorage-error {
+    display : none;
+}
+.remotestorage-state-error .remotestorage-error {
+    display : block;
 }
 
 .remotestorage-state-busy .bubble{
@@ -290,10 +301,6 @@
 .remotestorage-state-authing .bubble-expandable{
     display : none;
 }
-.remotestorage-error {
-    display : none;
-}
-.remotestorage-state-error .remotestorage-error {
-    display : block;
-}
+
+
 }

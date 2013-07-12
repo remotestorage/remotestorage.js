@@ -245,6 +245,7 @@
       },
       error : function(err) {
         this.div.className = "remotestorage-state-error";
+        gCl(this.div, 'bubble-text').innerHTML = 'ERROR'
         gCl(this.div, 'error-msg').innerHTML = err;
         gCl(this.div, 'cube').src = RemoteStorage.Assets.remoteStorageIconError;
       },
