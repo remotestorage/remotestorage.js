@@ -329,6 +329,18 @@
      */
     storeObject: function(typeAlias, path, object) {
       this._attachType(object, typeAlias);
+      try {
+        var validationResult = this.validate(object);
+        if(! validationResult.valid) {
+          return promising().reject(validationResult);
+        }
+      } catch(exc) {
+        if(exc instanceof RS.BaseClient.Types.SchemaNotFound) {
+          // ignore.
+        } else {
+          return promising().reject(exc);
+        }
+      }
       return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
         if(status == 200 || status == 201) {
           return revision;
@@ -369,7 +381,7 @@
 
     getItemURL: function(path) {
       if(this.storage.connected) {
-        return this.storage.remote.href + path;
+        return this.storage.remote.href + this.makePath(path);
       } else {
         return undefined;
       }

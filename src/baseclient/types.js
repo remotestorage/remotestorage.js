@@ -46,6 +46,8 @@
   };
   SchemaNotFound.prototype = Error.prototype;
 
+  RemoteStorage.BaseClient.Types.SchemaNotFound = SchemaNotFound;
+
   RemoteStorage.BaseClient.prototype.extend({
 
     validate: function(object) {
