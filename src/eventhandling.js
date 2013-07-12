@@ -1,13 +1,24 @@
 (function(global) {
   var methods = {
     /**
-     * Method: eventhandling.on
+     * Method: eventhandling.addEventListener
      *
      * Install an event handler for the given event name.
      */
-    on: function(eventName, handler) {
+    addEventListener: function(eventName, handler) {
       this._validateEvent(eventName);
       this._handlers[eventName].push(handler);
+    },
+
+    removeEventListener: function(eventName, handler) {
+      this._validateEvent(eventName);
+      var hl = this._handlers[eventName].length;
+      for(var i=0;i<hl;i++) {
+        if(this._handlers[eventName][i] === handler) {
+          this._handlers[eventName].splice(i, 1);
+          return;
+        }
+      }
     },
 
     _emit: function(eventName) {
@@ -34,6 +45,10 @@
       this._handlers[eventName] = [];
     }
   };
+
+  // Method: eventhandling.on
+  // Alias for <addEventListener>
+  methods.on = methods.addEventListener;
 
   /**
    * Function: eventHandling
