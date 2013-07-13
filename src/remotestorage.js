@@ -91,10 +91,14 @@
      *
      */
     connect: function(userAddress) {
+      if( userAddress.indexOf('@') < 0) {
+        this._emit('error', ['discovery failed',"email adress doesn't contain an @"])
+        return;
+      }
       this._emit('connecting');
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
         if(!href){
-          this._emit('error', 'discovery failed');
+          this._emit('error', ['discovery failed','webfinger error']);
           return;
         }
         this._emit('authing');

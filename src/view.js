@@ -1,84 +1,4 @@
-(function(window) {
-
-  var haveLocalStorage;
-  var LS_STATE_KEY = "remotestorage:widget:state";
-  var LS_USERADRESS_KEY = "remotestorage:view:useradress"
-  function stateSetter(widget, state) {
-    return function() {
-      if(haveLocalStorage) {
-        localStorage[LS_STATE_KEY] = state;
-      }
-      if(widget.view) {
-        if(widget.rs.remote) {
-          widget.view.setUserAddress(widget.rs.remote.userAddress);
-        }
-        widget.view.setState(state, arguments);
-      }
-    };
-  }
-  function errorsHandler(widget){
-    //decided to not store error state
-    return function(error){
-      if(error[0] == 'discovery failed'){
-        widget.view.setState('initial', [error[1]]);        
-      } else {
-        widget.view.setState('error', arguments);
-      }
-    }
-  }
-  RemoteStorage.Widget = function(remoteStorage) {
-    this.rs = remoteStorage;
-    this.rs.on('ready', stateSetter(this, 'connected'));
-    this.rs.on('disconnected', stateSetter(this, 'initial'));
-    //this.rs.on('connecting', stateSetter(this, 'connecting'))
-    this.rs.on('authing', stateSetter(this, 'authing'));
-    this.rs.on('sync-busy', stateSetter(this, 'busy'));
-    this.rs.on('sync-done', stateSetter(this, 'connected'));
-    this.rs.on('error', errorsHandler(this) );
-    if(haveLocalStorage) {
-      var state = localStorage[LS_STATE_KEY] = state;
-      if(state) {
-        this._rememberedState = state;
-      }
-    }
-  };
-
-  RemoteStorage.Widget.prototype = {
-    display: function() {
-      if(! this.view) {
-        this.setView(new View());
-      }
-      this.view.display.apply(this.view, arguments);
-      return this;
-    },
-
-    setView: function(view) {
-      this.view = view;
-      this.view.on('connect', this.rs.connect.bind(this.rs));
-      this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
-      this.view.on('sync', this.rs.sync.bind(this.rs));
-      if(this._rememberedState) {
-        stateSetter(this, this._rememberedState)();
-        delete this._rememberedState;
-      }
-    }
-  };
-
-  RemoteStorage.prototype.displayWidget = function() {
-    this.widget.display();
-  };
-
-  RemoteStorage.Widget._rs_init = function(remoteStorage) {
-    remoteStorage.widget = new RemoteStorage.Widget(remoteStorage);
-    window.addEventListener('load', function() {
-      remoteStorage.displayWidget();
-    });
-  };
-
-  RemoteStorage.Widget._rs_supported = function(remoteStorage) {
-    haveLocalStorage = 'localStorage' in window;
-    return true;
-  };
+function(window){
 var cEl = document.createElement.bind(document);
 
   function gCl(parent, className) {
@@ -180,22 +100,15 @@ var cEl = document.createElement.bind(document);
         if(event.target.value) cb.removeAttribute('disabled');
         else cb.setAttribute('disabled','disabled');
       });
-      if(haveLocalStorage) {
-        el.value = localStorage[LS_USERADRESS_KEY];
-      }
-     
+
       //the cube
       el = gCl(element, 'cube');
       el.src = RemoteStorage.Assets.remoteStorageIcon;
       el.addEventListener('click', toggle_bubble);
-      
-      //the bubble
       var bubble = gCl(element,'bubble');
       bubble.addEventListener('click', function(){
         show_bubble();
       })
-      hide_bubble();
-
       this.div = element;
 
       this.states.initial.call(this);
@@ -204,7 +117,6 @@ var cEl = document.createElement.bind(document);
     };
 
     this.setState = function(state, args) {
-      //console.log('setState(',state,',',args,');');
       var s = this.states[state];
       if(typeof(s) === 'undefined') {
         throw new Error("Bad State assigned to view: " + state);
@@ -229,28 +141,17 @@ var cEl = document.createElement.bind(document);
     currentState : 'initial',
     states :  {
       initial : function(info) {
-        var cube = gCl(this.div, 'cube');
-        var bubble = this.div.querySelector('.bubble');
         if(!info)
           info = 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/" target="_blank">remotestorage.io';
-        else {
-          cube.src = RemoteStorage.Assets.remoteStorageIconError;
-          removeClass(cube, 'remotestorage-loading');
-          bubble.classList.remove('hidden');
-          setTimeout(function(){
-            cube.src = RemoteStorage.Assets.remoteStorageIcon;
-          },3512)
-          
-        }
         this.div.className = "remotestorage-state-initial";
         gCl(this.div, 'status-text').innerHTML = "Connect <strong>remotestorage</strong>";
         gCl(this.div, 'info').innerHTML = info;
-        
-         // if(! bubble.classList.contains('hidden')) {
-         //   bubble.classList.add('hidden');
-         // }
-        // why make bubble invisible when going into initial
-        
+        var cube = gCl(this.div, 'cube');
+        removeClass(cube, 'remotestorage-loading')
+        var bubble = this.div.querySelector('.bubble');
+        if(! bubble.classList.contains('hidden')) {
+          bubble.classList.add('hidden');
+        }
       },
       authing : function() {
         this.div.className = "remotestorage-state-authing";
@@ -273,11 +174,10 @@ var cEl = document.createElement.bind(document);
         gCl(this.div, 'cube').src = RemoteStorage.Assets.remoteStorageIconOffline;
       },
       error : function(err) {
+        if(err){}
         this.div.className = "remotestorage-state-error";
-        
         gCl(this.div, 'bubble-text').innerHTML = 'ERROR'
         gCl(this.div, 'error-msg').innerHTML = err;
-        
         gCl(this.div, 'cube').src = RemoteStorage.Assets.remoteStorageIconError;
       },
       unauthorized : function() {
@@ -287,12 +187,7 @@ var cEl = document.createElement.bind(document);
     events : {
       connect : function(event) {
         event.preventDefault();
-        var userAddress = gTl(this.div, 'form').userAddress.value
-        if(haveLocalStorage) {
-          localStorage[LS_USERADRESS_KEY] = userAddress ;
-        }
-     
-        this._emit('connect', userAddress);
+        this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
       sync : function(event) {
         event.preventDefault();
@@ -308,5 +203,4 @@ var cEl = document.createElement.bind(document);
     }
   };
 
-  
-})(this);
+}.bind(this);
