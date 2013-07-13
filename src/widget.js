@@ -93,15 +93,12 @@
     return el;
   }
 
-  // MAYBE do those two in a el.className.split(' ') way more safe
   function removeClass(el, className) {
-    el.className = el.className.split(' ').filter(function(val) {
-      return val != className;
-    }).join(' ');
+    return el.classList.remove(className);
   }
 
   function addClass(el, className) {
-    el.className += ' ' + className;
+    return el.classList.add(className);
   }
 
 
