@@ -180,7 +180,7 @@ var cEl = document.createElement.bind(document);
         if(event.target.value) cb.removeAttribute('disabled');
         else cb.setAttribute('disabled','disabled');
       });
-      if(haveLocalStorage) {
+      if(haveLocalStorage && localStorage[LS_USERADRESS_KEY]) {
         el.value = localStorage[LS_USERADRESS_KEY];
       }
      
