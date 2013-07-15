@@ -244,14 +244,25 @@
 
   RemoteStorage.prototype.syncCycle = function() {
     this.sync().then(function() {
-      setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
+      this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
     }.bind(this));
+  };
+
+  RemoteStorage.prototype.stopSync = function() {
+    if(this._syncTimer) {
+      clearTimeout(this._syncTimer);
+      delete this._syncTimer;
+    }
   };
 
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
     remoteStorage.on('ready', function() {
       remoteStorage.syncCycle();
     });
+  };
+
+  RemoteStorage.Sync._rs_cleanup = function(remoteStorage) {
+    remoteStorage.stopSync();
   };
 
 })(this);
