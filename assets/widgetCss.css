@@ -264,7 +264,9 @@
     margin-top: 1em;
     overflow: auto;
 }
-
+#remotestorage-widget .centered-text{
+    text-align: center;
+}
 #remotestorage-widget .bubble.hidden {
     padding-bottom: 2px;
     border-radius: 5px 15px 15px 5px;

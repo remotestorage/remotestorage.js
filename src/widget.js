@@ -324,7 +324,7 @@ var cEl = document.createElement.bind(document);
         var errorMsg = err;
         this.div.className = "remotestorage-state-error";
 
-        gCl(this.div, 'bubble-text').innerHTML = 'ERROR'
+        gCl(this.div, 'bubble-text').innerHTML = '<strong> Sorry! An error occured.</strong>'
         if(err instanceof Error) {
           errorMsg = err.message + '\n\n' +
             err.stack;
@@ -352,7 +352,7 @@ var cEl = document.createElement.bind(document);
       },
       reset : function(event){
         event.preventDefault();
-        var result = window.confirm("this will disconnect and erase all your local data, then reload the page, unsynced data will be losst");
+        var result = window.confirm("Are you sure you want to reset everything? That will probably make the error go away, but also clear your entire localStorage and reload the page. Please make sure you know what you are doing, before clicking 'yes' :-)");
         if(result){
           this._emit('reset');
         }
