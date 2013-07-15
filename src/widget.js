@@ -2,7 +2,6 @@
 
   var haveLocalStorage;
   var LS_STATE_KEY = "remotestorage:widget:state";
-  var LS_USERADDRESS_KEY = "remotestorage:view:useraddress"
   function stateSetter(widget, state) {
     return function() {
       if(haveLocalStorage) {
@@ -37,7 +36,6 @@
     this.rs.on('error', errorsHandler(this) );
     if(haveLocalStorage) {
       var state = localStorage[LS_STATE_KEY] = state;
-      var userAddress = localStorage[LS_USERADDRESS_KEY];
       if(state) {
         this._rememberedState = state;
       }
@@ -55,12 +53,7 @@
 
     setView: function(view) {
       this.view = view;
-      this.view.on('connect', function(userAddress) {
-        if(haveLocalStorage) {
-          localStorage[LS_USERADDRESS_KEY] = userAddress;
-        }
-        this.rs.connect(userAddress);
-      }.bind(this));
+      this.view.on('connect', this.rs.connect.bind(this.rs));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
       this.view.on('sync', this.rs.sync.bind(this.rs));
       if(this._rememberedState) {
