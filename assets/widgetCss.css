@@ -49,6 +49,8 @@
 
 #remotestorage-widget .bubble-text {
     padding-right: 32px;
+    /* make sure the bubble doesn't "jump" when initially opening. */
+    min-width: 182px;
 }
 
 #remotestorage-widget .bubble.one-line {
