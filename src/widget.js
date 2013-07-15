@@ -18,10 +18,13 @@
   function errorsHandler(widget){
     //decided to not store error state
     return function(error){
-      if(error[0] == 'discovery failed'){
-        widget.view.setState('initial', [error[1]]);        
+      if(error instanceof RemoteStorage.DiscoveryError) {
+        console.log('discovery failed',  error, '"' + error.message + '"');
+        widget.view.setState('initial', [error.message]);
+      } else if(error instanceof RemoteStorage.SyncError) {
+        widget.view.setState('offline', []);
       } else {
-        widget.view.setState('error', arguments);
+        widget.view.setState('error', [error]);
       }
     }
   }

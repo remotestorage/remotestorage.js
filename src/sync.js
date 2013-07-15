@@ -245,6 +245,8 @@
     });
   };
 
+  RemoteStorage.SyncError = SyncError;
+
   RemoteStorage.prototype.syncCycle = function() {
     this.sync().then(function() {
       this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);

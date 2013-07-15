@@ -70,6 +70,12 @@
     this._init();
   };
 
+  RemoteStorage.DiscoveryError = function(message) {
+    Error.apply(this, arguments);
+    this.message = message;
+  };
+  RemoteStorage.DiscoveryError.prototype = Error.prototype;
+
   RemoteStorage.prototype = {
 
     /**
@@ -92,13 +98,13 @@
      */
     connect: function(userAddress) {
       if( userAddress.indexOf('@') < 0) {
-        this._emit('error', ['discovery failed',"email adress doesn't contain an @"])
+        this._emit('error', new RemoteStorage.DiscoveryError("user adress doesn't contain an @"));
         return;
       }
       this._emit('connecting');
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
         if(!href){
-          this._emit('error', ['discovery failed','webfinger error']);
+          this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
           return;
         }
         this._emit('authing');
