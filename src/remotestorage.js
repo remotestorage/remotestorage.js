@@ -74,7 +74,7 @@
     Error.apply(this, arguments);
     this.message = message;
   };
-  RemoteStorage.DiscoveryError.prototype = Error.prototype;
+  RemoteStorage.DiscoveryError.prototype = Object.create(Error.prototype);
 
   RemoteStorage.prototype = {
 

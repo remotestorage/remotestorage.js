@@ -208,7 +208,7 @@
     Error.apply(this, [msg]);
   };
 
-  SyncError.prototype = Error.prototype;
+  SyncError.prototype = Object.create(Error.prototype);
 
   RemoteStorage.prototype.sync = function() {
     if(! (this.local && this.caching)) {
