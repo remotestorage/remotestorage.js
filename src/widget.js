@@ -93,7 +93,7 @@ var cEl = document.createElement.bind(document);
   function gTl(parent, className) {
     return parent.getElementsByTagName(className)[0];
   }
-    
+
   function show(el, display) {
     if(typeof(display) === 'undefined') {
       display = 'block';
@@ -136,7 +136,7 @@ var cEl = document.createElement.bind(document);
           show_bubble(event);
         }
       }
-      
+
       function hide_bubble(){
         //console.log('hide bubble',bubble);
         addClass(bubble, 'hidden')
@@ -196,7 +196,7 @@ var cEl = document.createElement.bind(document);
       gTl(el, 'img').src = RemoteStorage.Assets.disconnectIcon;
       el.addEventListener('click', this.events.disconnect.bind(this));
 
-      
+
       //get me out of here
       var el = gCl(element, 'remotestorage-reset').addEventListener('click', this.events.reset.bind(this));
       //connect button
@@ -214,12 +214,12 @@ var cEl = document.createElement.bind(document);
       if(this.userAddress) {
         el.value = this.userAddress;
       }
-     
+
       //the cube
       el = gCl(element, 'cube');
       el.src = RemoteStorage.Assets.remoteStorageIcon;
       el.addEventListener('click', toggle_bubble);
-      
+
       //the bubble
       var bubble = gCl(element,'bubble');
       var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
@@ -299,7 +299,7 @@ var cEl = document.createElement.bind(document);
         } else {
           infoEl.classList.remove('remotestorage-error-info');
         }
-        
+
       },
       authing : function() {
         this.div.className = "remotestorage-state-authing";
@@ -322,10 +322,15 @@ var cEl = document.createElement.bind(document);
         gCl(this.div, 'cube').src = RemoteStorage.Assets.remoteStorageIconOffline;
       },
       error : function(err) {
+        var errorMsg = err;
         this.div.className = "remotestorage-state-error";
-        
+
         gCl(this.div, 'bubble-text').innerHTML = 'ERROR'
-        gCl(this.div, 'error-msg').innerHTML = err;     
+        if(err instanceof Error) {
+          errorMsg = err.message + '\n\n' +
+            err.stack;
+        }
+        gCl(this.div, 'error-msg').textContent = errorMsg;
         gCl(this.div, 'cube').src = RemoteStorage.Assets.remoteStorageIconError;
         gCl(this.div, 'bubble').classList.remove('hidden');
       },
@@ -363,5 +368,5 @@ var cEl = document.createElement.bind(document);
     }
   };
 
-  
+
 })(this);
