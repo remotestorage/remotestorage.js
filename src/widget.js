@@ -255,28 +255,32 @@ var cEl = document.createElement.bind(document);
     //  unauthorized - connected, but request returned 401
     currentState : 'initial',
     states :  {
-      initial : function(info) {
+      initial : function(message) {
         var cube = gCl(this.div, 'cube');
         var bubble = this.div.querySelector('.bubble');
-        if(!info)
-          info = 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/" target="_blank">remotestorage.io';
-        else {
+        var info = message || 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/" target="_blank">remotestorage.io';
+        if(message) {
           cube.src = RemoteStorage.Assets.remoteStorageIconError;
           removeClass(cube, 'remotestorage-loading');
           bubble.classList.remove('hidden');
           setTimeout(function(){
             cube.src = RemoteStorage.Assets.remoteStorageIcon;
           },3512)
-          
+        } else {
+          if(! bubble.classList.contains('hidden')) {
+            bubble.classList.add('hidden');
+          }
         }
         this.div.className = "remotestorage-state-initial";
         gCl(this.div, 'status-text').innerHTML = "Connect <strong>remotestorage</strong>";
-        gCl(this.div, 'info').innerHTML = info;
-        
-         // if(! bubble.classList.contains('hidden')) {
-         //   bubble.classList.add('hidden');
-         // }
-        // why make bubble invisible when going into initial
+        var infoEl = gCl(this.div, 'info');
+        infoEl.innerHTML = info;
+
+        if(message) {
+          infoEl.classList.add('remotestorage-error-info');
+        } else {
+          infoEl.classList.remove('remotestorage-error-info');
+        }
         
       },
       authing : function() {

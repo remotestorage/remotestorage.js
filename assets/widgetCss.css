@@ -239,7 +239,7 @@
 }
 
 #remotestorage-widget .remotestorage-error-info {
-    /*color:#f00;*/
+    color: #f92;
 }
 #remotestorage-widget .remotestorage-reset {
     width: 100%;
