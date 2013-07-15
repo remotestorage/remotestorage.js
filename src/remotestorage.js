@@ -304,10 +304,6 @@
       }.bind(this));
     },
 
-    _notReady: function() {
-      throw "remotestorage not ready!";
-    },
-
     /**
      ** CHANGE EVENT HANDLING
      **/
