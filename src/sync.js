@@ -214,6 +214,9 @@
     if(! (this.local && this.caching)) {
       throw "Sync requires 'local' and 'caching'!";
     }
+    if(! this.remote.connected) {
+      return promising().fulfill();
+    }
     var roots = this.caching.rootPaths.slice(0);
     var n = roots.length, i = 0;
     var aborted = false;
