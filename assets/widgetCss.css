@@ -179,6 +179,9 @@
     color: #fff;
 }
 
+#remotestorage-widget button img {
+    vertical-align: baseline;
+}
 #remotestorage-widget button {
     border: none;
     border-radius: 6px;
@@ -268,46 +271,44 @@
 }
 
 #remotestorage-widget .error-msg{
-    min-height : 5em;
+    min-height: 5em;
 }
 
 .bubble.hidden .bubble-expandable {
     display: none;
 }
-
 .remotestorage-state-connected .bubble.hidden{
-    display : none;
+    display: none;
 }
-
 
 .remotestorage-connected {
-    display : none;
+    display: none;
 }
 .remotestorage-state-connected .remotestorage-connected {
-    display : block;
+    display: block;
 }
 .remotestorage-initial {
-    display : none;
+    display: none;
 }
 .remotestorage-state-initial .remotestorage-initial {
-    display : block;
+    display: block;
 }
 .remotestorage-error {
-    display : none;
+    display: none;
 }
 .remotestorage-state-error .remotestorage-error {
-    display : block;
+    display: block;
 }
 .remotestorage-state-authing .remotestorage-authing {
-    display : block;
+    display: block;
 }
 
 .remotestorage-state-busy .bubble{
-    display : none;
+    display: none;
 }
 
 .remotestorage-state-authing .bubble-expandable{
-    display : none;
+    display: none;
 }
 
 
