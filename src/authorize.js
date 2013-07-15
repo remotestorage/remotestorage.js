@@ -11,7 +11,7 @@
 
   RemoteStorage.Authorize = function(authURL, storageApi, scopes, redirectUri) {
     console.log('Authorize authURL = ',authURL)
-    var scope = '';
+    var scope = [];
     for(var key in scopes) {
       var mode = scopes[key];
       if(key == 'root') {
@@ -19,8 +19,9 @@
           key = '';
         }
       }
-      scope += key + ':' + mode;
+      scope.push(key + ':' + mode);
     }
+    scope = scope.join(' ');
 
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
