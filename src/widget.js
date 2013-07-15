@@ -2,7 +2,7 @@
 
   var haveLocalStorage;
   var LS_STATE_KEY = "remotestorage:widget:state";
-  var LS_USERADRESS_KEY = "remotestorage:view:useradress"
+  var LS_USERADDRESS_KEY = "remotestorage:view:useraddress"
   function stateSetter(widget, state) {
     return function() {
       if(haveLocalStorage) {
@@ -37,6 +37,7 @@
     this.rs.on('error', errorsHandler(this) );
     if(haveLocalStorage) {
       var state = localStorage[LS_STATE_KEY] = state;
+      var userAddress = localStorage[LS_USERADDRESS_KEY];
       if(state) {
         this._rememberedState = state;
       }
@@ -54,7 +55,12 @@
 
     setView: function(view) {
       this.view = view;
-      this.view.on('connect', this.rs.connect.bind(this.rs));
+      this.view.on('connect', function(userAddress) {
+        if(haveLocalStorage) {
+          localStorage[LS_USERADDRESS_KEY] = userAddress;
+        }
+        this.rs.connect(userAddress);
+      }.bind(this));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
       this.view.on('sync', this.rs.sync.bind(this.rs));
       if(this._rememberedState) {
@@ -180,8 +186,8 @@ var cEl = document.createElement.bind(document);
         if(event.target.value) cb.removeAttribute('disabled');
         else cb.setAttribute('disabled','disabled');
       });
-      if(haveLocalStorage && localStorage[LS_USERADRESS_KEY]) {
-        el.value = localStorage[LS_USERADRESS_KEY];
+      if(this.userAddress) {
+        el.value = this.userAddress;
       }
      
       //the cube
@@ -214,6 +220,11 @@ var cEl = document.createElement.bind(document);
 
     this.setUserAddress = function(addr) {
       this.userAddress = addr;
+
+      var el;
+      if(this.div && (el = gTl(this.div, 'form').userAddress)) {
+        el.value = this.userAddress;
+      }
     };
   }
 
@@ -287,12 +298,7 @@ var cEl = document.createElement.bind(document);
     events : {
       connect : function(event) {
         event.preventDefault();
-        var userAddress = gTl(this.div, 'form').userAddress.value
-        if(haveLocalStorage) {
-          localStorage[LS_USERADRESS_KEY] = userAddress ;
-        }
-     
-        this._emit('connect', userAddress);
+        this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
       sync : function(event) {
         event.preventDefault();
