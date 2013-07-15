@@ -68,7 +68,9 @@
   };
 
   RemoteStorage.Widget._rs_init = function(remoteStorage) {
-    remoteStorage.widget = new RemoteStorage.Widget(remoteStorage);
+    if(! remoteStorage.widget) {
+      remoteStorage.widget = new RemoteStorage.Widget(remoteStorage);
+    }
   };
 
   RemoteStorage.Widget._rs_supported = function(remoteStorage) {
