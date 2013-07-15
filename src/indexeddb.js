@@ -359,6 +359,10 @@
         }
       }.bind(this);
       event.resolve = makeResolver(local, path);
+    },
+
+    closeDB: function() {
+      this.db.close();
     }
 
   };
@@ -410,7 +414,10 @@
     return 'indexedDB' in global;
   }
 
-  RS.IndexedDB._rs_cleanup = function() {
+  RS.IndexedDB._rs_cleanup = function(remoteStorage) {
+    if(remoteStorage.local) {
+      remoteStorage.local.closeDB();
+    }
     var promise = promising();
     RS.IndexedDB.clean(DEFAULT_DB_NAME, function() {
       promise.fulfill();
