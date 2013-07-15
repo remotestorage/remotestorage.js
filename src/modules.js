@@ -15,6 +15,17 @@
         return instance;
       }
     });
+
+    if(moduleName.indexOf('-') != -1) {
+      var camelizedName = moduleName.replace(/\-[a-z]/g, function(s) {
+        return s[1].toUpperCase();
+      });
+      Object.defineProperty(RemoteStorage.prototype, camelizedName, {
+        get: function() {
+          return this[moduleName];
+        }
+      });
+    }
   };
 
   RemoteStorage.prototype._loadModule = function(moduleName) {
