@@ -59,6 +59,11 @@
       this.view.on('connect', this.rs.connect.bind(this.rs));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
       this.view.on('sync', this.rs.sync.bind(this.rs));
+      this.view.on('reset', function(){
+        this.rs.on('disconnected', document.location.reload.bind(document.location))
+        this.rs.disconnect()
+      }.bind(this));
+
       if(this._rememberedState) {
         stateSetter(this, this._rememberedState)();
         delete this._rememberedState;
@@ -120,7 +125,8 @@ var cEl = document.createElement.bind(document);
                                 'disconnect',
                                 'sync',
                                 'reconnect',
-                                'display');
+                                'display',
+                                'reset');
 
     this.display = function() {
       function toggle_bubble(event) {
@@ -190,10 +196,14 @@ var cEl = document.createElement.bind(document);
       gTl(el, 'img').src = RemoteStorage.Assets.disconnectIcon;
       el.addEventListener('click', this.events.disconnect.bind(this));
 
+      
+      //get me out of here
+      var el = gCl(element, 'remotestorage-reset').addEventListener('click', this.events.reset.bind(this));
       //connect button
       var cb = gCl(element,'connect');
       gTl(cb, 'img').src = RemoteStorage.Assets.connectIcon;
       cb.addEventListener('click', this.events.connect.bind(this));
+
 
       // input
       el = gTl(element, 'form').userAddress;
@@ -223,7 +233,7 @@ var cEl = document.createElement.bind(document);
       this.div = element;
 
       this.states.initial.call(this);
-      this._emit('display');
+      this.events.display.call(this);
       return this.div;
     };
 
@@ -315,9 +325,9 @@ var cEl = document.createElement.bind(document);
         this.div.className = "remotestorage-state-error";
         
         gCl(this.div, 'bubble-text').innerHTML = 'ERROR'
-        gCl(this.div, 'error-msg').innerHTML = err;
-        
+        gCl(this.div, 'error-msg').innerHTML = err;     
         gCl(this.div, 'cube').src = RemoteStorage.Assets.remoteStorageIconError;
+        gCl(this.div, 'bubble').classList.remove('hidden');
       },
       unauthorized : function() {
         this.div.className = "remotestorage-state-unauthorized";
@@ -336,9 +346,20 @@ var cEl = document.createElement.bind(document);
         event.preventDefault();
         this._emit('disconnect');
       },
+      reset : function(event){
+        event.preventDefault();
+        var result = window.confirm("this will disconnect and erase all your local data, then reload the page, unsynced data will be losst");
+        if(result){
+          this._emit('reset');
+        }
+      },
       // FIXME: what are these???
       reconnect : function() {},
-      display : function() {}
+      display : function() {
+        if(event)
+          event.preventDefault();
+        this._emit('display');
+      }
     }
   };
 
