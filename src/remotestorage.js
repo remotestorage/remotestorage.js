@@ -117,6 +117,9 @@
      * From that point on you can connect again (using <connect>).
      */
     disconnect: function() {
+      if(this.remote) {
+        this.remote.configure(null, null, null, null);
+      }
       var n = this._cleanups.length, i = 0;
       var oneDone = function() {
         i++;
