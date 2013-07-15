@@ -132,16 +132,36 @@ var cEl = document.createElement.bind(document);
       function hide_bubble(){
         //console.log('hide bubble',bubble);
         addClass(bubble, 'hidden')
-        document.body.removeEventListener('click', hide_bubble);
+        document.body.removeEventListener('click', hide_bubble_on_body_click);
       }
+
+      function hide_bubble_on_body_click(event) {
+        for(var p = event.target; p != document.body; p = p.parentElement) {
+          if(p.id == 'remotestorage-widget') {
+            return;
+          }
+        }
+        hide_bubble();
+      }
+
       function show_bubble(event){
         //console.log('show bubble',bubble,event)
         removeClass(bubble, 'hidden');
-        if(typeof(event) != 'undefined')
-          event.cancelBubble = true;
-        document.body.addEventListener('click', hide_bubble);
+        if(typeof(event) != 'undefined') {
+          stop_propagation(event);
+        }
+        document.body.addEventListener('click', hide_bubble_on_body_click);
         gTl(bubble,'form').userAddress.focus();
       }
+
+      function stop_propagation(event) {
+        if(typeof(event.stopPropagation) == 'function') {
+          event.stopPropagation();
+        } else {
+          event.cancelBubble = true;
+        }
+      }
+
       if(typeof(this.widget) !== 'undefined')
         return this.widget;
 
@@ -190,8 +210,11 @@ var cEl = document.createElement.bind(document);
       
       //the bubble
       var bubble = gCl(element,'bubble');
-      bubble.addEventListener('click', function(){
-        show_bubble();
+      var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
+      bubble.addEventListener('click', function(event) {
+        if(! bubbleDontCatch[event.target.tagName]) {
+          show_bubble(event);
+        }
       })
       hide_bubble();
 
