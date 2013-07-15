@@ -184,7 +184,12 @@
 
         if(this.remote) {
           this.remote.on('connected', function() {
-            this._emit('ready');
+            try {
+              this._emit('ready');
+            } catch(e) {
+              console.error("'ready' failed: ", e, e.stack);
+              this._emit('error', e);
+            };
           }.bind(this));
         }
 
@@ -198,7 +203,6 @@
 
         try {
           this._emit('features-loaded');
-          this._processPending();
         } catch(exc) {
           console.error("remoteStorage#ready block failed: ");
           if(typeof(exc) == 'string') {
@@ -206,7 +210,9 @@
           } else {
             console.error(exc.message, exc.stack);
           }
+          this._emit('error', exc);
         }
+        this._processPending();
       });
     },
 
@@ -320,9 +326,14 @@
             var ev = {};
             for(var key in event) { ev[key] = event[key]; }
             ev.relativePath = event.path.replace(new RegExp('^' + path), '');
-            handler(ev);
+            try {
+              handler(ev);
+            } catch(e) {
+              console.error("'change' handler failed: ", e, e.stack);
+              this._emit('error', e);
+            }
           }
-        });
+        }.bind(this));
       }
     }
   };
