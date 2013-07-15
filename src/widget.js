@@ -69,9 +69,6 @@
 
   RemoteStorage.Widget._rs_init = function(remoteStorage) {
     remoteStorage.widget = new RemoteStorage.Widget(remoteStorage);
-    window.addEventListener('load', function() {
-      remoteStorage.displayWidget();
-    });
   };
 
   RemoteStorage.Widget._rs_supported = function(remoteStorage) {
