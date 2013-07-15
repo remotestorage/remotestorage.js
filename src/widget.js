@@ -272,6 +272,12 @@ var cEl = document.createElement.bind(document);
         }
         this.div.className = "remotestorage-state-initial";
         gCl(this.div, 'status-text').innerHTML = "Connect <strong>remotestorage</strong>";
+
+        //if address not empty connect button enabled
+        var cb = gCl(this.div, 'connect')
+        if(cb.value)
+          cb.removeAttribute('disabled');
+
         var infoEl = gCl(this.div, 'info');
         infoEl.innerHTML = info;
 

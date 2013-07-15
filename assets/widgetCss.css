@@ -288,11 +288,13 @@
 .remotestorage-state-initial .remotestorage-initial {
     display : block;
 }
-
 .remotestorage-error {
     display : none;
 }
 .remotestorage-state-error .remotestorage-error {
+    display : block;
+}
+.remotestorage-state-authing .remotestorage-authing {
     display : block;
 }
 

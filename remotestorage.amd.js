@@ -658,6 +658,8 @@ define([], function() {
       if(this.href && this.token) {
         this.connected = true;
         this._emit('connected');
+      } else {
+        this.connected = false;
       }
       if(haveLocalStorage) {
         localStorage[SETTINGS_KEY] = JSON.stringify({
@@ -858,7 +860,7 @@ define([], function() {
 
   RemoteStorage.Authorize = function(authURL, storageApi, scopes, redirectUri) {
     console.log('Authorize authURL = ',authURL)
-    var scope = '';
+    var scope = [];
     for(var key in scopes) {
       var mode = scopes[key];
       if(key == 'root') {
@@ -866,8 +868,9 @@ define([], function() {
           key = '';
         }
       }
-      scope += key + ':' + mode;
+      scope.push(key + ':' + mode);
     }
+    scope = scope.join(' ');
 
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
@@ -1126,10 +1129,9 @@ RemoteStorage.Assets = {
   };
 
   RemoteStorage.Widget._rs_init = function(remoteStorage) {
-    remoteStorage.widget = new RemoteStorage.Widget(remoteStorage);
-    window.addEventListener('load', function() {
-      remoteStorage.displayWidget();
-    });
+    if(! remoteStorage.widget) {
+      remoteStorage.widget = new RemoteStorage.Widget(remoteStorage);
+    }
   };
 
   RemoteStorage.Widget._rs_supported = function(remoteStorage) {
@@ -3081,6 +3083,9 @@ global.tv4 = publicApi;
     if(! (this.local && this.caching)) {
       throw "Sync requires 'local' and 'caching'!";
     }
+    if(! this.remote.connected) {
+      return promising().fulfill();
+    }
     var roots = this.caching.rootPaths.slice(0);
     var n = roots.length, i = 0;
     var aborted = false;
@@ -3111,14 +3116,25 @@ global.tv4 = publicApi;
 
   RemoteStorage.prototype.syncCycle = function() {
     this.sync().then(function() {
-      setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
+      this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
     }.bind(this));
+  };
+
+  RemoteStorage.prototype.stopSync = function() {
+    if(this._syncTimer) {
+      clearTimeout(this._syncTimer);
+      delete this._syncTimer;
+    }
   };
 
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
     remoteStorage.on('ready', function() {
       remoteStorage.syncCycle();
     });
+  };
+
+  RemoteStorage.Sync._rs_cleanup = function(remoteStorage) {
+    remoteStorage.stopSync();
   };
 
 })(this);
@@ -3566,6 +3582,17 @@ global.tv4 = publicApi;
         return instance;
       }
     });
+
+    if(moduleName.indexOf('-') != -1) {
+      var camelizedName = moduleName.replace(/\-[a-z]/g, function(s) {
+        return s[1].toUpperCase();
+      });
+      Object.defineProperty(RemoteStorage.prototype, camelizedName, {
+        get: function() {
+          return this[moduleName];
+        }
+      });
+    }
   };
 
   RemoteStorage.prototype._loadModule = function(moduleName) {
