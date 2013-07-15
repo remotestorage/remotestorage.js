@@ -280,7 +280,7 @@
 .remotestorage-state-connected .remotestorage-connected {
     display : block;
 }
-.remotestorage-initial { 
+.remotestorage-initial {
     display : none;
 }
 .remotestorage-state-initial .remotestorage-initial {
@@ -303,4 +303,3 @@
 }
 
 
-}
