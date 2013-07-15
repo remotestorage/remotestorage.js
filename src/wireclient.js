@@ -116,6 +116,8 @@
       if(this.href && this.token) {
         this.connected = true;
         this._emit('connected');
+      } else {
+        this.connected = false;
       }
       if(haveLocalStorage) {
         localStorage[SETTINGS_KEY] = JSON.stringify({
