@@ -124,7 +124,6 @@ var cEl = document.createElement.bind(document);
                                 'connect',
                                 'disconnect',
                                 'sync',
-                                'reconnect',
                                 'display',
                                 'reset');
 
@@ -358,8 +357,6 @@ var cEl = document.createElement.bind(document);
           this._emit('reset');
         }
       },
-      // FIXME: what are these???
-      reconnect : function() {},
       display : function() {
         if(event)
           event.preventDefault();
