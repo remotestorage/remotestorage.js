@@ -102,6 +102,7 @@
         return;
       }
       this._emit('connecting');
+      this.remote.configure(userAddress);
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
         if(!href){
           this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
