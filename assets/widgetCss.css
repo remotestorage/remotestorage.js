@@ -304,6 +304,10 @@
 .remotestorage-state-authing .remotestorage-authing {
     display: block;
 }
+.remotestorage-state-offline .remotestorage-connected,
+.remotestorage-state-offline .remotestorage-offline{
+    display: block;
+}
 
 .remotestorage-state-busy .bubble{
     display: none;

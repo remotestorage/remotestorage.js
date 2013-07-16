@@ -279,6 +279,7 @@ var cEl = document.createElement.bind(document);
           },3512)
         } else {
           if(! bubble.classList.contains('hidden')) {
+            cube.src = RemoteStorage.Assets.remoteStorageIcon;
             bubble.classList.add('hidden');
           }
         }
@@ -321,6 +322,7 @@ var cEl = document.createElement.bind(document);
       offline : function() {
         this.div.className = "remotestorage-state-offline";
         gCl(this.div, 'cube').src = RemoteStorage.Assets.remoteStorageIconOffline;
+        gCl(this.div, 'status-text').innerHTML = 'Offline';
       },
       error : function(err) {
         var errorMsg = err;
