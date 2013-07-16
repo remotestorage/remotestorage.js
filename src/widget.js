@@ -301,8 +301,9 @@ var cEl = document.createElement.bind(document);
 
       },
       authing : function() {
+        console.log(this);
         this.div.className = "remotestorage-state-authing";
-        gCl(this.div, 'status-text').innerHTML = "Connecting";
+        gCl(this.div, 'status-text').innerHTML = "Connecting <strong>"+this.userAddress+"</strong>";
         addClass(gCl(this.div, 'cube'), 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
       },
       connected : function() {
@@ -340,7 +341,8 @@ var cEl = document.createElement.bind(document);
     events : {
       connect : function(event) {
         event.preventDefault();
-        this._emit('connect', gTl(this.div, 'form').userAddress.value);
+        this.userAddress = gTl(this.div, 'form').userAddress.value;
+        this._emit('connect', this.userAddress);
       },
       sync : function(event) {
         event.preventDefault();
