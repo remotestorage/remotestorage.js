@@ -215,8 +215,6 @@
       throw "Sync requires 'local' and 'caching'!";
     }
     if(! this.remote.connected) {
-      rs._emit('sync-busy');
-      rs._emit('sync-done');
       return promising().fulfill();
     }
     var roots = this.caching.rootPaths.slice(0);
@@ -224,7 +222,11 @@
     var aborted = false;
     var rs = this;
     return promising(function(promise) {
-      if(n == 0) return promise.fulfill();
+      if(n == 0) {
+        rs._emit('sync-busy');
+        rs._emit('sync-done');
+        return promise.fulfill();
+      }
       rs._emit('sync-busy');
       var path;
       while((path = roots.shift())) {
