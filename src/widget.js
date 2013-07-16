@@ -357,7 +357,7 @@ var cEl = document.createElement.bind(document);
           this._emit('reset');
         }
       },
-      display : function() {
+      display : function(event) {
         if(event)
           event.preventDefault();
         this._emit('display');
