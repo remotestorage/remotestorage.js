@@ -316,6 +316,7 @@ var cEl = document.createElement.bind(document);
       busy : function() {
         this.div.className = "remotestorage-state-busy";
         addClass(gCl(this.div, 'cube'), 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
+        addClass(gCl(this.div, 'bubble'), 'hidden');
       },
       offline : function() {
         this.div.className = "remotestorage-state-offline";
