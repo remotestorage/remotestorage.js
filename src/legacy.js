@@ -67,6 +67,14 @@
       } else {
         return parts[parts.length-1];
       }
+    },
+
+    bindAll: function(object) {
+      for(var key in this) {
+        if(typeof(object[key]) == 'function') {
+          object[key] = object[key].bind(object);
+        }
+      }
     }
   };
 })();
