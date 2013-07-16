@@ -46,9 +46,9 @@
   };
 
   RemoteStorage.Widget.prototype = {
-    display: function() {
+    display: function(domID) {
       if(! this.view) {
-        this.setView(new View());
+        this.setView(new View(domID));
       }
       this.view.display.apply(this.view, arguments);
       return this;
@@ -71,8 +71,8 @@
     }
   };
 
-  RemoteStorage.prototype.displayWidget = function() {
-    this.widget.display();
+  RemoteStorage.prototype.displayWidget = function(domID) {
+    this.widget.display(domID);
   };
 
   RemoteStorage.Widget._rs_init = function(remoteStorage) {
@@ -127,7 +127,7 @@ var cEl = document.createElement.bind(document);
                                 'display',
                                 'reset');
 
-    this.display = function() {
+    this.display = function(domID) {
       function toggle_bubble(event) {
         if(bubble.className.search('hidden') < 0) {
           hide_bubble(event);
@@ -182,7 +182,15 @@ var cEl = document.createElement.bind(document);
 
 
       element.appendChild(style);
-      document.body.appendChild(element);
+      if(domID) {
+        var parent = document.getElementById(domID);
+        if(! parent) {
+          throw "Failed to find target DOM element with id=\"" + domID + "\"";
+        }
+        parent.appendChild(element);
+      } else {
+        document.body.appendChild(element);
+      }
 
       var el;
       //sync button
