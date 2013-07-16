@@ -342,8 +342,7 @@ var cEl = document.createElement.bind(document);
     events : {
       connect : function(event) {
         event.preventDefault();
-        this.userAddress = gTl(this.div, 'form').userAddress.value;
-        this._emit('connect', this.userAddress);
+        this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
       sync : function(event) {
         event.preventDefault();
