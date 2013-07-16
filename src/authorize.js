@@ -47,8 +47,8 @@
         if(params.access_token) {
           remoteStorage.remote.configure(undefined, undefined, undefined, params.access_token);
         }
-        if(params.user_address) {
-          remoteStorage.connect(params.user_address);
+        if(params.remotestorage) {
+          remoteStorage.connect(params.remotestorage);
         }
         if(params.error) {
           throw "Authorization server errored: " + params.error;
