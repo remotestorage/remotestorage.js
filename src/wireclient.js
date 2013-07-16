@@ -167,6 +167,9 @@
     put: function(path, body, contentType, options) {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
+      if(! contentType.match(/charset=/)) {
+        contentType += '; charset=' + (body instanceof ArrayBuffer ? 'binary' : 'utf-8');
+      }
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
         headers['If-Match'] = options.ifMatch;
