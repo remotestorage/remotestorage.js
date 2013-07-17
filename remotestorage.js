@@ -498,7 +498,7 @@
 
     _validateEvent: function(eventName) {
       if(! (eventName in this._handlers)) {
-        throw "Unknown event: " + eventName;
+        throw new Error("Unknown event: " + eventName);
       }
     },
 
@@ -1142,10 +1142,18 @@ RemoteStorage.Assets = {
       this.view.on('connect', this.rs.connect.bind(this.rs));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
       this.view.on('sync', this.rs.sync.bind(this.rs));
-      this.view.on('reset', function(){
-        this.rs.on('disconnected', document.location.reload.bind(document.location))
-        this.rs.disconnect()
-      }.bind(this));
+      try {
+        this.view.on('reset', function(){
+          this.rs.on('disconnected', document.location.reload.bind(document.location))
+          this.rs.disconnect()
+        }.bind(this));
+      } catch(e) {
+        if(e.message && e.message.match(/Unknown event/)) {
+          // ignored. (the 0.7 widget-view interface didn't have a 'reset' event)
+        } else {
+          throw e;
+        }
+      }
 
       if(this._rememberedState) {
         stateSetter(this, this._rememberedState)();
@@ -3861,7 +3869,6 @@ global.tv4 = publicApi;
 (function() {
   var util = {
     getEventEmitter: function() {
-      console.log('util.getEventEmitter is deprecated.');
       var object = {};
       var args = Array.prototype.slice.call(arguments);
       args.unshift(object);
@@ -3871,7 +3878,6 @@ global.tv4 = publicApi;
     },
 
     extend: function(target) {
-      console.log('util.extend is deprecated.');
       var sources = Array.prototype.slice.call(arguments, 1);
       sources.forEach(function(source) {
         for(var key in source) {
@@ -3882,7 +3888,6 @@ global.tv4 = publicApi;
     },
 
     asyncMap: function(array, callback) {
-      console.log('util.extend is deprecated.');
       var promise = promising();
       var n = array.length, i = 0;
       var results = [], errors = [];
