@@ -276,6 +276,11 @@
     min-height: 5em;
 }
 
+.bubble.hidden {
+    /* some apps have a global "hidden" class that has display:none set. */
+    display: block;
+}
+
 .bubble.hidden .bubble-expandable {
     display: none;
 }
