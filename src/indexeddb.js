@@ -145,6 +145,7 @@
           promise.fulfill(404);
         }
       };
+      transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
 
@@ -193,6 +194,7 @@
           promise.fulfill(200);
         }
       }.bind(this);
+      transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
 
@@ -222,6 +224,7 @@
         }
         promise.fulfill(200);
       }.bind(this);
+      transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
 
@@ -245,6 +248,7 @@
       transaction.oncomplete = function() {
         promise.fulfill();
       };
+      transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
 
@@ -261,6 +265,7 @@
       transaction.oncomplete = function() {
         promise.fulfill(rev);
       };
+      transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
 
@@ -312,6 +317,7 @@
     },
 
     _recordChange: function(path, attributes) {
+      var promise = promising();
       var transaction = this.db.transaction(['changes'], 'readwrite');
       var changes = transaction.objectStore('changes');
       var change;
@@ -323,8 +329,9 @@
         }
         changes.put(change);
       };
-      transaction.oncomplete = function() {
-      };
+      transaction.oncomplete = promiuse.fulfill;
+      transaction.onerror = transaction.onabort = promise.reject;
+      return promise;
     },
 
     clearChange: function(path) {
@@ -411,7 +418,7 @@
       console.log('done removing db');
       callback();
     };
-    req.onerror = function(evt) {
+    req.onerror = req.onabort = function(evt) {
       console.error('failed to remove database "' + databaseName + '"', evt);
     };
   };
