@@ -59,10 +59,18 @@
       this.view.on('connect', this.rs.connect.bind(this.rs));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
       this.view.on('sync', this.rs.sync.bind(this.rs));
-      this.view.on('reset', function(){
-        this.rs.on('disconnected', document.location.reload.bind(document.location))
-        this.rs.disconnect()
-      }.bind(this));
+      try {
+        this.view.on('reset', function(){
+          this.rs.on('disconnected', document.location.reload.bind(document.location))
+          this.rs.disconnect()
+        }.bind(this));
+      } catch(e) {
+        if(e.message && e.message.match(/Unknown event/)) {
+          // ignored. (the 0.7 widget-view interface didn't have a 'reset' event)
+        } else {
+          throw e;
+        }
+      }
 
       if(this._rememberedState) {
         stateSetter(this, this._rememberedState)();
