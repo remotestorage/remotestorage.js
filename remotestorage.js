@@ -3384,11 +3384,21 @@ global.tv4 = publicApi;
       var nodes = transaction.objectStore('nodes');
       var oldNode;
       nodes.get(path).onsuccess = function(evt) {
-        oldNode = evt.target.result;
-        var node = {
-          path: path, contentType: contentType, body: body
+        try {
+          oldNode = evt.target.result;
+          var node = {
+            path: path, contentType: contentType, body: body
+          };
+          nodes.put(node).onsuccess = function() {
+            try {
+              addToParent(nodes, path, 'body');
+            } catch(e) {
+              promise.reject(e);
+            };
+          };
+        } catch(e) {
+          promise.reject(e);
         };
-        nodes.put(node).onsuccess = function() { addToParent(nodes, path, 'body'); };
       };
       transaction.oncomplete = function() {
         this._emit('change', {
