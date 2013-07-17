@@ -2,7 +2,6 @@
 (function() {
   var util = {
     getEventEmitter: function() {
-      console.log('util.getEventEmitter is deprecated.');
       var object = {};
       var args = Array.prototype.slice.call(arguments);
       args.unshift(object);
@@ -12,7 +11,6 @@
     },
 
     extend: function(target) {
-      console.log('util.extend is deprecated.');
       var sources = Array.prototype.slice.call(arguments, 1);
       sources.forEach(function(source) {
         for(var key in source) {
@@ -23,7 +21,6 @@
     },
 
     asyncMap: function(array, callback) {
-      console.log('util.extend is deprecated.');
       var promise = promising();
       var n = array.length, i = 0;
       var results = [], errors = [];
