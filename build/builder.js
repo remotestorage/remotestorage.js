@@ -8,9 +8,13 @@ exports.build = function(components, selectedGroups, options) {
   var version = RemoteStorage.version;
   delete global.RemoteStorage;
 
-  output += "/** remotestorage.js " + version.toString() + " remotestorage.io, MIT-licensed **/"
+  output += "/** remotestorage.js " + version.toString() + " remotestorage.io, MIT-licensed **/\n"
 
-  console.error("Building remotestorage.js " + version.toString());
+  console.error("Building version " + version.toString());
+
+  if(options.amd) {
+    output += 'define([], function() {\n';
+  }
 
   var files = [];
   selectedGroups.forEach(function(group) {
@@ -25,10 +29,7 @@ exports.build = function(components, selectedGroups, options) {
     output += "\n";
   });
   if(options.amd) {
-    output = 'define([], function() {\n' +
-      output +
-      'return new RemoteStorage();\n' +
-      '});\n';
+    output += 'return new RemoteStorage();\n});\n';
   } else {
     output += 'remoteStorage = new RemoteStorage();'
   }
