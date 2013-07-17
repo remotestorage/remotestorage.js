@@ -216,6 +216,7 @@
         return;
       }
       this._emit('connecting');
+      this.remote.configure(userAddress);
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
         if(!href){
           this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
@@ -240,6 +241,11 @@
       if(this.remote) {
         this.remote.configure(null, null, null, null);
       }
+      this._setGPD({
+        get: this._pendingGPD('get'),
+        put: this._pendingGPD('put'),
+        delete: this._pendingGPD('delete')
+      });
       var n = this._cleanups.length, i = 0;
       var oneDone = function() {
         i++;
@@ -422,6 +428,7 @@
       this._pending.forEach(function(pending) {
         this[pending.method].apply(this, pending.args).then(pending.promise.fulfill, pending.promise.reject);
       }.bind(this));
+      this._pending = [];
     },
 
     /**
@@ -721,6 +728,9 @@
     put: function(path, body, contentType, options) {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
+      if(! contentType.match(/charset=/)) {
+        contentType += '; charset=' + (body instanceof ArrayBuffer ? 'binary' : 'utf-8');
+      }
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
         headers['If-Match'] = options.ifMatch;
@@ -908,8 +918,8 @@
         if(params.access_token) {
           remoteStorage.remote.configure(undefined, undefined, undefined, params.access_token);
         }
-        if(params.user_address) {
-          remoteStorage.connect(params.user_address);
+        if(params.remotestorage) {
+          remoteStorage.connect(params.remotestorage);
         }
         if(params.error) {
           throw "Authorization server errored: " + params.error;
@@ -1119,9 +1129,9 @@ RemoteStorage.Assets = {
   };
 
   RemoteStorage.Widget.prototype = {
-    display: function() {
+    display: function(domID) {
       if(! this.view) {
-        this.setView(new View());
+        this.setView(new View(domID));
       }
       this.view.display.apply(this.view, arguments);
       return this;
@@ -1144,8 +1154,8 @@ RemoteStorage.Assets = {
     }
   };
 
-  RemoteStorage.prototype.displayWidget = function() {
-    this.widget.display();
+  RemoteStorage.prototype.displayWidget = function(domID) {
+    this.widget.display(domID);
   };
 
   RemoteStorage.Widget._rs_init = function(remoteStorage) {
@@ -1200,7 +1210,7 @@ var cEl = document.createElement.bind(document);
                                 'display',
                                 'reset');
 
-    this.display = function() {
+    this.display = function(domID) {
       function toggle_bubble(event) {
         if(bubble.className.search('hidden') < 0) {
           hide_bubble(event);
@@ -1255,7 +1265,15 @@ var cEl = document.createElement.bind(document);
 
 
       element.appendChild(style);
-      document.body.appendChild(element);
+      if(domID) {
+        var parent = document.getElementById(domID);
+        if(! parent) {
+          throw "Failed to find target DOM element with id=\"" + domID + "\"";
+        }
+        parent.appendChild(element);
+      } else {
+        document.body.appendChild(element);
+      }
 
       var el;
       //sync button
@@ -1417,8 +1435,7 @@ var cEl = document.createElement.bind(document);
     events : {
       connect : function(event) {
         event.preventDefault();
-        this.userAddress = gTl(this.div, 'form').userAddress.value;
-        this._emit('connect', this.userAddress);
+        this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
       sync : function(event) {
         event.preventDefault();
@@ -3842,7 +3859,7 @@ global.tv4 = publicApi;
 /** FILE: src/legacy.js **/
 
 (function() {
-  var util = RemoteStorage.prototype.util = {
+  var util = {
     getEventEmitter: function() {
       console.log('util.getEventEmitter is deprecated.');
       var object = {};
@@ -3909,8 +3926,24 @@ global.tv4 = publicApi;
       } else {
         return parts[parts.length-1];
       }
+    },
+
+    bindAll: function(object) {
+      for(var key in this) {
+        if(typeof(object[key]) == 'function') {
+          object[key] = object[key].bind(object);
+        }
+      }
     }
   };
+
+  Object.defineProperty(RemoteStorage.prototype, 'util', {
+    get: function() {
+      console.log("DEPRECATION WARNING: remoteStorage.util is deprecated and will be removed with the next major release.");
+      return util;
+    }
+  });
+
 })();
 
 remoteStorage = new RemoteStorage();
