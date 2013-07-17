@@ -1,5 +1,5 @@
 function(window){
-var cEl = document.createElement.bind(document);
+  var cEl = document.createElement.bind(document);
 
   function gCl(parent, className) {
     return parent.getElementsByClassName(className)[0];
@@ -203,4 +203,4 @@ var cEl = document.createElement.bind(document);
     }
   };
 
-}.bind(this);
+})(this);
