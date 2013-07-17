@@ -127,6 +127,11 @@
       if(this.remote) {
         this.remote.configure(null, null, null, null);
       }
+      this._setGPD({
+        get: this._pendingGPD('get'),
+        put: this._pendingGPD('put'),
+        delete: this._pendingGPD('delete')
+      });
       var n = this._cleanups.length, i = 0;
       var oneDone = function() {
         i++;
@@ -309,6 +314,7 @@
       this._pending.forEach(function(pending) {
         this[pending.method].apply(this, pending.args).then(pending.promise.fulfill, pending.promise.reject);
       }.bind(this));
+      this._pending = [];
     },
 
     /**
