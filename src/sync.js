@@ -243,12 +243,12 @@
           }, function(error) {
             console.error('syncing', path, 'failed:', error);
             aborted = true;
+            rs._emit('sync-done');
             if(error instanceof RemoteStorage.Unauthorized) {
               rs._emit('error', error);
             } else {
               rs._emit('error', new SyncError(error));
             }
-            rs._emit('sync-done');
             promise.reject(error);
           });
       }

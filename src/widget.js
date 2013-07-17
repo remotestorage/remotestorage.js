@@ -23,6 +23,8 @@
         widget.view.setState('initial', [error.message]);
       } else if(error instanceof RemoteStorage.SyncError) {
         widget.view.setState('offline', []);
+      } else if(error instanceof RemoteStorage.Unauthorized){
+        widget.view.setState('unauthorized')
       } else {
         widget.view.setState('error', [error]);
       }
@@ -318,6 +320,7 @@ var cEl = document.createElement.bind(document);
 
       },
       authing : function() {
+        bubbleText.removeEventListener('click', this.events.connect.bind(this));
         console.log(this);
         this.div.className = "remotestorage-state-authing";
         gCl(this.div, 'status-text').innerHTML = "Connecting <strong>"+this.userAddress+"</strong>";
@@ -355,6 +358,10 @@ var cEl = document.createElement.bind(document);
       },
       unauthorized : function() {
         this.div.className = "remotestorage-state-unauthorized";
+        gCl(this.div, 'cube').src = RemoteStorage.Assets.remoteStorageIconError;
+        bubbleText = gCl(this.div, 'bubble-text');
+        bubbleText.innerHTML = "<strong>"+this.userAddress+"</strong><br>Unauthorized! Click to reconnect.</br>";
+        bubbleText.addEventListener('click', this.events.connect.bind(this));
       }
     },
     events : {
