@@ -157,6 +157,11 @@
         if(typeof(body) === 'object') {
           var promise = promising();
           var count = Object.keys(body).length, i = 0;
+          if(count == 0) {
+            // treat this like 404. it probably means a directory listing that
+            // has changes that haven't been pushed out yet.
+            return;
+          }
           for(var key in body) {
             this.storage.get(this.makePath(path + key)).
               then(function(status, b) {
