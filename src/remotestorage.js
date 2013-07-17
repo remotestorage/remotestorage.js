@@ -76,6 +76,9 @@
   };
   RemoteStorage.DiscoveryError.prototype = Object.create(Error.prototype);
 
+  RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
+  RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
+
   RemoteStorage.prototype = {
 
     /**

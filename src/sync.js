@@ -71,7 +71,9 @@
       remote.get(path, {
         ifNoneMatch: localRevision
       }).then(function(remoteStatus, remoteBody, remoteContentType, remoteRevision) {
-        if(remoteStatus == 412 || remoteStatus == 304) {
+        if(remoteStatus == 401 || remoteStatus == 403) {
+          throw new RemoteStorage.Unauthorized();
+        } else if(remoteStatus == 412 || remoteStatus == 304) {
           // up to date.
           promise.fulfill();
         } else if(localStatus == 404 && remoteStatus == 200) {
@@ -241,7 +243,11 @@
           }, function(error) {
             console.error('syncing', path, 'failed:', error);
             aborted = true;
-            rs._emit('error', new SyncError(error));
+            if(error instanceof RemoteStorage.Unauthorized) {
+              rs._emit('error', error);
+            } else {
+              rs._emit('error', new SyncError(error));
+            }
             rs._emit('sync-done');
             promise.reject(error);
           });
