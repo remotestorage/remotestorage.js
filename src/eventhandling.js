@@ -31,7 +31,7 @@
 
     _validateEvent: function(eventName) {
       if(! (eventName in this._handlers)) {
-        throw "Unknown event: " + eventName;
+        throw new Error("Unknown event: " + eventName);
       }
     },
 
