@@ -192,6 +192,9 @@ define([], function() {
   };
   RemoteStorage.DiscoveryError.prototype = Object.create(Error.prototype);
 
+  RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
+  RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
+
   RemoteStorage.prototype = {
 
     /**
@@ -3098,7 +3101,9 @@ Math.uuid = function (len, radix) {
       remote.get(path, {
         ifNoneMatch: localRevision
       }).then(function(remoteStatus, remoteBody, remoteContentType, remoteRevision) {
-        if(remoteStatus == 412 || remoteStatus == 304) {
+        if(remoteStatus == 401 || remoteStatus == 403) {
+          throw new RemoteStorage.Unauthorized();
+        } else if(remoteStatus == 412 || remoteStatus == 304) {
           // up to date.
           promise.fulfill();
         } else if(localStatus == 404 && remoteStatus == 200) {
@@ -3268,7 +3273,11 @@ Math.uuid = function (len, radix) {
           }, function(error) {
             console.error('syncing', path, 'failed:', error);
             aborted = true;
-            rs._emit('error', new SyncError(error));
+            if(error instanceof RemoteStorage.Unauthorized) {
+              rs._emit('error', error);
+            } else {
+              rs._emit('error', new SyncError(error));
+            }
             rs._emit('sync-done');
             promise.reject(error);
           });
@@ -3452,6 +3461,7 @@ Math.uuid = function (len, radix) {
           promise.fulfill(404);
         }
       };
+      transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
 
@@ -3500,6 +3510,7 @@ Math.uuid = function (len, radix) {
           promise.fulfill(200);
         }
       }.bind(this);
+      transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
 
@@ -3529,6 +3540,7 @@ Math.uuid = function (len, radix) {
         }
         promise.fulfill(200);
       }.bind(this);
+      transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
 
@@ -3552,6 +3564,7 @@ Math.uuid = function (len, radix) {
       transaction.oncomplete = function() {
         promise.fulfill();
       };
+      transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
 
@@ -3568,6 +3581,7 @@ Math.uuid = function (len, radix) {
       transaction.oncomplete = function() {
         promise.fulfill(rev);
       };
+      transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
 
@@ -3619,6 +3633,7 @@ Math.uuid = function (len, radix) {
     },
 
     _recordChange: function(path, attributes) {
+      var promise = promising();
       var transaction = this.db.transaction(['changes'], 'readwrite');
       var changes = transaction.objectStore('changes');
       var change;
@@ -3630,8 +3645,9 @@ Math.uuid = function (len, radix) {
         }
         changes.put(change);
       };
-      transaction.oncomplete = function() {
-      };
+      transaction.oncomplete = promiuse.fulfill;
+      transaction.onerror = transaction.onabort = promise.reject;
+      return promise;
     },
 
     clearChange: function(path) {
@@ -3718,7 +3734,7 @@ Math.uuid = function (len, radix) {
       console.log('done removing db');
       callback();
     };
-    req.onerror = function(evt) {
+    req.onerror = req.onabort = function(evt) {
       console.error('failed to remove database "' + databaseName + '"', evt);
     };
   };
