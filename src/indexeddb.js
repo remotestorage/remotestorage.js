@@ -154,6 +154,7 @@
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodes = transaction.objectStore('nodes');
       var oldNode;
+      var done;
       nodes.get(path).onsuccess = function(evt) {
         try {
           oldNode = evt.target.result;
@@ -164,11 +165,17 @@
             try {
               addToParent(nodes, path, 'body');
             } catch(e) {
-              promise.reject(e);
+              if(typeof(done) === 'undefined') {
+                done = true;
+                promise.reject(e);
+              }
             };
           };
         } catch(e) {
-          promise.reject(e);
+          if(typeof(done) === 'undefined') {
+            done = true;
+            promise.reject(e);
+          }
         };
       };
       transaction.oncomplete = function() {
@@ -181,7 +188,10 @@
         if(! incoming) {
           this._recordChange(path, { action: 'PUT' });
         }
-        promise.fulfill(200);
+        if(typeof(done) === 'undefined') {
+          done = true;
+          promise.fulfill(200);
+        }
       }.bind(this);
       return promise;
     },
