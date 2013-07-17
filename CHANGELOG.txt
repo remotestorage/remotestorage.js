@@ -19,6 +19,11 @@
   * Added BaseClient#scope() to get BaseClient instances of paths nested below the module root.
   * Made validation schemas global (schemas from other modules can be referred to using: <module-name>/<type-alias>)
   * Added 'inspect' debug widget. If debug support is built in, use remoteStorage.inspect() in your app to try it.
+  * Deprectated the "util" part. It contained a lot of utility functions that bloated the library and are also
+    available in the same or similar form from third-party libraries.
+    Until the next major release a subset of the "util" object will still be available (see "src/legacy.js" for
+    a list of methods that are included).
+
 
 0.7.0
 =====

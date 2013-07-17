@@ -1,6 +1,6 @@
 
 (function() {
-  var util = RemoteStorage.prototype.util = {
+  var util = {
     getEventEmitter: function() {
       console.log('util.getEventEmitter is deprecated.');
       var object = {};
@@ -77,4 +77,12 @@
       }
     }
   };
+
+  Object.defineProperty(RemoteStorage.prototype, 'util', {
+    get: function() {
+      console.log("DEPRECATION WARNING: remoteStorage.util is deprecated and will be removed with the next major release.");
+      return util;
+    }
+  });
+
 })();
