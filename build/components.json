@@ -2,6 +2,7 @@
   "files": {
     "lib/promising.js": "A Promises/A+ implementation",
     "lib/tv4.js": "Tiny Validator for v4 JSON Schema",
+    "lib/Math.uuid.js": "Universally-Unique-ID generator",
 
     "src/remotestorage.js": "Glue Code",
     "src/eventhandling.js": "Common event handling procedures",
@@ -50,6 +51,7 @@
       "desc": "High-level client",
       "files": [
         "lib/tv4.js",
+        "lib/Math.uuid.js",
         "src/baseclient.js",
         "src/baseclient/types.js"
       ],

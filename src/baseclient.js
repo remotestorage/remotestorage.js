@@ -390,6 +390,10 @@
       } else {
         return undefined;
       }
+    },
+
+    uuid: function() {
+      return Math.uuid();
     }
 
   };
