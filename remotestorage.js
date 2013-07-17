@@ -1,3 +1,4 @@
+/** remotestorage.js remotestorage.js 0.8.0-dev remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/promising.js **/
 (function(global) {
