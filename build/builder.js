@@ -1,13 +1,23 @@
 var fs = require('fs');
 
 exports.build = function(components, selectedGroups, options) {
+  var output = '';
+
+  global.RemoteStorage = function() {};
+  eval(fs.readFileSync('./src/version.js', 'UTF-8'));
+  var version = RemoteStorage.version;
+  delete global.RemoteStorage;
+
+  output += "/** remotestorage.js " + version.toString() + " remotestorage.io, MIT-licensed **/"
+
+  console.error("Building remotestorage.js " + version.toString());
+
   var files = [];
   selectedGroups.forEach(function(group) {
     if(components.groups[group]) {
       files = files.concat(components.groups[group].files);
     }
   });
-  var output = '';
   files.forEach(function(file) {
     console.error("Adding file: " + file);
     output += '\n/** FILE: ' + file + ' **/\n'
