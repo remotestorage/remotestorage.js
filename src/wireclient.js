@@ -83,10 +83,14 @@
     return path.replace(/\/+/g, '/');
   }
 
-  RS.WireClient = function() {
+  RS.WireClient = function(rs) {
     this.connected = false;
     RS.eventHandling(this, 'change', 'connected');
-
+    rs.on('error', function(error){
+      if(error instanceof RemoteStorage.Unauthorized){
+        rs.remote.configure(undefined, undefined, undefined, null);
+      }
+    })
     if(haveLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {};
@@ -193,7 +197,7 @@
     Object.defineProperty(RS.prototype, 'remote', {
       configurable: true,
       get: function() {
-        var wireclient = new RS.WireClient();
+        var wireclient = new RS.WireClient(this);
         Object.defineProperty(this, 'remote', {
           value: wireclient
         });
