@@ -278,7 +278,7 @@
         this.div.className = "remotestorage-state-error";
 
         gCl(this.div, 'bubble-text').innerHTML = '<strong> Sorry! An error occured.</strong>'
-        if(err instanceof Error) {
+        if(err instanceof Error || err instanceof DOMError) {
           errorMsg = err.message + '\n\n' +
             err.stack;
         }
