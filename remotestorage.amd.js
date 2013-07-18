@@ -229,7 +229,9 @@ define([], function() {
         }
         this._emit('authing');
         this.remote.configure(userAddress, href, storageApi);
-        this.authorize(authURL);
+        if(! this.remote.connected) {
+          this.authorize(authURL);
+        }
       }.bind(this));
     },
 
@@ -1486,7 +1488,7 @@ RemoteStorage.Assets = {
         this.div.className = "remotestorage-state-error";
 
         gCl(this.div, 'bubble-text').innerHTML = '<strong> Sorry! An error occured.</strong>'
-        if(err instanceof Error) {
+        if(err instanceof Error || err instanceof DOMError) {
           errorMsg = err.message + '\n\n' +
             err.stack;
         }
@@ -3773,7 +3775,8 @@ Math.uuid = function (len, radix) {
   RS.IndexedDB.open = function(name, callback) {
     var dbOpen = indexedDB.open(name, DB_VERSION);
     dbOpen.onerror = function() {
-      console.error("Opening db failed: ", dbOpen.errorCode);
+      console.log('opening db failed', dbOpen);
+      callback(dbOpen.error);
     };
     dbOpen.onupgradeneeded = function(event) {
       var db = dbOpen.result;
@@ -3783,7 +3786,7 @@ Math.uuid = function (len, radix) {
       db.createObjectStore('changes', { keyPath: 'path' });
     }
     dbOpen.onsuccess = function() {
-      callback(dbOpen.result);
+      callback(null, dbOpen.result);
     };
   };
 
@@ -3805,9 +3808,20 @@ Math.uuid = function (len, radix) {
         remoteStorage.local._fireInitial();
       });
     });
-    RS.IndexedDB.open(DEFAULT_DB_NAME, function(db) {
-      DEFAULT_DB = db;
-      promise.fulfill();
+    RS.IndexedDB.open(DEFAULT_DB_NAME, function(err, db) {
+      if(err) {
+        if(err.name == 'InvalidStateError') {
+          // firefox throws this when trying to open an indexedDB in private browsing mode
+          var err = new Error("IndexedDB couldn't be opened.");
+          // instead of a stack trace, display some explaination:
+          err.stack = "If you are using Firefox, please disable\nprivate browsing mode.\n\nOtherwise please report your problem\nusing the link below";
+          remoteStorage._emit('error', err);
+        } else {
+        }
+      } else {
+        DEFAULT_DB = db;
+        promise.fulfill();
+      }
     });
     return promise;
   };
