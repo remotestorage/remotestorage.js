@@ -2,6 +2,8 @@
 
   var haveLocalStorage;
   var LS_STATE_KEY = "remotestorage:widget:state";
+  
+
   function stateSetter(widget, state) {
     return function() {
       if(haveLocalStorage) {
@@ -31,10 +33,12 @@
     }
   }
   RemoteStorage.Widget = function(remoteStorage) {
+  
+    // setting event listeners on rs events to put  
+    // the widget into corresponding states
     this.rs = remoteStorage;
     this.rs.on('ready', stateSetter(this, 'connected'));
     this.rs.on('disconnected', stateSetter(this, 'initial'));
-    //this.rs.on('connecting', stateSetter(this, 'connecting'))
     this.rs.on('authing', stateSetter(this, 'authing'));
     this.rs.on('sync-busy', stateSetter(this, 'busy'));
     this.rs.on('sync-done', stateSetter(this, 'connected'));
@@ -48,6 +52,16 @@
   };
 
   RemoteStorage.Widget.prototype = {
+    // Methods :
+    //   display(domID)
+    //     displays the widget via the view.display method
+    //    returns: this
+    //   
+    //   setView(view)
+    //     sets the view and initializes event listeners to
+    //     react on widget events
+    //   
+    
     display: function(domID) {
       if(! this.view) {
         this.setView(new RemoteStorage.Widget.View(domID));

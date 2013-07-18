@@ -72,7 +72,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "the 'features-loaded' handler initiates a connection attempt, when it sees a user address",
         run: function(env, test) {
           var storage = new RemoteStorage;
-          document.location.hash = '#user_address=nil%40heahdk.net';
+          document.location.hash = '#remotestorage=nil%40heahdk.net';
           RemoteStorage.Authorize._rs_init(storage);
           storage.connect = function(userAddress) {
             test.assert(userAddress, 'nil@heahdk.net');
