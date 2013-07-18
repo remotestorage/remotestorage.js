@@ -51,10 +51,10 @@ define(['requirejs'], function(requirejs, undefined) {
           }
         });
       });
-      var rs = new RemoteStorage();
-      RemoteStorage.eventHandling(rs, 'error');
-      env.client = new RemoteStorage.WireClient(rs);
-      env.connectedClient = new RemoteStorage.WireClient(rs);
+      env.rs = new RemoteStorage();
+      RemoteStorage.eventHandling(env.rs, 'error');
+      env.client = new RemoteStorage.WireClient(env.rs);
+      env.connectedClient = new RemoteStorage.WireClient(env.rs);
       env.baseURI = 'https://example.com/storage/test';
       env.token = 'foobarbaz';
       env.connectedClient.configure(
@@ -288,7 +288,16 @@ define(['requirejs'], function(requirejs, undefined) {
           req.responseText = '{"response":"body"}';
           req._onload();
         }
-      }
+      }// ,
+      
+      // {
+      //   desc: "WireClient destroys the bearer token after Unauthorized Error",
+      //   run: function(env, test){
+      //     env.rs._emit('error', RemoteStorage.SyncError);
+      //     test.assert(env.connectedClient.token, null);
+      //     test.done();
+      //   }
+      // }
 
     ]
   });

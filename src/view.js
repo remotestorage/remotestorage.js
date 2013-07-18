@@ -148,8 +148,9 @@
       // what is the meaning of this hiding the b
       var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
       this.bubble.addEventListener('click', function(event) {
-        if(! bubbleDontCatch[event.target.tagName] || this.div.classList.contains('remotestorage-state-unauthorized')) {
-          this.hide_bubble(event);
+        if(! bubbleDontCatch[event.target.tagName] && ! (this.div.classList.contains('remotestorage-state-unauthorized') )) {
+          
+          this.show_bubble(event);
         };
       }.bind(this))
       this.hide_bubble();
