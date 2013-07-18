@@ -41,9 +41,9 @@
       "label": "Connect Widget",
       "desc": "Provides UI to connect to a user's remotestorage.",
       "files": [
-	"src/view.js",
         "src/assets.js",
-        "src/widget.js"
+        "src/widget.js",
+	"src/view.js"
       ],
       "default": true,
       "depends": ["core"]
