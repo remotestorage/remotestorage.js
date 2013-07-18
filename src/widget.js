@@ -146,7 +146,6 @@ var cEl = document.createElement.bind(document);
                                 'reset');
 
     this.toggle_bubble = function(event) {
-      console.log(this);
       if(this.bubble.className.search('hidden') < 0) {
         this.hide_bubble(event);
       } else {
@@ -155,7 +154,7 @@ var cEl = document.createElement.bind(document);
     }.bind(this);
 
     this.hide_bubble = function(){
-      console.log('hide bubble',this);
+      //console.log('hide bubble',this);
       addClass(this.bubble, 'hidden')
       document.body.removeEventListener('click', hide_bubble_on_body_click);
     }
@@ -170,7 +169,7 @@ var cEl = document.createElement.bind(document);
     }.bind(this);
 
     this.show_bubble = function(event){
-      //console.log('show bubble',bubble,event)
+      //console.log('show bubble',this.bubble,event)
       removeClass(this.bubble, 'hidden');
       if(typeof(event) != 'undefined') {
          stop_propagation(event);
@@ -244,10 +243,11 @@ var cEl = document.createElement.bind(document);
 
       //the bubble
       this.bubble = gCl(element,'bubble');
+      // what is the meaning of this hiding the b
       var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
       this.bubble.addEventListener('click', function(event) {
-        if(! bubbleDontCatch[event.target.tagName]) {
-          this.show_bubble(event);
+        if(! bubbleDontCatch[event.target.tagName] || this.div.classList.search('remotestorage-state-unauthorized')) {
+          this.hide_bubble(event);
         };
       }.bind(this))
       this.hide_bubble();
