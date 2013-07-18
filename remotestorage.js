@@ -354,11 +354,11 @@
         'Caching',
         'Discover',
         'Authorize',
+	      'Widget',
         'IndexedDB',
         'LocalStorage',
         'Sync',
-        'BaseClient',
-	'Widget'
+        'BaseClient'
       ].map(function(featureName) {
         var impl = RemoteStorage[featureName];
         return {
@@ -1095,7 +1095,10 @@ RemoteStorage.Assets = {
 
   var haveLocalStorage;
   var LS_STATE_KEY = "remotestorage:widget:state";
-  
+  // states allowed to immediately jump into after a reload.
+  var VALID_ENTRY_STATES = {
+    initial: true, connected: true, offline: true
+  };
 
   function stateSetter(widget, state) {
     return function() {
@@ -1126,8 +1129,8 @@ RemoteStorage.Assets = {
     }
   }
   RemoteStorage.Widget = function(remoteStorage) {
-  
-    // setting event listeners on rs events to put  
+
+    // setting event listeners on rs events to put
     // the widget into corresponding states
     this.rs = remoteStorage;
     this.rs.on('ready', stateSetter(this, 'connected'));
@@ -1138,7 +1141,7 @@ RemoteStorage.Assets = {
     this.rs.on('error', errorsHandler(this) );
     if(haveLocalStorage) {
       var state = localStorage[LS_STATE_KEY] = state;
-      if(state) {
+      if(state && VALID_ENTRY_STATES[state]) {
         this._rememberedState = state;
       }
     }
@@ -1149,12 +1152,12 @@ RemoteStorage.Assets = {
     //   display(domID)
     //     displays the widget via the view.display method
     //    returns: this
-    //   
+    //
     //   setView(view)
     //     sets the view and initializes event listeners to
     //     react on widget events
-    //   
-    
+    //
+
     display: function(domID) {
       if(! this.view) {
         this.setView(new RemoteStorage.Widget.View(domID));
@@ -1187,7 +1190,7 @@ RemoteStorage.Assets = {
       }
     }
   };
- 
+
   RemoteStorage.prototype.displayWidget = function(domID) {
     this.widget.display(domID);
   };
@@ -1208,7 +1211,7 @@ RemoteStorage.Assets = {
 
 /** FILE: src/view.js **/
 (function(window){
- 
+
 
   //
   // helper methods
@@ -1251,7 +1254,7 @@ RemoteStorage.Assets = {
 
     // re-binding the event so they can be called from the window
     for(var event in this.events){
-      this.events[event] = this.events[event].bind(this); 
+      this.events[event] = this.events[event].bind(this);
     }
 
 
@@ -1350,7 +1353,7 @@ RemoteStorage.Assets = {
       el = gCl(element, 'cube');
       el.src = RemoteStorage.Assets.remoteStorageIcon;
       el.addEventListener('click', this.toggle_bubble);
-      this.cube = el 
+      this.cube = el
 
       //the bubble
       this.bubble = gCl(element,'bubble');
@@ -1358,7 +1361,7 @@ RemoteStorage.Assets = {
       var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
       this.bubble.addEventListener('click', function(event) {
         if(! bubbleDontCatch[event.target.tagName] && ! (this.div.classList.contains('remotestorage-state-unauthorized') )) {
-          
+
           this.show_bubble(event);
         };
       }.bind(this))
@@ -1374,7 +1377,7 @@ RemoteStorage.Assets = {
   }
 
   RemoteStorage.Widget.View.prototype = {
-    
+
     // Methods:
     //
     //  display(domID)
@@ -1389,8 +1392,8 @@ RemoteStorage.Assets = {
     //    shows the bubble when hidden and the other way around
     //
     //  setState(state, args)
-    //    calls states[state] 
-    //    args are the arguments for the 
+    //    calls states[state]
+    //    args are the arguments for the
     //    state(errors mostly)
     //
     // setUserAddres
@@ -1450,7 +1453,7 @@ RemoteStorage.Assets = {
         var cb = gCl(this.div, 'connect')
         if(cb.value)
           cb.removeAttribute('disabled');
-        
+
         var infoEl = gCl(this.div, 'info');
         infoEl.innerHTML = info;
 
@@ -1513,7 +1516,7 @@ RemoteStorage.Assets = {
       sync : function(event) {
         stop_propagation(event);
         event.preventDefault();
-        
+
         this._emit('sync');
       },
       disconnect : function(event) {
@@ -2648,15 +2651,15 @@ Math.uuid = function (len, radix) {
 
     /**
      * Method: getObject
-     * 
+     *
      * Get a JSON object from given path.
-     * 
+     *
      * Parameters:
      *   path     - relative path from the module root (without leading slash)
-     * 
+     *
      * Returns:
      *   A promise for the object.
-     * 
+     *
      * Example:
      *   (start code)
      *   client.getObject('/path/to/object').
@@ -2734,7 +2737,7 @@ Math.uuid = function (len, radix) {
         if(status == 200 || status == 201) {
           return revision;
         } else {
-          throw "Request (PUT " + this.makePath(path) + ") failed with status: " + status; 
+          throw "Request (PUT " + this.makePath(path) + ") failed with status: " + status;
         }
       });
     },
@@ -3445,10 +3448,10 @@ Math.uuid = function (len, radix) {
    */
 
   var RS = RemoteStorage;
-  
+
   var DEFAULT_DB_NAME = 'remotestorage';
   var DEFAULT_DB;
-  
+
   function keepDirNode(node) {
     return Object.keys(node.body).length > 0 ||
       Object.keys(node.cached).length > 0;
