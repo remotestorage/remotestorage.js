@@ -166,6 +166,11 @@
   RemoteStorage.Widget.View.prototype = {
     
     // Methods:
+    //
+    //  display(domID)
+    //    draws the widget inside of the dom element with the id domID
+    //   returns: the widget div
+    //
     //  showBubble()
     //    shows the bubble
     //  hideBubble()
