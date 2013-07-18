@@ -144,13 +144,15 @@ var cEl = document.createElement.bind(document);
                                 'sync',
                                 'display',
                                 'reset');
+
     this.toggle_bubble = function(event) {
+      console.log(this);
       if(this.bubble.className.search('hidden') < 0) {
-        hide_bubble(event);
+        this.hide_bubble(event);
       } else {
-        show_bubble(event);
+        this.show_bubble(event);
       }
-    };
+    }.bind(this);
 
     this.hide_bubble = function(){
       console.log('hide bubble',this);
@@ -245,9 +247,9 @@ var cEl = document.createElement.bind(document);
       var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
       this.bubble.addEventListener('click', function(event) {
         if(! bubbleDontCatch[event.target.tagName]) {
-          show_bubble(event);
-        }
-      })
+          this.show_bubble(event);
+        };
+      }.bind(this))
       this.hide_bubble();
 
       this.div = element;
@@ -293,13 +295,13 @@ var cEl = document.createElement.bind(document);
         if(message) {
           cube.src = RemoteStorage.Assets.remoteStorageIconError;
           removeClass(this.cube, 'remotestorage-loading');
-          //this.hide_bubble();
+          this.show_bubble();
           setTimeout(function(){
             cube.src = RemoteStorage.Assets.remoteStorageIcon;
           },3512)
-        } //else {
-        this.hide_bubble();
-        //}
+        } else {
+          this.hide_bubble();
+        }
         this.div.className = "remotestorage-state-initial";
         gCl(this.div, 'status-text').innerHTML = "Connect <strong>remotestorage</strong>";
 
