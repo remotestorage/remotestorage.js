@@ -239,11 +239,11 @@
         'Caching',
         'Discover',
         'Authorize',
+	      'Widget',
         'IndexedDB',
         'LocalStorage',
         'Sync',
-        'BaseClient',
-	'Widget'
+        'BaseClient'
       ].map(function(featureName) {
         var impl = RemoteStorage[featureName];
         return {
