@@ -1,24 +1,15 @@
-function(window){
-  var cEl = document.createElement.bind(document);
+(function(window){
+ 
 
+  //
+  // helper methods
+  //
+  var cEl = document.createElement.bind(document);
   function gCl(parent, className) {
     return parent.getElementsByClassName(className)[0];
   }
   function gTl(parent, className) {
     return parent.getElementsByTagName(className)[0];
-  }
-    
-  function show(el, display) {
-    if(typeof(display) === 'undefined') {
-      display = 'block';
-    }
-    el.style.display = display;
-    return el;
-  }
-
-  function hide(el) {
-    show(el,'none');
-    return el;
   }
 
   function removeClass(el, className) {
@@ -29,8 +20,16 @@ function(window){
     return el.classList.add(className);
   }
 
+  function stop_propagation(event) {
+    if(typeof(event.stopPropagation) == 'function') {
+      event.stopPropagation();
+    } else {
+      event.cancelBubble = true;
+    }
+  }
 
-  function View() {
+
+  RemoteStorage.Widget.View = function() {
     if(typeof(document) === 'undefined') {
       throw "Widget not supported";
     }
@@ -38,33 +37,54 @@ function(window){
                                 'connect',
                                 'disconnect',
                                 'sync',
-                                'reconnect',
-                                'display');
+                                'display',
+                                'reset');
 
-    this.display = function() {
-      function toggle_bubble(event) {
-        if(bubble.className.search('hidden') < 0) {
-          hide_bubble(event);
-        } else {
-          show_bubble(event);
+    // re-binding the event so they can be called from the window
+    for(var event in this.events){
+      this.events[event] = this.events[event].bind(this); 
+    }
+
+
+    // bubble toggling stuff
+    this.toggle_bubble = function(event) {
+      if(this.bubble.className.search('hidden') < 0) {
+        this.hide_bubble(event);
+      } else {
+        this.show_bubble(event);
+      }
+    }.bind(this);
+
+    this.hide_bubble = function(){
+      //console.log('hide bubble',this);
+      addClass(this.bubble, 'hidden')
+      document.body.removeEventListener('click', hide_bubble_on_body_click);
+    }.bind(this);
+
+    var hide_bubble_on_body_click = function (event) {
+      for(var p = event.target; p != document.body; p = p.parentElement) {
+        if(p.id == 'remotestorage-widget') {
+          return;
         }
       }
-      
-      function hide_bubble(){
-        //console.log('hide bubble',bubble);
-        addClass(bubble, 'hidden')
-        document.body.removeEventListener('click', hide_bubble);
-      }
-      function show_bubble(event){
-        //console.log('show bubble',bubble,event)
-        removeClass(bubble, 'hidden');
-        if(typeof(event) != 'undefined')
-          event.cancelBubble = true;
-        document.body.addEventListener('click', hide_bubble);
-        gTl(bubble,'form').userAddress.focus();
-      }
-      if(typeof(this.widget) !== 'undefined')
-        return this.widget;
+      this.hide_bubble();
+    }.bind(this);
+
+    this.show_bubble = function(event){
+      //console.log('show bubble',this.bubble,event)
+      removeClass(this.bubble, 'hidden');
+      if(typeof(event) != 'undefined') {
+         stop_propagation(event);
+       }
+      document.body.addEventListener('click', hide_bubble_on_body_click);
+      gTl(this.bubble,'form').userAddress.focus();
+    }.bind(this);
+
+
+    this.display = function(domID) {
+
+      if(typeof(this.div) !== 'undefined')
+        return this.div;
 
       var element = cEl('div');
       var style = cEl('style');
@@ -76,60 +96,91 @@ function(window){
 
 
       element.appendChild(style);
-      document.body.appendChild(element);
+      if(domID) {
+        var parent = document.getElementById(domID);
+        if(! parent) {
+          throw "Failed to find target DOM element with id=\"" + domID + "\"";
+        }
+        parent.appendChild(element);
+      } else {
+        document.body.appendChild(element);
+      }
 
       var el;
       //sync button
       el = gCl(element, 'sync');
       gTl(el, 'img').src = RemoteStorage.Assets.syncIcon;
-      el.addEventListener('click', this.events.sync.bind(this));
+      el.addEventListener('click', this.events.sync);
 
       //disconnect button
       el = gCl(element, 'disconnect');
       gTl(el, 'img').src = RemoteStorage.Assets.disconnectIcon;
-      el.addEventListener('click', this.events.disconnect.bind(this));
+      el.addEventListener('click', this.events.disconnect);
 
+
+      //get me out of here
+      var el = gCl(element, 'remotestorage-reset').addEventListener('click', this.events.reset);
       //connect button
       var cb = gCl(element,'connect');
       gTl(cb, 'img').src = RemoteStorage.Assets.connectIcon;
-      cb.addEventListener('click', this.events.connect.bind(this));
+      cb.addEventListener('click', this.events.connect);
+
 
       // input
-      el = gTl(element, 'form').userAddress;
+      this.form = gTl(element, 'form')
+      el = this.form.userAddress;
       el.addEventListener('keyup', function(event) {
         if(event.target.value) cb.removeAttribute('disabled');
         else cb.setAttribute('disabled','disabled');
       });
+      if(this.userAddress) {
+        el.value = this.userAddress;
+      }
 
       //the cube
       el = gCl(element, 'cube');
       el.src = RemoteStorage.Assets.remoteStorageIcon;
-      el.addEventListener('click', toggle_bubble);
-      var bubble = gCl(element,'bubble');
-      bubble.addEventListener('click', function(){
-        show_bubble();
-      })
+      el.addEventListener('click', this.toggle_bubble);
+      this.cube = el 
+
+      //the bubble
+      this.bubble = gCl(element,'bubble');
+      // what is the meaning of this hiding the b
+      var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
+      this.bubble.addEventListener('click', function(event) {
+        if(! bubbleDontCatch[event.target.tagName] || this.div.classList.contains('remotestorage-state-unauthorized')) {
+          this.hide_bubble(event);
+        };
+      }.bind(this))
+      this.hide_bubble();
+
       this.div = element;
 
       this.states.initial.call(this);
-      this._emit('display');
+      this.events.display.call(this);
       return this.div;
     };
 
-    this.setState = function(state, args) {
-      var s = this.states[state];
-      if(typeof(s) === 'undefined') {
-        throw new Error("Bad State assigned to view: " + state);
-      }
-      s.apply(this,args);
-    };
-
-    this.setUserAddress = function(addr) {
-      this.userAddress = addr;
-    };
   }
 
-  View.prototype = {
+  RemoteStorage.Widget.View.prototype = {
+    
+    // Methods:
+    //  showBubble()
+    //    shows the bubble
+    //  hideBubble()
+    //    hides the bubble
+    //  toggleBubble()
+    //    shows the bubble when hidden and the other way around
+    //
+    //  setState(state, args)
+    //    calls states[state] 
+    //    args are the arguments for the 
+    //    state(errors mostly)
+    //
+    // setUserAddres
+    //    set userAddress of the input field
+    //
     // States:
     //  initial      - not connected
     //  authing      - in auth flow
@@ -138,69 +189,135 @@ function(window){
     //  offline      - connected, but no network connectivity
     //  error        - connected, but sync error happened
     //  unauthorized - connected, but request returned 401
-    currentState : 'initial',
+    //
+    // Events:
+    // connect    : fired when the connect button is clicked
+    // sync       : fired when the sync button is clicked
+    // disconnect : fired when the disconnect button is clicked
+    // reset      : fired after crash triggers disconnect
+    // display    : fired when finished displaying the widget
+    setState : function(state, args) {
+      //console.log('setState(',state,',',args,');');
+      var s = this.states[state];
+      if(typeof(s) === 'undefined') {
+        throw new Error("Bad State assigned to view: " + state);
+      }
+      s.apply(this,args);
+    },
+    setUserAddress : function(addr) {
+      this.userAddress = addr;
+
+      var el;
+      if(this.div && (el = gTl(this.div, 'form').userAddress)) {
+        el.value = this.userAddress;
+      }
+    },
+
     states :  {
-      initial : function(info) {
-        if(!info)
-          info = 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/" target="_blank">remotestorage.io';
+      initial : function(message) {
+        var cube = this.cube;
+        var info = message || 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/" target="_blank">remotestorage.io';
+        if(message) {
+          cube.src = RemoteStorage.Assets.remoteStorageIconError;
+          removeClass(this.cube, 'remotestorage-loading');
+          this.show_bubble();
+          setTimeout(function(){
+            cube.src = RemoteStorage.Assets.remoteStorageIcon;
+          },3512)
+        } else {
+          this.hide_bubble();
+        }
         this.div.className = "remotestorage-state-initial";
         gCl(this.div, 'status-text').innerHTML = "Connect <strong>remotestorage</strong>";
-        gCl(this.div, 'info').innerHTML = info;
-        var cube = gCl(this.div, 'cube');
-        removeClass(cube, 'remotestorage-loading')
-        var bubble = this.div.querySelector('.bubble');
-        if(! bubble.classList.contains('hidden')) {
-          bubble.classList.add('hidden');
+
+        //if address not empty connect button enabled
+        //TODO check if this works
+        var cb = gCl(this.div, 'connect')
+        if(cb.value)
+          cb.removeAttribute('disabled');
+        
+        var infoEl = gCl(this.div, 'info');
+        infoEl.innerHTML = info;
+
+        if(message) {
+          infoEl.classList.add('remotestorage-error-info');
+        } else {
+          infoEl.classList.remove('remotestorage-error-info');
         }
+
       },
       authing : function() {
+        this.div.removeEventListener('click', this.events.connect);
         this.div.className = "remotestorage-state-authing";
-        gCl(this.div, 'status-text').innerHTML = "Connecting";
-        addClass(gCl(this.div, 'cube'), 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
+        gCl(this.div, 'status-text').innerHTML = "Connecting <strong>"+this.userAddress+"</strong>";
+        addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone, when is that neccesary
       },
       connected : function() {
         this.div.className = "remotestorage-state-connected";
         gCl(this.div, 'userAddress').innerHTML = this.userAddress;
-        var cube = gCl(this.div, 'cube');
-        cube.src = RemoteStorage.Assets.remoteStorageIcon;
-        removeClass(cube, 'remotestorage-loading');
+        this.cube.src = RemoteStorage.Assets.remoteStorageIcon;
+        removeClass(this.cube, 'remotestorage-loading');
       },
       busy : function() {
         this.div.className = "remotestorage-state-busy";
-        addClass(gCl(this.div, 'cube'), 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
+        addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
+        this.hide_bubble();
       },
       offline : function() {
         this.div.className = "remotestorage-state-offline";
-        gCl(this.div, 'cube').src = RemoteStorage.Assets.remoteStorageIconOffline;
+        this.cube.src = RemoteStorage.Assets.remoteStorageIconOffline;
+        gCl(this.div, 'status-text').innerHTML = 'Offline';
       },
       error : function(err) {
-        if(err){}
+        var errorMsg = err;
         this.div.className = "remotestorage-state-error";
-        gCl(this.div, 'bubble-text').innerHTML = 'ERROR'
-        gCl(this.div, 'error-msg').innerHTML = err;
-        gCl(this.div, 'cube').src = RemoteStorage.Assets.remoteStorageIconError;
+
+        gCl(this.div, 'bubble-text').innerHTML = '<strong> Sorry! An error occured.</strong>'
+        if(err instanceof Error) {
+          errorMsg = err.message + '\n\n' +
+            err.stack;
+        }
+        gCl(this.div, 'error-msg').textContent = errorMsg;
+        this.cube.src = RemoteStorage.Assets.remoteStorageIconError;
+        this.show_bubble();
       },
       unauthorized : function() {
         this.div.className = "remotestorage-state-unauthorized";
+        this.cube.src = RemoteStorage.Assets.remoteStorageIconError;
+        this.show_bubble();
+        this.div.addEventListener('click', this.events.connect);
       }
     },
+
     events : {
       connect : function(event) {
+        stop_propagation(event);
         event.preventDefault();
         this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
       sync : function(event) {
+        stop_propagation(event);
         event.preventDefault();
+        
         this._emit('sync');
       },
       disconnect : function(event) {
+        stop_propagation(event);
         event.preventDefault();
         this._emit('disconnect');
       },
-      // FIXME: what are these???
-      reconnect : function() {},
-      display : function() {}
+      reset : function(event){
+        event.preventDefault();
+        var result = window.confirm("Are you sure you want to reset everything? That will probably make the error go away, but also clear your entire localStorage and reload the page. Please make sure you know what you are doing, before clicking 'yes' :-)");
+        if(result){
+          this._emit('reset');
+        }
+      },
+      display : function(event) {
+        if(event)
+          event.preventDefault();
+        this._emit('display');
+      }
     }
   };
-
 })(this);

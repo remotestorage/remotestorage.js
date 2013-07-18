@@ -241,7 +241,7 @@
         'LocalStorage',
         'Sync',
         'BaseClient',
-	      'Widget'
+	'Widget'
       ].map(function(featureName) {
         var impl = RemoteStorage[featureName];
         return {
