@@ -329,7 +329,7 @@
         }
         changes.put(change);
       };
-      transaction.oncomplete = promiuse.fulfill;
+      transaction.oncomplete = promise.fulfill;
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
