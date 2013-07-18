@@ -113,7 +113,9 @@
         }
         this._emit('authing');
         this.remote.configure(userAddress, href, storageApi);
-        this.authorize(authURL);
+        if(! this.remote.connected) {
+          this.authorize(authURL);
+        }
       }.bind(this));
     },
 

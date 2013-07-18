@@ -398,7 +398,8 @@
   RS.IndexedDB.open = function(name, callback) {
     var dbOpen = indexedDB.open(name, DB_VERSION);
     dbOpen.onerror = function() {
-      console.error("Opening db failed: ", dbOpen.errorCode);
+      console.log('opening db failed', dbOpen);
+      callback(dbOpen.error);
     };
     dbOpen.onupgradeneeded = function(event) {
       var db = dbOpen.result;
@@ -408,7 +409,7 @@
       db.createObjectStore('changes', { keyPath: 'path' });
     }
     dbOpen.onsuccess = function() {
-      callback(dbOpen.result);
+      callback(null, dbOpen.result);
     };
   };
 
@@ -430,9 +431,20 @@
         remoteStorage.local._fireInitial();
       });
     });
-    RS.IndexedDB.open(DEFAULT_DB_NAME, function(db) {
-      DEFAULT_DB = db;
-      promise.fulfill();
+    RS.IndexedDB.open(DEFAULT_DB_NAME, function(err, db) {
+      if(err) {
+        if(err.name == 'InvalidStateError') {
+          // firefox throws this when trying to open an indexedDB in private browsing mode
+          var err = new Error("IndexedDB couldn't be opened.");
+          // instead of a stack trace, display some explaination:
+          err.stack = "If you are using Firefox, please disable\nprivate browsing mode.\n\nOtherwise please report your problem\nusing the link below";
+          remoteStorage._emit('error', err);
+        } else {
+        }
+      } else {
+        DEFAULT_DB = db;
+        promise.fulfill();
+      }
     });
     return promise;
   };
