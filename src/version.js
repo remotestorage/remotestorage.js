@@ -3,7 +3,7 @@ RemoteStorage.version = RemoteStorage.prototype.version = {
   product: 0,
   major: 8,
   minor: 0,
-  postfix: 'dev'
+  postfix: 'rc1'
 };
 
 RemoteStorage.version.toString = function() {
