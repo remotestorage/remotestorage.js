@@ -316,6 +316,9 @@
 .remotestorage-unauthorized {
     display: none;
 }
+.remotestorage-state-unauthorized .bubble.hidden{
+    display: none;
+}
 .remotestorage-state-unauthorized .remotestorage-connected,
 .remotestorage-state-unauthorized .remotestorage-unauthorized {
     display: block;
