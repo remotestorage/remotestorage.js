@@ -264,15 +264,15 @@
 
     /**
      * Method: getObject
-     * 
+     *
      * Get a JSON object from given path.
-     * 
+     *
      * Parameters:
      *   path     - relative path from the module root (without leading slash)
-     * 
+     *
      * Returns:
      *   A promise for the object.
-     * 
+     *
      * Example:
      *   (start code)
      *   client.getObject('/path/to/object').
@@ -350,7 +350,7 @@
         if(status == 200 || status == 201) {
           return revision;
         } else {
-          throw "Request (PUT " + this.makePath(path) + ") failed with status: " + status; 
+          throw "Request (PUT " + this.makePath(path) + ") failed with status: " + status;
         }
       });
     },

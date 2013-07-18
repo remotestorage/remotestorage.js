@@ -1,5 +1,5 @@
 (function(window){
- 
+
 
   //
   // helper methods
@@ -42,7 +42,7 @@
 
     // re-binding the event so they can be called from the window
     for(var event in this.events){
-      this.events[event] = this.events[event].bind(this); 
+      this.events[event] = this.events[event].bind(this);
     }
 
 
@@ -141,7 +141,7 @@
       el = gCl(element, 'cube');
       el.src = RemoteStorage.Assets.remoteStorageIcon;
       el.addEventListener('click', this.toggle_bubble);
-      this.cube = el 
+      this.cube = el
 
       //the bubble
       this.bubble = gCl(element,'bubble');
@@ -149,7 +149,7 @@
       var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
       this.bubble.addEventListener('click', function(event) {
         if(! bubbleDontCatch[event.target.tagName] && ! (this.div.classList.contains('remotestorage-state-unauthorized') )) {
-          
+
           this.show_bubble(event);
         };
       }.bind(this))
@@ -165,7 +165,7 @@
   }
 
   RemoteStorage.Widget.View.prototype = {
-    
+
     // Methods:
     //
     //  display(domID)
@@ -180,8 +180,8 @@
     //    shows the bubble when hidden and the other way around
     //
     //  setState(state, args)
-    //    calls states[state] 
-    //    args are the arguments for the 
+    //    calls states[state]
+    //    args are the arguments for the
     //    state(errors mostly)
     //
     // setUserAddres
@@ -241,7 +241,7 @@
         var cb = gCl(this.div, 'connect')
         if(cb.value)
           cb.removeAttribute('disabled');
-        
+
         var infoEl = gCl(this.div, 'info');
         infoEl.innerHTML = info;
 
@@ -304,7 +304,7 @@
       sync : function(event) {
         stop_propagation(event);
         event.preventDefault();
-        
+
         this._emit('sync');
       },
       disconnect : function(event) {

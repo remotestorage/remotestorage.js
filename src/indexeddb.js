@@ -68,10 +68,10 @@
    */
 
   var RS = RemoteStorage;
-  
+
   var DEFAULT_DB_NAME = 'remotestorage';
   var DEFAULT_DB;
-  
+
   function keepDirNode(node) {
     return Object.keys(node.body).length > 0 ||
       Object.keys(node.cached).length > 0;
