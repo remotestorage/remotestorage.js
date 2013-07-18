@@ -11,6 +11,7 @@ define(['requirejs'], function(requirejs, undefined) {
       global.RemoteStorage = function() {};
       require('./lib/promising');
       require('./src/eventhandling');
+      
       if(global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
@@ -50,9 +51,10 @@ define(['requirejs'], function(requirejs, undefined) {
           }
         });
       });
-
-      env.client = new RemoteStorage.WireClient();
-      env.connectedClient = new RemoteStorage.WireClient();
+      var rs = new RemoteStorage();
+      RemoteStorage.eventHandling(rs, 'error');
+      env.client = new RemoteStorage.WireClient(rs);
+      env.connectedClient = new RemoteStorage.WireClient(rs);
       env.baseURI = 'https://example.com/storage/test';
       env.token = 'foobarbaz';
       env.connectedClient.configure(
