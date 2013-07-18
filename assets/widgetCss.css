@@ -313,8 +313,15 @@
 .remotestorage-state-offline .remotestorage-offline{
     display: block;
 }
-.remotestorage-state-unauthorized .remotestorage-unauthorized{
+.remotestorage-unauthorized {
+    display: none;
+}
+.remotestorage-state-unauthorized .remotestorage-connected,
+.remotestorage-state-unauthorized .remotestorage-unauthorized {
     display: block;
+}
+.remotestorage-state-unauthorized .sync{
+    display: none;
 }
 .remotestorage-state-busy .bubble{
     display: none;
