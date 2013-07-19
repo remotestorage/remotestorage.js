@@ -259,6 +259,7 @@
 
   RemoteStorage.prototype.syncCycle = function() {
     this.sync().then(function() {
+      this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
     }.bind(this));
   };
