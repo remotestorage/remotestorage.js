@@ -49,15 +49,13 @@
 
 #remotestorage-widget .bubble-text {
     padding-right: 32px;
+    /* make sure the bubble doesn't "jump" when initially opening. */
+    min-width: 182px;
 }
 
 #remotestorage-widget .bubble.one-line {
     padding-bottom: 2px;
     border-radius: 5px 15px 15px 5px;
-}
-
-#remotestorage-widget .bubble.hidden {
-    display: none;
 }
 
 #remotestorage-widget .action {
@@ -181,6 +179,9 @@
     color: #fff;
 }
 
+#remotestorage-widget button img {
+    vertical-align: baseline;
+}
 #remotestorage-widget button {
     border: none;
     border-radius: 6px;
@@ -241,7 +242,7 @@
 }
 
 #remotestorage-widget .remotestorage-error-info {
-    /*color:#f00;*/
+    color: #f92;
 }
 #remotestorage-widget .remotestorage-reset {
     width: 100%;
@@ -263,3 +264,76 @@
     margin-top: 1em;
     overflow: auto;
 }
+#remotestorage-widget .centered-text{
+    text-align: center;
+}
+#remotestorage-widget .bubble.hidden {
+    padding-bottom: 2px;
+    border-radius: 5px 15px 15px 5px;
+}
+
+#remotestorage-widget .error-msg{
+    min-height: 5em;
+}
+
+.bubble.hidden {
+    /* some apps have a global "hidden" class that has display:none set. */
+    display: block;
+}
+
+.bubble.hidden .bubble-expandable {
+    display: none;
+}
+.remotestorage-state-connected .bubble.hidden{
+    display: none;
+}
+
+.remotestorage-connected {
+    display: none;
+}
+.remotestorage-state-connected .remotestorage-connected {
+    display: block;
+}
+.remotestorage-initial {
+    display: none;
+}
+.remotestorage-state-initial .remotestorage-initial {
+    display: block;
+}
+.remotestorage-error {
+    display: none;
+}
+.remotestorage-state-error .remotestorage-error {
+    display: block;
+}
+.remotestorage-state-authing .remotestorage-authing {
+    display: block;
+}
+.remotestorage-state-offline .remotestorage-connected,
+.remotestorage-state-offline .remotestorage-offline{
+    display: block;
+}
+.remotestorage-unauthorized {
+    display: none;
+}
+.remotestorage-state-unauthorized .bubble.hidden{
+    display: none;
+}
+.remotestorage-state-unauthorized .remotestorage-connected,
+.remotestorage-state-unauthorized .remotestorage-unauthorized {
+    display: block;
+}
+.remotestorage-state-unauthorized .sync{
+    display: none;
+}
+.remotestorage-state-busy .bubble{
+    display: none;
+}
+
+.remotestorage-state-authing .bubble-expandable{
+    display: none;
+}
+
+
+
+

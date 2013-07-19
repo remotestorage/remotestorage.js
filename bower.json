@@ -1,6 +1,0 @@
-{
-  "name": "remotestorage.js",
-  "version": "0.7.3",
-  "main": "release/0.7.3/remotestorage.min.js",
-  "dependencies": {}
-}

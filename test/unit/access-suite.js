@@ -3,18 +3,20 @@ if (typeof define !== 'function') {
 }
 define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
   var suites = [];
-
+  
   suites.push({
     name: "access",
     desc: "access knows all about the scope we claimed and which paths that gives us access to",
     setup: function(env, test) {
-      requirejs(['./src/lib/access'], function(Access) {
-        env.Access = Access;
+      global.RemoteStorage = function() {};
+      RemoteStorage.log = function() {};
+      require('./src/access');
 
-        env.access = new env.Access();
+      env.Access = RemoteStorage.Access;
 
-        test.result(true);
-      });
+      env.access = new env.Access();
+
+      test.result(true);
     },
 
     tests: [
@@ -102,6 +104,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         run: function(env, test) {
           env.access.reset();
           env.access.set('foo', 'rw');
+          console.log('foo:rw !=' , env.access.scopeParameter);
           test.assert(env.access.scopeParameter, 'foo:rw');
 
           env.access.reset();
