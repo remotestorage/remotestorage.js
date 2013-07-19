@@ -630,7 +630,7 @@
     console.log(method, uri);
     var xhr = new XMLHttpRequest();
     xhr.open(method, uri, true);
-    xhr.setRequestHeader('Authorization', 'Bearer ' + encodeURIComponent(token));
+    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
     for(var key in headers) {
       if(typeof(headers[key]) !== 'undefined') {
         xhr.setRequestHeader(key, headers[key]);
