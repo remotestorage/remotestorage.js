@@ -11,6 +11,7 @@ define(['requirejs'], function(requirejs, undefined) {
     desc: "High-level client, scoped to a path",
     setup: function(env, test) {
       global.RemoteStorage = function() {};
+      RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
         onChange: function() {}
       };

@@ -9,6 +9,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     desc: "Webfinger discovery",
     setup: function(env, test) {
       global.RemoteStorage = function() {};
+      RemoteStorage.log = function() {};
       require('./src/discover');
 
       test.done();

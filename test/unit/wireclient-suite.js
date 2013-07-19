@@ -9,6 +9,7 @@ define(['requirejs'], function(requirejs, undefined) {
     desc: "Low-level remotestorage client based on XMLHttpRequest",
     setup: function(env, test) {
       global.RemoteStorage = function() {};
+      RemoteStorage.log = function() {};
       global.RemoteStorage.Unauthorized = function() {};
       require('./lib/promising');
       require('./src/eventhandling');

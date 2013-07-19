@@ -9,6 +9,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     desc: "OAuth dance",
     setup: function(env, test) {
       global.RemoteStorage = function() {};
+      RemoteStorage.log = function() {};
       require('./src/authorize');
 
       test.done();
