@@ -352,7 +352,7 @@
         } else {
           throw "Request (PUT " + this.makePath(path) + ") failed with status: " + status;
         }
-      });
+      }.bind(this));
     },
 
     // generic operations
