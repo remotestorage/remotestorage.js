@@ -52,6 +52,13 @@
     if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
       throw "Don't " + method + " on directories!";
     }
+
+    var timedOut = false;
+    var timer = setTimeout(function() {
+      timedOut = true;
+      promise.reject('timeout');
+    }, RS.WireClient.REQUEST_TIMEOUT);
+
     var promise = promising();
     console.log(method, uri);
     var xhr = new XMLHttpRequest();
@@ -63,12 +70,16 @@
       }
     }
     xhr.onload = function() {
+      if(timedOut) return;
+      clearTimeout(timer);
       var mimeType = xhr.getResponseHeader('Content-Type');
       var body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
       var revision = getEtag ? xhr.getResponseHeader('ETag') : (xhr.status == 200 ? fakeRevision : undefined);
       promise.fulfill(xhr.status, body, mimeType, revision);
     };
     xhr.onerror = function(error) {
+      if(timedOut) return;
+      clearTimeout(timer);
       promise.reject(error);
     };
     if(typeof(body) === 'object' && !(body instanceof ArrayBuffer)) {
@@ -105,6 +116,8 @@
       setTimeout(this._emit.bind(this), 0, 'connected');
     }
   };
+
+  RS.WireClient.REQUEST_TIMEOUT = 30000;
 
   RS.WireClient.prototype = {
 

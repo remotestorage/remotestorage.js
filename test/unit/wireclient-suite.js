@@ -299,6 +299,19 @@ define(['requirejs'], function(requirejs, undefined) {
             test.assert(env.connectedClient.token, null);
           }, 100);
         }
+      },
+
+      {
+        desc: "requests are aborted if they aren't responded after REQUEST_TIMEOUT milliseconds",
+        timeout: 2000,
+        run: function(env, test) {
+          RemoteStorage.WireClient.REQUEST_TIMEOUT = 1000;
+          env.connectedClient.get('/foo').then(function() {
+            test.result(false);
+          }, function(error) {
+            test.assert('timeout', error);
+          });
+        }
       }
 
     ]
