@@ -24,7 +24,7 @@
     //decided to not store error state
     return function(error){
       if(error instanceof RemoteStorage.DiscoveryError) {
-        console.log('discovery failed',  error, '"' + error.message + '"');
+        console.error('discovery failed',  error, '"' + error.message + '"');
         widget.view.setState('initial', [error.message]);
       } else if(error instanceof RemoteStorage.SyncError) {
         widget.view.setState('offline', []);

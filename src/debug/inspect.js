@@ -144,9 +144,9 @@
       widget.appendChild(renderLocalChanges(this.local));
 
       syncButton.onclick = function() {
-        console.log('sync clicked');
+        this.log('sync clicked');
         this.sync().then(function() {
-          console.log('SYNC FINISHED');
+          this.log('SYNC FINISHED');
           loadTable(localTable, this.local, ['/'])
         }.bind(this), function(err) {
           console.error("SYNC FAILED", err, err.stack);

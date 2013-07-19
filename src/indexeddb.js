@@ -398,7 +398,7 @@
   RS.IndexedDB.open = function(name, callback) {
     var dbOpen = indexedDB.open(name, DB_VERSION);
     dbOpen.onerror = function() {
-      console.log('opening db failed', dbOpen);
+      console.error('opening db failed', dbOpen);
       callback(dbOpen.error);
     };
     dbOpen.onupgradeneeded = function(event) {
@@ -416,7 +416,7 @@
   RS.IndexedDB.clean = function(databaseName, callback) {
     var req = indexedDB.deleteDatabase(databaseName);
     req.onsuccess = function() {
-      console.log('done removing db');
+      RemoteStorage.log('done removing db');
       callback();
     };
     req.onerror = req.onabort = function(evt) {

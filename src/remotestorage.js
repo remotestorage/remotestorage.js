@@ -79,6 +79,12 @@
   RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
   RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
+  RemoteStorage.log = function() {
+    if(RemoteStorage._log) {
+      console.log.apply(console, arguments);
+    }
+  };
+
   RemoteStorage.prototype = {
 
     /**
@@ -175,13 +181,25 @@
       this._pathHandlers[path].push(handler);
     },
 
+    enableLog: function() {
+      RemoteStorage._log = true;
+    },
+
+    disableLog: function() {
+      RemoteStorage._log = false;
+    },
+
+    log: function() {
+      RemoteStorage.log.apply(RemoteStorage, arguments);
+    },
+
     /**
      ** INITIALIZATION
      **/
 
     _init: function() {
       this._loadFeatures(function(features) {
-        console.log('all features loaded');
+        this.log('all features loaded');
         this.local = features.local && new features.local();
         // (this.remote set by WireClient._rs_init
         //  as lazy property on RS.prototype)
@@ -254,9 +272,9 @@
         };
       }).filter(function(feature) {
         var supported = !! (feature.init && feature.supported);
-        console.log("[FEATURE " + feature.name + "] " + (supported ? '' : 'not ') + 'supported.');
+        this.log("[FEATURE " + feature.name + "] " + (supported ? '' : 'not ') + 'supported.');
         return supported;
-      });
+      }.bind(this));
 
       features.local = RemoteStorage.IndexedDB || RemoteStorage.LocalStorage;
       features.caching = !!RemoteStorage.Caching;
@@ -274,7 +292,7 @@
       function featureDoneCb(name) {
         return function() {
           i++;
-          console.log("[FEATURE " + name + "] initialized. (" + i + "/" + n + ")");
+          self.log("[FEATURE " + name + "] initialized. (" + i + "/" + n + ")");
           if(i == n)
             setTimeout(function() {
               callback.apply(self, [features]);
@@ -282,7 +300,7 @@
         }
       }
       features.forEach(function(feature) {
-        console.log("[FEATURE " + feature.name + "] initializing...");
+        self.log("[FEATURE " + feature.name + "] initializing...");
         var initResult = feature.init(self);
         var cb = featureDoneCb(feature.name);
         if(typeof(initResult) == 'object' && typeof(initResult.then) == 'function') {

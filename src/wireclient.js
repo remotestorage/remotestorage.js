@@ -60,7 +60,7 @@
     }, RS.WireClient.REQUEST_TIMEOUT);
 
     var promise = promising();
-    console.log(method, uri);
+    RemoteStorage.log(method, uri);
     var xhr = new XMLHttpRequest();
     xhr.open(method, uri, true);
     xhr.setRequestHeader('Authorization', 'Bearer ' + token);

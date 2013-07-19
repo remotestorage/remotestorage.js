@@ -25,7 +25,7 @@
       var xhr = new XMLHttpRequest();
       var url = urls.shift();
       if(! url) return callback();
-      console.log('try url', url);
+      RemoteStorage.log('try url', url);
       xhr.open('GET', url, true);
       xhr.onabort = xhr.onerror = function() {
         console.error("webfinger error", arguments, '(', url, ')');
@@ -42,7 +42,7 @@
             link = l;
           }
         });
-        console.log('got profile', profile, 'and link', link);
+        RemoteStorage.log('got profile', profile, 'and link', link);
         if(link) {
           var authURL = link.properties['auth-endpoint'] ||
             link.properties['http://tools.ietf.org/html/rfc6749#section-4.2'];

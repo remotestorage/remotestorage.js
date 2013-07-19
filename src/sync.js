@@ -128,12 +128,12 @@
           if(change.conflict) {
             var res = change.conflict.resolution;
             if(res) {
-              console.log('about to resolve', res);
+              RemoteStorage.log('about to resolve', res);
               // ready to be resolved.
               change.action = (res == 'remote' ? change.remoteAction : change.localAction);
               change.force = true;
             } else {
-              console.log('conflict pending for ', change.path);
+              RemoteStorage.log('conflict pending for ', change.path);
               // pending conflict, won't do anything.
               return oneDone();
             }
