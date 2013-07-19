@@ -8,11 +8,12 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     name: "caching",
     desc: "Caching stores settings about which paths to cache locally",
     setup: function(env, test) {
-      requirejs(['./src/lib/caching'], function(Caching) {
-        env.Caching = Caching;
+      global.RemoteStorage = function() {}
+      RemoteStorage.log = function() {};
+      require('./src/caching');
+      env.Caching = RemoteStorage.Caching;
 
-        test.result(true);
-      });
+      test.result(true);
     },
 
     beforeEach: function(env, test) {

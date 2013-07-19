@@ -1,3 +1,0 @@
-           if(! collection) {
-              collection = { name: name, features: [], type: 'FeatureCollection' };
-            }

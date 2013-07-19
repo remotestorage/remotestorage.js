@@ -15,19 +15,8 @@
 * Ask in the [IRC Channel](http://webchat.freenode.net/?channels=remotestorage) (#remotestorage on freenode)
 * Open an issue in the relevant repository
 
-### Running the local Test Server
+### Running a local Test Server
 
 To test remoteStorage enabled apps, you need to have a remoteStorage compatible storage account.
+
 To find out how to get one, see [Get Storage on remotestorage.io](http://remotestorage.io/get/).
-
-Additionally, remoteStorage.js brings a tiny example server for nodeJS.
-
-* To run the test server, first of all add a line
-
-    127.0.0.1 local.dev
-
-* to your /etc/hosts file. then run:
-
-    sudo node server/nodejs-example.js
-
-* You can then connect as "me@local.dev"

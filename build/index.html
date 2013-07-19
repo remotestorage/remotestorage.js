@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="style.css">
+    <script src="mustache.js"></script>
+    <script src="client.js"></script>
+  </head>
+  <body data-build-server="http://localhost:8000/"
+        data-file-link-base="https://github.com/remotestorage/remotestorage.js/blob/0.8/">
+    <div id="wrapper">
+      <h1>remotestorage.js builder</h1>
+      <p>This tool allows you to configure your build of remotestorage.js<br/>
+        If you're not sure what you need, just download everything and decide later.</p>
+    </div>
+  </body>
+  <script type="text/mustache" data-template-name="group">
+    <div class="group disabled {{class}}">
+      <input class="group-control" type="checkbox" name="groups" value="{{name}}" id="group-{{name}}">
+      <label for="group-{{name}}">{{label}}</label>
+      <div class="group-inner">
+        <p>{{desc}}</p>
+        <div class="section files">
+          <div class="section-title">Contains</div>
+          <div class="file-list">
+            {{#files}}
+            <div class="file">
+              <a href="{{href}}" title="{{desc}}" target="_blank" class="ext">{{name}}</a>
+            </div>
+            {{/files}}
+          </div>
+        </div>
+        {{^noDepends}}
+          <div class="section depends">
+            <div class="section-title">Depends on</div>
+            <div class="depends-list">
+              {{#depends}}
+              <div class="depend" title="{{desc}}">{{label}}</div>
+              {{/depends}}
+            </div>
+          </div>
+        {{/noDepends}}
+        <div class="clear"></div>
+      </div>
+    </div>
+  </script>
+</html>

@@ -1,0 +1,86 @@
+body {
+    font-family: sans-serif;
+    font-size: 14px;
+    color: #333;
+    background: url(noise2.png) repeat scroll 0 0 #fff;
+}
+
+#wrapper {
+    position: relative;
+    width: 768px;
+    margin: auto;
+    overflow: hidden;
+}
+
+a {
+    color: #d92b00;
+}
+
+a.ext {
+    background: url(ext-link.png) center right no-repeat;
+    padding-right: 13px;
+}
+
+div.group {
+    padding: 15px 10px;
+}
+
+div.group.odd {
+    background: url(noise2.png) repeat scroll 0 0 #eee;
+}
+
+div.group.disabled .group-inner {
+    color: #888;
+}
+
+div.group .clear {
+    clear: left;
+}
+
+div.group-inner {
+    /* position: relative; */
+    /* top: -2.5em; */
+    /* left: 20em; */
+    padding-left: 20px;
+}
+
+span.filename {
+    font-family: monospace;
+}
+span.filename:after {
+    content: ", ";
+}
+span.filename:last-child:after {
+    content: "";
+}
+
+div.group label {
+    font-weight: bold;
+    font-size: 1.4em;
+}
+
+div.group .section {
+    margin: 0 15px;
+    width: 290px;
+    float: left;
+}
+
+div.group .section .section-title {
+    display: inline-block;
+    width: 8em;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 15px;
+    margin-bottom: 5px;
+}
+
+.file-list .file, .depends-list .depend {
+    display: list-item;
+    margin-left: 25px;
+}
+
+input[type=submit] {
+    position: absolute;
+    top: 2em;
+    right: 0;
+}

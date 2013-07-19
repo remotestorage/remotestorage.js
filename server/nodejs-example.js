@@ -295,19 +295,19 @@ exports.server = (function() {
     redirectUri = decodeURIComponent(urlObj.query['redirect_uri']),
     clientIdToMatch,
     userName;
-    if(redirectUri.split('://').length<2) {
-      clientIdToMatch=redirectUri;
-    } else {
-      clientIdToMatch = redirectUri.split('://')[1].split('/')[0];
-    }
-    if(clientId != clientIdToMatch) {
-      writeHtml(res, 'we do not trust this combination of client_id and redirect_uri');
-    } else {
+    //if(redirectUri.split('://').length<2) {
+    //  clientIdToMatch=redirectUri;
+    //} else {
+    //  clientIdToMatch = redirectUri.split('://')[1].split('/')[0];
+    //}
+    //if(clientId != clientIdToMatch) {
+    //  writeHtml(res, 'we do not trust this combination of client_id and redirect_uri');
+    //} else {
       var userName = urlObj.pathname.substring('/auth/'.length);
       createToken(userName, scopes, function(token) {
         writeHtml(res, '<a href="'+toHtml(redirectUri)+'#access_token='+toHtml(token)+'">Allow</a>');
       });
-    }
+    //}
   }
 
   function storage(req, urlObj, res) {
@@ -428,7 +428,9 @@ exports.server = (function() {
       writeJson(res, { forgot: 'everything' });
     } else {
       log('UNKNOWN');
-      writeJson(res, urlObj.query);
+      res.writeHead(404);
+      res.end();
+      //writeJson(res, urlObj.query);
     }
   }
 

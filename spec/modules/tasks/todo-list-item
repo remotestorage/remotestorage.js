@@ -1,6 +1,0 @@
-{
-  properties: {
-    title: "string",
-    completed: "boolean"
-  }
-}
