@@ -619,6 +619,13 @@
     if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
       throw "Don't " + method + " on directories!";
     }
+
+    var timedOut = false;
+    var timer = setTimeout(function() {
+      timedOut = true;
+      promise.reject('timeout');
+    }, RS.WireClient.REQUEST_TIMEOUT);
+
     var promise = promising();
     console.log(method, uri);
     var xhr = new XMLHttpRequest();
@@ -630,12 +637,16 @@
       }
     }
     xhr.onload = function() {
+      if(timedOut) return;
+      clearTimeout(timer);
       var mimeType = xhr.getResponseHeader('Content-Type');
       var body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
       var revision = getEtag ? xhr.getResponseHeader('ETag') : (xhr.status == 200 ? fakeRevision : undefined);
       promise.fulfill(xhr.status, body, mimeType, revision);
     };
     xhr.onerror = function(error) {
+      if(timedOut) return;
+      clearTimeout(timer);
       promise.reject(error);
     };
     if(typeof(body) === 'object' && !(body instanceof ArrayBuffer)) {
@@ -655,9 +666,9 @@
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
       if(error instanceof RemoteStorage.Unauthorized){
-        rs.remote.configure(undefined, undefined, undefined, null);
+        this.configure(undefined, undefined, undefined, null);
       }
-    })
+    }.bind(this))
     if(haveLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {};
@@ -672,6 +683,8 @@
       setTimeout(this._emit.bind(this), 0, 'connected');
     }
   };
+
+  RS.WireClient.REQUEST_TIMEOUT = 30000;
 
   RS.WireClient.prototype = {
 
@@ -2739,7 +2752,7 @@ Math.uuid = function (len, radix) {
         } else {
           throw "Request (PUT " + this.makePath(path) + ") failed with status: " + status;
         }
-      });
+      }.bind(this));
     },
 
     // generic operations
@@ -3353,6 +3366,7 @@ Math.uuid = function (len, radix) {
 
   RemoteStorage.prototype.syncCycle = function() {
     this.sync().then(function() {
+      this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
     }.bind(this));
   };
