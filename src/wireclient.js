@@ -88,9 +88,9 @@
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
       if(error instanceof RemoteStorage.Unauthorized){
-        rs.remote.configure(undefined, undefined, undefined, null);
+        this.configure(undefined, undefined, undefined, null);
       }
-    })
+    }.bind(this))
     if(haveLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {};

@@ -9,6 +9,7 @@ define(['requirejs'], function(requirejs, undefined) {
     desc: "Low-level remotestorage client based on XMLHttpRequest",
     setup: function(env, test) {
       global.RemoteStorage = function() {};
+      global.RemoteStorage.Unauthorized = function() {};
       require('./lib/promising');
       require('./src/eventhandling');
       
@@ -288,16 +289,17 @@ define(['requirejs'], function(requirejs, undefined) {
           req.responseText = '{"response":"body"}';
           req._onload();
         }
-      }// ,
+      },
       
-      // {
-      //   desc: "WireClient destroys the bearer token after Unauthorized Error",
-      //   run: function(env, test){
-      //     env.rs._emit('error', RemoteStorage.SyncError);
-      //     test.assert(env.connectedClient.token, null);
-      //     test.done();
-      //   }
-      // }
+      {
+        desc: "WireClient destroys the bearer token after Unauthorized Error",
+        run: function(env, test){
+          env.rs._emit('error', new RemoteStorage.Unauthorized());
+          setTimeout(function() {
+            test.assert(env.connectedClient.token, null);
+          }, 100);
+        }
+      }
 
     ]
   });
