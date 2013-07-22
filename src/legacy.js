@@ -20,6 +20,11 @@
       return target;
     },
 
+    asyncEach: function(array, callback) {
+      return this.asyncMap(array, callback).
+        then(function() { return array; });
+    },
+
     asyncMap: function(array, callback) {
       var promise = promising();
       var n = array.length, i = 0;
