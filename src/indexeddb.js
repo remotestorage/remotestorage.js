@@ -379,13 +379,12 @@
         }.bind(this));
       event.resolve = function(resolution) {
         if(resolution == 'remote' || resolution == 'local') {
-          attributes = resolution;
+          attributes.resolution = resolution;
           this._recordChange(path, { conflict: attributes });
         } else {
           throw "Invalid resolution: " + resolution;
         }
       }.bind(this);
-      event.resolve = makeResolver(local, path);
     },
 
     closeDB: function() {
