@@ -194,6 +194,12 @@
   RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
   RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
+  RemoteStorage.log = function() {
+    if(RemoteStorage._log) {
+      console.log.apply(console, arguments);
+    }
+  };
+
   RemoteStorage.prototype = {
 
     /**
@@ -290,13 +296,25 @@
       this._pathHandlers[path].push(handler);
     },
 
+    enableLog: function() {
+      RemoteStorage._log = true;
+    },
+
+    disableLog: function() {
+      RemoteStorage._log = false;
+    },
+
+    log: function() {
+      RemoteStorage.log.apply(RemoteStorage, arguments);
+    },
+
     /**
      ** INITIALIZATION
      **/
 
     _init: function() {
       this._loadFeatures(function(features) {
-        console.log('all features loaded');
+        this.log('all features loaded');
         this.local = features.local && new features.local();
         // (this.remote set by WireClient._rs_init
         //  as lazy property on RS.prototype)
@@ -369,11 +387,17 @@
         };
       }).filter(function(feature) {
         var supported = !! (feature.init && feature.supported);
-        console.log("[FEATURE " + feature.name + "] " + (supported ? '' : 'not ') + 'supported.');
+        this.log("[FEATURE " + feature.name + "] " + (supported ? '' : 'not ') + 'supported.');
         return supported;
-      });
+      }.bind(this));
 
-      features.local = RemoteStorage.IndexedDB || RemoteStorage.LocalStorage;
+      features.forEach(function(feature) {
+        if(feature.name == 'IndexedDB') {
+          features.local = RemoteStorage.IndexedDB;
+        } else if(feature.name == 'LocalStorage' && ! features.local) {
+          features.local = RemoteStorage.LocalStorage;
+        }
+      });
       features.caching = !!RemoteStorage.Caching;
       features.sync = !!RemoteStorage.Sync;
 
@@ -389,7 +413,7 @@
       function featureDoneCb(name) {
         return function() {
           i++;
-          console.log("[FEATURE " + name + "] initialized. (" + i + "/" + n + ")");
+          self.log("[FEATURE " + name + "] initialized. (" + i + "/" + n + ")");
           if(i == n)
             setTimeout(function() {
               callback.apply(self, [features]);
@@ -397,7 +421,7 @@
         }
       }
       features.forEach(function(feature) {
-        console.log("[FEATURE " + feature.name + "] initializing...");
+        self.log("[FEATURE " + feature.name + "] initializing...");
         var initResult = feature.init(self);
         var cb = featureDoneCb(feature.name);
         if(typeof(initResult) == 'object' && typeof(initResult.then) == 'function') {
@@ -627,7 +651,7 @@
     }, RS.WireClient.REQUEST_TIMEOUT);
 
     var promise = promising();
-    console.log(method, uri);
+    RemoteStorage.log(method, uri);
     var xhr = new XMLHttpRequest();
     xhr.open(method, uri, true);
     xhr.setRequestHeader('Authorization', 'Bearer ' + token);
@@ -829,7 +853,7 @@
       var xhr = new XMLHttpRequest();
       var url = urls.shift();
       if(! url) return callback();
-      console.log('try url', url);
+      RemoteStorage.log('try url', url);
       xhr.open('GET', url, true);
       xhr.onabort = xhr.onerror = function() {
         console.error("webfinger error", arguments, '(', url, ')');
@@ -846,7 +870,7 @@
             link = l;
           }
         });
-        console.log('got profile', profile, 'and link', link);
+        RemoteStorage.log('got profile', profile, 'and link', link);
         if(link) {
           var authURL = link.properties['auth-endpoint'] ||
             link.properties['http://tools.ietf.org/html/rfc6749#section-4.2'];
@@ -904,7 +928,7 @@
   };
 
   RemoteStorage.Authorize = function(authURL, storageApi, scopes, redirectUri) {
-    console.log('Authorize authURL = ',authURL)
+    RemoteStorage.log('Authorize authURL = ',authURL)
     var scope = [];
     for(var key in scopes) {
       var mode = scopes[key];
@@ -1130,7 +1154,7 @@ RemoteStorage.Assets = {
     //decided to not store error state
     return function(error){
       if(error instanceof RemoteStorage.DiscoveryError) {
-        console.log('discovery failed',  error, '"' + error.message + '"');
+        console.error('discovery failed',  error, '"' + error.message + '"');
         widget.view.setState('initial', [error.message]);
       } else if(error instanceof RemoteStorage.SyncError) {
         widget.view.setState('offline', []);
@@ -3095,7 +3119,8 @@ Math.uuid = function (len, radix) {
   });
 
   RemoteStorage.Caching._rs_init = function() {};
-  RemoteStorage.Caching._rs_cleanup = function() {
+  RemoteStorage.Caching._rs_cleanup = function(remoteStorage) {
+    remoteStorage.caching.reset();
     if(haveLocalStorage) {
       delete localStorage[SETTINGS_KEY];
     }
@@ -3235,12 +3260,12 @@ Math.uuid = function (len, radix) {
           if(change.conflict) {
             var res = change.conflict.resolution;
             if(res) {
-              console.log('about to resolve', res);
+              RemoteStorage.log('about to resolve', res);
               // ready to be resolved.
               change.action = (res == 'remote' ? change.remoteAction : change.localAction);
               change.force = true;
             } else {
-              console.log('conflict pending for ', change.path);
+              RemoteStorage.log('conflict pending for ', change.path);
               // pending conflict, won't do anything.
               return oneDone();
             }
@@ -3519,6 +3544,14 @@ Math.uuid = function (len, radix) {
 
   RS.IndexedDB = function(database) {
     this.db = database || DEFAULT_DB;
+    if(! this.db) {
+      if(RemoteStorage.LocalStorage) {
+        RemoteStorage.log("Failed to open indexedDB, falling back to localStorage");
+        return new RemoteStorage.LocalStorage();
+      } else {
+        throw "Failed to open indexedDB and localStorage fallback not available!";
+      }
+    }
     RS.eventHandling(this, 'change', 'conflict');
   };
   RS.IndexedDB.prototype = {
@@ -3773,13 +3806,12 @@ Math.uuid = function (len, radix) {
         }.bind(this));
       event.resolve = function(resolution) {
         if(resolution == 'remote' || resolution == 'local') {
-          attributes = resolution;
+          attributes.resolution = resolution;
           this._recordChange(path, { conflict: attributes });
         } else {
           throw "Invalid resolution: " + resolution;
         }
       }.bind(this);
-      event.resolve = makeResolver(local, path);
     },
 
     closeDB: function() {
@@ -3792,7 +3824,7 @@ Math.uuid = function (len, radix) {
   RS.IndexedDB.open = function(name, callback) {
     var dbOpen = indexedDB.open(name, DB_VERSION);
     dbOpen.onerror = function() {
-      console.log('opening db failed', dbOpen);
+      console.error('opening db failed', dbOpen);
       callback(dbOpen.error);
     };
     dbOpen.onupgradeneeded = function(event) {
@@ -3810,7 +3842,7 @@ Math.uuid = function (len, radix) {
   RS.IndexedDB.clean = function(databaseName, callback) {
     var req = indexedDB.deleteDatabase(databaseName);
     req.onsuccess = function() {
-      console.log('done removing db');
+      RemoteStorage.log('done removing db');
       callback();
     };
     req.onerror = req.onabort = function(evt) {
@@ -3857,6 +3889,203 @@ Math.uuid = function (len, radix) {
     });
     return promise;
   }
+
+})(this);
+
+
+/** FILE: src/localstorage.js **/
+(function(global) {
+
+  var NODES_PREFIX = "remotestorage:cache:nodes:";
+  var CHANGES_PREFIX = "remotestorage:cache:changes:";
+
+  RemoteStorage.LocalStorage = function() {
+    RemoteStorage.eventHandling(this, 'change', 'conflict');
+  };
+
+  function makeNode(path) {
+    var node = { path: path };
+    if(path[path.length - 1] == '/') {
+      node.body = {};
+      node.cached = {};
+      node.contentType = 'application/json';
+    }
+    return node;
+  }
+
+  RemoteStorage.LocalStorage.prototype = {
+
+    get: function(path) {
+      var node = this._get(path);
+      if(node) {
+        return promising().fulfill(200, node.body, node.contentType, node.revision);
+      } else {
+        return promising().fulfill(404);
+      }
+    },
+
+    put: function(path, body, contentType, incoming) {
+      var oldNode = this._get(path);
+      var node = {
+        path: path, contentType: contentType, body: body
+      };
+      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
+      this._addToParent(path);
+      this._emit('change', {
+        path: path,
+        origin: incoming ? 'remote' : 'window',
+        oldValue: oldNode ? oldNode.body : undefined,
+        newValue: body
+      });
+      if(! incoming) {
+        this._recordChange(path, { action: 'PUT' });
+      }
+      return promising().fulfill(200);
+    },
+
+    'delete': function(path, incoming) {
+      console.log('(localStorage) DELETE', path, incoming);
+      var oldNode = this._get(path);
+      delete localStorage[NODES_PREFIX + path];
+      this._removeFromParent(path);
+      if(oldNode) {
+        this._emit('change', {
+          path: path,
+          origin: incoming ? 'remote' : 'window',
+          oldValue: oldNode.body,
+          newValue: undefined
+        });
+      }
+      if(! incoming) {
+        this._recordChange(path, { action: 'DELETE' });
+      }
+      return promising().fulfill(200);
+    },
+
+    setRevision: function(path, revision) {
+      var node = this._get(path) || makeNode(path);
+      node.revision = revision;
+      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
+      return promising().fulfill();
+    },
+
+    getRevision: function(path) {
+      var node = this._get(path);
+      return promising.fulfill(node ? node.revision : undefined);
+    },
+
+    _get: function(path) {
+      var node;
+      try {
+        node = JSON.parse(localStorage[NODES_PREFIX + path]);
+      } catch(e) { /* ignored */ }
+      return node;
+    },
+
+    _recordChange: function(path, attributes) {
+      var change;
+      try {
+        change = JSON.parse(localStorage[CHANGES_PREFIX + path]);
+      } catch(e) {
+        change = {};
+      }
+      for(var key in attributes) {
+        change[key] = attributes[key];
+      }
+      change.path = path;
+      localStorage[CHANGES_PREFIX + path] = JSON.stringify(change);
+    },
+
+    clearChange: function(path) {
+      delete localStorage[CHANGES_PREFIX + path];
+      return promising().fulfill();
+    },
+
+    changesBelow: function(path) {
+      var changes = [];
+      var kl = localStorage.length;
+      var prefix = CHANGES_PREFIX + path, pl = prefix.length;
+      for(var i=0;i<kl;i++) {
+        var key = localStorage.key(i);
+        if(key.substr(0, pl) == prefix) {
+          changes.push(JSON.parse(localStorage[key]));
+        }
+      }
+      return promising().fulfill(changes);
+    },
+
+    setConflict: function(path, attributes) {
+      var event = { path: path };
+      for(var key in attributes) {
+        event[key] = attributes[key];
+      }
+      this._recordChange(path, { conflict: attributes });
+      event.resolve = function(resolution) {
+        if(resolution == 'remote' || resolution == 'local') {
+          attributes.resolution = resolution;
+          this._recordChange(path, { conflict: attributes });
+        } else {
+          throw "Invalid resolution: " + resolution;
+        }
+      }.bind(this);
+      this._emit('conflict', event);
+    },
+
+    _addToParent: function(path) {
+      var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
+      if(parts) {
+        var dirname = parts[1], basename = parts[2];
+        var node = this._get(dirname) || makeNode(dirname);
+        node.body[basename] = true;
+        localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
+        if(dirname != '/') {
+          this._addToParent(dirname);
+        }
+      }
+    },
+
+    _removeFromParent: function(path) {
+      var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
+      if(parts) {
+        var dirname = parts[1], basename = parts[2];
+        var node = this._get(dirname);
+        if(node) {
+          delete node.body[basename];
+          if(Object.keys(node.body).length > 0) {
+            localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
+          } else {
+            delete localStorage[NODES_PREFIX + dirname];
+            if(dirname != '/') {
+              this._removeFromParent(dirname);
+            }
+          }
+        }
+      }
+    }
+  };
+
+  RemoteStorage.LocalStorage._rs_init = function() {};
+
+  RemoteStorage.LocalStorage._rs_supported = function() {
+    return 'localStorage' in global;
+  };
+
+  RemoteStorage.LocalStorage._rs_cleanup = function() {
+    var l = localStorage.length;
+    var npl = NODES_PREFIX.length, cpl = CHANGES_PREFIX.length;
+    var remove = [];
+    for(var i=0;i<l;i++) {
+      var key = localStorage.key(i);
+      if(key.substr(0, npl) == NODES_PREFIX ||
+         key.substr(0, cpl) == CHANGES_PREFIX) {
+        remove.push(key);
+      }
+    }
+    remove.forEach(function(key) {
+      console.log('removing', key);
+      delete localStorage[key];
+    });
+  };
 
 })(this);
 
@@ -4058,9 +4287,9 @@ Math.uuid = function (len, radix) {
       widget.appendChild(renderLocalChanges(this.local));
 
       syncButton.onclick = function() {
-        console.log('sync clicked');
+        this.log('sync clicked');
         this.sync().then(function() {
-          console.log('SYNC FINISHED');
+          this.log('SYNC FINISHED');
           loadTable(localTable, this.local, ['/'])
         }.bind(this), function(err) {
           console.error("SYNC FAILED", err, err.stack);
@@ -4095,6 +4324,11 @@ Math.uuid = function (len, radix) {
         }
       });
       return target;
+    },
+
+    asyncEach: function(array, callback) {
+      return this.asyncMap(array, callback).
+        then(function() { return array; });
     },
 
     asyncMap: function(array, callback) {
