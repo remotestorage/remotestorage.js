@@ -276,7 +276,13 @@
         return supported;
       }.bind(this));
 
-      features.local = RemoteStorage.IndexedDB || RemoteStorage.LocalStorage;
+      features.forEach(function(feature) {
+        if(feature.name == 'IndexedDB') {
+          features.local = RemoteStorage.IndexedDB;
+        } else if(feature.name == 'LocalStorage' && ! features.local) {
+          features.local = RemoteStorage.LocalStorage;
+        }
+      });
       features.caching = !!RemoteStorage.Caching;
       features.sync = !!RemoteStorage.Sync;
 

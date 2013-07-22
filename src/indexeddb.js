@@ -125,6 +125,14 @@
 
   RS.IndexedDB = function(database) {
     this.db = database || DEFAULT_DB;
+    if(! this.db) {
+      if(RemoteStorage.LocalStorage) {
+        RemoteStorage.log("Failed to open indexedDB, falling back to localStorage");
+        return new RemoteStorage.LocalStorage();
+      } else {
+        throw "Failed to open indexedDB and localStorage fallback not available!";
+      }
+    }
     RS.eventHandling(this, 'change', 'conflict');
   };
   RS.IndexedDB.prototype = {
