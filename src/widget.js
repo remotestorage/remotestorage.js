@@ -96,7 +96,6 @@
       }
 
       if(this._rememberedState) {
-        alert('set remembered state');
         setTimeout(stateSetter(this, this._rememberedState), 0);
         delete this._rememberedState;
       }
