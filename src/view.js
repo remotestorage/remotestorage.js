@@ -203,7 +203,7 @@
     // reset      : fired after crash triggers disconnect
     // display    : fired when finished displaying the widget
     setState : function(state, args) {
-      //console.log('setState(',state,',',args,');');
+      RemoteStorage.log('widget.view.setState(',state,',',args,');');
       var s = this.states[state];
       if(typeof(s) === 'undefined') {
         throw new Error("Bad State assigned to view: " + state);
@@ -211,7 +211,7 @@
       s.apply(this,args);
     },
     setUserAddress : function(addr) {
-      this.userAddress = addr;
+      this.userAddress = addr || '';
 
       var el;
       if(this.div && (el = gTl(this.div, 'form').userAddress)) {
