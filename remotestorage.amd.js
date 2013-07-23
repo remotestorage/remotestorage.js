@@ -183,7 +183,23 @@ define([], function() {
       return this.remote.connected;
     });
 
+    var origOn = this.on;
+    this.on = function(eventName, handler) {
+      if(eventName == 'ready' && this.remote.connected && this._allLoaded) {
+        setTimeout(handler, 0);
+      } else if(eventName == 'features-loaded' && this._allLoaded) {
+        setTimeout(handler, 0);
+      }
+      return origOn.call(this, eventName, handler);
+    }
+
     this._init();
+
+    this.on('ready', function() {
+      if(this.local) {
+        setTimeout(this.local.fireInitial.bind(this.local), 0);
+      }
+    }.bind(this));
   };
 
   RemoteStorage.DiscoveryError = function(message) {
@@ -336,6 +352,14 @@ define([], function() {
               this._emit('error', e);
             };
           }.bind(this));
+          if(this.remote.connected) {
+            try {
+              this._emit('ready');
+            } catch(e) {
+              console.error("'ready' failed: ", e, e.stack);
+              this._emit('error', e);
+            };
+          }
         }
 
         var fl = features.length;
@@ -347,6 +371,7 @@ define([], function() {
         }
 
         try {
+          this._allLoaded = true;
           this._emit('features-loaded');
         } catch(exc) {
           console.error("remoteStorage#ready block failed: ");
@@ -1148,6 +1173,8 @@ RemoteStorage.Assets = {
           widget.view.setUserAddress(widget.rs.remote.userAddress);
         }
         widget.view.setState(state, arguments);
+      } else {
+        widget._rememberedState = state;
       }
     };
   }
@@ -1178,7 +1205,7 @@ RemoteStorage.Assets = {
     this.rs.on('sync-done', stateSetter(this, 'connected'));
     this.rs.on('error', errorsHandler(this) );
     if(haveLocalStorage) {
-      var state = localStorage[LS_STATE_KEY] = state;
+      var state = localStorage[LS_STATE_KEY];
       if(state && VALID_ENTRY_STATES[state]) {
         this._rememberedState = state;
       }
@@ -1208,7 +1235,9 @@ RemoteStorage.Assets = {
       this.view = view;
       this.view.on('connect', this.rs.connect.bind(this.rs));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
-      this.view.on('sync', this.rs.sync.bind(this.rs));
+      if(this.rs.sync) {
+        this.view.on('sync', this.rs.sync.bind(this.rs));
+      }
       try {
         this.view.on('reset', function(){
           this.rs.on('disconnected', document.location.reload.bind(document.location))
@@ -1223,7 +1252,7 @@ RemoteStorage.Assets = {
       }
 
       if(this._rememberedState) {
-        stateSetter(this, this._rememberedState)();
+        setTimeout(stateSetter(this, this._rememberedState), 0);
         delete this._rememberedState;
       }
     }
@@ -1453,7 +1482,7 @@ RemoteStorage.Assets = {
     // reset      : fired after crash triggers disconnect
     // display    : fired when finished displaying the widget
     setState : function(state, args) {
-      //console.log('setState(',state,',',args,');');
+      RemoteStorage.log('widget.view.setState(',state,',',args,');');
       var s = this.states[state];
       if(typeof(s) === 'undefined') {
         throw new Error("Bad State assigned to view: " + state);
@@ -1461,7 +1490,7 @@ RemoteStorage.Assets = {
       s.apply(this,args);
     },
     setUserAddress : function(addr) {
-      this.userAddress = addr;
+      this.userAddress = addr || '';
 
       var el;
       if(this.div && (el = gTl(this.div, 'form').userAddress)) {
@@ -3724,7 +3753,7 @@ Math.uuid = function (len, radix) {
       });
     },
 
-    _fireInitial: function() {
+    fireInitial: function() {
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var cursorReq = transaction.objectStore('nodes').openCursor();
       cursorReq.onsuccess = function(evt) {
@@ -3859,11 +3888,6 @@ Math.uuid = function (len, radix) {
 
   RS.IndexedDB._rs_init = function(remoteStorage) {
     var promise = promising();
-    remoteStorage.on('ready', function() {
-      promise.then(function() {
-        remoteStorage.local._fireInitial();
-      });
-    });
     RS.IndexedDB.open(DEFAULT_DB_NAME, function(err, db) {
       if(err) {
         if(err.name == 'InvalidStateError') {
@@ -4067,7 +4091,25 @@ Math.uuid = function (len, radix) {
           }
         }
       }
+    },
+
+    fireInitial: function() {
+      var l = localStorage.length, npl = NODES_PREFIX.length;
+      for(var i=0;i<l;i++) {
+        var key = localStorage.key(i);
+        if(key.substr(0, npl) == NODES_PREFIX) {
+          var path = key.substr(npl);
+          var node = this._get(path);
+          this._emit('change', {
+            path: path,
+            origin: 'remote',
+            oldValue: undefined,
+            newValue: node.body
+          });
+        }
+      }
     }
+
   };
 
   RemoteStorage.LocalStorage._rs_init = function() {};
