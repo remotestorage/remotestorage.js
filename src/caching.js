@@ -20,14 +20,6 @@
   RemoteStorage.Caching = function() {
     this.reset();
 
-    this.__defineGetter__('list', function() {
-      var list = [];
-      for(var path in this._pathSettingsMap) {
-        list.push({ path: path, settings: this._pathSettingsMap[path] });
-      }
-      return list;
-    });
-
     if(haveLocalStorage) {
       var settings = localStorage[SETTINGS_KEY];
       if(settings) {
@@ -149,6 +141,17 @@
     },
 
   };
+
+  Object.defineProperty(RemoteStorage.Caching.prototype, 'list', {
+    get: function() {
+      var list = [];
+      for(var path in this._pathSettingsMap) {
+        list.push({ path: path, settings: this._pathSettingsMap[path] });
+      }
+      return list;
+    }
+  });
+
 
   Object.defineProperty(RemoteStorage.prototype, 'caching', {
     configurable: true,

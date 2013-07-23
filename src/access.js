@@ -15,18 +15,6 @@
         }
       }
     }
-
-    this.__defineGetter__('scopes', function() {
-      return Object.keys(this.scopeModeMap).map(function(key) {
-        return { name: key, mode: this.scopeModeMap[key] };
-      }.bind(this));
-    });
-
-    this.__defineGetter__('scopeParameter', function() {
-      return this.scopes.map(function(scope) {
-        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
-      }.bind(this)).join(' ');
-    });
   };
 
   RemoteStorage.Access.prototype = {
@@ -88,6 +76,24 @@
       this.storageType = type;
     }
   };
+
+
+  Object.defineProperty(RemoteStorage.Access.prototype, 'scopes', {
+    get: function() {
+      return Object.keys(this.scopeModeMap).map(function(key) {
+        return { name: key, mode: this.scopeModeMap[key] };
+      }.bind(this));
+    }
+  });
+
+  Object.defineProperty(RemoteStorage.Access.prototype, 'scopeParameter', {
+    get: function() {
+      return this.scopes.map(function(scope) {
+        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
+      }.bind(this)).join(' ');
+    }
+  });
+
 
   Object.defineProperty(RemoteStorage.prototype, 'access', {
     get: function() {

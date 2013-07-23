@@ -63,10 +63,6 @@
     this._cleanups = [];
     this._pathHandlers = {};
 
-    this.__defineGetter__('connected', function() {
-      return this.remote.connected;
-    });
-
     var origOn = this.on;
     this.on = function(eventName, handler) {
       if(eventName == 'ready' && this.remote.connected && this._allLoaded) {
@@ -398,6 +394,13 @@
       }
     }
   };
+
+  Object.defineProperty(RemoteStorage.prototype, 'connected', {
+    get: function() {
+      return this.remote.connected;
+    }
+  });
+
 
   window.RemoteStorage = RemoteStorage;
 
