@@ -17,6 +17,8 @@
           widget.view.setUserAddress(widget.rs.remote.userAddress);
         }
         widget.view.setState(state, arguments);
+      } else {
+        widget._rememberedState = state;
       }
     };
   }
@@ -47,7 +49,7 @@
     this.rs.on('sync-done', stateSetter(this, 'connected'));
     this.rs.on('error', errorsHandler(this) );
     if(haveLocalStorage) {
-      var state = localStorage[LS_STATE_KEY] = state;
+      var state = localStorage[LS_STATE_KEY];
       if(state && VALID_ENTRY_STATES[state]) {
         this._rememberedState = state;
       }
@@ -92,7 +94,8 @@
       }
 
       if(this._rememberedState) {
-        stateSetter(this, this._rememberedState)();
+        alert('set remembered state');
+        setTimeout(stateSetter(this, this._rememberedState), 0);
         delete this._rememberedState;
       }
     }
