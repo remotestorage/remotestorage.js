@@ -161,7 +161,7 @@
     background: #333;
 }
 
-#remotestorage-widget .info {
+#remotestorage-widget .rs-info-msg {
     font-size: 10px;
     color: #eee;
     margin-top: 0.7em;
@@ -174,8 +174,8 @@
     margin-bottom: .7em
 }
 
-#remotestorage-widget .info a:hover,
-#remotestorage-widget .info a:active {
+#remotestorage-widget .rs-info-msg a:hover,
+#remotestorage-widget .rs-info-msg a:active {
     color: #fff;
 }
 
