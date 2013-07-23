@@ -69,13 +69,21 @@
 
     var origOn = this.on;
     this.on = function(eventName, handler) {
-      if(eventName == 'ready' && this.remote.connected) {
+      if(eventName == 'ready' && this.remote.connected && this._allLoaded) {
+        setTimeout(handler, 0);
+      } else if(eventName == 'features-loaded' && this._allLoaded) {
         setTimeout(handler, 0);
       }
       return origOn.call(this, eventName, handler);
     }
 
     this._init();
+
+    this.on('ready', function() {
+      if(this.local) {
+        setTimeout(this.local.fireInitial.bind(this.local), 0);
+      }
+    }.bind(this));
   };
 
   RemoteStorage.DiscoveryError = function(message) {
@@ -228,6 +236,14 @@
               this._emit('error', e);
             };
           }.bind(this));
+          if(this.remote.connected) {
+            try {
+              this._emit('ready');
+            } catch(e) {
+              console.error("'ready' failed: ", e, e.stack);
+              this._emit('error', e);
+            };
+          }
         }
 
         var fl = features.length;
@@ -239,6 +255,7 @@
         }
 
         try {
+          this._allLoaded = true;
           this._emit('features-loaded');
         } catch(exc) {
           console.error("remoteStorage#ready block failed: ");
