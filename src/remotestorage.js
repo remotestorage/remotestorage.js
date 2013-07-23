@@ -67,6 +67,14 @@
       return this.remote.connected;
     });
 
+    var origOn = this.on;
+    this.on = function(eventName, handler) {
+      if(eventName == 'ready' && this.remote.connected) {
+        setTimeout(handler, 0);
+      }
+      return origOn.call(this, eventName, handler);
+    }
+
     this._init();
   };
 

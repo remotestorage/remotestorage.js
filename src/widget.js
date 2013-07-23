@@ -17,6 +17,8 @@
           widget.view.setUserAddress(widget.rs.remote.userAddress);
         }
         widget.view.setState(state, arguments);
+      } else {
+        widget._rememberedState = state;
       }
     };
   }
@@ -47,7 +49,7 @@
     this.rs.on('sync-done', stateSetter(this, 'connected'));
     this.rs.on('error', errorsHandler(this) );
     if(haveLocalStorage) {
-      var state = localStorage[LS_STATE_KEY] = state;
+      var state = localStorage[LS_STATE_KEY];
       if(state && VALID_ENTRY_STATES[state]) {
         this._rememberedState = state;
       }
@@ -77,7 +79,9 @@
       this.view = view;
       this.view.on('connect', this.rs.connect.bind(this.rs));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
-      this.view.on('sync', this.rs.sync.bind(this.rs));
+      if(this.rs.sync) {
+        this.view.on('sync', this.rs.sync.bind(this.rs));
+      }
       try {
         this.view.on('reset', function(){
           this.rs.on('disconnected', document.location.reload.bind(document.location))
@@ -92,7 +96,7 @@
       }
 
       if(this._rememberedState) {
-        stateSetter(this, this._rememberedState)();
+        setTimeout(stateSetter(this, this._rememberedState), 0);
         delete this._rememberedState;
       }
     }
