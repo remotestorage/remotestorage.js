@@ -53,11 +53,6 @@
     min-width: 182px;
 }
 
-#remotestorage-widget .rs-bubble.one-line {
-    padding-bottom: 2px;
-    border-radius: 5px 15px 15px 5px;
-}
-
 #remotestorage-widget .rs-action {
     cursor: pointer;
 }
