@@ -48,7 +48,7 @@
 
     // bubble toggling stuff
     this.toggle_bubble = function(event) {
-      if(this.bubble.className.search('hidden') < 0) {
+      if(this.bubble.className.search('rs-hidden') < 0) {
         this.hide_bubble(event);
       } else {
         this.show_bubble(event);
@@ -57,7 +57,7 @@
 
     this.hide_bubble = function(){
       //console.log('hide bubble',this);
-      addClass(this.bubble, 'hidden')
+      addClass(this.bubble, 'rs-hidden')
       document.body.removeEventListener('click', hide_bubble_on_body_click);
     }.bind(this);
 
@@ -72,7 +72,7 @@
 
     this.show_bubble = function(event){
       //console.log('show bubble',this.bubble,event)
-      removeClass(this.bubble, 'hidden');
+      removeClass(this.bubble, 'rs-hidden');
       if(typeof(event) != 'undefined') {
          stop_propagation(event);
        }
@@ -108,12 +108,12 @@
 
       var el;
       //sync button
-      el = gCl(element, 'sync');
+      el = gCl(element, 'rs-sync');
       gTl(el, 'img').src = RemoteStorage.Assets.syncIcon;
       el.addEventListener('click', this.events.sync);
 
       //disconnect button
-      el = gCl(element, 'disconnect');
+      el = gCl(element, 'rs-disconnect');
       gTl(el, 'img').src = RemoteStorage.Assets.disconnectIcon;
       el.addEventListener('click', this.events.disconnect);
 
@@ -138,13 +138,13 @@
       }
 
       //the cube
-      el = gCl(element, 'cube');
+      el = gCl(element, 'rs-cube');
       el.src = RemoteStorage.Assets.remoteStorageIcon;
       el.addEventListener('click', this.toggle_bubble);
       this.cube = el
 
       //the bubble
-      this.bubble = gCl(element,'bubble');
+      this.bubble = gCl(element,'rs-bubble');
       // what is the meaning of this hiding the b
       var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
       this.bubble.addEventListener('click', function(event) {
@@ -234,7 +234,7 @@
           this.hide_bubble();
         }
         this.div.className = "remotestorage-state-initial";
-        gCl(this.div, 'status-text').innerHTML = "Connect <strong>remotestorage</strong>";
+        gCl(this.div, 'rs-status-text').innerHTML = "Connect <strong>remotestorage</strong>";
 
         //if address not empty connect button enabled
         //TODO check if this works
@@ -255,7 +255,7 @@
       authing : function() {
         this.div.removeEventListener('click', this.events.connect);
         this.div.className = "remotestorage-state-authing";
-        gCl(this.div, 'status-text').innerHTML = "Connecting <strong>"+this.userAddress+"</strong>";
+        gCl(this.div, 'rs-status-text').innerHTML = "Connecting <strong>"+this.userAddress+"</strong>";
         addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone, when is that neccesary
       },
       connected : function() {
@@ -272,7 +272,7 @@
       offline : function() {
         this.div.className = "remotestorage-state-offline";
         this.cube.src = RemoteStorage.Assets.remoteStorageIconOffline;
-        gCl(this.div, 'status-text').innerHTML = 'Offline';
+        gCl(this.div, 'rs-status-text').innerHTML = 'Offline';
       },
       error : function(err) {
         var errorMsg = err;
@@ -283,7 +283,7 @@
           errorMsg = err.message + '\n\n' +
             err.stack;
         }
-        gCl(this.div, 'error-msg').textContent = errorMsg;
+        gCl(this.div, 'rs-error-msg').textContent = errorMsg;
         this.cube.src = RemoteStorage.Assets.remoteStorageIconError;
         this.show_bubble();
       },

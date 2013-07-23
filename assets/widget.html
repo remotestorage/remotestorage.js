@@ -1,28 +1,28 @@
 
-<div class="bubble hidden">
-  <div class="bubble-text remotestorage-initial remotestorage-error remotestorage-authing remotestorage-offline">
-    <span class="status-text">
+<div class="rs-bubble rs-hidden">
+  <div class="rs-bubble-text remotestorage-initial remotestorage-error remotestorage-authing remotestorage-offline">
+    <span class="rs-status-text">
       Connect <strong>remotestorage</strong>
     </span>
   </div>
-  <div class="bubble-expandable">
+  <div class="rs-bubble-expandable">
     <!-- error -->
     <div class="remotestorage-error">
-      <pre class="status-text error-msg">ERROR</pre>
+      <pre class="rs-status-text rs-error-msg">ERROR</pre>
     
     <button class="remotestorage-reset">get me out of here</button>
-    <p class="centered-text"> If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!</p>
+    <p class="rs-centered-text"> If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!</p>
     </div>
     <!-- connected -->
-    <div class="bubble-text remotestorage-connected">
+    <div class="rs-bubble-text remotestorage-connected">
       <strong class="userAddress"> User Name </strong>
       <span class="remotestorage-unauthorized">
         <br/>Unauthorized! Click to reconnect.<br/>
       </span>
     </div>
     <div class="content remotestorage-connected">
-      <button class="sync" title="sync">  <img>  </button>
-      <button class="disconnect" title="disconnect">  <img>  </button>
+      <button class="rs-sync" title="sync">  <img>  </button>
+      <button class="rs-disconnect" title="disconnect">  <img>  </button>
     </div>
     <!-- initial -->
     <form novalidate class="remotestorage-initial">
@@ -38,5 +38,5 @@
   
   </div>
 </div>
-<img class="cube action">
+<img class="rs-cube rs-action">
 

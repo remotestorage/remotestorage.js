@@ -33,7 +33,7 @@
     z-index: 10000;
 }
 
-#remotestorage-widget .bubble {
+#remotestorage-widget .rs-bubble {
     background: rgba(80, 80, 80, .7);
     border-radius: 5px 15px 5px 5px;
     color: white;
@@ -47,24 +47,24 @@
     text-decoration: none;
 }
 
-#remotestorage-widget .bubble-text {
+#remotestorage-widget .rs-bubble-text {
     padding-right: 32px;
     /* make sure the bubble doesn't "jump" when initially opening. */
     min-width: 182px;
 }
 
-#remotestorage-widget .bubble.one-line {
+#remotestorage-widget .rs-bubble.one-line {
     padding-bottom: 2px;
     border-radius: 5px 15px 15px 5px;
 }
 
-#remotestorage-widget .action {
+#remotestorage-widget .rs-action {
     cursor: pointer;
 }
 
 /* less obtrusive cube when connected */
-#remotestorage-widget.remotestorage-state-connected .cube,
-#remotestorage-widget.remotestorage-state-busy .cube {
+#remotestorage-widget.remotestorage-state-connected .rs-cube,
+#remotestorage-widget.remotestorage-state-busy .rs-cube {
 	opacity:.3;
 	-webkit-transition: opacity .3s ease;
 	-moz-transition: opacity .3s ease;
@@ -72,20 +72,20 @@
 	-o-transition: opacity .3s ease;
 	transition: opacity .3s ease;
 }
-#remotestorage-widget.remotestorage-state-connected:hover .cube,
-#remotestorage-widget.remotestorage-state-busy:hover .cube,
-#remotestorage-widget.remotestorage-state-connected .bubble:not(.hidden) + .cube {
+#remotestorage-widget.remotestorage-state-connected:hover .rs-cube,
+#remotestorage-widget.remotestorage-state-busy:hover .rs-cube,
+#remotestorage-widget.remotestorage-state-connected .rs-bubble:not(.rs-hidden) + .rs-cube {
 	opacity:1 !important;
 }
 
-#remotestorage-widget .cube {
+#remotestorage-widget .rs-cube {
     position: relative;
     top: 5px;
     right: 0;
 }
 
 /* pulsing animation for cube when loading */
-#remotestorage-widget .cube.remotestorage-loading {
+#remotestorage-widget .rs-cube.remotestorage-loading {
     -webkit-animation:remotestorage-loading .5s ease-in-out infinite alternate;
     -moz-animation:remotestorage-loading .5s ease-in-out infinite alternate;
     -o-animation:remotestorage-loading .5s ease-in-out infinite alternate;
@@ -168,7 +168,7 @@
     white-space: normal;
 }
 
-#remotestorage-widget .info.last-synced-message {
+#remotestorage-widget .rs-info-msg.last-synced-message {
     display: inline;
     white-space: nowrap;
     margin-bottom: .7em
@@ -200,7 +200,7 @@
     background: #333;
 }
 
-#remotestorage-widget .bubble button.connect {
+#remotestorage-widget .rs-bubble button.connect {
     display: block;
     background: none;
     position: absolute;
@@ -213,31 +213,31 @@
     width: 36px;
     height: 36px;
 }
-#remotestorage-widget .bubble button.connect:not([disabled]):hover {
+#remotestorage-widget .rs-bubble button.connect:not([disabled]):hover {
     background: rgba(150,150,150,.5);
 }
-#remotestorage-widget .bubble button.connect[disabled] {
+#remotestorage-widget .rs-bubble button.connect[disabled] {
     opacity: .5;
     cursor: default !important;
 }
-#remotestorage-widget .bubble button.sync {
+#remotestorage-widget .rs-bubble button.rs-sync {
     position: relative;
     left: -5px;
     bottom: -5px;
     padding: 4px 4px 0 4px;
     background: #555;
 }
-#remotestorage-widget .bubble button.sync:hover {
+#remotestorage-widget .rs-bubble button.rs-sync:hover {
     background: #444;
 }
-#remotestorage-widget .bubble button.disconnect {
+#remotestorage-widget .rs-bubble button.rs-disconnect {
     background: #721;
     position: absolute;
     right: 0;
     bottom: 0;
     padding: 4px 4px 0 4px;
 }
-#remotestorage-widget .bubble button.disconnect:hover {
+#remotestorage-widget .rs-bubble button.rs-disconnect:hover {
     background: #921;
 }
 
@@ -252,7 +252,7 @@
     background: #921;
 }
 
-#remotestorage-widget .bubble .content {
+#remotestorage-widget .rs-bubble .content {
     margin-top: 7px;
 }
 
@@ -264,27 +264,22 @@
     margin-top: 1em;
     overflow: auto;
 }
-#remotestorage-widget .centered-text{
+#remotestorage-widget .rs-centered-text{
     text-align: center;
 }
-#remotestorage-widget .bubble.hidden {
+#remotestorage-widget .rs-bubble.rs-hidden {
     padding-bottom: 2px;
     border-radius: 5px 15px 15px 5px;
 }
 
-#remotestorage-widget .error-msg{
+#remotestorage-widget .rs-error-msg{
     min-height: 5em;
 }
 
-.bubble.hidden {
-    /* some apps have a global "hidden" class that has display:none set. */
-    display: block;
-}
-
-.bubble.hidden .bubble-expandable {
+.rs-bubble.rs-hidden .rs-bubble-expandable {
     display: none;
 }
-.remotestorage-state-connected .bubble.hidden{
+.remotestorage-state-connected .rs-bubble.rs-hidden{
     display: none;
 }
 
@@ -316,21 +311,21 @@
 .remotestorage-unauthorized {
     display: none;
 }
-.remotestorage-state-unauthorized .bubble.hidden{
+.remotestorage-state-unauthorized .rs-bubble.rs-hidden{
     display: none;
 }
 .remotestorage-state-unauthorized .remotestorage-connected,
 .remotestorage-state-unauthorized .remotestorage-unauthorized {
     display: block;
 }
-.remotestorage-state-unauthorized .sync{
+.remotestorage-state-unauthorized .rs-sync{
     display: none;
 }
-.remotestorage-state-busy .bubble{
+.remotestorage-state-busy .rs-bubble{
     display: none;
 }
 
-.remotestorage-state-authing .bubble-expandable{
+.remotestorage-state-authing .rs-bubble-expandable{
     display: none;
 }
 
