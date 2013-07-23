@@ -3945,7 +3945,6 @@ Math.uuid = function (len, radix) {
     },
 
     'delete': function(path, incoming) {
-      console.log('(localStorage) DELETE', path, incoming);
       var oldNode = this._get(path);
       delete localStorage[NODES_PREFIX + path];
       this._removeFromParent(path);
