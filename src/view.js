@@ -242,7 +242,7 @@
         if(cb.value)
           cb.removeAttribute('disabled');
 
-        var infoEl = gCl(this.div, 'info');
+        var infoEl = gCl(this.div, 'rs-info-msg');
         infoEl.innerHTML = info;
 
         if(message) {
