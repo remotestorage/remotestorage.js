@@ -403,9 +403,14 @@
 
   var DB_VERSION = 2;
   RS.IndexedDB.open = function(name, callback) {
+    var timer = setTimeout(function() {
+      callback("timeout trying to open db");
+    }, 3500);
+
     var dbOpen = indexedDB.open(name, DB_VERSION);
     dbOpen.onerror = function() {
       console.error('opening db failed', dbOpen);
+      clearTimeout(timer);
       callback(dbOpen.error);
     };
     dbOpen.onupgradeneeded = function(event) {
@@ -416,6 +421,7 @@
       db.createObjectStore('changes', { keyPath: 'path' });
     }
     dbOpen.onsuccess = function() {
+      clearTimeout(timer);
       callback(null, dbOpen.result);
     };
   };

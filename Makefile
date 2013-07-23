@@ -10,6 +10,7 @@ DOC_INPUTS     = -i $(SOURCE_DIR)
 SOURCES        = ${shell find $(SOURCE_DIR) -name "*.js"}
 
 DEFAULT_COMPONENTS = core widget baseclient caching modules debug legacy
+NOCACHE_COMPONENTS = core widget baseclient modules debug legacy
 
 default: help
 
@@ -44,6 +45,9 @@ remotestorage.min.js: remotestorage.js
 	head -n1 remotestorage.js > remotestorage.min.js
 	cat remotestorage.min.js.tmp >> remotestorage.min.js
 	rm remotestorage.min.js.tmp
+
+remotestorage-nocache.amd.js: $(SOURCES)
+	$(NODEJS) build/do-build.js $@ --amd $(NOCACHE_COMPONENTS)
 
 $(ASSETS_OUT): $(ASSETS_DIR)/*
 	$(NODEJS) build/compile-assets.js $(ASSETS_DIR) $(ASSETS_OUT)
