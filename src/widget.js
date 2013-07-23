@@ -79,7 +79,9 @@
       this.view = view;
       this.view.on('connect', this.rs.connect.bind(this.rs));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
-      this.view.on('sync', this.rs.sync.bind(this.rs));
+      if(this.rs.sync) {
+        this.view.on('sync', this.rs.sync.bind(this.rs));
+      }
       try {
         this.view.on('reset', function(){
           this.rs.on('disconnected', document.location.reload.bind(document.location))
