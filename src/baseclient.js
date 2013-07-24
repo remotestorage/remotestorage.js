@@ -337,7 +337,7 @@
       try {
         var validationResult = this.validate(object);
         if(! validationResult.valid) {
-          return promising().reject(validationResult);
+          return promising(function(p) { p.reject(validationResult); });
         }
       } catch(exc) {
         if(exc instanceof RS.BaseClient.Types.SchemaNotFound) {
