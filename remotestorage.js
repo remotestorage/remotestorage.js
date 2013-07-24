@@ -113,7 +113,7 @@
 
 
 /** FILE: src/remotestorage.js **/
-(function() {
+(function(global) {
 
   var SyncedGetPutDelete = {
     get: function(path) {
@@ -155,7 +155,7 @@
   /**
    * Class: RemoteStorage
    *
-   * Constructor for global <remoteStorage> object.
+   * Constructor for global remoteStorage object.
    *
    * This class primarily contains feature detection code and a global convenience API.
    *
@@ -177,10 +177,6 @@
     });
     this._cleanups = [];
     this._pathHandlers = {};
-
-    this.__defineGetter__('connected', function() {
-      return this.remote.connected;
-    });
 
     var origOn = this.on;
     this.on = function(eventName, handler) {
@@ -210,6 +206,11 @@
   RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
   RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
+  /**
+   * Method: RemoteStorage.log
+   *
+   * Logging using console.log, when logging is enabled.
+   */
   RemoteStorage.log = function() {
     if(RemoteStorage._log) {
       console.log.apply(console, arguments);
@@ -301,6 +302,9 @@
      * as <RemoteStorage.IndexedDB>) and the affected path is equal to
      * or below the given 'path', the given handler is called.
      *
+     * You shouldn't need to use this method directly, but instead use
+     * the "change" events provided by <RemoteStorage.BaseClient>.
+     *
      * Parameters:
      *   path    - Absolute path to attach handler to.
      *   handler - Handler function.
@@ -312,14 +316,29 @@
       this._pathHandlers[path].push(handler);
     },
 
+    /**
+     * Method: enableLog
+     *
+     * enable logging
+     */
     enableLog: function() {
       RemoteStorage._log = true;
     },
 
+    /**
+     * Method: disableLog
+     *
+     * disable logging
+     */
     disableLog: function() {
       RemoteStorage._log = false;
     },
 
+    /**
+     * Method: log
+     *
+     * The same as <RemoteStorage.log>.
+     */
     log: function() {
       RemoteStorage.log.apply(RemoteStorage, arguments);
     },
@@ -514,16 +533,75 @@
     }
   };
 
-  window.RemoteStorage = RemoteStorage;
+  /**
+   * Method: claimAccess
+   *
+   * High-level method to claim access on one or multiple scopes and enable
+   * caching for them.
+   *
+   * Examples:
+   *   (start code)
+   *     remoteStorage.claimAccess('foo', 'rw');
+   *     // is equivalent to:
+   *     remoteStorage.claimAccess({ foo: 'rw' });
+   *
+   *     // is equivalent to:
+   *     remoteStorage.access.claim('foo', 'rw');
+   *     remoteStorage.caching.enable('/foo/');
+   *     remoteStorage.caching.enable('/public/foo/');
+   *   (end code)
+   */
 
-})();
+  /**
+   * Property: connected
+   *
+   * Boolean property indicating if remoteStorage is currently connected.
+   */
+  Object.defineProperty(RemoteStorage.prototype, 'connected', {
+    get: function() {
+      return this.remote.connected;
+    }
+  });
+
+  /**
+   * Property: access
+   *
+   * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
+   *
+   *
+   * Property: caching
+   *
+   * Caching settings. A <RemoteStorage.Caching> instance.
+   *
+   * (only available when caching is built in)
+   *
+   *
+   * Property: remote
+   *
+   * Access to the remote backend used. Usually a <RemoteStorage.WireClient>.
+   *
+   *
+   * Property: local
+   *
+   * Access to the local caching backend used.
+   * Only available when caching is built in.
+   * Usually either a <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage>
+   * instance.
+   */
+
+  global.RemoteStorage = RemoteStorage;
+
+})(this);
 
 
 /** FILE: src/eventhandling.js **/
 (function(global) {
+  /**
+   * Class: eventhandling
+   */
   var methods = {
     /**
-     * Method: eventhandling.addEventListener
+     * Method: addEventListener
      *
      * Install an event handler for the given event name.
      */
@@ -532,6 +610,11 @@
       this._handlers[eventName].push(handler);
     },
 
+    /**
+     * Method: removeEventListener
+     *
+     * Remove a previously installed event handler
+     */
     removeEventListener: function(eventName, handler) {
       this._validateEvent(eventName);
       var hl = this._handlers[eventName].length;
@@ -1009,6 +1092,11 @@
   var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:access";
 
+  /**
+   * Class: RemoteStorage.Access
+   *
+   * Keeps track of claimed access and scopes.
+   */
   RemoteStorage.Access = function() {
     this.reset();
 
@@ -1021,23 +1109,20 @@
         }
       }
     }
-
-    this.__defineGetter__('scopes', function() {
-      return Object.keys(this.scopeModeMap).map(function(key) {
-        return { name: key, mode: this.scopeModeMap[key] };
-      }.bind(this));
-    });
-
-    this.__defineGetter__('scopeParameter', function() {
-      return this.scopes.map(function(scope) {
-        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
-      }.bind(this)).join(' ');
-    });
   };
 
   RemoteStorage.Access.prototype = {
     // not sure yet, if 'set' or 'claim' is better...
 
+    /**
+     * Method: claim
+     *
+     * Claim access on a given scope with given mode.
+     *
+     * Parameters:
+     *   scope - An access scope, such as "contacts" or "calendar".
+     *   mode  - Access mode to use. Either "r" or "rw".
+     */
     claim: function() {
       this.set.apply(this, arguments);
     },
@@ -1095,6 +1180,37 @@
     }
   };
 
+  /**
+   * Property: scopes
+   *
+   * Holds an array of claimed scopes in the form
+   * > { name: "<scope-name>", mode: "<mode>" }
+   *
+   * Example:
+   *   (start code)
+   *   remoteStorage.access.claim('foo', 'r');
+   *   remoteStorage.access.claim('bar', 'rw');
+   *
+   *   remoteStorage.access.scopes
+   *   // -> [ { name: 'foo', mode: 'r' }, { name: 'bar', mode: 'rw' } ]
+   */
+  Object.defineProperty(RemoteStorage.Access.prototype, 'scopes', {
+    get: function() {
+      return Object.keys(this.scopeModeMap).map(function(key) {
+        return { name: key, mode: this.scopeModeMap[key] };
+      }.bind(this));
+    }
+  });
+
+  Object.defineProperty(RemoteStorage.Access.prototype, 'scopeParameter', {
+    get: function() {
+      return this.scopes.map(function(scope) {
+        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
+      }.bind(this)).join(' ');
+    }
+  });
+
+  // documented in src/remotestorage.js
   Object.defineProperty(RemoteStorage.prototype, 'access', {
     get: function() {
       var access = new RemoteStorage.Access();
@@ -1115,6 +1231,7 @@
     }
   }
 
+  // documented in src/remotestorage.js
   RemoteStorage.prototype.claimAccess = function(scopes) {
     if(typeof(scopes) === 'object') {
       for(var key in scopes) {
@@ -1128,11 +1245,6 @@
   };
 
   RemoteStorage.Access._rs_init = function() {};
-  RemoteStorage.Access._rs_cleanup = function() {
-    if(haveLocalStorage) {
-      delete localStorage[SETTINGS_KEY];
-    }
-  };
 
 })(this);
 
@@ -2783,14 +2895,14 @@ Math.uuid = function (len, radix) {
      *
      * How to define types?:
      *
-     *   See <declareType> or the calendar module (src/modules/calendar.js) for examples.
+     *   See <declareType> for examples.
      */
     storeObject: function(typeAlias, path, object) {
       this._attachType(object, typeAlias);
       try {
         var validationResult = this.validate(object);
         if(! validationResult.valid) {
-          return promising().reject(validationResult);
+          return promising(function(p) { p.reject(validationResult); });
         }
       } catch(exc) {
         if(exc instanceof RS.BaseClient.Types.SchemaNotFound) {
@@ -2939,6 +3051,18 @@ Math.uuid = function (len, radix) {
 
     getSchema: function(uri) {
       return this.schemas[uri];
+    },
+
+    inScope: function(moduleName) {
+      var ml = moduleName.length;
+      var schemas = {};
+      for(var alias in this.uris) {
+        if(alias.substr(0, ml + 1) == moduleName + '/') {
+          var uri = this.uris[alias];
+          schemas[uri] = this.schemas[uri];
+        }
+      }
+      return schemas;
     }
   };
 
@@ -2980,6 +3104,12 @@ Math.uuid = function (len, radix) {
     }
   });
 
+  Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
+    get: function() {
+      return RemoteStorage.BaseClient.Types.inScope(this.moduleName);
+    }
+  });
+
 })(this);
 
 
@@ -3003,16 +3133,13 @@ Math.uuid = function (len, radix) {
     return a.slice(0, b.length) === b;
   }
 
+  /**
+   * Class: RemoteStorage.Caching
+   *
+   * Holds caching configuration.
+   */
   RemoteStorage.Caching = function() {
     this.reset();
-
-    this.__defineGetter__('list', function() {
-      var list = [];
-      for(var path in this._pathSettingsMap) {
-        list.push({ path: path, settings: this._pathSettingsMap[path] });
-      }
-      return list;
-    });
 
     if(haveLocalStorage) {
       var settings = localStorage[SETTINGS_KEY];
@@ -3025,7 +3152,23 @@ Math.uuid = function (len, radix) {
 
   RemoteStorage.Caching.prototype = {
 
+    /**
+     * Method: enable
+     *
+     * Enable caching for the given path.
+     *
+     * Parameters:
+     *   path - Absolute path to a directory.
+     */
     enable: function(path) { this.set(path, { data: true }); },
+    /**
+     * Method: disable
+     *
+     * Disable caching for the given path.
+     *
+     * Parameters:
+     *   path - Absolute path to a directory.
+     */
     disable: function(path) { this.remove(path); },
 
     /**
@@ -3136,6 +3279,17 @@ Math.uuid = function (len, radix) {
 
   };
 
+  Object.defineProperty(RemoteStorage.Caching.prototype, 'list', {
+    get: function() {
+      var list = [];
+      for(var path in this._pathSettingsMap) {
+        list.push({ path: path, settings: this._pathSettingsMap[path] });
+      }
+      return list;
+    }
+  });
+
+
   Object.defineProperty(RemoteStorage.prototype, 'caching', {
     configurable: true,
     get: function() {
@@ -3148,12 +3302,6 @@ Math.uuid = function (len, radix) {
   });
 
   RemoteStorage.Caching._rs_init = function() {};
-  RemoteStorage.Caching._rs_cleanup = function(remoteStorage) {
-    remoteStorage.caching.reset();
-    if(haveLocalStorage) {
-      delete localStorage[SETTINGS_KEY];
-    }
-  };
 
 })(this);
 
@@ -3459,14 +3607,14 @@ Math.uuid = function (len, radix) {
    *
    * There are multiple parts to this interface:
    *
-   *   - The RemoteStorage integration:
+   *   The RemoteStorage integration:
    *     - RemoteStorage.IndexedDB._rs_supported() determines if indexedDB support
    *       is available. If it isn't, RemoteStorage won't initialize the feature.
    *     - RemoteStorage.IndexedDB._rs_init() initializes the feature. It returns
    *       a promise that is fulfilled as soon as the database has been opened and
    *       migrated.
    *
-   *   - The storage interface (RemoteStorage.IndexedDB object):
+   *   The storage interface (RemoteStorage.IndexedDB object):
    *     - Usually this is accessible via "remoteStorage.local"
    *     - #get() takes a path and returns a promise.
    *     - #put() takes a path, body and contentType and also returns a promise.
@@ -3483,7 +3631,7 @@ Math.uuid = function (len, radix) {
    *       "incoming" flag is passed to #put() or #delete(). This is usually done
    *       by RemoteStorage.Sync.
    *
-   *   - The revision interface (also on RemoteStorage.IndexedDB object):
+   *   The revision interface (also on RemoteStorage.IndexedDB object):
    *     - #setRevision(path, revision) sets the current revision for the given
    *       path. Revisions are only generated by the remotestorage server, so
    *       this is usually done from RemoteStorage.Sync once a pending change
@@ -3494,7 +3642,7 @@ Math.uuid = function (len, radix) {
    *     - #getRevision(path) returns the currently stored revision for the given
    *       path.
    *
-   *   - The changes interface (also on RemoteStorage.IndexedDB object):
+   *   The changes interface (also on RemoteStorage.IndexedDB object):
    *     - Used to record local changes between sync cycles.
    *     - Changes are stored in a separate ObjectStore called "changes".
    *     - #_recordChange() records a change and is called by #put() and #delete(),

@@ -114,7 +114,7 @@ define([], function() {
 
 
 /** FILE: src/remotestorage.js **/
-(function() {
+(function(global) {
 
   var SyncedGetPutDelete = {
     get: function(path) {
@@ -156,7 +156,7 @@ define([], function() {
   /**
    * Class: RemoteStorage
    *
-   * Constructor for global <remoteStorage> object.
+   * Constructor for global remoteStorage object.
    *
    * This class primarily contains feature detection code and a global convenience API.
    *
@@ -178,10 +178,6 @@ define([], function() {
     });
     this._cleanups = [];
     this._pathHandlers = {};
-
-    this.__defineGetter__('connected', function() {
-      return this.remote.connected;
-    });
 
     var origOn = this.on;
     this.on = function(eventName, handler) {
@@ -211,6 +207,11 @@ define([], function() {
   RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
   RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
+  /**
+   * Method: RemoteStorage.log
+   *
+   * Logging using console.log, when logging is enabled.
+   */
   RemoteStorage.log = function() {
     if(RemoteStorage._log) {
       console.log.apply(console, arguments);
@@ -302,6 +303,9 @@ define([], function() {
      * as <RemoteStorage.IndexedDB>) and the affected path is equal to
      * or below the given 'path', the given handler is called.
      *
+     * You shouldn't need to use this method directly, but instead use
+     * the "change" events provided by <RemoteStorage.BaseClient>.
+     *
      * Parameters:
      *   path    - Absolute path to attach handler to.
      *   handler - Handler function.
@@ -313,14 +317,29 @@ define([], function() {
       this._pathHandlers[path].push(handler);
     },
 
+    /**
+     * Method: enableLog
+     *
+     * enable logging
+     */
     enableLog: function() {
       RemoteStorage._log = true;
     },
 
+    /**
+     * Method: disableLog
+     *
+     * disable logging
+     */
     disableLog: function() {
       RemoteStorage._log = false;
     },
 
+    /**
+     * Method: log
+     *
+     * The same as <RemoteStorage.log>.
+     */
     log: function() {
       RemoteStorage.log.apply(RemoteStorage, arguments);
     },
@@ -515,16 +534,75 @@ define([], function() {
     }
   };
 
-  window.RemoteStorage = RemoteStorage;
+  /**
+   * Method: claimAccess
+   *
+   * High-level method to claim access on one or multiple scopes and enable
+   * caching for them.
+   *
+   * Examples:
+   *   (start code)
+   *     remoteStorage.claimAccess('foo', 'rw');
+   *     // is equivalent to:
+   *     remoteStorage.claimAccess({ foo: 'rw' });
+   *
+   *     // is equivalent to:
+   *     remoteStorage.access.claim('foo', 'rw');
+   *     remoteStorage.caching.enable('/foo/');
+   *     remoteStorage.caching.enable('/public/foo/');
+   *   (end code)
+   */
 
-})();
+  /**
+   * Property: connected
+   *
+   * Boolean property indicating if remoteStorage is currently connected.
+   */
+  Object.defineProperty(RemoteStorage.prototype, 'connected', {
+    get: function() {
+      return this.remote.connected;
+    }
+  });
+
+  /**
+   * Property: access
+   *
+   * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
+   *
+   *
+   * Property: caching
+   *
+   * Caching settings. A <RemoteStorage.Caching> instance.
+   *
+   * (only available when caching is built in)
+   *
+   *
+   * Property: remote
+   *
+   * Access to the remote backend used. Usually a <RemoteStorage.WireClient>.
+   *
+   *
+   * Property: local
+   *
+   * Access to the local caching backend used.
+   * Only available when caching is built in.
+   * Usually either a <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage>
+   * instance.
+   */
+
+  global.RemoteStorage = RemoteStorage;
+
+})(this);
 
 
 /** FILE: src/eventhandling.js **/
 (function(global) {
+  /**
+   * Class: eventhandling
+   */
   var methods = {
     /**
-     * Method: eventhandling.addEventListener
+     * Method: addEventListener
      *
      * Install an event handler for the given event name.
      */
@@ -533,6 +611,11 @@ define([], function() {
       this._handlers[eventName].push(handler);
     },
 
+    /**
+     * Method: removeEventListener
+     *
+     * Remove a previously installed event handler
+     */
     removeEventListener: function(eventName, handler) {
       this._validateEvent(eventName);
       var hl = this._handlers[eventName].length;
@@ -1010,6 +1093,11 @@ define([], function() {
   var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:access";
 
+  /**
+   * Class: RemoteStorage.Access
+   *
+   * Keeps track of claimed access and scopes.
+   */
   RemoteStorage.Access = function() {
     this.reset();
 
@@ -1022,23 +1110,20 @@ define([], function() {
         }
       }
     }
-
-    this.__defineGetter__('scopes', function() {
-      return Object.keys(this.scopeModeMap).map(function(key) {
-        return { name: key, mode: this.scopeModeMap[key] };
-      }.bind(this));
-    });
-
-    this.__defineGetter__('scopeParameter', function() {
-      return this.scopes.map(function(scope) {
-        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
-      }.bind(this)).join(' ');
-    });
   };
 
   RemoteStorage.Access.prototype = {
     // not sure yet, if 'set' or 'claim' is better...
 
+    /**
+     * Method: claim
+     *
+     * Claim access on a given scope with given mode.
+     *
+     * Parameters:
+     *   scope - An access scope, such as "contacts" or "calendar".
+     *   mode  - Access mode to use. Either "r" or "rw".
+     */
     claim: function() {
       this.set.apply(this, arguments);
     },
@@ -1096,6 +1181,37 @@ define([], function() {
     }
   };
 
+  /**
+   * Property: scopes
+   *
+   * Holds an array of claimed scopes in the form
+   * > { name: "<scope-name>", mode: "<mode>" }
+   *
+   * Example:
+   *   (start code)
+   *   remoteStorage.access.claim('foo', 'r');
+   *   remoteStorage.access.claim('bar', 'rw');
+   *
+   *   remoteStorage.access.scopes
+   *   // -> [ { name: 'foo', mode: 'r' }, { name: 'bar', mode: 'rw' } ]
+   */
+  Object.defineProperty(RemoteStorage.Access.prototype, 'scopes', {
+    get: function() {
+      return Object.keys(this.scopeModeMap).map(function(key) {
+        return { name: key, mode: this.scopeModeMap[key] };
+      }.bind(this));
+    }
+  });
+
+  Object.defineProperty(RemoteStorage.Access.prototype, 'scopeParameter', {
+    get: function() {
+      return this.scopes.map(function(scope) {
+        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
+      }.bind(this)).join(' ');
+    }
+  });
+
+  // documented in src/remotestorage.js
   Object.defineProperty(RemoteStorage.prototype, 'access', {
     get: function() {
       var access = new RemoteStorage.Access();
@@ -1116,6 +1232,7 @@ define([], function() {
     }
   }
 
+  // documented in src/remotestorage.js
   RemoteStorage.prototype.claimAccess = function(scopes) {
     if(typeof(scopes) === 'object') {
       for(var key in scopes) {
@@ -1129,11 +1246,6 @@ define([], function() {
   };
 
   RemoteStorage.Access._rs_init = function() {};
-  RemoteStorage.Access._rs_cleanup = function() {
-    if(haveLocalStorage) {
-      delete localStorage[SETTINGS_KEY];
-    }
-  };
 
 })(this);
 
@@ -2784,14 +2896,14 @@ Math.uuid = function (len, radix) {
      *
      * How to define types?:
      *
-     *   See <declareType> or the calendar module (src/modules/calendar.js) for examples.
+     *   See <declareType> for examples.
      */
     storeObject: function(typeAlias, path, object) {
       this._attachType(object, typeAlias);
       try {
         var validationResult = this.validate(object);
         if(! validationResult.valid) {
-          return promising().reject(validationResult);
+          return promising(function(p) { p.reject(validationResult); });
         }
       } catch(exc) {
         if(exc instanceof RS.BaseClient.Types.SchemaNotFound) {
@@ -2940,6 +3052,18 @@ Math.uuid = function (len, radix) {
 
     getSchema: function(uri) {
       return this.schemas[uri];
+    },
+
+    inScope: function(moduleName) {
+      var ml = moduleName.length;
+      var schemas = {};
+      for(var alias in this.uris) {
+        if(alias.substr(0, ml + 1) == moduleName + '/') {
+          var uri = this.uris[alias];
+          schemas[uri] = this.schemas[uri];
+        }
+      }
+      return schemas;
     }
   };
 
@@ -2978,6 +3102,12 @@ Math.uuid = function (len, radix) {
 
     _attachType: function(object, alias) {
       object['@context'] = RemoteStorage.BaseClient.Types.resolveAlias(alias) || this._defaultTypeURI(alias);
+    }
+  });
+
+  Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
+    get: function() {
+      return RemoteStorage.BaseClient.Types.inScope(this.moduleName);
     }
   });
 
