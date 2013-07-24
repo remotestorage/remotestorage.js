@@ -458,8 +458,21 @@
    *
    * Caching settings. A <RemoteStorage.Caching> instance.
    *
+   * (only available when caching is built in)
+   *
+   *
+   * Property: remote
+   *
+   * Access to the remote backend used. Usually a <RemoteStorage.WireClient>.
+   *
+   *
+   * Property: local
+   *
+   * Access to the local caching backend used.
+   * Only available when caching is built in.
+   * Usually either a <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage>
+   * instance.
    */
-
 
   global.RemoteStorage = RemoteStorage;
 
