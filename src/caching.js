@@ -186,11 +186,5 @@
   });
 
   RemoteStorage.Caching._rs_init = function() {};
-  RemoteStorage.Caching._rs_cleanup = function(remoteStorage) {
-    remoteStorage.caching.reset();
-    if(haveLocalStorage) {
-      delete localStorage[SETTINGS_KEY];
-    }
-  };
 
 })(this);

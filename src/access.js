@@ -156,10 +156,5 @@
   };
 
   RemoteStorage.Access._rs_init = function() {};
-  RemoteStorage.Access._rs_cleanup = function() {
-    if(haveLocalStorage) {
-      delete localStorage[SETTINGS_KEY];
-    }
-  };
 
 })(this);
