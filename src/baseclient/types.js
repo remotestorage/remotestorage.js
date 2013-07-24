@@ -38,6 +38,18 @@
 
     getSchema: function(uri) {
       return this.schemas[uri];
+    },
+
+    inScope: function(moduleName) {
+      var ml = moduleName.length;
+      var schemas = {};
+      for(var alias in this.uris) {
+        if(alias.substr(0, ml + 1) == moduleName + '/') {
+          var uri = this.uris[alias];
+          schemas[uri] = this.schemas[uri];
+        }
+      }
+      return schemas;
     }
   };
 
@@ -76,6 +88,12 @@
 
     _attachType: function(object, alias) {
       object['@context'] = RemoteStorage.BaseClient.Types.resolveAlias(alias) || this._defaultTypeURI(alias);
+    }
+  });
+
+  Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
+    get: function() {
+      return RemoteStorage.BaseClient.Types.inScope(this.moduleName);
     }
   });
 
