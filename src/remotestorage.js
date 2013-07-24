@@ -1,4 +1,4 @@
-(function() {
+(function(global) {
 
   var SyncedGetPutDelete = {
     get: function(path) {
@@ -40,7 +40,7 @@
   /**
    * Class: RemoteStorage
    *
-   * Constructor for global <remoteStorage> object.
+   * Constructor for global remoteStorage object.
    *
    * This class primarily contains feature detection code and a global convenience API.
    *
@@ -91,6 +91,11 @@
   RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
   RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
+  /**
+   * Method: RemoteStorage.log
+   *
+   * Logging using console.log, when logging is enabled.
+   */
   RemoteStorage.log = function() {
     if(RemoteStorage._log) {
       console.log.apply(console, arguments);
@@ -182,6 +187,9 @@
      * as <RemoteStorage.IndexedDB>) and the affected path is equal to
      * or below the given 'path', the given handler is called.
      *
+     * You shouldn't need to use this method directly, but instead use
+     * the "change" events provided by <RemoteStorage.BaseClient>.
+     *
      * Parameters:
      *   path    - Absolute path to attach handler to.
      *   handler - Handler function.
@@ -193,14 +201,29 @@
       this._pathHandlers[path].push(handler);
     },
 
+    /**
+     * Method: enableLog
+     *
+     * enable logging
+     */
     enableLog: function() {
       RemoteStorage._log = true;
     },
 
+    /**
+     * Method: disableLog
+     *
+     * disable logging
+     */
     disableLog: function() {
       RemoteStorage._log = false;
     },
 
+    /**
+     * Method: log
+     *
+     * The same as <RemoteStorage.log>.
+     */
     log: function() {
       RemoteStorage.log.apply(RemoteStorage, arguments);
     },
@@ -395,13 +418,49 @@
     }
   };
 
+  /**
+   * Method: claimAccess
+   *
+   * High-level method to claim access on one or multiple scopes and enable
+   * caching for them.
+   *
+   * Examples:
+   *   (start code)
+   *     remoteStorage.claimAccess('foo', 'rw');
+   *     // is equivalent to:
+   *     remoteStorage.claimAccess({ foo: 'rw' });
+   *
+   *     // is equivalent to:
+   *     remoteStorage.access.claim('foo', 'rw');
+   *     remoteStorage.caching.enable('/foo/');
+   *     remoteStorage.caching.enable('/public/foo/');
+   *   (end code)
+   */
+
+  /**
+   * Property: connected
+   *
+   * Boolean property indicating if remoteStorage is currently connected.
+   */
   Object.defineProperty(RemoteStorage.prototype, 'connected', {
     get: function() {
       return this.remote.connected;
     }
   });
 
+  /**
+   * Property: access
+   *
+   * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
+   *
+   *
+   * Property: caching
+   *
+   * Caching settings. A <RemoteStorage.Caching> instance.
+   *
+   */
 
-  window.RemoteStorage = RemoteStorage;
 
-})();
+  global.RemoteStorage = RemoteStorage;
+
+})(this);

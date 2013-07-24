@@ -17,6 +17,11 @@
     return a.slice(0, b.length) === b;
   }
 
+  /**
+   * Class: RemoteStorage.Caching
+   *
+   * Holds caching configuration.
+   */
   RemoteStorage.Caching = function() {
     this.reset();
 
@@ -31,7 +36,23 @@
 
   RemoteStorage.Caching.prototype = {
 
+    /**
+     * Method: enable
+     *
+     * Enable caching for the given path.
+     *
+     * Parameters:
+     *   path - Absolute path to a directory.
+     */
     enable: function(path) { this.set(path, { data: true }); },
+    /**
+     * Method: disable
+     *
+     * Disable caching for the given path.
+     *
+     * Parameters:
+     *   path - Absolute path to a directory.
+     */
     disable: function(path) { this.remove(path); },
 
     /**

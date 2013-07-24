@@ -330,7 +330,7 @@
      *
      * How to define types?:
      *
-     *   See <declareType> or the calendar module (src/modules/calendar.js) for examples.
+     *   See <declareType> for examples.
      */
     storeObject: function(typeAlias, path, object) {
       this._attachType(object, typeAlias);

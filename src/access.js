@@ -3,6 +3,11 @@
   var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:access";
 
+  /**
+   * Class: RemoteStorage.Access
+   *
+   * Keeps track of claimed access and scopes.
+   */
   RemoteStorage.Access = function() {
     this.reset();
 
@@ -20,6 +25,15 @@
   RemoteStorage.Access.prototype = {
     // not sure yet, if 'set' or 'claim' is better...
 
+    /**
+     * Method: claim
+     *
+     * Claim access on a given scope with given mode.
+     *
+     * Parameters:
+     *   scope - An access scope, such as "contacts" or "calendar".
+     *   mode  - Access mode to use. Either "r" or "rw".
+     */
     claim: function() {
       this.set.apply(this, arguments);
     },
@@ -77,7 +91,20 @@
     }
   };
 
-
+  /**
+   * Property: scopes
+   *
+   * Holds an array of claimed scopes in the form
+   * > { name: "<scope-name>", mode: "<mode>" }
+   *
+   * Example:
+   *   (start code)
+   *   remoteStorage.access.claim('foo', 'r');
+   *   remoteStorage.access.claim('bar', 'rw');
+   *
+   *   remoteStorage.access.scopes
+   *   // -> [ { name: 'foo', mode: 'r' }, { name: 'bar', mode: 'rw' } ]
+   */
   Object.defineProperty(RemoteStorage.Access.prototype, 'scopes', {
     get: function() {
       return Object.keys(this.scopeModeMap).map(function(key) {
@@ -94,7 +121,7 @@
     }
   });
 
-
+  // documented in src/remotestorage.js
   Object.defineProperty(RemoteStorage.prototype, 'access', {
     get: function() {
       var access = new RemoteStorage.Access();
@@ -115,6 +142,7 @@
     }
   }
 
+  // documented in src/remotestorage.js
   RemoteStorage.prototype.claimAccess = function(scopes) {
     if(typeof(scopes) === 'object') {
       for(var key in scopes) {
