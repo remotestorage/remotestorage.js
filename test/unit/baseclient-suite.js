@@ -21,6 +21,7 @@ define(['requirejs'], function(requirejs, undefined) {
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+      require('./lib/Math.uuid');
       require('./src/baseclient');
       test.done();
     },
@@ -241,6 +242,29 @@ define(['requirejs'], function(requirejs, undefined) {
             return promising().fulfill(404);
           }
           env.client.getAll();
+        }
+      },
+
+      {
+        desc: "#scope returns a new BaseClient, scoped to the given sub-path",
+        run: function(env, test) {
+          var scope = env.client.scope('bar/');
+          test.assertTypeAnd(scope, 'object');
+          test.assertAnd(scope.base, '/foo/bar/');
+          test.done();
+        }
+      },
+
+      {
+        desc: "#uuid returns a different string each time",
+        run: function(env, test) {
+          var n = 10000;
+          var uuids = {};
+          for(var i=0;i<n;i++) {
+            uuids[env.client.uuid()] = true;
+          }
+          test.assertTypeAnd(typeof(uuids[0]), 'string');
+          test.assert(Object.keys(uuids).length, n);
         }
       }
 
