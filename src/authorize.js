@@ -30,6 +30,7 @@
     url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
+    url += '&response_type=token';
     document.location = url;
   };
 
