@@ -1056,6 +1056,7 @@
     url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
+    url += '&response_type=token';
     document.location = url;
   };
 
@@ -3067,7 +3068,9 @@ Math.uuid = function (len, radix) {
   };
 
   var SchemaNotFound = function(uri) {
-    Error.apply(this, ["Schema not found: " + uri]);
+    var error = Error("Schema not found: " + uri);
+    error.name = "SchemaNotFound";
+    return error;
   };
   SchemaNotFound.prototype = Error.prototype;
 
