@@ -94,6 +94,7 @@
   });
 
   Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
+    configurable: true,
     get: function() {
       return RemoteStorage.BaseClient.Types.inScope(this.moduleName);
     }
