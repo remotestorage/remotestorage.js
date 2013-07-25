@@ -54,7 +54,9 @@
   };
 
   var SchemaNotFound = function(uri) {
-    Error.apply(this, ["Schema not found: " + uri]);
+    var error = Error("Schema not found: " + uri);
+    error.name = "SchemaNotFound";
+    return error;
   };
   SchemaNotFound.prototype = Error.prototype;
 
