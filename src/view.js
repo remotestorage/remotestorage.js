@@ -278,8 +278,8 @@
         var errorMsg = err;
         this.div.className = "remotestorage-state-error";
 
-        gCl(this.div, 'bubble-text').innerHTML = '<strong> Sorry! An error occured.</strong>'
-        if(err instanceof Error || err instanceof DOMError) {
+        gCl(this.div, 'rs-bubble-text').innerHTML = '<strong> Sorry! An error occured.</strong>'
+        if(err instanceof Error /*|| err instanceof DOMError*/) { //I don't know what an DOMError is and my browser doesn't know too(how to handle this?)
           errorMsg = err.message + '\n\n' +
             err.stack;
         }
