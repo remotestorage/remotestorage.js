@@ -123,6 +123,7 @@
       if(n > 0) {
         function errored(err) {
           console.error("pushChanges aborted due to error: ", err, err.stack);
+          promise.reject(err);
         }
         changes.forEach(function(change) {
           if(change.conflict) {
@@ -149,7 +150,11 @@
               }
             }
             local.get(change.path).then(function(status, body, contentType) {
-              return remote.put(change.path, body, contentType, options);
+              if(status == 200) {
+                return remote.put(change.path, body, contentType, options);
+              } else {
+                return 200; // fake 200 so the change is cleared.
+              }
             }).then(function(status) {
                 if(status == 412) {
                 fireConflict(local, path, {
