@@ -1,4 +1,4 @@
-/** remotestorage.js 0.8.0-rc2 remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.8.0-head remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/promising.js **/
 (function(global) {
@@ -590,6 +590,8 @@
    */
 
   global.RemoteStorage = RemoteStorage;
+
+  RemoteStorage._log = true;
 
 })(this);
 
@@ -3108,6 +3110,7 @@ Math.uuid = function (len, radix) {
   });
 
   Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
+    configurable: true,
     get: function() {
       return RemoteStorage.BaseClient.Types.inScope(this.moduleName);
     }
@@ -3435,6 +3438,7 @@ Math.uuid = function (len, radix) {
       if(n > 0) {
         function errored(err) {
           console.error("pushChanges aborted due to error: ", err, err.stack);
+          promise.reject(err);
         }
         changes.forEach(function(change) {
           if(change.conflict) {
@@ -3461,7 +3465,11 @@ Math.uuid = function (len, radix) {
               }
             }
             local.get(change.path).then(function(status, body, contentType) {
-              return remote.put(change.path, body, contentType, options);
+              if(status == 200) {
+                return remote.put(change.path, body, contentType, options);
+              } else {
+                return 200; // fake 200 so the change is cleared.
+              }
             }).then(function(status) {
                 if(status == 412) {
                 fireConflict(local, path, {

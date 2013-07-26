@@ -1,4 +1,4 @@
-/** remotestorage.js 0.8.0-rc2 remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.8.0-head remotestorage.io, MIT-licensed **/
 define([], function() {
 
 /** FILE: lib/promising.js **/
@@ -591,6 +591,8 @@ define([], function() {
    */
 
   global.RemoteStorage = RemoteStorage;
+
+  RemoteStorage._log = true;
 
 })(this);
 
@@ -3109,6 +3111,7 @@ Math.uuid = function (len, radix) {
   });
 
   Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
+    configurable: true,
     get: function() {
       return RemoteStorage.BaseClient.Types.inScope(this.moduleName);
     }
