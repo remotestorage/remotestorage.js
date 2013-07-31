@@ -206,7 +206,7 @@
 
   var SyncError = function(originalError) {
     var msg = 'Sync failed: ';
-    if('message' in originalError) {
+    if(typeof(originalError) == 'object' && 'message' in originalError) {
       msg += originalError.message;
     } else {
       msg += originalError;
