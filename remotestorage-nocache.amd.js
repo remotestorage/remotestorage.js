@@ -592,8 +592,6 @@ define([], function() {
 
   global.RemoteStorage = RemoteStorage;
 
-  RemoteStorage._log = true;
-
 })(this);
 
 
@@ -777,7 +775,13 @@ define([], function() {
       var mimeType = xhr.getResponseHeader('Content-Type');
       var body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
       var revision = getEtag ? xhr.getResponseHeader('ETag') : (xhr.status == 200 ? fakeRevision : undefined);
-      promise.fulfill(xhr.status, body, mimeType, revision);
+      if(mimeType.match(/charset=binary/)) {
+        var bl = body.length, ab = new ArrayBuffer(bl), abv = new Uint8Array(ab);
+        for(var i=0;i<bl;i++) abv[i] = body.charCodeAt(i);
+        promise.fulfill(xhr.status, ab, mimeType, revision);
+      } else {
+        promise.fulfill(xhr.status, body, mimeType, revision);
+      }
     };
     xhr.onerror = function(error) {
       if(timedOut) return;
@@ -800,7 +804,7 @@ define([], function() {
     this.connected = false;
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
-      if(error instanceof RemoteStorage.Unauthorized){
+      if(error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this))
@@ -937,7 +941,7 @@ define([], function() {
 
 
 /** FILE: src/discover.js **/
-(function(global) {
+q(function(global) {
 
   // feature detection flags
   var haveXMLHttpRequest, haveLocalStorage;
@@ -972,7 +976,14 @@ define([], function() {
       }
       xhr.onload = function() {
         if(xhr.status != 200) return tryOne();
-        var profile = JSON.parse(xhr.responseText);
+        var profile;
+        try {
+          JSON.parse(xhr.responseText);
+        } catch(e) {
+          RemoteStorage.log("Failed to parse profile ", xhr.responseText, e);
+          tryOne();
+          return;
+        }
         var link;
         profile.links.forEach(function(l) {
           if(l.rel == 'remotestorage') {
@@ -1323,6 +1334,10 @@ RemoteStorage.Assets = {
       var state = localStorage[LS_STATE_KEY];
       if(state && VALID_ENTRY_STATES[state]) {
         this._rememberedState = state;
+
+        if(state == 'connected' && ! remoteStorage.connected) {
+          this._rememberedState = 'initial';
+        }
       }
     }
   };
@@ -1672,8 +1687,8 @@ RemoteStorage.Assets = {
         var errorMsg = err;
         this.div.className = "remotestorage-state-error";
 
-        gCl(this.div, 'bubble-text').innerHTML = '<strong> Sorry! An error occured.</strong>'
-        if(err instanceof Error || err instanceof DOMError) {
+        gCl(this.div, 'rs-bubble-text').innerHTML = '<strong> Sorry! An error occured.</strong>'
+        if(err instanceof Error /*|| err instanceof DOMError*/) { //I don't know what an DOMError is and my browser doesn't know too(how to handle this?)
           errorMsg = err.message + '\n\n' +
             err.stack;
         }
