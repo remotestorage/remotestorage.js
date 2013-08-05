@@ -75,7 +75,13 @@
       var mimeType = xhr.getResponseHeader('Content-Type');
       var body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
       var revision = getEtag ? xhr.getResponseHeader('ETag') : (xhr.status == 200 ? fakeRevision : undefined);
-      promise.fulfill(xhr.status, body, mimeType, revision);
+      if(mimeType.match(/charset=binary/)) {
+        var bl = body.length, ab = new ArrayBuffer(bl), abv = new Uint8Array(ab);
+        for(var i=0;i<bl;i++) abv[i] = body.charCodeAt(i);
+        promise.fulfill(xhr.status, ab, mimeType, revision);
+      } else {
+        promise.fulfill(xhr.status, body, mimeType, revision);
+      }
     };
     xhr.onerror = function(error) {
       if(timedOut) return;
@@ -98,7 +104,7 @@
     this.connected = false;
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
-      if(error instanceof RemoteStorage.Unauthorized){
+      if(error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this))
