@@ -13,7 +13,16 @@ define(['requirejs'], function(requirejs, undefined) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
-        onChange: function() {}
+        onChange: function() {},
+        caching: {
+          enabled: {},
+          enable: function(path) {
+            this.enabled[path] = true;
+          },
+          disable: function(path) {
+            delete this.enabled[path];
+          }
+        }
       };
       require('./src/eventhandling');
       if(global.rs_eventhandling) {
@@ -263,10 +272,27 @@ define(['requirejs'], function(requirejs, undefined) {
           for(var i=0;i<n;i++) {
             uuids[env.client.uuid()] = true;
           }
-          test.assertTypeAnd(typeof(uuids[0]), 'string');
           test.assert(Object.keys(uuids).length, n);
         }
+      },
+
+      {
+        desc: "#cache enables caching for a given path",
+        run: function(env, test) {
+          env.client.cache('bar/');
+          test.assertType(env.storage.caching.enabled['/foo/bar/'], 'boolean');
+        }
+      },
+
+      {
+        desc: "#cache with 'false' flag disables caching for a given path",
+        run: function(env, test) {
+          env.client.cache('bar/');
+          env.client.cache('bar/', false);
+          test.assertType(env.storage.caching.enabled['/foo/bar/'], 'undefined');
+        }
       }
+
 
     ]
   });
