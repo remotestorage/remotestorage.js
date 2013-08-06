@@ -42,14 +42,14 @@
           tryOne();
           return;
         }
-        var link;
 
-	if (!profile.links) {
+        if (!profile.links) {
           RemoteStorage.log("profile has no links section ", JSON.stringify(profile));
           tryOne();
           return;
-	}
+        }
 
+        var link;
         profile.links.forEach(function(l) {
           if(l.rel == 'remotestorage') {
             link = l;
