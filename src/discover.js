@@ -34,14 +34,22 @@
       xhr.onload = function() {
         if(xhr.status != 200) return tryOne();
         var profile;
+	  
         try {
-          JSON.parse(xhr.responseText);
+          profile = JSON.parse(xhr.responseText);
         } catch(e) {
           RemoteStorage.log("Failed to parse profile ", xhr.responseText, e);
           tryOne();
           return;
         }
         var link;
+
+	if (!profile.links) {
+          RemoteStorage.log("profile has no links section ", JSON.stringify(profile));
+          tryOne();
+          return;
+	}
+
         profile.links.forEach(function(l) {
           if(l.rel == 'remotestorage') {
             link = l;
