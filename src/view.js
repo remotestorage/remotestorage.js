@@ -229,10 +229,7 @@
           this.show_bubble();
           setTimeout(function(){
             cube.src = RemoteStorage.Assets.remoteStorageIcon;
-          //presumably this timeout would give the browser time to load the assets? timeout 0 seems to work in FF, Chrome and Opera though, so removing it:
-          // -- Michiel
-          //},3512)
-          },0)
+          },5000)//show the red error cube for 5 seconds, then show the normal orange one again
         } else {
           this.hide_bubble();
         }
