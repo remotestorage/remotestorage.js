@@ -127,6 +127,43 @@
 
   RS.WireClient.prototype = {
 
+    /**
+     * Property: token
+     *
+     * Holds the bearer token of this WireClient, as obtained in the OAuth dance
+     *
+     * Example:
+     *   (start code)
+     *
+     *   remoteStorage.remote.token
+     *   // -> 'DEADBEEF01=='
+     */
+
+    /**
+     * Property: href
+     *
+     * Holds the server's base URL, as obtained in the Webfinger discovery
+     *
+     * Example:
+     *   (start code)
+     *
+     *   remoteStorage.remote.href
+     *   // -> 'https://storage.example.com/users/jblogg/'
+     */
+
+    /**
+     * Property: storageApi
+     *
+     * Holds the spec version the server claims to be compatible with
+     *
+     * Example:
+     *   (start code)
+     *
+     *   remoteStorage.remote.storageApi
+     *   // -> 'draft-dejong-remotestorage-01'
+     */
+
+
     configure: function(userAddress, href, storageApi, token) {
       if(typeof(userAddress) !== 'undefined') this.userAddress = userAddress;
       if(typeof(href) !== 'undefined') this.href = href;

@@ -826,6 +826,43 @@
 
   RS.WireClient.prototype = {
 
+    /**
+     * Property: token
+     *
+     * Holds the bearer token of this WireClient, as obtained in the OAuth dance
+     *
+     * Example:
+     *   (start code)
+     *
+     *   remoteStorage.remote.token
+     *   // -> 'DEADBEEF01=='
+     */
+
+    /**
+     * Property: href
+     *
+     * Holds the server's base URL, as obtained in the Webfinger discovery
+     *
+     * Example:
+     *   (start code)
+     *
+     *   remoteStorage.remote.href
+     *   // -> 'https://storage.example.com/users/jblogg/'
+     */
+
+    /**
+     * Property: storageApi
+     *
+     * Holds the spec version the server claims to be compatible with
+     *
+     * Example:
+     *   (start code)
+     *
+     *   remoteStorage.remote.storageApi
+     *   // -> 'draft-dejong-remotestorage-01'
+     */
+
+
     configure: function(userAddress, href, storageApi, token) {
       if(typeof(userAddress) !== 'undefined') this.userAddress = userAddress;
       if(typeof(href) !== 'undefined') this.href = href;
@@ -940,7 +977,7 @@
 
 
 /** FILE: src/discover.js **/
-q(function(global) {
+(function(global) {
 
   // feature detection flags
   var haveXMLHttpRequest, haveLocalStorage;
@@ -976,13 +1013,21 @@ q(function(global) {
       xhr.onload = function() {
         if(xhr.status != 200) return tryOne();
         var profile;
+	  
         try {
-          JSON.parse(xhr.responseText);
+          profile = JSON.parse(xhr.responseText);
         } catch(e) {
           RemoteStorage.log("Failed to parse profile ", xhr.responseText, e);
           tryOne();
           return;
         }
+
+        if (!profile.links) {
+          RemoteStorage.log("profile has no links section ", JSON.stringify(profile));
+          tryOne();
+          return;
+        }
+
         var link;
         profile.links.forEach(function(l) {
           if(l.rel == 'remotestorage') {
@@ -1040,8 +1085,14 @@ q(function(global) {
 (function() {
 
   function extractParams() {
-    if(! document.location.hash) return;
-    return document.location.hash.slice(1).split('&').reduce(function(m, kvs) {
+    //FF already decodes the URL fragment in document.location.hash, so use this instead:
+    if(! document.location.href) {//bit ugly way to fix unit tests
+      document.location.href = document.location.hash;
+    }
+    var hashPos = document.location.href.indexOf('#');
+    if(hashPos == -1) return;
+    var hash = document.location.href.substring(hashPos+1);
+    return hash.split('&').reduce(function(m, kvs) {
       var kv = kvs.split('=');
       m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
       return m;
@@ -1637,7 +1688,10 @@ RemoteStorage.Assets = {
           this.show_bubble();
           setTimeout(function(){
             cube.src = RemoteStorage.Assets.remoteStorageIcon;
-          },3512)
+          //presumably this timeout would give the browser time to load the assets? timeout 0 seems to work in FF, Chrome and Opera though, so removing it:
+          // -- Michiel
+          //},3512)
+          },0)
         } else {
           this.hide_bubble();
         }

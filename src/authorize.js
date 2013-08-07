@@ -1,8 +1,14 @@
 (function() {
 
   function extractParams() {
-    if(! document.location.hash) return;
-    return document.location.hash.slice(1).split('&').reduce(function(m, kvs) {
+    //FF already decodes the URL fragment in document.location.hash, so use this instead:
+    if(! document.location.href) {//bit ugly way to fix unit tests
+      document.location.href = document.location.hash;
+    }
+    var hashPos = document.location.href.indexOf('#');
+    if(hashPos == -1) return;
+    var hash = document.location.href.substring(hashPos+1);
+    return hash.split('&').reduce(function(m, kvs) {
       var kv = kvs.split('=');
       m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
       return m;

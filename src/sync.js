@@ -266,6 +266,10 @@
     this.sync().then(function() {
       this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
+    }.bind(this),
+    function() {
+      console.log('sync error, retrying');
+      this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
     }.bind(this));
   };
 
