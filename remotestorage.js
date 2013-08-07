@@ -1648,7 +1648,10 @@ RemoteStorage.Assets = {
           this.show_bubble();
           setTimeout(function(){
             cube.src = RemoteStorage.Assets.remoteStorageIcon;
-          },3512)
+          //presumably this timeout would give the browser time to load the assets? timeout 0 seems to work in FF, Chrome and Opera though, so removing it:
+          // -- Michiel
+          //},3512)
+          },0)
         } else {
           this.hide_bubble();
         }
