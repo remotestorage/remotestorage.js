@@ -941,7 +941,7 @@ define([], function() {
 
 
 /** FILE: src/discover.js **/
-q(function(global) {
+(function(global) {
 
   // feature detection flags
   var haveXMLHttpRequest, haveLocalStorage;
