@@ -782,7 +782,7 @@
           // reader.result contains the contents of blob as a typed array
           promise.fulfill(xhr.status, reader.result, mimeType, revision);
         });
-        reader.readAsArrayBuffer(xhr.response);
+        reader.readAsArrayBuffer(blob);
       } else {
         body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
         promise.fulfill(xhr.status, body, mimeType, revision);
@@ -3625,25 +3625,29 @@ Math.uuid = function (len, radix) {
       rs._emit('sync-busy');
       var path;
       while((path = roots.shift())) {
-        RemoteStorage.Sync.sync(rs.remote, rs.local, path, rs.caching.get(path)).
-          then(function() {
-            if(aborted) return;
-            i++;
-            if(n == i) {
+        (function (path) {
+          //console.log('syncing '+path);
+          RemoteStorage.Sync.sync(rs.remote, rs.local, path, rs.caching.get(path)).
+            then(function() {
+              //console.log('syncing '+path+' success');
+              if(aborted) return;
+              i++;
+              if(n == i) {
+                rs._emit('sync-done');
+                promise.fulfill();
+              }
+            }, function(error) {
+              console.error('syncing', path, 'failed:', error);
+              aborted = true;
               rs._emit('sync-done');
-              promise.fulfill();
-            }
-          }, function(error) {
-            console.error('syncing', path, 'failed:', error);
-            aborted = true;
-            rs._emit('sync-done');
-            if(error instanceof RemoteStorage.Unauthorized) {
-              rs._emit('error', error);
-            } else {
-              rs._emit('error', new SyncError(error));
-            }
-            promise.reject(error);
-          });
+              if(error instanceof RemoteStorage.Unauthorized) {
+                rs._emit('error', error);
+              } else {
+                rs._emit('error', new SyncError(error));
+              }
+              promise.reject(error);
+            });
+        })(path);
       }
     });
   };
