@@ -422,7 +422,8 @@
    * Method: claimAccess
    *
    * High-level method to claim access on one or multiple scopes and enable
-   * caching for them.
+   * caching for them. WARNING: when using Caching control, use remoteStorage.access.claim instead,
+   * see https://github.com/remotestorage/remotestorage.js/issues/380
    *
    * Examples:
    *   (start code)
