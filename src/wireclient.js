@@ -73,13 +73,18 @@
       if(timedOut) return;
       clearTimeout(timer);
       var mimeType = xhr.getResponseHeader('Content-Type');
-      var body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
+      var body;
       var revision = getEtag ? xhr.getResponseHeader('ETag') : (xhr.status == 200 ? fakeRevision : undefined);
       if(mimeType.match(/charset=binary/)) {
-        var bl = body.length, ab = new ArrayBuffer(bl), abv = new Uint8Array(ab);
-        for(var i=0;i<bl;i++) abv[i] = body.charCodeAt(i);
-        promise.fulfill(xhr.status, ab, mimeType, revision);
+        var blob = new Blob([xhr.response], {type: mimeType});
+        var reader = new FileReader();
+        reader.addEventListener("loadend", function() {
+          // reader.result contains the contents of blob as a typed array
+          promise.fulfill(xhr.status, reader.result, mimeType, revision);
+        });
+        reader.readAsArrayBuffer(xhr.response);
       } else {
+        body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
         promise.fulfill(xhr.status, body, mimeType, revision);
       }
     };
