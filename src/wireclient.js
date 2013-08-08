@@ -82,7 +82,7 @@
           // reader.result contains the contents of blob as a typed array
           promise.fulfill(xhr.status, reader.result, mimeType, revision);
         });
-        reader.readAsArrayBuffer(xhr.response);
+        reader.readAsArrayBuffer(blob);
       } else {
         body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
         promise.fulfill(xhr.status, body, mimeType, revision);
