@@ -773,10 +773,11 @@ define([], function() {
     xhr.onload = function() {
       if(timedOut) return;
       clearTimeout(timer);
+      if(xhr.status == 404) return promise.fulfill(xhr.status);
       var mimeType = xhr.getResponseHeader('Content-Type');
       var body;
       var revision = getEtag ? xhr.getResponseHeader('ETag') : (xhr.status == 200 ? fakeRevision : undefined);
-      if(mimeType.match(/charset=binary/)) {
+      if((! mimeType) || mimeType.match(/charset=binary/)) {
         var blob = new Blob([xhr.response], {type: mimeType});
         var reader = new FileReader();
         reader.addEventListener("loadend", function() {
