@@ -14,6 +14,7 @@ define(['requirejs'], function(requirejs, undefined) {
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
         onChange: function() {},
+        onConflict: function() {},
         caching: {
           enabled: {},
           enable: function(path) {

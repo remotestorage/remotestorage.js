@@ -55,6 +55,7 @@
     RS.eventHandling(this, 'change', 'conflict');
     this.on = this.on.bind(this);
     storage.onChange(this.base, this._fireChange.bind(this));
+    storage.onConflict(this.base, this._fireConflict.bind(this));
   };
 
   RS.BaseClient.prototype = {
@@ -382,6 +383,10 @@
 
     _fireChange: function(event) {
       this._emit('change', event);
+    },
+
+    _fireConflict: function(event) {
+      this._emit('conflict', event);
     },
 
     getItemURL: function(path) {
