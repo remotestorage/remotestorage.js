@@ -795,8 +795,13 @@ define([], function() {
       clearTimeout(timer);
       promise.reject(error);
     };
-    if(typeof(body) === 'object' && !(body instanceof ArrayBuffer)) {
-      body = JSON.stringify(body);
+    if(typeof(body) === 'object') {
+      if(body instanceof ArrayBufferView) { /* alright. */ }
+      else if(body instanceof ArrayBuffer) {
+        body = new Uint8Array(body);
+      } else {
+        body = JSON.stringify(body);
+      }
     }
     xhr.send(body);
     return promise;
@@ -935,7 +940,7 @@ define([], function() {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       if(! contentType.match(/charset=/)) {
-        contentType += '; charset=' + (body instanceof ArrayBuffer ? 'binary' : 'utf-8');
+        contentType += '; charset=' + ((body instanceof ArrayBuffer || body instanceof ArrayBufferView) ? 'binary' : 'utf-8');
       }
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
@@ -2866,7 +2871,7 @@ Math.uuid = function (len, radix) {
      * Parameters:
      *   mimeType - MIME media type of the data being stored
      *   path     - path relative to the module root. MAY NOT end in a forward slash.
-     *   data     - string or ArrayBuffer of raw data to store
+     *   data     - string, ArrayBuffer or ArrayBufferView of raw data to store
      *
      * The given mimeType will later be returned, when retrieving the data
      * using <getFile>.
