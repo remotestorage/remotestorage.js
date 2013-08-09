@@ -268,7 +268,7 @@
                      headers, body, this.supportsRevs);
     },
 
-    'delete': function(path, callback, options) {
+    'delete': function(path, options) {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       return request('DELETE', this.href + cleanPath(path), this.token,
