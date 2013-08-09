@@ -62,13 +62,37 @@ define(['requirejs'], function(requirejs, undefined) {
       env.connectedClient.configure(
         undefined, env.baseURI, undefined, env.token
       );
+      global.Blob = function(input, options) {
+        this.input = input;
+        this.options = options;
+        env.blob = this;
+      };
+      global.FileReader = function() {};
+      FileReader.prototype = {
+        _events: {
+          loadend: []
+        },
+        addEventListener: function(eventName, handler) {
+          this._events[eventName].push(handler);
+        },
+        readAsArrayBuffer: function(blob) {
+          setTimeout(function() {
+            this.result = env.fileReaderResult = Math.random();
+            this._events.loadend[0]();
+          }.bind(this), 0);
+        }
+      };
 
       test.done();
     },
 
     afterEach: function(env, test) {
       delete global.XMLHttpRequest;
+      delete global.Blob;
+      delete global.FileReader;
       delete env.client;
+      delete env.blob;
+      delete env.fileReaderResult;
       test.done();
     },
 
@@ -312,6 +336,30 @@ define(['requirejs'], function(requirejs, undefined) {
           }, function(error) {
             test.assert('timeout', error);
           });
+        }
+      },
+
+      {
+        desc: "responses with the charset set to 'binary' are read using a FileReader, after constructing a Blob",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar').
+            then(function(status, body, contentType) {
+              // check Blob
+              test.assertTypeAnd(env.blob, 'object');
+              test.assertAnd(env.blob.input, ['response-body']);
+              test.assertAnd(env.blob.options, {
+                type: 'application/octet-stream; charset=binary'
+              });
+
+              test.assertAnd(status, 200);
+              test.assertAnd(body, env.fileReaderResult);
+              test.assert(contentType, 'application/octet-stream; charset=binary');
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
+          req.status = 200;
+          req.response = 'response-body';
+          req._onload();
         }
       }
 
