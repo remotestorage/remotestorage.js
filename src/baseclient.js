@@ -386,7 +386,11 @@
     },
 
     _fireConflict: function(event) {
-      this._emit('conflict', event);
+      if(this._handlers.conflict.length > 0) {
+        this._emit('conflict', event);
+      } else {
+        event.resolve('remote');
+      }
     },
 
     getItemURL: function(path) {
