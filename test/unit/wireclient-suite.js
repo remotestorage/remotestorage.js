@@ -361,6 +361,22 @@ define(['requirejs'], function(requirejs, undefined) {
           req.response = 'response-body';
           req._onload();
         }
+      },
+
+      {
+        desc: "responses without a Content-Type header still work",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar').
+            then(function(status, body, contentType) {
+              test.assertAnd(status, 200);
+              test.assertAnd(body, env.fileReaderResult);
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 200;
+          req.response = 'response-body';
+          req._onload();
+        }
       }
 
     ]
