@@ -250,6 +250,7 @@
               }
             }, function(error) {
               console.error('syncing', path, 'failed:', error);
+              if(aborted) return;
               aborted = true;
               rs._emit('sync-done');
               if(error instanceof RemoteStorage.Unauthorized) {
