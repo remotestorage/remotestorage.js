@@ -274,6 +274,7 @@
     }.bind(this),
     function() {
       console.log('sync error, retrying');
+      this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
     }.bind(this));
   };
