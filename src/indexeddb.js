@@ -195,7 +195,7 @@
           newValue: body
         });
         if(! incoming) {
-          this._recordChange(path, { action: 'PUT' });
+          this._recordChange(path, { action: 'PUT', revision: oldNode ? oldNode.revision : undefined });
         }
         if(typeof(done) === 'undefined') {
           done = true;
@@ -228,7 +228,7 @@
           });
         }
         if(! incoming) {
-          this._recordChange(path, { action: 'DELETE' });
+          this._recordChange(path, { action: 'DELETE', revision: oldNode ? oldNode.revision : undefined });
         }
         promise.fulfill(200);
       }.bind(this);
