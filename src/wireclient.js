@@ -48,6 +48,24 @@
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
+  var isArrayBufferView;
+  if(typeof(ArrayBufferView) === 'function') {
+    isArrayBufferView = function(object) { return object && (object instanceof ArrayBufferView); };
+  } else {
+    var arrayBufferViews = [
+      Int8Array, Uint8Array, Int16Array, Uint16Array,
+      Int32Array, Uint32Array, Float32Array, Float64Array
+    ];
+    isArrayBufferView = function(object) {
+      for(var i=0;i<8;i++) {
+        if(object instanceof arrayBufferViews[i]) {
+          return true;
+        }
+      }
+      return false;
+    };
+  }
+
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
     if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
       throw "Don't " + method + " on directories!";
@@ -95,7 +113,7 @@
       promise.reject(error);
     };
     if(typeof(body) === 'object') {
-      if(body instanceof ArrayBufferView) { /* alright. */ }
+      if(isArrayBufferView(body)) { /* alright. */ }
       else if(body instanceof ArrayBuffer) {
         body = new Uint8Array(body);
       } else {
@@ -239,7 +257,7 @@
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       if(! contentType.match(/charset=/)) {
-        contentType += '; charset=' + ((body instanceof ArrayBuffer || body instanceof ArrayBufferView) ? 'binary' : 'utf-8');
+        contentType += '; charset=' + ((body instanceof ArrayBuffer || isArrayBufferView(body)) ? 'binary' : 'utf-8');
       }
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
