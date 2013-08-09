@@ -383,7 +383,11 @@
       this._recordChange(path, { conflict: attributes }).
         then(function() {
           // fire conflict once conflict has been recorded.
-          this._emit('conflict', event);
+          if(this._handlers.conflict.length > 0) {
+            this._emit('conflict', event);
+          } else {
+            setTimeout(function() { event.resolve('remote'); }, 0);
+          }
         }.bind(this));
       event.resolve = function(resolution) {
         if(resolution == 'remote' || resolution == 'local') {

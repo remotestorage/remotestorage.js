@@ -156,8 +156,8 @@
                 return 200; // fake 200 so the change is cleared.
               }
             }).then(function(status) {
-                if(status == 412) {
-                fireConflict(local, path, {
+              if(status == 412) {
+                fireConflict(local, change.path, {
                   localAction: 'PUT',
                   remoteAction: 'PUT'
                 });
@@ -172,7 +172,7 @@
               ifMatch: change.force ? undefined : change.revision
             }).then(function(status) {
               if(status == 412) {
-                fireConflict(local, path, {
+                fireConflict(local, change.path, {
                   remoteAction: 'PUT',
                   localAction: 'DELETE'
                 });
@@ -250,6 +250,7 @@
               }
             }, function(error) {
               console.error('syncing', path, 'failed:', error);
+              if(aborted) return;
               aborted = true;
               rs._emit('sync-done');
               if(error instanceof RemoteStorage.Unauthorized) {
@@ -273,6 +274,7 @@
     }.bind(this),
     function() {
       console.log('sync error, retrying');
+      this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
     }.bind(this));
   };

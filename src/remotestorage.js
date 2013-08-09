@@ -61,7 +61,7 @@
       delete: this._pendingGPD('delete')
     });
     this._cleanups = [];
-    this._pathHandlers = {};
+    this._pathHandlers = { change: {}, conflict: {} };
 
     var origOn = this.on;
     this.on = function(eventName, handler) {
@@ -195,10 +195,25 @@
      *   handler - Handler function.
      */
     onChange: function(path, handler) {
-      if(! this._pathHandlers[path]) {
-        this._pathHandlers[path] = [];
+      if(! this._pathHandlers.change[path]) {
+        this._pathHandlers.change[path] = [];
       }
-      this._pathHandlers[path].push(handler);
+      this._pathHandlers.change[path].push(handler);
+    },
+
+    onConflict: function(path, handler) {
+      if(! this._conflictBound) {
+        this.on('features-loaded', function() {
+          if(this.local) {
+            this.local.on('conflict', this._dispatchEvent.bind(this, 'conflict'));
+          }
+        }.bind(this));
+        this._conflictBound = true;
+      }
+      if(! this._pathHandlers.conflict[path]) {
+        this._pathHandlers.conflict[path] = [];
+      }
+      this._pathHandlers.conflict[path].push(handler);
     },
 
     /**
@@ -395,13 +410,13 @@
      **/
 
     _bindChange: function(object) {
-      object.on('change', this._dispatchChange.bind(this));
+      object.on('change', this._dispatchEvent.bind(this, 'change'));
     },
 
-    _dispatchChange: function(event) {
+    _dispatchEvent: function(eventName, event) {
       for(var path in this._pathHandlers) {
         var pl = path.length;
-        this._pathHandlers[path].forEach(function(handler) {
+        this._pathHandlers[eventName][path].forEach(function(handler) {
           if(event.path.substr(0, pl) == path) {
             var ev = {};
             for(var key in event) { ev[key] = event[key]; }

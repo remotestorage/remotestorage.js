@@ -176,7 +176,7 @@
       delete: this._pendingGPD('delete')
     });
     this._cleanups = [];
-    this._pathHandlers = {};
+    this._pathHandlers = { change: {}, conflict: {} };
 
     var origOn = this.on;
     this.on = function(eventName, handler) {
@@ -310,10 +310,25 @@
      *   handler - Handler function.
      */
     onChange: function(path, handler) {
-      if(! this._pathHandlers[path]) {
-        this._pathHandlers[path] = [];
+      if(! this._pathHandlers.change[path]) {
+        this._pathHandlers.change[path] = [];
       }
-      this._pathHandlers[path].push(handler);
+      this._pathHandlers.change[path].push(handler);
+    },
+
+    onConflict: function(path, handler) {
+      if(! this._conflictBound) {
+        this.on('features-loaded', function() {
+          if(this.local) {
+            this.local.on('conflict', this._dispatchEvent.bind(this, 'conflict'));
+          }
+        }.bind(this));
+        this._conflictBound = true;
+      }
+      if(! this._pathHandlers.conflict[path]) {
+        this._pathHandlers.conflict[path] = [];
+      }
+      this._pathHandlers.conflict[path].push(handler);
     },
 
     /**
@@ -510,13 +525,13 @@
      **/
 
     _bindChange: function(object) {
-      object.on('change', this._dispatchChange.bind(this));
+      object.on('change', this._dispatchEvent.bind(this, 'change'));
     },
 
-    _dispatchChange: function(event) {
+    _dispatchEvent: function(eventName, event) {
       for(var path in this._pathHandlers) {
         var pl = path.length;
-        this._pathHandlers[path].forEach(function(handler) {
+        this._pathHandlers[eventName][path].forEach(function(handler) {
           if(event.path.substr(0, pl) == path) {
             var ev = {};
             for(var key in event) { ev[key] = event[key]; }
@@ -748,6 +763,24 @@
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
+  var isArrayBufferView;
+  if(typeof(ArrayBufferView) === 'function') {
+    isArrayBufferView = function(object) { return object && (object instanceof ArrayBufferView); };
+  } else {
+    var arrayBufferViews = [
+      Int8Array, Uint8Array, Int16Array, Uint16Array,
+      Int32Array, Uint32Array, Float32Array, Float64Array
+    ];
+    isArrayBufferView = function(object) {
+      for(var i=0;i<8;i++) {
+        if(object instanceof arrayBufferViews[i]) {
+          return true;
+        }
+      }
+      return false;
+    };
+  }
+
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
     if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
       throw "Don't " + method + " on directories!";
@@ -795,7 +828,7 @@
       promise.reject(error);
     };
     if(typeof(body) === 'object') {
-      if(body instanceof ArrayBufferView) { /* alright. */ }
+      if(isArrayBufferView(body)) { /* alright. */ }
       else if(body instanceof ArrayBuffer) {
         body = new Uint8Array(body);
       } else {
@@ -939,7 +972,7 @@
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       if(! contentType.match(/charset=/)) {
-        contentType += '; charset=' + ((body instanceof ArrayBuffer || body instanceof ArrayBufferView) ? 'binary' : 'utf-8');
+        contentType += '; charset=' + ((body instanceof ArrayBuffer || isArrayBufferView(body)) ? 'binary' : 'utf-8');
       }
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
@@ -2702,6 +2735,7 @@ Math.uuid = function (len, radix) {
     RS.eventHandling(this, 'change', 'conflict');
     this.on = this.on.bind(this);
     storage.onChange(this.base, this._fireChange.bind(this));
+    storage.onConflict(this.base, this._fireConflict.bind(this));
   };
 
   RS.BaseClient.prototype = {
@@ -3029,6 +3063,10 @@ Math.uuid = function (len, radix) {
 
     _fireChange: function(event) {
       this._emit('change', event);
+    },
+
+    _fireConflict: function(event) {
+      this._emit('conflict', event);
     },
 
     getItemURL: function(path) {
