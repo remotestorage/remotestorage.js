@@ -414,10 +414,13 @@
       callback(dbOpen.error);
     };
     dbOpen.onupgradeneeded = function(event) {
+      RemoteStorage.log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
       var db = dbOpen.result;
       if(event.oldVersion != 1) {
+        RemoteStorage.log("[IndexedDB] Creating object store: nodes");
         db.createObjectStore('nodes', { keyPath: 'path' });
       }
+      RemoteStorage.log("[IndexedDB] Creating object store: changes");
       db.createObjectStore('changes', { keyPath: 'path' });
     }
     dbOpen.onsuccess = function() {
