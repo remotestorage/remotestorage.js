@@ -177,7 +177,7 @@ define([], function() {
       delete: this._pendingGPD('delete')
     });
     this._cleanups = [];
-    this._pathHandlers = {};
+    this._pathHandlers = { change: {}, conflict: {} };
 
     var origOn = this.on;
     this.on = function(eventName, handler) {
@@ -311,10 +311,25 @@ define([], function() {
      *   handler - Handler function.
      */
     onChange: function(path, handler) {
-      if(! this._pathHandlers[path]) {
-        this._pathHandlers[path] = [];
+      if(! this._pathHandlers.change[path]) {
+        this._pathHandlers.change[path] = [];
       }
-      this._pathHandlers[path].push(handler);
+      this._pathHandlers.change[path].push(handler);
+    },
+
+    onConflict: function(path, handler) {
+      if(! this._conflictBound) {
+        this.on('features-loaded', function() {
+          if(this.local) {
+            this.local.on('conflict', this._dispatchEvent.bind(this, 'conflict'));
+          }
+        }.bind(this));
+        this._conflictBound = true;
+      }
+      if(! this._pathHandlers.conflict[path]) {
+        this._pathHandlers.conflict[path] = [];
+      }
+      this._pathHandlers.conflict[path].push(handler);
     },
 
     /**
@@ -511,13 +526,13 @@ define([], function() {
      **/
 
     _bindChange: function(object) {
-      object.on('change', this._dispatchChange.bind(this));
+      object.on('change', this._dispatchEvent.bind(this, 'change'));
     },
 
-    _dispatchChange: function(event) {
+    _dispatchEvent: function(eventName, event) {
       for(var path in this._pathHandlers) {
         var pl = path.length;
-        this._pathHandlers[path].forEach(function(handler) {
+        this._pathHandlers[eventName][path].forEach(function(handler) {
           if(event.path.substr(0, pl) == path) {
             var ev = {};
             for(var key in event) { ev[key] = event[key]; }
@@ -749,6 +764,24 @@ define([], function() {
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
+  var isArrayBufferView;
+  if(typeof(ArrayBufferView) === 'function') {
+    isArrayBufferView = function(object) { return object && (object instanceof ArrayBufferView); };
+  } else {
+    var arrayBufferViews = [
+      Int8Array, Uint8Array, Int16Array, Uint16Array,
+      Int32Array, Uint32Array, Float32Array, Float64Array
+    ];
+    isArrayBufferView = function(object) {
+      for(var i=0;i<8;i++) {
+        if(object instanceof arrayBufferViews[i]) {
+          return true;
+        }
+      }
+      return false;
+    };
+  }
+
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
     if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
       throw "Don't " + method + " on directories!";
@@ -796,7 +829,7 @@ define([], function() {
       promise.reject(error);
     };
     if(typeof(body) === 'object') {
-      if(body instanceof ArrayBufferView) { /* alright. */ }
+      if(isArrayBufferView(body)) { /* alright. */ }
       else if(body instanceof ArrayBuffer) {
         body = new Uint8Array(body);
       } else {
@@ -940,7 +973,7 @@ define([], function() {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       if(! contentType.match(/charset=/)) {
-        contentType += '; charset=' + ((body instanceof ArrayBuffer || body instanceof ArrayBufferView) ? 'binary' : 'utf-8');
+        contentType += '; charset=' + ((body instanceof ArrayBuffer || isArrayBufferView(body)) ? 'binary' : 'utf-8');
       }
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
@@ -2703,6 +2736,7 @@ Math.uuid = function (len, radix) {
     RS.eventHandling(this, 'change', 'conflict');
     this.on = this.on.bind(this);
     storage.onChange(this.base, this._fireChange.bind(this));
+    storage.onConflict(this.base, this._fireConflict.bind(this));
   };
 
   RS.BaseClient.prototype = {
@@ -3030,6 +3064,10 @@ Math.uuid = function (len, radix) {
 
     _fireChange: function(event) {
       this._emit('change', event);
+    },
+
+    _fireConflict: function(event) {
+      this._emit('conflict', event);
     },
 
     getItemURL: function(path) {
@@ -3551,8 +3589,8 @@ Math.uuid = function (len, radix) {
                 return 200; // fake 200 so the change is cleared.
               }
             }).then(function(status) {
-                if(status == 412) {
-                fireConflict(local, path, {
+              if(status == 412) {
+                fireConflict(local, change.path, {
                   localAction: 'PUT',
                   remoteAction: 'PUT'
                 });
@@ -3567,7 +3605,7 @@ Math.uuid = function (len, radix) {
               ifMatch: change.force ? undefined : change.revision
             }).then(function(status) {
               if(status == 412) {
-                fireConflict(local, path, {
+                fireConflict(local, change.path, {
                   remoteAction: 'PUT',
                   localAction: 'DELETE'
                 });
@@ -3645,6 +3683,7 @@ Math.uuid = function (len, radix) {
               }
             }, function(error) {
               console.error('syncing', path, 'failed:', error);
+              if(aborted) return;
               aborted = true;
               rs._emit('sync-done');
               if(error instanceof RemoteStorage.Unauthorized) {
@@ -3890,7 +3929,7 @@ Math.uuid = function (len, radix) {
           newValue: body
         });
         if(! incoming) {
-          this._recordChange(path, { action: 'PUT' });
+          this._recordChange(path, { action: 'PUT', revision: oldNode ? oldNode.revision : undefined });
         }
         if(typeof(done) === 'undefined') {
           done = true;
@@ -3923,7 +3962,7 @@ Math.uuid = function (len, radix) {
           });
         }
         if(! incoming) {
-          this._recordChange(path, { action: 'DELETE' });
+          this._recordChange(path, { action: 'DELETE', revision: oldNode ? oldNode.revision : undefined });
         }
         promise.fulfill(200);
       }.bind(this);
@@ -4078,7 +4117,11 @@ Math.uuid = function (len, radix) {
       this._recordChange(path, { conflict: attributes }).
         then(function() {
           // fire conflict once conflict has been recorded.
-          this._emit('conflict', event);
+          if(this._handlers.conflict.length > 0) {
+            this._emit('conflict', event);
+          } else {
+            setTimeout(function() { event.resolve('remote'); }, 0);
+          }
         }.bind(this));
       event.resolve = function(resolution) {
         if(resolution == 'remote' || resolution == 'local') {
