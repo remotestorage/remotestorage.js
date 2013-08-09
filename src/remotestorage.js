@@ -203,7 +203,11 @@
 
     onConflict: function(path, handler) {
       if(! this._conflictBound) {
-        this.local.on('conflict', this._dispatchEvent.bind(this, 'conflict'));
+        this.on('features-loaded', function() {
+          if(this.local) {
+            this.local.on('conflict', this._dispatchEvent.bind(this, 'conflict'));
+          }
+        }.bind(this));
         this._conflictBound = true;
       }
       if(! this._pathHandlers.conflict[path]) {
