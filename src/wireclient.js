@@ -72,6 +72,7 @@
     xhr.onload = function() {
       if(timedOut) return;
       clearTimeout(timer);
+      if(xhr.status == 404) return promise.fulfill(xhr.status);
       var mimeType = xhr.getResponseHeader('Content-Type');
       var body;
       var revision = getEtag ? xhr.getResponseHeader('ETag') : (xhr.status == 200 ? fakeRevision : undefined);

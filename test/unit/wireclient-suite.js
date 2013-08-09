@@ -377,6 +377,23 @@ define(['requirejs'], function(requirejs, undefined) {
           req.response = 'response-body';
           req._onload();
         }
+      },
+
+
+      {
+        desc: "404 responses discard the body altogether",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar').
+            then(function(status, body, contentType) {
+              test.assertAnd(status, 404);
+              test.assertTypeAnd(body, 'undefined');
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 404;
+          req.response = 'response-body';
+          req._onload();
+        }
       }
 
     ]
