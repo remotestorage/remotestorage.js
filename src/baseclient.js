@@ -223,7 +223,7 @@
      * Parameters:
      *   mimeType - MIME media type of the data being stored
      *   path     - path relative to the module root. MAY NOT end in a forward slash.
-     *   data     - string or ArrayBuffer of raw data to store
+     *   data     - string, ArrayBuffer or ArrayBufferView of raw data to store
      *
      * The given mimeType will later be returned, when retrieving the data
      * using <getFile>.
