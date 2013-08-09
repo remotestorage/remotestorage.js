@@ -156,8 +156,8 @@
                 return 200; // fake 200 so the change is cleared.
               }
             }).then(function(status) {
-                if(status == 412) {
-                fireConflict(local, path, {
+              if(status == 412) {
+                fireConflict(local, change.path, {
                   localAction: 'PUT',
                   remoteAction: 'PUT'
                 });
@@ -172,7 +172,7 @@
               ifMatch: change.force ? undefined : change.revision
             }).then(function(status) {
               if(status == 412) {
-                fireConflict(local, path, {
+                fireConflict(local, change.path, {
                   remoteAction: 'PUT',
                   localAction: 'DELETE'
                 });
