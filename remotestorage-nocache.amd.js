@@ -530,7 +530,7 @@ define([], function() {
     },
 
     _dispatchEvent: function(eventName, event) {
-      for(var path in this._pathHandlers) {
+      for(var path in this._pathHandlers[eventName]) {
         var pl = path.length;
         this._pathHandlers[eventName][path].forEach(function(handler) {
           if(event.path.substr(0, pl) == path) {
