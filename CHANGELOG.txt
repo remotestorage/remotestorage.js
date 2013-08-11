@@ -1,4 +1,4 @@
-0.8.0
+0.8.0 (August 2013)
 =====
 * Overview:
   * Rewritten: RemoteStorage, WireClient, BaseClient, Sync, IndexedDB
@@ -25,7 +25,7 @@
     a list of methods that are included).
 
 
-0.7.0
+0.7.0 (January 2013)
 =====
 * big breaking change!
 * introduces modules, and changes everything completely.
