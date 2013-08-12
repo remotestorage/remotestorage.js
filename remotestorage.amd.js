@@ -3510,6 +3510,7 @@ Math.uuid = function (len, radix) {
           }
         } catch(e) {
         }
+        console.log('deleting keys', keys, 'from', path);
         var n = keys.length, i = 0;
         if(n == 0) promise.fulfill();
         function oneDone() {
