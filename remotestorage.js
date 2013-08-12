@@ -3509,7 +3509,7 @@ Math.uuid = function (len, radix) {
         for(item in localBody) {
           keys.push(item);
         }
-        console.log('deleting keys', keys, 'from', path, localBody);
+        //console.log('deleting keys', keys, 'from', path, localBody);
         var n = keys.length, i = 0;
         if(n == 0) promise.fulfill();
         function oneDone() {
@@ -3527,7 +3527,7 @@ Math.uuid = function (len, radix) {
         });
       });
     } else {
-      console.log('deleting local item', path);
+      //console.log('deleting local item', path);
       local.delete(path, true).then(promise.fulfill, promise.reject);
     }
   }
