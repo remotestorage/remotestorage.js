@@ -184,12 +184,13 @@ exports.server = (function() {
     }
   }
   function writeHead(res, status, origin, timestamp, contentType) {
+    console.log('writeHead', status, origin, timestamp, contentType);
     var headers = {
       'Access-Control-Allow-Origin': (origin?origin:'*'),
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, Origin',
       'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
     };
-    if(timestamp) {
+    if(typeof(timestamp) != 'undefined') {
       headers['etag']= timestamp.toString();
     }
     if(contentType) {
@@ -223,7 +224,7 @@ exports.server = (function() {
   function give404(res, origin) {
     log('404');
     log(content);
-    writeHead(res, 404, origin, 'now');
+    writeHead(res, 404, origin);
     res.end();
   }
   function computerSaysNo(res, origin, status, timestamp) {
@@ -342,7 +343,7 @@ exports.server = (function() {
     } else if(req.method=='GET') {
       log('GET');
       if(!mayRead(req.headers.authorization, path)) {
-        computerSaysNo(res, req.headers.origin, 401, 'now');
+        computerSaysNo(res, req.headers.origin, 401);
       } else if(!condMet(cond, path)) {
         computerSaysNo(res, req.headers.origin, 304, version[path]);
       } else {
@@ -363,7 +364,7 @@ exports.server = (function() {
     } else if(req.method=='PUT') {
       log('PUT');
       if(!mayWrite(req.headers.authorization, path)) {
-        computerSaysNo(res, req.headers.origin, 401, 'now');
+        computerSaysNo(res, req.headers.origin, 401);
       } else if(!condMet(cond, path)) {
         computerSaysNo(res, req.headers.origin, 412, version[path]);
       } else {
@@ -405,7 +406,7 @@ exports.server = (function() {
     } else if(req.method=='DELETE') {
       log('DELETE');
       if(!mayWrite(req.headers.authorization, path)) {
-        computerSaysNo(res, req.headers.origin, 401, 'now');
+        computerSaysNo(res, req.headers.origin, 401);
       } else if(!condMet(cond, path)) {
         computerSaysNo(res, req.headers.origin, 412, version[timestamp]);
       } else {
@@ -425,7 +426,7 @@ exports.server = (function() {
       }
     } else {
       log('ILLEGAL '+req.method);
-      computerSaysNo(res, req.headers.origin, 405, 'now');
+      computerSaysNo(res, req.headers.origin, 405);
     }
   }
 
