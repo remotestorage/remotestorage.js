@@ -245,23 +245,16 @@ exports.server = (function() {
     });
     res.write('<!DOCTYPE html lang="en"><head><title>'+config.host+'</title><meta charset="utf-8"></head><body><ul>');
     var scopes = {
-      'http://todomvc.michiel.5apps.com/': ['tasks:rw'],
-      'http://litewrite.github.com/litewrite/': ['documents:rw'],
-      'http://todo-mvc.michiel.5apps.com/labs/architecture-examples/remotestorage/': ['tasks:rw'],
-      'http://unhosted-time-tracker.michiel.5apps.com/': ['tasks:rw'],
-      'http://music.michiel.5apps.com/': ['music:rw'],
-      'http://editor.michiel.5apps.com/': ['code:rw'],
-      'http://remotestorage-browser.nilclass.5apps.com': [':rw'],
-      'http://vidmarks.silverbucket.5apps.com': ['videos:rw'],
-      'http://grouptabs.xmartin.5apps.com': ['grouptabs:rw']
+      'https://ghost-michiel.5apps.com/': ['pictures:rw'],
+      'https://drinks-unhosted.5apps.com/': ['myfavoritedrinks:rw'],
+      'https://todomvc.michiel.5apps.com/labs/architecture-examples/remotestorage/': ['tasks:rw'],
     };
     var outstanding = 0;
     for(var i in scopes) {
       outstanding++;
       (function(i) {
         createToken(config.defaultUserName, scopes[i], function(token) {
-          res.write('<li><a href="'+i+'#storage_root=http://'+config.host+'/storage/'+config.defaultUserName
-                    //+'&authorize_endpoint=http://'+config.host+'/auth/'+config.defaultUserName+'">'+i+'</a></li>');
+          res.write('<li><a href="'+i+'#remotestorage=me@local.dev'
                     +'&access_token='+token+'">'+i+'</a></li>');
           outstanding--;
           if(outstanding==0) {
@@ -411,7 +404,7 @@ exports.server = (function() {
       }
     } else if(req.method=='DELETE') {
       log('DELETE');
-      if(!mayWrite(req.headers.authorization, path) ||) {
+      if(!mayWrite(req.headers.authorization, path)) {
         computerSaysNo(res, req.headers.origin, 401, 'now');
       } else if(!condMet(cond, path)) {
         computerSaysNo(res, req.headers.origin, 412, lastModified[timestamp]);
