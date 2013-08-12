@@ -60,26 +60,34 @@
   function deleteLocal(local, path, promise) {
     if(isDir(path)) {
       local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
-        var keys = {};
+        var keys = [], failed=false;
         try {
-          keys = JSON.parse(localBody);
+          for(JSON.parse(localBody) as item) {
+            keys.push(item);
+          }
         } catch(e) {
         }
         var n = keys.length, i = 0;
         if(n == 0) promise.fulfill();
         function oneDone() {
           i++;
-          if(i == n) promise.fulfill();
+          if(i == n && !failed) promise.fulfill();
+        }
+        function oneFail() {
+          if(!failed) {
+            failed = true;
+            promise.reject();
+          }
         }
         keys.forEach(function(key) {
-          deleteLocal(local, path + key).then(oneDone);
+          deleteLocal(local, path + key).then(oneDone, oneFail);
         });
       });
     } else {
       local.delete(path, true).then(promise.fulfill);
     }
   }
-
+ 
   function synchronize(remote, local, path, options) {
     var promise = promising();
     local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
