@@ -3498,19 +3498,19 @@ Math.uuid = function (len, radix) {
     for(var bk in b) keyObject[bk] = true;
     return Object.keys(keyObject);
   }
-
+  function promiseDeleteLocal(local, path) {
+    var promise = promising();
+    deleteLocal(local, path, promise);
+    return promise;
+  }
   function deleteLocal(local, path, promise) {
     if(isDir(path)) {
       local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
         var keys = [], failed = false;
-        try {
-          var map = JSON.parse(localBody);
-          for(item in map) {
-            keys.push(item);
-          }
-        } catch(e) {
+        for(item in localBody) {
+          keys.push(item);
         }
-        console.log('deleting keys', keys, 'from', path);
+        console.log('deleting keys', keys, 'from', path, localBody);
         var n = keys.length, i = 0;
         if(n == 0) promise.fulfill();
         function oneDone() {
@@ -3524,11 +3524,12 @@ Math.uuid = function (len, radix) {
           }
         }
         keys.forEach(function(key) {
-          deleteLocal(local, path + key).then(oneDone, oneFailed);
+          promiseDeleteLocal(local, path + key).then(oneDone, oneFailed);
         });
       });
     } else {
-      local.delete(path, true).then(promise.fulfill);
+      console.log('deleting local item', path);
+      local.delete(path, true).then(promise.fulfill, promise.reject);
     }
   }
  
