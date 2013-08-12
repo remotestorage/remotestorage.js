@@ -25,7 +25,7 @@ var config = {};
 exports.server = (function() {
   var url=require('url'),
     crypto=require('crypto'),
-    tokens, lastModified, contentType, content;
+    tokens, version, contentType, content;
 
   var responseDelay = null;
   var capturedRequests = [];
@@ -43,7 +43,7 @@ exports.server = (function() {
   }
 
   function resetState() {
-    tokens = {}, lastModified = {}, contentType = {}, content = {};
+    tokens = {}, version = {}, contentType = {}, content = {};
     responseDelay = null;
     clearCaptured();
     doCapture = false;
@@ -58,7 +58,7 @@ exports.server = (function() {
   function getState() {
     return {
       tokens: tokens,
-      lastModified: lastModified,
+      version: version,
       contentType: contentType,
       content: content
     };
@@ -88,7 +88,7 @@ exports.server = (function() {
       fs.mkdirSync("server-state");
     }
     saveState('tokens', tokens);
-    saveState('lastModified', lastModified);
+    saveState('version', version);
     saveState('contentType', contentType);
     saveState('content', content);
   }
@@ -98,11 +98,11 @@ exports.server = (function() {
       return;
     }
     tokens = loadState('tokens');
-    lastModified = loadState('lastModified');
+    version = loadState('version');
     contentType = loadState('contentType');
     content = loadState('content');
 
-    log("DATA LOADED", tokens, lastModified, contentType, content);
+    log("DATA LOADED", tokens, version, contentType, content);
   }
 
 
@@ -309,13 +309,13 @@ exports.server = (function() {
       if(content[path]) {
         return false;
       }
-    } else if(cond.ifNoneMatch && lastModified[path]) {//or a comma-separated list of etags
+    } else if(cond.ifNoneMatch && version[path]) {//or a comma-separated list of etags
       if(cond.ifNoneMatch.split(',').indexOf(version[path])!=-1) {
         return false;
       }
     }
     if(cond.ifMatch) {//if-match is always exactly 1 etag
-      if(lastModified[path]!=cond.ifMatch) {
+      if(version[path]!=cond.ifMatch) {
         return false;
       }
     }
@@ -344,13 +344,13 @@ exports.server = (function() {
       if(!mayRead(req.headers.authorization, path)) {
         computerSaysNo(res, req.headers.origin, 401, 'now');
       } else if(!condMet(cond, path)) {
-        computerSaysNo(res, req.headers.origin, 304, lastModified[path]);
+        computerSaysNo(res, req.headers.origin, 304, version[path]);
       } else {
         if(content[path]) {
           if(path.substr(-1)=='/') {
             writeJson(res, content[path], req.headers.origin, 0, cond);
           } else {
-            writeRaw(res, contentType[path], content[path], req.headers.origin, lastModified[path], cond);
+            writeRaw(res, contentType[path], content[path], req.headers.origin, version[path], cond);
           }
         } else {
           if(path.substr(-1)=='/') {
@@ -365,7 +365,7 @@ exports.server = (function() {
       if(!mayWrite(req.headers.authorization, path)) {
         computerSaysNo(res, req.headers.origin, 401, 'now');
       } else if(!condMet(cond, path)) {
-        computerSaysNo(res, req.headers.origin, 412, lastModified[path]);
+        computerSaysNo(res, req.headers.origin, 412, version[path]);
       } else {
         var dataStr = '';
         req.on('data', function(chunk) {
@@ -377,7 +377,7 @@ exports.server = (function() {
           content[path]=dataStr;
           contentType[path]=req.headers['content-type'];
           log('stored '+path, content[path], contentType[path]);
-          lastModified[path]=timestamp;
+          version[path]=timestamp;
           saveData();
           var pathParts=path.split('/');
           var timestamp=new Date().getTime();
@@ -398,7 +398,7 @@ exports.server = (function() {
           }
           // log('content:', content);
           // log('contentType:', contentType);
-          // log('lastModified:', lastModified);
+          // log('version:', version);
           writeJson(res, null, req.headers.origin, timestamp);
         });
       }
@@ -407,12 +407,12 @@ exports.server = (function() {
       if(!mayWrite(req.headers.authorization, path)) {
         computerSaysNo(res, req.headers.origin, 401, 'now');
       } else if(!condMet(cond, path)) {
-        computerSaysNo(res, req.headers.origin, 412, lastModified[timestamp]);
+        computerSaysNo(res, req.headers.origin, 412, version[timestamp]);
       } else {
         var timestamp = new Date().getTime();
         delete content[path];
         delete contentType[path];
-        lastModified[path]=timestamp;
+        version[path]=timestamp;
         saveData();
         var pathParts=path.split('/');
         var thisPart = pathParts.pop();
