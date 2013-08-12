@@ -60,9 +60,10 @@
   function deleteLocal(local, path, promise) {
     if(isDir(path)) {
       local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
-        var keys = [], failed=false;
+        var keys = [];
         try {
-          for(JSON.parse(localBody) as item) {
+          var map = JSON.parse(localBody);
+          for(item in map) {
             keys.push(item);
           }
         } catch(e) {
@@ -71,16 +72,10 @@
         if(n == 0) promise.fulfill();
         function oneDone() {
           i++;
-          if(i == n && !failed) promise.fulfill();
-        }
-        function oneFail() {
-          if(!failed) {
-            failed = true;
-            promise.reject();
-          }
+          if(i == n) promise.fulfill();
         }
         keys.forEach(function(key) {
-          deleteLocal(local, path + key).then(oneDone, oneFail);
+          deleteLocal(local, path + key).then(oneDone);
         });
       });
     } else {

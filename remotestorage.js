@@ -3501,9 +3501,12 @@ Math.uuid = function (len, radix) {
   function deleteLocal(local, path, promise) {
     if(isDir(path)) {
       local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
-        var keys = {};
+        var keys = [];
         try {
-          keys = JSON.parse(localBody);
+          var map = JSON.parse(localBody);
+          for(item in map) {
+            keys.push(item);
+          }
         } catch(e) {
         }
         var n = keys.length, i = 0;
@@ -3520,7 +3523,7 @@ Math.uuid = function (len, radix) {
       local.delete(path, true).then(promise.fulfill);
     }
   }
-
+ 
   function synchronize(remote, local, path, options) {
     var promise = promising();
     local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
