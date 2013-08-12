@@ -167,7 +167,10 @@ exports.server = (function() {
       return (pathParts[0]=='me' && pathParts[1]=='public' && path.substr(-1) != '/');
     }
   }
-  function mayWrite(authorizationHeader, path) {
+  function mayWrite(authorizationHeader, path) { 
+    if(path.substr(-1)=='/') {
+      return false;
+    }
     if(authorizationHeader) {
       var scopes = tokens[authorizationHeader.substring('Bearer '.length)];
       if(scopes) {
@@ -187,7 +190,7 @@ exports.server = (function() {
       'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
     };
     if(timestamp) {
-      headers['last-modified']= new Date(timestamp).toString();
+      headers['etag']= timestamp.toString();
     }
     if(contentType) {
       headers['content-type']= contentType;
@@ -223,13 +226,12 @@ exports.server = (function() {
     writeHead(res, 404, origin, 'now');
     res.end();
   }
-  function computerSaysNo(res, origin) {
-    log('COMPUTER_SAYS_NO');
+  function computerSaysNo(res, origin, status, timestamp) {
+    log('COMPUTER_SAYS_NO - '+status);
     log(tokens);
-    writeHead(res, 401, origin, 'now');
+    writeHead(res, status, origin, timestamp);
     res.end();
   }
-
   function toHtml(str) {
     return str
       .replace(/&/g, '&amp;')
@@ -309,9 +311,29 @@ exports.server = (function() {
       });
     //}
   }
-
+  function condMet(cond, path) {
+    if(cond.ifNoneMatch=='*') {//if-none-match is either '*'...
+      if(content[path]) {
+        return false;
+      }
+    } else if(cond.ifNoneMatch && lastModified[path]) {//or a comma-separated list of etags
+      if(cond.ifNoneMatch.split(',').indexOf(version[path])!=-1) {
+        return false;
+      }
+    }
+    if(cond.ifMatch) {//if-match is always exactly 1 etag
+      if(lastModified[path]!=cond.ifMatch) {
+        return false;
+      }
+    }
+    return true;
+  }
   function storage(req, urlObj, res) {
     var path=urlObj.pathname.substring('/storage/'.length);
+    var cond = {
+      ifNoneMatch: req.headers['if-none-match'],
+      ifMatch: req.headers['if-match']
+    };
     var capt = {
       method: req.method,
       path: path
@@ -326,26 +348,32 @@ exports.server = (function() {
       writeJson(res, null, req.headers.origin);
     } else if(req.method=='GET') {
       log('GET');
-      if(mayRead(req.headers.authorization, path)) {
+      if(!mayRead(req.headers.authorization, path)) {
+        computerSaysNo(res, req.headers.origin, 401, 'now');
+      } else if(!condMet(cond, path)) {
+        computerSaysNo(res, req.headers.origin, 304, lastModified[path]);
+      } else {
         if(content[path]) {
           if(path.substr(-1)=='/') {
-            writeJson(res, content[path], req.headers.origin, 0);
+            writeJson(res, content[path], req.headers.origin, 0, cond);
           } else {
-            writeRaw(res, contentType[path], content[path], req.headers.origin, lastModified[path]);
+            writeRaw(res, contentType[path], content[path], req.headers.origin, lastModified[path], cond);
           }
         } else {
           if(path.substr(-1)=='/') {
-            writeJson(res, {}, req.headers.origin, 0);
+            writeJson(res, {}, req.headers.origin, 0, cond);
           } else {
             give404(res, req.headers.origin);
           }
         }
-      } else {
-        computerSaysNo(res, req.headers.origin);
       }
     } else if(req.method=='PUT') {
       log('PUT');
-      if(mayWrite(req.headers.authorization, path) && path.substr(-1)!='/') {
+      if(!mayWrite(req.headers.authorization, path)) {
+        computerSaysNo(res, req.headers.origin, 401, 'now');
+      } else if(!condMet(cond, path)) {
+        computerSaysNo(res, req.headers.origin, 412, lastModified[path]);
+      } else {
         var dataStr = '';
         req.on('data', function(chunk) {
           dataStr+=chunk;
@@ -380,12 +408,14 @@ exports.server = (function() {
           // log('lastModified:', lastModified);
           writeJson(res, null, req.headers.origin, timestamp);
         });
-      } else {
-        computerSaysNo(res, req.headers.origin);
       }
     } else if(req.method=='DELETE') {
       log('DELETE');
-      if(mayWrite(req.headers.authorization, path)) {
+      if(!mayWrite(req.headers.authorization, path) ||) {
+        computerSaysNo(res, req.headers.origin, 401, 'now');
+      } else if(!condMet(cond, path)) {
+        computerSaysNo(res, req.headers.origin, 412, lastModified[timestamp]);
+      } else {
         var timestamp = new Date().getTime();
         delete content[path];
         delete contentType[path];
@@ -399,12 +429,10 @@ exports.server = (function() {
         }
         log(content);
         writeJson(res, null, req.headers.origin, timestamp);
-      } else {
-        computerSaysNo(res, req.headers.origin);
       }
     } else {
       log('ILLEGAL '+req.method);
-      computerSaysNo(res, req.headers.origin);
+      computerSaysNo(res, req.headers.origin, 405, 'now');
     }
   }
 
