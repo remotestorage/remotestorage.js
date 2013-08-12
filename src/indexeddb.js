@@ -83,6 +83,9 @@
       var dirname = parts[1], basename = parts[2];
       nodes.get(dirname).onsuccess = function(evt) {
         var node = evt.target.result;
+        if(!node) {//attempt to remove something from a non-existing directory
+          return;
+        }
         delete node[key][basename];
         if(keepDirNode(node)) {
           nodes.put(node);
