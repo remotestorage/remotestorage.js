@@ -1,5 +1,5 @@
 exports.config = {
-  protocol: 'http',
+  protocol: 'https',
   host: 'local.dev',
   defaultUserName: 'me',
   port: 443,
