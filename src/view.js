@@ -143,6 +143,12 @@
       el.addEventListener('click', this.toggle_bubble);
       this.cube = el
 
+      //googledrive and dropbox icons
+      el = gCl(element, 'rs-dropbox');
+      el.src = RemoteStorage.Assets.dropbox;
+      el = gCl(element, 'rs-googledrive');
+      el.src = RemoteStorage.Assets.googledrive;
+
       //the bubble
       this.bubble = gCl(element,'rs-bubble');
       // what is the meaning of this hiding the b
@@ -234,7 +240,7 @@
           this.hide_bubble();
         }
         this.div.className = "remotestorage-state-initial";
-        gCl(this.div, 'rs-status-text').innerHTML = "Connect <strong>remotestorage</strong>";
+        gCl(this.div, 'rs-status-text').innerHTML = "<strong>Connect</strong> remote storage";
 
         //if address not empty connect button enabled
         //TODO check if this works
