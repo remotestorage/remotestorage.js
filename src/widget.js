@@ -44,6 +44,7 @@
     this.rs = remoteStorage;
     this.rs.on('ready', stateSetter(this, 'connected'));
     this.rs.on('disconnected', stateSetter(this, 'initial'));
+    this.rs.on('connecting', stateSetter(this, 'authing'));
     this.rs.on('authing', stateSetter(this, 'authing'));
     this.rs.on('sync-busy', stateSetter(this, 'busy'));
     this.rs.on('sync-done', stateSetter(this, 'connected'));
