@@ -316,10 +316,16 @@
 .remotestorage-state-unauthorized .rs-sync{
     display: none;
 }
-.remotestorage-state-busy .rs-bubble{
-    display: none;
-}
 
+.remotestorage-state-busy .rs-bubble.rs-hidden{
+   display: none;
+}
+.remotestorage-state-busy .rs-bubble{
+    display: block;
+}
+.remotestorage-state-busy .remotestorage-connected{
+  display: block;
+}
 .remotestorage-state-authing .rs-bubble-expandable{
     display: none;
 }
