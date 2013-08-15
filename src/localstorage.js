@@ -164,7 +164,25 @@
           }
         }
       }
+    },
+
+    fireInitial: function() {
+      var l = localStorage.length, npl = NODES_PREFIX.length;
+      for(var i=0;i<l;i++) {
+        var key = localStorage.key(i);
+        if(key.substr(0, npl) == NODES_PREFIX) {
+          var path = key.substr(npl);
+          var node = this._get(path);
+          this._emit('change', {
+            path: path,
+            origin: 'remote',
+            oldValue: undefined,
+            newValue: node.body
+          });
+        }
+      }
     }
+
   };
 
   RemoteStorage.LocalStorage._rs_init = function() {};

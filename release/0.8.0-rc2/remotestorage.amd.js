@@ -1,4 +1,5 @@
-/** remotestorage.js 0.8.0-head remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.8.0-rc2 remotestorage.io, MIT-licensed **/
+define([], function() {
 
 /** FILE: lib/promising.js **/
 (function(global) {
@@ -113,7 +114,7 @@
 
 
 /** FILE: src/remotestorage.js **/
-(function(global) {
+(function() {
 
   var SyncedGetPutDelete = {
     get: function(path) {
@@ -155,7 +156,7 @@
   /**
    * Class: RemoteStorage
    *
-   * Constructor for global remoteStorage object.
+   * Constructor for global <remoteStorage> object.
    *
    * This class primarily contains feature detection code and a global convenience API.
    *
@@ -176,7 +177,11 @@
       delete: this._pendingGPD('delete')
     });
     this._cleanups = [];
-    this._pathHandlers = { change: {}, conflict: {} };
+    this._pathHandlers = {};
+
+    this.__defineGetter__('connected', function() {
+      return this.remote.connected;
+    });
 
     var origOn = this.on;
     this.on = function(eventName, handler) {
@@ -206,11 +211,6 @@
   RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
   RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
-  /**
-   * Method: RemoteStorage.log
-   *
-   * Logging using console.log, when logging is enabled.
-   */
   RemoteStorage.log = function() {
     if(RemoteStorage._log) {
       console.log.apply(console, arguments);
@@ -302,58 +302,25 @@
      * as <RemoteStorage.IndexedDB>) and the affected path is equal to
      * or below the given 'path', the given handler is called.
      *
-     * You shouldn't need to use this method directly, but instead use
-     * the "change" events provided by <RemoteStorage.BaseClient>.
-     *
      * Parameters:
      *   path    - Absolute path to attach handler to.
      *   handler - Handler function.
      */
     onChange: function(path, handler) {
-      if(! this._pathHandlers.change[path]) {
-        this._pathHandlers.change[path] = [];
+      if(! this._pathHandlers[path]) {
+        this._pathHandlers[path] = [];
       }
-      this._pathHandlers.change[path].push(handler);
+      this._pathHandlers[path].push(handler);
     },
 
-    onConflict: function(path, handler) {
-      if(! this._conflictBound) {
-        this.on('features-loaded', function() {
-          if(this.local) {
-            this.local.on('conflict', this._dispatchEvent.bind(this, 'conflict'));
-          }
-        }.bind(this));
-        this._conflictBound = true;
-      }
-      if(! this._pathHandlers.conflict[path]) {
-        this._pathHandlers.conflict[path] = [];
-      }
-      this._pathHandlers.conflict[path].push(handler);
-    },
-
-    /**
-     * Method: enableLog
-     *
-     * enable logging
-     */
     enableLog: function() {
       RemoteStorage._log = true;
     },
 
-    /**
-     * Method: disableLog
-     *
-     * disable logging
-     */
     disableLog: function() {
       RemoteStorage._log = false;
     },
 
-    /**
-     * Method: log
-     *
-     * The same as <RemoteStorage.log>.
-     */
     log: function() {
       RemoteStorage.log.apply(RemoteStorage, arguments);
     },
@@ -525,13 +492,13 @@
      **/
 
     _bindChange: function(object) {
-      object.on('change', this._dispatchEvent.bind(this, 'change'));
+      object.on('change', this._dispatchChange.bind(this));
     },
 
-    _dispatchEvent: function(eventName, event) {
-      for(var path in this._pathHandlers[eventName]) {
+    _dispatchChange: function(event) {
+      for(var path in this._pathHandlers) {
         var pl = path.length;
-        this._pathHandlers[eventName][path].forEach(function(handler) {
+        this._pathHandlers[path].forEach(function(handler) {
           if(event.path.substr(0, pl) == path) {
             var ev = {};
             for(var key in event) { ev[key] = event[key]; }
@@ -548,76 +515,16 @@
     }
   };
 
-  /**
-   * Method: claimAccess
-   *
-   * High-level method to claim access on one or multiple scopes and enable
-   * caching for them. WARNING: when using Caching control, use remoteStorage.access.claim instead,
-   * see https://github.com/remotestorage/remotestorage.js/issues/380
-   *
-   * Examples:
-   *   (start code)
-   *     remoteStorage.claimAccess('foo', 'rw');
-   *     // is equivalent to:
-   *     remoteStorage.claimAccess({ foo: 'rw' });
-   *
-   *     // is equivalent to:
-   *     remoteStorage.access.claim('foo', 'rw');
-   *     remoteStorage.caching.enable('/foo/');
-   *     remoteStorage.caching.enable('/public/foo/');
-   *   (end code)
-   */
+  window.RemoteStorage = RemoteStorage;
 
-  /**
-   * Property: connected
-   *
-   * Boolean property indicating if remoteStorage is currently connected.
-   */
-  Object.defineProperty(RemoteStorage.prototype, 'connected', {
-    get: function() {
-      return this.remote.connected;
-    }
-  });
-
-  /**
-   * Property: access
-   *
-   * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
-   *
-   *
-   * Property: caching
-   *
-   * Caching settings. A <RemoteStorage.Caching> instance.
-   *
-   * (only available when caching is built in)
-   *
-   *
-   * Property: remote
-   *
-   * Access to the remote backend used. Usually a <RemoteStorage.WireClient>.
-   *
-   *
-   * Property: local
-   *
-   * Access to the local caching backend used.
-   * Only available when caching is built in.
-   * Usually either a <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage>
-   * instance.
-   */
-
-  global.RemoteStorage = RemoteStorage;
-
-})(this);
+})();
 
 
 /** FILE: src/eventhandling.js **/
 (function(global) {
-  /**
-   * Class: eventhandling
-   */
   var methods = {
     /**
-     * Method: addEventListener
+     * Method: eventhandling.addEventListener
      *
      * Install an event handler for the given event name.
      */
@@ -626,11 +533,6 @@
       this._handlers[eventName].push(handler);
     },
 
-    /**
-     * Method: removeEventListener
-     *
-     * Remove a previously installed event handler
-     */
     removeEventListener: function(eventName, handler) {
       this._validateEvent(eventName);
       var hl = this._handlers[eventName].length;
@@ -763,24 +665,6 @@
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
-  var isArrayBufferView;
-  if(typeof(ArrayBufferView) === 'function') {
-    isArrayBufferView = function(object) { return object && (object instanceof ArrayBufferView); };
-  } else {
-    var arrayBufferViews = [
-      Int8Array, Uint8Array, Int16Array, Uint16Array,
-      Int32Array, Uint32Array, Float32Array, Float64Array
-    ];
-    isArrayBufferView = function(object) {
-      for(var i=0;i<8;i++) {
-        if(object instanceof arrayBufferViews[i]) {
-          return true;
-        }
-      }
-      return false;
-    };
-  }
-
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
     if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
       throw "Don't " + method + " on directories!";
@@ -805,35 +689,18 @@
     xhr.onload = function() {
       if(timedOut) return;
       clearTimeout(timer);
-      if(xhr.status == 404) return promise.fulfill(xhr.status);
       var mimeType = xhr.getResponseHeader('Content-Type');
-      var body;
+      var body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
       var revision = getEtag ? xhr.getResponseHeader('ETag') : (xhr.status == 200 ? fakeRevision : undefined);
-      if((! mimeType) || mimeType.match(/charset=binary/)) {
-        var blob = new Blob([xhr.response], {type: mimeType});
-        var reader = new FileReader();
-        reader.addEventListener("loadend", function() {
-          // reader.result contains the contents of blob as a typed array
-          promise.fulfill(xhr.status, reader.result, mimeType, revision);
-        });
-        reader.readAsArrayBuffer(blob);
-      } else {
-        body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
-        promise.fulfill(xhr.status, body, mimeType, revision);
-      }
+      promise.fulfill(xhr.status, body, mimeType, revision);
     };
     xhr.onerror = function(error) {
       if(timedOut) return;
       clearTimeout(timer);
       promise.reject(error);
     };
-    if(typeof(body) === 'object') {
-      if(isArrayBufferView(body)) { /* alright. */ }
-      else if(body instanceof ArrayBuffer) {
-        body = new Uint8Array(body);
-      } else {
-        body = JSON.stringify(body);
-      }
+    if(typeof(body) === 'object' && !(body instanceof ArrayBuffer)) {
+      body = JSON.stringify(body);
     }
     xhr.send(body);
     return promise;
@@ -848,7 +715,7 @@
     this.connected = false;
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
-      if(error instanceof RemoteStorage.Unauthorized) {
+      if(error instanceof RemoteStorage.Unauthorized){
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this))
@@ -870,43 +737,6 @@
   RS.WireClient.REQUEST_TIMEOUT = 30000;
 
   RS.WireClient.prototype = {
-
-    /**
-     * Property: token
-     *
-     * Holds the bearer token of this WireClient, as obtained in the OAuth dance
-     *
-     * Example:
-     *   (start code)
-     *
-     *   remoteStorage.remote.token
-     *   // -> 'DEADBEEF01=='
-     */
-
-    /**
-     * Property: href
-     *
-     * Holds the server's base URL, as obtained in the Webfinger discovery
-     *
-     * Example:
-     *   (start code)
-     *
-     *   remoteStorage.remote.href
-     *   // -> 'https://storage.example.com/users/jblogg/'
-     */
-
-    /**
-     * Property: storageApi
-     *
-     * Holds the spec version the server claims to be compatible with
-     *
-     * Example:
-     *   (start code)
-     *
-     *   remoteStorage.remote.storageApi
-     *   // -> 'draft-dejong-remotestorage-01'
-     */
-
 
     configure: function(userAddress, href, storageApi, token) {
       if(typeof(userAddress) !== 'undefined') this.userAddress = userAddress;
@@ -944,12 +774,7 @@
       } else if(options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
         if(oldRev === options.ifNoneMatch) {
-//since sync descends for allKeys(local, remote), this causes
-// https://github.com/remotestorage/remotestorage.js/issues/399
-//commenting this out so that it gets the actual 404 from the server.
-//this only affects legacy servers (this.supportsRevs==false):
-//
-//           return promising().fulfill(412);
+          return promising().fulfill(412);
         }
       }
       var promise = request('GET', this.href + cleanPath(path), this.token, headers,
@@ -977,7 +802,7 @@
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       if(! contentType.match(/charset=/)) {
-        contentType += '; charset=' + ((body instanceof ArrayBuffer || isArrayBufferView(body)) ? 'binary' : 'utf-8');
+        contentType += '; charset=' + (body instanceof ArrayBuffer ? 'binary' : 'utf-8');
       }
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
@@ -988,7 +813,7 @@
                      headers, body, this.supportsRevs);
     },
 
-    'delete': function(path, options) {
+    'delete': function(path, callback, options) {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       return request('DELETE', this.href + cleanPath(path), this.token,
@@ -1062,22 +887,7 @@
       }
       xhr.onload = function() {
         if(xhr.status != 200) return tryOne();
-        var profile;
-	  
-        try {
-          profile = JSON.parse(xhr.responseText);
-        } catch(e) {
-          RemoteStorage.log("Failed to parse profile ", xhr.responseText, e);
-          tryOne();
-          return;
-        }
-
-        if (!profile.links) {
-          RemoteStorage.log("profile has no links section ", JSON.stringify(profile));
-          tryOne();
-          return;
-        }
-
+        var profile = JSON.parse(xhr.responseText);
         var link;
         profile.links.forEach(function(l) {
           if(l.rel == 'remotestorage') {
@@ -1135,14 +945,8 @@
 (function() {
 
   function extractParams() {
-    //FF already decodes the URL fragment in document.location.hash, so use this instead:
-    if(! document.location.href) {//bit ugly way to fix unit tests
-      document.location.href = document.location.hash;
-    }
-    var hashPos = document.location.href.indexOf('#');
-    if(hashPos == -1) return;
-    var hash = document.location.href.substring(hashPos+1);
-    return hash.split('&').reduce(function(m, kvs) {
+    if(! document.location.hash) return;
+    return document.location.hash.slice(1).split('&').reduce(function(m, kvs) {
       var kv = kvs.split('=');
       m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
       return m;
@@ -1170,7 +974,6 @@
     url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
-    url += '&response_type=token';
     document.location = url;
   };
 
@@ -1207,11 +1010,6 @@
   var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:access";
 
-  /**
-   * Class: RemoteStorage.Access
-   *
-   * Keeps track of claimed access and scopes.
-   */
   RemoteStorage.Access = function() {
     this.reset();
 
@@ -1224,20 +1022,23 @@
         }
       }
     }
+
+    this.__defineGetter__('scopes', function() {
+      return Object.keys(this.scopeModeMap).map(function(key) {
+        return { name: key, mode: this.scopeModeMap[key] };
+      }.bind(this));
+    });
+
+    this.__defineGetter__('scopeParameter', function() {
+      return this.scopes.map(function(scope) {
+        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
+      }.bind(this)).join(' ');
+    });
   };
 
   RemoteStorage.Access.prototype = {
     // not sure yet, if 'set' or 'claim' is better...
 
-    /**
-     * Method: claim
-     *
-     * Claim access on a given scope with given mode.
-     *
-     * Parameters:
-     *   scope - An access scope, such as "contacts" or "calendar".
-     *   mode  - Access mode to use. Either "r" or "rw".
-     */
     claim: function() {
       this.set.apply(this, arguments);
     },
@@ -1295,37 +1096,6 @@
     }
   };
 
-  /**
-   * Property: scopes
-   *
-   * Holds an array of claimed scopes in the form
-   * > { name: "<scope-name>", mode: "<mode>" }
-   *
-   * Example:
-   *   (start code)
-   *   remoteStorage.access.claim('foo', 'r');
-   *   remoteStorage.access.claim('bar', 'rw');
-   *
-   *   remoteStorage.access.scopes
-   *   // -> [ { name: 'foo', mode: 'r' }, { name: 'bar', mode: 'rw' } ]
-   */
-  Object.defineProperty(RemoteStorage.Access.prototype, 'scopes', {
-    get: function() {
-      return Object.keys(this.scopeModeMap).map(function(key) {
-        return { name: key, mode: this.scopeModeMap[key] };
-      }.bind(this));
-    }
-  });
-
-  Object.defineProperty(RemoteStorage.Access.prototype, 'scopeParameter', {
-    get: function() {
-      return this.scopes.map(function(scope) {
-        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
-      }.bind(this)).join(' ');
-    }
-  });
-
-  // documented in src/remotestorage.js
   Object.defineProperty(RemoteStorage.prototype, 'access', {
     get: function() {
       var access = new RemoteStorage.Access();
@@ -1346,9 +1116,7 @@
     }
   }
 
-  // documented in src/remotestorage.js
   RemoteStorage.prototype.claimAccess = function(scopes) {
-    console.log("DEPRECATION WARNING: remoteStorage.claimAccess may mess with your caching control - if you use cache control directives, then see https://github.com/remotestorage/remotestorage.js/issues/380 and use remoteStorage.access.claim instead.");
     if(typeof(scopes) === 'object') {
       for(var key in scopes) {
         this.access.claim(key, scopes[key]);
@@ -1361,6 +1129,11 @@
   };
 
   RemoteStorage.Access._rs_init = function() {};
+  RemoteStorage.Access._rs_cleanup = function() {
+    if(haveLocalStorage) {
+      delete localStorage[SETTINGS_KEY];
+    }
+  };
 
 })(this);
 
@@ -1435,10 +1208,6 @@ RemoteStorage.Assets = {
       var state = localStorage[LS_STATE_KEY];
       if(state && VALID_ENTRY_STATES[state]) {
         this._rememberedState = state;
-
-        if(state == 'connected' && ! remoteStorage.connected) {
-          this._rememberedState = 'initial';
-        }
       }
     }
   };
@@ -1739,7 +1508,7 @@ RemoteStorage.Assets = {
           this.show_bubble();
           setTimeout(function(){
             cube.src = RemoteStorage.Assets.remoteStorageIcon;
-          },5000)//show the red error cube for 5 seconds, then show the normal orange one again
+          },3512)
         } else {
           this.hide_bubble();
         }
@@ -1788,8 +1557,8 @@ RemoteStorage.Assets = {
         var errorMsg = err;
         this.div.className = "remotestorage-state-error";
 
-        gCl(this.div, 'rs-bubble-text').innerHTML = '<strong> Sorry! An error occured.</strong>'
-        if(err instanceof Error /*|| err instanceof DOMError*/) { //I don't know what an DOMError is and my browser doesn't know too(how to handle this?)
+        gCl(this.div, 'bubble-text').innerHTML = '<strong> Sorry! An error occured.</strong>'
+        if(err instanceof Error || err instanceof DOMError) {
           errorMsg = err.message + '\n\n' +
             err.stack;
         }
@@ -2740,7 +2509,6 @@ Math.uuid = function (len, radix) {
     RS.eventHandling(this, 'change', 'conflict');
     this.on = this.on.bind(this);
     storage.onChange(this.base, this._fireChange.bind(this));
-    storage.onConflict(this.base, this._fireConflict.bind(this));
   };
 
   RS.BaseClient.prototype = {
@@ -2909,7 +2677,7 @@ Math.uuid = function (len, radix) {
      * Parameters:
      *   mimeType - MIME media type of the data being stored
      *   path     - path relative to the module root. MAY NOT end in a forward slash.
-     *   data     - string, ArrayBuffer or ArrayBufferView of raw data to store
+     *   data     - string or ArrayBuffer of raw data to store
      *
      * The given mimeType will later be returned, when retrieving the data
      * using <getFile>.
@@ -3016,14 +2784,14 @@ Math.uuid = function (len, radix) {
      *
      * How to define types?:
      *
-     *   See <declareType> for examples.
+     *   See <declareType> or the calendar module (src/modules/calendar.js) for examples.
      */
     storeObject: function(typeAlias, path, object) {
       this._attachType(object, typeAlias);
       try {
         var validationResult = this.validate(object);
         if(! validationResult.valid) {
-          return promising(function(p) { p.reject(validationResult); });
+          return promising().reject(validationResult);
         }
       } catch(exc) {
         if(exc instanceof RS.BaseClient.Types.SchemaNotFound) {
@@ -3068,14 +2836,6 @@ Math.uuid = function (len, radix) {
 
     _fireChange: function(event) {
       this._emit('change', event);
-    },
-
-    _fireConflict: function(event) {
-      if(this._handlers.conflict.length > 0) {
-        this._emit('conflict', event);
-      } else {
-        event.resolve('remote');
-      }
     },
 
     getItemURL: function(path) {
@@ -3180,25 +2940,11 @@ Math.uuid = function (len, radix) {
 
     getSchema: function(uri) {
       return this.schemas[uri];
-    },
-
-    inScope: function(moduleName) {
-      var ml = moduleName.length;
-      var schemas = {};
-      for(var alias in this.uris) {
-        if(alias.substr(0, ml + 1) == moduleName + '/') {
-          var uri = this.uris[alias];
-          schemas[uri] = this.schemas[uri];
-        }
-      }
-      return schemas;
     }
   };
 
   var SchemaNotFound = function(uri) {
-    var error = Error("Schema not found: " + uri);
-    error.name = "SchemaNotFound";
-    return error;
+    Error.apply(this, ["Schema not found: " + uri]);
   };
   SchemaNotFound.prototype = Error.prototype;
 
@@ -3235,13 +2981,6 @@ Math.uuid = function (len, radix) {
     }
   });
 
-  Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
-    configurable: true,
-    get: function() {
-      return RemoteStorage.BaseClient.Types.inScope(this.moduleName);
-    }
-  });
-
 })(this);
 
 
@@ -3265,13 +3004,16 @@ Math.uuid = function (len, radix) {
     return a.slice(0, b.length) === b;
   }
 
-  /**
-   * Class: RemoteStorage.Caching
-   *
-   * Holds caching configuration.
-   */
   RemoteStorage.Caching = function() {
     this.reset();
+
+    this.__defineGetter__('list', function() {
+      var list = [];
+      for(var path in this._pathSettingsMap) {
+        list.push({ path: path, settings: this._pathSettingsMap[path] });
+      }
+      return list;
+    });
 
     if(haveLocalStorage) {
       var settings = localStorage[SETTINGS_KEY];
@@ -3284,23 +3026,7 @@ Math.uuid = function (len, radix) {
 
   RemoteStorage.Caching.prototype = {
 
-    /**
-     * Method: enable
-     *
-     * Enable caching for the given path.
-     *
-     * Parameters:
-     *   path - Absolute path to a directory.
-     */
     enable: function(path) { this.set(path, { data: true }); },
-    /**
-     * Method: disable
-     *
-     * Disable caching for the given path.
-     *
-     * Parameters:
-     *   path - Absolute path to a directory.
-     */
     disable: function(path) { this.remove(path); },
 
     /**
@@ -3411,17 +3137,6 @@ Math.uuid = function (len, radix) {
 
   };
 
-  Object.defineProperty(RemoteStorage.Caching.prototype, 'list', {
-    get: function() {
-      var list = [];
-      for(var path in this._pathSettingsMap) {
-        list.push({ path: path, settings: this._pathSettingsMap[path] });
-      }
-      return list;
-    }
-  });
-
-
   Object.defineProperty(RemoteStorage.prototype, 'caching', {
     configurable: true,
     get: function() {
@@ -3434,6 +3149,12 @@ Math.uuid = function (len, radix) {
   });
 
   RemoteStorage.Caching._rs_init = function() {};
+  RemoteStorage.Caching._rs_cleanup = function(remoteStorage) {
+    remoteStorage.caching.reset();
+    if(haveLocalStorage) {
+      delete localStorage[SETTINGS_KEY];
+    }
+  };
 
 })(this);
 
@@ -3497,41 +3218,15 @@ Math.uuid = function (len, radix) {
     for(var bk in b) keyObject[bk] = true;
     return Object.keys(keyObject);
   }
-  function promiseDeleteLocal(local, path) {
-    var promise = promising();
-    deleteLocal(local, path, promise);
-    return promise;
-  }
+
   function deleteLocal(local, path, promise) {
     if(isDir(path)) {
-      local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
-        var keys = [], failed = false;
-        for(item in localBody) {
-          keys.push(item);
-        }
-        //console.log('deleting keys', keys, 'from', path, localBody);
-        var n = keys.length, i = 0;
-        if(n == 0) promise.fulfill();
-        function oneDone() {
-          i++;
-          if(i == n && !failed) promise.fulfill();
-        }
-        function oneFailed(error) {
-          if(!failed) {
-            failed = true;
-            promise.reject(error);
-          }
-        }
-        keys.forEach(function(key) {
-          promiseDeleteLocal(local, path + key).then(oneDone, oneFailed);
-        });
-      });
+      promise.fulfill();
     } else {
-      //console.log('deleting local item', path);
-      local.delete(path, true).then(promise.fulfill, promise.reject);
+      local.delete(path, true).then(promise.fulfill);
     }
   }
- 
+
   function synchronize(remote, local, path, options) {
     var promise = promising();
     local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
@@ -3590,7 +3285,6 @@ Math.uuid = function (len, radix) {
       if(n > 0) {
         function errored(err) {
           console.error("pushChanges aborted due to error: ", err, err.stack);
-          promise.reject(err);
         }
         changes.forEach(function(change) {
           if(change.conflict) {
@@ -3617,14 +3311,10 @@ Math.uuid = function (len, radix) {
               }
             }
             local.get(change.path).then(function(status, body, contentType) {
-              if(status == 200) {
-                return remote.put(change.path, body, contentType, options);
-              } else {
-                return 200; // fake 200 so the change is cleared.
-              }
+              return remote.put(change.path, body, contentType, options);
             }).then(function(status) {
-              if(status == 412) {
-                fireConflict(local, change.path, {
+                if(status == 412) {
+                fireConflict(local, path, {
                   localAction: 'PUT',
                   remoteAction: 'PUT'
                 });
@@ -3639,7 +3329,7 @@ Math.uuid = function (len, radix) {
               ifMatch: change.force ? undefined : change.revision
             }).then(function(status) {
               if(status == 412) {
-                fireConflict(local, change.path, {
+                fireConflict(local, path, {
                   remoteAction: 'PUT',
                   localAction: 'DELETE'
                 });
@@ -3673,7 +3363,7 @@ Math.uuid = function (len, radix) {
 
   var SyncError = function(originalError) {
     var msg = 'Sync failed: ';
-    if(typeof(originalError) == 'object' && 'message' in originalError) {
+    if('message' in originalError) {
       msg += originalError.message;
     } else {
       msg += originalError;
@@ -3704,30 +3394,25 @@ Math.uuid = function (len, radix) {
       rs._emit('sync-busy');
       var path;
       while((path = roots.shift())) {
-        (function (path) {
-          //console.log('syncing '+path);
-          RemoteStorage.Sync.sync(rs.remote, rs.local, path, rs.caching.get(path)).
-            then(function() {
-              //console.log('syncing '+path+' success');
-              if(aborted) return;
-              i++;
-              if(n == i) {
-                rs._emit('sync-done');
-                promise.fulfill();
-              }
-            }, function(error) {
-              console.error('syncing', path, 'failed:', error);
-              if(aborted) return;
-              aborted = true;
+        RemoteStorage.Sync.sync(rs.remote, rs.local, path, rs.caching.get(path)).
+          then(function() {
+            if(aborted) return;
+            i++;
+            if(n == i) {
               rs._emit('sync-done');
-              if(error instanceof RemoteStorage.Unauthorized) {
-                rs._emit('error', error);
-              } else {
-                rs._emit('error', new SyncError(error));
-              }
-              promise.reject(error);
-            });
-        })(path);
+              promise.fulfill();
+            }
+          }, function(error) {
+            console.error('syncing', path, 'failed:', error);
+            aborted = true;
+            rs._emit('sync-done');
+            if(error instanceof RemoteStorage.Unauthorized) {
+              rs._emit('error', error);
+            } else {
+              rs._emit('error', new SyncError(error));
+            }
+            promise.reject(error);
+          });
       }
     });
   };
@@ -3736,11 +3421,6 @@ Math.uuid = function (len, radix) {
 
   RemoteStorage.prototype.syncCycle = function() {
     this.sync().then(function() {
-      this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
-    }.bind(this),
-    function() {
-      console.log('sync error, retrying');
       this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
     }.bind(this));
@@ -3780,14 +3460,14 @@ Math.uuid = function (len, radix) {
    *
    * There are multiple parts to this interface:
    *
-   *   The RemoteStorage integration:
+   *   - The RemoteStorage integration:
    *     - RemoteStorage.IndexedDB._rs_supported() determines if indexedDB support
    *       is available. If it isn't, RemoteStorage won't initialize the feature.
    *     - RemoteStorage.IndexedDB._rs_init() initializes the feature. It returns
    *       a promise that is fulfilled as soon as the database has been opened and
    *       migrated.
    *
-   *   The storage interface (RemoteStorage.IndexedDB object):
+   *   - The storage interface (RemoteStorage.IndexedDB object):
    *     - Usually this is accessible via "remoteStorage.local"
    *     - #get() takes a path and returns a promise.
    *     - #put() takes a path, body and contentType and also returns a promise.
@@ -3804,7 +3484,7 @@ Math.uuid = function (len, radix) {
    *       "incoming" flag is passed to #put() or #delete(). This is usually done
    *       by RemoteStorage.Sync.
    *
-   *   The revision interface (also on RemoteStorage.IndexedDB object):
+   *   - The revision interface (also on RemoteStorage.IndexedDB object):
    *     - #setRevision(path, revision) sets the current revision for the given
    *       path. Revisions are only generated by the remotestorage server, so
    *       this is usually done from RemoteStorage.Sync once a pending change
@@ -3815,7 +3495,7 @@ Math.uuid = function (len, radix) {
    *     - #getRevision(path) returns the currently stored revision for the given
    *       path.
    *
-   *   The changes interface (also on RemoteStorage.IndexedDB object):
+   *   - The changes interface (also on RemoteStorage.IndexedDB object):
    *     - Used to record local changes between sync cycles.
    *     - Changes are stored in a separate ObjectStore called "changes".
    *     - #_recordChange() records a change and is called by #put() and #delete(),
@@ -3852,9 +3532,6 @@ Math.uuid = function (len, radix) {
       var dirname = parts[1], basename = parts[2];
       nodes.get(dirname).onsuccess = function(evt) {
         var node = evt.target.result;
-        if(!node) {//attempt to remove something from a non-existing directory
-          return;
-        }
         delete node[key][basename];
         if(keepDirNode(node)) {
           nodes.put(node);
@@ -3967,7 +3644,7 @@ Math.uuid = function (len, radix) {
           newValue: body
         });
         if(! incoming) {
-          this._recordChange(path, { action: 'PUT', revision: oldNode ? oldNode.revision : undefined });
+          this._recordChange(path, { action: 'PUT' });
         }
         if(typeof(done) === 'undefined') {
           done = true;
@@ -4000,7 +3677,7 @@ Math.uuid = function (len, radix) {
           });
         }
         if(! incoming) {
-          this._recordChange(path, { action: 'DELETE', revision: oldNode ? oldNode.revision : undefined });
+          this._recordChange(path, { action: 'DELETE' });
         }
         promise.fulfill(200);
       }.bind(this);
@@ -4155,11 +3832,7 @@ Math.uuid = function (len, radix) {
       this._recordChange(path, { conflict: attributes }).
         then(function() {
           // fire conflict once conflict has been recorded.
-          if(this._handlers.conflict.length > 0) {
-            this._emit('conflict', event);
-          } else {
-            setTimeout(function() { event.resolve('remote'); }, 0);
-          }
+          this._emit('conflict', event);
         }.bind(this));
       event.resolve = function(resolution) {
         if(resolution == 'remote' || resolution == 'local') {
@@ -4190,13 +3863,10 @@ Math.uuid = function (len, radix) {
       callback(dbOpen.error);
     };
     dbOpen.onupgradeneeded = function(event) {
-      RemoteStorage.log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
       var db = dbOpen.result;
       if(event.oldVersion != 1) {
-        RemoteStorage.log("[IndexedDB] Creating object store: nodes");
         db.createObjectStore('nodes', { keyPath: 'path' });
       }
-      RemoteStorage.log("[IndexedDB] Creating object store: changes");
       db.createObjectStore('changes', { keyPath: 'path' });
     }
     dbOpen.onsuccess = function() {
@@ -4230,7 +3900,6 @@ Math.uuid = function (len, radix) {
         }
       } else {
         DEFAULT_DB = db;
-        db.onerror = function() { remoteStorage._emit('error', err); };
         promise.fulfill();
       }
     });
@@ -4774,4 +4443,5 @@ Math.uuid = function (len, radix) {
 
 })();
 
-remoteStorage = new RemoteStorage();
+return new RemoteStorage();
+});

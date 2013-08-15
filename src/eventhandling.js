@@ -1,7 +1,10 @@
 (function(global) {
+  /**
+   * Class: eventhandling
+   */
   var methods = {
     /**
-     * Method: eventhandling.addEventListener
+     * Method: addEventListener
      *
      * Install an event handler for the given event name.
      */
@@ -10,6 +13,11 @@
       this._handlers[eventName].push(handler);
     },
 
+    /**
+     * Method: removeEventListener
+     *
+     * Remove a previously installed event handler
+     */
     removeEventListener: function(eventName, handler) {
       this._validateEvent(eventName);
       var hl = this._handlers[eventName].length;

@@ -17,16 +17,13 @@
     return a.slice(0, b.length) === b;
   }
 
+  /**
+   * Class: RemoteStorage.Caching
+   *
+   * Holds caching configuration.
+   */
   RemoteStorage.Caching = function() {
     this.reset();
-
-    this.__defineGetter__('list', function() {
-      var list = [];
-      for(var path in this._pathSettingsMap) {
-        list.push({ path: path, settings: this._pathSettingsMap[path] });
-      }
-      return list;
-    });
 
     if(haveLocalStorage) {
       var settings = localStorage[SETTINGS_KEY];
@@ -39,7 +36,23 @@
 
   RemoteStorage.Caching.prototype = {
 
+    /**
+     * Method: enable
+     *
+     * Enable caching for the given path.
+     *
+     * Parameters:
+     *   path - Absolute path to a directory.
+     */
     enable: function(path) { this.set(path, { data: true }); },
+    /**
+     * Method: disable
+     *
+     * Disable caching for the given path.
+     *
+     * Parameters:
+     *   path - Absolute path to a directory.
+     */
     disable: function(path) { this.remove(path); },
 
     /**
@@ -150,6 +163,17 @@
 
   };
 
+  Object.defineProperty(RemoteStorage.Caching.prototype, 'list', {
+    get: function() {
+      var list = [];
+      for(var path in this._pathSettingsMap) {
+        list.push({ path: path, settings: this._pathSettingsMap[path] });
+      }
+      return list;
+    }
+  });
+
+
   Object.defineProperty(RemoteStorage.prototype, 'caching', {
     configurable: true,
     get: function() {
@@ -162,11 +186,5 @@
   });
 
   RemoteStorage.Caching._rs_init = function() {};
-  RemoteStorage.Caching._rs_cleanup = function(remoteStorage) {
-    remoteStorage.caching.reset();
-    if(haveLocalStorage) {
-      delete localStorage[SETTINGS_KEY];
-    }
-  };
 
 })(this);

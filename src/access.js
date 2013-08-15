@@ -3,6 +3,11 @@
   var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:access";
 
+  /**
+   * Class: RemoteStorage.Access
+   *
+   * Keeps track of claimed access and scopes.
+   */
   RemoteStorage.Access = function() {
     this.reset();
 
@@ -15,23 +20,20 @@
         }
       }
     }
-
-    this.__defineGetter__('scopes', function() {
-      return Object.keys(this.scopeModeMap).map(function(key) {
-        return { name: key, mode: this.scopeModeMap[key] };
-      }.bind(this));
-    });
-
-    this.__defineGetter__('scopeParameter', function() {
-      return this.scopes.map(function(scope) {
-        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
-      }.bind(this)).join(' ');
-    });
   };
 
   RemoteStorage.Access.prototype = {
     // not sure yet, if 'set' or 'claim' is better...
 
+    /**
+     * Method: claim
+     *
+     * Claim access on a given scope with given mode.
+     *
+     * Parameters:
+     *   scope - An access scope, such as "contacts" or "calendar".
+     *   mode  - Access mode to use. Either "r" or "rw".
+     */
     claim: function() {
       this.set.apply(this, arguments);
     },
@@ -89,6 +91,37 @@
     }
   };
 
+  /**
+   * Property: scopes
+   *
+   * Holds an array of claimed scopes in the form
+   * > { name: "<scope-name>", mode: "<mode>" }
+   *
+   * Example:
+   *   (start code)
+   *   remoteStorage.access.claim('foo', 'r');
+   *   remoteStorage.access.claim('bar', 'rw');
+   *
+   *   remoteStorage.access.scopes
+   *   // -> [ { name: 'foo', mode: 'r' }, { name: 'bar', mode: 'rw' } ]
+   */
+  Object.defineProperty(RemoteStorage.Access.prototype, 'scopes', {
+    get: function() {
+      return Object.keys(this.scopeModeMap).map(function(key) {
+        return { name: key, mode: this.scopeModeMap[key] };
+      }.bind(this));
+    }
+  });
+
+  Object.defineProperty(RemoteStorage.Access.prototype, 'scopeParameter', {
+    get: function() {
+      return this.scopes.map(function(scope) {
+        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
+      }.bind(this)).join(' ');
+    }
+  });
+
+  // documented in src/remotestorage.js
   Object.defineProperty(RemoteStorage.prototype, 'access', {
     get: function() {
       var access = new RemoteStorage.Access();
@@ -109,7 +142,9 @@
     }
   }
 
+  // documented in src/remotestorage.js
   RemoteStorage.prototype.claimAccess = function(scopes) {
+    console.log("DEPRECATION WARNING: remoteStorage.claimAccess may mess with your caching control - if you use cache control directives, then see https://github.com/remotestorage/remotestorage.js/issues/380 and use remoteStorage.access.claim instead.");
     if(typeof(scopes) === 'object') {
       for(var key in scopes) {
         this.access.claim(key, scopes[key]);
@@ -122,10 +157,5 @@
   };
 
   RemoteStorage.Access._rs_init = function() {};
-  RemoteStorage.Access._rs_cleanup = function() {
-    if(haveLocalStorage) {
-      delete localStorage[SETTINGS_KEY];
-    }
-  };
 
 })(this);

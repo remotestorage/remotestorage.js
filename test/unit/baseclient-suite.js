@@ -13,7 +13,17 @@ define(['requirejs'], function(requirejs, undefined) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
-        onChange: function() {}
+        onChange: function() {},
+        onConflict: function() {},
+        caching: {
+          enabled: {},
+          enable: function(path) {
+            this.enabled[path] = true;
+          },
+          disable: function(path) {
+            delete this.enabled[path];
+          }
+        }
       };
       require('./src/eventhandling');
       if(global.rs_eventhandling) {
@@ -21,6 +31,7 @@ define(['requirejs'], function(requirejs, undefined) {
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+      require('./lib/Math.uuid');
       require('./src/baseclient');
       test.done();
     },
@@ -242,7 +253,47 @@ define(['requirejs'], function(requirejs, undefined) {
           }
           env.client.getAll();
         }
+      },
+
+      {
+        desc: "#scope returns a new BaseClient, scoped to the given sub-path",
+        run: function(env, test) {
+          var scope = env.client.scope('bar/');
+          test.assertTypeAnd(scope, 'object');
+          test.assertAnd(scope.base, '/foo/bar/');
+          test.done();
+        }
+      },
+
+      {
+        desc: "#uuid returns a different string each time",
+        run: function(env, test) {
+          var n = 10000;
+          var uuids = {};
+          for(var i=0;i<n;i++) {
+            uuids[env.client.uuid()] = true;
+          }
+          test.assert(Object.keys(uuids).length, n);
+        }
+      },
+
+      {
+        desc: "#cache enables caching for a given path",
+        run: function(env, test) {
+          env.client.cache('bar/');
+          test.assertType(env.storage.caching.enabled['/foo/bar/'], 'boolean');
+        }
+      },
+
+      {
+        desc: "#cache with 'false' flag disables caching for a given path",
+        run: function(env, test) {
+          env.client.cache('bar/');
+          env.client.cache('bar/', false);
+          test.assertType(env.storage.caching.enabled['/foo/bar/'], 'undefined');
+        }
       }
+
 
     ]
   });

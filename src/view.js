@@ -229,7 +229,7 @@
           this.show_bubble();
           setTimeout(function(){
             cube.src = RemoteStorage.Assets.remoteStorageIcon;
-          },3512)
+          },5000)//show the red error cube for 5 seconds, then show the normal orange one again
         } else {
           this.hide_bubble();
         }

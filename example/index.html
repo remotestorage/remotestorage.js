@@ -89,7 +89,6 @@
       <li>
         <form id="add-caching-form">
           <input type="text" placeholder="Path..." name="path">
-          <label>Include Data: <input name="data" type="checkbox"></label>
           <input type="submit" value="Add">
         </form>
       </li>
@@ -185,7 +184,7 @@
       };
       document.getElementById('caching').onclick = function(event) {
         if(event.target.tagName === 'SPAN' && event.target.classList.contains('delete')) {
-          remoteStorage.caching.remove(event.target.parentElement.getAttribute('data-path'));
+          remoteStorage.caching.disable(event.target.parentElement.getAttribute('data-path'));
           main();
         }
       };

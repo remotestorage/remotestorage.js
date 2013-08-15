@@ -52,6 +52,10 @@
       var state = localStorage[LS_STATE_KEY];
       if(state && VALID_ENTRY_STATES[state]) {
         this._rememberedState = state;
+
+        if(state == 'connected' && ! remoteStorage.connected) {
+          this._rememberedState = 'initial';
+        }
       }
     }
   };

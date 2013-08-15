@@ -1,4 +1,4 @@
-(function() {
+(function(global) {
 
   var SyncedGetPutDelete = {
     get: function(path) {
@@ -40,7 +40,7 @@
   /**
    * Class: RemoteStorage
    *
-   * Constructor for global <remoteStorage> object.
+   * Constructor for global remoteStorage object.
    *
    * This class primarily contains feature detection code and a global convenience API.
    *
@@ -61,21 +61,25 @@
       delete: this._pendingGPD('delete')
     });
     this._cleanups = [];
-    this._pathHandlers = {};
-
-    this.__defineGetter__('connected', function() {
-      return this.remote.connected;
-    });
+    this._pathHandlers = { change: {}, conflict: {} };
 
     var origOn = this.on;
     this.on = function(eventName, handler) {
-      if(eventName == 'ready' && this.remote.connected) {
+      if(eventName == 'ready' && this.remote.connected && this._allLoaded) {
+        setTimeout(handler, 0);
+      } else if(eventName == 'features-loaded' && this._allLoaded) {
         setTimeout(handler, 0);
       }
       return origOn.call(this, eventName, handler);
     }
 
     this._init();
+
+    this.on('ready', function() {
+      if(this.local) {
+        setTimeout(this.local.fireInitial.bind(this.local), 0);
+      }
+    }.bind(this));
   };
 
   RemoteStorage.DiscoveryError = function(message) {
@@ -87,6 +91,11 @@
   RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
   RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
+  /**
+   * Method: RemoteStorage.log
+   *
+   * Logging using console.log, when logging is enabled.
+   */
   RemoteStorage.log = function() {
     if(RemoteStorage._log) {
       console.log.apply(console, arguments);
@@ -178,25 +187,58 @@
      * as <RemoteStorage.IndexedDB>) and the affected path is equal to
      * or below the given 'path', the given handler is called.
      *
+     * You shouldn't need to use this method directly, but instead use
+     * the "change" events provided by <RemoteStorage.BaseClient>.
+     *
      * Parameters:
      *   path    - Absolute path to attach handler to.
      *   handler - Handler function.
      */
     onChange: function(path, handler) {
-      if(! this._pathHandlers[path]) {
-        this._pathHandlers[path] = [];
+      if(! this._pathHandlers.change[path]) {
+        this._pathHandlers.change[path] = [];
       }
-      this._pathHandlers[path].push(handler);
+      this._pathHandlers.change[path].push(handler);
     },
 
+    onConflict: function(path, handler) {
+      if(! this._conflictBound) {
+        this.on('features-loaded', function() {
+          if(this.local) {
+            this.local.on('conflict', this._dispatchEvent.bind(this, 'conflict'));
+          }
+        }.bind(this));
+        this._conflictBound = true;
+      }
+      if(! this._pathHandlers.conflict[path]) {
+        this._pathHandlers.conflict[path] = [];
+      }
+      this._pathHandlers.conflict[path].push(handler);
+    },
+
+    /**
+     * Method: enableLog
+     *
+     * enable logging
+     */
     enableLog: function() {
       RemoteStorage._log = true;
     },
 
+    /**
+     * Method: disableLog
+     *
+     * disable logging
+     */
     disableLog: function() {
       RemoteStorage._log = false;
     },
 
+    /**
+     * Method: log
+     *
+     * The same as <RemoteStorage.log>.
+     */
     log: function() {
       RemoteStorage.log.apply(RemoteStorage, arguments);
     },
@@ -228,6 +270,14 @@
               this._emit('error', e);
             };
           }.bind(this));
+          if(this.remote.connected) {
+            try {
+              this._emit('ready');
+            } catch(e) {
+              console.error("'ready' failed: ", e, e.stack);
+              this._emit('error', e);
+            };
+          }
         }
 
         var fl = features.length;
@@ -239,6 +289,7 @@
         }
 
         try {
+          this._allLoaded = true;
           this._emit('features-loaded');
         } catch(exc) {
           console.error("remoteStorage#ready block failed: ");
@@ -359,13 +410,13 @@
      **/
 
     _bindChange: function(object) {
-      object.on('change', this._dispatchChange.bind(this));
+      object.on('change', this._dispatchEvent.bind(this, 'change'));
     },
 
-    _dispatchChange: function(event) {
-      for(var path in this._pathHandlers) {
+    _dispatchEvent: function(eventName, event) {
+      for(var path in this._pathHandlers[eventName]) {
         var pl = path.length;
-        this._pathHandlers[path].forEach(function(handler) {
+        this._pathHandlers[eventName][path].forEach(function(handler) {
           if(event.path.substr(0, pl) == path) {
             var ev = {};
             for(var key in event) { ev[key] = event[key]; }
@@ -382,6 +433,63 @@
     }
   };
 
-  window.RemoteStorage = RemoteStorage;
+  /**
+   * Method: claimAccess
+   *
+   * High-level method to claim access on one or multiple scopes and enable
+   * caching for them. WARNING: when using Caching control, use remoteStorage.access.claim instead,
+   * see https://github.com/remotestorage/remotestorage.js/issues/380
+   *
+   * Examples:
+   *   (start code)
+   *     remoteStorage.claimAccess('foo', 'rw');
+   *     // is equivalent to:
+   *     remoteStorage.claimAccess({ foo: 'rw' });
+   *
+   *     // is equivalent to:
+   *     remoteStorage.access.claim('foo', 'rw');
+   *     remoteStorage.caching.enable('/foo/');
+   *     remoteStorage.caching.enable('/public/foo/');
+   *   (end code)
+   */
 
-})();
+  /**
+   * Property: connected
+   *
+   * Boolean property indicating if remoteStorage is currently connected.
+   */
+  Object.defineProperty(RemoteStorage.prototype, 'connected', {
+    get: function() {
+      return this.remote.connected;
+    }
+  });
+
+  /**
+   * Property: access
+   *
+   * Tracking claimed access scopes. A <RemoteStorage.Access> instance.
+   *
+   *
+   * Property: caching
+   *
+   * Caching settings. A <RemoteStorage.Caching> instance.
+   *
+   * (only available when caching is built in)
+   *
+   *
+   * Property: remote
+   *
+   * Access to the remote backend used. Usually a <RemoteStorage.WireClient>.
+   *
+   *
+   * Property: local
+   *
+   * Access to the local caching backend used.
+   * Only available when caching is built in.
+   * Usually either a <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage>
+   * instance.
+   */
+
+  global.RemoteStorage = RemoteStorage;
+
+})(this);

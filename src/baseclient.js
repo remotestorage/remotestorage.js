@@ -55,6 +55,7 @@
     RS.eventHandling(this, 'change', 'conflict');
     this.on = this.on.bind(this);
     storage.onChange(this.base, this._fireChange.bind(this));
+    storage.onConflict(this.base, this._fireConflict.bind(this));
   };
 
   RS.BaseClient.prototype = {
@@ -223,7 +224,7 @@
      * Parameters:
      *   mimeType - MIME media type of the data being stored
      *   path     - path relative to the module root. MAY NOT end in a forward slash.
-     *   data     - string or ArrayBuffer of raw data to store
+     *   data     - string, ArrayBuffer or ArrayBufferView of raw data to store
      *
      * The given mimeType will later be returned, when retrieving the data
      * using <getFile>.
@@ -330,14 +331,14 @@
      *
      * How to define types?:
      *
-     *   See <declareType> or the calendar module (src/modules/calendar.js) for examples.
+     *   See <declareType> for examples.
      */
     storeObject: function(typeAlias, path, object) {
       this._attachType(object, typeAlias);
       try {
         var validationResult = this.validate(object);
         if(! validationResult.valid) {
-          return promising().reject(validationResult);
+          return promising(function(p) { p.reject(validationResult); });
         }
       } catch(exc) {
         if(exc instanceof RS.BaseClient.Types.SchemaNotFound) {
@@ -382,6 +383,14 @@
 
     _fireChange: function(event) {
       this._emit('change', event);
+    },
+
+    _fireConflict: function(event) {
+      if(this._handlers.conflict.length > 0) {
+        this._emit('conflict', event);
+      } else {
+        event.resolve('remote');
+      }
     },
 
     getItemURL: function(path) {

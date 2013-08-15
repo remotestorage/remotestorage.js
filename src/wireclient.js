@@ -48,6 +48,24 @@
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
+  var isArrayBufferView;
+  if(typeof(ArrayBufferView) === 'function') {
+    isArrayBufferView = function(object) { return object && (object instanceof ArrayBufferView); };
+  } else {
+    var arrayBufferViews = [
+      Int8Array, Uint8Array, Int16Array, Uint16Array,
+      Int32Array, Uint32Array, Float32Array, Float64Array
+    ];
+    isArrayBufferView = function(object) {
+      for(var i=0;i<8;i++) {
+        if(object instanceof arrayBufferViews[i]) {
+          return true;
+        }
+      }
+      return false;
+    };
+  }
+
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
     if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
       throw "Don't " + method + " on directories!";
@@ -72,18 +90,35 @@
     xhr.onload = function() {
       if(timedOut) return;
       clearTimeout(timer);
+      if(xhr.status == 404) return promise.fulfill(xhr.status);
       var mimeType = xhr.getResponseHeader('Content-Type');
-      var body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
+      var body;
       var revision = getEtag ? xhr.getResponseHeader('ETag') : (xhr.status == 200 ? fakeRevision : undefined);
-      promise.fulfill(xhr.status, body, mimeType, revision);
+      if((! mimeType) || mimeType.match(/charset=binary/)) {
+        var blob = new Blob([xhr.response], {type: mimeType});
+        var reader = new FileReader();
+        reader.addEventListener("loadend", function() {
+          // reader.result contains the contents of blob as a typed array
+          promise.fulfill(xhr.status, reader.result, mimeType, revision);
+        });
+        reader.readAsArrayBuffer(blob);
+      } else {
+        body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
+        promise.fulfill(xhr.status, body, mimeType, revision);
+      }
     };
     xhr.onerror = function(error) {
       if(timedOut) return;
       clearTimeout(timer);
       promise.reject(error);
     };
-    if(typeof(body) === 'object' && !(body instanceof ArrayBuffer)) {
-      body = JSON.stringify(body);
+    if(typeof(body) === 'object') {
+      if(isArrayBufferView(body)) { /* alright. */ }
+      else if(body instanceof ArrayBuffer) {
+        body = new Uint8Array(body);
+      } else {
+        body = JSON.stringify(body);
+      }
     }
     xhr.send(body);
     return promise;
@@ -98,7 +133,7 @@
     this.connected = false;
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
-      if(error instanceof RemoteStorage.Unauthorized){
+      if(error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this))
@@ -120,6 +155,43 @@
   RS.WireClient.REQUEST_TIMEOUT = 30000;
 
   RS.WireClient.prototype = {
+
+    /**
+     * Property: token
+     *
+     * Holds the bearer token of this WireClient, as obtained in the OAuth dance
+     *
+     * Example:
+     *   (start code)
+     *
+     *   remoteStorage.remote.token
+     *   // -> 'DEADBEEF01=='
+     */
+
+    /**
+     * Property: href
+     *
+     * Holds the server's base URL, as obtained in the Webfinger discovery
+     *
+     * Example:
+     *   (start code)
+     *
+     *   remoteStorage.remote.href
+     *   // -> 'https://storage.example.com/users/jblogg/'
+     */
+
+    /**
+     * Property: storageApi
+     *
+     * Holds the spec version the server claims to be compatible with
+     *
+     * Example:
+     *   (start code)
+     *
+     *   remoteStorage.remote.storageApi
+     *   // -> 'draft-dejong-remotestorage-01'
+     */
+
 
     configure: function(userAddress, href, storageApi, token) {
       if(typeof(userAddress) !== 'undefined') this.userAddress = userAddress;
@@ -157,7 +229,12 @@
       } else if(options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
         if(oldRev === options.ifNoneMatch) {
-          return promising().fulfill(412);
+//since sync descends for allKeys(local, remote), this causes
+// https://github.com/remotestorage/remotestorage.js/issues/399
+//commenting this out so that it gets the actual 404 from the server.
+//this only affects legacy servers (this.supportsRevs==false):
+//
+//           return promising().fulfill(412);
         }
       }
       var promise = request('GET', this.href + cleanPath(path), this.token, headers,
@@ -185,7 +262,7 @@
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       if(! contentType.match(/charset=/)) {
-        contentType += '; charset=' + (body instanceof ArrayBuffer ? 'binary' : 'utf-8');
+        contentType += '; charset=' + ((body instanceof ArrayBuffer || isArrayBufferView(body)) ? 'binary' : 'utf-8');
       }
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
@@ -196,7 +273,7 @@
                      headers, body, this.supportsRevs);
     },
 
-    'delete': function(path, callback, options) {
+    'delete': function(path, options) {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       return request('DELETE', this.href + cleanPath(path), this.token,
