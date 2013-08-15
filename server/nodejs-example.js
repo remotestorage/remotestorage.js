@@ -25,7 +25,7 @@ var config = {};
 exports.server = (function() {
   var url=require('url'),
     crypto=require('crypto'),
-    tokens, lastModified, contentType, content;
+    tokens, version, contentType, content;
 
   var responseDelay = null;
   var capturedRequests = [];
@@ -43,7 +43,7 @@ exports.server = (function() {
   }
 
   function resetState() {
-    tokens = {}, lastModified = {}, contentType = {}, content = {};
+    tokens = {}, version = {}, contentType = {}, content = {};
     responseDelay = null;
     clearCaptured();
     doCapture = false;
@@ -58,7 +58,7 @@ exports.server = (function() {
   function getState() {
     return {
       tokens: tokens,
-      lastModified: lastModified,
+      version: version,
       contentType: contentType,
       content: content
     };
@@ -88,7 +88,7 @@ exports.server = (function() {
       fs.mkdirSync("server-state");
     }
     saveState('tokens', tokens);
-    saveState('lastModified', lastModified);
+    saveState('version', version);
     saveState('contentType', contentType);
     saveState('content', content);
   }
@@ -98,11 +98,11 @@ exports.server = (function() {
       return;
     }
     tokens = loadState('tokens');
-    lastModified = loadState('lastModified');
+    version = loadState('version');
     contentType = loadState('contentType');
     content = loadState('content');
 
-    log("DATA LOADED", tokens, lastModified, contentType, content);
+    log("DATA LOADED", tokens, version, contentType, content);
   }
 
 
@@ -167,7 +167,10 @@ exports.server = (function() {
       return (pathParts[0]=='me' && pathParts[1]=='public' && path.substr(-1) != '/');
     }
   }
-  function mayWrite(authorizationHeader, path) {
+  function mayWrite(authorizationHeader, path) { 
+    if(path.substr(-1)=='/') {
+      return false;
+    }
     if(authorizationHeader) {
       var scopes = tokens[authorizationHeader.substring('Bearer '.length)];
       if(scopes) {
@@ -181,13 +184,14 @@ exports.server = (function() {
     }
   }
   function writeHead(res, status, origin, timestamp, contentType) {
+    console.log('writeHead', status, origin, timestamp, contentType);
     var headers = {
       'Access-Control-Allow-Origin': (origin?origin:'*'),
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, Origin',
       'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
     };
-    if(timestamp) {
-      headers['last-modified']= new Date(timestamp).toString();
+    if(typeof(timestamp) != 'undefined') {
+      headers['etag']= timestamp.toString();
     }
     if(contentType) {
       headers['content-type']= contentType;
@@ -220,16 +224,15 @@ exports.server = (function() {
   function give404(res, origin) {
     log('404');
     log(content);
-    writeHead(res, 404, origin, 'now');
+    writeHead(res, 404, origin);
     res.end();
   }
-  function computerSaysNo(res, origin) {
-    log('COMPUTER_SAYS_NO');
+  function computerSaysNo(res, origin, status, timestamp) {
+    log('COMPUTER_SAYS_NO - '+status);
     log(tokens);
-    writeHead(res, 401, origin, 'now');
+    writeHead(res, status, origin, timestamp);
     res.end();
   }
-
   function toHtml(str) {
     return str
       .replace(/&/g, '&amp;')
@@ -243,23 +246,16 @@ exports.server = (function() {
     });
     res.write('<!DOCTYPE html lang="en"><head><title>'+config.host+'</title><meta charset="utf-8"></head><body><ul>');
     var scopes = {
-      'http://todomvc.michiel.5apps.com/': ['tasks:rw'],
-      'http://litewrite.github.com/litewrite/': ['documents:rw'],
-      'http://todo-mvc.michiel.5apps.com/labs/architecture-examples/remotestorage/': ['tasks:rw'],
-      'http://unhosted-time-tracker.michiel.5apps.com/': ['tasks:rw'],
-      'http://music.michiel.5apps.com/': ['music:rw'],
-      'http://editor.michiel.5apps.com/': ['code:rw'],
-      'http://remotestorage-browser.nilclass.5apps.com': [':rw'],
-      'http://vidmarks.silverbucket.5apps.com': ['videos:rw'],
-      'http://grouptabs.xmartin.5apps.com': ['grouptabs:rw']
+      'https://ghost-michiel.5apps.com/': ['pictures:rw'],
+      'https://drinks-unhosted.5apps.com/': ['myfavoritedrinks:rw'],
+      'https://todomvc.michiel.5apps.com/labs/architecture-examples/remotestorage/': ['tasks:rw'],
     };
     var outstanding = 0;
     for(var i in scopes) {
       outstanding++;
       (function(i) {
         createToken(config.defaultUserName, scopes[i], function(token) {
-          res.write('<li><a href="'+i+'#storage_root=http://'+config.host+'/storage/'+config.defaultUserName
-                    //+'&authorize_endpoint=http://'+config.host+'/auth/'+config.defaultUserName+'">'+i+'</a></li>');
+          res.write('<li><a href="'+i+'#remotestorage=me@local.dev'
                     +'&access_token='+token+'">'+i+'</a></li>');
           outstanding--;
           if(outstanding==0) {
@@ -309,9 +305,29 @@ exports.server = (function() {
       });
     //}
   }
-
+  function condMet(cond, path) {
+    if(cond.ifNoneMatch=='*') {//if-none-match is either '*'...
+      if(content[path]) {
+        return false;
+      }
+    } else if(cond.ifNoneMatch && version[path]) {//or a comma-separated list of etags
+      if(cond.ifNoneMatch.split(',').indexOf(version[path])!=-1) {
+        return false;
+      }
+    }
+    if(cond.ifMatch) {//if-match is always exactly 1 etag
+      if(version[path]!=cond.ifMatch) {
+        return false;
+      }
+    }
+    return true;
+  }
   function storage(req, urlObj, res) {
     var path=urlObj.pathname.substring('/storage/'.length);
+    var cond = {
+      ifNoneMatch: req.headers['if-none-match'],
+      ifMatch: req.headers['if-match']
+    };
     var capt = {
       method: req.method,
       path: path
@@ -326,26 +342,32 @@ exports.server = (function() {
       writeJson(res, null, req.headers.origin);
     } else if(req.method=='GET') {
       log('GET');
-      if(mayRead(req.headers.authorization, path)) {
+      if(!mayRead(req.headers.authorization, path)) {
+        computerSaysNo(res, req.headers.origin, 401);
+      } else if(!condMet(cond, path)) {
+        computerSaysNo(res, req.headers.origin, 304, version[path]);
+      } else {
         if(content[path]) {
           if(path.substr(-1)=='/') {
-            writeJson(res, content[path], req.headers.origin, 0);
+            writeJson(res, content[path], req.headers.origin, 0, cond);
           } else {
-            writeRaw(res, contentType[path], content[path], req.headers.origin, lastModified[path]);
+            writeRaw(res, contentType[path], content[path], req.headers.origin, version[path], cond);
           }
         } else {
           if(path.substr(-1)=='/') {
-            writeJson(res, {}, req.headers.origin, 0);
+            writeJson(res, {}, req.headers.origin, 0, cond);
           } else {
             give404(res, req.headers.origin);
           }
         }
-      } else {
-        computerSaysNo(res, req.headers.origin);
       }
     } else if(req.method=='PUT') {
       log('PUT');
-      if(mayWrite(req.headers.authorization, path) && path.substr(-1)!='/') {
+      if(!mayWrite(req.headers.authorization, path)) {
+        computerSaysNo(res, req.headers.origin, 401);
+      } else if(!condMet(cond, path)) {
+        computerSaysNo(res, req.headers.origin, 412, version[path]);
+      } else {
         var dataStr = '';
         req.on('data', function(chunk) {
           dataStr+=chunk;
@@ -356,7 +378,7 @@ exports.server = (function() {
           content[path]=dataStr;
           contentType[path]=req.headers['content-type'];
           log('stored '+path, content[path], contentType[path]);
-          lastModified[path]=timestamp;
+          version[path]=timestamp;
           saveData();
           var pathParts=path.split('/');
           var timestamp=new Date().getTime();
@@ -377,19 +399,21 @@ exports.server = (function() {
           }
           // log('content:', content);
           // log('contentType:', contentType);
-          // log('lastModified:', lastModified);
+          // log('version:', version);
           writeJson(res, null, req.headers.origin, timestamp);
         });
-      } else {
-        computerSaysNo(res, req.headers.origin);
       }
     } else if(req.method=='DELETE') {
       log('DELETE');
-      if(mayWrite(req.headers.authorization, path)) {
+      if(!mayWrite(req.headers.authorization, path)) {
+        computerSaysNo(res, req.headers.origin, 401);
+      } else if(!condMet(cond, path)) {
+        computerSaysNo(res, req.headers.origin, 412, version[timestamp]);
+      } else {
         var timestamp = new Date().getTime();
         delete content[path];
         delete contentType[path];
-        lastModified[path]=timestamp;
+        version[path]=timestamp;
         saveData();
         var pathParts=path.split('/');
         var thisPart = pathParts.pop();
@@ -399,12 +423,10 @@ exports.server = (function() {
         }
         log(content);
         writeJson(res, null, req.headers.origin, timestamp);
-      } else {
-        computerSaysNo(res, req.headers.origin);
       }
     } else {
       log('ILLEGAL '+req.method);
-      computerSaysNo(res, req.headers.origin);
+      computerSaysNo(res, req.headers.origin, 405);
     }
   }
 
@@ -459,7 +481,10 @@ exports.server = (function() {
 if((!amd) && (require.main==module)) {//if this file is directly called from the CLI
   config = require('./config').config;
   dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
-  require('http').createServer(exports.server.serve).listen(config.port);
+  require('https').createServer({
+    key: fs.readFileSync(config.ssl.key),
+    cert: fs.readFileSync(config.ssl.cert),
+  }, exports.server.serve).listen(config.port);
   console.log("Example server started on 0.0.0.0:" + config.port);
 }
 

@@ -56,15 +56,41 @@
     for(var bk in b) keyObject[bk] = true;
     return Object.keys(keyObject);
   }
-
+  function promiseDeleteLocal(local, path) {
+    var promise = promising();
+    deleteLocal(local, path, promise);
+    return promise;
+  }
   function deleteLocal(local, path, promise) {
     if(isDir(path)) {
-      promise.fulfill();
+      local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
+        var keys = [], failed = false;
+        for(item in localBody) {
+          keys.push(item);
+        }
+        //console.log('deleting keys', keys, 'from', path, localBody);
+        var n = keys.length, i = 0;
+        if(n == 0) promise.fulfill();
+        function oneDone() {
+          i++;
+          if(i == n && !failed) promise.fulfill();
+        }
+        function oneFailed(error) {
+          if(!failed) {
+            failed = true;
+            promise.reject(error);
+          }
+        }
+        keys.forEach(function(key) {
+          promiseDeleteLocal(local, path + key).then(oneDone, oneFailed);
+        });
+      });
     } else {
-      local.delete(path, true).then(promise.fulfill);
+      //console.log('deleting local item', path);
+      local.delete(path, true).then(promise.fulfill, promise.reject);
     }
   }
-
+ 
   function synchronize(remote, local, path, options) {
     var promise = promising();
     local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
@@ -156,8 +182,8 @@
                 return 200; // fake 200 so the change is cleared.
               }
             }).then(function(status) {
-                if(status == 412) {
-                fireConflict(local, path, {
+              if(status == 412) {
+                fireConflict(local, change.path, {
                   localAction: 'PUT',
                   remoteAction: 'PUT'
                 });
@@ -172,7 +198,7 @@
               ifMatch: change.force ? undefined : change.revision
             }).then(function(status) {
               if(status == 412) {
-                fireConflict(local, path, {
+                fireConflict(local, change.path, {
                   remoteAction: 'PUT',
                   localAction: 'DELETE'
                 });
@@ -237,25 +263,30 @@
       rs._emit('sync-busy');
       var path;
       while((path = roots.shift())) {
-        RemoteStorage.Sync.sync(rs.remote, rs.local, path, rs.caching.get(path)).
-          then(function() {
-            if(aborted) return;
-            i++;
-            if(n == i) {
+        (function (path) {
+          //console.log('syncing '+path);
+          RemoteStorage.Sync.sync(rs.remote, rs.local, path, rs.caching.get(path)).
+            then(function() {
+              //console.log('syncing '+path+' success');
+              if(aborted) return;
+              i++;
+              if(n == i) {
+                rs._emit('sync-done');
+                promise.fulfill();
+              }
+            }, function(error) {
+              console.error('syncing', path, 'failed:', error);
+              if(aborted) return;
+              aborted = true;
               rs._emit('sync-done');
-              promise.fulfill();
-            }
-          }, function(error) {
-            console.error('syncing', path, 'failed:', error);
-            aborted = true;
-            rs._emit('sync-done');
-            if(error instanceof RemoteStorage.Unauthorized) {
-              rs._emit('error', error);
-            } else {
-              rs._emit('error', new SyncError(error));
-            }
-            promise.reject(error);
-          });
+              if(error instanceof RemoteStorage.Unauthorized) {
+                rs._emit('error', error);
+              } else {
+                rs._emit('error', new SyncError(error));
+              }
+              promise.reject(error);
+            });
+        })(path);
       }
     });
   };
@@ -269,6 +300,7 @@
     }.bind(this),
     function() {
       console.log('sync error, retrying');
+      this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
     }.bind(this));
   };

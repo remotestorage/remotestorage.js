@@ -1,4 +1,5 @@
 /** remotestorage.js 0.8.0-head remotestorage.io, MIT-licensed **/
+define([], function() {
 
 /** FILE: lib/promising.js **/
 (function(global) {
@@ -3497,41 +3498,15 @@ Math.uuid = function (len, radix) {
     for(var bk in b) keyObject[bk] = true;
     return Object.keys(keyObject);
   }
-  function promiseDeleteLocal(local, path) {
-    var promise = promising();
-    deleteLocal(local, path, promise);
-    return promise;
-  }
+
   function deleteLocal(local, path, promise) {
     if(isDir(path)) {
-      local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
-        var keys = [], failed = false;
-        for(item in localBody) {
-          keys.push(item);
-        }
-        //console.log('deleting keys', keys, 'from', path, localBody);
-        var n = keys.length, i = 0;
-        if(n == 0) promise.fulfill();
-        function oneDone() {
-          i++;
-          if(i == n && !failed) promise.fulfill();
-        }
-        function oneFailed(error) {
-          if(!failed) {
-            failed = true;
-            promise.reject(error);
-          }
-        }
-        keys.forEach(function(key) {
-          promiseDeleteLocal(local, path + key).then(oneDone, oneFailed);
-        });
-      });
+      promise.fulfill();
     } else {
-      //console.log('deleting local item', path);
-      local.delete(path, true).then(promise.fulfill, promise.reject);
+      local.delete(path, true).then(promise.fulfill);
     }
   }
- 
+
   function synchronize(remote, local, path, options) {
     var promise = promising();
     local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
@@ -3852,9 +3827,6 @@ Math.uuid = function (len, radix) {
       var dirname = parts[1], basename = parts[2];
       nodes.get(dirname).onsuccess = function(evt) {
         var node = evt.target.result;
-        if(!node) {//attempt to remove something from a non-existing directory
-          return;
-        }
         delete node[key][basename];
         if(keepDirNode(node)) {
           nodes.put(node);
@@ -4774,4 +4746,5 @@ Math.uuid = function (len, radix) {
 
 })();
 
-remoteStorage = new RemoteStorage();
+return new RemoteStorage();
+});

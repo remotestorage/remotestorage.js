@@ -83,6 +83,9 @@
       var dirname = parts[1], basename = parts[2];
       nodes.get(dirname).onsuccess = function(evt) {
         var node = evt.target.result;
+        if(!node) {//attempt to remove something from a non-existing directory
+          return;
+        }
         delete node[key][basename];
         if(keepDirNode(node)) {
           nodes.put(node);
@@ -195,7 +198,7 @@
           newValue: body
         });
         if(! incoming) {
-          this._recordChange(path, { action: 'PUT' });
+          this._recordChange(path, { action: 'PUT', revision: oldNode ? oldNode.revision : undefined });
         }
         if(typeof(done) === 'undefined') {
           done = true;
@@ -228,7 +231,7 @@
           });
         }
         if(! incoming) {
-          this._recordChange(path, { action: 'DELETE' });
+          this._recordChange(path, { action: 'DELETE', revision: oldNode ? oldNode.revision : undefined });
         }
         promise.fulfill(200);
       }.bind(this);
@@ -383,7 +386,11 @@
       this._recordChange(path, { conflict: attributes }).
         then(function() {
           // fire conflict once conflict has been recorded.
-          this._emit('conflict', event);
+          if(this._handlers.conflict.length > 0) {
+            this._emit('conflict', event);
+          } else {
+            setTimeout(function() { event.resolve('remote'); }, 0);
+          }
         }.bind(this));
       event.resolve = function(resolution) {
         if(resolution == 'remote' || resolution == 'local') {
@@ -414,10 +421,13 @@
       callback(dbOpen.error);
     };
     dbOpen.onupgradeneeded = function(event) {
+      RemoteStorage.log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
       var db = dbOpen.result;
       if(event.oldVersion != 1) {
+        RemoteStorage.log("[IndexedDB] Creating object store: nodes");
         db.createObjectStore('nodes', { keyPath: 'path' });
       }
+      RemoteStorage.log("[IndexedDB] Creating object store: changes");
       db.createObjectStore('changes', { keyPath: 'path' });
     }
     dbOpen.onsuccess = function() {
@@ -451,6 +461,7 @@
         }
       } else {
         DEFAULT_DB = db;
+        db.onerror = function() { remoteStorage._emit('error', err); };
         promise.fulfill();
       }
     });

@@ -48,6 +48,24 @@
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
+  var isArrayBufferView;
+  if(typeof(ArrayBufferView) === 'function') {
+    isArrayBufferView = function(object) { return object && (object instanceof ArrayBufferView); };
+  } else {
+    var arrayBufferViews = [
+      Int8Array, Uint8Array, Int16Array, Uint16Array,
+      Int32Array, Uint32Array, Float32Array, Float64Array
+    ];
+    isArrayBufferView = function(object) {
+      for(var i=0;i<8;i++) {
+        if(object instanceof arrayBufferViews[i]) {
+          return true;
+        }
+      }
+      return false;
+    };
+  }
+
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
     if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
       throw "Don't " + method + " on directories!";
@@ -72,14 +90,20 @@
     xhr.onload = function() {
       if(timedOut) return;
       clearTimeout(timer);
+      if(xhr.status == 404) return promise.fulfill(xhr.status);
       var mimeType = xhr.getResponseHeader('Content-Type');
-      var body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
+      var body;
       var revision = getEtag ? xhr.getResponseHeader('ETag') : (xhr.status == 200 ? fakeRevision : undefined);
-      if(mimeType.match(/charset=binary/)) {
-        var bl = body.length, ab = new ArrayBuffer(bl), abv = new Uint8Array(ab);
-        for(var i=0;i<bl;i++) abv[i] = body.charCodeAt(i);
-        promise.fulfill(xhr.status, ab, mimeType, revision);
+      if((! mimeType) || mimeType.match(/charset=binary/)) {
+        var blob = new Blob([xhr.response], {type: mimeType});
+        var reader = new FileReader();
+        reader.addEventListener("loadend", function() {
+          // reader.result contains the contents of blob as a typed array
+          promise.fulfill(xhr.status, reader.result, mimeType, revision);
+        });
+        reader.readAsArrayBuffer(blob);
       } else {
+        body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
         promise.fulfill(xhr.status, body, mimeType, revision);
       }
     };
@@ -88,8 +112,13 @@
       clearTimeout(timer);
       promise.reject(error);
     };
-    if(typeof(body) === 'object' && !(body instanceof ArrayBuffer)) {
-      body = JSON.stringify(body);
+    if(typeof(body) === 'object') {
+      if(isArrayBufferView(body)) { /* alright. */ }
+      else if(body instanceof ArrayBuffer) {
+        body = new Uint8Array(body);
+      } else {
+        body = JSON.stringify(body);
+      }
     }
     xhr.send(body);
     return promise;
@@ -200,7 +229,12 @@
       } else if(options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
         if(oldRev === options.ifNoneMatch) {
-          return promising().fulfill(412);
+//since sync descends for allKeys(local, remote), this causes
+// https://github.com/remotestorage/remotestorage.js/issues/399
+//commenting this out so that it gets the actual 404 from the server.
+//this only affects legacy servers (this.supportsRevs==false):
+//
+//           return promising().fulfill(412);
         }
       }
       var promise = request('GET', this.href + cleanPath(path), this.token, headers,
@@ -228,7 +262,7 @@
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       if(! contentType.match(/charset=/)) {
-        contentType += '; charset=' + (body instanceof ArrayBuffer ? 'binary' : 'utf-8');
+        contentType += '; charset=' + ((body instanceof ArrayBuffer || isArrayBufferView(body)) ? 'binary' : 'utf-8');
       }
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
@@ -239,7 +273,7 @@
                      headers, body, this.supportsRevs);
     },
 
-    'delete': function(path, callback, options) {
+    'delete': function(path, options) {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
       return request('DELETE', this.href + cleanPath(path), this.token,
