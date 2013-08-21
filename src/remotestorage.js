@@ -37,6 +37,8 @@
     }
   }
 
+  var haveLocalStorage = 'localStorage' in global;
+
   /**
    * Class: RemoteStorage
    *
@@ -62,6 +64,12 @@
     });
     this._cleanups = [];
     this._pathHandlers = { change: {}, conflict: {} };
+    this.apiKeys = {};
+    if(haveLocalStorage) {
+      try {
+        this.apiKeys = JSON.parse(localStorage['remotestorage:api-keys']);
+      } catch(exc) { /* ignored. */ };
+    }
 
     var origOn = this.on;
     this.on = function(eventName, handler) {
@@ -101,6 +109,8 @@
       console.log.apply(console, arguments);
     }
   };
+
+  RemoteStorage._log = true;
 
   RemoteStorage.prototype = {
 
@@ -243,6 +253,17 @@
       RemoteStorage.log.apply(RemoteStorage, arguments);
     },
 
+    setApiKeys: function(type, keys) {
+      if(keys) {
+        this.apiKeys[type] = keys;
+      } else {
+        delete this.apiKeys[type];
+      }
+      if(haveLocalStorage) {
+        localStorage['remotestorage:api-keys'] = JSON.stringify(this.apiKeys);
+      }
+    },
+
     /**
      ** INITIALIZATION
      **/
@@ -312,6 +333,7 @@
       // determine availability
       var features = [
         'WireClient',
+        'GoogleDrive',
         'Access',
         'Caching',
         'Discover',

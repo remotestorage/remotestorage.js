@@ -82,7 +82,14 @@
 
     setView: function(view) {
       this.view = view;
-      this.view.on('connect', this.rs.connect.bind(this.rs));
+      this.view.on('connect', function(options) {
+        if(typeof(options) == 'string') {
+          // options is simply a useraddress
+          this.rs.connect(options);
+        } else if(options.special) {
+          this.rs[options.special].connect(options);
+        }
+      }.bind(this));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
       if(this.rs.sync) {
         this.view.on('sync', this.rs.sync.bind(this.rs));

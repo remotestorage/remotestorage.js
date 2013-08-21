@@ -29,6 +29,14 @@
     if(base[base.length - 1] != '/') {
       throw "Not a directory: " + base;
     }
+
+    if(base == '/') {
+      // allow absolute and relative paths for the root scope.
+      this.makePath = function(path) {
+        return (path[0] == '/' ? '' : '/') + path;
+      }
+    }
+
     /**
      * Property: storage
      *
@@ -115,6 +123,7 @@
      *   (end code)
      */
     getListing: function(path) {
+      console.log('GET LISTING', path);
       if(typeof(path) == 'undefined') {
         path = '';
       } else if(path.length > 0 && path[path.length - 1] != '/') {

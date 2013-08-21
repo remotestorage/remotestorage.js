@@ -15,21 +15,8 @@
     }, {});
   };
 
-  RemoteStorage.Authorize = function(authURL, storageApi, scopes, redirectUri) {
+  RemoteStorage.Authorize = function(authURL, scope, redirectUri, clientId) {
     RemoteStorage.log('Authorize authURL = ',authURL)
-    var scope = [];
-    for(var key in scopes) {
-      var mode = scopes[key];
-      if(key == 'root') {
-        if(! storageApi.match(/^draft-dejong-remotestorage-/)) {
-          key = '';
-        }
-      }
-      scope.push(key + ':' + mode);
-    }
-    scope = scope.join(' ');
-
-    var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
     var url = authURL;
     url += authURL.indexOf('?') > 0 ? '&' : '?';
@@ -41,7 +28,22 @@
   };
 
   RemoteStorage.prototype.authorize = function(authURL) {
-    RemoteStorage.Authorize(authURL, this.remote.storageApi, this.access.scopeModeMap, String(document.location));
+    var scopes = this.access.scopeModeMap;
+    var scope = [];
+    for(var key in scopes) {
+      var mode = scopes[key];
+      if(key == 'root') {
+        if(! this.remote.storageApi.match(/^draft-dejong-remotestorage-/)) {
+          key = '';
+        }
+      }
+      scope.push(key + ':' + mode);
+    }
+    scope = scope.join(' ');
+
+    clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
+
+    RemoteStorage.Authorize(authURL, this.remote.storageApi, scope, String(document.location), clientId);
   };
 
   RemoteStorage.Authorize._rs_init = function(remoteStorage) {
@@ -51,14 +53,14 @@
     }
     remoteStorage.on('features-loaded', function() {
       if(params) {
+        if(params.error) {
+          throw "Authorization server errored: " + params.error;
+        }
         if(params.access_token) {
           remoteStorage.remote.configure(undefined, undefined, undefined, params.access_token);
         }
         if(params.remotestorage) {
           remoteStorage.connect(params.remotestorage);
-        }
-        if(params.error) {
-          throw "Authorization server errored: " + params.error;
         }
       }
     });

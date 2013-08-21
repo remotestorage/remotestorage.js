@@ -141,7 +141,9 @@
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {};
       if(settings) {
-        this.configure(settings.userAddress, settings.href, settings.storageApi, settings.token);
+        setTimeout(function() {
+          this.configure(settings.userAddress, settings.href, settings.storageApi, settings.token);
+        }.bind(this), 0);
       }
     }
 
@@ -216,6 +218,10 @@
           storageApi: this.storageApi
         });
       }
+      console.log('calling ' + RS.WireClient.configureHooks.length + ' hooks');
+      RS.WireClient.configureHooks.forEach(function(hook) {
+        hook.call(this);
+      }.bind(this));
     },
 
     get: function(path, options) {
@@ -283,17 +289,10 @@
 
   };
 
-  RS.WireClient._rs_init = function() {
-    Object.defineProperty(RS.prototype, 'remote', {
-      configurable: true,
-      get: function() {
-        var wireclient = new RS.WireClient(this);
-        Object.defineProperty(this, 'remote', {
-          value: wireclient
-        });
-        return wireclient;
-      }
-    });
+  RS.WireClient.configureHooks = [];
+
+  RS.WireClient._rs_init = function(remoteStorage) {
+    remoteStorage.remote = new RS.WireClient(remoteStorage);
   };
 
   RS.WireClient._rs_supported = function() {
