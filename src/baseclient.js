@@ -123,7 +123,6 @@
      *   (end code)
      */
     getListing: function(path) {
-      console.log('GET LISTING', path);
       if(typeof(path) == 'undefined') {
         path = '';
       } else if(path.length > 0 && path[path.length - 1] != '/') {
