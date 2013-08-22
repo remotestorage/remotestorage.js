@@ -36,7 +36,6 @@
   RS.GoogleDrive.prototype = {
 
     configure: function(_x, _y, _z, token) { // parameter list compatible with WireClient
-      console.log('configure wiht token', token);
       localStorage['remotestorage:googledrive:token'] = token;
       if(token) {
         this.token = token;
@@ -63,10 +62,40 @@
     },
 
     _getFile: function(path, options) {
-      return promising(function(p) {
-        console.log('fake file', path);
-        p.fulfill(200, '', 'text/plain');
+      var promise = promising();
+      this._getFileId(path, function(idError, id) {
+        if(idError) {
+          promise.reject(idError);
+        } else {
+          this._getMeta(id, function(metaError, meta) {
+            if(metaError) {
+              promise.reject(metaError);
+            } else if(meta.downloadUrl) {
+              var options = {};
+              if(meta.mimeType.match(/charset=binary/)) {
+                options.responseType = 'blob';
+              }
+              this._request('GET', meta.downloadUrl, options, function(downloadError, response) {
+                if(downloadError) {
+                  promise.reject(downloadError);
+                } else {
+                  var body = response.response;
+                  if(meta.mimeType.match(/^application\/json/)) {
+                    try {
+                      body = JSON.parse(body);
+                    } catch(e) {}
+                  }
+                  promise.fulfill(200, body, meta.mimeType, meta.etag);
+                }
+              });
+            } else {
+              // empty file
+              promise.fulfill(200, '', meta.mimeType, meta.etag);
+            }
+          });
+        }
       });
+      return promise;
     },
 
     _getDir: function(path, options) {
@@ -133,22 +162,24 @@
     },
 
     _getFileId: function(path, callback) {
+      callback = callback.bind(this);
       if(path == '/') {
         // "root" is a special alias for the fileId of the root directory
-        callback.call(this, null, 'root');
+        callback(null, 'root');
       } else if(path in this._fileIdCache) {
         // id is cached.
-        callback.call(this, null, this._fileIdCache[path]);
+        callback(null, this._fileIdCache[path]);
       } else {
         // id is not cached (or file doesn't exist).
         // load parent directory listing to propagate / update id cache.
         this._getDir(path.replace(/[^\/]+\/?$/, '')).then(function() {
-          callback.call(this, null, this._fileIdCache[path]);
-        }.bind(this), callback.bind(this));
+          callback(null, this._fileIdCache[path]);
+        }.bind(this), callback);
       }
     },
 
     _getMeta: function(id, callback) {
+      callback = callback.bind(this);
       this._request('GET', BASE_URL + '/drive/v2/files/' + id, {}, function(err, response) {
         if(err) {
           callback(err);
@@ -163,11 +194,15 @@
     },
 
     _request: function(method, url, options, callback) {
+      callback = callback.bind(this);
       if(! this.token) {
-        callback.call(this, "Not authorized!");
+        callback("Not authorized!");
       }
       var xhr = new XMLHttpRequest();
       xhr.open(method, url, true);
+      if(options.responseType) {
+        xhr.responseType = options.responseType;
+      }
       xhr.setRequestHeader('Authorization', 'Bearer ' + this.token);
       if(options.headers) {
         for(var key in options.headers) {
@@ -175,10 +210,15 @@
         }
       }
       xhr.onload = function() {
-        callback.call(this, null, xhr);
+        // google tokens expire from time to time...
+        if(xhr.status == 401) {
+          this.connect();
+          return;
+        }
+        callback(null, xhr);
       }.bind(this);
       xhr.onerror = function(error) {
-        callback.call(this, error);
+        callback(error);
       }.bind(this);
       xhr.send(options.body);
     }
