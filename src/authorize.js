@@ -41,9 +41,10 @@
     }
     scope = scope.join(' ');
 
-    clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
+    var redirectUri = String(document.location);
+    var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
-    RemoteStorage.Authorize(authURL, this.remote.storageApi, scope, String(document.location), clientId);
+    RemoteStorage.Authorize(authURL, scope, redirectUri, clientId);
   };
 
   RemoteStorage.Authorize._rs_init = function(remoteStorage) {
