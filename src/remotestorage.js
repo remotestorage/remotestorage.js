@@ -110,8 +110,6 @@
     }
   };
 
-  RemoteStorage._log = true;
-
   RemoteStorage.prototype = {
 
     /**
