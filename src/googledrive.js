@@ -61,6 +61,32 @@
       }
     },
 
+    put: function(path, body, contentType, options) {
+    },
+
+    'delete': function(path, options) {
+      var promise = promising();
+      this._getFileId(path, function(idError, id) {
+        if(idError) {
+          promise.reject(idError);
+        } else if(id) {
+          this._request('DELETE', BASE_URL + '/drive/v2/files/' + id, {}, function(deleteError, response) {
+            if(deleteError) {
+              promise.reject(deleteError);
+            } else if(response.status == 200 || response.status == 204) {
+              promise.fulfill(200);
+            } else {
+              promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
+            }
+          });
+        } else {
+          // file doesn't exist. ignore.
+          promise.fulfill(200);
+        }
+      });
+      return promise;
+    },
+
     _getFile: function(path, options) {
       var promise = promising();
       this._getFileId(path, function(idError, id) {
