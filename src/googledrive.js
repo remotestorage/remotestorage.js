@@ -19,6 +19,46 @@
     return encodeURIComponent(meta.title) + (meta.mimeType == GD_DIR_MIME_TYPE ? '/' : '');
   }
 
+  function metaTitleFromFileName(filename) {
+    if(filename.substr(-1) == '/') {
+      filename = filename.substr(0, filename.length - 1);
+    }
+    return decodeURIComponent(filename);
+  }
+
+  function parentPath(path) {
+    return path.replace(/[^\/]+\/?$/, '');
+  }
+
+  function baseName(path) {
+    var parts = path.split('/');
+    if(path.substr(-1) == '/') {
+      return parts[parts.length-2]+'/';
+    } else {
+      return parts[parts.length-1];
+    }
+  }
+
+  var Cache = function(maxAge) {
+    this.maxAge = maxAge;
+    this._items = {};
+  };
+
+  Cache.prototype = {
+    get: function(key) {
+      var item = this._items[key];
+      var now = new Date().getTime();
+      return (item && item.t >= (now - this.maxAge)) ? item.v : undefined;
+    },
+
+    set: function(key, value) {
+      this._items[key] = {
+        v: value,
+        t: new Date().getTime()
+      };
+    }
+  };
+
   RS.GoogleDrive = function(remoteStorage, clientId, apiKey) {
 
     RS.eventHandling(this, 'connected');
@@ -26,7 +66,7 @@
     this.rs = remoteStorage;
     this.clientId = clientId, this.apiKey = apiKey;
 
-    this._fileIdCache = {};
+    this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
 
     setTimeout(function() {
       this.configure(undefined, undefined, undefined, localStorage['remotestorage:googledrive:token']);
@@ -62,6 +102,28 @@
     },
 
     put: function(path, body, contentType, options) {
+      var promise = promising();
+      function putDone(error, response) {
+        if(error) {
+          promise.reject(error);
+        } else if(response.status >= 200 && response.status < 300) {
+          var meta = JSON.parse(response.responseText);
+          promise.fulfill(200, undefined, meta.mimeType, meta.etag);
+        } else {
+          promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
+        }
+      }
+      this._getFileId(path, function(idError, id) {
+        if(idError) {
+          promise.reject(idError);
+          return;
+        } else if(id) {
+          this._updateFile(id, path, body, contentType, options, putDone);
+        } else {
+          this._createFile(path, body, contentType, options, putDone);
+        }
+      });
+      return promise;
     },
 
     'delete': function(path, options) {
@@ -85,6 +147,39 @@
         }
       });
       return promise;
+    },
+
+    _createFile: function(path, body, contentType, options, callback) {
+      callback = callback.bind(this);
+      this._getParentId(path, function(parentIdError, parentId) {
+        if(parentIdError) {
+          callback(parentIdError);
+          return;
+        }
+        var fileName = baseName(path);
+        var metadata = {
+          title: metaTitleFromFileName(fileName),
+          mimeType: contentType,
+          parents: [{
+            kind: "drive#fileLink",
+            id: parentId
+          }]
+        };
+        this._request('POST', BASE_URL + '/upload/drive/v2/files?uploadType=resumable', {
+          body: JSON.stringify(metadata),
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8'
+          }
+        }, function(metadataError, response) {
+          if(metadataError) {
+            callback(metadataError);
+          } else {
+            this._request('POST', response.getResponseHeader('Location'), {
+              body: contentType.match(/^application\/json/) ? JSON.stringify(body) : body
+            }, callback);
+          }
+        });
+      });
     },
 
     _getFile: function(path, options) {
@@ -167,7 +262,7 @@
                     result[fileName] = meta.etag;
 
                     // propagate id cache
-                    this._fileIdCache[path + fileName] = meta.id;
+                    this._fileIdCache.set(path + fileName, meta.id);
                   }
                   i++;
                   if(i == n) {
@@ -187,19 +282,64 @@
       return promise;
     },
 
+
+    _getParentId: function(path, callback) {
+      callback = callback.bind(this);
+      var dirname = parentPath(path);
+      this._getFileId(dirname, function(idError, parentId) {
+        if(idError) {
+          callback(idError);
+        } else if(parentId) {
+          callback(null, parentId);
+        } else {
+          this._createDir(dirname, callback);
+        }
+      });
+    },
+
+    _createDir: function(path, callback) {
+      callback = callback.bind(this);
+      this._getParentId(path, function(idError, parentId) {
+        if(idError) {
+          callback(idError);
+        } else {
+          this._request('POST', BASE_URL + '/drive/v2/files', {
+            body: JSON.stringify({
+              title: metaTitleFromFileName(baseName(path)),
+              mimeType: GD_DIR_MIME_TYPE,
+              parents: [{
+                id: parentId
+              }]
+            }),
+            headers: {
+              'Content-Type': 'application/json; charset=UTF-8'
+            }
+          }, function(createError, response) {
+            if(createError) {
+              callback(createError);
+            } else {
+              var meta = JSON.parse(response.responseText);
+              callback(null, meta.id);
+            }
+          });
+        }
+      });
+    },
+
     _getFileId: function(path, callback) {
       callback = callback.bind(this);
+      var id;
       if(path == '/') {
         // "root" is a special alias for the fileId of the root directory
         callback(null, 'root');
-      } else if(path in this._fileIdCache) {
+      } else if((id = this._fileIdCache.get(path))) {
         // id is cached.
-        callback(null, this._fileIdCache[path]);
+        callback(null, id);
       } else {
         // id is not cached (or file doesn't exist).
         // load parent directory listing to propagate / update id cache.
-        this._getDir(path.replace(/[^\/]+\/?$/, '')).then(function() {
-          callback(null, this._fileIdCache[path]);
+        this._getDir(parentPath(path)).then(function() {
+          callback(null, this._fileIdCache.get(path));
         }.bind(this), callback);
       }
     },
