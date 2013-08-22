@@ -59,12 +59,12 @@
     }
   };
 
-  RS.GoogleDrive = function(remoteStorage, clientId, apiKey) {
+  RS.GoogleDrive = function(remoteStorage, clientId) {
 
     RS.eventHandling(this, 'connected');
 
     this.rs = remoteStorage;
-    this.clientId = clientId, this.apiKey = apiKey;
+    this.clientId = clientId;
 
     this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
 
@@ -76,20 +76,21 @@
   RS.GoogleDrive.prototype = {
 
     configure: function(_x, _y, _z, token) { // parameter list compatible with WireClient
-      localStorage['remotestorage:googledrive:token'] = token;
       if(token) {
+        localStorage['remotestorage:googledrive:token'] = token;
         this.token = token;
         this.connected = true;
         this._emit('connected');
       } else {
         this.connected = false;
         delete this.token;
-        delete localStorage.googledrive;
+        delete localStorage['remotestorage:googledrive'];
+        delete localStorage['remotestorage:googledrive:token'];
       }
     },
 
     connect: function() {
-      localStorage.googledrive = true;
+      localStorage['remotestorage:googledrive'] = true;
       RS.Authorize(AUTH_URL, AUTH_SCOPE, String(document.location), this.clientId);
     },
 
@@ -393,10 +394,19 @@
   RS.GoogleDrive._rs_init = function(remoteStorage) {
     var config = remoteStorage.apiKeys.googledrive;
     if(config) {
-      remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.client_id, config.api_key);
-      if(localStorage.googledrive) {
+      remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.client_id);
+      if(localStorage['remotestorage:googledrive']) {
+        remoteStorage._origRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.googledrive;
       }
+    }
+  };
+
+  RS.GoogleDrive._rs_cleanup = function(remoteStorage) {
+    delete localStorage['remotestorage:googledrive'];
+    if(remoteStorage._origRemote) {
+      remoteStorage.remote = remoteStorage._origRemote;
+      delete remoteStorage._origRemote;
     }
   };
 
