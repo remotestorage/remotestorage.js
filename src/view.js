@@ -146,8 +146,16 @@
       //googledrive and dropbox icons
       el = gCl(element, 'rs-dropbox');
       el.src = RemoteStorage.Assets.dropbox;
+      if(! remoteStorage.apiKeys.dropbox) {
+        el.style.display = 'none';
+      }
       el = gCl(element, 'rs-googledrive');
       el.src = RemoteStorage.Assets.googledrive;
+      el.classList.add('rs-action');
+      el.addEventListener('click', this.connectGdrive.bind(this));
+      if(! remoteStorage.apiKeys.googledrive) {
+        el.style.display = 'none';
+      }
 
       //the bubble
       this.bubble = gCl(element,'rs-bubble');
@@ -171,6 +179,10 @@
   }
 
   RemoteStorage.Widget.View.prototype = {
+
+    connectGdrive: function() {
+      this._emit('connect', { special: 'googledrive' });
+    },
 
     // Methods:
     //
