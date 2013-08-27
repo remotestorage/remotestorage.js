@@ -150,6 +150,27 @@
       return promise;
     },
 
+    _updateFile: function(id, path, body, contentType, options, callback) {
+      callback = callback.bind(this);
+      var metadata = {
+        mimeType: contentType
+      };
+      this._request('PUT', BASE_URL + '/upload/drive/v2/files/' + id + '?uploadType=resumable', {
+        body: JSON.stringify(metadata),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8'
+        }
+      }, function(metadataError, response) {
+        if(metadataError) {
+          callback(metadataError);
+        } else {
+          this._request('PUT', response.getResponseHeader('Location'), {
+            body: contentType.match(/^application\/json/) ? JSON.stringify(body) : body
+          }, callback);
+        }
+      });
+    },
+
     _createFile: function(path, body, contentType, options, callback) {
       callback = callback.bind(this);
       this._getParentId(path, function(parentIdError, parentId) {
