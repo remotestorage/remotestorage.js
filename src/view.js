@@ -153,7 +153,6 @@
       }
       el = gCl(element, 'rs-googledrive');
       el.src = RemoteStorage.Assets.googledrive;
-      // el.classList.add('rs-action'); I think rs-action class might mess up the view, therefor I cloned it and called that one rs-backend
       el.addEventListener('click', this.connectGdrive.bind(this));
       if(! this.rs.apiKeys.googledrive) {
         el.style.display = 'none';
