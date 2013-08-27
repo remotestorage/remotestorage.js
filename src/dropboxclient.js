@@ -4,9 +4,10 @@
    * Dropbox backend for RemoteStorage.js
    */
   var haveLocalStorage;
-  var dropbox = new Dropbox.Client({key : "e2z66d213q8isms"})
+  
   var SETTINGS_KEY = 'remotestorage:dropboxclient';
   RS.DropboxClient = function(rs) {
+   this.dropbox = new Dropbox.Client({key : rs.apiKeys.dropbox})
     this.connected = dropbox.isAuthenticated();
     RS.eventHandling(this, 'change', 'connected');
     console.log(rs)
@@ -30,7 +31,24 @@
     }
    
   }
+  RS.DropboxClient.prototype = {
+    configure: function(){ console.log(arguments)},
+    get: function(path, options){},
+    put: function(path, body, contentType, options){
+      if(! this.connected) throw new Error("not connected (path: " + path + ")");
+      var promise = promising();
+      dropbox.writeFile(path, body, 
+        function(error, stat) {
+          if(error){
+            promise.reject(error)
+          }else{
+            promise.fulfill(stat);
+          }
 
+            })
+    },
+    'delete': function(path, options){}
+  }
   RS.DropboxClient._rs_init = function(rs) {
     console.log("Dropbox init",rs)
     Object.defineProperty(RS.prototype, 'remote',{value: new RS.DropboxClient(rs)})
