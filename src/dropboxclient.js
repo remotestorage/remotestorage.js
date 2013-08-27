@@ -10,6 +10,7 @@
   var SETTINGS_KEY = 'remotestorage:dropboxclient';
   RS.Dropbox = function(rs) {
     this.connected = false;
+    this.rs = rs;
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
@@ -33,7 +34,7 @@
   }
   RS.Dropbox.prototype = {
     connect: function() {
-      localStorage[RemoteStorage.BACKEND_KEY] = 'dropbox';
+      this.rs.setBackend('dropbox');
       RS.Authorize(AUTH_URL, '', String(document.location), this.clientId);
     },
     configure: function(useradress, href, storageApi, token) { 
@@ -72,7 +73,7 @@
       console.log('dropbox init ',config)
       Object.defineProperty(RS.prototype, 'dropbox',{value: new RS.Dropbox(rs)})
     }
-    if(localStorage[RemoteStorage.BACKEND_KEY] == 'dropbox'){
+    if(rs.backend == 'dropbox'){
       rs._origRemote = rs.remote;
       rs.remote = rs.dropbox;
     }
@@ -83,11 +84,11 @@
     console.log("Dropbox _rs_supported ??")
     return true;
   }
-  RS.Dropbox._rs_cleanup = function() {
+  RS.Dropbox._rs_cleanup = function(rs) {
     console.log('rs_cleanup :P')
     if(haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
-      delete localStorage[RemoteStorage.BACKEND_KEY];
+      rs.setBackend(undefined);
     }
   }
 })(this)

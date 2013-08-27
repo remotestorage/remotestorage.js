@@ -69,6 +69,7 @@
       try {
         this.apiKeys = JSON.parse(localStorage['remotestorage:api-keys']);
       } catch(exc) { /* ignored. */ };
+      this.backend = localStorage['remotestorage:backend'] || 'remotestorage';
     }
 
     var origOn = this.on;
@@ -185,6 +186,17 @@
           oneDone();
         }
       }.bind(this));
+    },
+
+    setBackend: function(what) {
+      this.backend = what;
+      if(haveLocalStorage) {
+        if(what) {
+          localStorage['remotestorage:backend'] = what;
+        } else {
+          delete localStorage['remotestorage:backend'];
+        }
+      }
     },
 
     /**
@@ -453,8 +465,6 @@
       }
     }
   };
-
-  RemoteStorage.BACKEND_KEY = 'remotestorage:backend';
 
   /**
    * Method: claimAccess
