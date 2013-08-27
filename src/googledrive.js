@@ -84,14 +84,13 @@
       } else {
         this.connected = false;
         delete this.token;
-        delete localStorage['remotestorage:googledrive'];
+        delete localStorage[RemoteStorage::BACKEND_KEY];
         delete localStorage['remotestorage:googledrive:token'];
       }
     },
 
     connect: function() {
-      localStorage['remotestorage:backend'] = 'googledrive'
-      //localStorage['remotestorage:googledrive'] = true;
+      localStorage[RemoteStorage::BACKEND_KEY] = 'googledrive'
       RS.Authorize(AUTH_URL, AUTH_SCOPE, String(document.location), this.clientId);
     },
 
@@ -396,7 +395,7 @@
     var config = remoteStorage.apiKeys.googledrive;
     if(config) {
       remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.client_id);
-      if(localStorage['remotestorage:backend'] == 'googledrive') {
+      if(localStorage[RemoteStorage::BACKEND_KEY] == 'googledrive') {
         remoteStorage._origRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.googledrive;
       }
@@ -406,7 +405,7 @@
     return true; 
   }
   RS.GoogleDrive._rs_cleanup = function(remoteStorage) {
-    delete localStorage['remotestorage:googledrive'];
+    delete localStorage[RemoteStorage::BACKEND_KEY];
     if(remoteStorage._origRemote) {
       remoteStorage.remote = remoteStorage._origRemote;
       delete remoteStorage._origRemote;
