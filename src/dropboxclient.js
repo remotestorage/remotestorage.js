@@ -7,7 +7,7 @@
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize'
   
 
-  var SETTINGS_KEY = 'remotestorage:dropboxclient';
+  var SETTINGS_KEY = 'remotestorage:dropbox';
   RS.Dropbox = function(rs) {
     this.connected = false;
     RS.eventHandling(this, 'change', 'connected');
@@ -49,7 +49,10 @@
         localStorage[SETTINGS_KEY] = token
       }
     },
-    get: function(path, options){},
+    get: function(path, options){
+      console.log('dropbox.get', arguments);
+      
+    },
     put: function(path, body, contentType, options){
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       var promise = promising();
@@ -87,6 +90,7 @@
     console.log('rs_cleanup :P')
     if(haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
+      delete localStorage['remotestorage:backend']
     }
   }
 })(this)
