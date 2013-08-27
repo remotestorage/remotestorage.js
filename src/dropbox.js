@@ -4,8 +4,8 @@
    * Dropbox backend for RemoteStorage.js
    */
   var haveLocalStorage;
-  var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize'
-  
+  var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
+
 
   var SETTINGS_KEY = 'remotestorage:dropbox';
   RS.Dropbox = function(rs) {
@@ -16,8 +16,8 @@
       if(error instanceof RemoteStorage.Unauthorized) {
         //TODO deconfiguer the dropbox here and now
       }
-    })
-    this.clientId = rs.apiKeys.dropbox.api_key
+    });
+    this.clientId = rs.apiKeys.dropbox.api_key;
     if(haveLocalStorage){
       var settings;
       try{
@@ -26,24 +26,26 @@
         console.error(e);
       }
       if(settings) {
-        this.configure(settings.userAdress, undefined, undefined, settings.token)
+        this.configure(settings.userAdress, undefined, undefined, settings.token);
       }
     }
     if(this.connected) {
       setTimeout(this._emit.bind(this), 0, 'connected');
     }
-   
-  }
+  };
+
   RS.Dropbox.prototype = {
+
     connect: function() {
       this.rs.setBackend('dropbox');
       RS.Authorize(AUTH_URL, '', String(document.location), this.clientId);
     },
-    configure: function(useradress, href, storageApi, token) { 
+
+    configure: function(useradress, href, storageApi, token) {
       console.log('dropbox configure',arguments);
       if(typeof(token) !== 'undefined') this.token = token;
       if(typeof(useradress) !== 'undefined') this.useradress = token;
-      
+
       if(this.token){
         this.connected = true;
         this._emit('connected');
@@ -51,17 +53,18 @@
         this.connected = false;
       }
       if(haveLocalStorage){
-        localStorage[SETTINGS_KEY] = JSON.stringify( { token: this.token, 
-                                                      useradress: this.useradress } );
+        localStorage[SETTINGS_KEY] = JSON.stringify( { token: this.token,
+                                                       useradress: this.useradress } );
       }
     },
+
     get: function(path, options){
       console.log('dropbox.get', arguments);
-      var url = 'https://api-content.dropbox.com/1/files/auto' + path
+      var url = 'https://api-content.dropbox.com/1/files/auto' + path;
       var promise = promising();
       this._request('GET', url, {}, function(err, resp){
         if(err){
-          promise.reject(err)
+          promise.reject(err);
         }else{
           console.log(resp);
           var status = resp.status;
@@ -69,9 +72,9 @@
           if(status == 200){
             body = resp.responseText;
             try {
-              meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') )
+              meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') );
             } catch(e) {
-              promise.reject(e)
+              promise.reject(e);
               return;
             }
             mime = meta.mime_type;
@@ -79,25 +82,26 @@
           }
           promise.fulfill(status, body, mime, rev);
         }
-      })
+      });
       return promise;
     },
+
     put: function(path, body, contentType, options){
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       var promise = promising();
-      dropbox.writeFile(path, body, 
-        function(error, stat) {
-          if(error){
-            promise.reject(error)
-          }else{
-            promise.fulfill(stat);
-          }
-
-            })
+      dropbox.writeFile(path, body, function(error, stat) {
+        if(error){
+          promise.reject(error);
+        } else {
+          promise.fulfill(stat);
+        }
+      });
     },
+
     'delete': function(path, options){
       console.log('dropbox.delete ', arguemnts);
     },
+
     _request: function(method, url, options, callback) {
       callback = callback.bind(this);
       if(! this.token) {
@@ -130,28 +134,29 @@
   };
 
   RS.Dropbox._rs_init = function(rs) {
-    console.log("Dropbox init",rs)
-    var config = rs.apiKeys.dropbox
+    console.log("Dropbox init",rs);
+    var config = rs.apiKeys.dropbox;
     if(config) {
-      console.log('dropbox init ',config)
+      console.log('dropbox init ',config);
       rs.dropbox = new RS.Dropbox(rs);
     }
     if(rs.backend == 'dropbox'){
       rs._origRemote = rs.remote;
       rs.remote = rs.dropbox;
     }
-  }
-  
+  };
+
   RS.Dropbox._rs_supported = function() {
     haveLocalStorage = 'localStorage' in global;
-    console.log("Dropbox _rs_supported ??")
+    console.log("Dropbox _rs_supported ??");
     return true;
-  }
+  };
+
   RS.Dropbox._rs_cleanup = function(rs) {
-    console.log('rs_cleanup :P')
+    console.log('rs_cleanup :P');
     if(haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
       rs.setBackend(undefined);
     }
-  }
-})(this)
+  };
+})(this);
