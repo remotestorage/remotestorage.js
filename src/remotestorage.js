@@ -454,6 +454,8 @@
     }
   };
 
+  RemoteStorage.BACKEND_KEY = 'remotestorage:backend';
+
   /**
    * Method: claimAccess
    *
