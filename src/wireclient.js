@@ -71,56 +71,38 @@
       throw "Don't " + method + " on directories!";
     }
 
-    var timedOut = false;
-    var timer = setTimeout(function() {
-      timedOut = true;
-      promise.reject('timeout');
-    }, RS.WireClient.REQUEST_TIMEOUT);
-
     var promise = promising();
-    RemoteStorage.log(method, uri);
-    var xhr = new XMLHttpRequest();
-    xhr.open(method, uri, true);
-    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-    for(var key in headers) {
-      if(typeof(headers[key]) !== 'undefined') {
-        xhr.setRequestHeader(key, headers[key]);
-      }
-    }
-    xhr.onload = function() {
-      if(timedOut) return;
-      clearTimeout(timer);
-      if(xhr.status == 404) return promise.fulfill(xhr.status);
-      var mimeType = xhr.getResponseHeader('Content-Type');
-      var body;
-      var revision = getEtag ? xhr.getResponseHeader('ETag') : (xhr.status == 200 ? fakeRevision : undefined);
-      if((! mimeType) || mimeType.match(/charset=binary/)) {
-        var blob = new Blob([xhr.response], {type: mimeType});
-        var reader = new FileReader();
-        reader.addEventListener("loadend", function() {
-          // reader.result contains the contents of blob as a typed array
-          promise.fulfill(xhr.status, reader.result, mimeType, revision);
-        });
-        reader.readAsArrayBuffer(blob);
+
+    headers['Authorization'] = 'Bearer ' + token;
+
+    RS.WireClient.request(method, uri, {
+      body: body,
+      headers: headers
+    }, function(error, response) {
+      if(error) {
+        promise.reject(error);
       } else {
-        body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(xhr.responseText) : xhr.responseText;
-        promise.fulfill(xhr.status, body, mimeType, revision);
+        if(response.status == 404) {
+          promise.fulfill(404);
+        } else {
+          var mimeType = response.getResponseHeader('Content-Type');
+          var body;
+          var revision = getEtag ? response.getResponseHeader('ETag') : (response.status == 200 ? fakeRevision : undefined);
+          if((! mimeType) || mimeType.match(/charset=binary/)) {
+            var blob = new Blob([response.response], {type: mimeType});
+            var reader = new FileReader();
+            reader.addEventListener("loadend", function() {
+              // reader.result contains the contents of blob as a typed array
+              promise.fulfill(response.status, reader.result, mimeType, revision);
+            });
+            reader.readAsArrayBuffer(blob);
+          } else {
+            body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(response.responseText) : response.responseText;
+            promise.fulfill(response.status, body, mimeType, revision);
+          }
+        }
       }
-    };
-    xhr.onerror = function(error) {
-      if(timedOut) return;
-      clearTimeout(timer);
-      promise.reject(error);
-    };
-    if(typeof(body) === 'object') {
-      if(isArrayBufferView(body)) { /* alright. */ }
-      else if(body instanceof ArrayBuffer) {
-        body = new Uint8Array(body);
-      } else {
-        body = JSON.stringify(body);
-      }
-    }
-    xhr.send(body);
+    });
     return promise;
   }
 
@@ -288,6 +270,52 @@
     }
 
   };
+
+  // shared request function used by WireClient, GoogleDrive and Dropbox.
+  RS.WireClient.request = function(method, url, options, callback) {
+    RemoteStorage.log(method, url);
+
+    callback = callback.bind(this);
+
+    var timedOut = false;
+    var timer = setTimeout(function() {
+      timedOut = true;
+      callback('timeout');
+    }, RS.WireClient.REQUEST_TIMEOUT);
+    var xhr = new XMLHttpRequest();
+    xhr.open(method, url, true);
+    if(options.responseType) {
+      xhr.responseType = options.responseType;
+    }
+    if(options.headers) {
+      for(var key in options.headers) {
+        xhr.setRequestHeader(key, options.headers[key]);
+      }
+    }
+    xhr.onload = function() {
+      if(timedOut) return;
+      clearTimeout(timer);
+      callback(null, xhr);
+    };
+    xhr.onerror = function(error) {
+      if(timedOut) return;
+      clearTimeout(timer);
+      callback(error);
+    };
+
+    var body = options.body;
+
+    if(typeof(body) == 'object') {
+      if(isArrayBufferView(body)) { /* alright. */ }
+      else if(body instanceof ArrayBuffer) {
+        body = new Uint8Array(body);
+      } else {
+        body = JSON.stringify(body);
+      }
+    }
+
+    xhr.send(body);
+  }
 
   RS.WireClient.configureHooks = [];
 

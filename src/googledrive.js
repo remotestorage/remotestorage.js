@@ -383,32 +383,16 @@
 
     _request: function(method, url, options, callback) {
       callback = callback.bind(this);
-      if(! this.token) {
-        callback("Not authorized!");
-      }
-      var xhr = new XMLHttpRequest();
-      xhr.open(method, url, true);
-      if(options.responseType) {
-        xhr.responseType = options.responseType;
-      }
-      xhr.setRequestHeader('Authorization', 'Bearer ' + this.token);
-      if(options.headers) {
-        for(var key in options.headers) {
-          xhr.setRequestHeader(key, options.headers[key]);
-        }
-      }
-      xhr.onload = function() {
+      if(! options.headers) options.headers = {};
+      options.headers['Authorization'] = 'Bearer ' + this.token;
+      RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
         // google tokens expire from time to time...
         if(xhr.status == 401) {
           this.connect();
           return;
         }
-        callback(null, xhr);
-      }.bind(this);
-      xhr.onerror = function(error) {
-        callback(error);
-      }.bind(this);
-      xhr.send(options.body);
+        callback(err, xhr);
+      });
     }
   };
 
