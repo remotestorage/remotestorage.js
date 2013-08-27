@@ -146,12 +146,13 @@
       //googledrive and dropbox icons
       el = gCl(element, 'rs-dropbox');
       el.src = RemoteStorage.Assets.dropbox;
+      el.addEventListener('click', this.connectDropbox.bind(this) );
       if(! remoteStorage.apiKeys.dropbox) {
         el.style.display = 'none';
       }
       el = gCl(element, 'rs-googledrive');
       el.src = RemoteStorage.Assets.googledrive;
-      el.classList.add('rs-action');
+      // el.classList.add('rs-action'); I think rs-action class might mess up the view, therefor I cloned it and called that one rs-backend
       el.addEventListener('click', this.connectGdrive.bind(this));
       if(! remoteStorage.apiKeys.googledrive) {
         el.style.display = 'none';
@@ -182,6 +183,9 @@
 
     connectGdrive: function() {
       this._emit('connect', { special: 'googledrive' });
+    },
+    connectDropbox: function(){
+      this._emit('connect', { special: 'dropbox'});
     },
 
     // Methods:

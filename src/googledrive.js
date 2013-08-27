@@ -90,7 +90,8 @@
     },
 
     connect: function() {
-      localStorage['remotestorage:googledrive'] = true;
+      localStorage['remotestorage:backend'] = 'googledrive'
+      //localStorage['remotestorage:googledrive'] = true;
       RS.Authorize(AUTH_URL, AUTH_SCOPE, String(document.location), this.clientId);
     },
 
@@ -395,13 +396,15 @@
     var config = remoteStorage.apiKeys.googledrive;
     if(config) {
       remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.client_id);
-      if(localStorage['remotestorage:googledrive']) {
+      if(localStorage['remotestorage:backend'] == 'googledrive') {
         remoteStorage._origRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.googledrive;
       }
     }
   };
-
+  RS.GoogleDrive._rs_supported = function(rs){
+    return true; 
+  }
   RS.GoogleDrive._rs_cleanup = function(remoteStorage) {
     delete localStorage['remotestorage:googledrive'];
     if(remoteStorage._origRemote) {

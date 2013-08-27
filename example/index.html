@@ -2,13 +2,13 @@
 <html>
   <head>
     <meta charset="utf-8">
-
     <script src="../lib/promising.js"></script>
     <script src="../src/remotestorage.js"></script>
     <script src="../src/version.js"></script>
     <script src="../src/caching.js"></script>
     <script src="../src/access.js"></script>
     <script src="../src/eventhandling.js"></script>
+    <script src="../src/dropboxclient.js"></script>
     <script src="../src/wireclient.js"></script>
     <script src="../src/indexeddb.js"></script>
     <script src="../src/debug/inspect.js"></script>
@@ -55,7 +55,7 @@
           <input placeholder="Client ID" title="Client ID" name="googledrive.client_id" value="{{googledrive.client_id}}">
           <input placeholder="API Key" title="API Key" name="googledrive.api_key" value="{{googledrive.api_key}}">
         </li>
-        <li>Dropbox: <input name="dropbox" value="{{dropbox}}"></li>
+        <li>Dropbox: <input placeholder="API Key" name="dropbox.api_key" title="API Key" value="{{dropbox.api_key}}"></li>
       {{/apiKeys}}
     </ul>
 

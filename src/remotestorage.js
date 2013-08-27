@@ -331,12 +331,13 @@
       // determine availability
       var features = [
         'WireClient',
+        'Dropbox',
         'GoogleDrive',
         'Access',
         'Caching',
         'Discover',
         'Authorize',
-	      'Widget',
+	'Widget',
         'IndexedDB',
         'LocalStorage',
         'Sync',
