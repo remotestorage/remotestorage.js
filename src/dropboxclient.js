@@ -4,19 +4,19 @@
    * Dropbox backend for RemoteStorage.js
    */
   var haveLocalStorage;
+  var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize'
   
+
   var SETTINGS_KEY = 'remotestorage:dropboxclient';
-  RS.DropboxClient = function(rs) {
-   this.dropbox = new Dropbox.Client({key : rs.apiKeys.dropbox})
-    this.connected = dropbox.isAuthenticated();
+  RS.Dropbox = function(rs) {
+    this.connected = false;
     RS.eventHandling(this, 'change', 'connected');
-    console.log(rs)
     rs.on('error', function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
         //TODO deconfiguer the dropbox here and now
       }
     })
-    
+    this.clientId = rs.apiKeys.dropbox.api_key
     if(haveLocalStorage){
       var settings;
       try{
@@ -31,8 +31,24 @@
     }
    
   }
-  RS.DropboxClient.prototype = {
-    configure: function(){ console.log(arguments)},
+  RS.Dropbox.prototype = {
+    connect: function() {
+      localStorage['remotestorage:backend'] = 'dropbox';
+      RS.Authorize(AUTH_URL, '', String(document.location), this.clientId);
+    },
+    configure: function(useradress, href, storageApi, token) { 
+      console.log('dropbox configure',arguments);
+      if(typeof(token) !== 'undefined') this.token = token;
+      if(this.token){
+        this.connected = true;
+        this._emit('connected');
+      } else {
+        this.connected = false;
+      }
+      if(haveLocalStorage){
+        localStorage[SETTINGS_KEY] = token
+      }
+    },
     get: function(path, options){},
     put: function(path, body, contentType, options){
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
@@ -49,17 +65,25 @@
     },
     'delete': function(path, options){}
   }
-  RS.DropboxClient._rs_init = function(rs) {
+  RS.Dropbox._rs_init = function(rs) {
     console.log("Dropbox init",rs)
-    Object.defineProperty(RS.prototype, 'remote',{value: new RS.DropboxClient(rs)})
+    var config = rs.apiKeys.dropbox
+    if(config) {
+      console.log('dropbox init ',config)
+      Object.defineProperty(RS.prototype, 'dropbox',{value: new RS.Dropbox(rs)})
+    }
+    if(localStorage['remotestorage:backend'] == 'dropbox'){
+      rs._origRemote = rs.remote;
+      rs.remote = rs.dropbox;
+    }
   }
   
-  RS.DropboxClient._rs_supported = function() {
+  RS.Dropbox._rs_supported = function() {
     haveLocalStorage = 'localStorage' in global;
     console.log("Dropbox _rs_supported ??")
     return true;
   }
-  RS.DropboxClient._rs_cleanup = function() {
+  RS.Dropbox._rs_cleanup = function() {
     console.log('rs_cleanup :P')
     if(haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
