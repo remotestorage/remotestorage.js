@@ -21,9 +21,11 @@
       var settings;
       try{
         settings = JSON.parse(localStorage[SETTINGS_KEY]);
-      } catch(e){}
+      } catch(e){
+        console.error(e);
+      }
       if(settings) {
-        //configure the dropbox client here and now
+        this.configure(settings.userAdress, undefined, undefined, settings.token)
       }
     }
     if(this.connected) {
@@ -39,6 +41,8 @@
     configure: function(useradress, href, storageApi, token) { 
       console.log('dropbox configure',arguments);
       if(typeof(token) !== 'undefined') this.token = token;
+      if(typeof(useradress) !== 'undefined') this.useradress = token;
+      
       if(this.token){
         this.connected = true;
         this._emit('connected');
@@ -46,12 +50,36 @@
         this.connected = false;
       }
       if(haveLocalStorage){
-        localStorage[SETTINGS_KEY] = token
+        localStorage[SETTINGS_KEY] = JSON.stringify( { token: this.token, 
+                                                      useradress: this.useradress } );
       }
     },
     get: function(path, options){
       console.log('dropbox.get', arguments);
-      
+      var url = 'https://api-content.dropbox.com/1/files/auto' + path
+      var promise = promising();
+      this._request('GET', url, {}, function(err, resp){
+        if(err){
+          promise.reject(err)
+        }else{
+          console.log(resp);
+          var status = resp.status;
+          var meta, body, mime, rev;
+          if(status == 200){
+            body = resp.responseText;
+            try {
+              meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') )
+            } catch(e) {
+              promise.reject(e)
+              return;
+            }
+            mime = meta.mime_type;
+            rev = meta.rev;
+          }
+          promise.fulfill(status, body, mime, rev);
+        }
+      })
+      return promise;
     },
     put: function(path, body, contentType, options){
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
@@ -66,14 +94,46 @@
 
             })
     },
-    'delete': function(path, options){}
-  }
+    'delete': function(path, options){
+      console.log('dropbox.delete ', arguemnts);
+    },
+    _request: function(method, url, options, callback) {
+      callback = callback.bind(this);
+      if(! this.token) {
+        callback("Not authorized!");
+      }
+      var xhr = new XMLHttpRequest();
+      xhr.open(method, url, true);
+      if(options.responseType) {
+        xhr.responseType = options.responseType;
+      }
+      xhr.setRequestHeader('Authorization', 'Bearer ' + this.token);
+      if(options.headers) {
+        for(var key in options.headers) {
+          xhr.setRequestHeader(key, options.headers[key]);
+        }
+      }
+      xhr.onload = function() {
+        // google tokens expire from time to time...
+        if(xhr.status == 401) {
+          this.connect();
+          return;
+        }
+        callback(null, xhr);
+      }.bind(this);
+      xhr.onerror = function(error) {
+        callback(error);
+      }.bind(this);
+      xhr.send(options.body);
+    }
+  };
+
   RS.Dropbox._rs_init = function(rs) {
     console.log("Dropbox init",rs)
     var config = rs.apiKeys.dropbox
     if(config) {
       console.log('dropbox init ',config)
-      Object.defineProperty(RS.prototype, 'dropbox',{value: new RS.Dropbox(rs)})
+      rs.dropbox = new RS.Dropbox(rs);
     }
     if(localStorage[RemoteStorage.BACKEND_KEY] == 'dropbox'){
       rs._origRemote = rs.remote;
