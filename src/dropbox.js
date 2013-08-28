@@ -50,6 +50,11 @@
       if(this.token){
         this.connected = true;
         this._emit('connected');
+        if(!this.useradress){
+          this.info().then(function(info){
+            this.configure(info.display_name);
+          })
+        }
       } else {
         this.connected = false;
       }
@@ -159,7 +164,23 @@
           }
       })
     },
-
+    info: function(){
+      var url = 'https://api.dropbox.com/1/account/info'
+      var promise = promising();
+      this._request('GET', url, {}, function(err, resp){
+        if(err) {
+          promise.reject(err);
+        } else {
+          try {
+            var info = JSON.parse(resp.responseText)
+            promise.fulfill(info);
+          } catch(e) {
+            promise.reject(err);
+          }
+        }
+      })
+      return promise;
+    },
     _request: function(method, url, options, callback) {
       callback = callback.bind(this);
       if(! options.headers) options.headers = {};
