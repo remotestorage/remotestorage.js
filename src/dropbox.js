@@ -27,7 +27,7 @@
         console.error(e);
       }
       if(settings) {
-        this.configure(settings.userAdress, undefined, undefined, settings.token);
+        this.configure(settings.userAddress, undefined, undefined, settings.token);
       }
     }
     if(this.connected) {
@@ -42,25 +42,25 @@
       RS.Authorize(AUTH_URL, '', String(document.location), this.clientId);
     },
 
-    configure: function(useradress, href, storageApi, token) {
+    configure: function(userAddress, href, storageApi, token) {
       console.log('dropbox configure',arguments);
       if(typeof(token) !== 'undefined') this.token = token;
-      if(typeof(useradress) !== 'undefined') this.useradress = token;
+      if(typeof(useradress) !== 'undefined') this.userAddress = userAddress;
 
       if(this.token){
         this.connected = true;
-        this._emit('connected');
         if(!this.useradress){
           this.info().then(function(info){
-            this.configure(info.display_name);
-          })
+            this.userAddress = info.display_name;
+          }.bind(this))
         }
+        this._emit('connected');
       } else {
         this.connected = false;
       }
       if(haveLocalStorage){
         localStorage[SETTINGS_KEY] = JSON.stringify( { token: this.token,
-                                                       useradress: this.useradress } );
+                                                       userAddress: this.userAddress } );
       }
     },
     _getDir: function(path, options){
