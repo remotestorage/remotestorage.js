@@ -9,6 +9,7 @@
 
   var SETTINGS_KEY = 'remotestorage:dropbox';
   RS.Dropbox = function(rs) {
+    this.rs = rs;
     this.connected = false;
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
@@ -54,8 +55,44 @@
                                                       useradress: this.useradress } );
       }
     },
+    _getDir: function(path, options){
+      var url = 'https://api.dropbox.com/1/metadata/auto'+path;
+      var promise = promising();
+      this._request('GET', url, {}, function(err, resp){
+        if(err){
+          promise.reject(err);
+        }else{
+          console.log(resp);
+          var status = resp.status;
+          if(status==304){
+            promise.fulfill(status);
+            return;
+          }  
+          var listing, body, mime, rev;
+          try{
+            body = JSON.parse(resp.responseText)
+          } catch(e) {
+            promise.reject(e);
+            return;
+          }
+          rev = body.rev;
+          mime = 'application/json; charset=UTF-8'
+          if(body.contents)
+            listing = body.contents.reduce(function(m, item) {
+              m[item.path.split('/').slice(-1)[0] + 
+                         ( item.is_dir ? '/' : '' ) ] = item.rev;
+              return m;
+            }, {});
+          
+          promise.fulfill(status, listing, mime, rev);
+        }
+      });
+      return promise;
+    },
     get: function(path, options){
       console.log('dropbox.get', arguments);
+      if(path.substr(-1) == '/')
+        return this._getDir(path, options);
       var url = 'https://api-content.dropbox.com/1/files/auto' + path
       var promise = promising();
       this._request('GET', url, {}, function(err, resp){
@@ -75,6 +112,12 @@
             }
             mime = meta.mime_type;
             rev = meta.rev;
+            if(mime.search('application/json') >= 0)
+              try {
+                body = JSON.parse(body);
+              } catch(e) {
+                this.rs.log(e);
+              }
           }
           promise.fulfill(status, body, mime, rev);
         }
@@ -82,49 +125,47 @@
       return promise;
     },
     put: function(path, body, contentType, options){
+      
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       var promise = promising();
-      dropbox.writeFile(path, body, 
-        function(error, stat) {
+      //check if file has changed and return 412
+      var url = 'https://api-content.dropbox.com/1/files_put/auto/' + path + '?'
+      this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(error, stat) {
           if(error){
             promise.reject(error)
           }else{
-            promise.fulfill(stat);
+            console.log(stat);
+            promise.fulfill(resp.status);
           }
 
-            })
+      })
+      return promise;
     },
     'delete': function(path, options){
       console.log('dropbox.delete ', arguemnts);
+      //check if file has changed and return 412
+      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path='+encodeURIComponent(path);
+      this._request('POST', url, {}, function(err, resp){
+         if(err){
+            promise.reject(error)
+          }else{
+            console.log(resp);
+            promise.fulfill(resp.status);
+          }
+      })
     },
     _request: function(method, url, options, callback) {
       callback = callback.bind(this);
-      if(! this.token) {
-        callback("Not authorized!");
-      }
-      var xhr = new XMLHttpRequest();
-      xhr.open(method, url, true);
-      if(options.responseType) {
-        xhr.responseType = options.responseType;
-      }
-      xhr.setRequestHeader('Authorization', 'Bearer ' + this.token);
-      if(options.headers) {
-        for(var key in options.headers) {
-          xhr.setRequestHeader(key, options.headers[key]);
-        }
-      }
-      xhr.onload = function() {
+      if(! options.headers) options.headers = {};
+      options.headers['Authorization'] = 'Bearer ' + this.token;
+      RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
         // google tokens expire from time to time...
         if(xhr.status == 401) {
           this.connect();
           return;
         }
-        callback(null, xhr);
-      }.bind(this);
-      xhr.onerror = function(error) {
-        callback(error);
-      }.bind(this);
-      xhr.send(options.body);
+        callback(err, xhr);
+      });
     }
   };
 
