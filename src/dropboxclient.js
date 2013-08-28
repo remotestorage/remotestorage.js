@@ -130,11 +130,11 @@
       var promise = promising();
       //check if file has changed and return 412
       var url = 'https://api-content.dropbox.com/1/files_put/auto/' + path + '?'
-      this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(error, stat) {
-          if(error){
-            promise.reject(error)
-          }else{
-            console.log(stat);
+      this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
+          if(err) {
+            promise.reject(err)
+          } else {
+            console.log(resp);
             promise.fulfill(resp.status);
           }
 
