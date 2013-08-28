@@ -74,7 +74,7 @@
 
     display: function(domID) {
       if(! this.view) {
-        this.setView(new RemoteStorage.Widget.View(domID));
+        this.setView(new RemoteStorage.Widget.View(this.rs));
       }
       this.view.display.apply(this.view, arguments);
       return this;

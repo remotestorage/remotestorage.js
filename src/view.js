@@ -29,7 +29,8 @@
   }
 
 
-  RemoteStorage.Widget.View = function() {
+  RemoteStorage.Widget.View = function(remoteStorage) {
+    this.rs = remoteStorage;
     if(typeof(document) === 'undefined') {
       throw "Widget not supported";
     }
@@ -147,13 +148,13 @@
       el = gCl(element, 'rs-dropbox');
       el.src = RemoteStorage.Assets.dropbox;
       el.addEventListener('click', this.connectDropbox.bind(this) );
-      if(! remoteStorage.apiKeys.dropbox) {
+      if(! this.rs.apiKeys.dropbox) {
         el.style.display = 'none';
       }
       el = gCl(element, 'rs-googledrive');
       el.src = RemoteStorage.Assets.googledrive;
       el.addEventListener('click', this.connectGdrive.bind(this));
-      if(! remoteStorage.apiKeys.googledrive) {
+      if(! this.rs.apiKeys.googledrive) {
         el.style.display = 'none';
       }
 
@@ -284,6 +285,14 @@
         gCl(this.div, 'userAddress').innerHTML = this.userAddress;
         this.cube.src = RemoteStorage.Assets.remoteStorageIcon;
         removeClass(this.cube, 'remotestorage-loading');
+        var icons = {
+          googledrive: gCl(this.div, 'rs-googledrive'),
+          dropbox: gCl(this.div, 'rs-dropbox')
+        };
+        icons.googledrive.style.display = icons.dropbox.style.display = 'none';
+        if(icons[this.rs.backend]) {
+          icons[this.rs.backend].style.display = 'inline-block';
+        }
       },
       busy : function() {
         this.div.className = "remotestorage-state-busy";
