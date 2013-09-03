@@ -69,7 +69,7 @@
       try {
         this.apiKeys = JSON.parse(localStorage['remotestorage:api-keys']);
       } catch(exc) { /* ignored. */ };
-      this.backend = localStorage['remotestorage:backend'] || 'remotestorage';
+      this.setBackend(localStorage['remotestorage:backend'] || 'remotestorage');
     }
 
     var origOn = this.on;
@@ -433,7 +433,11 @@
 
     _processPending: function() {
       this._pending.forEach(function(pending) {
-        this[pending.method].apply(this, pending.args).then(pending.promise.fulfill, pending.promise.reject);
+        try {
+          this[pending.method].apply(this, pending.args).then(pending.promise.fulfill, pending.promise.reject);
+        } catch(e) {
+          pending.promise.reject(e);
+        }
       }.bind(this));
       this._pending = [];
     },
