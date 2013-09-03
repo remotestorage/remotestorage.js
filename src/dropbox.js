@@ -19,12 +19,12 @@
       }
     });
     this.clientId = rs.apiKeys.dropbox.api_key;
+    this._revCache = {};
     if(haveLocalStorage){
       var settings;
       try{
         settings = JSON.parse(localStorage[SETTINGS_KEY]);
       } catch(e){
-        console.error(e);
       }
       if(settings) {
         this.configure(settings.userAddress, undefined, undefined, settings.token);
@@ -103,10 +103,15 @@
         return this._getDir(path, options);
       var url = 'https://api-content.dropbox.com/1/files/auto' + path
       var promise = promising();
+      if(options.ifNoneMatch && (this._revCache[path] == options.ifNoneMatch)) {
+        // nothing changed.
+        promise.fulfill(304);
+        return;
+      }
       this._request('GET', url, {}, function(err, resp){
-        if(err){
+        if(err) {
           promise.reject(err);
-        }else{
+        } else {
           console.log(resp);
           var status = resp.status;
           var meta, body, mime, rev;
@@ -120,12 +125,14 @@
             }
             mime = meta.mime_type;
             rev = meta.rev;
-            if(mime.search('application/json') >= 0)
+            if(mime.search('application/json') >= 0) {
               try {
                 body = JSON.parse(body);
               } catch(e) {
                 this.rs.log(e);
               }
+            }
+            this._revCache[path] = rev;
           }
           promise.fulfill(status, body, mime, rev);
         }
@@ -138,6 +145,10 @@
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       var promise = promising();
       //check if file has changed and return 412
+      if(options.ifMatch && this._revCache[path] && (this._revCache[path] != options.ifMatch)) {
+        promise.fulfill(412);
+        return;
+      }
       var url = 'https://api-content.dropbox.com/1/files_put/auto/' + path + '?'
       this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
           if(err) {
@@ -146,7 +157,6 @@
             console.log(resp);
             promise.fulfill(resp.status);
           }
-
       })
       return promise;
     },
@@ -192,9 +202,49 @@
           return;
         }
         callback(err, xhr);
+      }.bind(this));
+    },
+
+    fetchDelta: function() {
+      var args = Array.prototype.slice.call(arguments);
+      var promise = promising();
+      this._request('POST', 'https://api.dropbox.com/1/delta', {
+        body: this._deltaCursor ? ('cursor=' + encodeURIComponent(this.deltaCursor)) : '',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }, function(error, response) {
+        if(error) {
+          promise.reject(error);
+        } else {
+          var delta = JSON.parse(response.responseText);
+          if(delta.reset) {
+            this._revCache = {};
+          }
+          delta.entries.forEach(function(entry) {
+            this._revCache[entry[0]] = entry[1].rev;
+          }.bind(this));
+          promise.fulfill.apply(promise, args);
+        }
       });
+      return promise;
     }
   };
+
+  function hookSync(rs) {
+    if(rs._dropboxOrigSync) return; // already hooked
+    rs._dropboxOrigSync = rs.sync.bind(rs);
+    rs.sync = function() {
+      return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
+        then(rs._dropboxOrigSync);
+    };
+  }
+
+  function unHookSync(rs) {
+    if(! rs._dropboxOrigSync) return; // not hooked
+    rs.sync = rs._dropboxOrigSync;
+    delete rs._dropboxOrigSync;
+  }
 
   RS.Dropbox._rs_init = function(rs) {
     console.log("Dropbox init",rs);
@@ -206,6 +256,9 @@
     if(rs.backend == 'dropbox'){
       rs._origRemote = rs.remote;
       rs.remote = rs.dropbox;
+      if(rs.sync) {
+        hookSync(rs);
+      }
     }
   };
 
@@ -217,6 +270,7 @@
 
   RS.Dropbox._rs_cleanup = function(rs) {
     console.log('rs_cleanup :P');
+    unHookSync(rs);
     if(haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
       rs.setBackend(undefined);
