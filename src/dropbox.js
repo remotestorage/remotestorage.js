@@ -15,6 +15,10 @@
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
+        this.connected = false;
+        if(haveLocalStorage){
+          delete localStorage[SETTINGS_KEY]
+        }
         //TODO deconfiguer the dropbox here and now
       }
     });
@@ -66,6 +70,7 @@
     _getDir: function(path, options){
       var url = 'https://api.dropbox.com/1/metadata/auto'+path;
       var promise = promising();
+
       this._request('GET', url, {}, function(err, resp){
         if(err){
           promise.reject(err);
@@ -85,13 +90,14 @@
           }
           rev = body.rev;
           mime = 'application/json; charset=UTF-8'
-          if(body.contents)
+          if(body.contents) {
             listing = body.contents.reduce(function(m, item) {
-              m[item.path.split('/').slice(-1)[0] + 
-                         ( item.is_dir ? '/' : '' ) ] = item.rev;
+              var itemName = item.path.split('/').slice(-1)[0] + ( item.is_dir ? '/' : '' );
+              m[itemName] = item.rev;
               return m;
             }, {});
-          
+          }
+          this._revCache[path] = rev;
           promise.fulfill(status, listing, mime, rev);
         }
       });
@@ -99,15 +105,17 @@
     },
     get: function(path, options){
       console.log('dropbox.get', arguments);
-      if(path.substr(-1) == '/')
-        return this._getDir(path, options);
+      if(path.substr(-1) == '/') return this._getDir(path, options);
+
       var url = 'https://api-content.dropbox.com/1/files/auto' + path
       var promise = promising();
+
       if(options.ifNoneMatch && (this._revCache[path] == options.ifNoneMatch)) {
         // nothing changed.
         promise.fulfill(304);
-        return;
+        return promise;
       }
+
       this._request('GET', url, {}, function(err, resp){
         if(err) {
           promise.reject(err);
@@ -140,41 +148,52 @@
       return promise;
     },
 
-    put: function(path, body, contentType, options){
-      
+    put: function(path, body, contentType, options){      
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
+      
       var promise = promising();
+
       //check if file has changed and return 412
       if(options.ifMatch && this._revCache[path] && (this._revCache[path] != options.ifMatch)) {
         promise.fulfill(412);
-        return;
+        return promise;
       }
+
       var url = 'https://api-content.dropbox.com/1/files_put/auto/' + path + '?'
       this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
-          if(err) {
-            promise.reject(err)
-          } else {
-            console.log(resp);
-            promise.fulfill(resp.status);
-          }
+        if(err) {
+          promise.reject(err)
+        } else {
+          console.log(resp);
+          promise.fulfill(resp.status);
+        }
       })
       return promise;
     },
 
     'delete': function(path, options){
       console.log('dropbox.delete ', arguemnts);
+      var promise = promising();
+
       //check if file has changed and return 412
+      if(options.ifMatch && this._revCache[path] && (options.ifMatch != this._revCache[path])) {
+        promise.fulfill(412);
+        return promise;
+      }
+
       var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path='+encodeURIComponent(path);
       this._request('POST', url, {}, function(err, resp){
-         if(err){
-            promise.reject(error)
-          }else{
-            console.log(resp);
-            promise.fulfill(resp.status);
-          }
+        if(err) {
+          promise.reject(error)
+        } else {
+          console.log(resp);
+          promise.fulfill(resp.status);
+          delete this._revCache[path];
+        }
       })
+      return promise;
     },
-    info: function(){
+    info: function() {
       var url = 'https://api.dropbox.com/1/account/info'
       var promise = promising();
       this._request('GET', url, {}, function(err, resp){
@@ -196,11 +215,11 @@
       if(! options.headers) options.headers = {};
       options.headers['Authorization'] = 'Bearer ' + this.token;
       RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
-        // google tokens expire from time to time...
-        if(xhr.status == 401) {
-          this.connect();
-          return;
-        }
+        // // dropbox tokens might  expire from time to time...
+        // if(xhr.status == 401) {
+        //   this.connect();
+        //   return;
+        // }
         callback(err, xhr);
       }.bind(this));
     },
@@ -271,6 +290,8 @@
   RS.Dropbox._rs_cleanup = function(rs) {
     console.log('rs_cleanup :P');
     unHookSync(rs);
+    if(rs._origRemote)
+      rs.remote = rs._origRemote;
     if(haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
       rs.setBackend(undefined);
