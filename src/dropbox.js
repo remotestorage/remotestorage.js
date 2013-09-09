@@ -6,6 +6,39 @@
   var haveLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
 
+  function LowerCaseCache(){
+    console.log('!!!!!!!!!!! RESETED NEW LCC STORAGE !!!!!!!!!!!!!')
+    this._storage = {  }
+  }
+  LowerCaseCache.prototype = {
+    get : function(key) {
+      return this._storage[key.toLowerCase()]
+    },
+    set : function(key, value) {
+      key = key.toLowerCase()
+      console.log(this._storage[key]+'!!!!!!!!!!!'+value+'!!!!!!!!!!!'+key);
+      if(this._storage[key] == value) return value;
+      this._propagate(key);
+      return this._storage[key] = value;
+    },
+    delete : function(key) {
+      key = key.toLowerCase();
+      this._propagate(key);
+      delete this._storage[key];
+    },
+    _propagate: function(key){
+      console.log('porpagating')
+      var dirs = key.split('/').slice(0,-1);
+      var len = dirs.length;
+      var path = '';
+   
+      for(var i = 0; i < len; i++){
+        path+=dirs[i]+'/'
+        this._storage[path]+='1';
+      }
+    }
+  }
+
 
   var SETTINGS_KEY = 'remotestorage:dropbox';
   RS.Dropbox = function(rs) {
@@ -23,7 +56,7 @@
       }
     });
     this.clientId = rs.apiKeys.dropbox.api_key;
-    this._revCache = {};
+    this._revCache = new LowerCaseCache();
     if(haveLocalStorage){
       var settings;
       try{
@@ -97,7 +130,6 @@
               return m;
             }, {});
           }
-          this._revCache[path] = rev;
           promise.fulfill(status, listing, mime, rev);
         }
       });
@@ -105,16 +137,19 @@
     },
     get: function(path, options){
       console.log('dropbox.get', arguments);
+      
+      if(options && options.ifNoneMatch && (this._revCache.get(path) == options.ifNoneMatch)) {
+        // nothing changed.
+        promise.fulfill(304);
+        return promise;
+      }
+      
+      //use _getDir for directories 
       if(path.substr(-1) == '/') return this._getDir(path, options);
 
       var url = 'https://api-content.dropbox.com/1/files/auto' + path
       var promise = promising();
 
-      if(options.ifNoneMatch && (this._revCache[path] == options.ifNoneMatch)) {
-        // nothing changed.
-        promise.fulfill(304);
-        return promise;
-      }
 
       this._request('GET', url, {}, function(err, resp){
         if(err) {
@@ -133,14 +168,16 @@
             }
             mime = meta.mime_type;
             rev = meta.rev;
-            if(mime.search('application/json') >= 0) {
+            // TODO Depending on how we handle mimetypes we will have to change that
+            // mimetypes  disabled right now
+            if(mime.search('application/json') >= 0 || true) {
               try {
                 body = JSON.parse(body);
               } catch(e) {
                 this.rs.log(e);
               }
             }
-            this._revCache[path] = rev;
+            this._revCache.set(path, rev);
           }
           promise.fulfill(status, body, mime, rev);
         }
@@ -154,7 +191,8 @@
       var promise = promising();
 
       //check if file has changed and return 412
-      if(options.ifMatch && this._revCache[path] && (this._revCache[path] != options.ifMatch)) {
+      var savedRev = this._revCache.get(path)
+      if(options.ifMatch &&  savedRev && (savedRev != options.ifMatch) ) {
         promise.fulfill(412);
         return promise;
       }
@@ -176,7 +214,8 @@
       var promise = promising();
 
       //check if file has changed and return 412
-      if(options.ifMatch && this._revCache[path] && (options.ifMatch != this._revCache[path])) {
+       var savedRev = this._revCache.get(path)
+      if(options.ifMatch && savedRev && (options.ifMatch != savedRev)) {
         promise.fulfill(412);
         return promise;
       }
@@ -188,9 +227,10 @@
         } else {
           console.log(resp);
           promise.fulfill(resp.status);
-          delete this._revCache[path];
+          this._revCache.delete(path);
         }
       })
+      
       return promise;
     },
     info: function() {
@@ -228,7 +268,7 @@
       var args = Array.prototype.slice.call(arguments);
       var promise = promising();
       this._request('POST', 'https://api.dropbox.com/1/delta', {
-        body: this._deltaCursor ? ('cursor=' + encodeURIComponent(this.deltaCursor)) : '',
+        body: this._deltaCursor ? ('cursor=' + encodeURIComponent(this._deltaCursor)) : '',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -238,10 +278,18 @@
         } else {
           var delta = JSON.parse(response.responseText);
           if(delta.reset) {
-            this._revCache = {};
+            // FIXME maybe this might destroy recorded changes
+            this._revCache = new LowerCaseCache();
           }
+          //saving the cursor for requesting further deltas in relation to the cursor position
+          if(delta.curser)
+            this._deltaCursor = delta.cursor;
+          //updating revCache
           delta.entries.forEach(function(entry) {
-            this._revCache[entry[0]] = entry[1].rev;
+            var path = entry[0];
+            if(entriy[1].is_dir)
+              path+='/';
+            this._revCache.set(path, entry[1].rev);
           }.bind(this));
           promise.fulfill.apply(promise, args);
         }
