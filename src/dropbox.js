@@ -7,7 +7,6 @@
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
 
   function LowerCaseCache(){
-    console.log('!!!!!!!!!!! RESETED NEW LCC STORAGE !!!!!!!!!!!!!')
     this._storage = {  }
   }
   LowerCaseCache.prototype = {
@@ -15,10 +14,9 @@
       return this._storage[key.toLowerCase()]
     },
     set : function(key, value) {
-      key = key.toLowerCase()
-      console.log(this._storage[key]+'!!!!!!!!!!!'+value+'!!!!!!!!!!!'+key);
+      key = key.toLowerCase();
       if(this._storage[key] == value) return value;
-      this._propagate(key);
+      this._propagate(key, value);
       return this._storage[key] = value;
     },
     delete : function(key) {
@@ -26,15 +24,17 @@
       this._propagate(key);
       delete this._storage[key];
     },
-    _propagate: function(key){
+    _propagate: function(key, rev){
       console.log('porpagating')
       var dirs = key.split('/').slice(0,-1);
       var len = dirs.length;
       var path = '';
-   
+      
       for(var i = 0; i < len; i++){
         path+=dirs[i]+'/'
-        this._storage[path]+='1';
+        if(!rev)
+          rev = this._storage[path]+1
+        this._storage[path] =  rev;
       }
     }
   }
@@ -52,7 +52,7 @@
         if(haveLocalStorage){
           delete localStorage[SETTINGS_KEY]
         }
-        //TODO deconfiguer the dropbox here and now
+        this.configure(null,null,null,null)
       }
     });
     this.clientId = rs.apiKeys.dropbox.api_key;
@@ -121,7 +121,11 @@
             promise.reject(e);
             return;
           }
-          rev = body.rev;
+          var savedRev = this._revCache.get(path)
+          if(savedRev)
+            rev = savedRev
+          else
+            rev = body.rev;
           mime = 'application/json; charset=UTF-8'
           if(body.contents) {
             listing = body.contents.reduce(function(m, item) {
@@ -137,8 +141,15 @@
     },
     get: function(path, options){
       console.log('dropbox.get', arguments);
+      var url = 'https://api-content.dropbox.com/1/files/auto' + path
+      var promise = promising();
       
-      if(options && options.ifNoneMatch && (this._revCache.get(path) == options.ifNoneMatch)) {
+      var savedRev = this._revCache.get(path)
+      if(savedRev == null) { //file was deleted server side
+        promise.fulfill(404);
+        return promise;
+      }
+      if(options && options.ifNoneMatch && (savedRev == options.ifNoneMatch)) {
         // nothing changed.
         promise.fulfill(304);
         return promise;
@@ -146,10 +157,6 @@
       
       //use _getDir for directories 
       if(path.substr(-1) == '/') return this._getDir(path, options);
-
-      var url = 'https://api-content.dropbox.com/1/files/auto' + path
-      var promise = promising();
-
 
       this._request('GET', url, {}, function(err, resp){
         if(err) {
@@ -282,14 +289,20 @@
             this._revCache = new LowerCaseCache();
           }
           //saving the cursor for requesting further deltas in relation to the cursor position
-          if(delta.curser)
+          if(delta.cursor)
             this._deltaCursor = delta.cursor;
           //updating revCache
           delta.entries.forEach(function(entry) {
             var path = entry[0];
-            if(entriy[1].is_dir)
-              path+='/';
-            this._revCache.set(path, entry[1].rev);
+            var rev;
+            if(!entry[1]){
+              rev = null;
+            } else {
+              if(entry[1].is_dir)
+                return;
+              rev = entry[1].rev;
+            }
+            this._revCache.set(path, rev);
           }.bind(this));
           promise.fulfill.apply(promise, args);
         }
@@ -303,7 +316,9 @@
     rs._dropboxOrigSync = rs.sync.bind(rs);
     rs.sync = function() {
       return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
-        then(rs._dropboxOrigSync);
+        then(rs._dropboxOrigSync, function(err){
+          rs._emit('error', new rs.SyncError(err));
+        });
     };
   }
 
@@ -342,7 +357,7 @@
       rs.remote = rs._origRemote;
     if(haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
-      rs.setBackend(undefined);
     }
+    rs.setBackend(undefined);
   };
 })(this);
