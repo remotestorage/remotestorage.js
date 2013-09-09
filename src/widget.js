@@ -119,7 +119,7 @@
 
   RemoteStorage.Widget._rs_supported = function(remoteStorage) {
     haveLocalStorage = 'localStorage' in window;
-    return true;
+    return typeof(document) != 'undefined';
   };
 
-})(this);
+})(typeof(window) !== 'undefined' ? window : global);

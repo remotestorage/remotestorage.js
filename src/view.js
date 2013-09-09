@@ -326,4 +326,4 @@
       }
     }
   };
-})(this);
+})(typeof(window) !== 'undefined' ? window : global);

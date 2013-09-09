@@ -11,6 +11,8 @@ SOURCES        = ${shell find $(SOURCE_DIR) -name "*.js"}
 
 DEFAULT_COMPONENTS = core widget baseclient caching modules debug legacy
 NOCACHE_COMPONENTS = core widget baseclient modules debug legacy
+NODEJS_COMPONENTS = core baseclient caching modules legacy
+
 
 default: help
 
@@ -46,6 +48,9 @@ remotestorage.js: $(SOURCES)
 
 remotestorage.amd.js: $(SOURCES)
 	$(NODEJS) build/do-build.js remotestorage.amd.js --amd $(DEFAULT_COMPONENTS)
+
+remotestorage-node.js: $(SOURCES)
+	$(NODEJS) build/do-build.js remotestorage-node.js $(NODEJS_COMPONENTS)
 
 # remotestorage.min.js: remotestorage.js
 # 	uglifyjs remotestorage.js -o remotestorage.min.js --mangle --wrap --export-all

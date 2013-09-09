@@ -41,6 +41,10 @@
     RemoteStorage.Authorize(authURL, this.remote.storageApi, this.access.scopeModeMap, String(document.location));
   };
 
+  RemoteStorage.Authorize._rs_supported = function(remoteStorage) {
+    return typeof(document) != 'undefined';
+  };
+
   RemoteStorage.Authorize._rs_init = function(remoteStorage) {
     var params = extractParams();
     if(params) {

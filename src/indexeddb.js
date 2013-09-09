@@ -483,4 +483,4 @@
     return promise;
   }
 
-})(this);
+})(typeof(window) !== 'undefined' ? window : global);
