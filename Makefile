@@ -21,6 +21,7 @@ help:
 	@echo "all            - build regular, minified and AMD targets, plus all -nocache targets"
 	@echo "build          - build remotestorage.js"
 	@echo "build-amd      - build remotestorage.js with AMD wrapper"
+	@echo "build-node     - build remotestorage.js suitable for nodejs"
 	@echo "build-nocache  - build remotestorage.js without caching (plus AMD and .min versions of that)"
 	@echo "minify         - minify remotestorage.js -> remotestorage.min.js"
 	@echo "compile-assets - compile $(ASSETS_DIR)/* into $(ASSETS_OUT)"
@@ -31,6 +32,7 @@ build-all: all
 minify: remotestorage.min.js
 build: remotestorage.js
 build-amd: remotestorage.amd.js
+build-node: remotestorage-node.js
 build-nocache: remotestorage-nocache.js remotestorage-nocache.min.js remotestorage-nocache.amd.js
 compile-assets: $(ASSETS_OUT)
 
