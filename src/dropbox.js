@@ -73,15 +73,18 @@
     this.clientId = rs.apiKeys.dropbox.api_key;
     this._revCache = new LowerCaseCache();
     this._itemRefs = {};
+    
     if(haveLocalStorage){
       var settings;
-      try{
+      try {
         settings = JSON.parse(localStorage[SETTINGS_KEY]);
-      } catch(e){
-      }
+      } catch(e){}
       if(settings) {
         this.configure(settings.userAddress, undefined, undefined, settings.token);
       }
+      try {
+        this._itemRefs = JSON.parse(localStorage[ SETTINGS_KEY+':shares' ])
+      } catch(e) {  }
     }
     if(this.connected) {
       setTimeout(this._emit.bind(this), 0, 'connected');
@@ -102,7 +105,7 @@
 
       if(this.token){
         this.connected = true;
-        if(!this.useradress){
+        if(!this.useradress && this.connected){
           this.info().then(function(info){
             this.userAddress = info.display_name;
           }.bind(this))
@@ -296,6 +299,9 @@
         } else {
           try{
             promise.fulfill( JSON.parse(resp.responseText).url );
+            this._itemRefs[path] = url;
+            if(haveLocalStorage)
+              localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
             console.log(resp)
           }catch(e) {
             err.message += "share error"
@@ -303,11 +309,7 @@
           }
         }
       });
-      return promise.then(function(url){
-        if(url)
-          this._itemRefs[path] = url;
-        return url
-      }.bind(this));
+      return promise
     },
 
     // fetching user info from Dropbox returns promise
