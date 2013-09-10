@@ -187,4 +187,4 @@
 
   RemoteStorage.Caching._rs_init = function() {};
 
-})(this);
+})(typeof(window) !== 'undefined' ? window : global);

@@ -322,4 +322,4 @@
     remoteStorage.stopSync();
   };
 
-})(this);
+})(typeof(window) !== 'undefined' ? window : global);

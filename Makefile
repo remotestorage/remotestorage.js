@@ -11,24 +11,28 @@ SOURCES        = ${shell find $(SOURCE_DIR) -name "*.js"}
 
 DEFAULT_COMPONENTS = core widget baseclient caching modules debug legacy googledrive dropbox
 NOCACHE_COMPONENTS = core widget baseclient modules debug legacy googledrive dropbox
+NODEJS_COMPONENTS = core baseclient caching modules legacy
+
 
 default: help
 
 help:
 	@echo "help           - display this text"
-	@echo "all            - build regular, minified and AMD targets, plus all -nocache targets"
+	@echo "all            - build regular, minified AMD and nodejs targets, plus all -nocache targets"
 	@echo "build          - build remotestorage.js"
 	@echo "build-amd      - build remotestorage.js with AMD wrapper"
+	@echo "build-node     - build remotestorage.js suitable for nodejs"
 	@echo "build-nocache  - build remotestorage.js without caching (plus AMD and .min versions of that)"
 	@echo "minify         - minify remotestorage.js -> remotestorage.min.js"
 	@echo "compile-assets - compile $(ASSETS_DIR)/* into $(ASSETS_OUT)"
 	@echo "clean          - remove all builds and editor swapfiles"
 
-all: build build-amd minify build-nocache
+all: build build-amd minify build-nocache build-node
 build-all: all
 minify: remotestorage.min.js
 build: remotestorage.js
 build-amd: remotestorage.amd.js
+build-node: remotestorage-node.js
 build-nocache: remotestorage-nocache.js remotestorage-nocache.min.js remotestorage-nocache.amd.js
 compile-assets: $(ASSETS_OUT)
 
@@ -46,6 +50,9 @@ remotestorage.js: $(SOURCES)
 
 remotestorage.amd.js: $(SOURCES)
 	$(NODEJS) build/do-build.js remotestorage.amd.js --amd $(DEFAULT_COMPONENTS)
+
+remotestorage-node.js: $(SOURCES)
+	$(NODEJS) build/do-build.js remotestorage-node.js --node $(NODEJS_COMPONENTS)
 
 # remotestorage.min.js: remotestorage.js
 # 	uglifyjs remotestorage.js -o remotestorage.min.js --mangle --wrap --export-all

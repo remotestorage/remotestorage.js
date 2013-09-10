@@ -529,4 +529,4 @@
 
   global.RemoteStorage = RemoteStorage;
 
-})(this);
+})(typeof(window) !== 'undefined' ? window : global);
