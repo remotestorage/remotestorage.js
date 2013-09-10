@@ -18,7 +18,7 @@ default: help
 
 help:
 	@echo "help           - display this text"
-	@echo "all            - build regular, minified and AMD targets, plus all -nocache targets"
+	@echo "all            - build regular, minified AMD and nodejs targets, plus all -nocache targets"
 	@echo "build          - build remotestorage.js"
 	@echo "build-amd      - build remotestorage.js with AMD wrapper"
 	@echo "build-node     - build remotestorage.js suitable for nodejs"
@@ -27,7 +27,7 @@ help:
 	@echo "compile-assets - compile $(ASSETS_DIR)/* into $(ASSETS_OUT)"
 	@echo "clean          - remove all builds and editor swapfiles"
 
-all: build build-amd minify build-nocache
+all: build build-amd minify build-nocache build-node
 build-all: all
 minify: remotestorage.min.js
 build: remotestorage.js
@@ -52,7 +52,7 @@ remotestorage.amd.js: $(SOURCES)
 	$(NODEJS) build/do-build.js remotestorage.amd.js --amd $(DEFAULT_COMPONENTS)
 
 remotestorage-node.js: $(SOURCES)
-	$(NODEJS) build/do-build.js remotestorage-node.js $(NODEJS_COMPONENTS)
+	$(NODEJS) build/do-build.js remotestorage-node.js --node $(NODEJS_COMPONENTS)
 
 # remotestorage.min.js: remotestorage.js
 # 	uglifyjs remotestorage.js -o remotestorage.min.js --mangle --wrap --export-all
