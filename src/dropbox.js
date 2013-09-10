@@ -430,7 +430,7 @@
   }
   function unHookGetItemURL(rs){
     if(! rs._origBaseClieNtGetItemURL)
-      retrun;
+      return;
     RS.BaseClient.prototype.getItemURL = rs._origBaseClietGetItemURL;
     delete rs._origBaseClietGetItemURL;
   }
