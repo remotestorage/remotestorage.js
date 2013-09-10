@@ -144,15 +144,12 @@
 
   // documented in src/remotestorage.js
   RemoteStorage.prototype.claimAccess = function(scopes) {
-    console.log("DEPRECATION WARNING: remoteStorage.claimAccess may mess with your caching control - if you use cache control directives, then see https://github.com/remotestorage/remotestorage.js/issues/380 and use remoteStorage.access.claim instead.");
     if(typeof(scopes) === 'object') {
       for(var key in scopes) {
         this.access.claim(key, scopes[key]);
-        setModuleCaching(this, key); // legacy hack
       }
     } else {
       this.access.claim(arguments[0], arguments[1])
-      setModuleCaching(this, arguments[0]); // legacy hack;
     }
   };
 
