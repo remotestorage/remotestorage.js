@@ -105,7 +105,7 @@
 
       if(this.token){
         this.connected = true;
-        if(!this.useradress && this.connected){
+        if( !this.useradress ){
           this.info().then(function(info){
             this.userAddress = info.display_name;
           }.bind(this))
