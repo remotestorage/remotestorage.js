@@ -428,7 +428,7 @@
       return  ret ? ret : '';
     }
   }
-  function unHookGetItemURL(){
+  function unHookGetItemURL(rs){
     if(! rs._origBaseClieNtGetItemURL)
       retrun;
     RS.BaseClient.prototype.getItemURL = rs._origBaseClietGetItemURL;
