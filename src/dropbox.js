@@ -456,7 +456,7 @@
 
   RS.Dropbox._rs_cleanup = function(rs) {
     unHookSync(rs);
-    unHhookGetItemURL(rs);
+    unHookGetItemURL(rs);
 
     if(rs._origRemote)
       rs.remote = rs._origRemote;
