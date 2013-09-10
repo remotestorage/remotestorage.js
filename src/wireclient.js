@@ -65,7 +65,7 @@
       return false;
     };
   }
-
+  
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
     if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
       throw "Don't " + method + " on directories!";
@@ -271,6 +271,8 @@
 
   };
 
+  //shared isArrayBufferView used by WireClient and Dropbox
+  RS.WireClient.isArrayBufferView = isArrayBufferView;
   // shared request function used by WireClient, GoogleDrive and Dropbox.
   RS.WireClient.request = function(method, url, options, callback) {
     RemoteStorage.log(method, url);
@@ -304,7 +306,7 @@
     };
 
     var body = options.body;
-
+    
     if(typeof(body) == 'object') {
       if(isArrayBufferView(body)) { /* alright. */ }
       else if(body instanceof ArrayBuffer) {
@@ -313,7 +315,6 @@
         body = JSON.stringify(body);
       }
     }
-
     xhr.send(body);
   }
 

@@ -300,7 +300,6 @@
     }.bind(this),
     function(e) {
       console.log('sync error, retrying');
-      this._emit('error', new SyncError(e))
       this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
     }.bind(this));
