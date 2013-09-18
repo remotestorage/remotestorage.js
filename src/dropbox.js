@@ -15,17 +15,26 @@
    * delete : delete and propagate
    *************************/
   function LowerCaseCache(){
-    this._storage = {  }
+    this._storage = { '/':'rev' };
+    this.set = this.justSet;
   }
   LowerCaseCache.prototype = {
     get : function(key) {
       return this._storage[key.toLowerCase()]
     },
-    set : function(key, value) {
+    propagateSet : function(key, value) {
       key = key.toLowerCase();
       if(this._storage[key] == value) return value;
       this._propagate(key, value);
       return this._storage[key] = value;
+    },
+    _activatePropagation: function(){
+      this.set = this.propagateSet;
+    },
+    justSet : function(key, value) {
+      key = key.toLowerCase();
+      this._storage[key] = value;
+      return value;
     },
     delete : function(key) {
       key = key.toLowerCase();
@@ -122,7 +131,6 @@
     _getDir: function(path, options){
       var url = 'https://api.dropbox.com/1/metadata/auto'+path;
       var promise = promising();
-
       this._request('GET', url, {}, function(err, resp){
         if(err){
           promise.reject(err);
@@ -139,11 +147,7 @@
             promise.reject(e);
             return;
           }
-          var savedRev = this._revCache.get(path)
-          if(savedRev)
-            rev = savedRev
-          else
-            rev = body.rev;
+          rev = this._revCache.get(path)
           mime = 'application/json; charset=UTF-8'
           if(body.contents) {
             listing = body.contents.reduce(function(m, item) {
@@ -166,8 +170,9 @@
       }.bind(this));
       
       var savedRev = this._revCache.get(path)
-      if(savedRev == null) { 
+      if(savedRev === null) { 
         //file was deleted server side
+        console.log(path,' deleted 404')
         promise.fulfill(404);
         return promise;
       }
@@ -386,9 +391,15 @@
             console.log("!!!!!DropBox.fetchDeltas() NO ENTRIES FOUND!!", delta);
             return promise.reject('dropbox.fetchDeltas failed, no entries found');
           }
+
+          // Dropbox sends the complete state
           if(delta.reset) {
-            // FIXME maybe this might destroy recorded changes
             this._revCache = new LowerCaseCache();
+            promise.then(function(){
+              var args = Array.prototype.slice.call(arguments);
+              this._revCache._activatePropagation();
+              return args;
+            }.bind(this));
           }
           
           //saving the cursor for requesting further deltas in relation to the cursor position
