@@ -360,15 +360,32 @@
       }, function(error, response) {
         if(error) {
           this.rs.log('fetchDeltas',error);
+          this.rs._emit('error', new RemoteStorage.SyncError('fetchDeltas failed'+error));
           promise.reject(error);
         } else {
+          // break if status != 200
+          if(response.status != 200 ){
+            if(response.status == 400) {
+              this.rs._emit('error', new RemoteStorage.Unauthorized());
+              promise.fulfill(args)
+            } else {
+              console.log("!!!!dropbox.fetchDelta returned "+response.status+response.responseText);
+              promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
+            }
+            return promise;
+          }
+
           try {
             var delta = JSON.parse(response.responseText);
           } catch(error) {
             rs.log('fetchDeltas can not parse response',error)
-            return promise.reject("can not parse response of fetchDelta");
+            return promise.reject("can not parse response of fetchDelta : "+error.message);
           }
-          
+          // break if no entries found
+          if(!delta.entries){
+            console.log("!!!!!DropBox.fetchDeltas() NO ENTRIES FOUND!!", delta);
+            return promise.reject('dropbox.fetchDeltas failed, no entries found');
+          }
           if(delta.reset) {
             // FIXME maybe this might destroy recorded changes
             this._revCache = new LowerCaseCache();
