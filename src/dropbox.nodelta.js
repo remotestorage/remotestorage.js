@@ -6,6 +6,9 @@
    *   files larger than 150mb are not suported for upload
    *   directories with more than 10.000 files will cause problems to list
    *   content-type is guessed by dropbox.com therefore they aren't fully supported
+   *   dropbox preserves cases but not case sensitive
+   *  the nodelta version can be used with low syncCycle intervall but will request each directory listing on each sync
+   ** the delta version behaves like rs but might get blocked after a while
    */
   var haveLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
@@ -27,10 +30,10 @@
     get : function(key) {
       key = key.toLowerCase();
       var stored = this._storage[key]
-      if(!stored){
-        stored = this.defaultValue;
-        this._storage[key] = stored;
-      }
+      // if(!stored){
+      //   stored = this.defaultValue;
+      //   this._storage[key] = stored;
+      // }
       return stored;
     },
     propagateSet : function(key, value) {
@@ -146,33 +149,46 @@
     },
     _getDir: function(path, options){
       var url = 'https://api.dropbox.com/1/metadata/auto'+path;
+      var revCache = this._revCache;
       var promise = promising();
+      var hash = revCache.get(path);
+      if(hash)
+        url+='?hash='+encodeURIComponent(hash);
       this._request('GET', url, {}, function(err, resp){
         if(err){
           promise.reject(err);
         }else{
+          var listing, body, mime, rev;
+          mime = 'application/json; charset=UTF-8';
           var status = resp.status;
+
           if(status==304){
-            promise.fulfill(status);
+            this.rs.local.getCached(path).then(function(status, listing, mime, rev){
+              promise.fulfill(status, listing, mime, hash);
+            }, function(){
+              promise.reject(arguments);
+            })
             return;
           }  
-          var listing, body, mime, rev;
           try{
             body = JSON.parse(resp.responseText)
           } catch(e) {
             promise.reject(e);
             return;
           }
-          rev = this._revCache.get(path)
-          mime = 'application/json; charset=UTF-8'
+          
           if(body.contents) {
             listing = body.contents.reduce(function(m, item) {
               var itemName = item.path.split('/').slice(-1)[0] + ( item.is_dir ? '/' : '' );
               m[itemName] = item.rev;
+              if(!item.is_dir){
+                revCache.set(itemName, item.rev);
+              }
               return m;
             }, {});
+            revCache.set(path, body.hash);
           }
-          promise.fulfill(status, listing, mime, rev);
+          promise.fulfill(status, listing, mime, body.hash);
         }
       });
       return promise;
@@ -180,6 +196,10 @@
     get: function(path, options){
       console.log('dropbox.get', arguments);
       var url = 'https://api-content.dropbox.com/1/files/auto' + path
+
+      //use _getDir for directories 
+      if(path.substr(-1) == '/') return this._getDir(path, options);
+
       var promise = promising().then(function(){  //checking and maybe fetching the share_url after each get
         this.share(path);
         return arguments
@@ -200,9 +220,6 @@
         return promise;
       }
       
-      //use _getDir for directories 
-      if(path.substr(-1) == '/') return this._getDir(path, options);
-
       this._request('GET', url, {}, function(err, resp){
         if(err) {
           promise.reject(err);
@@ -257,9 +274,9 @@
       if(options.ifMatch) {
         url += "parent_rev="+encodeURIComponent(options.ifMatch)
       }
-      if(body.length>150*1024*1024){ //FIXME actual content-length
-        //https://www.dropbox.com/developers/core/docs#chunked-upload
-      } else { 
+      // if(body.length>150*1024*1024){ //FIXME actual content-length
+      //   //https://www.dropbox.com/developers/core/docs#chunked-upload
+      // } else { 
         this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
           if(err) {
             promise.reject(err)
@@ -276,7 +293,7 @@
               promise.fulfill(resp.status);
           }
         })
-      }
+      // }
       return promise
     },
     'delete': function(path, options){
@@ -373,96 +390,98 @@
     // this method fetches the deltas from the dropbox api, used to sync the storage
     // here we retrive changes and put them into the _revCache, those values will then be used 
     // to determin if something has changed
-    fetchDelta: function() {
-      var args = Array.prototype.slice.call(arguments);
-      var promise = promising();
-      this._request('POST', 'https://api.dropbox.com/1/delta', {
-        body: this._deltaCursor ? ('cursor=' + encodeURIComponent(this._deltaCursor)) : '',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      }, function(error, response) {
-        if(error) {
-          this.rs.log('fetchDeltas',error);
-          this.rs._emit('error', new RemoteStorage.SyncError('fetchDeltas failed'+error));
-          promise.reject(error);
-        } else {
-          // break if status != 200
-          if(response.status != 200 ){
-            if(response.status == 400) {
-              this.rs._emit('error', new RemoteStorage.Unauthorized());
-              promise.fulfill(args)
-            } else {
-              console.log("!!!!dropbox.fetchDelta returned "+response.status+response.responseText);
-              promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
-            }
-            return promise;
-          }
+  //   fetchDelta: function() {
+  //     var args = Array.prototype.slice.call(arguments);
+  //     var promise = promising();
+  //     this._request('POST', 'https://api.dropbox.com/1/delta', {
+  //       body: this._deltaCursor ? ('cursor=' + encodeURIComponent(this._deltaCursor)) : '',
+  //       headers: {
+  //         'Content-Type': 'application/x-www-form-urlencoded'
+  //       }
+  //     }, function(error, response) {
+  //       if(error) {
+  //         this.rs.log('fetchDeltas',error);
+  //         this.rs._emit('error', new RemoteStorage.SyncError('fetchDeltas failed'+error));
+  //         promise.reject(error);
+  //       } else {
+  //         // break if status != 200
+  //         if(response.status != 200 ){
+  //           if(response.status == 400) {
+  //             this.rs._emit('error', new RemoteStorage.Unauthorized());
+  //             promise.fulfill(args)
+  //           } else {
+  //             console.log("!!!!dropbox.fetchDelta returned "+response.status+response.responseText);
+  //             promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
+  //           }
+  //           return;
+  //         }
 
-          try {
-            var delta = JSON.parse(response.responseText);
-          } catch(error) {
-            rs.log('fetchDeltas can not parse response',error)
-            return promise.reject("can not parse response of fetchDelta : "+error.message);
-          }
-          // break if no entries found
-          if(!delta.entries){
-            console.log("!!!!!DropBox.fetchDeltas() NO ENTRIES FOUND!!", delta);
-            return promise.reject('dropbox.fetchDeltas failed, no entries found');
-          }
+  //         try {
+  //           var delta = JSON.parse(response.responseText);
+  //         } catch(error) {
+  //           rs.log('fetchDeltas can not parse response',error)
+  //           promise.reject("can not parse response of fetchDelta : "+error.message);
+  //           return;
+  //         }
+  //         // break if no entries found
+  //         if(!delta.entries){
+  //           console.log("!!!!!DropBox.fetchDeltas() NO ENTRIES FOUND!!", delta);
+  //           promise.reject('dropbox.fetchDeltas failed, no entries found');           
+  //            return ;
+  //         }
 
-          // Dropbox sends the complete state
-          if(delta.reset) {
-            this._revCache = new LowerCaseCache();
-            promise.then(function(){
-              var args = Array.prototype.slice.call(arguments);
-              this._revCache._activatePropagation();
-              return args;
-            }.bind(this));
-          }
+  //         // Dropbox sends the complete state
+  //         if(delta.reset) {
+  //           this._revCache = new LowerCaseCache();
+  //           promise.then(function(){
+  //             var args = Array.prototype.slice.call(arguments);
+  //             this._revCache._activatePropagation();
+  //             return args;
+  //           }.bind(this));
+  //         }
           
-          //saving the cursor for requesting further deltas in relation to the cursor position
-          if(delta.cursor)
-            this._deltaCursor = delta.cursor;
+  //         //saving the cursor for requesting further deltas in relation to the cursor position
+  //         if(delta.cursor)
+  //           this._deltaCursor = delta.cursor;
           
-          //updating revCache
-          console.log("Delta : ",delta.entries);
-          delta.entries.forEach(function(entry) {
-            var path = entry[0];
-            var rev;
-            if(!entry[1]){
-              rev = null;
-            } else {
-              if(entry[1].is_dir)
-                return;
-              rev = entry[1].rev;
-            }
-            this._revCache.set(path, rev);
-          }.bind(this));
-          promise.fulfill.apply(promise, args);
-        }
-      });
-      return promise;
-    }
+  //         //updating revCache
+  //         console.log("Delta : ",delta.entries);
+  //         delta.entries.forEach(function(entry) {
+  //           var path = entry[0];
+  //           var rev;
+  //           if(!entry[1]){
+  //             rev = null;
+  //           } else {
+  //             if(entry[1].is_dir)
+  //               return;
+  //             rev = entry[1].rev;
+  //           }
+  //           this._revCache.set(path, rev);
+  //         }.bind(this));
+  //         promise.fulfill.apply(promise, args);
+  //       }
+  //     });
+  //     return promise;
+  //   }
   };
 
   //hooking and unhooking the sync
 
-  function hookSync(rs) {
-    if(rs._dropboxOrigSync) return; // already hooked
-    rs._dropboxOrigSync = rs.sync.bind(rs);
-    rs.sync = function() {
-      return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
-        then(rs._dropboxOrigSync, function(err){
-          rs._emit('error', new rs.SyncError(err));
-        });
-    };
-  }
-  function unHookSync(rs) {
-    if(! rs._dropboxOrigSync) return; // not hooked
-    rs.sync = rs._dropboxOrigSync;
-    delete rs._dropboxOrigSync;
-  }
+  // function hookSync(rs) {
+  //   if(rs._dropboxOrigSync) return; // already hooked
+  //   rs._dropboxOrigSync = rs.sync.bind(rs);
+  //   rs.sync = function() {
+  //     return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
+  //       then(rs._dropboxOrigSync, function(err){
+  //         rs._emit('error', new rs.SyncError(err));
+  //       });
+  //   };
+  // }
+  // function unHookSync(rs) {
+  //   if(! rs._dropboxOrigSync) return; // not hooked
+  //   rs.sync = rs._dropboxOrigSync;
+  //   delete rs._dropboxOrigSync;
+  // }
   
   // hooking and unhooking getItemURL
 
@@ -489,9 +508,9 @@
     if(rs.backend == 'dropbox'){
       rs._origRemote = rs.remote;
       rs.remote = rs.dropbox;
-      if(rs.sync) {
-        hookSync(rs);
-      }
+      // if(rs.sync) {
+      //   hookSync(rs);
+      // }
       hookGetItemURL(rs);
     }
   };
@@ -502,7 +521,7 @@
   };
 
   RS.Dropbox._rs_cleanup = function(rs) {
-    unHookSync(rs);
+//    unHookSync(rs);
     unHookGetItemURL(rs);
 
     if(rs._origRemote)
