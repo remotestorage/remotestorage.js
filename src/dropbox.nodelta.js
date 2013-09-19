@@ -7,8 +7,10 @@
    *   directories with more than 10.000 files will cause problems to list
    *   content-type is guessed by dropbox.com therefore they aren't fully supported
    *   dropbox preserves cases but not case sensitive
-   *  the nodelta version can be used with low syncCycle intervall but will request each directory listing on each sync
-   ** the delta version behaves like rs but might get blocked after a while
+   *   arayBuffers aren't supported currently 
+   * 
+   * the nodelta version can be used with low syncCycle intervall but will request each directory listing on each sync
+   * the delta version behaves like rs but might get blocked after a while
    */
   var haveLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
