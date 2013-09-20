@@ -182,9 +182,12 @@
           if(body.contents) {
             listing = body.contents.reduce(function(m, item) {
               var itemName = item.path.split('/').slice(-1)[0] + ( item.is_dir ? '/' : '' );
-              m[itemName] = item.rev;
+              
               if(!item.is_dir){
-                revCache.set(itemName, item.rev);
+                revCache.set(path+itemName, item.rev);
+                m[itemName] = item.rev;
+              } else {
+                m[itemName] = undefined;
               }
               return m;
             }, {});

@@ -147,6 +147,7 @@
     _getDir: function(path, options){
       var url = 'https://api.dropbox.com/1/metadata/auto'+path;
       var promise = promising();
+      var revCache = this._revCache;
       this._request('GET', url, {}, function(err, resp){
         if(err){
           promise.reject(err);
@@ -168,7 +169,11 @@
           if(body.contents) {
             listing = body.contents.reduce(function(m, item) {
               var itemName = item.path.split('/').slice(-1)[0] + ( item.is_dir ? '/' : '' );
-              m[itemName] = item.rev;
+              if(item.is_dir){
+                m[itemName] = revCache.get(path+itemName);
+              } else {
+                m[itemName] = item.rev;
+              }
               return m;
             }, {});
           }
