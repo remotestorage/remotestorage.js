@@ -383,7 +383,6 @@ exports.server = (function() {
           version[path]=timestamp;
           saveData();
           var pathParts=path.split('/');
-          var timestamp=new Date().getTime();
           log(pathParts);
           var fileItself=true;
           while(pathParts.length > 1) {
@@ -397,6 +396,7 @@ exports.server = (function() {
               content[pathParts.join('/')+'/'] = {};
             }
             content[pathParts.join('/')+'/'][thisPart]=timestamp;
+            version[pathParts.join('/')+'/'] = timestamp;
             // log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
           }
           // log('content:', content);
