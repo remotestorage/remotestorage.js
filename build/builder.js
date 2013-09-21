@@ -33,8 +33,8 @@ exports.build = function(components, selectedGroups, options) {
     console.error("AMD build: ending define() block.");
     output += 'return new RemoteStorage();\n});\n';
   } else if(options.node) {
-    console.error("CommonJS build: exporting 'RemoteStorage'.");
-    output += "module.exports = RemoteStorage;\n";
+    console.error("CommonJS/AMD build: exporting 'RemoteStorage'.");
+    output += "if(typeof(define) == 'function' && define.amd) define([], function() { return RemoteStorage }); else module.exports = RemoteStorage;\n";
   } else {
     console.error("Browser build: adding global 'remoteStorage' object.");
     output += 'remoteStorage = new RemoteStorage();'
