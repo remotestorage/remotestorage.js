@@ -363,7 +363,9 @@ exports.server = (function() {
       }
     } else if(req.method=='PUT') {
       log('PUT');
-      if(!mayWrite(req.headers.authorization, path)) {
+      if(path.substr(-1)=='/') {
+        computerSaysNo(res, req.headers.origin, 400);
+      } else if(!mayWrite(req.headers.authorization, path)) {
         computerSaysNo(res, req.headers.origin, 401);
       } else if(!condMet(cond, path)) {
         computerSaysNo(res, req.headers.origin, 412, version[path]);
@@ -405,7 +407,9 @@ exports.server = (function() {
       }
     } else if(req.method=='DELETE') {
       log('DELETE');
-      if(!mayWrite(req.headers.authorization, path)) {
+      if(path.substr(-1)=='/') {
+        computerSaysNo(res, req.headers.origin, 400);
+      } else if(!mayWrite(req.headers.authorization, path)) {
         computerSaysNo(res, req.headers.origin, 401);
       } else if(!condMet(cond, path)) {
         computerSaysNo(res, req.headers.origin, 412, version[timestamp]);
