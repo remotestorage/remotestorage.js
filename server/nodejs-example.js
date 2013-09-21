@@ -456,11 +456,14 @@ exports.server = (function() {
     }
   }
 
-  resetState();
-  loadData();
-  createInitialTokens();
+  function init() {
+    resetState();
+    loadData();
+    createInitialTokens();
+  }
 
   return {
+    init: init,
     serve: serve,
     getState: getState,
     resetState: resetState,
@@ -481,6 +484,7 @@ exports.server = (function() {
 if((!amd) && (require.main==module)) {//if this file is directly called from the CLI
   config = require('./config').config;
   dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
+  exports.server.init();
   require('https').createServer({
     key: fs.readFileSync(config.ssl.key),
     cert: fs.readFileSync(config.ssl.cert),
