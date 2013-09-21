@@ -349,7 +349,7 @@ exports.server = (function() {
       } else {
         if(content[path]) {
           if(path.substr(-1)=='/') {
-            writeJson(res, content[path], req.headers.origin, 0, cond);
+            writeJson(res, content[path], req.headers.origin, version[path], cond);
           } else {
             writeRaw(res, contentType[path], content[path], req.headers.origin, version[path], cond);
           }
