@@ -354,7 +354,7 @@ exports.server = (function() {
             writeRaw(res, contentType[path], content[path], req.headers.origin, version[path], cond);
           }
         } else {
-          if(path.substr(-1)=='/') {
+          if(path.substr(-1) == '/' && path.split('/').length == 2) {
             writeJson(res, {}, req.headers.origin, 0, cond);
           } else {
             give404(res, req.headers.origin);
