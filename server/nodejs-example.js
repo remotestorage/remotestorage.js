@@ -413,6 +413,8 @@ exports.server = (function() {
         computerSaysNo(res, req.headers.origin, 401);
       } else if(!condMet(cond, path)) {
         computerSaysNo(res, req.headers.origin, 412, version[timestamp]);
+      } else if(typeof(content[path]) == 'undefined') {
+        computerSaysNo(res, req.headers.origin, 404);
       } else {
         var timestamp = new Date().getTime();
         delete content[path];
