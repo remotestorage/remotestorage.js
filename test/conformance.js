@@ -53,7 +53,7 @@ testRequest(
   "2) attempt PUT on folder", 'PUT', '/', function(response) {
     assert.status(response, 400);
   }
-);  
+);
 
 // 3) attempt DELETE on folder
 //   DELETE <root>/
@@ -502,7 +502,7 @@ testRequest(
     assert.status(response, 200);
   }
 );
-  
+
 
 /**
    TODO:
