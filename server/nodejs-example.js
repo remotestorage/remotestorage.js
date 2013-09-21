@@ -416,16 +416,27 @@ exports.server = (function() {
       } else if(typeof(content[path]) == 'undefined') {
         computerSaysNo(res, req.headers.origin, 404);
       } else {
-        var timestamp = new Date().getTime();
+        var timestamp = version[path]
         delete content[path];
         delete contentType[path];
-        version[path]=timestamp;
+        delete version[path];
         saveData();
         var pathParts=path.split('/');
         var thisPart = pathParts.pop();
-        if(content[pathParts.join('/')+'/']) {
-          log('delete content['+pathParts.join('/')+'/]['+thisPart+']');
-          delete content[pathParts.join('/')+'/'][thisPart];
+        while(1) {
+          var parentPath = pathParts.join('/') + '/';
+          var parentListing = content[parentPath];
+          log('delete content[' + parentPath + ']['+thisPart+']');
+          delete parentListing[thisPart];
+          if(Object.keys(parentListing).length != 0 ||
+             pathParts.length == 1) {
+            version[parentPath] = new Date().getTime();
+            break;
+          } else {
+            delete content[parentPath];
+            delete version[parentPath];
+            thisPart = pathParts.pop() + '/';
+          }
         }
         log(content);
         writeJson(res, null, req.headers.origin, timestamp);
