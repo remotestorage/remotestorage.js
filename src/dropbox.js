@@ -2,21 +2,46 @@
   var RS = RemoteStorage;
   /**
    * Dropbox backend for RemoteStorage.js
-   * known limits : 
+   * this file exposes a get/put/delete interface which is compatible with the wireclient
+   * it requires to get configured with a dropbox token similar to the wireclient.configure
+   *
+   * when the remotestorage.backend was set to 'dropbox' it will initialize and resets 
+   * remoteStorage.remote with remoteStorage.dropbox
+   * 
+   * for compability with the public directory the getItemURL function of the BaseClient gets 
+   * highjackt and returns the dropbox share-url
+   *
+   * to connect with dropbox a connect function is provided
+   *
+   * known issues : 
    *   files larger than 150mb are not suported for upload
    *   directories with more than 10.000 files will cause problems to list
    *   content-type is guessed by dropbox.com therefore they aren't fully supported
-   */
+   *   dropbox preserves cases but not case sensitive
+   *   arayBuffers aren't supported currently 
+   *
+   **/
   var haveLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
   var SETTINGS_KEY = 'remotestorage:dropbox';
 
   /*************************
    * LowerCaseCache
-   * this Cache will lowercase it's keys and propagate the values to "upper directories"
-   * get : get a value
-   * set : set a value and propagate
-   * delete : delete and propagate
+   * this Cache will lowercase it's keys 
+   * and can propagate the values to "upper directories"
+   * 
+   * intialized with default Value(undefined will be accepted)
+   *
+   * set and delete will be set to justSet and justDelete on initialization 
+   *
+   * get : get a value or default Value
+   * set : set a value
+   * justSet : just set a value and don't propagate at all
+   * propagateSet : Set a value and propagate
+   * delete : delete 
+   * justDelete : just delete a value and don't propagate at al
+   * propagateDelete : deleta a value and propagate
+   * _activatePropagation : replace set and delete with their propagate versions
    *************************/
   function LowerCaseCache(defaultValue){
     this.defaultValue = defaultValue; //defaults to undefimned if initialized without arguments
@@ -81,13 +106,20 @@
    * put
    * delete
    * share
-   * 
+   * info
+   * Properties :
+   * connected
+   * rs
+   * token
+   * userAddress
    *****************************/
   RS.Dropbox = function(rs) {
+
     this.rs = rs;
     this.connected = false;
     this.rs = rs;
     var self = this;
+
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
@@ -117,12 +149,26 @@
   };
 
   RS.Dropbox.prototype = {
-
+    /**
+     * Method : connect()
+     *   redirects to AUTH_URL(https://www.dropbox.com/1/oauth2/authorize)
+     *   and set's backend to dropbox
+     *   therefor it starts the auth flow and end's up with a token and the dropbox backend in place
+     **/
     connect: function() {
+      //ToDo handling when token is already present
       this.rs.setBackend('dropbox');
-      RS.Authorize(AUTH_URL, '', String(document.location), this.clientId);
+      if(this.token){
+        hookIt(this.rs);
+      } else {
+        RS.Authorize(AUTH_URL, '', String(document.location), this.clientId);
+      }
     },
-
+    /**
+     * Mehtod : configure(userAdress, x, x, token)
+     *   accepts it's parameters according to the wireClient
+     *   set's the connected flag
+     **/
     configure: function(userAddress, href, storageApi, token) {
       console.log('dropbox configure',arguments);
       if(typeof(token) !== 'undefined') this.token = token;
@@ -145,6 +191,9 @@
                                                        userAddress: this.userAddress } );
       }
     },
+    /**
+     * Method : _getDir(path, options)
+     **/
     _getDir: function(path, options){
       var url = 'https://api.dropbox.com/1/metadata/auto'+path;
       var promise = promising();
@@ -183,13 +232,17 @@
       });
       return promise;
     },
+    /**
+     * Method : get(path, options)
+     *   get compatible with wireclient
+     *   checks for path in _revCache and decides based on that if file has changed
+     *   calls _getDir if file is a directory
+     *   calls share(path) afterwards to fill the _hrefCache
+     **/
     get: function(path, options){
       console.log('dropbox.get', arguments);
       var url = 'https://api-content.dropbox.com/1/files/auto' + path
-      var promise = promising().then(function(){  //checking and maybe fetching the share_url after each get
-        this.share(path);
-        return arguments
-      }.bind(this));
+      var promise = this._sharePromise(path)
       
       var savedRev = this._revCache.get(path)
       if(savedRev === null) { 
@@ -242,13 +295,16 @@
       });
       return promise
     },
+    /** 
+     * Method : put(path, body, contentType, options)
+     *   put compatible with wireclient
+     *   also uses _revCache to check for version conflicts
+     *   also shares via share(path)
+     **/
     put: function(path, body, contentType, options){      
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
      
-      var promise = promising().then(function(){   //checking and maybe fetching the share_url after each put
-        this.share(path);
-        return arguments
-      }.bind(this));
+      var promise = this._sharePromise(path);
       var revCache = this._revCache;
 
       //check if file has changed and return 412
@@ -287,6 +343,10 @@
       }
       return promise
     },
+    /**
+     * Method : delete(path, options)
+     *   similar to get and set
+     **/
     'delete': function(path, options){
       console.log('dropbox.delete ', arguments);
       var promise = promising();
@@ -313,15 +373,34 @@
         return arguments;
       }.bind(this))
     },
-    // get share url from Dropbox
+    /**
+     * Method : _sharePromise(path)
+     *   returns a promise which's then block doesn't touch the arguments given 
+     *   and calls share for the path
+     * 
+     *  also checks for necessity of shareing this url(already in the itemRefs or not '/public/')
+     **/
+    _sharePromise: function(path){
+      var promise = promising();
+      var self = this;
+      if(!path.match(/^\/public\//) && typeof this._itemRefs[path] != 'undefined'){
+        promise.then(function(){
+          self.share(path);
+          return arguments
+        }) // here some error handling might be cool
+      }
+      return promise;
+    }
+    /**
+     * Method : share(path)
+     *   get sher_url s from dropbox and pushes those into this._hrefCache
+     *   returns promise
+     */
     share: function(path){
       var url = "https://api.dropbox.com/1/media/auto"+path
       var promise = promising();
+      var itemRefs = this._itemRefs
       
-      if(!path.match(/^\/public\//) && typeof this._itemRefs[path] != 'undefined'){
-        console.log('not public or already in store', path)
-        return promise.fulfill(this._itemRefs[path]);
-      }
       // requesting shareing url
       this._request('POST', url, {}, function(err, resp){
         if(err) {
@@ -331,7 +410,7 @@
         } else {
           try{
             promise.fulfill( JSON.parse(resp.responseText).url );
-            this._itemRefs[path] = url;
+            itemRefs[path] = url;
             if(haveLocalStorage)
               localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
             console.log(resp)
@@ -344,7 +423,10 @@
       return promise
     },
 
-    // fetching user info from Dropbox returns promise
+    /**
+     * Method : info()
+     *   fetching user info from Dropbox returns promise
+     **/
     info: function() {
       var url = 'https://api.dropbox.com/1/account/info'
       var promise = promising();
@@ -374,14 +456,15 @@
         //   return;
         // }
         callback(err, xhr);
-      }.bind(this));
+      });
     },
-
-    // method: fetchDelta
-    //
-    // this method fetches the deltas from the dropbox api, used to sync the storage
-    // here we retrive changes and put them into the _revCache, those values will then be used 
-    // to determin if something has changed
+    /**
+    * method: fetchDelta
+    *
+    *   this method fetches the deltas from the dropbox api, used to sync the storage
+    *   here we retrive changes and put them into the _revCache, those values will then be used 
+    *   to determin if something has changed.
+    **/
     fetchDelta: function() {
       var args = Array.prototype.slice.call(arguments);
       var promise = promising();
@@ -491,18 +574,36 @@
     RS.BaseClient.prototype.getItemURL = rs._origBaseClietGetItemURL;
     delete rs._origBaseClietGetItemURL;
   }
-
+  function hookRemote(rs){
+    if(rs._origRemote)
+      return;
+    rs._origRemote = rs.remote;
+    rs.remote = rs.dropbox;
+  }
+  function unHookRemote(rs){
+    if(rs._origRemote) {
+      rs.remote = rs._origRemote;
+      delete rs._origRemote
+    }
+  }
+  function hookIt(rs){
+    hookRemote(rs);
+    if(rs.sync) {
+      hookSync(rs);
+    }
+    hookGetItemURL(rs);
+  }
+  function unHookIt(rs){
+    unHookRemote(rs);
+    unHookSync(rs);
+    unHookGetItemURL(rs);
+  }
   RS.Dropbox._rs_init = function(rs) {
     if( rs.apiKeys.dropbox ) {
       rs.dropbox = new RS.Dropbox(rs);
     }
     if(rs.backend == 'dropbox'){
-      rs._origRemote = rs.remote;
-      rs.remote = rs.dropbox;
-      if(rs.sync) {
-        hookSync(rs);
-      }
-      hookGetItemURL(rs);
+      hookIt(rs);
     }
   };
 
@@ -512,11 +613,7 @@
   };
 
   RS.Dropbox._rs_cleanup = function(rs) {
-    unHookSync(rs);
-    unHookGetItemURL(rs);
-
-    if(rs._origRemote)
-      rs.remote = rs._origRemote;
+    unHokIt(rs);
     if(haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
