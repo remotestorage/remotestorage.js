@@ -29,7 +29,8 @@
   }
 
 
-  RemoteStorage.Widget.View = function() {
+  RemoteStorage.Widget.View = function(remoteStorage) {
+    this.rs = remoteStorage;
     if(typeof(document) === 'undefined') {
       throw "Widget not supported";
     }
@@ -143,6 +144,20 @@
       el.addEventListener('click', this.toggle_bubble);
       this.cube = el
 
+      //googledrive and dropbox icons
+      el = gCl(element, 'rs-dropbox');
+      el.src = RemoteStorage.Assets.dropbox;
+      el.addEventListener('click', this.connectDropbox.bind(this) );
+      if(! this.rs.apiKeys.dropbox) {
+        el.style.display = 'none';
+      }
+      el = gCl(element, 'rs-googledrive');
+      el.src = RemoteStorage.Assets.googledrive;
+      el.addEventListener('click', this.connectGdrive.bind(this));
+      if(! this.rs.apiKeys.googledrive) {
+        el.style.display = 'none';
+      }
+
       //the bubble
       this.bubble = gCl(element,'rs-bubble');
       // what is the meaning of this hiding the b
@@ -165,6 +180,13 @@
   }
 
   RemoteStorage.Widget.View.prototype = {
+
+    connectGdrive: function() {
+      this._emit('connect', { special: 'googledrive' });
+    },
+    connectDropbox: function(){
+      this._emit('connect', { special: 'dropbox'});
+    },
 
     // Methods:
     //
@@ -234,7 +256,7 @@
           this.hide_bubble();
         }
         this.div.className = "remotestorage-state-initial";
-        gCl(this.div, 'rs-status-text').innerHTML = "Connect <strong>remotestorage</strong>";
+        gCl(this.div, 'rs-status-text').innerHTML = "<strong>Connect</strong> remote storage";
 
         //if address not empty connect button enabled
         //TODO check if this works
@@ -263,6 +285,14 @@
         gCl(this.div, 'userAddress').innerHTML = this.userAddress;
         this.cube.src = RemoteStorage.Assets.remoteStorageIcon;
         removeClass(this.cube, 'remotestorage-loading');
+        var icons = {
+          googledrive: gCl(this.div, 'rs-googledrive'),
+          dropbox: gCl(this.div, 'rs-dropbox')
+        };
+        icons.googledrive.style.display = icons.dropbox.style.display = 'none';
+        if(icons[this.rs.backend]) {
+          icons[this.rs.backend].style.display = 'inline-block';
+        }
       },
       busy : function() {
         this.div.className = "remotestorage-state-busy";
