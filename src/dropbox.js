@@ -335,6 +335,7 @@
     put: function(path, body, contentType, options){      
       console.log('dropbox.put', arguments);
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
+
       path = cleanPath(path);
       
       var promise = this._sharePromise(path);
@@ -440,6 +441,7 @@
       }
       return promise;
     },
+
     /**
      * Method : share(path)
      *   get sher_url s from dropbox and pushes those into this._hrefCache
