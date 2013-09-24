@@ -19,9 +19,10 @@
    * delete : delete and propagate
    *************************/
   function LowerCaseCache(defaultValue){
-    this.defaultValue = defaultValue ? defaultValue : 'rev'
+    this.defaultValue = defaultValue; //defaults to undefimned if initialized without arguments
     this._storage = { };
     this.set = this.justSet;
+    this.delete = this.justDelete;
   }
   LowerCaseCache.prototype = {
     get : function(key) {
@@ -35,22 +36,28 @@
     },
     propagateSet : function(key, value) {
       key = key.toLowerCase();
-      if(this._storage[key] == value) return value;
+      if(this._storage[key] == value) 
+        return value;
       this._propagate(key, value);
       return this._storage[key] = value;
     },
+    propagateDelete : function(key) {
+      var key = key.toLowerCase();
+      this._propagate(key, this._storage[key]);
+      return delete this._storage[key];
+    },
     _activatePropagation: function(){
       this.set = this.propagateSet;
+      this.delete = this.propagateDelete;
+      return true;
     },
     justSet : function(key, value) {
       key = key.toLowerCase();
-      this._storage[key] = value;
-      return value;
+      return this._storage[key] = value;
     },
-    delete : function(key) {
-      key = key.toLowerCase();
-      this._propagate(key);
-      delete this._storage[key];
+    justDelete : function(key, value) {
+      var key = key.toLowerCase();
+      return delete this._storage[key];
     },
     _propagate: function(key, rev){
       var dirs = key.split('/').slice(0,-1);
@@ -80,22 +87,16 @@
     this.rs = rs;
     this.connected = false;
     this.rs = rs;
+    var self = this;
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
-        
-        // happens in configure
-        //
-        // this.connected = false;
-        // if(haveLocalStorage){
-        //   delete localStorage[SETTINGS_KEY]
-        // }
-        this.configure(null,null,null,null)
+        self.configure(null,null,null,null)
       }
-    }.bind(this));
+    });
     
     this.clientId = rs.apiKeys.dropbox.api_key;
-    this._revCache = new LowerCaseCache();
+    this._revCache = new LowerCaseCache('rev');
     this._itemRefs = {};
     
     if(haveLocalStorage){
@@ -248,9 +249,10 @@
         this.share(path);
         return arguments
       }.bind(this));
+      var revCache = this._revCache;
 
       //check if file has changed and return 412
-      var savedRev = this._revCache.get(path)
+      var savedRev = revCache.get(path)
       if(options && options.ifMatch &&  savedRev && (savedRev != options.ifMatch) ) {
         promise.fulfill(412);
         return promise;
@@ -264,6 +266,7 @@
       }
       if(body.length>150*1024*1024){ //FIXME actual content-length
         //https://www.dropbox.com/developers/core/docs#chunked-upload
+        console.log('files larger than 150MB not supported yet')
       } else { 
         this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
           if(err) {
@@ -277,7 +280,7 @@
               rs.log('Dropbox created conflicting File ', response.path)
             }
             else
-              this._revCache.set(path, response.rev);
+              revCache.set(path, response.rev);
               promise.fulfill(resp.status);
           }
         })
@@ -287,9 +290,9 @@
     'delete': function(path, options){
       console.log('dropbox.delete ', arguments);
       var promise = promising();
-
+      var revCache = this._revCache;
       //check if file has changed and return 412
-       var savedRev = this._revCache.get(path)
+       var savedRev = revCache.get(path)
       if(options.ifMatch && savedRev && (options.ifMatch != savedRev)) {
         promise.fulfill(412);
         return promise;
@@ -301,7 +304,7 @@
           promise.reject(error)
         } else {
           promise.fulfill(resp.status);
-          this._revCache.delete(path);
+          revCache.delete(path);
         }
       })
       
@@ -373,6 +376,7 @@
         callback(err, xhr);
       }.bind(this));
     },
+
     // method: fetchDelta
     //
     // this method fetches the deltas from the dropbox api, used to sync the storage
@@ -381,6 +385,7 @@
     fetchDelta: function() {
       var args = Array.prototype.slice.call(arguments);
       var promise = promising();
+      var self = this;
       this._request('POST', 'https://api.dropbox.com/1/delta', {
         body: this._deltaCursor ? ('cursor=' + encodeURIComponent(this._deltaCursor)) : '',
         headers: {
@@ -418,12 +423,12 @@
 
           // Dropbox sends the complete state
           if(delta.reset) {
-            this._revCache = new LowerCaseCache();
+            this._revCache = new LowerCaseCache('rev');
             promise.then(function(){
               var args = Array.prototype.slice.call(arguments);
-              this._revCache._activatePropagation();
+              self._revCache._activatePropagation();
               return args;
-            }.bind(this));
+            });
           }
           
           //saving the cursor for requesting further deltas in relation to the cursor position
@@ -442,8 +447,8 @@
                 return;
               rev = entry[1].rev;
             }
-            this._revCache.set(path, rev);
-          }.bind(this));
+            self._revCache.set(path, rev);
+          });
           promise.fulfill.apply(promise, args);
         }
       });
