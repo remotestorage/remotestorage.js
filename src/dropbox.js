@@ -338,6 +338,7 @@
       path = cleanPath(path);
       
       var promise = this._sharePromise(path);
+
       var revCache = this._revCache;
 
       //check if file has changed and return 412
@@ -507,6 +508,7 @@
         }
       });
     },
+
     /**
     * method: fetchDelta
     *
