@@ -21,19 +21,37 @@
 
     get: function(path) {
       var node = this._get(path);
+      var promise = promising();
       if(node) {
-        return promising().fulfill(200, node.body, node.contentType, node.revision);
+        
+        var contentType = node.contentType
+        if((! contentType) || contentType.match(/charset=binary/)) {
+          var blob = new Blob([node.body], {type: contentType});
+          var reader = new FileReader();
+          reader.addEventListener("loadend", function() {
+            // reader.result contains the contents of blob as a typed array
+            promise.fulfill(200, reader.result, contentType, node.revision);
+          });
+          reader.readAsArrayBuffer(blob)
+        } else {
+          promise.fulfill(200, node.body, node.contentType, node.revision);
+        }
       } else {
-        return promising().fulfill(404);
+        promise.fulfill(404);
       }
+      return promise;
     },
-
     put: function(path, body, contentType, incoming) {
       var oldNode = this._get(path);
+      var promise = promising().then(function(){
+        localStorage[NODES_PREFIX + path] = JSON.stringify(node);
+        return arguments
+      });
+      
       var node = {
         path: path, contentType: contentType, body: body
       };
-      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
+
       this._addToParent(path);
       this._emit('change', {
         path: path,
@@ -44,7 +62,19 @@
       if(! incoming) {
         this._recordChange(path, { action: 'PUT' });
       }
-      return promising().fulfill(200);
+
+      if(RS.WireClient.isArrayBufferView(body) || body instanceof ArrayBufer){
+        var blob = new Blob([body], {type: contentType});
+        var reader = new FileReader()
+        reader.addEventListener('loadend', function(){
+          node.body = reader.result;
+          promise.fulfill(200)
+        })
+        reader.readAsBinaryString(blob)
+      } else {
+        promise.fulfill(200)
+      }
+      return promise;
     },
 
     'delete': function(path, incoming) {
