@@ -1,5 +1,17 @@
 (function(global) {
   var RS = RemoteStorage;
+  // next steps : 
+  //  features:
+  // handle fetchDelta has_more
+  // handle files larger than 150MB
+  // 
+  //  testing:
+  // add to remotestorage browser
+  // add to sharedy
+  // maybe write tests for remote
+  //
+ 
+
   /**
    * Dropbox backend for RemoteStorage.js
    * this file exposes a get/put/delete interface which is compatible with the wireclient
@@ -18,7 +30,6 @@
    *   directories with more than 10.000 files will cause problems to list
    *   content-type is guessed by dropbox.com therefore they aren't fully supported
    *   dropbox preserves cases but not case sensitive
-   *   arayBuffers aren't supported currently 
    *
    **/
   var haveLocalStorage;
@@ -276,7 +287,7 @@
               promise.reject(e);
               return;
             }
-            mime = meta.mime_type;
+            mime = resp.getResponseHeader('Content-Type');
             rev = meta.rev;
             // TODO Depending on how we handle mimetypes we will have to change that
             // mimetypes  disabled right now
