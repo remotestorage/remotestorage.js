@@ -37,6 +37,8 @@
     }
   }
 
+  var haveLocalStorage = 'localStorage' in global;
+
   /**
    * Class: RemoteStorage
    *
@@ -62,6 +64,13 @@
     });
     this._cleanups = [];
     this._pathHandlers = { change: {}, conflict: {} };
+    this.apiKeys = {};
+    if(haveLocalStorage) {
+      try {
+        this.apiKeys = JSON.parse(localStorage['remotestorage:api-keys']);
+      } catch(exc) { /* ignored. */ };
+      this.setBackend(localStorage['remotestorage:backend'] || 'remotestorage');
+    }
 
     var origOn = this.on;
     this.on = function(eventName, handler) {
@@ -179,6 +188,17 @@
       }.bind(this));
     },
 
+    setBackend: function(what) {
+      this.backend = what;
+      if(haveLocalStorage) {
+        if(what) {
+          localStorage['remotestorage:backend'] = what;
+        } else {
+          delete localStorage['remotestorage:backend'];
+        }
+      }
+    },
+
     /**
      * Method: onChange
      *
@@ -241,6 +261,17 @@
      */
     log: function() {
       RemoteStorage.log.apply(RemoteStorage, arguments);
+    },
+
+    setApiKeys: function(type, keys) {
+      if(keys) {
+        this.apiKeys[type] = keys;
+      } else {
+        delete this.apiKeys[type];
+      }
+      if(haveLocalStorage) {
+        localStorage['remotestorage:api-keys'] = JSON.stringify(this.apiKeys);
+      }
     },
 
     /**
@@ -312,11 +343,13 @@
       // determine availability
       var features = [
         'WireClient',
+        'Dropbox',
+        'GoogleDrive',
         'Access',
         'Caching',
         'Discover',
         'Authorize',
-	      'Widget',
+	'Widget',
         'IndexedDB',
         'LocalStorage',
         'Sync',
@@ -400,7 +433,11 @@
 
     _processPending: function() {
       this._pending.forEach(function(pending) {
-        this[pending.method].apply(this, pending.args).then(pending.promise.fulfill, pending.promise.reject);
+        try {
+          this[pending.method].apply(this, pending.args).then(pending.promise.fulfill, pending.promise.reject);
+        } catch(e) {
+          pending.promise.reject(e);
+        }
       }.bind(this));
       this._pending = [];
     },
