@@ -288,6 +288,7 @@
             body = resp.responseText;
             try {
               meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') );
+              mimeType = 'application/json; charset=UTF-8'
             } catch(e) {
               promise.reject(e);
               return;
