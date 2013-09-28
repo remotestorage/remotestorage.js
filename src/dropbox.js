@@ -30,7 +30,8 @@
    *   directories with more than 10.000 files will cause problems to list
    *   content-type is guessed by dropbox.com therefore they aren't fully supported
    *   dropbox preserves cases but not case sensitive
-   *
+   *   share_urls and therfeor getItemURL is asynchronius , which means 
+   *     getItemURL returns usefull values after the syncCycle
    **/
   var haveLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
