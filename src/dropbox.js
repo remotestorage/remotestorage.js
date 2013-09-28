@@ -283,11 +283,12 @@
             body = resp.responseText;
             try {
               meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') );
+              mimeType = 'application/json; charset=UTF-8'
             } catch(e) {
               promise.reject(e);
               return;
             }
-            mime = resp.getResponseHeader('Content-Type');
+            mime = meta.mime_type//resp.getResponseHeader('Content-Type');
             rev = meta.rev;
             // TODO Depending on how we handle mimetypes we will have to change that
             // mimetypes  disabled right now
@@ -401,7 +402,7 @@
         }) // here some error handling might be cool
       }
       return promise;
-    }
+    },
     /**
      * Method : share(path)
      *   get sher_url s from dropbox and pushes those into this._hrefCache
@@ -461,12 +462,12 @@
       if(! options.headers) options.headers = {};
       options.headers['Authorization'] = 'Bearer ' + this.token;
       RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
-        // // dropbox tokens might  expire from time to time...
-        // if(xhr.status == 401) {
-        //   this.connect();
-        //   return;
-        // }
-        callback(err, xhr);
+        //503 means retry this later
+        if(xhr.status == 503) {
+          global.setTimeout(this._request(method, url, options, callback), 3210);
+        } else {
+          callback(err, xhr);
+        }
       });
     },
     /**
@@ -624,7 +625,7 @@
   };
 
   RS.Dropbox._rs_cleanup = function(rs) {
-    unHokIt(rs);
+    unHookIt(rs);
     if(haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
