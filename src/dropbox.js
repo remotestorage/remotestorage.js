@@ -398,10 +398,9 @@
       var self = this
       if(path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] == 'undefined'){
         promise.then(function(){
-          self.share(path).then(function(){
-            
+          return self.share(path).then(function(){
+            return arguments
           });
-          return arguments
         }) // here some error handling might be cool
       }
       return promise;
