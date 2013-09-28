@@ -260,8 +260,8 @@
 
         //if address not empty connect button enabled
         //TODO check if this works
-        var cb = gCl(this.div, 'connect')
-        if(cb.value)
+        var cb = gCl(this.div, 'connect');
+        if(this.form.userAddress.value)
           cb.removeAttribute('disabled');
 
         var infoEl = gCl(this.div, 'rs-info-msg');

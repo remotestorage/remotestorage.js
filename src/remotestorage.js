@@ -1,14 +1,20 @@
 (function(global) {
+  function emitUnauthorized(status){
+    if(status == 403  || status == 401) {
+      this._emit('error', new RemoteStorage.Unauthorized())
+    }
+    return arguments;
+  }
 
   var SyncedGetPutDelete = {
     get: function(path) {
       if(this.caching.cachePath(path)) {
         return this.local.get(path);
       } else {
-        return this.remote.get(path);
+        return this.remote.get(path).then(emitUnauthorized.bind(this))
       }
     },
-
+    
     put: function(path, body, contentType) {
       if(this.caching.cachePath(path)) {
         return this.local.put(path, body, contentType);
@@ -30,6 +36,7 @@
       return result.then(function() {
         var promise = promising();
         this._emit('sync-done');
+        emitUnauthorized.apply(this, arguments);
         return promise.fulfill.apply(promise, arguments);
       }.bind(this), function(err) {
         throw err;
