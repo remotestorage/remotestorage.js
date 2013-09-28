@@ -64,7 +64,7 @@
     get : function(key) {
       key = key.toLowerCase();
       var stored = this._storage[key]
-      if(!stored){
+      if(typeof stored == 'undefined'){
         stored = this.defaultValue;
         this._storage[key] = stored;
       }
@@ -314,6 +314,7 @@
      *   also shares via share(path)
      **/
     put: function(path, body, contentType, options){      
+      console.log('dropbox.put', arguments);
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
      
       var promise = this._sharePromise(path);
@@ -321,7 +322,7 @@
 
       //check if file has changed and return 412
       var savedRev = revCache.get(path)
-      if(options && options.ifMatch &&  savedRev && (savedRev != options.ifMatch) ) {
+      if(options && options.ifMatch &&  savedRev && (savedRev !== options.ifMatch) ) {
         promise.fulfill(412);
         return promise;
       }
@@ -394,10 +395,12 @@
      **/
     _sharePromise: function(path){
       var promise = promising();
-      var self = this;
-      if(!path.match(/^\/public\//) && typeof this._itemRefs[path] != 'undefined'){
+      var self = this
+      if(path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] == 'undefined'){
         promise.then(function(){
-          self.share(path);
+          self.share(path).then(function(){
+            
+          });
           return arguments
         }) // here some error handling might be cool
       }
