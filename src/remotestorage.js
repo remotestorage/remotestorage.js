@@ -391,7 +391,6 @@
      **/
 
     _setGPD: function(impl, context) {
-      console.log("setGPD", impl, context);
       function wrap(f) {
         return function() {
           return f.apply(context, arguments)
