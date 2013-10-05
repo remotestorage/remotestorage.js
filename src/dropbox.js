@@ -466,7 +466,7 @@
       options.headers['Authorization'] = 'Bearer ' + this.token;
       RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
         //503 means retry this later
-        if(xhr.status == 503) {
+        if(xhr && xhr.status == 503) {
           global.setTimeout(this._request(method, url, options, callback), 3210);
         } else {
           callback(err, xhr);
