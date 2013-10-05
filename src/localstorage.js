@@ -51,8 +51,6 @@
     }
     return taBytes;
   }
-
-
   //helper to decide if node body is binary or not
   function isBinary(contentType){
     return contentType.match(/charset=binary/);
@@ -72,17 +70,16 @@
     toArrayBuffer: base64DecToArr,
     get: function(path) {
       var node = this._get(path);
-      var promise = promising();
       if(node) {
         if(isBinary(node.contentType)){
           node.body = this.toArrayBuffer(node.body);
         }
         return promising().fulfill(200, node.body, node.contentType, node.revision);
       } else {
-        promise.fulfill(404);
+        return promising().fulfill(404);
       }
-      return promise;
     },
+
     put: function(path, body, contentType, incoming) {
       var oldNode = this._get(path);
       if(isBinary(contentType)){
@@ -91,7 +88,7 @@
       var node = {
         path: path, contentType: contentType, body: body
       };
-
+      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
       this._addToParent(path);
       this._emit('change', {
         path: path,
@@ -102,19 +99,7 @@
       if(! incoming) {
         this._recordChange(path, { action: 'PUT' });
       }
-
-      if(RS.WireClient.isArrayBufferView(body) || body instanceof ArrayBufer){
-        var blob = new Blob([body], {type: contentType});
-        var reader = new FileReader()
-        reader.addEventListener('loadend', function(){
-          node.body = reader.result;
-          promise.fulfill(200)
-        })
-        reader.readAsBinaryString(blob)
-      } else {
-        promise.fulfill(200)
-      }
-      return promise;
+      return promising().fulfill(200);
     },
 
     'delete': function(path, incoming) {
