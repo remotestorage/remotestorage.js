@@ -16,42 +16,81 @@
     }
     return node;
   }
+  
+  
+  function b64ToUint6 (nChr) {
+    return nChr > 64 && nChr < 91 ?
+      nChr - 65
+      : nChr > 96 && nChr < 123 ?
+      nChr - 71
+      : nChr > 47 && nChr < 58 ?
+      nChr + 4
+      : nChr === 43 ?
+      62
+      : nChr === 47 ?
+      63
+      :
+      0;
+  }
+
+  function base64DecToArr (sBase64, nBlocksSize) {
+    var
+    sB64Enc = sBase64.replace(/[^A-Za-z0-9\+\/]/g, ""), nInLen = sB64Enc.length,
+    nOutLen = nBlocksSize ? Math.ceil((nInLen * 3 + 1 >> 2) / nBlocksSize) * nBlocksSize : nInLen * 3 + 1 >> 2, taBytes = new Uint8Array(nOutLen);
+    
+    for (var nMod3, nMod4, nUint24 = 0, nOutIdx = 0, nInIdx = 0; nInIdx < nInLen; nInIdx++) {
+      nMod4 = nInIdx & 3;
+      nUint24 |= b64ToUint6(sB64Enc.charCodeAt(nInIdx)) << 18 - 6 * nMod4;
+      if (nMod4 === 3 || nInLen - nInIdx === 1) {
+        for (nMod3 = 0; nMod3 < 3 && nOutIdx < nOutLen; nMod3++, nOutIdx++) {
+          taBytes[nOutIdx] = nUint24 >>> (16 >>> nMod3 & 24) & 255;
+        }
+        nUint24 = 0;
+        
+      }
+    }
+    return taBytes;
+  }
+
+
+  //helper to decide if node body is binary or not
+  function isBinary(node){
+    return node.match(/charset=binary/);
+  }
 
   RemoteStorage.LocalStorage.prototype = {
-
+    toBase64: function(data){
+      var arr = new Uint8Array(data);
+      var str = ''
+      for(var i = 0; i < arr.length; i++) {
+        //atob(btoa(String.fromCharCode(arr[0]))).charCodeAt(0)
+        str+=String.fromCharCode(arr[i]);
+      }
+      return btoa(str);
+      
+    },
+    toArrayBuffer: base64DecToArr,
     get: function(path) {
       var node = this._get(path);
-      var promise = promising();
       if(node) {
-        
-        var contentType = node.contentType
-        if((! contentType) || contentType.match(/charset=binary/)) {
-          var blob = new Blob([node.body], {type: contentType});
-          var reader = new FileReader();
-          reader.addEventListener("loadend", function() {
-            // reader.result contains the contents of blob as a typed array
-            promise.fulfill(200, reader.result, contentType, node.revision);
-          });
-          reader.readAsArrayBuffer(blob)
-        } else {
-          promise.fulfill(200, node.body, node.contentType, node.revision);
+        if(isBinary(node.contentType)){
+          node.body = this.toArrayBuffer(node.body);
         }
+        return promising().fulfill(200, node.body, node.contentType, node.revision);
       } else {
-        promise.fulfill(404);
+        return promising().fulfill(404);
       }
-      return promise;
     },
+
     put: function(path, body, contentType, incoming) {
       var oldNode = this._get(path);
-      var promise = promising().then(function(){
-        localStorage[NODES_PREFIX + path] = JSON.stringify(node);
-        return arguments
-      });
-      
+      if(isBinary(contentType)){
+        body = this.toBase64(body);
+      }
       var node = {
         path: path, contentType: contentType, body: body
       };
-
+      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
       this._addToParent(path);
       this._emit('change', {
         path: path,
@@ -62,19 +101,7 @@
       if(! incoming) {
         this._recordChange(path, { action: 'PUT' });
       }
-
-      if(RS.WireClient.isArrayBufferView(body) || body instanceof ArrayBufer){
-        var blob = new Blob([body], {type: contentType});
-        var reader = new FileReader()
-        reader.addEventListener('loadend', function(){
-          node.body = reader.result;
-          promise.fulfill(200)
-        })
-        reader.readAsBinaryString(blob)
-      } else {
-        promise.fulfill(200)
-      }
-      return promise;
+      return promising().fulfill(200);
     },
 
     'delete': function(path, incoming) {
