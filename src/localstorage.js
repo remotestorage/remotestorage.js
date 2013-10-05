@@ -32,7 +32,6 @@
       :
       0;
   }
-
   function base64DecToArr (sBase64, nBlocksSize) {
     var
     sB64Enc = sBase64.replace(/[^A-Za-z0-9\+\/]/g, ""), nInLen = sB64Enc.length,
@@ -54,8 +53,8 @@
 
 
   //helper to decide if node body is binary or not
-  function isBinary(contentType){
-    return contentType.match(/charset=binary/);
+  function isBinary(node){
+    return node.match(/charset=binary/);
   }
 
   RemoteStorage.LocalStorage.prototype = {
@@ -72,32 +71,25 @@
     toArrayBuffer: base64DecToArr,
     get: function(path) {
       var node = this._get(path);
-      var promise = promising();
       if(node) {
         if(isBinary(node.contentType)){
           node.body = this.toArrayBuffer(node.body);
         }
         return promising().fulfill(200, node.body, node.contentType, node.revision);
       } else {
-        promise.fulfill(404);
+        return promising().fulfill(404);
       }
-      return promise;
     },
+
     put: function(path, body, contentType, incoming) {
       var oldNode = this._get(path);
       if(isBinary(contentType)){
         body = this.toBase64(body);
       }
-      var promise = promising().then(function(){
-        localStorage[NODES_PREFIX + path] = JSON.stringify(node);
-        return arguments
-      });
-      
->>>>>>> localstorage.js arraybuffers unshure about this
       var node = {
         path: path, contentType: contentType, body: body
       };
-
+      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
       this._addToParent(path);
       this._emit('change', {
         path: path,
@@ -108,19 +100,7 @@
       if(! incoming) {
         this._recordChange(path, { action: 'PUT' });
       }
-
-      if(RS.WireClient.isArrayBufferView(body) || body instanceof ArrayBufer){
-        var blob = new Blob([body], {type: contentType});
-        var reader = new FileReader()
-        reader.addEventListener('loadend', function(){
-          node.body = reader.result;
-          promise.fulfill(200)
-        })
-        reader.readAsBinaryString(blob)
-      } else {
-        promise.fulfill(200)
-      }
-      return promise;
+      return promising().fulfill(200);
     },
    get: function(path) {
       var node = this._get(path);
