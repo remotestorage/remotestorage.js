@@ -183,8 +183,8 @@
      **/
     configure: function(userAddress, href, storageApi, token) {
       console.log('dropbox configure',arguments);
-      if(typeof(token) !== 'undefined') this.token = token;
-      if(typeof(useradress) !== 'undefined') this.userAddress = userAddress;
+      if(typeof token !== 'undefined') this.token = token;
+      if(typeof userAddress !== 'undefined') this.userAddress = userAddress;
 
       if(this.token){
         this.connected = true;
@@ -253,6 +253,7 @@
      **/
     get: function(path, options){
       console.log('dropbox.get', arguments);
+      if(! this.connected) throw new Error("not connected (path: " + path + ")");
       var url = 'https://api-content.dropbox.com/1/files/auto' + path
       var promise = this._sharePromise(path)
       
@@ -363,6 +364,7 @@
      **/
     'delete': function(path, options){
       console.log('dropbox.delete ', arguments);
+      if(! this.connected) throw new Error("not connected (path: " + path + ")");
       var promise = promising();
       var revCache = this._revCache;
       //check if file has changed and return 412
