@@ -7,6 +7,33 @@ define([], function() {
 
   var consoleLog, fakeLogs;
 
+  function FakeRemote(){
+    this.connected = true;
+    RemoteStorage.eventHandling(this, 'connected', 'disconnected');
+  }
+
+  function fakeRequest(path){
+    var promise = promising();
+    console.log('GET CALLED')
+    if(path == '/testing403')
+        promise.fulfill(403);
+    else
+        promise.fulfill(200);
+    return promise;
+  }
+  FakeRemote.prototype = {
+    get: fakeRequest,
+    put: fakeRequest,
+    delete: fakeRequest
+  }
+
+  function FakeLocal(){
+    
+  }
+  FakeLocal.prototype = {
+    fireInitial: function(){/*ignore*/}
+  }
+
   function fakeConsoleLog() {
     fakeLogs.push(Array.prototype.slice.call(arguments));
   }
@@ -29,6 +56,86 @@ define([], function() {
     var expected = Array.prototype.slice.call(arguments, 1);
     test.assert(fakeLogs[0], expected);
   }
+
+  suites.push({
+    name: "remoteStorage",
+    desc: "the RemoteStorage instance",
+    setup:  function(env, test) {
+      require('./src/remotestorage');
+      require('./src/eventhandling');
+      require('./lib/promising')
+      RemoteStorage.prototype.remote = new FakeRemote();
+      //RemoteStorage.prototype.local = new FakeLocal();
+      test.done();
+    },
+    beforeEach: function(env, test) {
+      remoteStorage = new RemoteStorage();
+      //remoteStorage._emit('ready');
+      env.rs = remoteStorage;
+      test.done()
+    },   
+    tests: [ 
+      {
+        desc: "#get emiting error RemoteStorage.Unauthorized on 403",
+        run: function(env, test) {
+          var success = false;
+          env.rs.on('error', function(e) {
+            if(e instanceof RemoteStorage.Unauthorized)
+              success = true;
+          });
+          env.rs.get('/testing403').then(function(status){
+            test.assert(success, true);
+          });
+        }
+      },    
+      {
+        desc: "#put emiting error RemoteStorage.Unauthorized on 403",
+        run: function(env, test) {
+          var success = false;
+          env.rs.on('error', function(e) {
+            if(e instanceof RemoteStorage.Unauthorized)
+              success = true;
+          })
+          env.rs.put('/testing403').then(function(status){
+            console.log("GET RETURNED  :  ",status)
+            test.assert(success, true);
+          });
+        }
+      },    
+      {
+        desc: "#delete emiting error RemoteStorage.Unauthorized on 403",
+        run: function(env, test) {
+          var success = false;
+          env.rs.on('error', function(e) {
+            if(e instanceof RemoteStorage.Unauthorized)
+              success = true;
+          })
+          env.rs.delete('/testing403').then(function(status){
+            console.log("GET RETURNED  :  ",status)
+            test.assert(success, true);
+          });
+        }
+      },
+      {
+        desc: "#get #put #delete not emmitting Error when getting 200",
+        run: function(env, test) {
+          var success = true;
+          env.rs.on('error', function(e) {
+            success = false
+          })
+          env.rs.get('/testing200').then(function() {
+            test.assert(success, true);
+          });
+          env.rs.put('/testing200').then(function() {
+            test.assert(success, true);
+          });
+          env.rs.delete('/testing200').then(function() {
+            test.assert(success, true);
+          });
+        }
+      }
+    ]
+  });
 
   suites.push({
     name: "RemoteStorage",
@@ -83,7 +190,6 @@ define([], function() {
           restoreConsoleLog();
         }
       }
-
     ]
   });
 

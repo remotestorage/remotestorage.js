@@ -11,7 +11,7 @@
       if(this.caching.cachePath(path)) {
         return this.local.get(path);
       } else {
-        return this.remote.get(path).then(emitUnauthorized.bind(this))
+        return this.remote.get(path);
       }
     },
     
@@ -36,7 +36,6 @@
       return result.then(function() {
         var promise = promising();
         this._emit('sync-done');
-        emitUnauthorized.apply(this, arguments);
         return promise.fulfill.apply(promise, arguments);
       }.bind(this), function(err) {
         throw err;
@@ -414,6 +413,10 @@
           cb();
         }
       });
+      if(features.length==0) {
+        self.log("[NO FEATURES DETECTED] done");
+        callback.apply(self, [[]]);
+      }
     },
 
     /**
@@ -421,9 +424,15 @@
      **/
 
     _setGPD: function(impl, context) {
-      this.get = impl.get.bind(context);
-      this.put = impl.put.bind(context);
-      this.delete = impl.delete.bind(context);
+      function wrap(f) {
+        return function() {
+          return f.apply(context, arguments)
+            .then(emitUnauthorized.bind(this))
+        }
+      };
+      this.get = wrap(impl.get);
+      this.put = wrap(impl.put);
+      this.delete = wrap(impl.delete);
     },
 
     _pendingGPD: function(methodName) {
