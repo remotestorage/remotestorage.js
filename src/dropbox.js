@@ -282,33 +282,49 @@
         } else {
           var status = resp.status;
           var meta, body, mime, rev;
-          if(status == 200){
+          if(status == 404){
+            promise.fulfill(404);
+          } else if(status == 200){
             body = resp.responseText;
             try {
               meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') );
-              mimeType = 'application/json; charset=UTF-8'
             } catch(e) {
               promise.reject(e);
               return;
             }
             mime = meta.mime_type//resp.getResponseHeader('Content-Type');
             rev = meta.rev;
-            // TODO Depending on how we handle mimetypes we will have to change that
-            // mimetypes  disabled right now
-            // TODO handling binary data
-            if(mime.search('application/json') >= 0 || true) {
-              try {
-                body = JSON.parse(body);
-              } catch(e) {
-                this.rs.log("Failed parsing Json, assume it is something else then",e,e.stack,e.body);
-              }
-            }
             this._revCache.set(path, rev);
+            
+            // handling binary
+            if((! resp.getResponseHeader('Content-Type') ) || resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
+              var blob = new Blob([resp.response], {type: mime});
+              var reader = new FileReader();
+              reader.addEventListener("loadend", function() {
+                // reader.result contains the contents of blob as a typed array
+                promise.fulfill(status, reader.result, mime, rev);
+              });
+              reader.readAsArrayBuffer(blob);
+
+            } else {
+              // handling json (always try)
+              if(mime && mime.search('application/json') >= 0 || true) {
+                try {
+                  body = JSON.parse(body);
+                  mime = 'application/json; charset=UTF-8'
+                } catch(e) {
+                  RS.log("Failed parsing Json, assume it is something else then", mime, path); 
+                }
+              }
+              promise.fulfill(status, body, mime, rev);
+            }
+          
+          } else {
+            promise.fulfill(status);
           }
-          promise.fulfill(status, body, mime, rev);
         }
       });
-      return promise
+      return promise;
     },
     /** 
      * Method : put(path, body, contentType, options)
@@ -413,7 +429,7 @@
             console.log('shareing fullfilled promise',arguments);
             return p.fulfill(p,args);
           }, function(err){
-            this.rs.log("sharing failed" , err);
+            RS.log("sharing failed" , err);
             return p.fulfill.apply(p,args);
           });
         });
@@ -526,7 +542,7 @@
           try {
             var delta = JSON.parse(response.responseText);
           } catch(error) {
-            rs.log('fetchDeltas can not parse response',error)
+            RS.log('fetchDeltas can not parse response',error)
             return promise.reject("can not parse response of fetchDelta : "+error.message);
           }
           // break if no entries found
