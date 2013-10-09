@@ -85,6 +85,7 @@ define([], function() {
           });
           env.rs.get('/testing403').then(function(status){
             test.assert(success, true);
+            test.assert(status, 403);
           });
         }
       },    
@@ -97,7 +98,6 @@ define([], function() {
               success = true;
           })
           env.rs.put('/testing403').then(function(status){
-            console.log("GET RETURNED  :  ",status)
             test.assert(success, true);
           });
         }
@@ -111,7 +111,6 @@ define([], function() {
               success = true;
           })
           env.rs.delete('/testing403').then(function(status){
-            console.log("GET RETURNED  :  ",status)
             test.assert(success, true);
           });
         }
