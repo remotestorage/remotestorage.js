@@ -3,7 +3,8 @@
     if(status == 403  || status == 401) {
       this._emit('error', new RemoteStorage.Unauthorized())
     }
-    return arguments;
+    var p = promising();
+    return p.fulfill.apply(p, arguments);
   }
 
   var SyncedGetPutDelete = {
