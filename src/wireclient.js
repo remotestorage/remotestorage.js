@@ -271,6 +271,8 @@
 
   };
 
+  //shared cleanPath used by Dropbox
+  RS.WireClient.cleanPath = cleanPath;
   //shared isArrayBufferView used by WireClient and Dropbox
   RS.WireClient.isArrayBufferView = isArrayBufferView;
   // shared request function used by WireClient, GoogleDrive and Dropbox.

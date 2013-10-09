@@ -36,7 +36,7 @@
   var haveLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
   var SETTINGS_KEY = 'remotestorage:dropbox';
-
+  var cleanPath = RS.WireClient.cleanPath
   /*************************
    * LowerCaseCache
    * this Cache will lowercase it's keys 
@@ -188,7 +188,7 @@
 
       if(this.token){
         this.connected = true;
-        if( !this.useradress ){
+        if( !this.userAddress ){
           this.info().then(function(info){
             this.userAddress = info.display_name;
             //FIXME propagate this to the view
@@ -254,6 +254,7 @@
     get: function(path, options){
       console.log('dropbox.get', arguments);
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
+      path = cleanPath(path);
       var url = 'https://api-content.dropbox.com/1/files/auto' + path
       var promise = this._sharePromise(path)
       
@@ -318,7 +319,8 @@
     put: function(path, body, contentType, options){      
       console.log('dropbox.put', arguments);
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
-     
+      path = cleanPath(path);
+      
       var promise = this._sharePromise(path);
       var revCache = this._revCache;
 
@@ -331,8 +333,8 @@
       if(! contentType.match(/charset=/)) {
         contentType += '; charset=' + ((body instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(body)) ? 'binary' : 'utf-8');
       }
-      var url = 'https://api-content.dropbox.com/1/files_put/auto/' + path + '?'
-      if(options.ifMatch) {
+      var url = 'https://api-content.dropbox.com/1/files_put/auto' + path + '?'
+      if(options && options.ifMatch) {
         url += "parent_rev="+encodeURIComponent(options.ifMatch)
       }
       if(body.length>150*1024*1024){ //FIXME actual content-length
@@ -348,7 +350,7 @@
             // TODO find out which stays the origianl and how to deal with this
             if(response.path != path){
               promise.fulfill(412);
-              rs.log('Dropbox created conflicting File ', response.path)
+              this.rs.log('Dropbox created conflicting File ', response.path)
             }
             else
               revCache.set(path, response.rev);
@@ -356,7 +358,7 @@
           }
         })
       }
-      return promise
+      return promise;
     },
     /**
      * Method : delete(path, options)
@@ -365,6 +367,8 @@
     'delete': function(path, options){
       console.log('dropbox.delete ', arguments);
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
+      path = cleanPath(path);
+      
       var promise = promising();
       var revCache = this._revCache;
       //check if file has changed and return 412
@@ -385,8 +389,10 @@
       })
       
       return promise.then(function(){
+        var args = Array.prototype.slice.call(arguments);
         delete this._itemRefs[path]
-        return arguments;
+        var p = promising();
+        return p.fulfill.apply(p, args);
       }.bind(this))
     },
     /**
@@ -401,10 +407,16 @@
       var self = this
       if(path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] == 'undefined'){
         promise.then(function(){
+          var args = Array.prototype.slice.call(arguments);
+          var p = promising()
           return self.share(path).then(function(){
-            return arguments
+            console.log('shareing fullfilled promise',arguments);
+            return p.fulfill(p,args);
+          }, function(err){
+            this.rs.log("sharing failed" , err);
+            return p.fulfill.apply(p,args);
           });
-        }) // here some error handling might be cool
+        });
       }
       return promise;
     },
@@ -426,18 +438,20 @@
           promise.reject(err)
         } else {
           try{
-            promise.fulfill( JSON.parse(resp.responseText).url );
+            var response = JSON.parse(resp.responseText)
+            var url = response.url;
             itemRefs[path] = url;
+            console.log("SHAREING URL :::: ",url,' for ',path);
             if(haveLocalStorage)
               localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
-            console.log(resp)
+            promise.fulfill(url);
           }catch(e) {
             err.message += "share error"
             promise.reject(err);
           }
         }
       });
-      return promise
+      return promise;
     },
 
     /**
@@ -578,7 +592,7 @@
 
   function hookGetItemURL(rs) {
     if(rs._origBaseClientGetItemURL)
-      retrun;
+      return;
     rs._origBaseClientGetItemURL = RS.BaseClient.prototype.getItemURL;
     RS.BaseClient.prototype.getItemURL = function(path){
       var ret = rs.dropbox._itemRefs[path];
