@@ -138,6 +138,10 @@
     border-top: 1px solid #111;
     border-bottom: 1px solid #999;
 }
+#remotestorage-widget form input[type=email]:focus {
+    background: #223;
+}
+
 #remotestorage-widget button:focus,
 #remotestorage-widget input:focus {
     box-shadow: 0 0 4px #ccc;
