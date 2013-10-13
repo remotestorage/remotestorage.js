@@ -36,7 +36,7 @@ define(['requirejs'], function(requirejs, undefined) {
       test.done();
     },
     tests: [
-/*      {
+      {
         desc: "it takes a storage object and base path",
         run: function(env, test) {
           var storage = new RemoteStorage;
@@ -94,7 +94,7 @@ define(['requirejs'], function(requirejs, undefined) {
           client.on('conflict', function() {});
           test.done();
         }
-      }*/
+      }
     ]
   });
 
@@ -121,7 +121,7 @@ define(['requirejs'], function(requirejs, undefined) {
     },
 
     tests: [
-/*      {
+      {
         desc: "#getListing performs a 'get' request",
         run: function(env, test) {
           env.storage.get = function(path) {
@@ -292,12 +292,13 @@ define(['requirejs'], function(requirejs, undefined) {
           env.client.cache('bar/', false);
           test.assertType(env.storage.caching.enabled['/foo/bar/'], 'undefined');
         }
-      }*/
+      },
+
       {
         desc: "test storeFile",
         run: function(env, test) {
           env.storage.put = function(path, body, contentType, incoming) {
-            test.assertAnd(path, '/foo/foo/bar');
+            test.assertAnd(path, '/foo/foo/bar', 'path is '+path+' not /foo/foo/bar');
             test.assertAnd(body, 'abc');
             test.assertType(incoming, 'undefined');
             test.result(true);

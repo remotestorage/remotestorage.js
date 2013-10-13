@@ -54,8 +54,8 @@
 
 
   //helper to decide if node body is binary or not
-  function isBinary(node){
-    return node.match(/charset=binary/);
+  function isBinary(contentType){
+    return contentType.match(/charset=binary/);
   }
 
   RemoteStorage.LocalStorage.prototype = {

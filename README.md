@@ -36,3 +36,7 @@ There are a number of different builds available:
 * <kbd>remotestorage.min.js</kbd> - Minified version of remotestorage.js
 * <kbd>remotestorage-nocache.js</kbd> - Contains a version of remotestorage.js without any caching features included. Use this if you want your app to write directly to the remote server **without caching** any data in the browser's storage (localStorage or indexedDB).
 * <kbd>remotestorage-nocache.amd.js</kbd>, <kbd>remotestorage-nocache.min.js</kbd> - same as the other .amd / .min build, but based on remotestorage-nocache.js.
+
+### Contributors
+
+To build everything after you made a change to the source, run `make all` and copy the docs to the `gh-pages` branch of https://github.com/remotestorage/remotestorage.io

@@ -127,6 +127,9 @@
     cursor: default !important;
 }
 
+#remotestorage-widget form input[type=email]:focus {
+    background: #223;
+}
 #remotestorage-widget form input[type=email] {
     background: #000;
     width: 100%;
