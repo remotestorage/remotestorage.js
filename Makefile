@@ -24,7 +24,7 @@ help:
 	@echo "compile-assets - compile $(ASSETS_DIR)/* into $(ASSETS_OUT)"
 	@echo "clean          - remove all builds and editor swapfiles"
 
-all: build build-amd minify build-nocache
+all: build build-amd minify build-nocache doc
 build-all: all
 minify: remotestorage.min.js
 build: remotestorage.js
