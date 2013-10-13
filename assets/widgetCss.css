@@ -48,7 +48,7 @@
 }
 
 #remotestorage-widget .rs-bubble-text {
-    padding-right: 32px;
+    padding-right: 105px;
     /* make sure the bubble doesn't "jump" when initially opening. */
     min-width: 182px;
 }
@@ -71,6 +71,12 @@
 #remotestorage-widget.remotestorage-state-busy:hover .rs-cube,
 #remotestorage-widget.remotestorage-state-connected .rs-bubble:not(.rs-hidden) + .rs-cube {
 	opacity:1 !important;
+}
+
+#remotestorage-widget .rs-backends {
+    position: relative;
+    top: 5px;
+    right: 0;
 }
 
 #remotestorage-widget .rs-cube {

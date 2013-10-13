@@ -21,7 +21,10 @@
     "src/baseclient.js": "A high-level client, scoped to a path",
     "src/baseclient/types.js": "Type / schema handling, validations",
     "src/assets.js": "Icons, CSS and HTML templates for the widget",
-    "src/legacy.js": "..."
+    "src/legacy.js": "...",
+
+    "src/googledrive.js": "Backend to talk to googledrive",
+    "src/dropbox.js": "Backend to talk to dropbox"
   },
   "groups": {
     "core": {
@@ -81,6 +84,22 @@
       ],
       "default": true,
       "depends": ["core", "baseclient"]
+    },
+    "googledrive": {
+      "label": "GoogleDrive",
+      "desc": "GoogleDrive synchronization",
+      "files": [
+        "src/googledrive.js"
+      ],
+      "depends": ["core"]
+    },
+    "dropbox": {
+      "label": "Dropbox",
+      "desc": "Dropbox synchronization",
+      "files": [
+        "src/dropbox.js"
+      ],
+      "depends": ["core"]
     },
     "debug": {
       "label": "Debug",
