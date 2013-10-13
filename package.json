@@ -1,7 +1,7 @@
 {
   "name": "remotestoragejs",
   "desc": "a client side javascript library for the remotestorage protocol",
-  "version": "0.8.0-rc2",
+  "version": "0.8.2",
   "private": false,
   "license": "AGPL or MIT",
   "repository": {
