@@ -311,7 +311,7 @@ exports.server = (function() {
         return false;
       }
     } else if(cond.ifNoneMatch && version[path]) {//or a comma-separated list of etags
-      if(cond.ifNoneMatch.split(',').indexOf(version[path])!=-1) {
+      if(cond.ifNoneMatch.split(',').indexOf(String(version[path]))!=-1) {
         return false;
       }
     }
@@ -349,12 +349,12 @@ exports.server = (function() {
       } else {
         if(content[path]) {
           if(path.substr(-1)=='/') {
-            writeJson(res, content[path], req.headers.origin, 0, cond);
+            writeJson(res, content[path], req.headers.origin, version[path], cond);
           } else {
             writeRaw(res, contentType[path], content[path], req.headers.origin, version[path], cond);
           }
         } else {
-          if(path.substr(-1)=='/') {
+          if(path.substr(-1) == '/' && path.split('/').length == 2) {
             writeJson(res, {}, req.headers.origin, 0, cond);
           } else {
             give404(res, req.headers.origin);
@@ -363,7 +363,9 @@ exports.server = (function() {
       }
     } else if(req.method=='PUT') {
       log('PUT');
-      if(!mayWrite(req.headers.authorization, path)) {
+      if(path.substr(-1)=='/') {
+        computerSaysNo(res, req.headers.origin, 400);
+      } else if(!mayWrite(req.headers.authorization, path)) {
         computerSaysNo(res, req.headers.origin, 401);
       } else if(!condMet(cond, path)) {
         computerSaysNo(res, req.headers.origin, 412, version[path]);
@@ -381,7 +383,6 @@ exports.server = (function() {
           version[path]=timestamp;
           saveData();
           var pathParts=path.split('/');
-          var timestamp=new Date().getTime();
           log(pathParts);
           var fileItself=true;
           while(pathParts.length > 1) {
@@ -395,6 +396,7 @@ exports.server = (function() {
               content[pathParts.join('/')+'/'] = {};
             }
             content[pathParts.join('/')+'/'][thisPart]=timestamp;
+            version[pathParts.join('/')+'/'] = timestamp;
             // log('stored parent '+pathParts.join('/')+'/ ['+thisPart+']='+timestamp, content[pathParts.join('/')+'/']);
           }
           // log('content:', content);
@@ -405,21 +407,36 @@ exports.server = (function() {
       }
     } else if(req.method=='DELETE') {
       log('DELETE');
-      if(!mayWrite(req.headers.authorization, path)) {
+      if(path.substr(-1)=='/') {
+        computerSaysNo(res, req.headers.origin, 400);
+      } else if(!mayWrite(req.headers.authorization, path)) {
         computerSaysNo(res, req.headers.origin, 401);
       } else if(!condMet(cond, path)) {
         computerSaysNo(res, req.headers.origin, 412, version[timestamp]);
+      } else if(typeof(content[path]) == 'undefined') {
+        computerSaysNo(res, req.headers.origin, 404);
       } else {
-        var timestamp = new Date().getTime();
+        var timestamp = version[path]
         delete content[path];
         delete contentType[path];
-        version[path]=timestamp;
+        delete version[path];
         saveData();
         var pathParts=path.split('/');
         var thisPart = pathParts.pop();
-        if(content[pathParts.join('/')+'/']) {
-          log('delete content['+pathParts.join('/')+'/]['+thisPart+']');
-          delete content[pathParts.join('/')+'/'][thisPart];
+        while(1) {
+          var parentPath = pathParts.join('/') + '/';
+          var parentListing = content[parentPath];
+          log('delete content[' + parentPath + ']['+thisPart+']');
+          delete parentListing[thisPart];
+          if(Object.keys(parentListing).length != 0 ||
+             pathParts.length == 1) {
+            version[parentPath] = new Date().getTime();
+            break;
+          } else {
+            delete content[parentPath];
+            delete version[parentPath];
+            thisPart = pathParts.pop() + '/';
+          }
         }
         log(content);
         writeJson(res, null, req.headers.origin, timestamp);
@@ -456,11 +473,14 @@ exports.server = (function() {
     }
   }
 
-  resetState();
-  loadData();
-  createInitialTokens();
+  function init() {
+    resetState();
+    loadData();
+    createInitialTokens();
+  }
 
   return {
+    init: init,
     serve: serve,
     getState: getState,
     resetState: resetState,
@@ -481,6 +501,7 @@ exports.server = (function() {
 if((!amd) && (require.main==module)) {//if this file is directly called from the CLI
   config = require('./config').config;
   dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
+  exports.server.init();
   require('https').createServer({
     key: fs.readFileSync(config.ssl.key),
     cert: fs.readFileSync(config.ssl.cert),

@@ -126,7 +126,7 @@
 
   function cleanPath(path) {
     // strip duplicate slashes.
-    return path.replace(/\/+/g, '/');
+    return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
 
   RS.WireClient = function(rs) {
@@ -308,4 +308,4 @@
   }
 
 
-})(this);
+})(typeof(window) !== 'undefined' ? window : global);

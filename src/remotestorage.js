@@ -1,4 +1,11 @@
 (function(global) {
+  function emitUnauthorized(status){
+    if(status == 403  || status == 401) {
+      this._emit('error', new RemoteStorage.Unauthorized())
+    }
+    var p = promising();
+    return p.fulfill.apply(p, arguments);
+  }
 
   var SyncedGetPutDelete = {
     get: function(path) {
@@ -8,7 +15,7 @@
         return this.remote.get(path);
       }
     },
-
+    
     put: function(path, body, contentType) {
       if(this.caching.cachePath(path)) {
         return this.local.put(path, body, contentType);
@@ -374,6 +381,10 @@
           cb();
         }
       });
+      if(features.length==0) {
+        self.log("[NO FEATURES DETECTED] done");
+        callback.apply(self, [[]]);
+      }
     },
 
     /**
@@ -381,9 +392,15 @@
      **/
 
     _setGPD: function(impl, context) {
-      this.get = impl.get.bind(context);
-      this.put = impl.put.bind(context);
-      this.delete = impl.delete.bind(context);
+      function wrap(f) {
+        return function() {
+          return f.apply(context, arguments)
+            .then(emitUnauthorized.bind(this))
+        }
+      };
+      this.get = wrap(impl.get);
+      this.put = wrap(impl.put);
+      this.delete = wrap(impl.delete);
     },
 
     _pendingGPD: function(methodName) {
@@ -492,4 +509,4 @@
 
   global.RemoteStorage = RemoteStorage;
 
-})(this);
+})(typeof(window) !== 'undefined' ? window : global);

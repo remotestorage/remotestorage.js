@@ -158,4 +158,4 @@
 
   RemoteStorage.Access._rs_init = function() {};
 
-})(this);
+})(typeof(window) !== 'undefined' ? window : global);

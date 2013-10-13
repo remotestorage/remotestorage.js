@@ -44,7 +44,7 @@
       "files": [
         "src/assets.js",
         "src/widget.js",
-	"src/view.js"
+	      "src/view.js"
       ],
       "default": true,
       "depends": ["core"]

@@ -25,7 +25,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         }
       };
 
-      global.document = { location: { hash: '' } };
+      global.document = { location: { href: 'http://foo/bar' } };
       test.done();
     },
 
@@ -39,7 +39,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "_rs_init removes params from the fragment",
         run: function(env, test) {
-          document.location.hash = '#foo=bar';
+          document.location.href = 'http://foo/bar#foo=bar';
           RemoteStorage.Authorize._rs_init(new RemoteStorage);
           test.assert(document.location.hash, '');
         }
@@ -58,7 +58,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "the 'features-loaded' handler configures the WireClient if it sees an access token",
         run: function(env, test) {
           var storage = new RemoteStorage;
-          document.location.hash = '#access_token=my-token';
+          document.location.href = 'http://foo/bar#access_token=my-token';
           RemoteStorage.Authorize._rs_init(storage);
           storage.remote = {
             configure: function(userAddress, href, type, token) {
@@ -73,7 +73,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "the 'features-loaded' handler initiates a connection attempt, when it sees a user address",
         run: function(env, test) {
           var storage = new RemoteStorage;
-          document.location.hash = '#remotestorage=nil%40heahdk.net';
+          document.location.href = 'http://foo/bar#remotestorage=nil%40heahdk.net';
           RemoteStorage.Authorize._rs_init(storage);
           storage.connect = function(userAddress) {
             test.assert(userAddress, 'nil@heahdk.net');

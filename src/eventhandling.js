@@ -96,4 +96,4 @@
       object._addEvent(eventName);
     });
   };
-})(this);
+})(typeof(window) !== 'undefined' ? window : global);
