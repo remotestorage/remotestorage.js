@@ -1,4 +1,5 @@
 RemoteStorage.defineModule('notes', function(privateClient, publicClient) {
+  privateClient.cache('');
   return {
     exports: {
       setNote: function (text) {
