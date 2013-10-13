@@ -1,0 +1,18 @@
+<html>
+  <body></body>
+  <script src="release/0.8.1/remotestorage.js"></script>
+  <script>
+    RemoteStorage.defineModule('test', function(privC, pubC) {
+      return {
+        exports: {
+          test: function() {
+            privC.storeFile('test', 'A%2FB', 'test');
+          }
+        }
+      };
+    });
+    remoteStorage.displayWidget();
+    remoteStorage.access.claim('test', 'rw');
+    remoteStorage.test.test();
+  </script>
+</html>
