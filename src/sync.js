@@ -90,7 +90,7 @@
       local.delete(path, true).then(promise.fulfill, promise.reject);
     }
   }
- 
+
   function synchronize(remote, local, path, options) {
     var promise = promising();
     local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
@@ -120,7 +120,7 @@
           // do nothing.
           promise.fulfill();
         }
-      }).then(undefined, promise.reject);
+      }, promise.fulfill).then(undefined, promise.reject);
     }).then(undefined, promise.reject);
     return promise;
   }
