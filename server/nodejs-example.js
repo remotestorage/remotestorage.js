@@ -502,10 +502,13 @@ if((!amd) && (require.main==module)) {//if this file is directly called from the
   config = require('./config').config;
   dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
   exports.server.init();
-  require('https').createServer({
-    key: fs.readFileSync(config.ssl.key),
-    cert: fs.readFileSync(config.ssl.cert),
-  }, exports.server.serve).listen(config.port);
+  var server;
+  if(config.protocol == 'https') {
+    server = require('https').createServer(config.ssl, exports.server.serve);
+  } else {
+    server = require('http').createServer(exports.server.serve);
+  }
+  server.listen(config.port)
   console.log("Example server started on 0.0.0.0:" + config.port);
 }
 
