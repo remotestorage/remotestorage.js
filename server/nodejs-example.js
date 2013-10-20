@@ -504,12 +504,17 @@ if((!amd) && (require.main==module)) {//if this file is directly called from the
   exports.server.init();
   var server;
   if(config.protocol == 'https') {
-    server = require('https').createServer(config.ssl, exports.server.serve);
+    var ssl = {};
+    for(var k in config.ssl){
+      ssl[k] = fs.readFileSync(config.ssl[k])
+    }
+    server = require('https').createServer(ssl, exports.server.serve);
   } else {
     server = require('http').createServer(exports.server.serve);
   }
-  server.listen(config.port)
-  console.log("Example server started on 0.0.0.0:" + config.port);
+  server.listen(config.port, function(){
+    console.log("Example server started on 0.0.0.0:" + config.port);
+  })
 }
 
 if(amd) {
