@@ -120,7 +120,7 @@
           // do nothing.
           promise.fulfill();
         }
-      }, promise.fulfill).then(undefined, promise.reject);
+      }, promise.reject).then(undefined, promise.reject);
     }).then(undefined, promise.reject);
     return promise;
   }
