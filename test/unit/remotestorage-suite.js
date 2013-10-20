@@ -64,6 +64,12 @@ define([], function() {
       require('./src/remotestorage');
       require('./src/eventhandling');
       require('./lib/promising')
+      if(global.rs_eventhandling) {
+        RemoteStorage.eventHandling = global.rs_eventhandling;
+      } else {
+        global.rs_eventhandling = RemoteStorage.eventHandling;
+      }
+
       RemoteStorage.prototype.remote = new FakeRemote();
       //RemoteStorage.prototype.local = new FakeLocal();
       test.done();
@@ -84,8 +90,9 @@ define([], function() {
               success = true;
           });
           env.rs.get('/testing403').then(function(status){
-            test.assert(success, true);
-            test.assert(status, 403);
+            test.assertAnd(status, 403);
+            test.assertAnd(success, true);
+            test.done();
           });
         }
       },    
@@ -119,17 +126,26 @@ define([], function() {
         desc: "#get #put #delete not emmitting Error when getting 200",
         run: function(env, test) {
           var success = true;
+          var c = 0;
+          function test_done(){
+            c+=1
+            if(c==3)
+              test.done();
+          }
           env.rs.on('error', function(e) {
             success = false
           })
           env.rs.get('/testing200').then(function() {
-            test.assert(success, true);
+            test.assertAnd(success, true);
+            test_done();
           });
           env.rs.put('/testing200').then(function() {
-            test.assert(success, true);
+            test.assertAnd(success, true);
+            test_done();
           });
           env.rs.delete('/testing200').then(function() {
-            test.assert(success, true);
+            test.assertAnd(success, true);
+            test_done()
           });
         }
       }
