@@ -20,7 +20,11 @@ define(['requirejs'], function(requirejs, undefined) {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
       require('./src/wireclient');
-
+      if(global.rs_wireclient) {
+        RemoteStorage.WireClient = global.rs_wireclient;
+      } else {
+        global.rs_wireclient = RemoteStorage.WireClient
+      }
       test.done();
     },
 
