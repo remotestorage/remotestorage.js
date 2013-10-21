@@ -386,7 +386,11 @@
     },
 
     makePath: function(path) {
-      return this.base + (path || '');
+      var parts = path.split('/');
+      for(var i=0; i<parts.length; i++) {
+        parts[i] = encodeURIComponent(parts[i]);
+      }
+      return this.base + (parts.join('/') || '');
     },
 
     _fireChange: function(event) {
