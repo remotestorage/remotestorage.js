@@ -39,7 +39,8 @@ compile-assets: $(ASSETS_OUT)
 .PHONY: help buildserver build-all compile-assets minify build doc clean
 
 %.min.js: %.js
-	uglifyjs $< -o $@ --mangle --wrap --export-all
+#	uglifyjs $< -o $@ --mangle --wrap --export-all
+	uglifyjs -o $@ $<
 	mv $@ $@.tmp
 	head -n1 $< > $@
 	cat $@.tmp >> $@

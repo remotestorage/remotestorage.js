@@ -30,4 +30,9 @@ There are a number of different builds available:
 
 ### Contributors
 
-To build everything after you made a change to the source, run `make all` and copy the docs to the `gh-pages` branch of https://github.com/remotestorage/remotestorage.io
+To build everything after you made a change to the source, run:
+
+    sudo apt-get install node-uglify naturaldocs
+    make all
+
+and copy the docs to the `gh-pages` branch of https://github.com/remotestorage/remotestorage.io

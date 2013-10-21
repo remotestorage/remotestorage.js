@@ -10,7 +10,8 @@
   },
   "homepage": "http://remotestorage.io",
   "devDependencies": {
-    "teste": "*"
+    "teste": "*",
+    "uglifyjs": "*"
   },
   "scripts": {
     "test": "node_modules/.bin/teste"
