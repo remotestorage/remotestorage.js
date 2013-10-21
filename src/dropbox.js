@@ -422,16 +422,19 @@
       var promise = promising();
       var self = this
       if(path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] == 'undefined'){
+        console.log('shareing this one ', path);
         promise.then(function(){
           var args = Array.prototype.slice.call(arguments);
           var p = promising()
-          return self.share(path).then(function(){
+          console.log('calling share now')
+          self.share(path).then(function(){
             console.log('shareing fullfilled promise',arguments);
-            return p.fulfill(p,args);
+            p.fulfill.apply(p,args);
           }, function(err){
-            RS.log("sharing failed" , err);
-            return p.fulfill.apply(p,args);
+            console.log("shareing failed" , err);
+            p.fulfill.apply(p,args);
           });
+          return p;
         });
       }
       return promise;
@@ -461,8 +464,7 @@
             if(haveLocalStorage)
               localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
             promise.fulfill(url);
-          }catch(e) {
-            err.message += "share error"
+          }catch(err) {
             promise.reject(err);
           }
         }

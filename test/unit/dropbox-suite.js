@@ -361,6 +361,35 @@ define(['requirejs'], function(requirejs, undefined) {
           req.response = 'response-body';
           req._onload();
         }
+      },
+      
+      {
+        desc: "share gets called after geting a public path without touching the fullfilments",
+        run: function(env, test) {
+          env.connectedClient.get('/public/foo').then(function(status, body, contentType, rev){
+            console.log('get fulfilled promise')
+            test.assertAnd(status, 200, 'status = '+status);
+            test.assertAnd(rev,'rev',rev)
+            test.assertAnd(body, 'response-body', 'body = '+ body);
+          
+            //test.assert(env.connectedClient._itemRefs['/public/foo'],'http://dropbox.shareing/url');
+          })
+          var getReq = XMLHttpRequest.instances.shift();
+          getReq._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
+            rev: 'rev'
+          })
+          getReq.status = 200;
+          getReq.responseText = 'response-body';
+          getReq._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+          getReq._onload();
+          setTimeout(function(){
+            var shareReq =  XMLHttpRequest.instances.shift();
+            shareReq.responseText = JSON.stringify( {
+              url: 'http://dropbox.shareing/url'
+            } );
+            shareReq._onload();
+          }, 100);
+        }
       }
 
     ]
