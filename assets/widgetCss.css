@@ -47,6 +47,10 @@
     text-decoration: none;
 }
 
+.remotestorage-state-initial .rs-bubble {
+    width: 200px;
+}
+
 #remotestorage-widget .rs-bubble-text {
     padding-right: 105px;
     /* make sure the bubble doesn't "jump" when initially opening. */

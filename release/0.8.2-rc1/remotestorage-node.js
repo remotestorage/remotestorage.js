@@ -969,7 +969,7 @@
           storageApi: this.storageApi
         });
       }
-      console.log('calling ' + RS.WireClient.configureHooks.length + ' hooks');
+      //console.log('calling ' + RS.WireClient.configureHooks.length + ' hooks');
       RS.WireClient.configureHooks.forEach(function(hook) {
         hook.call(this);
       }.bind(this));
@@ -2309,8 +2309,9 @@ Math.uuid = function (len, radix) {
    *
    * A BaseClient deals with three types of data: folders, objects and files.
    *
-   * <getListing> returns a list of all items within a folder. Items that end
-   * with a forward slash ("/") are child folders.
+   * <getListing> returns a list of all items within a folder, or undefined
+   * if a 404 is encountered. Items that end with a forward slash ("/") are
+   * child folders.
    *
    * <getObject> / <storeObject> operate on JSON objects. Each object has a type.
    *
