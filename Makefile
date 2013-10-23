@@ -27,7 +27,7 @@ help:
 	@echo "compile-assets - compile $(ASSETS_DIR)/* into $(ASSETS_OUT)"
 	@echo "clean          - remove all builds and editor swapfiles"
 
-all: build build-amd minify build-nocache build-node doc
+all: build build-amd minify build-nocache build-amd build-node doc
 build-all: all
 minify: remotestorage.min.js
 build: remotestorage.js
@@ -39,7 +39,8 @@ compile-assets: $(ASSETS_OUT)
 .PHONY: help buildserver build-all compile-assets minify build doc clean
 
 %.min.js: %.js
-	uglifyjs $< -o $@ --mangle --wrap --export-all
+#	uglifyjs $< -o $@ --mangle --wrap --export-all
+	uglifyjs -o $@ $<
 	mv $@ $@.tmp
 	head -n1 $< > $@
 	cat $@.tmp >> $@

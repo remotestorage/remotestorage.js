@@ -274,12 +274,12 @@ exports.server = (function() {
     }
     writeJson(res, {
       links:[{
-        href: config.protocol+'://'+config.host+'/storage/'+userName,
+        href: config.protocol+'://'+config.host+':'+config.port+'/storage/'+userName,
         rel: "remoteStorage",
         type: "https://www.w3.org/community/rww/wiki/read-write-web-00#simple",
         properties: {
           'auth-method': "https://tools.ietf.org/html/draft-ietf-oauth-v2-26#section-4.2",
-          'auth-endpoint': config.protocol+'://'+config.host+'/auth/'+userName
+          'auth-endpoint': config.protocol+'://'+config.host+':'+config.port+'/auth/'+userName
         }
       }]
     });
@@ -502,11 +502,19 @@ if((!amd) && (require.main==module)) {//if this file is directly called from the
   config = require('./config').config;
   dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
   exports.server.init();
-  require('https').createServer({
-    key: fs.readFileSync(config.ssl.key),
-    cert: fs.readFileSync(config.ssl.cert),
-  }, exports.server.serve).listen(config.port);
-  console.log("Example server started on 0.0.0.0:" + config.port);
+  var server;
+  if(config.protocol == 'https') {
+    var ssl = {};
+    for(var k in config.ssl){
+      ssl[k] = fs.readFileSync(config.ssl[k])
+    }
+    server = require('https').createServer(ssl, exports.server.serve);
+  } else {
+    server = require('http').createServer(exports.server.serve);
+  }
+  server.listen(config.port, function(){
+    console.log("Example server started on 0.0.0.0:" + config.port);
+  })
 }
 
 if(amd) {

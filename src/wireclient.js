@@ -200,7 +200,7 @@
           storageApi: this.storageApi
         });
       }
-      console.log('calling ' + RS.WireClient.configureHooks.length + ' hooks');
+      //console.log('calling ' + RS.WireClient.configureHooks.length + ' hooks');
       RS.WireClient.configureHooks.forEach(function(hook) {
         hook.call(this);
       }.bind(this));
