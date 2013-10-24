@@ -43,7 +43,7 @@
       descendInto(remote, local, path, Object.keys(body), promise);
     } else {
       local.put(path, body, contentType, true, revision).then(function() {
-        return local.eetRevision(path, revision)
+        return local.setRevision(path, revision)
       }).then(function() {
         promise.fulfill();
       });

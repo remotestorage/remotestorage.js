@@ -82,7 +82,7 @@
       }
     },
 
-    put: function(path, body, contentType, incoming) {
+    put: function(path, body, contentType, incoming, revision) {
       var oldNode = this._get(path);
       if(isBinary(contentType)){
         body = this.toBase64(body);
@@ -91,7 +91,7 @@
         path: path, contentType: contentType, body: body
       };
       localStorage[NODES_PREFIX + path] = JSON.stringify(node);
-      this._addToParent(path);
+      this._addToParent(path, revision);
       this._emit('change', {
         path: path,
         origin: incoming ? 'remote' : 'window',
@@ -191,15 +191,15 @@
       this._emit('conflict', event);
     },
 
-    _addToParent: function(path) {
+    _addToParent: function(path, revision) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
       if(parts) {
         var dirname = parts[1], basename = parts[2];
         var node = this._get(dirname) || makeNode(dirname);
-        node.body[basename] = true;
+        node.body[basename] = revision;
         localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
         if(dirname != '/') {
-          this._addToParent(dirname);
+          this._addToParent(dirname, true);
         }
       }
     },
