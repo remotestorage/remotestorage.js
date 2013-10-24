@@ -3627,10 +3627,18 @@ Math.uuid = function (len, radix) {
     }
   }
 
-  function allKeys(a, b) {
+  function allDifferentKeys(a, b) {
     var keyObject = {};
-    for(var ak in a) keyObject[ak] = true;
-    for(var bk in b) keyObject[bk] = true;
+    for(var ak in a) {
+      if(a[ak] != b[ak]) {
+        keyObject[ak] = true;
+      }
+    }
+    for(var bk in b) {
+      if(a[ak] != b[ak]) {
+        keyObject[bk] = true;
+      }
+    }
     return Object.keys(keyObject);
   }
   function promiseDeleteLocal(local, path) {
@@ -3687,9 +3695,11 @@ Math.uuid = function (len, radix) {
           deleteLocal(local, path, promise);
         } else if(localStatus == 200 && remoteStatus == 200) {
           if(isDir(path)) {
-            local.setRevision(path, remoteRevision).then(function() {
-              descendInto(remote, local, path, allKeys(localBody, remoteBody), promise);
-            });
+            if(remoteRevision != localRevision) {
+              local.setRevision(path, remoteRevision).then(function() {
+                descendInto(remote, local, path, allDifferentKeys(localBody, remoteBody), promise);
+              });
+            }
           } else {
             updateLocal(remote, local, path, remoteBody, remoteContentType, remoteRevision, promise);
           }
