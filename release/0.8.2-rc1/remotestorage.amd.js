@@ -3700,6 +3700,8 @@ Math.uuid = function (len, radix) {
               local.setRevision(path, remoteRevision).then(function() {
                 descendInto(remote, local, path, allDifferentKeys(localBody, remoteBody), promise);
               });
+            } else {
+              promise.fulfill();
             }
           } else {
             updateLocal(remote, local, path, remoteBody, remoteContentType, remoteRevision, promise);
