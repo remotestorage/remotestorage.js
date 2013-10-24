@@ -417,6 +417,7 @@
     var dbOpen = indexedDB.open(name, DB_VERSION);
     dbOpen.onerror = function() {
       console.error('opening db failed', dbOpen);
+      alert('remoteStorage not supported (private browsing mode?)');
       clearTimeout(timer);
       callback(dbOpen.error);
     };
