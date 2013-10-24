@@ -23,6 +23,7 @@ RemoteStorage.InMemoryStorage = function(rs){
   this.rs = rs
   RemoteStorage.eventHandling(this, 'change', 'conflict')
   this._storage = {};
+  this._changes = {};
 }
 
 RemoteStorage.InMemoryStorage.prototype = {
@@ -42,6 +43,9 @@ RemoteStorage.InMemoryStorage.prototype = {
     }
     this._storage = node;
     this._addToParent(path);
+     if(!incoming) {
+      this._recordChange(path, {action: 'PUT' });
+    }
     this._emit('change', {
       path: path,
       origin: incoming ? 'remote' : 'window',
@@ -54,6 +58,9 @@ RemoteStorage.InMemoryStorage.prototype = {
     var oldNode = this._storage[path];
     delete this._storage[path];
     this._removeFromParent(path);
+    if(!incoming) {
+      this._recordChange(path, {action: 'DELETE' });
+    }
     if(oldNode) {
       this._emit('change', {
         path: path,
@@ -69,7 +76,7 @@ RemoteStorage.InMemoryStorage.prototype = {
       var node = this._storage[dirname] || makeNode(dirname);
       node.body[basename] = true;
       this._storage[node] = node;
-    }
+    })
   },
   _removeFromParent: function(path){
     applyRecursive(path, function(basename, dirname){
@@ -79,14 +86,51 @@ RemoteStorage.InMemoryStorage.prototype = {
         if(node.keys.length == 0)
           delete this._storage[dirname]
       }
+    })
+  },
+  _recordChage: function(path, attriubtes) {
+    var change = this._changes[path] || {};
+    for(var k in attributes)
+      change[k] = attributes[k];
+    change.path = path;
+    this._changes[path] = change;
+  },
+  clearChange: function(path) {
+    delete this._changes[path];
+    return promising().fulfill();
+  },
+  changesBelow: function(path) {
+    var changes = [];
+    var l = path.length; 
+    for(var k in this._changes){
+      if(k.substr(0,l) == path)
+        changes.push(this._changes[k]);
     }
+    return promising().fulfill(changes);
+  },
+  setConflict: function(path, attributes) {
+    this._recordChange(path, { conflict: attributes });
+    var self = this;
+    var event = {path:path};
+    for(var k in attributes)
+      event[k] = attributes[k];
+
+    event.resolve = function(resolution) {
+      if(resolution == 'remote'|| resolution == 'local') {
+        attributes.resolution = resolution;
+        self._recordChange(path, { conflict: attributes });
+      } else {
+        throw new Error('Invalid resolution: '+resolution);
+      } 
+    }
+    this._emit('conflict', event);
   }
   setRevision: function(path, revision){
     var node = this._storage[path] || makeNode(path)
     node.revision = revision;
     this._storage[path] = node;
     return promising().fulfill();
-  }
+  },
   getRevision: function(path){
     var rev;
     if(this._storage[path])
