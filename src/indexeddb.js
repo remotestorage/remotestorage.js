@@ -50,7 +50,7 @@
    *     - Used to record local changes between sync cycles.
    *     - Changes are stored in a separate ObjectStore called "changes".
    *     - #_recordChange() records a change and is called by #put() and #delete(),
-   *       given the "incoming" flag evaluates to false. It is private andshould
+   *       given the "incoming" flag evaluates to false. It is private and should
    *       never be used from the outside.
    *     - #changesBelow() takes a path and returns a promise that will be fulfilled
    *       with an Array of changes that are pending for the given path or below.
