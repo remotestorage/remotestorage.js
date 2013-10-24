@@ -116,7 +116,7 @@
       var dirname = parts[1], basename = parts[2];
       nodes.get(dirname).onsuccess = function(evt) {
         var node = evt.target.result || makeNode(dirname);
-        node[key][basename] = revision;
+        node[key][basename] = revision || true;
         nodes.put(node).onsuccess = function() {
           if(dirname != '/') {
             addToParent(nodes, dirname, key, true);
