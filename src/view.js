@@ -84,7 +84,7 @@
 
     this.display = function(domID) {
 
-      if(typeof(this.div) !== 'undefined')
+      if(typeof this.div !== 'undefined')
         return this.div;
 
       var element = cEl('div');
@@ -326,22 +326,42 @@
     },
 
     events : {
+    /**
+     * Event: connect
+     * emitted when the connect button is clicked
+     **/  
       connect : function(event) {
         stop_propagation(event);
         event.preventDefault();
         this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
+
+
+      /**
+       * Event: sync
+       * emitted when the sync button is clicked
+       **/
       sync : function(event) {
         stop_propagation(event);
         event.preventDefault();
 
         this._emit('sync');
       },
+
+      /**
+       * Event: disconnect
+       * emitted when the disconnect button is clicked
+       **/
       disconnect : function(event) {
         stop_propagation(event);
         event.preventDefault();
         this._emit('disconnect');
       },
+
+      /**
+       * Event: reset
+       * fired after crash triggers disconnect
+       **/
       reset : function(event){
         event.preventDefault();
         var result = window.confirm("Are you sure you want to reset everything? That will probably make the error go away, but also clear your entire localStorage and reload the page. Please make sure you know what you are doing, before clicking 'yes' :-)");
@@ -349,6 +369,11 @@
           this._emit('reset');
         }
       },
+
+      /**
+       * Event: display
+       * fired when finished displaying the widget
+       **/  
       display : function(event) {
         if(event)
           event.preventDefault();

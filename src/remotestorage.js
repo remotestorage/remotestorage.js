@@ -58,6 +58,63 @@
    *
    */
   var RemoteStorage = function() {
+    /**
+     * Event: ready
+     *
+     * fired when connected and ready
+     **/
+    /**
+     * Event: disconnected
+     * 
+     * fired after disconnect
+     **/
+    /**
+     * Event: disconnect
+     *
+     * depricated use disconnected
+     **/
+    /**
+     * Event: conflict
+     *
+     * fired when a conflict occures
+     * TODO: arguments, how does this work
+     **/
+    /**
+     * Event: error
+     *
+     * fired when an error occures
+     *
+     * Arguments:
+     * the error
+     **/
+    /**
+     * Event: features-loaded
+     *
+     * fired when all features are loaded
+     **/
+    /**
+     * Event: connecting
+     *
+     * fired before webfinger lookpu
+     **/
+    /**
+     * Event: authing
+     *
+     * fired before redirecting to the authing server
+     **/
+    /**
+     * Event: sync-busy
+     *
+     * fired when a sync cyle starts
+     *
+     **/
+    /**
+     * Event: sync-done
+     *
+     * fired when a sync cycle completes
+     *
+     **/
+
     RemoteStorage.eventHandling(
       this, 'ready', 'disconnected', 'disconnect', 'conflict', 'error',
       'features-loaded', 'connecting', 'authing', 'sync-busy', 'sync-done'

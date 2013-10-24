@@ -60,6 +60,16 @@
     } else {
       this.moduleName = 'root';
     }
+    /**
+     * Event: change
+     * emitted when a node changes
+     * Arguments:
+     * event
+     **/
+    /**
+     * Event: conflict
+     *
+     **/
 
     RS.eventHandling(this, 'change', 'conflict');
     this.on = this.on.bind(this);
