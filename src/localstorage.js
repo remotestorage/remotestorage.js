@@ -32,7 +32,6 @@
       :
       0;
   }
-
   function base64DecToArr (sBase64, nBlocksSize) {
     var
     sB64Enc = sBase64.replace(/[^A-Za-z0-9\+\/]/g, ""), nInLen = sB64Enc.length,
@@ -51,11 +50,9 @@
     }
     return taBytes;
   }
-
-
   //helper to decide if node body is binary or not
-  function isBinary(contentType){
-    return contentType.match(/charset=binary/);
+  function isBinary(node){
+    return node.match(/charset=binary/);
   }
 
   RemoteStorage.LocalStorage.prototype = {
@@ -71,6 +68,39 @@
     },
     toArrayBuffer: base64DecToArr,
     get: function(path) {
+      var node = this._get(path);
+      if(node) {
+        if(isBinary(node.contentType)){
+          node.body = this.toArrayBuffer(node.body);
+        }
+        return promising().fulfill(200, node.body, node.contentType, node.revision);
+      } else {
+        return promising().fulfill(404);
+      }
+    },
+
+    put: function(path, body, contentType, incoming, revision) {
+      var oldNode = this._get(path);
+      if(isBinary(contentType)){
+        body = this.toBase64(body);
+      }
+      var node = {
+        path: path, contentType: contentType, body: body
+      };
+      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
+      this._addToParent(path, revision);
+      this._emit('change', {
+        path: path,
+        origin: incoming ? 'remote' : 'window',
+        oldValue: oldNode ? oldNode.body : undefined,
+        newValue: body
+      });
+      if(! incoming) {
+        this._recordChange(path, { action: 'PUT' });
+      }
+      return promising().fulfill(200);
+    },
+   get: function(path) {
       var node = this._get(path);
       if(node) {
         if(isBinary(node.contentType)){
@@ -103,7 +133,6 @@
       }
       return promising().fulfill(200);
     },
-
     'delete': function(path, incoming) {
       var oldNode = this._get(path);
       delete localStorage[NODES_PREFIX + path];
@@ -191,15 +220,15 @@
       this._emit('conflict', event);
     },
 
-    _addToParent: function(path) {
+    _addToParent: function(path, revision) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
       if(parts) {
         var dirname = parts[1], basename = parts[2];
         var node = this._get(dirname) || makeNode(dirname);
-        node.body[basename] = true;
+        node.body[basename] = revision || true;
         localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
         if(dirname != '/') {
-          this._addToParent(dirname);
+          this._addToParent(dirname, true);
         }
       }
     },

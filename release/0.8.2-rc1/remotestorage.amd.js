@@ -3620,7 +3620,7 @@ Math.uuid = function (len, radix) {
     if(isDir(path)) {
       descendInto(remote, local, path, Object.keys(body), promise);
     } else {
-      local.put(path, body, contentType, true).then(function() {
+      local.put(path, body, contentType, true, revision).then(function() {
         return local.setRevision(path, revision)
       }).then(function() {
         promise.fulfill();
@@ -3636,7 +3636,7 @@ Math.uuid = function (len, radix) {
       }
     }
     for(var bk in b) {
-      if(a[ak] != b[ak]) {
+      if(a[bk] != b[bk]) {
         keyObject[bk] = true;
       }
     }
@@ -3696,7 +3696,9 @@ Math.uuid = function (len, radix) {
           deleteLocal(local, path, promise);
         } else if(localStatus == 200 && remoteStatus == 200) {
           if(isDir(path)) {
-            if(remoteRevision != localRevision) {
+            if(remoteRevision && remoteRevision == localRevision) {
+              promise.fulfill();
+            } else {
               local.setRevision(path, remoteRevision).then(function() {
                 descendInto(remote, local, path, allDifferentKeys(localBody, remoteBody), promise);
               });
@@ -4026,16 +4028,16 @@ Math.uuid = function (len, radix) {
     return node;
   }
 
-  function addToParent(nodes, path, key) {
+  function addToParent(nodes, path, key, revision) {
     var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
     if(parts) {
       var dirname = parts[1], basename = parts[2];
       nodes.get(dirname).onsuccess = function(evt) {
         var node = evt.target.result || makeNode(dirname);
-        node[key][basename] = true;
+        node[key][basename] = revision || true;
         nodes.put(node).onsuccess = function() {
           if(dirname != '/') {
-            addToParent(nodes, dirname, key);
+            addToParent(nodes, dirname, key, true);
           }
         };
       };
@@ -4076,7 +4078,7 @@ Math.uuid = function (len, radix) {
       return promise;
     },
 
-    put: function(path, body, contentType, incoming) {
+    put: function(path, body, contentType, incoming, revision) {
       var promise = promising();
       if(path[path.length - 1] == '/') { throw "Bad: don't PUT folders"; }
       var transaction = this.db.transaction(['nodes'], 'readwrite');
@@ -4091,7 +4093,7 @@ Math.uuid = function (len, radix) {
           };
           nodes.put(node).onsuccess = function() {
             try {
-              addToParent(nodes, path, 'body');
+              addToParent(nodes, path, 'body', revision);
             } catch(e) {
               if(typeof(done) === 'undefined') {
                 done = true;
@@ -4168,7 +4170,7 @@ Math.uuid = function (len, radix) {
           var node = event.target.result || makeNode(rev[0]);
           node.revision = rev[1];
           nodes.put(node).onsuccess = function() {
-            addToParent(nodes, rev[0], 'cached');
+            addToParent(nodes, rev[0], 'cached', rev[1]);
           };
         };
       });
@@ -4333,6 +4335,7 @@ Math.uuid = function (len, radix) {
     var dbOpen = indexedDB.open(name, DB_VERSION);
     dbOpen.onerror = function() {
       console.error('opening db failed', dbOpen);
+      alert('remoteStorage not supported (private browsing mode?)');
       clearTimeout(timer);
       callback(dbOpen.error);
     };
@@ -4487,7 +4490,7 @@ Math.uuid = function (len, radix) {
       }
     },
 
-    put: function(path, body, contentType, incoming) {
+    put: function(path, body, contentType, incoming, revision) {
       var oldNode = this._get(path);
       if(isBinary(contentType)){
         body = this.toBase64(body);
@@ -4496,7 +4499,7 @@ Math.uuid = function (len, radix) {
         path: path, contentType: contentType, body: body
       };
       localStorage[NODES_PREFIX + path] = JSON.stringify(node);
-      this._addToParent(path);
+      this._addToParent(path, revision);
       this._emit('change', {
         path: path,
         origin: incoming ? 'remote' : 'window',
@@ -4596,15 +4599,15 @@ Math.uuid = function (len, radix) {
       this._emit('conflict', event);
     },
 
-    _addToParent: function(path) {
+    _addToParent: function(path, revision) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
       if(parts) {
         var dirname = parts[1], basename = parts[2];
         var node = this._get(dirname) || makeNode(dirname);
-        node.body[basename] = true;
+        node.body[basename] = revision || true;
         localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
         if(dirname != '/') {
-          this._addToParent(dirname);
+          this._addToParent(dirname, true);
         }
       }
     },

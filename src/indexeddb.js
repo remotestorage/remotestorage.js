@@ -110,16 +110,16 @@
     return node;
   }
 
-  function addToParent(nodes, path, key) {
+  function addToParent(nodes, path, key, revision) {
     var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
     if(parts) {
       var dirname = parts[1], basename = parts[2];
       nodes.get(dirname).onsuccess = function(evt) {
         var node = evt.target.result || makeNode(dirname);
-        node[key][basename] = true;
+        node[key][basename] = revision || true;
         nodes.put(node).onsuccess = function() {
           if(dirname != '/') {
-            addToParent(nodes, dirname, key);
+            addToParent(nodes, dirname, key, true);
           }
         };
       };
@@ -160,7 +160,7 @@
       return promise;
     },
 
-    put: function(path, body, contentType, incoming) {
+    put: function(path, body, contentType, incoming, revision) {
       var promise = promising();
       if(path[path.length - 1] == '/') { throw "Bad: don't PUT folders"; }
       var transaction = this.db.transaction(['nodes'], 'readwrite');
@@ -175,7 +175,7 @@
           };
           nodes.put(node).onsuccess = function() {
             try {
-              addToParent(nodes, path, 'body');
+              addToParent(nodes, path, 'body', revision);
             } catch(e) {
               if(typeof(done) === 'undefined') {
                 done = true;
@@ -252,7 +252,7 @@
           var node = event.target.result || makeNode(rev[0]);
           node.revision = rev[1];
           nodes.put(node).onsuccess = function() {
-            addToParent(nodes, rev[0], 'cached');
+            addToParent(nodes, rev[0], 'cached', rev[1]);
           };
         };
       });
@@ -417,6 +417,7 @@
     var dbOpen = indexedDB.open(name, DB_VERSION);
     dbOpen.onerror = function() {
       console.error('opening db failed', dbOpen);
+      alert('remoteStorage not supported (private browsing mode?)');
       clearTimeout(timer);
       callback(dbOpen.error);
     };

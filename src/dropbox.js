@@ -1,33 +1,71 @@
 (function(global) {
   var RS = RemoteStorage;
+  // next steps : 
+  //  features:
+  // handle fetchDelta has_more
+  // handle files larger than 150MB
+  // 
+  //  testing:
+  // add to remotestorage browser
+  // add to sharedy
+  // maybe write tests for remote
+  //
+ 
+
   /**
    * Dropbox backend for RemoteStorage.js
-   * known limits : 
+   * this file exposes a get/put/delete interface which is compatible with the wireclient
+   * it requires to get configured with a dropbox token similar to the wireclient.configure
+   *
+   * when the remotestorage.backend was set to 'dropbox' it will initialize and resets 
+   * remoteStorage.remote with remoteStorage.dropbox
+   * 
+   * for compability with the public directory the getItemURL function of the BaseClient gets 
+   * highjackt and returns the dropbox share-url
+   *
+   * to connect with dropbox a connect function is provided
+   *
+   * known issues : 
    *   files larger than 150mb are not suported for upload
    *   directories with more than 10.000 files will cause problems to list
    *   content-type is guessed by dropbox.com therefore they aren't fully supported
-   */
+   *   dropbox preserves cases but not case sensitive
+   *   share_urls and therfeor getItemURL is asynchronius , which means 
+   *     getItemURL returns usefull values after the syncCycle
+   **/
   var haveLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
   var SETTINGS_KEY = 'remotestorage:dropbox';
-
+  var cleanPath = RS.WireClient.cleanPath
   /*************************
    * LowerCaseCache
-   * this Cache will lowercase it's keys and propagate the values to "upper directories"
-   * get : get a value
-   * set : set a value and propagate
-   * delete : delete and propagate
+   * this Cache will lowercase it's keys 
+   * and can propagate the values to "upper directories"
+   * 
+   * intialized with default Value(undefined will be accepted)
+   *
+   * set and delete will be set to justSet and justDelete on initialization 
+   *
+   * get : get a value or default Value
+   * set : set a value
+   * justSet : just set a value and don't propagate at all
+   * propagateSet : Set a value and propagate
+   * delete : delete 
+   * justDelete : just delete a value and don't propagate at al
+   * propagateDelete : deleta a value and propagate
+   * _activatePropagation : replace set and delete with their propagate versions
    *************************/
   function LowerCaseCache(defaultValue){
-    this.defaultValue = defaultValue ? defaultValue : 'rev'
+    this.defaultValue = defaultValue; //defaults to undefimned if initialized without arguments
     this._storage = { };
     this.set = this.justSet;
+    this.delete = this.justDelete;
   }
   LowerCaseCache.prototype = {
     get : function(key) {
       key = key.toLowerCase();
       var stored = this._storage[key]
-      if(!stored){
+      if(typeof stored == 'undefined'){
         stored = this.defaultValue;
         this._storage[key] = stored;
       }
@@ -35,22 +73,28 @@
     },
     propagateSet : function(key, value) {
       key = key.toLowerCase();
-      if(this._storage[key] == value) return value;
+      if(this._storage[key] == value) 
+        return value;
       this._propagate(key, value);
       return this._storage[key] = value;
     },
+    propagateDelete : function(key) {
+      var key = key.toLowerCase();
+      this._propagate(key, this._storage[key]);
+      return delete this._storage[key];
+    },
     _activatePropagation: function(){
       this.set = this.propagateSet;
+      this.delete = this.propagateDelete;
+      return true;
     },
     justSet : function(key, value) {
       key = key.toLowerCase();
-      this._storage[key] = value;
-      return value;
+      return this._storage[key] = value;
     },
-    delete : function(key) {
-      key = key.toLowerCase();
-      this._propagate(key);
-      delete this._storage[key];
+    justDelete : function(key, value) {
+      var key = key.toLowerCase();
+      return delete this._storage[key];
     },
     _propagate: function(key, rev){
       var dirs = key.split('/').slice(0,-1);
@@ -74,28 +118,29 @@
    * put
    * delete
    * share
-   * 
+   * info
+   * Properties :
+   * connected
+   * rs
+   * token
+   * userAddress
    *****************************/
   RS.Dropbox = function(rs) {
+
     this.rs = rs;
     this.connected = false;
     this.rs = rs;
+    var self = this;
+
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
-        
-        // happens in configure
-        //
-        // this.connected = false;
-        // if(haveLocalStorage){
-        //   delete localStorage[SETTINGS_KEY]
-        // }
-        this.configure(null,null,null,null)
+        self.configure(null,null,null,null)
       }
-    }.bind(this));
+    });
     
     this.clientId = rs.apiKeys.dropbox.api_key;
-    this._revCache = new LowerCaseCache();
+    this._revCache = new LowerCaseCache('rev');
     this._itemRefs = {};
     
     if(haveLocalStorage){
@@ -116,20 +161,34 @@
   };
 
   RS.Dropbox.prototype = {
-
+    /**
+     * Method : connect()
+     *   redirects to AUTH_URL(https://www.dropbox.com/1/oauth2/authorize)
+     *   and set's backend to dropbox
+     *   therefor it starts the auth flow and end's up with a token and the dropbox backend in place
+     **/
     connect: function() {
+      //ToDo handling when token is already present
       this.rs.setBackend('dropbox');
-      RS.Authorize(AUTH_URL, '', String(document.location), this.clientId);
+      if(this.token){
+        hookIt(this.rs);
+      } else {
+        RS.Authorize(AUTH_URL, '', String(document.location), this.clientId);
+      }
     },
-
+    /**
+     * Mehtod : configure(userAdress, x, x, token)
+     *   accepts it's parameters according to the wireClient
+     *   set's the connected flag
+     **/
     configure: function(userAddress, href, storageApi, token) {
       console.log('dropbox configure',arguments);
-      if(typeof(token) !== 'undefined') this.token = token;
-      if(typeof(useradress) !== 'undefined') this.userAddress = userAddress;
+      if(typeof token !== 'undefined') this.token = token;
+      if(typeof userAddress !== 'undefined') this.userAddress = userAddress;
 
       if(this.token){
         this.connected = true;
-        if( !this.useradress ){
+        if( !this.userAddress ){
           this.info().then(function(info){
             this.userAddress = info.display_name;
             //FIXME propagate this to the view
@@ -144,6 +203,9 @@
                                                        userAddress: this.userAddress } );
       }
     },
+    /**
+     * Method : _getDir(path, options)
+     **/
     _getDir: function(path, options){
       var url = 'https://api.dropbox.com/1/metadata/auto'+path;
       var promise = promising();
@@ -182,13 +244,19 @@
       });
       return promise;
     },
+    /**
+     * Method : get(path, options)
+     *   get compatible with wireclient
+     *   checks for path in _revCache and decides based on that if file has changed
+     *   calls _getDir if file is a directory
+     *   calls share(path) afterwards to fill the _hrefCache
+     **/
     get: function(path, options){
       console.log('dropbox.get', arguments);
+      if(! this.connected) throw new Error("not connected (path: " + path + ")");
+      path = cleanPath(path);
       var url = 'https://api-content.dropbox.com/1/files/auto' + path
-      var promise = promising().then(function(){  //checking and maybe fetching the share_url after each get
-        this.share(path);
-        return arguments
-      }.bind(this));
+      var promise = this._sharePromise(path)
       
       var savedRev = this._revCache.get(path)
       if(savedRev === null) { 
@@ -214,7 +282,9 @@
         } else {
           var status = resp.status;
           var meta, body, mime, rev;
-          if(status == 200){
+          if(status == 404){
+            promise.fulfill(404);
+          } else if(status == 200){
             body = resp.responseText;
             try {
               meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') );
@@ -222,48 +292,71 @@
               promise.reject(e);
               return;
             }
-            mime = meta.mime_type;
+            mime = meta.mime_type//resp.getResponseHeader('Content-Type');
             rev = meta.rev;
-            // TODO Depending on how we handle mimetypes we will have to change that
-            // mimetypes  disabled right now
-            // TODO handling binary data
-            if(mime.search('application/json') >= 0 || true) {
-              try {
-                body = JSON.parse(body);
-              } catch(e) {
-                this.rs.log("Failed parsing Json, assume it is something else then",e,e.stack,e.body);
-              }
-            }
             this._revCache.set(path, rev);
+            
+            // handling binary
+            if((! resp.getResponseHeader('Content-Type') ) || resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
+              var blob = new Blob([resp.response], {type: mime});
+              var reader = new FileReader();
+              reader.addEventListener("loadend", function() {
+                // reader.result contains the contents of blob as a typed array
+                promise.fulfill(status, reader.result, mime, rev);
+              });
+              reader.readAsArrayBuffer(blob);
+
+            } else {
+              // handling json (always try)
+              if(mime && mime.search('application/json') >= 0 || true) {
+                try {
+                  body = JSON.parse(body);
+                  mime = 'application/json; charset=UTF-8'
+                } catch(e) {
+                  RS.log("Failed parsing Json, assume it is something else then", mime, path); 
+                }
+              }
+              promise.fulfill(status, body, mime, rev);
+            }
+          
+          } else {
+            promise.fulfill(status);
           }
-          promise.fulfill(status, body, mime, rev);
         }
       });
-      return promise
+      return promise;
     },
+    /** 
+     * Method : put(path, body, contentType, options)
+     *   put compatible with wireclient
+     *   also uses _revCache to check for version conflicts
+     *   also shares via share(path)
+     **/
     put: function(path, body, contentType, options){      
+      console.log('dropbox.put', arguments);
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
-     
-      var promise = promising().then(function(){   //checking and maybe fetching the share_url after each put
-        this.share(path);
-        return arguments
-      }.bind(this));
+      path = cleanPath(path);
+      
+      var promise = this._sharePromise(path);
+
+      var revCache = this._revCache;
 
       //check if file has changed and return 412
-      var savedRev = this._revCache.get(path)
-      if(options && options.ifMatch &&  savedRev && (savedRev != options.ifMatch) ) {
+      var savedRev = revCache.get(path)
+      if(options && options.ifMatch &&  savedRev && (savedRev !== options.ifMatch) ) {
         promise.fulfill(412);
         return promise;
       }
       if(! contentType.match(/charset=/)) {
         contentType += '; charset=' + ((body instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(body)) ? 'binary' : 'utf-8');
       }
-      var url = 'https://api-content.dropbox.com/1/files_put/auto/' + path + '?'
-      if(options.ifMatch) {
+      var url = 'https://api-content.dropbox.com/1/files_put/auto' + path + '?'
+      if(options && options.ifMatch) {
         url += "parent_rev="+encodeURIComponent(options.ifMatch)
       }
       if(body.length>150*1024*1024){ //FIXME actual content-length
         //https://www.dropbox.com/developers/core/docs#chunked-upload
+        console.log('files larger than 150MB not supported yet')
       } else { 
         this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
           if(err) {
@@ -274,22 +367,29 @@
             // TODO find out which stays the origianl and how to deal with this
             if(response.path != path){
               promise.fulfill(412);
-              rs.log('Dropbox created conflicting File ', response.path)
+              this.rs.log('Dropbox created conflicting File ', response.path)
             }
             else
-              this._revCache.set(path, response.rev);
+              revCache.set(path, response.rev);
               promise.fulfill(resp.status);
           }
         })
       }
-      return promise
+      return promise;
     },
+    /**
+     * Method : delete(path, options)
+     *   similar to get and set
+     **/
     'delete': function(path, options){
       console.log('dropbox.delete ', arguments);
+      if(! this.connected) throw new Error("not connected (path: " + path + ")");
+      path = cleanPath(path);
+      
       var promise = promising();
-
+      var revCache = this._revCache;
       //check if file has changed and return 412
-       var savedRev = this._revCache.get(path)
+       var savedRev = revCache.get(path)
       if(options.ifMatch && savedRev && (options.ifMatch != savedRev)) {
         promise.fulfill(412);
         return promise;
@@ -301,24 +401,56 @@
           promise.reject(error)
         } else {
           promise.fulfill(resp.status);
-          this._revCache.delete(path);
+          revCache.delete(path);
         }
       })
       
       return promise.then(function(){
+        var args = Array.prototype.slice.call(arguments);
         delete this._itemRefs[path]
-        return arguments;
+        var p = promising();
+        return p.fulfill.apply(p, args);
       }.bind(this))
     },
-    // get share url from Dropbox
+    /**
+     * Method : _sharePromise(path)
+     *   returns a promise which's then block doesn't touch the arguments given 
+     *   and calls share for the path
+     * 
+     *  also checks for necessity of shareing this url(already in the itemRefs or not '/public/')
+     **/
+    _sharePromise: function(path){
+      var promise = promising();
+      var self = this
+      if(path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] == 'undefined'){
+        console.log('shareing this one ', path);
+        promise.then(function(){
+          var args = Array.prototype.slice.call(arguments);
+          var p = promising()
+          console.log('calling share now')
+          self.share(path).then(function(){
+            console.log('shareing fullfilled promise',arguments);
+            p.fulfill.apply(p,args);
+          }, function(err){
+            console.log("shareing failed" , err);
+            p.fulfill.apply(p,args);
+          });
+          return p;
+        });
+      }
+      return promise;
+    },
+
+    /**
+     * Method : share(path)
+     *   get sher_url s from dropbox and pushes those into this._hrefCache
+     *   returns promise
+     */
     share: function(path){
       var url = "https://api.dropbox.com/1/media/auto"+path
       var promise = promising();
+      var itemRefs = this._itemRefs
       
-      if(!path.match(/^\/public\//) && typeof this._itemRefs[path] != 'undefined'){
-        console.log('not public or already in store', path)
-        return promise.fulfill(this._itemRefs[path]);
-      }
       // requesting shareing url
       this._request('POST', url, {}, function(err, resp){
         if(err) {
@@ -327,21 +459,26 @@
           promise.reject(err)
         } else {
           try{
-            promise.fulfill( JSON.parse(resp.responseText).url );
-            this._itemRefs[path] = url;
+            var response = JSON.parse(resp.responseText)
+            var url = response.url;
+            itemRefs[path] = url;
+            console.log("SHAREING URL :::: ",url,' for ',path);
             if(haveLocalStorage)
               localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
-            console.log(resp)
-          }catch(e) {
+            promise.fulfill(url);
+          }catch(err) {
             err.message += "share error"
             promise.reject(err);
           }
         }
       });
-      return promise
+      return promise;
     },
 
-    // fetching user info from Dropbox returns promise
+    /**
+     * Method : info()
+     *   fetching user info from Dropbox returns promise
+     **/
     info: function() {
       var url = 'https://api.dropbox.com/1/account/info'
       var promise = promising();
@@ -365,22 +502,26 @@
       if(! options.headers) options.headers = {};
       options.headers['Authorization'] = 'Bearer ' + this.token;
       RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
-        // // dropbox tokens might  expire from time to time...
-        // if(xhr.status == 401) {
-        //   this.connect();
-        //   return;
-        // }
-        callback(err, xhr);
-      }.bind(this));
+        //503 means retry this later
+        if(xhr && xhr.status == 503) {
+          global.setTimeout(this._request(method, url, options, callback), 3210);
+        } else {
+          callback(err, xhr);
+        }
+      });
     },
-    // method: fetchDelta
-    //
-    // this method fetches the deltas from the dropbox api, used to sync the storage
-    // here we retrive changes and put them into the _revCache, those values will then be used 
-    // to determin if something has changed
+
+    /**
+    * method: fetchDelta
+    *
+    *   this method fetches the deltas from the dropbox api, used to sync the storage
+    *   here we retrive changes and put them into the _revCache, those values will then be used 
+    *   to determin if something has changed.
+    **/
     fetchDelta: function() {
       var args = Array.prototype.slice.call(arguments);
       var promise = promising();
+      var self = this;
       this._request('POST', 'https://api.dropbox.com/1/delta', {
         body: this._deltaCursor ? ('cursor=' + encodeURIComponent(this._deltaCursor)) : '',
         headers: {
@@ -407,7 +548,7 @@
           try {
             var delta = JSON.parse(response.responseText);
           } catch(error) {
-            rs.log('fetchDeltas can not parse response',error)
+            RS.log('fetchDeltas can not parse response',error)
             return promise.reject("can not parse response of fetchDelta : "+error.message);
           }
           // break if no entries found
@@ -418,12 +559,12 @@
 
           // Dropbox sends the complete state
           if(delta.reset) {
-            this._revCache = new LowerCaseCache();
+            this._revCache = new LowerCaseCache('rev');
             promise.then(function(){
               var args = Array.prototype.slice.call(arguments);
-              this._revCache._activatePropagation();
+              self._revCache._activatePropagation();
               return args;
-            }.bind(this));
+            });
           }
           
           //saving the cursor for requesting further deltas in relation to the cursor position
@@ -442,8 +583,8 @@
                 return;
               rev = entry[1].rev;
             }
-            this._revCache.set(path, rev);
-          }.bind(this));
+            self._revCache.set(path, rev);
+          });
           promise.fulfill.apply(promise, args);
         }
       });
@@ -473,7 +614,7 @@
 
   function hookGetItemURL(rs) {
     if(rs._origBaseClientGetItemURL)
-      retrun;
+      return;
     rs._origBaseClientGetItemURL = RS.BaseClient.prototype.getItemURL;
     RS.BaseClient.prototype.getItemURL = function(path){
       var ret = rs.dropbox._itemRefs[path];
@@ -486,18 +627,36 @@
     RS.BaseClient.prototype.getItemURL = rs._origBaseClietGetItemURL;
     delete rs._origBaseClietGetItemURL;
   }
-
+  function hookRemote(rs){
+    if(rs._origRemote)
+      return;
+    rs._origRemote = rs.remote;
+    rs.remote = rs.dropbox;
+  }
+  function unHookRemote(rs){
+    if(rs._origRemote) {
+      rs.remote = rs._origRemote;
+      delete rs._origRemote
+    }
+  }
+  function hookIt(rs){
+    hookRemote(rs);
+    if(rs.sync) {
+      hookSync(rs);
+    }
+    hookGetItemURL(rs);
+  }
+  function unHookIt(rs){
+    unHookRemote(rs);
+    unHookSync(rs);
+    unHookGetItemURL(rs);
+  }
   RS.Dropbox._rs_init = function(rs) {
     if( rs.apiKeys.dropbox ) {
       rs.dropbox = new RS.Dropbox(rs);
     }
     if(rs.backend == 'dropbox'){
-      rs._origRemote = rs.remote;
-      rs.remote = rs.dropbox;
-      if(rs.sync) {
-        hookSync(rs);
-      }
-      hookGetItemURL(rs);
+      hookIt(rs);
     }
   };
 
@@ -507,11 +666,7 @@
   };
 
   RS.Dropbox._rs_cleanup = function(rs) {
-    unHookSync(rs);
-    unHookGetItemURL(rs);
-
-    if(rs._origRemote)
-      rs.remote = rs._origRemote;
+    unHookIt(rs);
     if(haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }

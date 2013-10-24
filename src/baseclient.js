@@ -271,11 +271,12 @@
      *
      */
     storeFile: function(mimeType, path, body) {
+      var self = this;
       return this.storage.put(this.makePath(path), body, mimeType).then(function(status, _body, _mimeType, revision) {
         if(status == 200 || status == 201) {
           return revision;
         } else {
-          throw "Request (PUT " + this.makePath(path) + ") failed with status: " + status;
+          throw "Request (PUT " + self.makePath(path) + ") failed with status: " + status;
         }
       });
     },

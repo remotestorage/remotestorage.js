@@ -42,7 +42,7 @@
     if(isDir(path)) {
       descendInto(remote, local, path, Object.keys(body), promise);
     } else {
-      local.put(path, body, contentType, true).then(function() {
+      local.put(path, body, contentType, true, revision).then(function() {
         return local.setRevision(path, revision)
       }).then(function() {
         promise.fulfill();
@@ -58,7 +58,7 @@
       }
     }
     for(var bk in b) {
-      if(a[ak] != b[ak]) {
+      if(a[bk] != b[bk]) {
         keyObject[bk] = true;
       }
     }
@@ -118,7 +118,9 @@
           deleteLocal(local, path, promise);
         } else if(localStatus == 200 && remoteStatus == 200) {
           if(isDir(path)) {
-            if(remoteRevision != localRevision) {
+            if(remoteRevision && remoteRevision == localRevision) {
+              promise.fulfill();
+            } else {
               local.setRevision(path, remoteRevision).then(function() {
                 descendInto(remote, local, path, allDifferentKeys(localBody, remoteBody), promise);
               });
