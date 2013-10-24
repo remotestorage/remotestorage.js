@@ -335,7 +335,6 @@
     put: function(path, body, contentType, options){      
       console.log('dropbox.put', arguments);
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
-
       path = cleanPath(path);
       
       var promise = this._sharePromise(path);
