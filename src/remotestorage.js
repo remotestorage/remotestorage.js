@@ -424,6 +424,7 @@
 	'Widget',
         'IndexedDB',
         'LocalStorage',
+        'InMemoryStorage',
         'Sync',
         'BaseClient'
       ].map(function(featureName) {
@@ -445,6 +446,9 @@
           features.local = RemoteStorage.IndexedDB;
         } else if(feature.name == 'LocalStorage' && ! features.local) {
           features.local = RemoteStorage.LocalStorage;
+        } else if(feature.name == 'InMemoryStorage' 
+                  && ! features.local) {
+          features.local = RemoteStorage.InMemoryStorage;
         }
       });
       features.caching = !!RemoteStorage.Caching;
