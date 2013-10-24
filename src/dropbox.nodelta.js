@@ -24,38 +24,45 @@
    * delete : delete and propagate
    *************************/
   function LowerCaseCache(defaultValue){
-    this.defaultValue = defaultValue ? defaultValue : 'rev'
+    this.defaultValue = defaultValue; //defaults to undefimned if initialized without arguments
     this._storage = { };
     this.set = this.justSet;
+    this.delete = this.justDelete;
   }
   LowerCaseCache.prototype = {
     get : function(key) {
       key = key.toLowerCase();
       var stored = this._storage[key]
-      // if(!stored){
-      //   stored = this.defaultValue;
-      //   this._storage[key] = stored;
-      // }
+      if(!stored){
+        stored = this.defaultValue;
+        this._storage[key] = stored;
+      }
       return stored;
     },
     propagateSet : function(key, value) {
       key = key.toLowerCase();
-      if(this._storage[key] == value) return value;
+      if(this._storage[key] == value) 
+        return value;
       this._propagate(key, value);
       return this._storage[key] = value;
     },
+    propagateDelete : function(key) {
+      var key = key.toLowerCase();
+      this._propagate(key, this._storage[key]);
+      return delete this._storage[key];
+    },
     _activatePropagation: function(){
       this.set = this.propagateSet;
+      this.delete = this.propagateDelete;
+      return true;
     },
     justSet : function(key, value) {
       key = key.toLowerCase();
-      this._storage[key] = value;
-      return value;
+      return this._storage[key] = value;
     },
-    delete : function(key) {
-      key = key.toLowerCase();
-      this._propagate(key);
-      delete this._storage[key];
+    justDelete : function(key, value) {
+      var key = key.toLowerCase();
+      return delete this._storage[key];
     },
     _propagate: function(key, rev){
       var dirs = key.split('/').slice(0,-1);
@@ -70,6 +77,7 @@
       }
     }
   }
+
   /****************************
    * Dropbox - Backend for remtoeStorage.js
    * methods : 
@@ -200,8 +208,8 @@
     },
     get: function(path, options){
       console.log('dropbox.get', arguments);
-      var url = 'https://api-content.dropbox.com/1/files/auto' + path
 
+      var url = 'https://api-content.dropbox.com/1/files/auto' + path
       //use _getDir for directories 
       if(path.substr(-1) == '/') return this._getDir(path, options);
 
@@ -209,14 +217,8 @@
         this.share(path);
         return arguments
       }.bind(this));
-      
-      var savedRev = this._revCache.get(path)
-      if(savedRev === null) { 
-        //file was deleted server side
-        console.log(path,' deleted 404')
-        promise.fulfill(404);
-        return promise;
-      }
+      var revCache = this._revCache
+      var savedRev = revCache.get(path)
       if(options && options.ifNoneMatch && 
          savedRev && (savedRev == options.ifNoneMatch)) {
         // nothing changed.
@@ -251,7 +253,7 @@
                 this.rs.log("Failed parsing Json, assume it is something else then",e,e.stack,e.body);
               }
             }
-            this._revCache.set(path, rev);
+            revCache.set(path, rev);
           }
           promise.fulfill(status, body, mime, rev);
         }
@@ -357,7 +359,6 @@
       });
       return promise
     },
-
     // fetching user info from Dropbox returns promise
     info: function() {
       var url = 'https://api.dropbox.com/1/account/info'
@@ -389,106 +390,8 @@
         // }
         callback(err, xhr);
       }.bind(this));
-    },
-    // method: fetchDelta
-    //
-    // this method fetches the deltas from the dropbox api, used to sync the storage
-    // here we retrive changes and put them into the _revCache, those values will then be used 
-    // to determin if something has changed
-  //   fetchDelta: function() {
-  //     var args = Array.prototype.slice.call(arguments);
-  //     var promise = promising();
-  //     this._request('POST', 'https://api.dropbox.com/1/delta', {
-  //       body: this._deltaCursor ? ('cursor=' + encodeURIComponent(this._deltaCursor)) : '',
-  //       headers: {
-  //         'Content-Type': 'application/x-www-form-urlencoded'
-  //       }
-  //     }, function(error, response) {
-  //       if(error) {
-  //         this.rs.log('fetchDeltas',error);
-  //         this.rs._emit('error', new RemoteStorage.SyncError('fetchDeltas failed'+error));
-  //         promise.reject(error);
-  //       } else {
-  //         // break if status != 200
-  //         if(response.status != 200 ){
-  //           if(response.status == 400) {
-  //             this.rs._emit('error', new RemoteStorage.Unauthorized());
-  //             promise.fulfill(args)
-  //           } else {
-  //             console.log("!!!!dropbox.fetchDelta returned "+response.status+response.responseText);
-  //             promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
-  //           }
-  //           return;
-  //         }
-
-  //         try {
-  //           var delta = JSON.parse(response.responseText);
-  //         } catch(error) {
-  //           rs.log('fetchDeltas can not parse response',error)
-  //           promise.reject("can not parse response of fetchDelta : "+error.message);
-  //           return;
-  //         }
-  //         // break if no entries found
-  //         if(!delta.entries){
-  //           console.log("!!!!!DropBox.fetchDeltas() NO ENTRIES FOUND!!", delta);
-  //           promise.reject('dropbox.fetchDeltas failed, no entries found');           
-  //            return ;
-  //         }
-
-  //         // Dropbox sends the complete state
-  //         if(delta.reset) {
-  //           this._revCache = new LowerCaseCache();
-  //           promise.then(function(){
-  //             var args = Array.prototype.slice.call(arguments);
-  //             this._revCache._activatePropagation();
-  //             return args;
-  //           }.bind(this));
-  //         }
-          
-  //         //saving the cursor for requesting further deltas in relation to the cursor position
-  //         if(delta.cursor)
-  //           this._deltaCursor = delta.cursor;
-          
-  //         //updating revCache
-  //         console.log("Delta : ",delta.entries);
-  //         delta.entries.forEach(function(entry) {
-  //           var path = entry[0];
-  //           var rev;
-  //           if(!entry[1]){
-  //             rev = null;
-  //           } else {
-  //             if(entry[1].is_dir)
-  //               return;
-  //             rev = entry[1].rev;
-  //           }
-  //           this._revCache.set(path, rev);
-  //         }.bind(this));
-  //         promise.fulfill.apply(promise, args);
-  //       }
-  //     });
-  //     return promise;
-  //   }
+    }
   };
-
-  //hooking and unhooking the sync
-
-  // function hookSync(rs) {
-  //   if(rs._dropboxOrigSync) return; // already hooked
-  //   rs._dropboxOrigSync = rs.sync.bind(rs);
-  //   rs.sync = function() {
-  //     return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
-  //       then(rs._dropboxOrigSync, function(err){
-  //         rs._emit('error', new rs.SyncError(err));
-  //       });
-  //   };
-  // }
-  // function unHookSync(rs) {
-  //   if(! rs._dropboxOrigSync) return; // not hooked
-  //   rs.sync = rs._dropboxOrigSync;
-  //   delete rs._dropboxOrigSync;
-  // }
-  
-  // hooking and unhooking getItemURL
 
   function hookGetItemURL(rs) {
     if(rs._origBaseClientGetItemURL)
@@ -513,9 +416,6 @@
     if(rs.backend == 'dropbox'){
       rs._origRemote = rs.remote;
       rs.remote = rs.dropbox;
-      // if(rs.sync) {
-      //   hookSync(rs);
-      // }
       hookGetItemURL(rs);
     }
   };
@@ -526,7 +426,6 @@
   };
 
   RS.Dropbox._rs_cleanup = function(rs) {
-//    unHookSync(rs);
     unHookGetItemURL(rs);
 
     if(rs._origRemote)

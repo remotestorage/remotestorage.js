@@ -1,12 +1,16 @@
 (function(global) {
   function emitUnauthorized(status){
+    var args = Array.prototype.slice.call(arguments);
     if(status == 403  || status == 401) {
       this._emit('error', new RemoteStorage.Unauthorized())
     }
-    var p = promising();
-    return p.fulfill.apply(p, arguments);
+    var p = promising()
+    return p.fulfill.apply(p,args);
   }
-
+  function shareFirst(path){
+    return ( this.backend == 'dropbox' &&
+             path.match(/^\/public\/.*[^\/]$/) )
+  }
   var SyncedGetPutDelete = {
     get: function(path) {
       if(this.caching.cachePath(path)) {
@@ -17,7 +21,11 @@
     },
     
     put: function(path, body, contentType) {
-      if(this.caching.cachePath(path)) {
+      if(shareFirst.bind(this)(path)){
+        //this.local.put(path, body, contentType);
+        return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
+      }
+      else if(this.caching.cachePath(path)) {
         return this.local.put(path, body, contentType);
       } else {
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));

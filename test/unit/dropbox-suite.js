@@ -5,8 +5,8 @@ define(['requirejs'], function(requirejs, undefined) {
   var suites = [];
 
   suites.push({
-    name: "WireClient",
-    desc: "Low-level remotestorage client based on XMLHttpRequest",
+    name: "DropbixClient",
+    desc: "Low-level Dropbox client based on XMLHttpRequest",
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
@@ -19,12 +19,15 @@ define(['requirejs'], function(requirejs, undefined) {
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      require('./src/wireclient');
+      require('./src/wireclient')
+      
       if(global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
         global.rs_wireclient = RemoteStorage.WireClient
       }
+      require('./src/dropbox');
+
       test.done();
     },
 
@@ -58,13 +61,14 @@ define(['requirejs'], function(requirejs, undefined) {
         });
       });
       env.rs = new RemoteStorage();
+      env.rs.apiKeys= { dropbox: {api_key: 'testkey'} }
       RemoteStorage.eventHandling(env.rs, 'error');
-      env.client = new RemoteStorage.WireClient(env.rs);
-      env.connectedClient = new RemoteStorage.WireClient(env.rs);
+      env.client = new RemoteStorage.Dropbox(env.rs);
+      env.connectedClient = new RemoteStorage.Dropbox(env.rs);
       env.baseURI = 'https://example.com/storage/test';
       env.token = 'foobarbaz';
       env.connectedClient.configure(
-        undefined, env.baseURI, undefined, env.token
+        'dboxuser', env.baseURI, undefined, env.token
       );
       global.Blob = function(input, options) {
         this.input = input;
@@ -133,11 +137,11 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#configure sets the given parameters",
+        desc: "#configure sets the userAddress",
         run: function(env, test) {
-          env.client.configure('test@example.com', undefined, 'draft-dejong-remotestorage-00');
+          env.client.configure('test@example.com');
           test.assertAnd(env.client.userAddress, 'test@example.com');
-          test.assertAnd(env.client.storageApi, 'draft-dejong-remotestorage-00');
+          
           test.done();
         }
       },
@@ -147,30 +151,19 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           env.client.configure('test@example.com');
           test.assertAnd(env.client.userAddress, 'test@example.com');
-          env.client.configure(undefined, 'http://foo/bar');
+          env.client.configure(undefined, undefined, undefined, 'abcd');
           test.assertAnd(env.client.userAddress, 'test@example.com');
-          test.assertAnd(env.client.href, 'http://foo/bar');
+          test.assertAnd(env.client.token, 'abcd');
+          env.client.configure(null, undefined, undefined, null)
+          test.assertAnd(env.client.token, null)
+          test.assertAnd(env.client.userAddress, null)
           test.done();
         }
       },
-
       {
-        desc: "#configure determines if revisions are supported, based on the storageApi",
+        desc: "#configure sets 'connected' to true, once token is given",
         run: function(env, test) {
-          env.client.configure(undefined, undefined, 'draft-dejong-remotestorage-00');
-          test.assertAnd(env.client.supportsRevs, true);
-          env.client.configure(undefined, undefined, 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple');
-          test.assertAnd(env.client.supportsRevs, false);
-          env.client.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
-          test.assertAnd(env.client.supportsRevs, true);
-          test.done();
-        }
-      },
-
-      {
-        desc: "#configure sets 'connected' to true, once href and token are given",
-        run: function(env, test) {
-          env.client.configure(undefined, 'https://example.com/storage/test', undefined, 'foobarbaz');
+          env.client.configure(undefined, undefined, undefined, 'foobarbaz');
           test.assert(env.client.connected, true);
         }
       },
@@ -181,8 +174,9 @@ define(['requirejs'], function(requirejs, undefined) {
           env.connectedClient.get('/foo/bar');
           var request = XMLHttpRequest.instances.shift();
           test.assertTypeAnd(request, 'object');
+          console.log("REQUEST OPEN",request._open)
           test.assert(request._open,
-                      ['GET', 'https://example.com/storage/test/foo/bar', true]);
+                      ['GET', 'https://api-content.dropbox.com/1/files/auto/foo/bar', true]);
         }
       },
 
@@ -200,47 +194,7 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           env.connectedClient.get('/foo//baz');
           var request = XMLHttpRequest.instances.shift();
-          test.assert(request._open[1], 'https://example.com/storage/test/foo/baz');
-        }
-      },
-
-      {
-        desc: "#get sets the 'If-None-Match' to the empty string, when revisions are supported",
-        run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
-          env.connectedClient.get('/foo/bar');
-          var request = XMLHttpRequest.instances.shift();
-          test.assert(request._headers['If-None-Match'], '');
-        }
-      },
-
-      {
-        desc: "#get sets the 'If-None-Match' to the given value, when revisions are supported and the ifNoneMatch option is provided",
-        run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
-          env.connectedClient.get('/foo/bar', { ifNoneMatch: 'something' });
-          var request = XMLHttpRequest.instances.shift();
-          test.assert(request._headers['If-None-Match'], 'something');
-        }
-      },
-
-      {
-        desc: "#get doesn't set the 'If-None-Match' header, when revisions are not supported",
-        run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple');
-          env.connectedClient.get('/foo/bar');
-          var request = XMLHttpRequest.instances.shift();
-          test.assertType(request._headers['If-None-Match'], 'undefined');
-        }
-      },
-
-      {
-        desc: "#get doesn't set the 'If-None-Match' header even though the option is given, when revisions are not supported",
-        run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple');
-          env.connectedClient.get('/foo/bar', { ifNoneMatch: 'something' });
-          var request = XMLHttpRequest.instances.shift();
-          test.assertType(request._headers['If-None-Match'], 'undefined');
+          test.assert(request._open[1], 'https://api-content.dropbox.com/1/files/auto/foo/baz');
         }
       },
 
@@ -297,6 +251,10 @@ define(['requirejs'], function(requirejs, undefined) {
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
+            mime_type: 'text/plain; charset=UTF-8',
+            rev: 'rev'
+          })
           req.status = 200;
           req.responseText = 'response-body';
           req._onload();
@@ -314,6 +272,10 @@ define(['requirejs'], function(requirejs, undefined) {
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
+          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
+            mime_type: 'text/plain; charset=UTF-8',
+            rev: 'rev'
+          })
           req.status = 200;
           req.responseText = '{"response":"body"}';
           req._onload();
@@ -361,6 +323,10 @@ define(['requirejs'], function(requirejs, undefined) {
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
+          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
+            mime_type: 'application/octet-stream; charset=binary',
+            rev: 'rev'
+          });
           req.status = 200;
           req.response = 'response-body';
           req._onload();
@@ -377,6 +343,9 @@ define(['requirejs'], function(requirejs, undefined) {
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
+            rev: 'rev'
+          })
           req.status = 200;
           req.response = 'response-body';
           req._onload();
@@ -398,7 +367,39 @@ define(['requirejs'], function(requirejs, undefined) {
           req.response = 'response-body';
           req._onload();
         }
+      },
+      
+//FIXME: fix this test
+/*
+      {
+        desc: "share gets called after geting a public path without touching the fullfilments",
+        run: function(env, test) {
+          env.connectedClient.get('/public/foo').then(function(status, body, contentType, rev){
+            console.log('get fulfilled promise')
+            test.assertAnd(status, 200, 'status = '+status);
+            test.assertAnd(rev,'rev',rev)
+            test.assertAnd(body, 'response-body', 'body = '+ body);
+          
+            //test.assert(env.connectedClient._itemRefs['/public/foo'],'http://dropbox.shareing/url');
+          })
+          var getReq = XMLHttpRequest.instances.shift();
+          getReq._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
+            rev: 'rev'
+          })
+          getReq.status = 200;
+          getReq.responseText = 'response-body';
+          getReq._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+          getReq._onload();
+          setTimeout(function(){
+            var shareReq =  XMLHttpRequest.instances.shift();
+            shareReq.responseText = JSON.stringify( {
+              url: 'http://dropbox.shareing/url'
+            } );
+            shareReq._onload();
+          }, 100);
+        }
       }
+*/
 
     ]
   });
