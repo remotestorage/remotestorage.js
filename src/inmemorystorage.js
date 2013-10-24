@@ -8,7 +8,17 @@ function makeNode(path) {
   }
   return node;
 }
-
+function applyRecursive(path, cb){
+    var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
+    if(parts) {
+      var dirname = parts[1];
+      var basename = parts[1];
+      cb(dirname, basename);
+      if(dirname != '/')
+        applyRecursive(dirname, cb);
+    } else {
+      throw new Error('inMemoryStorage encountered invalid path : '+path)
+    }
 RemoteStorage.InMemoryStorage = function(rs){
   this.rs = rs
   RemoteStorage.eventHandling(this, 'change', 'conflict')
@@ -31,6 +41,7 @@ RemoteStorage.InMemoryStorage.prototype = {
       body: body
     }
     this._storage = node;
+    this._addToParent(path);
     this._emit('change', {
       path: path,
       origin: incoming ? 'remote' : 'window',
@@ -42,6 +53,7 @@ RemoteStorage.InMemoryStorage.prototype = {
   delete: function(path, incoming){
     var oldNode = this._storage[path];
     delete this._storage[path];
+    this._removeFromParent(path);
     if(oldNode) {
       this._emit('change', {
         path: path,
@@ -52,6 +64,23 @@ RemoteStorage.InMemoryStorage.prototype = {
     }
     return promising().fulfill(200);
   },
+  _addToParent: function(path){
+    applyRecursive(path, function(dirname, basename){
+      var node = this._storage[dirname] || makeNode(dirname);
+      node.body[basename] = true;
+      this._storage[node] = node;
+    }
+  },
+  _removeFromParent: function(path){
+    applyRecursive(path, function(basename, dirname){
+      var node = this._storage[dirname]
+      if(node) {
+        delete node[basename];
+        if(node.keys.length == 0)
+          delete this._storage[dirname]
+      }
+    }
+  }
   setRevision: function(path, revision){
     var node = this._storage[path] || makeNode(path)
     node.revision = revision;
