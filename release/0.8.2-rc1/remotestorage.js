@@ -4033,7 +4033,7 @@ Math.uuid = function (len, radix) {
       var dirname = parts[1], basename = parts[2];
       nodes.get(dirname).onsuccess = function(evt) {
         var node = evt.target.result || makeNode(dirname);
-        node[key][basename] = revision;
+        node[key][basename] = revision || true;
         nodes.put(node).onsuccess = function() {
           if(dirname != '/') {
             addToParent(nodes, dirname, key, true);
@@ -4603,7 +4603,7 @@ Math.uuid = function (len, radix) {
       if(parts) {
         var dirname = parts[1], basename = parts[2];
         var node = this._get(dirname) || makeNode(dirname);
-        node.body[basename] = revision;
+        node.body[basename] = revision || true;
         localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
         if(dirname != '/') {
           this._addToParent(dirname, true);
