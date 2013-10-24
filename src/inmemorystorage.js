@@ -53,9 +53,16 @@ RemoteStorage.InMemoryStorage.prototype = {
     return promising().fulfill(200);
   },
   setRevision: function(path, revision){
-    if(this._storage[path]){
-      this._storage[path].revision = revision;
-    } else {}
+    var node = this._storage[path] || makeNode(path)
+    node.revision = revision;
+    this._storage[path] = node;
+    return promising().fulfill();
+  }
+  getRevision: function(path){
+    var rev;
+    if(this._storage[path])
+      rev = this._storage[path].revision;
+    return promising().fulfill(rev);
   }
 }
 
