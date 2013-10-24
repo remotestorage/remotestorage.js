@@ -58,7 +58,7 @@
       }
     }
     for(var bk in b) {
-      if(a[ak] != b[ak]) {
+      if(a[bk] != b[bk]) {
         keyObject[bk] = true;
       }
     }
