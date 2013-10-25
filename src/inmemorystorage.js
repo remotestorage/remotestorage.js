@@ -98,7 +98,7 @@
       })
     },
     
-    _recordChage: function(path, attriubtes) {
+    _recordChange: function(path, attributes) {
       var change = this._changes[path] || {};
       for(var k in attributes)
         change[k] = attributes[k];
