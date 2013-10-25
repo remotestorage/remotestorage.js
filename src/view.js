@@ -148,16 +148,12 @@
       el = gCl(element, 'rs-dropbox');
       el.src = RemoteStorage.Assets.dropbox;
       el.addEventListener('click', this.connectDropbox.bind(this) );
-      if(! this.rs.apiKeys.dropbox) {
-        el.style.display = 'none';
-      }
+      
       el = gCl(element, 'rs-googledrive');
       el.src = RemoteStorage.Assets.googledrive;
       el.addEventListener('click', this.connectGdrive.bind(this));
-      if(! this.rs.apiKeys.googledrive) {
-        el.style.display = 'none';
-      }
-
+      
+      
       //the bubble
       this.bubble = gCl(element,'rs-bubble');
       // what is the meaning of this hiding the b
@@ -190,25 +186,33 @@
 
     // Methods:
     //
-    //  display(domID)
-    //    draws the widget inside of the dom element with the id domID
-    //   returns: the widget div
-    //
-    //  showBubble()
-    //    shows the bubble
-    //  hideBubble()
-    //    hides the bubble
-    //  toggleBubble()
-    //    shows the bubble when hidden and the other way around
-    //
-    //  setState(state, args)
-    //    calls states[state]
-    //    args are the arguments for the
-    //    state(errors mostly)
-    //
-    // setUserAddres
-    //    set userAddress of the input field
-    //
+    /**
+     * Method: display(domID)
+     *   draws the widget inside of the dom element with the id domID
+     *   returns: the widget div
+     **/
+    /** 
+     * Method: showBubble()
+     *   shows the bubble
+     **/
+    /**
+     *  hideBubble()
+     *   hides the bubble
+     **/
+    /** 
+    *  toggleBubble()
+    *    shows the bubble when hidden and the other way around
+    **/
+    /**
+     * Method:s etState(state, args)
+     *    calls states[state]
+     *    args are the arguments for the
+     *    state(errors mostly)
+     **/
+    /**
+     * Method: setUserAddres
+     *    set userAddress of the input field
+     **/
     // States:
     //  initial      - not connected
     //  authing      - in auth flow
@@ -258,8 +262,23 @@
         this.div.className = "remotestorage-state-initial";
         gCl(this.div, 'rs-status-text').innerHTML = "<strong>Connect</strong> remote storage";
 
+        //googledrive and dropbox icons
+        var bubbleText = gCl(this.div, 'rs-bubble-text');
+        var backends = 1;
+        if(! this.rs.apiKeys.dropbox) {
+          gCl(this.div,'rs-dropbox').style.display = 'none';
+        } else {
+          backends += 1
+        }
+
+        if(! this.rs.apiKeys.googledrive) {
+          gCl(this.div,'rs-googledrive').style.display = 'none';
+        } else {
+          backends += 1
+        }
+        bubbleText.style.paddingRight = backends*32+8+'px'
+
         //if address not empty connect button enabled
-        //TODO check if this works
         var cb = gCl(this.div, 'connect');
         if(this.form.userAddress.value)
           cb.removeAttribute('disabled');
