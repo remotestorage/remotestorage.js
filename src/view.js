@@ -263,20 +263,20 @@
         gCl(this.div, 'rs-status-text').innerHTML = "<strong>Connect</strong> remote storage";
 
         //googledrive and dropbox icons
-        var bubbleText = gCl(this.div, 'rs-bubble-text');
         var backends = 1;
         if(! this.rs.apiKeys.dropbox) {
           gCl(this.div,'rs-dropbox').style.display = 'none';
         } else {
+          gCl(this.div,'rs-dropbox').style.display = 'inline-block';
           backends += 1
         }
-
         if(! this.rs.apiKeys.googledrive) {
           gCl(this.div,'rs-googledrive').style.display = 'none';
         } else {
+          gCl(this.div,'rs-googledrive').style.display = 'inline-block';
           backends += 1
         }
-        bubbleText.style.paddingRight = backends*32+8+'px'
+        gCl(this.div, 'rs-bubble-text').style.paddingRight = backends*32+8+'px'
 
         //if address not empty connect button enabled
         var cb = gCl(this.div, 'connect');
@@ -311,6 +311,9 @@
         icons.googledrive.style.display = icons.dropbox.style.display = 'none';
         if(icons[this.rs.backend]) {
           icons[this.rs.backend].style.display = 'inline-block';
+          gCl(this.div, 'rs-bubble-text').style.paddingRight = 2*32+8+'px'
+        } else {
+          gCl(this.div, 'rs-bubble-text').style.paddingRight = 32+8+'px'
         }
       },
       busy : function() {
