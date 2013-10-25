@@ -2,6 +2,8 @@
   var RS = RemoteStorage;
 
   /**
+   * Class: RemoteStorage.WireClient
+   *
    * WireClient Interface
    * --------------------
    *
@@ -110,9 +112,19 @@
     // strip duplicate slashes.
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
-
+  /**
+   * Class : RemoteStorage.WireClient
+   **/
   RS.WireClient = function(rs) {
     this.connected = false;
+    /**
+     * Event: change
+     *   never fired for some reason
+     *
+     * Event: connected
+     *   fired when the wireclient connect method realizes that it is
+     *   in posession of a token and a href
+     **/
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
@@ -176,7 +188,7 @@
      *   // -> 'draft-dejong-remotestorage-01'
      */
 
-
+    
     configure: function(userAddress, href, storageApi, token) {
       if(typeof(userAddress) !== 'undefined') this.userAddress = userAddress;
       if(typeof(href) !== 'undefined') this.href = href;
