@@ -28,7 +28,20 @@
     }
   }
 
-
+  /**
+   * Class: RemoteStorage.Widget.View
+   *
+   * The View controles the actual visible widget
+   *
+   * States:
+   *   initial      - not connected
+   *   authing      - in auth flow
+   *   connected    - connected to remote storage, not syncing at the moment
+   *   busy         - connected, syncing at the moment
+   *   offline      - connected, but no network connectivity
+   *   error        - connected, but sync error happened
+   *   unauthorized - connected, but request returned 401
+   **/
   RemoteStorage.Widget.View = function(remoteStorage) {
     this.rs = remoteStorage;
     if(typeof(document) === 'undefined') {
@@ -48,6 +61,10 @@
 
 
     // bubble toggling stuff
+    /** 
+    *  toggleBubble()
+    *    shows the bubble when hidden and the other way around
+    **/
     this.toggle_bubble = function(event) {
       if(this.bubble.className.search('rs-hidden') < 0) {
         this.hide_bubble(event);
@@ -55,7 +72,11 @@
         this.show_bubble(event);
       }
     }.bind(this);
-
+    
+    /**
+     *  hideBubble()
+     *   hides the bubble
+     **/
     this.hide_bubble = function(){
       //console.log('hide bubble',this);
       addClass(this.bubble, 'rs-hidden')
@@ -71,6 +92,10 @@
       this.hide_bubble();
     }.bind(this);
 
+    /** 
+     * Method: showBubble()
+     *   shows the bubble
+     **/
     this.show_bubble = function(event){
       //console.log('show bubble',this.bubble,event)
       removeClass(this.bubble, 'rs-hidden');
@@ -81,7 +106,11 @@
       gTl(this.bubble,'form').userAddress.focus();
     }.bind(this);
 
-
+     /**
+     * Method: display(domID)
+     *   draws the widget inside of the dom element with the id domID
+     *   returns: the widget div
+     **/
     this.display = function(domID) {
 
       if(typeof this.div !== 'undefined')
@@ -183,51 +212,13 @@
     connectDropbox: function(){
       this._emit('connect', { special: 'dropbox'});
     },
-
-    // Methods:
-    //
+    
     /**
-     * Method: display(domID)
-     *   draws the widget inside of the dom element with the id domID
-     *   returns: the widget div
-     **/
-    /** 
-     * Method: showBubble()
-     *   shows the bubble
-     **/
-    /**
-     *  hideBubble()
-     *   hides the bubble
-     **/
-    /** 
-    *  toggleBubble()
-    *    shows the bubble when hidden and the other way around
-    **/
-    /**
-     * Method:s etState(state, args)
+     * Method: setState(state, args)
      *    calls states[state]
      *    args are the arguments for the
      *    state(errors mostly)
      **/
-    /**
-     * Method: setUserAddres
-     *    set userAddress of the input field
-     **/
-    // States:
-    //  initial      - not connected
-    //  authing      - in auth flow
-    //  connected    - connected to remote storage, not syncing at the moment
-    //  busy         - connected, syncing at the moment
-    //  offline      - connected, but no network connectivity
-    //  error        - connected, but sync error happened
-    //  unauthorized - connected, but request returned 401
-    //
-    // Events:
-    // connect    : fired when the connect button is clicked
-    // sync       : fired when the sync button is clicked
-    // disconnect : fired when the disconnect button is clicked
-    // reset      : fired after crash triggers disconnect
-    // display    : fired when finished displaying the widget
     setState : function(state, args) {
       RemoteStorage.log('widget.view.setState(',state,',',args,');');
       var s = this.states[state];
@@ -236,6 +227,11 @@
       }
       s.apply(this,args);
     },
+
+    /**
+     * Method: setUserAddres
+     *    set userAddress of the input field
+     **/
     setUserAddress : function(addr) {
       this.userAddress = addr || '';
 

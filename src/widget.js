@@ -37,6 +37,22 @@
       }
     }
   }
+  /**
+   * Class: RemoteStorage.Widget
+   *   the Widget Controler that comunicates with the view 
+   *   and listens to it's remoteStorage instance
+   *
+   *   While listening to the Events emitted by it's remoteStorage
+   *   it set's corresponding states of the View.
+   *
+   *   ready        :  connected
+   *   disconnected :  initial
+   *   connecting   :  authing
+   *   authing      :  authing
+   *   sync-busy    :  busy
+   *   sync-done    :  connected
+   *   error        :  depending on the error initial,offline, unauthorized or error
+   **/
   RemoteStorage.Widget = function(remoteStorage) {
 
     // setting event listeners on rs events to put
@@ -62,16 +78,12 @@
   };
 
   RemoteStorage.Widget.prototype = {
-    // Methods :
-    //   display(domID)
-    //     displays the widget via the view.display method
-    //    returns: this
-    //
-    //   setView(view)
-    //     sets the view and initializes event listeners to
-    //     react on widget events
-    //
 
+    /**
+    *   Method: display(domID)
+    *     displays the widget via the view.display method
+    *     returns: this
+    **/
     display: function(domID) {
       if(! this.view) {
         this.setView(new RemoteStorage.Widget.View(this.rs));
@@ -79,7 +91,12 @@
       this.view.display.apply(this.view, arguments);
       return this;
     },
-
+    
+    /**
+    *   Method: setView(view)
+    *    sets the view and initializes event listeners to
+    *    react on widget(widget.view) events
+    **/
     setView: function(view) {
       this.view = view;
       this.view.on('connect', function(options) {
@@ -113,9 +130,12 @@
       }
     }
   };
-
+  /**
+   *  Method: displayWidget(domID)
+   *    same as display
+   **/
   RemoteStorage.prototype.displayWidget = function(domID) {
-    this.widget.display(domID);
+    return this.widget.display(domID);
   };
 
   RemoteStorage.Widget._rs_init = function(remoteStorage) {
