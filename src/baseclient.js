@@ -63,8 +63,32 @@
     /**
      * Event: change
      * emitted when a node changes
-     * Arguments:
-     * event
+     *
+     * Arguments: event 
+     * (start code)
+     * {
+     *    path: path,
+     *    origin: incoming ? 'remote' : 'window',
+     *    oldValue: oldBody,
+     *    newValue: newBody
+     *  }
+     * (end code)
+     *
+     * * the path ofcourse is the path of the node that changed
+     *
+     *
+     * * the origin tells you if it's an change pulled by sync(remote)
+     * or some user action within the app(window)
+     *
+     *
+     * 
+     * * the oldValue defaults to undefined if you are dealing with some
+     * new file
+     *
+     *
+     * * the newValue defaults to undefined if you are dealing with a deletion
+     * 
+     * * when newValue and oldValue are set you are dealing with an update
      **/
     /**
      * Event: conflict
