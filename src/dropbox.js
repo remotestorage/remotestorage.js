@@ -537,7 +537,7 @@
           if(response.status != 200 ){
             if(response.status == 400) {
               this.rs._emit('error', new RemoteStorage.Unauthorized());
-              promise.fulfill(args)
+              promise.fulfill.apply(promise, args)
             } else {
               console.log("!!!!dropbox.fetchDelta returned "+response.status+response.responseText);
               promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
@@ -563,7 +563,8 @@
             promise.then(function(){
               var args = Array.prototype.slice.call(arguments);
               self._revCache._activatePropagation();
-              return args;
+              var p = promising();
+              return p.fulfill.apply(p,args);
             });
           }
           
