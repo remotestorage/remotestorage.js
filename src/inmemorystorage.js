@@ -3,7 +3,7 @@
     var node = { path: path };
     if(path[path.length - 1] == '/') {
       node.body = {};
-      node.cached = {};
+      //node.cached = {};
       node.contentType = 'application/json';
     }
     return node;
@@ -12,9 +12,9 @@
     var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
     if(parts) {
       var dirname = parts[1];
-      var basename = parts[1];
-      cb(dirname, basename);
-      if(dirname != '/')
+      var basename = parts[2];
+      
+      if(cb(dirname, basename) && dirname != '/')
         applyRecursive(dirname, cb);
     } else {
       throw new Error('inMemoryStorage encountered invalid path : '+path)
@@ -44,7 +44,7 @@
         contentType: contentType,
         body: body
       }
-      this._storage = node;
+      this._storage[path] = node;
       this._addToParent(path);
       if(!incoming) {
         this._recordChange(path, {action: 'PUT' });
@@ -81,19 +81,23 @@
     _addToParent: function(path){
       var storage = this._storage
       applyRecursive(path, function(dirname, basename){
+        //console.log('dirname : ',dirname, '\nbasename : ', basename)
         var node = storage[dirname] || makeNode(dirname);
         node.body[basename] = true;
-        storage[node] = node;
+        storage[dirname] = node;
+        return true;
       })
     },
     _removeFromParent: function(path){
       var storage = this._storage
-      applyRecursive(path, function(basename, dirname){
+      applyRecursive(path, function(dirname, basename){
         var node = storage[dirname]
         if(node) {
-          delete node[basename];
-          if(node.keys.length == 0)
+          delete node.body[basename];
+          if(Object.keys(node.body).length == 0){
             delete storage[dirname]
+            return true;
+          }
         }
       })
     },
