@@ -259,10 +259,36 @@ define(['requirejs'], function(requirejs){
             env.ims.put('/foo/bla', 'fdsab', 'text/plain');
           });
         }
-      }
+      },
 
-
+      {
+        desc: '#setRevision sets the revision correctly',
+        run: function(env, test){
+          env.ims.put('/foo/bar','blablub', 'text/plain').then(function(){
+            env.ims.setRevision('/foo/bar', '123987').then(function(){
+              test.assert(env.ims._storage['/foo/bar'], {
+                path: '/foo/bar',
+                body: 'blablub',
+                contentType: 'text/plain',
+                revision: '123987'
+              })
+            })
+          })
+        }
+      },
       
+      {
+        desc: '#getRevision returns right revision',
+        run: function(env, test) {
+          env.ims.put('/foo/bar','blablub', 'text/plain').then(function(){
+            env.ims.setRevision('/foo/bar', '123987').then(function(){
+              env.ims.getRevision('/foo/bar').then(function(rev){
+                test.assert(rev, '123987');
+              })
+            })
+          })
+        }
+      }
 
     ]
     
