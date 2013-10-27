@@ -124,31 +124,148 @@ define(['requirejs'], function(requirejs){
            })
         }
       },
-        
+      
       {
-          desc: "#delete doesn't remove nonempty nodes",
-          run: function(env, test) {
-             env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
-              env.ims.put('/foo/baz', 'bla', 'text/pain').then(function() {
-                env.ims.delete('/foo/bar/baz').then(function(status) {
-                   test.assertAnd(Object.keys(env.ims._storage).sort(), ['/', '/foo/', '/foo/baz'], 'wrong nodes after delete '+Object.keys(env.ims._storage).sort());
-                   test.assertAnd(env.ims._storage['/foo/'], {
-                     path: '/foo/',
-                     body: {'baz': true},
-                     contentType: 'application/json'
-                   }, 'found ' +JSON.stringify(env.ims._storage['/foo/'])+'instead of '+JSON.stringify({
-                     path: '/foo/',
-                     body: {'baz': true},
-                     contentType: 'applicaton/json'
-                   }));
-                  test.done();
-                })
+        desc: "#delete doesn't remove nonempty nodes",
+        run: function(env, test) {
+          env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
+            env.ims.put('/foo/baz', 'bla', 'text/pain').then(function() {
+              env.ims.delete('/foo/bar/baz').then(function(status) {
+                test.assertAnd(Object.keys(env.ims._storage).sort(), ['/', '/foo/', '/foo/baz'], 'wrong nodes after delete '+Object.keys(env.ims._storage).sort());
+                test.assertAnd(env.ims._storage['/foo/'], {
+                  path: '/foo/',
+                  body: {'baz': true},
+                  contentType: 'application/json'
+                }, 'found ' +JSON.stringify(env.ims._storage['/foo/'])+'instead of '+JSON.stringify({
+                  path: '/foo/',
+                  body: {'baz': true},
+                  contentType: 'applicaton/json'
+                }));
+                test.done();
               })
+            })
+          });
+        }
+      },
+
+      {
+        desc: "#put records a change for outgoing changes",
+        run: function(env, test) {
+          env.ims.put('/foo/bla', 'basdf', 'text/plain').then(function() {
+            test.assert(env.ims._changes['/foo/bla'], {
+              action: 'PUT',
+              path: '/foo/bla'
             });
-          }
-         }
+          });
+        }
+      },
+
+      {
+        desc: "#put doesn't record a change for incoming changes",
+        run: function(env, test) {
+          env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
+            test.assertType(env.ims._changes['/foo/bla'], 'undefined');
+          });
+        }
+      },
+      
+      {
+        desc: "#delete records a change for outgoing changes",
+        run: function(env, test) {
+          env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
+            env.ims.delete('/foo/bla').then(function(){
+              test.assert(env.ims._changes['/foo/bla'], {
+                action: 'DELETE',
+                path: '/foo/bla'
+              });
+            });
+          });
+        }
+      },
+
+      {
+        desc: "#put doesn't record a change for incoming changes",
+        run: function(env, test) {
+          env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
+            env.ims.delete('/foo/bla', true).then(function(){
+          
+              test.assertType(env.ims._changes['/foo/bla'], 'undefined');
+            });
+          });
+        }
+      },
+
+      {
+        desc: "#put fires a 'change' with origin=window for outgoing changes",
+        timeout: 250,
+        run: function(env, test) {
+          env.ims.on('change', function(event) {
+            test.assert(event, {
+              path: '/foo/bla',
+              origin: 'window',
+              oldValue: undefined,
+              newValue: 'basdf'
+            });
+          })
+          env.ims.put('/foo/bla', 'basdf', 'text/plain');
+        }
+      },
+
+      {
+        desc: "#put fires a 'change' with origin=remote for incoming changes",
+        run: function(env, test) {
+          env.ims.on('change', function(event) {
+            test.assert(event, {
+              path: '/foo/bla',
+              origin: 'remote',
+              oldValue: undefined,
+              newValue: 'adsf'
+            });
+          });
+          env.ims.put('/foo/bla', 'adsf', 'text/plain', true);
+        }
+      },
+      
+      {
+        desc: "#put attaches the newValue and oldValue correctly for updates",
+        run: function(env, test) {
+          var i = 0;
+          env.ims.on('change', function(event) {
+            i++;
+            if(i == 1) {
+              test.assertAnd(event, {
+                path: '/foo/bla',
+                origin: 'remote',
+                oldValue: undefined,
+                newValue: 'basdf'
+              });
+            } else if(i == 2) {
+              test.assertAnd(event, {
+                path: '/foo/bla',
+                origin: 'window',
+                oldValue: 'basdf',
+                newValue: 'fdsab'
+              });
+              setTimeout(function() {
+                test.done();
+              }, 0);
+
+            } else {
+              console.error("UNEXPECTED THIRD CHANGE EVENT");
+              test.result(false);
+            }
+          });
+          env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
+            env.ims.put('/foo/bla', 'fdsab', 'text/plain');
+          });
+        }
+      }
+
+
+      
+
     ]
-  
+    
   })
   return suites;
 });
