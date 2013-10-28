@@ -48,12 +48,9 @@
     return typeof(document) != 'undefined';
   };
 
+  var onFeaturesLoaded;
   RemoteStorage.Authorize._rs_init = function(remoteStorage) {
-    var params = extractParams();
-    if(params) {
-      document.location.hash = '';
-    }
-    remoteStorage.on('features-loaded', function() {
+    onFeaturesLoaded = function () {
       if(params) {
         if(params.error) {
           throw "Authorization server errored: " + params.error;
@@ -65,7 +62,15 @@
           remoteStorage.connect(params.remotestorage);
         }
       }
-    });
+    }
+    var params = extractParams();
+    if(params) {
+      document.location.hash = '';
+    }
+    remoteStorage.on('features-loaded', onFeaturesLoaded );
+  }
+  RemoteStorage.Authorize._rs_cleanup = function(remoteStorage) {
+    remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded );
   }
 
 })();

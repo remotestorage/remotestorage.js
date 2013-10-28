@@ -250,7 +250,7 @@
           this._emit('disconnect');// DEPRECATED?
         }
       }.bind(this);
-      if(this._cleanups.length>0)
+      if(n>0) {
         this._cleanups.forEach(function(cleanup) {
           var cleanupResult = cleanup(this);
           if(typeof(cleanup) == 'object' && typeof(cleanup.then) == 'function') {
@@ -259,7 +259,7 @@
             oneDone();
           }
         }.bind(this));
-      else {
+      } else {
         oneDone();
       }
     },
