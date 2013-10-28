@@ -1,7 +1,7 @@
 (function(global) {
 
   var SYNC_INTERVAL = 10000;
-
+  
   //
   // The synchronization algorithm is as follows:
   //
@@ -226,15 +226,22 @@
       }
     });
   }
-
+  /**
+   * Class: RemoteStorage.Sync
+   **/
   RemoteStorage.Sync = {
+    /**
+     * Method: sync
+     **/
     sync: function(remote, local, path) {
       return pushChanges(remote, local, path).
         then(function() {
           return synchronize(remote, local, path);
         });
     },
-
+    /**
+     * Methods: syncTree
+     **/
     syncTree: function(remote, local, path) {
       return synchronize(remote, local, path, {
         data: false
