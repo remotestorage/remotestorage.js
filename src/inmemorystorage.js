@@ -90,6 +90,7 @@
     },
     _removeFromParent: function(path){
       var storage = this._storage
+      var self = this;
       applyRecursive(path, function(dirname, basename){
         var node = storage[dirname]
         if(node) {
@@ -97,6 +98,8 @@
           if(Object.keys(node.body).length == 0){
             delete storage[dirname]
             return true;
+          } else {
+            self._addToParent(dirname)
           }
         }
       })

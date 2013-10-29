@@ -149,6 +149,21 @@ define(['requirejs'], function(requirejs){
       },
 
       {
+        desc: "#delete propagates changes through empty directories",
+        run: function(env, test){
+          env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
+            env.ims.put('/foo/baz', 'bla', 'text/pain').then(function() {
+              env.ims._storage['/'].body['foo/'] = 'rev';
+              env.ims.delete('/foo/bar/baz').then(function(status) {
+                test.assertAnd(env.ims._storage['/'].body['foo/'], true, 'found '+env.ims._storage['/'].body['foo/']+' instead');
+                test.done();
+              });
+            });
+          });
+        }
+      },
+
+      {
         desc: "#put records a change for outgoing changes",
         run: function(env, test) {
           env.ims.put('/foo/bla', 'basdf', 'text/plain').then(function() {
