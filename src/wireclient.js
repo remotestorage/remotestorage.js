@@ -226,7 +226,7 @@
         if(options.ifNoneMatch)
           headers['If-None-Match'] = options.ifNoneMatch 
         else
-          delete headers['If-NoneMatch'] // to assure that it is gone might be obsolte
+          delete headers['If-None-Match'] // to assure that it is gone might be obsolete
       } else if(options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
         if(oldRev === options.ifNoneMatch) {
