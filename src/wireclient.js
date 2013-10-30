@@ -279,8 +279,12 @@
     'delete': function(path, options) {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
+      if(this.supportsRevs) {
+        if(options.ifMatch)
+          headers['If-Match'] = options.ifMatch;
+      }
       return request('DELETE', this.href + cleanPath(path), this.token,
-                     this.supportsRevs ? { 'If-Match': options.ifMatch } : {},
+                     headers ,
                      undefined, this.supportsRevs);
     }
 
