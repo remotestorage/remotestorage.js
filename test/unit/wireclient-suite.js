@@ -344,6 +344,17 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "#delete doesn't set the 'If-Match' when revisions are supported and no rev given",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.delete('/foo/bar');
+          var request = XMLHttpRequest.instances.shift();
+          var hasIfMatchHeader = request._headers.hasOwnProperty('If-Match');
+          test.assert(hasIfMatchHeader, false);
+        }
+      },
+
+      {
         desc: "WireClient destroys the bearer token after Unauthorized Error",
         run: function(env, test){
           env.rs._emit('error', new RemoteStorage.Unauthorized());
@@ -405,7 +416,6 @@ define(['requirejs'], function(requirejs, undefined) {
           req._onload();
         }
       },
-
 
       {
         desc: "404 responses discard the body altogether",

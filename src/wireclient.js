@@ -67,7 +67,7 @@
       return false;
     };
   }
-  
+
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
     if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
       throw "Don't " + method + " on directories!";
@@ -188,7 +188,7 @@
      *   // -> 'draft-dejong-remotestorage-01'
      */
 
-    
+
     configure: function(userAddress, href, storageApi, token) {
       if(typeof(userAddress) !== 'undefined') this.userAddress = userAddress;
       if(typeof(href) !== 'undefined') this.href = href;
@@ -277,12 +277,13 @@
     'delete': function(path, options) {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
+      var headers = {};
       if(this.supportsRevs) {
         if(options.ifMatch)
           headers['If-Match'] = options.ifMatch;
       }
       return request('DELETE', this.href + cleanPath(path), this.token,
-                     headers ,
+                     headers,
                      undefined, this.supportsRevs);
     }
 
@@ -325,7 +326,7 @@
     };
 
     var body = options.body;
-    
+
     if(typeof(body) == 'object') {
       if(isArrayBufferView(body)) { /* alright. */ }
       else if(body instanceof ArrayBuffer) {
