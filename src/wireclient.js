@@ -224,9 +224,7 @@
       var headers = {};
       if(this.supportsRevs) {
         if(options.ifNoneMatch)
-          headers['If-None-Match'] = options.ifNoneMatch 
-        else
-          delete headers['If-None-Match'] // to assure that it is gone might be obsolete
+          headers['If-None-Match'] = options.ifNoneMatch;
       } else if(options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
         if(oldRev === options.ifNoneMatch) {
