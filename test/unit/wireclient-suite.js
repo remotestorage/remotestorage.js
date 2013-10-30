@@ -13,7 +13,7 @@ define(['requirejs'], function(requirejs, undefined) {
       global.RemoteStorage.Unauthorized = function() {};
       require('./lib/promising');
       require('./src/eventhandling');
-      
+
       if(global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
@@ -210,7 +210,8 @@ define(['requirejs'], function(requirejs, undefined) {
           env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
           env.connectedClient.get('/foo/bar');
           var request = XMLHttpRequest.instances.shift();
-          test.assertType(request._headers['If-None-Match'], 'undefined');
+          var hasIfNoneMatchHeader = request._headers.hasOwnProperty('If-None-Match');
+          test.assert(hasIfNoneMatchHeader, false);
         }
       },
 
@@ -319,7 +320,29 @@ define(['requirejs'], function(requirejs, undefined) {
           req._onload();
         }
       },
-      
+
+      {
+        desc: "#put doesn't set the 'If-None-Match' when revisions are supported and no rev given",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.put('/foo/bar', 'baz', 'text/plain');
+          var request = XMLHttpRequest.instances.shift();
+          var hasIfNoneMatchHeader = request._headers.hasOwnProperty('If-None-Match');
+          test.assert(hasIfNoneMatchHeader, false);
+        }
+      },
+
+      {
+        desc: "#put doesn't set the 'If-Match' when revisions are supported and no rev given",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.put('/foo/bar', 'baz', 'text/plain');
+          var request = XMLHttpRequest.instances.shift();
+          var hasIfMatchHeader = request._headers.hasOwnProperty('If-Match');
+          test.assert(hasIfMatchHeader, false);
+        }
+      },
+
       {
         desc: "WireClient destroys the bearer token after Unauthorized Error",
         run: function(env, test){
