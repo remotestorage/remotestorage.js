@@ -205,12 +205,12 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#get sets the 'If-None-Match' to the empty string, when revisions are supported",
+        desc: "#get doesn't set the 'If-None-Match' when revisions are supported and no rev given",
         run: function(env, test) {
           env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
           env.connectedClient.get('/foo/bar');
           var request = XMLHttpRequest.instances.shift();
-          test.assert(request._headers['If-None-Match'], '');
+          test.assertType(request._headers['If-None-Match'], 'undefined');
         }
       },
 
@@ -332,7 +332,7 @@ define(['requirejs'], function(requirejs, undefined) {
 
       {
         desc: "requests are aborted if they aren't responded after REQUEST_TIMEOUT milliseconds",
-        timeout: 2000,
+        timeout: 30010,
         run: function(env, test) {
           RemoteStorage.WireClient.REQUEST_TIMEOUT = 1000;
           env.connectedClient.get('/foo').then(function() {

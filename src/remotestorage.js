@@ -244,20 +244,24 @@
       var n = this._cleanups.length, i = 0;
       var oneDone = function() {
         i++;
-        if(i == n) {
+        if(i >= n) {
           this._init();
           this._emit('disconnected');
           this._emit('disconnect');// DEPRECATED?
         }
       }.bind(this);
-      this._cleanups.forEach(function(cleanup) {
-        var cleanupResult = cleanup(this);
-        if(typeof(cleanup) == 'object' && typeof(cleanup.then) == 'function') {
-          cleanupResult.then(oneDone);
-        } else {
-          oneDone();
-        }
-      }.bind(this));
+      if(n>0) {
+        this._cleanups.forEach(function(cleanup) {
+          var cleanupResult = cleanup(this);
+          if(typeof(cleanup) == 'object' && typeof(cleanup.then) == 'function') {
+            cleanupResult.then(oneDone);
+          } else {
+            oneDone();
+          }
+        }.bind(this));
+      } else {
+        oneDone();
+      }
     },
 
     setBackend: function(what) {

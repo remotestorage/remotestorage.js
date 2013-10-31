@@ -7,6 +7,20 @@
   // cache loaded from localStorage
   var cachedInfo = {};
 
+  /**
+   * Class: RemoteStorage.Discover
+   *
+   * This class deals with the webfinger lookup
+   *
+   * Arguments:
+   * userAddress - user@host 
+   * callback    - gets called with href of the storage, the type and the authURL
+   * Example:
+   * (start code)
+   * 
+   * (end code)
+   **/
+
   RemoteStorage.Discover = function(userAddress, callback) {
     if(userAddress in cachedInfo) {
       var info = cachedInfo[userAddress];

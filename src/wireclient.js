@@ -223,9 +223,10 @@
       if(!options) options = {};
       var headers = {};
       if(this.supportsRevs) {
-        // setting '' causes the browser (at least chromium) to ommit
-        // the If-None-Match header it would normally send.
-        headers['If-None-Match'] = options.ifNoneMatch || '';
+        if(options.ifNoneMatch)
+          headers['If-None-Match'] = options.ifNoneMatch 
+        else
+          delete headers['If-NoneMatch'] // to assure that it is gone might be obsolte
       } else if(options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
         if(oldRev === options.ifNoneMatch) {
@@ -266,8 +267,10 @@
       }
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
-        headers['If-Match'] = options.ifMatch;
-        headers['If-None-Match'] = options.ifNoneMatch;
+        if(options.ifMatch)
+          headers['If-Match'] = options.ifMatch;
+        if(options.ifNoneMatch)
+          headers['If-None-Match'] = options.ifNoneMatch;
       }
       return request('PUT', this.href + cleanPath(path), this.token,
                      headers, body, this.supportsRevs);
@@ -276,8 +279,12 @@
     'delete': function(path, options) {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
+      if(this.supportsRevs) {
+        if(options.ifMatch)
+          headers['If-Match'] = options.ifMatch;
+      }
       return request('DELETE', this.href + cleanPath(path), this.token,
-                     this.supportsRevs ? { 'If-Match': options.ifMatch } : {},
+                     headers ,
                      undefined, this.supportsRevs);
     }
 
