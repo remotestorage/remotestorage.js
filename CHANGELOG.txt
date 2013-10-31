@@ -1,3 +1,8 @@
+newer
+=====
+
+see https://github.com/remotestorage/remotestorage.js/releases
+
 0.8.0 (August 2013)
 =====
 * Overview:
