@@ -22,6 +22,15 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         },
         on: function(eventName, handler) {
           this._handlers[eventName].push(handler);
+        },
+        removeEventListener: function(eventName, handler) {
+          var hl = this._handlers[eventName].length;
+          for(var i=0;i<hl;i++) {
+            if(this._handlers[eventName][i] === handler) {
+              this._handlers[eventName].splice(i, 1);
+              return;
+            }
+          }
         }
       };
 
@@ -80,8 +89,20 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           };
           storage._handlers['features-loaded'][0]();
         }
+      },
+      {
+        desc: "the 'features-loaded' handler is removed after cleanup",
+        run: function(env, test) {
+          var storage = new RemoteStorage;
+          document.location.href = 'http://foo/bar#access_token=my-token';
+          RemoteStorage.Authorize._rs_init(storage);
+          test.assertAnd(storage._handlers['features-loaded'].length, 1)
+          RemoteStorage.Authorize._rs_cleanup(storage);
+          test.assertAnd(storage._handlers['features-loaded'].length, 0)
+          test.done();
+        }
       }
-
+      
     ]
 
   });

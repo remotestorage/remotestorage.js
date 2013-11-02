@@ -67,7 +67,7 @@
       return false;
     };
   }
-  
+
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
     if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
       throw "Don't " + method + " on directories!";
@@ -188,7 +188,7 @@
      *   // -> 'draft-dejong-remotestorage-01'
      */
 
-    
+
     configure: function(userAddress, href, storageApi, token) {
       if(typeof(userAddress) !== 'undefined') this.userAddress = userAddress;
       if(typeof(href) !== 'undefined') this.href = href;
@@ -223,9 +223,8 @@
       if(!options) options = {};
       var headers = {};
       if(this.supportsRevs) {
-        // setting '' causes the browser (at least chromium) to ommit
-        // the If-None-Match header it would normally send.
-        headers['If-None-Match'] = options.ifNoneMatch || '';
+        if(options.ifNoneMatch)
+          headers['If-None-Match'] = options.ifNoneMatch;
       } else if(options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
         if(oldRev === options.ifNoneMatch) {
@@ -266,8 +265,10 @@
       }
       var headers = { 'Content-Type': contentType };
       if(this.supportsRevs) {
-        headers['If-Match'] = options.ifMatch;
-        headers['If-None-Match'] = options.ifNoneMatch;
+        if(options.ifMatch)
+          headers['If-Match'] = options.ifMatch;
+        if(options.ifNoneMatch)
+          headers['If-None-Match'] = options.ifNoneMatch;
       }
       return request('PUT', this.href + cleanPath(path), this.token,
                      headers, body, this.supportsRevs);
@@ -276,8 +277,13 @@
     'delete': function(path, options) {
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
       if(!options) options = {};
+      var headers = {};
+      if(this.supportsRevs) {
+        if(options.ifMatch)
+          headers['If-Match'] = options.ifMatch;
+      }
       return request('DELETE', this.href + cleanPath(path), this.token,
-                     this.supportsRevs ? { 'If-Match': options.ifMatch } : {},
+                     headers,
                      undefined, this.supportsRevs);
     }
 
@@ -320,7 +326,7 @@
     };
 
     var body = options.body;
-    
+
     if(typeof(body) == 'object') {
       if(isArrayBufferView(body)) { /* alright. */ }
       else if(body instanceof ArrayBuffer) {

@@ -13,7 +13,7 @@ define(['requirejs'], function(requirejs, undefined) {
       global.RemoteStorage.Unauthorized = function() {};
       require('./lib/promising');
       require('./src/eventhandling');
-      
+
       if(global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
@@ -205,12 +205,13 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#get sets the 'If-None-Match' to the empty string, when revisions are supported",
+        desc: "#get doesn't set the 'If-None-Match' when revisions are supported and no rev given",
         run: function(env, test) {
           env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
           env.connectedClient.get('/foo/bar');
           var request = XMLHttpRequest.instances.shift();
-          test.assert(request._headers['If-None-Match'], '');
+          var hasIfNoneMatchHeader = request._headers.hasOwnProperty('If-None-Match');
+          test.assert(hasIfNoneMatchHeader, false);
         }
       },
 
@@ -319,7 +320,40 @@ define(['requirejs'], function(requirejs, undefined) {
           req._onload();
         }
       },
-      
+
+      {
+        desc: "#put doesn't set the 'If-None-Match' when revisions are supported and no rev given",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.put('/foo/bar', 'baz', 'text/plain');
+          var request = XMLHttpRequest.instances.shift();
+          var hasIfNoneMatchHeader = request._headers.hasOwnProperty('If-None-Match');
+          test.assert(hasIfNoneMatchHeader, false);
+        }
+      },
+
+      {
+        desc: "#put doesn't set the 'If-Match' when revisions are supported and no rev given",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.put('/foo/bar', 'baz', 'text/plain');
+          var request = XMLHttpRequest.instances.shift();
+          var hasIfMatchHeader = request._headers.hasOwnProperty('If-Match');
+          test.assert(hasIfMatchHeader, false);
+        }
+      },
+
+      {
+        desc: "#delete doesn't set the 'If-Match' when revisions are supported and no rev given",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.delete('/foo/bar');
+          var request = XMLHttpRequest.instances.shift();
+          var hasIfMatchHeader = request._headers.hasOwnProperty('If-Match');
+          test.assert(hasIfMatchHeader, false);
+        }
+      },
+
       {
         desc: "WireClient destroys the bearer token after Unauthorized Error",
         run: function(env, test){
@@ -332,7 +366,7 @@ define(['requirejs'], function(requirejs, undefined) {
 
       {
         desc: "requests are aborted if they aren't responded after REQUEST_TIMEOUT milliseconds",
-        timeout: 2000,
+        timeout: 30010,
         run: function(env, test) {
           RemoteStorage.WireClient.REQUEST_TIMEOUT = 1000;
           env.connectedClient.get('/foo').then(function() {
@@ -382,7 +416,6 @@ define(['requirejs'], function(requirejs, undefined) {
           req._onload();
         }
       },
-
 
       {
         desc: "404 responses discard the body altogether",

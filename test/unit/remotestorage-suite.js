@@ -9,6 +9,7 @@ define([], function() {
 
   function FakeRemote(){
     this.connected = true;
+    this.configure = function(){}
     RemoteStorage.eventHandling(this, 'connected', 'disconnected');
   }
 
@@ -148,10 +149,94 @@ define([], function() {
             test_done()
           });
         }
+      },
+
+      {
+        desc: "connect throws unauthorized when userAddress doesn't contain an @",
+        run: function(env, test){
+          env.rs.on('error', function(e){
+            test.assert(e instanceof RemoteStorage.DiscoveryError, true);
+          });
+          env.rs.connect('somestring');
+        }
+      },
+      {
+        desc: "diconnect fires disconnected ",
+        run: function(env, test){
+          env.rs.on('disconnected', function(){
+            test.done();
+          })
+          env.rs.disconnect()
+        }
       }
     ]
   });
-
+  // suites.push({
+  //   name: "Feature Discovery",
+  //   desc: "feature discoverey and their integration into the RemoteStorage instance"
+  //   setup: function(env, test) {
+  //     require('./src/remotestorage');
+  //     require('./src/eventhandling');
+  //     require('./lib/promising')
+  //     if(global.rs_eventhandling) {
+  //       RemoteStorage.eventHandling = global.rs_eventhandling;
+  //     } else {
+  //       global.rs_eventhandling = RemoteStorage.eventHandling;
+  //     }
+  //     RemoteStorage.prototype.remote = new FakeRemote();
+  //     test.done();
+  //   }
+  //   beforeEach: function(env, test){
+  //     test.done();
+  //   }
+  //   tests: [
+  //     // {
+  //     //   desc: "disconnect calls all rs_cleanups",
+  //     //   run: function(env, test){
+  //     //     var cleaned = 0;
+  //     //     fakeFeature = function(){} 
+  //     //     fakeFeature._rs_init =  function(){
+  //     //       console.log('init feature')
+  //     //     }
+  //     //     fakeFeature._rs_supported =  function(){
+  //     //       console.log('feature supported?')
+  //     //       return true;
+  //     //     }
+  //     //     fakeFeature._rs_cleanup = function(){
+  //     //       console.log('rs_cleanup called')
+  //     //       cleaned+=1;
+  //     //       testDone();
+  //     //     }
+        
+  //     //     function testDone(){
+  //     //       if(cleaned == 12)
+  //     //         test.done();
+  //     //     }
+  //     //     [
+  //     //     //  'WireClient',
+  //     //       'Dropbox',
+  //     //       'GoogleDrive',
+  //     //       'Access',
+  //     //       'Caching',
+  //     //       'Discover',
+  //     //       'Authorize',
+  //     //       'Widget',
+  //     //     //  'IndexedDB',
+  //     //    //   'LocalStorage',
+  //     //       'Sync',
+  //     //       'BaseClient'
+  //     //     ].forEach(function(feature) {
+  //     //       RemoteStorage[feature] = fakeFeature;
+  //     //     })
+  //     //     var rs = new RemoteStorage();
+  //     //     rs.on('ready', function(){
+  //     //       console.log('cleanups are ',rs._cleanups);
+  //     //       rs.disconnect();
+  //     //     })
+  //     //   }
+  //     // },
+  //   ]
+  // });
   suites.push({
     name: "RemoteStorage",
     desc: "The global RemoteStorage namespace",
