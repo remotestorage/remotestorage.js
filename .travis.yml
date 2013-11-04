@@ -1,4 +1,7 @@
 language: node_js
 node_js:
   - 0.8.9
-script: npm install && npm test 
+branches:
+  only:
+    - master
+script: npm install && npm test
