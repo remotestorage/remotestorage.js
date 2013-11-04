@@ -16,12 +16,13 @@ To find out how to get one, see [Get Storage on remotestorage.io](http://remotes
 
 You can either use a stable release or the current HEAD build. Stable releases
 can be found in [release/](https://github.com/remotestorage/remotestorage.js/tree/master/release/).
-Those directories having a "-rcX" suffix contain release candidates, which may
-be used for testing but aren't necessarily "stable" releases.
+Directories with a "-rcX" suffix contain release candidates, which may be used
+for testing but aren't necessarily "stable" releases.
 
-The toplevel directory contains a semi-current HEAD build. It is updated
-manually and irregularly. To build an up-to-date version of all files, run
-`make all` in the repository root.
+[release/head](https://github.com/remotestorage/remotestorage.js/tree/master/release/head/)
+contains a semi-current HEAD build. It is updated manually and irregularly. To
+build an up-to-date version of all files, run `make all` in the repository
+root.
 
 ### Which build file to use for my app?
 
