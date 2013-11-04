@@ -422,11 +422,7 @@
     },
 
     makePath: function(path) {
-      var parts = path.split('/');
-      for(var i=0; i<parts.length; i++) {
-        parts[i] = encodeURIComponent(parts[i]);
-      }
-      return this.base + (parts.join('/') || '');
+      return this.base + (path || '');
     },
 
     _fireChange: function(event) {
