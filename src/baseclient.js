@@ -437,9 +437,23 @@
       }
     },
 
+    //FIXME this is a duplicate from wireclient.js
+    _cleanPath: function(path) {
+      return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
+    },
+
+    /**
+     * Method: getItemURL
+     *
+     * Retrieve full URL of item
+     *
+     * Parameters:
+     *   path     - Path relative to the module root.
+     */
     getItemURL: function(path) {
-      if(this.storage.connected) {
-        return this.storage.remote.href + this.makePath(path);
+      if (this.storage.connected) {
+        path = this._cleanPath( this.makePath(path) );
+        return this.storage.remote.href + path;
       } else {
         return undefined;
       }

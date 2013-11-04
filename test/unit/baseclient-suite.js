@@ -336,6 +336,17 @@ define(['requirejs'], function(requirejs, undefined) {
           };
           env.client.storeFile('def', 'A%2FB /C/%bla//', 'abc');
         }
+      },
+
+      {
+        desc: "#getItemURL returns the full item URL",
+        run: function(env, test) {
+          env.storage.connected = true;
+          env.storage.remote = {href: 'http://example.com/test'};
+
+          var itemURL = env.client.getItemURL('A%2FB /C/%bla//D');
+          test.assert(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
+        }
       }
     ]
   });
