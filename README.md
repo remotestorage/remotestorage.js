@@ -4,7 +4,7 @@
 
 ### Where to get help?
 
-* See [remotestorage.io](http://remotestorage.io/) for documentation, community forums, and links.
+See [remotestorage.io](http://remotestorage.io/) for documentation, community forums, and links.
 
 ### Running a local test server
 
