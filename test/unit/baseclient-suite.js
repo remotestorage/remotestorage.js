@@ -26,7 +26,7 @@ define(['requirejs'], function(requirejs, undefined) {
         }
       };
       require('./src/eventhandling');
-      if(global.rs_eventhandling) {
+      if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
@@ -34,10 +34,10 @@ define(['requirejs'], function(requirejs, undefined) {
       require('./lib/Math.uuid');
       require('./src/baseclient');
       require('./src/baseclient/types');
-      if(global.rs_types) {
-        RemoteStorage.BaseClient.Types = global.rs_types
+      if (global.rs_types) {
+        RemoteStorage.BaseClient.Types = global.rs_types;
       } else {
-          global.rs_types = RemoteStorage.BaseClient.Types
+        global.rs_types = RemoteStorage.BaseClient.Types;
       }
       test.done();
     },

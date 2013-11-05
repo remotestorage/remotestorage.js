@@ -12,10 +12,10 @@ define([], function() {
       RemoteStorage.BaseClient = function() {};
       RemoteStorage.BaseClient.prototype.extend = function() {};
       require('./src/baseclient/types');
-      if(global.rs_types) {
-        RemoteStorage.BaseClient.Types = global.rs_types
+      if (global.rs_types) {
+        RemoteStorage.BaseClient.Types = global.rs_types;
       } else {
-          global.rs_types = RemoteStorage.BaseClient.Types
+        global.rs_types = RemoteStorage.BaseClient.Types;
       }
       test.done();
     },
