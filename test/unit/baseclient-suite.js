@@ -26,13 +26,19 @@ define(['requirejs'], function(requirejs, undefined) {
         }
       };
       require('./src/eventhandling');
-      if(global.rs_eventhandling) {
+      if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
       require('./lib/Math.uuid');
       require('./src/baseclient');
+      require('./src/baseclient/types');
+      if (global.rs_types) {
+        RemoteStorage.BaseClient.Types = global.rs_types;
+      } else {
+        global.rs_types = RemoteStorage.BaseClient.Types;
+      }
       test.done();
     },
     tests: [
@@ -308,20 +314,20 @@ define(['requirejs'], function(requirejs, undefined) {
         }
       },
 
-      /*{
+      {
         desc: "test storeObject",
         run: function(env, test) {
           env.storage.put = function(path, body, contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar');
-            test.assertAnd(body, 'abc');
-            test.assertAnd(contentType, 'def');
+            test.assertAnd(body.test, 1);
+            test.assertAnd(contentType, 'application/json; charset=UTF-8');
             test.assertType(incoming, 'undefined');
             test.result(true);
             return promising().fulfill(200);
           };
           env.client.storeObject('test', 'foo/bar', {test: 1});
         }
-      },*/
+      },
 
       {
         desc: "test bug #418",
