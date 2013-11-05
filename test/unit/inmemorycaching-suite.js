@@ -303,8 +303,79 @@ define(['requirejs'], function(requirejs){
             })
           })
         }
-      }
+      },
 
+      {
+        desc: '#changesBelow fulfills with the right changes',
+        run: function(env, test){
+          env.ims._changes = {'/foo/': true,
+                              '/foo/bar/': true,
+                              '/foo/bar/baz': true,
+                              '/foo/baz': true,
+                              '/foobar/': false,
+                              '/foobar/baz': false,
+                              '/a': false,
+                              '/b/' : false,
+                              '/b/foo/': false};
+          env.ims.changesBelow('/foo/').then(function(changes) {
+            changes.forEach(function(val) {
+              test.assertAnd(val, true)
+            })
+            test.assertAnd(changes.length, 4, 'wrong ammount found '+changes.length);
+            test.done();
+          })
+        }
+      },
+
+      {
+        desc: "#setConflict emits conflicy event",
+        run: function(env, test) {
+          env.ims.on('conflict', function(event){
+            test.assertTypeAnd(event.resolve, 'function');
+            test.assertAnd(event.remoteAction, 'foo');
+            test.assertAnd(event.localAction, 'bar');
+            test.assertAnd(event.path, '/foobar');
+            test.done();
+          });
+          env.ims.setConflict('/foobar', {remoteAction: 'foo', localAction: 'bar'});
+        }
+      },
+      {
+        desc: "#setConflict event.resolve emits Error when resolved wrong",
+        run: function(env, test) {
+          env.ims.on('conflict', function(event){
+            var success = false;
+            var err = 'no error';
+            try {
+               event.resolve('nonsense');
+            } catch(e) {
+              if(e.message == 'Invalid resolution: nonsense')
+                success = true;
+              err = e;
+            }
+            test.assertAnd(success, true, "yielded : "+JSON.stringify(err))
+            test.done();
+          });
+          env.ims.setConflict('/foobar', {remoteAction: 'foo', localAction: 'bar'});
+        }
+      },
+
+      {
+        desc: "#setConflict event resolve records Changes after beeing resolved",
+        run: function(env, test) {
+          env.ims.on('conflict', function(event){
+            event.resolve('remote');
+            test.assertAnd(env.ims._changes['/foobar'], 
+                           { conflict: 
+                             { remoteAction: 'PUT',
+                               localAction: 'DELETE',
+                               resolution: 'remote' },
+                             path: '/foobar' });
+            test.done();
+          });
+          env.ims.setConflict('/foobar', {remoteAction: 'PUT', localAction: 'DELETE'});
+        }
+      }
     ]
     
   })
