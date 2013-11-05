@@ -25,10 +25,6 @@ define(['requirejs'], function(requirejs, undefined) {
           }
         }
       };
-      RemoteStorage.WireClient = function(){};
-      RemoteStorage.WireClient.cleanPath = function(path) {
-        return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
-    }
       
       require('./src/eventhandling');
       if(global.rs_eventhandling) {
@@ -36,6 +32,13 @@ define(['requirejs'], function(requirejs, undefined) {
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+      require('./src/wireclient');
+      if(global.rs_wireclient) {
+        RemoteStorage.WireClient = global.rs_wireclient;
+      } else {
+        global.rs_wireclient = RemoteStorage.WireClient
+      }
+
       require('./lib/Math.uuid');
       require('./src/baseclient');
       test.done();
