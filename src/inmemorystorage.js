@@ -7,20 +7,21 @@
     }
     return node;
   }
-  function applyRecursive(path, cb){
+  function applyRecursive(path, cb) {
     var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
     if(parts) {
       var dirname = parts[1];
       var basename = parts[2];
       
-      if(cb(dirname, basename) && dirname != '/')
+      if(cb(dirname, basename) && dirname != '/') {
         applyRecursive(dirname, cb);
+      }
     } else {
       throw new Error('inMemoryStorage encountered invalid path : '+path);
     }
   }
 
-  RemoteStorage.InMemoryStorage = function(rs){
+  RemoteStorage.InMemoryStorage = function(rs) {
     this.rs = rs;
     RemoteStorage.eventHandling(this, 'change', 'conflict');
     this._storage = {};
@@ -28,15 +29,16 @@
   };
 
   RemoteStorage.InMemoryStorage.prototype = {
-    get: function(path){
+    get: function(path) {
       var node = this._storage[path];
-      if(node)
+      if(node) {
         return promising().fulfill(200, node.body, node.contentType, node.revision);
-      else
+      } else {
         return promising().fulfill(404);
+      }
     },
     
-    put: function(path, body, contentType, incoming){
+    put: function(path, body, contentType, incoming) {
       var oldNode = this._storage[path];
       var node = {
         path: path,
@@ -58,7 +60,7 @@
       return promising().fulfill(200);
     },
     
-    delete: function(path, incoming){
+    delete: function(path, incoming) {
       var oldNode = this._storage[path];
       delete this._storage[path];
       this._removeFromParent(path);
@@ -77,23 +79,23 @@
       return promising().fulfill(200);
     },
     
-    _addToParent: function(path){
+    _addToParent: function(path) {
       var storage = this._storage;
-      applyRecursive(path, function(dirname, basename){
+      applyRecursive(path, function(dirname, basename) {
         var node = storage[dirname] || makeNode(dirname);
         node.body[basename] = true;
         storage[dirname] = node;
         return true;
       });
     },
-    _removeFromParent: function(path){
+    _removeFromParent: function(path) {
       var storage = this._storage;
       var self = this;
-      applyRecursive(path, function(dirname, basename){
+      applyRecursive(path, function(dirname, basename) {
         var node = storage[dirname];
         if(node) {
           delete node.body[basename];
-          if(Object.keys(node.body).length === 0){
+          if(Object.keys(node.body).length === 0) {
             delete storage[dirname];
             return true;
           } else {
@@ -117,9 +119,10 @@
     changesBelow: function(path) {
       var changes = [];
       var l = path.length; 
-      for(var k in this._changes){
-        if(k.substr(0,l) === path)
+      for(var k in this._changes) {
+        if(k.substr(0,l) === path) {
           changes.push(this._changes[k]);
+        }
       }
       return promising().fulfill(changes);
     },
@@ -141,30 +144,31 @@
       this._emit('conflict', event);
     },
 
-    setRevision: function(path, revision){
+    setRevision: function(path, revision) {
       var node = this._storage[path] || makeNode(path);
       node.revision = revision;
       this._storage[path] = node;
       return promising().fulfill();
     },
-    getRevision: function(path){
+    getRevision: function(path) {
       var rev;
-      if(this._storage[path])
+      if(this._storage[path]) {
         rev = this._storage[path].revision;
+      }
       return promising().fulfill(rev);
     },
     
-    fireInitial: function(){
+    fireInitial: function() {
       // fireInital fires a change event for each item in the store
       // inMemoryStorage is always empty on pageLoad
     }
   };
 
-  RemoteStorage.InMemoryStorage._rs_init = function(){};
+  RemoteStorage.InMemoryStorage._rs_init = function() {};
   
-  RemoteStorage.InMemoryStorage._rs_supported = function(){
+  RemoteStorage.InMemoryStorage._rs_supported = function() {
     return true;
   };
 
-  RemoteStorage.InMemoryStorage._rs_cleanup = function(){};
+  RemoteStorage.InMemoryStorage._rs_cleanup = function() {};
 })(typeof(window) !== 'undefined' ? window : global);

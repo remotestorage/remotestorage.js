@@ -1,16 +1,16 @@
-if(typeof(define) !== 'function'){
+if(typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs){
+define(['requirejs'], function(requirejs) {
   var suites = [];
   suites.push({
     name: 'InMemoryStorage',
     desc: 'inmemory caching as a fallback for indexdb and localstorge',
     setup: function(env, test) {
       require('./lib/promising');
-      global.RemoteStorage = function(){};
+      global.RemoteStorage = function() {};
       require('./src/eventhandling');
-      if( global.rs_eventhandling ){
+      if( global.rs_eventhandling ) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
@@ -47,8 +47,8 @@ define(['requirejs'], function(requirejs){
       
       {
         desc: "#get yields 404 when it doesn't find a node",
-        run: function(env, test){
-          env.ims.get('/bar').then(function(status){
+        run: function(env, test) {
+          env.ims.get('/bar').then(function(status) {
             test.assert(status,404);
           });
         }
@@ -70,8 +70,8 @@ define(['requirejs'], function(requirejs){
 
       {
         desc: "#put updates parent directories",
-        run: function(env, test){
-          env.ims.put('/foo/bar/baz', 'bar', 'text/plain').then(function(status){
+        run: function(env, test) {
+          env.ims.put('/foo/bar/baz', 'bar', 'text/plain').then(function(status) {
             test.assertAnd(env.ims._storage['/foo/bar/'], {
               body: { 'baz': true },
               contentType: 'application/json',
@@ -95,9 +95,9 @@ define(['requirejs'], function(requirejs){
       
       {
         desc: "#put doesn't overwrite parent directories",
-        run: function(env, test){
-          env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function(){
-            env.ims.put('/foo/bar/bor', 'blub', 'text/plain').then(function(){
+        run: function(env, test) {
+          env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
+            env.ims.put('/foo/bar/bor', 'blub', 'text/plain').then(function() {
               test.assert(env.ims._storage['/foo/bar/'],{
                 body: {'baz': true, 'bor': true},
                 contentType: 'application/json',
@@ -111,7 +111,7 @@ define(['requirejs'], function(requirejs){
       {
         desc: "#delete removes the node and empty parents",
         run: function(env, test) {
-           env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function(){
+           env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
              test.assertAnd(Object.keys(env.ims._storage), ['/foo/bar/baz', 
                                                     '/foo/bar/', 
                                                     '/foo/', 
@@ -150,7 +150,7 @@ define(['requirejs'], function(requirejs){
 
       {
         desc: "#delete propagates changes through empty directories",
-        run: function(env, test){
+        run: function(env, test) {
           env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
             env.ims.put('/foo/baz', 'bla', 'text/pain').then(function() {
               env.ims._storage['/'].body['foo/'] = 'rev';
@@ -188,7 +188,7 @@ define(['requirejs'], function(requirejs){
         desc: "#delete records a change for outgoing changes",
         run: function(env, test) {
           env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
-            env.ims.delete('/foo/bla').then(function(){
+            env.ims.delete('/foo/bla').then(function() {
               test.assert(env.ims._changes['/foo/bla'], {
                 action: 'DELETE',
                 path: '/foo/bla'
@@ -202,7 +202,7 @@ define(['requirejs'], function(requirejs){
         desc: "#put doesn't record a change for incoming changes",
         run: function(env, test) {
           env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
-            env.ims.delete('/foo/bla', true).then(function(){
+            env.ims.delete('/foo/bla', true).then(function() {
           
               test.assertType(env.ims._changes['/foo/bla'], 'undefined');
             });
@@ -278,9 +278,9 @@ define(['requirejs'], function(requirejs){
 
       {
         desc: '#setRevision sets the revision correctly',
-        run: function(env, test){
-          env.ims.put('/foo/bar','blablub', 'text/plain').then(function(){
-            env.ims.setRevision('/foo/bar', '123987').then(function(){
+        run: function(env, test) {
+          env.ims.put('/foo/bar','blablub', 'text/plain').then(function() {
+            env.ims.setRevision('/foo/bar', '123987').then(function() {
               test.assert(env.ims._storage['/foo/bar'], {
                 path: '/foo/bar',
                 body: 'blablub',
@@ -295,9 +295,9 @@ define(['requirejs'], function(requirejs){
       {
         desc: '#getRevision returns right revision',
         run: function(env, test) {
-          env.ims.put('/foo/bar','blablub', 'text/plain').then(function(){
-            env.ims.setRevision('/foo/bar', '123987').then(function(){
-              env.ims.getRevision('/foo/bar').then(function(rev){
+          env.ims.put('/foo/bar','blablub', 'text/plain').then(function() {
+            env.ims.setRevision('/foo/bar', '123987').then(function() {
+              env.ims.getRevision('/foo/bar').then(function(rev) {
                 test.assert(rev, '123987');
               });
             });
@@ -307,7 +307,7 @@ define(['requirejs'], function(requirejs){
 
       {
         desc: '#changesBelow fulfills with the right changes',
-        run: function(env, test){
+        run: function(env, test) {
           env.ims._changes = {'/foo/': true,
                               '/foo/bar/': true,
                               '/foo/bar/baz': true,
@@ -330,7 +330,7 @@ define(['requirejs'], function(requirejs){
       {
         desc: "#setConflict emits conflicy event",
         run: function(env, test) {
-          env.ims.on('conflict', function(event){
+          env.ims.on('conflict', function(event) {
             test.assertTypeAnd(event.resolve, 'function');
             test.assertAnd(event.remoteAction, 'foo');
             test.assertAnd(event.localAction, 'bar');
@@ -343,14 +343,13 @@ define(['requirejs'], function(requirejs){
       {
         desc: "#setConflict event.resolve emits Error when resolved wrong",
         run: function(env, test) {
-          env.ims.on('conflict', function(event){
+          env.ims.on('conflict', function(event) {
             var success = false;
             var err = 'no error';
             try {
                event.resolve('nonsense');
             } catch(e) {
-              if(e.message == 'Invalid resolution: nonsense')
-                success = true;
+              if(e.message == 'Invalid resolution: nonsense') success = true;
               err = e;
             }
             test.assertAnd(success, true, "yielded : "+JSON.stringify(err));
@@ -363,7 +362,7 @@ define(['requirejs'], function(requirejs){
       {
         desc: "#setConflict event resolve records Changes after beeing resolved",
         run: function(env, test) {
-          env.ims.on('conflict', function(event){
+          env.ims.on('conflict', function(event) {
             event.resolve('remote');
             test.assertAnd(env.ims._changes['/foobar'], 
                            { conflict: 
