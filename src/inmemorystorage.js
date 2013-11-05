@@ -154,6 +154,11 @@
       if(this._storage[path])
         rev = this._storage[path].revision;
       return promising().fulfill(rev);
+    },
+    
+    fireInitial: function(){
+      // fireInital fires a change event for each item in the store
+      // inMemoryStorage is always empty on pageLoad
     }
   }
 
