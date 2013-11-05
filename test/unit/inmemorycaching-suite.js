@@ -11,7 +11,7 @@ define(['requirejs'], function(requirejs){
       global.RemoteStorage = function(){};
       require('./src/eventhandling');
       if( global.rs_eventhandling ){
-        RemoteStorage.eventHandling = global.rs_eventhandling
+        RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
@@ -41,7 +41,7 @@ define(['requirejs'], function(requirejs){
             test.assertAnd(contentType, node.contentType);
             test.assertAnd(revision, node.revision);
             test.done();
-          })
+          });
         }
       },
       
@@ -50,7 +50,7 @@ define(['requirejs'], function(requirejs){
         run: function(env, test){
           env.ims.get('/bar').then(function(status){
             test.assert(status,404);
-          })
+          });
         }
       },
       
@@ -89,7 +89,7 @@ define(['requirejs'], function(requirejs){
               path: '/'
             });
             test.done();
-          })
+          });
         }
       },
       
@@ -102,9 +102,9 @@ define(['requirejs'], function(requirejs){
                 body: {'baz': true, 'bor': true},
                 contentType: 'application/json',
                 path: '/foo/bar/'
-              })
-            })
-          })
+              });
+            });
+          });
         }
       },
 
@@ -120,8 +120,8 @@ define(['requirejs'], function(requirejs){
                test.assertAnd(status, 200, 'wrong status code : '+status);
                test.assertAnd(Object.keys(env.ims._storage), [], 'wrong nodes after delete : '+Object.keys(env.ims._storage));
                test.done();
-             })
-           })
+             });
+           });
         }
       },
       
@@ -142,8 +142,8 @@ define(['requirejs'], function(requirejs){
                   contentType: 'applicaton/json'
                 }));
                 test.done();
-              })
-            })
+              });
+            });
           });
         }
       },
@@ -221,7 +221,7 @@ define(['requirejs'], function(requirejs){
               oldValue: undefined,
               newValue: 'basdf'
             });
-          })
+          });
           env.ims.put('/foo/bla', 'basdf', 'text/plain');
         }
       },
@@ -286,9 +286,9 @@ define(['requirejs'], function(requirejs){
                 body: 'blablub',
                 contentType: 'text/plain',
                 revision: '123987'
-              })
-            })
-          })
+              });
+            });
+          });
         }
       },
       
@@ -299,9 +299,9 @@ define(['requirejs'], function(requirejs){
             env.ims.setRevision('/foo/bar', '123987').then(function(){
               env.ims.getRevision('/foo/bar').then(function(rev){
                 test.assert(rev, '123987');
-              })
-            })
-          })
+              });
+            });
+          });
         }
       },
 
@@ -319,11 +319,11 @@ define(['requirejs'], function(requirejs){
                               '/b/foo/': false};
           env.ims.changesBelow('/foo/').then(function(changes) {
             changes.forEach(function(val) {
-              test.assertAnd(val, true)
-            })
+              test.assertAnd(val, true);
+            });
             test.assertAnd(changes.length, 4, 'wrong ammount found '+changes.length);
             test.done();
-          })
+          });
         }
       },
 
@@ -353,7 +353,7 @@ define(['requirejs'], function(requirejs){
                 success = true;
               err = e;
             }
-            test.assertAnd(success, true, "yielded : "+JSON.stringify(err))
+            test.assertAnd(success, true, "yielded : "+JSON.stringify(err));
             test.done();
           });
           env.ims.setConflict('/foobar', {remoteAction: 'foo', localAction: 'bar'});
@@ -378,6 +378,6 @@ define(['requirejs'], function(requirejs){
       }
     ]
     
-  })
+  });
   return suites;
 });

@@ -1,9 +1,8 @@
 (function(global) {
   function makeNode(path) {
     var node = { path: path };
-    if(path[path.length - 1] == '/') {
+    if(path[path.length - 1] === '/') {
       node.body = {};
-      //node.cached = {};
       node.contentType = 'application/json';
     }
     return node;
@@ -17,16 +16,16 @@
       if(cb(dirname, basename) && dirname != '/')
         applyRecursive(dirname, cb);
     } else {
-      throw new Error('inMemoryStorage encountered invalid path : '+path)
+      throw new Error('inMemoryStorage encountered invalid path : '+path);
     }
   }
 
   RemoteStorage.InMemoryStorage = function(rs){
-    this.rs = rs
-    RemoteStorage.eventHandling(this, 'change', 'conflict')
+    this.rs = rs;
+    RemoteStorage.eventHandling(this, 'change', 'conflict');
     this._storage = {};
     this._changes = {};
-  }
+  };
 
   RemoteStorage.InMemoryStorage.prototype = {
     get: function(path){
@@ -43,7 +42,7 @@
         path: path,
         contentType: contentType,
         body: body
-      }
+      };
       this._storage[path] = node;
       this._addToParent(path);
       if(!incoming) {
@@ -55,7 +54,7 @@
         origin: incoming ? 'remote' : 'window',
         oldValue: oldNode ? oldNode.body : undefined,
         newValue: body
-      })
+      });
       return promising().fulfill(200);
     },
     
@@ -73,36 +72,35 @@
           origin: incoming ? 'remote' : 'window',
           oldValue: oldNode.body,
           newValue: undefined
-        })
+        });
       }
       return promising().fulfill(200);
     },
     
     _addToParent: function(path){
-      var storage = this._storage
+      var storage = this._storage;
       applyRecursive(path, function(dirname, basename){
-        //console.log('dirname : ',dirname, '\nbasename : ', basename)
         var node = storage[dirname] || makeNode(dirname);
         node.body[basename] = true;
         storage[dirname] = node;
         return true;
-      })
+      });
     },
     _removeFromParent: function(path){
-      var storage = this._storage
+      var storage = this._storage;
       var self = this;
       applyRecursive(path, function(dirname, basename){
-        var node = storage[dirname]
+        var node = storage[dirname];
         if(node) {
           delete node.body[basename];
-          if(Object.keys(node.body).length == 0){
-            delete storage[dirname]
+          if(Object.keys(node.body).length === 0){
+            delete storage[dirname];
             return true;
           } else {
-            self._addToParent(dirname)
+            self._addToParent(dirname);
           }
         }
-      })
+      });
     },
     
     _recordChange: function(path, attributes) {
@@ -120,7 +118,7 @@
       var changes = [];
       var l = path.length; 
       for(var k in this._changes){
-        if(k.substr(0,l) == path)
+        if(k.substr(0,l) === path)
           changes.push(this._changes[k]);
       }
       return promising().fulfill(changes);
@@ -133,18 +131,18 @@
         event[k] = attributes[k];
       
       event.resolve = function(resolution) {
-        if(resolution == 'remote'|| resolution == 'local') {
+        if(resolution === 'remote'|| resolution === 'local') {
           attributes.resolution = resolution;
           self._recordChange(path, { conflict: attributes });
         } else {
           throw new Error('Invalid resolution: '+resolution);
         } 
-      }
+      };
       this._emit('conflict', event);
     },
 
     setRevision: function(path, revision){
-      var node = this._storage[path] || makeNode(path)
+      var node = this._storage[path] || makeNode(path);
       node.revision = revision;
       this._storage[path] = node;
       return promising().fulfill();
@@ -160,13 +158,13 @@
       // fireInital fires a change event for each item in the store
       // inMemoryStorage is always empty on pageLoad
     }
-  }
+  };
 
-  RemoteStorage.InMemoryStorage._rs_init = function(){}
+  RemoteStorage.InMemoryStorage._rs_init = function(){};
   
   RemoteStorage.InMemoryStorage._rs_supported = function(){
     return true;
-  }
+  };
 
-  RemoteStorage.InMemoryStorage._rs_cleanup = function(){}
+  RemoteStorage.InMemoryStorage._rs_cleanup = function(){};
 })(typeof(window) !== 'undefined' ? window : global);
