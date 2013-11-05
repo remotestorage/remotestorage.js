@@ -437,12 +437,7 @@
       }
     },
 
-    
-    _cleanPath: RS.WireClient.cleanPath
-    // function(path) {
-    //   return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
-    // }
-    ,
+    _cleanPath: RS.WireClient.cleanPath,
 
     /**
      * Method: getItemURL
