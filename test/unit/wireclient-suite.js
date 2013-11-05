@@ -322,6 +322,70 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "#put encodes special characters in the path",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          var request = RemoteStorage.WireClient.request;
+
+          RemoteStorage.WireClient.request = function(method, url, options, callback) {
+            test.assert(url, 'https://example.com/storage/test/foo/A%252FB/bar', url);
+          };
+
+          env.connectedClient.put('/foo/A%2FB/bar', 'baz' , 'text/plain');
+
+          RemoteStorage.WireClient.request = request;
+        }
+      },
+
+      {
+        desc: "#put encodes spaces in the path",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          var request = RemoteStorage.WireClient.request;
+
+          RemoteStorage.WireClient.request = function(method, url, options, callback) {
+            test.assert(url, 'https://example.com/storage/test/foo/A%20B/bar', url);
+          };
+
+          env.connectedClient.put('/foo/A B/bar', 'baz' , 'text/plain');
+
+          RemoteStorage.WireClient.request = request;
+        }
+      },
+
+      {
+        desc: "#put leaves slash characters in the path",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          var request = RemoteStorage.WireClient.request;
+
+          RemoteStorage.WireClient.request = function(method, url, options, callback) {
+            test.assert(url, 'https://example.com/storage/test/foo/A/B/C/D/E', url);
+          };
+
+          env.connectedClient.put('/foo/A/B/C/D/E', 'baz' , 'text/plain');
+
+          RemoteStorage.WireClient.request = request;
+        }
+      },
+
+      {
+        desc: "#put removes redundant slash characters in the path",
+        run: function(env, test) {
+          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          var request = RemoteStorage.WireClient.request;
+
+          RemoteStorage.WireClient.request = function(method, url, options, callback) {
+            test.assert(url, 'https://example.com/storage/test/foo/A/B/C/D/E', url);
+          };
+
+          env.connectedClient.put('/foo/A//B/C///D/E', 'baz' , 'text/plain');
+
+          RemoteStorage.WireClient.request = request;
+        }
+      },
+
+      {
         desc: "#put doesn't set the 'If-None-Match' when revisions are supported and no rev given",
         run: function(env, test) {
           env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');

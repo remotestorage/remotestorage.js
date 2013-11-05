@@ -422,11 +422,7 @@
     },
 
     makePath: function(path) {
-      var parts = path.split('/');
-      for(var i=0; i<parts.length; i++) {
-        parts[i] = encodeURIComponent(parts[i]);
-      }
-      return this.base + (parts.join('/') || '');
+      return this.base + (path || '');
     },
 
     _fireChange: function(event) {
@@ -441,9 +437,20 @@
       }
     },
 
+    _cleanPath: RS.WireClient.cleanPath,
+
+    /**
+     * Method: getItemURL
+     *
+     * Retrieve full URL of item
+     *
+     * Parameters:
+     *   path     - Path relative to the module root.
+     */
     getItemURL: function(path) {
-      if(this.storage.connected) {
-        return this.storage.remote.href + this.makePath(path);
+      if (this.storage.connected) {
+        path = this._cleanPath( this.makePath(path) );
+        return this.storage.remote.href + path;
       } else {
         return undefined;
       }

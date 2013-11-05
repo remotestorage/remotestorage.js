@@ -25,12 +25,20 @@ define(['requirejs'], function(requirejs, undefined) {
           }
         }
       };
+      
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+      require('./src/wireclient');
+      if(global.rs_wireclient) {
+        RemoteStorage.WireClient = global.rs_wireclient;
+      } else {
+        global.rs_wireclient = RemoteStorage.WireClient
+      }
+
       require('./lib/Math.uuid');
       require('./src/baseclient');
       require('./src/baseclient/types');
@@ -301,7 +309,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "test storeFile",
+        desc: "#storeFile",
         run: function(env, test) {
           env.storage.put = function(path, body, contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar', 'path is '+path+' not /foo/foo/bar');
@@ -330,17 +338,28 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "test bug #418",
+        desc: "#storeFile doesn't encode the filename",
         run: function(env, test) {
           env.storage.put = function(path, body, contentType, incoming) {
-            test.assertAnd(path, '/foo/A%252FB', 'path is '+path+' not /foo/A%252FB');
+            test.assertAnd(path, '/foo/A%2FB /C/%bla//');
             test.assertAnd(body, 'abc');
             test.assertAnd(contentType, 'def');
             test.assertType(incoming, 'undefined');
             test.result(true);
             return promising().fulfill(200);
           };
-          env.client.storeFile('def', 'A%2FB', 'abc');
+          env.client.storeFile('def', 'A%2FB /C/%bla//', 'abc');
+        }
+      },
+
+      {
+        desc: "#getItemURL returns the full item URL",
+        run: function(env, test) {
+          env.storage.connected = true;
+          env.storage.remote = {href: 'http://example.com/test'};
+
+          var itemURL = env.client.getItemURL('A%2FB /C/%bla//D');
+          test.assert(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
         }
       }
     ]
