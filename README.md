@@ -34,6 +34,16 @@ There are a number of different builds available:
 * <kbd>remotestorage-nocache.js</kbd> - Contains a version of remotestorage.js without any caching features included. Use this if you want your app to write directly to the remote server **without caching** any data in the browser's storage (localStorage or indexedDB).
 * <kbd>remotestorage-nocache.amd.js</kbd>, <kbd>remotestorage-nocache.min.js</kbd> - same as the other .amd / .min build, but based on remotestorage-nocache.js.
 
+### Running tests
+
+Run `npm install` in order to install development dependencies including the
+[testing framework](https://github.com/silverbucket/teste).
+
+Now you can run all suites with `npm test`.
+
+Use the teste executable in order to test single files, like so e.g.:
+`node_modules/.bin/teste test/unit/baseclient-suite.js`
+
 ### How to build
 
 Run `make` to display the available build tasks.
