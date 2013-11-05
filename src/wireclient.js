@@ -322,7 +322,12 @@
     xhr.onerror = function(error) {
       if(timedOut) return;
       clearTimeout(timer);
-      callback(error);
+      if (xhr.status === 0 && xhr.statusText === "") {
+        xhr.status = 304;
+        callback(null, xhr);
+      } else {
+        callback(error);
+      }
     };
 
     var body = options.body;
