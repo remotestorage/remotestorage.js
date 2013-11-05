@@ -437,10 +437,12 @@
       }
     },
 
-    //FIXME this is a duplicate from wireclient.js
-    _cleanPath: function(path) {
-      return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
-    },
+    
+    _cleanPath: RS.WireClient.cleanPath
+    // function(path) {
+    //   return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
+    // }
+    ,
 
     /**
      * Method: getItemURL

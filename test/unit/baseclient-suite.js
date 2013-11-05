@@ -25,6 +25,11 @@ define(['requirejs'], function(requirejs, undefined) {
           }
         }
       };
+      RemoteStorage.WireClient = function(){};
+      RemoteStorage.WireClient.cleanPath = function(path) {
+        return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
+    }
+      
       require('./src/eventhandling');
       if(global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
