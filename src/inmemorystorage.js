@@ -1,19 +1,20 @@
 (function(global) {
   function makeNode(path) {
     var node = { path: path };
-    if(path[path.length - 1] === '/') {
+    if (path[path.length - 1] === '/') {
       node.body = {};
       node.contentType = 'application/json';
     }
     return node;
   }
+
   function applyRecursive(path, cb) {
     var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
-    if(parts) {
+    if (parts) {
       var dirname = parts[1];
       var basename = parts[2];
-      
-      if(cb(dirname, basename) && dirname != '/') {
+
+      if (cb(dirname, basename) && dirname != '/') {
         applyRecursive(dirname, cb);
       }
     } else {
@@ -31,13 +32,13 @@
   RemoteStorage.InMemoryStorage.prototype = {
     get: function(path) {
       var node = this._storage[path];
-      if(node) {
+      if (node) {
         return promising().fulfill(200, node.body, node.contentType, node.revision);
       } else {
         return promising().fulfill(404);
       }
     },
-    
+
     put: function(path, body, contentType, incoming) {
       var oldNode = this._storage[path];
       var node = {
@@ -47,10 +48,10 @@
       };
       this._storage[path] = node;
       this._addToParent(path);
-      if(!incoming) {
+      if (!incoming) {
         this._recordChange(path, {action: 'PUT' });
       }
-      
+
       this._emit('change', {
         path: path,
         origin: incoming ? 'remote' : 'window',
@@ -59,16 +60,16 @@
       });
       return promising().fulfill(200);
     },
-    
-    delete: function(path, incoming) {
+
+    'delete': function(path, incoming) {
       var oldNode = this._storage[path];
       delete this._storage[path];
       this._removeFromParent(path);
-      if(!incoming) {
+      if (!incoming) {
         this._recordChange(path, {action: 'DELETE' });
       }
-      
-      if(oldNode) {
+
+      if (oldNode) {
         this._emit('change', {
           path: path,
           origin: incoming ? 'remote' : 'window',
@@ -78,7 +79,7 @@
       }
       return promising().fulfill(200);
     },
-    
+
     _addToParent: function(path) {
       var storage = this._storage;
       applyRecursive(path, function(dirname, basename) {
@@ -88,14 +89,15 @@
         return true;
       });
     },
+
     _removeFromParent: function(path) {
       var storage = this._storage;
       var self = this;
       applyRecursive(path, function(dirname, basename) {
         var node = storage[dirname];
-        if(node) {
+        if (node) {
           delete node.body[basename];
-          if(Object.keys(node.body).length === 0) {
+          if (Object.keys(node.body).length === 0) {
             delete storage[dirname];
             return true;
           } else {
@@ -104,7 +106,7 @@
         }
       });
     },
-    
+
     _recordChange: function(path, attributes) {
       var change = this._changes[path] || {};
       for(var k in attributes)
@@ -112,34 +114,37 @@
       change.path = path;
       this._changes[path] = change;
     },
+
     clearChange: function(path) {
       delete this._changes[path];
       return promising().fulfill();
     },
+
     changesBelow: function(path) {
       var changes = [];
-      var l = path.length; 
+      var l = path.length;
       for(var k in this._changes) {
-        if(k.substr(0,l) === path) {
+        if (k.substr(0,l) === path) {
           changes.push(this._changes[k]);
         }
       }
       return promising().fulfill(changes);
     },
+
     setConflict: function(path, attributes) {
       this._recordChange(path, { conflict: attributes });
       var self = this;
       var event = {path:path};
       for(var k in attributes)
         event[k] = attributes[k];
-      
+
       event.resolve = function(resolution) {
-        if(resolution === 'remote'|| resolution === 'local') {
+        if (resolution === 'remote'|| resolution === 'local') {
           attributes.resolution = resolution;
           self._recordChange(path, { conflict: attributes });
         } else {
           throw new Error('Invalid resolution: '+resolution);
-        } 
+        }
       };
       this._emit('conflict', event);
     },
@@ -150,14 +155,15 @@
       this._storage[path] = node;
       return promising().fulfill();
     },
+
     getRevision: function(path) {
       var rev;
-      if(this._storage[path]) {
+      if (this._storage[path]) {
         rev = this._storage[path].revision;
       }
       return promising().fulfill(rev);
     },
-    
+
     fireInitial: function() {
       // fireInital fires a change event for each item in the store
       // inMemoryStorage is always empty on pageLoad
@@ -165,7 +171,7 @@
   };
 
   RemoteStorage.InMemoryStorage._rs_init = function() {};
-  
+
   RemoteStorage.InMemoryStorage._rs_supported = function() {
     return true;
   };
