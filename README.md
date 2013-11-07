@@ -4,19 +4,25 @@
 
 ### Where to get help?
 
-* See [remotestorage.io](http://remotestorage.io/) for all documentation and links.
+See [remotestorage.io](http://remotestorage.io/) for documentation, community forums, and links.
 
-### Running a local Test Server
+### Running a local test server
 
-To test remoteStorage enabled apps, you need to have a remoteStorage compatible storage account.
+To test remoteStorage-enabled apps, you need to have a remoteStorage-compatible storage account.
 
 To find out how to get one, see [Get Storage on remotestorage.io](http://remotestorage.io/get/).
 
 ### Which version to choose?
 
-You can either use a stable release or the current HEAD build. Stable releases can be found in [release/](https://github.com/remotestorage/remotestorage.js/tree/master/release/). Those directories having a "-rcX" postfix contain release candidates, which may be used for testing but aren't necessarily "stable" releases.
+You can either use a stable release or the current HEAD build. Stable releases
+can be found in [release/](https://github.com/remotestorage/remotestorage.js/tree/master/release/).
+Directories with a "-rcX" suffix contain release candidates, which may be used
+for testing but aren't necessarily "stable" releases.
 
-The toplevel directory contains a semi-current HEAD build. It is updated manually and irregularly. To build an up-to-date version of all files, run `make all` in the repository root.
+[release/head](https://github.com/remotestorage/remotestorage.js/tree/master/release/head/)
+contains a semi-current HEAD build. It is updated manually and irregularly. To
+build an up-to-date version of all files, run `make all` in the repository
+root.
 
 ### Which build file to use for my app?
 
@@ -28,11 +34,8 @@ There are a number of different builds available:
 * <kbd>remotestorage-nocache.js</kbd> - Contains a version of remotestorage.js without any caching features included. Use this if you want your app to write directly to the remote server **without caching** any data in the browser's storage (localStorage or indexedDB).
 * <kbd>remotestorage-nocache.amd.js</kbd>, <kbd>remotestorage-nocache.min.js</kbd> - same as the other .amd / .min build, but based on remotestorage-nocache.js.
 
-### Contributors
+### How to build
 
-To build everything after you made a change to the source, run:
+Run `make` to display the available build tasks.
 
-    sudo apt-get install node-uglify naturaldocs
-    make all
-
-and copy the docs to the `gh-pages` branch of https://github.com/remotestorage/remotestorage.io
+With node-uglify and naturaldocs installed, you can run `make all` to build everything.

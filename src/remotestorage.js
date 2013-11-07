@@ -113,7 +113,7 @@
     /**
      * Event: sync-busy
      *
-     * fired when a sync cyle starts
+     * fired when a sync cycle starts
      *
      **/
     /**

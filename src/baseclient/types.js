@@ -12,7 +12,7 @@
     declare: function(moduleName, alias, uri, schema) {
       var fullAlias = moduleName + '/' + alias;
 
-      if(schema.extends) {
+      if (schema.extends) {
         var extendedAlias;
         var parts = schema.extends.split('/');
         if(parts.length === 1) {
@@ -26,7 +26,7 @@
         }
         schema.extends = this.schemas[extendedUri];
       }
-      
+
       this.uris[fullAlias] = uri;
       this.aliases[uri] = fullAlias;
       this.schemas[uri] = schema;

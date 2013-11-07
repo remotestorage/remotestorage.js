@@ -1,5 +1,5 @@
 if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
+  var define = require('amdefine')(module);
 }
 define(['requirejs'], function(requirejs, undefined) {
   var suites = [];
@@ -39,7 +39,7 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "it takes a storage object and base path",
         run: function(env, test) {
-          var storage = new RemoteStorage;
+          var storage = new RemoteStorage();
           var client = new RemoteStorage.BaseClient(storage, '/foo/');
           test.assertAnd(client.storage, storage);
           test.assertAnd(client.base, '/foo/');
@@ -51,7 +51,7 @@ define(['requirejs'], function(requirejs, undefined) {
         desc: "it doesn't accept non-directory paths",
         run: function(env, test) {
           try {
-            new RemoteStorage.BaseClient(new RemoteStorage, '/foo');
+            new RemoteStorage.BaseClient(new RemoteStorage(), '/foo');
             test.result(false);
           } catch(e) {
             test.done();
@@ -62,7 +62,7 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "it detects the module name correctly",
         run: function(env, test) {
-          var storage = new RemoteStorage;
+          var storage = new RemoteStorage();
           var rootClient = new RemoteStorage.BaseClient(storage, '/');
           var moduleClient = new RemoteStorage.BaseClient(storage, '/contacts/');
           var nestedClient = new RemoteStorage.BaseClient(storage, '/email/credentials/');
@@ -76,7 +76,7 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "it installs a change handler for it's base",
         run: function(env, test) {
-          var storage = new RemoteStorage;
+          var storage = new RemoteStorage();
           storage.onChange = function(path, handler) {
             test.assertTypeAnd(handler, 'function');
             test.assertAnd(path, '/foo/');
@@ -89,7 +89,7 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "it understands the 'change' and 'conflict' events",
         run: function(env, test) {
-          var client = new RemoteStorage.BaseClient(new RemoteStorage, '/foo/');
+          var client = new RemoteStorage.BaseClient(new RemoteStorage(), '/foo/');
           client.on('change', function() {});
           client.on('conflict', function() {});
           test.done();
@@ -101,13 +101,13 @@ define(['requirejs'], function(requirejs, undefined) {
   suites.push({
     desc: "BaseClient directory handling",
     setup: function(env, test) {
-      if(typeof(RemoteStorage) != 'function') {
+      if(typeof(RemoteStorage) !== 'function') {
         global.RemoteStorage = function() {};
         RemoteStorage.prototype = {
           onChange: function() {}
         };
       }
-      if(typeof(RemoteStorage.BaseClient) != 'function') {
+      if(typeof(RemoteStorage.BaseClient) !== 'function') {
         require('./src/eventhandling');
         require('./src/baseclient');
       }
@@ -115,7 +115,7 @@ define(['requirejs'], function(requirejs, undefined) {
     },
 
     beforeEach: function(env, test) {
-      env.storage = new RemoteStorage;
+      env.storage = new RemoteStorage();
       env.client = new RemoteStorage.BaseClient(env.storage, '/foo/');
       test.done();
     },
@@ -127,7 +127,7 @@ define(['requirejs'], function(requirejs, undefined) {
           env.storage.get = function(path) {
             test.assert(path, '/foo/bar/');
             return promising().fulfill(404);
-          }
+          };
           env.client.getListing('bar/');
         }
       },
@@ -172,7 +172,7 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           env.storage.get = function(path) {
             return promising().fulfill(200, { foo: 'bar', 'baz/': 'bla' });
-          }
+          };
           env.client.getListing('').then(function(result) {
             test.assert(result, ['foo', 'baz/']);
           });
@@ -184,7 +184,7 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           env.storage.get = function(path) {
             return promising().fulfill(404);
-          }
+          };
           env.client.getAll('').then(function(result) {
             test.assertType(result, 'undefined');
           });
@@ -197,17 +197,17 @@ define(['requirejs'], function(requirejs, undefined) {
           var expected = { '/foo/': true, '/foo/bar': true, '/foo/baz': true };
           env.storage.get = function(path) {
             var promise = promising();
-            if(path == '/foo/') {
+            if (path === '/foo/') {
               promise.fulfill(200, { bar: true, baz: true });
             } else {
               promise.fulfill(200, "content of " + path);
             }
             delete expected[path];
-            if(Object.keys(expected).length == 0) {
+            if (Object.keys(expected).length === 0) {
               test.done();
             }
             return promise;
-          }
+          };
           env.client.getAll('');
         }
       },
@@ -217,13 +217,13 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           env.storage.get = function(path) {
             var promise = promising();
-            if(path == '/foo/') {
+            if (path === '/foo/') {
               promise.fulfill(200, { bar: true, baz: true });
             } else {
               promise.fulfill(200, "content of " + path);
             }
             return promise;
-          }
+          };
           env.client.getAll('').then(function(result) {
             test.assert(result, {
               bar: "content of /foo/bar",
@@ -239,7 +239,7 @@ define(['requirejs'], function(requirejs, undefined) {
           env.storage.get = function(path) {
             test.assert(path, '/foo/');
             return promising().fulfill(404);
-          }
+          };
           env.client.getListing();
         }
       },
@@ -250,7 +250,7 @@ define(['requirejs'], function(requirejs, undefined) {
           env.storage.get = function(path) {
             test.assert(path, '/foo/');
             return promising().fulfill(404);
-          }
+          };
           env.client.getAll();
         }
       },

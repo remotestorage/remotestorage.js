@@ -8,4 +8,4 @@ server/server-state
 server-state
 doc/code
 doc/config
-remotestorage*.js
+/remotestorage*.js
