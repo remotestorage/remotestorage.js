@@ -79,19 +79,19 @@
 
   function removeFromParent(nodes, path, key) {
     var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
-    if(parts) {
+    if (parts) {
       var dirname = parts[1], basename = parts[2];
       nodes.get(dirname).onsuccess = function(evt) {
         var node = evt.target.result;
-        if(!node) {//attempt to remove something from a non-existing directory
+        if (!node) {//attempt to remove something from a non-existing directory
           return;
         }
         delete node[key][basename];
-        if(keepDirNode(node)) {
+        if (keepDirNode(node)) {
           nodes.put(node);
         } else {
           nodes.delete(node.path).onsuccess = function() {
-            if(dirname != '/') {
+            if (dirname !== '/') {
               removeFromParent(nodes, dirname, key);
             }
           };
@@ -102,7 +102,7 @@
 
   function makeNode(path) {
     var node = { path: path };
-    if(path[path.length - 1] == '/') {
+    if (path[path.length - 1] === '/') {
       node.body = {};
       node.cached = {};
       node.contentType = 'application/json';
@@ -112,13 +112,13 @@
 
   function addToParent(nodes, path, key, revision) {
     var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
-    if(parts) {
+    if (parts) {
       var dirname = parts[1], basename = parts[2];
       nodes.get(dirname).onsuccess = function(evt) {
         var node = evt.target.result || makeNode(dirname);
         node[key][basename] = revision || true;
         nodes.put(node).onsuccess = function() {
-          if(dirname != '/') {
+          if (dirname !== '/') {
             addToParent(nodes, dirname, key, true);
           }
         };
@@ -128,8 +128,8 @@
 
   RS.IndexedDB = function(database) {
     this.db = database || DEFAULT_DB;
-    if(! this.db) {
-      if(RemoteStorage.LocalStorage) {
+    if (! this.db) {
+      if (RemoteStorage.LocalStorage) {
         RemoteStorage.log("Failed to open indexedDB, falling back to localStorage");
         return new RemoteStorage.LocalStorage();
       } else {
@@ -150,7 +150,7 @@
         node = nodeReq.result;
       };
       transaction.oncomplete = function() {
-        if(node) {
+        if (node) {
           promise.fulfill(200, node.body, node.contentType, node.revision);
         } else {
           promise.fulfill(404);
@@ -162,7 +162,7 @@
 
     put: function(path, body, contentType, incoming, revision) {
       var promise = promising();
-      if(path[path.length - 1] == '/') { throw "Bad: don't PUT folders"; }
+      if (path[path.length - 1] === '/') { throw "Bad: don't PUT folders"; }
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodes = transaction.objectStore('nodes');
       var oldNode;
@@ -171,24 +171,26 @@
         try {
           oldNode = evt.target.result;
           var node = {
-            path: path, contentType: contentType, body: body
+            path: path,
+            contentType: contentType,
+            body: body
           };
           nodes.put(node).onsuccess = function() {
             try {
               addToParent(nodes, path, 'body', revision);
             } catch(e) {
-              if(typeof(done) === 'undefined') {
+              if (typeof(done) === 'undefined') {
                 done = true;
                 promise.reject(e);
               }
-            };
+            }
           };
         } catch(e) {
-          if(typeof(done) === 'undefined') {
+          if (typeof(done) === 'undefined') {
             done = true;
             promise.reject(e);
           }
-        };
+        }
       };
       transaction.oncomplete = function() {
         this._emit('change', {
@@ -197,10 +199,10 @@
           oldValue: oldNode ? oldNode.body : undefined,
           newValue: body
         });
-        if(! incoming) {
+        if (! incoming) {
           this._recordChange(path, { action: 'PUT', revision: oldNode ? oldNode.revision : undefined });
         }
-        if(typeof(done) === 'undefined') {
+        if (typeof(done) === 'undefined') {
           done = true;
           promise.fulfill(200);
         }
@@ -211,7 +213,7 @@
 
     delete: function(path, incoming) {
       var promise = promising();
-      if(path[path.length - 1] == '/') { throw "Bad: don't DELETE folders"; }
+      if (path[path.length - 1] === '/') { throw "Bad: don't DELETE folders"; }
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodes = transaction.objectStore('nodes');
       var oldNode;
@@ -220,9 +222,9 @@
         nodes.delete(path).onsuccess = function() {
           removeFromParent(nodes, path, 'body', incoming);
         };
-      }
+      };
       transaction.oncomplete = function() {
-        if(oldNode) {
+        if (oldNode) {
           this._emit('change', {
             path: path,
             origin: incoming ? 'remote' : 'window',
@@ -230,7 +232,7 @@
             newValue: undefined
           });
         }
-        if(! incoming) {
+        if (! incoming) {
           this._recordChange(path, { action: 'DELETE', revision: oldNode ? oldNode.revision : undefined });
         }
         promise.fulfill(200);
@@ -269,7 +271,7 @@
       var rev;
       transaction.objectStore('nodes').
         get(path).onsuccess = function(evt) {
-          if(evt.target.result) {
+          if (evt.target.result) {
             rev = evt.target.result.revision;
           }
         };
@@ -281,7 +283,7 @@
     },
 
     getCached: function(path) {
-      if(path[path.length - 1] != '/') {
+      if (path[path.length - 1] !== '/') {
         return this.get(path);
       }
       var promise = promising();
@@ -312,9 +314,9 @@
       var cursorReq = transaction.objectStore('nodes').openCursor();
       cursorReq.onsuccess = function(evt) {
         var cursor = evt.target.result;
-        if(cursor) {
+        if (cursor) {
           var path = cursor.key;
-          if(path.substr(-1) != '/') {
+          if (path.substr(-1) !== '/') {
             this._emit('change', {
               path: path,
               origin: 'remote',
@@ -352,7 +354,7 @@
       changes.delete(path);
       transaction.oncomplete = function() {
         promise.fulfill();
-      }
+      };
       return promise;
     },
 
@@ -365,8 +367,8 @@
       var changes = [];
       cursorReq.onsuccess = function() {
         var cursor = cursorReq.result;
-        if(cursor) {
-          if(cursor.key.substr(0, pl) == path) {
+        if (cursor) {
+          if (cursor.key.substr(0, pl) === path) {
             changes.push(cursor.value);
             cursor.continue();
           }
@@ -386,14 +388,14 @@
       this._recordChange(path, { conflict: attributes }).
         then(function() {
           // fire conflict once conflict has been recorded.
-          if(this._handlers.conflict.length > 0) {
+          if (this._handlers.conflict.length > 0) {
             this._emit('conflict', event);
           } else {
             setTimeout(function() { event.resolve('remote'); }, 0);
           }
         }.bind(this));
       event.resolve = function(resolution) {
-        if(resolution == 'remote' || resolution == 'local') {
+        if (resolution === 'remote' || resolution === 'local') {
           attributes.resolution = resolution;
           this._recordChange(path, { conflict: attributes });
         } else {
@@ -424,13 +426,13 @@
     dbOpen.onupgradeneeded = function(event) {
       RemoteStorage.log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
       var db = dbOpen.result;
-      if(event.oldVersion != 1) {
+      if (event.oldVersion !== 1) {
         RemoteStorage.log("[IndexedDB] Creating object store: nodes");
         db.createObjectStore('nodes', { keyPath: 'path' });
       }
       RemoteStorage.log("[IndexedDB] Creating object store: changes");
       db.createObjectStore('changes', { keyPath: 'path' });
-    }
+    };
     dbOpen.onsuccess = function() {
       clearTimeout(timer);
       callback(null, dbOpen.result);
@@ -451,14 +453,15 @@
   RS.IndexedDB._rs_init = function(remoteStorage) {
     var promise = promising();
     RS.IndexedDB.open(DEFAULT_DB_NAME, function(err, db) {
-      if(err) {
-        if(err.name == 'InvalidStateError') {
+      if (err) {
+        if (err.name === 'InvalidStateError') {
           // firefox throws this when trying to open an indexedDB in private browsing mode
-          var err = new Error("IndexedDB couldn't be opened.");
+          err = new Error("IndexedDB couldn't be opened.");
           // instead of a stack trace, display some explaination:
           err.stack = "If you are using Firefox, please disable\nprivate browsing mode.\n\nOtherwise please report your problem\nusing the link below";
           remoteStorage._emit('error', err);
         } else {
+          //FIXME or else what?
         }
       } else {
         DEFAULT_DB = db;
@@ -471,10 +474,10 @@
 
   RS.IndexedDB._rs_supported = function() {
     return 'indexedDB' in global;
-  }
+  };
 
   RS.IndexedDB._rs_cleanup = function(remoteStorage) {
-    if(remoteStorage.local) {
+    if (remoteStorage.local) {
       remoteStorage.local.closeDB();
     }
     var promise = promising();
@@ -482,6 +485,6 @@
       promise.fulfill();
     });
     return promise;
-  }
+  };
 
 })(typeof(window) !== 'undefined' ? window : global);
