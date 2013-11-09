@@ -36,16 +36,27 @@ There are a number of different builds available:
 
 ### Running tests
 
-Run `npm install` in order to install development dependencies including the
-[testing framework](https://github.com/silverbucket/teste).
+Install development dependencies including the
+[testing framework](https://github.com/silverbucket/teste):
 
-Now you can run all suites with `npm test`.
+    npm install
+
+Run all suites:
+
+    npm test
 
 Use the teste executable in order to test single files, like so e.g.:
-`node_modules/.bin/teste test/unit/baseclient-suite.js`
+
+    node_modules/.bin/teste test/unit/baseclient-suite.js
 
 ### How to build
 
-Run `make` to display the available build tasks.
+Install node-uglify and naturaldocs first.
 
-With node-uglify and naturaldocs installed, you can run `make all` to build everything.
+Display the available build tasks:
+
+    make
+
+Build everything:
+
+    make all
