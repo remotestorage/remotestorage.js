@@ -1,22 +1,26 @@
 # remoteStorage.js
 
 [![Build Status](https://secure.travis-ci.org/remotestorage/remotestorage.js.png)](http://travis-ci.org/remotestorage/remotestorage.js)
+[![devDependency Status](https://david-dm.org/remotestorage/remotestorage.js/dev-status.png)](https://david-dm.org/remotestorage/remotestorage.js#info=devDependencies)
+
+remoteStorage.js is a JavaScript library for storing user data locally in the browser, as well as connecting to [remoteStorage](http://remotestorage.io) servers and syncing data across devices and applications.
 
 ### Where to get help?
 
-See [remotestorage.io](http://remotestorage.io/) for documentation, community forums, and links.
+* See [remotestorage.io](http://remotestorage.io/) for documentation, community forums, and links
+* Get instant support via IRC in [#remotestorage](irc://irc.freenode.net:7000/remotestorage) on Freenode
 
 ### Running a local test server
 
-To test remoteStorage-enabled apps, you need to have a remoteStorage-compatible storage account.
+To develop remoteStorage-enabled apps, you need to have a remoteStorage-compatible storage account. We recommend [reStore](https://github.com/jcoglan/restore) for running a local test server. (Use the latest version from GitHub, not npm!)
 
-To find out how to get one, see [Get Storage on remotestorage.io](http://remotestorage.io/get/).
+You can also get an account with a hoster, or use one of the various other remoteStorage server implementations: [get storage](http://remotestorage.io/get/).
 
 ### Which version to choose?
 
 You can either use a stable release or the current HEAD build. Stable releases
 can be found in [release/](https://github.com/remotestorage/remotestorage.js/tree/master/release/).
-Directories with a "-rcX" suffix contain release candidates, which may be used
+Directories with a `-rcX` suffix contain release candidates, which may be used
 for testing but aren't necessarily "stable" releases.
 
 [release/head](https://github.com/remotestorage/remotestorage.js/tree/master/release/head/)
