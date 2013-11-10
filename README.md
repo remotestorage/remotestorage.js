@@ -2,6 +2,7 @@
 
 [![Build Status](https://secure.travis-ci.org/remotestorage/remotestorage.js.png)](http://travis-ci.org/remotestorage/remotestorage.js)
 [![devDependency Status](https://david-dm.org/remotestorage/remotestorage.js/dev-status.png)](https://david-dm.org/remotestorage/remotestorage.js#info=devDependencies)
+[![Code Climate](https://codeclimate.com/github/remotestorage/remotestorage.js.png)](https://codeclimate.com/github/remotestorage/remotestorage.js)
 
 remoteStorage.js is a JavaScript library for storing user data locally in the browser, as well as connecting to [remoteStorage](http://remotestorage.io) servers and syncing data across devices and applications.
 
