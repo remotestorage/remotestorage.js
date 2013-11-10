@@ -3,6 +3,13 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 0.8.3 (November 2013)
+
+* Make sure to clear auth token after disconnect
+* Fix invalid conditional request headers (If-Match & If-None-Match)
+* Fix double-encoded paths
+* Removed broken example app
+
 ## 0.8.2 (October 2013)
 
 * Size reduced by almost 25%, to 34K minified, gzipped
