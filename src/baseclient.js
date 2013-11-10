@@ -1,4 +1,3 @@
-
 (function(global) {
 
   function deprecate(thing, replacement) {
@@ -27,15 +26,15 @@
    * created and removed implictly).
    */
   RS.BaseClient = function(storage, base) {
-    if(base[base.length - 1] != '/') {
+    if (base[base.length - 1] !== '/') {
       throw "Not a directory: " + base;
     }
 
-    if(base == '/') {
+    if (base === '/') {
       // allow absolute and relative paths for the root scope.
       this.makePath = function(path) {
-        return (path[0] == '/' ? '' : '/') + path;
-      }
+        return (path[0] === '/' ? '' : '/') + path;
+      };
     }
 
     /**
@@ -55,7 +54,7 @@
     this.base = base;
 
     var parts = this.base.split('/');
-    if(parts.length > 2) {
+    if (parts.length > 2) {
       this.moduleName = parts[1];
     } else {
       this.moduleName = 'root';
@@ -64,7 +63,7 @@
      * Event: change
      * emitted when a node changes
      *
-     * Arguments: event 
+     * Arguments: event
      * (start code)
      * {
      *    path: path,
@@ -81,13 +80,13 @@
      * or some user action within the app(window)
      *
      *
-     * 
+     *
      * * the oldValue defaults to undefined if you are dealing with some
      * new file
      *
      *
      * * the newValue defaults to undefined if you are dealing with a deletion
-     * 
+     *
      * * when newValue and oldValue are set you are dealing with an update
      **/
     /**
@@ -158,13 +157,13 @@
      *   (end code)
      */
     getListing: function(path) {
-      if(typeof(path) == 'undefined') {
+      if (typeof(path) === 'undefined') {
         path = '';
-      } else if(path.length > 0 && path[path.length - 1] != '/') {
+      } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a directory: " + path;
       }
       return this.storage.get(this.makePath(path)).then(function(status, body) {
-        if(status == 404) return;
+        if (status === 404) { return; }
         return typeof(body) === 'object' ? Object.keys(body) : undefined;
       });
     },
@@ -191,17 +190,17 @@
      *   (end code)
      */
     getAll: function(path) {
-      if(typeof(path) == 'undefined') {
+      if (typeof(path) === 'undefined') {
         path = '';
-      } else if(path.length > 0 && path[path.length - 1] != '/') {
+      } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a directory: " + path;
       }
       return this.storage.get(this.makePath(path)).then(function(status, body) {
-        if(status == 404) return;
-        if(typeof(body) === 'object') {
+        if (status === 404) { return; }
+        if (typeof(body) === 'object') {
           var promise = promising();
           var count = Object.keys(body).length, i = 0;
-          if(count == 0) {
+          if (count === 0) {
             // treat this like 404. it probably means a directory listing that
             // has changes that haven't been pushed out yet.
             return;
@@ -211,7 +210,7 @@
               then(function(status, b) {
                 body[this.key] = b;
                 i++;
-                if(i == count) promise.fulfill(body);
+                if (i === count) { promise.fulfill(body); }
               }.bind({ key: key }));
           }
           return promise;
@@ -297,7 +296,7 @@
     storeFile: function(mimeType, path, body) {
       var self = this;
       return this.storage.put(this.makePath(path), body, mimeType).then(function(status, _body, _mimeType, revision) {
-        if(status == 200 || status == 201) {
+        if (status === 200 || status === 201) {
           return revision;
         } else {
           throw "Request (PUT " + self.makePath(path) + ") failed with status: " + status;
@@ -328,9 +327,9 @@
      */
     getObject: function(path) {
       return this.storage.get(this.makePath(path)).then(function(status, body, mimeType, revision) {
-        if(typeof(body) == 'object') {
+        if (typeof(body) === 'object') {
           return body;
-        } else if(typeof(body) !== 'undefined' && status == 200) {
+        } else if (typeof(body) !== 'undefined' && status === 200) {
           throw "Not an object: " + this.makePath(path);
         }
       });
@@ -381,18 +380,19 @@
       this._attachType(object, typeAlias);
       try {
         var validationResult = this.validate(object);
-        if(! validationResult.valid) {
+        if (! validationResult.valid) {
           return promising(function(p) { p.reject(validationResult); });
         }
       } catch(exc) {
-        if(exc instanceof RS.BaseClient.Types.SchemaNotFound) {
-          // ignore.
+        if (exc instanceof RS.BaseClient.Types.SchemaNotFound) {
+          // ignore
+          // FIXME ignore what and why?
         } else {
           return promising().reject(exc);
         }
       }
       return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
-        if(status == 200 || status == 201) {
+        if (status === 200 || status === 201) {
           return revision;
         } else {
           throw "Request (PUT " + this.makePath(path) + ") failed with status: " + status;
@@ -430,7 +430,7 @@
     },
 
     _fireConflict: function(event) {
-      if(this._handlers.conflict.length > 0) {
+      if (this._handlers.conflict.length > 0) {
         this._emit('conflict', event);
       } else {
         event.resolve('remote');

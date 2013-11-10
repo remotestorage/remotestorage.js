@@ -1,31 +1,33 @@
 (function(global) {
   function emitUnauthorized(status){
     var args = Array.prototype.slice.call(arguments);
-    if(status == 403  || status == 401) {
-      this._emit('error', new RemoteStorage.Unauthorized())
+    if (status === 403  || status === 401) {
+      this._emit('error', new RemoteStorage.Unauthorized());
     }
-    var p = promising()
+    var p = promising();
     return p.fulfill.apply(p,args);
   }
+
   function shareFirst(path){
-    return ( this.backend == 'dropbox' &&
-             path.match(/^\/public\/.*[^\/]$/) )
+    return ( this.backend === 'dropbox' &&
+             path.match(/^\/public\/.*[^\/]$/) );
   }
+
   var SyncedGetPutDelete = {
     get: function(path) {
-      if(this.caching.cachePath(path)) {
+      if (this.caching.cachePath(path)) {
         return this.local.get(path);
       } else {
         return this.remote.get(path);
       }
     },
-    
+
     put: function(path, body, contentType) {
-      if(shareFirst.bind(this)(path)){
+      if (shareFirst.bind(this)(path)){
         //this.local.put(path, body, contentType);
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
       }
-      else if(this.caching.cachePath(path)) {
+      else if (this.caching.cachePath(path)) {
         return this.local.put(path, body, contentType);
       } else {
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
@@ -33,7 +35,7 @@
     },
 
     'delete': function(path) {
-      if(this.caching.cachePath(path)) {
+      if (this.caching.cachePath(path)) {
         return this.local.delete(path);
       } else {
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
@@ -50,7 +52,7 @@
         throw err;
       });
     }
-  }
+  };
 
   var haveLocalStorage = 'localStorage' in global;
 
@@ -73,7 +75,7 @@
      **/
     /**
      * Event: disconnected
-     * 
+     *
      * fired after disconnect
      **/
     /**
@@ -127,37 +129,46 @@
       this, 'ready', 'disconnected', 'disconnect', 'conflict', 'error',
       'features-loaded', 'connecting', 'authing', 'sync-busy', 'sync-done'
     );
+
     // pending get/put/delete calls.
     this._pending = [];
+
     this._setGPD({
       get: this._pendingGPD('get'),
       put: this._pendingGPD('put'),
       delete: this._pendingGPD('delete')
     });
+
     this._cleanups = [];
+
     this._pathHandlers = { change: {}, conflict: {} };
+
     this.apiKeys = {};
-    if(haveLocalStorage) {
+
+    if (haveLocalStorage) {
       try {
         this.apiKeys = JSON.parse(localStorage['remotestorage:api-keys']);
-      } catch(exc) { /* ignored. */ };
+      } catch(exc) {
+        // ignored
+      }
       this.setBackend(localStorage['remotestorage:backend'] || 'remotestorage');
     }
 
     var origOn = this.on;
+
     this.on = function(eventName, handler) {
-      if(eventName == 'ready' && this.remote.connected && this._allLoaded) {
+      if (eventName === 'ready' && this.remote.connected && this._allLoaded) {
         setTimeout(handler, 0);
-      } else if(eventName == 'features-loaded' && this._allLoaded) {
+      } else if (eventName === 'features-loaded' && this._allLoaded) {
         setTimeout(handler, 0);
       }
       return origOn.call(this, eventName, handler);
-    }
+    };
 
     this._init();
 
     this.on('ready', function() {
-      if(this.local) {
+      if (this.local) {
         setTimeout(this.local.fireInitial.bind(this.local), 0);
       }
     }.bind(this));
@@ -178,13 +189,12 @@
    * Logging using console.log, when logging is enabled.
    */
   RemoteStorage.log = function() {
-    if(RemoteStorage._log) {
+    if (RemoteStorage._log) {
       console.log.apply(console, arguments);
     }
   };
 
   RemoteStorage.prototype = {
-
     /**
      ** PUBLIC INTERFACE
      **/
@@ -204,20 +214,20 @@
      *
      */
     connect: function(userAddress) {
-      if( userAddress.indexOf('@') < 0) {
+      if ( userAddress.indexOf('@') < 0) {
         this._emit('error', new RemoteStorage.DiscoveryError("user adress doesn't contain an @"));
         return;
       }
       this._emit('connecting');
       this.remote.configure(userAddress);
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
-        if(!href){
+        if (!href){
           this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
           return;
         }
         this._emit('authing');
         this.remote.configure(userAddress, href, storageApi);
-        if(! this.remote.connected) {
+        if (! this.remote.connected) {
           this.authorize(authURL);
         }
       }.bind(this));
@@ -233,7 +243,7 @@
      * From that point on you can connect again (using <connect>).
      */
     disconnect: function() {
-      if(this.remote) {
+      if (this.remote) {
         this.remote.configure(null, null, null, null);
       }
       this._setGPD({
@@ -244,16 +254,16 @@
       var n = this._cleanups.length, i = 0;
       var oneDone = function() {
         i++;
-        if(i >= n) {
+        if (i >= n) {
           this._init();
           this._emit('disconnected');
           this._emit('disconnect');// DEPRECATED?
         }
       }.bind(this);
-      if(n>0) {
+      if (n>0) {
         this._cleanups.forEach(function(cleanup) {
           var cleanupResult = cleanup(this);
-          if(typeof(cleanup) == 'object' && typeof(cleanup.then) == 'function') {
+          if (typeof(cleanup) === 'object' && typeof(cleanup.then) === 'function') {
             cleanupResult.then(oneDone);
           } else {
             oneDone();
@@ -266,8 +276,8 @@
 
     setBackend: function(what) {
       this.backend = what;
-      if(haveLocalStorage) {
-        if(what) {
+      if (haveLocalStorage) {
+        if (what) {
           localStorage['remotestorage:backend'] = what;
         } else {
           delete localStorage['remotestorage:backend'];
@@ -291,22 +301,22 @@
      *   handler - Handler function.
      */
     onChange: function(path, handler) {
-      if(! this._pathHandlers.change[path]) {
+      if (! this._pathHandlers.change[path]) {
         this._pathHandlers.change[path] = [];
       }
       this._pathHandlers.change[path].push(handler);
     },
 
     onConflict: function(path, handler) {
-      if(! this._conflictBound) {
+      if (! this._conflictBound) {
         this.on('features-loaded', function() {
-          if(this.local) {
+          if (this.local) {
             this.local.on('conflict', this._dispatchEvent.bind(this, 'conflict'));
           }
         }.bind(this));
         this._conflictBound = true;
       }
-      if(! this._pathHandlers.conflict[path]) {
+      if (! this._pathHandlers.conflict[path]) {
         this._pathHandlers.conflict[path] = [];
       }
       this._pathHandlers.conflict[path].push(handler);
@@ -340,12 +350,12 @@
     },
 
     setApiKeys: function(type, keys) {
-      if(keys) {
+      if (keys) {
         this.apiKeys[type] = keys;
       } else {
         delete this.apiKeys[type];
       }
-      if(haveLocalStorage) {
+      if (haveLocalStorage) {
         localStorage['remotestorage:api-keys'] = JSON.stringify(this.apiKeys);
       }
     },
@@ -361,36 +371,36 @@
         // (this.remote set by WireClient._rs_init
         //  as lazy property on RS.prototype)
 
-        if(this.local && this.remote) {
+        if (this.local && this.remote) {
           this._setGPD(SyncedGetPutDelete, this);
           this._bindChange(this.local);
-        } else if(this.remote) {
+        } else if (this.remote) {
           this._setGPD(this.remote, this.remote);
         }
 
-        if(this.remote) {
+        if (this.remote) {
           this.remote.on('connected', function() {
             try {
               this._emit('ready');
             } catch(e) {
               console.error("'ready' failed: ", e, e.stack);
               this._emit('error', e);
-            };
+            }
           }.bind(this));
-          if(this.remote.connected) {
+          if (this.remote.connected) {
             try {
               this._emit('ready');
             } catch(e) {
               console.error("'ready' failed: ", e, e.stack);
               this._emit('error', e);
-            };
+            }
           }
         }
 
         var fl = features.length;
         for(var i=0;i<fl;i++) {
           var cleanup = features[i].cleanup;
-          if(cleanup) {
+          if (cleanup) {
             this._cleanups.push(cleanup);
           }
         }
@@ -400,7 +410,7 @@
           this._emit('features-loaded');
         } catch(exc) {
           console.error("remoteStorage#ready block failed: ");
-          if(typeof(exc) == 'string') {
+          if (typeof(exc) === 'string') {
             console.error(exc);
           } else {
             console.error(exc.message, exc.stack);
@@ -425,7 +435,7 @@
         'Caching',
         'Discover',
         'Authorize',
-	'Widget',
+        'Widget',
         'IndexedDB',
         'LocalStorage',
         'Sync',
@@ -445,9 +455,9 @@
       }.bind(this));
 
       features.forEach(function(feature) {
-        if(feature.name == 'IndexedDB') {
+        if (feature.name === 'IndexedDB') {
           features.local = RemoteStorage.IndexedDB;
-        } else if(feature.name == 'LocalStorage' && ! features.local) {
+        } else if (feature.name === 'LocalStorage' && ! features.local) {
           features.local = RemoteStorage.LocalStorage;
         }
       });
@@ -467,23 +477,24 @@
         return function() {
           i++;
           self.log("[FEATURE " + name + "] initialized. (" + i + "/" + n + ")");
-          if(i == n)
+          if (i === n) {
             setTimeout(function() {
               callback.apply(self, [features]);
             }, 0);
-        }
+          }
+        };
       }
       features.forEach(function(feature) {
         self.log("[FEATURE " + feature.name + "] initializing...");
         var initResult = feature.init(self);
         var cb = featureDoneCb(feature.name);
-        if(typeof(initResult) == 'object' && typeof(initResult.then) == 'function') {
+        if (typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
           initResult.then(cb);
         } else {
           cb();
         }
       });
-      if(features.length==0) {
+      if (features.length === 0) {
         self.log("[NO FEATURES DETECTED] done");
         callback.apply(self, [[]]);
       }
@@ -497,9 +508,9 @@
       function wrap(f) {
         return function() {
           return f.apply(context, arguments)
-            .then(emitUnauthorized.bind(this))
-        }
-      };
+            .then(emitUnauthorized.bind(this));
+        };
+      }
       this.get = wrap(impl.get);
       this.put = wrap(impl.put);
       this.delete = wrap(impl.delete);
@@ -540,7 +551,7 @@
       for(var path in this._pathHandlers[eventName]) {
         var pl = path.length;
         this._pathHandlers[eventName][path].forEach(function(handler) {
-          if(event.path.substr(0, pl) == path) {
+          if (event.path.substr(0, pl) === path) {
             var ev = {};
             for(var key in event) { ev[key] = event[key]; }
             ev.relativePath = event.path.replace(new RegExp('^' + path), '');

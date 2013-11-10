@@ -9,15 +9,14 @@
 
   function makeNode(path) {
     var node = { path: path };
-    if(path[path.length - 1] == '/') {
+    if (path[path.length - 1] === '/') {
       node.body = {};
       node.cached = {};
       node.contentType = 'application/json';
     }
     return node;
   }
-  
-  
+
   function b64ToUint6 (nChr) {
     return nChr > 64 && nChr < 91 ?
       nChr - 65
@@ -32,11 +31,12 @@
       :
       0;
   }
+
   function base64DecToArr (sBase64, nBlocksSize) {
     var
     sB64Enc = sBase64.replace(/[^A-Za-z0-9\+\/]/g, ""), nInLen = sB64Enc.length,
     nOutLen = nBlocksSize ? Math.ceil((nInLen * 3 + 1 >> 2) / nBlocksSize) * nBlocksSize : nInLen * 3 + 1 >> 2, taBytes = new Uint8Array(nOutLen);
-    
+
     for (var nMod3, nMod4, nUint24 = 0, nOutIdx = 0, nInIdx = 0; nInIdx < nInLen; nInIdx++) {
       nMod4 = nInIdx & 3;
       nUint24 |= b64ToUint6(sB64Enc.charCodeAt(nInIdx)) << 18 - 6 * nMod4;
@@ -45,12 +45,12 @@
           taBytes[nOutIdx] = nUint24 >>> (16 >>> nMod3 & 24) & 255;
         }
         nUint24 = 0;
-        
       }
     }
     return taBytes;
   }
-  //helper to decide if node body is binary or not
+
+  // Helper to decide if node body is binary or not
   function isBinary(node){
     return node.match(/charset=binary/);
   }
@@ -58,34 +58,25 @@
   RemoteStorage.LocalStorage.prototype = {
     toBase64: function(data){
       var arr = new Uint8Array(data);
-      var str = ''
+      var str = '';
       for(var i = 0; i < arr.length; i++) {
         //atob(btoa(String.fromCharCode(arr[0]))).charCodeAt(0)
         str+=String.fromCharCode(arr[i]);
       }
       return btoa(str);
-      
     },
+
     toArrayBuffer: base64DecToArr,
-    get: function(path) {
-      var node = this._get(path);
-      if(node) {
-        if(isBinary(node.contentType)){
-          node.body = this.toArrayBuffer(node.body);
-        }
-        return promising().fulfill(200, node.body, node.contentType, node.revision);
-      } else {
-        return promising().fulfill(404);
-      }
-    },
 
     put: function(path, body, contentType, incoming, revision) {
       var oldNode = this._get(path);
-      if(isBinary(contentType)){
+      if (isBinary(contentType)){
         body = this.toBase64(body);
       }
       var node = {
-        path: path, contentType: contentType, body: body
+        path: path,
+        contentType: contentType,
+        body: body
       };
       localStorage[NODES_PREFIX + path] = JSON.stringify(node);
       this._addToParent(path, revision);
@@ -95,15 +86,16 @@
         oldValue: oldNode ? oldNode.body : undefined,
         newValue: body
       });
-      if(! incoming) {
+      if (! incoming) {
         this._recordChange(path, { action: 'PUT' });
       }
       return promising().fulfill(200);
     },
-   get: function(path) {
+
+    get: function(path) {
       var node = this._get(path);
-      if(node) {
-        if(isBinary(node.contentType)){
+      if (node) {
+        if (isBinary(node.contentType)){
           node.body = this.toArrayBuffer(node.body);
         }
         return promising().fulfill(200, node.body, node.contentType, node.revision);
@@ -112,32 +104,11 @@
       }
     },
 
-    put: function(path, body, contentType, incoming) {
-      var oldNode = this._get(path);
-      if(isBinary(contentType)){
-        body = this.toBase64(body);
-      }
-      var node = {
-        path: path, contentType: contentType, body: body
-      };
-      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
-      this._addToParent(path);
-      this._emit('change', {
-        path: path,
-        origin: incoming ? 'remote' : 'window',
-        oldValue: oldNode ? oldNode.body : undefined,
-        newValue: body
-      });
-      if(! incoming) {
-        this._recordChange(path, { action: 'PUT' });
-      }
-      return promising().fulfill(200);
-    },
     'delete': function(path, incoming) {
       var oldNode = this._get(path);
       delete localStorage[NODES_PREFIX + path];
       this._removeFromParent(path);
-      if(oldNode) {
+      if (oldNode) {
         this._emit('change', {
           path: path,
           origin: incoming ? 'remote' : 'window',
@@ -145,7 +116,7 @@
           newValue: undefined
         });
       }
-      if(! incoming) {
+      if (! incoming) {
         this._recordChange(path, { action: 'DELETE' });
       }
       return promising().fulfill(200);
@@ -196,7 +167,7 @@
       var prefix = CHANGES_PREFIX + path, pl = prefix.length;
       for(var i=0;i<kl;i++) {
         var key = localStorage.key(i);
-        if(key.substr(0, pl) == prefix) {
+        if (key.substr(0, pl) === prefix) {
           changes.push(JSON.parse(localStorage[key]));
         }
       }
@@ -210,7 +181,7 @@
       }
       this._recordChange(path, { conflict: attributes });
       event.resolve = function(resolution) {
-        if(resolution == 'remote' || resolution == 'local') {
+        if (resolution === 'remote' || resolution === 'local') {
           attributes.resolution = resolution;
           this._recordChange(path, { conflict: attributes });
         } else {
@@ -222,12 +193,12 @@
 
     _addToParent: function(path, revision) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
-      if(parts) {
+      if (parts) {
         var dirname = parts[1], basename = parts[2];
         var node = this._get(dirname) || makeNode(dirname);
         node.body[basename] = revision || true;
         localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
-        if(dirname != '/') {
+        if (dirname !== '/') {
           this._addToParent(dirname, true);
         }
       }
@@ -235,16 +206,16 @@
 
     _removeFromParent: function(path) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
-      if(parts) {
+      if (parts) {
         var dirname = parts[1], basename = parts[2];
         var node = this._get(dirname);
-        if(node) {
+        if (node) {
           delete node.body[basename];
-          if(Object.keys(node.body).length > 0) {
+          if (Object.keys(node.body).length > 0) {
             localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
           } else {
             delete localStorage[NODES_PREFIX + dirname];
-            if(dirname != '/') {
+            if (dirname !== '/') {
               this._removeFromParent(dirname);
             }
           }
@@ -256,7 +227,7 @@
       var l = localStorage.length, npl = NODES_PREFIX.length;
       for(var i=0;i<l;i++) {
         var key = localStorage.key(i);
-        if(key.substr(0, npl) == NODES_PREFIX) {
+        if (key.substr(0, npl) === NODES_PREFIX) {
           var path = key.substr(npl);
           var node = this._get(path);
           this._emit('change', {
@@ -283,8 +254,8 @@
     var remove = [];
     for(var i=0;i<l;i++) {
       var key = localStorage.key(i);
-      if(key.substr(0, npl) == NODES_PREFIX ||
-         key.substr(0, cpl) == CHANGES_PREFIX) {
+      if (key.substr(0, npl) === NODES_PREFIX ||
+         key.substr(0, cpl) === CHANGES_PREFIX) {
         remove.push(key);
       }
     }

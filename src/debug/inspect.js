@@ -21,17 +21,17 @@
         var td = document.createElement('td');
         td.textContent = value || '';
         tr.appendChild(td);
-      });      
+      });
     }
 
     function loadRow(path) {
-      if(storage.connected === false) return;
+      if (storage.connected === false) { return; }
       function processRow(status, body, contentType, revision) {
-        if(status == 200) {
+        if (status === 200) {
           var tr = document.createElement('tr');
           tbody.appendChild(tr);
           renderRow(tr, path, contentType, revision);
-          if(path[path.length - 1] == '/') {
+          if (path[path.length - 1] === '/') {
             for(var key in body) {
               loadRow(path + key);
             }
@@ -55,7 +55,7 @@
     updateButton.textContent = "Refresh";
     updateButton.onclick = function() { loadTable(table, storage, paths); };
     wrapper.appendChild(updateButton);
-    if(storage.reset) {
+    if (storage.reset) {
       var resetButton = document.createElement('button');
       resetButton.textContent = "Reset";
       resetButton.onclick = function() {
@@ -121,7 +121,7 @@
 
     controls.appendChild(heading);
 
-    if(this.local) {
+    if (this.local) {
       var syncButton = document.createElement('button');
       syncButton.textContent = "Synchronize";
       controls.appendChild(syncButton);
@@ -131,7 +131,7 @@
     closeButton.textContent = "Close";
     closeButton.onclick = function() {
       document.body.removeChild(widget);
-    }
+    };
     controls.appendChild(closeButton);
 
     widget.appendChild(controls);
@@ -139,7 +139,7 @@
     var remoteTable = document.createElement('table');
     var localTable = document.createElement('table');
     widget.appendChild(renderWrapper("Remote", remoteTable, this.remote, this.caching.rootPaths));
-    if(this.local) {
+    if (this.local) {
       widget.appendChild(renderWrapper("Local", localTable, this.local, ['/']));
       widget.appendChild(renderLocalChanges(this.local));
 
@@ -147,7 +147,7 @@
         this.log('sync clicked');
         this.sync().then(function() {
           this.log('SYNC FINISHED');
-          loadTable(localTable, this.local, ['/'])
+          loadTable(localTable, this.local, ['/']);
         }.bind(this), function(err) {
           console.error("SYNC FAILED", err, err.stack);
         });
@@ -156,5 +156,4 @@
 
     document.body.appendChild(widget);
   };
-
 })();

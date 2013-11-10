@@ -51,7 +51,8 @@
   };
 
   var isArrayBufferView;
-  if(typeof(ArrayBufferView) === 'function') {
+
+  if (typeof(ArrayBufferView) === 'function') {
     isArrayBufferView = function(object) { return object && (object instanceof ArrayBufferView); };
   } else {
     var arrayBufferViews = [
@@ -60,7 +61,7 @@
     ];
     isArrayBufferView = function(object) {
       for(var i=0;i<8;i++) {
-        if(object instanceof arrayBufferViews[i]) {
+        if (object instanceof arrayBufferViews[i]) {
           return true;
         }
       }
@@ -69,7 +70,7 @@
   }
 
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
-    if((method == 'PUT' || method == 'DELETE') && uri[uri.length - 1] == '/') {
+    if ((method === 'PUT' || method === 'DELETE') && uri[uri.length - 1] === '/') {
       throw "Don't " + method + " on directories!";
     }
 
@@ -81,16 +82,16 @@
       body: body,
       headers: headers
     }, function(error, response) {
-      if(error) {
+      if (error) {
         promise.reject(error);
       } else {
-        if(response.status == 404) {
+        if (response.status === 404) {
           promise.fulfill(404);
         } else {
           var mimeType = response.getResponseHeader('Content-Type');
           var body;
-          var revision = getEtag ? response.getResponseHeader('ETag') : (response.status == 200 ? fakeRevision : undefined);
-          if((! mimeType) || mimeType.match(/charset=binary/)) {
+          var revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
+          if ((! mimeType) || mimeType.match(/charset=binary/)) {
             var blob = new Blob([response.response], {type: mimeType});
             var reader = new FileReader();
             reader.addEventListener("loadend", function() {
@@ -109,9 +110,9 @@
   }
 
   function cleanPath(path) {
-    // strip duplicate slashes.
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
+
   /**
    * Class : RemoteStorage.WireClient
    **/
@@ -127,14 +128,14 @@
      **/
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
-      if(error instanceof RemoteStorage.Unauthorized) {
+      if (error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
-    }.bind(this))
-    if(haveLocalStorage) {
+    }.bind(this));
+    if (haveLocalStorage) {
       var settings;
-      try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {};
-      if(settings) {
+      try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
+      if (settings) {
         setTimeout(function() {
           this.configure(settings.userAddress, settings.href, settings.storageApi, settings.token);
         }.bind(this), 0);
@@ -143,7 +144,7 @@
 
     this._revisionCache = {};
 
-    if(this.connected) {
+    if (this.connected) {
       setTimeout(this._emit.bind(this), 0, 'connected');
     }
   };
@@ -151,7 +152,6 @@
   RS.WireClient.REQUEST_TIMEOUT = 30000;
 
   RS.WireClient.prototype = {
-
     /**
      * Property: token
      *
@@ -188,23 +188,30 @@
      *   // -> 'draft-dejong-remotestorage-01'
      */
 
-
     configure: function(userAddress, href, storageApi, token) {
-      if(typeof(userAddress) !== 'undefined') this.userAddress = userAddress;
-      if(typeof(href) !== 'undefined') this.href = href;
-      if(typeof(storageApi) !== 'undefined') this.storageApi = storageApi;
-      if(typeof(token) !== 'undefined') this.token = token;
-      if(typeof(this.storageApi) !== 'undefined') {
+      if (typeof(userAddress) !== 'undefined') {
+        this.userAddress = userAddress;
+      }
+      if (typeof(href) !== 'undefined') {
+        this.href = href;
+      }
+      if (typeof(storageApi) !== 'undefined') {
+        this.storageApi = storageApi;
+      }
+      if (typeof(token) !== 'undefined') {
+        this.token = token;
+      }
+      if (typeof(this.storageApi) !== 'undefined') {
         this._storageApi = STORAGE_APIS[this.storageApi] || API_HEAD;
         this.supportsRevs = this._storageApi >= API_00;
       }
-      if(this.href && this.token) {
+      if (this.href && this.token) {
         this.connected = true;
         this._emit('connected');
       } else {
         this.connected = false;
       }
-      if(haveLocalStorage) {
+      if (haveLocalStorage) {
         localStorage[SETTINGS_KEY] = JSON.stringify({
           userAddress: this.userAddress,
           href: this.href,
@@ -212,38 +219,42 @@
           storageApi: this.storageApi
         });
       }
-      //console.log('calling ' + RS.WireClient.configureHooks.length + ' hooks');
       RS.WireClient.configureHooks.forEach(function(hook) {
         hook.call(this);
       }.bind(this));
     },
 
     get: function(path, options) {
-      if(! this.connected) throw new Error("not connected (path: " + path + ")");
-      if(!options) options = {};
+      if (!this.connected) {
+        throw new Error("not connected (path: " + path + ")");
+      }
+      if (!options) { options = {}; }
       var headers = {};
-      if(this.supportsRevs) {
-        if(options.ifNoneMatch)
+      if (this.supportsRevs) {
+        if (options.ifNoneMatch) {
           headers['If-None-Match'] = options.ifNoneMatch;
-      } else if(options.ifNoneMatch) {
+        }
+      } else if (options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
-        if(oldRev === options.ifNoneMatch) {
-//since sync descends for allKeys(local, remote), this causes
-// https://github.com/remotestorage/remotestorage.js/issues/399
-//commenting this out so that it gets the actual 404 from the server.
-//this only affects legacy servers (this.supportsRevs==false):
-//
-//           return promising().fulfill(412);
+        if (oldRev === options.ifNoneMatch) {
+          // since sync descends for allKeys(local, remote), this causes
+          // https://github.com/remotestorage/remotestorage.js/issues/399
+          // commenting this out so that it gets the actual 404 from the
+          // server. this only affects legacy servers
+          // (this.supportsRevs==false):
+
+          // return promising().fulfill(412);
+          // FIXME empty block and commented code
         }
       }
       var promise = request('GET', this.href + cleanPath(path), this.token, headers,
                             undefined, this.supportsRevs, this._revisionCache[path]);
-      if(this.supportsRevs || path.substr(-1) != '/') {
+      if (this.supportsRevs || path.substr(-1) !== '/') {
         return promise;
       } else {
         return promise.then(function(status, body, contentType, revision) {
-          if(status == 200 && typeof(body) == 'object') {
-            if(Object.keys(body).length === 0) {
+          if (status === 200 && typeof(body) === 'object') {
+            if (Object.keys(body).length === 0) {
               // no children (coerce response to 'not found')
               status = 404;
             } else {
@@ -258,85 +269,101 @@
     },
 
     put: function(path, body, contentType, options) {
-      if(! this.connected) throw new Error("not connected (path: " + path + ")");
-      if(!options) options = {};
-      if(! contentType.match(/charset=/)) {
+      if (!this.connected) {
+        throw new Error("not connected (path: " + path + ")");
+      }
+      if (!options) { options = {}; }
+      if (!contentType.match(/charset=/)) {
         contentType += '; charset=' + ((body instanceof ArrayBuffer || isArrayBufferView(body)) ? 'binary' : 'utf-8');
       }
       var headers = { 'Content-Type': contentType };
-      if(this.supportsRevs) {
-        if(options.ifMatch)
+      if (this.supportsRevs) {
+        if (options.ifMatch) {
           headers['If-Match'] = options.ifMatch;
-        if(options.ifNoneMatch)
+        }
+        if (options.ifNoneMatch) {
           headers['If-None-Match'] = options.ifNoneMatch;
+        }
       }
       return request('PUT', this.href + cleanPath(path), this.token,
                      headers, body, this.supportsRevs);
     },
 
     'delete': function(path, options) {
-      if(! this.connected) throw new Error("not connected (path: " + path + ")");
-      if(!options) options = {};
+      if (!this.connected) {
+        throw new Error("not connected (path: " + path + ")");
+      }
+      if (!options) { options = {}; }
       var headers = {};
-      if(this.supportsRevs) {
-        if(options.ifMatch)
+      if (this.supportsRevs) {
+        if (options.ifMatch) {
           headers['If-Match'] = options.ifMatch;
+        }
       }
       return request('DELETE', this.href + cleanPath(path), this.token,
                      headers,
                      undefined, this.supportsRevs);
     }
-
   };
 
-  //shared cleanPath used by Dropbox
+  // Shared cleanPath used by Dropbox
   RS.WireClient.cleanPath = cleanPath;
-  //shared isArrayBufferView used by WireClient and Dropbox
+
+  // Shared isArrayBufferView used by WireClient and Dropbox
   RS.WireClient.isArrayBufferView = isArrayBufferView;
-  // shared request function used by WireClient, GoogleDrive and Dropbox.
+
+  // Shared request function used by WireClient, GoogleDrive and Dropbox.
   RS.WireClient.request = function(method, url, options, callback) {
     RemoteStorage.log(method, url);
 
     callback = callback.bind(this);
 
     var timedOut = false;
+
     var timer = setTimeout(function() {
       timedOut = true;
       callback('timeout');
     }, RS.WireClient.REQUEST_TIMEOUT);
+
     var xhr = new XMLHttpRequest();
     xhr.open(method, url, true);
-    if(options.responseType) {
+
+    if (options.responseType) {
       xhr.responseType = options.responseType;
     }
-    if(options.headers) {
+    if (options.headers) {
       for(var key in options.headers) {
         xhr.setRequestHeader(key, options.headers[key]);
       }
     }
+
     xhr.onload = function() {
-      if(timedOut) return;
+      if (timedOut) { return; }
       clearTimeout(timer);
       callback(null, xhr);
     };
+
     xhr.onerror = function(error) {
-      if(timedOut) return;
+      if (timedOut) { return; }
       clearTimeout(timer);
       callback(error);
     };
 
     var body = options.body;
 
-    if(typeof(body) == 'object') {
-      if(isArrayBufferView(body)) { /* alright. */ }
-      else if(body instanceof ArrayBuffer) {
+    if (typeof(body) === 'object') {
+      if (isArrayBufferView(body)) {
+        /* alright. */
+        //FIXME empty block
+      }
+      else if (body instanceof ArrayBuffer) {
         body = new Uint8Array(body);
       } else {
         body = JSON.stringify(body);
       }
     }
     xhr.send(body);
-  }
+  };
 
   RS.WireClient.configureHooks = [];
 
@@ -350,10 +377,9 @@
   };
 
   RS.WireClient._rs_cleanup = function(){
-    if(haveLocalStorage){
+    if (haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
-  }
-
+  };
 
 })(typeof(window) !== 'undefined' ? window : global);
