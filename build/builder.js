@@ -8,7 +8,7 @@ exports.build = function(components, selectedGroups, options) {
   var version = RemoteStorage.version;
   delete global.RemoteStorage;
 
-  output += "/** " + version.toString() + " remotestorage.io, MIT-licensed **/\n"
+  output += "/** " + version.toString() + ", http://remotestorage.io, MIT-licensed **/\n"
 
   console.error("Building version " + version.toString());
 
