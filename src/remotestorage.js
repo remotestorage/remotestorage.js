@@ -1,15 +1,15 @@
 (function(global) {
-  function emitUnauthorized(status){
+  function emitUnauthorized(status) {
     var args = Array.prototype.slice.call(arguments);
     if(status == 403  || status == 401) {
-      this._emit('error', new RemoteStorage.Unauthorized())
+      this._emit('error', new RemoteStorage.Unauthorized());
     }
-    var p = promising()
+    var p = promising();
     return p.fulfill.apply(p,args);
   }
-  function shareFirst(path){
+  function shareFirst(path) {
     return ( this.backend == 'dropbox' &&
-             path.match(/^\/public\/.*[^\/]$/) )
+             path.match(/^\/public\/.*[^\/]$/) );
   }
   var SyncedGetPutDelete = {
     get: function(path) {
@@ -21,7 +21,7 @@
     },
     
     put: function(path, body, contentType) {
-      if(shareFirst.bind(this)(path)){
+      if(shareFirst.bind(this)(path)) {
         //this.local.put(path, body, contentType);
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
       }
@@ -50,7 +50,7 @@
         throw err;
       });
     }
-  }
+  };
 
   var haveLocalStorage = 'localStorage' in global;
 
@@ -140,7 +140,7 @@
     if(haveLocalStorage) {
       try {
         this.apiKeys = JSON.parse(localStorage['remotestorage:api-keys']);
-      } catch(exc) { /* ignored. */ };
+      } catch(exc) { /* ignored. */ }
       this.setBackend(localStorage['remotestorage:backend'] || 'remotestorage');
     }
 
@@ -152,7 +152,7 @@
         setTimeout(handler, 0);
       }
       return origOn.call(this, eventName, handler);
-    }
+    };
 
     this._init();
 
@@ -210,8 +210,8 @@
       }
       this._emit('connecting');
       this.remote.configure(userAddress);
-      RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
-        if(!href){
+      RemoteStorage.Discover(userAddress,function(href, storageApi, authURL) {
+        if(!href) {
           this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
           return;
         }
@@ -375,7 +375,7 @@
             } catch(e) {
               console.error("'ready' failed: ", e, e.stack);
               this._emit('error', e);
-            };
+            }
           }.bind(this));
           if(this.remote.connected) {
             try {
@@ -383,7 +383,7 @@
             } catch(e) {
               console.error("'ready' failed: ", e, e.stack);
               this._emit('error', e);
-            };
+            }
           }
         }
 
@@ -433,7 +433,7 @@
       var theFeatures = [];
       var n = features.length, i = 0;
       var self = this;
-      function doneNow(){
+      function doneNow() {
         i++;
         if(i == n)
           setTimeout(function() {
@@ -445,14 +445,14 @@
               'InMemoryStorage'
             ].some(function(cachingLayer) {
               if ( theFeatures.some( function(feature) {
-                return feature.name === cachingLayer
+                return feature.name === cachingLayer;
               } ) 
                  ) {
                 theFeatures.local = RemoteStorage[cachingLayer];
                 RemoteStorage.log('found     :      '+cachingLayer);
-                return true
+                return true;
               }
-            })
+            });
               
             callback.apply(self, [theFeatures]);
           }, 0);
@@ -467,14 +467,14 @@
             cleanup : RemoteStorage[name]._rs_cleanup
           } );
           doneNow();
-        }
+        };
       }
       function featureFailedCb(name) {
         return function(err) {
-          self.log("[FEATURE "+name+"] initialization failed ( "+err+")")
+          self.log("[FEATURE "+name+"] initialization failed ( "+err+")");
           //self.features
           doneNow();
-        }
+        };
       }
       function featureSupportedCb(name) {
         return function( success ) {
@@ -482,7 +482,7 @@
           if(!success) {
             doneNow();
           }
-        }
+        };
       }
       features.forEach(function(featureName) {
         self.log("[FEATURE " + featureName + "] initializing...");
@@ -492,10 +492,11 @@
         var supportedCb = featureSupportedCb(featureName);
         if( impl && (
             ( impl._rs_supported && impl._rs_supported() ) || 
-            ( !impl._rs_supported )) ){
+            ( !impl._rs_supported )) ) {
           supportedCb(true);
+          var initResult;
           try {
-            var initResult = impl._rs_init(self);
+            initResult = impl._rs_init(self);
           } catch(e) {
             failedCb(e);
           }
@@ -518,9 +519,9 @@
       function wrap(f) {
         return function() {
           return f.apply(context, arguments)
-            .then(emitUnauthorized.bind(this))
-        }
-      };
+            .then(emitUnauthorized.bind(this));
+        };
+      }
       this.get = wrap(impl.get);
       this.put = wrap(impl.put);
       this.delete = wrap(impl.delete);
