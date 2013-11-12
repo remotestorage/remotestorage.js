@@ -3,6 +3,7 @@ DOC_BIN        = naturaldocs
 DOC_DIR        = ./doc/code
 DOC_CONFIG_DIR = ./doc/config
 DOC_CUSTOM_CSS = custom-1
+UGLIFY_BIN     = ./node_modules/.bin/uglifyjs
 SOURCE_DIR     = ./src
 ASSETS_DIR     = ./assets
 ASSETS_OUT     = $(SOURCE_DIR)/assets.js
@@ -42,7 +43,7 @@ compile-assets: $(ASSETS_OUT)
 
 %.min.js: %.js
 #	uglifyjs $< -o $@ --mangle --wrap --export-all
-	uglifyjs -o $@ $<
+	$(UGLIFY_BIN) -o $@ $<
 	mv $@ $@.tmp
 	head -n1 $< > $@
 	cat $@.tmp >> $@

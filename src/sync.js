@@ -1,7 +1,7 @@
 (function(global) {
 
   var SYNC_INTERVAL = 10000;
-  
+
   //
   // The synchronization algorithm is as follows:
   //
@@ -23,15 +23,15 @@
   //
 
   function isDir(path) {
-    return path[path.length - 1] == '/';
+    return path[path.length - 1] === '/';
   }
 
   function descendInto(remote, local, path, keys, promise) {
     var n = keys.length, i = 0;
-    if(n == 0) promise.fulfill();
+    if (n === 0) { promise.fulfill(); }
     function oneDone() {
       i++;
-      if(i == n) promise.fulfill();
+      if (i === n) { promise.fulfill(); }
     }
     keys.forEach(function(key) {
       synchronize(remote, local, path + key).then(oneDone);
@@ -39,11 +39,11 @@
   }
 
   function updateLocal(remote, local, path, body, contentType, revision, promise) {
-    if(isDir(path)) {
+    if (isDir(path)) {
       descendInto(remote, local, path, Object.keys(body), promise);
     } else {
       local.put(path, body, contentType, true, revision).then(function() {
-        return local.setRevision(path, revision)
+        return local.setRevision(path, revision);
       }).then(function() {
         promise.fulfill();
       });
@@ -52,39 +52,40 @@
 
   function allDifferentKeys(a, b) {
     var keyObject = {};
-    for(var ak in a) {
-      if(a[ak] != b[ak]) {
+    for (var ak in a) {
+      if (a[ak] !== b[ak]) {
         keyObject[ak] = true;
       }
     }
-    for(var bk in b) {
-      if(a[bk] != b[bk]) {
+    for (var bk in b) {
+      if (a[bk] !== b[bk]) {
         keyObject[bk] = true;
       }
     }
     return Object.keys(keyObject);
   }
+
   function promiseDeleteLocal(local, path) {
     var promise = promising();
     deleteLocal(local, path, promise);
     return promise;
   }
+
   function deleteLocal(local, path, promise) {
-    if(isDir(path)) {
+    if (isDir(path)) {
       local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
         var keys = [], failed = false;
-        for(item in localBody) {
+        for (var item in localBody) {
           keys.push(item);
         }
-        //console.log('deleting keys', keys, 'from', path, localBody);
         var n = keys.length, i = 0;
-        if(n == 0) promise.fulfill();
+        if (n === 0) { promise.fulfill(); }
         function oneDone() {
           i++;
-          if(i == n && !failed) promise.fulfill();
+          if (i === n && !failed) { promise.fulfill(); }
         }
         function oneFailed(error) {
-          if(!failed) {
+          if (!failed) {
             failed = true;
             promise.reject(error);
           }
@@ -98,27 +99,27 @@
       local.delete(path, true).then(promise.fulfill, promise.reject);
     }
   }
- 
+
   function synchronize(remote, local, path, options) {
     var promise = promising();
     local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
       remote.get(path, {
         ifNoneMatch: localRevision
       }).then(function(remoteStatus, remoteBody, remoteContentType, remoteRevision) {
-        if(remoteStatus == 401 || remoteStatus == 403) {
+        if (remoteStatus === 401 || remoteStatus === 403) {
           throw new RemoteStorage.Unauthorized();
-        } else if(remoteStatus == 412 || remoteStatus == 304) {
+        } else if (remoteStatus === 412 || remoteStatus === 304) {
           // up to date.
           promise.fulfill();
-        } else if(localStatus == 404 && remoteStatus == 200) {
+        } else if (localStatus === 404 && remoteStatus === 200) {
           // local doesn't exist, remote does.
           updateLocal(remote, local, path, remoteBody, remoteContentType, remoteRevision, promise);
-        } else if(localStatus == 200 && remoteStatus == 404) {
+        } else if (localStatus === 200 && remoteStatus === 404) {
           // remote doesn't exist, local does.
           deleteLocal(local, path, promise);
-        } else if(localStatus == 200 && remoteStatus == 200) {
-          if(isDir(path)) {
-            if(remoteRevision && remoteRevision == localRevision) {
+        } else if (localStatus === 200 && remoteStatus === 200) {
+          if (isDir(path)) {
+            if (remoteRevision && remoteRevision === localRevision) {
               promise.fulfill();
             } else {
               local.setRevision(path, remoteRevision).then(function() {
@@ -148,9 +149,9 @@
       function oneDone(path) {
         function done() {
           i++;
-          if(i == n) promise.fulfill();
+          if (i === n) { promise.fulfill(); }
         }
-        if(path) {
+        if (path) {
           // change was propagated -> clear.
           local.clearChange(path).then(done);
         } else {
@@ -158,18 +159,18 @@
           done();
         }
       }
-      if(n > 0) {
-        function errored(err) {
+      if (n > 0) {
+        var errored = function(err) {
           console.error("pushChanges aborted due to error: ", err, err.stack);
           promise.reject(err);
-        }
+        };
         changes.forEach(function(change) {
-          if(change.conflict) {
+          if (change.conflict) {
             var res = change.conflict.resolution;
-            if(res) {
+            if (res) {
               RemoteStorage.log('about to resolve', res);
               // ready to be resolved.
-              change.action = (res == 'remote' ? change.remoteAction : change.localAction);
+              change.action = (res === 'remote' ? change.remoteAction : change.localAction);
               change.force = true;
             } else {
               RemoteStorage.log('conflict pending for ', change.path);
@@ -180,21 +181,21 @@
           switch(change.action) {
           case 'PUT':
             var options = {};
-            if(! change.force) {
-              if(change.revision) {
+            if (! change.force) {
+              if (change.revision) {
                 options.ifMatch = change.revision;
               } else {
                 options.ifNoneMatch = '*';
               }
             }
             local.get(change.path).then(function(status, body, contentType) {
-              if(status == 200) {
+              if (status === 200) {
                 return remote.put(change.path, body, contentType, options);
               } else {
                 return 200; // fake 200 so the change is cleared.
               }
             }).then(function(status) {
-              if(status == 412) {
+              if (status === 412) {
                 fireConflict(local, change.path, {
                   localAction: 'PUT',
                   remoteAction: 'PUT'
@@ -209,7 +210,7 @@
             remote.delete(change.path, {
               ifMatch: change.force ? undefined : change.revision
             }).then(function(status) {
-              if(status == 412) {
+              if (status === 412) {
                 fireConflict(local, change.path, {
                   remoteAction: 'PUT',
                   localAction: 'DELETE'
@@ -226,6 +227,7 @@
       }
     });
   }
+
   /**
    * Class: RemoteStorage.Sync
    **/
@@ -251,7 +253,7 @@
 
   var SyncError = function(originalError) {
     var msg = 'Sync failed: ';
-    if(typeof(originalError) == 'object' && 'message' in originalError) {
+    if (typeof(originalError) === 'object' && 'message' in originalError) {
       msg += originalError.message;
     } else {
       msg += originalError;
@@ -263,18 +265,19 @@
   SyncError.prototype = Object.create(Error.prototype);
 
   RemoteStorage.prototype.sync = function() {
-    if(! (this.local && this.caching)) {
+    if (! (this.local && this.caching)) {
       throw "Sync requires 'local' and 'caching'!";
     }
-    if(! this.remote.connected) {
+    if (! this.remote.connected) {
       return promising().fulfill();
     }
     var roots = this.caching.rootPaths.slice(0);
     var n = roots.length, i = 0;
     var aborted = false;
     var rs = this;
+
     return promising(function(promise) {
-      if(n == 0) {
+      if (n === 0) {
         rs._emit('sync-busy');
         rs._emit('sync-done');
         return promise.fulfill();
@@ -283,22 +286,20 @@
       var path;
       while((path = roots.shift())) {
         (function (path) {
-          //console.log('syncing '+path);
           RemoteStorage.Sync.sync(rs.remote, rs.local, path, rs.caching.get(path)).
             then(function() {
-              //console.log('syncing '+path+' success');
-              if(aborted) return;
+              if (aborted) { return; }
               i++;
-              if(n == i) {
+              if (n === i) {
                 rs._emit('sync-done');
                 promise.fulfill();
               }
             }, function(error) {
               console.error('syncing', path, 'failed:', error);
-              if(aborted) return;
+              if (aborted) { return; }
               aborted = true;
               rs._emit('sync-done');
-              if(error instanceof RemoteStorage.Unauthorized) {
+              if (error instanceof RemoteStorage.Unauthorized) {
                 rs._emit('error', error);
               } else {
                 rs._emit('error', new SyncError(error));
@@ -325,7 +326,7 @@
   };
 
   RemoteStorage.prototype.stopSync = function() {
-    if(this._syncTimer) {
+    if (this._syncTimer) {
       clearTimeout(this._syncTimer);
       delete this._syncTimer;
     }
