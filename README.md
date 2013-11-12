@@ -57,7 +57,7 @@ Use the teste executable in order to test single files, like so e.g.:
 ### How to build
 
 Make sure you have [NaturalDocs](http://www.naturaldocs.org/) installed
-on you system.
+on your system.
 
 Display the available build tasks:
 
