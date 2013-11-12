@@ -449,11 +449,10 @@
               } ) 
                  ) {
                 theFeatures.local = RemoteStorage[cachingLayer];
-                RemoteStorage.log('found     :      '+cachingLayer);
                 return true;
               }
             });
-              
+            self.features = theFeatures;
             callback.apply(self, [theFeatures]);
           }, 0);
       }
@@ -561,6 +560,7 @@
     _dispatchEvent: function(eventName, event) {
       for(var path in this._pathHandlers[eventName]) {
         var pl = path.length;
+        var self = this;
         this._pathHandlers[eventName][path].forEach(function(handler) {
           if(event.path.substr(0, pl) == path) {
             var ev = {};
@@ -570,10 +570,10 @@
               handler(ev);
             } catch(e) {
               console.error("'change' handler failed: ", e, e.stack);
-              this._emit('error', e);
+              self._emit('error', e);
             }
           }
-        }.bind(this));
+        });
       }
     }
   };
