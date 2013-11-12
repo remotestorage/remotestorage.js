@@ -8,9 +8,18 @@ define(['requirejs'], function(requirejs, undefined) {
     name: "DropbixClient",
     desc: "Low-level Dropbox client based on XMLHttpRequest",
     setup: function(env, test) {
-      global.RemoteStorage = function() {};
+      global.RemoteStorage = function() {
+        RemoteStorage.eventHandling(this, 'error');
+      };
       RemoteStorage.log = function() {};
+      RemoteStorage.prototype = {
+        setBackend: function(b){
+          this.backend = b;
+        }
+      };
       global.RemoteStorage.Unauthorized = function() {};
+      
+
       require('./lib/promising');
       require('./src/eventhandling');
       
@@ -19,12 +28,12 @@ define(['requirejs'], function(requirejs, undefined) {
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      require('./src/wireclient')
+      require('./src/wireclient');
       
       if(global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
-        global.rs_wireclient = RemoteStorage.WireClient
+        global.rs_wireclient = RemoteStorage.WireClient;
       }
       require('./src/dropbox');
 
@@ -61,8 +70,7 @@ define(['requirejs'], function(requirejs, undefined) {
         });
       });
       env.rs = new RemoteStorage();
-      env.rs.apiKeys= { dropbox: {api_key: 'testkey'} }
-      RemoteStorage.eventHandling(env.rs, 'error');
+      env.rs.apiKeys= { dropbox: {api_key: 'testkey'} };
       env.client = new RemoteStorage.Dropbox(env.rs);
       env.connectedClient = new RemoteStorage.Dropbox(env.rs);
       env.baseURI = 'https://example.com/storage/test';
@@ -154,9 +162,9 @@ define(['requirejs'], function(requirejs, undefined) {
           env.client.configure(undefined, undefined, undefined, 'abcd');
           test.assertAnd(env.client.userAddress, 'test@example.com');
           test.assertAnd(env.client.token, 'abcd');
-          env.client.configure(null, undefined, undefined, null)
-          test.assertAnd(env.client.token, null)
-          test.assertAnd(env.client.userAddress, null)
+          env.client.configure(null, undefined, undefined, null);
+          test.assertAnd(env.client.token, null);
+          test.assertAnd(env.client.userAddress, null);
           test.done();
         }
       },
@@ -174,7 +182,7 @@ define(['requirejs'], function(requirejs, undefined) {
           env.connectedClient.get('/foo/bar');
           var request = XMLHttpRequest.instances.shift();
           test.assertTypeAnd(request, 'object');
-          console.log("REQUEST OPEN",request._open)
+          console.log("REQUEST OPEN",request._open);
           test.assert(request._open,
                       ['GET', 'https://api-content.dropbox.com/1/files/auto/foo/bar', true]);
         }
@@ -254,7 +262,7 @@ define(['requirejs'], function(requirejs, undefined) {
           req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
             mime_type: 'text/plain; charset=UTF-8',
             rev: 'rev'
-          })
+          });
           req.status = 200;
           req.responseText = 'response-body';
           req._onload();
@@ -275,7 +283,7 @@ define(['requirejs'], function(requirejs, undefined) {
           req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
             mime_type: 'text/plain; charset=UTF-8',
             rev: 'rev'
-          })
+          });
           req.status = 200;
           req.responseText = '{"response":"body"}';
           req._onload();
@@ -345,7 +353,7 @@ define(['requirejs'], function(requirejs, undefined) {
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
             rev: 'rev'
-          })
+          });
           req.status = 200;
           req.response = 'response-body';
           req._onload();
@@ -398,9 +406,33 @@ define(['requirejs'], function(requirejs, undefined) {
             shareReq._onload();
           }, 100);
         }
-      }
+      },
 */
+      {
+        desc: "dropbox Adapter sets and removes EventHandlers",
+        run: function(env, test){
+          function allHandlers() {
+            var handlers = rs._handlers;
+            var l = 0;
+            for (var k in handlers) {
+              l += handlers[k].length;
+            }
+            return l;
+          }
+          var rs = new RemoteStorage();
+          rs.apiKeys= { dropbox: {api_key: 'testkey'} };
+          
+          test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
+          
+          RemoteStorage.Dropbox._rs_init(rs);
+          test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers") ;
+          
+          RemoteStorage.Dropbox._rs_cleanup(rs);
+          test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;       
 
+          test.done();
+        }
+      }
     ]
   });
 

@@ -544,7 +544,33 @@ define(['requirejs'], function(requirejs, undefined) {
           req.response = 'response-body';
           req._onload();
         }
+      },
+
+      {
+        desc: "WireClient sets and removes eventlisteners",
+        run: function(env, test) {
+          function allHandlers() {
+            var handlers = rs._handlers;
+            var l = 0;
+            for (var k in handlers) {
+              l += handlers[k].length;
+            }
+            return l;
+          }
+          var rs = new RemoteStorage();
+          RemoteStorage.eventHandling(rs, 'error');
+          test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
+          
+          RemoteStorage.WireClient._rs_init(rs);
+          test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers") ;
+          
+          RemoteStorage.WireClient._rs_cleanup(rs);
+          test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;
+
+          test.done();
+        }
       }
+
 
     ]
   });
