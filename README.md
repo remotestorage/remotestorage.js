@@ -56,7 +56,8 @@ Use the teste executable in order to test single files, like so e.g.:
 
 ### How to build
 
-Install node-uglify and naturaldocs first.
+Make sure you have [NaturalDocs](http://www.naturaldocs.org/) installed
+on you system.
 
 Display the available build tasks:
 
