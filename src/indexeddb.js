@@ -173,7 +173,8 @@
           var node = {
             path: path,
             contentType: contentType,
-            body: body
+            body: body,
+            revision: revision || (oldNode ? oldNode.revision : undefined)
           };
           nodes.put(node).onsuccess = function() {
             try {
