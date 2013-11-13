@@ -509,6 +509,7 @@
             initResult = impl._rs_init(self);
           } catch(e) {
             failedCb(e);
+            return;
           }
           if(typeof(initResult) == 'object' && typeof(initResult.then) == 'function') {
             initResult.then(cb,failedCb);
