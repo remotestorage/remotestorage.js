@@ -34,7 +34,7 @@ define([], function() {
     setup: function(env, test){
       require('./lib/promising');
       global.RemoteStorage = function(){
-        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done')
+        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready')
       };
       require('./src/eventhandling');
       if( global.rs_eventhandling ){
@@ -115,7 +115,32 @@ define([], function() {
             test.done();
           })
         }
-      }
+      },
+
+      // {
+      //   desc : "Sync Adapter set's and removes all eventListeners",
+      //   run : function(env, test) {
+      //     function allHandlers() {
+      //       var handlers = env.rs._handlers;
+      //       var l = 0;
+      //       for (var k in handlers) {
+      //         l += handlers[k].length;
+      //       }
+      //       return l;
+      //     }
+
+      //     test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
+          
+      //     RemoteStorage.Sync._rs_init(env.rs);
+      //     test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers") ;
+          
+      //     RemoteStorage.Sync._rs_cleanup(env.rs);
+      //     test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;
+
+      //     test.done();
+      //   }
+      // }
+
 
     ]
     
