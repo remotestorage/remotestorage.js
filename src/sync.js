@@ -1,7 +1,5 @@
 (function(global) {
 
-  var SYNC_INTERVAL = 10000;
-
   //
   // The synchronization algorithm is as follows:
   //
@@ -21,6 +19,8 @@
   // can either happen on the server (through ETag, If-Match, If-None-Match
   // headers), or on the client (through versions specified in the parent listing).
   //
+
+  var syncInterval = 10000;
 
   function isDir(path) {
     return path[path.length - 1] === '/';
@@ -242,12 +242,42 @@
         });
     },
     /**
-     * Methods: syncTree
+     * Method: syncTree
      **/
     syncTree: function(remote, local, path) {
       return synchronize(remote, local, path, {
         data: false
       });
+    },
+    /**
+     * Method: setSyncInterval
+     *
+     * Set the value of the sync interval
+     *
+     * Parameters:
+     *   interval - interval (in ms) between 2 sync
+     *
+     */
+    setSyncInterval: function(interval) {
+      if(typeof(interval) != 'number') {
+        throw interval + " is not a valid sync interval";
+      }
+      syncInterval = parseInt(interval, 10);
+      if (this._syncTimer) {
+        this.stopSync();
+        this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
+      }
+    },
+    /**
+     * Method: getSyncInterval
+     *
+     * Get the value of the sync interval
+     *
+     * Returns a number of milliseconds
+     *
+     */
+    getSyncInterval: function() {
+      return syncInterval;
     }
   };
 
@@ -316,12 +346,12 @@
   RemoteStorage.prototype.syncCycle = function() {
     this.sync().then(function() {
       this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
+      this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
     }.bind(this),
     function(e) {
       console.log('sync error, retrying');
       this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), SYNC_INTERVAL);
+      this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
     }.bind(this));
   };
 
