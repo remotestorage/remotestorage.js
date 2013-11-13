@@ -128,13 +128,9 @@
 
   RS.IndexedDB = function(database) {
     this.db = database || DEFAULT_DB;
-    if (! this.db) {
-      if (RemoteStorage.LocalStorage) {
-        RemoteStorage.log("Failed to open indexedDB, falling back to localStorage");
-        return new RemoteStorage.LocalStorage();
-      } else {
-        throw "Failed to open indexedDB and localStorage fallback not available!";
-      }
+    if(! this.db) {
+      RemoteStorage.log("Failed to open indexedDB");
+      return undefined
     }
     RS.eventHandling(this, 'change', 'conflict');
   };
@@ -418,8 +414,7 @@
 
     var dbOpen = indexedDB.open(name, DB_VERSION);
     dbOpen.onerror = function() {
-      console.error('opening db failed', dbOpen);
-      alert('remoteStorage not supported (private browsing mode?)');
+      RemoteStorage.log('opening db failed', dbOpen);
       clearTimeout(timer);
       callback(dbOpen.error);
     };
@@ -453,16 +448,8 @@
   RS.IndexedDB._rs_init = function(remoteStorage) {
     var promise = promising();
     RS.IndexedDB.open(DEFAULT_DB_NAME, function(err, db) {
-      if (err) {
-        if (err.name === 'InvalidStateError') {
-          // firefox throws this when trying to open an indexedDB in private browsing mode
-          err = new Error("IndexedDB couldn't be opened.");
-          // instead of a stack trace, display some explaination:
-          err.stack = "If you are using Firefox, please disable\nprivate browsing mode.\n\nOtherwise please report your problem\nusing the link below";
-          remoteStorage._emit('error', err);
-        } else {
-          //FIXME or else what?
-        }
+      if(err) {
+        promise.reject(err);
       } else {
         DEFAULT_DB = db;
         db.onerror = function() { remoteStorage._emit('error', err); };
