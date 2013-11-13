@@ -251,9 +251,17 @@
     },
     /**
      * Method: setSyncInterval
-     *  Set the value of the sync interval
+     *
+     * Set the value of the sync interval
+     *
+     * Parameters:
+     *   interval - interval (in ms) between 2 sync
+     *
      */
     setSyncInterval: function(interval) {
+      if(typeof(interval) != 'number') {
+        throw interval + " is not a valid sync interval";
+      }
       syncInterval = parseInt(interval, 10);
       if (this._syncTimer) {
         this.stopSync();
@@ -262,12 +270,13 @@
     },
     /**
      * Method: getSyncInterval
-     *  Get the value of the sync interval
+     *
+     * Get the value of the sync interval
+     *
+     * Returns a number of milliseconds
+     *
      */
     getSyncInterval: function() {
-      if(typeof(syncInterval) != 'number') {
-        syncInterval = 10000;
-      }
       return syncInterval;
     }
   };

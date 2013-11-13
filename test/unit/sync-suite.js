@@ -34,6 +34,18 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           RemoteStorage.Sync.setSyncInterval(60000);
           test.assert(RemoteStorage.Sync.getSyncInterval(), 60000);
         }
+      },
+
+      {
+        desc: "#set a wrong value throws an error",
+        run: function(env, test) {
+          try {
+            RemoteStorage.Sync.setSyncInterval('60000');
+            test.result(false, "setSyncInterval() didn't fail");
+          } catch(e) {
+            test.result(true);
+          }
+        }
       }
     ]
   });
