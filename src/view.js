@@ -3,7 +3,9 @@
   //
   // Helper methods
   //
-  var cEl = document.createElement.bind(document);
+  var cEl = function(){
+    document.createElement.apply(document, arguments);
+  }
   function gCl(parent, className) {
     return parent.getElementsByClassName(className)[0];
   }
