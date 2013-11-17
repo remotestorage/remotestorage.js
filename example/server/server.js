@@ -287,7 +287,7 @@ exports.server = (function() {
         href: config.protocol+'://'+config.host+':'+config.port+'/storage/'+userName,
         rel: "remotestorage",
         properties: {
-          'http://remotestorage.io/spec/version": "draft-dejong-remotestorage-02',
+          'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-02',
           'https://tools.ietf.org/html/rfc6750#section-4.2': config.protocol+'://'+config.host+':'+config.port+'/auth/'+userName
         }
       }]
