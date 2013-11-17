@@ -265,7 +265,7 @@ exports.server = (function() {
       outstanding++;
       (function(i) {
         createToken(config.defaultUserName, scopes[i], function(token) {
-          res.write('<li><a href="'+i+'#remotestorage=me@local.dev'
+          res.write('<li><a href="'+i+'#remotestorage=me@localhost'
                     +'&access_token='+token+'">'+i+'</a></li>');
           outstanding--;
           if(outstanding==0) {
@@ -285,11 +285,10 @@ exports.server = (function() {
     writeJson(res, {
       links:[{
         href: config.protocol+'://'+config.host+':'+config.port+'/storage/'+userName,
-        rel: "remoteStorage",
-        type: "https://www.w3.org/community/rww/wiki/read-write-web-00#simple",
+        rel: "remotestorage",
         properties: {
-          'auth-method': "https://tools.ietf.org/html/draft-ietf-oauth-v2-26#section-4.2",
-          'auth-endpoint': config.protocol+'://'+config.host+':'+config.port+'/auth/'+userName
+          'http://remotestorage.io/spec/version": "draft-dejong-remotestorage-02',
+          'https://tools.ietf.org/html/rfc6750#section-4.2': config.protocol+'://'+config.host+':'+config.port+'/auth/'+userName
         }
       }]
     });
