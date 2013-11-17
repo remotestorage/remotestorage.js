@@ -203,7 +203,7 @@ exports.server = (function() {
       'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
     };
     if(typeof(timestamp) != 'undefined') {
-      headers['etag']= timestamp.toString();
+      headers['etag']= '"'+timestamp.toString()+'"';
     }
     if(contentType) {
       headers['content-type']= contentType;
@@ -320,7 +320,7 @@ exports.server = (function() {
         return false;
       }
     } else if(cond.ifNoneMatch && version[path]) {//or a comma-separated list of etags
-      if(cond.ifNoneMatch.split(',').indexOf(String(version[path]))!=-1) {
+      if(cond.ifNoneMatch.split(',').indexOf(String('"'+version[path]+'"'))!=-1) {
         return false;
       }
     }
