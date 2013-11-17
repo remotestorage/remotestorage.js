@@ -24,7 +24,7 @@ var config = {
   initialTokens: {
     'God': [':rw']
   },
-  defaultUsername: 'me',
+  defaultUserName: 'me',
   protocol: 'https',
   host: 'localhost',
   ssl: {
@@ -258,9 +258,7 @@ exports.server = (function() {
     });
     res.write('<!DOCTYPE html lang="en"><head><title>'+config.host+'</title><meta charset="utf-8"></head><body><ul>');
     var scopes = {
-      'https://ghost-michiel.5apps.com/': ['pictures:rw'],
-      'https://drinks-unhosted.5apps.com/': ['myfavoritedrinks:rw'],
-      'https://todomvc.michiel.5apps.com/labs/architecture-examples/remotestorage/': ['tasks:rw'],
+      'https://localhost:4431/index.html': ['notes:rw']
     };
     var outstanding = 0;
     for(var i in scopes) {
@@ -510,6 +508,19 @@ exports.server = (function() {
   };
 })();
 
+function staticServer(path) {
+  return function (req, res) {
+    fs.readFile(path+require('url').parse(req.url).pathname, function(err, content) {
+      if(err) {
+        res.writeHead(500);
+      } else {
+        res.writeHead(200, {});
+        res.end(content);
+      }
+    });
+  };
+}
+
 if((!amd) && (require.main==module)) {//if this file is directly called from the CLI
   dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
   exports.server.init();
@@ -525,7 +536,17 @@ if((!amd) && (require.main==module)) {//if this file is directly called from the
   }
   server.listen(config.port, function(){
     console.log('Example server started on '+ config.protocol + '://' + config.host +':' + config.port + '/');
-  })
+  });
+  fs.readdir('../apps/', function(err, listing) {
+    if(!err) {
+      for(var i=0; i<listing.length; i++) {
+        console.log('setting listener');
+        var listener = staticServer('../apps/'+listing[i]);
+        console.log('starting server');
+        require('https').createServer(ssl, listener).listen(parseInt(listing[i]));
+      }
+    } 
+  });
 }
 
 if(amd) {
