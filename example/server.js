@@ -20,7 +20,19 @@ if(typeof(exports) === 'undefined') {
   amd = true;
 }
 
-var config = {};
+var config = {
+  initialTokens: {
+    'God': [':rw']
+  },
+  defaultUsername: 'me',
+  protocol: 'https',
+  host: 'localhost',
+  ssl: {
+    cert: './tls.cert',
+    key: './tls.key'
+  },
+  port: 443,
+};
 
 exports.server = (function() {
   var url=require('url'),
@@ -499,7 +511,6 @@ exports.server = (function() {
 })();
 
 if((!amd) && (require.main==module)) {//if this file is directly called from the CLI
-  config = require('./config').config;
   dontPersist = process.argv.length > 1 && (process.argv.slice(-1)[0] == ('--no-persistence'));
   exports.server.init();
   var server;
@@ -513,7 +524,7 @@ if((!amd) && (require.main==module)) {//if this file is directly called from the
     server = require('http').createServer(exports.server.serve);
   }
   server.listen(config.port, function(){
-    console.log("Example server started on 0.0.0.0:" + config.port);
+    console.log('Example server started on '+ config.protocol + '://' + config.host +':' + config.port + '/');
   })
 }
 
