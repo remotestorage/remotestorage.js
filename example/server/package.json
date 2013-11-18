@@ -1,0 +1,17 @@
+{
+  "name": "remotestorage-examle",
+  "desc": "example server for remoteStorage",
+  "version": "0.8.3",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/remotestorage/remotestorage.js.git"
+  },
+  "homepage": "http://remotestorage.io",
+  "dependencies": {
+    "url": "*",
+    "crypto": "*",
+    "node-static": "*"
+  }
+}
