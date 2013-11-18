@@ -1,6 +1,11 @@
 
-var fs = require('fs');
-
+var fs = require('fs'),
+  http = require('http'),
+  https = require('https'),
+  url = require('url'),
+  static = require('node-static'),
+  crypto = require('crypto');
+    
 var dontPersist = true;
 
 if(! fs.existsSync) {
@@ -35,9 +40,7 @@ var config = {
 };
 
 exports.server = (function() {
-  var url=require('url'),
-    crypto=require('crypto'),
-    tokens, version, contentType, content;
+  var tokens, version, contentType, content;
 
   var responseDelay = null;
   var capturedRequests = [];
@@ -508,15 +511,11 @@ exports.server = (function() {
 })();
 
 function staticServer(path) {
+  var file = new static.Server(path);
   return function (req, res) {
-    fs.readFile(path+require('url').parse(req.url).pathname, function(err, content) {
-      if(err) {
-        res.writeHead(500);
-      } else {
-        res.writeHead(200, {});
-        res.end(content);
-      }
-    });
+    req.addListener('end', function () {
+      file.serve(req, res);
+    }).resume();
   };
 }
 
@@ -529,9 +528,9 @@ if((!amd) && (require.main==module)) {//if this file is directly called from the
     for(var k in config.ssl){
       ssl[k] = fs.readFileSync(config.ssl[k])
     }
-    server = require('https').createServer(ssl, exports.server.serve);
+    server = https.createServer(ssl, exports.server.serve);
   } else {
-    server = require('http').createServer(exports.server.serve);
+    server = http.createServer(exports.server.serve);
   }
   server.listen(config.port, function(){
     console.log('Example server started on '+ config.protocol + '://' + config.host +':' + config.port + '/');
@@ -542,7 +541,7 @@ if((!amd) && (require.main==module)) {//if this file is directly called from the
         console.log('setting listener');
         var listener = staticServer('../apps/'+listing[i]);
         console.log('starting server');
-        require('https').createServer(ssl, listener).listen(parseInt(listing[i]));
+        https.createServer(ssl, listener).listen(parseInt(listing[i]));
       }
     } 
   });
