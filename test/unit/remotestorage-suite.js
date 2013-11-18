@@ -70,7 +70,9 @@ define([], function() {
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-
+      RemoteStorage.Discover = function( userAddress, cb ) {
+        cb();
+      }
       RemoteStorage.prototype.remote = new FakeRemote();
       //RemoteStorage.prototype.local = new FakeLocal();
       test.done();
@@ -167,6 +169,18 @@ define([], function() {
             test.done();
           })
           env.rs.disconnect()
+        }
+      },
+
+      {
+        desc: "RemoteStorage.connect throws Discovery Error on empty href",
+        run: function(env, test) {
+          env.rs.on('error', function(e) {
+            test.assertAnd(e instanceof RemoteStorage.DiscoveryError, true);
+            test.assertAnd(e.message, "failed to contact storage server");
+            test.done();
+          })
+          env.rs.connect('someone@somewhere');
         }
       }
     ]
