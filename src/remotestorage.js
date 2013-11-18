@@ -218,8 +218,9 @@
         this._emit('error', new RemoteStorage.DiscoveryError("user adress doesn't contain an @"));
         return;
       }
-      this._emit('connecting');
       this.remote.configure(userAddress);
+      this._emit('connecting');
+      
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
         if (!href){
           this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
