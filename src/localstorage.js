@@ -80,6 +80,7 @@
       };
       localStorage[NODES_PREFIX + path] = JSON.stringify(node);
       this._addToParent(path, revision);
+      //FIXME just emit event when node actualy changed
       this._emit('change', {
         path: path,
         origin: incoming ? 'remote' : 'window',
@@ -125,6 +126,7 @@
     setRevision: function(path, revision) {
       var node = this._get(path) || makeNode(path);
       node.revision = revision;
+      this._addToParent(path, revision);
       localStorage[NODES_PREFIX + path] = JSON.stringify(node);
       return promising().fulfill();
     },
@@ -227,7 +229,7 @@
       var l = localStorage.length, npl = NODES_PREFIX.length;
       for(var i=0;i<l;i++) {
         var key = localStorage.key(i);
-        if (key.substr(0, npl) === NODES_PREFIX) {
+        if (key.substr(0, npl) === NODES_PREFIX && key.substr(-1) !== '/') {
           var path = key.substr(npl);
           var node = this._get(path);
           this._emit('change', {
