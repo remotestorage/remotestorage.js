@@ -406,335 +406,329 @@ define(['requirejs', 'localStorage', 'xmlhttprequest'], function(requirejs, loca
         }
       },
 
-      // {
-      //   desc: "getting an object with tree-only sync",
-      //   run: function(env, test) {
-      //     // store the file first
-      //     return env.client.storeObject('test', 'locations/hackerbeach/2013', { island: "Phu Quoc" }).
-      //       //syncing to send the file to the server
-      //       then(env.remoteStorage.sync.bind(env.remoteStorage)).
-      //       // disconnect client
-      //       then(env.rsDisconnect).
-      //       then(function() {
-      //         // reconnect client
-      //         env.rsConnect();
-      //         // configure tree-only sync
-      //         env.client.cache('', true);
-      //         // synchronize
-      //         return env.remoteStorage.sync();
-      //       }).
-      //       then(function() {
-      //         return env.client.getListing('locations/hackerbeach/');
-      //       }).
-      //       then(function(listing) {
-      //         // verify listing
-      //         test.assertAnd(listing, ['2013'], "listing was "+JSON.stringify(listing, null, 2));
-      //       }).
-      //       then(function() {
-      //         return env.client.getObject('locations/hackerbeach/2013');
-      //       }).
-      //       then(function(obj) {
-      //         // verify file
-      //         test.assert({
-      //           island: "Phu Quoc",
-      //           '@context': 'http://remotestoragejs.com/spec/modules/root/test'
-      //         }, obj, "got object: " + JSON.stringify(obj));
-      //       }, function(err) {
-      //         console.log('err', err, err.stack);
-      //         _this.result(false);
-      //       });
-      //   }
-      // },
+      {
+        desc: "getting an object with tree-only sync",
+        run: function(env, test) {
+          // store the file first
+          return env.client.storeObject('test', 'locations/hackerbeach/2013', { island: "Phu Quoc" }).
+            //syncing to send the file to the server
+            then(env.remoteStorage.sync.bind(env.remoteStorage)).
+            // disconnect client
+            then(env.rsDisconnect).
+            then(function() {
+              // reconnect client
+              env.rsConnect();
+              // configure tree-only sync
+              env.client.cache('', true);
+              // synchronize
+              return env.remoteStorage.sync();
+            }).
+            then(function() {
+              return env.client.getListing('locations/hackerbeach/');
+            }).
+            then(function(listing) {
+              // verify listing
+              test.assertAnd(listing, ['2013'], "listing was "+JSON.stringify(listing, null, 2));
+            }).
+            then(function() {
+              return env.client.getObject('locations/hackerbeach/2013');
+            }).
+            then(function(obj) {
+              // verify file
+              test.assert({
+                island: "Phu Quoc",
+                '@context': 'http://remotestoragejs.com/spec/modules/root/test'
+              }, obj, "got object: " + JSON.stringify(obj));
+            }, function(err) {
+              console.log('err', err, err.stack);
+              _this.result(false);
+            });
+        }
+      },
 
-      // {
-      //   desc: "getting a file with tree-only sync",
-      //   run: function(env, test) {
-      //     // store the file first
-      //     return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island').
-      //          // push file to server
-      //       then(env.remoteStorage.sync.bind(env.remoteStorage) ).
-      //          // disconnect client
-      //       then(env.rsDisconnect).
-      //       then(function() {
-      //         // reconnect client
-      //         env.rsConnect();
-      //         // configure tree-only sync
-      //         //env.client.use('', true);
-      //         // synchronize
-      //         return env.remoteStorage.sync();
-      //       }).
-      //       then(function() {
-      //         return env.client.getListing('locations/hackerbeach/');
-      //       }).
-      //       then(function(listing) {
-      //         // verify listing
-      //         test.assertAnd(listing, ['2013'], 'listing was '+JSON.stringify(listing));
-      //       }).
-      //       then(function() {
-      //         return env.client.getFile('locations/hackerbeach/2013');
-      //       }).
-      //       then(function(file) {
-      //         // verify file
-      //         test.assertAnd('Phu Quoc Island', file.data, "data was : "+ JSON.stringify(file) );
-      //         test.assertAnd(!!file.mimeType.match(/text\/plain/), true, "mimeType was : "+ JSON.stringify(file.mimeType) ); 
-      //         test.done();
-      //       }, function(err) {
-      //         console.log('err', err);
-      //         _this.result(false);
-      //       });
-      //   }
-      // },
+      {
+        desc: "getting a file with tree-only sync",
+        run: function(env, test) {
+          // store the file first
+          return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island').
+               // push file to server
+            then(env.remoteStorage.sync.bind(env.remoteStorage) ).
+               // disconnect client
+            then(env.rsDisconnect).
+            then(function() {
+              // reconnect client
+              env.rsConnect();
+              // configure tree-only sync
+              //env.client.use('', true);
+              // synchronize
+              return env.remoteStorage.sync();
+            }).
+            then(function() {
+              return env.client.getListing('locations/hackerbeach/');
+            }).
+            then(function(listing) {
+              // verify listing
+              test.assertAnd(listing, ['2013'], 'listing was '+JSON.stringify(listing));
+            }).
+            then(function() {
+              return env.client.getFile('locations/hackerbeach/2013');
+            }).
+            then(function(file) {
+              // verify file
+              test.assertAnd('Phu Quoc Island', file.data, "data was : "+ JSON.stringify(file) );
+              test.assertAnd(!!file.mimeType.match(/text\/plain/), true, "mimeType was : "+ JSON.stringify(file.mimeType) ); 
+              test.done();
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
+            });
+        }
+      },
 
-      // {
-      //   desc: "getting a listing with no forced sync at all",
-      //   run: function(env, test) {
-      //     env.client.cache('', false);
-      //     return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island').
-      //       then(env.rsDicsonnect).
-      //       then(env.rsConnect).
-      //       then(function() {
-      //         return env.client.getListing('locations/hackerbeach/');
-      //       }).
-      //       then(function(listing) {
-      //         test.assertAnd(listing, ['2013'], "listing is "+JSON.stringify(listing, null, 2));
-      //         test.done();
-      //       }, function(err) {
-      //         console.log('err', err);
-      //         _this.result(false);
-      //       });
-      //   }
-      // },
+      {
+        desc: "getting a listing with no forced sync at all",
+        run: function(env, test) {
+          env.client.cache('', false);
+          return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island').
+            then(env.rsDicsonnect).
+            then(env.rsConnect).
+            then(function() {
+              return env.client.getListing('locations/hackerbeach/');
+            }).
+            then(function(listing) {
+              test.assertAnd(listing, ['2013'], "listing is "+JSON.stringify(listing, null, 2));
+              test.done();
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
+            });
+        }
+      },
 
-      // {
-      //   desc: "getting an empty dir with tree-force enabled doesn't cause a request",
-      //   run: function(env, test) {
-      //     return env.remoteStorage.sync().
-      //       then(function() {
-      //         env.serverHelper.clearCaptured();
-      //         return env.client.getListing('locations/hackerbeach/');
-      //       }).
-      //       then(function() {
-      //         env.serverHelper.expectNoMoreRequest(test);
-      //       }, function(err) {
-      //         console.log('err', err);
-      //         _this.result(false);
-      //       });
-      //   }
-      // },
+      {
+        desc: "getting an empty dir with tree-force enabled doesn't cause a request",
+        run: function(env, test) {
+          return env.remoteStorage.sync().
+            then(function() {
+              env.serverHelper.clearCaptured();
+              return env.client.getListing('locations/hackerbeach/');
+            }).
+            then(function() {
+              env.serverHelper.expectNoMoreRequest(test);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
+            });
+        }
+      },
 
-      // {
-      //   desc: "storing a file directly to remote, without local caching",
-      //   run: function(env, test) {
-      //     env.remoteStorage.caching.disable('/');
-      //     return env.client.storeFile('text/plain', 'greetings/default', 'Hello World!', false).
-      //       then(function() {
-      //         // check requests
-      //         env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
+      {
+        desc: "storing a file directly to remote, without local caching",
+        run: function(env, test) {
+          env.remoteStorage.caching.disable('/');
+          return env.client.storeFile('text/plain', 'greetings/default', 'Hello World!', false).
+            then(function() {
+              // check requests
+              env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
 
-      //         env.serverHelper.expectNoMoreRequest(test);
-      //       }, function(err) {
-      //         console.log('err', err);
-      //         _this.result(false);
-      //       });
-      //   }
-      // },
+              env.serverHelper.expectNoMoreRequest(test);
+            }, function(err) {
+              console.log('err', err);
+              _this.result(false);
+            });
+        }
+      },
 
-      // {
-      //   desc: "storing a file w/o caching, then listing & getting",
-      //   run: function(env, test) {
-      //     env.remoteStorage.caching.disable('/');
+      {
+        desc: "storing a file w/o caching, then listing & getting",
+        run: function(env, test) {
+          env.remoteStorage.caching.disable('/');
           
-      //     env.client.storeFile('text/plain', 'greetings/default', 'Hello World!', false).
-      //       then(function() {
-      //         console.log("123");
-      //         env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
-      //         env.serverHelper.expectNoMoreRequest(test);
-      //         return env.client.getListing('greetings/');
-      //       }).
-      //       then(function(listing) {
-      //         console.log("123");
-      //         env.serverHelper.expectRequest(test, 'GET', 'me/greetings/');
-      //         env.serverHelper.expectNoMoreRequest(test);
-      //         test.assertAnd(listing, ['default']);
-      //         return env.client.getFile('greetings/default');
-      //       }).
-      //       then(function(file) {
-      //         console.log("123");
-      //         env.serverHelper.expectRequest(test, 'GET', 'me/greetings/default');
-      //         env.serverHelper.expectNoMoreRequest(test);
-      //         test.assertAnd(!!file.mimeType.match(/text\/plain/), true, "mimeType -> file was "+JSON.stringify(file) );
-      //         test.assertAnd(file.data, 'Hello World!', "data -> file was "+JSON.stringify(file) );
-      //         test.done();
-      //       }, function(err) {
-      //         console.log('err', err, err.stack);
-      //         _this.result(false);
-      //       });
-      //   }
-      // },
+          env.client.storeFile('text/plain', 'greetings/default', 'Hello World!', false).
+            then(function() {
+              console.log("123");
+              env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
+              env.serverHelper.expectNoMoreRequest(test);
+              return env.client.getListing('greetings/');
+            }).
+            then(function(listing) {
+              console.log("123");
+              env.serverHelper.expectRequest(test, 'GET', 'me/greetings/');
+              env.serverHelper.expectNoMoreRequest(test);
+              test.assertAnd(listing, ['default']);
+              return env.client.getFile('greetings/default');
+            }).
+            then(function(file) {
+              console.log("123");
+              env.serverHelper.expectRequest(test, 'GET', 'me/greetings/default');
+              env.serverHelper.expectNoMoreRequest(test);
+              test.assertAnd(!!file.mimeType.match(/text\/plain/), true, "mimeType -> file was "+JSON.stringify(file) );
+              test.assertAnd(file.data, 'Hello World!', "data -> file was "+JSON.stringify(file) );
+              test.done();
+            }, function(err) {
+              console.log('err', err, err.stack);
+              _this.result(false);
+            });
+        }
+      },
 
-      // {
-      //   desc: "enabling, then disabling caching, then getting listing, then getting files",
+      {
+        desc: "enabling, then disabling caching, then getting listing, then getting files",
+        run: function(env, test) {
+          // setup some files
+          return util.asyncEach(['a', 'b', 'c'], function(name) {
+            return env.client.storeFile('text/plain', 'test/' + name,
+                                        'content-' + name);
+          }). /* and sync */ then(
+            env.remoteStorage.sync.bind(env.remoteStorage), function( err) {
+              console.error("storing failed", err, err.stack);
+              test.result(false);
+              return;
+            }). /* logout & log in again */ then(env.rsDisconnect).
+            then(env.serverHelper.clearCaptured.bind(env.serverHelper)).
+            then(env.rsConnect).
+            then(function() {
+              // release root
+              return env.client.cache('', false);
+            }).
+            then(function() {
+              // use test/ (creates dir node, but doesn't populate it)
+              return env.client.cache('test/');
+            }).
+            then(function() {
+              // release test/ again
+              return env.client.cache('test/',false);
+            }).
+            then(function() {
+              // get listing
+              return env.client.getListing('test/');
+            }).
+            then(function(listing) {
+              // verify listing
+              test.assertAnd(listing && listing.sort(), ['a', 'b', 'c'], "listing was "+JSON.stringify(listing));
+              // get file
+              return env.client.getFile('test/a');
+            }).
+            then(function(file) {
+              console.log('FILE NOW', file);
+              // verify file
+              test.assertAnd(!!file.mimeType.match(/text\/plain/), true, "mimeType "+file.mimeType);
+              test.assertAnd(file.data, 'content-a' , "data "+file.data);
+            }, function(err) {
+              console.error('err', err, err.stack);
+              test.result(false);
+            });
+        }
+      },
+
+      {
+        desc: "removing a file without using cache",
+        run: function(env, test) {
+          env.client.cache('',false);
+          env.client.storeFile('text/plain', 'something', 'blue', false).
+            then(function() {
+              console.log('saved something');
+              return env.client.getFile('something');
+            }).
+            then(function(something) {
+              console.log('something contains', something);
+            }).
+          // * disconnect, then reconnect
+            then(env.rsDisconnect).
+            then(env.rsConnect).
+          // * check that the listing shows the item we saved
+            then(env.client.getListing.bind(env.client, '') ).
+            then(function(listing) {
+              console.log('got listing', listing);
+              test.assertAnd(listing, ['something'], 'but listing was '+JSON.stringify(listing, null, 2));
+            }).
+            then(function() {
+              env.serverHelper.clearCaptured();
+            }).
+          // * remove the item
+            then(env.client.remove.bind(env.client, 'something') ).
+          // * check that the right request was sent
+            then(function() {
+              env.serverHelper.expectRequest(
+                test, 'DELETE', 'me/something'
+              );
+            }).
+          // * check that getListing doesn't have the item anymore
+            then(env.client.getListing.bind(env.client, '') ).
+            then(function(listing) {
+              console.log('listing now', listing);
+              test.assert(listing, []);
+            }).then( undefined,
+                     function(err) {
+                       console.log("promise failed ", err, err.stack);
+                       test.fail();
+                     });
+          // * disconnect, then reconnect again
+          // * check that getListing still doesn't show the item
+        }
+      },
+
+      {
+        desc: "removing a file with cache enabled",
+        run: function(env, test) {
+          env.client.storeFile('text/plain', 'something', 'blue').
+            then(env.remoteStorage.sync.bind(env.remoteStorage)).
+            then(env.rsDisconnect).
+            then(env.rsConnect).
+            then(env.remoteStorage.sync.bind(env.remoteStorage)).
+            then(env.client.getListing.bind(env.client, '') ).
+            then(function(listing) {
+              test.assertAnd(listing, ['something'], 'but lisitng was '+JSON.stringify(listing));
+            }).
+            then(env.serverHelper.clearCaptured).
+            then(env.client.remove.bind(env.client, 'something') ).
+            then(env.remoteStorage.sync.bind(env.remoteStorage)).
+            then(function() {
+              console.log('serverHelper', env.serverHelper);
+              env.serverHelper.expectRequest(
+                test, 'DELETE', 'me/something'
+              );
+            }).
+            then(env.client.getListing.bind(env.client, '') ).
+            then(function(listing) {
+              test.assertAnd(listing, undefined, 'but lisitng was '+JSON.stringify(listing));
+              test.done();
+            });
+
+        }
+      },
+
+      // { //FIXME this test is very unfinished and buggy
+      //   desc: "deleting something triggers a 'change' event",
+      //   timeout: 750,
       //   run: function(env, test) {
-      //     // setup some files
-      //     return util.asyncEach(['a', 'b', 'c'], function(name) {
-      //       return env.client.storeFile('text/plain', 'test/' + name,
-      //                                   'content-' + name);
-      //     }). /* and sync */ then(
-      //       env.remoteStorage.sync.bind(env.remoteStorage), function( err) {
-      //         console.error("storing failed", err, err.stack);
-      //         test.result(false);
-      //         return;
-      //       }). /* logout & log in again */ then(env.rsDisconnect).
-      //       then(env.serverHelper.clearCaptured.bind(env.serverHelper)).
-      //       then(env.rsConnect).
+      //     env.client.storeFile('text/plain', 'hello', 'hello world').
       //       then(function() {
-      //         // release root
-      //         return env.client.cache('', false);
-      //       }).
-      //       then(function() {
-      //         // use test/ (creates dir node, but doesn't populate it)
-      //         return env.client.cache('test/');
-      //       }).
-      //       then(function() {
-      //         // release test/ again
-      //         return env.client.cache('test/',false);
-      //       }).
-      //       then(function() {
-      //         // get listing
-      //         return env.client.getListing('test/');
-      //       }).
-      //       then(function(listing) {
-      //         // verify listing
-      //         test.assertAnd(listing && listing.sort(), ['a', 'b', 'c'], "listing was "+JSON.stringify(listing));
-      //         // get file
-      //         return env.client.getFile('test/a');
-      //       }).
-      //       then(function(file) {
-      //         console.log('FILE NOW', file);
-      //         // verify file
-      //         test.assertAnd(!!file.mimeType.match(/text\/plain/), true, "mimeType "+file.mimeType);
-      //         test.assertAnd(file.data, 'content-a' , "data "+file.data);
-      //       }, function(err) {
-      //         console.error('err', err, err.stack);
-      //         test.result(false);
+      //         env.client.on('change', function(event) {
+      //           test.assertAnd(event.origin, 'window' , "origin -> event was "+JSON.stringify(event, null, 2) )
+      //           test.assertAnd(event.path, '/hello' , "path -> event was "+JSON.stringify(event, null, 2) )
+      //           test.assertAnd(event.oldValue, 'hello world', "oldValue -> event was "+JSON.stringify(event, null, 2) )
+      //           test.assertAnd(event.newValue, undefined, "newValue -> event was "+JSON.stringify(event, null, 2) )
+      //         });
+      //         return env.client.remove('hello');
       //       });
       //   }
       // },
 
-      // // {
-      // //   desc: "removing a file without using cache",
-      // //   run: function(env, test) {
-      // //     env.client.storeFile('text/plain', 'something', 'blue', false).
-      // //       then(function() {
-      // //         console.log('saved something');
-      // //         return env.client.getFile('something');
-      // //       }).
-      // //       then(function(something) {
-      // //         console.log('something contains', something);
-      // //       }).
-      // //     // * disconnect, then reconnect
-      // //       then(env.remoteStorage.flushLocal).
-      // //       then(env.rsConnect).
-      // //       then(env.client.release.bind(env.client, '') ).
-      // //     // * check that the listing shows the item we saved
-      // //       then(env.client.getListing.bind(env.client, '') ).
-      // //       then(function(listing) {
-      // //         console.log('got listing', listing);
-      // //         test.assertAnd(listing, ['something']);
-      // //       }).
-      // //       then(function() {
-      // //         env.serverHelper.clearCaptured();
-      // //       }).
-      // //     // * remove the item
-      // //       then(env.client.remove.bind(env.client, 'something') ).
-      // //     // * check that the right request was sent
-      // //       then(function() {
-      // //         env.serverHelper.expectRequest(
-      // //           test, 'DELETE', 'me/something'
-      // //         );
-      // //       }).
-      // //     // * check that getListing doesn't have the item anymore
-      // //       then(env.client.getListing.bind(env.client, '') ).
-      // //       then(function(listing) {
-      // //         console.log('listing now', listing);
-      // //         test.assert(listing, []);
-      // //       }).then( undefined,
-      // //                function(err) {
-      // //                  console.log("promise failed ", err, err.stack);
-      // //                  test.fail();
-      // //                });
-      // //     // * disconnect, then reconnect again
-      // //     // * check that getListing still doesn't show the item
-      // //   }
-      // // },
-
-      // // {
-      // //   desc: "removing a file with cache enabled",
-      // //   run: function(env, test) {
-      // //     env.client.storeFile('text/plain', 'something', 'blue').
-      // //       then(env.remoteStorage.flushLocal).
-      // //       then(env.rsConnect).
-      // //       then(env.remoteStorage.sync.bind(env.remoteStorage)).
-      // //       then(env.client.getListing.bind(env.client, '') ).
-      // //       then(function(listing) {
-      // //         test.assertAnd(listing, ['something']);
-      // //       }).
-      // //       then(env.serverHelper.clearCaptured).
-      // //       then(env.client.remove.bind(env.client.remove, 'something') ).
-      // //       then(function() {
-      // //         console.log('serverHelper', env.serverHelper);
-      // //         env.serverHelper.expectRequest(
-      // //           test, 'DELETE', 'me/something'
-      // //         );
-      // //       }).
-      // //       then(env.client.getListing.bind(env.client, '') ).
-      // //       then(function(listing) {
-      // //         test.assert(listing, []);
-      // //       });
-
-      // //   }
-      // // },
-
-      // // {
-      // //   desc: "deleting something triggers a 'change' event",
-      // //   timeout: 750,
-      // //   run: function(env, test) {
-      // //     env.client.storeFile('text/plain', 'hello', 'hello world').
-      // //       then(function() {
-      // //         var runOnce = true;
-      // //         env.client.on('change', function(event) {
-      // //           if(!runOnce)
-      // //             return;
-      // //           runOnce = false;
-                
-      // //           test.assertAnd(event.origin, 'window' , "origin -> event was "+JSON.stringify(event, null, 2) )
-      // //           test.assertAnd(event.path, '/hello' , "path -> event was "+JSON.stringify(event, null, 2) )
-      // //           test.assertAnd(event.oldValue, 'hello world', "oldValue -> event was "+JSON.stringify(event, null, 2) )
-      // //           test.assertAnd(event.newValue, undefined, "newValue -> event was "+JSON.stringify(event, null, 2) )
-      // //         });
-      // //         return env.client.remove('hello');
-      // //       });
-      // //   }
-      // // },
-
-      // // {
-      // //   desc: "creating something triggers a 'change' event",
-      // //   timeout: 750,
-      // //   run: function(env, test) {
-      // //     var runOnce = true;            
-      // //     env.client.on('change', function(event) {
-      // //       console.log('got change', event);
-      // //       if(!runOnce)
-      // //         return;
-      // //       runOnce = false;
-      // //       test.assertAnd(event.origin, 'window' , "origin -> event was "+JSON.stringify(event, null, 2) );
-      // //       test.assertAnd(event.path, '/hello' , "path -> event was "+JSON.stringify(event, null, 2) );
-      // //       test.assertAnd(event.oldValue, undefined , "oldValue -> event was "+JSON.stringify(event, null, 2) );
-      // //       test.assertAnd(event.newValue, 'hello world' , "newValue -> event was "+JSON.stringify(event, null, 2) );
-      // //     });
-      // //     env.client.storeFile('text/plain', 'hello', 'hello world').then(this.done.bind(this));
-      // //   }
-      // // }
+      {
+        desc: "creating something triggers a 'change' event",
+        timeout: 750,
+        run: function(env, test) {
+          env.client.on('change', function(event) {
+            console.log('got change', event);
+            test.assertAnd(event.origin, 'window' , "origin -> event was "+JSON.stringify(event, null, 2) );
+            test.assertAnd(event.path, '/hello' , "path -> event was "+JSON.stringify(event, null, 2) );
+            test.assertAnd(event.oldValue, undefined , "oldValue -> event was "+JSON.stringify(event, null, 2) );
+            test.assertAnd(event.newValue, 'hello world' , "newValue -> event was "+JSON.stringify(event, null, 2) );
+          });
+          env.client.storeFile('text/plain', 'hello', 'hello world').then(this.done.bind(this));
+        }
+      }
  
     ]
   });
