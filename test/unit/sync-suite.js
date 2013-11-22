@@ -16,6 +16,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     },
 
     beforeEach: function(env, test) {
+      env.rs = new RemoteStorage();
       test.done();
     },
 
@@ -24,15 +25,15 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "Default value ",
         run: function(env, test) {
-          test.assert(RemoteStorage.Sync.getSyncInterval(), 10000);
+          test.assert(env.rs.getSyncInterval(), 10000);
         }
       },
 
       {
         desc: "Update value",
         run: function(env, test) {
-          RemoteStorage.Sync.setSyncInterval(60000);
-          test.assert(RemoteStorage.Sync.getSyncInterval(), 60000);
+          env.rs.setSyncInterval(60000);
+          test.assert(env.rs.getSyncInterval(), 60000);
         }
       },
 
@@ -40,7 +41,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "#set a wrong value throws an error",
         run: function(env, test) {
           try {
-            RemoteStorage.Sync.setSyncInterval('60000');
+            env.rs.setSyncInterval('60000');
             test.result(false, "setSyncInterval() didn't fail");
           } catch(e) {
             test.result(true);
@@ -52,3 +53,4 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
 
   return suites;
 });
+

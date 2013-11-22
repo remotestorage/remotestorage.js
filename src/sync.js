@@ -248,36 +248,37 @@
       return synchronize(remote, local, path, {
         data: false
       });
-    },
-    /**
-     * Method: getSyncInterval
-     *
-     * Get the value of the sync interval
-     *
-     * Returns a number of milliseconds
-     *
-     */
-    getSyncInterval: function() {
-      return syncInterval;
-    },
-    /**
-     * Method: setSyncInterval
-     *
-     * Set the value of the sync interval
-     *
-     * Parameters:
-     *   interval - sync interval in milliseconds
-     *
-     */
-    setSyncInterval: function(interval) {
-      if(typeof(interval) != 'number') {
-        throw interval + " is not a valid sync interval";
-      }
-      syncInterval = parseInt(interval, 10);
-      if (this._syncTimer) {
-        this.stopSync();
-        this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
-      }
+    }
+  };
+
+  /**
+   * Method: getSyncInterval
+   *
+   * Get the value of the sync interval when application is in the foreground
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getSyncInterval = function() {
+    return syncInterval;
+  };
+  /**
+   * Method: setSyncInterval
+   *
+   * Set the value of the sync interval when application is in the foreground
+   *
+   * Parameters:
+   *   interval - sync interval in milliseconds
+   *
+   */
+  RemoteStorage.prototype.setSyncInterval = function(interval) {
+    if(typeof(interval) != 'number') {
+      throw interval + " is not a valid sync interval";
+    }
+    syncInterval = parseInt(interval, 10);
+    if (this._syncTimer) {
+      this.stopSync();
+      this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
     }
   };
 
