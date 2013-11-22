@@ -91,7 +91,8 @@
           var mimeType = response.getResponseHeader('Content-Type');
           var body;
           var revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
-          if ((! mimeType) || mimeType.match(/charset=binary/)) {
+          if (response.status != 304 && (
+              (! mimeType) || mimeType.match(/charset=binary/) )) {
             var blob = new Blob([response.response], {type: mimeType});
             var reader = new FileReader();
             reader.addEventListener("loadend", function() {
@@ -103,6 +104,8 @@
             body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(response.responseText) : response.responseText;
             promise.fulfill(response.status, body, mimeType, revision);
           }
+          console.log("REVISION inside  ",method,' : ', revision);
+          console.log("Response : ", response.getResponseHeader('ETag'));
         }
       }
     });
