@@ -113,6 +113,12 @@
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
 
+  function isFolderDescription(body) {
+    return ((Object.keys(body).length === 2)
+                && (body['@context']==='http://remotestorage.io/spec/folder-description')
+                && (typeof(body['items'])=='object'));
+  }
+
   /**
    * Class : RemoteStorage.WireClient
    **/
@@ -258,9 +264,7 @@
             if (Object.keys(body).length === 0) {
               // no children (coerce response to 'not found')
               status = 404;
-            } else if((Object.keys(body).length === 2)
-                && (body['@context']==='http://remotestorage.io/spec/folder-description')
-                && (typeof(body['items'])=='object')){
+            } else if(isFolderDescription(body)) {
               tmp = {};
               for(var key in body.items) {
                 this._revisionCache[path + key] = body.items[key].ETag;
