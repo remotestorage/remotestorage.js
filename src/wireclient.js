@@ -253,11 +253,21 @@
         return promise;
       } else {
         return promise.then(function(status, body, contentType, revision) {
+          var tmp;
           if (status === 200 && typeof(body) === 'object') {
             if (Object.keys(body).length === 0) {
               // no children (coerce response to 'not found')
               status = 404;
-            } else {
+            } else if((Object.keys(body).length === 2)
+                && (body['@context']==='http://remotestorage.io/spec/folder-description')
+                && (typeof(body['items'])=='object')){
+              tmp = {};
+              for(var key in body.items) {
+                this._revisionCache[path + key] = body.items[key].ETag;
+                tmp[key] = body.items[key].ETag;
+              }
+              body = tmp;
+            } else {//pre-02 server
               for(var key in body) {
                 this._revisionCache[path + key] = body[key];
               }
