@@ -20,8 +20,6 @@
   // headers), or on the client (through versions specified in the parent listing).
   //
 
-  var syncInterval = 10000;
-
   function isDir(path) {
     return path[path.length - 1] === '/';
   }
@@ -51,6 +49,7 @@
   }
 
   function allDifferentKeys(a, b) {
+    console.log('\nallDifferentKeys ( ',a,' , ',b,' ) ')
     var keyObject = {};
     for (var ak in a) {
       if (a[ak] !== b[ak]) {
@@ -197,7 +196,7 @@
               } else {
                 return 200; // fake 200 so the change is cleared.
               }
-            }).then(function(status) {
+            }).then(function(status, body, contentType, revision) {
               if (status === 412) {
                 fireConflict(local, change.path, {
                   localAction: 'PUT',
@@ -205,7 +204,17 @@
                 });
                 oneDone();
               } else {
-                oneDone(change.path);
+                console.log('REVISION after PUT ',revision);
+                if(revision) {
+                  return local.setRevision(change.path, revision).then(
+                    function(){
+                      oneDone(change.path)
+                    }
+                  );
+                } else {
+                  oneDone(change.path);
+                }
+                
               }
             }).then(undefined, errored);
             break;
@@ -253,7 +262,7 @@
       });
     }
   };
-
+  
   /**
    * Method: getSyncInterval
    *
@@ -263,7 +272,8 @@
    *
    */
   RemoteStorage.prototype.getSyncInterval = function() {
-    return syncInterval;
+    console.log("THIS IS",this);
+    return this.syncInterval;
   };
   /**
    * Method: setSyncInterval
@@ -278,10 +288,11 @@
     if(typeof(interval) !== 'number') {
       throw interval + " is not a valid sync interval";
     }
-    syncInterval = parseInt(interval, 10);
+    this.syncInterval = interval;
     if (this._syncTimer) {
       this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
+      if(interval > 0)
+        this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
     }
   };
 
@@ -348,11 +359,15 @@
   RemoteStorage.SyncError = SyncError;
 
   RemoteStorage.prototype.syncCycle = function() {
+    if(this.getSyncInterval() < 0) {
+      return ;
+    } 
+    console.log("\n!!!   SyncCycle   !!!\n")
     this.sync().then(function() {
       this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
-    }.bind(this),
-    function(e) {
+        this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
+      }.bind(this),
+                       function(e) {
       console.log('sync error, retrying');
       this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
@@ -368,7 +383,8 @@
 
   var syncCycleCb;
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
-    syncCycleCb = function() {
+    remoteStorage.syncInterval = 10000;
+    remoteStorage.on('ready', function() {
       remoteStorage.syncCycle();
     };
     remoteStorage.on('ready', syncCycleCb);
