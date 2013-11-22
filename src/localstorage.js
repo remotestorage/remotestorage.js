@@ -232,7 +232,7 @@
           var node = this._get(path);
           this._emit('change', {
             path: path,
-            origin: 'remote',
+            origin: 'local',
             oldValue: undefined,
             newValue: node.body
           });
