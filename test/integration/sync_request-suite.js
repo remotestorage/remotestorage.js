@@ -75,7 +75,8 @@ define(['requirejs', 'localStorage', 'xmlhttprequest'], function(requirejs, loca
 
         util.extend(env.serverHelper, nodejsExampleServer.server);
 
-        env.serverHelper.enableLogs();
+        //env.serverHelper.enableLogs();
+        env.serverHelper.disableLogs();
 
         env.serverHelper.start(function() {
           _this.result(true);
@@ -107,6 +108,7 @@ define(['requirejs', 'localStorage', 'xmlhttprequest'], function(requirejs, loca
       };
 
       env.rsConnect = function() {
+        env.remoteStorage.setSyncInterval(-1);
         env.remoteStorage.claimAccess('root', 'rw');
         settings = env.serverHelper.getStorageInfo();
         console.log("settings",settings);
@@ -127,7 +129,9 @@ define(['requirejs', 'localStorage', 'xmlhttprequest'], function(requirejs, loca
     },
     
     afterEach: function(env, test) {
-      env.rsDisconnect().then(test.done.bind(test));
+      env.rsDisconnect().then(function() {
+        env.serverHelper.clearCaptured();
+      }).then(test.done.bind(test));
     },
     
     tests: [
@@ -363,7 +367,7 @@ define(['requirejs', 'localStorage', 'xmlhttprequest'], function(requirejs, loca
         desc: "change events with outgoing changes with caching enabled",
         run: function(env, test) {
           var receivedEvents = [];
-          env.client.cache('', true); // FIXME this line is the only diffrence between the last two tests;
+          env.client.cache('', true);
           env.client.on('change', function(event) {
             receivedEvents.push(event);
           });
@@ -526,6 +530,9 @@ define(['requirejs', 'localStorage', 'xmlhttprequest'], function(requirejs, loca
         desc: "storing a file directly to remote, without local caching",
         run: function(env, test) {
           env.remoteStorage.caching.disable('/');
+
+          console.log('CAPTURED REQUESTS BEFORE DOING ANYHING: ', env.serverHelper.captured);
+
           return env.client.storeFile('text/plain', 'greetings/default', 'Hello World!', false).
             then(function() {
               // check requests
@@ -698,22 +705,29 @@ define(['requirejs', 'localStorage', 'xmlhttprequest'], function(requirejs, loca
         }
       },
 
-      // { //FIXME this test is very unfinished and buggy
-      //   desc: "deleting something triggers a 'change' event",
-      //   timeout: 750,
-      //   run: function(env, test) {
-      //     env.client.storeFile('text/plain', 'hello', 'hello world').
-      //       then(function() {
-      //         env.client.on('change', function(event) {
-      //           test.assertAnd(event.origin, 'window' , "origin -> event was "+JSON.stringify(event, null, 2) )
-      //           test.assertAnd(event.path, '/hello' , "path -> event was "+JSON.stringify(event, null, 2) )
-      //           test.assertAnd(event.oldValue, 'hello world', "oldValue -> event was "+JSON.stringify(event, null, 2) )
-      //           test.assertAnd(event.newValue, undefined, "newValue -> event was "+JSON.stringify(event, null, 2) )
-      //         });
-      //         return env.client.remove('hello');
-      //       });
-      //   }
-      // },
+      { 
+        desc: "deleting something triggers a 'change' event",
+        timeout: 750,
+        run: function(env, test) {
+          var i = 0;
+          env.client.storeFile('text/plain', 'hello', 'hello world').
+            then(function() {
+              env.client.on('change', function(event) {
+                if(i == 0) {
+                  test.assertAnd(event.origin, 'window' , "origin -> event was "+JSON.stringify(event, null, 2) )
+                  test.assertAnd(event.path, '/hello' , "path -> event was "+JSON.stringify(event, null, 2) )
+                  test.assertAnd(event.oldValue, 'hello world', "oldValue -> event was "+JSON.stringify(event, null, 2) )
+                  test.assertAnd(event.newValue, undefined, "newValue -> event was "+JSON.stringify(event, null, 2) )
+
+                  test.done();
+                } else {
+                  test.result(false, "Saw one more change event than I expected!");
+                }
+              });
+              return env.client.remove('hello');
+            });
+        }
+      },
 
       {
         desc: "creating something triggers a 'change' event",
@@ -729,7 +743,7 @@ define(['requirejs', 'localStorage', 'xmlhttprequest'], function(requirejs, loca
           env.client.storeFile('text/plain', 'hello', 'hello world').then(this.done.bind(this));
         }
       }
- 
+      
     ]
   });
 
