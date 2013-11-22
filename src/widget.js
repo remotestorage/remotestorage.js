@@ -40,9 +40,9 @@
   /**
    * Class: RemoteStorage.Widget
    *   the Widget Controler that comunicates with the view 
-   *   and listens to it's remoteStorage instance
+   *   and listens to its remoteStorage instance
    *
-   *   While listening to the Events emitted by it's remoteStorage
+   *   While listening to the Events emitted by its remoteStorage
    *   it set's corresponding states of the View.
    *
    *   ready        :  connected

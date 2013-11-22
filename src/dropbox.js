@@ -39,7 +39,7 @@
   var cleanPath = RS.WireClient.cleanPath
   /*************************
    * LowerCaseCache
-   * this Cache will lowercase it's keys 
+   * this Cache will lowercase its keys 
    * and can propagate the values to "upper directories"
    * 
    * intialized with default Value(undefined will be accepted)
@@ -178,7 +178,7 @@
     },
     /**
      * Mehtod : configure(userAdress, x, x, token)
-     *   accepts it's parameters according to the wireClient
+     *   accepts its parameters according to the wireClient
      *   set's the connected flag
      **/
     configure: function(userAddress, href, storageApi, token) {

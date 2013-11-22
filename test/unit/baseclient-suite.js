@@ -88,7 +88,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "it installs a change handler for it's base",
+        desc: "it installs a change handler for its base",
         run: function(env, test) {
           var storage = new RemoteStorage();
           storage.onChange = function(path, handler) {

@@ -76,7 +76,7 @@
      * * the path ofcourse is the path of the node that changed
      *
      *
-     * * the origin tells you if it's an change pulled by sync(remote)
+     * * the origin tells you if it's a change pulled by sync(remote)
      * or some user action within the app(window)
      *
      *
