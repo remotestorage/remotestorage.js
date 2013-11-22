@@ -322,6 +322,55 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "#get unpacks pre-02 directory listings",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/01/').
+            then(function(status, body, contentType) {
+              test.assertAnd(status, 200);
+              test.assertAnd(body, { a: 'qwer', 'b/': 'asdf' });
+              test.assert(contentType, 'application/json; charset=UTF-8');
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
+          req.status = 200;
+          req.responseText = '{"a":"qwer","b/":"asdf"}';
+          req._onload();
+        }
+      },
+
+
+      {
+        desc: "#get unpacks -02 directory listings",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/01/').
+            then(function(status, body, contentType) {
+              test.assertAnd(status, 200);
+              test.assertAnd(body, { a: 'qwer', 'b/': 'asdf' });
+              test.assert(contentType, 'application/json; charset=UTF-8');
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
+          req.status = 200;
+          req.responseText = JSON.stringify({
+            "@context": "http://remotestorage.io/spec/folder-description",
+            items: {
+              a: {
+                "ETag": "qwer",
+                "Content-Length": 5,
+                "Content-Type": "text/html"
+              },
+              "b/": {
+                "ETag": "asdf",
+                "Content-Type":"application/json",
+                "Content-Length": 137
+              }
+            }
+          });
+          req._onload();
+        }
+      },
+
+      {
         desc: "#put encodes special characters in the path",
         run: function(env, test) {
           env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
