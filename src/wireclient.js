@@ -113,11 +113,15 @@
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
 
+
   function isFolderDescription(body) {
     return ((Object.keys(body).length === 2)
                 && (body['@context']==='http://remotestorage.io/spec/folder-description')
                 && (typeof(body['items'])=='object'));
   }
+
+
+  var onErrorCb;
 
   /**
    * Class : RemoteStorage.WireClient
@@ -133,11 +137,13 @@
      *   in posession of a token and a href
      **/
     RS.eventHandling(this, 'change', 'connected');
-    rs.on('error', function(error){
-      if (error instanceof RemoteStorage.Unauthorized) {
+    
+    onErrorCb = function(error){
+      if(error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
-    }.bind(this));
+    }.bind(this);
+    rs.on('error', onErrorCb);
     if (haveLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
@@ -390,10 +396,11 @@
     return !! global.XMLHttpRequest;
   };
 
-  RS.WireClient._rs_cleanup = function(){
+  RS.WireClient._rs_cleanup = function(remoteStorage){
     if (haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
+    remoteStorage.removeEventListener('error', onErrorCb);
   };
 
 })(typeof(window) !== 'undefined' ? window : global);
