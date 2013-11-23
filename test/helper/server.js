@@ -70,14 +70,37 @@ define([
       }
     },
 
+    matchRequest: function(request, method, path, body) {
+      return (
+        typeof(request) !== 'undefined'
+          && request.method === method && request.path === path
+          && ( typeof(body) === 'undefined' || request.body === body )
+      );
+    },
+
     expectThisRequest: function(test, method, path, body) {
       var r = this.captured.shift();
-      if( !(typeof r !== 'undefined' &&r.method === method && r.path === path)) {
+      if( !this.matchRequest(r, method, path, body)) {
+        console.log('(found request: ', r, ')');
         test.result(false, "expected Result "+method+"  "+path+" but found "+ (r ? r.method+"  "+r.path : 'nothing') );
-        return
-      } 
-      if(body) {
-        test.assertAnd(body, r.body, "wrong body");
+      }
+    },
+
+    expectTheseRequests: function(test, expectations) {
+      var requests = this.captured.splice(0, expectations.length);
+      for(var e=0;e<expectations.length;e++) {
+        var expectation = expectations[e];
+        if(! expectation) continue;
+        var method = expectation[0], path = expectation[1], body = expectation[2];
+        for(var r=0;r<requests.length;r++) {
+          if(requests[r] && this.matchRequest(requests[r], method, path, body)) {
+            expectations[e] = undefined;
+            requests[r] = undefined;
+          }
+        }
+      }
+      if(expectations.filter(function(expectation) { return !! expectation; }).length != 0) {
+        test.result(false, "Expected " + expectations.length + " requests, got" + requests.length + " requests" + ", not all of them matched. \n\nHave left expectations: " + JSON.stringify(expectations, null, 2) + "\nHave left requests: " + JSON.stringify(requests, null, 2));
       }
     },
 
