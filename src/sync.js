@@ -380,8 +380,9 @@
   };
 
   var syncCycleCb;
+  RemoteStorage.prototype.syncInterval = 10000;
+
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
-    remoteStorage.syncInterval = 10000;
     remoteStorage.on('ready', function() {
       remoteStorage.syncCycle();
     };
