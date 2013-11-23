@@ -1,5 +1,5 @@
 (function(global) {
-  function emitUnauthorized(status){
+  function emitUnauthorized(status) {
     var args = Array.prototype.slice.call(arguments);
     if (status === 403  || status === 401) {
       this._emit('error', new RemoteStorage.Unauthorized());
@@ -218,11 +218,11 @@
         this._emit('error', new RemoteStorage.DiscoveryError("user adress doesn't contain an @"));
         return;
       }
-      this.remote.configure(userAddress);
       this._emit('connecting');
-      
+      this.remote.configure(userAddress);
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
         if (!href){
+
           this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
           return;
         }
@@ -425,9 +425,7 @@
     /**
      ** FEATURE DETECTION
      **/
-
-    _detectFeatures: function() {
-      // determine availability
+    _loadFeatures: function(callback) {
       var features = [
         'WireClient',
         'Dropbox',
@@ -439,66 +437,89 @@
         'Widget',
         'IndexedDB',
         'LocalStorage',
+        'InMemoryStorage',
         'Sync',
         'BaseClient'
-      ].map(function(featureName) {
-        var impl = RemoteStorage[featureName];
-        return {
-          name: featureName,
-          init: (impl && impl._rs_init),
-          supported: impl && (impl._rs_supported ? impl._rs_supported() : true),
-          cleanup: ( impl && impl._rs_cleanup )
-        };
-      }).filter(function(feature) {
-        var supported = !! (feature.init && feature.supported);
-        this.log("[FEATURE " + feature.name + "] " + (supported ? '' : 'not ') + 'supported.');
-        return supported;
-      }.bind(this));
-
-      features.forEach(function(feature) {
-        if (feature.name === 'IndexedDB') {
-          features.local = RemoteStorage.IndexedDB;
-        } else if (feature.name === 'LocalStorage' && ! features.local) {
-          features.local = RemoteStorage.LocalStorage;
-        }
-      });
-      features.caching = !!RemoteStorage.Caching;
-      features.sync = !!RemoteStorage.Sync;
-
-      this.features = features;
-
-      return features;
-    },
-
-    _loadFeatures: function(callback) {
-      var features = this._detectFeatures();
+      ];
+      var theFeatures = [];
       var n = features.length, i = 0;
       var self = this;
+      function doneNow() {
+        i++;
+        if(i == n)
+          setTimeout(function() {
+            theFeatures.caching = !!RemoteStorage.Caching;
+            theFeatures.sync = !!RemoteStorage.Sync;
+            [
+              'IndexedDB',
+              'LocalStorage',
+              'InMemoryStorage'
+            ].some(function(cachingLayer) {
+              if ( theFeatures.some( function(feature) {
+                return feature.name === cachingLayer;
+              } ) 
+                 ) {
+                theFeatures.local = RemoteStorage[cachingLayer];
+                return true;
+              }
+            });
+            self.features = theFeatures;
+            callback.apply(self, [theFeatures]);
+          }, 0);
+      }
       function featureDoneCb(name) {
         return function() {
-          i++;
-          self.log("[FEATURE " + name + "] initialized. (" + i + "/" + n + ")");
-          if (i === n) {
-            setTimeout(function() {
-              callback.apply(self, [features]);
-            }, 0);
+          self.log("[FEATURE " + name + "] initialized. (" + (i+1) + "/" + n + ")");
+          theFeatures.push( {
+            name : name,
+            init :  RemoteStorage[name]._rs_init,
+            supported : true,
+            cleanup : RemoteStorage[name]._rs_cleanup
+          } );
+          doneNow();
+        };
+      }
+      function featureFailedCb(name) {
+        return function(err) {
+          self.log("[FEATURE "+name+"] initialization failed ( "+err+")");
+          //self.features
+          doneNow();
+        };
+      }
+      function featureSupportedCb(name) {
+        return function( success ) {
+          self.log("[FEATURE "+name+"]" + success ? "":" not"+" supported");
+          if(!success) {
+            doneNow();
           }
         };
       }
-      features.forEach(function(feature) {
-        self.log("[FEATURE " + feature.name + "] initializing...");
-        var initResult = feature.init(self);
-        var cb = featureDoneCb(feature.name);
-        if (typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
-          initResult.then(cb);
+      features.forEach(function(featureName) {
+        self.log("[FEATURE " + featureName + "] initializing...");
+        var impl = RemoteStorage[featureName];
+        var cb = featureDoneCb(featureName);
+        var failedCb = featureFailedCb(featureName);
+        var supportedCb = featureSupportedCb(featureName);
+        if( impl && (
+            ( impl._rs_supported && impl._rs_supported() ) || 
+            ( !impl._rs_supported )) ) {
+          supportedCb(true);
+          var initResult;
+          try {
+            initResult = impl._rs_init(self);
+          } catch(e) {
+            failedCb(e);
+            return;
+          }
+          if(typeof(initResult) == 'object' && typeof(initResult.then) == 'function') {
+            initResult.then(cb,failedCb);
+          } else {
+            cb();
+          }
         } else {
-          cb();
+          supportedCb(false);
         }
       });
-      if (features.length === 0) {
-        self.log("[NO FEATURES DETECTED] done");
-        callback.apply(self, [[]]);
-      }
     },
 
     /**
@@ -551,6 +572,7 @@
     _dispatchEvent: function(eventName, event) {
       for(var path in this._pathHandlers[eventName]) {
         var pl = path.length;
+        var self = this;
         this._pathHandlers[eventName][path].forEach(function(handler) {
           if (event.path.substr(0, pl) === path) {
             var ev = {};
@@ -560,10 +582,10 @@
               handler(ev);
             } catch(e) {
               console.error("'change' handler failed: ", e, e.stack);
-              this._emit('error', e);
+              self._emit('error', e);
             }
           }
-        }.bind(this));
+        });
       }
     }
   };
