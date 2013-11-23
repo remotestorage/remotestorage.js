@@ -179,12 +179,14 @@ define(['requirejs', 'localStorage', 'xmlhttprequest'], function(requirejs, loca
               // initial root request
               
               env.serverHelper.expectThisRequest(_this, 'GET', 'me/');
-              // requests for each object
-              env.serverHelper.expectThisRequest(_this, 'GET', 'me/obj-1');
-              env.serverHelper.expectThisRequest(_this, 'GET', 'me/obj-2');
-              env.serverHelper.expectThisRequest(_this, 'GET', 'me/obj-3');
-              env.serverHelper.expectThisRequest(_this, 'GET', 'me/obj-4');
-              env.serverHelper.expectThisRequest(_this, 'GET', 'me/obj-5');
+              // requests for each object (the order doesn't matter though)
+              env.serverHelper.expectTheseRequests(_this, [
+                ['GET', 'me/obj-1'],
+                ['GET', 'me/obj-2'],
+                ['GET', 'me/obj-3'],
+                ['GET', 'me/obj-4'],
+                ['GET', 'me/obj-5']
+              ]);
 
               env.serverHelper.expectNoMoreRequest(_this);
 
