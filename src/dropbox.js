@@ -125,6 +125,7 @@
    * token
    * userAddress
    *****************************/
+  var onErrorCb;
   RS.Dropbox = function(rs) {
 
     this.rs = rs;
@@ -132,12 +133,13 @@
     this.rs = rs;
     var self = this;
 
-    RS.eventHandling(this, 'change', 'connected');
-    rs.on('error', function(error){
+    onErrorCb = function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
         self.configure(null,null,null,null)
       }
-    });
+    }
+    RS.eventHandling(this, 'change', 'connected');
+    rs.on('error', onErrorCb);
     
     this.clientId = rs.apiKeys.dropbox.api_key;
     this._revCache = new LowerCaseCache('rev');
@@ -671,6 +673,7 @@
     if(haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
+    rs.removeEventListener('error', onErrorCb);
     rs.setBackend(undefined);
   };
 })(this);

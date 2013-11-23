@@ -363,14 +363,18 @@
     }
   };
 
+
+  var syncCycleCb;
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
-    remoteStorage.on('ready', function() {
+    syncCycleCb = function() {
       remoteStorage.syncCycle();
-    });
+    };
+    remoteStorage.on('ready', syncCycleCb);
   };
 
   RemoteStorage.Sync._rs_cleanup = function(remoteStorage) {
     remoteStorage.stopSync();
+    remoteStorage.removeEventListener('ready', syncCycleCb);
   };
 
 })(typeof(window) !== 'undefined' ? window : global);
