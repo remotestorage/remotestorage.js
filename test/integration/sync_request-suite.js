@@ -89,6 +89,7 @@ define(['requirejs', 'localStorage', 'xmlhttprequest'], function(requirejs, loca
       env.serverHelper.stop(function() {
         _this.result(true);
       });
+      localStorage.clear();
     },
 
     beforeEach: function(env, test) {
