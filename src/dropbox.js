@@ -177,7 +177,7 @@
       }
     },
     /**
-     * Mehtod : configure(userAdress, x, x, token)
+     * Method : configure(userAdress, x, x, token)
      *   accepts its parameters according to the wireClient
      *   set's the connected flag
      **/
