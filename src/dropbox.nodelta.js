@@ -18,7 +18,7 @@
 
   /*************************
    * LowerCaseCache
-   * this Cache will lowercase it's keys and propagate the values to "upper directories"
+   * this Cache will lowercase its keys and propagate the values to "upper directories"
    * get : get a value
    * set : set a value and propagate
    * delete : delete and propagate

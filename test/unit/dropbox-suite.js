@@ -249,7 +249,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#get extracts the Content-Type header, status and responseText and fulfills it's promise with those, once onload is called",
+        desc: "#get extracts the Content-Type header, status and responseText and fulfills its promise with those, once onload is called",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
