@@ -4,13 +4,25 @@ if (typeof define !== 'function') {
 define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
   var suites = [];
 
+  require('./lib/promising');
+
   suites.push({
     name: "Sync",
     desc: "Sync",
     setup: function(env, test) {
-      global.RemoteStorage = {
-        local: { },
-        remote: { }
+      global.RemoteStorage = function() {
+        return {
+          local: {
+            changesBelow: function() {
+              console.log('local changesBelow');
+            },
+          },
+          remote: {
+            changesBelow: function() {
+              console.log('remote changesBelow');
+            },
+          },
+        };
       };
       RemoteStorage.log = function() {};
       require('./src/sync');
@@ -52,15 +64,17 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "#sync fails if local or remote are missing",
+        desc: "#sync calls local.changesBelow",
         run: function(env, test) {
-          global.RemoteStorage = {};
-          try {
-            RemoteStorage.Sync.sync();
-            test.result(false, "sync didn't fail");
-          } catch(e) {
-            test.result(true);
-          }
+          local = {
+            changesBelow: function() {
+              test.result(true);
+              return promising().fulfill();
+            }
+          };
+          var remote = {
+          };
+          RemoteStorage.Sync.sync(remote, local, '');
         }
       }
     ]
