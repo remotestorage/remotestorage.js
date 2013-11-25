@@ -114,7 +114,7 @@
 
 /** FILE: src/remotestorage.js **/
 (function(global) {
-  function emitUnauthorized(status){
+  function emitUnauthorized(status) {
     var args = Array.prototype.slice.call(arguments);
     if (status === 403  || status === 401) {
       this._emit('error', new RemoteStorage.Unauthorized());
@@ -333,11 +333,11 @@
         this._emit('error', new RemoteStorage.DiscoveryError("user adress doesn't contain an @"));
         return;
       }
-      this.remote.configure(userAddress);
       this._emit('connecting');
-      
+      this.remote.configure(userAddress);
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
         if (!href){
+
           this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
           return;
         }
@@ -540,9 +540,7 @@
     /**
      ** FEATURE DETECTION
      **/
-
-    _detectFeatures: function() {
-      // determine availability
+    _loadFeatures: function(callback) {
       var features = [
         'WireClient',
         'Dropbox',
@@ -554,66 +552,89 @@
         'Widget',
         'IndexedDB',
         'LocalStorage',
+        'InMemoryStorage',
         'Sync',
         'BaseClient'
-      ].map(function(featureName) {
-        var impl = RemoteStorage[featureName];
-        return {
-          name: featureName,
-          init: (impl && impl._rs_init),
-          supported: impl && (impl._rs_supported ? impl._rs_supported() : true),
-          cleanup: ( impl && impl._rs_cleanup )
-        };
-      }).filter(function(feature) {
-        var supported = !! (feature.init && feature.supported);
-        this.log("[FEATURE " + feature.name + "] " + (supported ? '' : 'not ') + 'supported.');
-        return supported;
-      }.bind(this));
-
-      features.forEach(function(feature) {
-        if (feature.name === 'IndexedDB') {
-          features.local = RemoteStorage.IndexedDB;
-        } else if (feature.name === 'LocalStorage' && ! features.local) {
-          features.local = RemoteStorage.LocalStorage;
-        }
-      });
-      features.caching = !!RemoteStorage.Caching;
-      features.sync = !!RemoteStorage.Sync;
-
-      this.features = features;
-
-      return features;
-    },
-
-    _loadFeatures: function(callback) {
-      var features = this._detectFeatures();
+      ];
+      var theFeatures = [];
       var n = features.length, i = 0;
       var self = this;
+      function doneNow() {
+        i++;
+        if(i == n)
+          setTimeout(function() {
+            theFeatures.caching = !!RemoteStorage.Caching;
+            theFeatures.sync = !!RemoteStorage.Sync;
+            [
+              'IndexedDB',
+              'LocalStorage',
+              'InMemoryStorage'
+            ].some(function(cachingLayer) {
+              if ( theFeatures.some( function(feature) {
+                return feature.name === cachingLayer;
+              } ) 
+                 ) {
+                theFeatures.local = RemoteStorage[cachingLayer];
+                return true;
+              }
+            });
+            self.features = theFeatures;
+            callback.apply(self, [theFeatures]);
+          }, 0);
+      }
       function featureDoneCb(name) {
         return function() {
-          i++;
-          self.log("[FEATURE " + name + "] initialized. (" + i + "/" + n + ")");
-          if (i === n) {
-            setTimeout(function() {
-              callback.apply(self, [features]);
-            }, 0);
+          self.log("[FEATURE " + name + "] initialized. (" + (i+1) + "/" + n + ")");
+          theFeatures.push( {
+            name : name,
+            init :  RemoteStorage[name]._rs_init,
+            supported : true,
+            cleanup : RemoteStorage[name]._rs_cleanup
+          } );
+          doneNow();
+        };
+      }
+      function featureFailedCb(name) {
+        return function(err) {
+          self.log("[FEATURE "+name+"] initialization failed ( "+err+")");
+          //self.features
+          doneNow();
+        };
+      }
+      function featureSupportedCb(name) {
+        return function( success ) {
+          self.log("[FEATURE "+name+"]" + success ? "":" not"+" supported");
+          if(!success) {
+            doneNow();
           }
         };
       }
-      features.forEach(function(feature) {
-        self.log("[FEATURE " + feature.name + "] initializing...");
-        var initResult = feature.init(self);
-        var cb = featureDoneCb(feature.name);
-        if (typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
-          initResult.then(cb);
+      features.forEach(function(featureName) {
+        self.log("[FEATURE " + featureName + "] initializing...");
+        var impl = RemoteStorage[featureName];
+        var cb = featureDoneCb(featureName);
+        var failedCb = featureFailedCb(featureName);
+        var supportedCb = featureSupportedCb(featureName);
+        if( impl && (
+            ( impl._rs_supported && impl._rs_supported() ) || 
+            ( !impl._rs_supported )) ) {
+          supportedCb(true);
+          var initResult;
+          try {
+            initResult = impl._rs_init(self);
+          } catch(e) {
+            failedCb(e);
+            return;
+          }
+          if(typeof(initResult) == 'object' && typeof(initResult.then) == 'function') {
+            initResult.then(cb,failedCb);
+          } else {
+            cb();
+          }
         } else {
-          cb();
+          supportedCb(false);
         }
       });
-      if (features.length === 0) {
-        self.log("[NO FEATURES DETECTED] done");
-        callback.apply(self, [[]]);
-      }
     },
 
     /**
@@ -666,6 +687,7 @@
     _dispatchEvent: function(eventName, event) {
       for(var path in this._pathHandlers[eventName]) {
         var pl = path.length;
+        var self = this;
         this._pathHandlers[eventName][path].forEach(function(handler) {
           if (event.path.substr(0, pl) === path) {
             var ev = {};
@@ -675,10 +697,10 @@
               handler(ev);
             } catch(e) {
               console.error("'change' handler failed: ", e, e.stack);
-              this._emit('error', e);
+              self._emit('error', e);
             }
           }
-        }.bind(this));
+        });
       }
     }
   };
@@ -963,6 +985,16 @@
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
 
+
+  function isFolderDescription(body) {
+    return ((Object.keys(body).length === 2)
+                && (body['@context']==='http://remotestorage.io/spec/folder-description')
+                && (typeof(body['items'])=='object'));
+  }
+
+
+  var onErrorCb;
+
   /**
    * Class : RemoteStorage.WireClient
    **/
@@ -977,11 +1009,13 @@
      *   in posession of a token and a href
      **/
     RS.eventHandling(this, 'change', 'connected');
-    rs.on('error', function(error){
-      if (error instanceof RemoteStorage.Unauthorized) {
+    
+    onErrorCb = function(error){
+      if(error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
-    }.bind(this));
+    }.bind(this);
+    rs.on('error', onErrorCb);
     if (haveLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
@@ -1103,11 +1137,19 @@
         return promise;
       } else {
         return promise.then(function(status, body, contentType, revision) {
+          var tmp;
           if (status === 200 && typeof(body) === 'object') {
             if (Object.keys(body).length === 0) {
               // no children (coerce response to 'not found')
               status = 404;
-            } else {
+            } else if(isFolderDescription(body)) {
+              tmp = {};
+              for(var key in body.items) {
+                this._revisionCache[path + key] = body.items[key].ETag;
+                tmp[key] = body.items[key].ETag;
+              }
+              body = tmp;
+            } else {//pre-02 server
               for(var key in body) {
                 this._revisionCache[path + key] = body[key];
               }
@@ -1226,10 +1268,11 @@
     return !! global.XMLHttpRequest;
   };
 
-  RS.WireClient._rs_cleanup = function(){
+  RS.WireClient._rs_cleanup = function(remoteStorage){
     if (haveLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
+    remoteStorage.removeEventListener('error', onErrorCb);
   };
 
 })(typeof(window) !== 'undefined' ? window : global);
@@ -2516,7 +2559,7 @@ Math.uuid = function (len, radix) {
      * * the path ofcourse is the path of the node that changed
      *
      *
-     * * the origin tells you if it's an change pulled by sync(remote)
+     * * the origin tells you if it's a change pulled by sync(remote)
      * or some user action within the app(window)
      *
      *
@@ -3614,14 +3657,18 @@ Math.uuid = function (len, radix) {
     }
   };
 
+
+  var syncCycleCb;
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
-    remoteStorage.on('ready', function() {
+    syncCycleCb = function() {
       remoteStorage.syncCycle();
-    });
+    };
+    remoteStorage.on('ready', syncCycleCb);
   };
 
   RemoteStorage.Sync._rs_cleanup = function(remoteStorage) {
     remoteStorage.stopSync();
+    remoteStorage.removeEventListener('ready', syncCycleCb);
   };
 
 })(typeof(window) !== 'undefined' ? window : global);
@@ -3758,13 +3805,9 @@ Math.uuid = function (len, radix) {
 
   RS.IndexedDB = function(database) {
     this.db = database || DEFAULT_DB;
-    if (! this.db) {
-      if (RemoteStorage.LocalStorage) {
-        RemoteStorage.log("Failed to open indexedDB, falling back to localStorage");
-        return new RemoteStorage.LocalStorage();
-      } else {
-        throw "Failed to open indexedDB and localStorage fallback not available!";
-      }
+    if(! this.db) {
+      RemoteStorage.log("Failed to open indexedDB");
+      return undefined
     }
     RS.eventHandling(this, 'change', 'conflict');
   };
@@ -4048,8 +4091,7 @@ Math.uuid = function (len, radix) {
 
     var dbOpen = indexedDB.open(name, DB_VERSION);
     dbOpen.onerror = function() {
-      console.error('opening db failed', dbOpen);
-      alert('remoteStorage not supported (private browsing mode?)');
+      RemoteStorage.log('opening db failed', dbOpen);
       clearTimeout(timer);
       callback(dbOpen.error);
     };
@@ -4083,16 +4125,8 @@ Math.uuid = function (len, radix) {
   RS.IndexedDB._rs_init = function(remoteStorage) {
     var promise = promising();
     RS.IndexedDB.open(DEFAULT_DB_NAME, function(err, db) {
-      if (err) {
-        if (err.name === 'InvalidStateError') {
-          // firefox throws this when trying to open an indexedDB in private browsing mode
-          err = new Error("IndexedDB couldn't be opened.");
-          // instead of a stack trace, display some explaination:
-          err.stack = "If you are using Firefox, please disable\nprivate browsing mode.\n\nOtherwise please report your problem\nusing the link below";
-          remoteStorage._emit('error', err);
-        } else {
-          //FIXME or else what?
-        }
+      if(err) {
+        promise.reject(err);
       } else {
         DEFAULT_DB = db;
         db.onerror = function() { remoteStorage._emit('error', err); };
