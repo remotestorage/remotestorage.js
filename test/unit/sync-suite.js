@@ -8,7 +8,10 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     name: "Sync",
     desc: "Sync",
     setup: function(env, test) {
-      global.RemoteStorage = function() {};
+      global.RemoteStorage = {
+        local: { },
+        remote: { }
+      };
       RemoteStorage.log = function() {};
       require('./src/sync');
 
@@ -38,10 +41,23 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
 
       {
         desc: "#set a wrong value throws an error",
-        run: function(env, test) {
+        run: function (env, test) {
           try {
             RemoteStorage.Sync.setSyncInterval('60000');
             test.result(false, "setSyncInterval() didn't fail");
+          } catch (e) {
+            test.result(true);
+          }
+        }
+      },
+
+      {
+        desc: "#sync fails if local or remote are missing",
+        run: function(env, test) {
+          global.RemoteStorage = {};
+          try {
+            RemoteStorage.Sync.sync();
+            test.result(false, "sync didn't fail");
           } catch(e) {
             test.result(true);
           }
