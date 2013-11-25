@@ -6,6 +6,10 @@
 
 remoteStorage.js is a JavaScript library for storing user data locally in the browser, as well as connecting to [remoteStorage](http://remotestorage.io) servers and syncing data across devices and applications.
 
+### dev kit
+
+To get started, [download](https://github.com/remotestorage/dev-kit/archive/v0.1.0.tar.gz) the remoteStorage dev kit.
+
 ### Where to get help?
 
 * See [remotestorage.io](http://remotestorage.io/) for documentation, community forums, and links
@@ -13,7 +17,7 @@ remoteStorage.js is a JavaScript library for storing user data locally in the br
 
 ### Running a local test server
 
-To develop remoteStorage-enabled apps, you need to have a remoteStorage-compatible storage account. We recommend [reStore](https://github.com/jcoglan/restore) for running a local test server. (Use the latest version from GitHub, not npm!)
+To develop remoteStorage-enabled apps, you need the [dev kit](https://github.com/remotestorage/dev-kit/archive/v0.1.0.tar.gz).
 
 You can also get an account with a hoster, or use one of the various other remoteStorage server implementations: [get storage](http://remotestorage.io/get/).
 
