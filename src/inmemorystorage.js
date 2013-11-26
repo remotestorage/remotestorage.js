@@ -18,7 +18,7 @@
         applyRecursive(dirname, cb);
       }
     } else {
-      throw new Error('inMemoryStorage encountered invalid path : '+path);
+      throw new Error('inMemoryStorage encountered invalid path : ' + path);
     }
   }
 
@@ -49,7 +49,7 @@
       this._storage[path] = node;
       this._addToParent(path);
       if (!incoming) {
-        this._recordChange(path, {action: 'PUT' });
+        this._recordChange(path, { action: 'PUT' });
       }
 
       this._emit('change', {
@@ -66,7 +66,7 @@
       delete this._storage[path];
       this._removeFromParent(path);
       if (!incoming) {
-        this._recordChange(path, {action: 'DELETE' });
+        this._recordChange(path, { action: 'DELETE' });
       }
 
       if (oldNode) {
@@ -109,8 +109,9 @@
 
     _recordChange: function(path, attributes) {
       var change = this._changes[path] || {};
-      for(var k in attributes)
-        change[k] = attributes[k];
+      for(var key in attributes) {
+        change[key] = attributes[key];
+      }
       change.path = path;
       this._changes[path] = change;
     },
@@ -123,9 +124,9 @@
     changesBelow: function(path) {
       var changes = [];
       var l = path.length;
-      for(var k in this._changes) {
-        if (k.substr(0,l) === path) {
-          changes.push(this._changes[k]);
+      for(var key in this._changes) {
+        if (key.substr(0,l) === path) {
+          changes.push(this._changes[key]);
         }
       }
       return promising().fulfill(changes);
@@ -134,16 +135,17 @@
     setConflict: function(path, attributes) {
       this._recordChange(path, { conflict: attributes });
       var self = this;
-      var event = {path:path};
-      for(var k in attributes)
-        event[k] = attributes[k];
+      var event = { path: path };
+      for(var key in attributes) {
+        event[key] = attributes[key];
+      }
 
       event.resolve = function(resolution) {
-        if (resolution === 'remote'|| resolution === 'local') {
+        if (resolution === 'remote' || resolution === 'local') {
           attributes.resolution = resolution;
           self._recordChange(path, { conflict: attributes });
         } else {
-          throw new Error('Invalid resolution: '+resolution);
+          throw new Error('Invalid resolution: ' + resolution);
         }
       };
       this._emit('conflict', event);
