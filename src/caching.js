@@ -1,6 +1,5 @@
 (function(global) {
 
-  var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:caching";
 
   function containingDir(path) {
@@ -24,14 +23,6 @@
    */
   RemoteStorage.Caching = function() {
     this.reset();
-
-    if(haveLocalStorage) {
-      var settings = localStorage[SETTINGS_KEY];
-      if(settings) {
-        this._pathSettingsMap = JSON.parse(settings);
-        this._updateRoots();
-      }
-    }
   };
 
   RemoteStorage.Caching.prototype = {
@@ -161,9 +152,6 @@
         }
       }
       this.rootPaths = Object.keys(roots);
-      if(haveLocalStorage) {
-        localStorage[SETTINGS_KEY] = JSON.stringify(this._pathSettingsMap);
-      }
     },
 
   };
@@ -191,5 +179,7 @@
   });
 
   RemoteStorage.Caching._rs_init = function() {};
-
+  RemoteStorage.Caching._rs_cleanup = function(rs) {
+    
+  }
 })(typeof(window) !== 'undefined' ? window : global);
