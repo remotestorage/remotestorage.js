@@ -75,6 +75,7 @@
     }
 
     var promise = promising();
+    var revision;
 
     headers['Authorization'] = 'Bearer ' + token;
 
@@ -87,12 +88,15 @@
       } else {
         if (response.status === 404) {
           promise.fulfill(404);
+        } else if (response.status === 304) {
+          revision = response.getResponseHeader('ETag');
+          promise.fulfill(304, undefined, undefined, revision);
         } else {
           var mimeType = response.getResponseHeader('Content-Type');
           var body;
-          var revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
+          revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
           if ((! mimeType) || mimeType.match(/charset=binary/)) {
-            var blob = new Blob([response.response], {type: mimeType});
+            var blob = new Blob([response.response], { type: mimeType });
             var reader = new FileReader();
             reader.addEventListener("loadend", function() {
               // reader.result contains the contents of blob as a typed array
@@ -118,7 +122,6 @@
                 && (body['@context'] === 'http://remotestorage.io/spec/folder-description')
                 && (typeof(body['items']) === 'object'));
   }
-
 
   var onErrorCb;
 
