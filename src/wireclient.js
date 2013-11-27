@@ -113,11 +113,10 @@
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
 
-
   function isFolderDescription(body) {
     return ((Object.keys(body).length === 2)
-                && (body['@context']==='http://remotestorage.io/spec/folder-description')
-                && (typeof(body['items'])=='object'));
+                && (body['@context'] === 'http://remotestorage.io/spec/folder-description')
+                && (typeof(body['items']) === 'object'));
   }
 
 
@@ -137,7 +136,7 @@
      *   in posession of a token and a href
      **/
     RS.eventHandling(this, 'change', 'connected');
-    
+
     onErrorCb = function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
@@ -272,9 +271,9 @@
               status = 404;
             } else if(isFolderDescription(body)) {
               tmp = {};
-              for(var key in body.items) {
-                this._revisionCache[path + key] = body.items[key].ETag;
-                tmp[key] = body.items[key].ETag;
+              for(var item in body.items) {
+                this._revisionCache[path + item] = body.items[item].ETag;
+                tmp[item] = body.items[item].ETag;
               }
               body = tmp;
             } else {//pre-02 server

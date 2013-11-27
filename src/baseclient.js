@@ -43,6 +43,7 @@
      * The <RemoteStorage> instance this <BaseClient> operates on.
      */
     this.storage = storage;
+
     /**
      * Property: base
      *
@@ -59,6 +60,7 @@
     } else {
       this.moduleName = 'root';
     }
+
     /**
      * Event: change
      * emitted when a node changes
@@ -384,10 +386,7 @@
           return promising(function(p) { p.reject(validationResult); });
         }
       } catch(exc) {
-        if (exc instanceof RS.BaseClient.Types.SchemaNotFound) {
-          // ignore
-          // FIXME ignore what and why?
-        } else {
+        if (! (exc instanceof RS.BaseClient.Types.SchemaNotFound)) {
           return promising().reject(exc);
         }
       }
@@ -487,8 +486,6 @@
    *   (end code)
    *
    */
-
-
   RS.BaseClient._rs_init = function() {
     RS.prototype.scope = function(path) {
       return new RS.BaseClient(this, path);

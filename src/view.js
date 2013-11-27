@@ -5,10 +5,12 @@
   //
   var cEl = function(){
     return document.createElement.apply(document, arguments);
-  }
+  };
+
   function gCl(parent, className) {
     return parent.getElementsByClassName(className)[0];
   }
+
   function gTl(parent, className) {
     return parent.getElementsByTagName(className)[0];
   }
@@ -205,6 +207,7 @@
     connectGdrive: function() {
       this._emit('connect', { special: 'googledrive' });
     },
+
     connectDropbox: function(){
       this._emit('connect', { special: 'dropbox'});
     },
@@ -359,7 +362,6 @@
         event.preventDefault();
         this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
-
 
       /**
        * Event: sync

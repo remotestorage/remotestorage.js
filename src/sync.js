@@ -80,16 +80,19 @@
         }
         var n = keys.length, i = 0;
         if (n === 0) { promise.fulfill(); }
+
         function oneDone() {
           i++;
           if (i === n && !failed) { promise.fulfill(); }
         }
+
         function oneFailed(error) {
           if (!failed) {
             failed = true;
             promise.reject(error);
           }
         }
+
         keys.forEach(function(key) {
           promiseDeleteLocal(local, path + key).then(oneDone, oneFailed);
         });
@@ -272,7 +275,7 @@
    *
    */
   RemoteStorage.prototype.setSyncInterval = function(interval) {
-    if(typeof(interval) != 'number') {
+    if(typeof(interval) !== 'number') {
       throw interval + " is not a valid sync interval";
     }
     syncInterval = parseInt(interval, 10);
@@ -362,7 +365,6 @@
       delete this._syncTimer;
     }
   };
-
 
   var syncCycleCb;
   RemoteStorage.Sync._rs_init = function(remoteStorage) {

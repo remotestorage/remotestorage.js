@@ -44,7 +44,6 @@
     paths.forEach(loadRow);
   }
 
-
   function renderWrapper(title, table, storage, paths) {
     var wrapper = document.createElement('div');
     //wrapper.style.display = 'inline-block';
@@ -121,8 +120,10 @@
 
     controls.appendChild(heading);
 
+    var syncButton;
+
     if (this.local) {
-      var syncButton = document.createElement('button');
+      syncButton = document.createElement('button');
       syncButton.textContent = "Synchronize";
       controls.appendChild(syncButton);
     }

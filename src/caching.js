@@ -4,13 +4,13 @@
   var SETTINGS_KEY = "remotestorage:caching";
 
   function containingDir(path) {
-    if(path === '') return '/';
-    if(! path) throw "Path not given!";
+    if (path === '') { return '/'; }
+    if (! path) { throw "Path not given!"; }
     return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
   }
 
   function isDir(path) {
-    return path.substr(-1) == '/';
+    return path.substr(-1) === '/';
   }
 
   function pathContains(a, b) {
@@ -137,7 +137,7 @@
     },
 
     _updateRoots: function() {
-      var roots = {}
+      var roots = {};
       for(var a in this._pathSettingsMap) {
         // already a root
         if(roots[a]) {

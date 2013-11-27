@@ -128,12 +128,13 @@
 
   RS.IndexedDB = function(database) {
     this.db = database || DEFAULT_DB;
-    if(! this.db) {
+    if (! this.db) {
       RemoteStorage.log("Failed to open indexedDB");
-      return undefined
+      return undefined;
     }
     RS.eventHandling(this, 'change', 'conflict');
   };
+
   RS.IndexedDB.prototype = {
 
     get: function(path) {
@@ -142,9 +143,11 @@
       var nodes = transaction.objectStore('nodes');
       var nodeReq = nodes.get(path);
       var node;
+
       nodeReq.onsuccess = function() {
         node = nodeReq.result;
       };
+
       transaction.oncomplete = function() {
         if (node) {
           promise.fulfill(200, node.body, node.contentType, node.revision);
@@ -152,6 +155,7 @@
           promise.fulfill(404);
         }
       };
+
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
@@ -163,6 +167,7 @@
       var nodes = transaction.objectStore('nodes');
       var oldNode;
       var done;
+
       nodes.get(path).onsuccess = function(evt) {
         try {
           oldNode = evt.target.result;
@@ -188,6 +193,7 @@
           }
         }
       };
+
       transaction.oncomplete = function() {
         this._emit('change', {
           path: path,
@@ -203,6 +209,7 @@
           promise.fulfill(200);
         }
       }.bind(this);
+
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
@@ -213,12 +220,14 @@
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodes = transaction.objectStore('nodes');
       var oldNode;
+
       nodes.get(path).onsuccess = function(evt) {
         oldNode = evt.target.result;
         nodes.delete(path).onsuccess = function() {
           removeFromParent(nodes, path, 'body', incoming);
         };
       };
+
       transaction.oncomplete = function() {
         if (oldNode) {
           this._emit('change', {
@@ -233,6 +242,7 @@
         }
         promise.fulfill(200);
       }.bind(this);
+
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
@@ -244,6 +254,7 @@
     setRevisions: function(revs) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
+
       revs.forEach(function(rev) {
         var nodes = transaction.objectStore('nodes');
         nodes.get(rev[0]).onsuccess = function(event) {
@@ -254,9 +265,11 @@
           };
         };
       });
+
       transaction.oncomplete = function() {
         promise.fulfill();
       };
+
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
@@ -265,15 +278,18 @@
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var rev;
+
       transaction.objectStore('nodes').
         get(path).onsuccess = function(evt) {
           if (evt.target.result) {
             rev = evt.target.result.revision;
           }
         };
+
       transaction.oncomplete = function() {
         promise.fulfill(rev);
       };
+
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
@@ -285,10 +301,12 @@
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var nodes = transaction.objectStore('nodes');
+
       nodes.get(path).onsuccess = function(evt) {
         var node = evt.target.result || {};
         promise.fulfill(200, node.cached, node.contentType, node.revision);
       };
+
       return promise;
     },
 
@@ -330,6 +348,7 @@
       var transaction = this.db.transaction(['changes'], 'readwrite');
       var changes = transaction.objectStore('changes');
       var change;
+
       changes.get(path).onsuccess = function(evt) {
         change = evt.target.result || {};
         change.path = path;
@@ -338,6 +357,7 @@
         }
         changes.put(change);
       };
+
       transaction.oncomplete = promise.fulfill;
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
@@ -348,9 +368,11 @@
       var transaction = this.db.transaction(['changes'], 'readwrite');
       var changes = transaction.objectStore('changes');
       changes.delete(path);
+
       transaction.oncomplete = function() {
         promise.fulfill();
       };
+
       return promise;
     },
 
@@ -361,6 +383,7 @@
         openCursor(IDBKeyRange.lowerBound(path));
       var pl = path.length;
       var changes = [];
+
       cursorReq.onsuccess = function() {
         var cursor = cursorReq.result;
         if (cursor) {
@@ -370,9 +393,11 @@
           }
         }
       };
+
       transaction.oncomplete = function() {
         promise.fulfill(changes);
       };
+
       return promise;
     },
 
@@ -381,6 +406,7 @@
       for(var key in attributes) {
         event[key] = attributes[key];
       }
+
       this._recordChange(path, { conflict: attributes }).
         then(function() {
           // fire conflict once conflict has been recorded.
@@ -390,6 +416,7 @@
             setTimeout(function() { event.resolve('remote'); }, 0);
           }
         }.bind(this));
+
       event.resolve = function(resolution) {
         if (resolution === 'remote' || resolution === 'local') {
           attributes.resolution = resolution;
@@ -407,17 +434,20 @@
   };
 
   var DB_VERSION = 2;
+
   RS.IndexedDB.open = function(name, callback) {
     var timer = setTimeout(function() {
       callback("timeout trying to open db");
     }, 3500);
 
     var dbOpen = indexedDB.open(name, DB_VERSION);
+
     dbOpen.onerror = function() {
       RemoteStorage.log('opening db failed', dbOpen);
       clearTimeout(timer);
       callback(dbOpen.error);
     };
+
     dbOpen.onupgradeneeded = function(event) {
       RemoteStorage.log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
       var db = dbOpen.result;
@@ -428,6 +458,7 @@
       RemoteStorage.log("[IndexedDB] Creating object store: changes");
       db.createObjectStore('changes', { keyPath: 'path' });
     };
+
     dbOpen.onsuccess = function() {
       clearTimeout(timer);
       callback(null, dbOpen.result);
@@ -456,6 +487,7 @@
         promise.fulfill();
       }
     });
+
     return promise;
   };
 

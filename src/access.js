@@ -50,12 +50,13 @@
 
     remove: function(scope) {
       var savedMap = {};
-      for(var name in this.scopeModeMap) {
+      var name;
+      for(name in this.scopeModeMap) {
         savedMap[name] = this.scopeModeMap[name];
       }
       this.reset();
       delete savedMap[scope];
-      for(var name in savedMap) {
+      for(name in savedMap) {
         this.set(name, savedMap[name]);
       }
       this._persist();
@@ -134,7 +135,7 @@
   });
 
   function setModuleCaching(remoteStorage, key) {
-    if(key == 'root' || key === '') {
+    if(key === 'root' || key === '') {
       remoteStorage.caching.set('/', { data: true });
     } else {
       remoteStorage.caching.set('/' + key + '/', { data: true });
@@ -149,7 +150,7 @@
         this.access.claim(key, scopes[key]);
       }
     } else {
-      this.access.claim(arguments[0], arguments[1])
+      this.access.claim(arguments[0], arguments[1]);
     }
   };
 

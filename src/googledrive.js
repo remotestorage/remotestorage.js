@@ -16,11 +16,11 @@
   }
 
   function fileNameFromMeta(meta) {
-    return encodeURIComponent(meta.title) + (meta.mimeType == GD_DIR_MIME_TYPE ? '/' : '');
+    return encodeURIComponent(meta.title) + (meta.mimeType === GD_DIR_MIME_TYPE ? '/' : '');
   }
 
   function metaTitleFromFileName(filename) {
-    if(filename.substr(-1) == '/') {
+    if(filename.substr(-1) === '/') {
       filename = filename.substr(0, filename.length - 1);
     }
     return decodeURIComponent(filename);
@@ -32,7 +32,7 @@
 
   function baseName(path) {
     var parts = path.split('/');
-    if(path.substr(-1) == '/') {
+    if(path.substr(-1) === '/') {
       return parts[parts.length-2]+'/';
     } else {
       return parts[parts.length-1];
@@ -84,7 +84,7 @@
       } else {
         this.connected = false;
         delete this.token;
-        // not reseting backend whenever googledrive gets initialized without an token 
+        // not reseting backend whenever googledrive gets initialized without an token
 //       this.rs.setBackend(undefined);
         delete localStorage['remotestorage:googledrive:token'];
       }
@@ -96,7 +96,7 @@
     },
 
     get: function(path, options) {
-      if(path.substr(-1) == '/') {
+      if(path.substr(-1) === '/') {
         return this._getDir(path, options);
       } else {
         return this._getFile(path, options);
@@ -137,7 +137,7 @@
           this._request('DELETE', BASE_URL + '/drive/v2/files/' + id, {}, function(deleteError, response) {
             if(deleteError) {
               promise.reject(deleteError);
-            } else if(response.status == 200 || response.status == 204) {
+            } else if(response.status === 200 || response.status === 204) {
               promise.fulfill(200);
             } else {
               promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
@@ -254,10 +254,10 @@
             if(childrenError) {
               promise.reject(childrenError);
             } else {
-              if(response.status == 200) {
+              if(response.status === 200) {
                 var data = JSON.parse(response.responseText);
                 var n = data.items.length, i = 0;
-                if(n == 0) {
+                if(n === 0) {
                   // FIXME: add revision of directory!
                   promise.fulfill(200, {}, RS_DIR_MIME_TYPE, undefined);
                   return;
@@ -288,7 +288,7 @@
                     this._fileIdCache.set(path + fileName, meta.id);
                   }
                   i++;
-                  if(i == n) {
+                  if(i === n) {
                     promise.fulfill(200, result, RS_DIR_MIME_TYPE, undefined);
                   }
                 }.bind(this);
@@ -304,7 +304,6 @@
       });
       return promise;
     },
-
 
     _getParentId: function(path, callback) {
       callback = callback.bind(this);
@@ -352,7 +351,7 @@
     _getFileId: function(path, callback) {
       callback = callback.bind(this);
       var id;
-      if(path == '/') {
+      if(path === '/') {
         // "root" is a special alias for the fileId of the root directory
         callback(null, 'root');
       } else if((id = this._fileIdCache.get(path))) {
@@ -373,7 +372,7 @@
         if(err) {
           callback(err);
         } else {
-          if(response.status == 200) {
+          if(response.status === 200) {
             callback(null, JSON.parse(response.responseText));
           } else {
             callback("request (getting metadata for " + id + ") failed with status: " + response.status);
@@ -384,11 +383,11 @@
 
     _request: function(method, url, options, callback) {
       callback = callback.bind(this);
-      if(! options.headers) options.headers = {};
+      if (! options.headers) { options.headers = {}; }
       options.headers['Authorization'] = 'Bearer ' + this.token;
       RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
         // google tokens expire from time to time...
-        if(xhr.status == 401) {
+        if(xhr.status === 401) {
           this.connect();
           return;
         }
@@ -401,15 +400,17 @@
     var config = remoteStorage.apiKeys.googledrive;
     if(config) {
       remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.client_id);
-      if(remoteStorage.backend == 'googledrive') {
+      if(remoteStorage.backend === 'googledrive') {
         remoteStorage._origRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.googledrive;
       }
     }
   };
+
   RS.GoogleDrive._rs_supported = function(rs){
-    return true; 
-  }
+    return true;
+  };
+
   RS.GoogleDrive._rs_cleanup = function(remoteStorage) {
     remoteStorage.setBackend(undefined);
     if(remoteStorage._origRemote) {

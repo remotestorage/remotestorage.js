@@ -14,7 +14,7 @@
       var dirname = parts[1];
       var basename = parts[2];
 
-      if (cb(dirname, basename) && dirname != '/') {
+      if (cb(dirname, basename) && dirname !== '/') {
         applyRecursive(dirname, cb);
       }
     } else {

@@ -178,6 +178,7 @@
     Error.apply(this, arguments);
     this.message = message;
   };
+
   RemoteStorage.DiscoveryError.prototype = Object.create(Error.prototype);
 
   RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
@@ -221,8 +222,7 @@
       this._emit('connecting');
       this.remote.configure(userAddress);
       RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
-        if (!href){
-
+        if (!href) {
           this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
           return;
         }
@@ -253,6 +253,7 @@
         delete: this._pendingGPD('delete')
       });
       var n = this._cleanups.length, i = 0;
+
       var oneDone = function() {
         i++;
         if (i >= n) {
@@ -261,7 +262,8 @@
           this._emit('disconnect');// DEPRECATED?
         }
       }.bind(this);
-      if (n>0) {
+
+      if (n > 0) {
         this._cleanups.forEach(function(cleanup) {
           var cleanupResult = cleanup(this);
           if (typeof(cleanup) === 'object' && typeof(cleanup.then) === 'function') {
@@ -446,7 +448,7 @@
       var self = this;
       function doneNow() {
         i++;
-        if(i == n)
+        if(i === n) {
           setTimeout(function() {
             theFeatures.caching = !!RemoteStorage.Caching;
             theFeatures.sync = !!RemoteStorage.Sync;
@@ -457,7 +459,7 @@
             ].some(function(cachingLayer) {
               if ( theFeatures.some( function(feature) {
                 return feature.name === cachingLayer;
-              } ) 
+              } )
                  ) {
                 theFeatures.local = RemoteStorage[cachingLayer];
                 return true;
@@ -466,7 +468,9 @@
             self.features = theFeatures;
             callback.apply(self, [theFeatures]);
           }, 0);
+        }
       }
+
       function featureDoneCb(name) {
         return function() {
           self.log("[FEATURE " + name + "] initialized. (" + (i+1) + "/" + n + ")");
@@ -479,6 +483,7 @@
           doneNow();
         };
       }
+
       function featureFailedCb(name) {
         return function(err) {
           self.log("[FEATURE "+name+"] initialization failed ( "+err+")");
@@ -486,6 +491,7 @@
           doneNow();
         };
       }
+
       function featureSupportedCb(name) {
         return function( success ) {
           self.log("[FEATURE "+name+"]" + success ? "":" not"+" supported");
@@ -494,6 +500,7 @@
           }
         };
       }
+
       features.forEach(function(featureName) {
         self.log("[FEATURE " + featureName + "] initializing...");
         var impl = RemoteStorage[featureName];
@@ -501,7 +508,7 @@
         var failedCb = featureFailedCb(featureName);
         var supportedCb = featureSupportedCb(featureName);
         if( impl && (
-            ( impl._rs_supported && impl._rs_supported() ) || 
+            ( impl._rs_supported && impl._rs_supported() ) ||
             ( !impl._rs_supported )) ) {
           supportedCb(true);
           var initResult;
@@ -511,7 +518,7 @@
             failedCb(e);
             return;
           }
-          if(typeof(initResult) == 'object' && typeof(initResult.then) == 'function') {
+          if(typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
             initResult.then(cb,failedCb);
           } else {
             cb();
