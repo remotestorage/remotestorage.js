@@ -44,12 +44,9 @@ var util = {
   }
 };
 
-define(['requirejs', 'localStorage', 'xmlhttprequest'], function(requirejs, localStorage, request) {
+define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
   global.XMLHttpRequest = request.XMLHttpRequest;
-  global.localStorage = localStorage;
   var suites = [];
-
-  global.localStorage = localStorage;
 
   suites.push({
     name: "sync requests",
@@ -89,7 +86,6 @@ define(['requirejs', 'localStorage', 'xmlhttprequest'], function(requirejs, loca
       env.serverHelper.stop(function() {
         _this.result(true);
       });
-      localStorage.clear();
     },
 
     beforeEach: function(env, test) {
