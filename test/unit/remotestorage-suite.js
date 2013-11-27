@@ -2,38 +2,38 @@ if(typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 define([], function() {
-  
+
   var suites = [];
 
   var consoleLog, fakeLogs;
 
-  function FakeRemote(){
+  function FakeRemote() {
     this.connected = true;
-    this.configure = function(){}
+    this.configure = function() {};
     RemoteStorage.eventHandling(this, 'connected', 'disconnected');
   }
 
-  function fakeRequest(path){
+  function fakeRequest(path) {
     var promise = promising();
-    console.log('GET CALLED')
+    console.log('GET CALLED');
     if(path == '/testing403')
         promise.fulfill(403);
     else
         promise.fulfill(200);
     return promise;
   }
+
   FakeRemote.prototype = {
     get: fakeRequest,
     put: fakeRequest,
     delete: fakeRequest
-  }
+  };
 
-  function FakeLocal(){
-    
-  }
+  function FakeLocal() {}
+
   FakeLocal.prototype = {
-    fireInitial: function(){/*ignore*/}
-  }
+    fireInitial: function() {/*ignore*/}
+  };
 
   function fakeConsoleLog() {
     fakeLogs.push(Array.prototype.slice.call(arguments));
@@ -64,29 +64,31 @@ define([], function() {
     setup:  function(env, test) {
       require('./src/remotestorage');
       require('./src/eventhandling');
-      require('./lib/promising')
+      require('./lib/promising');
       if(global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      RemoteStorage.Discover = function( userAddress, cb ) {
-        if(userAddress == "someone@somewhere")
-          cb();
-        
-        return
-      }
+      RemoteStorage.Discover = function(userAddress, callback) {
+        if (userAddress === "someone@somewhere") {
+          callback();
+        }
+      };
+
       RemoteStorage.prototype.remote = new FakeRemote();
       //RemoteStorage.prototype.local = new FakeLocal();
       test.done();
     },
+
     beforeEach: function(env, test) {
       remoteStorage = new RemoteStorage();
       //remoteStorage._emit('ready');
       env.rs = remoteStorage;
-      test.done()
-    },   
-    tests: [ 
+      test.done();
+    },
+
+    tests: [
       {
         desc: "#get emiting error RemoteStorage.Unauthorized on 403",
         run: function(env, test) {
@@ -95,13 +97,14 @@ define([], function() {
             if(e instanceof RemoteStorage.Unauthorized)
               success = true;
           });
-          env.rs.get('/testing403').then(function(status){
+          env.rs.get('/testing403').then(function(status) {
             test.assertAnd(status, 403);
             test.assertAnd(success, true);
             test.done();
           });
         }
-      },    
+      },
+
       {
         desc: "#put emiting error RemoteStorage.Unauthorized on 403",
         run: function(env, test) {
@@ -109,12 +112,13 @@ define([], function() {
           env.rs.on('error', function(e) {
             if(e instanceof RemoteStorage.Unauthorized)
               success = true;
-          })
-          env.rs.put('/testing403').then(function(status){
+          });
+          env.rs.put('/testing403').then(function(status) {
             test.assert(success, true);
           });
         }
-      },    
+      },
+
       {
         desc: "#delete emiting error RemoteStorage.Unauthorized on 403",
         run: function(env, test) {
@@ -122,25 +126,26 @@ define([], function() {
           env.rs.on('error', function(e) {
             if(e instanceof RemoteStorage.Unauthorized)
               success = true;
-          })
-          env.rs.delete('/testing403').then(function(status){
+          });
+          env.rs.delete('/testing403').then(function(status) {
             test.assert(success, true);
           });
         }
       },
+
       {
         desc: "#get #put #delete not emmitting Error when getting 200",
         run: function(env, test) {
           var success = true;
           var c = 0;
-          function test_done(){
-            c+=1
-            if(c==3)
+          function test_done() {
+            c += 1;
+            if (c === 3)
               test.done();
           }
           env.rs.on('error', function(e) {
-            success = false
-          })
+            success = false;
+          });
           env.rs.get('/testing200').then(function() {
             test.assertAnd(success, true);
             test_done();
@@ -151,27 +156,28 @@ define([], function() {
           });
           env.rs.delete('/testing200').then(function() {
             test.assertAnd(success, true);
-            test_done()
+            test_done();
           });
         }
       },
 
       {
         desc: "#connect throws unauthorized when userAddress doesn't contain an @",
-        run: function(env, test){
-          env.rs.on('error', function(e){
+        run: function(env, test) {
+          env.rs.on('error', function(e) {
             test.assert(e instanceof RemoteStorage.DiscoveryError, true);
           });
           env.rs.connect('somestring');
         }
       },
+
       {
         desc: "#diconnect fires disconnected ",
-        run: function(env, test){
-          env.rs.on('disconnected', function(){
+        run: function(env, test) {
+          env.rs.on('disconnected', function() {
             test.done();
-          })
-          env.rs.disconnect()
+          });
+          env.rs.disconnect();
         }
       },
 
@@ -185,7 +191,7 @@ define([], function() {
           });
           env.rs.connect('someone@somewhere');
         }
-      }, 
+      },
 
       {
         desc: "#connect throws DiscoveryError on timeout of RemoteStorage.Discover",
@@ -195,7 +201,7 @@ define([], function() {
             test.assertAnd(e.message, "Discovery timed out", "wrong error message : "+e.message);
             test.done();
           });
-          env.rs.connect("someone@timeout")
+          env.rs.connect("someone@timeout");
         }
       }
     ]
@@ -214,7 +220,6 @@ define([], function() {
     },
 
     tests: [
-
       {
         desc: "exports the global RemoteStorage function",
         run: function(env, test) {
@@ -257,5 +262,4 @@ define([], function() {
   });
 
   return suites;
-
 });

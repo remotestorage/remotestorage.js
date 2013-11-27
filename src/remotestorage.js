@@ -8,7 +8,7 @@
     return p.fulfill.apply(p,args);
   }
 
-  function shareFirst(path){
+  function shareFirst(path) {
     return ( this.backend === 'dropbox' &&
              path.match(/^\/public\/.*[^\/]$/) );
   }
@@ -23,7 +23,7 @@
     },
 
     put: function(path, body, contentType) {
-      if (shareFirst.bind(this)(path)){
+      if (shareFirst.bind(this)(path)) {
         //this.local.put(path, body, contentType);
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
       }
@@ -226,8 +226,8 @@
         this._emit('error', new RemoteStorage.DiscoveryError("Discovery timed out"));
       }.bind(this), 5000);
 
-      RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
-        clearTimeout(discoveryTimeout)
+      RemoteStorage.Discover(userAddress, function(href, storageApi, authURL) {
+        clearTimeout(discoveryTimeout);
         if (!href) {
           this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
           return;
