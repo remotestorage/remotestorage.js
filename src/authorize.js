@@ -3,17 +3,17 @@
   function extractParams() {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
     var hashPos = document.location.href.indexOf('#');
-    if(hashPos == -1) return;
+    if (hashPos === -1) { return; }
     var hash = document.location.href.substring(hashPos+1);
     return hash.split('&').reduce(function(m, kvs) {
       var kv = kvs.split('=');
       m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
       return m;
     }, {});
-  };
+  }
 
   RemoteStorage.Authorize = function(authURL, scope, redirectUri, clientId) {
-    RemoteStorage.log('Authorize authURL = ',authURL)
+    RemoteStorage.log('Authorize authURL = ', authURL);
 
     var url = authURL;
     url += authURL.indexOf('?') > 0 ? '&' : '?';
@@ -29,8 +29,8 @@
     var scope = [];
     for(var key in scopes) {
       var mode = scopes[key];
-      if(key == 'root') {
-        if(! this.remote.storageApi.match(/^draft-dejong-remotestorage-/)) {
+      if (key === 'root') {
+        if (! this.remote.storageApi.match(/^draft-dejong-remotestorage-/)) {
           key = '';
         }
       }
@@ -45,32 +45,33 @@
   };
 
   RemoteStorage.Authorize._rs_supported = function(remoteStorage) {
-    return typeof(document) != 'undefined';
+    return typeof(document) !== 'undefined';
   };
 
   var onFeaturesLoaded;
   RemoteStorage.Authorize._rs_init = function(remoteStorage) {
     onFeaturesLoaded = function () {
-      if(params) {
-        if(params.error) {
+      if (params) {
+        if (params.error) {
           throw "Authorization server errored: " + params.error;
         }
-        if(params.access_token) {
+        if (params.access_token) {
           remoteStorage.remote.configure(undefined, undefined, undefined, params.access_token);
         }
-        if(params.remotestorage) {
+        if (params.remotestorage) {
           remoteStorage.connect(params.remotestorage);
         }
       }
-    }
+    };
     var params = extractParams();
-    if(params) {
+    if (params) {
       document.location.hash = '';
     }
-    remoteStorage.on('features-loaded', onFeaturesLoaded );
-  }
+    remoteStorage.on('features-loaded', onFeaturesLoaded);
+  };
+
   RemoteStorage.Authorize._rs_cleanup = function(remoteStorage) {
-    remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded );
-  }
+    remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
+  };
 
 })();

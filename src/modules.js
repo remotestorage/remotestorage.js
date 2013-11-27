@@ -1,9 +1,9 @@
 (function() {
 
   RemoteStorage.MODULES = {};
-  /* 
+  /*
      Method: RemoteStorage.defineModule
-     
+
      the defineModule method takes a module name and a builder function as parameters
 
      the function should return an object containtin an object called exports,
@@ -17,7 +17,7 @@
      in this example the scope of priv is /locations
 
      and the scope of pub is /public/locations
-     
+
      Example:
      (start code)
      remoteStorage.defineModule('locations', function(priv, pub) {
@@ -45,7 +45,7 @@
       }
     });
 
-    if(moduleName.indexOf('-') != -1) {
+    if (moduleName.indexOf('-') !== -1) {
       var camelizedName = moduleName.replace(/\-[a-z]/g, function(s) {
         return s[1].toUpperCase();
       });
@@ -59,7 +59,7 @@
 
   RemoteStorage.prototype._loadModule = function(moduleName) {
     var builder = RemoteStorage.MODULES[moduleName];
-    if(builder) {
+    if (builder) {
       var module = builder(new RemoteStorage.BaseClient(this, '/' + moduleName + '/'),
                            new RemoteStorage.BaseClient(this, '/public/' + moduleName + '/'));
       return module.exports;

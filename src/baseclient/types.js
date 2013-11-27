@@ -1,4 +1,3 @@
-
 (function(global) {
 
   RemoteStorage.BaseClient.Types = {
@@ -44,7 +43,7 @@
       var ml = moduleName.length;
       var schemas = {};
       for(var alias in this.uris) {
-        if(alias.substr(0, ml + 1) == moduleName + '/') {
+        if (alias.substr(0, ml + 1) === moduleName + '/') {
           var uri = this.uris[alias];
           schemas[uri] = this.schemas[uri];
         }
@@ -54,10 +53,11 @@
   };
 
   var SchemaNotFound = function(uri) {
-    var error = Error("Schema not found: " + uri);
+    var error = new Error("Schema not found: " + uri);
     error.name = "SchemaNotFound";
     return error;
   };
+
   SchemaNotFound.prototype = Error.prototype;
 
   RemoteStorage.BaseClient.Types.SchemaNotFound = SchemaNotFound;

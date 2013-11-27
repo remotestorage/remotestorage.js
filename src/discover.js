@@ -35,6 +35,7 @@
       'http://' + hostname + '/.well-known/webfinger' + params,
       'http://' + hostname + '/.well-known/host-meta.json' + params
     ];
+
     function tryOne() {
       var xhr = new XMLHttpRequest();
       var url = urls.shift();
@@ -87,9 +88,7 @@
       xhr.send();
     }
     tryOne();
-  },
-
-
+  };
 
   RemoteStorage.Discover._rs_init = function(remoteStorage) {
     if (haveLocalStorage) {
