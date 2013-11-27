@@ -3,8 +3,13 @@
   var SETTINGS_KEY = "remotestorage:caching";
 
   function containingDir(path) {
-    if (path === '') { return '/'; }
-    if (! path) { throw "Path not given!"; }
+    if(path === '') {
+      return '/';
+    }
+    if(! path) {
+      throw "Path not given!";
+    }
+
     return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
   }
 
@@ -179,7 +184,5 @@
   });
 
   RemoteStorage.Caching._rs_init = function() {};
-  RemoteStorage.Caching._rs_cleanup = function(rs) {
-    
-  }
-})(typeof(window) !== 'undefined' ? window : global);
+
+})(toypeof(window) !== 'undefined' ? window : global);
