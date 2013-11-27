@@ -78,7 +78,12 @@
       delete this._pathSettingsMap[path];
       this._updateRoots();
     },
-
+    /**
+     * Method: reset
+     * 
+     * resets the state of caching;
+     * deletes all caching information.
+     **/
     reset: function() {
       this.rootPaths = [];
       this._pathSettingsMap = {};
