@@ -91,7 +91,8 @@
           var mimeType = response.getResponseHeader('Content-Type');
           var body;
           var revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
-          if ((! mimeType) || mimeType.match(/charset=binary/)) {
+          if (response.status != 304 && (
+              (! mimeType) || mimeType.match(/charset=binary/) )) {
             var blob = new Blob([response.response], {type: mimeType});
             var reader = new FileReader();
             reader.addEventListener("loadend", function() {
@@ -103,6 +104,8 @@
             body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(response.responseText) : response.responseText;
             promise.fulfill(response.status, body, mimeType, revision);
           }
+          console.log("REVISION inside  ",method,' : ', revision);
+          console.log("Response : ", response.getResponseHeader('ETag'));
         }
       }
     });
@@ -128,20 +131,18 @@
   RS.WireClient = function(rs) {
     this.connected = false;
     /**
-     * Event: change
-     *   never fired for some reason
-     *
      * Event: connected
      *   fired when the wireclient connect method realizes that it is
-     *   in posession of a token and a href
+     *   in possession of a token and a href
      **/
-    RS.eventHandling(this, 'change', 'connected');
+    RS.eventHandling(this, 'connected');
 
     onErrorCb = function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this);
+
     rs.on('error', onErrorCb);
     if (haveLocalStorage) {
       var settings;

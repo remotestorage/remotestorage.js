@@ -194,7 +194,7 @@ define([], function() {
       {
         desc: "Default sync interval",
         run: function(env, test) {
-          test.assert(env.rs.getSyncInterval(), 10000);
+          test.assert(env.rs.getSyncInterval(), 10000, "syncInterval was "+env.rs.getSyncInterval());
         }
       },
 
