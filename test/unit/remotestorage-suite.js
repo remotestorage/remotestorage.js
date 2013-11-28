@@ -186,7 +186,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.on('error', function(e) {
             test.assertAnd(e instanceof RemoteStorage.DiscoveryError, true);
-            test.assertAnd(e.message, "failed to contact storage server", "wrong error message : "+e.message);
+            test.assertAnd(e.message, "Failed to contact storage server.", "wrong error message : "+e.message);
             test.done();
           });
           env.rs.connect('someone@somewhere');
@@ -198,7 +198,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.on('error', function(e) {
             test.assertAnd(e instanceof RemoteStorage.DiscoveryError, true);
-            test.assertAnd(e.message, "Discovery timed out", "wrong error message : "+e.message);
+            test.assertAnd(e.message, "No storage information found at that user address.", "wrong error message : "+e.message);
             test.done();
           });
           env.rs.connect("someone@timeout");
