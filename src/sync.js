@@ -49,7 +49,6 @@
   }
 
   function allDifferentKeys(a, b) {
-    console.log('\nallDifferentKeys ( ',a,' , ',b,' ) ')
     var keyObject = {};
     for (var ak in a) {
       if (a[ak] !== b[ak]) {
@@ -383,9 +382,6 @@
   RemoteStorage.prototype.syncInterval = 10000;
 
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
-    remoteStorage.on('ready', function() {
-      remoteStorage.syncCycle();
-    };
     remoteStorage.on('ready', syncCycleCb);
   };
 
