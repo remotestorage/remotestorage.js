@@ -173,7 +173,7 @@
             if (res) {
               RemoteStorage.log('about to resolve', res);
               // ready to be resolved.
-              change.action = (res === 'remote' ? change.remoteAction : change.localAction);
+              change.action = (res === 'remote' ? change.conflict.remoteAction : change.conflict.localAction);
               change.force = true;
             } else {
               RemoteStorage.log('conflict pending for ', change.path);

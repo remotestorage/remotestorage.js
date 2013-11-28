@@ -123,6 +123,51 @@ define([], function() {
       },
 
       {
+        desc: "Sync.sync() resolves conflict resolutions",
+        run: function(env, test) {
+          env.local.put('/foo/bar', 'local body', 'text/plain');
+          env.local.setConflict('/foo/bar', { resolution: 'remote', localAction: 'PUT', remoteAction: 'PUT' });
+
+          env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, {'bar': 123}, 'application/json', 123];
+          env.remote._responses[['get', '/foo/bar',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, "remote body", 'text/plain', 123];
+
+          RemoteStorage.Sync.sync(env.remote, env.local, '/foo/').then(function() {
+            test.assertAnd(env.local._changes, {}, 'still some changes left: '+JSON.stringify(env.local._changes));
+            test.assertAnd(env.remote._puts[0], ['/foo/bar', 'local body', 'text/plain', {}], 'got '+JSON.stringify(env.remote._puts[0])+' for put instead');
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "Sync.sync() keeps conflicts without resolution pending",
+        run: function(env, test) {
+          var path = '/foo/bar';
+          var conflict = { localAction: 'PUT', remoteAction: 'PUT' };
+
+          env.local.put(path, 'local body', 'text/plain');
+          env.local.setConflict(path, conflict);
+
+          env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, {'bar': 123}, 'application/json', 123];
+          env.remote._responses[['get', '/foo/bar',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, "remote body", 'text/plain', 123];
+
+          RemoteStorage.Sync.sync(env.remote, env.local, '/foo/').then(function() {
+            test.assertAnd(env.local._changes[path]['conflict'], conflict, 'got conflict '+JSON.stringify(env.local._changes[path]['conflict'])+' instead');
+            test.assertAnd(env.remote._puts.length, 0, 'got '+JSON.stringify(env.remote._puts)+' for puts instead');
+            test.done();
+          });
+        }
+      },
+
+      {
         desc : "Sync Adapter sets and removes all eventListeners",
         run : function(env, test) {
           function allHandlers() {
