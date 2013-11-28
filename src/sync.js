@@ -320,8 +320,13 @@
       var path;
       while((path = roots.shift())) {
         (function (path) {
-          RemoteStorage.Sync.sync(rs.remote, rs.local, path, rs.caching.get(path)).
+          var cachingState = rs.caching.get(path);
+          RemoteStorage.Sync.sync(rs.remote, rs.local, path, cachingState).
             then(function() {
+              if(!cachingState.ready) {
+                cachingState.ready = true;
+                rs.caching.set(path, cachingState);
+              }
               if (aborted) { return; }
               i++;
               if (n === i) {
@@ -329,6 +334,7 @@
                 promise.fulfill();
               }
             }, function(error) {
+              rs.caching.set(path, {data: true, ready: true});
               console.error('syncing', path, 'failed:', error);
               if (aborted) { return; }
               aborted = true;

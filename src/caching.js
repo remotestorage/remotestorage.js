@@ -37,10 +37,15 @@
      *
      * Enable caching for the given path.
      *
+     * here, `data` is true if both folder listings and
+     * documents in the subtree should be cached,
+     * and false to indicate that only folder listings,
+     * not documents in the subtree should be cached.
+     *
      * Parameters:
      *   path - Absolute path to a directory.
      */
-    enable: function(path) { this.set(path, { data: true }); },
+    enable: function(path) { this.set(path, { data: true, ready: false }); },
     /**
      * Method: disable
      *
@@ -89,25 +94,48 @@
      ** query methods
      **/
 
-    // Method: descendIntoPath
-    //
-    // Checks if the given directory path should be followed.
-    //
-    // Returns: true or false
+    /**
+     * Method: descendIntoPath
+     *
+     * Checks if the given directory path should be followed.
+     *
+     * Returns: true or false
+     */
     descendIntoPath: function(path) {
       this._validateDirPath(path);
       return !! this._query(path);
     },
 
-    // Method: cachePath
-    //
-    // Checks if given path should be cached.
-    //
-    // Returns: true or false
+    /**
+     * Method: cachePath
+     *
+     * Checks if given path should be cached.
+     *
+     * Returns: true or false
+     */
     cachePath: function(path) {
       this._validatePath(path);
       var settings = this._query(path);
-      return settings && (isDir(path) || settings.data);
+      if(isDir(path)) {
+        return !!settings;
+      } else {
+        return !!settings && (settings.data==true);
+      }
+    },
+
+    /**
+     * Method: cachePathReady
+     *
+     * Checks if given path should be cached and is ready (i.e. sync has completed at least once).
+     *
+     * Returns: true or false
+     */
+    cachePathReady: function(path) {
+      if(!this.cachePath(path)) {
+        return false;
+      }
+      var settings = this._query(path);
+      return ((typeof(settings) === 'object') && (settings.ready));
     },
 
     /**

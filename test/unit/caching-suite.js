@@ -1,5 +1,5 @@
 if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
+  var define = require('amdefine')(module);
 }
 define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
   var suites = [];
@@ -8,7 +8,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     name: "caching",
     desc: "Caching stores settings about which paths to cache locally",
     setup: function(env, test) {
-      global.RemoteStorage = function() {}
+      global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       require('./src/caching');
       env.Caching = RemoteStorage.Caching;
@@ -22,7 +22,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     },
 
     tests: [
-
       {
         desc: "#get() returns undefined for paths that haven't been configured",
         run: function(env, test) {
@@ -38,7 +37,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "get() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
 
@@ -50,7 +49,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "remove() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
 
@@ -63,7 +62,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "set() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
 
@@ -75,7 +74,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "set() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
 
@@ -91,7 +90,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "#remove() removes caching settings from given path",
         run: function(env, test) {
           env.caching.set('/foo/', { data: true });
-          test.assertTypeAnd(env.caching.get('/foo/'), 'object')
+          test.assertTypeAnd(env.caching.get('/foo/'), 'object');
           env.caching.remove('/foo/');
           test.assertType(env.caching.get('/foo/'), 'undefined');
         }
@@ -105,7 +104,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "descendIntoPath() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
 
@@ -117,7 +116,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "syncDataIn() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
 
@@ -130,7 +129,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "descendIntoPath() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
 
@@ -190,6 +189,31 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           test.assertTypeAnd(env.caching.get('/foo/'), 'undefined');
           test.assertTypeAnd(env.caching.get('/bar/'), 'undefined');
           test.assert(env.caching.rootPaths, []);
+        }
+      },
+
+      {
+        desc: "cachePathReady returns true if ready is set",
+        run: function(env, test) {
+          env.caching.enable('/foo/');
+          env.caching.enable('/bar/');
+          test.assertAnd(env.caching.cachePathReady('/foo/'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/foo/'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/foo/baz.txt'), false);
+          env.caching.set('/bar/', { data: true, ready: true });
+          test.assertAnd(env.caching.cachePathReady('/foo/'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/'), true);
+          test.assertAnd(env.caching.cachePathReady('/bar/foo/'), true);
+          test.assertAnd(env.caching.cachePathReady('/bar/baz.txt'), true);
+          test.assert(env.caching.cachePathReady('/bar/foo/baz.txt'), true);
         }
       }
 
