@@ -23,8 +23,11 @@
 
   var SyncedGetPutDelete = {
     get: function(path) {
+      var that = this;
       if (this.caching.cachePath(path)) {
-        return this.local.get(path);
+        return this.caching.waitForPath(path).then(function() {
+          return that.local.get(path);
+        });
       } else {
         return this.remote.get(path);
       }
