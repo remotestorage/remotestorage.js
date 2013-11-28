@@ -89,6 +89,33 @@ define([], function() {
       },
 
       {
+        desc: "RemoteStorage.sync() sets cached path ready",
+        run: function(env,test){
+          env.local.put('/foo/bar/baz', 'body', 'text/plain');
+          env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, {'bar/': 123}, 'application/json', 123];
+          env.remote._responses[['get', '/foo/bar/',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, {'baz': 123}, 'application/json', 123];
+
+          env.remote._responses[['get', '/foo/bar/baz',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, "body", 'text/plain', 123];
+          env.rs.caching.rootPaths = ['/foo/'];
+          env.rs.caching.get = function(path) {
+            return { data: true };
+          };
+          env.rs.caching.set = function(path, obj) {
+            test.assertAnd(path, '/foo/');
+            test.assertType(obj, 'object');
+            test.assert(obj.ready, true);
+          };
+          env.rs.sync();
+        }
+      },
+
+      {
         desc: "RemoteStorage.sync() emits busy and done when nothing to do",
         run: function(env,test){
           var busy = new test.Stub(function(){});

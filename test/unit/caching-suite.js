@@ -1,6 +1,9 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
+
+var promising = require('./lib/promising');
+
 define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
   var suites = [];
 
@@ -187,6 +190,60 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           test.assertTypeAnd(env.caching.get('/foo/'), 'undefined');
           test.assertTypeAnd(env.caching.get('/bar/'), 'undefined');
           test.assert(env.caching.rootPaths, []);
+        }
+      },
+
+      {
+        desc: "waitForPath queues a promise if rootPath not ready",
+        run: function(env, test) {
+          env.caching.enable('/foo/');
+          var promise = env.caching.waitForPath('/foo/bar');
+          test.assertAnd(env.caching.queuedPromises, {
+            '/foo/bar': [promise]
+          });
+          env.caching.set('/foo/', {data: true, ready: true});
+          test.assertAnd(env.caching.queuedPromises, {});
+          promise.then(function() {
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "waitForPath also fulfills the promise if rootPath ready beforehand",
+        run: function(env, test) {
+          env.caching.enable('/foo/');
+          env.caching.set('/foo/', {data: true, ready: true});
+          var promise = env.caching.waitForPath('/foo/bar');
+          test.assertAnd(env.caching.queuedPromises, undefined);
+          promise.then(function() {
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "cachePathReady returns true if and only if ready is set",
+        run: function(env, test) {
+          env.caching.enable('/foo/');
+          env.caching.enable('/bar/');
+          test.assertAnd(env.caching.cachePathReady('/foo/'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/foo/'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/foo/baz.txt'), false);
+          env.caching.set('/bar/', { data: true, ready: true });
+          test.assertAnd(env.caching.cachePathReady('/foo/'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/'), true);
+          test.assertAnd(env.caching.cachePathReady('/bar/foo/'), true);
+          test.assertAnd(env.caching.cachePathReady('/bar/baz.txt'), true);
+          test.assert(env.caching.cachePathReady('/bar/foo/baz.txt'), true);
         }
       }
     ]
