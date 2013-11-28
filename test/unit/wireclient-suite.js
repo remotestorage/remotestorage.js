@@ -1,5 +1,5 @@
 if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
+  var define = require('amdefine')(module);
 }
 define(['requirejs'], function(requirejs, undefined) {
   var suites = [];
@@ -23,7 +23,7 @@ define(['requirejs'], function(requirejs, undefined) {
       if(global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
-        global.rs_wireclient = RemoteStorage.WireClient
+        global.rs_wireclient = RemoteStorage.WireClient;
       }
       test.done();
     },
@@ -479,7 +479,7 @@ define(['requirejs'], function(requirejs, undefined) {
 
       {
         desc: "requests are aborted if they aren't responded after REQUEST_TIMEOUT milliseconds",
-        timeout: 30010,
+        timeout: 3000,
         run: function(env, test) {
           RemoteStorage.WireClient.REQUEST_TIMEOUT = 1000;
           env.connectedClient.get('/foo').then(function() {
@@ -547,6 +547,25 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "304 responses discard body and content-type, but return the revision",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar', { ifNoneMatch: 'foo' }).
+            then(function(status, body, contentType, revision) {
+              test.assertAnd(status, 304);
+              test.assertTypeAnd(body, 'undefined');
+              test.assertTypeAnd(contentType, 'undefined');
+              test.assertAnd(revision, '"foo"', 'expected revision to be "foo" but was' + revision);
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['ETag'] = '"foo"';
+          req.status = 304;
+          req.response = '';
+          req._onload();
+        }
+      },
+
+      {
         desc: "WireClient sets and removes eventlisteners",
         run: function(env, test) {
           function allHandlers() {
@@ -560,18 +579,16 @@ define(['requirejs'], function(requirejs, undefined) {
           var rs = new RemoteStorage();
           RemoteStorage.eventHandling(rs, 'error');
           test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
-          
+
           RemoteStorage.WireClient._rs_init(rs);
           test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers") ;
-          
+
           RemoteStorage.WireClient._rs_cleanup(rs);
           test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;
 
           test.done();
         }
       }
-
-
     ]
   });
 
