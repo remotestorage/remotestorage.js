@@ -215,21 +215,21 @@
      *
      */
     connect: function(userAddress) {
-      if ( userAddress.indexOf('@') < 0) {
-        this._emit('error', new RemoteStorage.DiscoveryError("user adress doesn't contain an @"));
+      if (userAddress.indexOf('@') < 0) {
+        this._emit('error', new RemoteStorage.DiscoveryError("User adress doesn't contain an @."));
         return;
       }
       this.remote.configure(userAddress);
       this._emit('connecting');
 
       var discoveryTimeout = setTimeout(function() {
-        this._emit('error', new RemoteStorage.DiscoveryError("Discovery timed out"));
+        this._emit('error', new RemoteStorage.DiscoveryError("No storage information found at that user address."));
       }.bind(this), 5000);
 
       RemoteStorage.Discover(userAddress, function(href, storageApi, authURL) {
         clearTimeout(discoveryTimeout);
         if (!href) {
-          this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
+          this._emit('error', new RemoteStorage.DiscoveryError("Failed to contact storage server."));
           return;
         }
         this._emit('authing');
