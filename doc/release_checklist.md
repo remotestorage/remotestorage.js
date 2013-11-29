@@ -23,6 +23,12 @@
     * While back in master branch:
         * Update version number, links, file size in `views/integrate/_hero.jade`
         * Run `./deploy`
+* Update shim repo with new release (components-remotestorage)
+    * Add release files
+    * Update version in config files
+    * Commit
+    * Tag new version
+    * `git push --tags`
 * Announce release on community forums
     * Create a new topic in "remoteStorage.js Core" similar to e.g. this one: http://community.remotestorage.io/t/remotestorage-js-0-8-3-released/95
 * Link release announcement on forums from
