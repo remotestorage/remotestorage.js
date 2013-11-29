@@ -224,7 +224,7 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#delete doesn't record a change for incoming chnages",
+        desc: "#delete doesn't record a change for incoming changes",
         run: function(env, test) {
           env.ls.put('/foo/bla', 'basfd', 'text/plain', true).then(function() {
             env.ls.delete('/foo/bla', true).then(function() {
@@ -263,6 +263,25 @@ define(['requirejs'], function(requirejs) {
             });
           });
           env.ls.put('/foo/bla', 'adsf', 'text/plain', true);
+        }
+      },
+
+      {
+        desc: "fireInitial fires change event with 'local' origin for initial cache content",
+        timeout: 250,
+        run: function(env, test) {
+          env.ls.put('/foo/bla', 'basdf', 'text/plain');
+          env.ls.on('change', function(event) {
+            test.assert(event.origin, 'local');
+          });
+          //the mock is just an in-memory object; need to explicitly set its .length and its .key() function now:
+          localStorage.length = 1;
+          localStorage.key = function(i) {
+            if(i==0) {
+              return NODES_PREFIX+'/foo/bla';
+            }
+          };
+          env.ls.fireInitial();
         }
       },
 

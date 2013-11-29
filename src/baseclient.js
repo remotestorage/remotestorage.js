@@ -69,7 +69,7 @@
      * (start code)
      * {
      *    path: path,
-     *    origin: incoming ? 'remote' : 'window',
+     *    origin: 'window', 'local', or 'remote'
      *    oldValue: oldBody,
      *    newValue: newBody
      *  }
@@ -79,8 +79,8 @@
      *
      *
      * * the origin tells you if it's a change pulled by sync(remote)
-     * or some user action within the app(window)
-     *
+     * or some user action within the app(window) or a result of connecting
+     * with the local data store(local).
      *
      *
      * * the oldValue defaults to undefined if you are dealing with some

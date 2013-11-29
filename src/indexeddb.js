@@ -31,9 +31,9 @@
    *       They have "oldValue" and "newValue" properties, which can be used to
    *       distinguish create/update/delete operations and analyze changes in
    *       change handlers. In addition they carry a "origin" property, which
-   *       is either "window" or "remote". "remote" events are fired whenever the
-   *       "incoming" flag is passed to #put() or #delete(). This is usually done
-   *       by RemoteStorage.Sync.
+   *       is either "window", "local", or "remote". "remote" events are fired
+   *       whenever the "incoming" flag is passed to #put() or #delete(). This
+   *       is usually done by RemoteStorage.Sync.
    *
    *   The revision interface (also on RemoteStorage.IndexedDB object):
    *     - #setRevision(path, revision) sets the current revision for the given
@@ -333,7 +333,7 @@
           if (path.substr(-1) !== '/') {
             this._emit('change', {
               path: path,
-              origin: 'remote',
+              origin: 'local',
               oldValue: undefined,
               newValue: cursor.value.body
             });
