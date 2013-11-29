@@ -1,4 +1,4 @@
-/** remotestorage.js 0.8.3-head, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.8.3, http://remotestorage.io, MIT-licensed **/
 define([], function() {
 
 /** FILE: lib/promising.js **/
@@ -124,7 +124,7 @@ define([], function() {
     return p.fulfill.apply(p,args);
   }
 
-  function shareFirst(path){
+  function shareFirst(path) {
     return ( this.backend === 'dropbox' &&
              path.match(/^\/public\/.*[^\/]$/) );
   }
@@ -139,7 +139,7 @@ define([], function() {
     },
 
     put: function(path, body, contentType) {
-      if (shareFirst.bind(this)(path)){
+      if (shareFirst.bind(this)(path)) {
         //this.local.put(path, body, contentType);
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
       }
@@ -294,6 +294,7 @@ define([], function() {
     Error.apply(this, arguments);
     this.message = message;
   };
+
   RemoteStorage.DiscoveryError.prototype = Object.create(Error.prototype);
 
   RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
@@ -330,16 +331,21 @@ define([], function() {
      *
      */
     connect: function(userAddress) {
-      if ( userAddress.indexOf('@') < 0) {
-        this._emit('error', new RemoteStorage.DiscoveryError("user adress doesn't contain an @"));
+      if (userAddress.indexOf('@') < 0) {
+        this._emit('error', new RemoteStorage.DiscoveryError("User adress doesn't contain an @."));
         return;
       }
-      this._emit('connecting');
       this.remote.configure(userAddress);
-      RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
-        if (!href){
+      this._emit('connecting');
 
-          this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
+      var discoveryTimeout = setTimeout(function() {
+        this._emit('error', new RemoteStorage.DiscoveryError("No storage information found at that user address."));
+      }.bind(this), 5000);
+
+      RemoteStorage.Discover(userAddress, function(href, storageApi, authURL) {
+        clearTimeout(discoveryTimeout);
+        if (!href) {
+          this._emit('error', new RemoteStorage.DiscoveryError("Failed to contact storage server."));
           return;
         }
         this._emit('authing');
@@ -369,6 +375,7 @@ define([], function() {
         delete: this._pendingGPD('delete')
       });
       var n = this._cleanups.length, i = 0;
+
       var oneDone = function() {
         i++;
         if (i >= n) {
@@ -377,7 +384,8 @@ define([], function() {
           this._emit('disconnect');// DEPRECATED?
         }
       }.bind(this);
-      if (n>0) {
+
+      if (n > 0) {
         this._cleanups.forEach(function(cleanup) {
           var cleanupResult = cleanup(this);
           if (typeof(cleanup) === 'object' && typeof(cleanup.then) === 'function') {
@@ -483,6 +491,7 @@ define([], function() {
 
     _init: function() {
       this._loadFeatures(function(features) {
+        var readyFired = false;
         this.log('all features loaded');
         this.local = features.local && new features.local();
         // (this.remote set by WireClient._rs_init
@@ -498,7 +507,10 @@ define([], function() {
         if (this.remote) {
           this.remote.on('connected', function() {
             try {
-              this._emit('ready');
+              if(!readyFired) {
+                this._emit('ready');
+                readyFired = true;
+              }
             } catch(e) {
               console.error("'ready' failed: ", e, e.stack);
               this._emit('error', e);
@@ -506,7 +518,10 @@ define([], function() {
           }.bind(this));
           if (this.remote.connected) {
             try {
-              this._emit('ready');
+              if(!readyFired) {
+                this._emit('ready');
+                readyFired = true;
+              }
             } catch(e) {
               console.error("'ready' failed: ", e, e.stack);
               this._emit('error', e);
@@ -562,7 +577,7 @@ define([], function() {
       var self = this;
       function doneNow() {
         i++;
-        if(i == n)
+        if(i === n) {
           setTimeout(function() {
             theFeatures.caching = !!RemoteStorage.Caching;
             theFeatures.sync = !!RemoteStorage.Sync;
@@ -573,7 +588,7 @@ define([], function() {
             ].some(function(cachingLayer) {
               if ( theFeatures.some( function(feature) {
                 return feature.name === cachingLayer;
-              } ) 
+              } )
                  ) {
                 theFeatures.local = RemoteStorage[cachingLayer];
                 return true;
@@ -582,7 +597,9 @@ define([], function() {
             self.features = theFeatures;
             callback.apply(self, [theFeatures]);
           }, 0);
+        }
       }
+
       function featureDoneCb(name) {
         return function() {
           self.log("[FEATURE " + name + "] initialized. (" + (i+1) + "/" + n + ")");
@@ -595,6 +612,7 @@ define([], function() {
           doneNow();
         };
       }
+
       function featureFailedCb(name) {
         return function(err) {
           self.log("[FEATURE "+name+"] initialization failed ( "+err+")");
@@ -602,6 +620,7 @@ define([], function() {
           doneNow();
         };
       }
+
       function featureSupportedCb(name) {
         return function( success ) {
           self.log("[FEATURE "+name+"]" + success ? "":" not"+" supported");
@@ -610,6 +629,7 @@ define([], function() {
           }
         };
       }
+
       features.forEach(function(featureName) {
         self.log("[FEATURE " + featureName + "] initializing...");
         var impl = RemoteStorage[featureName];
@@ -617,7 +637,7 @@ define([], function() {
         var failedCb = featureFailedCb(featureName);
         var supportedCb = featureSupportedCb(featureName);
         if( impl && (
-            ( impl._rs_supported && impl._rs_supported() ) || 
+            ( impl._rs_supported && impl._rs_supported() ) ||
             ( !impl._rs_supported )) ) {
           supportedCb(true);
           var initResult;
@@ -627,7 +647,7 @@ define([], function() {
             failedCb(e);
             return;
           }
-          if(typeof(initResult) == 'object' && typeof(initResult.then) == 'function') {
+          if(typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
             initResult.then(cb,failedCb);
           } else {
             cb();
@@ -948,6 +968,7 @@ define([], function() {
     }
 
     var promise = promising();
+    var revision;
 
     headers['Authorization'] = 'Bearer ' + token;
 
@@ -960,12 +981,15 @@ define([], function() {
       } else {
         if (response.status === 404) {
           promise.fulfill(404);
+        } else if (response.status === 304) {
+          revision = response.getResponseHeader('ETag');
+          promise.fulfill(304, undefined, undefined, revision);
         } else {
           var mimeType = response.getResponseHeader('Content-Type');
           var body;
-          var revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
+          revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
           if ((! mimeType) || mimeType.match(/charset=binary/)) {
-            var blob = new Blob([response.response], {type: mimeType});
+            var blob = new Blob([response.response], { type: mimeType });
             var reader = new FileReader();
             reader.addEventListener("loadend", function() {
               // reader.result contains the contents of blob as a typed array
@@ -986,13 +1010,11 @@ define([], function() {
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
 
-
   function isFolderDescription(body) {
     return ((Object.keys(body).length === 2)
-                && (body['@context']==='http://remotestorage.io/spec/folder-description')
-                && (typeof(body['items'])=='object'));
+                && (body['@context'] === 'http://remotestorage.io/spec/folder-description')
+                && (typeof(body['items']) === 'object'));
   }
-
 
   var onErrorCb;
 
@@ -1010,7 +1032,7 @@ define([], function() {
      *   in posession of a token and a href
      **/
     RS.eventHandling(this, 'change', 'connected');
-    
+
     onErrorCb = function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
@@ -1145,9 +1167,9 @@ define([], function() {
               status = 404;
             } else if(isFolderDescription(body)) {
               tmp = {};
-              for(var key in body.items) {
-                this._revisionCache[path + key] = body.items[key].ETag;
-                tmp[key] = body.items[key].ETag;
+              for(var item in body.items) {
+                this._revisionCache[path + item] = body.items[item].ETag;
+                tmp[item] = body.items[item].ETag;
               }
               body = tmp;
             } else {//pre-02 server
@@ -1317,6 +1339,7 @@ define([], function() {
       'http://' + hostname + '/.well-known/webfinger' + params,
       'http://' + hostname + '/.well-known/host-meta.json' + params
     ];
+
     function tryOne() {
       var xhr = new XMLHttpRequest();
       var url = urls.shift();
@@ -1369,9 +1392,7 @@ define([], function() {
       xhr.send();
     }
     tryOne();
-  },
-
-
+  };
 
   RemoteStorage.Discover._rs_init = function(remoteStorage) {
     if (haveLocalStorage) {
@@ -1404,17 +1425,17 @@ define([], function() {
   function extractParams() {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
     var hashPos = document.location.href.indexOf('#');
-    if(hashPos == -1) return;
+    if (hashPos === -1) { return; }
     var hash = document.location.href.substring(hashPos+1);
     return hash.split('&').reduce(function(m, kvs) {
       var kv = kvs.split('=');
       m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
       return m;
     }, {});
-  };
+  }
 
   RemoteStorage.Authorize = function(authURL, scope, redirectUri, clientId) {
-    RemoteStorage.log('Authorize authURL = ',authURL)
+    RemoteStorage.log('Authorize authURL = ', authURL);
 
     var url = authURL;
     url += authURL.indexOf('?') > 0 ? '&' : '?';
@@ -1430,8 +1451,8 @@ define([], function() {
     var scope = [];
     for(var key in scopes) {
       var mode = scopes[key];
-      if(key == 'root') {
-        if(! this.remote.storageApi.match(/^draft-dejong-remotestorage-/)) {
+      if (key === 'root') {
+        if (! this.remote.storageApi.match(/^draft-dejong-remotestorage-/)) {
           key = '';
         }
       }
@@ -1446,33 +1467,34 @@ define([], function() {
   };
 
   RemoteStorage.Authorize._rs_supported = function(remoteStorage) {
-    return typeof(document) != 'undefined';
+    return typeof(document) !== 'undefined';
   };
 
   var onFeaturesLoaded;
   RemoteStorage.Authorize._rs_init = function(remoteStorage) {
     onFeaturesLoaded = function () {
-      if(params) {
-        if(params.error) {
+      if (params) {
+        if (params.error) {
           throw "Authorization server errored: " + params.error;
         }
-        if(params.access_token) {
+        if (params.access_token) {
           remoteStorage.remote.configure(undefined, undefined, undefined, params.access_token);
         }
-        if(params.remotestorage) {
+        if (params.remotestorage) {
           remoteStorage.connect(params.remotestorage);
         }
       }
-    }
+    };
     var params = extractParams();
-    if(params) {
+    if (params) {
       document.location.hash = '';
     }
-    remoteStorage.on('features-loaded', onFeaturesLoaded );
-  }
+    remoteStorage.on('features-loaded', onFeaturesLoaded);
+  };
+
   RemoteStorage.Authorize._rs_cleanup = function(remoteStorage) {
-    remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded );
-  }
+    remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
+  };
 
 })();
 
@@ -1530,12 +1552,13 @@ define([], function() {
 
     remove: function(scope) {
       var savedMap = {};
-      for(var name in this.scopeModeMap) {
+      var name;
+      for(name in this.scopeModeMap) {
         savedMap[name] = this.scopeModeMap[name];
       }
       this.reset();
       delete savedMap[scope];
-      for(var name in savedMap) {
+      for(name in savedMap) {
         this.set(name, savedMap[name]);
       }
       this._persist();
@@ -1614,7 +1637,7 @@ define([], function() {
   });
 
   function setModuleCaching(remoteStorage, key) {
-    if(key == 'root' || key === '') {
+    if(key === 'root' || key === '') {
       remoteStorage.caching.set('/', { data: true });
     } else {
       remoteStorage.caching.set('/' + key + '/', { data: true });
@@ -1629,7 +1652,7 @@ define([], function() {
         this.access.claim(key, scopes[key]);
       }
     } else {
-      this.access.claim(arguments[0], arguments[1])
+      this.access.claim(arguments[0], arguments[1]);
     }
   };
 
@@ -1662,16 +1685,18 @@ RemoteStorage.Assets = {
   var LS_STATE_KEY = "remotestorage:widget:state";
   // states allowed to immediately jump into after a reload.
   var VALID_ENTRY_STATES = {
-    initial: true, connected: true, offline: true
+    initial: true,
+    connected: true,
+    offline: true
   };
 
   function stateSetter(widget, state) {
     return function() {
-      if(haveLocalStorage) {
+      if (haveLocalStorage) {
         localStorage[LS_STATE_KEY] = state;
       }
-      if(widget.view) {
-        if(widget.rs.remote) {
+      if (widget.view) {
+        if (widget.rs.remote) {
           widget.view.setUserAddress(widget.rs.remote.userAddress);
         }
         widget.view.setState(state, arguments);
@@ -1680,24 +1705,26 @@ RemoteStorage.Assets = {
       }
     };
   }
+
   function errorsHandler(widget){
     //decided to not store error state
     return function(error){
-      if(error instanceof RemoteStorage.DiscoveryError) {
+      if (error instanceof RemoteStorage.DiscoveryError) {
         console.error('discovery failed',  error, '"' + error.message + '"');
         widget.view.setState('initial', [error.message]);
-      } else if(error instanceof RemoteStorage.SyncError) {
+      } else if (error instanceof RemoteStorage.SyncError) {
         widget.view.setState('offline', []);
-      } else if(error instanceof RemoteStorage.Unauthorized){
-        widget.view.setState('unauthorized')
+      } else if (error instanceof RemoteStorage.Unauthorized){
+        widget.view.setState('unauthorized');
       } else {
         widget.view.setState('error', [error]);
       }
-    }
+    };
   }
+
   /**
    * Class: RemoteStorage.Widget
-   *   the Widget Controler that comunicates with the view 
+   *   the Widget Controler that comunicates with the view
    *   and listens to its remoteStorage instance
    *
    *   While listening to the Events emitted by its remoteStorage
@@ -1723,12 +1750,12 @@ RemoteStorage.Assets = {
     this.rs.on('sync-busy', stateSetter(this, 'busy'));
     this.rs.on('sync-done', stateSetter(this, 'connected'));
     this.rs.on('error', errorsHandler(this) );
-    if(haveLocalStorage) {
+    if (haveLocalStorage) {
       var state = localStorage[LS_STATE_KEY];
-      if(state && VALID_ENTRY_STATES[state]) {
+      if (state && VALID_ENTRY_STATES[state]) {
         this._rememberedState = state;
 
-        if(state == 'connected' && ! remoteStorage.connected) {
+        if (state === 'connected' && ! remoteStorage.connected) {
           this._rememberedState = 'initial';
         }
       }
@@ -1743,13 +1770,13 @@ RemoteStorage.Assets = {
     *     returns: this
     **/
     display: function(domID) {
-      if(! this.view) {
+      if (! this.view) {
         this.setView(new RemoteStorage.Widget.View(this.rs));
       }
       this.view.display.apply(this.view, arguments);
       return this;
     },
-    
+
     /**
     *   Method: setView(view)
     *    sets the view and initializes event listeners to
@@ -1758,7 +1785,7 @@ RemoteStorage.Assets = {
     setView: function(view) {
       this.view = view;
       this.view.on('connect', function(options) {
-        if(typeof(options) == 'string') {
+        if(typeof(options) === 'string') {
           // options is simply a useraddress
           this.rs.connect(options);
         } else if(options.special) {
@@ -1771,8 +1798,8 @@ RemoteStorage.Assets = {
       }
       try {
         this.view.on('reset', function(){
-          this.rs.on('disconnected', document.location.reload.bind(document.location))
-          this.rs.disconnect()
+          this.rs.on('disconnected', document.location.reload.bind(document.location));
+          this.rs.disconnect();
         }.bind(this));
       } catch(e) {
         if(e.message && e.message.match(/Unknown event/)) {
@@ -1804,7 +1831,7 @@ RemoteStorage.Assets = {
 
   RemoteStorage.Widget._rs_supported = function(remoteStorage) {
     haveLocalStorage = 'localStorage' in window;
-    return typeof(document) != 'undefined';
+    return typeof(document) !== 'undefined';
   };
 
 })(typeof(window) !== 'undefined' ? window : global);
@@ -1818,10 +1845,12 @@ RemoteStorage.Assets = {
   //
   var cEl = function(){
     return document.createElement.apply(document, arguments);
-  }
+  };
+
   function gCl(parent, className) {
     return parent.getElementsByClassName(className)[0];
   }
+
   function gTl(parent, className) {
     return parent.getElementsByTagName(className)[0];
   }
@@ -2018,6 +2047,7 @@ RemoteStorage.Assets = {
     connectGdrive: function() {
       this._emit('connect', { special: 'googledrive' });
     },
+
     connectDropbox: function(){
       this._emit('connect', { special: 'dropbox'});
     },
@@ -2172,7 +2202,6 @@ RemoteStorage.Assets = {
         event.preventDefault();
         this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
-
 
       /**
        * Event: sync
@@ -3111,6 +3140,7 @@ Math.uuid = function (len, radix) {
      * The <RemoteStorage> instance this <BaseClient> operates on.
      */
     this.storage = storage;
+
     /**
      * Property: base
      *
@@ -3127,6 +3157,7 @@ Math.uuid = function (len, radix) {
     } else {
       this.moduleName = 'root';
     }
+
     /**
      * Event: change
      * emitted when a node changes
@@ -3135,7 +3166,7 @@ Math.uuid = function (len, radix) {
      * (start code)
      * {
      *    path: path,
-     *    origin: incoming ? 'remote' : 'window',
+     *    origin: 'window', 'local', or 'remote'
      *    oldValue: oldBody,
      *    newValue: newBody
      *  }
@@ -3145,8 +3176,8 @@ Math.uuid = function (len, radix) {
      *
      *
      * * the origin tells you if it's a change pulled by sync(remote)
-     * or some user action within the app(window)
-     *
+     * or some user action within the app(window) or a result of connecting
+     * with the local data store(local).
      *
      *
      * * the oldValue defaults to undefined if you are dealing with some
@@ -3452,10 +3483,7 @@ Math.uuid = function (len, radix) {
           return promising(function(p) { p.reject(validationResult); });
         }
       } catch(exc) {
-        if (exc instanceof RS.BaseClient.Types.SchemaNotFound) {
-          // ignore
-          // FIXME ignore what and why?
-        } else {
+        if (! (exc instanceof RS.BaseClient.Types.SchemaNotFound)) {
           return promising().reject(exc);
         }
       }
@@ -3555,8 +3583,6 @@ Math.uuid = function (len, radix) {
    *   (end code)
    *
    */
-
-
   RS.BaseClient._rs_init = function() {
     RS.prototype.scope = function(path) {
       return new RS.BaseClient(this, path);
@@ -3578,7 +3604,6 @@ Math.uuid = function (len, radix) {
 
 
 /** FILE: src/baseclient/types.js **/
-
 (function(global) {
 
   RemoteStorage.BaseClient.Types = {
@@ -3624,7 +3649,7 @@ Math.uuid = function (len, radix) {
       var ml = moduleName.length;
       var schemas = {};
       for(var alias in this.uris) {
-        if(alias.substr(0, ml + 1) == moduleName + '/') {
+        if (alias.substr(0, ml + 1) === moduleName + '/') {
           var uri = this.uris[alias];
           schemas[uri] = this.schemas[uri];
         }
@@ -3634,10 +3659,11 @@ Math.uuid = function (len, radix) {
   };
 
   var SchemaNotFound = function(uri) {
-    var error = Error("Schema not found: " + uri);
+    var error = new Error("Schema not found: " + uri);
     error.name = "SchemaNotFound";
     return error;
   };
+
   SchemaNotFound.prototype = Error.prototype;
 
   RemoteStorage.BaseClient.Types.SchemaNotFound = SchemaNotFound;
@@ -3690,13 +3716,13 @@ Math.uuid = function (len, radix) {
   var SETTINGS_KEY = "remotestorage:caching";
 
   function containingDir(path) {
-    if(path === '') return '/';
-    if(! path) throw "Path not given!";
+    if (path === '') { return '/'; }
+    if (! path) { throw "Path not given!"; }
     return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
   }
 
   function isDir(path) {
-    return path.substr(-1) == '/';
+    return path.substr(-1) === '/';
   }
 
   function pathContains(a, b) {
@@ -3823,7 +3849,7 @@ Math.uuid = function (len, radix) {
     },
 
     _updateRoots: function() {
-      var roots = {}
+      var roots = {};
       for(var a in this._pathSettingsMap) {
         // already a root
         if(roots[a]) {
@@ -3959,16 +3985,19 @@ Math.uuid = function (len, radix) {
         }
         var n = keys.length, i = 0;
         if (n === 0) { promise.fulfill(); }
+
         function oneDone() {
           i++;
           if (i === n && !failed) { promise.fulfill(); }
         }
+
         function oneFailed(error) {
           if (!failed) {
             failed = true;
             promise.reject(error);
           }
         }
+
         keys.forEach(function(key) {
           promiseDeleteLocal(local, path + key).then(oneDone, oneFailed);
         });
@@ -4049,7 +4078,7 @@ Math.uuid = function (len, radix) {
             if (res) {
               RemoteStorage.log('about to resolve', res);
               // ready to be resolved.
-              change.action = (res === 'remote' ? change.remoteAction : change.localAction);
+              change.action = (res === 'remote' ? change.conflict.remoteAction : change.conflict.localAction);
               change.force = true;
             } else {
               RemoteStorage.log('conflict pending for ', change.path);
@@ -4151,7 +4180,7 @@ Math.uuid = function (len, radix) {
    *
    */
   RemoteStorage.prototype.setSyncInterval = function(interval) {
-    if(typeof(interval) != 'number') {
+    if(typeof(interval) !== 'number') {
       throw interval + " is not a valid sync interval";
     }
     syncInterval = parseInt(interval, 10);
@@ -4242,7 +4271,6 @@ Math.uuid = function (len, radix) {
     }
   };
 
-
   var syncCycleCb;
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
     syncCycleCb = function() {
@@ -4293,9 +4321,9 @@ Math.uuid = function (len, radix) {
    *       They have "oldValue" and "newValue" properties, which can be used to
    *       distinguish create/update/delete operations and analyze changes in
    *       change handlers. In addition they carry a "origin" property, which
-   *       is either "window" or "remote". "remote" events are fired whenever the
-   *       "incoming" flag is passed to #put() or #delete(). This is usually done
-   *       by RemoteStorage.Sync.
+   *       is either "window", "local", or "remote". "remote" events are fired
+   *       whenever the "incoming" flag is passed to #put() or #delete(). This
+   *       is usually done by RemoteStorage.Sync.
    *
    *   The revision interface (also on RemoteStorage.IndexedDB object):
    *     - #setRevision(path, revision) sets the current revision for the given
@@ -4390,12 +4418,13 @@ Math.uuid = function (len, radix) {
 
   RS.IndexedDB = function(database) {
     this.db = database || DEFAULT_DB;
-    if(! this.db) {
+    if (! this.db) {
       RemoteStorage.log("Failed to open indexedDB");
-      return undefined
+      return undefined;
     }
     RS.eventHandling(this, 'change', 'conflict');
   };
+
   RS.IndexedDB.prototype = {
 
     get: function(path) {
@@ -4404,9 +4433,11 @@ Math.uuid = function (len, radix) {
       var nodes = transaction.objectStore('nodes');
       var nodeReq = nodes.get(path);
       var node;
+
       nodeReq.onsuccess = function() {
         node = nodeReq.result;
       };
+
       transaction.oncomplete = function() {
         if (node) {
           promise.fulfill(200, node.body, node.contentType, node.revision);
@@ -4414,6 +4445,7 @@ Math.uuid = function (len, radix) {
           promise.fulfill(404);
         }
       };
+
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
@@ -4425,6 +4457,7 @@ Math.uuid = function (len, radix) {
       var nodes = transaction.objectStore('nodes');
       var oldNode;
       var done;
+
       nodes.get(path).onsuccess = function(evt) {
         try {
           oldNode = evt.target.result;
@@ -4450,6 +4483,7 @@ Math.uuid = function (len, radix) {
           }
         }
       };
+
       transaction.oncomplete = function() {
         this._emit('change', {
           path: path,
@@ -4465,6 +4499,7 @@ Math.uuid = function (len, radix) {
           promise.fulfill(200);
         }
       }.bind(this);
+
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
@@ -4475,12 +4510,14 @@ Math.uuid = function (len, radix) {
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodes = transaction.objectStore('nodes');
       var oldNode;
+
       nodes.get(path).onsuccess = function(evt) {
         oldNode = evt.target.result;
         nodes.delete(path).onsuccess = function() {
           removeFromParent(nodes, path, 'body', incoming);
         };
       };
+
       transaction.oncomplete = function() {
         if (oldNode) {
           this._emit('change', {
@@ -4495,6 +4532,7 @@ Math.uuid = function (len, radix) {
         }
         promise.fulfill(200);
       }.bind(this);
+
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
@@ -4506,6 +4544,7 @@ Math.uuid = function (len, radix) {
     setRevisions: function(revs) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
+
       revs.forEach(function(rev) {
         var nodes = transaction.objectStore('nodes');
         nodes.get(rev[0]).onsuccess = function(event) {
@@ -4516,9 +4555,11 @@ Math.uuid = function (len, radix) {
           };
         };
       });
+
       transaction.oncomplete = function() {
         promise.fulfill();
       };
+
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
@@ -4527,15 +4568,18 @@ Math.uuid = function (len, radix) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var rev;
+
       transaction.objectStore('nodes').
         get(path).onsuccess = function(evt) {
           if (evt.target.result) {
             rev = evt.target.result.revision;
           }
         };
+
       transaction.oncomplete = function() {
         promise.fulfill(rev);
       };
+
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
     },
@@ -4547,10 +4591,12 @@ Math.uuid = function (len, radix) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var nodes = transaction.objectStore('nodes');
+
       nodes.get(path).onsuccess = function(evt) {
         var node = evt.target.result || {};
         promise.fulfill(200, node.cached, node.contentType, node.revision);
       };
+
       return promise;
     },
 
@@ -4577,7 +4623,7 @@ Math.uuid = function (len, radix) {
           if (path.substr(-1) !== '/') {
             this._emit('change', {
               path: path,
-              origin: 'remote',
+              origin: 'local',
               oldValue: undefined,
               newValue: cursor.value.body
             });
@@ -4592,6 +4638,7 @@ Math.uuid = function (len, radix) {
       var transaction = this.db.transaction(['changes'], 'readwrite');
       var changes = transaction.objectStore('changes');
       var change;
+
       changes.get(path).onsuccess = function(evt) {
         change = evt.target.result || {};
         change.path = path;
@@ -4600,6 +4647,7 @@ Math.uuid = function (len, radix) {
         }
         changes.put(change);
       };
+
       transaction.oncomplete = promise.fulfill;
       transaction.onerror = transaction.onabort = promise.reject;
       return promise;
@@ -4610,9 +4658,11 @@ Math.uuid = function (len, radix) {
       var transaction = this.db.transaction(['changes'], 'readwrite');
       var changes = transaction.objectStore('changes');
       changes.delete(path);
+
       transaction.oncomplete = function() {
         promise.fulfill();
       };
+
       return promise;
     },
 
@@ -4623,6 +4673,7 @@ Math.uuid = function (len, radix) {
         openCursor(IDBKeyRange.lowerBound(path));
       var pl = path.length;
       var changes = [];
+
       cursorReq.onsuccess = function() {
         var cursor = cursorReq.result;
         if (cursor) {
@@ -4632,9 +4683,11 @@ Math.uuid = function (len, radix) {
           }
         }
       };
+
       transaction.oncomplete = function() {
         promise.fulfill(changes);
       };
+
       return promise;
     },
 
@@ -4643,6 +4696,7 @@ Math.uuid = function (len, radix) {
       for(var key in attributes) {
         event[key] = attributes[key];
       }
+
       this._recordChange(path, { conflict: attributes }).
         then(function() {
           // fire conflict once conflict has been recorded.
@@ -4652,6 +4706,7 @@ Math.uuid = function (len, radix) {
             setTimeout(function() { event.resolve('remote'); }, 0);
           }
         }.bind(this));
+
       event.resolve = function(resolution) {
         if (resolution === 'remote' || resolution === 'local') {
           attributes.resolution = resolution;
@@ -4669,17 +4724,20 @@ Math.uuid = function (len, radix) {
   };
 
   var DB_VERSION = 2;
+
   RS.IndexedDB.open = function(name, callback) {
     var timer = setTimeout(function() {
       callback("timeout trying to open db");
     }, 3500);
 
     var dbOpen = indexedDB.open(name, DB_VERSION);
+
     dbOpen.onerror = function() {
       RemoteStorage.log('opening db failed', dbOpen);
       clearTimeout(timer);
       callback(dbOpen.error);
     };
+
     dbOpen.onupgradeneeded = function(event) {
       RemoteStorage.log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
       var db = dbOpen.result;
@@ -4690,6 +4748,7 @@ Math.uuid = function (len, radix) {
       RemoteStorage.log("[IndexedDB] Creating object store: changes");
       db.createObjectStore('changes', { keyPath: 'path' });
     };
+
     dbOpen.onsuccess = function() {
       clearTimeout(timer);
       callback(null, dbOpen.result);
@@ -4718,6 +4777,7 @@ Math.uuid = function (len, radix) {
         promise.fulfill();
       }
     });
+
     return promise;
   };
 
@@ -4974,7 +5034,7 @@ Math.uuid = function (len, radix) {
           var node = this._get(path);
           this._emit('change', {
             path: path,
-            origin: 'remote',
+            origin: 'local',
             oldValue: undefined,
             newValue: node.body
           });
@@ -5027,7 +5087,7 @@ Math.uuid = function (len, radix) {
       var dirname = parts[1];
       var basename = parts[2];
 
-      if (cb(dirname, basename) && dirname != '/') {
+      if (cb(dirname, basename) && dirname !== '/') {
         applyRecursive(dirname, cb);
       }
     } else {
@@ -5199,9 +5259,9 @@ Math.uuid = function (len, radix) {
 (function() {
 
   RemoteStorage.MODULES = {};
-  /* 
+  /*
      Method: RemoteStorage.defineModule
-     
+
      the defineModule method takes a module name and a builder function as parameters
 
      the function should return an object containtin an object called exports,
@@ -5215,7 +5275,7 @@ Math.uuid = function (len, radix) {
      in this example the scope of priv is /locations
 
      and the scope of pub is /public/locations
-     
+
      Example:
      (start code)
      remoteStorage.defineModule('locations', function(priv, pub) {
@@ -5243,7 +5303,7 @@ Math.uuid = function (len, radix) {
       }
     });
 
-    if(moduleName.indexOf('-') != -1) {
+    if (moduleName.indexOf('-') !== -1) {
       var camelizedName = moduleName.replace(/\-[a-z]/g, function(s) {
         return s[1].toUpperCase();
       });
@@ -5257,7 +5317,7 @@ Math.uuid = function (len, radix) {
 
   RemoteStorage.prototype._loadModule = function(moduleName) {
     var builder = RemoteStorage.MODULES[moduleName];
-    if(builder) {
+    if (builder) {
       var module = builder(new RemoteStorage.BaseClient(this, '/' + moduleName + '/'),
                            new RemoteStorage.BaseClient(this, '/public/' + moduleName + '/'));
       return module.exports;
@@ -5320,7 +5380,6 @@ Math.uuid = function (len, radix) {
 
     paths.forEach(loadRow);
   }
-
 
   function renderWrapper(title, table, storage, paths) {
     var wrapper = document.createElement('div');
@@ -5398,8 +5457,10 @@ Math.uuid = function (len, radix) {
 
     controls.appendChild(heading);
 
+    var syncButton;
+
     if (this.local) {
-      var syncButton = document.createElement('button');
+      syncButton = document.createElement('button');
       syncButton.textContent = "Synchronize";
       controls.appendChild(syncButton);
     }
@@ -5437,7 +5498,6 @@ Math.uuid = function (len, radix) {
 
 
 /** FILE: src/legacy.js **/
-
 (function() {
   var util = {
     getEventEmitter: function() {
@@ -5470,18 +5530,20 @@ Math.uuid = function (len, radix) {
       var results = [], errors = [];
       function oneDone() {
         i++;
-        if(i == n) {
+        if(i === n) {
           promise.fulfill(results, errors);
         }
       }
+
       array.forEach(function(item, index) {
+        var result;
         try {
-          var result = callback(item);
+          result = callback(item);
         } catch(exc) {
           oneDone();
           errors[index] = exc;
         }
-        if(typeof(result) == 'object' && typeof(result.then) == 'function') {
+        if (typeof(result) === 'object' && typeof(result.then) === 'function') {
           result.then(function(res) { results[index] = res; oneDone(); },
                       function(error) { errors[index] = res; oneDone(); });
         } else {
@@ -5489,21 +5551,22 @@ Math.uuid = function (len, radix) {
           results[index] = result;
         }
       });
+
       return promise;
     },
 
     containingDir: function(path) {
       var dir = path.replace(/[^\/]+\/?$/, '');
-      return dir == path ? null : dir;
+      return dir === path ? null : dir;
     },
 
     isDir: function(path) {
-      return path.substr(-1) == '/';
+      return path.substr(-1) === '/';
     },
 
     baseName: function(path) {
       var parts = path.split('/');
-      if(util.isDir(path)) {
+      if (util.isDir(path)) {
         return parts[parts.length-2]+'/';
       } else {
         return parts[parts.length-1];
@@ -5512,7 +5575,7 @@ Math.uuid = function (len, radix) {
 
     bindAll: function(object) {
       for(var key in this) {
-        if(typeof(object[key]) == 'function') {
+        if (typeof(object[key]) === 'function') {
           object[key] = object[key].bind(object);
         }
       }
@@ -5548,11 +5611,11 @@ Math.uuid = function (len, radix) {
   }
 
   function fileNameFromMeta(meta) {
-    return encodeURIComponent(meta.title) + (meta.mimeType == GD_DIR_MIME_TYPE ? '/' : '');
+    return encodeURIComponent(meta.title) + (meta.mimeType === GD_DIR_MIME_TYPE ? '/' : '');
   }
 
   function metaTitleFromFileName(filename) {
-    if(filename.substr(-1) == '/') {
+    if(filename.substr(-1) === '/') {
       filename = filename.substr(0, filename.length - 1);
     }
     return decodeURIComponent(filename);
@@ -5564,7 +5627,7 @@ Math.uuid = function (len, radix) {
 
   function baseName(path) {
     var parts = path.split('/');
-    if(path.substr(-1) == '/') {
+    if(path.substr(-1) === '/') {
       return parts[parts.length-2]+'/';
     } else {
       return parts[parts.length-1];
@@ -5616,7 +5679,7 @@ Math.uuid = function (len, radix) {
       } else {
         this.connected = false;
         delete this.token;
-        // not reseting backend whenever googledrive gets initialized without an token 
+        // not reseting backend whenever googledrive gets initialized without an token
 //       this.rs.setBackend(undefined);
         delete localStorage['remotestorage:googledrive:token'];
       }
@@ -5628,7 +5691,7 @@ Math.uuid = function (len, radix) {
     },
 
     get: function(path, options) {
-      if(path.substr(-1) == '/') {
+      if(path.substr(-1) === '/') {
         return this._getDir(path, options);
       } else {
         return this._getFile(path, options);
@@ -5669,7 +5732,7 @@ Math.uuid = function (len, radix) {
           this._request('DELETE', BASE_URL + '/drive/v2/files/' + id, {}, function(deleteError, response) {
             if(deleteError) {
               promise.reject(deleteError);
-            } else if(response.status == 200 || response.status == 204) {
+            } else if(response.status === 200 || response.status === 204) {
               promise.fulfill(200);
             } else {
               promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
@@ -5786,10 +5849,10 @@ Math.uuid = function (len, radix) {
             if(childrenError) {
               promise.reject(childrenError);
             } else {
-              if(response.status == 200) {
+              if(response.status === 200) {
                 var data = JSON.parse(response.responseText);
                 var n = data.items.length, i = 0;
-                if(n == 0) {
+                if(n === 0) {
                   // FIXME: add revision of directory!
                   promise.fulfill(200, {}, RS_DIR_MIME_TYPE, undefined);
                   return;
@@ -5820,7 +5883,7 @@ Math.uuid = function (len, radix) {
                     this._fileIdCache.set(path + fileName, meta.id);
                   }
                   i++;
-                  if(i == n) {
+                  if(i === n) {
                     promise.fulfill(200, result, RS_DIR_MIME_TYPE, undefined);
                   }
                 }.bind(this);
@@ -5836,7 +5899,6 @@ Math.uuid = function (len, radix) {
       });
       return promise;
     },
-
 
     _getParentId: function(path, callback) {
       callback = callback.bind(this);
@@ -5884,7 +5946,7 @@ Math.uuid = function (len, radix) {
     _getFileId: function(path, callback) {
       callback = callback.bind(this);
       var id;
-      if(path == '/') {
+      if(path === '/') {
         // "root" is a special alias for the fileId of the root directory
         callback(null, 'root');
       } else if((id = this._fileIdCache.get(path))) {
@@ -5905,7 +5967,7 @@ Math.uuid = function (len, radix) {
         if(err) {
           callback(err);
         } else {
-          if(response.status == 200) {
+          if(response.status === 200) {
             callback(null, JSON.parse(response.responseText));
           } else {
             callback("request (getting metadata for " + id + ") failed with status: " + response.status);
@@ -5916,11 +5978,11 @@ Math.uuid = function (len, radix) {
 
     _request: function(method, url, options, callback) {
       callback = callback.bind(this);
-      if(! options.headers) options.headers = {};
+      if (! options.headers) { options.headers = {}; }
       options.headers['Authorization'] = 'Bearer ' + this.token;
       RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
         // google tokens expire from time to time...
-        if(xhr.status == 401) {
+        if(xhr.status === 401) {
           this.connect();
           return;
         }
@@ -5933,15 +5995,17 @@ Math.uuid = function (len, radix) {
     var config = remoteStorage.apiKeys.googledrive;
     if(config) {
       remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.client_id);
-      if(remoteStorage.backend == 'googledrive') {
+      if(remoteStorage.backend === 'googledrive') {
         remoteStorage._origRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.googledrive;
       }
     }
   };
+
   RS.GoogleDrive._rs_supported = function(rs){
-    return true; 
-  }
+    return true;
+  };
+
   RS.GoogleDrive._rs_cleanup = function(remoteStorage) {
     remoteStorage.setBackend(undefined);
     if(remoteStorage._origRemote) {
@@ -5956,57 +6020,58 @@ Math.uuid = function (len, radix) {
 /** FILE: src/dropbox.js **/
 (function(global) {
   var RS = RemoteStorage;
-  // next steps : 
+  // next steps :
   //  features:
   // handle fetchDelta has_more
   // handle files larger than 150MB
-  // 
+  //
   //  testing:
   // add to remotestorage browser
   // add to sharedy
   // maybe write tests for remote
   //
- 
+
 
   /**
    * Dropbox backend for RemoteStorage.js
    * this file exposes a get/put/delete interface which is compatible with the wireclient
    * it requires to get configured with a dropbox token similar to the wireclient.configure
    *
-   * when the remotestorage.backend was set to 'dropbox' it will initialize and resets 
+   * when the remotestorage.backend was set to 'dropbox' it will initialize and resets
    * remoteStorage.remote with remoteStorage.dropbox
-   * 
-   * for compability with the public directory the getItemURL function of the BaseClient gets 
+   *
+   * for compability with the public directory the getItemURL function of the BaseClient gets
    * highjackt and returns the dropbox share-url
    *
    * to connect with dropbox a connect function is provided
    *
-   * known issues : 
+   * known issues :
    *   files larger than 150mb are not suported for upload
    *   directories with more than 10.000 files will cause problems to list
    *   content-type is guessed by dropbox.com therefore they aren't fully supported
    *   dropbox preserves cases but not case sensitive
-   *   share_urls and therfeor getItemURL is asynchronius , which means 
+   *   share_urls and therfeor getItemURL is asynchronius , which means
    *     getItemURL returns usefull values after the syncCycle
    **/
   var haveLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
   var SETTINGS_KEY = 'remotestorage:dropbox';
-  var cleanPath = RS.WireClient.cleanPath
+  var cleanPath = RS.WireClient.cleanPath;
+
   /*************************
    * LowerCaseCache
-   * this Cache will lowercase its keys 
+   * this Cache will lowercase its keys
    * and can propagate the values to "upper directories"
-   * 
+   *
    * intialized with default Value(undefined will be accepted)
    *
-   * set and delete will be set to justSet and justDelete on initialization 
+   * set and delete will be set to justSet and justDelete on initialization
    *
    * get : get a value or default Value
    * set : set a value
    * justSet : just set a value and don't propagate at all
    * propagateSet : Set a value and propagate
-   * delete : delete 
+   * delete : delete
    * justDelete : just delete a value and don't propagate at al
    * propagateDelete : deleta a value and propagate
    * _activatePropagation : replace set and delete with their propagate versions
@@ -6017,11 +6082,12 @@ Math.uuid = function (len, radix) {
     this.set = this.justSet;
     this.delete = this.justDelete;
   }
+
   LowerCaseCache.prototype = {
     get : function(key) {
       key = key.toLowerCase();
-      var stored = this._storage[key]
-      if(typeof stored == 'undefined'){
+      var stored = this._storage[key];
+      if(typeof stored === 'undefined'){
         stored = this.defaultValue;
         this._storage[key] = stored;
       }
@@ -6029,13 +6095,14 @@ Math.uuid = function (len, radix) {
     },
     propagateSet : function(key, value) {
       key = key.toLowerCase();
-      if(this._storage[key] == value) 
+      if (this._storage[key] === value) {
         return value;
+      }
       this._propagate(key, value);
       return this._storage[key] = value;
     },
     propagateDelete : function(key) {
-      var key = key.toLowerCase();
+      key = key.toLowerCase();
       this._propagate(key, this._storage[key]);
       return delete this._storage[key];
     },
@@ -6049,25 +6116,27 @@ Math.uuid = function (len, radix) {
       return this._storage[key] = value;
     },
     justDelete : function(key, value) {
-      var key = key.toLowerCase();
+      key = key.toLowerCase();
       return delete this._storage[key];
     },
     _propagate: function(key, rev){
       var dirs = key.split('/').slice(0,-1);
       var len = dirs.length;
       var path = '';
-      
+
       for(var i = 0; i < len; i++){
-        path+=dirs[i]+'/'
-        if(!rev)
-          rev = this._storage[path]+1
+        path += dirs[i]+'/';
+        if(!rev) {
+          rev = this._storage[path]+1;
+        }
         this._storage[path] =  rev;
       }
     }
-  }
+  };
+
   /****************************
    * Dropbox - Backend for remtoeStorage.js
-   * methods : 
+   * methods :
    * connect
    * configure
    * get
@@ -6091,16 +6160,17 @@ Math.uuid = function (len, radix) {
 
     onErrorCb = function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
-        self.configure(null,null,null,null)
+        self.configure(null,null,null,null);
       }
-    }
+    };
+
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', onErrorCb);
-    
+
     this.clientId = rs.apiKeys.dropbox.api_key;
     this._revCache = new LowerCaseCache('rev');
     this._itemRefs = {};
-    
+
     if(haveLocalStorage){
       var settings;
       try {
@@ -6110,7 +6180,7 @@ Math.uuid = function (len, radix) {
         this.configure(settings.userAddress, undefined, undefined, settings.token);
       }
       try {
-        this._itemRefs = JSON.parse(localStorage[ SETTINGS_KEY+':shares' ])
+        this._itemRefs = JSON.parse(localStorage[ SETTINGS_KEY+':shares' ]);
       } catch(e) {  }
     }
     if(this.connected) {
@@ -6141,8 +6211,8 @@ Math.uuid = function (len, radix) {
      **/
     configure: function(userAddress, href, storageApi, token) {
       console.log('dropbox configure',arguments);
-      if(typeof token !== 'undefined') this.token = token;
-      if(typeof userAddress !== 'undefined') this.userAddress = userAddress;
+      if (typeof token !== 'undefined') { this.token = token; }
+      if (typeof userAddress !== 'undefined') { this.userAddress = userAddress; }
 
       if(this.token){
         this.connected = true;
@@ -6150,7 +6220,7 @@ Math.uuid = function (len, radix) {
           this.info().then(function(info){
             this.userAddress = info.display_name;
             //FIXME propagate this to the view
-          }.bind(this))
+          }.bind(this));
         }
         this._emit('connected');
       } else {
@@ -6173,19 +6243,19 @@ Math.uuid = function (len, radix) {
           promise.reject(err);
         }else{
           var status = resp.status;
-          if(status==304){
+          if (status === 304) {
             promise.fulfill(status);
             return;
-          }  
+          }
           var listing, body, mime, rev;
           try{
-            body = JSON.parse(resp.responseText)
+            body = JSON.parse(resp.responseText);
           } catch(e) {
             promise.reject(e);
             return;
           }
-          rev = this._revCache.get(path)
-          mime = 'application/json; charset=UTF-8'
+          rev = this._revCache.get(path);
+          mime = 'application/json; charset=UTF-8';
           if(body.contents) {
             listing = body.contents.reduce(function(m, item) {
               var itemName = item.path.split('/').slice(-1)[0] + ( item.is_dir ? '/' : '' );
@@ -6211,28 +6281,28 @@ Math.uuid = function (len, radix) {
      **/
     get: function(path, options){
       console.log('dropbox.get', arguments);
-      if(! this.connected) throw new Error("not connected (path: " + path + ")");
+      if(! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
-      var url = 'https://api-content.dropbox.com/1/files/auto' + path
-      var promise = this._sharePromise(path)
-      
-      var savedRev = this._revCache.get(path)
-      if(savedRev === null) { 
+      var url = 'https://api-content.dropbox.com/1/files/auto' + path;
+      var promise = this._sharePromise(path);
+
+      var savedRev = this._revCache.get(path);
+      if(savedRev === null) {
         //file was deleted server side
-        console.log(path,' deleted 404')
+        console.log(path,' deleted 404');
         promise.fulfill(404);
         return promise;
       }
-      if(options && options.ifNoneMatch && 
-         savedRev && (savedRev == options.ifNoneMatch)) {
+      if(options && options.ifNoneMatch &&
+         savedRev && (savedRev === options.ifNoneMatch)) {
         // nothing changed.
-        console.log("nothing changed for",path,savedRev, options.ifNoneMatch)
+        console.log("nothing changed for",path,savedRev, options.ifNoneMatch);
         promise.fulfill(304);
         return promise;
       }
-      
-      //use _getDir for directories 
-      if(path.substr(-1) == '/') return this._getDir(path, options);
+
+      //use _getDir for directories
+      if(path.substr(-1) === '/') { return this._getDir(path, options); }
 
       this._request('GET', url, {}, function(err, resp){
         if(err) {
@@ -6240,9 +6310,9 @@ Math.uuid = function (len, radix) {
         } else {
           var status = resp.status;
           var meta, body, mime, rev;
-          if(status == 404){
+          if (status === 404){
             promise.fulfill(404);
-          } else if(status == 200){
+          } else if (status === 200) {
             body = resp.responseText;
             try {
               meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') );
@@ -6250,10 +6320,10 @@ Math.uuid = function (len, radix) {
               promise.reject(e);
               return;
             }
-            mime = meta.mime_type//resp.getResponseHeader('Content-Type');
+            mime = meta.mime_type; //resp.getResponseHeader('Content-Type');
             rev = meta.rev;
             this._revCache.set(path, rev);
-            
+
             // handling binary
             if((! resp.getResponseHeader('Content-Type') ) || resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
               var blob = new Blob([resp.response], {type: mime});
@@ -6269,14 +6339,14 @@ Math.uuid = function (len, radix) {
               if(mime && mime.search('application/json') >= 0 || true) {
                 try {
                   body = JSON.parse(body);
-                  mime = 'application/json; charset=UTF-8'
+                  mime = 'application/json; charset=UTF-8';
                 } catch(e) {
-                  RS.log("Failed parsing Json, assume it is something else then", mime, path); 
+                  RS.log("Failed parsing Json, assume it is something else then", mime, path);
                 }
               }
               promise.fulfill(status, body, mime, rev);
             }
-          
+
           } else {
             promise.fulfill(status);
           }
@@ -6284,23 +6354,23 @@ Math.uuid = function (len, radix) {
       });
       return promise;
     },
-    /** 
+    /**
      * Method : put(path, body, contentType, options)
      *   put compatible with wireclient
      *   also uses _revCache to check for version conflicts
      *   also shares via share(path)
      **/
-    put: function(path, body, contentType, options){      
+    put: function(path, body, contentType, options){
       console.log('dropbox.put', arguments);
-      if(! this.connected) throw new Error("not connected (path: " + path + ")");
+      if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
-      
+
       var promise = this._sharePromise(path);
 
       var revCache = this._revCache;
 
       //check if file has changed and return 412
-      var savedRev = revCache.get(path)
+      var savedRev = revCache.get(path);
       if(options && options.ifMatch &&  savedRev && (savedRev !== options.ifMatch) ) {
         promise.fulfill(412);
         return promise;
@@ -6308,47 +6378,49 @@ Math.uuid = function (len, radix) {
       if(! contentType.match(/charset=/)) {
         contentType += '; charset=' + ((body instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(body)) ? 'binary' : 'utf-8');
       }
-      var url = 'https://api-content.dropbox.com/1/files_put/auto' + path + '?'
+      var url = 'https://api-content.dropbox.com/1/files_put/auto' + path + '?';
       if(options && options.ifMatch) {
-        url += "parent_rev="+encodeURIComponent(options.ifMatch)
+        url += "parent_rev="+encodeURIComponent(options.ifMatch);
       }
       if(body.length>150*1024*1024){ //FIXME actual content-length
         //https://www.dropbox.com/developers/core/docs#chunked-upload
-        console.log('files larger than 150MB not supported yet')
-      } else { 
+        console.log('files larger than 150MB not supported yet');
+      } else {
         this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
           if(err) {
-            promise.reject(err)
+            promise.reject(err);
           } else {
             var response = JSON.parse(resp.responseText);
             // if dropbox reports an file conflict they just change the name of the file
             // TODO find out which stays the origianl and how to deal with this
-            if(response.path != path){
+            if(response.path !== path){
               promise.fulfill(412);
-              this.rs.log('Dropbox created conflicting File ', response.path)
+              this.rs.log('Dropbox created conflicting File ', response.path);
             }
-            else
+            else {
               revCache.set(path, response.rev);
               promise.fulfill(resp.status);
+            }
           }
-        })
+        });
       }
       return promise;
     },
+
     /**
      * Method : delete(path, options)
      *   similar to get and set
      **/
     'delete': function(path, options){
       console.log('dropbox.delete ', arguments);
-      if(! this.connected) throw new Error("not connected (path: " + path + ")");
+      if(! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
-      
+
       var promise = promising();
       var revCache = this._revCache;
       //check if file has changed and return 412
-       var savedRev = revCache.get(path)
-      if(options.ifMatch && savedRev && (options.ifMatch != savedRev)) {
+      var savedRev = revCache.get(path);
+      if(options.ifMatch && savedRev && (options.ifMatch !== savedRev)) {
         promise.fulfill(412);
         return promise;
       }
@@ -6356,40 +6428,41 @@ Math.uuid = function (len, radix) {
       var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path='+encodeURIComponent(path);
       this._request('POST', url, {}, function(err, resp){
         if(err) {
-          promise.reject(error)
+          promise.reject(error);
         } else {
           promise.fulfill(resp.status);
           revCache.delete(path);
         }
-      })
-      
+      });
+
       return promise.then(function(){
         var args = Array.prototype.slice.call(arguments);
-        delete this._itemRefs[path]
+        delete this._itemRefs[path];
         var p = promising();
         return p.fulfill.apply(p, args);
-      }.bind(this))
+      }.bind(this));
     },
+
     /**
      * Method : _sharePromise(path)
-     *   returns a promise which's then block doesn't touch the arguments given 
+     *   returns a promise which's then block doesn't touch the arguments given
      *   and calls share for the path
-     * 
+     *
      *  also checks for necessity of shareing this url(already in the itemRefs or not '/public/')
      **/
     _sharePromise: function(path){
       var promise = promising();
-      var self = this
-      if(path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] == 'undefined'){
+      var self = this;
+      if (path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] === 'undefined') {
         console.log('shareing this one ', path);
         promise.then(function(){
           var args = Array.prototype.slice.call(arguments);
-          var p = promising()
-          console.log('calling share now')
-          self.share(path).then(function(){
+          var p = promising();
+          console.log('calling share now');
+          self.share(path).then(function() {
             console.log('shareing fullfilled promise',arguments);
             p.fulfill.apply(p,args);
-          }, function(err){
+          }, function(err) {
             console.log("shareing failed" , err);
             p.fulfill.apply(p,args);
           });
@@ -6405,27 +6478,28 @@ Math.uuid = function (len, radix) {
      *   returns promise
      */
     share: function(path){
-      var url = "https://api.dropbox.com/1/media/auto"+path
+      var url = "https://api.dropbox.com/1/media/auto"+path;
       var promise = promising();
-      var itemRefs = this._itemRefs
-      
+      var itemRefs = this._itemRefs;
+
       // requesting shareing url
       this._request('POST', url, {}, function(err, resp){
         if(err) {
-          console.log(err)
+          console.log(err);
           err.message = 'Shareing Dropbox Thingie("'+path+'") failed' + err.message;
-          promise.reject(err)
+          promise.reject(err);
         } else {
           try{
-            var response = JSON.parse(resp.responseText)
+            var response = JSON.parse(resp.responseText);
             var url = response.url;
             itemRefs[path] = url;
             console.log("SHAREING URL :::: ",url,' for ',path);
-            if(haveLocalStorage)
+            if(haveLocalStorage) {
               localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
+            }
             promise.fulfill(url);
-          }catch(err) {
-            err.message += "share error"
+          } catch(err) {
+            err.message += "share error";
             promise.reject(err);
           }
         }
@@ -6438,7 +6512,7 @@ Math.uuid = function (len, radix) {
      *   fetching user info from Dropbox returns promise
      **/
     info: function() {
-      var url = 'https://api.dropbox.com/1/account/info'
+      var url = 'https://api.dropbox.com/1/account/info';
       var promise = promising();
       // requesting user info(mainly for userAdress)
       this._request('GET', url, {}, function(err, resp){
@@ -6446,22 +6520,23 @@ Math.uuid = function (len, radix) {
           promise.reject(err);
         } else {
           try {
-            var info = JSON.parse(resp.responseText)
+            var info = JSON.parse(resp.responseText);
             promise.fulfill(info);
           } catch(e) {
             promise.reject(err);
           }
         }
-      })
+      });
       return promise;
     },
+
     _request: function(method, url, options, callback) {
       callback = callback.bind(this);
-      if(! options.headers) options.headers = {};
+      if (! options.headers) { options.headers = {}; }
       options.headers['Authorization'] = 'Bearer ' + this.token;
       RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
         //503 means retry this later
-        if(xhr && xhr.status == 503) {
+        if(xhr && xhr.status === 503) {
           global.setTimeout(this._request(method, url, options, callback), 3210);
         } else {
           callback(err, xhr);
@@ -6473,7 +6548,7 @@ Math.uuid = function (len, radix) {
     * method: fetchDelta
     *
     *   this method fetches the deltas from the dropbox api, used to sync the storage
-    *   here we retrive changes and put them into the _revCache, those values will then be used 
+    *   here we retrive changes and put them into the _revCache, those values will then be used
     *   to determin if something has changed.
     **/
     fetchDelta: function() {
@@ -6492,10 +6567,10 @@ Math.uuid = function (len, radix) {
           promise.reject(error);
         } else {
           // break if status != 200
-          if(response.status != 200 ){
-            if(response.status == 400) {
+          if (response.status !== 200 ) {
+            if (response.status === 400) {
               this.rs._emit('error', new RemoteStorage.Unauthorized());
-              promise.fulfill.apply(promise, args)
+              promise.fulfill.apply(promise, args);
             } else {
               console.log("!!!!dropbox.fetchDelta returned "+response.status+response.responseText);
               promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
@@ -6503,14 +6578,15 @@ Math.uuid = function (len, radix) {
             return promise;
           }
 
+          var delta;
           try {
-            var delta = JSON.parse(response.responseText);
+            delta = JSON.parse(response.responseText);
           } catch(error) {
-            RS.log('fetchDeltas can not parse response',error)
+            RS.log('fetchDeltas can not parse response',error);
             return promise.reject("can not parse response of fetchDelta : "+error.message);
           }
           // break if no entries found
-          if(!delta.entries){
+          if (!delta.entries) {
             console.log("!!!!!DropBox.fetchDeltas() NO ENTRIES FOUND!!", delta);
             return promise.reject('dropbox.fetchDeltas failed, no entries found');
           }
@@ -6525,11 +6601,12 @@ Math.uuid = function (len, radix) {
               return p.fulfill.apply(p,args);
             });
           }
-          
+
           //saving the cursor for requesting further deltas in relation to the cursor position
-          if(delta.cursor)
+          if(delta.cursor) {
             this._deltaCursor = delta.cursor;
-          
+          }
+
           //updating revCache
           console.log("Delta : ",delta.entries);
           delta.entries.forEach(function(entry) {
@@ -6538,8 +6615,9 @@ Math.uuid = function (len, radix) {
             if(!entry[1]){
               rev = null;
             } else {
-              if(entry[1].is_dir)
+              if(entry[1].is_dir) {
                 return;
+              }
               rev = entry[1].rev;
             }
             self._revCache.set(path, rev);
@@ -6554,7 +6632,7 @@ Math.uuid = function (len, radix) {
   //hooking and unhooking the sync
 
   function hookSync(rs) {
-    if(rs._dropboxOrigSync) return; // already hooked
+    if(rs._dropboxOrigSync) { return; } // already hooked
     rs._dropboxOrigSync = rs.sync.bind(rs);
     rs.sync = function() {
       return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
@@ -6563,41 +6641,43 @@ Math.uuid = function (len, radix) {
         });
     };
   }
+
   function unHookSync(rs) {
-    if(! rs._dropboxOrigSync) return; // not hooked
+    if(! rs._dropboxOrigSync) { return; } // not hooked
     rs.sync = rs._dropboxOrigSync;
     delete rs._dropboxOrigSync;
   }
-  
+
   // hooking and unhooking getItemURL
 
   function hookGetItemURL(rs) {
-    if(rs._origBaseClientGetItemURL)
-      return;
+    if(rs._origBaseClientGetItemURL) { return; }
     rs._origBaseClientGetItemURL = RS.BaseClient.prototype.getItemURL;
     RS.BaseClient.prototype.getItemURL = function(path){
       var ret = rs.dropbox._itemRefs[path];
       return  ret ? ret : '';
-    }
+    };
   }
+
   function unHookGetItemURL(rs){
-    if(! rs._origBaseClieNtGetItemURL)
-      return;
+    if(! rs._origBaseClieNtGetItemURL) { return; }
     RS.BaseClient.prototype.getItemURL = rs._origBaseClietGetItemURL;
     delete rs._origBaseClietGetItemURL;
   }
+
   function hookRemote(rs){
-    if(rs._origRemote)
-      return;
+    if(rs._origRemote) { return; }
     rs._origRemote = rs.remote;
     rs.remote = rs.dropbox;
   }
+
   function unHookRemote(rs){
     if(rs._origRemote) {
       rs.remote = rs._origRemote;
-      delete rs._origRemote
+      delete rs._origRemote;
     }
   }
+
   function hookIt(rs){
     hookRemote(rs);
     if(rs.sync) {
@@ -6605,16 +6685,18 @@ Math.uuid = function (len, radix) {
     }
     hookGetItemURL(rs);
   }
+
   function unHookIt(rs){
     unHookRemote(rs);
     unHookSync(rs);
     unHookGetItemURL(rs);
   }
+
   RS.Dropbox._rs_init = function(rs) {
     if( rs.apiKeys.dropbox ) {
       rs.dropbox = new RS.Dropbox(rs);
     }
-    if(rs.backend == 'dropbox'){
+    if(rs.backend === 'dropbox') {
       hookIt(rs);
     }
   };
