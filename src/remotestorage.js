@@ -390,14 +390,6 @@
               this._emit('error', e);
             }
           }.bind(this));
-          if (this.remote.connected) {
-            try {
-              this._emit('ready');
-            } catch(e) {
-              console.error("'ready' failed: ", e, e.stack);
-              this._emit('error', e);
-            }
-          }
         }
 
         var fl = features.length;
