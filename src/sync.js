@@ -378,16 +378,15 @@
     }
   };
 
-  var syncCycleCb;
   RemoteStorage.prototype.syncInterval = 10000;
 
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
-    remoteStorage.on('ready', syncCycleCb);
+    remoteStorage.on('ready', syncCycle);
   };
 
   RemoteStorage.Sync._rs_cleanup = function(remoteStorage) {
     remoteStorage.stopSync();
-    remoteStorage.removeEventListener('ready', syncCycleCb);
+    remoteStorage.removeEventListener('ready', syncCycle);
   };
 
 })(typeof(window) !== 'undefined' ? window : global);
