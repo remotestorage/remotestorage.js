@@ -375,6 +375,7 @@
 
     _init: function() {
       this._loadFeatures(function(features) {
+        var readyFired = false;
         this.log('all features loaded');
         this.local = features.local && new features.local();
         // (this.remote set by WireClient._rs_init
@@ -390,7 +391,10 @@
         if (this.remote) {
           this.remote.on('connected', function() {
             try {
-              this._emit('ready');
+              if(!readyFired) {
+                this._emit('ready');
+                readyFired = true;
+              }
             } catch(e) {
               console.error("'ready' failed: ", e, e.stack);
               this._emit('error', e);
@@ -398,7 +402,10 @@
           }.bind(this));
           if (this.remote.connected) {
             try {
-              this._emit('ready');
+              if(!readyFired) {
+                this._emit('ready');
+                readyFired = true;
+              }
             } catch(e) {
               console.error("'ready' failed: ", e, e.stack);
               this._emit('error', e);

@@ -187,6 +187,26 @@ define([], function() {
       },
 
       {
+        desc: "connected fires ready only once",
+        run: function(env, test) {
+          var times = 0;
+          env.rs.on('ready', function(e) {
+            test.assertAnd(times, 0);
+            times++;
+          });
+          setTimeout(function() {
+            env.rs.remote._emit('connected');
+            env.rs.remote._emit('connected');
+            env.rs.remote._emit('connected');
+            env.rs.remote._emit('connected');
+            setTimeout(function() {
+              test.assert(times, 1);
+            }, 10);
+          }, 10);
+        }
+      },
+
+      {
         desc: "#connect throws DiscoveryError on empty href",
         run: function(env, test) {
           env.rs.on('error', function(e) {
