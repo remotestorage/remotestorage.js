@@ -16,10 +16,11 @@ define([], function() {
   function fakeRequest(path) {
     var promise = promising();
     console.log('GET CALLED');
-    if(path == '/testing403')
-        promise.fulfill(403);
-    else
-        promise.fulfill(200);
+    if(path === '/testing403') {
+      promise.fulfill(403);
+    } else {
+      promise.fulfill(200);
+    }
     return promise;
   }
 
@@ -82,7 +83,7 @@ define([], function() {
     },
 
     beforeEach: function(env, test) {
-      remoteStorage = new RemoteStorage();
+      var remoteStorage = new RemoteStorage();
       //remoteStorage._emit('ready');
       env.rs = remoteStorage;
       test.done();
@@ -94,8 +95,9 @@ define([], function() {
         run: function(env, test) {
           var success = false;
           env.rs.on('error', function(e) {
-            if(e instanceof RemoteStorage.Unauthorized)
+            if (e instanceof RemoteStorage.Unauthorized) {
               success = true;
+            }
           });
           env.rs.get('/testing403').then(function(status) {
             test.assertAnd(status, 403);
@@ -110,8 +112,9 @@ define([], function() {
         run: function(env, test) {
           var success = false;
           env.rs.on('error', function(e) {
-            if(e instanceof RemoteStorage.Unauthorized)
+            if (e instanceof RemoteStorage.Unauthorized) {
               success = true;
+            }
           });
           env.rs.put('/testing403').then(function(status) {
             test.assert(success, true);
@@ -124,8 +127,9 @@ define([], function() {
         run: function(env, test) {
           var success = false;
           env.rs.on('error', function(e) {
-            if(e instanceof RemoteStorage.Unauthorized)
+            if (e instanceof RemoteStorage.Unauthorized) {
               success = true;
+            }
           });
           env.rs.delete('/testing403').then(function(status) {
             test.assert(success, true);
@@ -140,8 +144,9 @@ define([], function() {
           var c = 0;
           function test_done() {
             c += 1;
-            if (c === 3)
+            if (c === 3) {
               test.done();
+            }
           }
           env.rs.on('error', function(e) {
             success = false;
@@ -206,6 +211,7 @@ define([], function() {
       }
     ]
   });
+
   suites.push({
     name: "RemoteStorage",
     desc: "The global RemoteStorage namespace",
