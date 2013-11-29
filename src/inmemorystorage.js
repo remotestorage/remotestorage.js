@@ -10,6 +10,9 @@
 
   function applyRecursive(path, cb) {
     var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
+    if(path == '/')
+      return;
+
     if (parts) {
       var dirname = parts[1];
       var basename = parts[2];
@@ -80,11 +83,12 @@
       return promising().fulfill(200);
     },
 
-    _addToParent: function(path) {
+    _addToParent: function(path, revision) {
       var storage = this._storage;
       applyRecursive(path, function(dirname, basename) {
         var node = storage[dirname] || makeNode(dirname);
-        node.body[basename] = true;
+        node.body[basename] = revision || true;
+        revision = undefined
         storage[dirname] = node;
         return true;
       });
@@ -155,6 +159,7 @@
       var node = this._storage[path] || makeNode(path);
       node.revision = revision;
       this._storage[path] = node;
+      this._addToParent(path, revision)
       return promising().fulfill();
     },
 
