@@ -8,7 +8,7 @@
     return p.fulfill.apply(p,args);
   }
 
-  function shareFirst(path){
+  function shareFirst(path) {
     return ( this.backend === 'dropbox' &&
              path.match(/^\/public\/.*[^\/]$/) );
   }
@@ -23,7 +23,7 @@
     },
 
     put: function(path, body, contentType) {
-      if (shareFirst.bind(this)(path)){
+      if (shareFirst.bind(this)(path)) {
         //this.local.put(path, body, contentType);
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
       }
@@ -215,15 +215,21 @@
      *
      */
     connect: function(userAddress) {
-      if ( userAddress.indexOf('@') < 0) {
-        this._emit('error', new RemoteStorage.DiscoveryError("user adress doesn't contain an @"));
+      if (userAddress.indexOf('@') < 0) {
+        this._emit('error', new RemoteStorage.DiscoveryError("User adress doesn't contain an @."));
         return;
       }
-      this._emit('connecting');
       this.remote.configure(userAddress);
-      RemoteStorage.Discover(userAddress,function(href, storageApi, authURL){
+      this._emit('connecting');
+
+      var discoveryTimeout = setTimeout(function() {
+        this._emit('error', new RemoteStorage.DiscoveryError("No storage information found at that user address."));
+      }.bind(this), 5000);
+
+      RemoteStorage.Discover(userAddress, function(href, storageApi, authURL) {
+        clearTimeout(discoveryTimeout);
         if (!href) {
-          this._emit('error', new RemoteStorage.DiscoveryError('failed to contact storage server'));
+          this._emit('error', new RemoteStorage.DiscoveryError("Failed to contact storage server."));
           return;
         }
         this._emit('authing');
