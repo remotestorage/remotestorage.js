@@ -96,13 +96,9 @@
           var body;
           revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
           if ((! mimeType) || mimeType.match(/charset=binary/)) {
-            var blob = new Blob([response.response], { type: mimeType });
-            var reader = new FileReader();
-            reader.addEventListener("loadend", function() {
-              // reader.result contains the contents of blob as a typed array
-              promise.fulfill(response.status, reader.result, mimeType, revision);
+            readBinaryData(response.response, mimeType, function(result) {
+              promise.fulfill(response.status, result, mimeType, revision);
             });
-            reader.readAsArrayBuffer(blob);
           } else {
             body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(response.responseText) : response.responseText;
             promise.fulfill(response.status, body, mimeType, revision);
@@ -111,6 +107,15 @@
       }
     });
     return promise;
+  }
+
+  function readBinaryData(content, mimeType, callback) {
+    var blob = new Blob([content], { type: mimeType });
+    var reader = new FileReader();
+    reader.addEventListener("loadend", function() {
+      callback(reader.result); // reader.result contains the contents of blob as a typed array
+    });
+    reader.readAsArrayBuffer(blob);
   }
 
   function cleanPath(path) {
