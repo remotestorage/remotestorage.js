@@ -86,11 +86,12 @@
       if (error) {
         promise.reject(error);
       } else {
-        if (response.status === 404) {
-          promise.fulfill(404);
-        } else if (response.status === 304) {
+        if ([401, 403, 404, 412].indexOf(response.status) >= 0) {
+          promise.fulfill(response.status);
+        } else if ([201, 204, 304].indexOf(response.status) >= 0 ||
+                   (response.status === 200 && method !== 'GET')) {
           revision = response.getResponseHeader('ETag');
-          promise.fulfill(304, undefined, undefined, revision);
+          promise.fulfill(response.status, undefined, undefined, revision);
         } else {
           var mimeType = response.getResponseHeader('Content-Type');
           var body;

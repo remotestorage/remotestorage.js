@@ -537,11 +537,29 @@ define(['requirejs'], function(requirejs, undefined) {
             then(function(status, body, contentType) {
               test.assertAnd(status, 404);
               test.assertTypeAnd(body, 'undefined');
+              test.assertTypeAnd(contentType, 'undefined');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
           req.status = 404;
-          req.response = 'response-body';
+          req.response = '';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "412 responses discard the body altogether",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar').
+            then(function(status, body, contentType) {
+              test.assertAnd(status, 412);
+              test.assertTypeAnd(body, 'undefined');
+              test.assertTypeAnd(contentType, 'undefined');
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 412;
+          req.response = '';
           req._onload();
         }
       },
@@ -560,6 +578,63 @@ define(['requirejs'], function(requirejs, undefined) {
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['ETag'] = '"foo"';
           req.status = 304;
+          req.response = '';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "204 responses on delete discard body and content-type, but return the revision",
+        run: function(env, test) {
+          env.connectedClient.delete('/foo/bar', { ifMatch: 'foo' }).
+            then(function(status, body, contentType, revision) {
+              test.assertAnd(status, 204);
+              test.assertTypeAnd(body, 'undefined');
+              test.assertTypeAnd(contentType, 'undefined');
+              test.assertAnd(revision, '"foo"', 'expected revision to be "foo" but was' + revision);
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['ETag'] = '"foo"';
+          req.status = 204;
+          req.response = '';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "200 responses on delete discard body and content-type, but return the revision",
+        run: function(env, test) {
+          env.connectedClient.delete('/foo/bar', { ifMatch: 'foo' }).
+            then(function(status, body, contentType, revision) {
+              test.assertAnd(status, 200);
+              test.assertTypeAnd(body, 'undefined');
+              test.assertTypeAnd(contentType, 'undefined');
+              test.assertAnd(revision, '"foo"', 'expected revision to be "foo" but was' + revision);
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['ETag'] = '"foo"';
+          req.status = 200;
+          req.response = '';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "200 responses on put discard body and content-type, but return the revision",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', { ifMatch: 'foo' }, 'content body').
+            then(function(status, body, contentType, revision) {
+              test.assertAnd(status, 200);
+              test.assertTypeAnd(body, 'undefined');
+              test.assertTypeAnd(contentType, 'undefined');
+              test.assertAnd(revision, '"foo"', 'expected revision to be "foo" but was' + revision);
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['ETag'] = '"foo"';
+          req.status = 200;
           req.response = '';
           req._onload();
         }
