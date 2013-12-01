@@ -95,13 +95,22 @@
         } else {
           var mimeType = response.getResponseHeader('Content-Type');
           var body;
-          revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
+          if (getEtag) {
+            revision = response.getResponseHeader('ETag');
+          } else {
+            revision = response.status === 200 ? fakeRevision : undefined;
+          }
+
           if ((! mimeType) || mimeType.match(/charset=binary/)) {
             readBinaryData(response.response, mimeType, function(result) {
               promise.fulfill(response.status, result, mimeType, revision);
             });
           } else {
-            body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(response.responseText) : response.responseText;
+            if (mimeType && mimeType.match(/^application\/json/)) {
+              body = JSON.parse(response.responseText);
+            } else {
+              body = response.responseText;
+            }
             promise.fulfill(response.status, body, mimeType, revision);
           }
         }
