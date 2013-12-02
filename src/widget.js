@@ -117,7 +117,8 @@
       }
       try {
         this.view.on('reset', function(){
-          this.rs.on('disconnected', document.location.reload.bind(document.location));
+          var location = RemoteStorage.getLocation();
+          this.rs.on('disconnected', location.reload.bind(location));
           this.rs.disconnect();
         }.bind(this));
       } catch(e) {

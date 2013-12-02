@@ -2,13 +2,13 @@
   var RS = RemoteStorage;
   /**
    * Dropbox backend for RemoteStorage.js
-   * known limits : 
+   * known limits :
    *   files larger than 150mb are not suported for upload
    *   directories with more than 10.000 files will cause problems to list
    *   content-type is guessed by dropbox.com therefore they aren't fully supported
    *   dropbox preserves cases but not case sensitive
-   *   arayBuffers aren't supported currently 
-   * 
+   *   arayBuffers aren't supported currently
+   *
    * the nodelta version can be used with low syncCycle intervall but will request each directory listing on each sync
    * the delta version behaves like rs but might get blocked after a while
    */
@@ -41,7 +41,7 @@
     },
     propagateSet : function(key, value) {
       key = key.toLowerCase();
-      if(this._storage[key] == value) 
+      if(this._storage[key] == value)
         return value;
       this._propagate(key, value);
       return this._storage[key] = value;
@@ -68,7 +68,7 @@
       var dirs = key.split('/').slice(0,-1);
       var len = dirs.length;
       var path = '';
-      
+
       for(var i = 0; i < len; i++){
         path+=dirs[i]+'/'
         if(!rev)
@@ -80,14 +80,14 @@
 
   /****************************
    * Dropbox - Backend for remtoeStorage.js
-   * methods : 
+   * methods :
    * connect
    * configure
    * get
    * put
    * delete
    * share
-   * 
+   *
    *****************************/
   RS.Dropbox = function(rs) {
     this.rs = rs;
@@ -96,7 +96,7 @@
     RS.eventHandling(this, 'change', 'connected');
     rs.on('error', function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
-        
+
         // happens in configure
         //
         // this.connected = false;
@@ -106,11 +106,11 @@
         this.configure(null,null,null,null)
       }
     }.bind(this));
-    
+
     this.clientId = rs.apiKeys.dropbox.api_key;
     this._revCache = new LowerCaseCache();
     this._itemRefs = {};
-    
+
     if(haveLocalStorage){
       var settings;
       try {
@@ -132,7 +132,7 @@
 
     connect: function() {
       this.rs.setBackend('dropbox');
-      RS.Authorize(AUTH_URL, '', String(document.location), this.clientId);
+      RS.Authorize(AUTH_URL, '', String(RS.getLocation()), this.clientId);
     },
 
     configure: function(userAddress, href, storageApi, token) {
@@ -179,18 +179,18 @@
               promise.reject(arguments);
             })
             return;
-          }  
+          }
           try{
             body = JSON.parse(resp.responseText)
           } catch(e) {
             promise.reject(e);
             return;
           }
-          
+
           if(body.contents) {
             listing = body.contents.reduce(function(m, item) {
               var itemName = item.path.split('/').slice(-1)[0] + ( item.is_dir ? '/' : '' );
-              
+
               if(!item.is_dir){
                 revCache.set(path+itemName, item.rev);
                 m[itemName] = item.rev;
@@ -210,7 +210,7 @@
       console.log('dropbox.get', arguments);
 
       var url = 'https://api-content.dropbox.com/1/files/auto' + path
-      //use _getDir for directories 
+      //use _getDir for directories
       if(path.substr(-1) == '/') return this._getDir(path, options);
 
       var promise = promising().then(function(){  //checking and maybe fetching the share_url after each get
@@ -219,14 +219,14 @@
       }.bind(this));
       var revCache = this._revCache
       var savedRev = revCache.get(path)
-      if(options && options.ifNoneMatch && 
+      if(options && options.ifNoneMatch &&
          savedRev && (savedRev == options.ifNoneMatch)) {
         // nothing changed.
         console.log("nothing changed for",path,savedRev, options.ifNoneMatch)
         promise.fulfill(304);
         return promise;
       }
-      
+
       this._request('GET', url, {}, function(err, resp){
         if(err) {
           promise.reject(err);
@@ -260,9 +260,9 @@
       });
       return promise
     },
-    put: function(path, body, contentType, options){      
+    put: function(path, body, contentType, options){
       if(! this.connected) throw new Error("not connected (path: " + path + ")");
-     
+
       var promise = promising().then(function(){   //checking and maybe fetching the share_url after each put
         this.share(path);
         return arguments
@@ -283,7 +283,7 @@
       }
       // if(body.length>150*1024*1024){ //FIXME actual content-length
       //   //https://www.dropbox.com/developers/core/docs#chunked-upload
-      // } else { 
+      // } else {
         this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
           if(err) {
             promise.reject(err)
@@ -323,7 +323,7 @@
           this._revCache.delete(path);
         }
       })
-      
+
       return promise.then(function(){
         delete this._itemRefs[path]
         return arguments;
@@ -333,7 +333,7 @@
     share: function(path){
       var url = "https://api.dropbox.com/1/media/auto"+path
       var promise = promising();
-      
+
       if(!path.match(/^\/public\//) && typeof this._itemRefs[path] != 'undefined'){
         console.log('not public or already in store', path)
         return promise.fulfill(this._itemRefs[path]);
