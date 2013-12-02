@@ -20,7 +20,9 @@
   // headers), or on the client (through versions specified in the parent listing).
   //
 
-  var syncInterval = 10000;
+  var syncInterval = 10000,
+      backgroundSyncInterval = 60000,
+      isBackground = false;
 
   function isDir(path) {
     return path[path.length - 1] === '/';
@@ -231,6 +233,52 @@
     });
   }
 
+  function handleVisibility() {
+    var hidden,
+        visibilityChange,
+        rs = this;
+
+    if (typeof global.document === "undefined") {
+      // not in browser, do nothnig
+      return;
+    }
+
+    function handleVisibilityChange(e) {
+      var oldValue, newValue;
+      oldValue = rs.getCurrentSyncInterval();
+      isBackground = document[hidden];
+      newValue = rs.getCurrentSyncInterval();
+      if (document[hidden]) {
+        rs.stopSync();
+        rs._syncTimer = setTimeout(rs.syncCycle.bind(rs), rs.getCurrentSyncInterval());
+        rs._emit('sync-updated', {oldValue: oldValue, newValue: newValue});
+      } else {
+        rs.stopSync();
+        rs._syncTimer = setTimeout(rs.syncCycle.bind(rs), rs.getCurrentSyncInterval());
+        rs._emit('sync-updated', {oldValue: oldValue, newValue: newValue});
+      }
+    }
+    if (typeof(document.hidden) !== "undefined") {
+      hidden = "hidden";
+      visibilityChange = "visibilitychange";
+    } else if (typeof(document.mozHidden) !== "undefined") {
+      hidden = "mozHidden";
+      visibilityChange = "mozvisibilitychange";
+    } else if (typeof(document.msHidden) !== "undefined") {
+      hidden = "msHidden";
+      visibilityChange = "msvisibilitychange";
+    } else if (typeof(document.webkitHidden) !== "undefined") {
+      hidden = "webkitHidden";
+      visibilityChange = "webkitvisibilitychange";
+    }
+
+    if (typeof(hidden) !== "undefined") {
+      isBackground = document[hidden];
+      document.addEventListener(visibilityChange, handleVisibilityChange, false);
+    }
+  }
+
+
   /**
    * Class: RemoteStorage.Sync
    **/
@@ -278,11 +326,56 @@
     if(typeof(interval) !== 'number') {
       throw interval + " is not a valid sync interval";
     }
+    var oldValue = syncInterval;
     syncInterval = parseInt(interval, 10);
-    if (this._syncTimer) {
+    if (this._syncTimer && !isBackground) {
       this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
+      this._emit('sync-updated', {oldValue: oldValue, newValue: interval});
     }
+  };
+  /**
+   * Method: getBackgroundSyncInterval
+   *
+   * Get the value of the sync interval when application is in the background
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getBackgroundSyncInterval = function() {
+    return backgroundSyncInterval;
+  };
+  /**
+   * Method: setBackgroundSyncInterval
+   *
+   * Set the value of the sync interval when the application is in the background
+   *
+   * Parameters:
+   *   interval - sync interval in milliseconds
+   *
+   */
+  RemoteStorage.prototype.setBackgroundSyncInterval = function(interval) {
+    if(typeof(interval) !== 'number') {
+      throw interval + " is not a valid sync interval";
+    }
+    var oldValue = backgroundSyncInterval;
+    backgroundSyncInterval = parseInt(interval, 10);
+    if (this._syncTimer && isBackground) {
+      this.stopSync();
+      this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
+      this._emit('sync-updated', {oldValue: oldValue, newValue: interval});
+    }
+  };
+  /**
+   * Method: getCurrentSyncInterval
+   *
+   * Get the value of the current sync interval
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getCurrentSyncInterval = function() {
+    return isBackground ? backgroundSyncInterval : syncInterval;
   };
 
   var SyncError = function(originalError) {
@@ -350,12 +443,12 @@
   RemoteStorage.prototype.syncCycle = function() {
     this.sync().then(function() {
       this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
+      this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getCurrentSyncInterval());
     }.bind(this),
     function(e) {
       console.log('sync error, retrying');
       this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
+      this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getCurrentSyncInterval());
     }.bind(this));
   };
 
@@ -369,6 +462,7 @@
   var syncCycleCb;
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
     syncCycleCb = function() {
+      handleVisibility.bind(remoteStorage)();
       remoteStorage.syncCycle();
     };
     remoteStorage.on('ready', syncCycleCb);
