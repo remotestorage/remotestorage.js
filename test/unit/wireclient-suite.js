@@ -622,6 +622,24 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "200 responses on delete discard revision when no ETag is sent",
+        run: function(env, test) {
+          env.connectedClient.delete('/foo/bar', { ifMatch: 'foo' }).
+            then(function(status, body, contentType, revision) {
+              test.assertAnd(status, 200);
+              test.assertTypeAnd(body, 'undefined');
+              test.assertTypeAnd(contentType, 'undefined');
+              test.assertTypeAnd(revision, 'undefined');
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 200;
+          req.response = '';
+          req._onload();
+        }
+      },
+
+      {
         desc: "200 responses on put discard body and content-type, but return the revision",
         run: function(env, test) {
           env.connectedClient.put('/foo/bar', { ifMatch: 'foo' }, 'content body').
