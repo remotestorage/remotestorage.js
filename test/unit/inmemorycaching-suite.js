@@ -3,6 +3,7 @@ if(typeof(define) !== 'function') {
 }
 define(['requirejs'], function(requirejs) {
   var suites = [];
+
   suites.push({
     name: 'InMemoryStorage',
     desc: 'inmemory caching as a fallback for indexdb and localstorge',
@@ -28,13 +29,13 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#get loads a node",
         run: function(env, test) {
-          var node = { 
-            body: 'bar', 
+          var node = {
+            body: 'bar',
             contentType: 'text/plain',
             revision: 'someRev'
           };
           env.ims._storage['/foo'] = node;
-          env.ims.get('/foo').then(function(status, body, 
+          env.ims.get('/foo').then(function(status, body,
                                            contentType, revision) {
             test.assertAnd(status, 200);
             test.assertAnd(body, node.body);
@@ -44,7 +45,7 @@ define(['requirejs'], function(requirejs) {
           });
         }
       },
-      
+
       {
         desc: "#get yields 404 when it doesn't find a node",
         run: function(env, test) {
@@ -53,7 +54,7 @@ define(['requirejs'], function(requirejs) {
           });
         }
       },
-      
+
       {
         desc: "#put yields 200 and stores the node",
         run: function(env, test) {
@@ -82,7 +83,7 @@ define(['requirejs'], function(requirejs) {
               contentType: 'application/json',
               path: '/foo/'
             });
-            
+
             test.assertAnd(env.ims._storage['/'], {
               body: { 'foo/': true },
               contentType: 'application/json',
@@ -92,7 +93,7 @@ define(['requirejs'], function(requirejs) {
           });
         }
       },
-      
+
       {
         desc: "#put doesn't overwrite parent directories",
         run: function(env, test) {
@@ -111,20 +112,20 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#delete removes the node and empty parents",
         run: function(env, test) {
-           env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
-             test.assertAnd(Object.keys(env.ims._storage), ['/foo/bar/baz', 
-                                                    '/foo/bar/', 
-                                                    '/foo/', 
-                                                    '/'],'wrong nodes after put : '+Object.keys(env.ims._storage));
-             env.ims.delete('/foo/bar/baz').then(function(status) {
-               test.assertAnd(status, 200, 'wrong status code : '+status);
-               test.assertAnd(Object.keys(env.ims._storage), [], 'wrong nodes after delete : '+Object.keys(env.ims._storage));
-               test.done();
-             });
-           });
+          env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
+            test.assertAnd(Object.keys(env.ims._storage), ['/foo/bar/baz',
+                                                    '/foo/bar/',
+                                                    '/foo/',
+                                                    '/'], 'wrong nodes after put : '+Object.keys(env.ims._storage));
+            env.ims.delete('/foo/bar/baz').then(function(status) {
+              test.assertAnd(status, 200, 'wrong status code : '+status);
+              test.assertAnd(Object.keys(env.ims._storage), [], 'wrong nodes after delete : '+Object.keys(env.ims._storage));
+              test.done();
+            });
+          });
         }
       },
-      
+
       {
         desc: "#delete doesn't remove nonempty nodes",
         run: function(env, test) {
@@ -134,11 +135,11 @@ define(['requirejs'], function(requirejs) {
                 test.assertAnd(Object.keys(env.ims._storage).sort(), ['/', '/foo/', '/foo/baz'], 'wrong nodes after delete '+Object.keys(env.ims._storage).sort());
                 test.assertAnd(env.ims._storage['/foo/'], {
                   path: '/foo/',
-                  body: {'baz': true},
+                  body: { 'baz': true },
                   contentType: 'application/json'
-                }, 'found ' +JSON.stringify(env.ims._storage['/foo/'])+'instead of '+JSON.stringify({
+                }, 'found ' + JSON.stringify(env.ims._storage['/foo/']) + 'instead of ' + JSON.stringify({
                   path: '/foo/',
-                  body: {'baz': true},
+                  body: { 'baz': true },
                   contentType: 'applicaton/json'
                 }));
                 test.done();
@@ -183,7 +184,7 @@ define(['requirejs'], function(requirejs) {
           });
         }
       },
-      
+
       {
         desc: "#delete records a change for outgoing changes",
         run: function(env, test) {
@@ -203,7 +204,6 @@ define(['requirejs'], function(requirejs) {
         run: function(env, test) {
           env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
             env.ims.delete('/foo/bla', true).then(function() {
-          
               test.assertType(env.ims._changes['/foo/bla'], 'undefined');
             });
           });
@@ -240,21 +240,21 @@ define(['requirejs'], function(requirejs) {
           env.ims.put('/foo/bla', 'adsf', 'text/plain', true);
         }
       },
-      
+
       {
         desc: "#put attaches the newValue and oldValue correctly for updates",
         run: function(env, test) {
           var i = 0;
           env.ims.on('change', function(event) {
             i++;
-            if(i == 1) {
+            if (i === 1) {
               test.assertAnd(event, {
                 path: '/foo/bla',
                 origin: 'remote',
                 oldValue: undefined,
                 newValue: 'basdf'
               });
-            } else if(i == 2) {
+            } else if (i === 2) {
               test.assertAnd(event, {
                 path: '/foo/bla',
                 origin: 'window',
@@ -264,7 +264,6 @@ define(['requirejs'], function(requirejs) {
               setTimeout(function() {
                 test.done();
               }, 0);
-
             } else {
               console.error("UNEXPECTED THIRD CHANGE EVENT");
               test.result(false);
@@ -291,7 +290,7 @@ define(['requirejs'], function(requirejs) {
           });
         }
       },
-      
+
       {
         desc: '#getRevision returns right revision',
         run: function(env, test) {
@@ -337,9 +336,10 @@ define(['requirejs'], function(requirejs) {
             test.assertAnd(event.path, '/foobar');
             test.done();
           });
-          env.ims.setConflict('/foobar', {remoteAction: 'foo', localAction: 'bar'});
+          env.ims.setConflict('/foobar', { remoteAction: 'foo', localAction: 'bar' });
         }
       },
+
       {
         desc: "#setConflict event.resolve emits Error when resolved wrong",
         run: function(env, test) {
@@ -347,15 +347,17 @@ define(['requirejs'], function(requirejs) {
             var success = false;
             var err = 'no error';
             try {
-               event.resolve('nonsense');
+              event.resolve('nonsense');
             } catch(e) {
-              if(e.message == 'Invalid resolution: nonsense') success = true;
+              if (e.message === 'Invalid resolution: nonsense') {
+                success = true;
+              }
               err = e;
             }
-            test.assertAnd(success, true, "yielded : "+JSON.stringify(err));
+            test.assertAnd(success, true, "yielded : " + JSON.stringify(err));
             test.done();
           });
-          env.ims.setConflict('/foobar', {remoteAction: 'foo', localAction: 'bar'});
+          env.ims.setConflict('/foobar', { remoteAction: 'foo', localAction: 'bar' });
         }
       },
 
@@ -364,8 +366,8 @@ define(['requirejs'], function(requirejs) {
         run: function(env, test) {
           env.ims.on('conflict', function(event) {
             event.resolve('remote');
-            test.assertAnd(env.ims._changes['/foobar'], 
-                           { conflict: 
+            test.assertAnd(env.ims._changes['/foobar'],
+                           { conflict:
                              { remoteAction: 'PUT',
                                localAction: 'DELETE',
                                resolution: 'remote' },
@@ -376,7 +378,7 @@ define(['requirejs'], function(requirejs) {
         }
       }
     ]
-    
   });
+
   return suites;
 });

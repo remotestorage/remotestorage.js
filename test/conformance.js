@@ -1,4 +1,3 @@
-
 var assert = require('assert');
 var util = require('util');
 var helpers = require('./conformance-helpers');
@@ -26,7 +25,7 @@ process.nextTick(function() {
 function val(name) {
   return function() {
     return eval(name);
-  }
+  };
 }
 
 var rememberedRootETag;
@@ -107,7 +106,7 @@ testRequest(
       'test-file': rememberedETag
     });
     assert.notEqual(response.headers.etag, rememberedRootETag);
-    rememberedRootETag = response.headers.etag
+    rememberedRootETag = response.headers.etag;
   }
 );
 
@@ -159,7 +158,7 @@ testRequest(
     assert.deepEqual(body, {}, "Expected storage to be initially empty, but there seems to be data in it. root listing is: " + util.inspect(body));
     assert.ok(response.headers['etag']);
     assert.notEqual(response.headers.etag, rememberedRootETag);
-    rememberedRootETag = response.headers.etag
+    rememberedRootETag = response.headers.etag;
   }
 );
 
@@ -226,7 +225,7 @@ testRequest(
       'test-dir/': rememberedDirectoryETag
     });
     assert.notEqual(response.headers.etag, rememberedRootETag);
-    rememberedRootETag = response.headers.etag
+    rememberedRootETag = response.headers.etag;
   }
 );
 
@@ -266,9 +265,9 @@ testRequest(
   function(response) {
     assert.directoryEqual(response, {
       'test-dir/': rememberedDirectoryETag
-    })
+    });
     assert.notEqual(response.headers.etag, rememberedRootETag);
-    rememberedRootETag = response.headers.etag
+    rememberedRootETag = response.headers.etag;
   }
 );
 
@@ -320,7 +319,7 @@ testRequest(
   "24) check that root listing is empty again", 'GET', '/', function(response) {
     assert.directoryEqual(response, {});
     assert.notEqual(response.headers.etag, rememberedRootETag);
-    rememberedRootETag = response.headers.etag
+    rememberedRootETag = response.headers.etag;
   }
 );
 
@@ -459,7 +458,7 @@ testRequest(
 testRequest(
   "36) check that the file was updated correctly", 'GET', '/test-file',
   function(response) {
-	  assert.status(response, 200);
+    assert.status(response, 200);
     console.log('resp', response);
     assert.contentType(response, 'text/html');
     assert.equal(response.headers.etag, rememberedETag);
@@ -474,7 +473,7 @@ testRequest(
       'If-None-Match': val('rememberedETag')
     }
   }, function(response) {
-    if(response.status == 412) {
+    if (response.status === 412) {
       throw "Response status is 412. Conditional GET requests should return 403 instead. See this issue for an explaination: https://github.com/remotestorage/spec/issues/23";
     }
     assert.status(response, 304);
@@ -524,5 +523,4 @@ testRequest(
    - PUT with if-match (both cases)
    - PUT with if-none-match = '*' (on a document that exists and one that doesn't)
    - DELETE with if-match (both cases)
-
  **/

@@ -1,5 +1,5 @@
 if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
+  var define = require('amdefine')(module);
 }
 define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
   var suites = [];
@@ -8,7 +8,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     name: "caching",
     desc: "Caching stores settings about which paths to cache locally",
     setup: function(env, test) {
-      global.RemoteStorage = function() {}
+      global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       require('./src/caching');
       env.Caching = RemoteStorage.Caching;
@@ -22,7 +22,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     },
 
     tests: [
-
       {
         desc: "#get() returns undefined for paths that haven't been configured",
         run: function(env, test) {
@@ -38,7 +37,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "get() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
 
@@ -50,10 +49,9 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "remove() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
-
 
       {
         desc: "#set() with no path given throws an error",
@@ -63,7 +61,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "set() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
 
@@ -75,7 +73,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "set() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
 
@@ -91,7 +89,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "#remove() removes caching settings from given path",
         run: function(env, test) {
           env.caching.set('/foo/', { data: true });
-          test.assertTypeAnd(env.caching.get('/foo/'), 'object')
+          test.assertTypeAnd(env.caching.get('/foo/'), 'object');
           env.caching.remove('/foo/');
           test.assertType(env.caching.get('/foo/'), 'undefined');
         }
@@ -105,7 +103,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "descendIntoPath() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
 
@@ -117,10 +115,9 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "syncDataIn() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
-
 
       {
         desc: "#descendIntoPath() with a file path given throws an error",
@@ -130,7 +127,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.result(false, "descendIntoPath() didn't fail");
           } catch(e) {
             test.result(true);
-          };
+          }
         }
       },
 
@@ -192,9 +189,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           test.assert(env.caching.rootPaths, []);
         }
       }
-
     ]
-
   });
 
   return suites;

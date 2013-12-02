@@ -25,7 +25,7 @@ define(['requirejs'], function(requirejs, undefined) {
           }
         }
       };
-      
+
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
@@ -36,7 +36,7 @@ define(['requirejs'], function(requirejs, undefined) {
       if(global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
-        global.rs_wireclient = RemoteStorage.WireClient
+        global.rs_wireclient = RemoteStorage.WireClient;
       }
 
       require('./lib/Math.uuid');
@@ -49,6 +49,7 @@ define(['requirejs'], function(requirejs, undefined) {
       }
       test.done();
     },
+
     tests: [
       {
         desc: "it takes a storage object and base path",
@@ -65,7 +66,8 @@ define(['requirejs'], function(requirejs, undefined) {
         desc: "it doesn't accept non-directory paths",
         run: function(env, test) {
           try {
-            new RemoteStorage.BaseClient(new RemoteStorage(), '/foo');
+            var storage = new RemoteStorage();
+            var client = new RemoteStorage.BaseClient(storage, '/foo');
             test.result(false);
           } catch(e) {
             test.done();
@@ -96,7 +98,7 @@ define(['requirejs'], function(requirejs, undefined) {
             test.assertAnd(path, '/foo/');
             test.done();
           };
-          new RemoteStorage.BaseClient(storage, '/foo/');
+          var client = new RemoteStorage.BaseClient(storage, '/foo/');
         }
       },
 
