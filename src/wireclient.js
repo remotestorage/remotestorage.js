@@ -86,31 +86,46 @@
       if (error) {
         promise.reject(error);
       } else {
-        if (response.status === 404) {
-          promise.fulfill(404);
-        } else if (response.status === 304) {
+        if ([401, 403, 404, 412].indexOf(response.status) >= 0) {
+          promise.fulfill(response.status);
+        } else if ([201, 204, 304].indexOf(response.status) >= 0 ||
+                   (response.status === 200 && method !== 'GET')) {
           revision = response.getResponseHeader('ETag');
-          promise.fulfill(304, undefined, undefined, revision);
+          promise.fulfill(response.status, undefined, undefined, revision);
         } else {
           var mimeType = response.getResponseHeader('Content-Type');
           var body;
-          revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
-          if ((! mimeType) || mimeType.match(/charset=binary/)) {
-            var blob = new Blob([response.response], { type: mimeType });
-            var reader = new FileReader();
-            reader.addEventListener("loadend", function() {
-              // reader.result contains the contents of blob as a typed array
-              promise.fulfill(response.status, reader.result, mimeType, revision);
-            });
-            reader.readAsArrayBuffer(blob);
+          if (getEtag) {
+            revision = response.getResponseHeader('ETag');
           } else {
-            body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(response.responseText) : response.responseText;
+            revision = response.status === 200 ? fakeRevision : undefined;
+          }
+
+          if ((! mimeType) || mimeType.match(/charset=binary/)) {
+            readBinaryData(response.response, mimeType, function(result) {
+              promise.fulfill(response.status, result, mimeType, revision);
+            });
+          } else {
+            if (mimeType && mimeType.match(/^application\/json/)) {
+              body = JSON.parse(response.responseText);
+            } else {
+              body = response.responseText;
+            }
             promise.fulfill(response.status, body, mimeType, revision);
           }
         }
       }
     });
     return promise;
+  }
+
+  function readBinaryData(content, mimeType, callback) {
+    var blob = new Blob([content], { type: mimeType });
+    var reader = new FileReader();
+    reader.addEventListener("loadend", function() {
+      callback(reader.result); // reader.result contains the contents of blob as a typed array
+    });
+    reader.readAsArrayBuffer(blob);
   }
 
   function cleanPath(path) {
