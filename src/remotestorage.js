@@ -15,7 +15,7 @@
 
   var SyncedGetPutDelete = {
     get: function(path) {
-      if (this.caching.cachePathReady(path)) {
+      if ((!this.remote.connected) || (this.caching.cachePathReady(path))) {
         return this.local.get(path);
       } else {
         return this.remote.get(path);
