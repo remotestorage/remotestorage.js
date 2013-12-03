@@ -92,7 +92,7 @@
 
     connect: function() {
       this.rs.setBackend('googledrive');
-      RS.Authorize(AUTH_URL, AUTH_SCOPE, String(document.location), this.clientId);
+      RS.Authorize(AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
     },
 
     get: function(path, options) {
