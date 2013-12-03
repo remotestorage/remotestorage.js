@@ -207,6 +207,17 @@ define([], function() {
       },
 
       {
+        desc: "Update background sync interval",
+        run: function(env, test) {
+          env.rs.setSyncInterval(60000);
+          env.rs.setBackgroundSyncInterval(70000);
+          test.assertAnd(env.rs.getBackgroundSyncInterval(), 70000, "Get background sync interval");
+          test.assertAnd(env.rs.getCurrentSyncInterval(), 60000, "Get current sync interval");
+          test.done();
+        }
+      },
+
+      {
         desc: "Setting a wrong (string) sync interval throws an error",
         run: function(env, test) {
           try {
