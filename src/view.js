@@ -1,5 +1,7 @@
 (function(window){
 
+  var __ = RemoteStorage.L10n;
+
   //
   // Helper methods
   //
@@ -243,7 +245,7 @@
     states:  {
       initial: function(message) {
         var cube = this.cube;
-        var info = message || 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/" target="_blank">remotestorage.io';
+        var info = message || __("view_info");
         if (message) {
           cube.src = RemoteStorage.Assets.remoteStorageIconError;
           removeClass(this.cube, 'remotestorage-loading');
@@ -257,7 +259,7 @@
           this.hide_bubble();
         }
         this.div.className = "remotestorage-state-initial";
-        gCl(this.div, 'rs-status-text').innerHTML = "<strong>Connect</strong> remote storage";
+        gCl(this.div, 'rs-status-text').innerHTML = __("view_connect");
 
         // Google Drive and Dropbox icons
         var backends = 1;
@@ -295,7 +297,7 @@
       authing: function() {
         this.div.removeEventListener('click', this.events.connect);
         this.div.className = "remotestorage-state-authing";
-        gCl(this.div, 'rs-status-text').innerHTML = "Connecting <strong>"+this.userAddress+"</strong>";
+        gCl(this.div, 'rs-status-text').innerHTML = __("view_connecting", this.userAddress);
         addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone, when is that neccesary
       },
 
@@ -326,7 +328,7 @@
       offline: function() {
         this.div.className = "remotestorage-state-offline";
         this.cube.src = RemoteStorage.Assets.remoteStorageIconOffline;
-        gCl(this.div, 'rs-status-text').innerHTML = 'Offline';
+        gCl(this.div, 'rs-status-text').innerHTML = __("view_offline");
       },
 
       error: function(err) {

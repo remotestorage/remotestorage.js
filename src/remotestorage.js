@@ -443,6 +443,7 @@
     _loadFeatures: function(callback) {
       var features = [
         'WireClient',
+        'L10n',
         'Dropbox',
         'GoogleDrive',
         'Access',

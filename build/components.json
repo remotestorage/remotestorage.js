@@ -22,6 +22,7 @@
     "src/baseclient.js": "A high-level client, scoped to a path",
     "src/baseclient/types.js": "Type / schema handling, validations",
     "src/assets.js": "Icons, CSS and HTML templates for the widget",
+    "src/l10n.js": "Localization",
     "src/legacy.js": "...",
 
     "src/googledrive.js": "Backend to talk to googledrive",
@@ -34,6 +35,7 @@
       "files": [
         "lib/promising.js",
         "src/remotestorage.js",
+        "src/l10n.js",
         "src/eventhandling.js",
         "src/wireclient.js",
         "src/discover.js",
@@ -48,7 +50,7 @@
       "files": [
         "src/assets.js",
         "src/widget.js",
-	      "src/view.js"
+        "src/view.js"
       ],
       "default": true,
       "depends": ["core"]
