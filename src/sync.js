@@ -239,7 +239,7 @@
         rs = this;
 
     if (typeof global.document === "undefined") {
-      // not in browser, do nothnig
+      // not in browser, do nothing
       return;
     }
 
@@ -248,15 +248,7 @@
       oldValue = rs.getCurrentSyncInterval();
       isBackground = document[hidden];
       newValue = rs.getCurrentSyncInterval();
-      if (document[hidden]) {
-        rs.stopSync();
-        rs._syncTimer = setTimeout(rs.syncCycle.bind(rs), rs.getCurrentSyncInterval());
-        rs._emit('sync-updated', {oldValue: oldValue, newValue: newValue});
-      } else {
-        rs.stopSync();
-        rs._syncTimer = setTimeout(rs.syncCycle.bind(rs), rs.getCurrentSyncInterval());
-        rs._emit('sync-updated', {oldValue: oldValue, newValue: newValue});
-      }
+      rs._emit('sync-updated', {oldValue: oldValue, newValue: newValue});
     }
     if (typeof(document.hidden) !== "undefined") {
       hidden = "hidden";
@@ -278,6 +270,12 @@
     }
   }
 
+  /**
+   * Check if interval is valid: numeric and between 10000 and 3600000ms
+   *
+  function isValidInterval(interval) {
+    return (typeof interval === 'number' && interval > 10000 && interval < 3600000);
+  }
 
   /**
    * Class: RemoteStorage.Sync
@@ -323,16 +321,12 @@
    *
    */
   RemoteStorage.prototype.setSyncInterval = function(interval) {
-    if(typeof(interval) !== 'number') {
+    if(!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
     var oldValue = syncInterval;
     syncInterval = parseInt(interval, 10);
-    if (this._syncTimer && !isBackground) {
-      this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
-      this._emit('sync-updated', {oldValue: oldValue, newValue: interval});
-    }
+    this._emit('sync-updated', {oldValue: oldValue, newValue: interval});
   };
   /**
    * Method: getBackgroundSyncInterval
@@ -355,16 +349,12 @@
    *
    */
   RemoteStorage.prototype.setBackgroundSyncInterval = function(interval) {
-    if(typeof(interval) !== 'number') {
+    if(!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
     var oldValue = backgroundSyncInterval;
     backgroundSyncInterval = parseInt(interval, 10);
-    if (this._syncTimer && isBackground) {
-      this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
-      this._emit('sync-updated', {oldValue: oldValue, newValue: interval});
-    }
+    this._emit('sync-updated', {oldValue: oldValue, newValue: interval});
   };
   /**
    * Method: getCurrentSyncInterval
