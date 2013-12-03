@@ -23,6 +23,7 @@
     "src/baseclient.js": "A high-level client, scoped to a path",
     "src/baseclient/types.js": "Type / schema handling, validations",
     "src/assets.js": "Icons, CSS and HTML templates for the widget",
+    "src/l10n.js": "Localization",
     "src/legacy.js": "...",
     "src/env.js": "Function specific to each environment (browser, nodejs...)",
 
@@ -38,6 +39,7 @@
       "files": [
         "lib/promising.js",
         "src/remotestorage.js",
+        "src/l10n.js",
         "src/eventhandling.js",
         "src/wireclient.js",
         "src/discover.js",
