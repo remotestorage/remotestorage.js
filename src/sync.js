@@ -273,6 +273,7 @@
   /**
    * Check if interval is valid: numeric and between 10000 and 3600000ms
    *
+   */
   function isValidInterval(interval) {
     return (typeof interval === 'number' && interval > 10000 && interval < 3600000);
   }
