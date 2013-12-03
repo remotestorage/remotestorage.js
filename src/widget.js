@@ -117,7 +117,7 @@
       }
       try {
         this.view.on('reset', function(){
-          var location = RemoteStorage.getLocation();
+          var location = RemoteStorage.Authorize.getLocation();
           this.rs.on('disconnected', location.reload.bind(location));
           this.rs.disconnect();
         }.bind(this));

@@ -132,7 +132,7 @@
 
     connect: function() {
       this.rs.setBackend('dropbox');
-      RS.Authorize(AUTH_URL, '', String(RS.getLocation()), this.clientId);
+      RS.Authorize(AUTH_URL, '', String(RS.Authorize.getLocation()), this.clientId);
     },
 
     configure: function(userAddress, href, storageApi, token) {

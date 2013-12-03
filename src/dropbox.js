@@ -181,7 +181,7 @@
       if(this.token){
         hookIt(this.rs);
       } else {
-        RS.Authorize(AUTH_URL, '', String(RS.getLocation()), this.clientId);
+        RS.Authorize(AUTH_URL, '', String(RS.Authorize.getLocation()), this.clientId);
       }
     },
     /**
