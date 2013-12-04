@@ -102,7 +102,7 @@
           }
 
           if ((! mimeType) || mimeType.match(/charset=binary/)) {
-            readBinaryData(response.response, mimeType, function(result) {
+            RS.WireClient.readBinaryData(response.response, mimeType, function(result) {
               promise.fulfill(response.status, result, mimeType, revision);
             });
           } else {
@@ -348,6 +348,8 @@
 
   // Shared isArrayBufferView used by WireClient and Dropbox
   RS.WireClient.isArrayBufferView = isArrayBufferView;
+
+  RS.WireClient.readBinaryData = readBinaryData;
 
   // Shared request function used by WireClient, GoogleDrive and Dropbox.
   RS.WireClient.request = function(method, url, options, callback) {
