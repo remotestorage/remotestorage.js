@@ -24,6 +24,7 @@
 
   RemoteStorage.InMemoryStorage = function(rs) {
     this.rs = rs;
+    RemoteStorage.cachingLayer(this);
     RemoteStorage.eventHandling(this, 'change', 'conflict');
     this._storage = {};
     this._changes = {};
@@ -133,21 +134,8 @@
     },
 
     setConflict: function(path, attributes) {
+      var event = this._createConflictEvent(path, attributes);
       this._recordChange(path, { conflict: attributes });
-      var self = this;
-      var event = { path: path };
-      for(var key in attributes) {
-        event[key] = attributes[key];
-      }
-
-      event.resolve = function(resolution) {
-        if (resolution === 'remote' || resolution === 'local') {
-          attributes.resolution = resolution;
-          self._recordChange(path, { conflict: attributes });
-        } else {
-          throw new Error('Invalid resolution: ' + resolution);
-        }
-      };
       this._emit('conflict', event);
     },
 

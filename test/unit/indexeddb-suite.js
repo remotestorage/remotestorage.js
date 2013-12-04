@@ -17,6 +17,12 @@ define(['requirejs'], function(requirejs) {
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+      require('./src/cachinglayer');
+      if(global.rs_cachinglayer) {
+        RemoteStorage.cachingLayer = global.rs_cachinglayer;
+      } else {
+        global.rs_cachinglayer = RemoteStorage.cachingLayer;
+      }
       require('./src/indexeddb');
       test.done();
     },
