@@ -25,7 +25,9 @@
     "src/legacy.js": "...",
 
     "src/googledrive.js": "Backend to talk to googledrive",
-    "src/dropbox.js": "Backend to talk to dropbox"
+    "src/dropbox.js": "Backend to talk to dropbox",
+
+    "src/nodejs_ext.js": "NodeJS specific additions"
   },
   "groups": {
     "core": {
@@ -48,7 +50,7 @@
       "files": [
         "src/assets.js",
         "src/widget.js",
-	      "src/view.js"
+        "src/view.js"
       ],
       "default": true,
       "depends": ["core"]
@@ -113,6 +115,10 @@
     },
     "legacy": {
       "files": ["src/legacy.js"]
+    },
+    "nodejs": {
+      "files": ["src/nodejs_ext.js"],
+      "depends": ["core"]
     }
   }
 }
