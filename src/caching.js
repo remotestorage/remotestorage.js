@@ -1,11 +1,15 @@
 (function(global) {
 
-  var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:caching";
 
   function containingDir(path) {
-    if (path === '') { return '/'; }
-    if (! path) { throw "Path not given!"; }
+    if(path === '') {
+      return '/';
+    }
+    if(! path) {
+      throw "Path not given!";
+    }
+
     return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
   }
 
@@ -24,14 +28,6 @@
    */
   RemoteStorage.Caching = function() {
     this.reset();
-
-    if(haveLocalStorage) {
-      var settings = localStorage[SETTINGS_KEY];
-      if(settings) {
-        this._pathSettingsMap = JSON.parse(settings);
-        this._updateRoots();
-      }
-    }
   };
 
   RemoteStorage.Caching.prototype = {
@@ -78,7 +74,12 @@
       delete this._pathSettingsMap[path];
       this._updateRoots();
     },
-
+    /**
+     * Method: reset
+     * 
+     * resets the state of caching;
+     * deletes all caching information.
+     **/
     reset: function() {
       this.rootPaths = [];
       this._pathSettingsMap = {};
@@ -156,9 +157,6 @@
         }
       }
       this.rootPaths = Object.keys(roots);
-      if(haveLocalStorage) {
-        localStorage[SETTINGS_KEY] = JSON.stringify(this._pathSettingsMap);
-      }
     },
 
   };
