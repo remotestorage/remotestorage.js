@@ -11,8 +11,8 @@
     return parent.getElementsByClassName(className)[0];
   }
 
-  function gTl(parent, className) {
-    return parent.getElementsByTagName(className)[0];
+  function gTl(parent, tagName) {
+    return parent.getElementsByTagName(tagName)[0];
   }
 
   function removeClass(el, className) {
@@ -23,7 +23,7 @@
     return el.classList.add(className);
   }
 
-  function stop_propagation(event) {
+  function stopPropagation(event) {
     if (typeof(event.stopPropagation) === 'function') {
       event.stopPropagation();
     } else {
@@ -62,56 +62,94 @@
       this.events[event] = this.events[event].bind(this);
     }
 
-    /**
-    *  toggleBubble()
-    *    shows the bubble when hidden and the other way around
-    **/
-    this.toggle_bubble = function(event) {
-      if (this.bubble.className.search('rs-hidden') < 0) {
-        this.hide_bubble(event);
-      } else {
-        this.show_bubble(event);
-      }
-    }.bind(this);
-
-    /**
-     *  hideBubble()
-     *   hides the bubble
-     **/
-    this.hide_bubble = function(){
-      addClass(this.bubble, 'rs-hidden');
-      document.body.removeEventListener('click', hide_bubble_on_body_click);
-    }.bind(this);
-
-    var hide_bubble_on_body_click = function (event) {
+    this.hideBubbleOnBodyClick = function(event) {
       for (var p = event.target; p !== document.body; p = p.parentElement) {
         if (p.id === 'remotestorage-widget') {
           return;
         }
       }
-      this.hide_bubble();
+      this.hideBubble();
     }.bind(this);
+  };
+
+  RemoteStorage.Widget.View.prototype = {
+
+    connectGdrive: function() {
+      this._emit('connect', { special: 'googledrive' });
+    },
+
+    connectDropbox: function(){
+      this._emit('connect', { special: 'dropbox'});
+    },
+
+    /**
+     * Method: setState(state, args)
+     *    calls states[state]
+     *    args are the arguments for the
+     *    state(errors mostly)
+     **/
+    setState: function(state, args) {
+      RemoteStorage.log('widget.view.setState(',state,',',args,');');
+      var s = this.states[state];
+      if (typeof(s) === 'undefined') {
+        throw new Error("Bad State assigned to view: " + state);
+      }
+      s.apply(this,args);
+    },
+
+    /**
+     * Method: setUserAddres
+     *    set userAddress of the input field
+     **/
+    setUserAddress: function(addr) {
+      this.userAddress = addr || '';
+
+      var el;
+      if (this.div && (el = gTl(this.div, 'form').userAddress)) {
+        el.value = this.userAddress;
+      }
+    },
+
+    /**
+    *  toggleBubble()
+    *    shows the bubble when hidden and the other way around
+    **/
+    toggleBubble: function(event) {
+      if (this.bubble.className.search('rs-hidden') < 0) {
+        this.hideBubble(event);
+      } else {
+        this.showBubble(event);
+      }
+    },
+
+    /**
+     *  hideBubble()
+     *   hides the bubble
+     **/
+    hideBubble: function(){
+      addClass(this.bubble, 'rs-hidden');
+      document.body.removeEventListener('click', this.hideBubbleOnBodyClick);
+    },
 
     /**
      * Method: showBubble()
      *   shows the bubble
      **/
-    this.show_bubble = function(event){
-      //console.log('show bubble',this.bubble,event)
+    showBubble: function(event){
       removeClass(this.bubble, 'rs-hidden');
       if (typeof(event) !== 'undefined') {
-        stop_propagation(event);
+        stopPropagation(event);
       }
-      document.body.addEventListener('click', hide_bubble_on_body_click);
+      document.body.addEventListener('click', this.hideBubbleOnBodyClick);
       gTl(this.bubble,'form').userAddress.focus();
-    }.bind(this);
+    },
 
      /**
      * Method: display(domID)
      *   draws the widget inside of the dom element with the id domID
      *   returns: the widget div
      **/
-    this.display = function(domID) {
+    display: function(domID) {
       if (typeof this.div !== 'undefined') {
         return this.div;
       }
@@ -172,13 +210,13 @@
       // The cube
       el = gCl(element, 'rs-cube');
       el.src = RemoteStorage.Assets.remoteStorageIcon;
-      el.addEventListener('click', this.toggle_bubble);
+      el.addEventListener('click', this.toggleBubble.bind(this));
       this.cube = el;
 
       // Google Drive and Dropbox icons
       el = gCl(element, 'rs-dropbox');
       el.src = RemoteStorage.Assets.dropbox;
-      el.addEventListener('click', this.connectDropbox.bind(this) );
+      el.addEventListener('click', this.connectDropbox.bind(this));
 
       el = gCl(element, 'rs-googledrive');
       el.src = RemoteStorage.Assets.googledrive;
@@ -189,55 +227,17 @@
       var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
       this.bubble.addEventListener('click', function(event) {
         if (! bubbleDontCatch[event.target.tagName] && ! (this.div.classList.contains('remotestorage-state-unauthorized') )) {
-          this.show_bubble(event);
+          this.showBubble(event);
         }
       }.bind(this));
-      this.hide_bubble();
+
+      this.hideBubble();
 
       this.div = element;
 
       this.states.initial.call(this);
       this.events.display.call(this);
       return this.div;
-    };
-  };
-
-  RemoteStorage.Widget.View.prototype = {
-
-    connectGdrive: function() {
-      this._emit('connect', { special: 'googledrive' });
-    },
-
-    connectDropbox: function(){
-      this._emit('connect', { special: 'dropbox'});
-    },
-
-    /**
-     * Method: setState(state, args)
-     *    calls states[state]
-     *    args are the arguments for the
-     *    state(errors mostly)
-     **/
-    setState: function(state, args) {
-      RemoteStorage.log('widget.view.setState(',state,',',args,');');
-      var s = this.states[state];
-      if (typeof(s) === 'undefined') {
-        throw new Error("Bad State assigned to view: " + state);
-      }
-      s.apply(this,args);
-    },
-
-    /**
-     * Method: setUserAddres
-     *    set userAddress of the input field
-     **/
-    setUserAddress: function(addr) {
-      this.userAddress = addr || '';
-
-      var el;
-      if (this.div && (el = gTl(this.div, 'form').userAddress)) {
-        el.value = this.userAddress;
-      }
     },
 
     states:  {
@@ -247,14 +247,14 @@
         if (message) {
           cube.src = RemoteStorage.Assets.remoteStorageIconError;
           removeClass(this.cube, 'remotestorage-loading');
-          this.show_bubble();
+          this.showBubble();
 
           // Show the red error cube for 5 seconds, then show the normal orange one again
           setTimeout(function(){
             cube.src = RemoteStorage.Assets.remoteStorageIcon;
           },5000);
         } else {
-          this.hide_bubble();
+          this.hideBubble();
         }
         this.div.className = "remotestorage-state-initial";
         gCl(this.div, 'rs-status-text').innerHTML = "<strong>Connect</strong> remote storage";
@@ -320,7 +320,7 @@
       busy: function() {
         this.div.className = "remotestorage-state-busy";
         addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
-        this.hide_bubble();
+        this.hideBubble();
       },
 
       offline: function() {
@@ -341,13 +341,13 @@
         }
         gCl(this.div, 'rs-error-msg').textContent = errorMsg;
         this.cube.src = RemoteStorage.Assets.remoteStorageIconError;
-        this.show_bubble();
+        this.showBubble();
       },
 
       unauthorized: function() {
         this.div.className = "remotestorage-state-unauthorized";
         this.cube.src = RemoteStorage.Assets.remoteStorageIconError;
-        this.show_bubble();
+        this.showBubble();
         this.div.addEventListener('click', this.events.connect);
       }
     },
@@ -358,7 +358,7 @@
      * emitted when the connect button is clicked
      **/
       connect: function(event) {
-        stop_propagation(event);
+        stopPropagation(event);
         event.preventDefault();
         this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
@@ -368,7 +368,7 @@
        * emitted when the sync button is clicked
        **/
       sync: function(event) {
-        stop_propagation(event);
+        stopPropagation(event);
         event.preventDefault();
 
         this._emit('sync');
@@ -379,7 +379,7 @@
        * emitted when the disconnect button is clicked
        **/
       disconnect: function(event) {
-        stop_propagation(event);
+        stopPropagation(event);
         event.preventDefault();
         this._emit('disconnect');
       },
