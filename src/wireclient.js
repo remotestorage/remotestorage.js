@@ -93,13 +93,14 @@
           var revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
           if (response.status != 304 && (
               (! mimeType) || mimeType.match(/charset=binary/) )) {
-            var blob = new Blob([response.response], {type: mimeType});
-            var reader = new FileReader();
-            reader.addEventListener("loadend", function() {
-              // reader.result contains the contents of blob as a typed array
-              promise.fulfill(response.status, reader.result, mimeType, revision);
-            });
-            reader.readAsArrayBuffer(blob);
+            if(! window.responses) window.responses = [];
+            window.responses.push(response);
+            var resultBuf = new ArrayBuffer(response.responseText.length);
+            var view = new Uint8Array(resultBuf);
+            for(var i=0;i<response.responseText.length;i++) {
+              view[i] = response.responseText.charCodeAt(i);
+            }
+            promise.fulfill(response.status, resultBuf, mimeType, revision);
           } else {
             body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(response.responseText) : response.responseText;
             promise.fulfill(response.status, body, mimeType, revision);
@@ -372,13 +373,16 @@
     var body = options.body;
 
     if (typeof(body) === 'object') {
+      console.log('got to put', body);
       if (isArrayBufferView(body)) {
+        console.log('(already is array buffer view)');
         /* alright. */
         //FIXME empty block
-      }
-      else if (body instanceof ArrayBuffer) {
+      } else if (body instanceof ArrayBuffer) {
+        console.log('(is array buffer, making array buffer view)');
         body = new Uint8Array(body);
       } else {
+        console.log('(stringifying)');
         body = JSON.stringify(body);
       }
     }
