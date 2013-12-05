@@ -382,14 +382,19 @@
         }
 
         if (this.remote) {
-          this.remote.on('connected', function() {
+          var onConnected = function() {
             try {
               this._emit('ready');
             } catch(e) {
               console.error("'ready' failed: ", e, e.stack);
               this._emit('error', e);
             }
-          }.bind(this));
+          }.bind(this);
+          if(this.remote.connected) {
+            onConnected();
+          } else {
+            this.remote.on('connected', onConnected);
+          }
         }
 
         var fl = features.length;
