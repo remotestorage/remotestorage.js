@@ -1,4 +1,4 @@
-(function(global) {
+(function() {
   /**
    * Class: cachinglayer
    */
@@ -43,4 +43,4 @@
       object[key] = methods[key];
     }
   };
-})(typeof(window) !== 'undefined' ? window : global);
+})();
