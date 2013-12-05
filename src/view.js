@@ -31,6 +31,16 @@
     }
   }
 
+  function setupButton(parent, className, iconName, eventListener) {
+    var element = gCl(parent, className);
+    if (typeof iconName !== 'undefined') {
+      var img = gTl(element, 'img');
+      (img || element).src = RemoteStorage.Assets[iconName];
+    }
+    element.addEventListener('click', eventListener);
+    return element;
+  }
+
   /**
    * Class: RemoteStorage.Widget.View
    *
@@ -173,29 +183,22 @@
         document.body.appendChild(element);
       }
 
-      var el;
 
       // Sync button
-      el = gCl(element, 'rs-sync');
-      gTl(el, 'img').src = RemoteStorage.Assets.syncIcon;
-      el.addEventListener('click', this.events.sync);
+      setupButton(element, 'rs-sync', 'syncIcon', this.events.sync);
 
       // Disconnect button
-      el = gCl(element, 'rs-disconnect');
-      gTl(el, 'img').src = RemoteStorage.Assets.disconnectIcon;
-      el.addEventListener('click', this.events.disconnect);
+      setupButton(element, 'rs-disconnect', 'disconnectIcon', this.events.disconnect);
 
       // Get me out of here
-      el = gCl(element, 'remotestorage-reset').addEventListener('click', this.events.reset);
+      setupButton(element, 'remotestorage-reset', undefined, this.events.reset);
 
       // Connect button
-      var cb = gCl(element,'connect');
-      gTl(cb, 'img').src = RemoteStorage.Assets.connectIcon;
-      cb.addEventListener('click', this.events.connect);
+      var cb = setupButton(element, 'connect', 'connectIcon', this.events.connect);
 
       // Input
       this.form = gTl(element, 'form');
-      el = this.form.userAddress;
+      var el = this.form.userAddress;
       el.addEventListener('keyup', function(event) {
         if (event.target.value) {
           cb.removeAttribute('disabled');
@@ -208,28 +211,19 @@
       }
 
       // The cube
-      el = gCl(element, 'rs-cube');
-      el.src = RemoteStorage.Assets.remoteStorageIcon;
-      el.addEventListener('click', this.toggleBubble.bind(this));
-      this.cube = el;
+      this.cube = setupButton(element, 'rs-cube', 'remoteStorageIcon', this.toggleBubble.bind(this));
 
       // Google Drive and Dropbox icons
-      el = gCl(element, 'rs-dropbox');
-      el.src = RemoteStorage.Assets.dropbox;
-      el.addEventListener('click', this.connectDropbox.bind(this));
+      setupButton(element, 'rs-dropbox', 'dropbox', this.connectDropbox.bind(this));
+      setupButton(element, 'rs-googledrive', 'googledrive', this.connectGdrive.bind(this));
 
-      el = gCl(element, 'rs-googledrive');
-      el.src = RemoteStorage.Assets.googledrive;
-      el.addEventListener('click', this.connectGdrive.bind(this));
-
-      this.bubble = gCl(element,'rs-bubble');
-      //FIXME What is the meaning of this hiding the b
       var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
-      this.bubble.addEventListener('click', function(event) {
+      var eventListener = function(event) {
         if (! bubbleDontCatch[event.target.tagName] && ! (this.div.classList.contains('remotestorage-state-unauthorized') )) {
           this.showBubble(event);
         }
-      }.bind(this));
+      }.bind(this);
+      this.bubble = setupButton(element, 'rs-bubble', undefined, eventListener);
 
       this.hideBubble();
 
