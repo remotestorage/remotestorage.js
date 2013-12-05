@@ -1,5 +1,6 @@
 (function(window){
 
+  var viewState = "initial";
   //
   // Helper methods
   //
@@ -55,7 +56,8 @@
                                 'disconnect',
                                 'sync',
                                 'display',
-                                'reset');
+                                'reset',
+                                'update');
 
     // Re-binding the event so they can be called from the window
     for (var event in this.events){
@@ -225,6 +227,11 @@
         throw new Error("Bad State assigned to view: " + state);
       }
       s.apply(this,args);
+      this._emit('update', {oldState: viewState, newState: state});
+      viewState = state;
+    },
+    getState: function() {
+      return viewState;
     },
 
     /**
