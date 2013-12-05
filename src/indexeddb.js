@@ -132,6 +132,7 @@
       RemoteStorage.log("Failed to open indexedDB");
       return undefined;
     }
+    RS.cachingLayer(this);
     RS.eventHandling(this, 'change', 'conflict');
   };
 
@@ -402,11 +403,7 @@
     },
 
     setConflict: function(path, attributes) {
-      var event = { path: path };
-      for(var key in attributes) {
-        event[key] = attributes[key];
-      }
-
+      var event = this._createConflictEvent(path, attributes);
       this._recordChange(path, { conflict: attributes }).
         then(function() {
           // fire conflict once conflict has been recorded.
@@ -416,15 +413,6 @@
             setTimeout(function() { event.resolve('remote'); }, 0);
           }
         }.bind(this));
-
-      event.resolve = function(resolution) {
-        if (resolution === 'remote' || resolution === 'local') {
-          attributes.resolution = resolution;
-          this._recordChange(path, { conflict: attributes });
-        } else {
-          throw "Invalid resolution: " + resolution;
-        }
-      }.bind(this);
     },
 
     closeDB: function() {

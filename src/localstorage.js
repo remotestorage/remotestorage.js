@@ -4,6 +4,7 @@
   var CHANGES_PREFIX = "remotestorage:cache:changes:";
 
   RemoteStorage.LocalStorage = function() {
+    RemoteStorage.cachingLayer(this);
     RemoteStorage.eventHandling(this, 'change', 'conflict');
   };
 
@@ -175,19 +176,8 @@
     },
 
     setConflict: function(path, attributes) {
-      var event = { path: path };
-      for(var key in attributes) {
-        event[key] = attributes[key];
-      }
+      var event = this._createConflictEvent(path, attributes);
       this._recordChange(path, { conflict: attributes });
-      event.resolve = function(resolution) {
-        if (resolution === 'remote' || resolution === 'local') {
-          attributes.resolution = resolution;
-          this._recordChange(path, { conflict: attributes });
-        } else {
-          throw "Invalid resolution: " + resolution;
-        }
-      }.bind(this);
       this._emit('conflict', event);
     },
 
