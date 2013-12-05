@@ -183,7 +183,6 @@
         document.body.appendChild(element);
       }
 
-
       // Sync button
       setupButton(element, 'rs-sync', 'syncIcon', this.events.sync);
 
@@ -255,18 +254,8 @@
 
         // Google Drive and Dropbox icons
         var backends = 1;
-        if (! this.rs.apiKeys.dropbox) {
-          gCl(this.div,'rs-dropbox').style.display = 'none';
-        } else {
-          gCl(this.div,'rs-dropbox').style.display = 'inline-block';
-          backends += 1;
-        }
-        if (! this.rs.apiKeys.googledrive) {
-          gCl(this.div,'rs-googledrive').style.display = 'none';
-        } else {
-          gCl(this.div,'rs-googledrive').style.display = 'inline-block';
-          backends += 1;
-        }
+        if (this._activateBackend('dropbox')) { backends += 1; }
+        if (this._activateBackend('googledrive')) { backends += 1; }
         gCl(this.div, 'rs-bubble-text').style.paddingRight = backends*32+8+'px';
 
         // If address not empty connect button enabled
@@ -283,7 +272,6 @@
         } else {
           infoEl.classList.remove('remotestorage-error-info');
         }
-
       },
 
       authing: function() {
@@ -399,6 +387,17 @@
           event.preventDefault();
         }
         this._emit('display');
+      }
+    },
+
+    _activateBackend: function activateBackend(backendName) {
+      var className = 'rs-' + backendName;
+      if (this.rs.apiKeys[backendName]) {
+        gCl(this.div, className).style.display = 'inline-block';
+        return true;
+      } else {
+        gCl(this.div, className).style.display = 'none';
+        return false;
       }
     }
   };
