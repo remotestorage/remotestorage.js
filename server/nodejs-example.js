@@ -187,7 +187,7 @@ exports.server = (function() {
     console.log('writeHead', status, origin, timestamp, contentType);
     var headers = {
       'Access-Control-Allow-Origin': (origin?origin:'*'),
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Origin',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Origin, If-Match, If-None-Match',
       'Access-Control-Allow-Methods': 'GET, PUT, DELETE',
     };
     if(typeof(timestamp) != 'undefined') {
@@ -370,16 +370,18 @@ exports.server = (function() {
       } else if(!condMet(cond, path)) {
         computerSaysNo(res, req.headers.origin, 412, version[path]);
       } else {
-        var dataStr = '';
+        var dataStr = new Buffer([]);
         req.on('data', function(chunk) {
-          dataStr+=chunk;
+          console.log('got chunk', typeof(chunk), chunk.length);
+          dataStr = Buffer.concat([dataStr, chunk]);
         });
         req.on('end', function(chunk) {
           var timestamp = String(new Date().getTime());
+          console.log('got ', dataStr.length, 'bytes of data');
           capt.body = dataStr;
           content[path]=dataStr;
           contentType[path]=req.headers['content-type'];
-          log('stored '+path, content[path], contentType[path]);
+          //log('stored '+path, content[path], contentType[path]);
           version[path]=timestamp;
           saveData();
           var pathParts=path.split('/');
@@ -438,7 +440,7 @@ exports.server = (function() {
             thisPart = pathParts.pop() + '/';
           }
         }
-        log(content);
+        //log(content);
         writeJson(res, null, req.headers.origin, timestamp);
       }
     } else {
