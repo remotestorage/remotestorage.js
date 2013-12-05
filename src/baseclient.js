@@ -306,6 +306,18 @@
       });
     },
 
+    storeBlob: function(path, blob) {
+      var fileReader = new FileReader();
+      var promise = promising();
+      fileReader.onload = function() {
+        this.storeFile(blob.type, path, fileReader.result).then(function(){
+          promise.fulfill.apply(promise, arguments);
+        })
+      }.bind(this);
+      fileReader.readAsArrayBuffer(blob);
+      return promise;
+    },
+
     // object operations
 
     /**
