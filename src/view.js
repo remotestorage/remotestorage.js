@@ -11,8 +11,8 @@
     return parent.getElementsByClassName(className)[0];
   }
 
-  function gTl(parent, className) {
-    return parent.getElementsByTagName(className)[0];
+  function gTl(parent, tagName) {
+    return parent.getElementsByTagName(tagName)[0];
   }
 
   function removeClass(el, className) {
@@ -23,12 +23,22 @@
     return el.classList.add(className);
   }
 
-  function stop_propagation(event) {
+  function stopPropagation(event) {
     if (typeof(event.stopPropagation) === 'function') {
       event.stopPropagation();
     } else {
       event.cancelBubble = true;
     }
+  }
+
+  function setupButton(parent, className, iconName, eventListener) {
+    var element = gCl(parent, className);
+    if (typeof iconName !== 'undefined') {
+      var img = gTl(element, 'img');
+      (img || element).src = RemoteStorage.Assets[iconName];
+    }
+    element.addEventListener('click', eventListener);
+    return element;
   }
 
   /**
@@ -62,144 +72,14 @@
       this.events[event] = this.events[event].bind(this);
     }
 
-    /**
-    *  toggleBubble()
-    *    shows the bubble when hidden and the other way around
-    **/
-    this.toggle_bubble = function(event) {
-      if (this.bubble.className.search('rs-hidden') < 0) {
-        this.hide_bubble(event);
-      } else {
-        this.show_bubble(event);
-      }
-    }.bind(this);
-
-    /**
-     *  hideBubble()
-     *   hides the bubble
-     **/
-    this.hide_bubble = function(){
-      addClass(this.bubble, 'rs-hidden');
-      document.body.removeEventListener('click', hide_bubble_on_body_click);
-    }.bind(this);
-
-    var hide_bubble_on_body_click = function (event) {
+    this.hideBubbleOnBodyClick = function(event) {
       for (var p = event.target; p !== document.body; p = p.parentElement) {
         if (p.id === 'remotestorage-widget') {
           return;
         }
       }
-      this.hide_bubble();
+      this.hideBubble();
     }.bind(this);
-
-    /**
-     * Method: showBubble()
-     *   shows the bubble
-     **/
-    this.show_bubble = function(event){
-      //console.log('show bubble',this.bubble,event)
-      removeClass(this.bubble, 'rs-hidden');
-      if (typeof(event) !== 'undefined') {
-        stop_propagation(event);
-      }
-      document.body.addEventListener('click', hide_bubble_on_body_click);
-      gTl(this.bubble,'form').userAddress.focus();
-    }.bind(this);
-
-     /**
-     * Method: display(domID)
-     *   draws the widget inside of the dom element with the id domID
-     *   returns: the widget div
-     **/
-    this.display = function(domID) {
-      if (typeof this.div !== 'undefined') {
-        return this.div;
-      }
-
-      var element = cEl('div');
-      var style = cEl('style');
-      style.innerHTML = RemoteStorage.Assets.widgetCss;
-
-      element.id = "remotestorage-widget";
-
-      element.innerHTML = RemoteStorage.Assets.widget;
-
-      element.appendChild(style);
-      if (domID) {
-        var parent = document.getElementById(domID);
-        if (! parent) {
-          throw "Failed to find target DOM element with id=\"" + domID + "\"";
-        }
-        parent.appendChild(element);
-      } else {
-        document.body.appendChild(element);
-      }
-
-      var el;
-
-      // Sync button
-      el = gCl(element, 'rs-sync');
-      gTl(el, 'img').src = RemoteStorage.Assets.syncIcon;
-      el.addEventListener('click', this.events.sync);
-
-      // Disconnect button
-      el = gCl(element, 'rs-disconnect');
-      gTl(el, 'img').src = RemoteStorage.Assets.disconnectIcon;
-      el.addEventListener('click', this.events.disconnect);
-
-      // Get me out of here
-      el = gCl(element, 'remotestorage-reset').addEventListener('click', this.events.reset);
-
-      // Connect button
-      var cb = gCl(element,'connect');
-      gTl(cb, 'img').src = RemoteStorage.Assets.connectIcon;
-      cb.addEventListener('click', this.events.connect);
-
-      // Input
-      this.form = gTl(element, 'form');
-      el = this.form.userAddress;
-      el.addEventListener('keyup', function(event) {
-        if (event.target.value) {
-          cb.removeAttribute('disabled');
-        } else {
-          cb.setAttribute('disabled','disabled');
-        }
-      });
-      if (this.userAddress) {
-        el.value = this.userAddress;
-      }
-
-      // The cube
-      el = gCl(element, 'rs-cube');
-      el.src = RemoteStorage.Assets.remoteStorageIcon;
-      el.addEventListener('click', this.toggle_bubble);
-      this.cube = el;
-
-      // Google Drive and Dropbox icons
-      el = gCl(element, 'rs-dropbox');
-      el.src = RemoteStorage.Assets.dropbox;
-      el.addEventListener('click', this.connectDropbox.bind(this) );
-
-      el = gCl(element, 'rs-googledrive');
-      el.src = RemoteStorage.Assets.googledrive;
-      el.addEventListener('click', this.connectGdrive.bind(this));
-
-      this.bubble = gCl(element,'rs-bubble');
-      //FIXME What is the meaning of this hiding the b
-      var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
-      this.bubble.addEventListener('click', function(event) {
-        if (! bubbleDontCatch[event.target.tagName] && ! (this.div.classList.contains('remotestorage-state-unauthorized') )) {
-          this.show_bubble(event);
-        }
-      }.bind(this));
-      this.hide_bubble();
-
-      this.div = element;
-
-      this.states.initial.call(this);
-      this.events.display.call(this);
-      return this.div;
-    };
   };
 
   RemoteStorage.Widget.View.prototype = {
@@ -240,6 +120,119 @@
       }
     },
 
+    /**
+    *  toggleBubble()
+    *    shows the bubble when hidden and the other way around
+    **/
+    toggleBubble: function(event) {
+      if (this.bubble.className.search('rs-hidden') < 0) {
+        this.hideBubble(event);
+      } else {
+        this.showBubble(event);
+      }
+    },
+
+    /**
+     *  hideBubble()
+     *   hides the bubble
+     **/
+    hideBubble: function(){
+      addClass(this.bubble, 'rs-hidden');
+      document.body.removeEventListener('click', this.hideBubbleOnBodyClick);
+    },
+
+    /**
+     * Method: showBubble()
+     *   shows the bubble
+     **/
+    showBubble: function(event){
+      removeClass(this.bubble, 'rs-hidden');
+      if (typeof(event) !== 'undefined') {
+        stopPropagation(event);
+      }
+      document.body.addEventListener('click', this.hideBubbleOnBodyClick);
+      gTl(this.bubble,'form').userAddress.focus();
+    },
+
+     /**
+     * Method: display(domID)
+     *   draws the widget inside of the dom element with the id domID
+     *   returns: the widget div
+     **/
+    display: function(domID) {
+      if (typeof this.div !== 'undefined') {
+        return this.div;
+      }
+
+      var element = cEl('div');
+      var style = cEl('style');
+      style.innerHTML = RemoteStorage.Assets.widgetCss;
+
+      element.id = "remotestorage-widget";
+
+      element.innerHTML = RemoteStorage.Assets.widget;
+
+      element.appendChild(style);
+      if (domID) {
+        var parent = document.getElementById(domID);
+        if (! parent) {
+          throw "Failed to find target DOM element with id=\"" + domID + "\"";
+        }
+        parent.appendChild(element);
+      } else {
+        document.body.appendChild(element);
+      }
+
+      // Sync button
+      setupButton(element, 'rs-sync', 'syncIcon', this.events.sync);
+
+      // Disconnect button
+      setupButton(element, 'rs-disconnect', 'disconnectIcon', this.events.disconnect);
+
+      // Get me out of here
+      setupButton(element, 'remotestorage-reset', undefined, this.events.reset);
+
+      // Connect button
+      var cb = setupButton(element, 'connect', 'connectIcon', this.events.connect);
+
+      // Input
+      this.form = gTl(element, 'form');
+      var el = this.form.userAddress;
+      el.addEventListener('keyup', function(event) {
+        if (event.target.value) {
+          cb.removeAttribute('disabled');
+        } else {
+          cb.setAttribute('disabled','disabled');
+        }
+      });
+      if (this.userAddress) {
+        el.value = this.userAddress;
+      }
+
+      // The cube
+      this.cube = setupButton(element, 'rs-cube', 'remoteStorageIcon', this.toggleBubble.bind(this));
+
+      // Google Drive and Dropbox icons
+      setupButton(element, 'rs-dropbox', 'dropbox', this.connectDropbox.bind(this));
+      setupButton(element, 'rs-googledrive', 'googledrive', this.connectGdrive.bind(this));
+
+      var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
+      var eventListener = function(event) {
+        if (! bubbleDontCatch[event.target.tagName] && ! (this.div.classList.contains('remotestorage-state-unauthorized') )) {
+          this.showBubble(event);
+        }
+      }.bind(this);
+      this.bubble = setupButton(element, 'rs-bubble', undefined, eventListener);
+
+      this.hideBubble();
+
+      this.div = element;
+
+      this.states.initial.call(this);
+      this.events.display.call(this);
+      return this.div;
+    },
+
     states:  {
       initial: function(message) {
         var cube = this.cube;
@@ -247,32 +240,22 @@
         if (message) {
           cube.src = RemoteStorage.Assets.remoteStorageIconError;
           removeClass(this.cube, 'remotestorage-loading');
-          this.show_bubble();
+          this.showBubble();
 
           // Show the red error cube for 5 seconds, then show the normal orange one again
           setTimeout(function(){
             cube.src = RemoteStorage.Assets.remoteStorageIcon;
           },5000);
         } else {
-          this.hide_bubble();
+          this.hideBubble();
         }
         this.div.className = "remotestorage-state-initial";
         gCl(this.div, 'rs-status-text').innerHTML = "<strong>Connect</strong> remote storage";
 
         // Google Drive and Dropbox icons
         var backends = 1;
-        if (! this.rs.apiKeys.dropbox) {
-          gCl(this.div,'rs-dropbox').style.display = 'none';
-        } else {
-          gCl(this.div,'rs-dropbox').style.display = 'inline-block';
-          backends += 1;
-        }
-        if (! this.rs.apiKeys.googledrive) {
-          gCl(this.div,'rs-googledrive').style.display = 'none';
-        } else {
-          gCl(this.div,'rs-googledrive').style.display = 'inline-block';
-          backends += 1;
-        }
+        if (this._activateBackend('dropbox')) { backends += 1; }
+        if (this._activateBackend('googledrive')) { backends += 1; }
         gCl(this.div, 'rs-bubble-text').style.paddingRight = backends*32+8+'px';
 
         // If address not empty connect button enabled
@@ -289,7 +272,6 @@
         } else {
           infoEl.classList.remove('remotestorage-error-info');
         }
-
       },
 
       authing: function() {
@@ -320,7 +302,7 @@
       busy: function() {
         this.div.className = "remotestorage-state-busy";
         addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
-        this.hide_bubble();
+        this.hideBubble();
       },
 
       offline: function() {
@@ -341,13 +323,13 @@
         }
         gCl(this.div, 'rs-error-msg').textContent = errorMsg;
         this.cube.src = RemoteStorage.Assets.remoteStorageIconError;
-        this.show_bubble();
+        this.showBubble();
       },
 
       unauthorized: function() {
         this.div.className = "remotestorage-state-unauthorized";
         this.cube.src = RemoteStorage.Assets.remoteStorageIconError;
-        this.show_bubble();
+        this.showBubble();
         this.div.addEventListener('click', this.events.connect);
       }
     },
@@ -358,7 +340,7 @@
      * emitted when the connect button is clicked
      **/
       connect: function(event) {
-        stop_propagation(event);
+        stopPropagation(event);
         event.preventDefault();
         this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
@@ -368,7 +350,7 @@
        * emitted when the sync button is clicked
        **/
       sync: function(event) {
-        stop_propagation(event);
+        stopPropagation(event);
         event.preventDefault();
 
         this._emit('sync');
@@ -379,7 +361,7 @@
        * emitted when the disconnect button is clicked
        **/
       disconnect: function(event) {
-        stop_propagation(event);
+        stopPropagation(event);
         event.preventDefault();
         this._emit('disconnect');
       },
@@ -405,6 +387,17 @@
           event.preventDefault();
         }
         this._emit('display');
+      }
+    },
+
+    _activateBackend: function activateBackend(backendName) {
+      var className = 'rs-' + backendName;
+      if (this.rs.apiKeys[backendName]) {
+        gCl(this.div, className).style.display = 'inline-block';
+        return true;
+      } else {
+        gCl(this.div, className).style.display = 'none';
+        return false;
       }
     }
   };
