@@ -403,6 +403,15 @@
     xhr.send(body);
   };
 
+  Object.defineProperty(RemoteStorage.WireClient.prototype, 'storageType', {
+    get: function() {
+      if (this.storageApi) {
+        var spec = this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);
+        return spec ? spec[1] : '2012.04';
+      }
+    }
+  });
+
   RS.WireClient.configureHooks = [];
 
   RS.WireClient._rs_init = function(remoteStorage) {

@@ -13,7 +13,6 @@
   };
 
   RemoteStorage.Access.prototype = {
-    // not sure yet, if 'set' or 'claim' is better...
 
     /**
      * Method: claim
@@ -61,12 +60,23 @@
     },
 
     _adjustRootPaths: function(newScope) {
-      if('root' in this.scopeModeMap || newScope === 'root') {
+      if('*' in this.scopeModeMap || newScope === '*') {
         this.rootPaths = ['/'];
       } else if(! (newScope in this.scopeModeMap)) {
         this.rootPaths.push('/' + newScope + '/');
         this.rootPaths.push('/public/' + newScope + '/');
       }
+    },
+
+    _scopeNameForParameter: function(scope) {
+      if (scope.name === '*' && this.storageType) {
+        if (this.storageType === '2012.04') {
+          return '';
+        } else if (this.storageType.match(/remotestorage-0[01]/)) {
+          return 'root';
+        }
+      }
+      return scope.name;
     },
 
     setStorageType: function(type) {
@@ -99,7 +109,7 @@
   Object.defineProperty(RemoteStorage.Access.prototype, 'scopeParameter', {
     get: function() {
       return this.scopes.map(function(scope) {
-        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
+        return this._scopeNameForParameter(scope) + ':' + scope.mode;
       }.bind(this)).join(' ');
     }
   });
@@ -117,7 +127,7 @@
   });
 
   function setModuleCaching(remoteStorage, key) {
-    if(key === 'root' || key === '') {
+    if (key === '*' || key === '') {
       remoteStorage.caching.set('/', { data: true });
     } else {
       remoteStorage.caching.set('/' + key + '/', { data: true });
