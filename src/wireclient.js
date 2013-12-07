@@ -42,11 +42,12 @@
   var haveLocalStorage;
   var SETTINGS_KEY = "remotestorage:wireclient";
 
-  var API_2012 = 1, API_00 = 2, API_01 = 3, API_HEAD = 4;
+  var API_2012 = 1, API_00 = 2, API_01 = 3, API_02 = 4, API_HEAD = 5;
 
   var STORAGE_APIS = {
     'draft-dejong-remotestorage-00': API_00,
     'draft-dejong-remotestorage-01': API_01,
+    'draft-dejong-remotestorage-02': API_02,
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
