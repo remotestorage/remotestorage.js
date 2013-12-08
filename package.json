@@ -11,7 +11,8 @@
   "homepage": "http://remotestorage.io",
   "devDependencies": {
     "teste": "*",
-    "uglify-js": "2.4.x"
+    "uglify-js": "2.4.x",
+    "xhr2": "0.0.7"
   },
   "scripts": {
     "test": "node_modules/.bin/teste"

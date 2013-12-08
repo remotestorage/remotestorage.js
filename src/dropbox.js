@@ -306,14 +306,9 @@
 
             // handling binary
             if((! resp.getResponseHeader('Content-Type') ) || resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
-              var blob = new Blob([resp.response], {type: mime});
-              var reader = new FileReader();
-              reader.addEventListener("loadend", function() {
-                // reader.result contains the contents of blob as a typed array
-                promise.fulfill(status, reader.result, mime, rev);
+              RS.WireClient.readBinaryData(resp.response, mime, function(result) {
+                promise.fulfill(status, result, mime, rev);
               });
-              reader.readAsArrayBuffer(blob);
-
             } else {
               // handling json (always try)
               if(mime && mime.search('application/json') >= 0 || true) {

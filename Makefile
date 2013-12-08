@@ -12,7 +12,7 @@ SOURCES        = ${shell find $(SOURCE_DIR) -name "*.js"}
 
 DEFAULT_COMPONENTS = core widget baseclient caching modules debug legacy googledrive dropbox
 NOCACHE_COMPONENTS = core widget baseclient modules debug legacy googledrive dropbox
-NODEJS_COMPONENTS = core baseclient caching modules legacy
+NODEJS_COMPONENTS  = core baseclient caching modules legacy nodejs
 
 
 default: help
