@@ -15,7 +15,7 @@ function run(_config) {
 
   function runOne() {
     var test = tests.shift();
-    if(test) {
+    if (test) {
       test(function() {
         console.log("-> PASSED\n");
         runOne();
@@ -30,19 +30,19 @@ function run(_config) {
 
 function logNested(depth, args) {
   var prefix = '';
-  for(var i=0;i<depth;i++) {
+  for(var i=0; i < depth; i++) {
     prefix += ' ';
   }
   console.log.apply(console, args.map(function(arg, i) {
-    if(typeof(arg) != 'string') {
+    if (typeof(arg) !== 'string') {
       arg = util.inspect(arg);
     }
     var lines = arg.split("\n");
-    if(lines.length == 1) {
-      return (i == 0 ? prefix : '') + arg;
+    if (lines.length === 1) {
+      return (i === 0 ? prefix : '') + arg;
     } else {
       return lines.map(function(line, j) {
-        return (j == 0 ? (i == 0 ? prefix : '') : prefix) + line;
+        return (j === 0 ? (i === 0 ? prefix : '') : prefix) + line;
       }).join("\n");
     }
   }));
@@ -53,14 +53,15 @@ function br() {
 }
 
 function request(verb, path, options, cb, finalCb) {
-  for(var key in options.headers) {
-    if(typeof(options.headers[key]) == 'function') {
+  var key;
+  for(key in options.headers) {
+    if (typeof(options.headers[key]) === 'function') {
       options.headers[key] = options.headers[key]();
     }
   }
   logNested(2, ['Request:', verb, path]);
   logNested(4, ['Headers: ', options.headers || {}]);
-  if(options.body) {
+  if (options.body) {
     logNested(4, ['Body: ', util.inspect(options.body)]);
   }
   br();
@@ -69,8 +70,8 @@ function request(verb, path, options, cb, finalCb) {
   opts.headers = {
     'Authorization': 'Bearer ' + config.token
   };
-  if(options.headers) {
-    for(var key in options.headers) {
+  if (options.headers) {
+    for(key in options.headers) {
       opts.headers[key] = options.headers[key];
     }
   }
@@ -80,7 +81,7 @@ function request(verb, path, options, cb, finalCb) {
     response.on('end', function() {
       logNested(2, ['Response:', response.statusCode]);
       logNested(4, ['Headers:', response.headers]);
-      if(body) {
+      if (body) {
         logNested(4, ['Body:', util.inspect(body)]);
       }
       br();
@@ -91,8 +92,8 @@ function request(verb, path, options, cb, finalCb) {
       });
       finalCb();
     });
-  })
-  if(options.body) {
+  });
+  if (options.body) {
     req.write(options.body);
   }
   req.end();
@@ -100,10 +101,12 @@ function request(verb, path, options, cb, finalCb) {
 
 function testRequest(desc, verb, path, a, b) {
   var options, callback;
-  if(typeof(a) === 'object') {
-    options = a, callback = b;
+  if (typeof(a) === 'object') {
+    options = a;
+    callback = b;
   } else {
-    options = {}, callback = a;
+    options = {};
+    callback = a;
   }
   tests.push(function(next) {
     console.log(desc);
@@ -114,7 +117,7 @@ function testRequest(desc, verb, path, a, b) {
 
 function extendAssert(assert) {
   assert.status = function(response, status, message) {
-    if(typeof(status) == 'object' && status instanceof Array) {
+    if (typeof(status) === 'object' && status instanceof Array) {
       assert.ok(status.indexOf(response.status) > -1, message || ("Expected response status to equal one of " + util.inspect(status) + ", got " + response.status));
     } else {
       assert.equal(response.status, status, message || ("Expected response status to equal " + status + ", got " + response.status));

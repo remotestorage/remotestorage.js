@@ -19,6 +19,7 @@ define([], function() {
       }
       test.done();
     },
+
     tests: [
       {
         desc: "#inScope returns all schemas defined for the given module",

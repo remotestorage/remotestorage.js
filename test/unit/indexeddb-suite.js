@@ -4,7 +4,6 @@ if(typeof(define) !== 'function') {
 define(['requirejs'], function(requirejs) {
   var suites = [];
 
-
   suites.push({
     name: "IndexedDB",
     desc: "indexedDB caching layer",
@@ -33,8 +32,7 @@ define(['requirejs'], function(requirejs) {
         return {
           get: function() {
             return {
-              onsuccess: function() {
-              }
+              onsuccess: function() {}
             };
           },
           openCursor: function() {
@@ -65,7 +63,6 @@ define(['requirejs'], function(requirejs) {
     },
 
     tests: [
-
       {
         desc: "fireInitial fires change event with 'local' origin for initial cache content",
         timeout: 250,

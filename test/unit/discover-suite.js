@@ -1,5 +1,5 @@
 if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
+  var define = require('amdefine')(module);
 }
 define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
   var suites = [];
@@ -22,7 +22,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         XMLHttpRequest.sendCalls = [];
         XMLHttpRequest.prototype = {
           open: function() {
-           XMLHttpRequest.openCalls.push(Array.prototype.slice.call(arguments));
+            XMLHttpRequest.openCalls.push(Array.prototype.slice.call(arguments));
           },
 
           send: function() {
@@ -42,7 +42,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     },
 
     tests: [
-
       // these tests MUST be run before any other.
 
       {
@@ -109,7 +108,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           XMLHttpRequest.onloadFunction();
         }
       },
-      
+
       {
         desc: "if unseccesfully tried to discover a storage, callback is called without an href",
         run: function(env, test) {
@@ -121,7 +120,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             instance.status = 200;
             XMLHttpRequest.onloadFunction();
           }
-          
         }
       }
     ]

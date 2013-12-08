@@ -1,9 +1,9 @@
 if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
+  var define = require('amdefine')(module);
 }
 define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
   var suites = [];
-  
+
   suites.push({
     name: "access",
     desc: "access knows all about the scope we claimed and which paths that gives us access to",

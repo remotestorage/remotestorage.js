@@ -49,7 +49,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     },
 
     tests: [
-
       {
         desc: "document.location getter",
         run: function(env, test) {
@@ -110,6 +109,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           storage._handlers['features-loaded'][0]();
         }
       },
+
       {
         desc: "the 'features-loaded' handler is removed after cleanup",
         run: function(env, test) {
@@ -122,11 +122,8 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           test.done();
         }
       }
-
     ]
-
   });
-
 
   return suites;
 });
