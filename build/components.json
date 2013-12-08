@@ -24,6 +24,7 @@
     "src/baseclient/types.js": "Type / schema handling, validations",
     "src/assets.js": "Icons, CSS and HTML templates for the widget",
     "src/legacy.js": "...",
+    "src/env.js": "Function specific to each environment (browser, nodejs...)",
 
     "src/googledrive.js": "Backend to talk to googledrive",
     "src/dropbox.js": "Backend to talk to dropbox",
@@ -41,7 +42,8 @@
         "src/wireclient.js",
         "src/discover.js",
         "src/authorize.js",
-        "src/access.js"
+        "src/access.js",
+        "src/env.js"
       ],
       "required": true
     },

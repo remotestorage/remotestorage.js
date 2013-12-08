@@ -454,7 +454,8 @@
         'LocalStorage',
         'InMemoryStorage',
         'Sync',
-        'BaseClient'
+        'BaseClient',
+        'Env'
       ];
       var theFeatures = [];
       var n = features.length, i = 0;
