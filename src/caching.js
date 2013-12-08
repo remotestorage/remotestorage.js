@@ -45,7 +45,9 @@
      * Parameters:
      *   path - Absolute path to a directory.
      */
-    enable: function(path) { this.set(path, { data: true, ready: false }); },
+    enable: function(path) {
+      this.set(path, { data: true, ready: this._checkLocal(path) });
+    },
     /**
      * Method: disable
      *
@@ -121,6 +123,26 @@
       } else {
         return !!settings && (settings.data==true);
       }
+    },
+
+    /**
+     * Method: _checkLocal
+     *
+     * checks if the local store has data for a given path.
+     * this is a dummy function by default, the local store should
+     * overwrite it with a valid callback using onCheckLocal.
+     */
+    _checkLocal: function() {
+      return false;
+    },
+
+    /**
+     * Method: onCheckLocal
+     *
+     * sets the callback to check if the local store has data for a given path.
+     */
+    onCheckLocal: function(cb) {
+      this._checkLocal = cb;
     },
 
     /**
