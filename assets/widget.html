@@ -1,46 +1,33 @@
-
 <div class="rs-bubble rs-hidden">
   <div class="rs-bubble-text remotestorage-initial remotestorage-error remotestorage-authing remotestorage-offline">
-    <span class="rs-status-text">
-      Connect <strong>remote Storage</strong>
-    </span>
+    <span class="rs-status-text">{{view_connect}}</span>
   </div>
   <div class="rs-bubble-expandable">
     <!-- error -->
     <div class="remotestorage-error">
-      <pre class="rs-status-text rs-error-msg">ERROR</pre>
-    
-    <button class="remotestorage-reset">get me out of here</button>
-    <p class="rs-centered-text"> If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!</p>
+      <pre class="rs-status-text rs-error-msg">{{ERROR_MSG}}</pre>
+      <button class="remotestorage-reset">{{view_get_me_out}}</button>
+      <p class="rs-centered-text rs-error-plz-report">{{view_error_plz_report}}</p>
     </div>
     <!-- connected -->
     <div class="rs-bubble-text remotestorage-connected">
-      <strong class="userAddress"> User Name </strong>
-      <span class="remotestorage-unauthorized">
-        <br/>Unauthorized! Click to reconnect.<br/>
-      </span>
+      <strong class="userAddress">{{USER_ADDRESS}}</strong>
+      <p class="remotestorage-unauthorized">{{view_unauthorized}}</p>
     </div>
     <div class="rs-content remotestorage-connected">
-      <button class="rs-sync" title="sync">  <img>  </button>
-      <button class="rs-disconnect" title="disconnect">  <img>  </button>
+      <button class="rs-sync" title="sync"><img></button>
+      <button class="rs-disconnect" title="disconnect"><img></button>
     </div>
     <!-- initial -->
     <form novalidate class="remotestorage-initial">
-      <input  type="email" placeholder="user@host" name="userAddress" novalidate>
+      <input type="email" placeholder="user@host" name="userAddress" novalidate>
       <button class="connect" name="connect" title="connect" disabled="disabled">
         <img>
       </button>
     </form>
-    <div class="rs-info-msg remotestorage-initial">
-      This app allows you to use your own storage! Find more info on
-      <a href="http://remotestorage.io/" target="_blank">remotestorage.io</a>
-    </div>
-  
+    <div class="rs-info-msg remotestorage-initial">{{view_info}}</div>
   </div>
 </div>
-
-
 <img class="rs-dropbox rs-backends rs-action" alt="Connect to Dropbox">
 <img class="rs-googledrive rs-backends rs-action" alt="Connect to Google Drive">
-
 <img class="rs-cube rs-action">
