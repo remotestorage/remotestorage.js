@@ -184,13 +184,39 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#getListing results in an array of keys, when it receives an object",
+        desc: "#getListing results in an object, when it receives a directory listing object (< 02 spec)",
         run: function(env, test) {
           env.storage.get = function(path) {
             return promising().fulfill(200, { foo: 'bar', 'baz/': 'bla' });
           };
           env.client.getListing('').then(function(result) {
-            test.assert(result, ['foo', 'baz/']);
+            test.assert(result, { 'foo': {"ETag":'bar'}, 'baz/': {"ETag":'bla'} });
+          });
+        }
+      },
+
+      {
+        desc: "#getListing results in an object, when it receives a directory listing object (>= 02 spec)",
+        run: function(env, test) {
+          var response_object = {
+            "@context": "http://remotestorage.io/spec/folder-description",
+            "items": {
+              "abc.jpg": {
+                "ETag": "DEADBEEFDEADBEEFDEADBEEF",
+                "Content-Type": "image/jpeg",
+                "Content-Length": 82352
+              },
+              "thumbnails/": {
+                "ETag": "1337ABCD1337ABCD1337ABCD"
+              }
+            }
+          };
+          env.storage.get = function(path) {
+            return promising().fulfill(200, response_object);
+          };
+          env.client.getListing('').then(function(result) {
+            test.assertAnd(result, response_object.items, JSON.stringify(result));
+            test.done();
           });
         }
       },
