@@ -121,7 +121,7 @@
       if(isDir(path)) {
         return !!settings;
       } else {
-        return !!settings && (settings.data==true);
+        return !!settings && (settings.data === true);
       }
     },
 
