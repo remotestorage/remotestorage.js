@@ -27,18 +27,8 @@
   };
 
   RemoteStorage.prototype.authorize = function(authURL) {
-    var scopes = this.access.scopeModeMap;
-    var scope = [];
-    for(var key in scopes) {
-      var mode = scopes[key];
-      if (key === 'root') {
-        if (! this.remote.storageApi.match(/^draft-dejong-remotestorage-/)) {
-          key = '';
-        }
-      }
-      scope.push(key + ':' + mode);
-    }
-    scope = scope.join(' ');
+    this.access.setStorageType(this.remote.storageType);
+    var scope = this.access.scopeParameter;
 
     var redirectUri = String(RemoteStorage.Authorize.getLocation());
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];

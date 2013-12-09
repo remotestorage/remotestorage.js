@@ -176,6 +176,28 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "#storageType returns a simplified identifier for the current storage API",
+        run: function(env, test) {
+          env.client.storageApi = undefined;
+          test.assertTypeAnd(env.client.storageType, 'undefined');
+
+          env.client.storageApi = 'draft-dejong-remotestorage-00';
+          test.assertAnd(env.client.storageType, 'remotestorage-00');
+
+          env.client.storageApi = 'draft-dejong-remotestorage-01';
+          test.assertAnd(env.client.storageType, 'remotestorage-01');
+
+          env.client.storageApi = 'draft-dejong-remotestorage-02';
+          test.assertAnd(env.client.storageType, 'remotestorage-02');
+
+          env.client.storageApi = 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple';
+          test.assertAnd(env.client.storageType, '2012.04');
+
+          test.done();
+        }
+      },
+
+      {
         desc: "#get opens a CORS request",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar');
