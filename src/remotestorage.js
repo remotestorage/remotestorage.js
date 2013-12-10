@@ -434,14 +434,14 @@
           this._emit('error', exc);
         }
         this._processPending();
-      });
+      }.bind(this));
     },
 
     /**
      ** FEATURE DETECTION
      **/
     _loadFeatures: function(callback) {
-      var features = [
+      var featureList = [
         'WireClient',
         'Dropbox',
         'GoogleDrive',
@@ -457,30 +457,31 @@
         'BaseClient',
         'Env'
       ];
-      var theFeatures = [];
-      var n = features.length, i = 0;
+      var features = [];
+      var n = featureList.length, i = 0;
       var self = this;
+
       function doneNow() {
         i++;
         if(i === n) {
           setTimeout(function() {
-            theFeatures.caching = !!RemoteStorage.Caching;
-            theFeatures.sync = !!RemoteStorage.Sync;
+            features.caching = !!RemoteStorage.Caching;
+            features.sync = !!RemoteStorage.Sync;
             [
               'IndexedDB',
               'LocalStorage',
               'InMemoryStorage'
             ].some(function(cachingLayer) {
-              if ( theFeatures.some( function(feature) {
+              if ( features.some( function(feature) {
                 return feature.name === cachingLayer;
               } )
                  ) {
-                theFeatures.local = RemoteStorage[cachingLayer];
+                features.local = RemoteStorage[cachingLayer];
                 return true;
               }
             });
-            self.features = theFeatures;
-            callback.apply(self, [theFeatures]);
+            self.features = features;
+            callback(features);
           }, 0);
         }
       }
@@ -488,7 +489,7 @@
       function featureDoneCb(name) {
         return function() {
           self.log("[FEATURE " + name + "] initialized. (" + (i+1) + "/" + n + ")");
-          theFeatures.push( {
+          features.push( {
             name : name,
             init :  RemoteStorage[name]._rs_init,
             supported : true,
@@ -501,7 +502,6 @@
       function featureFailedCb(name) {
         return function(err) {
           self.log("[FEATURE "+name+"] initialization failed ( "+err+")");
-          //self.features
           doneNow();
         };
       }
@@ -515,7 +515,7 @@
         };
       }
 
-      features.forEach(function(featureName) {
+      featureList.forEach(function(featureName) {
         self.log("[FEATURE " + featureName + "] initializing...");
         var impl = RemoteStorage[featureName];
         var cb = featureDoneCb(featureName);
