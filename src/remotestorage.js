@@ -54,8 +54,6 @@
     }
   };
 
-  var haveLocalStorage = 'localStorage' in global;
-
   /**
    * Class: RemoteStorage
    *
@@ -145,7 +143,7 @@
 
     this.apiKeys = {};
 
-    if (haveLocalStorage) {
+    if (this.localStorageAvailable()) {
       try {
         this.apiKeys = JSON.parse(localStorage['remotestorage:api-keys']);
       } catch(exc) {
@@ -285,7 +283,7 @@
 
     setBackend: function(what) {
       this.backend = what;
-      if (haveLocalStorage) {
+      if (this.localStorageAvailable()) {
         if (what) {
           localStorage['remotestorage:backend'] = what;
         } else {
@@ -364,7 +362,7 @@
       } else {
         delete this.apiKeys[type];
       }
-      if (haveLocalStorage) {
+      if (this.localStorageAvailable()) {
         localStorage['remotestorage:api-keys'] = JSON.stringify(this.apiKeys);
       }
     },
@@ -541,6 +539,14 @@
           supportedCb(false);
         }
       });
+    },
+
+    localStorageAvailable: function() {
+      try {
+        return !!global.localStorage;
+      } catch(error) {
+        return false;
+      }
     },
 
     /**

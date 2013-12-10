@@ -11,6 +11,7 @@ define(['requirejs'], function(requirejs, undefined) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       global.RemoteStorage.Unauthorized = function() {};
+      global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
       require('./lib/promising');
       require('./src/eventhandling');
 
