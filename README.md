@@ -84,7 +84,7 @@ Display the available build tasks:
 Build everything:
 
     make all
-
-
+  
+---
+  
 [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/remotestorage/remotestorage.js/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-
