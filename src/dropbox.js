@@ -33,7 +33,7 @@
    *   share_urls and therfeor getItemURL is asynchronius , which means
    *     getItemURL returns usefull values after the syncCycle
    **/
-  var haveLocalStorage;
+  var hasLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
   var SETTINGS_KEY = 'remotestorage:dropbox';
   var cleanPath = RS.WireClient.cleanPath;
@@ -151,7 +151,7 @@
     this._revCache = new LowerCaseCache('rev');
     this._itemRefs = {};
 
-    if(haveLocalStorage){
+    if(hasLocalStorage){
       var settings;
       try {
         settings = JSON.parse(localStorage[SETTINGS_KEY]);
@@ -206,7 +206,7 @@
       } else {
         this.connected = false;
       }
-      if(haveLocalStorage){
+      if(hasLocalStorage){
         localStorage[SETTINGS_KEY] = JSON.stringify( { token: this.token,
                                                        userAddress: this.userAddress } );
       }
@@ -469,7 +469,7 @@
             var url = response.url;
             itemRefs[path] = url;
             console.log("SHAREING URL :::: ",url,' for ',path);
-            if(haveLocalStorage) {
+            if(hasLocalStorage) {
               localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
             }
             promise.fulfill(url);
@@ -668,6 +668,7 @@
   }
 
   RS.Dropbox._rs_init = function(rs) {
+    hasLocalStorage = rs.localStorageAvailable();
     if( rs.apiKeys.dropbox ) {
       rs.dropbox = new RS.Dropbox(rs);
     }
@@ -677,13 +678,12 @@
   };
 
   RS.Dropbox._rs_supported = function() {
-    haveLocalStorage = 'localStorage' in global;
     return true;
   };
 
   RS.Dropbox._rs_cleanup = function(rs) {
     unHookIt(rs);
-    if(haveLocalStorage){
+    if(hasLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
     rs.removeEventListener('error', onErrorCb);

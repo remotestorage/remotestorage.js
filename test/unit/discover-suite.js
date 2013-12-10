@@ -10,6 +10,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
+      global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
       require('./src/discover');
 
       test.done();
@@ -65,7 +66,8 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "initialization works",
         run: function(env, test) {
-          RemoteStorage.Discover._rs_init();
+          var rs = new RemoteStorage();
+          RemoteStorage.Discover._rs_init(rs);
           test.done();
         }
       },

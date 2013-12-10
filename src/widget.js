@@ -1,6 +1,6 @@
 (function(window) {
 
-  var haveLocalStorage;
+  var hasLocalStorage;
   var LS_STATE_KEY = "remotestorage:widget:state";
   // states allowed to immediately jump into after a reload.
   var VALID_ENTRY_STATES = {
@@ -11,7 +11,7 @@
 
   function stateSetter(widget, state) {
     return function() {
-      if (haveLocalStorage) {
+      if (hasLocalStorage) {
         localStorage[LS_STATE_KEY] = state;
       }
       if (widget.view) {
@@ -69,7 +69,7 @@
     this.rs.on('sync-busy', stateSetter(this, 'busy'));
     this.rs.on('sync-done', stateSetter(this, 'connected'));
     this.rs.on('error', errorsHandler(this) );
-    if (haveLocalStorage) {
+    if (hasLocalStorage) {
       var state = localStorage[LS_STATE_KEY];
       if (state && VALID_ENTRY_STATES[state]) {
         this._rememberedState = state;
@@ -144,13 +144,13 @@
   };
 
   RemoteStorage.Widget._rs_init = function(remoteStorage) {
+    hasLocalStorage = remoteStorage.localStorageAvailable();
     if(! remoteStorage.widget) {
       remoteStorage.widget = new RemoteStorage.Widget(remoteStorage);
     }
   };
 
   RemoteStorage.Widget._rs_supported = function(remoteStorage) {
-    haveLocalStorage = 'localStorage' in window;
     return typeof(document) !== 'undefined';
   };
 

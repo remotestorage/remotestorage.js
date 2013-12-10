@@ -39,7 +39,7 @@
    * be undefined at times (especially for caching-roots).
    */
 
-  var haveLocalStorage;
+  var hasLocalStorage;
   var SETTINGS_KEY = "remotestorage:wireclient";
 
   var API_2012 = 1, API_00 = 2, API_01 = 3, API_02 = 4, API_HEAD = 5;
@@ -162,7 +162,7 @@
       }
     }.bind(this);
     rs.on('error', onErrorCb);
-    if (haveLocalStorage) {
+    if (hasLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
       if (settings) {
@@ -241,7 +241,7 @@
       } else {
         this.connected = false;
       }
-      if (haveLocalStorage) {
+      if (hasLocalStorage) {
         localStorage[SETTINGS_KEY] = JSON.stringify({
           userAddress: this.userAddress,
           href: this.href,
@@ -417,16 +417,16 @@
   RS.WireClient.configureHooks = [];
 
   RS.WireClient._rs_init = function(remoteStorage) {
+    hasLocalStorage = remoteStorage.localStorageAvailable();
     remoteStorage.remote = new RS.WireClient(remoteStorage);
   };
 
   RS.WireClient._rs_supported = function() {
-    haveLocalStorage = 'localStorage' in global;
     return !! global.XMLHttpRequest;
   };
 
   RS.WireClient._rs_cleanup = function(remoteStorage){
-    if (haveLocalStorage){
+    if (hasLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
     remoteStorage.removeEventListener('error', onErrorCb);

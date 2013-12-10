@@ -15,6 +15,9 @@ define(['requirejs'], function(requirejs, undefined) {
       RemoteStorage.prototype = {
         setBackend: function(b){
           this.backend = b;
+        },
+        localStorageAvailable: function() {
+          return false;
         }
       };
       global.RemoteStorage.Unauthorized = function() {};
