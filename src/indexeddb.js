@@ -328,10 +328,11 @@
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var cursorReq = transaction.objectStore('nodes').openCursor();
       cursorReq.onsuccess = function(evt) {
-        var cursor = evt.target.result;
+        var cursor = evt.target.result, haveData = false;
         if (cursor) {
           var path = cursor.key;
           if (path.substr(-1) !== '/') {
+            haveData = true;
             this._emit('change', {
               path: path,
               origin: 'local',
@@ -341,6 +342,9 @@
           }
           cursor.continue();
         }
+        remoteStorage.caching.onCheckLocal(function(path) {
+          return haveData;
+        });
       }.bind(this);
     },
 

@@ -214,10 +214,11 @@
     },
 
     fireInitial: function() {
-      var l = localStorage.length, npl = NODES_PREFIX.length;
+      var l = localStorage.length, npl = NODES_PREFIX.length, haveData = false;
       for(var i=0;i<l;i++) {
         var key = localStorage.key(i);
         if (key.substr(0, npl) === NODES_PREFIX) {
+          haveData = true;
           var path = key.substr(npl);
           var node = this._get(path);
           this._emit('change', {
@@ -228,6 +229,9 @@
           });
         }
       }
+      remoteStorage.caching.onCheckLocal(function(path) {
+        return haveData;
+      });
     }
 
   };

@@ -188,6 +188,31 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           test.assertTypeAnd(env.caching.get('/bar/'), 'undefined');
           test.assert(env.caching.rootPaths, []);
         }
+      },
+
+      {
+        desc: "cachePathReady returns true if ready is set",
+        run: function(env, test) {
+          env.caching.enable('/foo/');
+          env.caching.enable('/bar/');
+          test.assertAnd(env.caching.cachePathReady('/foo/'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/foo/'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/foo/baz.txt'), false);
+          env.caching.set('/bar/', { data: true, ready: true });
+          test.assertAnd(env.caching.cachePathReady('/foo/'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/'), true);
+          test.assertAnd(env.caching.cachePathReady('/bar/foo/'), true);
+          test.assertAnd(env.caching.cachePathReady('/bar/baz.txt'), true);
+          test.assert(env.caching.cachePathReady('/bar/foo/baz.txt'), true);
+        }
       }
     ]
   });

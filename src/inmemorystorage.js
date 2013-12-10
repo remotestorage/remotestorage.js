@@ -157,6 +157,9 @@
     fireInitial: function() {
       // fireInital fires a change event for each item in the store
       // inMemoryStorage is always empty on pageLoad
+      remoteStorage.caching.onCheckLocal(function(path) {
+        return false;
+      });
     }
   };
 
