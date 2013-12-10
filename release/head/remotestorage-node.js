@@ -114,6 +114,14 @@
 
 /** FILE: src/remotestorage.js **/
 (function(global) {
+  function logError(error) {
+    if (typeof(error) === 'string') {
+      console.error(error);
+    } else {
+      console.error(error.message, error.stack);
+    }
+  }
+
   function emitUnauthorized(status) {
     var args = Array.prototype.slice.call(arguments);
     if (status === 403  || status === 401) {
@@ -168,8 +176,6 @@
       });
     }
   };
-
-  var haveLocalStorage = 'localStorage' in global;
 
   /**
    * Class: RemoteStorage
@@ -260,7 +266,7 @@
 
     this.apiKeys = {};
 
-    if (haveLocalStorage) {
+    if (this.localStorageAvailable()) {
       try {
         this.apiKeys = JSON.parse(localStorage['remotestorage:api-keys']);
       } catch(exc) {
@@ -400,7 +406,7 @@
 
     setBackend: function(what) {
       this.backend = what;
-      if (haveLocalStorage) {
+      if (this.localStorageAvailable()) {
         if (what) {
           localStorage['remotestorage:backend'] = what;
         } else {
@@ -479,7 +485,7 @@
       } else {
         delete this.apiKeys[type];
       }
-      if (haveLocalStorage) {
+      if (this.localStorageAvailable()) {
         localStorage['remotestorage:api-keys'] = JSON.stringify(this.apiKeys);
       }
     },
@@ -528,36 +534,35 @@
           }
         }
 
-        var fl = features.length;
-        for(var i=0;i<fl;i++) {
-          var cleanup = features[i].cleanup;
-          if (cleanup) {
-            this._cleanups.push(cleanup);
-          }
-        }
+        this._collectCleanupFunctions();
 
         try {
           this._allLoaded = true;
           this._emit('features-loaded');
         } catch(exc) {
-          console.error("remoteStorage#ready block failed: ");
-          if (typeof(exc) === 'string') {
-            console.error(exc);
-          } else {
-            console.error(exc.message, exc.stack);
-          }
+          logError(exc);
           this._emit('error', exc);
         }
         this._processPending();
-      });
+      }.bind(this));
+    },
+
+    _collectCleanupFunctions: function() {
+      for (var i=0; i < this.features.length; i++) {
+        var cleanup = this.features[i].cleanup;
+        if (typeof(cleanup) === 'function') {
+          this._cleanups.push(cleanup);
+        }
+      }
     },
 
     /**
      ** FEATURE DETECTION
      **/
     _loadFeatures: function(callback) {
-      var features = [
+      var featureList = [
         'WireClient',
+        'I18n',
         'Dropbox',
         'GoogleDrive',
         'Access',
@@ -572,73 +577,69 @@
         'BaseClient',
         'Env'
       ];
-      var theFeatures = [];
-      var n = features.length, i = 0;
+      var features = [];
+      var featuresDone = 0;
       var self = this;
-      function doneNow() {
-        i++;
-        if(i === n) {
+
+      function featureDone() {
+        featuresDone++;
+        if (featuresDone === featureList.length) {
           setTimeout(function() {
-            theFeatures.caching = !!RemoteStorage.Caching;
-            theFeatures.sync = !!RemoteStorage.Sync;
+            features.caching = !!RemoteStorage.Caching;
+            features.sync = !!RemoteStorage.Sync;
             [
               'IndexedDB',
               'LocalStorage',
               'InMemoryStorage'
             ].some(function(cachingLayer) {
-              if ( theFeatures.some( function(feature) {
-                return feature.name === cachingLayer;
-              } )
-                 ) {
-                theFeatures.local = RemoteStorage[cachingLayer];
+              if (features.some(function(feature) { return feature.name === cachingLayer; })) {
+                features.local = RemoteStorage[cachingLayer];
                 return true;
               }
             });
-            self.features = theFeatures;
-            callback.apply(self, [theFeatures]);
+            self.features = features;
+            callback(features);
           }, 0);
         }
       }
 
-      function featureDoneCb(name) {
+      function featureInitializedCb(name) {
         return function() {
-          self.log("[FEATURE " + name + "] initialized. (" + (i+1) + "/" + n + ")");
-          theFeatures.push( {
+          self.log("[FEATURE "+name+"] initialized.");
+          features.push( {
             name : name,
             init :  RemoteStorage[name]._rs_init,
             supported : true,
             cleanup : RemoteStorage[name]._rs_cleanup
           } );
-          doneNow();
+          featureDone();
         };
       }
 
       function featureFailedCb(name) {
         return function(err) {
           self.log("[FEATURE "+name+"] initialization failed ( "+err+")");
-          //self.features
-          doneNow();
+          featureDone();
         };
       }
 
       function featureSupportedCb(name) {
-        return function( success ) {
+        return function(success) {
           self.log("[FEATURE "+name+"]" + success ? "":" not"+" supported");
           if(!success) {
-            doneNow();
+            featureDone();
           }
         };
       }
 
-      features.forEach(function(featureName) {
+      featureList.forEach(function(featureName) {
         self.log("[FEATURE " + featureName + "] initializing...");
         var impl = RemoteStorage[featureName];
-        var cb = featureDoneCb(featureName);
+        var initializedCb = featureInitializedCb(featureName);
         var failedCb = featureFailedCb(featureName);
         var supportedCb = featureSupportedCb(featureName);
-        if( impl && (
-            ( impl._rs_supported && impl._rs_supported() ) ||
-            ( !impl._rs_supported )) ) {
+
+        if (impl && (!impl._rs_supported || impl._rs_supported())) {
           supportedCb(true);
           var initResult;
           try {
@@ -647,15 +648,23 @@
             failedCb(e);
             return;
           }
-          if(typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
-            initResult.then(cb,failedCb);
+          if (typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
+            initResult.then(initializedCb, failedCb);
           } else {
-            cb();
+            initializedCb();
           }
         } else {
           supportedCb(false);
         }
       });
+    },
+
+    localStorageAvailable: function() {
+      try {
+        return !!global.localStorage;
+      } catch(error) {
+        return false;
+      }
     },
 
     /**
@@ -932,7 +941,7 @@
    * be undefined at times (especially for caching-roots).
    */
 
-  var haveLocalStorage;
+  var hasLocalStorage;
   var SETTINGS_KEY = "remotestorage:wireclient";
 
   var API_2012 = 1, API_00 = 2, API_01 = 3, API_02 = 4, API_HEAD = 5;
@@ -1055,7 +1064,7 @@
       }
     }.bind(this);
     rs.on('error', onErrorCb);
-    if (haveLocalStorage) {
+    if (hasLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
       if (settings) {
@@ -1134,7 +1143,7 @@
       } else {
         this.connected = false;
       }
-      if (haveLocalStorage) {
+      if (hasLocalStorage) {
         localStorage[SETTINGS_KEY] = JSON.stringify({
           userAddress: this.userAddress,
           href: this.href,
@@ -1310,16 +1319,16 @@
   RS.WireClient.configureHooks = [];
 
   RS.WireClient._rs_init = function(remoteStorage) {
+    hasLocalStorage = remoteStorage.localStorageAvailable();
     remoteStorage.remote = new RS.WireClient(remoteStorage);
   };
 
   RS.WireClient._rs_supported = function() {
-    haveLocalStorage = 'localStorage' in global;
     return !! global.XMLHttpRequest;
   };
 
   RS.WireClient._rs_cleanup = function(remoteStorage){
-    if (haveLocalStorage){
+    if (hasLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
     remoteStorage.removeEventListener('error', onErrorCb);
@@ -1332,7 +1341,7 @@
 (function(global) {
 
   // feature detection flags
-  var haveXMLHttpRequest, haveLocalStorage;
+  var haveXMLHttpRequest, hasLocalStorage;
   // used to store settings in localStorage
   var SETTINGS_KEY = 'remotestorage:discover';
   // cache loaded from localStorage
@@ -1408,7 +1417,7 @@
           var authURL = link.properties['auth-endpoint'] ||
             link.properties['http://tools.ietf.org/html/rfc6749#section-4.2'];
           cachedInfo[userAddress] = { href: link.href, type: link.type, authURL: authURL };
-          if (haveLocalStorage) {
+          if (hasLocalStorage) {
             localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
           }
           callback(link.href, link.type, authURL);
@@ -1422,7 +1431,8 @@
   };
 
   RemoteStorage.Discover._rs_init = function(remoteStorage) {
-    if (haveLocalStorage) {
+    hasLocalStorage = remoteStorage.localStorageAvailable();
+    if (hasLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
       if (settings) {
@@ -1432,13 +1442,12 @@
   };
 
   RemoteStorage.Discover._rs_supported = function() {
-    haveLocalStorage = !! global.localStorage;
     haveXMLHttpRequest = !! global.XMLHttpRequest;
     return haveXMLHttpRequest;
   };
 
   RemoteStorage.Discover._rs_cleanup = function() {
-    if (haveLocalStorage) {
+    if (hasLocalStorage) {
       delete localStorage[SETTINGS_KEY];
     }
   };
@@ -2751,15 +2760,21 @@ Math.uuid = function (len, radix) {
      *   path     - The path to query. It MUST end with a forward slash.
      *
      * Returns:
-     *   A promise for an Array of keys, representing child nodes.
-     *   Those keys ending in a forward slash, represent *directory nodes*, all
+     *
+     *   A promise for an object, representing child nodes.
+     *
+     *   Keys ending in a forward slash represent *directory nodes*, while all
      *   other keys represent *data nodes*.
+     *
+     *   For spec versions <= 01, the data node information will contain only
+     *   the item's ETag. For later spec versions, it will also contain the
+     *   content type and -length of the item.
      *
      * Example:
      *   (start code)
      *   client.getListing('').then(function(listing) {
      *     listing.forEach(function(item) {
-     *       console.log('- ' + item);
+     *       console.log(item);
      *     });
      *   });
      *   (end code)
@@ -2771,8 +2786,17 @@ Math.uuid = function (len, radix) {
         throw "Not a directory: " + path;
       }
       return this.storage.get(this.makePath(path)).then(function(status, body) {
-        if (status === 404) { return; }
-        return typeof(body) === 'object' ? Object.keys(body) : undefined;
+        if (status === 404 || typeof(body) !== 'object') { return; }
+
+        if (body['@context'] === 'http://remotestorage.io/spec/folder-description') {
+          return body.items;
+        } else {
+          var listing = {};
+          Object.keys(body).forEach(function(key){
+            listing[key] = {"ETag": body[key]};
+          });
+          return listing;
+        }
       });
     },
 
