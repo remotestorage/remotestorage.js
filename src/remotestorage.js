@@ -447,6 +447,7 @@
     _loadFeatures: function(callback) {
       var featureList = [
         'WireClient',
+        'I18n',
         'Dropbox',
         'GoogleDrive',
         'Access',

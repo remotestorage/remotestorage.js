@@ -1,8 +1,7 @@
 (function(window){
 
-  //
-  // Helper methods
-  //
+  var t = RemoteStorage.I18n.translate;
+
   var cEl = function(){
     return document.createElement.apply(document, arguments);
   };
@@ -233,10 +232,20 @@
       return this.div;
     },
 
+    _renderTranslatedInitialContent: function() {
+      gCl(this.div, 'rs-status-text').innerHTML = t("view_connect");
+      gCl(this.div, 'remotestorage-reset').innerHTML = t("view_get_me_out");
+      gCl(this.div, 'rs-error-plz-report').innerHTML = t("view_error_plz_report");
+      gCl(this.div, 'remotestorage-unauthorized').innerHTML = t("view_unauthorized");
+    },
+
     states:  {
       initial: function(message) {
         var cube = this.cube;
-        var info = message || 'This app allows you to use your own storage! Find more info on <a href="http://remotestorage.io/" target="_blank">remotestorage.io';
+        var info = message || t("view_info");
+
+        this._renderTranslatedInitialContent();
+
         if (message) {
           cube.src = RemoteStorage.Assets.remoteStorageIconError;
           removeClass(this.cube, 'remotestorage-loading');
@@ -250,7 +259,6 @@
           this.hideBubble();
         }
         this.div.className = "remotestorage-state-initial";
-        gCl(this.div, 'rs-status-text').innerHTML = "<strong>Connect</strong> remote storage";
 
         // Google Drive and Dropbox icons
         var backends = 1;
@@ -277,7 +285,7 @@
       authing: function() {
         this.div.removeEventListener('click', this.events.connect);
         this.div.className = "remotestorage-state-authing";
-        gCl(this.div, 'rs-status-text').innerHTML = "Connecting <strong>"+this.userAddress+"</strong>";
+        gCl(this.div, 'rs-status-text').innerHTML = t("view_connecting", this.userAddress);
         addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone, when is that neccesary
       },
 
@@ -308,14 +316,14 @@
       offline: function() {
         this.div.className = "remotestorage-state-offline";
         this.cube.src = RemoteStorage.Assets.remoteStorageIconOffline;
-        gCl(this.div, 'rs-status-text').innerHTML = 'Offline';
+        gCl(this.div, 'rs-status-text').innerHTML = t("view_offline");
       },
 
       error: function(err) {
         var errorMsg = err;
         this.div.className = "remotestorage-state-error";
 
-        gCl(this.div, 'rs-bubble-text').innerHTML = '<strong> Sorry! An error occured.</strong>';
+        gCl(this.div, 'rs-bubble-text').innerHTML = '<strong>'+t('view_error_occured')+'</strong>';
         //FIXME I don't know what an DOMError is and my browser doesn't know too(how to handle this?)
         if (err instanceof Error /*|| err instanceof DOMError*/) {
           errorMsg = err.message + '\n\n' +
@@ -372,7 +380,7 @@
        **/
       reset: function(event){
         event.preventDefault();
-        var result = window.confirm("Are you sure you want to reset everything? That will probably make the error go away, but also clear your entire localStorage and reload the page. Please make sure you know what you are doing, before clicking 'yes' :-)");
+        var result = window.confirm(t('view_confirm_reset'));
         if (result){
           this._emit('reset');
         }

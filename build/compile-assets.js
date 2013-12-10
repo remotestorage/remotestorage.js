@@ -1,4 +1,3 @@
-
 var fs = require('fs');
 var path = require('path');
 
@@ -28,7 +27,7 @@ fs.readdirSync(sourcePath).forEach(function(fileName) {
   } else if(ext == 'svg') {
     content = 'data:image/svg+xml;base64,' + fs.readFileSync(fullPath, 'base64');
   } else {
-    content = fs.readFileSync(fullPath, 'ascii').replace(/\n/g, ' ');
+    content = fs.readFileSync(fullPath, 'utf-8').replace(/\n/g, ' ');
   }
 
   if(ext == 'css') {
