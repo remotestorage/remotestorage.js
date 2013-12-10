@@ -145,15 +145,21 @@
      *   path     - The path to query. It MUST end with a forward slash.
      *
      * Returns:
-     *   A promise for an Array of keys, representing child nodes.
-     *   Those keys ending in a forward slash, represent *directory nodes*, all
+     *
+     *   A promise for an object, representing child nodes.
+     *
+     *   Keys ending in a forward slash represent *directory nodes*, while all
      *   other keys represent *data nodes*.
+     *
+     *   For spec versions <= 01, the data node information will contain only
+     *   the item's ETag. For later spec versions, it will also contain the
+     *   content type and -length of the item.
      *
      * Example:
      *   (start code)
      *   client.getListing('').then(function(listing) {
      *     listing.forEach(function(item) {
-     *       console.log('- ' + item);
+     *       console.log(item);
      *     });
      *   });
      *   (end code)
@@ -165,8 +171,17 @@
         throw "Not a directory: " + path;
       }
       return this.storage.get(this.makePath(path)).then(function(status, body) {
-        if (status === 404) { return; }
-        return typeof(body) === 'object' ? Object.keys(body) : undefined;
+        if (status === 404 || typeof(body) !== 'object') { return; }
+
+        if (body['@context'] === 'http://remotestorage.io/spec/folder-description') {
+          return body.items;
+        } else {
+          var listing = {};
+          Object.keys(body).forEach(function(key){
+            listing[key] = {"ETag": body[key]};
+          });
+          return listing;
+        }
       });
     },
 
