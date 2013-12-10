@@ -1,4 +1,12 @@
 (function(global) {
+  function logError(error) {
+    if (typeof(error) === 'string') {
+      console.error(error);
+    } else {
+      console.error(error.message, error.stack);
+    }
+  }
+
   function emitUnauthorized(status) {
     var args = Array.prototype.slice.call(arguments);
     if (status === 403  || status === 401) {
@@ -411,28 +419,26 @@
           }
         }
 
-        var fl = features.length;
-        for(var i=0;i<fl;i++) {
-          var cleanup = features[i].cleanup;
-          if (cleanup) {
-            this._cleanups.push(cleanup);
-          }
-        }
+        this._collectCleanupFunctions();
 
         try {
           this._allLoaded = true;
           this._emit('features-loaded');
         } catch(exc) {
-          console.error("remoteStorage#ready block failed: ");
-          if (typeof(exc) === 'string') {
-            console.error(exc);
-          } else {
-            console.error(exc.message, exc.stack);
-          }
+          logError(exc);
           this._emit('error', exc);
         }
         this._processPending();
       }.bind(this));
+    },
+
+    _collectCleanupFunctions: function() {
+      for (var i=0; i < this.features.length; i++) {
+        var cleanup = this.features[i].cleanup;
+        if (typeof(cleanup) === 'function') {
+          this._cleanups.push(cleanup);
+        }
+      }
     },
 
     /**
@@ -456,12 +462,12 @@
         'Env'
       ];
       var features = [];
-      var n = featureList.length, i = 0;
+      var featuresDone = 0;
       var self = this;
 
-      function doneNow() {
-        i++;
-        if(i === n) {
+      function featureDone() {
+        featuresDone++;
+        if (featuresDone === featureList.length) {
           setTimeout(function() {
             features.caching = !!RemoteStorage.Caching;
             features.sync = !!RemoteStorage.Sync;
@@ -470,10 +476,7 @@
               'LocalStorage',
               'InMemoryStorage'
             ].some(function(cachingLayer) {
-              if ( features.some( function(feature) {
-                return feature.name === cachingLayer;
-              } )
-                 ) {
+              if (features.some(function(feature) { return feature.name === cachingLayer; })) {
                 features.local = RemoteStorage[cachingLayer];
                 return true;
               }
@@ -484,31 +487,31 @@
         }
       }
 
-      function featureDoneCb(name) {
+      function featureInitializedCb(name) {
         return function() {
-          self.log("[FEATURE " + name + "] initialized. (" + (i+1) + "/" + n + ")");
+          self.log("[FEATURE "+name+"] initialized.");
           features.push( {
             name : name,
             init :  RemoteStorage[name]._rs_init,
             supported : true,
             cleanup : RemoteStorage[name]._rs_cleanup
           } );
-          doneNow();
+          featureDone();
         };
       }
 
       function featureFailedCb(name) {
         return function(err) {
           self.log("[FEATURE "+name+"] initialization failed ( "+err+")");
-          doneNow();
+          featureDone();
         };
       }
 
       function featureSupportedCb(name) {
-        return function( success ) {
+        return function(success) {
           self.log("[FEATURE "+name+"]" + success ? "":" not"+" supported");
           if(!success) {
-            doneNow();
+            featureDone();
           }
         };
       }
@@ -516,12 +519,11 @@
       featureList.forEach(function(featureName) {
         self.log("[FEATURE " + featureName + "] initializing...");
         var impl = RemoteStorage[featureName];
-        var cb = featureDoneCb(featureName);
+        var initializedCb = featureInitializedCb(featureName);
         var failedCb = featureFailedCb(featureName);
         var supportedCb = featureSupportedCb(featureName);
-        if( impl && (
-            ( impl._rs_supported && impl._rs_supported() ) ||
-            ( !impl._rs_supported )) ) {
+
+        if (impl && (!impl._rs_supported || impl._rs_supported())) {
           supportedCb(true);
           var initResult;
           try {
@@ -530,10 +532,10 @@
             failedCb(e);
             return;
           }
-          if(typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
-            initResult.then(cb,failedCb);
+          if (typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
+            initResult.then(initializedCb, failedCb);
           } else {
-            cb();
+            initializedCb();
           }
         } else {
           supportedCb(false);
