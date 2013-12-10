@@ -3,6 +3,20 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 0.9.0-pre (December 2013)
+
+* rename the 'root' module to '*' (breaking change)
+* support for draft-dejong-remotestorage-02.txt
+* Fix multiple overlapping requests on first pageload
+* Fix requests going to non-ready cache before initial sync finished
+* Better error messages in widget
+* Label change events from initial sync as 'local' if they come from local
+* add JSHint checks
+* add in-memory storage for when neither IndexedDB nor localStorage are availabl
+e
+* move the example server and example apps to gh:remotestorage/starter-kit
+* add the setSyncInterval method
+
 ## 0.8.3 (November 2013)
 
 * Make sure to clear auth token after disconnect
