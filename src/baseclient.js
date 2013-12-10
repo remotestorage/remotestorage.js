@@ -117,7 +117,7 @@
     // END LEGACY
 
     extend: function(object) {
-      for(var key in object) {
+      for (var key in object) {
         this[key] = object[key];
       }
       return this;
@@ -198,6 +198,13 @@
         throw "Not a directory: " + path;
       }
       return this.storage.get(this.makePath(path)).then(function(status, body) {
+
+        function gotOne(key, status, b) {
+          body[key] = b;
+          i++;
+          if (i === count) { promise.fulfill(body); }
+        }
+          
         if (status === 404) { return; }
         if (typeof(body) === 'object') {
           var promise = promising();
@@ -207,13 +214,10 @@
             // has changes that haven't been pushed out yet.
             return;
           }
-          for(var key in body) {
-            this.storage.get(this.makePath(path + key)).
-              then(function(status, b) {
-                body[this.key] = b;
-                i++;
-                if (i === count) { promise.fulfill(body); }
-              }.bind({ key: key }));
+          
+          for (var key in body) {
+            this.storage.get(this.makePath(path + key))
+              .then(gotOne.bind(this, key));
           }
           return promise;
         }
