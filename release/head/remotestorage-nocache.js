@@ -1,4 +1,4 @@
-/** remotestorage.js 0.8.3, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.9.0-pre, http://remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/promising.js **/
 (function(global) {
@@ -569,7 +569,8 @@
         'LocalStorage',
         'InMemoryStorage',
         'Sync',
-        'BaseClient'
+        'BaseClient',
+        'Env'
       ];
       var theFeatures = [];
       var n = features.length, i = 0;
@@ -934,11 +935,12 @@
   var haveLocalStorage;
   var SETTINGS_KEY = "remotestorage:wireclient";
 
-  var API_2012 = 1, API_00 = 2, API_01 = 3, API_HEAD = 4;
+  var API_2012 = 1, API_00 = 2, API_01 = 3, API_02 = 4, API_HEAD = 5;
 
   var STORAGE_APIS = {
     'draft-dejong-remotestorage-00': API_00,
     'draft-dejong-remotestorage-01': API_01,
+    'draft-dejong-remotestorage-02': API_02,
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
@@ -978,31 +980,46 @@
       if (error) {
         promise.reject(error);
       } else {
-        if (response.status === 404) {
-          promise.fulfill(404);
-        } else if (response.status === 304) {
+        if ([401, 403, 404, 412].indexOf(response.status) >= 0) {
+          promise.fulfill(response.status);
+        } else if ([201, 204, 304].indexOf(response.status) >= 0 ||
+                   (response.status === 200 && method !== 'GET')) {
           revision = response.getResponseHeader('ETag');
-          promise.fulfill(304, undefined, undefined, revision);
+          promise.fulfill(response.status, undefined, undefined, revision);
         } else {
           var mimeType = response.getResponseHeader('Content-Type');
           var body;
-          revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
-          if ((! mimeType) || mimeType.match(/charset=binary/)) {
-            var blob = new Blob([response.response], { type: mimeType });
-            var reader = new FileReader();
-            reader.addEventListener("loadend", function() {
-              // reader.result contains the contents of blob as a typed array
-              promise.fulfill(response.status, reader.result, mimeType, revision);
-            });
-            reader.readAsArrayBuffer(blob);
+          if (getEtag) {
+            revision = response.getResponseHeader('ETag');
           } else {
-            body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(response.responseText) : response.responseText;
+            revision = response.status === 200 ? fakeRevision : undefined;
+          }
+
+          if ((! mimeType) || mimeType.match(/charset=binary/)) {
+            RS.WireClient.readBinaryData(response.response, mimeType, function(result) {
+              promise.fulfill(response.status, result, mimeType, revision);
+            });
+          } else {
+            if (mimeType && mimeType.match(/^application\/json/)) {
+              body = JSON.parse(response.responseText);
+            } else {
+              body = response.responseText;
+            }
             promise.fulfill(response.status, body, mimeType, revision);
           }
         }
       }
     });
     return promise;
+  }
+
+  function readBinaryData(content, mimeType, callback) {
+    var blob = new Blob([content], { type: mimeType });
+    var reader = new FileReader();
+    reader.addEventListener("loadend", function() {
+      callback(reader.result); // reader.result contains the contents of blob as a typed array
+    });
+    reader.readAsArrayBuffer(blob);
   }
 
   function cleanPath(path) {
@@ -1226,6 +1243,8 @@
   // Shared isArrayBufferView used by WireClient and Dropbox
   RS.WireClient.isArrayBufferView = isArrayBufferView;
 
+  RS.WireClient.readBinaryData = readBinaryData;
+
   // Shared request function used by WireClient, GoogleDrive and Dropbox.
   RS.WireClient.request = function(method, url, options, callback) {
     RemoteStorage.log(method, url);
@@ -1278,6 +1297,15 @@
     }
     xhr.send(body);
   };
+
+  Object.defineProperty(RemoteStorage.WireClient.prototype, 'storageType', {
+    get: function() {
+      if (this.storageApi) {
+        var spec = this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);
+        return spec ? spec[1] : '2012.04';
+      }
+    }
+  });
 
   RS.WireClient.configureHooks = [];
 
@@ -1419,13 +1447,15 @@
 
 
 /** FILE: src/authorize.js **/
-(function() {
+(function(global) {
 
   function extractParams() {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
-    var hashPos = document.location.href.indexOf('#');
+    var location = RemoteStorage.Authorize.getLocation(),
+        hashPos  = location.href.indexOf('#'),
+        hash;
     if (hashPos === -1) { return; }
-    var hash = document.location.href.substring(hashPos+1);
+    hash = location.href.substring(hashPos+1);
     return hash.split('&').reduce(function(m, kvs) {
       var kv = kvs.split('=');
       m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
@@ -1442,27 +1472,41 @@
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
     url += '&response_type=token';
-    document.location = url;
+    RemoteStorage.Authorize.setLocation(url);
   };
 
   RemoteStorage.prototype.authorize = function(authURL) {
-    var scopes = this.access.scopeModeMap;
-    var scope = [];
-    for(var key in scopes) {
-      var mode = scopes[key];
-      if (key === 'root') {
-        if (! this.remote.storageApi.match(/^draft-dejong-remotestorage-/)) {
-          key = '';
-        }
-      }
-      scope.push(key + ':' + mode);
-    }
-    scope = scope.join(' ');
+    this.access.setStorageType(this.remote.storageType);
+    var scope = this.access.scopeParameter;
 
-    var redirectUri = String(document.location);
+    var redirectUri = String(RemoteStorage.Authorize.getLocation());
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
     RemoteStorage.Authorize(authURL, scope, redirectUri, clientId);
+  };
+
+  /**
+   * Get current document location
+   *
+   * Override this method if access to document.location is forbidden
+   */
+  RemoteStorage.Authorize.getLocation = function () {
+    return global.document.location;
+  };
+
+  /**
+   * Get current document location
+   *
+   * Override this method if access to document.location is forbidden
+   */
+  RemoteStorage.Authorize.setLocation = function (location) {
+    if (typeof location === 'string') {
+      global.document.location.href = location;
+    } else if (typeof location === 'object') {
+      global.document.location = location;
+    } else {
+      throw "Invalid location " + location;
+    }
   };
 
   RemoteStorage.Authorize._rs_supported = function(remoteStorage) {
@@ -1484,9 +1528,11 @@
         }
       }
     };
-    var params = extractParams();
+    var params = extractParams(),
+        location;
     if (params) {
-      document.location.hash = '';
+      location = RemoteStorage.Authorize.getLocation();
+      location.hash = '';
     }
     remoteStorage.on('features-loaded', onFeaturesLoaded);
   };
@@ -1495,13 +1541,12 @@
     remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
   };
 
-})();
+})(typeof(window) !== 'undefined' ? window : global);
 
 
 /** FILE: src/access.js **/
 (function(global) {
 
-  var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:access";
 
   /**
@@ -1512,19 +1557,9 @@
   RemoteStorage.Access = function() {
     this.reset();
 
-    if(haveLocalStorage) {
-      var rawSettings = localStorage[SETTINGS_KEY];
-      if(rawSettings) {
-        var savedSettings = JSON.parse(rawSettings);
-        for(var key in savedSettings) {
-          this.set(key, savedSettings[key]);
-        }
-      }
-    }
   };
 
   RemoteStorage.Access.prototype = {
-    // not sure yet, if 'set' or 'claim' is better...
 
     /**
      * Method: claim
@@ -1542,7 +1577,6 @@
     set: function(scope, mode) {
       this._adjustRootPaths(scope);
       this.scopeModeMap[scope] = mode;
-      this._persist();
     },
 
     get: function(scope) {
@@ -1560,7 +1594,6 @@
       for(name in savedMap) {
         this.set(name, savedMap[name]);
       }
-      this._persist();
     },
 
     check: function(scope, mode) {
@@ -1574,7 +1607,7 @@
     },
 
     _adjustRootPaths: function(newScope) {
-      if('root' in this.scopeModeMap || newScope === 'root') {
+      if('*' in this.scopeModeMap || newScope === '*') {
         this.rootPaths = ['/'];
       } else if(! (newScope in this.scopeModeMap)) {
         this.rootPaths.push('/' + newScope + '/');
@@ -1582,10 +1615,15 @@
       }
     },
 
-    _persist: function() {
-      if(haveLocalStorage) {
-        localStorage[SETTINGS_KEY] = JSON.stringify(this.scopeModeMap);
+    _scopeNameForParameter: function(scope) {
+      if (scope.name === '*' && this.storageType) {
+        if (this.storageType === '2012.04') {
+          return '';
+        } else if (this.storageType.match(/remotestorage-0[01]/)) {
+          return 'root';
+        }
       }
+      return scope.name;
     },
 
     setStorageType: function(type) {
@@ -1618,7 +1656,7 @@
   Object.defineProperty(RemoteStorage.Access.prototype, 'scopeParameter', {
     get: function() {
       return this.scopes.map(function(scope) {
-        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
+        return this._scopeNameForParameter(scope) + ':' + scope.mode;
       }.bind(this)).join(' ');
     }
   });
@@ -1636,7 +1674,7 @@
   });
 
   function setModuleCaching(remoteStorage, key) {
-    if(key === 'root' || key === '') {
+    if (key === '*' || key === '') {
       remoteStorage.caching.set('/', { data: true });
     } else {
       remoteStorage.caching.set('/' + key + '/', { data: true });
@@ -1656,8 +1694,70 @@
   };
 
   RemoteStorage.Access._rs_init = function() {};
-
 })(typeof(window) !== 'undefined' ? window : global);
+
+
+/** FILE: src/env.js **/
+(function(pMode) {
+
+  var mode = pMode,
+      env = {},
+      isBackground = false;
+
+
+  RemoteStorage.Env = function() {
+    return env;
+  };
+
+  RemoteStorage.Env.isBrowser = function () {
+    return mode === "browser";
+  };
+
+  RemoteStorage.Env.isNode = function () {
+    return mode === "node";
+  };
+
+  RemoteStorage.Env.goBackground = function () {
+    isBackground = true;
+    RemoteStorage.Env._emit("background");
+  };
+
+  RemoteStorage.Env.goForeground = function () {
+    isBackground = false;
+    RemoteStorage.Env._emit("foreground");
+  };
+
+  RemoteStorage.Env._rs_init = function(remoteStorage) {
+    RemoteStorage.eventHandling(RemoteStorage.Env, "background", "foreground");
+
+    if( mode === 'browser') {
+      if( typeof(document.hidden) !== "undefined" ) {
+        env.hiddenProperty = "hidden";
+        env.visibilityChangeEvent = "visibilitychange";
+      } else if( typeof(document.mozHidden) !== "undefined" ) {
+        env.hiddenProperty = "mozHidden";
+        env.visibilityChangeEvent = "mozvisibilitychange";
+      } else if( typeof(document.msHidden) !== "undefined" ) {
+        env.hiddenProperty = "msHidden";
+        env.visibilityChangeEvent = "msvisibilitychange";
+      } else if( typeof(document.webkitHidden) !== "undefined" ) {
+        env.hiddenProperty = "webkitHidden";
+        env.visibilityChangeEvent = "webkitvisibilitychange";
+      }
+      document.addEventListener(env.visibilityChangeEvent, function () {
+        if( document[env.hiddenProperty] ) {
+          RemoteStorage.Env.goBackground();
+        } else {
+          RemoteStorage.Env.goForeground();
+        }
+      }, false);
+    }
+  };
+
+  RemoteStorage.Env._rs_cleanup = function(remoteStorage) {
+  };
+
+})(typeof(window) !== 'undefined' ? 'browser' : 'node');
 
 
 /** FILE: src/assets.js **/
@@ -1797,7 +1897,8 @@ RemoteStorage.Assets = {
       }
       try {
         this.view.on('reset', function(){
-          this.rs.on('disconnected', document.location.reload.bind(document.location));
+          var location = RemoteStorage.Authorize.getLocation();
+          this.rs.on('disconnected', location.reload.bind(location));
           this.rs.disconnect();
         }.bind(this));
       } catch(e) {
@@ -1850,8 +1951,8 @@ RemoteStorage.Assets = {
     return parent.getElementsByClassName(className)[0];
   }
 
-  function gTl(parent, className) {
-    return parent.getElementsByTagName(className)[0];
+  function gTl(parent, tagName) {
+    return parent.getElementsByTagName(tagName)[0];
   }
 
   function removeClass(el, className) {
@@ -1862,12 +1963,22 @@ RemoteStorage.Assets = {
     return el.classList.add(className);
   }
 
-  function stop_propagation(event) {
+  function stopPropagation(event) {
     if (typeof(event.stopPropagation) === 'function') {
       event.stopPropagation();
     } else {
       event.cancelBubble = true;
     }
+  }
+
+  function setupButton(parent, className, iconName, eventListener) {
+    var element = gCl(parent, className);
+    if (typeof iconName !== 'undefined') {
+      var img = gTl(element, 'img');
+      (img || element).src = RemoteStorage.Assets[iconName];
+    }
+    element.addEventListener('click', eventListener);
+    return element;
   }
 
   /**
@@ -1901,144 +2012,14 @@ RemoteStorage.Assets = {
       this.events[event] = this.events[event].bind(this);
     }
 
-    /**
-    *  toggleBubble()
-    *    shows the bubble when hidden and the other way around
-    **/
-    this.toggle_bubble = function(event) {
-      if (this.bubble.className.search('rs-hidden') < 0) {
-        this.hide_bubble(event);
-      } else {
-        this.show_bubble(event);
-      }
-    }.bind(this);
-
-    /**
-     *  hideBubble()
-     *   hides the bubble
-     **/
-    this.hide_bubble = function(){
-      addClass(this.bubble, 'rs-hidden');
-      document.body.removeEventListener('click', hide_bubble_on_body_click);
-    }.bind(this);
-
-    var hide_bubble_on_body_click = function (event) {
+    this.hideBubbleOnBodyClick = function(event) {
       for (var p = event.target; p !== document.body; p = p.parentElement) {
         if (p.id === 'remotestorage-widget') {
           return;
         }
       }
-      this.hide_bubble();
+      this.hideBubble();
     }.bind(this);
-
-    /**
-     * Method: showBubble()
-     *   shows the bubble
-     **/
-    this.show_bubble = function(event){
-      //console.log('show bubble',this.bubble,event)
-      removeClass(this.bubble, 'rs-hidden');
-      if (typeof(event) !== 'undefined') {
-        stop_propagation(event);
-      }
-      document.body.addEventListener('click', hide_bubble_on_body_click);
-      gTl(this.bubble,'form').userAddress.focus();
-    }.bind(this);
-
-     /**
-     * Method: display(domID)
-     *   draws the widget inside of the dom element with the id domID
-     *   returns: the widget div
-     **/
-    this.display = function(domID) {
-      if (typeof this.div !== 'undefined') {
-        return this.div;
-      }
-
-      var element = cEl('div');
-      var style = cEl('style');
-      style.innerHTML = RemoteStorage.Assets.widgetCss;
-
-      element.id = "remotestorage-widget";
-
-      element.innerHTML = RemoteStorage.Assets.widget;
-
-      element.appendChild(style);
-      if (domID) {
-        var parent = document.getElementById(domID);
-        if (! parent) {
-          throw "Failed to find target DOM element with id=\"" + domID + "\"";
-        }
-        parent.appendChild(element);
-      } else {
-        document.body.appendChild(element);
-      }
-
-      var el;
-
-      // Sync button
-      el = gCl(element, 'rs-sync');
-      gTl(el, 'img').src = RemoteStorage.Assets.syncIcon;
-      el.addEventListener('click', this.events.sync);
-
-      // Disconnect button
-      el = gCl(element, 'rs-disconnect');
-      gTl(el, 'img').src = RemoteStorage.Assets.disconnectIcon;
-      el.addEventListener('click', this.events.disconnect);
-
-      // Get me out of here
-      el = gCl(element, 'remotestorage-reset').addEventListener('click', this.events.reset);
-
-      // Connect button
-      var cb = gCl(element,'connect');
-      gTl(cb, 'img').src = RemoteStorage.Assets.connectIcon;
-      cb.addEventListener('click', this.events.connect);
-
-      // Input
-      this.form = gTl(element, 'form');
-      el = this.form.userAddress;
-      el.addEventListener('keyup', function(event) {
-        if (event.target.value) {
-          cb.removeAttribute('disabled');
-        } else {
-          cb.setAttribute('disabled','disabled');
-        }
-      });
-      if (this.userAddress) {
-        el.value = this.userAddress;
-      }
-
-      // The cube
-      el = gCl(element, 'rs-cube');
-      el.src = RemoteStorage.Assets.remoteStorageIcon;
-      el.addEventListener('click', this.toggle_bubble);
-      this.cube = el;
-
-      // Google Drive and Dropbox icons
-      el = gCl(element, 'rs-dropbox');
-      el.src = RemoteStorage.Assets.dropbox;
-      el.addEventListener('click', this.connectDropbox.bind(this) );
-
-      el = gCl(element, 'rs-googledrive');
-      el.src = RemoteStorage.Assets.googledrive;
-      el.addEventListener('click', this.connectGdrive.bind(this));
-
-      this.bubble = gCl(element,'rs-bubble');
-      //FIXME What is the meaning of this hiding the b
-      var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
-      this.bubble.addEventListener('click', function(event) {
-        if (! bubbleDontCatch[event.target.tagName] && ! (this.div.classList.contains('remotestorage-state-unauthorized') )) {
-          this.show_bubble(event);
-        }
-      }.bind(this));
-      this.hide_bubble();
-
-      this.div = element;
-
-      this.states.initial.call(this);
-      this.events.display.call(this);
-      return this.div;
-    };
   };
 
   RemoteStorage.Widget.View.prototype = {
@@ -2079,6 +2060,119 @@ RemoteStorage.Assets = {
       }
     },
 
+    /**
+    *  toggleBubble()
+    *    shows the bubble when hidden and the other way around
+    **/
+    toggleBubble: function(event) {
+      if (this.bubble.className.search('rs-hidden') < 0) {
+        this.hideBubble(event);
+      } else {
+        this.showBubble(event);
+      }
+    },
+
+    /**
+     *  hideBubble()
+     *   hides the bubble
+     **/
+    hideBubble: function(){
+      addClass(this.bubble, 'rs-hidden');
+      document.body.removeEventListener('click', this.hideBubbleOnBodyClick);
+    },
+
+    /**
+     * Method: showBubble()
+     *   shows the bubble
+     **/
+    showBubble: function(event){
+      removeClass(this.bubble, 'rs-hidden');
+      if (typeof(event) !== 'undefined') {
+        stopPropagation(event);
+      }
+      document.body.addEventListener('click', this.hideBubbleOnBodyClick);
+      gTl(this.bubble,'form').userAddress.focus();
+    },
+
+     /**
+     * Method: display(domID)
+     *   draws the widget inside of the dom element with the id domID
+     *   returns: the widget div
+     **/
+    display: function(domID) {
+      if (typeof this.div !== 'undefined') {
+        return this.div;
+      }
+
+      var element = cEl('div');
+      var style = cEl('style');
+      style.innerHTML = RemoteStorage.Assets.widgetCss;
+
+      element.id = "remotestorage-widget";
+
+      element.innerHTML = RemoteStorage.Assets.widget;
+
+      element.appendChild(style);
+      if (domID) {
+        var parent = document.getElementById(domID);
+        if (! parent) {
+          throw "Failed to find target DOM element with id=\"" + domID + "\"";
+        }
+        parent.appendChild(element);
+      } else {
+        document.body.appendChild(element);
+      }
+
+      // Sync button
+      setupButton(element, 'rs-sync', 'syncIcon', this.events.sync);
+
+      // Disconnect button
+      setupButton(element, 'rs-disconnect', 'disconnectIcon', this.events.disconnect);
+
+      // Get me out of here
+      setupButton(element, 'remotestorage-reset', undefined, this.events.reset);
+
+      // Connect button
+      var cb = setupButton(element, 'connect', 'connectIcon', this.events.connect);
+
+      // Input
+      this.form = gTl(element, 'form');
+      var el = this.form.userAddress;
+      el.addEventListener('keyup', function(event) {
+        if (event.target.value) {
+          cb.removeAttribute('disabled');
+        } else {
+          cb.setAttribute('disabled','disabled');
+        }
+      });
+      if (this.userAddress) {
+        el.value = this.userAddress;
+      }
+
+      // The cube
+      this.cube = setupButton(element, 'rs-cube', 'remoteStorageIcon', this.toggleBubble.bind(this));
+
+      // Google Drive and Dropbox icons
+      setupButton(element, 'rs-dropbox', 'dropbox', this.connectDropbox.bind(this));
+      setupButton(element, 'rs-googledrive', 'googledrive', this.connectGdrive.bind(this));
+
+      var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
+      var eventListener = function(event) {
+        if (! bubbleDontCatch[event.target.tagName] && ! (this.div.classList.contains('remotestorage-state-unauthorized') )) {
+          this.showBubble(event);
+        }
+      }.bind(this);
+      this.bubble = setupButton(element, 'rs-bubble', undefined, eventListener);
+
+      this.hideBubble();
+
+      this.div = element;
+
+      this.states.initial.call(this);
+      this.events.display.call(this);
+      return this.div;
+    },
+
     states:  {
       initial: function(message) {
         var cube = this.cube;
@@ -2086,32 +2180,22 @@ RemoteStorage.Assets = {
         if (message) {
           cube.src = RemoteStorage.Assets.remoteStorageIconError;
           removeClass(this.cube, 'remotestorage-loading');
-          this.show_bubble();
+          this.showBubble();
 
           // Show the red error cube for 5 seconds, then show the normal orange one again
           setTimeout(function(){
             cube.src = RemoteStorage.Assets.remoteStorageIcon;
           },5000);
         } else {
-          this.hide_bubble();
+          this.hideBubble();
         }
         this.div.className = "remotestorage-state-initial";
         gCl(this.div, 'rs-status-text').innerHTML = "<strong>Connect</strong> remote storage";
 
         // Google Drive and Dropbox icons
         var backends = 1;
-        if (! this.rs.apiKeys.dropbox) {
-          gCl(this.div,'rs-dropbox').style.display = 'none';
-        } else {
-          gCl(this.div,'rs-dropbox').style.display = 'inline-block';
-          backends += 1;
-        }
-        if (! this.rs.apiKeys.googledrive) {
-          gCl(this.div,'rs-googledrive').style.display = 'none';
-        } else {
-          gCl(this.div,'rs-googledrive').style.display = 'inline-block';
-          backends += 1;
-        }
+        if (this._activateBackend('dropbox')) { backends += 1; }
+        if (this._activateBackend('googledrive')) { backends += 1; }
         gCl(this.div, 'rs-bubble-text').style.paddingRight = backends*32+8+'px';
 
         // If address not empty connect button enabled
@@ -2128,7 +2212,6 @@ RemoteStorage.Assets = {
         } else {
           infoEl.classList.remove('remotestorage-error-info');
         }
-
       },
 
       authing: function() {
@@ -2159,7 +2242,7 @@ RemoteStorage.Assets = {
       busy: function() {
         this.div.className = "remotestorage-state-busy";
         addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
-        this.hide_bubble();
+        this.hideBubble();
       },
 
       offline: function() {
@@ -2180,13 +2263,13 @@ RemoteStorage.Assets = {
         }
         gCl(this.div, 'rs-error-msg').textContent = errorMsg;
         this.cube.src = RemoteStorage.Assets.remoteStorageIconError;
-        this.show_bubble();
+        this.showBubble();
       },
 
       unauthorized: function() {
         this.div.className = "remotestorage-state-unauthorized";
         this.cube.src = RemoteStorage.Assets.remoteStorageIconError;
-        this.show_bubble();
+        this.showBubble();
         this.div.addEventListener('click', this.events.connect);
       }
     },
@@ -2197,7 +2280,7 @@ RemoteStorage.Assets = {
      * emitted when the connect button is clicked
      **/
       connect: function(event) {
-        stop_propagation(event);
+        stopPropagation(event);
         event.preventDefault();
         this._emit('connect', gTl(this.div, 'form').userAddress.value);
       },
@@ -2207,7 +2290,7 @@ RemoteStorage.Assets = {
        * emitted when the sync button is clicked
        **/
       sync: function(event) {
-        stop_propagation(event);
+        stopPropagation(event);
         event.preventDefault();
 
         this._emit('sync');
@@ -2218,7 +2301,7 @@ RemoteStorage.Assets = {
        * emitted when the disconnect button is clicked
        **/
       disconnect: function(event) {
-        stop_propagation(event);
+        stopPropagation(event);
         event.preventDefault();
         this._emit('disconnect');
       },
@@ -2244,6 +2327,17 @@ RemoteStorage.Assets = {
           event.preventDefault();
         }
         this._emit('display');
+      }
+    },
+
+    _activateBackend: function activateBackend(backendName) {
+      var className = 'rs-' + backendName;
+      if (this.rs.apiKeys[backendName]) {
+        gCl(this.div, className).style.display = 'inline-block';
+        return true;
+      } else {
+        gCl(this.div, className).style.display = 'none';
+        return false;
       }
     }
   };
@@ -4140,7 +4234,7 @@ Math.uuid = function (len, radix) {
 
     connect: function() {
       this.rs.setBackend('googledrive');
-      RS.Authorize(AUTH_URL, AUTH_SCOPE, String(document.location), this.clientId);
+      RS.Authorize(AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
     },
 
     get: function(path, options) {
@@ -4654,7 +4748,7 @@ Math.uuid = function (len, radix) {
       if(this.token){
         hookIt(this.rs);
       } else {
-        RS.Authorize(AUTH_URL, '', String(document.location), this.clientId);
+        RS.Authorize(AUTH_URL, '', String(RS.Authorize.getLocation()), this.clientId);
       }
     },
     /**
@@ -4779,14 +4873,9 @@ Math.uuid = function (len, radix) {
 
             // handling binary
             if((! resp.getResponseHeader('Content-Type') ) || resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
-              var blob = new Blob([resp.response], {type: mime});
-              var reader = new FileReader();
-              reader.addEventListener("loadend", function() {
-                // reader.result contains the contents of blob as a typed array
-                promise.fulfill(status, reader.result, mime, rev);
+              RS.WireClient.readBinaryData(resp.response, mime, function(result) {
+                promise.fulfill(status, result, mime, rev);
               });
-              reader.readAsArrayBuffer(blob);
-
             } else {
               // handling json (always try)
               if(mime && mime.search('application/json') >= 0 || true) {

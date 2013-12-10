@@ -1,4 +1,4 @@
-/** remotestorage.js 0.8.3, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.9.0-pre, http://remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/promising.js **/
 (function(global) {
@@ -569,7 +569,8 @@
         'LocalStorage',
         'InMemoryStorage',
         'Sync',
-        'BaseClient'
+        'BaseClient',
+        'Env'
       ];
       var theFeatures = [];
       var n = features.length, i = 0;
@@ -934,11 +935,12 @@
   var haveLocalStorage;
   var SETTINGS_KEY = "remotestorage:wireclient";
 
-  var API_2012 = 1, API_00 = 2, API_01 = 3, API_HEAD = 4;
+  var API_2012 = 1, API_00 = 2, API_01 = 3, API_02 = 4, API_HEAD = 5;
 
   var STORAGE_APIS = {
     'draft-dejong-remotestorage-00': API_00,
     'draft-dejong-remotestorage-01': API_01,
+    'draft-dejong-remotestorage-02': API_02,
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
@@ -978,31 +980,46 @@
       if (error) {
         promise.reject(error);
       } else {
-        if (response.status === 404) {
-          promise.fulfill(404);
-        } else if (response.status === 304) {
+        if ([401, 403, 404, 412].indexOf(response.status) >= 0) {
+          promise.fulfill(response.status);
+        } else if ([201, 204, 304].indexOf(response.status) >= 0 ||
+                   (response.status === 200 && method !== 'GET')) {
           revision = response.getResponseHeader('ETag');
-          promise.fulfill(304, undefined, undefined, revision);
+          promise.fulfill(response.status, undefined, undefined, revision);
         } else {
           var mimeType = response.getResponseHeader('Content-Type');
           var body;
-          revision = getEtag ? response.getResponseHeader('ETag') : (response.status === 200 ? fakeRevision : undefined);
-          if ((! mimeType) || mimeType.match(/charset=binary/)) {
-            var blob = new Blob([response.response], { type: mimeType });
-            var reader = new FileReader();
-            reader.addEventListener("loadend", function() {
-              // reader.result contains the contents of blob as a typed array
-              promise.fulfill(response.status, reader.result, mimeType, revision);
-            });
-            reader.readAsArrayBuffer(blob);
+          if (getEtag) {
+            revision = response.getResponseHeader('ETag');
           } else {
-            body = mimeType && mimeType.match(/^application\/json/) ? JSON.parse(response.responseText) : response.responseText;
+            revision = response.status === 200 ? fakeRevision : undefined;
+          }
+
+          if ((! mimeType) || mimeType.match(/charset=binary/)) {
+            RS.WireClient.readBinaryData(response.response, mimeType, function(result) {
+              promise.fulfill(response.status, result, mimeType, revision);
+            });
+          } else {
+            if (mimeType && mimeType.match(/^application\/json/)) {
+              body = JSON.parse(response.responseText);
+            } else {
+              body = response.responseText;
+            }
             promise.fulfill(response.status, body, mimeType, revision);
           }
         }
       }
     });
     return promise;
+  }
+
+  function readBinaryData(content, mimeType, callback) {
+    var blob = new Blob([content], { type: mimeType });
+    var reader = new FileReader();
+    reader.addEventListener("loadend", function() {
+      callback(reader.result); // reader.result contains the contents of blob as a typed array
+    });
+    reader.readAsArrayBuffer(blob);
   }
 
   function cleanPath(path) {
@@ -1226,6 +1243,8 @@
   // Shared isArrayBufferView used by WireClient and Dropbox
   RS.WireClient.isArrayBufferView = isArrayBufferView;
 
+  RS.WireClient.readBinaryData = readBinaryData;
+
   // Shared request function used by WireClient, GoogleDrive and Dropbox.
   RS.WireClient.request = function(method, url, options, callback) {
     RemoteStorage.log(method, url);
@@ -1278,6 +1297,15 @@
     }
     xhr.send(body);
   };
+
+  Object.defineProperty(RemoteStorage.WireClient.prototype, 'storageType', {
+    get: function() {
+      if (this.storageApi) {
+        var spec = this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);
+        return spec ? spec[1] : '2012.04';
+      }
+    }
+  });
 
   RS.WireClient.configureHooks = [];
 
@@ -1419,13 +1447,15 @@
 
 
 /** FILE: src/authorize.js **/
-(function() {
+(function(global) {
 
   function extractParams() {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
-    var hashPos = document.location.href.indexOf('#');
+    var location = RemoteStorage.Authorize.getLocation(),
+        hashPos  = location.href.indexOf('#'),
+        hash;
     if (hashPos === -1) { return; }
-    var hash = document.location.href.substring(hashPos+1);
+    hash = location.href.substring(hashPos+1);
     return hash.split('&').reduce(function(m, kvs) {
       var kv = kvs.split('=');
       m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
@@ -1442,27 +1472,41 @@
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
     url += '&response_type=token';
-    document.location = url;
+    RemoteStorage.Authorize.setLocation(url);
   };
 
   RemoteStorage.prototype.authorize = function(authURL) {
-    var scopes = this.access.scopeModeMap;
-    var scope = [];
-    for(var key in scopes) {
-      var mode = scopes[key];
-      if (key === 'root') {
-        if (! this.remote.storageApi.match(/^draft-dejong-remotestorage-/)) {
-          key = '';
-        }
-      }
-      scope.push(key + ':' + mode);
-    }
-    scope = scope.join(' ');
+    this.access.setStorageType(this.remote.storageType);
+    var scope = this.access.scopeParameter;
 
-    var redirectUri = String(document.location);
+    var redirectUri = String(RemoteStorage.Authorize.getLocation());
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
     RemoteStorage.Authorize(authURL, scope, redirectUri, clientId);
+  };
+
+  /**
+   * Get current document location
+   *
+   * Override this method if access to document.location is forbidden
+   */
+  RemoteStorage.Authorize.getLocation = function () {
+    return global.document.location;
+  };
+
+  /**
+   * Get current document location
+   *
+   * Override this method if access to document.location is forbidden
+   */
+  RemoteStorage.Authorize.setLocation = function (location) {
+    if (typeof location === 'string') {
+      global.document.location.href = location;
+    } else if (typeof location === 'object') {
+      global.document.location = location;
+    } else {
+      throw "Invalid location " + location;
+    }
   };
 
   RemoteStorage.Authorize._rs_supported = function(remoteStorage) {
@@ -1484,9 +1528,11 @@
         }
       }
     };
-    var params = extractParams();
+    var params = extractParams(),
+        location;
     if (params) {
-      document.location.hash = '';
+      location = RemoteStorage.Authorize.getLocation();
+      location.hash = '';
     }
     remoteStorage.on('features-loaded', onFeaturesLoaded);
   };
@@ -1495,13 +1541,12 @@
     remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
   };
 
-})();
+})(typeof(window) !== 'undefined' ? window : global);
 
 
 /** FILE: src/access.js **/
 (function(global) {
 
-  var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:access";
 
   /**
@@ -1512,19 +1557,9 @@
   RemoteStorage.Access = function() {
     this.reset();
 
-    if(haveLocalStorage) {
-      var rawSettings = localStorage[SETTINGS_KEY];
-      if(rawSettings) {
-        var savedSettings = JSON.parse(rawSettings);
-        for(var key in savedSettings) {
-          this.set(key, savedSettings[key]);
-        }
-      }
-    }
   };
 
   RemoteStorage.Access.prototype = {
-    // not sure yet, if 'set' or 'claim' is better...
 
     /**
      * Method: claim
@@ -1542,7 +1577,6 @@
     set: function(scope, mode) {
       this._adjustRootPaths(scope);
       this.scopeModeMap[scope] = mode;
-      this._persist();
     },
 
     get: function(scope) {
@@ -1560,7 +1594,6 @@
       for(name in savedMap) {
         this.set(name, savedMap[name]);
       }
-      this._persist();
     },
 
     check: function(scope, mode) {
@@ -1574,7 +1607,7 @@
     },
 
     _adjustRootPaths: function(newScope) {
-      if('root' in this.scopeModeMap || newScope === 'root') {
+      if('*' in this.scopeModeMap || newScope === '*') {
         this.rootPaths = ['/'];
       } else if(! (newScope in this.scopeModeMap)) {
         this.rootPaths.push('/' + newScope + '/');
@@ -1582,10 +1615,15 @@
       }
     },
 
-    _persist: function() {
-      if(haveLocalStorage) {
-        localStorage[SETTINGS_KEY] = JSON.stringify(this.scopeModeMap);
+    _scopeNameForParameter: function(scope) {
+      if (scope.name === '*' && this.storageType) {
+        if (this.storageType === '2012.04') {
+          return '';
+        } else if (this.storageType.match(/remotestorage-0[01]/)) {
+          return 'root';
+        }
       }
+      return scope.name;
     },
 
     setStorageType: function(type) {
@@ -1618,7 +1656,7 @@
   Object.defineProperty(RemoteStorage.Access.prototype, 'scopeParameter', {
     get: function() {
       return this.scopes.map(function(scope) {
-        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
+        return this._scopeNameForParameter(scope) + ':' + scope.mode;
       }.bind(this)).join(' ');
     }
   });
@@ -1636,7 +1674,7 @@
   });
 
   function setModuleCaching(remoteStorage, key) {
-    if(key === 'root' || key === '') {
+    if (key === '*' || key === '') {
       remoteStorage.caching.set('/', { data: true });
     } else {
       remoteStorage.caching.set('/' + key + '/', { data: true });
@@ -1656,8 +1694,70 @@
   };
 
   RemoteStorage.Access._rs_init = function() {};
-
 })(typeof(window) !== 'undefined' ? window : global);
+
+
+/** FILE: src/env.js **/
+(function(pMode) {
+
+  var mode = pMode,
+      env = {},
+      isBackground = false;
+
+
+  RemoteStorage.Env = function() {
+    return env;
+  };
+
+  RemoteStorage.Env.isBrowser = function () {
+    return mode === "browser";
+  };
+
+  RemoteStorage.Env.isNode = function () {
+    return mode === "node";
+  };
+
+  RemoteStorage.Env.goBackground = function () {
+    isBackground = true;
+    RemoteStorage.Env._emit("background");
+  };
+
+  RemoteStorage.Env.goForeground = function () {
+    isBackground = false;
+    RemoteStorage.Env._emit("foreground");
+  };
+
+  RemoteStorage.Env._rs_init = function(remoteStorage) {
+    RemoteStorage.eventHandling(RemoteStorage.Env, "background", "foreground");
+
+    if( mode === 'browser') {
+      if( typeof(document.hidden) !== "undefined" ) {
+        env.hiddenProperty = "hidden";
+        env.visibilityChangeEvent = "visibilitychange";
+      } else if( typeof(document.mozHidden) !== "undefined" ) {
+        env.hiddenProperty = "mozHidden";
+        env.visibilityChangeEvent = "mozvisibilitychange";
+      } else if( typeof(document.msHidden) !== "undefined" ) {
+        env.hiddenProperty = "msHidden";
+        env.visibilityChangeEvent = "msvisibilitychange";
+      } else if( typeof(document.webkitHidden) !== "undefined" ) {
+        env.hiddenProperty = "webkitHidden";
+        env.visibilityChangeEvent = "webkitvisibilitychange";
+      }
+      document.addEventListener(env.visibilityChangeEvent, function () {
+        if( document[env.hiddenProperty] ) {
+          RemoteStorage.Env.goBackground();
+        } else {
+          RemoteStorage.Env.goForeground();
+        }
+      }, false);
+    }
+  };
+
+  RemoteStorage.Env._rs_cleanup = function(remoteStorage) {
+  };
+
+})(typeof(window) !== 'undefined' ? 'browser' : 'node');
 
 
 /** FILE: lib/tv4.js **/
@@ -3121,12 +3221,16 @@ Math.uuid = function (len, radix) {
 /** FILE: src/caching.js **/
 (function(global) {
 
-  var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:caching";
 
   function containingDir(path) {
-    if (path === '') { return '/'; }
-    if (! path) { throw "Path not given!"; }
+    if(path === '') {
+      return '/';
+    }
+    if(! path) {
+      throw "Path not given!";
+    }
+
     return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
   }
 
@@ -3145,14 +3249,6 @@ Math.uuid = function (len, radix) {
    */
   RemoteStorage.Caching = function() {
     this.reset();
-
-    if(haveLocalStorage) {
-      var settings = localStorage[SETTINGS_KEY];
-      if(settings) {
-        this._pathSettingsMap = JSON.parse(settings);
-        this._updateRoots();
-      }
-    }
   };
 
   RemoteStorage.Caching.prototype = {
@@ -3199,7 +3295,12 @@ Math.uuid = function (len, radix) {
       delete this._pathSettingsMap[path];
       this._updateRoots();
     },
-
+    /**
+     * Method: reset
+     * 
+     * resets the state of caching;
+     * deletes all caching information.
+     **/
     reset: function() {
       this.rootPaths = [];
       this._pathSettingsMap = {};
@@ -3277,9 +3378,6 @@ Math.uuid = function (len, radix) {
         }
       }
       this.rootPaths = Object.keys(roots);
-      if(haveLocalStorage) {
-        localStorage[SETTINGS_KEY] = JSON.stringify(this._pathSettingsMap);
-      }
     },
 
   };
@@ -3696,6 +3794,55 @@ Math.uuid = function (len, radix) {
 })(typeof(window) !== 'undefined' ? window : global);
 
 
+/** FILE: src/cachinglayer.js **/
+(function() {
+  /**
+   * Class: cachinglayer
+   */
+  var methods = {
+
+    _createConflictEvent: function(path, attributes) {
+      var event = { path: path };
+      for(var key in attributes) {
+        event[key] = attributes[key];
+      }
+
+      event.resolve = function(resolution) {
+        if (resolution === 'remote' || resolution === 'local') {
+          attributes.resolution = resolution;
+          this._recordChange(path, { conflict: attributes });
+        } else {
+          throw new Error("Invalid resolution: " + resolution);
+        }
+      }.bind(this);
+
+      return event;
+    }
+
+  };
+
+  /**
+   * Function: cachingLayer
+   *
+   * Mixes common caching layer functionality into an object.
+   *
+   * The first parameter is always the object to be extended.
+   *
+   * Example:
+   *   (start code)
+   *   var MyConstructor = function() {
+   *     cachingLayer(this);
+   *   };
+   *   (end code)
+   */
+  RemoteStorage.cachingLayer = function(object) {
+    for(var key in methods) {
+      object[key] = methods[key];
+    }
+  };
+})();
+
+
 /** FILE: src/indexeddb.js **/
 (function(global) {
 
@@ -3831,6 +3978,7 @@ Math.uuid = function (len, radix) {
       RemoteStorage.log("Failed to open indexedDB");
       return undefined;
     }
+    RS.cachingLayer(this);
     RS.eventHandling(this, 'change', 'conflict');
   };
 
@@ -4101,11 +4249,7 @@ Math.uuid = function (len, radix) {
     },
 
     setConflict: function(path, attributes) {
-      var event = { path: path };
-      for(var key in attributes) {
-        event[key] = attributes[key];
-      }
-
+      var event = this._createConflictEvent(path, attributes);
       this._recordChange(path, { conflict: attributes }).
         then(function() {
           // fire conflict once conflict has been recorded.
@@ -4115,15 +4259,6 @@ Math.uuid = function (len, radix) {
             setTimeout(function() { event.resolve('remote'); }, 0);
           }
         }.bind(this));
-
-      event.resolve = function(resolution) {
-        if (resolution === 'remote' || resolution === 'local') {
-          attributes.resolution = resolution;
-          this._recordChange(path, { conflict: attributes });
-        } else {
-          throw "Invalid resolution: " + resolution;
-        }
-      }.bind(this);
     },
 
     closeDB: function() {
@@ -4215,6 +4350,7 @@ Math.uuid = function (len, radix) {
   var CHANGES_PREFIX = "remotestorage:cache:changes:";
 
   RemoteStorage.LocalStorage = function() {
+    RemoteStorage.cachingLayer(this);
     RemoteStorage.eventHandling(this, 'change', 'conflict');
   };
 
@@ -4386,19 +4522,8 @@ Math.uuid = function (len, radix) {
     },
 
     setConflict: function(path, attributes) {
-      var event = { path: path };
-      for(var key in attributes) {
-        event[key] = attributes[key];
-      }
+      var event = this._createConflictEvent(path, attributes);
       this._recordChange(path, { conflict: attributes });
-      event.resolve = function(resolution) {
-        if (resolution === 'remote' || resolution === 'local') {
-          attributes.resolution = resolution;
-          this._recordChange(path, { conflict: attributes });
-        } else {
-          throw "Invalid resolution: " + resolution;
-        }
-      }.bind(this);
       this._emit('conflict', event);
     },
 
@@ -4506,6 +4631,7 @@ Math.uuid = function (len, radix) {
 
   RemoteStorage.InMemoryStorage = function(rs) {
     this.rs = rs;
+    RemoteStorage.cachingLayer(this);
     RemoteStorage.eventHandling(this, 'change', 'conflict');
     this._storage = {};
     this._changes = {};
@@ -4615,21 +4741,8 @@ Math.uuid = function (len, radix) {
     },
 
     setConflict: function(path, attributes) {
+      var event = this._createConflictEvent(path, attributes);
       this._recordChange(path, { conflict: attributes });
-      var self = this;
-      var event = { path: path };
-      for(var key in attributes) {
-        event[key] = attributes[key];
-      }
-
-      event.resolve = function(resolution) {
-        if (resolution === 'remote' || resolution === 'local') {
-          attributes.resolution = resolution;
-          self._recordChange(path, { conflict: attributes });
-        } else {
-          throw new Error('Invalid resolution: ' + resolution);
-        }
-      };
       this._emit('conflict', event);
     },
 
@@ -4836,5 +4949,15 @@ Math.uuid = function (len, radix) {
   });
 
 })();
+
+
+/** FILE: src/nodejs_ext.js **/
+(function(global) {
+  global.XMLHttpRequest = require('xhr2');
+
+  RemoteStorage.WireClient.readBinaryData = function(content, mimeType, callback) {
+    callback(content);
+  };
+}(global));
 
 if(typeof(define) == 'function' && define.amd) define([], function() { return RemoteStorage }); else module.exports = RemoteStorage;
