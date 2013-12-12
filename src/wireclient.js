@@ -134,9 +134,8 @@
   }
 
   function isFolderDescription(body) {
-    return ((Object.keys(body).length === 2)
-                && (body['@context'] === 'http://remotestorage.io/spec/folder-description')
-                && (typeof(body['items']) === 'object'));
+    return ((body['@context'] === 'http://remotestorage.io/spec/folder-description')
+             && (typeof(body['items']) === 'object'));
   }
 
   var onErrorCb;
