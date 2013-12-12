@@ -266,16 +266,6 @@
         }
       } else if (options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
-        if (oldRev === options.ifNoneMatch) {
-          // since sync descends for allKeys(local, remote), this causes
-          // https://github.com/remotestorage/remotestorage.js/issues/399
-          // commenting this out so that it gets the actual 404 from the
-          // server. this only affects legacy servers
-          // (this.supportsRevs==false):
-
-          // return promising().fulfill(412);
-          // FIXME empty block and commented code
-        }
       }
       var promise = request('GET', this.href + cleanPath(path), this.token, headers,
                             undefined, this.supportsRevs, this._revisionCache[path]);
