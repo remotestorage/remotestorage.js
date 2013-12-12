@@ -133,6 +133,10 @@
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
 
+  function isDir(path) {
+    return (path.substr(-1) === '/');
+  }
+
   function isFolderDescription(body) {
     return ((body['@context'] === 'http://remotestorage.io/spec/folder-description')
              && (typeof(body['items']) === 'object'));
@@ -268,19 +272,25 @@
       }
       var promise = request('GET', this.href + cleanPath(path), this.token, headers,
                             undefined, this.supportsRevs, this._revisionCache[path]);
-      if (path.substr(-1) !== '/') {
+      if (!isDir(path)) {
         return promise;
       } else {
         return promise.then(function(status, body, contentType, revision) {
+          // New directory listing received
           if (status === 200 && typeof(body) === 'object') {
+            // Empty directory listing of any spec
             if (Object.keys(body).length === 0) {
               status = 404;
-            } else if(isFolderDescription(body)) {
-              for(var item in body.items) {
+            }
+            // >= 02 spec
+            else if (isFolderDescription(body)) {
+              for (var item in body.items) {
                 this._revisionCache[path + item] = body.items[item].ETag;
               }
               body = body.items;
-            } else {
+            }
+            // < 02 spec
+            else {
               var listing = {};
               Object.keys(body).forEach(function(key){
                 this._revisionCache[path + key] = body[key];
@@ -288,8 +298,17 @@
               }.bind(this));
               body = listing;
             }
+            return promising().fulfill(status, body, contentType, revision);
           }
-          return promising().fulfill(status, body, contentType, revision);
+          // Cached directory listing received
+          else if (status === 304) {
+            return promising().fulfill(status, body, contentType, revision);
+          }
+          // Faulty directory listing received
+          else {
+            var error = new Error("Received faulty directory response for: "+path);
+            return promising().reject(error);
+          }
         }.bind(this));
       }
     },

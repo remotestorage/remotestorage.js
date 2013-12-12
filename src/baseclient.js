@@ -170,11 +170,14 @@
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a directory: " + path;
       }
-      return this.storage.get(this.makePath(path)).then(function(status, body) {
-        if (status === 404 || typeof(body) !== 'object') { return; }
-
-        return body;
-      });
+      return this.storage.get(this.makePath(path)).then(
+        function(status, body) {
+          return (status === 404) ? undefined : body;
+        },
+        function(error) {
+          throw error;
+        }
+      );
     },
 
     /**

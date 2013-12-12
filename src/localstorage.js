@@ -80,17 +80,22 @@
         body: body
       };
       localStorage[NODES_PREFIX + path] = JSON.stringify(node);
-      this._addToParent(path, revision);
       this._emit('change', {
         path: path,
         origin: incoming ? 'remote' : 'window',
         oldValue: oldNode ? oldNode.body : undefined,
         newValue: body
       });
-      if (! incoming) {
+      if (!incoming) {
         this._recordChange(path, { action: 'PUT' });
       }
       return promising().fulfill(200);
+    },
+
+    putDirectory: function(path, body) {
+      this._addDirectoryCacheNode(path, body);
+      this._addToParent(path, 'body');
+      return promising().fulfill();
     },
 
     get: function(path) {
@@ -127,6 +132,7 @@
       var node = this._get(path) || makeNode(path);
       node.revision = revision;
       localStorage[NODES_PREFIX + path] = JSON.stringify(node);
+      this._addToParent(path, 'cached', revision);
       return promising().fulfill();
     },
 
@@ -181,17 +187,23 @@
       this._emit('conflict', event);
     },
 
-    _addToParent: function(path, revision) {
+    _addToParent: function(path, key, revision) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
       if (parts) {
         var dirname = parts[1], basename = parts[2];
         var node = this._get(dirname) || makeNode(dirname);
-        node.body[basename] = revision || true;
+        node[key][basename] = revision || true;
         localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
         if (dirname !== '/') {
-          this._addToParent(dirname, true);
+          this._addToParent(dirname, key, true);
         }
       }
+    },
+
+    _addDirectoryCacheNode: function(path, body) {
+      var node = this._get(path) || makeNode(path);
+      node.body = body;
+      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
     },
 
     _removeFromParent: function(path) {
@@ -200,8 +212,8 @@
         var dirname = parts[1], basename = parts[2];
         var node = this._get(dirname);
         if (node) {
-          delete node.body[basename];
-          if (Object.keys(node.body).length > 0) {
+          delete node.cached[basename];
+          if (Object.keys(node.cached).length > 0) {
             localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
           } else {
             delete localStorage[NODES_PREFIX + dirname];

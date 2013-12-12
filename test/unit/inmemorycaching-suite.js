@@ -6,7 +6,7 @@ define(['requirejs'], function(requirejs) {
 
   suites.push({
     name: 'InMemoryStorage',
-    desc: 'inmemory caching as a fallback for indexdb and localstorge',
+    desc: 'inmemory caching as a fallback for indexdb and localstorage',
     setup: function(env, test) {
       require('./lib/promising');
       global.RemoteStorage = function() {};
@@ -76,101 +76,6 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#put updates parent directories",
-        run: function(env, test) {
-          env.ims.put('/foo/bar/baz', 'bar', 'text/plain').then(function(status) {
-            test.assertAnd(env.ims._storage['/foo/bar/'], {
-              body: { 'baz': true },
-              contentType: 'application/json',
-              path: '/foo/bar/'
-            }, 'storagae holds '+JSON.stringify(env.ims._storage['/foo/bar/'])+' at foo/bar');
-            test.assertAnd(env.ims._storage['/foo/'], {
-              body: { 'bar/': true },
-              contentType: 'application/json',
-              path: '/foo/'
-            });
-
-            test.assertAnd(env.ims._storage['/'], {
-              body: { 'foo/': true },
-              contentType: 'application/json',
-              path: '/'
-            });
-            test.done();
-          });
-        }
-      },
-
-      {
-        desc: "#put doesn't overwrite parent directories",
-        run: function(env, test) {
-          env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
-            env.ims.put('/foo/bar/bor', 'blub', 'text/plain').then(function() {
-              test.assert(env.ims._storage['/foo/bar/'],{
-                body: {'baz': true, 'bor': true},
-                contentType: 'application/json',
-                path: '/foo/bar/'
-              });
-            });
-          });
-        }
-      },
-
-      {
-        desc: "#delete removes the node and empty parents",
-        run: function(env, test) {
-          env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
-            test.assertAnd(Object.keys(env.ims._storage), ['/foo/bar/baz',
-                                                    '/foo/bar/',
-                                                    '/foo/',
-                                                    '/'], 'wrong nodes after put : '+Object.keys(env.ims._storage));
-            env.ims.delete('/foo/bar/baz').then(function(status) {
-              test.assertAnd(status, 200, 'wrong status code : '+status);
-              test.assertAnd(Object.keys(env.ims._storage), [], 'wrong nodes after delete : '+Object.keys(env.ims._storage));
-              test.done();
-            });
-          });
-        }
-      },
-
-      {
-        desc: "#delete doesn't remove nonempty nodes",
-        run: function(env, test) {
-          env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
-            env.ims.put('/foo/baz', 'bla', 'text/pain').then(function() {
-              env.ims.delete('/foo/bar/baz').then(function(status) {
-                test.assertAnd(Object.keys(env.ims._storage).sort(), ['/', '/foo/', '/foo/baz'], 'wrong nodes after delete '+Object.keys(env.ims._storage).sort());
-                test.assertAnd(env.ims._storage['/foo/'], {
-                  path: '/foo/',
-                  body: { 'baz': true },
-                  contentType: 'application/json'
-                }, 'found ' + JSON.stringify(env.ims._storage['/foo/']) + 'instead of ' + JSON.stringify({
-                  path: '/foo/',
-                  body: { 'baz': true },
-                  contentType: 'applicaton/json'
-                }));
-                test.done();
-              });
-            });
-          });
-        }
-      },
-
-      {
-        desc: "#delete propagates changes through empty directories",
-        run: function(env, test) {
-          env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
-            env.ims.put('/foo/baz', 'bla', 'text/pain').then(function() {
-              env.ims._storage['/'].body['foo/'] = 'rev';
-              env.ims.delete('/foo/bar/baz').then(function(status) {
-                test.assertAnd(env.ims._storage['/'].body['foo/'], true, 'found '+env.ims._storage['/'].body['foo/']+' instead');
-                test.done();
-              });
-            });
-          });
-        }
-      },
-
-      {
         desc: "#put records a change for outgoing changes",
         run: function(env, test) {
           env.ims.put('/foo/bla', 'basdf', 'text/plain').then(function() {
@@ -187,20 +92,6 @@ define(['requirejs'], function(requirejs) {
         run: function(env, test) {
           env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
             test.assertType(env.ims._changes['/foo/bla'], 'undefined');
-          });
-        }
-      },
-
-      {
-        desc: "#delete records a change for outgoing changes",
-        run: function(env, test) {
-          env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
-            env.ims.delete('/foo/bla').then(function() {
-              test.assert(env.ims._changes['/foo/bla'], {
-                action: 'DELETE',
-                path: '/foo/bla'
-              });
-            });
           });
         }
       },
@@ -281,6 +172,83 @@ define(['requirejs'], function(requirejs) {
         }
       },
 
+      // TODO #putDirectory
+
+      {
+        desc: "#delete removes the node and empty parents",
+        run: function(env, test) {
+          env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
+            env.ims.setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
+              var storageKeys = ['/foo/bar/baz', '/foo/bar/', '/foo/', '/'];
+              test.assertAnd(Object.keys(env.ims._storage), storageKeys);
+
+              env.ims.delete('/foo/bar/baz').then(function(status) {
+                test.assertAnd(status, 200, 'wrong status code: '+status); //TODO belongs in seperate test
+                test.assertAnd(Object.keys(env.ims._storage), [],
+                               'wrong nodes after delete : '+Object.keys(env.ims._storage));
+                test.done();
+              });
+            });
+          });
+        }
+      },
+
+      {
+        desc: "#delete doesn't remove nonempty nodes",
+        run: function(env, test) {
+          // TODO having to use setRevision explicitly is not nice
+          env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
+            env.ims.setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
+              env.ims.put('/foo/baz', 'bla', 'text/pain').then(function() {
+                env.ims.setRevision('/foo/baz', 'a1b2c3').then(function() {
+                  env.ims.delete('/foo/bar/baz').then(function(status) {
+                    // test.assertAnd(Object.keys(env.ims._storage).sort(), ['/', '/foo/', '/foo/baz'], 'wrong nodes after delete '+Object.keys(env.ims._storage).sort());
+                    test.assertAnd(env.ims._storage['/foo/'], {
+                      path: '/foo/',
+                      cached: { 'baz': 'a1b2c3' },
+                      contentType: 'application/json'
+                    }, JSON.stringify(env.ims._storage['/foo/']));
+                    test.done();
+                  });
+                });
+              });
+            });
+          });
+        }
+      },
+
+      {
+        desc: "#delete propagates changes through empty directories",
+        run: function(env, test) {
+          // TODO I don't think this did what it says. Isn't foo/ always true in /?
+          env.ims.put('/foo/bar/baz', 'bla', 'text/pain').then(function() {
+            env.ims.setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
+              env.ims.put('/foo/baz', 'bla', 'text/pain').then(function() {
+                env.ims.setRevision('/foo/baz', 'd4e5f6').then(function() {
+                  env.ims.delete('/foo/bar/baz').then(function(status) {
+                    test.assert(env.ims._storage['/'].cached['foo/'], true);
+                  });
+                });
+              });
+            });
+          });
+        }
+      },
+
+      {
+        desc: "#delete records a change for outgoing changes",
+        run: function(env, test) {
+          env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
+            env.ims.delete('/foo/bla').then(function() {
+              test.assert(env.ims._changes['/foo/bla'], {
+                action: 'DELETE',
+                path: '/foo/bla'
+              });
+            });
+          });
+        }
+      },
+
       {
         desc: '#setRevision sets the revision correctly',
         run: function(env, test) {
@@ -291,6 +259,52 @@ define(['requirejs'], function(requirejs) {
                 body: 'blablub',
                 contentType: 'text/plain',
                 revision: '123987'
+              });
+            });
+          });
+        }
+      },
+
+      {
+        desc: "#setRevision updates `cached` items of parent directories",
+        run: function(env, test) {
+          env.ims.setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
+            test.assertAnd(env.ims._storage['/foo/bar/'], {
+              body: {},
+              cached: { 'baz': 'a1b2c3' },
+              contentType: 'application/json',
+              path: '/foo/bar/'
+            });
+
+            test.assertAnd(env.ims._storage['/foo/'], {
+              body: {},
+              cached: { 'bar/': true },
+              contentType: 'application/json',
+              path: '/foo/'
+            }, JSON.stringify( env.ims._storage['/foo/'] ));
+
+            test.assertAnd(env.ims._storage['/'], {
+              body: {},
+              cached: { 'foo/': true },
+              contentType: 'application/json',
+              path: '/'
+            });
+
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "#setRevision doesn't overwrite `cached` items in parent directories",
+        run: function(env, test) {
+          env.ims.setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
+            env.ims.setRevision('/foo/bar/booze', 'd4e5f6').then(function() {
+              test.assert(env.ims._storage['/foo/bar/'], {
+                body: {},
+                cached: { 'baz': 'a1b2c3', 'booze': 'd4e5f6' },
+                contentType: 'application/json',
+                path: '/foo/bar/'
               });
             });
           });

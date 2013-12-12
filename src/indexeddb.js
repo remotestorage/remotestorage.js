@@ -126,6 +126,14 @@
     }
   }
 
+  function addDirectoryCacheNode(nodes, path, body) {
+    nodes.get(path).onsuccess = function(evt) {
+      var node = evt.target.result || makeNode(path);
+      node['body'] = body;
+      nodes.put(node);
+    };
+  }
+
   RS.IndexedDB = function(database) {
     this.db = database || DEFAULT_DB;
     if (! this.db) {
@@ -177,16 +185,7 @@
             contentType: contentType,
             body: body
           };
-          nodes.put(node).onsuccess = function() {
-            try {
-              addToParent(nodes, path, 'body', revision);
-            } catch(e) {
-              if (typeof(done) === 'undefined') {
-                done = true;
-                promise.reject(e);
-              }
-            }
-          };
+          nodes.put(node);
         } catch(e) {
           if (typeof(done) === 'undefined') {
             done = true;
@@ -212,6 +211,24 @@
       }.bind(this);
 
       transaction.onerror = transaction.onabort = promise.reject;
+
+      return promise;
+    },
+
+    putDirectory: function(path, body) {
+      var promise = promising();
+      var transaction = this.db.transaction(['nodes'], 'readwrite');
+      var nodes = transaction.objectStore('nodes');
+
+      addDirectoryCacheNode(nodes, path, body);
+      addToParent(nodes, path, 'body');
+
+      transaction.oncomplete = function() {
+        promise.fulfill();
+      };
+
+      transaction.onerror = transaction.onabort = promise.reject;
+
       return promise;
     },
 
@@ -225,7 +242,7 @@
       nodes.get(path).onsuccess = function(evt) {
         oldNode = evt.target.result;
         nodes.delete(path).onsuccess = function() {
-          removeFromParent(nodes, path, 'body', incoming);
+          removeFromParent(nodes, path, 'cached', incoming);
         };
       };
 
@@ -295,6 +312,7 @@
       return promise;
     },
 
+    // TODO this is not used yet
     getCached: function(path) {
       if (path[path.length - 1] !== '/') {
         return this.get(path);
