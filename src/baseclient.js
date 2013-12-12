@@ -173,15 +173,7 @@
       return this.storage.get(this.makePath(path)).then(function(status, body) {
         if (status === 404 || typeof(body) !== 'object') { return; }
 
-        if (body['@context'] === 'http://remotestorage.io/spec/folder-description') {
-          return body.items;
-        } else {
-          var listing = {};
-          Object.keys(body).forEach(function(key){
-            listing[key] = {"ETag": body[key]};
-          });
-          return listing;
-        }
+        return body;
       });
     },
 

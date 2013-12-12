@@ -268,26 +268,25 @@
       }
       var promise = request('GET', this.href + cleanPath(path), this.token, headers,
                             undefined, this.supportsRevs, this._revisionCache[path]);
-      if (this.supportsRevs || path.substr(-1) !== '/') {
+      if (path.substr(-1) !== '/') {
         return promise;
       } else {
         return promise.then(function(status, body, contentType, revision) {
-          var tmp;
           if (status === 200 && typeof(body) === 'object') {
             if (Object.keys(body).length === 0) {
-              // no children (coerce response to 'not found')
               status = 404;
             } else if(isFolderDescription(body)) {
-              tmp = {};
               for(var item in body.items) {
                 this._revisionCache[path + item] = body.items[item].ETag;
-                tmp[item] = body.items[item].ETag;
               }
-              body = tmp;
-            } else {//pre-02 server
-              for(var key in body) {
+              body = body.items;
+            } else {
+              var listing = {};
+              Object.keys(body).forEach(function(key){
                 this._revisionCache[path + key] = body[key];
-              }
+                listing[key] = {"ETag": body[key]};
+              }.bind(this));
+              body = listing;
             }
           }
           return promising().fulfill(status, body, contentType, revision);
