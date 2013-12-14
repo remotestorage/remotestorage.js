@@ -158,6 +158,66 @@ define(['requirejs'], function(requirejs, undefined) {
           test.assertTypeAnd(req._onerror, 'function');
           test.done();
         }
+      },
+
+      {
+        desc: "#get to 404 document results in error",
+        run: function(env, test) {
+          env.connectedClient.get('/foo').then(function(status, body, contentType) {
+            test.assert('we should not have got here', false);
+          }, function(err) {
+            test.assert(err, 'request failed or something: 404');
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 404;
+          req._onload();
+        }
+      },
+
+      {
+        desc: "#get to 404 dir results in error",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/').then(function(status, body, contentType) {
+            test.assert('we should not have got here', false);
+          }, function(err) {
+            test.assert(err, 'request failed or something: 404');
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 404;
+          req._onload();
+        }
+      },
+
+      {
+        desc: "#get to document results in error if getDir doesn't fill the fileId cache",
+        run: function(env, test) {
+          env.connectedClient._fileIdCache.set('/foo', false);
+          env.connectedClient.get('/foo').then(function(status, body, contentType) {
+            test.assert('we should not have got here', false);
+          }, function(err) {
+            test.assert(err, 'no file or directory found at the path: /foo');
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 200;
+          req.responseText = JSON.stringify({ items: [] });
+          req._onload();
+        }
+      },
+
+      {
+        desc: "#get to dir results in error if getDir doesn't fill the fileId cache",
+        run: function(env, test) {
+          env.connectedClient._fileIdCache.set('/foo/', false);
+          env.connectedClient.get('/foo/').then(function(status, body, contentType) {
+            test.assert('we should not have got here', false);
+          }, function(err) {
+            test.assert(err, 'no file or directory found at the path: /foo/');
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 200;
+          req.responseText = JSON.stringify({ items: [] });
+          req._onload();
+        }
       }
       
     ]
