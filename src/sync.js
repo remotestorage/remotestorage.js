@@ -312,11 +312,8 @@
 
     return promising(function(promise) {
       if (n === 0) {
-        rs._emit('sync-busy');
-        rs._emit('sync-done');
         return promise.fulfill();
       }
-      rs._emit('sync-busy');
       var path;
       while((path = roots.shift())) {
         (function (path) {
@@ -325,14 +322,12 @@
               if (aborted) { return; }
               i++;
               if (n === i) {
-                rs._emit('sync-done');
                 promise.fulfill();
               }
             }, function(error) {
               console.error('syncing', path, 'failed:', error);
               if (aborted) { return; }
               aborted = true;
-              rs._emit('sync-done');
               if (error instanceof RemoteStorage.Unauthorized) {
                 rs._emit('error', error);
               } else {

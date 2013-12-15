@@ -154,7 +154,7 @@
      *   fired when the wireclient connect method realizes that it is
      *   in posession of a token and a href
      **/
-    RS.eventHandling(this, 'change', 'connected');
+    RS.eventHandling(this, 'change', 'connected', 'sync-busy', 'sync-done');
 
     onErrorCb = function(error){
       if(error instanceof RemoteStorage.Unauthorized) {
@@ -255,6 +255,7 @@
     },
 
     get: function(path, options) {
+      var that = this; 
       if (!this.connected) {
         throw new Error("not connected (path: " + path + ")");
       }
@@ -277,8 +278,21 @@
           // FIXME empty block and commented code
         }
       }
+      if(path.substr(-1) !== '/') {
+        this._emit('sync-busy');
+      }
       var promise = request('GET', this.href + cleanPath(path), this.token, headers,
-                            undefined, this.supportsRevs, this._revisionCache[path]);
+                            undefined, this.supportsRevs, this._revisionCache[path]).then(function(status, body, contentType, revision) {
+        if(path.substr(-1) !== '/') {
+          that._emit('sync-done');
+        }
+        return promising().fulfill(status, body, contentType, revision);
+      }, function(err) {
+        if(path.substr(-1) !== '/') {
+          that._emit('sync-done');
+        }
+        throw err;
+      });
       if (this.supportsRevs || path.substr(-1) !== '/') {
         return promise;
       } else {
@@ -307,6 +321,7 @@
     },
 
     put: function(path, body, contentType, options) {
+      var that = this; 
       if (!this.connected) {
         throw new Error("not connected (path: " + path + ")");
       }
@@ -323,11 +338,19 @@
           headers['If-None-Match'] = options.ifNoneMatch;
         }
       }
+      this._emit('sync-busy');
       return request('PUT', this.href + cleanPath(path), this.token,
-                     headers, body, this.supportsRevs);
+                     headers, body, this.supportsRevs).then(function(status, body, contentType, revision) {
+        that._emit('sync-done');
+        return promising().fulfill(status, body, contentType, revision);
+      }, function(err) {
+        that._emit('sync-done');
+        throw err;
+      });
     },
 
     'delete': function(path, options) {
+      var that = this; 
       if (!this.connected) {
         throw new Error("not connected (path: " + path + ")");
       }
@@ -338,9 +361,16 @@
           headers['If-Match'] = options.ifMatch;
         }
       }
+      this._emit('sync-busy');
       return request('DELETE', this.href + cleanPath(path), this.token,
                      headers,
-                     undefined, this.supportsRevs);
+                     undefined, this.supportsRevs).then(function(status, body, contentType, revision) {
+        that._emit('sync-done');
+        return promising().fulfill(status, body, contentType, revision);
+      }, function(err) {
+        that._emit('sync-done');
+        throw err;
+      });
     }
   };
 
