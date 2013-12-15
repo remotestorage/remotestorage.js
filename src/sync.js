@@ -109,6 +109,15 @@
       remote.get(path, {
         ifNoneMatch: localRevision
       }).then(function(remoteStatus, remoteBody, remoteContentType, remoteRevision) {
+        //deal with folder descriptions from -02 spec:
+        var i, items={};
+        if(remoteBody && remoteBody['@context']=='http://remotestorage.io/spec/folder-description') {
+          for(i in remoteBody.items) {
+            items[i] = remoteBody.items[i].ETag;
+          }
+          remoteBody = items;
+        }
+
         if (remoteStatus === 401 || remoteStatus === 403) {
           throw new RemoteStorage.Unauthorized();
         } else if (remoteStatus === 412 || remoteStatus === 304) {
