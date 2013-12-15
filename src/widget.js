@@ -41,6 +41,13 @@
     };
   }
 
+  function flashFor(evt) {
+    if (evt.method === 'GET' && evt.isFolder) {
+      return false;
+    }
+    return true;
+  }
+
   /**
    * Class: RemoteStorage.Widget
    *   the Widget Controler that comunicates with the view
@@ -53,12 +60,12 @@
    *   disconnected :  initial
    *   connecting   :  authing
    *   authing      :  authing
-   *   sync-busy    :  busy
-   *   sync-done    :  connected
+   *   wire-busy    :  busy
+   *   wire-done    :  connected
    *   error        :  depending on the error initial,offline, unauthorized or error
    **/
   RemoteStorage.Widget = function(remoteStorage) {
-
+    this.requestsToFlashFor = 0;
     // setting event listeners on rs events to put
     // the widget into corresponding states
     this.rs = remoteStorage;
@@ -66,8 +73,17 @@
     this.rs.on('disconnected', stateSetter(this, 'initial'));
     this.rs.on('connecting', stateSetter(this, 'authing'));
     this.rs.on('authing', stateSetter(this, 'authing'));
-    this.rs.on('sync-busy', stateSetter(this, 'busy'));
-    this.rs.on('sync-done', stateSetter(this, 'connected'));
+    this.rs.on('wire-busy', function(evt) {
+      if(flashFor(evt)) {
+        this.requestsToFlashFor++;
+        stateSetter(this, 'busy')();
+      }
+    });
+    this.rs.on('wire-done', function(evt) {
+      if(flashFor(evt) && this.requestsToFlashFor === 0) {
+        stateSetter(this, 'connected')();
+      }
+    });
     this.rs.on('error', errorsHandler(this) );
     if (hasLocalStorage) {
       var state = localStorage[LS_STATE_KEY];

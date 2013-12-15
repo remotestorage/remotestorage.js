@@ -54,14 +54,15 @@
     },
 
     _wrapBusyDone: function(result) {
-      this._emit('sync-busy');
+      this._emit('wire-busy', 'wrapped');
       return result.then(function() {
         var promise = promising();
-        this._emit('sync-done');
+        this._emit('wire-done', 'wrapped', true);
         return promise.fulfill.apply(promise, arguments);
       }.bind(this), function(err) {
+        this._emit('wire-done', 'wrapped', false);
         throw err;
-      });
+      }.bind(this));
     }
   };
 
@@ -122,21 +123,21 @@
      * fired before redirecting to the authing server
      **/
     /**
-     * Event: sync-busy
+     * Event: wire-busy
      *
-     * fired when a sync cycle starts
+     * fired when a wire request starts
      *
      **/
     /**
-     * Event: sync-done
+     * Event: wire-done
      *
-     * fired when a sync cycle completes
+     * fired when a wire request completes
      *
      **/
 
     RemoteStorage.eventHandling(
       this, 'ready', 'disconnected', 'disconnect', 'conflict', 'error',
-      'features-loaded', 'connecting', 'authing', 'sync-busy', 'sync-done'
+      'features-loaded', 'connecting', 'authing'
     );
 
     // pending get/put/delete calls.
