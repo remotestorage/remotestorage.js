@@ -74,13 +74,15 @@
         });
         RemoteStorage.log('got profile', profile, 'and link', link);
         if (link) {
-          var authURL = link.properties['auth-endpoint'] ||
-            link.properties['http://tools.ietf.org/html/rfc6749#section-4.2'];
-          cachedInfo[userAddress] = { href: link.href, type: link.type, authURL: authURL };
+          var authURL = link.properties['http://tools.ietf.org/html/rfc6749#section-4.2']
+                  || link.properties['auth-endpoint'],
+            storageType = link.properties['http://remotestorage.io/spec/version']
+                  || link.type;
+          cachedInfo[userAddress] = { href: link.href, type: storageType, authURL: authURL };
           if (hasLocalStorage) {
             localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
           }
-          callback(link.href, link.type, authURL);
+          callback(link.href, storageType, authURL);
         } else {
           tryOne();
         }
