@@ -200,7 +200,41 @@ define(['requirejs'], function(requirejs) {
         }
       },
 
-      // TODO #putDirectory
+      {
+        desc: "#putDirectory adds the directory cache node with the given body",
+        run: function(env, test) {
+          var directoryItems = {'item1': {'ETag': '123', 'Content-Type': 'text/plain'},
+                                'subdir/': {'ETag': '321'}};
+
+          env.ls.putDirectory('/foo/bar/', directoryItems).then(function() {
+            var expectedCacheNode = {
+              'path': '/foo/bar/',
+              'body': directoryItems,
+              'cached': {},
+              'contentType': 'application/json'
+            };
+            assertNode(test, '/foo/bar/', expectedCacheNode);
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "#putDirectory adds the path to the parents",
+        run: function(env, test) {
+          var directoryItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
+                                'subdir/': {'ETag': '321'}};
+
+          env.ls.putDirectory('/foo/bar/', directoryItems).then(function() {
+            var fooNode = JSON.parse(localStorage[NODES_PREFIX + '/foo/']);
+            var rootNode = JSON.parse(localStorage[NODES_PREFIX + '/']);
+
+            test.assertAnd(fooNode.body['bar/'], true);
+            test.assertAnd(rootNode.body['foo/'], true);
+            test.done();
+          });
+        }
+      },
 
       {
         desc: "#delete records a change for outgoing changes",

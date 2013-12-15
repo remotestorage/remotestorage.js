@@ -172,7 +172,35 @@ define(['requirejs'], function(requirejs) {
         }
       },
 
-      // TODO #putDirectory
+      {
+        desc: "#putDirectory adds the directory cache node with the given body",
+        run: function(env, test) {
+          var directoryItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
+                                'subdir/': {'ETag': '321'}};
+
+          env.ims.putDirectory('/foo/bar/', directoryItems).then(function() {
+            var cacheNode = env.ims._storage['/foo/bar/'];
+            test.assertAnd(cacheNode.body, directoryItems);
+            test.assertAnd(cacheNode.cached, {});
+            test.assertAnd(cacheNode.contentType, 'application/json');
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "#putDirectory adds the path to the parents",
+        run: function(env, test) {
+          var directoryItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
+                                'subdir/': {'ETag': '321'}};
+
+          env.ims.putDirectory('/foo/bar/', directoryItems).then(function() {
+            test.assertAnd(env.ims._storage['/foo/'].body['bar/'], true);
+            test.assertAnd(env.ims._storage['/'].body['foo/'], true);
+            test.done();
+          });
+        }
+      },
 
       {
         desc: "#delete removes the node and empty parents",
