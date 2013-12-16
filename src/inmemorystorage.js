@@ -27,7 +27,7 @@
       }
     },
 
-    put: function(path, body, contentType, incoming) {
+    put: function(path, body, contentType, incoming, revision) {
       var oldNode = this._storage[path];
       var node = {
         path: path,
@@ -36,22 +36,28 @@
       };
       this._storage[path] = node;
 
-      if (!incoming) {
-        this._recordChange(path, { action: 'PUT' });
-      }
-
       this._emit('change', {
         path: path,
         origin: incoming ? 'remote' : 'window',
         oldValue: oldNode ? oldNode.body : undefined,
         newValue: body
       });
+
+      if (incoming) {
+        this._setRevision(path, revision);
+      }
+      if (!incoming) {
+        this._recordChange(path, { action: 'PUT' });
+        // TODO why not set a revision?
+      }
+
       return promising().fulfill(200);
     },
 
-    putDirectory: function(path, body) {
+    putDirectory: function(path, body, revision) {
       this._addDirectoryCacheNode(path, body);
       this._addToParent(path, 'body');
+      this._setRevision(path, revision);
       return promising().fulfill();
     },
 
@@ -145,7 +151,7 @@
       this._emit('conflict', event);
     },
 
-    setRevision: function(path, revision) {
+    _setRevision: function(path, revision) {
       var node = this._storage[path] || makeNode(path);
       node.revision = revision;
       this._storage[path] = node;

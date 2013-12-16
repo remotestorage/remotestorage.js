@@ -86,15 +86,19 @@
         oldValue: oldNode ? oldNode.body : undefined,
         newValue: body
       });
+      if (incoming) {
+        this._setRevision(path, revision);
+      }
       if (!incoming) {
         this._recordChange(path, { action: 'PUT' });
       }
       return promising().fulfill(200);
     },
 
-    putDirectory: function(path, body) {
+    putDirectory: function(path, body, revision) {
       this._addDirectoryCacheNode(path, body);
       this._addToParent(path, 'body');
+      this._setRevision(path, revision);
       return promising().fulfill();
     },
 
@@ -128,7 +132,7 @@
       return promising().fulfill(200);
     },
 
-    setRevision: function(path, revision) {
+    _setRevision: function(path, revision) {
       var node = this._get(path) || makeNode(path);
       node.revision = revision;
       localStorage[NODES_PREFIX + path] = JSON.stringify(node);

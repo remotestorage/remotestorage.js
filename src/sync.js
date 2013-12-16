@@ -40,15 +40,11 @@
 
   function updateLocal(remote, local, path, body, contentType, revision, promise) {
     if (isDir(path)) {
-      local.putDirectory(path, body).then(function(){
+      local.putDirectory(path, body, revision).then(function() {
         descendInto(remote, local, path, Object.keys(body), promise);
       });
     } else {
-      local.put(path, body, contentType, true, revision).then(function() {
-        return local.setRevision(path, revision);
-      }).then(function() {
-        promise.fulfill();
-      });
+      local.put(path, body, contentType, true, revision).then(promise.fulfill);
     }
   }
 
@@ -126,17 +122,14 @@
             if (remoteRevision && remoteRevision === localRevision) {
               promise.fulfill();
             } else {
-              local.putDirectory(path, remoteBody).then(function() {
-                local.setRevision(path, remoteRevision).then(function() {
-                  descendInto(remote, local, path, allDifferentKeys(localBody, remoteBody), promise);
-                });
+              local.putDirectory(path, remoteBody, remoteRevision).then(function() {
+                descendInto(remote, local, path, allDifferentKeys(localBody, remoteBody), promise);
               });
             }
           } else {
             updateLocal(remote, local, path, remoteBody, remoteContentType, remoteRevision, promise);
           }
         } else {
-          // do nothing.
           promise.fulfill();
         }
       }).then(undefined, promise.reject);
