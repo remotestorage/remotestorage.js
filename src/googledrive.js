@@ -361,7 +361,12 @@
         // id is not cached (or file doesn't exist).
         // load parent directory listing to propagate / update id cache.
         this._getDir(parentPath(path)).then(function() {
-          callback(null, this._fileIdCache.get(path));
+          var id = this._fileIdCache.get(path);
+          if (!id) {
+            callback('no file or directory found at the path: ' + path, null);
+            return;
+          }
+          callback(null, id);
         }.bind(this), callback);
       }
     },
