@@ -76,7 +76,7 @@ define([], function() {
           callback();
         }
       };
-
+      global.localStorage = {};
       RemoteStorage.prototype.remote = new FakeRemote();
       //RemoteStorage.prototype.local = new FakeLocal();
       test.done();
@@ -173,6 +173,15 @@ define([], function() {
             test.assert(e instanceof RemoteStorage.DiscoveryError, true);
           });
           env.rs.connect('somestring');
+        }
+      },
+
+      {
+        desc: "#connect sets the backend to remotestorage",
+        run: function(env, test) {
+          localStorage ={};
+          env.rs.connect('user@ho.st');
+          test.assert(localStorage, {'remotestorage:backend': 'remotestorage'});
         }
       },
 

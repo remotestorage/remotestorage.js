@@ -221,6 +221,7 @@
      *
      */
     connect: function(userAddress) {
+      this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
         this._emit('error', new RemoteStorage.DiscoveryError("User adress doesn't contain an @."));
         return;
