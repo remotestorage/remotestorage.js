@@ -66,7 +66,7 @@
     },
 
     set: function(path, settings) {
-      if((typeof(settings)=='object') && (settings.ready)) {
+      if((typeof(settings) === 'object') && (settings.ready)) {
         this.resolveQueue(path);
       }
       this._validateDirPath(path);
@@ -136,7 +136,7 @@
         return;
       }
       for(path in this.readyPromises) {
-        if(path.substring(0, rootPath.length)==rootPath) {
+        if(path.substring(0, rootPath.length) === rootPath) {
           for(i=0; i<this.readyPromises[path].length; i++) {
             this.readyPromises[path][i].fulfill();
           }
