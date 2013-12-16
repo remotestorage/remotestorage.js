@@ -61,9 +61,19 @@
   SchemaNotFound.prototype = Error.prototype;
 
   RemoteStorage.BaseClient.Types.SchemaNotFound = SchemaNotFound;
-
+  /**
+   * Class: RemoteStorage.BaseClient
+   **/
   RemoteStorage.BaseClient.prototype.extend({
-
+    /**
+     * Method: validate(object)
+     *
+     * validates an Object against the associated schema
+     * the context has to have a @context property
+     *
+     * Returns:
+     *   A validate object giving you information about errors 
+     **/
     validate: function(object) {
       var schema = RemoteStorage.BaseClient.Types.getSchema(object['@context']);
       if(schema) {
