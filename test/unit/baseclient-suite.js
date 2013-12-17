@@ -184,10 +184,10 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#getListing results in an object, when it receives a directory listing object (< 02 spec)",
+        desc: "#getListing forwards directory listing object",
         run: function(env, test) {
           env.storage.get = function(path) {
-            return promising().fulfill(200, { foo: 'bar', 'baz/': 'bla' });
+            return promising().fulfill(200, { 'foo': {"ETag":'bar'}, 'baz/': {"ETag":'bla'} });
           };
           env.client.getListing('').then(function(result) {
             test.assert(result, { 'foo': {"ETag":'bar'}, 'baz/': {"ETag":'bla'} });
@@ -196,27 +196,28 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#getListing results in an object, when it receives a directory listing object (>= 02 spec)",
+        desc: "#getListing rejects the promise on error",
         run: function(env, test) {
-          var response_object = {
-            "@context": "http://remotestorage.io/spec/folder-description",
-            "items": {
-              "abc.jpg": {
-                "ETag": "DEADBEEFDEADBEEFDEADBEEF",
-                "Content-Type": "image/jpeg",
-                "Content-Length": 82352
-              },
-              "thumbnails/": {
-                "ETag": "1337ABCD1337ABCD1337ABCD"
-              }
-            }
-          };
           env.storage.get = function(path) {
-            return promising().fulfill(200, response_object);
+            return promising().reject('Broken');
+          };
+          env.client.getListing('').then(function() {
+            test.result(false);
+          }, function(error) {
+            test.assert(error, 'Broken');
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "#getListing results in 'undefined' when it sees a 404",
+        run: function(env, test) {
+          env.storage.get = function(path) {
+            return promising().fulfill(404);
           };
           env.client.getListing('').then(function(result) {
-            test.assertAnd(result, response_object.items, JSON.stringify(result));
-            test.done();
+            test.assertType(result, 'undefined');
           });
         }
       },

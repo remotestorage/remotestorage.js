@@ -350,7 +350,7 @@ define(['requirejs'], function(requirejs, undefined) {
           env.connectedClient.get('/foo/01/').
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
-              test.assertAnd(body, { a: 'qwer', 'b/': 'asdf' });
+              test.assertAnd(body, {'a': {'ETag': 'qwer'}, 'b/': {'ETag': 'asdf'}});
               test.assert(contentType, 'application/json; charset=UTF-8');
             });
           var req = XMLHttpRequest.instances.shift();
@@ -368,7 +368,10 @@ define(['requirejs'], function(requirejs, undefined) {
           env.connectedClient.get('/foo/01/').
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
-              test.assertAnd(body, { a: 'qwer', 'b/': 'asdf' });
+              test.assertAnd(body, {
+                a: { "ETag": "qwer", "Content-Length": 5, "Content-Type": "text/html" },
+                "b/": { "ETag": "asdf", "Content-Type":"application/json", "Content-Length": 137 }
+              });
               test.assert(contentType, 'application/json; charset=UTF-8');
             });
           var req = XMLHttpRequest.instances.shift();

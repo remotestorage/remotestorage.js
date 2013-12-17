@@ -10,7 +10,7 @@ define([], function() {
   }
 
   function FakeRemote(){
-    function GPD(target, path,body, contentType, options) {
+    function GPD(target, path, body, contentType, options) {
       var args = Array.prototype.slice.call(arguments);
       console.log('GPD called with : ', args);
       this['_'+target+'s'].push([path, body, contentType, options]);
@@ -40,21 +40,21 @@ define([], function() {
       global.RemoteStorage.log = function() {};
 
       require('./src/eventhandling');
-      if( global.rs_eventhandling ){
+      if (global.rs_eventhandling){
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
       require('./src/cachinglayer');
-      if(global.rs_cachinglayer) {
+      if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
 
       require('./src/inmemorystorage.js');
-      if(global.rs_ims) {
+      if (global.rs_ims) {
         RemoteStorage.InMemoryCaching = global.rs_ims;
       } else {
         global.rs_ims = RemoteStorage.InMemoryStorage;
