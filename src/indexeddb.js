@@ -283,7 +283,6 @@
         var nodes = transaction.objectStore('nodes');
         nodes.get(rev[0]).onsuccess = function(event) {
           var node = event.target.result || makeNode(rev[0]);
-          console.log('setting rev for ', rev[0], ': ', rev[1]);
           node.revision = rev[1];
           nodes.put(node).onsuccess = function() {
             addToParent(nodes, rev[0], 'cached', rev[1]);
