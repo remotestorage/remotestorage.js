@@ -138,8 +138,11 @@
 
   var SyncedGetPutDelete = {
     get: function(path) {
+      var self = this;
       if (this.caching.cachePath(path)) {
-        return this.local.get(path);
+        return this.caching.waitForPath(path).then(function() {
+          return self.local.get(path);
+        });
       } else {
         return this.remote.get(path);
       }
@@ -336,6 +339,7 @@
      *
      */
     connect: function(userAddress) {
+      this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
         this._emit('error', new RemoteStorage.DiscoveryError("User adress doesn't contain an @."));
         return;
@@ -1035,10 +1039,13 @@
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
 
+  function isDir(path) {
+    return (path.substr(-1) === '/');
+  }
+
   function isFolderDescription(body) {
-    return ((Object.keys(body).length === 2)
-                && (body['@context'] === 'http://remotestorage.io/spec/folder-description')
-                && (typeof(body['items']) === 'object'));
+    return ((body['@context'] === 'http://remotestorage.io/spec/folder-description')
+             && (typeof(body['items']) === 'object'));
   }
 
   var onErrorCb;
@@ -1168,42 +1175,46 @@
         }
       } else if (options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
-        if (oldRev === options.ifNoneMatch) {
-          // since sync descends for allKeys(local, remote), this causes
-          // https://github.com/remotestorage/remotestorage.js/issues/399
-          // commenting this out so that it gets the actual 404 from the
-          // server. this only affects legacy servers
-          // (this.supportsRevs==false):
-
-          // return promising().fulfill(412);
-          // FIXME empty block and commented code
-        }
       }
       var promise = request('GET', this.href + cleanPath(path), this.token, headers,
                             undefined, this.supportsRevs, this._revisionCache[path]);
-      if (this.supportsRevs || path.substr(-1) !== '/') {
+      if (!isDir(path)) {
         return promise;
       } else {
         return promise.then(function(status, body, contentType, revision) {
-          var tmp;
+          var listing = {};
+
+          // New directory listing received
           if (status === 200 && typeof(body) === 'object') {
+            // Empty directory listing of any spec
             if (Object.keys(body).length === 0) {
-              // no children (coerce response to 'not found')
               status = 404;
-            } else if(isFolderDescription(body)) {
-              tmp = {};
-              for(var item in body.items) {
-                this._revisionCache[path + item] = body.items[item].ETag;
-                tmp[item] = body.items[item].ETag;
-              }
-              body = tmp;
-            } else {//pre-02 server
-              for(var key in body) {
-                this._revisionCache[path + key] = body[key];
-              }
             }
+            // >= 02 spec
+            else if (isFolderDescription(body)) {
+              for (var item in body.items) {
+                this._revisionCache[path + item] = body.items[item].ETag;
+              }
+              listing = body.items;
+            }
+            // < 02 spec
+            else {
+              Object.keys(body).forEach(function(key){
+                this._revisionCache[path + key] = body[key];
+                listing[key] = {"ETag": body[key]};
+              }.bind(this));
+            }
+            return promising().fulfill(status, listing, contentType, revision);
           }
-          return promising().fulfill(status, body, contentType, revision);
+          // Cached directory listing received
+          else if (status === 304) {
+            return promising().fulfill(status, body, contentType, revision);
+          }
+          // Faulty directory listing received
+          else {
+            var error = new Error("Received faulty directory response for: "+path);
+            return promising().reject(error);
+          }
         }.bind(this));
       }
     },
@@ -1414,13 +1425,15 @@
         });
         RemoteStorage.log('got profile', profile, 'and link', link);
         if (link) {
-          var authURL = link.properties['auth-endpoint'] ||
-            link.properties['http://tools.ietf.org/html/rfc6749#section-4.2'];
-          cachedInfo[userAddress] = { href: link.href, type: link.type, authURL: authURL };
+          var authURL = link.properties['http://tools.ietf.org/html/rfc6749#section-4.2']
+                  || link.properties['auth-endpoint'],
+            storageType = link.properties['http://remotestorage.io/spec/version']
+                  || link.type;
+          cachedInfo[userAddress] = { href: link.href, type: storageType, authURL: authURL };
           if (hasLocalStorage) {
             localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
           }
-          callback(link.href, link.type, authURL);
+          callback(link.href, storageType, authURL);
         } else {
           tryOne();
         }
@@ -3419,19 +3432,11 @@ Math.uuid = function (len, radix) {
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a directory: " + path;
       }
-      return this.storage.get(this.makePath(path)).then(function(status, body) {
-        if (status === 404 || typeof(body) !== 'object') { return; }
-
-        if (body['@context'] === 'http://remotestorage.io/spec/folder-description') {
-          return body.items;
-        } else {
-          var listing = {};
-          Object.keys(body).forEach(function(key){
-            listing[key] = {"ETag": body[key]};
-          });
-          return listing;
+      return this.storage.get(this.makePath(path)).then(
+        function(status, body) {
+          return (status === 404) ? undefined : body;
         }
-      });
+      );
     },
 
     /**
@@ -3834,9 +3839,19 @@ Math.uuid = function (len, radix) {
   SchemaNotFound.prototype = Error.prototype;
 
   RemoteStorage.BaseClient.Types.SchemaNotFound = SchemaNotFound;
-
+  /**
+   * Class: RemoteStorage.BaseClient
+   **/
   RemoteStorage.BaseClient.prototype.extend({
-
+    /**
+     * Method: validate(object)
+     *
+     * validates an Object against the associated schema
+     * the context has to have a @context property
+     *
+     * Returns:
+     *   A validate object giving you information about errors 
+     **/
     validate: function(object) {
       var schema = RemoteStorage.BaseClient.Types.getSchema(object['@context']);
       if(schema) {
