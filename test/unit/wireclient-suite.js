@@ -134,6 +134,158 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "client.get() of a document emits sync-busy and sync-done on success",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('sync-busy', busy);
+          env.connectedClient.on('sync-done', done);
+          env.connectedClient.get('/foo').then(function(){
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+          req.status = 200;
+          req.responseText = 'response-body';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "client.get() of a document emits sync-busy and sync-done on failure",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('sync-busy', busy);
+          env.connectedClient.on('sync-done', done);
+          env.connectedClient.get('/foo').then(function(){
+          }, function(err) {
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._onerror('something went wrong at the XHR level');
+        }
+      },
+
+      {
+        desc: "client.get() of a folder does not emit sync-busy and sync-done on success",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('sync-busy', busy);
+          env.connectedClient.on('sync-done', done);
+          env.connectedClient.get('/foo/').then(function(){
+            test.assertAnd(busy.numCalled, 0);
+            test.assertAnd(done.numCalled, 0);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+          req.status = 200;
+          req.responseText = 'response-body';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "client.get() of a folder emit sync-busy and sync-done on failure",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('sync-busy', busy);
+          env.connectedClient.on('sync-done', done);
+          env.connectedClient.get('/foo/').then(function(){
+          }, function(err) {
+            test.assertAnd(busy.numCalled, 0);
+            test.assertAnd(done.numCalled, 0);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._onerror('something went wrong at the XHR level');
+        }
+      },
+
+      {
+        desc: "client.put() emits sync-busy and sync-done on success",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('sync-busy', busy);
+          env.connectedClient.on('sync-done', done);
+          env.connectedClient.put('/foo', 'body', 'content-type', {}).then(function(){
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+          req.status = 200;
+          req.responseText = 'response-body';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "client.put() emits sync-busy and sync-done on failure",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('sync-busy', busy);
+          env.connectedClient.on('sync-done', done);
+          env.connectedClient.put('/foo', 'body', 'content-type', {}).then(function(){
+          }, function(err) {
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._onerror('something went wrong at the XHR level');
+        }
+      },
+
+      {
+        desc: "client.delete() emits sync-busy and sync-done on success",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('sync-busy', busy);
+          env.connectedClient.on('sync-done', done);
+          env.connectedClient.delete('/foo').then(function(){
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+          req.status = 200;
+          req.responseText = 'response-body';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "client.delete() emits sync-busy and sync-done on failure",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('sync-busy', busy);
+          env.connectedClient.on('sync-done', done);
+          env.connectedClient.delete('/foo', 'body', 'content-type', {}).then(function(){
+          }, function(err) {
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._onerror('something went wrong at the XHR level');
+        }
+      },
+
+      {
         desc: "#configure sets the given parameters",
         run: function(env, test) {
           env.client.configure('test@example.com', undefined, 'draft-dejong-remotestorage-00');

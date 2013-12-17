@@ -133,7 +133,7 @@
 
     RemoteStorage.eventHandling(
       this, 'ready', 'disconnected', 'disconnect', 'conflict', 'error',
-      'features-loaded', 'connecting', 'authing', 'sync-busy', 'sync-done'
+      'features-loaded', 'connecting', 'authing'
     );
 
     // pending get/put/delete calls.
