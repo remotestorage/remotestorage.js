@@ -111,13 +111,13 @@
       if(this.cachePathReady(path)) {
         promise.fulfill();
       } else {
-        if(!this.readyPromises) {
-          this.readyPromises = {};
+        if(!this.queuedPromises) {
+          this.queuedPromises = {};
         }
-        if(!this.readyPromises[path]) {
-          this.readyPromises[path] = [];
+        if(!this.queuedPromises[path]) {
+          this.queuedPromises[path] = [];
         }
-        this.readyPromises[path].push(promise);
+        this.queuedPromises[path].push(promise);
       }
       return promise;
     },
@@ -132,15 +132,15 @@
      */
     resolveQueue: function(rootPath) {
       var path, i;
-      if(!this.readyPromises) {
+      if(!this.queuedPromises) {
         return;
       }
-      for(path in this.readyPromises) {
+      for(path in this.queuedPromises) {
         if(path.substring(0, rootPath.length) === rootPath) {
-          for(i=0; i<this.readyPromises[path].length; i++) {
-            this.readyPromises[path][i].fulfill();
+          for(i=0; i<this.queuedPromises[path].length; i++) {
+            this.queuedPromises[path][i].fulfill();
           }
-          delete this.readyPromises[path];
+          delete this.queuedPromises[path];
         }
       }
     },
