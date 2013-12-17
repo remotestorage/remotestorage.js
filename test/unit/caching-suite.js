@@ -198,11 +198,11 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         run: function(env, test) {
           env.caching.enable('/foo/');
           var promise = env.caching.waitForPath('/foo/bar');
-          test.assertAnd(env.caching.readyPromises, {
+          test.assertAnd(env.caching.queuedPromises, {
             '/foo/bar': [promise]
           });
           env.caching.set('/foo/', {data: true, ready: true});
-          test.assertAnd(env.caching.readyPromises, {});
+          test.assertAnd(env.caching.queuedPromises, {});
           promise.then(function() {
             test.done();
           });
@@ -215,7 +215,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           env.caching.enable('/foo/');
           env.caching.set('/foo/', {data: true, ready: true});
           var promise = env.caching.waitForPath('/foo/bar');
-          test.assertAnd(env.caching.readyPromises, undefined);
+          test.assertAnd(env.caching.queuedPromises, undefined);
           promise.then(function() {
             test.done();
           });
