@@ -195,14 +195,32 @@ define(['requirejs'], function(requirejs, undefined) {
         }
       },
 
-      // {
-      //   desc: "#getListing throws an error if the promise is rejected",
-      //   run: function(env, test) {
-      //     env.storage.get = function(path) {
-      //       return promising().reject(new Error('Broken'));
-      //     };
-      //   }
-      // },
+      {
+        desc: "#getListing rejects the promise on error",
+        run: function(env, test) {
+          env.storage.get = function(path) {
+            return promising().reject('Broken');
+          };
+          env.client.getListing('').then(function() {
+            test.result(false);
+          }, function(error) {
+            test.assert(error, 'Broken');
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "#getListing results in 'undefined' when it sees a 404",
+        run: function(env, test) {
+          env.storage.get = function(path) {
+            return promising().fulfill(404);
+          };
+          env.client.getListing('').then(function(result) {
+            test.assertType(result, 'undefined');
+          });
+        }
+      },
 
       {
         desc: "#getAll results in 'undefined' when it sees a 404",

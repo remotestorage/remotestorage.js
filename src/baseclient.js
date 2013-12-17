@@ -173,9 +173,6 @@
       return this.storage.get(this.makePath(path)).then(
         function(status, body) {
           return (status === 404) ? undefined : body;
-        },
-        function(error) {
-          throw error;
         }
       );
     },
