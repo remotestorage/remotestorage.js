@@ -276,6 +276,8 @@
         return promise;
       } else {
         return promise.then(function(status, body, contentType, revision) {
+          var listing = {};
+
           // New directory listing received
           if (status === 200 && typeof(body) === 'object') {
             // Empty directory listing of any spec
@@ -287,18 +289,16 @@
               for (var item in body.items) {
                 this._revisionCache[path + item] = body.items[item].ETag;
               }
-              body = body.items;
+              listing = body.items;
             }
             // < 02 spec
             else {
-              var listing = {};
               Object.keys(body).forEach(function(key){
                 this._revisionCache[path + key] = body[key];
                 listing[key] = {"ETag": body[key]};
               }.bind(this));
-              body = listing;
             }
-            return promising().fulfill(status, body, contentType, revision);
+            return promising().fulfill(status, listing, contentType, revision);
           }
           // Cached directory listing received
           else if (status === 304) {
