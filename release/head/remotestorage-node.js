@@ -3586,12 +3586,12 @@ Math.uuid = function (len, radix) {
   function allDifferentKeys(a, b) {
     var keyObject = {};
     for (var ak in a) {
-      if (a[ak] !== b[ak]) {
+      if (JSON.stringify(a[ak]) !== JSON.stringify(b[ak])) {
         keyObject[ak] = true;
       }
     }
     for (var bk in b) {
-      if (a[bk] !== b[bk]) {
+      if (JSON.stringify(a[bk]) !== JSON.stringify(b[bk])) {
         keyObject[bk] = true;
       }
     }
@@ -3658,7 +3658,9 @@ Math.uuid = function (len, radix) {
               promise.fulfill();
             } else {
               local.putDirectory(path, remoteBody, remoteRevision).then(function() {
-                descendInto(remote, local, path, allDifferentKeys(localBody, remoteBody), promise);
+                // TODO Factor in  `cached` items of directory cache node
+                var differentObjects = allDifferentKeys(localBody, remoteBody);
+                descendInto(remote, local, path, differentObjects, promise);
               });
             }
           } else {
