@@ -28,6 +28,15 @@ define([], function() {
     this._responses = {};
   }
 
+  function flatten(array){
+    var flat = [];
+    for (var i = 0, l = array.length; i < l; i++){
+      var type = Object.prototype.toString.call(array[i]).split(' ').pop().split(']').shift().toLowerCase();
+      if (type) { flat = flat.concat(/^(array|collection|arguments|object)$/.test(type) ? flatten(array[i]) : array[i]); }
+    }
+    return flat;
+  }
+
   suites.push({
     name: "Sync Suite",
     desc: "testing the sync adapter instance",
@@ -74,7 +83,7 @@ define([], function() {
 
     tests: [
       {
-        desc: "RemoteStorage.sync() returns imediatly if not connected",
+        desc: "RemoteStorage.sync() returns immediately if not connected",
         run: function(env,test){
           var failed = false;
           env.rs.remote.connected = false;
@@ -157,6 +166,32 @@ define([], function() {
       },
 
       {
+        desc: "Sync.sync() for cached directory only syncs changed objects therein",
+        run: function(env, test) {
+          var cachedDirItems = {vodka:{ETag:'123'},whiskey:{ETag:'456'},rum:{ETag:'789'}};
+          env.local.putDirectory('/foo/bar/booze/', cachedDirItems, 'abc');
+          env.local.put('/foo/bar/booze/vodka', 'russian', 'text/plain', true, '123');
+          env.local.put('/foo/bar/booze/whiskey', 'scotch', 'text/plain', true, '456');
+          env.local.put('/foo/bar/booze/rum', 'jamaican', 'text/plain', true, '789');
+          env.remote._responses[['get', '/foo/bar/booze/', {ifNoneMatch: 'abc'} ]] =
+            [200, {vodka:{ETag:'123'},whiskey:{ETag:'321'}}, 'application/json', 'def'];
+
+          RemoteStorage.Sync.sync(env.remote, env.local, '/foo/bar/booze/').then(function() {
+            test.assertAnd(env.remote._gets.length, 3);
+            var getKeys = flatten(env.remote._gets);
+            var contains = function(arr, val) {
+              return arr.indexOf(val) !== -1;
+            };
+            test.assertAnd(contains(getKeys, '/foo/bar/booze/'), true);
+            test.assertAnd(contains(getKeys, '/foo/bar/booze/vodka'), false);
+            test.assertAnd(contains(getKeys, '/foo/bar/booze/whiskey'), true);
+            test.assertAnd(contains(getKeys, '/foo/bar/booze/rum'), true);
+            test.done();
+          });
+        }
+      },
+
+      {
         desc: "Sync.sync() resolves conflict resolutions",
         run: function(env, test) {
           env.local.put('/foo/bar', 'local body', 'text/plain');
@@ -202,7 +237,7 @@ define([], function() {
       },
 
       {
-        desc : "Sync Adapter sets and removes all eventListeners",
+        desc : "Sync adapter sets and removes all event listeners",
         run : function(env, test) {
           function allHandlers() {
             var handlers = env.rs._handlers;
