@@ -3,9 +3,10 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
-## 0.9.0-pre (December 2013)
+## 0.9.0 (December 2013)
 
 * rename the 'root' module to '*' (breaking change)
+* return a map instead of a string per item in getListing (breaking change)
 * support for draft-dejong-remotestorage-02.txt
 * Fix multiple overlapping requests on first pageload
 * Fix requests going to non-ready cache before initial sync finished
