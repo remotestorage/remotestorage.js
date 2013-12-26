@@ -5,6 +5,10 @@ All releases can also be found and downloaded on the
 
 ## 0.9.0 (December 2013)
 
+This release consists of awesome contributions from @skddc, @galfert, @ggrin,
+@michielbdejong, @clochix, @silverbucket, @gregkare, and @rakyll - you can participate
+in the next release via https://github.com/remotestorage/remotestorage.js/issues!
+
 * Rename the 'root' module to '*' (breaking change)
 * Return a map instead of a string per item in getListing (breaking change)
 * Support for draft-dejong-remotestorage-02.txt
