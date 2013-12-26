@@ -6323,7 +6323,7 @@ Math.uuid = function (len, radix) {
       options.headers['Authorization'] = 'Bearer ' + this.token;
       RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
         // google tokens expire from time to time...
-        if(xhr.status === 401) {
+        if(xhr && xhr.status === 401) {
           this.connect();
           return;
         }
