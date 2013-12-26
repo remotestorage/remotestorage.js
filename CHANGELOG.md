@@ -22,6 +22,7 @@ in the next release via https://github.com/remotestorage/remotestorage.js/issues
 * Move the example server and example apps to gh:remotestorage/starter-kit
 * Add setSyncInterval method
 * Add i18n module, enable translation/customization of all content strings
+* Fix minor issues in the experimental GoogleDrive backend (in dark launch)
 
 ## 0.8.3 (November 2013)
 
