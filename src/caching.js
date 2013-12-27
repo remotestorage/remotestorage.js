@@ -45,7 +45,7 @@
      * Parameters:
      *   path - Absolute path to a folder.
      */
-    enable: function(path) { this.set(path, { data: true, ready: false }); },
+    enable: function(path, waitForRemote) { this.set(path, { data: true, ready: !waitForRemote }); },
     /**
      * Method: disable
      *
