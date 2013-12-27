@@ -115,7 +115,7 @@
      *   fired when the wireclient connect method realizes that it is
      *   in posession of a token and a href
      **/
-    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done');
+    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     onErrorCb = function(error){
       if (error instanceof RemoteStorage.Unauthorized) {
@@ -280,6 +280,12 @@
       RS.WireClient.configureHooks.forEach(function(hook) {
         hook.call(this);
       }.bind(this));
+    },
+
+    stopWaitingForToken: function() {
+      if (!this.connected) {
+        this._emit('not-connected');
+      }
     },
 
     get: function(path, options) {

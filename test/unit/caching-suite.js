@@ -194,15 +194,27 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "waitForPath queues a promise if rootPath not ready",
+        desc: "waitForPath queues a promise if rootPath not ready and waitForRemote is true",
         run: function(env, test) {
-          env.caching.enable('/foo/');
+          env.caching.enable('/foo/', true);
           var promise = env.caching.waitForPath('/foo/bar');
           test.assertAnd(env.caching.queuedPromises, {
             '/foo/bar': [promise]
           });
           env.caching.set('/foo/', {data: true, ready: true});
           test.assertAnd(env.caching.queuedPromises, {});
+          promise.then(function() {
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "waitForPath doesn't queue a promise if rootPath not ready and waitForRemote is false",
+        run: function(env, test) {
+          env.caching.enable('/foo/', false);
+          var promise = env.caching.waitForPath('/foo/bar');
+          test.assertAnd(typeof(env.caching.queuedPromises), 'undefined');
           promise.then(function() {
             test.done();
           });
@@ -223,10 +235,10 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "cachePathReady returns true if and only if ready is set",
+        desc: "when setting waitForRemote to true, cachePathReady returns true if and only if ready is set",
         run: function(env, test) {
-          env.caching.enable('/foo/');
-          env.caching.enable('/bar/');
+          env.caching.enable('/foo/', true);
+          env.caching.enable('/bar/', true);
           test.assertAnd(env.caching.cachePathReady('/foo/'), false);
           test.assertAnd(env.caching.cachePathReady('/foo/bar/'), false);
           test.assertAnd(env.caching.cachePathReady('/foo/baz.txt'), false);
@@ -240,6 +252,31 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           test.assertAnd(env.caching.cachePathReady('/foo/bar/'), false);
           test.assertAnd(env.caching.cachePathReady('/foo/baz.txt'), false);
           test.assertAnd(env.caching.cachePathReady('/foo/bar/baz.txt'), false);
+          test.assertAnd(env.caching.cachePathReady('/bar/'), true);
+          test.assertAnd(env.caching.cachePathReady('/bar/foo/'), true);
+          test.assertAnd(env.caching.cachePathReady('/bar/baz.txt'), true);
+          test.assert(env.caching.cachePathReady('/bar/foo/baz.txt'), true);
+        }
+      },
+
+      {
+        desc: "when setting waitForRemote to false, cachePathReady always returns true",
+        run: function(env, test) {
+          env.caching.enable('/foo/', false);
+          env.caching.enable('/bar/', false);
+          test.assertAnd(env.caching.cachePathReady('/foo/'), true);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/'), true);
+          test.assertAnd(env.caching.cachePathReady('/foo/baz.txt'), true);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/baz.txt'), true);
+          test.assertAnd(env.caching.cachePathReady('/bar/'), true);
+          test.assertAnd(env.caching.cachePathReady('/bar/foo/'), true);
+          test.assertAnd(env.caching.cachePathReady('/bar/baz.txt'), true);
+          test.assertAnd(env.caching.cachePathReady('/bar/foo/baz.txt'), true);
+          env.caching.set('/bar/', { data: true, ready: true });
+          test.assertAnd(env.caching.cachePathReady('/foo/'), true);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/'), true);
+          test.assertAnd(env.caching.cachePathReady('/foo/baz.txt'), true);
+          test.assertAnd(env.caching.cachePathReady('/foo/bar/baz.txt'), true);
           test.assertAnd(env.caching.cachePathReady('/bar/'), true);
           test.assertAnd(env.caching.cachePathReady('/bar/foo/'), true);
           test.assertAnd(env.caching.cachePathReady('/bar/baz.txt'), true);

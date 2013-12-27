@@ -56,7 +56,7 @@
    *   While listening to the Events emitted by its remoteStorage
    *   it set's corresponding states of the View.
    *
-   *   ready        :  connected
+   *   connected    :  connected
    *   disconnected :  initial
    *   connecting   :  authing
    *   authing      :  authing
@@ -71,7 +71,7 @@
     // setting event listeners on rs events to put
     // the widget into corresponding states
     this.rs = remoteStorage;
-    this.rs.on('ready', stateSetter(this, 'connected'));
+    this.rs.remote.on('connected', stateSetter(this, 'connected'));
     this.rs.on('disconnected', stateSetter(this, 'initial'));
     this.rs.on('connecting', stateSetter(this, 'authing'));
     this.rs.on('authing', stateSetter(this, 'authing'));

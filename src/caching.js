@@ -44,8 +44,9 @@
      *
      * Parameters:
      *   path - Absolute path to a folder.
+     *   waitForRemote - Boolean; if true, cache access will be queued until the remote is ready (default: false).
      */
-    enable: function(path) { this.set(path, { data: true, ready: false }); },
+    enable: function(path, waitForRemote) { this.set(path, { data: true, ready: !waitForRemote }); },
     /**
      * Method: disable
      *
