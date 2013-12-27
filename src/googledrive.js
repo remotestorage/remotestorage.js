@@ -212,6 +212,10 @@
           promise.reject(idError);
         } else {
           this._getMeta(id, function(metaError, meta) {
+            var etagWithoutQuotes;
+            if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
+              etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+            }
             if (metaError) {
               promise.reject(metaError);
             } else if (meta.downloadUrl) {
@@ -229,12 +233,12 @@
                       body = JSON.parse(body);
                     } catch(e) {}
                   }
-                  promise.fulfill(200, body, meta.mimeType, meta.etag);
+                  promise.fulfill(200, body, meta.mimeType, etagWithoutQuotes);
                 }
               });
             } else {
               // empty file
-              promise.fulfill(200, '', meta.mimeType, meta.etag);
+              promise.fulfill(200, '', meta.mimeType, etagWithoutQuotes);
             }
           });
         }
@@ -245,56 +249,46 @@
     _getFolder: function(path, options) {
       var promise = promising();
       this._getFileId(path, function(idError, id) {
+        var query, fields, data, i, etagWithoutQuotes, itemsMap;
         if (idError) {
           promise.reject(idError);
         } else if (! id) {
           promise.fulfill(404);
         } else {
-          this._request('GET', BASE_URL + '/drive/v2/files/' + id + '/children', {}, function(childrenError, response) {
+          this._request('GET', BASE_URL + '/drive/v2/files?'
+              + 'q=' + encodeURIComponent(query)
+              + '&fields=' + encodeURIComponent(fields)
+              + '&maxResults=1000',
+              {}, function(childrenError, response) {
             if (childrenError) {
               promise.reject(childrenError);
             } else {
               if (response.status === 200) {
-                var data = JSON.parse(response.responseText);
-                var n = data.items.length, i = 0;
-                if (n === 0) {
-                  // FIXME: add revision of folder!
-                  promise.fulfill(200, {}, RS_DIR_MIME_TYPE, undefined);
+                try {
+                  data = JSON.parse(response.responseText);
+                } catch(e) {
+                  promise.reject('non-JSON response from GoogleDrive');
                   return;
                 }
-                var result = {};
-                var idCache = {};
-                var gotMeta = function(err, meta) {
-                  if (err) {
-                    // FIXME: actually propagate the error.
-                    console.error("getting meta stuff failed: ", err);
-                  } else {
-                    var fileName = fileNameFromMeta(meta);
-                    // NOTE: the ETags are double quoted. This is not a bug, but just the
-                    // way etags from google drive look like.
-                    // Example listing:
-                    //  {
-                    //    "CMakeCache.txt": "\"HK9znrxLd1pIgz63yXyznaLN5rM/MTM3NzA1OTk5NjE1NA\"",
-                    //    "CMakeFiles": "\"HK9znrxLd1pIgz63yXyznaLN5rM/MTM3NzA1OTk5NjUxNQ\"",
-                    //    "Makefile": "\"HK9znrxLd1pIgz63yXyznaLN5rM/MTM3NzA2MDIwNDA0OQ\"",
-                    //    "bgrive": "\"HK9znrxLd1pIgz63yXyznaLN5rM/MTM3NzA1OTkzODE4Nw\"",
-                    //    "cmake_install.cmake": "\"HK9znrxLd1pIgz63yXyznaLN5rM/MTM3NzA1OTkzNzU2NA\"",
-                    //    "grive": "\"HK9znrxLd1pIgz63yXyznaLN5rM/MTM3NzA1OTk2Njg2Ng\"",
-                    //    "libgrive": "\"HK9znrxLd1pIgz63yXyznaLN5rM/MTM3NzA2MDAxNDk1NQ\""
-                    //  }
-                    result[fileName] = meta.etag;
-
-                    // propagate id cache
-                    this._fileIdCache.set(path + fileName, meta.id);
+                itemsMap = {};
+                for(i=0; i<data.items.length; i++) {
+                  etagWithoutQuotes = data.items[i].etag.substring(1, data.items[i].etag.length-1);
+                  if (data.items[i].mimeType === GD_DIR_MIME_TYPE) {
+                    this._fileIdCache.set(path + data.items[i].title + '/', data.items[i].id);
+                    itemsMap[data.items[i].title + '/'] = {
+                      ETag: etagWithoutQuotes
+                    };
+                  } else { 
+                    this._fileIdCache.set(path + data.items[i].title, data.items[i].id);
+                    itemsMap[data.items[i].title] = {
+                      ETag: etagWithoutQuotes,
+                      'Content-Type': data.items[i].mimeType,
+                      'Content-Length': data.items[i].fileSize
+                    };
                   }
-                  i++;
-                  if (i === n) {
-                    promise.fulfill(200, result, RS_DIR_MIME_TYPE, undefined);
-                  }
-                }.bind(this);
-                data.items.forEach(function(item) {
-                  this._getMeta(item.id, gotMeta);
-                }.bind(this));
+                }
+                // FIXME: add revision of folder!
+                promise.fulfill(200, itemsMap, RS_DIR_MIME_TYPE, undefined);
               } else {
                 promise.reject('request failed or something: ' + response.status);
               }
