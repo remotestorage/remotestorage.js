@@ -161,6 +161,53 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "#get to folder result calls the files.list API function",
+        run: function(env, test) {
+          env.connectedClient._fileIdCache.set('/foo/', 'abcd');
+          env.connectedClient.get('/foo/').then(function(status, body, contentType) {
+            test.assertAnd(status, 200);
+            test.assertAnd(body, {
+              'bar/': {
+                ETag: '1234'
+              },
+              'baz.png': {
+                ETag: '1234',
+                'Content-Type': 'image/png',
+                'Content-Length': 25003
+              }
+            });
+            test.assert(contentType, 'application/json; charset=UTF-8');
+          }, function(err) {
+            test.assert(err, false);
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 200;
+          req.responseText = JSON.stringify({ items: [
+            {
+              etag: '"1234"',
+              mimeType: 'application/vnd.google-apps.folder',
+              title: 'bar'
+            },
+            {
+              etag: '"1234"',
+              mimeType: 'image/png',
+              fileSize: 25003,
+              title: 'baz.png'
+            }
+          ] });
+          req._onload();
+          test.assertAnd(req._open, [
+            'GET',
+            'https://www.googleapis.com/drive/v2/files?'
+              + 'q=' + encodeURIComponent('\'abcd\' in parents')
+              + '&fields=' + encodeURIComponent('items(downloadUrl,etag,fileSize,id,mimeType,title)')
+              + '&maxResults=1000',
+            true
+          ]);
+        }
+      },
+
+      {
         desc: "#get to 404 document results in error",
         run: function(env, test) {
           env.connectedClient.get('/foo').then(function(status, body, contentType) {
