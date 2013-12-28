@@ -148,7 +148,6 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
               env.serverHelper.expectThisRequest(_this, 'GET', 'me/');
               env.serverHelper.expectThisRequest(_this, 'GET', 'me/test/');
               env.serverHelper.expectNoMoreRequest(_this);
-              console.log("SYNC TIMER",env.remoteStorage._syncTimer);
               test.done();
             }).then(undefined, function(err) {
               console.log('err', err);
@@ -240,6 +239,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             then(curry(env.client.storeFile.bind(env.client), 'text/plain', 'note.txt', 'bar')).
             then(curry(env.client.getFile.bind(env.client), 'note.txt')).
             then(function(file) {
+              console.log("testing mime-type and body now" , file.mimeType, file.data);
               _this.assertAnd(!!file.mimeType.match(/text\/plain/),true, 'wrong mime type '+file.mimeType);
               _this.assert(file.data, 'bar');
             }, function(err) {
@@ -430,7 +430,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             }).
             then(function(listing) {
               // verify listing
-              test.assertAnd(listing, ['2013'], "listing was "+JSON.stringify(listing, null, 2));
+              helpers.assertListing(test, listing, ['2013']);
             }).
             then(function() {
               return env.client.getObject('locations/hackerbeach/2013');
@@ -470,7 +470,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             }).
             then(function(listing) {
               // verify listing
-              test.assertAnd(listing, ['2013'], 'listing was '+JSON.stringify(listing));
+              helpers.assertListing(test, listing, ['2013']);
             }).
             then(function() {
               return env.client.getFile('locations/hackerbeach/2013');
@@ -498,7 +498,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
               return env.client.getListing('locations/hackerbeach/');
             }).
             then(function(listing) {
-              test.assertAnd(listing, ['2013'], "listing is "+JSON.stringify(listing, null, 2));
+              helpers.assertListing(test, listing, ['2013']);
               test.done();
             }, function(err) {
               console.log('err', err);
@@ -560,7 +560,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
               console.log("123");
               env.serverHelper.expectRequest(test, 'GET', 'me/greetings/');
               env.serverHelper.expectNoMoreRequest(test);
-              test.assertAnd(listing, ['default']);
+              helpers.assertListing(test, listing, ['default']);
               return env.client.getFile('greetings/default');
             }).
             then(function(file) {
@@ -610,7 +610,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             }).
             then(function(listing) {
               // verify listing
-              test.assertAnd(listing && listing.sort(), ['a', 'b', 'c'], "listing was "+JSON.stringify(listing));
+              helpers.assertListing(test, listing && listing.sort(), ['a', 'b', 'c']);
               // get file
               return env.client.getFile('test/a');
             }).
@@ -645,7 +645,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             then(env.client.getListing.bind(env.client, '') ).
             then(function(listing) {
               console.log('got listing', listing);
-              test.assertAnd(listing, ['something'], 'but listing was '+JSON.stringify(listing, null, 2));
+              helpers.assertListing(test, listing, ['something']);
             }).
             then(function() {
               env.serverHelper.clearCaptured();
@@ -662,7 +662,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             then(env.client.getListing.bind(env.client, '') ).
             then(function(listing) {
               console.log('listing now', listing);
-              test.assert(listing, []);
+              helpers.assertListing(test, listing, []);
             }).then( undefined,
                      function(err) {
                        console.log("promise failed ", err, err.stack);
@@ -683,7 +683,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             then(env.remoteStorage.sync.bind(env.remoteStorage)).
             then(env.client.getListing.bind(env.client, '') ).
             then(function(listing) {
-              test.assertAnd(listing, ['something'], 'but lisitng was '+JSON.stringify(listing));
+              helpers.assertListing(test, listing, ['something']);
             }).
             then(env.serverHelper.clearCaptured).
             then(env.client.remove.bind(env.client, 'something') ).
@@ -696,7 +696,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             }).
             then(env.client.getListing.bind(env.client, '') ).
             then(function(listing) {
-              test.assertAnd(listing, undefined, 'but lisitng was '+JSON.stringify(listing));
+              helpers.assertListingting(test, listing, undefined);
               test.done();
             });
 
