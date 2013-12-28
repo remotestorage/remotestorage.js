@@ -68,9 +68,9 @@ define([
     },
 
     resetState: function() {
-      this.captured = [];
       this.tokenStore.clear();
       this.dataStore.clear();
+      console.log("STATE CLEARED")
     },
 
     expectRequest: function(test, method, path, body) {
@@ -113,13 +113,13 @@ define([
       }
     },
     
-    assertListing: function(test, ls, ls2) {
-      if(!ls instanceof Array) {
-        ls1 = Object.keys(ls2);
+    assertListing: function(test, ls, ls2) { // called with ls array and can handle old rs listings with arrays and new ones with objects
+      if(!(ls instanceof Array)) {
+        ls1 = Object.keys(ls);
       } else {
         ls1 = ls;
       }
-      test.assertAnd(ls1, ls2, "expected "+JSON.stringify(ls2, null, 2)+"but found "+JSON.stringify(ls1, null, 2));
+      test.assertAnd(ls1.sort(), ls2.sort(), "\nexpected LISTING : "+JSON.stringify(ls2, null, 2)+"\nbut found : "+JSON.stringify(ls, null, 2));
     },
 
     expectTheseRequests: function(test, expectations) {
@@ -145,8 +145,8 @@ define([
     },
 
     clearCaptured: function() {
-      while(this.captured.length > 0) {
-        this.captured.shift();
+      while(serverHelper.captured.length > 0) {
+        serverHelper.captured.shift();
       }
     },
 
