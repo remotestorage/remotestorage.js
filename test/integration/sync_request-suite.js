@@ -89,7 +89,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
     },
 
     beforeEach: function(env, test) {
-      env.serverHelper.resetState();
+      env.serverHelper.resetState(); 
       env.serverHelper.setScope([':rw']);
       
       env.rsDisconnect = function() {
@@ -127,34 +127,38 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
     afterEach: function(env, test) {
       env.rsDisconnect().then(function() {
         env.serverHelper.clearCaptured();
-      }).then(test.done.bind(test));
+      }).then(test.done.bind(test),
+              function(e){
+                test.result(false);
+                throw e;
+              });
     },
     
     tests: [
 
-      {
-        desc: "Simple outgoing requests",
-        run: function(env, test) {
-          var _this = this;
-          return env.client.storeObject('test', 'test/testobj', { hello: 'world' }).
-            then(env.remoteStorage.sync.bind(env.remoteStorage)).
-            then(function() {
-              env.serverHelper.expectThisRequest(
-                _this, 'PUT', 'me/test/testobj', JSON.stringify({ 
-                  'hello': 'world',
-                  '@context': 'http://remotestoragejs.com/spec/modules/root/test'
-                })
-              );
-              env.serverHelper.expectThisRequest(_this, 'GET', 'me/');
-              env.serverHelper.expectThisRequest(_this, 'GET', 'me/test/');
-              env.serverHelper.expectNoMoreRequest(_this);
-              test.done();
-            }).then(undefined, function(err) {
-              console.log('err', err);
-              _this.result(false);
-            });
-        }
-      },
+      // {
+      //   desc: "Simple outgoing requests",
+      //   run: function(env, test) {
+      //     var _this = this;
+      //     return env.client.storeObject('test', 'test/testobj', { hello: 'world' }).
+      //       then(env.remoteStorage.sync.bind(env.remoteStorage)).
+      //       then(function() {
+      //         env.serverHelper.expectThisRequest(
+      //           _this, 'PUT', 'me/test/testobj', JSON.stringify({ 
+      //             'hello': 'world',
+      //             '@context': 'http://remotestoragejs.com/spec/modules/root/test'
+      //           })
+      //         );
+      //         env.serverHelper.expectThisRequest(_this, 'GET', 'me/');
+      //         env.serverHelper.expectThisRequest(_this, 'GET', 'me/test/');
+      //         env.serverHelper.expectNoMoreRequest(_this);
+      //         test.done();
+      //       }).then(undefined, function(err) {
+      //         console.log('err', err);
+      //         _this.result(false);
+      //       });
+      //   }
+      // },
 
       {
         desc: "Incoming data",
@@ -231,23 +235,23 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
         }
       },
 
-      {
-        desc: "store file, then store it again, then retrieve it",
-        run: function(env) {
-          var _this = this;
-          env.client.storeFile('text/plain', 'note.txt', 'foo').
-            then(curry(env.client.storeFile.bind(env.client), 'text/plain', 'note.txt', 'bar')).
-            then(curry(env.client.getFile.bind(env.client), 'note.txt')).
-            then(function(file) {
-              console.log("testing mime-type and body now" , file.mimeType, file.data);
-              _this.assertAnd(!!file.mimeType.match(/text\/plain/),true, 'wrong mime type '+file.mimeType);
-              _this.assert(file.data, 'bar');
-            }, function(err) {
-              console.log('err', err, err.stack);
-              _this.result(false);
-            });
-        }
-      },
+      // {
+      //   desc: "store file, then store it again, then retrieve it",
+      //   run: function(env) {
+      //     var _this = this;
+      //     env.client.storeFile('text/plain', 'note.txt', 'foo').
+      //       then(curry(env.client.storeFile.bind(env.client), 'text/plain', 'note.txt', 'bar')).
+      //       then(curry(env.client.getFile.bind(env.client), 'note.txt')).
+      //       then(function(file) {
+      //         console.log("testing mime-type and body now" , file.mimeType, file.data);
+      //         _this.assertAnd(!!file.mimeType.match(/text\/plain/),true, 'wrong mime type '+file.mimeType);
+      //         _this.assert(file.data, 'bar');
+      //       }, function(err) {
+      //         console.log('err', err, err.stack);
+      //         _this.result(false);
+      //       });
+      //   }
+      // },
       
       {
         desc: "store object, then check requests when caching is disabled",
@@ -430,7 +434,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             }).
             then(function(listing) {
               // verify listing
-              helpers.assertListing(test, listing, ['2013']);
+              env.serverHelper.assertListing(test, listing, ['2013']);
             }).
             then(function() {
               return env.client.getObject('locations/hackerbeach/2013');
@@ -470,7 +474,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             }).
             then(function(listing) {
               // verify listing
-              helpers.assertListing(test, listing, ['2013']);
+              env.serverHelper.assertListing(test, listing, ['2013']);
             }).
             then(function() {
               return env.client.getFile('locations/hackerbeach/2013');
@@ -498,7 +502,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
               return env.client.getListing('locations/hackerbeach/');
             }).
             then(function(listing) {
-              helpers.assertListing(test, listing, ['2013']);
+              env.serverHelper.assertListing(test, listing, ['2013']);
               test.done();
             }, function(err) {
               console.log('err', err);
@@ -560,7 +564,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
               console.log("123");
               env.serverHelper.expectRequest(test, 'GET', 'me/greetings/');
               env.serverHelper.expectNoMoreRequest(test);
-              helpers.assertListing(test, listing, ['default']);
+              env.serverHelper.assertListing(test, listing, ['default']);
               return env.client.getFile('greetings/default');
             }).
             then(function(file) {
@@ -610,7 +614,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             }).
             then(function(listing) {
               // verify listing
-              helpers.assertListing(test, listing && listing.sort(), ['a', 'b', 'c']);
+              env.serverHelper.assertListing(test, listing, ['a','b','c']);
               // get file
               return env.client.getFile('test/a');
             }).
@@ -645,7 +649,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             then(env.client.getListing.bind(env.client, '') ).
             then(function(listing) {
               console.log('got listing', listing);
-              helpers.assertListing(test, listing, ['something']);
+              env.serverHelper.assertListing(test, listing, ['something']);
             }).
             then(function() {
               env.serverHelper.clearCaptured();
@@ -661,12 +665,12 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
           // * check that getListing doesn't have the item anymore
             then(env.client.getListing.bind(env.client, '') ).
             then(function(listing) {
-              console.log('listing now', listing);
-              helpers.assertListing(test, listing, []);
+              env.serverHelper.assertListing(test, listing, []);
+              test.done();
             }).then( undefined,
                      function(err) {
                        console.log("promise failed ", err, err.stack);
-                       test.fail();
+                       test.result(false);
                      });
           // * disconnect, then reconnect again
           // * check that getListing still doesn't show the item
@@ -683,7 +687,7 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             then(env.remoteStorage.sync.bind(env.remoteStorage)).
             then(env.client.getListing.bind(env.client, '') ).
             then(function(listing) {
-              helpers.assertListing(test, listing, ['something']);
+              env.serverHelper.assertListing(test, listing, ['something']);
             }).
             then(env.serverHelper.clearCaptured).
             then(env.client.remove.bind(env.client, 'something') ).
@@ -696,10 +700,9 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             }).
             then(env.client.getListing.bind(env.client, '') ).
             then(function(listing) {
-              helpers.assertListingting(test, listing, undefined);
+              env.serverHelper.assertListing(test, listing, []);
               test.done();
             });
-
         }
       },
 
@@ -712,11 +715,18 @@ define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
             then(function() {
               env.client.on('change', function(event) {
                 if(i == 0) {
-                  test.assertAnd(event.origin, 'window' , "origin -> event was "+JSON.stringify(event, null, 2) )
-                  test.assertAnd(event.path, '/hello' , "path -> event was "+JSON.stringify(event, null, 2) )
-                  test.assertAnd(event.oldValue, 'hello world', "oldValue -> event was "+JSON.stringify(event, null, 2) )
-                  test.assertAnd(event.newValue, undefined, "newValue -> event was "+JSON.stringify(event, null, 2) )
-
+                  test.assertAnd(event.origin, 'window' , 
+                                 "origin -> event was "+
+                                 JSON.stringify(event, null, 2) )
+                  test.assertAnd(event.path, '/hello' , 
+                                 "path -> event was "+
+                                 JSON.stringify(event, null, 2) )
+                  test.assertAnd(event.oldValue, 'hello world', 
+                                 "oldValue -> event was "+
+                                 JSON.stringify(event, null, 2) )
+                  test.assertAnd(event.newValue, undefined
+                                 , "newValue -> event was "+
+                                 JSON.stringify(event, null, 2) )
                   test.done();
                 } else {
                   test.result(false, "Saw one more change event than I expected!");
