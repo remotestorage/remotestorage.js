@@ -145,14 +145,22 @@
   };
   
   function parsePath(path) {
-    var parts = path.split('/'),
-      isFolder = !!(parts.pop().length);
-    return {
-      containingFolder: parts.join('/')+'/',
-      itemName: (isFolder ? parts[parts.length-2] + '/' : parts[parts.length-1]),
-      isFolder: isFolder,
-      isRoot: (path === '/')
+    var parts, ret = {
+      isRoot: (path === '')
     };
+    if(path.substr(-1) === '/') {
+      parts = path.substring(0, path.length-1).split('/');
+      ret.isFolder = true;
+      ret.itemName = parts[parts.length-1]+'/';
+    } else {
+      parts = path.split('/');
+      ret.isFolder = false;
+      ret.itemName = parts[parts.length-1];
+    }
+    parts.pop();
+    ret.containingFolder = parts.join('/')+ (parts.length ? '/' : '');
+    console.log('parsePath', path, parts, ret);
+    return ret;
   }
 
   function deleteMeta(transaction, pathObj, incoming, cb) {
@@ -162,7 +170,7 @@
       return;
     }
     var meta = transaction.objectStore('meta');
-    meta.get(pathObj.parentFolder).onsuccess = function(evt) {
+    meta.get(pathObj.containingFolder).onsuccess = function(evt) {
       var parentMeta = evt.target.result;
       if(parentMeta.items[pathObj.itemName]) {
         oldRevision = parentMeta.items[pathObj.itemName].ETag;
@@ -171,7 +179,7 @@
           meta.put(parentMeta);
           cb(oldRevision);
         } else {
-          deleteMeta(transaction, parsePath(pathObj.parentFolder), incoming, function() {
+          deleteMeta(transaction, parsePath(pathObj.containingFolder), incoming, function() {
             cb(oldRevision);
           });
         };
@@ -187,27 +195,39 @@
       var promise = promising();
       var transaction = this.db.transaction(storesNeeded, 'readonly');
       var meta = transaction.objectStore('meta'), bodies,
-         parentReq, itemReq, meta, item;
+         parentReq, meta, itemReq, item;
       if(pathObj.isFolder) {
         itemReq = meta.get(path);
+        itemReq.onsuccess = function(evt) {
+          if(itemReq.result) {
+            item = itemReq.result.items;
+          }
+        };
       } else {
-        bodies = transaction.objectStore('bodies');
-        itemReq = bodies.get(path);
+        itemReq = transaction.objectStore('bodies')
+            .get(path);
+        itemReq.onsuccess = function(evt) {
+          console.log('bodies get success', evt);
+          if(itemReq.result) {
+            item = itemReq.result.value;
+          }
+        };
       }
-      parentReq = meta.get(pathObj.parentFolder);
+      console.log('getting containingFolder', pathObj);
+      parentReq = meta.get(pathObj.containingFolder);
 
-      parentReq.onsuccess = function() {
-        meta = metaReq.result[pathObj.itemName];
-      };
-
-      itemReq.onsuccess = function() {
-        if(pathObj.isFolder) {
-          item = itemReq.result.items;
-        } else {
-          item = itemReq.value;
+      parentReq.onsuccess = function(evt) {
+        console.log('parentReq success', evt);
+        if(parentReq.result) {
+          meta = parentReq.result[pathObj.itemName];
         }
       };
-
+      itemReq.onerror = function(evt) {
+        console.log('itemReq error', evt);
+      };
+      parentReq.onerror = function(evt) {
+        console.log('parentReq error', evt);
+      };
       transaction.oncomplete = function() {
         if (meta && item) {
           promise.fulfill(200, item, meta['Content-Type'], meta['ETag']);
@@ -227,12 +247,12 @@
        meta = transaction.objectStore('meta'),
        bodies = transaction.objectStore('bodies'),
        oldBody, oldRevision, done;
-
+console.log('putting', path, pathObj);
       if (pathObj.isFolder) {
         throw "Bad: don't PUT folders";
       }
       
-      meta.get(pathObj.parentFolder).onsuccess = function(evt) {
+      meta.get(pathObj.containingFolder).onsuccess = function(evt) {
         try {
           parentMeta = evt.target.result;
           if(parentMeta.items[pathObj.itemName]) {
@@ -337,7 +357,7 @@
     _setRevision: function(path, revision) {
       var pathObj = parsePath(path),
         transaction =  this.db.transaction(['meta'], 'readwrite');
-      meta.get(pathObj.parentFolder).onsuccess = function(evt) {
+      meta.get(pathObj.containingFolder).onsuccess = function(evt) {
         var folder = evt.target.result;
         if(!folder.items[pathObj.itemName]) {
           folder.items[pathObj.itemName] = {};
@@ -361,7 +381,7 @@
       var rev;
 
       transaction.objectStore('meta').
-        get(pathObj.parentFolder).onsuccess = function(evt) {
+        get(pathObj.containingFolder).onsuccess = function(evt) {
           if (evt.target.result && evt.target.result.items && evt.target.result.items[pathObj.itemName]) {
             rev =  evt.target.result.items[pathObj.itemName].ETag;
           }
@@ -446,8 +466,8 @@
       var pl = path.length;
       var changes = [];
 
-      cursorReq.onsuccess = function() {
-        var cursor = cursorReq.result;
+      cursorReq.onsuccess = function(evt) {
+        var cursor = evt.target.result;
         if (cursor) {
           if (cursor.key.substr(0, pl) === path) {
             changes.push(cursor.value);
