@@ -195,7 +195,7 @@
               } else {
                 return 200; // fake 200 so the change is cleared.
               }
-            }).then(function(status) {
+            }).then(function(status, responseBody, mimeType, revision) {
               if (status === 412) {
                 fireConflict(local, change.path, {
                   localAction: 'PUT',
@@ -203,6 +203,7 @@
                 });
                 oneDone();
               } else {
+                local.setRevision(path, revision);
                 oneDone(change.path);
               }
             }).then(undefined, errored);
