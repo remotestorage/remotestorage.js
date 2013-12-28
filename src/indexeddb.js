@@ -187,6 +187,23 @@
     };
   }
   
+  function createMeta(metaStore, path, revision) {
+    var pathObj = parsePath(path);
+    if(!pathObj.isRoot) {
+      metaStore.get(pathObj.containingFolder).onsuccess = function(evt) {
+        if(!evt.result) {
+          createMeta(metaStore, pathObj.containingFolder);
+        }
+      };
+    }
+    var items = {};
+    items[pathObj.itemName] = (revision ? {ETag: revision} : {});
+    metaStore.put({
+      path: pathObj.containingFolder,
+      items: items
+    });
+  }
+
   RS.IndexedDB.prototype = {
 
     get: function(path) {
@@ -194,10 +211,10 @@
       var storesNeeded = (pathObj.isFolder ? 'meta' : ['meta', 'bodies']);
       var promise = promising();
       var transaction = this.db.transaction(storesNeeded, 'readonly');
-      var meta = transaction.objectStore('meta'), bodies,
-         parentReq, meta, itemReq, item;
+      var metaStore = transaction.objectStore('meta'),
+         parentReq, metaData, itemReq, item;
       if(pathObj.isFolder) {
-        itemReq = meta.get(path);
+        itemReq = metaStore.get(path);
         itemReq.onsuccess = function(evt) {
           if(itemReq.result) {
             item = itemReq.result.items;
@@ -214,12 +231,12 @@
         };
       }
       console.log('getting containingFolder', pathObj);
-      parentReq = meta.get(pathObj.containingFolder);
+      parentReq = metaStore.get(pathObj.containingFolder);
 
       parentReq.onsuccess = function(evt) {
         console.log('parentReq success', evt);
         if(parentReq.result) {
-          meta = parentReq.result[pathObj.itemName];
+          metaData = parentReq.result[pathObj.itemName];
         }
       };
       itemReq.onerror = function(evt) {
@@ -229,9 +246,11 @@
         console.log('parentReq error', evt);
       };
       transaction.oncomplete = function() {
-        if (meta && item) {
-          promise.fulfill(200, item, meta['Content-Type'], meta['ETag']);
+        if (metaData && item) {
+          console.log('fulfulling as success', item, metaData);
+          promise.fulfill(200, item, metaData['Content-Type'], metaData['ETag']);
         } else {
+          console.log('fulfulling as not found', item, metaData);
           promise.fulfill(404);
         }
       };
@@ -244,17 +263,25 @@
       var pathObj = parsePath(path),
        promise = promising(),
        transaction = this.db.transaction(['meta', 'bodies'], 'readwrite'),
-       meta = transaction.objectStore('meta'),
-       bodies = transaction.objectStore('bodies'),
+       metaStore = transaction.objectStore('meta'),
+       bodiesStore = transaction.objectStore('bodies'),
        oldBody, oldRevision, done;
 console.log('putting', path, pathObj);
       if (pathObj.isFolder) {
         throw "Bad: don't PUT folders";
       }
       
-      meta.get(pathObj.containingFolder).onsuccess = function(evt) {
+      metaStore.get(pathObj.containingFolder).onsuccess = function(evt) {
         try {
-          parentMeta = evt.target.result;
+          if(evt.target.result) {
+            parentMeta = evt.target.result;
+          } else {
+            createMeta(metaStore, pathObj.containingFolder);
+            parentMeta = {
+              path: pathObj.containingFolder,
+              items: {}
+            };
+          }
           if(parentMeta.items[pathObj.itemName]) {
             oldRevision = parentMeta.items[pathObj.itemName].ETag;
           }
@@ -263,7 +290,8 @@ console.log('putting', path, pathObj);
             'Content-Type': contentType,
             'Content-Length': body.length//FIXME: how can we find out the number of bytes, rather than the number of utf-8 chars of a JavaScript String?
           };
-          meta.put(parentMeta);
+          metaStore.put(parentMeta);
+
         } catch(e) {
           if (typeof(done) === 'undefined') {
             done = true;
@@ -272,9 +300,11 @@ console.log('putting', path, pathObj);
         }
       };
       
-      bodies.get(path).onsuccess = function(evt) {
-        oldBody = evt.target.result.value;
-        bodies.put({
+      bodiesStore.get(path).onsuccess = function(evt) {
+        if(evt.target.result) {
+          oldBody = evt.target.result.value;
+        }
+        bodiesStore.put({
           path: path,
           value: body
         });
@@ -355,15 +385,18 @@ console.log('putting', path, pathObj);
     },
 
     _setRevision: function(path, revision) {
+      console.log('setting revision', path, revision);
       var pathObj = parsePath(path),
-        transaction =  this.db.transaction(['meta'], 'readwrite');
-      meta.get(pathObj.containingFolder).onsuccess = function(evt) {
+        transaction =  this.db.transaction(['meta'], 'readwrite'),
+        metaStore = transaction.objectStore('meta'),
+        promise = promising();
+      metaStore.get(pathObj.containingFolder).onsuccess = function(evt) {
         var folder = evt.target.result;
         if(!folder.items[pathObj.itemName]) {
           folder.items[pathObj.itemName] = {};
         }
         folder.items[pathObj.itemName].ETag = revision;
-        meta.put(folder);
+        metaStore.put(folder);
       };
 
       transaction.oncomplete = function() {
