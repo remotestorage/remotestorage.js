@@ -277,7 +277,7 @@
       throw interval + " is not a valid sync interval";
     }
     syncInterval = parseInt(interval, 10);
-    if (this._syncTimer) {
+    if (this._syncTimer && interval > 0) {
       this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
     }
@@ -347,6 +347,11 @@
   RemoteStorage.SyncError = SyncError;
 
   RemoteStorage.prototype.syncCycle = function() {
+    if(this.getSyncInterval() < 0 ) {
+      console.log("SYNC CYCLE DISABLED");
+      return;
+    }
+    console.log("SYNC CYCLE RUNNING" );
     this.sync().then(function() {
       this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
