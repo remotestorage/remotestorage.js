@@ -171,8 +171,8 @@
         throw "Not a folder: " + path;
       }
       return this.storage.get(this.makePath(path)).then(
-        function(status, body) {
-          return (status === 404) ? undefined : body;
+        function(status, itemsMap) {
+          return (status === 404) ? undefined : itemsMap;
         }
       );
     },
