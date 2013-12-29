@@ -212,10 +212,10 @@
     },
 
     _addToParent: function(pathObj, revision, contentType, contentLength) {
-      var items = this._getMetas(pathObj.containingFolder);// should trigger creation up to the root
+      var items = this._getMetas(pathObj.containingFolder), parentPathObj = parsePath(pathObj.containingFolder);
       //creating this folder's path up to the root:
-      if(!pathObj.isRoot && items === {}) {
-        this._addToParent(parsePath(pathObj.containingFolder), true);
+      if(!parentPathObj.isRoot && items === {}) {
+        this._addToParent(parentPathObj, true);
       }
       if(!items[pathObj.itemName]) {
         items[pathObj.itemName] = {};
