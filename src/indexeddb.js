@@ -72,29 +72,71 @@
   var DEFAULT_DB_NAME = 'remotestorage';
   var DEFAULT_DB;
 
-  function makeNode(path) {
-    var node = { path: path };
-    if (path[path.length - 1] === '/') {
-      node.body = {};
-      node.cached = {};
-      node.contentType = 'application/json';
-    }
-    return node;
+  function getBody(bodyStore, path, cb) {
+    bodyStore.get(path).onsuccess = function(evt) {
+      var node = evt.target.result;
+      if(node) {
+        cb(node.body);
+      } else {
+        cb();
+      }
+    };
   }
 
-  function addToParent(metaStore, path, revision) {
-    //FIXME: this function overlaps with createMeta
-    var pathObj = parsePath(path);
-    metaStore.get(pathObj.containingDir).onsuccess = function(evt) {
-        var node = evt.target.result || makeNode(dirname);
-        node[itemName].ETag = revision || true;
-        metaStore.put(node).onsuccess = function() {
-          if (dirname !== '/') {
-            addToParent(nodes, dirname, key, true);
-          }
-        };
+  function setBody(bodyStore, path, body, cb) {
+    if(cb) {
+      bodyStore.get(path).onsuccess = function(evt) {
+        var oldBody;
+        if(evt.target.result) {
+          oldBody = evt.target.result.body;
+        }
+        setBody(bodyStore, path, body);
+        cb(oldBody);
       };
+    } else {
+      bodyStore.put({
+        path: path,
+        body: body
+      });
     }
+  }
+
+  function getMetas(metaStore, path, cb) {
+    metaStore.get(path).onsuccess = function(evt) {
+      var node = evt.target.result;
+      if(node) {
+        cb(node.items);
+      } else {
+        cb();
+      }
+    };
+  }
+
+  function setMetas(metaStore, path, items) {
+    metaStore.put({
+      path: path,
+      items: items
+    });
+  }
+    
+  function addToParent(metaStore, pathObj, revision, contentType, contentLength, cb) {
+    getMetas(metaStore, pathObj.containingFolder, function(items) {
+      var oldRevision;
+      //creating this folder's path up to the root:
+      if(!pathObj.isRoot && items === {}) {
+        addToParent(metaStore, parsePath(pathObj.containingFolder), true);
+      }
+      if(items[itemName]) {
+        oldRevision = items[itemName].ETag;
+      } else {
+         items[itemName] = {};
+      }
+      node.items[itemName].ETag = (revision || true);
+      setMetas(metaStore, pathObj.containingFolder, items);
+      if(cb) {
+        cb(oldRevision);
+      }
+    });
   }
 
   RS.IndexedDB = function(database) {
@@ -126,44 +168,24 @@
     return ret;
   }
 
-  function deleteMeta(transaction, pathObj, incoming, cb) {
-    //FIXME: we should also have a rootParent in which we can store the revision of root
+  function deleteMeta(metaStore, pathObj, cb) {
     if(pathObj.isRoot) {
       cb();
       return;
     }
-    var meta = transaction.objectStore('meta');
-    meta.get(pathObj.containingFolder).onsuccess = function(evt) {
-      var parentMeta = evt.target.result;
-      if(parentMeta.items[pathObj.itemName]) {
-        oldRevision = parentMeta.items[pathObj.itemName].ETag;
-        delete parentMeta.items[pathObj.itemName];
-        if(parentMeta.items.length) {
-          meta.put(parentMeta);
+    getMetas(metaStore, pathObj.containingFolder, function(items) {
+      if(items[pathObj.itemName]) {
+        oldRevision = items[pathObj.itemName].ETag;
+        delete items[pathObj.itemName];
+        if(items.length) {
+          setMetas(metaStore, pathObj.containingFolder, items);
           cb(oldRevision);
         } else {
-          deleteMeta(transaction, parsePath(pathObj.containingFolder), incoming, function() {
+          deleteMeta(metaStore, parsePath(pathObj.containingFolder), function() {
             cb(oldRevision);
           });
-        };
-      }
-    };
-  }
-  
-  function createMeta(metaStore, path, revision) {
-    var pathObj = parsePath(path);
-    if(!pathObj.isRoot) {
-      metaStore.get(pathObj.containingFolder).onsuccess = function(evt) {
-        if(!evt.result) {
-          createMeta(metaStore, pathObj.containingFolder);
         }
-      };
-    }
-    var items = {};
-    items[pathObj.itemName] = (revision ? {ETag: revision} : {});
-    metaStore.put({
-      path: pathObj.containingFolder,
-      items: items
+      }
     });
   }
 
@@ -177,37 +199,17 @@
       var metaStore = transaction.objectStore('meta'),
          parentReq, metaData, itemReq, item;
       if(pathObj.isFolder) {
-        itemReq = metaStore.get(path);
-        itemReq.onsuccess = function(evt) {
-          if(itemReq.result) {
-            item = itemReq.result.items;
-          }
-        };
+        getMetas(metaStore, path, function(items) {
+          item = items;
+        });
       } else {
-        itemReq = transaction.objectStore('bodies')
-            .get(path);
-        itemReq.onsuccess = function(evt) {
-          console.log('bodies get success', evt);
-          if(itemReq.result) {
-            item = itemReq.result.value;
-          }
-        };
+        getBody(transaction.objectStore('bodies'), path, function(body) {
+          item = itemReq.result.value;
+        });
       }
-      console.log('getting containingFolder', pathObj);
-      parentReq = metaStore.get(pathObj.containingFolder);
-
-      parentReq.onsuccess = function(evt) {
-        console.log('parentReq success', evt);
-        if(parentReq.result) {
-          metaData = parentReq.result[pathObj.itemName];
-        }
-      };
-      itemReq.onerror = function(evt) {
-        console.log('itemReq error', evt);
-      };
-      parentReq.onerror = function(evt) {
-        console.log('parentReq error', evt);
-      };
+      getMetas(metaStore, pathObj.containingFolder, function(items) {
+          metaData = items[pathObj.itemName];
+      });
       transaction.oncomplete = function() {
         if (metaData && item) {
           console.log('fulfulling as success', item, metaData);
@@ -226,53 +228,25 @@
       var pathObj = parsePath(path),
        promise = promising(),
        transaction = this.db.transaction(['meta', 'bodies'], 'readwrite'),
-       metaStore = transaction.objectStore('meta'),
-       bodiesStore = transaction.objectStore('bodies'),
        oldBody, oldRevision, done;
 console.log('putting', path, pathObj);
       if (pathObj.isFolder) {
         throw "Bad: don't PUT folders";
       }
-      
-      metaStore.get(pathObj.containingFolder).onsuccess = function(evt) {
-        try {
-          if(evt.target.result) {
-            parentMeta = evt.target.result;
-          } else {
-            createMeta(metaStore, pathObj.containingFolder);
-            parentMeta = {
-              path: pathObj.containingFolder,
-              items: {}
-            };
-          }
-          if(parentMeta.items[pathObj.itemName]) {
-            oldRevision = parentMeta.items[pathObj.itemName].ETag;
-          }
-          parentMeta.items[pathObj.itemName] = {
-            ETag: revision,
-            'Content-Type': contentType,
-            'Content-Length': body.length//FIXME: how can we find out the number of bytes, rather than the number of utf-8 chars of a JavaScript String?
-          };
-          metaStore.put(parentMeta);
-
-        } catch(e) {
-          if (typeof(done) === 'undefined') {
-            done = true;
-            promise.reject(e);
-          }
-        }
-      };
-      
-      bodiesStore.get(path).onsuccess = function(evt) {
-        if(evt.target.result) {
-          oldBody = evt.target.result.value;
-        }
-        bodiesStore.put({
-          path: path,
-          value: body
+      try {
+        addToParent(transaction.objectStore('meta'), pathObj, revision, contentType, body.length, function(setOldRevision) {
+          oldRevision = setOldRevision;
         });
-      };
-      
+        setBody(transaction.objectStore('bodies'), path, body, function(setOldBody) {
+          oldBody = setOldBody;
+        });
+      } catch(e) {
+        if (typeof(done) === 'undefined') {
+          done = true;
+          promise.reject(e);
+        }
+      }
+
       transaction.oncomplete = function() {
         //TODO: emit change event with origin 'device' to other tabs & windows of the same browser
         this._emit('change', {
@@ -300,12 +274,8 @@ console.log('putting', path, pathObj);
         transaction = this.db.transaction(['meta'], 'readwrite'),
         metaStore = transaction.objectStore('meta');
       
-      metaStore.add({
-        path: path,
-        items: items
-      });
-      
-      addToParent(metaStore, path, revision);
+      setMetas(metaStore, path, items);
+      addToParent(metaStore, parsePath(path), revision);
 
       transaction.oncomplete = function() {
         promise.fulfill();
@@ -317,21 +287,19 @@ console.log('putting', path, pathObj);
     },
 
     delete: function(path, incoming) {
-      var pathObj = parsePath(path);
+      var pathObj = parsePath(path), oldBody, oldRevision;
       if (pathObj.isRoot) {
         throw "Bad: don't DELETE root";
       }
       var transaction = this.db.transaction(['meta', 'bodies'], 'readwrite'),
         promise = promising(),
         oldBody, bodies;
-      deleteMeta(transaction, pathObj, incoming, function(oldRevision) {
-        if(!pathObj.isFolder) {
-          bodies = transaction.objectStore('bodies');
-          bodies.get(path).onsuccess = function(evt) {
-            oldBody = evt.target.value;
-            bodies.delete(path);
-          };
-        }
+      deleteMeta(transaction.objectStore('meta'), pathObj, function(setOldRevision) {
+        oldRevision = setOldRevision;
+        getBody(transaction.objectStore('bodies'), path, function(setOldBody) {
+          oldBody = setOldBody;
+          bodies.delete(path);
+        });
       });
       
       transaction.oncomplete = function() {
@@ -354,20 +322,12 @@ console.log('putting', path, pathObj);
       return promise;
     },
 
-    _setRevision: function(path, revision) {
-      console.log('setting revision', path, revision);
+    setRevision: function(path, revision) {
       var pathObj = parsePath(path),
-        transaction =  this.db.transaction(['meta'], 'readwrite'),
-        metaStore = transaction.objectStore('meta'),
+        transaction = this.db.transaction(['meta'], 'readwrite'),
         promise = promising();
-      metaStore.get(pathObj.containingFolder).onsuccess = function(evt) {
-        var folder = evt.target.result;
-        if(!folder.items[pathObj.itemName]) {
-          folder.items[pathObj.itemName] = {};
-        }
-        folder.items[pathObj.itemName].ETag = revision;
-        metaStore.put(folder);
-      };
+console.log('setting revision', path, revision);
+      this._addToParent(transaction.objectStore('meta'), pathObj, revision);
 
       transaction.oncomplete = function() {
         promise.fulfill();
@@ -379,16 +339,14 @@ console.log('putting', path, pathObj);
 
     getRevision: function(path) {
       var promise = promising(),
-        pathObj = parsePath(path);
-      var transaction = this.db.transaction(['meta'], 'readonly');
-      var rev;
-
-      transaction.objectStore('meta').
-        get(pathObj.containingFolder).onsuccess = function(evt) {
-          if (evt.target.result && evt.target.result.items && evt.target.result.items[pathObj.itemName]) {
-            rev =  evt.target.result.items[pathObj.itemName].ETag;
-          }
-        };
+        pathObj = parsePath(path),
+        transaction = this.db.transaction(['meta'], 'readonly')
+        promise = promising();
+      getMetas(transaction.objectStore('meta'), pathObj.containingDir, function(items) {
+        if(items[pathObj.itemName]) {
+          rev =  items[pathObj.itemName].ETag;
+        }
+      });
 
       transaction.oncomplete = function() {
         promise.fulfill(rev);
