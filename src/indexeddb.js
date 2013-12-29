@@ -72,34 +72,6 @@
   var DEFAULT_DB_NAME = 'remotestorage';
   var DEFAULT_DB;
 
-  function keepDirNode(node) {
-    return Object.keys(node.body).length > 0 ||
-      Object.keys(node.cached).length > 0;
-  }
-
-  function removeFromParent(nodes, path, key) {
-    var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
-    if (parts) {
-      var dirname = parts[1], basename = parts[2];
-      nodes.get(dirname).onsuccess = function(evt) {
-        var node = evt.target.result;
-        if (!node) {//attempt to remove something from a non-existing directory
-          return;
-        }
-        delete node[key][basename];
-        if (keepDirNode(node)) {
-          nodes.put(node);
-        } else {
-          nodes.delete(node.path).onsuccess = function() {
-            if (dirname !== '/') {
-              removeFromParent(nodes, dirname, key);
-            }
-          };
-        }
-      };
-    }
-  }
-
   function makeNode(path) {
     var node = { path: path };
     if (path[path.length - 1] === '/') {
@@ -110,28 +82,19 @@
     return node;
   }
 
-  function addToParent(nodes, path, key, revision) {
-    var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
-    if (parts) {
-      var dirname = parts[1], basename = parts[2];
-      nodes.get(dirname).onsuccess = function(evt) {
+  function addToParent(metaStore, path, revision) {
+    //FIXME: this function overlaps with createMeta
+    var pathObj = parsePath(path);
+    metaStore.get(pathObj.containingDir).onsuccess = function(evt) {
         var node = evt.target.result || makeNode(dirname);
-        node[key][basename] = revision || true;
-        nodes.put(node).onsuccess = function() {
+        node[itemName].ETag = revision || true;
+        metaStore.put(node).onsuccess = function() {
           if (dirname !== '/') {
             addToParent(nodes, dirname, key, true);
           }
         };
       };
     }
-  }
-
-  function addDirectoryCacheNode(nodes, path, body) {
-    nodes.get(path).onsuccess = function(evt) {
-      var node = evt.target.result || makeNode(path);
-      node['body'] = body;
-      nodes.put(node);
-    };
   }
 
   RS.IndexedDB = function(database) {
@@ -311,6 +274,7 @@ console.log('putting', path, pathObj);
       };
       
       transaction.oncomplete = function() {
+        //TODO: emit change event with origin 'device' to other tabs & windows of the same browser
         this._emit('change', {
           path: path,
           origin: incoming ? 'remote' : 'window',
@@ -331,12 +295,17 @@ console.log('putting', path, pathObj);
       return promise;
     },
 
-    putDirectory: function(path, body, revision) {
-      var promise = promising();
-      var transaction = this.db.transaction(['meta'], 'readwrite');
-      var meta = transaction.objectStore('meta');
-
-      addToParent(meta, path, 'body');
+    putDirectory: function(path, items, revision) {
+      var promise = promising(),
+        transaction = this.db.transaction(['meta'], 'readwrite'),
+        metaStore = transaction.objectStore('meta');
+      
+      metaStore.add({
+        path: path,
+        items: items
+      });
+      
+      addToParent(metaStore, path, revision);
 
       transaction.oncomplete = function() {
         promise.fulfill();
@@ -367,6 +336,7 @@ console.log('putting', path, pathObj);
       
       transaction.oncomplete = function() {
         if (oldBody) {
+          //TODO: emit change event with origin 'device' to other tabs & windows of the same browser
           this._emit('change', {
             path: path,
             origin: incoming ? 'remote' : 'window',
