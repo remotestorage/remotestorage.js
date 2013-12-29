@@ -230,7 +230,7 @@ define([], function() {
     /**
      * Event: connecting
      *
-     * fired before webfinger lookpu
+     * fired before webfinger lookup
      **/
     /**
      * Event: authing
