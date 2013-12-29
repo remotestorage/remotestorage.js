@@ -107,7 +107,7 @@
       if(node) {
         cb(node.items);
       } else {
-        cb();
+        cb({});
       }
     };
   }
@@ -121,17 +121,17 @@
     
   function addToParent(metaStore, pathObj, revision, contentType, contentLength, cb) {
     getMetas(metaStore, pathObj.containingFolder, function(items) {
-      var oldRevision;
+      var oldRevision, parentPathObj = parsePath(pathObj.containingFolder);
       //creating this folder's path up to the root:
-      if(!pathObj.isRoot && items === {}) {
-        addToParent(metaStore, parsePath(pathObj.containingFolder), true);
+      if(!parentPathObj.isRoot ) {
+        addToParent(metaStore, parentPathObj, true);
       }
-      if(items[itemName]) {
-        oldRevision = items[itemName].ETag;
+      if(items[pathObj.itemName]) {
+        oldRevision = items[pathObj.itemName].ETag;
       } else {
-         items[itemName] = {};
+         items[pathObj.itemName] = {};
       }
-      node.items[itemName].ETag = (revision || true);
+      items[pathObj.itemName].ETag = (revision || true);
       setMetas(metaStore, pathObj.containingFolder, items);
       if(cb) {
         cb(oldRevision);
@@ -164,7 +164,6 @@
     }
     parts.pop();
     ret.containingFolder = parts.join('/')+ (parts.length ? '/' : '');
-    console.log('parsePath', path, parts, ret);
     return ret;
   }
 
@@ -204,7 +203,7 @@
         });
       } else {
         getBody(transaction.objectStore('bodies'), path, function(body) {
-          item = itemReq.result.value;
+          item = body;
         });
       }
       getMetas(metaStore, pathObj.containingFolder, function(items) {
@@ -212,24 +211,23 @@
       });
       transaction.oncomplete = function() {
         if (metaData && item) {
-          console.log('fulfulling as success', item, metaData);
           promise.fulfill(200, item, metaData['Content-Type'], metaData['ETag']);
         } else {
-          console.log('fulfulling as not found', item, metaData);
           promise.fulfill(404);
         }
       };
 
-      transaction.onerror = transaction.onabort = promise.reject;
+      transaction.onerror = transaction.onabort = function(err) {
+        promise.reject('error while getting '+path+' '+err);
+      };
       return promise;
     },
 
     put: function(path, body, contentType, incoming, revision) {
       var pathObj = parsePath(path),
-       promise = promising(),
-       transaction = this.db.transaction(['meta', 'bodies'], 'readwrite'),
-       oldBody, oldRevision, done;
-console.log('putting', path, pathObj);
+        promise = promising(),
+        transaction = this.db.transaction(['meta', 'bodies'], 'readwrite'),
+        oldBody, oldRevision, done;
       if (pathObj.isFolder) {
         throw "Bad: don't PUT folders";
       }
@@ -326,7 +324,6 @@ console.log('putting', path, pathObj);
       var pathObj = parsePath(path),
         transaction = this.db.transaction(['meta'], 'readwrite'),
         promise = promising();
-console.log('setting revision', path, revision);
       this._addToParent(transaction.objectStore('meta'), pathObj, revision);
 
       transaction.oncomplete = function() {
