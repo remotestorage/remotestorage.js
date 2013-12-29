@@ -206,7 +206,7 @@ define([], function() {
     /**
      * Event: disconnect
      *
-     * depricated use disconnected
+     * deprecated use disconnected
      **/
     /**
      * Event: conflict
