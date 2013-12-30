@@ -206,18 +206,18 @@ define([], function() {
     /**
      * Event: disconnect
      *
-     * depricated use disconnected
+     * deprecated use disconnected
      **/
     /**
      * Event: conflict
      *
-     * fired when a conflict occures
+     * fired when a conflict occurs
      * TODO: arguments, how does this work
      **/
     /**
      * Event: error
      *
-     * fired when an error occures
+     * fired when an error occurs
      *
      * Arguments:
      * the error
@@ -230,7 +230,7 @@ define([], function() {
     /**
      * Event: connecting
      *
-     * fired before webfinger lookpu
+     * fired before webfinger lookup
      **/
     /**
      * Event: authing
