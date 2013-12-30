@@ -376,7 +376,7 @@
             path: cursor.value.path,
             origin: 'local',
             oldValue: undefined,
-            newValue: cursor.value.value
+            newValue: cursor.value.body
           });
           cursor.continue();
         }
