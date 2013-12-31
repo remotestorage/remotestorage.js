@@ -95,8 +95,8 @@
       return promising().fulfill(200);
     },
 
-    putDirectory: function(path, body, revision) {
-      this._addDirectoryCacheNode(path, body);
+    putFolder: function(path, body, revision) {
+      this._addFolderCacheNode(path, body);
       this._addToParent(path, 'body');
       this._setRevision(path, revision);
       return promising().fulfill();
@@ -194,17 +194,17 @@
     _addToParent: function(path, key, revision) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
       if (parts) {
-        var dirname = parts[1], basename = parts[2];
-        var node = this._get(dirname) || makeNode(dirname);
+        var foldername = parts[1], basename = parts[2];
+        var node = this._get(foldername) || makeNode(foldername);
         node[key][basename] = revision || true;
-        localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
-        if (dirname !== '/') {
-          this._addToParent(dirname, key, true);
+        localStorage[NODES_PREFIX + foldername] = JSON.stringify(node);
+        if (foldername !== '/') {
+          this._addToParent(foldername, key, true);
         }
       }
     },
 
-    _addDirectoryCacheNode: function(path, body) {
+    _addFolderCacheNode: function(path, body) {
       var node = this._get(path) || makeNode(path);
       node.body = body;
       localStorage[NODES_PREFIX + path] = JSON.stringify(node);
@@ -213,16 +213,16 @@
     _removeFromParent: function(path) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
       if (parts) {
-        var dirname = parts[1], basename = parts[2];
-        var node = this._get(dirname);
+        var foldername = parts[1], basename = parts[2];
+        var node = this._get(foldername);
         if (node) {
           delete node.cached[basename];
           if (Object.keys(node.cached).length > 0) {
-            localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
+            localStorage[NODES_PREFIX + foldername] = JSON.stringify(node);
           } else {
-            delete localStorage[NODES_PREFIX + dirname];
-            if (dirname !== '/') {
-              this._removeFromParent(dirname);
+            delete localStorage[NODES_PREFIX + foldername];
+            if (foldername !== '/') {
+              this._removeFromParent(foldername);
             }
           }
         }

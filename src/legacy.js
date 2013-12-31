@@ -55,18 +55,18 @@
       return promise;
     },
 
-    containingDir: function(path) {
-      var dir = path.replace(/[^\/]+\/?$/, '');
-      return dir === path ? null : dir;
+    containingFolder: function(path) {
+      var folder = path.replace(/[^\/]+\/?$/, '');
+      return folder === path ? null : folder;
     },
 
-    isDir: function(path) {
+    isFolder: function(path) {
       return path.substr(-1) === '/';
     },
 
     baseName: function(path) {
       var parts = path.split('/');
-      if (util.isDir(path)) {
+      if (util.isFolder(path)) {
         return parts[parts.length-2]+'/';
       } else {
         return parts[parts.length-1];
