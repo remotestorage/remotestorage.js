@@ -27,7 +27,7 @@
    */
   RS.BaseClient = function(storage, base) {
     if (base[base.length - 1] !== '/') {
-      throw "Not a directory: " + base;
+      throw "Not a folder: " + base;
     }
 
     if (base === '/') {
@@ -148,7 +148,7 @@
      *
      *   A promise for an object, representing child nodes.
      *
-     *   Keys ending in a forward slash represent *directory nodes*, while all
+     *   Keys ending in a forward slash represent *folder nodes*, while all
      *   other keys represent *data nodes*.
      *
      *   For spec versions <= 01, the data node information will contain only
@@ -168,7 +168,7 @@
       if (typeof(path) === 'undefined') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
-        throw "Not a directory: " + path;
+        throw "Not a folder: " + path;
       }
       return this.storage.get(this.makePath(path)).then(
         function(status, body) {
@@ -183,7 +183,7 @@
      * Get all objects directly below a given path.
      *
      * Parameters:
-     *   path      - path to the direcotry
+     *   path      - path to the folder
      *   typeAlias - (optional) local type-alias to filter for
      *
      * Returns:
@@ -202,7 +202,7 @@
       if (typeof(path) === 'undefined') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
-        throw "Not a directory: " + path;
+        throw "Not a folder: " + path;
       }
       return this.storage.get(this.makePath(path)).then(function(status, body) {
         if (status === 404) { return; }
@@ -210,7 +210,7 @@
           var promise = promising();
           var count = Object.keys(body).length, i = 0;
           if (count === 0) {
-            // treat this like 404. it probably means a directory listing that
+            // treat this like 404. it probably means a folder listing that
             // has changes that haven't been pushed out yet.
             return;
           }

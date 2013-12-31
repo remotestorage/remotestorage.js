@@ -97,7 +97,7 @@
 
     get: function(path, options) {
       if (path.substr(-1) === '/') {
-        return this._getDir(path, options);
+        return this._getFolder(path, options);
       } else {
         return this._getFile(path, options);
       }
@@ -242,7 +242,7 @@
       return promise;
     },
 
-    _getDir: function(path, options) {
+    _getFolder: function(path, options) {
       var promise = promising();
       this._getFileId(path, function(idError, id) {
         if (idError) {
@@ -258,7 +258,7 @@
                 var data = JSON.parse(response.responseText);
                 var n = data.items.length, i = 0;
                 if (n === 0) {
-                  // FIXME: add revision of directory!
+                  // FIXME: add revision of folder!
                   promise.fulfill(200, {}, RS_DIR_MIME_TYPE, undefined);
                   return;
                 }
@@ -307,19 +307,19 @@
 
     _getParentId: function(path, callback) {
       callback = callback.bind(this);
-      var dirname = parentPath(path);
-      this._getFileId(dirname, function(idError, parentId) {
+      var foldername = parentPath(path);
+      this._getFileId(foldername, function(idError, parentId) {
         if (idError) {
           callback(idError);
         } else if (parentId) {
           callback(null, parentId);
         } else {
-          this._createDir(dirname, callback);
+          this._createFolder(foldername, callback);
         }
       });
     },
 
-    _createDir: function(path, callback) {
+    _createFolder: function(path, callback) {
       callback = callback.bind(this);
       this._getParentId(path, function(idError, parentId) {
         if (idError) {
@@ -352,18 +352,18 @@
       callback = callback.bind(this);
       var id;
       if (path === '/') {
-        // "root" is a special alias for the fileId of the root directory
+        // "root" is a special alias for the fileId of the root folder
         callback(null, 'root');
       } else if ((id = this._fileIdCache.get(path))) {
         // id is cached.
         callback(null, id);
       } else {
         // id is not cached (or file doesn't exist).
-        // load parent directory listing to propagate / update id cache.
-        this._getDir(parentPath(path)).then(function() {
+        // load parent folder listing to propagate / update id cache.
+        this._getFolder(parentPath(path)).then(function() {
           var id = this._fileIdCache.get(path);
           if (!id) {
-            callback('no file or directory found at the path: ' + path, null);
+            callback('no file or folder found at the path: ' + path, null);
             return;
           }
           callback(null, id);

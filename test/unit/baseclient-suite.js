@@ -63,7 +63,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "it doesn't accept non-directory paths",
+        desc: "it doesn't accept non-folder paths",
         run: function(env, test) {
           try {
             var storage = new RemoteStorage();
@@ -115,7 +115,7 @@ define(['requirejs'], function(requirejs, undefined) {
   });
 
   suites.push({
-    desc: "BaseClient directory handling",
+    desc: "BaseClient folder handling",
     setup: function(env, test) {
       if (typeof(RemoteStorage) !== 'function') {
         global.RemoteStorage = function() {};
@@ -184,7 +184,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#getListing forwards directory listing object",
+        desc: "#getListing forwards folder listing object",
         run: function(env, test) {
           env.storage.get = function(path) {
             return promising().fulfill(200, { 'foo': {"ETag":'bar'}, 'baz/': {"ETag":'bla'} });

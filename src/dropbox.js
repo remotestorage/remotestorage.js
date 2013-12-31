@@ -20,14 +20,14 @@
    * when the remotestorage.backend was set to 'dropbox' it will initialize and resets
    * remoteStorage.remote with remoteStorage.dropbox
    *
-   * for compability with the public directory the getItemURL function of the BaseClient gets
+   * for compability with the public folder the getItemURL function of the BaseClient gets
    * highjackt and returns the dropbox share-url
    *
    * to connect with dropbox a connect function is provided
    *
    * known issues :
    *   files larger than 150mb are not suported for upload
-   *   directories with more than 10.000 files will cause problems to list
+   *   folders with more than 10.000 files will cause problems to list
    *   content-type is guessed by dropbox.com therefore they aren't fully supported
    *   dropbox preserves cases but not case sensitive
    *   share_urls and therfeor getItemURL is asynchronius , which means
@@ -41,7 +41,7 @@
   /*************************
    * LowerCaseCache
    * this Cache will lowercase its keys
-   * and can propagate the values to "upper directories"
+   * and can propagate the values to "upper folders"
    *
    * intialized with default Value(undefined will be accepted)
    *
@@ -100,12 +100,12 @@
       return delete this._storage[key];
     },
     _propagate: function(key, rev){
-      var dirs = key.split('/').slice(0,-1);
-      var len = dirs.length;
+      var folders = key.split('/').slice(0,-1);
+      var len = folders.length;
       var path = '';
 
       for (var i = 0; i < len; i++){
-        path += dirs[i]+'/';
+        path += folders[i]+'/';
         if (!rev) {
           rev = this._storage[path]+1;
         }
@@ -212,9 +212,9 @@
       }
     },
     /**
-     * Method : _getDir(path, options)
+     * Method : _getFolder(path, options)
      **/
-    _getDir: function(path, options){
+    _getFolder: function(path, options){
       var url = 'https://api.dropbox.com/1/metadata/auto'+path;
       var promise = promising();
       var revCache = this._revCache;
@@ -256,7 +256,7 @@
      * Method : get(path, options)
      *   get compatible with wireclient
      *   checks for path in _revCache and decides based on that if file has changed
-     *   calls _getDir if file is a directory
+     *   calls _getFolder if file is a folder
      *   calls share(path) afterwards to fill the _hrefCache
      **/
     get: function(path, options){
@@ -281,8 +281,8 @@
         return promise;
       }
 
-      //use _getDir for directories
-      if (path.substr(-1) === '/') { return this._getDir(path, options); }
+      //use _getFolder for folders
+      if (path.substr(-1) === '/') { return this._getFolder(path, options); }
 
       this._request('GET', url, {}, function(err, resp){
         if (err) {

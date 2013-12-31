@@ -2,7 +2,7 @@
 
   var SETTINGS_KEY = "remotestorage:caching";
 
-  function containingDir(path) {
+  function containingFolder(path) {
     if (path === '') {
       return '/';
     }
@@ -13,7 +13,7 @@
     return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
   }
 
-  function isDir(path) {
+  function isFolder(path) {
     return path.substr(-1) === '/';
   }
 
@@ -43,7 +43,7 @@
      * not documents in the subtree should be cached.
      *
      * Parameters:
-     *   path - Absolute path to a directory.
+     *   path - Absolute path to a folder.
      */
     enable: function(path) { this.set(path, { data: true, ready: false }); },
     /**
@@ -52,7 +52,7 @@
      * Disable caching for the given path.
      *
      * Parameters:
-     *   path - Absolute path to a directory.
+     *   path - Absolute path to a folder.
      */
     disable: function(path) { this.remove(path); },
 
@@ -61,7 +61,7 @@
      **/
 
     get: function(path) {
-      this._validateDirPath(path);
+      this._validateFolderPath(path);
       return this._pathSettingsMap[path];
     },
 
@@ -69,7 +69,7 @@
       if ((typeof(settings) === 'object') && (settings.ready)) {
         this.resolveQueue(path);
       }
-      this._validateDirPath(path);
+      this._validateFolderPath(path);
       if (typeof(settings) !== 'object') {
         throw new Error("settings is required");
       }
@@ -78,7 +78,7 @@
     },
 
     remove: function(path) {
-      this._validateDirPath(path);
+      this._validateFolderPath(path);
       delete this._pathSettingsMap[path];
       this._updateRoots();
     },
@@ -153,12 +153,12 @@
     /**
      * Method: descendIntoPath
      *
-     * Checks if the given directory path should be followed.
+     * Checks if the given folder path should be followed.
      *
      * Returns: true or false
      */
     descendIntoPath: function(path) {
-      this._validateDirPath(path);
+      this._validateFolderPath(path);
       return !! this._query(path);
     },
 
@@ -172,7 +172,7 @@
     cachePath: function(path) {
       this._validatePath(path);
       var settings = this._query(path);
-      if (isDir(path)) {
+      if (isFolder(path)) {
         return !!settings;
       } else {
         return !!settings && (settings.data === true);
@@ -202,7 +202,7 @@
     _query: function(path) {
       return this._pathSettingsMap[path] ||
         path !== '/' &&
-        this._query(containingDir(path));
+        this._query(containingFolder(path));
     },
 
     _validatePath: function(path) {
@@ -211,10 +211,10 @@
       }
     },
 
-    _validateDirPath: function(path) {
+    _validateFolderPath: function(path) {
       this._validatePath(path);
-      if (! isDir(path)) {
-        throw new Error("not a directory path: " + path);
+      if (! isFolder(path)) {
+        throw new Error("not a folder path: " + path);
       }
       if (path[0] !== '/') {
         throw new Error("path not absolute: " + path);
