@@ -557,9 +557,26 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "404 responses discard the body altogether",
+        desc: "404 responses for documents discard the body altogether",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
+            then(function(status, body, contentType) {
+              test.assertAnd(status, 404);
+              test.assertTypeAnd(body, 'undefined');
+              test.assertTypeAnd(contentType, 'undefined');
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 404;
+          req.response = '';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "404 responses for folders discard the body altogether",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar/').
             then(function(status, body, contentType) {
               test.assertAnd(status, 404);
               test.assertTypeAnd(body, 'undefined');
