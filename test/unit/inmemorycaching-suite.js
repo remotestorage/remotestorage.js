@@ -1,4 +1,4 @@
-if(typeof(define) !== 'function') {
+if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
 define(['requirejs'], function(requirejs) {
@@ -11,13 +11,13 @@ define(['requirejs'], function(requirejs) {
       require('./lib/promising');
       global.RemoteStorage = function() {};
       require('./src/eventhandling');
-      if( global.rs_eventhandling ) {
+      if ( global.rs_eventhandling ) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
       require('./src/cachinglayer');
-      if(global.rs_cachinglayer) {
+      if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
@@ -173,14 +173,14 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#putDirectory adds the directory cache node with the given body",
+        desc: "#putFolder adds the folder cache node with the given body",
         run: function(env, test) {
-          var directoryItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
-                                'subdir/': {'ETag': '321'}};
+          var folderItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
+                                'subfolder/': {'ETag': '321'}};
 
-          env.ims.putDirectory('/foo/bar/', directoryItems).then(function() {
+          env.ims.putFolder('/foo/bar/', folderItems).then(function() {
             var cacheNode = env.ims._storage['/foo/bar/'];
-            test.assertAnd(cacheNode.body, directoryItems);
+            test.assertAnd(cacheNode.body, folderItems);
             test.assertAnd(cacheNode.cached, {});
             test.assertAnd(cacheNode.contentType, 'application/json');
             test.done();
@@ -189,12 +189,12 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#putDirectory adds the path to the parents",
+        desc: "#putFolder adds the path to the parents",
         run: function(env, test) {
-          var directoryItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
-                                'subdir/': {'ETag': '321'}};
+          var folderItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
+                                'subfolder/': {'ETag': '321'}};
 
-          env.ims.putDirectory('/foo/bar/', directoryItems).then(function() {
+          env.ims.putFolder('/foo/bar/', folderItems).then(function() {
             test.assertAnd(env.ims._storage['/foo/'].body['bar/'], true);
             test.assertAnd(env.ims._storage['/'].body['foo/'], true);
             test.done();
@@ -240,7 +240,7 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#delete propagates changes through empty directories",
+        desc: "#delete propagates changes through empty folders",
         run: function(env, test) {
           env.ims.put('/foo/bar/baz', 'bla', 'text/pain', 'a1b2c3').then(function() {
             env.ims.put('/foo/baz', 'bla', 'text/pain', 'a1b2c3').then(function() {
@@ -267,7 +267,7 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#_setRevision updates `cached` items of parent directories",
+        desc: "#_setRevision updates `cached` items of parent folders",
         run: function(env, test) {
           env.ims._setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
             test.assertAnd(env.ims._storage['/foo/bar/'], {
@@ -297,7 +297,7 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#_setRevision doesn't overwrite `cached` items in parent directories",
+        desc: "#_setRevision doesn't overwrite `cached` items in parent folders",
         run: function(env, test) {
           env.ims._setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
             env.ims._setRevision('/foo/bar/booze', 'd4e5f6').then(function() {

@@ -24,14 +24,14 @@ define(['requirejs'], function(requirejs, undefined) {
       require('./lib/promising');
       require('./src/eventhandling');
       
-      if(global.rs_eventhandling) {
+      if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
       require('./src/wireclient');
       
-      if(global.rs_wireclient) {
+      if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
         global.rs_wireclient = RemoteStorage.WireClient;
@@ -175,7 +175,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#get to 404 dir results in error",
+        desc: "#get to 404 folder results in error",
         run: function(env, test) {
           env.connectedClient.get('/foo/').then(function(status, body, contentType) {
             test.assert('we should not have got here', false);
@@ -189,13 +189,13 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#get to document results in error if getDir doesn't fill the fileId cache",
+        desc: "#get to document results in error if getFolder doesn't fill the fileId cache",
         run: function(env, test) {
           env.connectedClient._fileIdCache.set('/foo', false);
           env.connectedClient.get('/foo').then(function(status, body, contentType) {
             test.assert('we should not have got here', false);
           }, function(err) {
-            test.assert(err, 'no file or directory found at the path: /foo');
+            test.assert(err, 'no file or folder found at the path: /foo');
           });
           var req = XMLHttpRequest.instances.shift();
           req.status = 200;
@@ -205,13 +205,13 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#get to dir results in error if getDir doesn't fill the fileId cache",
+        desc: "#get to folder results in error if getFolder doesn't fill the fileId cache",
         run: function(env, test) {
           env.connectedClient._fileIdCache.set('/foo/', false);
           env.connectedClient.get('/foo/').then(function(status, body, contentType) {
             test.assert('we should not have got here', false);
           }, function(err) {
-            test.assert(err, 'no file or directory found at the path: /foo/');
+            test.assert(err, 'no file or folder found at the path: /foo/');
           });
           var req = XMLHttpRequest.instances.shift();
           req.status = 200;

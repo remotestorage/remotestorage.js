@@ -1,4 +1,4 @@
-if(typeof(define) !== 'function') {
+if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 define([], function() {
@@ -16,7 +16,7 @@ define([], function() {
   function fakeRequest(path) {
     var promise = promising();
     console.log('GET CALLED');
-    if(path === '/testing403') {
+    if (path === '/testing403') {
       promise.fulfill(403);
     } else {
       promise.fulfill(200);
@@ -66,7 +66,7 @@ define([], function() {
       require('./src/remotestorage');
       require('./src/eventhandling');
       require('./lib/promising');
-      if(global.rs_eventhandling) {
+      if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;

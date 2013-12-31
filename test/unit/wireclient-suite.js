@@ -15,13 +15,13 @@ define(['requirejs'], function(requirejs, undefined) {
       require('./lib/promising');
       require('./src/eventhandling');
 
-      if(global.rs_eventhandling) {
+      if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
       require('./src/wireclient');
-      if(global.rs_wireclient) {
+      if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
         global.rs_wireclient = RemoteStorage.WireClient;
@@ -345,7 +345,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#get unpacks pre-02 directory listings",
+        desc: "#get unpacks pre-02 folder listings",
         run: function(env, test) {
           env.connectedClient.get('/foo/01/').
             then(function(status, body, contentType) {
@@ -363,7 +363,7 @@ define(['requirejs'], function(requirejs, undefined) {
 
 
       {
-        desc: "#get unpacks -02 directory listings",
+        desc: "#get unpacks -02 folder listings",
         run: function(env, test) {
           env.connectedClient.get('/foo/01/').
             then(function(status, body, contentType) {

@@ -144,7 +144,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "#descendIntoPath() works for subdirectories",
+        desc: "#descendIntoPath() works for subfolders",
         run: function(env, test) {
           env.caching.set('/foo/', { data: true });
           test.assertAnd(env.caching.descendIntoPath('/foo/bar/'), true);

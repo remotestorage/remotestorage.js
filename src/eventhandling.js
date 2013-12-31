@@ -21,8 +21,8 @@
     removeEventListener: function(eventName, handler) {
       this._validateEvent(eventName);
       var hl = this._handlers[eventName].length;
-      for(var i=0;i<hl;i++) {
-        if(this._handlers[eventName][i] === handler) {
+      for (var i=0;i<hl;i++) {
+        if (this._handlers[eventName][i] === handler) {
           this._handlers[eventName].splice(i, 1);
           return;
         }
@@ -38,7 +38,7 @@
     },
 
     _validateEvent: function(eventName) {
-      if(! (eventName in this._handlers)) {
+      if (! (eventName in this._handlers)) {
         throw new Error("Unknown event: " + eventName);
       }
     },
@@ -88,7 +88,7 @@
    */
   RemoteStorage.eventHandling = function(object) {
     var eventNames = Array.prototype.slice.call(arguments, 1);
-    for(var key in methods) {
+    for (var key in methods) {
       object[key] = methods[key];
     }
     object._handlers = {};

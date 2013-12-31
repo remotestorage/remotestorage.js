@@ -6,7 +6,7 @@
 
     _createConflictEvent: function(path, attributes) {
       var event = { path: path };
-      for(var key in attributes) {
+      for (var key in attributes) {
         event[key] = attributes[key];
       }
 
@@ -39,7 +39,7 @@
    *   (end code)
    */
   RemoteStorage.cachingLayer = function(object) {
-    for(var key in methods) {
+    for (var key in methods) {
       object[key] = methods[key];
     }
   };

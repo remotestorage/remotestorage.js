@@ -2,18 +2,18 @@
 
   var SETTINGS_KEY = "remotestorage:caching";
 
-  function containingDir(path) {
-    if(path === '') {
+  function containingFolder(path) {
+    if (path === '') {
       return '/';
     }
-    if(! path) {
+    if (! path) {
       throw "Path not given!";
     }
 
     return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
   }
 
-  function isDir(path) {
+  function isFolder(path) {
     return path.substr(-1) === '/';
   }
 
@@ -43,7 +43,7 @@
      * not documents in the subtree should be cached.
      *
      * Parameters:
-     *   path - Absolute path to a directory.
+     *   path - Absolute path to a folder.
      */
     enable: function(path) { this.set(path, { data: true, ready: false }); },
     /**
@@ -52,7 +52,7 @@
      * Disable caching for the given path.
      *
      * Parameters:
-     *   path - Absolute path to a directory.
+     *   path - Absolute path to a folder.
      */
     disable: function(path) { this.remove(path); },
 
@@ -61,16 +61,16 @@
      **/
 
     get: function(path) {
-      this._validateDirPath(path);
+      this._validateFolderPath(path);
       return this._pathSettingsMap[path];
     },
 
     set: function(path, settings) {
-      if((typeof(settings) === 'object') && (settings.ready)) {
+      if ((typeof(settings) === 'object') && (settings.ready)) {
         this.resolveQueue(path);
       }
-      this._validateDirPath(path);
-      if(typeof(settings) !== 'object') {
+      this._validateFolderPath(path);
+      if (typeof(settings) !== 'object') {
         throw new Error("settings is required");
       }
       this._pathSettingsMap[path] = settings;
@@ -78,7 +78,7 @@
     },
 
     remove: function(path) {
-      this._validateDirPath(path);
+      this._validateFolderPath(path);
       delete this._pathSettingsMap[path];
       this._updateRoots();
     },
@@ -108,13 +108,13 @@
      */
     waitForPath: function(path) {
       var promise = promising();
-      if(this.cachePathReady(path)) {
+      if (this.cachePathReady(path)) {
         promise.fulfill();
       } else {
-        if(!this.queuedPromises) {
+        if (!this.queuedPromises) {
           this.queuedPromises = {};
         }
-        if(!this.queuedPromises[path]) {
+        if (!this.queuedPromises[path]) {
           this.queuedPromises[path] = [];
         }
         this.queuedPromises[path].push(promise);
@@ -132,12 +132,12 @@
      */
     resolveQueue: function(rootPath) {
       var path, i;
-      if(!this.queuedPromises) {
+      if (!this.queuedPromises) {
         return;
       }
-      for(path in this.queuedPromises) {
-        if(path.substring(0, rootPath.length) === rootPath) {
-          for(i=0; i<this.queuedPromises[path].length; i++) {
+      for (path in this.queuedPromises) {
+        if (path.substring(0, rootPath.length) === rootPath) {
+          for (i=0; i<this.queuedPromises[path].length; i++) {
             this.queuedPromises[path][i].fulfill();
           }
           delete this.queuedPromises[path];
@@ -153,12 +153,12 @@
     /**
      * Method: descendIntoPath
      *
-     * Checks if the given directory path should be followed.
+     * Checks if the given folder path should be followed.
      *
      * Returns: true or false
      */
     descendIntoPath: function(path) {
-      this._validateDirPath(path);
+      this._validateFolderPath(path);
       return !! this._query(path);
     },
 
@@ -172,7 +172,7 @@
     cachePath: function(path) {
       this._validatePath(path);
       var settings = this._query(path);
-      if(isDir(path)) {
+      if (isFolder(path)) {
         return !!settings;
       } else {
         return !!settings && (settings.data === true);
@@ -187,7 +187,7 @@
      * Returns: true or false
      */
     cachePathReady: function(path) {
-      if(!this.cachePath(path)) {
+      if (!this.cachePath(path)) {
         return false;
       }
       var settings = this._query(path);
@@ -202,41 +202,41 @@
     _query: function(path) {
       return this._pathSettingsMap[path] ||
         path !== '/' &&
-        this._query(containingDir(path));
+        this._query(containingFolder(path));
     },
 
     _validatePath: function(path) {
-      if(typeof(path) !== 'string') {
+      if (typeof(path) !== 'string') {
         throw new Error("path is required");
       }
     },
 
-    _validateDirPath: function(path) {
+    _validateFolderPath: function(path) {
       this._validatePath(path);
-      if(! isDir(path)) {
-        throw new Error("not a directory path: " + path);
+      if (! isFolder(path)) {
+        throw new Error("not a folder path: " + path);
       }
-      if(path[0] !== '/') {
+      if (path[0] !== '/') {
         throw new Error("path not absolute: " + path);
       }
     },
 
     _updateRoots: function() {
       var roots = {};
-      for(var a in this._pathSettingsMap) {
+      for (var a in this._pathSettingsMap) {
         // already a root
-        if(roots[a]) {
+        if (roots[a]) {
           continue;
         }
         var added = false;
-        for(var b in this._pathSettingsMap) {
-          if(pathContains(a, b)) {
+        for (var b in this._pathSettingsMap) {
+          if (pathContains(a, b)) {
             roots[b] = true;
             added = true;
             break;
           }
         }
-        if(! added) {
+        if (! added) {
           roots[a] = true;
         }
       }
@@ -248,7 +248,7 @@
   Object.defineProperty(RemoteStorage.Caching.prototype, 'list', {
     get: function() {
       var list = [];
-      for(var path in this._pathSettingsMap) {
+      for (var path in this._pathSettingsMap) {
         list.push({ path: path, settings: this._pathSettingsMap[path] });
       }
       return list;

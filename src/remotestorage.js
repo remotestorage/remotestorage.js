@@ -401,7 +401,7 @@
         if (this.remote) {
           this.remote.on('connected', function() {
             try {
-              if(!readyFired) {
+              if (!readyFired) {
                 this._emit('ready');
                 readyFired = true;
               }
@@ -412,7 +412,7 @@
           }.bind(this));
           if (this.remote.connected) {
             try {
-              if(!readyFired) {
+              if (!readyFired) {
                 this._emit('ready');
                 readyFired = true;
               }
@@ -515,7 +515,7 @@
       function featureSupportedCb(name) {
         return function(success) {
           self.log("[FEATURE "+name+"]" + success ? "":" not"+" supported");
-          if(!success) {
+          if (!success) {
             featureDone();
           }
         };
@@ -604,13 +604,13 @@
     },
 
     _dispatchEvent: function(eventName, event) {
-      for(var path in this._pathHandlers[eventName]) {
+      for (var path in this._pathHandlers[eventName]) {
         var pl = path.length;
         var self = this;
         this._pathHandlers[eventName][path].forEach(function(handler) {
           if (event.path.substr(0, pl) === path) {
             var ev = {};
-            for(var key in event) { ev[key] = event[key]; }
+            for (var key in event) { ev[key] = event[key]; }
             ev.relativePath = event.path.replace(new RegExp('^' + path), '');
             try {
               handler(ev);

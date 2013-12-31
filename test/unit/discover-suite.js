@@ -17,7 +17,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     },
 
     beforeEach: function(env, test) {
-      if(typeof(XMLHttpRequest) === 'function') {
+      if (typeof(XMLHttpRequest) === 'function') {
         XMLHttpRequest.instances = [];
         XMLHttpRequest.openCalls = [];
         XMLHttpRequest.sendCalls = [];
@@ -147,7 +147,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           RemoteStorage.Discover("foo@bar", function(href) {
             test.assertType(href, 'undefined');
           });
-          for(var i = 0; i < 4; i++) {
+          for (var i = 0; i < 4; i++) {
             var instance = XMLHttpRequest.instances[i];
             instance.status = 200;
             XMLHttpRequest.onloadFunction();

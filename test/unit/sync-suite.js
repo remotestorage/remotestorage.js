@@ -1,4 +1,4 @@
-if(typeof(define) !== 'function') {
+if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
@@ -166,10 +166,10 @@ define([], function() {
       },
 
       {
-        desc: "Sync.sync() for cached directory only syncs changed objects therein",
+        desc: "Sync.sync() for cached folder only syncs changed objects therein",
         run: function(env, test) {
-          var cachedDirItems = {vodka:{ETag:'123'},whiskey:{ETag:'456'},rum:{ETag:'789'}};
-          env.local.putDirectory('/foo/bar/booze/', cachedDirItems, 'abc');
+          var cachedFolderItems = {vodka:{ETag:'123'},whiskey:{ETag:'456'},rum:{ETag:'789'}};
+          env.local.putFolder('/foo/bar/booze/', cachedFolderItems, 'abc');
           env.local.put('/foo/bar/booze/vodka', 'russian', 'text/plain', true, '123');
           env.local.put('/foo/bar/booze/whiskey', 'scotch', 'text/plain', true, '456');
           env.local.put('/foo/bar/booze/rum', 'jamaican', 'text/plain', true, '789');

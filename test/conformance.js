@@ -8,7 +8,7 @@ var testRequest = helpers.testRequest;
 
 var baseUrl = process.argv[2];
 var token = process.argv[3];
-if(! (baseUrl && token)) {
+if (! (baseUrl && token)) {
   console.log("Usage: " + process.argv[1] + " <base-url> <token>");
   process.exit(127);
 }
@@ -202,7 +202,7 @@ testRequest(
   }
 );
 
-var rememberedDirectoryETag;
+var rememberedFolderETag;
 
 // 14) check that directory was created
 //   GET /test-dir/
@@ -212,7 +212,7 @@ testRequest(
     assert.directoryEqual(response, {
       'nested-file': rememberedNestedETag
     });
-    rememberedDirectoryETag = response.headers.etag;
+    rememberedFolderETag = response.headers.etag;
   }
 );
 
@@ -222,7 +222,7 @@ testRequest(
 testRequest(
   "15) check that root directory was updated", 'GET', '/', function(response) {
     assert.directoryEqual(response, {
-      'test-dir/': rememberedDirectoryETag
+      'test-dir/': rememberedFolderETag
     });
     assert.notEqual(response.headers.etag, rememberedRootETag);
     rememberedRootETag = response.headers.etag;
@@ -253,9 +253,9 @@ testRequest(
       'nested-file': rememberedNestedETag,
       'other-file': rememberedOtherNestedETag
     });
-    assert.notEqual(response.headers.etag, rememberedDirectoryETag);
+    assert.notEqual(response.headers.etag, rememberedFolderETag);
     assert.ok(response.headers.etag);
-    rememberedDirectoryETag = response.headers.etag;
+    rememberedFolderETag = response.headers.etag;
   }
 );
 
@@ -264,7 +264,7 @@ testRequest(
   "18) check that directory etag changed accordingly in root listing", 'GET', '/',
   function(response) {
     assert.directoryEqual(response, {
-      'test-dir/': rememberedDirectoryETag
+      'test-dir/': rememberedFolderETag
     });
     assert.notEqual(response.headers.etag, rememberedRootETag);
     rememberedRootETag = response.headers.etag;
