@@ -132,6 +132,12 @@
          items[pathObj.itemName] = {};
       }
       items[pathObj.itemName].ETag = (revision || true);
+      if(contentType) {
+        items[pathObj.itemName]['Content-Type'];
+      }
+      if(contentLength) {
+        items[pathObj.itemName]['Content-Length'];
+      }
       setMetas(metaStore, pathObj.containingFolder, items);
       if(cb) {
         cb(oldRevision);
