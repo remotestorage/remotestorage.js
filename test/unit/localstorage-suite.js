@@ -1,4 +1,4 @@
-if(typeof(define) !== 'function') {
+if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
 define(['requirejs'], function(requirejs) {
@@ -24,7 +24,7 @@ define(['requirejs'], function(requirejs) {
   function assertHaveNodes(test, expected) {
     var haveNodes = [];
     var keys = Object.keys(localStorage), kl = keys.length;
-    for(var i=0;i<kl;i++) {
+    for (var i=0;i<kl;i++) {
       if (keys[i].substr(0, NODES_PREFIX.length) === NODES_PREFIX) {
         haveNodes.push(keys[i].substr(NODES_PREFIX.length));
       }
@@ -45,7 +45,7 @@ define(['requirejs'], function(requirejs) {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
       require('./src/cachinglayer');
-      if(global.rs_cachinglayer) {
+      if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;

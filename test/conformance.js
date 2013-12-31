@@ -8,7 +8,7 @@ var testRequest = helpers.testRequest;
 
 var baseUrl = process.argv[2];
 var token = process.argv[3];
-if(! (baseUrl && token)) {
+if (! (baseUrl && token)) {
   console.log("Usage: " + process.argv[1] + " <base-url> <token>");
   process.exit(127);
 }

@@ -39,12 +39,12 @@
     remove: function(scope) {
       var savedMap = {};
       var name;
-      for(name in this.scopeModeMap) {
+      for (name in this.scopeModeMap) {
         savedMap[name] = this.scopeModeMap[name];
       }
       this.reset();
       delete savedMap[scope];
-      for(name in savedMap) {
+      for (name in savedMap) {
         this.set(name, savedMap[name]);
       }
     },
@@ -60,9 +60,9 @@
     },
 
     _adjustRootPaths: function(newScope) {
-      if('*' in this.scopeModeMap || newScope === '*') {
+      if ('*' in this.scopeModeMap || newScope === '*') {
         this.rootPaths = ['/'];
-      } else if(! (newScope in this.scopeModeMap)) {
+      } else if (! (newScope in this.scopeModeMap)) {
         this.rootPaths.push('/' + newScope + '/');
         this.rootPaths.push('/public/' + newScope + '/');
       }
@@ -137,8 +137,8 @@
 
   // documented in src/remotestorage.js
   RemoteStorage.prototype.claimAccess = function(scopes) {
-    if(typeof(scopes) === 'object') {
-      for(var key in scopes) {
+    if (typeof(scopes) === 'object') {
+      for (var key in scopes) {
         this.access.claim(key, scopes[key]);
       }
     } else {

@@ -14,13 +14,13 @@
       if (schema.extends) {
         var extendedAlias;
         var parts = schema.extends.split('/');
-        if(parts.length === 1) {
+        if (parts.length === 1) {
           extendedAlias = moduleName + '/' + parts.shift();
         } else {
           extendedAlias = parts.join('/');
         }
         var extendedUri = this.uris[extendedAlias];
-        if(! extendedUri) {
+        if (! extendedUri) {
           throw "Type '" + fullAlias + "' tries to extend unknown schema '" + extendedAlias + "'";
         }
         schema.extends = this.schemas[extendedUri];
@@ -42,7 +42,7 @@
     inScope: function(moduleName) {
       var ml = moduleName.length;
       var schemas = {};
-      for(var alias in this.uris) {
+      for (var alias in this.uris) {
         if (alias.substr(0, ml + 1) === moduleName + '/') {
           var uri = this.uris[alias];
           schemas[uri] = this.schemas[uri];
@@ -76,7 +76,7 @@
      **/
     validate: function(object) {
       var schema = RemoteStorage.BaseClient.Types.getSchema(object['@context']);
-      if(schema) {
+      if (schema) {
         return tv4.validateResult(object, schema);
       } else {
         throw new SchemaNotFound(object['@context']);
@@ -87,7 +87,7 @@
     //  /* OR */
     // client.declareType(alias, uri, schema);
     declareType: function(alias, uri, schema) {
-      if(! schema) {
+      if (! schema) {
         schema = uri;
         uri = this._defaultTypeURI(alias);
       }

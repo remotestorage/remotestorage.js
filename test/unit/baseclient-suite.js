@@ -33,7 +33,7 @@ define(['requirejs'], function(requirejs, undefined) {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
       require('./src/wireclient');
-      if(global.rs_wireclient) {
+      if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
         global.rs_wireclient = RemoteStorage.WireClient;
@@ -117,13 +117,13 @@ define(['requirejs'], function(requirejs, undefined) {
   suites.push({
     desc: "BaseClient directory handling",
     setup: function(env, test) {
-      if(typeof(RemoteStorage) !== 'function') {
+      if (typeof(RemoteStorage) !== 'function') {
         global.RemoteStorage = function() {};
         RemoteStorage.prototype = {
           onChange: function() {}
         };
       }
-      if(typeof(RemoteStorage.BaseClient) !== 'function') {
+      if (typeof(RemoteStorage.BaseClient) !== 'function') {
         require('./src/eventhandling');
         require('./src/baseclient');
       }
@@ -313,7 +313,7 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           var n = 10000;
           var uuids = {};
-          for(var i=0;i<n;i++) {
+          for (var i=0;i<n;i++) {
             uuids[env.client.uuid()] = true;
           }
           test.assert(Object.keys(uuids).length, n);

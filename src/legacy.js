@@ -12,7 +12,7 @@
     extend: function(target) {
       var sources = Array.prototype.slice.call(arguments, 1);
       sources.forEach(function(source) {
-        for(var key in source) {
+        for (var key in source) {
           target[key] = source[key];
         }
       });
@@ -30,7 +30,7 @@
       var results = [], errors = [];
       function oneDone() {
         i++;
-        if(i === n) {
+        if (i === n) {
           promise.fulfill(results, errors);
         }
       }
@@ -74,7 +74,7 @@
     },
 
     bindAll: function(object) {
-      for(var key in this) {
+      for (var key in this) {
         if (typeof(object[key]) === 'function') {
           object[key] = object[key].bind(object);
         }

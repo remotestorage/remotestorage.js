@@ -377,7 +377,7 @@
       changes.get(path).onsuccess = function(evt) {
         change = evt.target.result || {};
         change.path = path;
-        for(var key in attributes) {
+        for (var key in attributes) {
           change[key] = attributes[key];
         }
         changes.put(change);
@@ -491,7 +491,7 @@
   RS.IndexedDB._rs_init = function(remoteStorage) {
     var promise = promising();
     RS.IndexedDB.open(DEFAULT_DB_NAME, function(err, db) {
-      if(err) {
+      if (err) {
         promise.reject(err);
       } else {
         DEFAULT_DB = db;

@@ -104,15 +104,15 @@
     setView: function(view) {
       this.view = view;
       this.view.on('connect', function(options) {
-        if(typeof(options) === 'string') {
+        if (typeof(options) === 'string') {
           // options is simply a useraddress
           this.rs.connect(options);
-        } else if(options.special) {
+        } else if (options.special) {
           this.rs[options.special].connect(options);
         }
       }.bind(this));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
-      if(this.rs.sync) {
+      if (this.rs.sync) {
         this.view.on('sync', this.rs.sync.bind(this.rs));
       }
       try {
@@ -122,14 +122,14 @@
           this.rs.disconnect();
         }.bind(this));
       } catch(e) {
-        if(e.message && e.message.match(/Unknown event/)) {
+        if (e.message && e.message.match(/Unknown event/)) {
           // ignored. (the 0.7 widget-view interface didn't have a 'reset' event)
         } else {
           throw e;
         }
       }
 
-      if(this._rememberedState) {
+      if (this._rememberedState) {
         setTimeout(stateSetter(this, this._rememberedState), 0);
         delete this._rememberedState;
       }
@@ -145,7 +145,7 @@
 
   RemoteStorage.Widget._rs_init = function(remoteStorage) {
     hasLocalStorage = remoteStorage.localStorageAvailable();
-    if(! remoteStorage.widget) {
+    if (! remoteStorage.widget) {
       remoteStorage.widget = new RemoteStorage.Widget(remoteStorage);
     }
   };

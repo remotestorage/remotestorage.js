@@ -25,8 +25,8 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         },
         removeEventListener: function(eventName, handler) {
           var hl = this._handlers[eventName].length;
-          for(var i=0;i<hl;i++) {
-            if(this._handlers[eventName][i] === handler) {
+          for (var i=0;i<hl;i++) {
+            if (this._handlers[eventName][i] === handler) {
               this._handlers[eventName].splice(i, 1);
               return;
             }

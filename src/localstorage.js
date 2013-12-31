@@ -60,7 +60,7 @@
     toBase64: function(data){
       var arr = new Uint8Array(data);
       var str = '';
-      for(var i = 0; i < arr.length; i++) {
+      for (var i = 0; i < arr.length; i++) {
         //atob(btoa(String.fromCharCode(arr[0]))).charCodeAt(0)
         str+=String.fromCharCode(arr[i]);
       }
@@ -160,7 +160,7 @@
       } catch(e) {
         change = {};
       }
-      for(var key in attributes) {
+      for (var key in attributes) {
         change[key] = attributes[key];
       }
       change.path = path;
@@ -176,7 +176,7 @@
       var changes = [];
       var kl = localStorage.length;
       var prefix = CHANGES_PREFIX + path, pl = prefix.length;
-      for(var i=0;i<kl;i++) {
+      for (var i=0;i<kl;i++) {
         var key = localStorage.key(i);
         if (key.substr(0, pl) === prefix) {
           changes.push(JSON.parse(localStorage[key]));
@@ -231,7 +231,7 @@
 
     fireInitial: function() {
       var l = localStorage.length, npl = NODES_PREFIX.length;
-      for(var i=0;i<l;i++) {
+      for (var i=0;i<l;i++) {
         var key = localStorage.key(i);
         if (key.substr(0, npl) === NODES_PREFIX) {
           var path = key.substr(npl);
@@ -258,7 +258,7 @@
     var l = localStorage.length;
     var npl = NODES_PREFIX.length, cpl = CHANGES_PREFIX.length;
     var remove = [];
-    for(var i=0;i<l;i++) {
+    for (var i=0;i<l;i++) {
       var key = localStorage.key(i);
       if (key.substr(0, npl) === NODES_PREFIX ||
          key.substr(0, cpl) === CHANGES_PREFIX) {
