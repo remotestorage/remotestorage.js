@@ -133,10 +133,10 @@
       }
       items[pathObj.itemName].ETag = (revision || true);
       if(contentType) {
-        items[pathObj.itemName]['Content-Type'];
+        items[pathObj.itemName]['Content-Type'] = contentType;
       }
       if(contentLength) {
-        items[pathObj.itemName]['Content-Length'];
+        items[pathObj.itemName]['Content-Length'] = contentLength;
       }
       setMetas(metaStore, pathObj.containingFolder, items);
       if(cb) {
