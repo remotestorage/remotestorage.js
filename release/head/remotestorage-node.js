@@ -1,4 +1,4 @@
-/** remotestorage.js 0.9.0, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.9.1-pre, http://remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/promising.js **/
 (function(global) {
@@ -1205,6 +1205,10 @@
               }.bind(this));
             }
             return promising().fulfill(status, listing, contentType, revision);
+          }
+          // No directory listing received
+          else if (status === 404) {
+            return promising().fulfill(404);
           }
           // Cached directory listing received
           else if (status === 304) {

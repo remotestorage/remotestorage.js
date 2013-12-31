@@ -1,4 +1,4 @@
-/** remotestorage.js 0.9.0, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.9.1-pre, http://remotestorage.io, MIT-licensed **/
 define([], function() {
 
 /** FILE: lib/promising.js **/
@@ -1206,6 +1206,10 @@ define([], function() {
               }.bind(this));
             }
             return promising().fulfill(status, listing, contentType, revision);
+          }
+          // No directory listing received
+          else if (status === 404) {
+            return promising().fulfill(404);
           }
           // Cached directory listing received
           else if (status === 304) {
@@ -6324,7 +6328,7 @@ Math.uuid = function (len, radix) {
       options.headers['Authorization'] = 'Bearer ' + this.token;
       RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
         // google tokens expire from time to time...
-        if(xhr.status === 401) {
+        if(xhr && xhr.status === 401) {
           this.connect();
           return;
         }
