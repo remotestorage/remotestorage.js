@@ -203,7 +203,7 @@
                 });
                 oneDone();
               } else {
-                local._setRevision(path, revision);
+                local.setRevision(path, revision);
                 oneDone(change.path);
               }
             }).then(undefined, errored);
