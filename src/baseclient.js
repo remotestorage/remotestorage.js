@@ -165,7 +165,7 @@
      *   (end code)
      */
     getListing: function(path) {
-      if (typeof(path) === 'undefined') {
+      if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a directory: " + path;
@@ -199,7 +199,7 @@
      *   (end code)
      */
     getAll: function(path) {
-      if (typeof(path) === 'undefined') {
+      if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a directory: " + path;
@@ -258,6 +258,10 @@
      *   (end code)
      */
     getFile: function(path) {
+      if (typeof(path) !== 'string') {
+        return promising().reject('argument \'path\' of baseClient.getFile should be a string');
+      }
+
       return this.storage.get(this.makePath(path)).then(function(status, body, mimeType, revision) {
         return {
           data: body,
@@ -303,6 +307,16 @@
      *
      */
     storeFile: function(mimeType, path, body) {
+      if (typeof(mimeType) !== 'string') {
+        return promising().reject('argument \'mimeType\' of baseClient.storeFile should be a string');
+      }
+      if (typeof(path) !== 'string') {
+        return promising().reject('argument \'path\' of baseClient.storeFile should be a string');
+      }
+      if (typeof(body) !== 'string' && typeof(body) !== 'object') {
+        return promising().reject('argument \'object\' of baseClient.storeFile should be a string, ArrayBuffer, or ArrayBufferView');
+      }
+
       var self = this;
       return this.storage.put(this.makePath(path), body, mimeType).then(function(status, _body, _mimeType, revision) {
         if (status === 200 || status === 201) {
@@ -335,6 +349,9 @@
      *   (end code)
      */
     getObject: function(path) {
+      if (typeof(path) !== 'string') {
+        return promising().reject('argument \'path\' of baseClient.getObject should be a string');
+      }
       return this.storage.get(this.makePath(path)).then(function(status, body, mimeType, revision) {
         if (typeof(body) === 'object') {
           return body;
@@ -386,6 +403,15 @@
      *   See <declareType> for examples.
      */
     storeObject: function(typeAlias, path, object) {
+      if (typeof(typeAlias) !== 'string') {
+        return promising().reject('argument \'typeAlias\' of baseClient.storeObject should be a string');
+      }
+      if (typeof(path) !== 'string') {
+        return promising().reject('argument \'path\' of baseClient.storeObject should be a string');
+      }
+      if (typeof(object) !== 'object') {
+        return promising().reject('argument \'object\' of baseClient.storeObject should be an object');
+      }
       this._attachType(object, typeAlias);
       try {
         var validationResult = this.validate(object);
@@ -417,14 +443,21 @@
      *   path     - Path relative to the module root.
      */
     remove: function(path) {
+      if (typeof(path) !== 'string') {
+        return promising().reject('argument \'path\' of baseClient.remove should be a string');
+      }
       return this.storage.delete(this.makePath(path));
     },
 
     cache: function(path, disable) {
+      if (typeof(path) !== 'string') {
+        throw 'argument \'path\' of baseClient.cache should be a string';
+      }
+
       this.storage.caching[disable !== false ? 'enable' : 'disable'](
         this.makePath(path)
       );
-      return this;
+      return this;// why?
     },
 
     makePath: function(path) {
@@ -454,6 +487,9 @@
      *   path     - Path relative to the module root.
      */
     getItemURL: function(path) {
+      if (typeof(path) !== 'string') {
+        throw 'argument \'path\' of baseClient.getItemURL should be a string';
+      }
       if (this.storage.connected) {
         path = this._cleanPath( this.makePath(path) );
         return this.storage.remote.href + path;
@@ -495,6 +531,10 @@
    */
   RS.BaseClient._rs_init = function() {
     RS.prototype.scope = function(path) {
+      if (typeof(path) !== 'string') {
+        throw 'argument \'path\' of baseClient.scope should be a string';
+      }
+
       return new RS.BaseClient(this, path);
     };
   };
