@@ -300,6 +300,10 @@
             }
             return promising().fulfill(status, listing, contentType, revision);
           }
+          // No directory listing received
+          else if (status === 404) {
+            return promising().fulfill(404);
+          }
           // Cached directory listing received
           else if (status === 304) {
             return promising().fulfill(status, body, contentType, revision);
