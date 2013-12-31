@@ -273,7 +273,7 @@
    *
    */
   RemoteStorage.prototype.setSyncInterval = function(interval) {
-    if(typeof(interval) !== 'number') {
+    if (typeof(interval) !== 'number') {
       throw interval + " is not a valid sync interval";
     }
     syncInterval = parseInt(interval, 10);
@@ -321,7 +321,7 @@
           var cachingState = rs.caching.get(path);
           RemoteStorage.Sync.sync(rs.remote, rs.local, path, cachingState).
             then(function() {
-              if(!cachingState.ready) {
+              if (!cachingState.ready) {
                 cachingState.ready = true;
                 rs.caching.set(path, cachingState);
               }

@@ -1,4 +1,4 @@
-if(typeof(define) !== 'function') {
+if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
 define(['requirejs'], function(requirejs) {
@@ -11,13 +11,13 @@ define(['requirejs'], function(requirejs) {
       require('./lib/promising');
       global.RemoteStorage = function() {};
       require('./src/eventhandling');
-      if( global.rs_eventhandling ) {
+      if ( global.rs_eventhandling ) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
       require('./src/cachinglayer');
-      if(global.rs_cachinglayer) {
+      if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;

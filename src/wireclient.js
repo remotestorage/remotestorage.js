@@ -61,7 +61,7 @@
       Int32Array, Uint32Array, Float32Array, Float64Array
     ];
     isArrayBufferView = function(object) {
-      for(var i=0;i<8;i++) {
+      for (var i=0;i<8;i++) {
         if (object instanceof arrayBufferViews[i]) {
           return true;
         }
@@ -160,7 +160,7 @@
     RS.eventHandling(this, 'change', 'connected');
 
     onErrorCb = function(error){
-      if(error instanceof RemoteStorage.Unauthorized) {
+      if (error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this);
@@ -383,7 +383,7 @@
       xhr.responseType = options.responseType;
     }
     if (options.headers) {
-      for(var key in options.headers) {
+      for (var key in options.headers) {
         xhr.setRequestHeader(key, options.headers[key]);
       }
     }

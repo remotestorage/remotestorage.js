@@ -117,7 +117,7 @@
     // END LEGACY
 
     extend: function(object) {
-      for(var key in object) {
+      for (var key in object) {
         this[key] = object[key];
       }
       return this;
@@ -192,7 +192,7 @@
      * Example:
      *   (start code)
      *   client.getAll('').then(function(objects) {
-     *     for(var key in objects) {
+     *     for (var key in objects) {
      *       console.log('- ' + key + ': ', objects[key]);
      *     }
      *   });
@@ -214,7 +214,7 @@
             // has changes that haven't been pushed out yet.
             return;
           }
-          for(var key in body) {
+          for (var key in body) {
             this.storage.get(this.makePath(path + key)).
               then(function(status, b) {
                 body[this.key] = b;

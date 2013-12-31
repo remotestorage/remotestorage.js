@@ -122,7 +122,7 @@
 
     _recordChange: function(path, attributes) {
       var change = this._changes[path] || {};
-      for(var key in attributes) {
+      for (var key in attributes) {
         change[key] = attributes[key];
       }
       change.path = path;
@@ -137,7 +137,7 @@
     changesBelow: function(path) {
       var changes = [];
       var l = path.length;
-      for(var key in this._changes) {
+      for (var key in this._changes) {
         if (key.substr(0,l) === path) {
           changes.push(this._changes[key]);
         }
