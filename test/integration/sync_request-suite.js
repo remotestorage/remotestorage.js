@@ -44,7 +44,7 @@ var util = {
   }
 };
 
-define(['requirejs', 'xmlhttprequest'], function(requirejs,  request) {
+define(['requirejs', 'xhr2'], function(requirejs,  request) {
   global.XMLHttpRequest = request.XMLHttpRequest;
   var suites = [];
 
