@@ -302,9 +302,9 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#_setRevision updates `cached` items of parent directories",
+        desc: "#setRevision updates `cached` items of parent directories",
         run: function(env, test) {
-          env.ls._setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
+          env.ls.setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
             test.assertAnd(env.ls._get('/foo/bar/'), {
               body: {},
               cached: { 'baz': 'a1b2c3' },
@@ -334,8 +334,8 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#setRevision doesn't overwrite `cached` items in parent directories",
         run: function(env, test) {
-          env.ls._setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
-            env.ls._setRevision('/foo/bar/booze', 'd4e5f6').then(function() {
+          env.ls.setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
+            env.ls.setRevision('/foo/bar/booze', 'd4e5f6').then(function() {
               test.assert(env.ls._get('/foo/bar/'), {
                 body: {},
                 cached: { 'baz': 'a1b2c3', 'booze': 'd4e5f6' },
