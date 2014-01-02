@@ -172,7 +172,7 @@
       }
       return this.storage.get(this.makePath(path)).then(
         function(status, itemsMap) {
-          return (status === 404) ? {} : itemsMap;
+          return (status === 404) ? undefined : itemsMap;
         }
       );
     },
