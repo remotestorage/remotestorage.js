@@ -120,7 +120,7 @@
     getMetas(metaStore, pathObj.containingFolder, function(items) {
       var oldRevision, parentPathObj = parsePath(pathObj.containingFolder);
       //creating this folder's path up to the root:
-      if(!parentPathObj.isRoot ) {
+      if(!parentPathObj.isRoot  && Object.getOwnPropertyNames(items).length === 0) {
         addToParent(metaStore, parentPathObj, true);
       }
       if(items[pathObj.itemName]) {

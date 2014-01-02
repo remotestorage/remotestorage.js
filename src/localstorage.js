@@ -57,7 +57,6 @@
     }
     parts.pop();
     ret.containingFolder = parts.join('/')+ (parts.length ? '/' : '');
-    console.log('parsePath', path, parts, ret);
     return ret;
   }
 
@@ -110,10 +109,10 @@
       var body = this._getBody(path),
         meta = this._getMeta(path);
       if (body) {
-        if (isBinary(meta.contentType)){
+        if (isBinary(meta['Content-Type'])){
           body = this.toArrayBuffer(body);
         }
-        return promising().fulfill(200, body, meta.contentType, meta.revision);
+        return promising().fulfill(200, body, meta['Content-Type'], meta.ETag);
       } else {
         return promising().fulfill(404);
       }
@@ -160,7 +159,7 @@
 
     _getMetas: function(path) {
       var str = localStorage[META_PREFIX + path], items;
-      if(str.length) {
+      if(typeof(str) === 'string' && str.length) {
         try {
           items = JSON.parse(str);
         } catch(e) {
@@ -170,7 +169,7 @@
     },
 
     _setMetas: function(path, items) {
-      localStorage[BODIES_PREFIX + path] = JSON.stringify(items);
+      localStorage[META_PREFIX + path] = JSON.stringify(items);
     },
 
     _recordChange: function(path, attributes) {
@@ -214,15 +213,13 @@
     _addToParent: function(pathObj, revision, contentType, contentLength) {
       var items = this._getMetas(pathObj.containingFolder), parentPathObj = parsePath(pathObj.containingFolder);
       //creating this folder's path up to the root:
-      if(!parentPathObj.isRoot && items === {}) {
+      if(!parentPathObj.isRoot && Object.getOwnPropertyNames(items).length === 0) {
         this._addToParent(parentPathObj, true);
       }
       if(!items[pathObj.itemName]) {
         items[pathObj.itemName] = {};
       }
-      if(revision) {
-        items[pathObj.itemName].ETag = revision;
-      }
+      items[pathObj.itemName].ETag = (revision || true);
       if(contentType) {
         items[pathObj.itemName]['Content-Type'] = contentType;
       }
@@ -276,7 +273,6 @@
       }
     }
     remove.forEach(function(key) {
-      console.log('removing', key);
       delete localStorage[key];
     });
   };
