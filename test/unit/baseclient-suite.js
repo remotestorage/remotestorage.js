@@ -211,18 +211,6 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#getListing results in 'undefined' when it sees a 404",
-        run: function(env, test) {
-          env.storage.get = function(path) {
-            return promising().fulfill(404);
-          };
-          env.client.getListing('').then(function(result) {
-            test.assertType(result, 'undefined');
-          });
-        }
-      },
-
-      {
         desc: "#getAll results in 'undefined' when it sees a 404",
         run: function(env, test) {
           env.storage.get = function(path) {

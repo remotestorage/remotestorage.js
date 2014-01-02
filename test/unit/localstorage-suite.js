@@ -4,11 +4,17 @@ if (typeof(define) !== 'function') {
 define(['requirejs'], function(requirejs) {
   var suites = [];
 
-  var NODES_PREFIX = 'remotestorage:cache:nodes:';
+  var BODIES_PREFIX = 'remotestorage:cache:bodies:';
+  var META_PREFIX = 'remotestorage:cache:meta:';
   var CHANGES_PREFIX = 'remotestorage:cache:changes:';
 
-  function assertNode(test, path, expected) {
-    var node = JSON.parse(localStorage[NODES_PREFIX + path]);
+  function assertBody(test, path, expected) {
+    var node = localStorage[BODIES_PREFIX + path];
+    test.assertAnd(node, expected);
+  }
+
+  function assertMeta(test, path, expected) {
+    var node = JSON.parse(localStorage[META_PREFIX + path]);
     test.assertAnd(node, expected);
   }
 
@@ -21,12 +27,12 @@ define(['requirejs'], function(requirejs) {
     test.assertTypeAnd(localStorage[CHANGES_PREFIX + path], 'undefined');
   }
 
-  function assertHaveNodes(test, expected) {
+  function assertHaveBodies(test, expected) {
     var haveNodes = [];
     var keys = Object.keys(localStorage), kl = keys.length;
     for (var i=0;i<kl;i++) {
-      if (keys[i].substr(0, NODES_PREFIX.length) === NODES_PREFIX) {
-        haveNodes.push(keys[i].substr(NODES_PREFIX.length));
+      if (keys[i].substr(0, BODIES_PREFIX.length) === BODIES_PREFIX) {
+        haveNodes.push(keys[i].substr(BODIES_PREFIX.length));
       }
     }
     test.assertAnd(haveNodes, expected);
@@ -65,10 +71,12 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#get loads a node",
         run: function(env, test) {
-          global.localStorage[NODES_PREFIX + '/foo'] = JSON.stringify({
-            body: "bar",
-            contentType: "text/plain",
-            revision: "123"
+          global.localStorage[BODIES_PREFIX + '/foo'] = 'bar';
+          global.localStorage[META_PREFIX + '/'] = JSON.stringify({
+            foo: {
+             'Content-Type': "text/plain",
+              ETag: "123"
+            }
           });
           env.ls.get('/foo').then(function(status, body, contentType, revision) {
             test.assertAnd(status, 200);
@@ -102,10 +110,13 @@ define(['requirejs'], function(requirejs) {
         desc: "#put creates a new node",
         run: function(env, test) {
           env.ls.put('/foo/bar/baz', 'bar', 'text/plain').then(function() {
-            assertNode(test, '/foo/bar/baz', {
-              body: 'bar',
-              contentType: 'text/plain',
-              path: '/foo/bar/baz'
+            assertBody(test, '/foo/bar/baz', 'bar');
+            assertMeta(test, '/foo/bar/', {
+              baz: {
+                'Content-Type': 'text/plain',
+                'Content-Length': 3,
+                ETag: true
+              }
             });
             test.done();
           });
@@ -139,13 +150,15 @@ define(['requirejs'], function(requirejs) {
         desc: "#put sets a revision for incoming changes",
         run: function(env, test) {
           env.ls.put('/foo/bla', 'basdf', 'text/plain', true, 'meh').then(function() {
-            var expectedCacheNode = {
-              path: '/foo/bla',
-              body: 'basdf',
-              contentType: 'text/plain',
-              revision: 'meh'
+            var expectedMeta = {
+              bla: {
+                'Content-Type': 'text/plain',
+                'Content-Length': 5,
+                ETag: 'meh'
+              }
             };
-            assertNode(test, '/foo/bla', expectedCacheNode);
+            assertMeta(test, '/foo/', expectedMeta);
+            assertBody(test, '/foo/bla', 'basdf');
             test.done();
           });
         }
@@ -217,37 +230,32 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#putDirectory adds the directory cache node with the given body",
+        desc: "#putFolder adds the directory cache node with the given body",
         run: function(env, test) {
           var directoryItems = {'item1': {'ETag': '123', 'Content-Type': 'text/plain'},
                                 'subdir/': {'ETag': '321'}};
 
-          env.ls.putDirectory('/foo/bar/', directoryItems, 'meh').then(function() {
-            var expectedCacheNode = {
-              path: '/foo/bar/',
-              body: directoryItems,
-              cached: {},
-              contentType: 'application/json',
-              revision: 'meh'
-            };
-            assertNode(test, '/foo/bar/', expectedCacheNode);
+          env.ls.putFolder('/foo/bar/', directoryItems, 'meh').then(function() {
+            var expectedParentMeta = { 'bar/': { ETag: 'meh' } };
+            assertMeta(test, '/foo/', expectedParentMeta);
+            assertMeta(test, '/foo/bar/', directoryItems);
             test.done();
           });
         }
       },
 
       {
-        desc: "#putDirectory adds the path to the parents",
+        desc: "#putFolder adds the path to the parents",
         run: function(env, test) {
           var directoryItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
                                 'subdir/': {'ETag': '321'}};
 
-          env.ls.putDirectory('/foo/bar/', directoryItems).then(function() {
-            var fooNode = JSON.parse(localStorage[NODES_PREFIX + '/foo/']);
-            var rootNode = JSON.parse(localStorage[NODES_PREFIX + '/']);
+          env.ls.putFolder('/foo/bar/', directoryItems).then(function() {
+            var fooNode = JSON.parse(localStorage[META_PREFIX + '/foo/']);
+            var rootNode = JSON.parse(localStorage[META_PREFIX + '/']);
 
-            test.assertAnd(fooNode.body['bar/'], true);
-            test.assertAnd(rootNode.body['foo/'], true);
+            test.assertAnd(fooNode['bar/'], { ETag: true });
+            test.assertAnd(rootNode['foo/'], { ETag: true });
             test.done();
           });
         }
@@ -294,7 +302,7 @@ define(['requirejs'], function(requirejs) {
           localStorage.length = 1;
           localStorage.key = function(i) {
             if (i === 0) {
-              return NODES_PREFIX+'/foo/bla';
+              return BODIES_PREFIX+'/foo/bla';
             }
           };
           env.ls.fireInitial();
@@ -302,30 +310,12 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#_setRevision updates `cached` items of parent directories",
+        desc: "#setRevision updates `cached` items of parent directories",
         run: function(env, test) {
-          env.ls._setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
-            test.assertAnd(env.ls._get('/foo/bar/'), {
-              body: {},
-              cached: { 'baz': 'a1b2c3' },
-              contentType: 'application/json',
-              path: '/foo/bar/'
-            });
-
-            test.assertAnd(env.ls._get('/foo/'), {
-              body: {},
-              cached: { 'bar/': true },
-              contentType: 'application/json',
-              path: '/foo/'
-            });
-
-            test.assertAnd(env.ls._get('/'), {
-              body: {},
-              cached: { 'foo/': true },
-              contentType: 'application/json',
-              path: '/'
-            });
-
+          env.ls.setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
+            test.assertAnd(env.ls._getMetas('/foo/bar/'), { 'baz': { ETag: 'a1b2c3' } });
+            test.assertAnd(env.ls._getMetas('/foo/'), { 'bar/': { ETag: true } });
+            test.assertAnd(env.ls._getMetas('/'), { 'foo/': { ETag: true } });
             test.done();
           });
         }
@@ -334,14 +324,9 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#setRevision doesn't overwrite `cached` items in parent directories",
         run: function(env, test) {
-          env.ls._setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
-            env.ls._setRevision('/foo/bar/booze', 'd4e5f6').then(function() {
-              test.assert(env.ls._get('/foo/bar/'), {
-                body: {},
-                cached: { 'baz': 'a1b2c3', 'booze': 'd4e5f6' },
-                contentType: 'application/json',
-                path: '/foo/bar/'
-              });
+          env.ls.setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
+            env.ls.setRevision('/foo/bar/booze', 'd4e5f6').then(function() {
+              test.assert(env.ls._getMetas('/foo/bar/'), { 'baz': { ETag: 'a1b2c3' }, 'booze': { ETag: 'd4e5f6' } });
             });
           });
         }
