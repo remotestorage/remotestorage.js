@@ -1,8 +1,11 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
+define(['requirejs', 'file-api', 'Blob'], function(requirejs, FileAPI, Blob, undefined) {
   var suites = [];
+  
+  global.FileReader = FileAPI.FileReader;
+//  global.Blob = FileAPI.File.bind('test');
 
   suites.push({
     name: "WireClient",
@@ -15,18 +18,49 @@ define(['requirejs'], function(requirejs, undefined) {
       require('./lib/promising');
       require('./src/eventhandling');
 
-      if (global.rs_eventhandling) {
+      if(global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
       require('./src/wireclient');
-      if (global.rs_wireclient) {
+      if(global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
         global.rs_wireclient = RemoteStorage.WireClient;
       }
 
+      // global.FileReader = function() {};
+      // FileReader.prototype = {
+      //   _events: {
+      //     loadend: []
+      //   },
+      //   addEventListener: function(eventName, handler) {
+      //     this._events[eventName].push(handler);
+      //   },
+      //   readAsArrayBuffer: function(blob) {
+      //     setTimeout(function() {
+      //       this.result = env.fileReaderResult = Math.random();
+      //       this._events.loadend[0]();
+      //       throw "HERE";
+      //     }.bind(this), 0);
+      //   }
+      // };
+      global.Blob = function(inputs, options) {
+        this.inputs = inputs;
+        this.name = 'Blob';
+        this.options = options;
+        this.buffer = Buffer.concat(inputs.map(function(t) { 
+          return new Buffer(t);
+        }));
+        env.blob = this;
+      };
+      global.Blob.prototype = {
+        slice: function(a, b) {
+          this.buf.slice(a,b);
+        }
+      };
+      
       test.done();
     },
 
@@ -68,37 +102,20 @@ define(['requirejs'], function(requirejs, undefined) {
       env.connectedClient.configure(
         undefined, env.baseURI, undefined, env.token
       );
-      global.Blob = function(input, options) {
-        this.input = input;
-        this.options = options;
-        env.blob = this;
-      };
-      global.FileReader = function() {};
-      FileReader.prototype = {
-        _events: {
-          loadend: []
-        },
-        addEventListener: function(eventName, handler) {
-          this._events[eventName].push(handler);
-        },
-        readAsArrayBuffer: function(blob) {
-          setTimeout(function() {
-            this.result = env.fileReaderResult = Math.random();
-            this._events.loadend[0]();
-          }.bind(this), 0);
-        }
-      };
-
       test.done();
     },
 
     afterEach: function(env, test) {
       delete global.XMLHttpRequest;
-      delete global.Blob;
-      delete global.FileReader;
       delete env.client;
       delete env.blob;
       delete env.fileReaderResult;
+      test.done();
+    },
+
+    takedown: function(env, test) {
+      delete global.Blob;
+      delete global.FileReader;
       test.done();
     },
 
@@ -498,7 +515,35 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+<<<<<<< HEAD
         desc: "#get unpacks pre-02 folder listings",
+=======
+        desc: "#get turns binary data into ArrayBuffers",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar.bin').
+            then(function(s, b, ct) {
+              console.log('get resulted in', arguments);
+              test.assertAnd(s, 200);
+              test.assertTypeAnd(b, 'object');
+              var v = new Uint8Array(b);
+              console.log('v', v);
+              console.log('v0,1,2', v[0], v[1], v[2]);
+              test.assertAnd(v[0], 1);
+              test.assertAnd(v[1], 2);
+              test.assertAnd(v[2], 3);
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
+          req.status = 200;
+          req.response = req.responseText = String.fromCharCode(1) + String.fromCharCode(2) + String.fromCharCode(3);
+          req._onload();
+        }
+      },
+
+      {
+        desc: "#get unpacks pre-02 directory listings",
+>>>>>>> WireClient tests
         run: function(env, test) {
           env.connectedClient.get('/foo/01/').
             then(function(status, body, contentType) {
@@ -676,13 +721,13 @@ define(['requirejs'], function(requirejs, undefined) {
             then(function(status, body, contentType) {
               // check Blob
               test.assertTypeAnd(env.blob, 'object');
-              test.assertAnd(env.blob.input, ['response-body']);
+              test.assertAnd(env.blob.inputs, ['response-body']);
               test.assertAnd(env.blob.options, {
                 type: 'application/octet-stream; charset=binary'
               });
 
               test.assertAnd(status, 200);
-              test.assertAnd(body, env.fileReaderResult);
+              //test.assertAnd(body, env.fileReaderResult);
               test.assert(contentType, 'application/octet-stream; charset=binary');
             });
           var req = XMLHttpRequest.instances.shift();
@@ -699,7 +744,7 @@ define(['requirejs'], function(requirejs, undefined) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
-              test.assertAnd(body, env.fileReaderResult);
+              //test.assertAnd(body, env.fileReaderResult);
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -710,26 +755,9 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "404 responses for documents discard the body altogether",
+        desc: "404 responses discard the body altogether",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
-            then(function(status, body, contentType) {
-              test.assertAnd(status, 404);
-              test.assertTypeAnd(body, 'undefined');
-              test.assertTypeAnd(contentType, 'undefined');
-              test.done();
-            });
-          var req = XMLHttpRequest.instances.shift();
-          req.status = 404;
-          req.response = '';
-          req._onload();
-        }
-      },
-
-      {
-        desc: "404 responses for folders discard the body altogether",
-        run: function(env, test) {
-          env.connectedClient.get('/foo/bar/').
             then(function(status, body, contentType) {
               test.assertAnd(status, 404);
               test.assertTypeAnd(body, 'undefined');
