@@ -327,7 +327,7 @@
       var pathObj = parsePath(path),
         transaction = this.db.transaction(['meta'], 'readwrite'),
         promise = promising();
-      this._addToParent(transaction.objectStore('meta'), pathObj, revision);
+      this.addToParent(transaction.objectStore('meta'), pathObj, revision);
 
       transaction.oncomplete = function() {
         promise.fulfill();
