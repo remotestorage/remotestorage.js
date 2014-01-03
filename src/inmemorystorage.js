@@ -54,8 +54,8 @@
       return promising().fulfill(200);
     },
 
-    putDirectory: function(path, body, revision) {
-      this._addDirectoryCacheNode(path, body);
+    putFolder: function(path, body, revision) {
+      this._addFolderCacheNode(path, body);
       this._addToParent(path, 'body');
       this._setRevision(path, revision);
       return promising().fulfill();
@@ -84,17 +84,17 @@
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
       if (parts) {
         var storage = this._storage;
-        var dirname = parts[1], basename = parts[2];
-        var node = storage[dirname] || makeNode(dirname);
+        var foldername = parts[1], basename = parts[2];
+        var node = storage[foldername] || makeNode(foldername);
         node[key][basename] = revision || true;
-        storage[dirname] = node;
-        if (dirname !== '/') {
-          this._addToParent(dirname, key, true);
+        storage[foldername] = node;
+        if (foldername !== '/') {
+          this._addToParent(foldername, key, true);
         }
       }
     },
 
-    _addDirectoryCacheNode: function(path, body) {
+    _addFolderCacheNode: function(path, body) {
       var storage = this._storage;
       var node = storage[path] || makeNode(path);
       node.body = body;
@@ -106,14 +106,14 @@
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
       if (parts) {
         var storage = this._storage;
-        var dirname = parts[1], basename = parts[2];
-        var node = storage[dirname];
+        var foldername = parts[1], basename = parts[2];
+        var node = storage[foldername];
         if (node) {
           delete node.cached[basename];
           if (Object.keys(node.cached).length === 0) {
-            delete storage[dirname];
-            if (dirname !== '/') {
-              this._removeFromParent(dirname);
+            delete storage[foldername];
+            if (foldername !== '/') {
+              this._removeFromParent(foldername);
             }
           }
         }

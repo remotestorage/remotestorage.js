@@ -22,7 +22,7 @@
 
   var syncInterval = 10000;
 
-  function isDir(path) {
+  function isFolder(path) {
     return path[path.length - 1] === '/';
   }
 
@@ -39,8 +39,8 @@
   }
 
   function updateLocal(remote, local, path, body, contentType, revision, promise) {
-    if (isDir(path)) {
-      local.putDirectory(path, body, revision).then(function() {
+    if (isFolder(path)) {
+      local.putFolder(path, body, revision).then(function() {
         descendInto(remote, local, path, Object.keys(body), promise);
       });
     } else {
@@ -70,7 +70,7 @@
   }
 
   function deleteLocal(local, path, promise) {
-    if (isDir(path)) {
+    if (isFolder(path)) {
       local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
         var keys = [], failed = false;
         for (var item in localBody) {
@@ -118,12 +118,12 @@
           // remote doesn't exist, local does.
           deleteLocal(local, path, promise);
         } else if (localStatus === 200 && remoteStatus === 200) {
-          if (isDir(path)) {
+          if (isFolder(path)) {
             if (remoteRevision && remoteRevision === localRevision) {
               promise.fulfill();
             } else {
-              local.putDirectory(path, remoteBody, remoteRevision).then(function() {
-                // TODO Factor in  `cached` items of directory cache node
+              local.putFolder(path, remoteBody, remoteRevision).then(function() {
+                // TODO Factor in  `cached` items of folder cache node
                 var differentObjects = allDifferentKeys(localBody, remoteBody);
                 descendInto(remote, local, path, differentObjects, promise);
               });

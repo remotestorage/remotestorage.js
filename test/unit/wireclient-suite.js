@@ -345,7 +345,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#get unpacks pre-02 directory listings",
+        desc: "#get unpacks pre-02 folder listings",
         run: function(env, test) {
           env.connectedClient.get('/foo/01/').
             then(function(status, body, contentType) {
@@ -363,7 +363,7 @@ define(['requirejs'], function(requirejs, undefined) {
 
 
       {
-        desc: "#get unpacks -02 directory listings",
+        desc: "#get unpacks -02 folder listings",
         run: function(env, test) {
           env.connectedClient.get('/foo/01/').
             then(function(status, body, contentType) {

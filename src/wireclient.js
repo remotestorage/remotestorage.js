@@ -32,9 +32,9 @@
    *
    * In addition to this, the WireClient has some compatibility features to work with
    * remotestorage 2012.04 compatible storages. For example it will cache revisions
-   * from directory listings in-memory and return them accordingly as the "revision"
+   * from folder listings in-memory and return them accordingly as the "revision"
    * parameter in response to #get() requests. Similarly it will return 404 when it
-   * receives an empty directory listing, to mimic remotestorage-01 behavior. Note
+   * receives an empty folder listing, to mimic remotestorage-01 behavior. Note
    * that it is not always possible to know the revision beforehand, hence it may
    * be undefined at times (especially for caching-roots).
    */
@@ -72,7 +72,7 @@
 
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
     if ((method === 'PUT' || method === 'DELETE') && uri[uri.length - 1] === '/') {
-      throw "Don't " + method + " on directories!";
+      throw "Don't " + method + " on folders!";
     }
 
     var promise = promising();
@@ -133,7 +133,7 @@
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
 
-  function isDir(path) {
+  function isFolder(path) {
     return (path.substr(-1) === '/');
   }
 
@@ -272,15 +272,15 @@
       }
       var promise = request('GET', this.href + cleanPath(path), this.token, headers,
                             undefined, this.supportsRevs, this._revisionCache[path]);
-      if (!isDir(path)) {
+      if (!isFolder(path)) {
         return promise;
       } else {
         return promise.then(function(status, body, contentType, revision) {
           var listing = {};
 
-          // New directory listing received
+          // New folder listing received
           if (status === 200 && typeof(body) === 'object') {
-            // Empty directory listing of any spec
+            // Empty folder listing of any spec
             if (Object.keys(body).length === 0) {
               status = 404;
             }
@@ -300,17 +300,17 @@
             }
             return promising().fulfill(status, listing, contentType, revision);
           }
-          // No directory listing received
+          // No folder listing received
           else if (status === 404) {
             return promising().fulfill(404);
           }
-          // Cached directory listing received
+          // Cached folder listing received
           else if (status === 304) {
             return promising().fulfill(status, body, contentType, revision);
           }
-          // Faulty directory listing received
+          // Faulty folder listing received
           else {
-            var error = new Error("Received faulty directory response for: "+path);
+            var error = new Error("Received faulty folder response for: "+path);
             return promising().reject(error);
           }
         }.bind(this));

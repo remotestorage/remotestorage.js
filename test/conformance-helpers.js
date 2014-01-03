@@ -131,15 +131,15 @@ function extendAssert(assert) {
               response.headers['content-type'] + "'");
   };
 
-  assert.directoryEqual = function(response, expectedListing, message) {
+  assert.folderEqual = function(response, expectedListing, message) {
     var body;
     assert.status(response, 200);
     assert.contentType(response, 'application/json');
     assert.doesNotThrow(function() {
       body = JSON.parse(response.body);
-    }, undefined, "Expected directory response body to be valid JSON");
+    }, undefined, "Expected folder response body to be valid JSON");
     assert.ok(response.headers.etag);
-    assert.deepEqual(body, expectedListing, message || ("Expected directory listing\n" + JSON.stringify(expectedListing) + "\nbut instead got\n" + JSON.stringify(body)));
+    assert.deepEqual(body, expectedListing, message || ("Expected folder listing\n" + JSON.stringify(expectedListing) + "\nbut instead got\n" + JSON.stringify(body)));
   };
 }
 

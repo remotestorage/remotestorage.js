@@ -217,15 +217,15 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#putDirectory adds the directory cache node with the given body",
+        desc: "#putFolder adds the folder cache node with the given body",
         run: function(env, test) {
-          var directoryItems = {'item1': {'ETag': '123', 'Content-Type': 'text/plain'},
-                                'subdir/': {'ETag': '321'}};
+          var folderItems = {'item1': {'ETag': '123', 'Content-Type': 'text/plain'},
+                                'subfolder/': {'ETag': '321'}};
 
-          env.ls.putDirectory('/foo/bar/', directoryItems, 'meh').then(function() {
+          env.ls.putFolder('/foo/bar/', folderItems, 'meh').then(function() {
             var expectedCacheNode = {
               path: '/foo/bar/',
-              body: directoryItems,
+              body: folderItems,
               cached: {},
               contentType: 'application/json',
               revision: 'meh'
@@ -237,12 +237,12 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#putDirectory adds the path to the parents",
+        desc: "#putFolder adds the path to the parents",
         run: function(env, test) {
-          var directoryItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
-                                'subdir/': {'ETag': '321'}};
+          var folderItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
+                                'subfolder/': {'ETag': '321'}};
 
-          env.ls.putDirectory('/foo/bar/', directoryItems).then(function() {
+          env.ls.putFolder('/foo/bar/', folderItems).then(function() {
             var fooNode = JSON.parse(localStorage[NODES_PREFIX + '/foo/']);
             var rootNode = JSON.parse(localStorage[NODES_PREFIX + '/']);
 
@@ -302,7 +302,7 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#_setRevision updates `cached` items of parent directories",
+        desc: "#_setRevision updates `cached` items of parent folders",
         run: function(env, test) {
           env.ls._setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
             test.assertAnd(env.ls._get('/foo/bar/'), {
@@ -332,7 +332,7 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#setRevision doesn't overwrite `cached` items in parent directories",
+        desc: "#setRevision doesn't overwrite `cached` items in parent folders",
         run: function(env, test) {
           env.ls._setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
             env.ls._setRevision('/foo/bar/booze', 'd4e5f6').then(function() {
