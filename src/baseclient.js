@@ -314,7 +314,7 @@
         return promising().reject('Argument \'path\' of baseClient.storeFile must be a string');
       }
       if (typeof(body) !== 'string' && typeof(body) !== 'object') {
-        return promising().reject('Argument \'object\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
+        return promising().reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
       }
 
       var self = this;
