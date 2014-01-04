@@ -70,6 +70,25 @@
     };
   }
 
+  function addQuotes(str) {
+    if (typeof(str) !== 'string') {
+      return str;
+    }
+    if (str === '*') {
+      return '*';
+    }
+
+    return '"' + str + '"';
+  }
+
+  function stripQuotes(str) {
+    if (typeof(str) !== 'string') {
+      return str;
+    }
+
+    return str.replace(/^["']|["']$/g, '');
+  }
+
   function readBinaryData(content, mimeType, callback) {
     var blob = new Blob([content], { type: mimeType });
     var reader = new FileReader();
@@ -217,13 +236,13 @@
             promise.fulfill(response.status);
           } else if (isSuccessStatus(response.status) ||
                      (response.status === 200 && method !== 'GET')) {
-            revision = response.getResponseHeader('ETag');
+            revision = stripQuotes(response.getResponseHeader('ETag'));
             promise.fulfill(response.status, undefined, undefined, revision);
           } else {
             var mimeType = response.getResponseHeader('Content-Type');
             var body;
             if (getEtag) {
-              revision = response.getResponseHeader('ETag');
+              revision = stripQuotes(response.getResponseHeader('ETag'));
             } else {
               revision = response.status === 200 ? fakeRevision : undefined;
             }
@@ -296,7 +315,7 @@
       var headers = {};
       if (this.supportsRevs) {
         if (options.ifNoneMatch) {
-          headers['If-None-Match'] = options.ifNoneMatch;
+          headers['If-None-Match'] = addQuotes(options.ifNoneMatch);
         }
       } else if (options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
@@ -359,10 +378,10 @@
       var headers = { 'Content-Type': contentType };
       if (this.supportsRevs) {
         if (options.ifMatch) {
-          headers['If-Match'] = options.ifMatch;
+          headers['If-Match'] = addQuotes(options.ifMatch);
         }
         if (options.ifNoneMatch) {
-          headers['If-None-Match'] = options.ifNoneMatch;
+          headers['If-None-Match'] = addQuotes(options.ifNoneMatch);
         }
       }
       return this._request('PUT', this.href + cleanPath(path), this.token,
@@ -377,7 +396,7 @@
       var headers = {};
       if (this.supportsRevs) {
         if (options.ifMatch) {
-          headers['If-Match'] = options.ifMatch;
+          headers['If-Match'] = addQuotes(options.ifMatch);
         }
       }
       return this._request('DELETE', this.href + cleanPath(path), this.token,

@@ -397,7 +397,7 @@ define(['requirejs'], function(requirejs, undefined) {
           env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
           env.connectedClient.get('/foo/bar', { ifNoneMatch: 'something' });
           var request = XMLHttpRequest.instances.shift();
-          test.assert(request._headers['If-None-Match'], 'something');
+          test.assert(request._headers['If-None-Match'], '"something"');
         }
       },
 
@@ -768,7 +768,7 @@ define(['requirejs'], function(requirejs, undefined) {
               test.assertAnd(status, 304);
               test.assertTypeAnd(body, 'undefined');
               test.assertTypeAnd(contentType, 'undefined');
-              test.assertAnd(revision, '"foo"', 'expected revision to be "foo" but was' + revision);
+              test.assertAnd(revision, 'foo');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -787,7 +787,7 @@ define(['requirejs'], function(requirejs, undefined) {
               test.assertAnd(status, 204);
               test.assertTypeAnd(body, 'undefined');
               test.assertTypeAnd(contentType, 'undefined');
-              test.assertAnd(revision, '"foo"', 'expected revision to be "foo" but was' + revision);
+              test.assertAnd(revision, 'foo');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -806,7 +806,7 @@ define(['requirejs'], function(requirejs, undefined) {
               test.assertAnd(status, 200);
               test.assertTypeAnd(body, 'undefined');
               test.assertTypeAnd(contentType, 'undefined');
-              test.assertAnd(revision, '"foo"', 'expected revision to be "foo" but was' + revision);
+              test.assertAnd(revision, 'foo');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -843,7 +843,7 @@ define(['requirejs'], function(requirejs, undefined) {
               test.assertAnd(status, 200);
               test.assertTypeAnd(body, 'undefined');
               test.assertTypeAnd(contentType, 'undefined');
-              test.assertAnd(revision, '"foo"', 'expected revision to be "foo" but was' + revision);
+              test.assertAnd(revision, 'foo');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
