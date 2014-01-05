@@ -54,7 +54,7 @@
     if (typeof location === 'string') {
       global.document.location.href = location;
     } else if (typeof location === 'object') {
-      global.document.location = location;
+      global.document.location = location.href;
     } else {
       throw "Invalid location " + location;
     }
