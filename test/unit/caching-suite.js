@@ -2,18 +2,18 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 
-var promising = require('./lib/promising');
 
-define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
+if(typeof global === 'undefined') global = window
+global.RemoteStorage = function() {};
+
+define(['../../lib/promising','../../src/caching'], function() {
   var suites = [];
 
   suites.push({
     name: "caching",
     desc: "Caching stores settings about which paths to cache locally",
     setup: function(env, test) {
-      global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      require('./src/caching');
       env.Caching = RemoteStorage.Caching;
 
       test.result(true);

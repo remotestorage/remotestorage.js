@@ -1,17 +1,18 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define([], function() {
+if(typeof global === 'undefined') global = window
+global.RemoteStorage = function() {};
+global.RemoteStorage.BaseClient = function() {};
+
+define(['../../../src/baseclient/types'], function() {
   var suites = [];
 
   suites.push({
     name: "BaseClient.Types",
     desc: "Type and schema handling",
     setup: function(env, test) {
-      global.RemoteStorage = function() {};
-      RemoteStorage.BaseClient = function() {};
       RemoteStorage.BaseClient.prototype.extend = function() {};
-      require('./src/baseclient/types');
       if (global.rs_types) {
         RemoteStorage.BaseClient.Types = global.rs_types;
       } else {

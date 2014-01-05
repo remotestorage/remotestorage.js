@@ -3,11 +3,15 @@
   <head>
     <meta charset="utf-8">
     <script src="require.js" data-main="test/main"></script>
+    <style>
+      .test-output {
+        background-color: black; color: #eee; padding: 1em; white-space: pre-wrap;
+      }
+    </style>
   </head>
   <body>
-    Test Output :  
-    <pre id="test-output" style="background-color: black; color: #eee; padding: 1em; white-space: pre-wrap;">
-
-     </pre>
+    <pre id="test-output" class="test-output"></pre>
+    <ul id="container">
+    </ul>
   </body>
 </html>

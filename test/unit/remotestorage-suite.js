@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
-define([], function() {
+define(['../../lib/promising', '../../src/remotestorage','../../src/eventhandling'], function() {
 
   var suites = [];
 
@@ -63,9 +63,6 @@ define([], function() {
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-      require('./src/remotestorage');
-      require('./src/eventhandling');
-      require('./lib/promising');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
@@ -76,7 +73,7 @@ define([], function() {
           callback();
         }
       };
-      global.localStorage = {};
+      if(typeof window === 'undefined') global.localStorage = {};
       RemoteStorage.prototype.remote = new FakeRemote();
       //RemoteStorage.prototype.local = new FakeLocal();
       test.done();
@@ -245,7 +242,12 @@ define([], function() {
     name: "RemoteStorage",
     desc: "The global RemoteStorage namespace",
     setup: function(env, test) {
-      require('./src/remotestorage');
+      if (global.rs_eventhandling) {
+        RemoteStorage.eventHandling = global.rs_eventhandling;
+      } else {
+        global.rs_eventhandling = RemoteStorage.eventHandling;
+      }
+      
       test.done();
     },
 

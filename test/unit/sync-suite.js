@@ -2,7 +2,23 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define([], function() {
+if(typeof global === 'undefined') global = window
+global.RemoteStorage = function() {};
+      
+define([
+  '../../lib/promising', 
+  '../../src/eventhandling', 
+  '../../src/cachinglayer', 
+  '../../src/inmemorystorage.js', 
+  '../../src/sync.js'
+], function(promises, eventhandling, cachinglayer, inmemorystorage, sync) {
+
+  var OrigSync = RemoteStorage.Sync;
+  var origs = {};
+  ['stopSync','syncCycle','sync','setSyncInterval','getSyncInterval'].forEach(function(s) {
+    origs[s] = RemoteStorage.prototype[s];
+  });
+
   var suites = [];
 
   function FakeCaching(){
@@ -42,39 +58,38 @@ define([], function() {
     desc: "testing the sync adapter instance",
 
     setup: function(env, test){
-      require('./lib/promising');
-      global.RemoteStorage = function(){
-        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready');
-      };
+
+      for(var key in origs) {
+        RemoteStorage.prototype[key] = origs[key];
+      }
+      RemoteStorage.Sync = OrigSync;
+      
       global.RemoteStorage.log = function() {};
 
-      require('./src/eventhandling');
       if (global.rs_eventhandling){
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-
-      require('./src/cachinglayer');
+      
       if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
 
-      require('./src/inmemorystorage.js');
       if (global.rs_ims) {
         RemoteStorage.InMemoryCaching = global.rs_ims;
       } else {
         global.rs_ims = RemoteStorage.InMemoryStorage;
       }
 
-      require('src/sync.js');
       test.done();
     },
 
     beforeEach: function(env, test){
       env.rs = new RemoteStorage();
+      RemoteStorage.eventHandling(env.rs, 'sync-busy', 'sync-done', 'ready');
       env.rs.local = env.local = new RemoteStorage.InMemoryStorage();
       env.rs.caching = new FakeCaching();
       env.rs.remote = env.remote = new FakeRemote();

@@ -1,16 +1,16 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
+if(typeof global === 'undefined') global = window
+global.RemoteStorage = function() {};
+
+define(['../../lib/promising','../../src/eventhandling','../../src/wireclient', '../../src/dropbox'], function() {
   var suites = [];
 
   suites.push({
-    name: "DropbixClient",
+    name: "DropboxClient",
     desc: "Low-level Dropbox client based on XMLHttpRequest",
     setup: function(env, test) {
-      global.RemoteStorage = function() {
-        RemoteStorage.eventHandling(this, 'error');
-      };
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
         setBackend: function(b){
@@ -22,22 +22,19 @@ define(['requirejs'], function(requirejs, undefined) {
       };
       global.RemoteStorage.Unauthorized = function() {};
 
-      require('./lib/promising');
-      require('./src/eventhandling');
 
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      require('./src/wireclient');
+
 
       if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
         global.rs_wireclient = RemoteStorage.WireClient;
       }
-      require('./src/dropbox');
 
       test.done();
     },
@@ -72,6 +69,8 @@ define(['requirejs'], function(requirejs, undefined) {
         });
       });
       env.rs = new RemoteStorage();
+      RemoteStorage.eventHandling(env.rs, 'error');
+      
       env.rs.apiKeys= { dropbox: {api_key: 'testkey'} };
       env.client = new RemoteStorage.Dropbox(env.rs);
       env.connectedClient = new RemoteStorage.Dropbox(env.rs);
@@ -413,6 +412,8 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "dropbox Adapter sets and removes EventHandlers",
         run: function(env, test){
+          var rs = new RemoteStorage();
+          RemoteStorage.eventHandling(rs, 'error');
           function allHandlers() {
             var handlers = rs._handlers;
             var l = 0;
@@ -421,7 +422,7 @@ define(['requirejs'], function(requirejs, undefined) {
             }
             return l;
           }
-          var rs = new RemoteStorage();
+
           rs.apiKeys= { dropbox: {api_key: 'testkey'} };
 
           test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;

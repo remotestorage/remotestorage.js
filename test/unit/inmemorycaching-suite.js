@@ -1,28 +1,34 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs) {
+
+if(typeof global === 'undefined') global = window
+global.RemoteStorage = function() {};
+
+define([
+  '../../lib/promising', 
+  '../../src/eventhandling', 
+  '../../src/cachinglayer',
+  '../../src/inmemorystorage'
+], function() {
   var suites = [];
 
   suites.push({
     name: 'InMemoryStorage',
     desc: 'inmemory caching as a fallback for indexdb and localstorage',
     setup: function(env, test) {
-      require('./lib/promising');
-      global.RemoteStorage = function() {};
-      require('./src/eventhandling');
       if ( global.rs_eventhandling ) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      require('./src/cachinglayer');
+
       if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
-      require('./src/inmemorystorage');
+
       test.done();
     },
 
