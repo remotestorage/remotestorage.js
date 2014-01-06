@@ -113,7 +113,7 @@
     getMetas(store, path, function(existingItems) {
       var i;
       for (i in addingItems) {
-        if (!addingItems[i]['Content-Type'] && existingItems[i]['Content-Type']) {
+        if (!addingItems[i]['Content-Type'] && existingItems[i] && existingItems[i]['Content-Type']) {
           addingItems[i]['Content-Type'] = existingItems[i]['Content-Type'];
         }
       }
