@@ -54,13 +54,13 @@
     },
 
     _wrapBusyDone: function(result) {
-      this._emit('wire-busy', 'wrapped');
+      this._emit('wire-busy', {wrapped: true });
       return result.then(function() {
         var promise = promising();
-        this._emit('wire-done', 'wrapped', true);
+        this._emit('wire-done', {wrapped: true, success: true });
         return promise.fulfill.apply(promise, arguments);
       }.bind(this), function(err) {
-        this._emit('wire-done', 'wrapped', false);
+        this._emit('wire-done', { wrapped: true, success: false });
         throw err;
       }.bind(this));
     }
