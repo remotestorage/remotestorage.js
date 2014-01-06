@@ -109,10 +109,24 @@
     };
   }
 
+  function addExistingContentTypes(store, path, addingItems, cb) {
+    getMetas(store, path, function(existingItems) {
+      var i;
+      for (i in addingItems) {
+        if (!addingItems[i]['Content-Type'] && existingItems[i]['Content-Type']) {
+          addingItems[i]['Content-Type'] = existingItems[i]['Content-Type'];
+        }
+      }
+      cb(addingItems);
+    });
+  }
+
   function setMetas(store, path, items) {
-    store.put({
-      path: path,
-      items: items
+    addExistingContentTypes(store, path, items, function(newItems) {
+      store.put({
+        path: path,
+        items: newItems
+      });
     });
   }
     
