@@ -71,6 +71,9 @@
   }
 
   function addQuotes(str) {
+    if (typeof(str) != 'string') {
+       return str;
+    }
     if(str === '*') {
       return '*';
     } else {
@@ -79,6 +82,9 @@
   }
 
   function stripQuotes(str) {
+    if (typeof(str) != 'string') {
+       return str;
+    }
     return str.substring(1, str.length-1);
   }
 
