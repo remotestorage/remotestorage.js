@@ -1,4 +1,4 @@
-if(typeof(define) !== 'function') {
+if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
@@ -10,7 +10,7 @@ define([], function() {
   }
 
   function FakeRemote(){
-    function GPD(target, path,body, contentType, options) {
+    function GPD(target, path, body, contentType, options) {
       var args = Array.prototype.slice.call(arguments);
       console.log('GPD called with : ', args);
       this['_'+target+'s'].push([path, body, contentType, options]);
@@ -28,6 +28,15 @@ define([], function() {
     this._responses = {};
   }
 
+  function flatten(array){
+    var flat = [];
+    for (var i = 0, l = array.length; i < l; i++){
+      var type = Object.prototype.toString.call(array[i]).split(' ').pop().split(']').shift().toLowerCase();
+      if (type) { flat = flat.concat(/^(array|collection|arguments|object)$/.test(type) ? flatten(array[i]) : array[i]); }
+    }
+    return flat;
+  }
+
   suites.push({
     name: "Sync Suite",
     desc: "testing the sync adapter instance",
@@ -40,14 +49,21 @@ define([], function() {
       global.RemoteStorage.log = function() {};
 
       require('./src/eventhandling');
-      if( global.rs_eventhandling ){
+      if (global.rs_eventhandling){
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
+      require('./src/cachinglayer');
+      if (global.rs_cachinglayer) {
+        RemoteStorage.cachingLayer = global.rs_cachinglayer;
+      } else {
+        global.rs_cachinglayer = RemoteStorage.cachingLayer;
+      }
+
       require('./src/inmemorystorage.js');
-      if(global.rs_ims) {
+      if (global.rs_ims) {
         RemoteStorage.InMemoryCaching = global.rs_ims;
       } else {
         global.rs_ims = RemoteStorage.InMemoryStorage;
@@ -67,7 +83,7 @@ define([], function() {
 
     tests: [
       {
-        desc: "RemoteStorage.sync() returns imediatly if not connected",
+        desc: "RemoteStorage.sync() returns immediately if not connected",
         run: function(env,test){
           var failed = false;
           env.rs.remote.connected = false;
@@ -78,6 +94,33 @@ define([], function() {
           env.rs.sync().then(function(){
             test.assert(failed, false);
           });
+        }
+      },
+
+      {
+        desc: "RemoteStorage.sync() sets cached path ready",
+        run: function(env,test){
+          env.local.put('/foo/bar/baz', 'body', 'text/plain');
+          env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, {'bar/': 123}, 'application/json', 123];
+          env.remote._responses[['get', '/foo/bar/',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, {'baz': 123}, 'application/json', 123];
+
+          env.remote._responses[['get', '/foo/bar/baz',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, "body", 'text/plain', 123];
+          env.rs.caching.rootPaths = ['/foo/'];
+          env.rs.caching.get = function(path) {
+            return { data: true };
+          };
+          env.rs.caching.set = function(path, obj) {
+            test.assertAnd(path, '/foo/');
+            test.assertType(obj, 'object');
+            test.assert(obj.ready, true);
+          };
+          env.rs.sync();
         }
       },
 
@@ -117,6 +160,32 @@ define([], function() {
             test.assertAnd(env.remote._puts.length, 1, 'too many put requests here');
             test.assertAnd(env.remote._deletes[0], ['/foo/bar/bla', {}, null, null], 'got '+JSON.stringify(env.remote._deletes[0])+' for delete instead');
             test.assertAnd(env.remote._deletes.length, 1);
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "Sync.sync() for cached folder only syncs changed objects therein",
+        run: function(env, test) {
+          var cachedFolderItems = {vodka:{ETag:'123'},whiskey:{ETag:'456'},rum:{ETag:'789'}};
+          env.local.putFolder('/foo/bar/booze/', cachedFolderItems, 'abc');
+          env.local.put('/foo/bar/booze/vodka', 'russian', 'text/plain', true, '123');
+          env.local.put('/foo/bar/booze/whiskey', 'scotch', 'text/plain', true, '456');
+          env.local.put('/foo/bar/booze/rum', 'jamaican', 'text/plain', true, '789');
+          env.remote._responses[['get', '/foo/bar/booze/', {ifNoneMatch: 'abc'} ]] =
+            [200, {vodka:{ETag:'123'},whiskey:{ETag:'321'}}, 'application/json', 'def'];
+
+          RemoteStorage.Sync.sync(env.remote, env.local, '/foo/bar/booze/').then(function() {
+            test.assertAnd(env.remote._gets.length, 3);
+            var getKeys = flatten(env.remote._gets);
+            var contains = function(arr, val) {
+              return arr.indexOf(val) !== -1;
+            };
+            test.assertAnd(contains(getKeys, '/foo/bar/booze/'), true);
+            test.assertAnd(contains(getKeys, '/foo/bar/booze/vodka'), false);
+            test.assertAnd(contains(getKeys, '/foo/bar/booze/whiskey'), true);
+            test.assertAnd(contains(getKeys, '/foo/bar/booze/rum'), true);
             test.done();
           });
         }
@@ -168,7 +237,7 @@ define([], function() {
       },
 
       {
-        desc : "Sync Adapter sets and removes all eventListeners",
+        desc : "Sync adapter sets and removes all event listeners",
         run : function(env, test) {
           function allHandlers() {
             var handlers = env.rs._handlers;

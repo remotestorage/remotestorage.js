@@ -1,7 +1,7 @@
 {
   "name": "remotestoragejs",
   "desc": "Client side JavaScript library for integrating remoteStorage",
-  "version": "0.8.3",
+  "version": "0.9.1-pre",
   "private": false,
   "license": "MIT",
   "repository": {
@@ -10,8 +10,9 @@
   },
   "homepage": "http://remotestorage.io",
   "devDependencies": {
-    "teste": "*",
-    "uglify-js": "2.4.x"
+    "teste": "0.1.0",
+    "uglify-js": "2.4.x",
+    "xhr2": "0.0.7"
   },
   "scripts": {
     "test": "node_modules/.bin/teste"

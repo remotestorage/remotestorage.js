@@ -1,9 +1,9 @@
 if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
+  var define = require('amdefine')(module);
 }
 define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
   var suites = [];
-  
+
   suites.push({
     name: "access",
     desc: "access knows all about the scope we claimed and which paths that gives us access to",
@@ -85,7 +85,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "root access causes #rootPaths to only contain '/'",
         run: function(env, test) {
-          env.access.set('root', 'rw');
+          env.access.set('*', 'rw');
           test.assert(env.access.rootPaths, ['/']);
         }
       },
@@ -124,22 +124,42 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "[2012.04] #scopeParameter is correct for the root module",
+        desc: "[2012.04] #scopeParameter is correct for root access",
         run: function(env, test) {
           env.access.reset();
           env.access.setStorageType('2012.04');
-          env.access.set('root', 'rw');
+          env.access.set('*', 'rw');
           test.assert(env.access.scopeParameter, ':rw');
         }
       },
 
       {
-        desc: "[remotestorage-00] #scopeParameter is correct for the root module",
+        desc: "[remotestorage-00] #scopeParameter is correct for root access",
         run: function(env, test) {
           env.access.reset();
           env.access.setStorageType('remotestorage-00');
-          env.access.set('root', 'rw');
+          env.access.set('*', 'rw');
           test.assert(env.access.scopeParameter, 'root:rw');
+        }
+      },
+
+      {
+        desc: "[remotestorage-01] #scopeParameter is correct for root access",
+        run: function(env, test) {
+          env.access.reset();
+          env.access.setStorageType('remotestorage-01');
+          env.access.set('*', 'rw');
+          test.assert(env.access.scopeParameter, 'root:rw');
+        }
+      },
+
+      {
+        desc: "[remotestorage-02] #scopeParameter is correct for root access",
+        run: function(env, test) {
+          env.access.reset();
+          env.access.setStorageType('remotestorage-02');
+          env.access.set('*', 'rw');
+          test.assert(env.access.scopeParameter, '*:rw');
         }
       }
 

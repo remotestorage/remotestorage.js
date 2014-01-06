@@ -1,7 +1,7 @@
 (function(global) {
 
   // feature detection flags
-  var haveXMLHttpRequest, haveLocalStorage;
+  var haveXMLHttpRequest, hasLocalStorage;
   // used to store settings in localStorage
   var SETTINGS_KEY = 'remotestorage:discover';
   // cache loaded from localStorage
@@ -74,13 +74,15 @@
         });
         RemoteStorage.log('got profile', profile, 'and link', link);
         if (link) {
-          var authURL = link.properties['auth-endpoint'] ||
-            link.properties['http://tools.ietf.org/html/rfc6749#section-4.2'];
-          cachedInfo[userAddress] = { href: link.href, type: link.type, authURL: authURL };
-          if (haveLocalStorage) {
+          var authURL = link.properties['http://tools.ietf.org/html/rfc6749#section-4.2']
+                  || link.properties['auth-endpoint'],
+            storageType = link.properties['http://remotestorage.io/spec/version']
+                  || link.type;
+          cachedInfo[userAddress] = { href: link.href, type: storageType, authURL: authURL };
+          if (hasLocalStorage) {
             localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
           }
-          callback(link.href, link.type, authURL);
+          callback(link.href, storageType, authURL);
         } else {
           tryOne();
         }
@@ -91,7 +93,8 @@
   };
 
   RemoteStorage.Discover._rs_init = function(remoteStorage) {
-    if (haveLocalStorage) {
+    hasLocalStorage = remoteStorage.localStorageAvailable();
+    if (hasLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
       if (settings) {
@@ -101,13 +104,12 @@
   };
 
   RemoteStorage.Discover._rs_supported = function() {
-    haveLocalStorage = !! global.localStorage;
     haveXMLHttpRequest = !! global.XMLHttpRequest;
     return haveXMLHttpRequest;
   };
 
   RemoteStorage.Discover._rs_cleanup = function() {
-    if (haveLocalStorage) {
+    if (hasLocalStorage) {
       delete localStorage[SETTINGS_KEY];
     }
   };

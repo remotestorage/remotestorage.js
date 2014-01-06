@@ -25,7 +25,7 @@ define(['requirejs'], function(requirejs, undefined) {
           }
         }
       };
-      
+
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
@@ -33,10 +33,10 @@ define(['requirejs'], function(requirejs, undefined) {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
       require('./src/wireclient');
-      if(global.rs_wireclient) {
+      if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
-        global.rs_wireclient = RemoteStorage.WireClient
+        global.rs_wireclient = RemoteStorage.WireClient;
       }
 
       require('./lib/Math.uuid');
@@ -49,6 +49,7 @@ define(['requirejs'], function(requirejs, undefined) {
       }
       test.done();
     },
+
     tests: [
       {
         desc: "it takes a storage object and base path",
@@ -62,10 +63,11 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "it doesn't accept non-directory paths",
+        desc: "it doesn't accept non-folder paths",
         run: function(env, test) {
           try {
-            new RemoteStorage.BaseClient(new RemoteStorage(), '/foo');
+            var storage = new RemoteStorage();
+            var client = new RemoteStorage.BaseClient(storage, '/foo');
             test.result(false);
           } catch(e) {
             test.done();
@@ -96,7 +98,7 @@ define(['requirejs'], function(requirejs, undefined) {
             test.assertAnd(path, '/foo/');
             test.done();
           };
-          new RemoteStorage.BaseClient(storage, '/foo/');
+          var client = new RemoteStorage.BaseClient(storage, '/foo/');
         }
       },
 
@@ -113,15 +115,15 @@ define(['requirejs'], function(requirejs, undefined) {
   });
 
   suites.push({
-    desc: "BaseClient directory handling",
+    desc: "BaseClient folder handling",
     setup: function(env, test) {
-      if(typeof(RemoteStorage) !== 'function') {
+      if (typeof(RemoteStorage) !== 'function') {
         global.RemoteStorage = function() {};
         RemoteStorage.prototype = {
           onChange: function() {}
         };
       }
-      if(typeof(RemoteStorage.BaseClient) !== 'function') {
+      if (typeof(RemoteStorage.BaseClient) !== 'function') {
         require('./src/eventhandling');
         require('./src/baseclient');
       }
@@ -182,13 +184,40 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#getListing results in an array of keys, when it receives an object",
+        desc: "#getListing forwards folder listing object",
         run: function(env, test) {
           env.storage.get = function(path) {
-            return promising().fulfill(200, { foo: 'bar', 'baz/': 'bla' });
+            return promising().fulfill(200, { 'foo': {"ETag":'bar'}, 'baz/': {"ETag":'bla'} });
           };
           env.client.getListing('').then(function(result) {
-            test.assert(result, ['foo', 'baz/']);
+            test.assert(result, { 'foo': {"ETag":'bar'}, 'baz/': {"ETag":'bla'} });
+          });
+        }
+      },
+
+      {
+        desc: "#getListing rejects the promise on error",
+        run: function(env, test) {
+          env.storage.get = function(path) {
+            return promising().reject('Broken');
+          };
+          env.client.getListing('').then(function() {
+            test.result(false);
+          }, function(error) {
+            test.assert(error, 'Broken');
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "#getListing results in 'undefined' when it sees a 404",
+        run: function(env, test) {
+          env.storage.get = function(path) {
+            return promising().fulfill(404);
+          };
+          env.client.getListing('').then(function(result) {
+            test.assertType(result, 'undefined');
           });
         }
       },
@@ -284,7 +313,7 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           var n = 10000;
           var uuids = {};
-          for(var i=0;i<n;i++) {
+          for (var i=0;i<n;i++) {
             uuids[env.client.uuid()] = true;
           }
           test.assert(Object.keys(uuids).length, n);

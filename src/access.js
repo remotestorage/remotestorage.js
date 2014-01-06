@@ -1,6 +1,5 @@
 (function(global) {
 
-  var haveLocalStorage = 'localStorage' in global;
   var SETTINGS_KEY = "remotestorage:access";
 
   /**
@@ -11,19 +10,9 @@
   RemoteStorage.Access = function() {
     this.reset();
 
-    if(haveLocalStorage) {
-      var rawSettings = localStorage[SETTINGS_KEY];
-      if(rawSettings) {
-        var savedSettings = JSON.parse(rawSettings);
-        for(var key in savedSettings) {
-          this.set(key, savedSettings[key]);
-        }
-      }
-    }
   };
 
   RemoteStorage.Access.prototype = {
-    // not sure yet, if 'set' or 'claim' is better...
 
     /**
      * Method: claim
@@ -41,7 +30,6 @@
     set: function(scope, mode) {
       this._adjustRootPaths(scope);
       this.scopeModeMap[scope] = mode;
-      this._persist();
     },
 
     get: function(scope) {
@@ -51,15 +39,14 @@
     remove: function(scope) {
       var savedMap = {};
       var name;
-      for(name in this.scopeModeMap) {
+      for (name in this.scopeModeMap) {
         savedMap[name] = this.scopeModeMap[name];
       }
       this.reset();
       delete savedMap[scope];
-      for(name in savedMap) {
+      for (name in savedMap) {
         this.set(name, savedMap[name]);
       }
-      this._persist();
     },
 
     check: function(scope, mode) {
@@ -73,18 +60,23 @@
     },
 
     _adjustRootPaths: function(newScope) {
-      if('root' in this.scopeModeMap || newScope === 'root') {
+      if ('*' in this.scopeModeMap || newScope === '*') {
         this.rootPaths = ['/'];
-      } else if(! (newScope in this.scopeModeMap)) {
+      } else if (! (newScope in this.scopeModeMap)) {
         this.rootPaths.push('/' + newScope + '/');
         this.rootPaths.push('/public/' + newScope + '/');
       }
     },
 
-    _persist: function() {
-      if(haveLocalStorage) {
-        localStorage[SETTINGS_KEY] = JSON.stringify(this.scopeModeMap);
+    _scopeNameForParameter: function(scope) {
+      if (scope.name === '*' && this.storageType) {
+        if (this.storageType === '2012.04') {
+          return '';
+        } else if (this.storageType.match(/remotestorage-0[01]/)) {
+          return 'root';
+        }
       }
+      return scope.name;
     },
 
     setStorageType: function(type) {
@@ -117,7 +109,7 @@
   Object.defineProperty(RemoteStorage.Access.prototype, 'scopeParameter', {
     get: function() {
       return this.scopes.map(function(scope) {
-        return (scope.name === 'root' && this.storageType === '2012.04' ? '' : scope.name) + ':' + scope.mode;
+        return this._scopeNameForParameter(scope) + ':' + scope.mode;
       }.bind(this)).join(' ');
     }
   });
@@ -135,7 +127,7 @@
   });
 
   function setModuleCaching(remoteStorage, key) {
-    if(key === 'root' || key === '') {
+    if (key === '*' || key === '') {
       remoteStorage.caching.set('/', { data: true });
     } else {
       remoteStorage.caching.set('/' + key + '/', { data: true });
@@ -145,8 +137,8 @@
 
   // documented in src/remotestorage.js
   RemoteStorage.prototype.claimAccess = function(scopes) {
-    if(typeof(scopes) === 'object') {
-      for(var key in scopes) {
+    if (typeof(scopes) === 'object') {
+      for (var key in scopes) {
         this.access.claim(key, scopes[key]);
       }
     } else {
@@ -155,5 +147,4 @@
   };
 
   RemoteStorage.Access._rs_init = function() {};
-
 })(typeof(window) !== 'undefined' ? window : global);

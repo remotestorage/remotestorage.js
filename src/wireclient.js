@@ -32,21 +32,22 @@
    *
    * In addition to this, the WireClient has some compatibility features to work with
    * remotestorage 2012.04 compatible storages. For example it will cache revisions
-   * from directory listings in-memory and return them accordingly as the "revision"
+   * from folder listings in-memory and return them accordingly as the "revision"
    * parameter in response to #get() requests. Similarly it will return 404 when it
-   * receives an empty directory listing, to mimic remotestorage-01 behavior. Note
+   * receives an empty folder listing, to mimic remotestorage-01 behavior. Note
    * that it is not always possible to know the revision beforehand, hence it may
    * be undefined at times (especially for caching-roots).
    */
 
-  var haveLocalStorage;
+  var hasLocalStorage;
   var SETTINGS_KEY = "remotestorage:wireclient";
 
-  var API_2012 = 1, API_00 = 2, API_01 = 3, API_HEAD = 4;
+  var API_2012 = 1, API_00 = 2, API_01 = 3, API_02 = 4, API_HEAD = 5;
 
   var STORAGE_APIS = {
     'draft-dejong-remotestorage-00': API_00,
     'draft-dejong-remotestorage-01': API_01,
+    'draft-dejong-remotestorage-02': API_02,
     'https://www.w3.org/community/rww/wiki/read-write-web-00#simple': API_2012
   };
 
@@ -60,7 +61,7 @@
       Int32Array, Uint32Array, Float32Array, Float64Array
     ];
     isArrayBufferView = function(object) {
-      for(var i=0;i<8;i++) {
+      for (var i=0;i<8;i++) {
         if (object instanceof arrayBufferViews[i]) {
           return true;
         }
@@ -71,7 +72,7 @@
 
   function request(method, uri, token, headers, body, getEtag, fakeRevision) {
     if ((method === 'PUT' || method === 'DELETE') && uri[uri.length - 1] === '/') {
-      throw "Don't " + method + " on directories!";
+      throw "Don't " + method + " on folders!";
     }
 
     var promise = promising();
@@ -102,7 +103,7 @@
           }
 
           if ((! mimeType) || mimeType.match(/charset=binary/)) {
-            readBinaryData(response.response, mimeType, function(result) {
+            RS.WireClient.readBinaryData(response.response, mimeType, function(result) {
               promise.fulfill(response.status, result, mimeType, revision);
             });
           } else {
@@ -132,10 +133,13 @@
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
 
+  function isFolder(path) {
+    return (path.substr(-1) === '/');
+  }
+
   function isFolderDescription(body) {
-    return ((Object.keys(body).length === 2)
-                && (body['@context'] === 'http://remotestorage.io/spec/folder-description')
-                && (typeof(body['items']) === 'object'));
+    return ((body['@context'] === 'http://remotestorage.io/spec/folder-description')
+             && (typeof(body['items']) === 'object'));
   }
 
   var onErrorCb;
@@ -156,12 +160,12 @@
     RS.eventHandling(this, 'change', 'connected');
 
     onErrorCb = function(error){
-      if(error instanceof RemoteStorage.Unauthorized) {
+      if (error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this);
     rs.on('error', onErrorCb);
-    if (haveLocalStorage) {
+    if (hasLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
       if (settings) {
@@ -240,7 +244,7 @@
       } else {
         this.connected = false;
       }
-      if (haveLocalStorage) {
+      if (hasLocalStorage) {
         localStorage[SETTINGS_KEY] = JSON.stringify({
           userAddress: this.userAddress,
           href: this.href,
@@ -265,42 +269,50 @@
         }
       } else if (options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
-        if (oldRev === options.ifNoneMatch) {
-          // since sync descends for allKeys(local, remote), this causes
-          // https://github.com/remotestorage/remotestorage.js/issues/399
-          // commenting this out so that it gets the actual 404 from the
-          // server. this only affects legacy servers
-          // (this.supportsRevs==false):
-
-          // return promising().fulfill(412);
-          // FIXME empty block and commented code
-        }
       }
       var promise = request('GET', this.href + cleanPath(path), this.token, headers,
                             undefined, this.supportsRevs, this._revisionCache[path]);
-      if (this.supportsRevs || path.substr(-1) !== '/') {
+      if (!isFolder(path)) {
         return promise;
       } else {
         return promise.then(function(status, body, contentType, revision) {
-          var tmp;
+          var listing = {};
+
+          // New folder listing received
           if (status === 200 && typeof(body) === 'object') {
+            // Empty folder listing of any spec
             if (Object.keys(body).length === 0) {
-              // no children (coerce response to 'not found')
               status = 404;
-            } else if(isFolderDescription(body)) {
-              tmp = {};
-              for(var item in body.items) {
-                this._revisionCache[path + item] = body.items[item].ETag;
-                tmp[item] = body.items[item].ETag;
-              }
-              body = tmp;
-            } else {//pre-02 server
-              for(var key in body) {
-                this._revisionCache[path + key] = body[key];
-              }
             }
+            // >= 02 spec
+            else if (isFolderDescription(body)) {
+              for (var item in body.items) {
+                this._revisionCache[path + item] = body.items[item].ETag;
+              }
+              listing = body.items;
+            }
+            // < 02 spec
+            else {
+              Object.keys(body).forEach(function(key){
+                this._revisionCache[path + key] = body[key];
+                listing[key] = {"ETag": body[key]};
+              }.bind(this));
+            }
+            return promising().fulfill(status, listing, contentType, revision);
           }
-          return promising().fulfill(status, body, contentType, revision);
+          // No folder listing received
+          else if (status === 404) {
+            return promising().fulfill(404);
+          }
+          // Cached folder listing received
+          else if (status === 304) {
+            return promising().fulfill(status, body, contentType, revision);
+          }
+          // Faulty folder listing received
+          else {
+            var error = new Error("Received faulty folder response for: "+path);
+            return promising().reject(error);
+          }
         }.bind(this));
       }
     },
@@ -349,6 +361,8 @@
   // Shared isArrayBufferView used by WireClient and Dropbox
   RS.WireClient.isArrayBufferView = isArrayBufferView;
 
+  RS.WireClient.readBinaryData = readBinaryData;
+
   // Shared request function used by WireClient, GoogleDrive and Dropbox.
   RS.WireClient.request = function(method, url, options, callback) {
     RemoteStorage.log(method, url);
@@ -369,7 +383,7 @@
       xhr.responseType = options.responseType;
     }
     if (options.headers) {
-      for(var key in options.headers) {
+      for (var key in options.headers) {
         xhr.setRequestHeader(key, options.headers[key]);
       }
     }
@@ -402,19 +416,28 @@
     xhr.send(body);
   };
 
+  Object.defineProperty(RemoteStorage.WireClient.prototype, 'storageType', {
+    get: function() {
+      if (this.storageApi) {
+        var spec = this.storageApi.match(/draft-dejong-(remotestorage-\d\d)/);
+        return spec ? spec[1] : '2012.04';
+      }
+    }
+  });
+
   RS.WireClient.configureHooks = [];
 
   RS.WireClient._rs_init = function(remoteStorage) {
+    hasLocalStorage = remoteStorage.localStorageAvailable();
     remoteStorage.remote = new RS.WireClient(remoteStorage);
   };
 
   RS.WireClient._rs_supported = function() {
-    haveLocalStorage = 'localStorage' in global;
     return !! global.XMLHttpRequest;
   };
 
   RS.WireClient._rs_cleanup = function(remoteStorage){
-    if (haveLocalStorage){
+    if (hasLocalStorage){
       delete localStorage[SETTINGS_KEY];
     }
     remoteStorage.removeEventListener('error', onErrorCb);

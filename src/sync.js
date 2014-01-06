@@ -24,7 +24,7 @@
       backgroundSyncInterval = 60000,
       isBackground = false;
 
-  function isDir(path) {
+  function isFolder(path) {
     return path[path.length - 1] === '/';
   }
 
@@ -41,26 +41,24 @@
   }
 
   function updateLocal(remote, local, path, body, contentType, revision, promise) {
-    if (isDir(path)) {
-      descendInto(remote, local, path, Object.keys(body), promise);
-    } else {
-      local.put(path, body, contentType, true, revision).then(function() {
-        return local.setRevision(path, revision);
-      }).then(function() {
-        promise.fulfill();
+    if (isFolder(path)) {
+      local.putFolder(path, body, revision).then(function() {
+        descendInto(remote, local, path, Object.keys(body), promise);
       });
+    } else {
+      local.put(path, body, contentType, true, revision).then(promise.fulfill);
     }
   }
 
   function allDifferentKeys(a, b) {
     var keyObject = {};
     for (var ak in a) {
-      if (a[ak] !== b[ak]) {
+      if (JSON.stringify(a[ak]) !== JSON.stringify(b[ak])) {
         keyObject[ak] = true;
       }
     }
     for (var bk in b) {
-      if (a[bk] !== b[bk]) {
+      if (JSON.stringify(a[bk]) !== JSON.stringify(b[bk])) {
         keyObject[bk] = true;
       }
     }
@@ -74,7 +72,7 @@
   }
 
   function deleteLocal(local, path, promise) {
-    if (isDir(path)) {
+    if (isFolder(path)) {
       local.get(path).then(function(localStatus, localBody, localContentType, localRevision) {
         var keys = [], failed = false;
         for (var item in localBody) {
@@ -100,7 +98,6 @@
         });
       });
     } else {
-      //console.log('deleting local item', path);
       local.delete(path, true).then(promise.fulfill, promise.reject);
     }
   }
@@ -123,19 +120,20 @@
           // remote doesn't exist, local does.
           deleteLocal(local, path, promise);
         } else if (localStatus === 200 && remoteStatus === 200) {
-          if (isDir(path)) {
+          if (isFolder(path)) {
             if (remoteRevision && remoteRevision === localRevision) {
               promise.fulfill();
             } else {
-              local.setRevision(path, remoteRevision).then(function() {
-                descendInto(remote, local, path, allDifferentKeys(localBody, remoteBody), promise);
+              local.putFolder(path, remoteBody, remoteRevision).then(function() {
+                // TODO Factor in  `cached` items of folder cache node
+                var differentObjects = allDifferentKeys(localBody, remoteBody);
+                descendInto(remote, local, path, differentObjects, promise);
               });
             }
           } else {
             updateLocal(remote, local, path, remoteBody, remoteContentType, remoteRevision, promise);
           }
         } else {
-          // do nothing.
           promise.fulfill();
         }
       }).then(undefined, promise.reject);
@@ -404,8 +402,13 @@
       var path;
       while((path = roots.shift())) {
         (function (path) {
-          RemoteStorage.Sync.sync(rs.remote, rs.local, path, rs.caching.get(path)).
+          var cachingState = rs.caching.get(path);
+          RemoteStorage.Sync.sync(rs.remote, rs.local, path, cachingState).
             then(function() {
+              if (!cachingState.ready) {
+                cachingState.ready = true;
+                rs.caching.set(path, cachingState);
+              }
               if (aborted) { return; }
               i++;
               if (n === i) {
@@ -413,6 +416,7 @@
                 promise.fulfill();
               }
             }, function(error) {
+              rs.caching.set(path, {data: true, ready: true});
               console.error('syncing', path, 'failed:', error);
               if (aborted) { return; }
               aborted = true;

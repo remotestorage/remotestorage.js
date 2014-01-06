@@ -3,6 +3,27 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 0.9.0 (December 2013)
+
+This release consists of awesome contributions from @skddc, @galfert, @ggrin,
+@michielbdejong, @clochix, @silverbucket, @gregkare, and @rakyll - you can participate
+in the next release via https://github.com/remotestorage/remotestorage.js/issues!
+
+* Rename the 'root' module to '*' (breaking change)
+* Return a map instead of a string per item in getListing (breaking change)
+* Support for draft-dejong-remotestorage-02.txt
+* Fix multiple overlapping requests on first pageload
+* Fix requests going to non-ready cache before initial sync finished
+* Better error messages in widget
+* Label change events from initial sync as 'local' if they come from local
+* Add JSHint config
+* Add in-memory storage for when neither IndexedDB nor localStorage are
+  available
+* Move the example server and example apps to gh:remotestorage/starter-kit
+* Add setSyncInterval method
+* Add i18n module, enable translation/customization of all content strings
+* Fix minor issues in the experimental GoogleDrive backend (in dark launch)
+
 ## 0.8.3 (November 2013)
 
 * Make sure to clear auth token after disconnect

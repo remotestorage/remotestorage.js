@@ -11,16 +11,17 @@ define(['requirejs'], function(requirejs, undefined) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       global.RemoteStorage.Unauthorized = function() {};
+      global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
       require('./lib/promising');
       require('./src/eventhandling');
 
-      if(global.rs_eventhandling) {
+      if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
       require('./src/wireclient');
-      if(global.rs_wireclient) {
+      if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
         global.rs_wireclient = RemoteStorage.WireClient;
@@ -176,6 +177,28 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "#storageType returns a simplified identifier for the current storage API",
+        run: function(env, test) {
+          env.client.storageApi = undefined;
+          test.assertTypeAnd(env.client.storageType, 'undefined');
+
+          env.client.storageApi = 'draft-dejong-remotestorage-00';
+          test.assertAnd(env.client.storageType, 'remotestorage-00');
+
+          env.client.storageApi = 'draft-dejong-remotestorage-01';
+          test.assertAnd(env.client.storageType, 'remotestorage-01');
+
+          env.client.storageApi = 'draft-dejong-remotestorage-02';
+          test.assertAnd(env.client.storageType, 'remotestorage-02');
+
+          env.client.storageApi = 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple';
+          test.assertAnd(env.client.storageType, '2012.04');
+
+          test.done();
+        }
+      },
+
+      {
         desc: "#get opens a CORS request",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar');
@@ -322,12 +345,12 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#get unpacks pre-02 directory listings",
+        desc: "#get unpacks pre-02 folder listings",
         run: function(env, test) {
           env.connectedClient.get('/foo/01/').
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
-              test.assertAnd(body, { a: 'qwer', 'b/': 'asdf' });
+              test.assertAnd(body, {'a': {'ETag': 'qwer'}, 'b/': {'ETag': 'asdf'}});
               test.assert(contentType, 'application/json; charset=UTF-8');
             });
           var req = XMLHttpRequest.instances.shift();
@@ -340,12 +363,15 @@ define(['requirejs'], function(requirejs, undefined) {
 
 
       {
-        desc: "#get unpacks -02 directory listings",
+        desc: "#get unpacks -02 folder listings",
         run: function(env, test) {
           env.connectedClient.get('/foo/01/').
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
-              test.assertAnd(body, { a: 'qwer', 'b/': 'asdf' });
+              test.assertAnd(body, {
+                a: { "ETag": "qwer", "Content-Length": 5, "Content-Type": "text/html" },
+                "b/": { "ETag": "asdf", "Content-Type":"application/json", "Content-Length": 137 }
+              });
               test.assert(contentType, 'application/json; charset=UTF-8');
             });
           var req = XMLHttpRequest.instances.shift();
@@ -531,9 +557,26 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "404 responses discard the body altogether",
+        desc: "404 responses for documents discard the body altogether",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
+            then(function(status, body, contentType) {
+              test.assertAnd(status, 404);
+              test.assertTypeAnd(body, 'undefined');
+              test.assertTypeAnd(contentType, 'undefined');
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 404;
+          req.response = '';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "404 responses for folders discard the body altogether",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar/').
             then(function(status, body, contentType) {
               test.assertAnd(status, 404);
               test.assertTypeAnd(body, 'undefined');

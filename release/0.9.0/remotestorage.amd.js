@@ -1,4 +1,4 @@
-/** remotestorage.js 0.9.1-pre, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.9.0, http://remotestorage.io, MIT-licensed **/
 define([], function() {
 
 /** FILE: lib/promising.js **/
@@ -206,18 +206,18 @@ define([], function() {
     /**
      * Event: disconnect
      *
-     * deprecated use disconnected
+     * depricated use disconnected
      **/
     /**
      * Event: conflict
      *
-     * fired when a conflict occurs
+     * fired when a conflict occures
      * TODO: arguments, how does this work
      **/
     /**
      * Event: error
      *
-     * fired when an error occurs
+     * fired when an error occures
      *
      * Arguments:
      * the error
@@ -230,7 +230,7 @@ define([], function() {
     /**
      * Event: connecting
      *
-     * fired before webfinger lookup
+     * fired before webfinger lookpu
      **/
     /**
      * Event: authing
@@ -1206,10 +1206,6 @@ define([], function() {
               }.bind(this));
             }
             return promising().fulfill(status, listing, contentType, revision);
-          }
-          // No directory listing received
-          else if (status === 404) {
-            return promising().fulfill(404);
           }
           // Cached directory listing received
           else if (status === 304) {

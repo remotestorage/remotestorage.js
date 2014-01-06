@@ -32,7 +32,7 @@
           tbody.appendChild(tr);
           renderRow(tr, path, contentType, revision);
           if (path[path.length - 1] === '/') {
-            for(var key in body) {
+            for (var key in body) {
               loadRow(path + key);
             }
           }

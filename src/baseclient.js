@@ -27,7 +27,7 @@
    */
   RS.BaseClient = function(storage, base) {
     if (base[base.length - 1] !== '/') {
-      throw "Not a directory: " + base;
+      throw "Not a folder: " + base;
     }
 
     if (base === '/') {
@@ -117,7 +117,7 @@
     // END LEGACY
 
     extend: function(object) {
-      for(var key in object) {
+      for (var key in object) {
         this[key] = object[key];
       }
       return this;
@@ -145,29 +145,36 @@
      *   path     - The path to query. It MUST end with a forward slash.
      *
      * Returns:
-     *   A promise for an Array of keys, representing child nodes.
-     *   Those keys ending in a forward slash, represent *directory nodes*, all
+     *
+     *   A promise for an object, representing child nodes.
+     *
+     *   Keys ending in a forward slash represent *folder nodes*, while all
      *   other keys represent *data nodes*.
+     *
+     *   For spec versions <= 01, the data node information will contain only
+     *   the item's ETag. For later spec versions, it will also contain the
+     *   content type and -length of the item.
      *
      * Example:
      *   (start code)
      *   client.getListing('').then(function(listing) {
      *     listing.forEach(function(item) {
-     *       console.log('- ' + item);
+     *       console.log(item);
      *     });
      *   });
      *   (end code)
      */
     getListing: function(path) {
-      if (typeof(path) === 'undefined') {
+      if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
-        throw "Not a directory: " + path;
+        throw "Not a folder: " + path;
       }
-      return this.storage.get(this.makePath(path)).then(function(status, body) {
-        if (status === 404) { return; }
-        return typeof(body) === 'object' ? Object.keys(body) : undefined;
-      });
+      return this.storage.get(this.makePath(path)).then(
+        function(status, body) {
+          return (status === 404) ? undefined : body;
+        }
+      );
     },
 
     /**
@@ -176,7 +183,7 @@
      * Get all objects directly below a given path.
      *
      * Parameters:
-     *   path      - path to the direcotry
+     *   path      - path to the folder
      *   typeAlias - (optional) local type-alias to filter for
      *
      * Returns:
@@ -185,17 +192,17 @@
      * Example:
      *   (start code)
      *   client.getAll('').then(function(objects) {
-     *     for(var key in objects) {
+     *     for (var key in objects) {
      *       console.log('- ' + key + ': ', objects[key]);
      *     }
      *   });
      *   (end code)
      */
     getAll: function(path) {
-      if (typeof(path) === 'undefined') {
+      if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
-        throw "Not a directory: " + path;
+        throw "Not a folder: " + path;
       }
       return this.storage.get(this.makePath(path)).then(function(status, body) {
         if (status === 404) { return; }
@@ -203,11 +210,11 @@
           var promise = promising();
           var count = Object.keys(body).length, i = 0;
           if (count === 0) {
-            // treat this like 404. it probably means a directory listing that
+            // treat this like 404. it probably means a folder listing that
             // has changes that haven't been pushed out yet.
             return;
           }
-          for(var key in body) {
+          for (var key in body) {
             this.storage.get(this.makePath(path + key)).
               then(function(status, b) {
                 body[this.key] = b;
@@ -251,6 +258,10 @@
      *   (end code)
      */
     getFile: function(path) {
+      if (typeof(path) !== 'string') {
+        return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
+      }
+
       return this.storage.get(this.makePath(path)).then(function(status, body, mimeType, revision) {
         return {
           data: body,
@@ -296,6 +307,16 @@
      *
      */
     storeFile: function(mimeType, path, body) {
+      if (typeof(mimeType) !== 'string') {
+        return promising().reject('Argument \'mimeType\' of baseClient.storeFile must be a string');
+      }
+      if (typeof(path) !== 'string') {
+        return promising().reject('Argument \'path\' of baseClient.storeFile must be a string');
+      }
+      if (typeof(body) !== 'string' && typeof(body) !== 'object') {
+        return promising().reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
+      }
+
       var self = this;
       return this.storage.put(this.makePath(path), body, mimeType).then(function(status, _body, _mimeType, revision) {
         if (status === 200 || status === 201) {
@@ -328,6 +349,9 @@
      *   (end code)
      */
     getObject: function(path) {
+      if (typeof(path) !== 'string') {
+        return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
+      }
       return this.storage.get(this.makePath(path)).then(function(status, body, mimeType, revision) {
         if (typeof(body) === 'object') {
           return body;
@@ -379,6 +403,15 @@
      *   See <declareType> for examples.
      */
     storeObject: function(typeAlias, path, object) {
+      if (typeof(typeAlias) !== 'string') {
+        return promising().reject('Argument \'typeAlias\' of baseClient.storeObject must be a string');
+      }
+      if (typeof(path) !== 'string') {
+        return promising().reject('Argument \'path\' of baseClient.storeObject must be a string');
+      }
+      if (typeof(object) !== 'object') {
+        return promising().reject('Argument \'object\' of baseClient.storeObject must be an object');
+      }
       this._attachType(object, typeAlias);
       try {
         var validationResult = this.validate(object);
@@ -410,14 +443,21 @@
      *   path     - Path relative to the module root.
      */
     remove: function(path) {
+      if (typeof(path) !== 'string') {
+        return promising().reject('Argument \'path\' of baseClient.remove must be a string');
+      }
       return this.storage.delete(this.makePath(path));
     },
 
     cache: function(path, disable) {
+      if (typeof(path) !== 'string') {
+        throw 'Argument \'path\' of baseClient.cache must be a string';
+      }
+
       this.storage.caching[disable !== false ? 'enable' : 'disable'](
         this.makePath(path)
       );
-      return this;
+      return this;// why?
     },
 
     makePath: function(path) {
@@ -447,6 +487,9 @@
      *   path     - Path relative to the module root.
      */
     getItemURL: function(path) {
+      if (typeof(path) !== 'string') {
+        throw 'Argument \'path\' of baseClient.getItemURL must be a string';
+      }
       if (this.storage.connected) {
         path = this._cleanPath( this.makePath(path) );
         return this.storage.remote.href + path;
@@ -488,6 +531,10 @@
    */
   RS.BaseClient._rs_init = function() {
     RS.prototype.scope = function(path) {
+      if (typeof(path) !== 'string') {
+        throw 'Argument \'path\' of baseClient.scope must be a string';
+      }
+
       return new RS.BaseClient(this, path);
     };
   };

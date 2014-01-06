@@ -1,4 +1,12 @@
 (function(global) {
+  function logError(error) {
+    if (typeof(error) === 'string') {
+      console.error(error);
+    } else {
+      console.error(error.message, error.stack);
+    }
+  }
+
   function emitUnauthorized(status) {
     var args = Array.prototype.slice.call(arguments);
     if (status === 403  || status === 401) {
@@ -15,8 +23,11 @@
 
   var SyncedGetPutDelete = {
     get: function(path) {
+      var self = this;
       if (this.caching.cachePath(path)) {
-        return this.local.get(path);
+        return this.caching.waitForPath(path).then(function() {
+          return self.local.get(path);
+        });
       } else {
         return this.remote.get(path);
       }
@@ -54,8 +65,6 @@
     }
   };
 
-  var haveLocalStorage = 'localStorage' in global;
-
   /**
    * Class: RemoteStorage
    *
@@ -81,18 +90,18 @@
     /**
      * Event: disconnect
      *
-     * depricated use disconnected
+     * deprecated use disconnected
      **/
     /**
      * Event: conflict
      *
-     * fired when a conflict occures
+     * fired when a conflict occurs
      * TODO: arguments, how does this work
      **/
     /**
      * Event: error
      *
-     * fired when an error occures
+     * fired when an error occurs
      *
      * Arguments:
      * the error
@@ -105,7 +114,7 @@
     /**
      * Event: connecting
      *
-     * fired before webfinger lookpu
+     * fired before webfinger lookup
      **/
     /**
      * Event: authing
@@ -146,7 +155,7 @@
 
     this.apiKeys = {};
 
-    if (haveLocalStorage) {
+    if (this.localStorageAvailable()) {
       try {
         this.apiKeys = JSON.parse(localStorage['remotestorage:api-keys']);
       } catch(exc) {
@@ -216,6 +225,7 @@
      *
      */
     connect: function(userAddress) {
+      this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
         this._emit('error', new RemoteStorage.DiscoveryError("User adress doesn't contain an @."));
         return;
@@ -286,7 +296,7 @@
 
     setBackend: function(what) {
       this.backend = what;
-      if (haveLocalStorage) {
+      if (this.localStorageAvailable()) {
         if (what) {
           localStorage['remotestorage:backend'] = what;
         } else {
@@ -365,7 +375,7 @@
       } else {
         delete this.apiKeys[type];
       }
-      if (haveLocalStorage) {
+      if (this.localStorageAvailable()) {
         localStorage['remotestorage:api-keys'] = JSON.stringify(this.apiKeys);
       }
     },
@@ -392,7 +402,7 @@
         if (this.remote) {
           this.remote.on('connected', function() {
             try {
-              if(!readyFired) {
+              if (!readyFired) {
                 this._emit('ready');
                 readyFired = true;
               }
@@ -403,7 +413,7 @@
           }.bind(this));
           if (this.remote.connected) {
             try {
-              if(!readyFired) {
+              if (!readyFired) {
                 this._emit('ready');
                 readyFired = true;
               }
@@ -414,36 +424,35 @@
           }
         }
 
-        var fl = features.length;
-        for(var i=0;i<fl;i++) {
-          var cleanup = features[i].cleanup;
-          if (cleanup) {
-            this._cleanups.push(cleanup);
-          }
-        }
+        this._collectCleanupFunctions();
 
         try {
           this._allLoaded = true;
           this._emit('features-loaded');
         } catch(exc) {
-          console.error("remoteStorage#ready block failed: ");
-          if (typeof(exc) === 'string') {
-            console.error(exc);
-          } else {
-            console.error(exc.message, exc.stack);
-          }
+          logError(exc);
           this._emit('error', exc);
         }
         this._processPending();
-      });
+      }.bind(this));
+    },
+
+    _collectCleanupFunctions: function() {
+      for (var i=0; i < this.features.length; i++) {
+        var cleanup = this.features[i].cleanup;
+        if (typeof(cleanup) === 'function') {
+          this._cleanups.push(cleanup);
+        }
+      }
     },
 
     /**
      ** FEATURE DETECTION
      **/
     _loadFeatures: function(callback) {
-      var features = [
+      var featureList = [
         'WireClient',
+        'I18n',
         'Dropbox',
         'GoogleDrive',
         'Access',
@@ -455,75 +464,72 @@
         'LocalStorage',
         'InMemoryStorage',
         'Sync',
-        'BaseClient'
+        'BaseClient',
+        'Env'
       ];
-      var theFeatures = [];
-      var n = features.length, i = 0;
+      var features = [];
+      var featuresDone = 0;
       var self = this;
-      function doneNow() {
-        i++;
-        if(i === n) {
+
+      function featureDone() {
+        featuresDone++;
+        if (featuresDone === featureList.length) {
           setTimeout(function() {
-            theFeatures.caching = !!RemoteStorage.Caching;
-            theFeatures.sync = !!RemoteStorage.Sync;
+            features.caching = !!RemoteStorage.Caching;
+            features.sync = !!RemoteStorage.Sync;
             [
               'IndexedDB',
               'LocalStorage',
               'InMemoryStorage'
             ].some(function(cachingLayer) {
-              if ( theFeatures.some( function(feature) {
-                return feature.name === cachingLayer;
-              } )
-                 ) {
-                theFeatures.local = RemoteStorage[cachingLayer];
+              if (features.some(function(feature) { return feature.name === cachingLayer; })) {
+                features.local = RemoteStorage[cachingLayer];
                 return true;
               }
             });
-            self.features = theFeatures;
-            callback.apply(self, [theFeatures]);
+            self.features = features;
+            callback(features);
           }, 0);
         }
       }
 
-      function featureDoneCb(name) {
+      function featureInitializedCb(name) {
         return function() {
-          self.log("[FEATURE " + name + "] initialized. (" + (i+1) + "/" + n + ")");
-          theFeatures.push( {
+          self.log("[FEATURE "+name+"] initialized.");
+          features.push( {
             name : name,
             init :  RemoteStorage[name]._rs_init,
             supported : true,
             cleanup : RemoteStorage[name]._rs_cleanup
           } );
-          doneNow();
+          featureDone();
         };
       }
 
       function featureFailedCb(name) {
         return function(err) {
           self.log("[FEATURE "+name+"] initialization failed ( "+err+")");
-          //self.features
-          doneNow();
+          featureDone();
         };
       }
 
       function featureSupportedCb(name) {
-        return function( success ) {
+        return function(success) {
           self.log("[FEATURE "+name+"]" + success ? "":" not"+" supported");
-          if(!success) {
-            doneNow();
+          if (!success) {
+            featureDone();
           }
         };
       }
 
-      features.forEach(function(featureName) {
+      featureList.forEach(function(featureName) {
         self.log("[FEATURE " + featureName + "] initializing...");
         var impl = RemoteStorage[featureName];
-        var cb = featureDoneCb(featureName);
+        var initializedCb = featureInitializedCb(featureName);
         var failedCb = featureFailedCb(featureName);
         var supportedCb = featureSupportedCb(featureName);
-        if( impl && (
-            ( impl._rs_supported && impl._rs_supported() ) ||
-            ( !impl._rs_supported )) ) {
+
+        if (impl && (!impl._rs_supported || impl._rs_supported())) {
           supportedCb(true);
           var initResult;
           try {
@@ -532,15 +538,23 @@
             failedCb(e);
             return;
           }
-          if(typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
-            initResult.then(cb,failedCb);
+          if (typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
+            initResult.then(initializedCb, failedCb);
           } else {
-            cb();
+            initializedCb();
           }
         } else {
           supportedCb(false);
         }
       });
+    },
+
+    localStorageAvailable: function() {
+      try {
+        return !!global.localStorage;
+      } catch(error) {
+        return false;
+      }
     },
 
     /**
@@ -591,13 +605,13 @@
     },
 
     _dispatchEvent: function(eventName, event) {
-      for(var path in this._pathHandlers[eventName]) {
+      for (var path in this._pathHandlers[eventName]) {
         var pl = path.length;
         var self = this;
         this._pathHandlers[eventName][path].forEach(function(handler) {
           if (event.path.substr(0, pl) === path) {
             var ev = {};
-            for(var key in event) { ev[key] = event[key]; }
+            for (var key in event) { ev[key] = event[key]; }
             ev.relativePath = event.path.replace(new RegExp('^' + path), '');
             try {
               handler(ev);

@@ -1,5 +1,5 @@
 if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
+  var define = require('amdefine')(module);
 }
 define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
   var suites = [];
@@ -10,19 +10,20 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
+      global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
       require('./src/discover');
 
       test.done();
     },
 
     beforeEach: function(env, test) {
-      if(typeof(XMLHttpRequest) === 'function') {
+      if (typeof(XMLHttpRequest) === 'function') {
         XMLHttpRequest.instances = [];
         XMLHttpRequest.openCalls = [];
         XMLHttpRequest.sendCalls = [];
         XMLHttpRequest.prototype = {
           open: function() {
-           XMLHttpRequest.openCalls.push(Array.prototype.slice.call(arguments));
+            XMLHttpRequest.openCalls.push(Array.prototype.slice.call(arguments));
           },
 
           send: function() {
@@ -42,7 +43,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     },
 
     tests: [
-
       // these tests MUST be run before any other.
 
       {
@@ -66,7 +66,8 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "initialization works",
         run: function(env, test) {
-          RemoteStorage.Discover._rs_init();
+          var rs = new RemoteStorage();
+          RemoteStorage.Discover._rs_init(rs);
           test.done();
         }
       },
@@ -84,7 +85,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "it href, type and authURL, when the response contains a remotestorage link",
+        desc: "it finds href, type and authURL, when the remotestorage version is in the link type",
         run: function(env, test) {
           RemoteStorage.Discover('nil@heahdk.net', function(href, type, authURL) {
             test.assertAnd(href, 'https://base/url');
@@ -109,19 +110,48 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           XMLHttpRequest.onloadFunction();
         }
       },
-      
+
+      {
+        desc: "it finds href, type and authURL, when the remotestorage version is in a link property",
+        run: function(env, test) {
+          //TODO: clear the cache of the discover instance inbetween tests.
+          //for now, we use a different user address in each test to avoid interference
+          //between the previous test and this one when running the entire suite.
+          RemoteStorage.Discover('nil2@heahdk.net', function(href, type, authURL) {
+            test.assertAnd(href, 'https://base/url');
+            test.assertAnd(type, 'draft-dejong-remotestorage-02');
+            test.assertAnd(authURL, 'https://auth/url');
+            test.done();
+          });
+          var instance = XMLHttpRequest.instances[0];
+          instance.status = 200;
+          instance.responseText = JSON.stringify({
+            links: [
+              {
+                rel: 'remotestorage',
+                href: 'https://base/url',
+                properties: {
+                  'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-02',
+                  'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+                }
+              }
+            ]
+          });
+          XMLHttpRequest.onloadFunction();
+        }
+      },
+
       {
         desc: "if unseccesfully tried to discover a storage, callback is called without an href",
         run: function(env, test) {
           RemoteStorage.Discover("foo@bar", function(href) {
             test.assertType(href, 'undefined');
           });
-          for(var i = 0; i < 4; i++) {
+          for (var i = 0; i < 4; i++) {
             var instance = XMLHttpRequest.instances[i];
             instance.status = 200;
             XMLHttpRequest.onloadFunction();
           }
-          
         }
       }
     ]

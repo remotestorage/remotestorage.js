@@ -1,4 +1,3 @@
-
 var assert = require('assert');
 var util = require('util');
 var helpers = require('./conformance-helpers');
@@ -9,7 +8,7 @@ var testRequest = helpers.testRequest;
 
 var baseUrl = process.argv[2];
 var token = process.argv[3];
-if(! (baseUrl && token)) {
+if (! (baseUrl && token)) {
   console.log("Usage: " + process.argv[1] + " <base-url> <token>");
   process.exit(127);
 }
@@ -26,7 +25,7 @@ process.nextTick(function() {
 function val(name) {
   return function() {
     return eval(name);
-  }
+  };
 }
 
 var rememberedRootETag;
@@ -41,7 +40,7 @@ var rememberedRootETag;
 testRequest(
   "1) GET empty root folder", 'GET', '/', function(response) {
     assert.status(response, 200);
-    assert.directoryEqual(response, {}, "Expected storage to be initially empty, but there seems to be data in it. root listing is: " + response.body);
+    assert.folderEqual(response, {}, "Expected storage to be initially empty, but there seems to be data in it. root listing is: " + response.body);
     rememberedRootETag = response.headers.etag;
   }
 );
@@ -103,11 +102,11 @@ testRequest(
 //     check: the corresponding value is equal to the ETag remembered in (5)
 testRequest(
   "6) GET the root listing now containing the file", 'GET', '/', function(response) {
-    assert.directoryEqual(response, {
+    assert.folderEqual(response, {
       'test-file': rememberedETag
     });
     assert.notEqual(response.headers.etag, rememberedRootETag);
-    rememberedRootETag = response.headers.etag
+    rememberedRootETag = response.headers.etag;
   }
 );
 
@@ -159,15 +158,15 @@ testRequest(
     assert.deepEqual(body, {}, "Expected storage to be initially empty, but there seems to be data in it. root listing is: " + util.inspect(body));
     assert.ok(response.headers['etag']);
     assert.notEqual(response.headers.etag, rememberedRootETag);
-    rememberedRootETag = response.headers.etag
+    rememberedRootETag = response.headers.etag;
   }
 );
 
-// 11) get directory that doesn't exist
-//   GET /test-dir/
+// 11) get folder that doesn't exist
+//   GET /test-folder/
 //     check: status = 404
 testRequest(
-  "11) get directory that doesn't exist", 'GET', '/test-dir/', function(response) {
+  "11) get folder that doesn't exist", 'GET', '/test-folder/', function(response) {
     assert.status(response, 404);
   }
 );
@@ -175,11 +174,11 @@ testRequest(
 var rememberedNestedETag;
 
 // 12) create nested file
-//   PUT /test-dir/nested-file
+//   PUT /test-folder/nested-file
 //     check: status = 200
 //     check: ETag is set
 testRequest(
-  "12) create nested file", 'PUT', '/test-dir/nested-file', {
+  "12) create nested file", 'PUT', '/test-folder/nested-file', {
     headers: {
       "Content-Type": "text/plain"
     },
@@ -192,9 +191,9 @@ testRequest(
 );
 
 // 13) check that file can be retrieved correctly
-//   GET /test-dir/nested-file
+//   GET /test-folder/nested-file
 testRequest(
-  "13) check that file can be retrieved correctly", 'GET', '/test-dir/nested-file',
+  "13) check that file can be retrieved correctly", 'GET', '/test-folder/nested-file',
   function(response) {
     assert.status(response, 200);
     assert.equal(response.headers.etag, rememberedNestedETag);
@@ -203,38 +202,38 @@ testRequest(
   }
 );
 
-var rememberedDirectoryETag;
+var rememberedFolderETag;
 
-// 14) check that directory was created
-//   GET /test-dir/
+// 14) check that folder was created
+//   GET /test-folder/
 //     -> checks similar to (6)
 testRequest(
-  "14) check that directory was created", 'GET', '/test-dir/', function(response) {
-    assert.directoryEqual(response, {
+  "14) check that folder was created", 'GET', '/test-folder/', function(response) {
+    assert.folderEqual(response, {
       'nested-file': rememberedNestedETag
     });
-    rememberedDirectoryETag = response.headers.etag;
+    rememberedFolderETag = response.headers.etag;
   }
 );
 
-// 15) check that root directory was updated
+// 15) check that root folder was updated
 //   GET /
 //     -> checks similar to (6)
 testRequest(
-  "15) check that root directory was updated", 'GET', '/', function(response) {
-    assert.directoryEqual(response, {
-      'test-dir/': rememberedDirectoryETag
+  "15) check that root folder was updated", 'GET', '/', function(response) {
+    assert.folderEqual(response, {
+      'test-folder/': rememberedFolderETag
     });
     assert.notEqual(response.headers.etag, rememberedRootETag);
-    rememberedRootETag = response.headers.etag
+    rememberedRootETag = response.headers.etag;
   }
 );
 
 var rememberedOtherNestedETag;
 
-// 16) put another file in the same directory
+// 16) put another file in the same folder
 testRequest(
-  "16) put another file in the same directory", 'PUT', '/test-dir/other-file', {
+  "16) put another file in the same folder", 'PUT', '/test-folder/other-file', {
     headers: {
       'Content-Type': 'application/json'
     },
@@ -246,35 +245,35 @@ testRequest(
   }
 );
 
-// 17) check that directory was updated again
+// 17) check that folder was updated again
 testRequest(
-  "17) check that directory was updated again", 'GET', '/test-dir/',
+  "17) check that folder was updated again", 'GET', '/test-folder/',
   function(response) {
-    assert.directoryEqual(response, {
+    assert.folderEqual(response, {
       'nested-file': rememberedNestedETag,
       'other-file': rememberedOtherNestedETag
     });
-    assert.notEqual(response.headers.etag, rememberedDirectoryETag);
+    assert.notEqual(response.headers.etag, rememberedFolderETag);
     assert.ok(response.headers.etag);
-    rememberedDirectoryETag = response.headers.etag;
+    rememberedFolderETag = response.headers.etag;
   }
 );
 
-// 18) check that directory etag changed accordingly in root listing
+// 18) check that folder etag changed accordingly in root listing
 testRequest(
-  "18) check that directory etag changed accordingly in root listing", 'GET', '/',
+  "18) check that folder etag changed accordingly in root listing", 'GET', '/',
   function(response) {
-    assert.directoryEqual(response, {
-      'test-dir/': rememberedDirectoryETag
-    })
+    assert.folderEqual(response, {
+      'test-folder/': rememberedFolderETag
+    });
     assert.notEqual(response.headers.etag, rememberedRootETag);
-    rememberedRootETag = response.headers.etag
+    rememberedRootETag = response.headers.etag;
   }
 );
 
 // 19) DELETE the nested file stored first
 testRequest(
-  "19) DELETE the nested file stored first", 'DELETE', '/test-dir/nested-file',
+  "19) DELETE the nested file stored first", 'DELETE', '/test-folder/nested-file',
   function(response) {
     assert.status(response, 200);
     assert.equal(response.headers.etag, rememberedNestedETag);
@@ -283,17 +282,17 @@ testRequest(
 
 // 20) check that it cannot be retrieved anymore
 testRequest(
-  "20) check that it cannot be retrieved anymore", 'GET', '/test-dir/nested-file',
+  "20) check that it cannot be retrieved anymore", 'GET', '/test-folder/nested-file',
   function(response) {
     assert.status(response, 404);
   }
 );
 
-// 21) check that the directory was updated accordingly
+// 21) check that the folder was updated accordingly
 testRequest(
-  "21) check that the directory was updated accordingly", 'GET', '/test-dir/',
+  "21) check that the folder was updated accordingly", 'GET', '/test-folder/',
   function(response) {
-    assert.directoryEqual(response, {
+    assert.folderEqual(response, {
       'other-file': rememberedOtherNestedETag
     });
   }
@@ -301,15 +300,15 @@ testRequest(
 
 // 22) remove the other nested file
 testRequest(
-  "22) remove the other nested file", 'DELETE', '/test-dir/other-file',
+  "22) remove the other nested file", 'DELETE', '/test-folder/other-file',
   function(response) {
     assert.status(response, 200);
   }
 );
 
-// 23) check that the directory was implictly deleted
+// 23) check that the folder was implictly deleted
 testRequest(
-  "23) check that the directory was implictly deleted", 'GET', '/test-dir/',
+  "23) check that the folder was implictly deleted", 'GET', '/test-folder/',
   function(response) {
     assert.status(response, 404);
   }
@@ -318,9 +317,9 @@ testRequest(
 // 24) check that root listing is empty again
 testRequest(
   "24) check that root listing is empty again", 'GET', '/', function(response) {
-    assert.directoryEqual(response, {});
+    assert.folderEqual(response, {});
     assert.notEqual(response.headers.etag, rememberedRootETag);
-    rememberedRootETag = response.headers.etag
+    rememberedRootETag = response.headers.etag;
   }
 );
 
@@ -459,7 +458,7 @@ testRequest(
 testRequest(
   "36) check that the file was updated correctly", 'GET', '/test-file',
   function(response) {
-	  assert.status(response, 200);
+    assert.status(response, 200);
     console.log('resp', response);
     assert.contentType(response, 'text/html');
     assert.equal(response.headers.etag, rememberedETag);
@@ -474,7 +473,7 @@ testRequest(
       'If-None-Match': val('rememberedETag')
     }
   }, function(response) {
-    if(response.status == 412) {
+    if (response.status === 412) {
       throw "Response status is 412. Conditional GET requests should return 403 instead. See this issue for an explaination: https://github.com/remotestorage/spec/issues/23";
     }
     assert.status(response, 304);
@@ -506,23 +505,22 @@ testRequest(
 
 /**
    TODO:
-   - edge case: test that the ETag of a directory doesn't revert back to a previous state when creating a document and subsequently deleting it without touching anything else in the directory
+   - edge case: test that the ETag of a folder doesn't revert back to a previous state when creating a document and subsequently deleting it without touching anything else in the folder
    - PUT binary file
    - OPTIONS requests
    - try invalid tokens
    - try accessing different scopes
-   - try directory traversal attack
+   - try folder traversal attack
    - try PUT/DELETE with read-only token
    - test /public/
 
    DONE:
-   - test implicit directory creation
-   - test implicit directory deletion
+   - test implicit folder creation
+   - test implicit folder deletion
    - second PUT (changing ETag in all places)
    - test ETags changing throughout the entire parent tree after a PUT and DELETE
    - GET with if-none-match (both cases)
    - PUT with if-match (both cases)
    - PUT with if-none-match = '*' (on a document that exists and one that doesn't)
    - DELETE with if-match (both cases)
-
  **/

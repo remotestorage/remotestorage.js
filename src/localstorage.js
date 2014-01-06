@@ -4,6 +4,7 @@
   var CHANGES_PREFIX = "remotestorage:cache:changes:";
 
   RemoteStorage.LocalStorage = function() {
+    RemoteStorage.cachingLayer(this);
     RemoteStorage.eventHandling(this, 'change', 'conflict');
   };
 
@@ -59,7 +60,7 @@
     toBase64: function(data){
       var arr = new Uint8Array(data);
       var str = '';
-      for(var i = 0; i < arr.length; i++) {
+      for (var i = 0; i < arr.length; i++) {
         //atob(btoa(String.fromCharCode(arr[0]))).charCodeAt(0)
         str+=String.fromCharCode(arr[i]);
       }
@@ -79,17 +80,26 @@
         body: body
       };
       localStorage[NODES_PREFIX + path] = JSON.stringify(node);
-      this._addToParent(path, revision);
       this._emit('change', {
         path: path,
         origin: incoming ? 'remote' : 'window',
         oldValue: oldNode ? oldNode.body : undefined,
         newValue: body
       });
-      if (! incoming) {
+      if (incoming) {
+        this._setRevision(path, revision);
+      }
+      if (!incoming) {
         this._recordChange(path, { action: 'PUT' });
       }
       return promising().fulfill(200);
+    },
+
+    putFolder: function(path, body, revision) {
+      this._addFolderCacheNode(path, body);
+      this._addToParent(path, 'body');
+      this._setRevision(path, revision);
+      return promising().fulfill();
     },
 
     get: function(path) {
@@ -122,10 +132,11 @@
       return promising().fulfill(200);
     },
 
-    setRevision: function(path, revision) {
+    _setRevision: function(path, revision) {
       var node = this._get(path) || makeNode(path);
       node.revision = revision;
       localStorage[NODES_PREFIX + path] = JSON.stringify(node);
+      this._addToParent(path, 'cached', revision);
       return promising().fulfill();
     },
 
@@ -149,7 +160,7 @@
       } catch(e) {
         change = {};
       }
-      for(var key in attributes) {
+      for (var key in attributes) {
         change[key] = attributes[key];
       }
       change.path = path;
@@ -165,7 +176,7 @@
       var changes = [];
       var kl = localStorage.length;
       var prefix = CHANGES_PREFIX + path, pl = prefix.length;
-      for(var i=0;i<kl;i++) {
+      for (var i=0;i<kl;i++) {
         var key = localStorage.key(i);
         if (key.substr(0, pl) === prefix) {
           changes.push(JSON.parse(localStorage[key]));
@@ -175,48 +186,43 @@
     },
 
     setConflict: function(path, attributes) {
-      var event = { path: path };
-      for(var key in attributes) {
-        event[key] = attributes[key];
-      }
+      var event = this._createConflictEvent(path, attributes);
       this._recordChange(path, { conflict: attributes });
-      event.resolve = function(resolution) {
-        if (resolution === 'remote' || resolution === 'local') {
-          attributes.resolution = resolution;
-          this._recordChange(path, { conflict: attributes });
-        } else {
-          throw "Invalid resolution: " + resolution;
-        }
-      }.bind(this);
       this._emit('conflict', event);
     },
 
-    _addToParent: function(path, revision) {
+    _addToParent: function(path, key, revision) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
       if (parts) {
-        var dirname = parts[1], basename = parts[2];
-        var node = this._get(dirname) || makeNode(dirname);
-        node.body[basename] = revision || true;
-        localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
-        if (dirname !== '/') {
-          this._addToParent(dirname, true);
+        var foldername = parts[1], basename = parts[2];
+        var node = this._get(foldername) || makeNode(foldername);
+        node[key][basename] = revision || true;
+        localStorage[NODES_PREFIX + foldername] = JSON.stringify(node);
+        if (foldername !== '/') {
+          this._addToParent(foldername, key, true);
         }
       }
+    },
+
+    _addFolderCacheNode: function(path, body) {
+      var node = this._get(path) || makeNode(path);
+      node.body = body;
+      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
     },
 
     _removeFromParent: function(path) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
       if (parts) {
-        var dirname = parts[1], basename = parts[2];
-        var node = this._get(dirname);
+        var foldername = parts[1], basename = parts[2];
+        var node = this._get(foldername);
         if (node) {
-          delete node.body[basename];
-          if (Object.keys(node.body).length > 0) {
-            localStorage[NODES_PREFIX + dirname] = JSON.stringify(node);
+          delete node.cached[basename];
+          if (Object.keys(node.cached).length > 0) {
+            localStorage[NODES_PREFIX + foldername] = JSON.stringify(node);
           } else {
-            delete localStorage[NODES_PREFIX + dirname];
-            if (dirname !== '/') {
-              this._removeFromParent(dirname);
+            delete localStorage[NODES_PREFIX + foldername];
+            if (foldername !== '/') {
+              this._removeFromParent(foldername);
             }
           }
         }
@@ -225,7 +231,7 @@
 
     fireInitial: function() {
       var l = localStorage.length, npl = NODES_PREFIX.length;
-      for(var i=0;i<l;i++) {
+      for (var i=0;i<l;i++) {
         var key = localStorage.key(i);
         if (key.substr(0, npl) === NODES_PREFIX) {
           var path = key.substr(npl);
@@ -252,7 +258,7 @@
     var l = localStorage.length;
     var npl = NODES_PREFIX.length, cpl = CHANGES_PREFIX.length;
     var remove = [];
-    for(var i=0;i<l;i++) {
+    for (var i=0;i<l;i++) {
       var key = localStorage.key(i);
       if (key.substr(0, npl) === NODES_PREFIX ||
          key.substr(0, cpl) === CHANGES_PREFIX) {

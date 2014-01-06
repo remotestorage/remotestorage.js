@@ -1,9 +1,8 @@
-if(typeof(define) !== 'function') {
+if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
 define(['requirejs'], function(requirejs) {
   var suites = [];
-
 
   suites.push({
     name: "IndexedDB",
@@ -12,10 +11,16 @@ define(['requirejs'], function(requirejs) {
       require('./lib/promising');
       global.RemoteStorage = function() {};
       require('./src/eventhandling');
-      if(global.rs_eventhandling) {
+      if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
+      }
+      require('./src/cachinglayer');
+      if (global.rs_cachinglayer) {
+        RemoteStorage.cachingLayer = global.rs_cachinglayer;
+      } else {
+        global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
       require('./src/indexeddb');
       test.done();
@@ -27,8 +32,7 @@ define(['requirejs'], function(requirejs) {
         return {
           get: function() {
             return {
-              onsuccess: function() {
-              }
+              onsuccess: function() {}
             };
           },
           openCursor: function() {
@@ -59,7 +63,6 @@ define(['requirejs'], function(requirejs) {
     },
 
     tests: [
-
       {
         desc: "fireInitial fires change event with 'local' origin for initial cache content",
         timeout: 250,

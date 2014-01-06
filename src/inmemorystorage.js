@@ -3,27 +3,15 @@
     var node = { path: path };
     if (path[path.length - 1] === '/') {
       node.body = {};
+      node.cached = {};
       node.contentType = 'application/json';
     }
     return node;
   }
 
-  function applyRecursive(path, cb) {
-    var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
-    if (parts) {
-      var dirname = parts[1];
-      var basename = parts[2];
-
-      if (cb(dirname, basename) && dirname !== '/') {
-        applyRecursive(dirname, cb);
-      }
-    } else {
-      throw new Error('inMemoryStorage encountered invalid path : ' + path);
-    }
-  }
-
   RemoteStorage.InMemoryStorage = function(rs) {
     this.rs = rs;
+    RemoteStorage.cachingLayer(this);
     RemoteStorage.eventHandling(this, 'change', 'conflict');
     this._storage = {};
     this._changes = {};
@@ -39,7 +27,7 @@
       }
     },
 
-    put: function(path, body, contentType, incoming) {
+    put: function(path, body, contentType, incoming, revision) {
       var oldNode = this._storage[path];
       var node = {
         path: path,
@@ -47,10 +35,6 @@
         body: body
       };
       this._storage[path] = node;
-      this._addToParent(path);
-      if (!incoming) {
-        this._recordChange(path, { action: 'PUT' });
-      }
 
       this._emit('change', {
         path: path,
@@ -58,13 +42,29 @@
         oldValue: oldNode ? oldNode.body : undefined,
         newValue: body
       });
+
+      if (incoming) {
+        this._setRevision(path, revision);
+      }
+      if (!incoming) {
+        this._recordChange(path, { action: 'PUT' });
+        // TODO why not set a revision?
+      }
+
       return promising().fulfill(200);
+    },
+
+    putFolder: function(path, body, revision) {
+      this._addFolderCacheNode(path, body);
+      this._addToParent(path, 'body');
+      this._setRevision(path, revision);
+      return promising().fulfill();
     },
 
     'delete': function(path, incoming) {
       var oldNode = this._storage[path];
       delete this._storage[path];
-      this._removeFromParent(path);
+      this._removeFromParent(path, 'cached');
       if (!incoming) {
         this._recordChange(path, { action: 'DELETE' });
       }
@@ -80,36 +80,49 @@
       return promising().fulfill(200);
     },
 
-    _addToParent: function(path) {
+    _addToParent: function(path, key, revision) {
+      var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
+      if (parts) {
+        var storage = this._storage;
+        var foldername = parts[1], basename = parts[2];
+        var node = storage[foldername] || makeNode(foldername);
+        node[key][basename] = revision || true;
+        storage[foldername] = node;
+        if (foldername !== '/') {
+          this._addToParent(foldername, key, true);
+        }
+      }
+    },
+
+    _addFolderCacheNode: function(path, body) {
       var storage = this._storage;
-      applyRecursive(path, function(dirname, basename) {
-        var node = storage[dirname] || makeNode(dirname);
-        node.body[basename] = true;
-        storage[dirname] = node;
-        return true;
-      });
+      var node = storage[path] || makeNode(path);
+      node.body = body;
+      storage[path] = node;
+      return true;
     },
 
     _removeFromParent: function(path) {
-      var storage = this._storage;
-      var self = this;
-      applyRecursive(path, function(dirname, basename) {
-        var node = storage[dirname];
+      var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
+      if (parts) {
+        var storage = this._storage;
+        var foldername = parts[1], basename = parts[2];
+        var node = storage[foldername];
         if (node) {
-          delete node.body[basename];
-          if (Object.keys(node.body).length === 0) {
-            delete storage[dirname];
-            return true;
-          } else {
-            self._addToParent(dirname);
+          delete node.cached[basename];
+          if (Object.keys(node.cached).length === 0) {
+            delete storage[foldername];
+            if (foldername !== '/') {
+              this._removeFromParent(foldername);
+            }
           }
         }
-      });
+      }
     },
 
     _recordChange: function(path, attributes) {
       var change = this._changes[path] || {};
-      for(var key in attributes) {
+      for (var key in attributes) {
         change[key] = attributes[key];
       }
       change.path = path;
@@ -124,7 +137,7 @@
     changesBelow: function(path) {
       var changes = [];
       var l = path.length;
-      for(var key in this._changes) {
+      for (var key in this._changes) {
         if (key.substr(0,l) === path) {
           changes.push(this._changes[key]);
         }
@@ -133,28 +146,16 @@
     },
 
     setConflict: function(path, attributes) {
+      var event = this._createConflictEvent(path, attributes);
       this._recordChange(path, { conflict: attributes });
-      var self = this;
-      var event = { path: path };
-      for(var key in attributes) {
-        event[key] = attributes[key];
-      }
-
-      event.resolve = function(resolution) {
-        if (resolution === 'remote' || resolution === 'local') {
-          attributes.resolution = resolution;
-          self._recordChange(path, { conflict: attributes });
-        } else {
-          throw new Error('Invalid resolution: ' + resolution);
-        }
-      };
       this._emit('conflict', event);
     },
 
-    setRevision: function(path, revision) {
+    _setRevision: function(path, revision) {
       var node = this._storage[path] || makeNode(path);
       node.revision = revision;
       this._storage[path] = node;
+      this._addToParent(path, 'cached', revision);
       return promising().fulfill();
     },
 

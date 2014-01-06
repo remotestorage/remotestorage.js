@@ -1,5 +1,5 @@
 if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
+  var define = require('amdefine')(module);
 }
 define(['requirejs'], function(requirejs, undefined) {
   var suites = [];
@@ -15,22 +15,24 @@ define(['requirejs'], function(requirejs, undefined) {
       RemoteStorage.prototype = {
         setBackend: function(b){
           this.backend = b;
+        },
+        localStorageAvailable: function() {
+          return false;
         }
       };
       global.RemoteStorage.Unauthorized = function() {};
-      
 
       require('./lib/promising');
       require('./src/eventhandling');
-      
-      if(global.rs_eventhandling) {
+
+      if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
       require('./src/wireclient');
-      
-      if(global.rs_wireclient) {
+
+      if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
         global.rs_wireclient = RemoteStorage.WireClient;
@@ -149,7 +151,7 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           env.client.configure('test@example.com');
           test.assertAnd(env.client.userAddress, 'test@example.com');
-          
+
           test.done();
         }
       },
@@ -168,6 +170,7 @@ define(['requirejs'], function(requirejs, undefined) {
           test.done();
         }
       },
+
       {
         desc: "#configure sets 'connected' to true, once token is given",
         run: function(env, test) {
@@ -289,7 +292,7 @@ define(['requirejs'], function(requirejs, undefined) {
           req._onload();
         }
       },
-      
+
       {
         desc: "WireClient destroys the bearer token after Unauthorized Error",
         run: function(env, test){
@@ -360,7 +363,6 @@ define(['requirejs'], function(requirejs, undefined) {
         }
       },
 
-
       {
         desc: "404 responses discard the body altogether",
         run: function(env, test) {
@@ -376,7 +378,7 @@ define(['requirejs'], function(requirejs, undefined) {
           req._onload();
         }
       },
-      
+
 //FIXME: fix this test
 /*
       {
@@ -387,7 +389,7 @@ define(['requirejs'], function(requirejs, undefined) {
             test.assertAnd(status, 200, 'status = '+status);
             test.assertAnd(rev,'rev',rev)
             test.assertAnd(body, 'response-body', 'body = '+ body);
-          
+
             //test.assert(env.connectedClient._itemRefs['/public/foo'],'http://dropbox.shareing/url');
           })
           var getReq = XMLHttpRequest.instances.shift();
@@ -421,14 +423,14 @@ define(['requirejs'], function(requirejs, undefined) {
           }
           var rs = new RemoteStorage();
           rs.apiKeys= { dropbox: {api_key: 'testkey'} };
-          
+
           test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
-          
+
           RemoteStorage.Dropbox._rs_init(rs);
           test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers") ;
-          
+
           RemoteStorage.Dropbox._rs_cleanup(rs);
-          test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;       
+          test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;
 
           test.done();
         }

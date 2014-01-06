@@ -1,10 +1,12 @@
-(function() {
+(function(global) {
 
   function extractParams() {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
-    var hashPos = document.location.href.indexOf('#');
+    var location = RemoteStorage.Authorize.getLocation(),
+        hashPos  = location.href.indexOf('#'),
+        hash;
     if (hashPos === -1) { return; }
-    var hash = document.location.href.substring(hashPos+1);
+    hash = location.href.substring(hashPos+1);
     return hash.split('&').reduce(function(m, kvs) {
       var kv = kvs.split('=');
       m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
@@ -21,27 +23,41 @@
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
     url += '&response_type=token';
-    document.location = url;
+    RemoteStorage.Authorize.setLocation(url);
   };
 
   RemoteStorage.prototype.authorize = function(authURL) {
-    var scopes = this.access.scopeModeMap;
-    var scope = [];
-    for(var key in scopes) {
-      var mode = scopes[key];
-      if (key === 'root') {
-        if (! this.remote.storageApi.match(/^draft-dejong-remotestorage-/)) {
-          key = '';
-        }
-      }
-      scope.push(key + ':' + mode);
-    }
-    scope = scope.join(' ');
+    this.access.setStorageType(this.remote.storageType);
+    var scope = this.access.scopeParameter;
 
-    var redirectUri = String(document.location);
+    var redirectUri = String(RemoteStorage.Authorize.getLocation());
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
     RemoteStorage.Authorize(authURL, scope, redirectUri, clientId);
+  };
+
+  /**
+   * Get current document location
+   *
+   * Override this method if access to document.location is forbidden
+   */
+  RemoteStorage.Authorize.getLocation = function () {
+    return global.document.location;
+  };
+
+  /**
+   * Get current document location
+   *
+   * Override this method if access to document.location is forbidden
+   */
+  RemoteStorage.Authorize.setLocation = function (location) {
+    if (typeof location === 'string') {
+      global.document.location.href = location;
+    } else if (typeof location === 'object') {
+      global.document.location = location;
+    } else {
+      throw "Invalid location " + location;
+    }
   };
 
   RemoteStorage.Authorize._rs_supported = function(remoteStorage) {
@@ -63,9 +79,11 @@
         }
       }
     };
-    var params = extractParams();
+    var params = extractParams(),
+        location;
     if (params) {
-      document.location.hash = '';
+      location = RemoteStorage.Authorize.getLocation();
+      location.hash = '';
     }
     remoteStorage.on('features-loaded', onFeaturesLoaded);
   };
@@ -74,4 +92,4 @@
     remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
   };
 
-})();
+})(typeof(window) !== 'undefined' ? window : global);
