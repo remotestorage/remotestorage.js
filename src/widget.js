@@ -73,17 +73,19 @@
     this.rs.on('disconnected', stateSetter(this, 'initial'));
     this.rs.on('connecting', stateSetter(this, 'authing'));
     this.rs.on('authing', stateSetter(this, 'authing'));
-    this.rs.on('wire-busy', function(evt) {
-      if(flashFor(evt)) {
-        this.requestsToFlashFor++;
-        stateSetter(this, 'busy')();
-      }
-    });
-    this.rs.on('wire-done', function(evt) {
-      if(flashFor(evt) && this.requestsToFlashFor === 0) {
-        stateSetter(this, 'connected')();
-      }
-    });
+    if(this.rs.remote) {
+      this.rs.remote.on('wire-busy', function(evt) {
+        if(flashFor(evt)) {
+          this.requestsToFlashFor++;
+          stateSetter(this, 'busy')();
+        }
+      });
+      this.rs.remote.on('wire-done', function(evt) {
+        if(flashFor(evt) && this.requestsToFlashFor === 0) {
+          stateSetter(this, 'connected')();
+        }
+      });
+    }
     this.rs.on('error', errorsHandler(this) );
     if (hasLocalStorage) {
       var state = localStorage[LS_STATE_KEY];
