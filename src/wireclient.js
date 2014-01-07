@@ -185,7 +185,7 @@
 
       this._emit('wire-busy', {
         method: method,
-        isFolder: isDir(uri)
+        isFolder: isFolder(uri)
       });
 
       RS.WireClient.request(method, uri, {
@@ -195,14 +195,14 @@
         if (error) {
           self._emit('wire-done', {
             method: method,
-            isFolder: isDir(uri),
+            isFolder: isFolder(uri),
             success: false
           });
           promise.reject(error);
         } else {
           self._emit('wire-done', {
             method: method,
-            isFolder: isDir(uri),
+            isFolder: isFolder(uri),
             success: true
           });
           if ([401, 403, 404, 412].indexOf(response.status) >= 0) {
