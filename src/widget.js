@@ -65,7 +65,8 @@
    *   error        :  depending on the error initial,offline, unauthorized or error
    **/
   RemoteStorage.Widget = function(remoteStorage) {
-    this.requestsToFlashFor = 0;
+    var requestsToFlashFor = 0;
+
     // setting event listeners on rs events to put
     // the widget into corresponding states
     this.rs = remoteStorage;
@@ -73,20 +74,26 @@
     this.rs.on('disconnected', stateSetter(this, 'initial'));
     this.rs.on('connecting', stateSetter(this, 'authing'));
     this.rs.on('authing', stateSetter(this, 'authing'));
-    if(this.rs.remote) {
+    this.rs.on('error', errorsHandler(this));
+
+    if (this.rs.remote) {
       this.rs.remote.on('wire-busy', function(evt) {
-        if(flashFor(evt)) {
-          this.requestsToFlashFor++;
+        if (flashFor(evt)) {
+          requestsToFlashFor++;
           stateSetter(this, 'busy')();
         }
       }.bind(this));
+
       this.rs.remote.on('wire-done', function(evt) {
-        if(flashFor(evt) && this.requestsToFlashFor === 0) {
-          stateSetter(this, 'connected')();
+        if (flashFor(evt)) {
+          requestsToFlashFor--;
+          if (requestsToFlashFor <= 0) {
+            stateSetter(this, 'connected')();
+          }
         }
       }.bind(this));
     }
-    this.rs.on('error', errorsHandler(this) );
+
     if (hasLocalStorage) {
       var state = localStorage[LS_STATE_KEY];
       if (state && VALID_ENTRY_STATES[state]) {
