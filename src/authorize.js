@@ -66,17 +66,24 @@
 
   var onFeaturesLoaded;
   RemoteStorage.Authorize._rs_init = function(remoteStorage) {
+
     onFeaturesLoaded = function () {
+      var authParamsUsed = false;
       if (params) {
         if (params.error) {
           throw "Authorization server errored: " + params.error;
         }
         if (params.access_token) {
           remoteStorage.remote.configure(undefined, undefined, undefined, params.access_token);
+          authParamsUsed = true;
         }
         if (params.remotestorage) {
           remoteStorage.connect(params.remotestorage);
+          authParamsUsed = true;
         }
+      }
+      if (!authParamsUsed) {
+        remoteStorage.remote.stopWaitingForToken();
       }
     };
     var params = extractParams(),
