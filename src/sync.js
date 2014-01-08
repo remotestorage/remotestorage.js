@@ -236,36 +236,19 @@
         visibilityChange,
         rs = this;
 
-    if (typeof global.document === "undefined") {
-      // not in browser, do nothing
-      return;
-    }
-
-    function handleVisibilityChange(e) {
+    function handleVisibilityChange(bg) {
       var oldValue, newValue;
       oldValue = rs.getCurrentSyncInterval();
-      isBackground = document[hidden];
+      isBackground = bg;
       newValue = rs.getCurrentSyncInterval();
       rs._emit('sync-updated', {oldValue: oldValue, newValue: newValue});
     }
-    if (typeof(document.hidden) !== "undefined") {
-      hidden = "hidden";
-      visibilityChange = "visibilitychange";
-    } else if (typeof(document.mozHidden) !== "undefined") {
-      hidden = "mozHidden";
-      visibilityChange = "mozvisibilitychange";
-    } else if (typeof(document.msHidden) !== "undefined") {
-      hidden = "msHidden";
-      visibilityChange = "msvisibilitychange";
-    } else if (typeof(document.webkitHidden) !== "undefined") {
-      hidden = "webkitHidden";
-      visibilityChange = "webkitvisibilitychange";
-    }
-
-    if (typeof(hidden) !== "undefined") {
-      isBackground = document[hidden];
-      document.addEventListener(visibilityChange, handleVisibilityChange, false);
-    }
+    RemoteStorage.Env.on("background", function () {
+      handleVisibilityChange(true);
+    });
+    RemoteStorage.Env.on("foreground", function () {
+      handleVisibilityChange(false);
+    });
   }
 
   /**
@@ -457,7 +440,9 @@
   var syncCycleCb;
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
     syncCycleCb = function() {
-      handleVisibility.bind(remoteStorage)();
+      if (RemoteStorage.Env.isBrowser()) {
+        handleVisibility.bind(remoteStorage)();
+      }
       remoteStorage.syncCycle();
     };
     remoteStorage.on('ready', syncCycleCb);
