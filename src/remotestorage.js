@@ -53,15 +53,16 @@
     },
 
     _wrapBusyDone: function(result) {
+      var self = this;
       this._emit('wire-busy');
       return result.then(function() {
         var promise = promising();
-        this._emit('wire-done', { success: true });
+        self._emit('wire-done', { success: true });
         return promise.fulfill.apply(promise, arguments);
-      }.bind(this), function(err) {
-        this._emit('wire-done', { success: false });
+      }, function(err) {
+        self._emit('wire-done', { success: false });
         throw err;
-      }.bind(this));
+      });
     }
   };
 

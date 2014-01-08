@@ -65,6 +65,7 @@
    *   error        :  depending on the error initial,offline, unauthorized or error
    **/
   RemoteStorage.Widget = function(remoteStorage) {
+    var self = this;
     var requestsToFlashFor = 0;
 
     // setting event listeners on rs events to put
@@ -80,18 +81,18 @@
       this.rs.remote.on('wire-busy', function(evt) {
         if (flashFor(evt)) {
           requestsToFlashFor++;
-          stateSetter(this, 'busy')();
+          stateSetter(self, 'busy')();
         }
-      }.bind(this));
+      });
 
       this.rs.remote.on('wire-done', function(evt) {
         if (flashFor(evt)) {
           requestsToFlashFor--;
           if (requestsToFlashFor <= 0) {
-            stateSetter(this, 'connected')();
+            stateSetter(self, 'connected')();
           }
         }
-      }.bind(this));
+      });
     }
 
     if (hasLocalStorage) {
