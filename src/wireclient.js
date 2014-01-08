@@ -257,7 +257,7 @@
       }.bind(this));
     },
 
-    notAuthing: function() {
+    stopWaitingForToken: function() {
       if (!this.connected) {
         this._emit('not-connected');
       }

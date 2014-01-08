@@ -118,7 +118,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "the 'features-loaded' handler calls remote.notAuthing when it sees no access_token and no user address",
+        desc: "the 'features-loaded' handler calls remote.stopWaitingForToken when it sees no access_token and no user address",
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#a=b';
@@ -127,7 +127,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.assert(userAddress, 'nil@heahdk.net');
           };
           storage.remote = {
-            notAuthing: function() {
+            stopWaitingForToken: function() {
               test.done();
             }
           };
@@ -136,7 +136,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "the 'features-loaded' handler calls remote.notAuthing when there are no params",
+        desc: "the 'features-loaded' handler calls remote.stopWaitingForToken when there are no params",
         run: function(env, test) {
           var storage = new RemoteStorage();
           document.location.href = 'http://foo/bar#a=b';
@@ -145,7 +145,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             test.assert(userAddress, 'nil@heahdk.net');
           };
           storage.remote = {
-            notAuthing: function() {
+            stopWaitingForToken: function() {
               test.done();
             }
           };
