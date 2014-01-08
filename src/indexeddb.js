@@ -308,13 +308,13 @@
       }
       var transaction = this.db.transaction(['nodes'], 'readwrite'),
         promise = promising(),
-        oldBody, bodies,
+        oldBody,
         store = transaction.objectStore('nodes');
       deleteMeta(store, pathObj, function(setOldRevision) {
         oldRevision = setOldRevision;
         getBody(store, path, function(setOldBody) {
           oldBody = setOldBody;
-          bodies.delete(path);
+          store.delete(path);
         });
       });
       
