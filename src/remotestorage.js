@@ -35,7 +35,6 @@
 
     put: function(path, body, contentType) {
       if (shareFirst.bind(this)(path)) {
-        //this.local.put(path, body, contentType);
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
       }
       else if (this.caching.cachePath(path)) {
@@ -57,10 +56,10 @@
       this._emit('wire-busy');
       return result.then(function() {
         var promise = promising();
-        this._emit('wire-done', {success: true });
+        this._emit('wire-done', { success: true });
         return promise.fulfill.apply(promise, arguments);
       }.bind(this), function(err) {
-        this._emit('wire-done', {success: false });
+        this._emit('wire-done', { success: false });
         throw err;
       }.bind(this));
     }
