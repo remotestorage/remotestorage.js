@@ -11,7 +11,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       require('./src/eventhandling');
-      if(global.rs_eventhandling) {
+      if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;

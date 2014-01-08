@@ -82,7 +82,7 @@
           authParamsUsed = true;
         }
       }
-      if(!authParamsUsed) {
+      if (!authParamsUsed) {
         remoteStorage.remote.stopWaitingForToken();
       }
     };
