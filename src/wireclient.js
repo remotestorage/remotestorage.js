@@ -92,6 +92,14 @@
              && (typeof(body['items']) === 'object'));
   }
 
+  function isSuccessStatus(status) {
+    return [201, 204, 304].indexOf(status) >= 0;
+  }
+
+  function isErrorStatus(status) {
+    return [401, 403, 404, 412].indexOf(status) >= 0;
+  }
+
   var onErrorCb;
 
   /**
@@ -205,9 +213,9 @@
             isFolder: isFolder(uri),
             success: true
           });
-          if ([401, 403, 404, 412].indexOf(response.status) >= 0) {
+          if (isErrorStatus(response.status)) {
             promise.fulfill(response.status);
-          } else if ([201, 204, 304].indexOf(response.status) >= 0 ||
+          } else if (isSuccessStatus(response.status) ||
                      (response.status === 200 && method !== 'GET')) {
             revision = response.getResponseHeader('ETag');
             promise.fulfill(response.status, undefined, undefined, revision);
