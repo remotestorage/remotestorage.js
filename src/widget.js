@@ -79,12 +79,12 @@
           this.requestsToFlashFor++;
           stateSetter(this, 'busy')();
         }
-      });
+      }.bind(this));
       this.rs.remote.on('wire-done', function(evt) {
         if(flashFor(evt) && this.requestsToFlashFor === 0) {
           stateSetter(this, 'connected')();
         }
-      });
+      }.bind(this));
     }
     this.rs.on('error', errorsHandler(this) );
     if (hasLocalStorage) {
