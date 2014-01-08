@@ -54,7 +54,7 @@
     },
 
     _wrapBusyDone: function(result) {
-      this._emit('wire-busy', {});
+      this._emit('wire-busy');
       return result.then(function() {
         var promise = promising();
         this._emit('wire-done', {success: true });
