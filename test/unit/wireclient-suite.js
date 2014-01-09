@@ -26,6 +26,7 @@ define(['requirejs'], function(requirejs, undefined) {
       } else {
         global.rs_wireclient = RemoteStorage.WireClient;
       }
+
       test.done();
     },
 
@@ -130,6 +131,158 @@ define(['requirejs'], function(requirejs, undefined) {
             return;
           } catch(e) {}
           test.done();
+        }
+      },
+
+      {
+        desc: "client.get() of a document emits wire-busy and wire-done on success",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('wire-busy', busy);
+          env.connectedClient.on('wire-done', done);
+          env.connectedClient.get('/foo').then(function(){
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+          req.status = 200;
+          req.responseText = 'response-body';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "client.get() of a document emits wire-busy and wire-done on failure",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('wire-busy', busy);
+          env.connectedClient.on('wire-done', done);
+          env.connectedClient.get('/foo').then(function(){
+          }, function(err) {
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._onerror('something went wrong at the XHR level');
+        }
+      },
+
+      {
+        desc: "client.get() of a folder emits wire-busy and wire-done on success",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('wire-busy', busy);
+          env.connectedClient.on('wire-done', done);
+          env.connectedClient.get('/foo/').then(function(){
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+          req.status = 200;
+          req.responseText = {'@context':'http://remotestorage.io/spec/folder-description', items: {}};
+          req._onload();
+        }
+      },
+
+      {
+        desc: "client.get() of a folder emits wire-busy and wire-done on failure",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('wire-busy', busy);
+          env.connectedClient.on('wire-done', done);
+          env.connectedClient.get('/foo/').then(function(){
+          }, function(err) {
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._onerror('something went wrong at the XHR level');
+        }
+      },
+
+      {
+        desc: "client.put() emits wire-busy and wire-done on success",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('wire-busy', busy);
+          env.connectedClient.on('wire-done', done);
+          env.connectedClient.put('/foo', 'body', 'content-type', {}).then(function(){
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+          req.status = 200;
+          req.responseText = 'response-body';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "client.put() emits wire-busy and wire-done on failure",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('wire-busy', busy);
+          env.connectedClient.on('wire-done', done);
+          env.connectedClient.put('/foo', 'body', 'content-type', {}).then(function(){
+          }, function(err) {
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._onerror('something went wrong at the XHR level');
+        }
+      },
+
+      {
+        desc: "client.delete() emits wire-busy and wire-done on success",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('wire-busy', busy);
+          env.connectedClient.on('wire-done', done);
+          env.connectedClient.delete('/foo').then(function(){
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+          req.status = 200;
+          req.responseText = 'response-body';
+          req._onload();
+        }
+      },
+
+      {
+        desc: "client.delete() emits wire-busy and wire-done on failure",
+        run: function(env,test){
+          var busy = new test.Stub(function(){});
+          var done = new test.Stub(function(){});
+          env.connectedClient.on('wire-busy', busy);
+          env.connectedClient.on('wire-done', done);
+          env.connectedClient.delete('/foo', 'body', 'content-type', {}).then(function(){
+          }, function(err) {
+            test.assertAnd(busy.numCalled, 1);
+            test.assertAnd(done.numCalled, 1);
+            test.done();
+          });
+          var req = XMLHttpRequest.instances.shift();
+          req._onerror('something went wrong at the XHR level');
         }
       },
 
