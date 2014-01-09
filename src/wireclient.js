@@ -71,14 +71,14 @@
   }
 
   function addQuotes(str) {
-    if (typeof(str) != 'string') {
-       return str;
+    if (typeof(str) !== 'string') {
+      return str;
     }
     if (str === '*') {
       return '*';
-    } else {
-      return '"' + str +'"';
     }
+
+    return '"' + str + '"';
   }
 
   function stripQuotes(str) {
