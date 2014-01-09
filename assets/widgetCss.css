@@ -50,8 +50,6 @@
 
 .rs-bubble .rs-bubble-text {
     padding-right: 32px;
-    /* make sure the bubble doesn't "jump" when initially opening. */
-    min-width: 182px;
 }
 
 #remotestorage-widget .rs-action {
@@ -283,6 +281,9 @@
 
 #remotestorage-widget .rs-error-msg{
     min-height: 5em;
+}
+.rs-bubble-expandable {
+    min-width: 182px;
 }
 
 .rs-bubble.rs-hidden .rs-bubble-expandable {
