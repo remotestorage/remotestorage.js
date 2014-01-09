@@ -82,10 +82,11 @@
   }
 
   function stripQuotes(str) {
-    if (typeof(str) != 'string' || !str.length || str[0] != '"' || str[str.length-1] != '"') {
-       return str;
+    if (typeof(str) !== 'string') {
+      return str;
     }
-    return str.substring(1, str.length-1);
+
+    return str.replace(/^["']|["']$/g, '');
   }
 
   function readBinaryData(content, mimeType, callback) {
