@@ -74,7 +74,7 @@
     if (typeof(str) != 'string') {
        return str;
     }
-    if(str === '*') {
+    if (str === '*') {
       return '*';
     } else {
       return '"' + str +'"';
@@ -82,7 +82,7 @@
   }
 
   function stripQuotes(str) {
-    if (typeof(str) != 'string') {
+    if (typeof(str) != 'string' || !str.length || str[0] != '"' || str[str.length-1] != '"') {
        return str;
     }
     return str.substring(1, str.length-1);
