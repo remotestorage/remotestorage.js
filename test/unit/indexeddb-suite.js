@@ -40,8 +40,9 @@ define(['requirejs'], function(requirejs) {
               cursor.onsuccess({
                 target: {
                   result: {
-                    key: 'hi',
+                    key: '/hi',
                     value: {
+                      path: '/hi',
                       body: 'basdf'
                     }
                   }
@@ -67,11 +68,9 @@ define(['requirejs'], function(requirejs) {
         desc: "fireInitial fires change event with 'local' origin for initial cache content",
         timeout: 250,
         run: function(env, test) {
-          env.idb.put('/foo/bla', 'basdf', 'text/plain');
           env.idb.on('change', function(event) {
             test.assert(event.origin, 'local');
           });
-          //the mock is just an in-memory object; need to explicitly set its .length and its .key() function now:
           env.idb.fireInitial();
         }
       }

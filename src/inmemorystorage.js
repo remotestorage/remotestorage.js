@@ -44,7 +44,7 @@
       });
 
       if (incoming) {
-        this._setRevision(path, revision);
+        this.setRevision(path, revision);
       }
       if (!incoming) {
         this._recordChange(path, { action: 'PUT' });
@@ -57,7 +57,7 @@
     putFolder: function(path, body, revision) {
       this._addFolderCacheNode(path, body);
       this._addToParent(path, 'body');
-      this._setRevision(path, revision);
+      this.setRevision(path, revision);
       return promising().fulfill();
     },
 
@@ -151,7 +151,7 @@
       this._emit('conflict', event);
     },
 
-    _setRevision: function(path, revision) {
+    setRevision: function(path, revision) {
       var node = this._storage[path] || makeNode(path);
       node.revision = revision;
       this._storage[path] = node;
