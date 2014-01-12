@@ -28,6 +28,12 @@
     },
 
     set: function(scope, mode) {
+      if (typeof(scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
+        throw new Error('scope should be a non-empty string without forward slashes');
+      }
+      if (mode !== 'r' && mode !== 'rw') {
+        throw new Error('mode should be either \'r\' or \'rw\'');
+      }
       this._adjustRootPaths(scope);
       this.scopeModeMap[scope] = mode;
     },
@@ -52,6 +58,34 @@
     check: function(scope, mode) {
       var actualMode = this.get(scope);
       return actualMode && (mode === 'r' || actualMode === 'rw');
+    },
+
+    getModuleName: function(path) {
+      var pos, parts = path.split('/');
+      if (parts[0] !== '') {
+        throw new Error('path should start with a slash');
+      }
+      // /a => ['', 'a'] parts.length: 2, pos: 1 -> *
+      // /a/ => ['', 'a', ''] parts.length: 3, pos: 1 -> a
+      // /public/a => ['', 'public', 'a'] parts.length: 3, pos: 2 -> *
+      // /public/a/ => ['', 'public', 'a', ''] parts.length: 4, pos: 2 -> a
+      if (parts[1] === 'public') {
+        pos = 2;
+      } else {
+        pos = 1;
+      }
+      if (parts.length <= pos+1) {
+        return '*';
+      }
+      return parts[pos];
+    },
+
+    checkPath: function(path, mode) {
+      //check root access
+      if (this.check('*', mode)) {
+        return true;
+      }
+      return !!this.check(this.getModuleName(path), mode);
     },
 
     reset: function() {

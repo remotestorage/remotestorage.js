@@ -1,7 +1,7 @@
 (function(global) {
 
   function deprecate(thing, replacement) {
-    console.log('WARNING: ' + thing + ' is deprecated. Use ' +
+    RemoteStorage.log('WARNING: ' + thing + ' is deprecated. Use ' +
                 replacement + ' instead.');
   }
 
@@ -91,15 +91,10 @@
      *
      * * when newValue and oldValue are set you are dealing with an update
      **/
-    /**
-     * Event: conflict
-     *
-     **/
 
-    RS.eventHandling(this, 'change', 'conflict');
+    RS.eventHandling(this, 'change');
     this.on = this.on.bind(this);
     storage.onChange(this.base, this._fireChange.bind(this));
-    storage.onConflict(this.base, this._fireConflict.bind(this));
   };
 
   RS.BaseClient.prototype = {
@@ -159,18 +154,21 @@
      *   (start code)
      *   client.getListing('').then(function(listing) {
      *     listing.forEach(function(item) {
-     *       console.log(item);
+     *       RemoteStorage.log(item);
      *     });
      *   });
      *   (end code)
      */
-    getListing: function(path) {
+    getListing: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      return this.storage.get(this.makePath(path)).then(
+      if (typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number') {
+        return promising().reject('Argument \'maxAge\' of baseClient.getListing must be undefined or a number');
+      }
+      return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
           return (status === 404) ? undefined : body;
         }
@@ -193,18 +191,22 @@
      *   (start code)
      *   client.getAll('').then(function(objects) {
      *     for (var key in objects) {
-     *       console.log('- ' + key + ': ', objects[key]);
+     *       RemoteStorage.log('- ' + key + ': ', objects[key]);
      *     }
      *   });
      *   (end code)
      */
-    getAll: function(path) {
+    getAll: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      return this.storage.get(this.makePath(path)).then(function(status, body) {
+      if (typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number') {
+        return promising().reject('Argument \'maxAge\' of baseClient.getAll must be undefined or a number');
+      }
+
+      return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
         if (status === 404) { return; }
         if (typeof(body) === 'object') {
           var promise = promising();
@@ -215,7 +217,7 @@
             return;
           }
           for (var key in body) {
-            this.storage.get(this.makePath(path + key)).
+            this.storage.get(this.makePath(path + key), maxAge).
               then(function(status, b) {
                 body[this.key] = b;
                 i++;
@@ -257,12 +259,14 @@
      *   });
      *   (end code)
      */
-    getFile: function(path) {
+    getFile: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
       }
-
-      return this.storage.get(this.makePath(path)).then(function(status, body, mimeType, revision) {
+      if (typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number') {
+        return promising().reject('Argument \'maxAge\' of baseClient.getFile must be undefined or a number');
+      }
+      return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         return {
           data: body,
           mimeType: mimeType,
@@ -348,11 +352,14 @@
      *     });
      *   (end code)
      */
-    getObject: function(path) {
+    getObject: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
       }
-      return this.storage.get(this.makePath(path)).then(function(status, body, mimeType, revision) {
+      if (typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number') {
+        return promising().reject('Argument \'maxAge\' of baseClient.getObject must be undefined or a number');
+      }
+      return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         if (typeof(body) === 'object') {
           return body;
         } else if (typeof(body) !== 'undefined' && status === 200) {
@@ -450,31 +457,32 @@
     },
 
 
-    cache: function(path, enable) {
+    cache: function(path, strategy) {
       if (typeof(path) !== 'string') {
         throw 'Argument \'path\' of baseClient.cache must be a string';
       }
-      this.storage.caching[enable === false ? 'disable' : 'enable'](
-        this.makePath(path),
-        this.storage.connected
-      );
-      return this;// why?
+      if (strategy === undefined) {
+        strategy = this.storage.caching.ALL;
+      }
+      if (strategy !== this.storage.caching.SEEN &&
+          strategy !== this.storage.caching.SEEN_AND_FOLDERS &&
+          strategy !== this.storage.caching.ALL) {
+        throw 'Argument \'strategy\' of baseclient.cache must be one of '
+            + '[remoteStorage.caching.SEEN, remoteStorage.caching.SEEN_AND_FOLDERS, remoteStorage.caching.ALL]';
+      }
+      this.storage.caching.set(this.makePath(path), strategy);
     },
 
+    flush: function(path) {
+      return this.storage.local.flush(path);
+    },
+    
     makePath: function(path) {
       return this.base + (path || '');
     },
 
     _fireChange: function(event) {
       this._emit('change', event);
-    },
-
-    _fireConflict: function(event) {
-      if (this._handlers.conflict.length > 0) {
-        this._emit('conflict', event);
-      } else {
-        event.resolve('remote');
-      }
     },
 
     _cleanPath: RS.WireClient.cleanPath,

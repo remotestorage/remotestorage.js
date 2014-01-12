@@ -190,7 +190,7 @@
      *   set's the connected flag
      **/
     configure: function(userAddress, href, storageApi, token) {
-      console.log('dropbox configure',arguments);
+      RemoteStorage.log('dropbox configure',arguments);
       if (typeof token !== 'undefined') { this.token = token; }
       if (typeof userAddress !== 'undefined') { this.userAddress = userAddress; }
 
@@ -260,7 +260,7 @@
      *   calls share(path) afterwards to fill the _hrefCache
      **/
     get: function(path, options){
-      console.log('dropbox.get', arguments);
+      RemoteStorage.log('dropbox.get', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
       var url = 'https://api-content.dropbox.com/1/files/auto' + path;
@@ -269,14 +269,14 @@
       var savedRev = this._revCache.get(path);
       if (savedRev === null) {
         //file was deleted server side
-        console.log(path,' deleted 404');
+        RemoteStorage.log(path,' deleted 404');
         promise.fulfill(404);
         return promise;
       }
       if (options && options.ifNoneMatch &&
          savedRev && (savedRev === options.ifNoneMatch)) {
         // nothing changed.
-        console.log("nothing changed for",path,savedRev, options.ifNoneMatch);
+        RemoteStorage.log("nothing changed for",path,savedRev, options.ifNoneMatch);
         promise.fulfill(304);
         return promise;
       }
@@ -336,7 +336,7 @@
      *   also shares via share(path)
      **/
     put: function(path, body, contentType, options){
-      console.log('dropbox.put', arguments);
+      RemoteStorage.log('dropbox.put', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
 
@@ -359,7 +359,7 @@
       }
       if (body.length>150*1024*1024){ //FIXME actual content-length
         //https://www.dropbox.com/developers/core/docs#chunked-upload
-        console.log('files larger than 150MB not supported yet');
+        RemoteStorage.log('files larger than 150MB not supported yet');
       } else {
         this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
           if (err) {
@@ -387,7 +387,7 @@
      *   similar to get and set
      **/
     'delete': function(path, options){
-      console.log('dropbox.delete ', arguments);
+      RemoteStorage.log('dropbox.delete ', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
 
@@ -429,16 +429,16 @@
       var promise = promising();
       var self = this;
       if (path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] === 'undefined') {
-        console.log('shareing this one ', path);
+        RemoteStorage.log('shareing this one ', path);
         promise.then(function(){
           var args = Array.prototype.slice.call(arguments);
           var p = promising();
-          console.log('calling share now');
+          RemoteStorage.log('calling share now');
           self.share(path).then(function() {
-            console.log('shareing fullfilled promise',arguments);
+            RemoteStorage.log('shareing fullfilled promise',arguments);
             p.fulfill.apply(p,args);
           }, function(err) {
-            console.log("shareing failed" , err);
+            RemoteStorage.log("shareing failed" , err);
             p.fulfill.apply(p,args);
           });
           return p;
@@ -460,7 +460,7 @@
       // requesting shareing url
       this._request('POST', url, {}, function(err, resp){
         if (err) {
-          console.log(err);
+          RemoteStorage.log(err);
           err.message = 'Shareing Dropbox Thingie("'+path+'") failed' + err.message;
           promise.reject(err);
         } else {
@@ -468,7 +468,7 @@
             var response = JSON.parse(resp.responseText);
             var url = response.url;
             itemRefs[path] = url;
-            console.log("SHAREING URL :::: ",url,' for ',path);
+            RemoteStorage.log("SHAREING URL :::: ",url,' for ',path);
             if (hasLocalStorage) {
               localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
             }
@@ -547,7 +547,7 @@
               this.rs._emit('error', new RemoteStorage.Unauthorized());
               promise.fulfill.apply(promise, args);
             } else {
-              console.log("!!!!dropbox.fetchDelta returned "+response.status+response.responseText);
+              RemoteStorage.log("!!!!dropbox.fetchDelta returned "+response.status+response.responseText);
               promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
             }
             return promise;
@@ -562,7 +562,7 @@
           }
           // break if no entries found
           if (!delta.entries) {
-            console.log("!!!!!DropBox.fetchDeltas() NO ENTRIES FOUND!!", delta);
+            RemoteStorage.log("!!!!!DropBox.fetchDeltas() NO ENTRIES FOUND!!", delta);
             return promise.reject('dropbox.fetchDeltas failed, no entries found');
           }
 
@@ -583,7 +583,7 @@
           }
 
           //updating revCache
-          console.log("Delta : ",delta.entries);
+          RemoteStorage.log("Delta : ",delta.entries);
           delta.entries.forEach(function(entry) {
             var path = entry[0];
             var rev;

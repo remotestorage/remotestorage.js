@@ -280,7 +280,7 @@
                     itemsMap[data.items[i].title + '/'] = {
                       ETag: etagWithoutQuotes
                     };
-                  } else { 
+                  } else {
                     this._fileIdCache.set(path + data.items[i].title, data.items[i].id);
                     itemsMap[data.items[i].title] = {
                       ETag: etagWithoutQuotes,

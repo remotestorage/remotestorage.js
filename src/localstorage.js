@@ -5,18 +5,8 @@
 
   RemoteStorage.LocalStorage = function() {
     RemoteStorage.cachingLayer(this);
-    RemoteStorage.eventHandling(this, 'change', 'conflict');
+    RemoteStorage.eventHandling(this, 'change');
   };
-
-  function makeNode(path) {
-    var node = { path: path };
-    if (path[path.length - 1] === '/') {
-      node.body = {};
-      node.cached = {};
-      node.contentType = 'application/json';
-    }
-    return node;
-  }
 
   function b64ToUint6 (nChr) {
     return nChr > 64 && nChr < 91 ?
@@ -57,195 +47,43 @@
   }
 
   RemoteStorage.LocalStorage.prototype = {
-    toBase64: function(data){
-      var arr = new Uint8Array(data);
-      var str = '';
-      for (var i = 0; i < arr.length; i++) {
-        //atob(btoa(String.fromCharCode(arr[0]))).charCodeAt(0)
-        str+=String.fromCharCode(arr[i]);
-      }
-      return btoa(str);
-    },
-
-    toArrayBuffer: base64DecToArr,
-
-    put: function(path, body, contentType, incoming, revision) {
-      var oldNode = this._get(path);
-      if (isBinary(contentType)){
-        body = this.toBase64(body);
-      }
-      var node = {
-        path: path,
-        contentType: contentType,
-        body: body
-      };
-      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
-      this._emit('change', {
-        path: path,
-        origin: incoming ? 'remote' : 'window',
-        oldValue: oldNode ? oldNode.body : undefined,
-        newValue: body
-      });
-      if (incoming) {
-        this._setRevision(path, revision);
-      }
-      if (!incoming) {
-        this._recordChange(path, { action: 'PUT' });
-      }
-      return promising().fulfill(200);
-    },
-
-    putFolder: function(path, body, revision) {
-      this._addFolderCacheNode(path, body);
-      this._addToParent(path, 'body');
-      this._setRevision(path, revision);
-      return promising().fulfill();
-    },
-
-    get: function(path) {
-      var node = this._get(path);
-      if (node) {
-        if (isBinary(node.contentType)){
-          node.body = this.toArrayBuffer(node.body);
-        }
-        return promising().fulfill(200, node.body, node.contentType, node.revision);
-      } else {
-        return promising().fulfill(404);
-      }
-    },
-
-    'delete': function(path, incoming) {
-      var oldNode = this._get(path);
-      delete localStorage[NODES_PREFIX + path];
-      this._removeFromParent(path);
-      if (oldNode) {
-        this._emit('change', {
-          path: path,
-          origin: incoming ? 'remote' : 'window',
-          oldValue: oldNode.body,
-          newValue: undefined
-        });
-      }
-      if (! incoming) {
-        this._recordChange(path, { action: 'DELETE' });
-      }
-      return promising().fulfill(200);
-    },
-
-    _setRevision: function(path, revision) {
-      var node = this._get(path) || makeNode(path);
-      node.revision = revision;
-      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
-      this._addToParent(path, 'cached', revision);
-      return promising().fulfill();
-    },
-
-    getRevision: function(path) {
-      var node = this._get(path);
-      return promising.fulfill(node ? node.revision : undefined);
-    },
-
-    _get: function(path) {
-      var node;
-      try {
-        node = JSON.parse(localStorage[NODES_PREFIX + path]);
-      } catch(e) { /* ignored */ }
-      return node;
-    },
-
-    _recordChange: function(path, attributes) {
-      var change;
-      try {
-        change = JSON.parse(localStorage[CHANGES_PREFIX + path]);
-      } catch(e) {
-        change = {};
-      }
-      for (var key in attributes) {
-        change[key] = attributes[key];
-      }
-      change.path = path;
-      localStorage[CHANGES_PREFIX + path] = JSON.stringify(change);
-    },
-
-    clearChange: function(path) {
-      delete localStorage[CHANGES_PREFIX + path];
-      return promising().fulfill();
-    },
-
-    changesBelow: function(path) {
-      var changes = [];
-      var kl = localStorage.length;
-      var prefix = CHANGES_PREFIX + path, pl = prefix.length;
-      for (var i=0;i<kl;i++) {
-        var key = localStorage.key(i);
-        if (key.substr(0, pl) === prefix) {
-          changes.push(JSON.parse(localStorage[key]));
+    getNodes: function(paths) {
+      var i, ret = {}, promise = promising();
+      for(i=0; i<paths.length; i++) {
+        try {
+          ret[paths[i]] = JSON.parse(localStorage[NODES_PREFIX+paths[i]]);
+        } catch(e) {
         }
       }
-      return promising().fulfill(changes);
+      promise.fulfill(ret);
+      return promise;
     },
 
-    setConflict: function(path, attributes) {
-      var event = this._createConflictEvent(path, attributes);
-      this._recordChange(path, { conflict: attributes });
-      this._emit('conflict', event);
-    },
-
-    _addToParent: function(path, key, revision) {
-      var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
-      if (parts) {
-        var foldername = parts[1], basename = parts[2];
-        var node = this._get(foldername) || makeNode(foldername);
-        node[key][basename] = revision || true;
-        localStorage[NODES_PREFIX + foldername] = JSON.stringify(node);
-        if (foldername !== '/') {
-          this._addToParent(foldername, key, true);
-        }
+    setNodes: function(objs) {
+      var i, promise = promising();
+      for(i in objs) {
+        localStorage[NODES_PREFIX+i] = JSON.stringify(objs[i]);
       }
+      promise.fulfill();
+      return promise;
     },
 
-    _addFolderCacheNode: function(path, body) {
-      var node = this._get(path) || makeNode(path);
-      node.body = body;
-      localStorage[NODES_PREFIX + path] = JSON.stringify(node);
-    },
-
-    _removeFromParent: function(path) {
-      var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
-      if (parts) {
-        var foldername = parts[1], basename = parts[2];
-        var node = this._get(foldername);
-        if (node) {
-          delete node.cached[basename];
-          if (Object.keys(node.cached).length > 0) {
-            localStorage[NODES_PREFIX + foldername] = JSON.stringify(node);
-          } else {
-            delete localStorage[NODES_PREFIX + foldername];
-            if (foldername !== '/') {
-              this._removeFromParent(foldername);
-            }
+    forAllNodes: function(cb) {
+      var i, node;
+      for(i=0; i<localStorage.length; i++) {
+        if(localStorage.key(i).substring(0, NODES_PREFIX.length) === NODES_PREFIX) {
+          try {
+            node = this.migrate(JSON.parse(localStorage[localStorage.key(i)]));
+          } catch(e) {
+            node = undefined;
+          }
+          if(node) {
+            cb(node);
           }
         }
       }
-    },
-
-    fireInitial: function() {
-      var l = localStorage.length, npl = NODES_PREFIX.length;
-      for (var i=0;i<l;i++) {
-        var key = localStorage.key(i);
-        if (key.substr(0, npl) === NODES_PREFIX) {
-          var path = key.substr(npl);
-          var node = this._get(path);
-          this._emit('change', {
-            path: path,
-            origin: 'local',
-            oldValue: undefined,
-            newValue: node.body
-          });
-        }
-      }
+      return promising().fulfill();
     }
-
   };
 
   RemoteStorage.LocalStorage._rs_init = function() {};
@@ -266,7 +104,7 @@
       }
     }
     remove.forEach(function(key) {
-      console.log('removing', key);
+      RemoteStorage.log('removing', key);
       delete localStorage[key];
     });
   };

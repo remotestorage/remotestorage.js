@@ -22,12 +22,10 @@
   }
 
   var SyncedGetPutDelete = {
-    get: function(path) {
+    get: function(path, maxAge) {
       var self = this;
-      if (this.caching.cachePath(path)) {
-        return this.caching.waitForPath(path).then(function() {
-          return self.local.get(path);
-        });
+      if (this.local) {
+        return this.local.get(path, maxAge);
       } else {
         return this.remote.get(path);
       }
@@ -37,7 +35,7 @@
       if (shareFirst.bind(this)(path)) {
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
       }
-      else if (this.caching.cachePath(path)) {
+      else if (this.local) {
         return this.local.put(path, body, contentType);
       } else {
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
@@ -45,7 +43,7 @@
     },
 
     'delete': function(path) {
-      if (this.caching.cachePath(path)) {
+      if (this.local) {
         return this.local.delete(path);
       } else {
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
@@ -94,12 +92,6 @@
      * deprecated use disconnected
      **/
     /**
-     * Event: conflict
-     *
-     * fired when a conflict occurs
-     * TODO: arguments, how does this work
-     **/
-    /**
      * Event: error
      *
      * fired when an error occurs
@@ -136,7 +128,7 @@
      **/
 
     RemoteStorage.eventHandling(
-      this, 'ready', 'disconnected', 'disconnect', 'conflict', 'error',
+      this, 'ready', 'disconnected', 'disconnect', 'error',
       'features-loaded', 'connecting', 'authing', 'wire-busy', 'wire-done'
     );
 
@@ -151,7 +143,7 @@
 
     this._cleanups = [];
 
-    this._pathHandlers = { change: {}, conflict: {} };
+    this._pathHandlers = { change: {} };
 
     this.apiKeys = {};
 
@@ -276,6 +268,7 @@
         i++;
         if (i >= n) {
           this._init();
+          RemoteStorage.log('done cleaning up, emitting disconnected and disconnect events');
           this._emit('disconnected');
           this._emit('disconnect');// DEPRECATED?
         }
@@ -326,21 +319,6 @@
         this._pathHandlers.change[path] = [];
       }
       this._pathHandlers.change[path].push(handler);
-    },
-
-    onConflict: function(path, handler) {
-      if (! this._conflictBound) {
-        this.on('features-loaded', function() {
-          if (this.local) {
-            this.local.on('conflict', this._dispatchEvent.bind(this, 'conflict'));
-          }
-        }.bind(this));
-        this._conflictBound = true;
-      }
-      if (! this._pathHandlers.conflict[path]) {
-        this._pathHandlers.conflict[path] = [];
-      }
-      this._pathHandlers.conflict[path].push(handler);
     },
 
     /**
@@ -676,6 +654,14 @@
    * Usually either a <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage>
    * instance.
    */
+    
+  /**
+   ** reset
+   **/
+  RemoteStorage.prototype.reset = function() {
+    indexedDB.deleteDatabase('remotestorage');
+    localStorage.clear();
+  };
 
   global.RemoteStorage = RemoteStorage;
 
