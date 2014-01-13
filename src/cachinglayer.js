@@ -81,18 +81,18 @@
       return this._updateNodes(pathNodes, function(objs) {
         for (i=0; i<pathNodes.lengh; i++) {
           if (!objs[pathNodes[i]]) {
-            objs[pathNodes[i]]] = makeNode(now, path);
+            objs[pathNodes[i]] = makeNode(now, path);
           }
           if (i === 0) {
             //save the document itself
             objs[path].local = { body: body, contentType: contentType, timestamp: now };
           } else {
-            / /add it to all parents
+            //add it to all parents
             itemName = pathNodes[i-1].substring(pathNodes[i].length);
-            if (!objs[pathNodes[i]]].local) {
-              objs[pathNodes[i]]].local = this._deepClone(objs[pathNodes[i]]].official);
+            if (!objs[pathNodes[i]].local) {
+              objs[pathNodes[i]].local = this._deepClone(objs[pathNodes[i]].official);
             }
-            objs[pathNodes[i]]].local.itemsMap[itemName] = true;
+            objs[pathNodes[i]].local.itemsMap[itemName] = true;
           }
         }
         return objs;
@@ -115,10 +115,10 @@
           } else {
             //remove it from all parents
             itemName = pathNodes[i-1].substring(pathNodes[i].length);
-            if (!objs[pathNodes[i]]].local) {
-              objs[pathNodes[i]]].local = this._deepClone(objs[pathNodes[i]]].official);
+            if (!objs[pathNodes[i]].local) {
+              objs[pathNodes[i]].local = this._deepClone(objs[pathNodes[i]].official);
             }
-            delete objs[pathNodes[i]]].local.itemsMap[itemName];
+            delete objs[pathNodes[i]].local.itemsMap[itemName];
           }
         }
         return objs;
