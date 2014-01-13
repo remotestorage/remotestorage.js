@@ -71,6 +71,7 @@ define(['requirejs'], function(requirejs) {
         desc: "_getLatest",
         run: function(env, test) {
           var localNode = {
+            path: '/a/b',
             local: {
               body: 'b',
               contentType: 'c'
@@ -86,6 +87,7 @@ define(['requirejs'], function(requirejs) {
             }
           },
           officialNode = {
+            path: '/a/b',
             official: {
               body: 'b',
               contentType: 'c'

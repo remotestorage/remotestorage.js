@@ -25,11 +25,23 @@
     },
     
     _getLatest = function(node) {
-      if (typeof(node) === 'object' && node.local && node.local.body && node.local.contentType) {
-        return node.local;
+      if (typeof(node) !== 'object' || typeof(node.path) != 'string') {
+        return;
       }
-      if (typeof(node) === 'object' && node.official && node.official.body && node.official.contentType) {
-        return node.official;
+      if (_isFolder(node.path)) {
+        if (node.local && node.local.itemsMap) {
+          return node.local;
+        }
+        if (node.official && node.official.itemsMap) {
+          return node.official;
+        }
+      } else {
+        if (node.local && node.local.body && node.local.contentType) {
+          return node.local;
+        }
+        if (node.official && node.official.body && node.official.contentType) {
+          return node.official;
+        }
       }
     },
 
@@ -83,6 +95,14 @@
         for (i in objs) {
           if (_equal(objs[i], copyObjs[i])) {
             delete objs[i];
+          } else if(_isDocument(i)) {
+            this._emit('change', {
+              path: i,
+              origin: 'window',
+              oldValue: objs[i].local.previousBody,
+              newValue: objs[i].local.body
+            });
+            delete objs[i].local.previousBody;
           }
         }
         return this.setNodes(objs).then(function() {
@@ -91,7 +111,7 @@
       }.bind(this));
     },
     put: function(path, body, contentType) {
-      var i, now = new Date().getTime(), pathNodes = _nodesFromRoot(path);
+      var i, now = new Date().getTime(), pathNodes = _nodesFromRoot(path), previous;
       return this._updateNodes(pathNodes, function(objs) {
         for (i=0; i<pathNodes.length; i++) {
           if (!objs[pathNodes[i]]) {
@@ -99,7 +119,13 @@
           }
           if (i === 0) {
             //save the document itself
-            objs[path].local = { body: body, contentType: contentType, timestamp: now };
+            previous = _getLatest(objs[pathNodes[i]]);
+            objs[pathNodes[i]].local = {
+              previousBody: (previous ? previous.body : undefined),
+              body: body,
+              contentType: contentType,
+              timestamp: now
+            };
           } else {
             //add it to all parents
             itemName = pathNodes[i-1].substring(pathNodes[i].length);
@@ -120,7 +146,6 @@
           if (!objs[pathNodes[i]]) {
             throw new Exception('cannot delete a non-existing node; retrieve its parent folder first');
           }
-          objs[pathNodes[i]] = this._migrateNode(objs[pathNodes[i]]);
           if(i === 0) {
             //delete the document itself
             objs[path].local = {

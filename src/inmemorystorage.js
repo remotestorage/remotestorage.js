@@ -18,7 +18,6 @@
     },
 
     setNodes: function(objs) {
-console.log('setNodes', objs);
       var i, promise = promising();
       for(i in objs) {
         this._storage[i] = objs[i];
