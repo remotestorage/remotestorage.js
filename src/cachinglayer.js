@@ -45,6 +45,7 @@
         parts.pop();
         ret.push(parts.join('/')+'/');
       }
+      return ret;
     };
     
   var methods = {
@@ -52,7 +53,6 @@
     get: function(path) {
       var promise = promising();
       this.getNodes([path]).then(function(objs) {
-        console.log('objs', objs);
         var latest = _getLatest(objs[path]);
         if (latest) {
             promise.fulfill(200, latest.body, latest.contentType);
@@ -182,7 +182,6 @@
    */
   RemoteStorage.cachingLayer = function(object) {
     for (var key in methods) {
-console.log('adding method', key);
       object[key] = methods[key];
     }
   };
