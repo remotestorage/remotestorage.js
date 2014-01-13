@@ -111,8 +111,10 @@
       }.bind(this));
     },
     put: function(path, body, contentType) {
+      console.log('calculating _nodesFromRoot', path, _nodesFromRoot(path));
       var i, now = new Date().getTime(), pathNodes = _nodesFromRoot(path), previous;
       return this._updateNodes(pathNodes, function(objs) {
+        console.log('in cb', path, pathNodes, objs);
         for (i=0; i<pathNodes.length; i++) {
           if (!objs[pathNodes[i]]) {
             objs[pathNodes[i]] = _makeNode(pathNodes[i], now);
@@ -133,6 +135,7 @@
               objs[pathNodes[i]].local = _deepClone(objs[pathNodes[i]].official);
             }
             objs[pathNodes[i]].local.itemsMap[itemName] = true;
+            console.log(pathNodes, i, 'added', itemName, 'to', pathNodes[i], objs);
           }
         }
         return objs;

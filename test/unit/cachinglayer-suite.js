@@ -116,15 +116,17 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "_nodesFromRoot",
         run: function(env, test) {
-          var p1 = '/', p2 = '/a/b/c/d/e', p3 = '/a/b/c', p4 = '/a/b//', p5 = '//', p6 = '/a/b/c d/e/';
+          var p1 = '/', p2 = '/a/b/c/d/e', p3 = '/a/b/c', p4 = '/a/b//', p5 = '//', p6 = '/a/b/c d/e/', p7 = '/foo';
           test.assertAnd(env.ims._getInternals()._nodesFromRoot(p1), [p1]);
           test.assertAnd(env.ims._getInternals()._nodesFromRoot(p2),
               [p2, '/a/b/c/d/', '/a/b/c/', '/a/b/', '/a/', '/']);
           test.assertAnd(env.ims._getInternals()._nodesFromRoot(p3), [p3, '/a/b/', '/a/', '/']);
           test.assertAnd(env.ims._getInternals()._nodesFromRoot(p4), [p4, '/a/b/', '/a/', '/']);
           test.assertAnd(env.ims._getInternals()._nodesFromRoot(p5), [p5, '/']);
-          test.assert(env.ims._getInternals()._nodesFromRoot(p6),
+          test.assertAnd(env.ims._getInternals()._nodesFromRoot(p6),
               [p6, '/a/b/c d/', '/a/b/', '/a/', '/']);
+          test.assertAnd(env.ims._getInternals()._nodesFromRoot(p7), [p7, '/']);
+          test.assert(env.ims._getInternals()._nodesFromRoot(p7).length, [p7, '/'].length);
         }
       },
       {

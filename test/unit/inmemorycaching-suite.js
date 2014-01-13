@@ -33,9 +33,24 @@ define(['requirejs'], function(requirejs) {
 
     tests: [
       {
+        desc: "#put adds node to parents",
+        run: function(env, test) {
+          env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {
+            test.assertAnd(status, 200);
+            test.assertAnd(env.ims._storage['/'].path, '/');
+            test.assertAnd(env.ims._storage['/'].local.itemsMap, {
+              'foo': true
+            });
+            test.done();
+          });
+        }
+      }
+], nothing: [
+      {
         desc: "#get loads a node from local",
         run: function(env, test) {
           var node = {
+            path: '/foo',
             local: {
               body: 'bar',
               contentType: 'text/plain',
@@ -57,6 +72,7 @@ define(['requirejs'], function(requirejs) {
         desc: "#get loads a node from official",
         run: function(env, test) {
           var node = {
+            path: '/foo',
             official: {
               body: 'bar',
               contentType: 'text/plain',
@@ -91,6 +107,20 @@ define(['requirejs'], function(requirejs) {
             test.assertAnd(env.ims._storage['/foo'].path, '/foo');
             test.assertAnd(env.ims._storage['/foo'].local.contentType,'text/plain');
             test.assertAnd(env.ims._storage['/foo'].local.body,'bar');
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "#put adds node to parents",
+        run: function(env, test) {
+          env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {
+            test.assertAnd(status, 200);
+            test.assertAnd(env.ims._storage['/'].path, '/');
+            test.assertAnd(env.ims._storage['/'].local.itemsMap, {
+              'foo': true
+            });
             test.done();
           });
         }
