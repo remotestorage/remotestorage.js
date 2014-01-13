@@ -100,6 +100,11 @@ define(['requirejs'], function(requirejs) {
               foo: 'bar'
             }
           };
+          test.assertAnd(env.ims._getInternals()._getLatest(undefined), undefined);
+          test.assertAnd(env.ims._getInternals()._getLatest({local: {
+            revision: 1,
+            timestamp: 1
+          }}), undefined);
           test.assertAnd(env.ims._getInternals()._getLatest(localNode).body, 'b');
           test.assertAnd(env.ims._getInternals()._getLatest(localNode).contentType, 'c');
           test.assertAnd(env.ims._getInternals()._getLatest(officialNode).body, 'b');
@@ -118,6 +123,24 @@ define(['requirejs'], function(requirejs) {
           test.assertAnd(env.ims._getInternals()._nodesFromRoot(p5), [p5, '/']);
           test.assert(env.ims._getInternals()._nodesFromRoot(p6),
               [p6, '/a/b/c d/', '/a/b/', '/a/', '/']);
+        }
+      },
+      {
+        desc: "_makeNode",
+        run: function(env, test) {
+          test.assertAnd(env.ims._getInternals()._makeNode('/a/b/', 1234567890123), {
+            path: '/a/b/',
+            official: {
+              timestamp: 1234567890123,
+              itemsMap: {}
+            }
+          });
+          test.assert(env.ims._getInternals()._makeNode('/a/b', 1234567890123), {
+            path: '/a/b',
+            official: {
+              timestamp: 1234567890123
+            }
+          });
         }
       },
     ]

@@ -44,11 +44,10 @@ define(['requirejs'], function(requirejs) {
           };
           env.ims._storage['/foo'] = node;
           env.ims.get('/foo').then(function(status, body,
-                                           contentType, revision) {
+                                           contentType) {
             test.assertAnd(status, 200);
-            test.assertAnd(body, node.body);
-            test.assertAnd(contentType, node.contentType);
-            test.assertAnd(revision, node.revision);
+            test.assertAnd(body, node.local.body);
+            test.assertAnd(contentType, node.local.contentType);
             test.done();
           });
         }
@@ -66,18 +65,14 @@ define(['requirejs'], function(requirejs) {
           };
           env.ims._storage['/foo'] = node;
           env.ims.get('/foo').then(function(status, body,
-                                           contentType, revision) {
+                                           contentType) {
             test.assertAnd(status, 200);
-            test.assertAnd(body, node.body);
-            test.assertAnd(contentType, node.contentType);
-            test.assertAnd(revision, node.revision);
+            test.assertAnd(body, node.official.body);
+            test.assertAnd(contentType, node.official.contentType);
             test.done();
           });
         }
-      }
-    ],
-
-    nothing: [
+      },
 
       {
         desc: "#get yields 404 when it doesn't find a node",
@@ -93,7 +88,7 @@ define(['requirejs'], function(requirejs) {
         run: function(env, test) {
           env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {
             test.assertAnd(status, 200);
-            test.assertAnd(env.ims._storage['/foo'].path,'/foo');
+            test.assertAnd(env.ims._storage['/foo'], '/foo');
             test.assertAnd(env.ims._storage['/foo'].contentType,'text/plain');
             test.assertAnd(env.ims._storage['/foo'].body,'bar');
             test.assertAnd(env.ims._storage['/foo'], {path:'/foo',body:'bar',contentType:'text/plain'});
@@ -102,6 +97,9 @@ define(['requirejs'], function(requirejs) {
         }
       },
 
+    ],
+
+    nothing: [
       {
         desc: "#put records a change for outgoing changes",
         run: function(env, test) {

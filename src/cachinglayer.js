@@ -25,10 +25,10 @@
     },
     
     _getLatest = function(node) {
-      if (node.local && node.local.body && node.local.contentType) {
+      if (typeof(node) === 'object' && node.local && node.local.body && node.local.contentType) {
         return node.local;
       }
-      if (node.official && node.official.body && node.official.contentType) {
+      if (typeof(node) === 'object' && node.official && node.official.body && node.official.contentType) {
         return node.official;
       }
     },
@@ -46,6 +46,18 @@
         ret.push(parts.join('/')+'/');
       }
       return ret;
+    },
+    _makeNode = function(path, now) {
+      var ret = {
+        path: path,
+        official: {
+          timestamp: now
+        }
+      };
+      if(_isFolder(path)) {
+        ret.official.itemsMap = {};
+      }
+      return ret;
     };
     
   var methods = {
@@ -59,9 +71,9 @@
         } else {
           promise.fulfill(404);
         }       
-      }, function(err) {
+      }.bind(this), function(err) {
         promise.reject(err);
-      });
+      }.bind(this));
       return promise;
     },
     _updateNodes: function(nodePaths, cb) {
@@ -73,27 +85,17 @@
             delete objs[i];
           }
         }
-        return this.setNodes(objs);
-      });
-    },
-    _makeNode: function(path, now) {
-      var ret = {
-        path: path,
-        official: {
-          timestamp: now
-        }
-      };
-      if(_isFolder(path)) {
-        ret.official.items = {};
-      }
-      return ret;
+        return this.setNodes(objs).then(function() {
+          return 200;
+        });
+      }.bind(this));
     },
     put: function(path, body, contentType) {
       var i, now = new Date().getTime(), pathNodes = _nodesFromRoot(path);
       return this._updateNodes(pathNodes, function(objs) {
-        for (i=0; i<pathNodes.lengh; i++) {
+        for (i=0; i<pathNodes.length; i++) {
           if (!objs[pathNodes[i]]) {
-            objs[pathNodes[i]] = makeNode(now, path);
+            objs[pathNodes[i]] = _makeNode(pathNodes[i], now);
           }
           if (i === 0) {
             //save the document itself
@@ -114,7 +116,7 @@
       var pathNodes = _nodesFromRoot(path);
       return this._updateNodes(pathNodes, function(objs) {
         var i, now = new Date().getTime();
-        for (i=0; i<pathNodes.lengh; i++) {
+        for (i=0; i<pathNodes.length; i++) {
           if (!objs[pathNodes[i]]) {
             throw new Exception('cannot delete a non-existing node; retrieve its parent folder first');
           }
@@ -161,7 +163,8 @@
         _deepClone: _deepClone,
         _equal: _equal,
         _getLatest: _getLatest,
-        _nodesFromRoot: _nodesFromRoot
+        _nodesFromRoot: _nodesFromRoot,
+        _makeNode: _makeNode
       };
     }
   };
