@@ -8,24 +8,23 @@
    * the objects itself should only expose getNodes, setNodes, and forAllNodes.
    */
 
-  var methods = {
-    _isFolder: function(path) {
+  var  _isFolder = function(path) {
       return path.substr(-1) === '/';
     },
     
-    _isDocument: function(path) {
+    _isDocument = function(path) {
       return path.substr(-1) !== '/';
     },
     
-    _deepClone: function(obj) {
+    _deepClone = function(obj) {
       return JSON.parse(JSON.stringify(obj));
     },
     
-    _equal: function(obj1, obj2) {
+    _equal = function(obj1, obj2) {
       return JSON.stringify(obj1) === JSON.stringify(obj2);
     },
     
-    _getLatest: function(node) {
+    _getLatest = function(node) {
       var ret;
       if (node.local) {
         ret = node.local;
@@ -36,12 +35,27 @@
         return ret;
       }
     },
+
+    _nodesFromRoot = function(path) {
+      var parts, ret = [path];
+      if(path.substr(-1) === '/') {
+        //remove trailing slash if present,
+        //so it's not counted as a path level
+        path = path.substring(0, path.length-1);
+      }
+      parts = path.split('/');
+      while(parts.length) {
+        parts.pop();
+        ret.push(parts.join('/')+'/');
+      }
+    };
     
+  var methods = {
     //GPD interface:
     get: function(path) {
       var promise = promising();
       this.getNodes([path]).then(function(objs) {
-        var latest = this._getLatest(objs[path]);
+        var latest = _getLatest(objs[path]);
         if (latest) {
             promise.fulfill(200, latest.body, latest.contentType);
         } else {
@@ -54,10 +68,10 @@
     },
     _updateNodes: function(nodePaths, cb) {
        return this.getNodes(nodePaths).then(function(objs) {
-        var copyObjs = this._deepClone(objs);
+        var copyObjs = _deepClone(objs);
         objs = cb(objs);
         for (i in objs) {
-          if (this._equal(objs[i], copyObjs[i])) {
+          if (_equal(objs[i], copyObjs[i])) {
             delete objs[i];
           }
         }
@@ -71,13 +85,13 @@
           timestamp: now
         }
       };
-      if(this._isFolder(path)) {
+      if(_isFolder(path)) {
         ret.official.items = {};
       }
       return ret;
     },
     put: function(path, body, contentType) {
-      var i, now = new Date().getTime(), pathNodes = this._nodesFromRoot(path);
+      var i, now = new Date().getTime(), pathNodes = _nodesFromRoot(path);
       return this._updateNodes(pathNodes, function(objs) {
         for (i=0; i<pathNodes.lengh; i++) {
           if (!objs[pathNodes[i]]) {
@@ -90,7 +104,7 @@
             //add it to all parents
             itemName = pathNodes[i-1].substring(pathNodes[i].length);
             if (!objs[pathNodes[i]].local) {
-              objs[pathNodes[i]].local = this._deepClone(objs[pathNodes[i]].official);
+              objs[pathNodes[i]].local = _deepClone(objs[pathNodes[i]].official);
             }
             objs[pathNodes[i]].local.itemsMap[itemName] = true;
           }
@@ -99,7 +113,7 @@
       });
     },
     delete: function(path) {
-      var pathNodes = this._nodesFromRoot(path);
+      var pathNodes = _nodesFromRoot(path);
       return this._updateNodes(pathNodes, function(objs) {
         var i, now = new Date().getTime();
         for (i=0; i<pathNodes.lengh; i++) {
@@ -160,6 +174,7 @@
    */
   RemoteStorage.cachingLayer = function(object) {
     for (var key in methods) {
+console.log('adding method', key);
       object[key] = methods[key];
     }
   };
