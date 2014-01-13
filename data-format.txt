@@ -1,0 +1,51 @@
+
+//in sync: 
+1  . . . . [official]
+
+//dirty:
+2  . . . . [official]
+                \
+                 \ . . . . [remote]
+
+//local change:
+3  . . . . [official] . . . . [local]
+
+//conflict:
+4  . . . . [official] . . . . [local]
+                \
+                 \ . . . . [remote]
+
+//pushing:
+5  . . . . [official] . . . . [push] . . . . [local]
+
+//pushing, and known dirty (should abort the push, or just wait for the conflict to occur):
+6  . . . . [official] . . . . [push] . . . . [local]
+                \
+                 \ . . . . [remote]
+
+
+each of local, push, remote, and official can have,
+- for documents:
+  * body
+  * contentType
+  * contentLength
+  * revision
+  * timestamp
+- for folders:
+  * items (itemName -> true)
+  * revision
+  * timestamp
+  
+timestamp means when this data was written (local), push was initiated (push), fetch/push was completed (remote), agreement was reached (official)
+
+additional fields:
+- path, parentPath, itemName (string)
+- fetching (timestamp, when fetch was initiated)
+- subtreeCheck: {
+    tree: (timestamp),
+    full: (timestamp)
+  }
+
+updating IndexedDB for each starting and each finishing request is not going to work. need to store write diffs in localStorage and flush them periodically.
+that can then also be used to implement device-origin events :)
+big and binary documents can go straight to IndexedDB
