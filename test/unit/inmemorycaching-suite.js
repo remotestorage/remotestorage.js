@@ -33,12 +33,14 @@ define(['requirejs'], function(requirejs) {
 
     tests: [
       {
-        desc: "#get loads a node",
+        desc: "#get loads a node from local",
         run: function(env, test) {
           var node = {
-            body: 'bar',
-            contentType: 'text/plain',
-            revision: 'someRev'
+            local: {
+              body: 'bar',
+              contentType: 'text/plain',
+              revision: 'someRev'
+            }
           };
           env.ims._storage['/foo'] = node;
           env.ims.get('/foo').then(function(status, body,
@@ -51,6 +53,31 @@ define(['requirejs'], function(requirejs) {
           });
         }
       },
+
+      {
+        desc: "#get loads a node from official",
+        run: function(env, test) {
+          var node = {
+            official: {
+              body: 'bar',
+              contentType: 'text/plain',
+              revision: 'someRev'
+            }
+          };
+          env.ims._storage['/foo'] = node;
+          env.ims.get('/foo').then(function(status, body,
+                                           contentType, revision) {
+            test.assertAnd(status, 200);
+            test.assertAnd(body, node.body);
+            test.assertAnd(contentType, node.contentType);
+            test.assertAnd(revision, node.revision);
+            test.done();
+          });
+        }
+      }
+    ],
+
+    nothing: [
 
       {
         desc: "#get yields 404 when it doesn't find a node",

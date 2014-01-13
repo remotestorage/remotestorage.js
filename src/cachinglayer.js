@@ -25,14 +25,11 @@
     },
     
     _getLatest = function(node) {
-      var ret;
-      if (node.local) {
-        ret = node.local;
-      } else {
-        ret = node.agreed;
+      if (node.local && node.local.body && node.local.contentType) {
+        return node.local;
       }
-      if (ret.body && ret.contentType) {
-        return ret;
+      if (node.official && node.official.body && node.official.contentType) {
+        return node.official;
       }
     },
 
@@ -55,6 +52,7 @@
     get: function(path) {
       var promise = promising();
       this.getNodes([path]).then(function(objs) {
+        console.log('objs', objs);
         var latest = _getLatest(objs[path]);
         if (latest) {
             promise.fulfill(200, latest.body, latest.contentType);
@@ -155,6 +153,16 @@
           }
         }
       });
+    },
+    _getInternals: function() {
+      return {
+        _isFolder: _isFolder,
+        _isDocument: _isDocument,
+        _deepClone: _deepClone,
+        _equal: _equal,
+        _getLatest: _getLatest,
+        _nodesFromRoot: _nodesFromRoot
+      };
     }
   };
 
