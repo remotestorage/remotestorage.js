@@ -5,6 +5,7 @@
    * local storages should implement this.getNodes, this.setNodes, and this.forAllDocuments
    * the rest is blended in here to create a GPD (get/put/delete) interface
    * which the baseclient can talk to.
+   * the objects itself should only expose getNodes, setNodes, and forAllNodes.
    */
 
   var methods = {
@@ -14,6 +15,14 @@
     
     _isDocument: function(path) {
       return path.substr(-1) !== '/';
+    },
+    
+    _deepClone: function(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    },
+    
+    _equal: function(obj1, obj2) {
+      return JSON.stringify(obj1) === JSON.stringify(obj2);
     },
     
     _getLatest: function(node) {
@@ -45,7 +54,7 @@
     },
     _updateNodes: function(nodePaths, cb) {
        return this.getNodes(nodePaths).then(function(objs) {
-        var copyObjs = this._clone(objs);
+        var copyObjs = this._deepClone(objs);
         objs = cb(objs);
         for (i in objs) {
           if (this._equal(objs[i], copyObjs[i])) {
@@ -81,7 +90,7 @@
             / /add it to all parents
             itemName = pathNodes[i-1].substring(pathNodes[i].length);
             if (!objs[pathNodes[i]]].local) {
-              objs[pathNodes[i]]].local = this._clone(objs[pathNodes[i]]].official);
+              objs[pathNodes[i]]].local = this._deepClone(objs[pathNodes[i]]].official);
             }
             objs[pathNodes[i]]].local.itemsMap[itemName] = true;
           }
@@ -107,7 +116,7 @@
             //remove it from all parents
             itemName = pathNodes[i-1].substring(pathNodes[i].length);
             if (!objs[pathNodes[i]]].local) {
-              objs[pathNodes[i]]].local = this._clone(objs[pathNodes[i]]].official);
+              objs[pathNodes[i]]].local = this._deepClone(objs[pathNodes[i]]].official);
             }
             delete objs[pathNodes[i]]].local.itemsMap[itemName];
           }
