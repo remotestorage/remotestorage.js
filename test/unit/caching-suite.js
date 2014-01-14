@@ -174,8 +174,8 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "#rootPaths doesn't contain paths that have been removed",
         run: function(env, test) {
           env.caching.set('/foo/', { data: true });
-          env.caching.set('/bar/', { data: true });
           env.caching.set('/foo/bar/baz/', { data: true });
+          env.caching.set('/bar/', { data: true });
           env.caching.remove('/foo/');
           test.assert(env.caching.rootPaths, ['/foo/bar/baz/', '/bar/']);
         }

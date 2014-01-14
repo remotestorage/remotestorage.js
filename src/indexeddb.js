@@ -74,7 +74,7 @@
       var ret = {}, i, nodeReq;
       for (i=0; i<paths.length; i++) {
         (function(captureI) {
-          nodes.get(path).onsuccess = function(evt) {
+          nodes.get(paths[captureI]).onsuccess = function(evt) {
             ret[paths[captureI]] = evt.target.result;
           };
         })(i);

@@ -8,8 +8,13 @@ define(['requirejs'], function(requirejs) {
   var CHANGES_PREFIX = 'remotestorage:cache:changes:';
 
   function assertNode(test, path, expected) {
-    console.log('assertNode', path, localStorage[NODES_PREFIX + path]);
     var node = JSON.parse(localStorage[NODES_PREFIX + path]);
+    if(node && node.local && node.local.timestamp) {
+      delete node.local.timestamp;
+    }
+    if(node && node.official && node.official.timestamp) {
+      delete node.official.timestamp;
+    }
     test.assertAnd(node, expected);
   }
 
@@ -74,11 +79,10 @@ define(['requirejs'], function(requirejs) {
               revision: "123"
             }
           });
-          env.ls.get('/foo').then(function(status, body, contentType, revision) {
+          env.ls.get('/foo').then(function(status, body, contentType) {
             test.assertAnd(status, 200);
             test.assertAnd(body, "bar");
             test.assertAnd(contentType, "text/plain");
-            test.assertAnd(revision, "123");
             test.done();
           });
         }
@@ -110,8 +114,7 @@ define(['requirejs'], function(requirejs) {
               path: '/foo/bar/baz',
               local: {
                 body: 'bar',
-                contentType: 'text/plain',
-                path: '/foo/bar/baz'
+                contentType: 'text/plain'
               }
             });
             test.done();
@@ -174,18 +177,19 @@ define(['requirejs'], function(requirejs) {
         desc: "fireInitial fires change event with 'local' origin for initial cache content",
         timeout: 250,
         run: function(env, test) {
-          env.ls.put('/foo/bla', 'basdf', 'text/plain');
-          env.ls.on('change', function(event) {
-            test.assert(event.origin, 'local');
+          env.ls.put('/foo/bla', 'basdf', 'text/plain').then(function() {
+            env.ls.on('change', function(event) {
+              test.assert(event.origin, 'local');
+            });
+            //the mock is just an in-memory object; need to explicitly set its .length and its .key() function now:
+            localStorage.length = 1;
+            localStorage.key = function(i) {
+              if (i === 0) {
+                return NODES_PREFIX+'/foo/bla';
+              }
+            };
+            env.ls.fireInitial();
           });
-          //the mock is just an in-memory object; need to explicitly set its .length and its .key() function now:
-          localStorage.length = 1;
-          localStorage.key = function(i) {
-            if (i === 0) {
-              return NODES_PREFIX+'/foo/bla';
-            }
-          };
-          env.ls.fireInitial();
         }
       }
     ]

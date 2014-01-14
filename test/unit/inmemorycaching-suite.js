@@ -44,8 +44,8 @@ define(['requirejs'], function(requirejs) {
             test.done();
           });
         }
-      }
-], nothing: [
+      },
+
       {
         desc: "#get loads a node from local",
         run: function(env, test) {

@@ -108,7 +108,10 @@
         return this.setNodes(objs).then(function() {
           return 200;
         });
-      }.bind(this));
+      }.bind(this),
+      function(err) {
+        throw(err);
+      });
     },
     put: function(path, body, contentType) {
       var i, now = new Date().getTime(), pathNodes = _nodesFromRoot(path), previous;
@@ -155,7 +158,7 @@
             //remove it from all parents
             itemName = pathNodes[i-1].substring(pathNodes[i].length);
             if (!objs[pathNodes[i]].local) {
-              objs[pathNodes[i]].local = this._deepClone(objs[pathNodes[i]].official);
+              objs[pathNodes[i]].local = _deepClone(objs[pathNodes[i]].official);
             }
             delete objs[pathNodes[i]].local.itemsMap[itemName];
           }
@@ -166,8 +169,8 @@
     fireInitial: function() {
       this.forAllNodes(function(node) {
         var latest;
-        if (this._isDocument(node.path)) {
-          latest = this._getLatest(node);
+        if (_isDocument(node.path)) {
+          latest = _getLatest(node);
           if (latest) {
             this._emit('change', {
               path: node.path,
@@ -179,7 +182,7 @@
             });
           }
         }
-      });
+      }.bind(this));
     },
     _getInternals: function() {
       return {
