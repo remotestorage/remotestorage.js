@@ -225,67 +225,334 @@ define([], function() {
       },
 
       {
-        desc: "checkRefresh gives preference to caching rootPaths",
+        desc: "checkRefresh gives preference to caching parent",
         run: function(env, test) {
+          var tmpForAllNodes = env.rs.local.forAllNodes;
+          env.rs.local.forAllNodes = function(cb) {
+            cb({
+              path: '/foo/bar/',
+              official: {
+                body: 'off',
+                contentType: 'cT',
+                timestamp: 1234567890123
+              }
+            });
+            cb({
+              path: '/foo/',
+              official: {
+                body: 'off',
+                contentType: 'cT',
+                timestamp: 1234567890124
+              }
+            });
+          };
+          env.sync.checkRefresh();
+          test.assertAnd(env.sync.fetchQueue, {
+           '/foo/': true
+          });
+          env.rs.local.forAllNodes = tmpForAllNodes;
+          test.done();
         }
       },
 
       {
-        desc: "sync will only run in one of the windows, but handle requests from all windows",
+        desc: "checkRefresh gives preference to caching rootPaths",
         run: function(env, test) {
+          var tmpForAllNodes = env.rs.local.forAllNodes;
+          env.rs.caching.rootPaths = ['/foo/'];
+          env.rs.local.forAllNodes = function(cb) {
+            cb({
+              path: '/bar/',
+              official: {
+                body: 'off',
+                contentType: 'cT',
+                timestamp: 1234567890123
+              }
+            });
+          };
+          env.sync.checkRefresh();
+          test.assertAnd(env.sync.fetchQueue, {
+           '/foo/': true
+          });
+          env.rs.local.forAllNodes = function(cb) {
+            cb({
+              path: '/bar/',
+              official: {
+                body: 'off',
+                contentType: 'cT',
+                timestamp: 1234567890123
+              }
+            });
+            cb({
+              path: '/foo/',
+              official: {
+                body: 'off',
+                contentType: 'cT',
+                timestamp: 1234567890124
+              }
+            });
+          };
+          env.sync.checkRefresh();
+          test.assertAnd(env.sync.fetchQueue, {
+           '/foo/': true,
+           '/bar/': true
+          });
+          env.rs.local.forAllNodes = tmpForAllNodes;
+          test.done();
         }
       },
+
 
       {
         desc: "go through the request-queue with 4-8 requests at a time",
         run: function(env, test) {
+          env.rs.sync.numThreads = 5;
+          env.rs.sync.fetchQueue = {
+            '/foo1/': true,
+            '/foo2/': true,
+            '/foo3': true,
+            '/foo4/': true,
+            '/foo/5': true,
+            '/foo/6/': true,
+            '/foo7/': true,
+            '/foo8': true,
+            '/fo/o/9/': true
+          };
+          env.rs.sync.doTasks();
+          test.assertAnd(env.rs.sync.fetchQueue, {
+            '/foo/6/': true,
+            '/foo7/': true,
+            '/foo8': true,
+            '/fo/o/9/': true
+          });
+          test.assertAnd(env.rs.sync.running, {
+            '/foo1/': true,
+            '/foo2/': true,
+            '/foo3': true,
+            '/foo4/': true,
+            '/foo/5': true
+          });
         }
       },
 
       {
         desc: "checkRefresh flushes cache for caching=false rootPaths",
         run: function(env, test) {
+          env.rs.caching.rootPaths = ['/foo/'];
+          env.rs.local.setNodes({
+            '/bar/': {
+              path: '/bar/',
+              official: {
+                body: 'off',
+                contentType: 'cT',
+                timestamp: 1234567890123
+              }
+            },
+            '/foo/': {
+              path: '/foo/',
+              official: {
+                body: 'off',
+                contentType: 'cT',
+                timestamp: 1234567890124
+              }
+            }
+          }).then(function() {
+            env.sync.checkRefresh();
+            return env.rs.local.getNodes(['/bar/', '/foo/']);
+          }).then(function(objs) {
+            test.assertAnd(objs, {
+              '/bar/': {
+                path: '/bar/',
+                official: {
+                  body: 'off',
+                  contentType: 'cT',
+                  timestamp: 1234567890123
+                }
+              },
+              '/foo/': undefined
+            });
+            test.done();
+          });
         }
       },
 
       {
         desc: "checkRefresh requests the parent rather than the stale node itself, unless it is an access root",
         run: function(env, test) {
+          env.rs.local.setNodes({
+            '/f/o/o/': {
+              path: '/f/o/o/',
+              official: {
+                body: 'off',
+                contentType: 'cT',
+                timestamp: 1234567890123
+              }
+            }
+          }).then(function() {
+            env.sync.checkRefresh();
+            test.assertAnd(env.rs.sync.fetchQueue, {
+              '/f/': true
+            });
+            test.done();
+          });
         }
       },
 
       {
         desc: "an incoming folder listing creates subfolder nodes if it's under a cache root",
         run: function(env, test) {
+          env.remote._responses[['get', '/foo/bar/',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, {'baz/': 123, 'baf': 456}, 'application/json', 123];
+          env.rs.caching.rootPaths = ['/foo/'];
+          env.sync.fetchQueue = ['/foo/'];
+          env.sync.doTasks();
+          setTimeout(function() {
+            env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
+              test.assertAnd(objs['/foo/bar/baz/'].official.revision, 123);
+              test.assertAnd(objs['/foo/bar/baf'], undefined);
+              test.done();
+            });
+          }, 100);
         }
       },
 
       {
         desc: "an incoming folder listing creates document nodes if it's under a cache root that's not treeOnly",
         run: function(env, test) {
+          env.remote._responses[['get', '/foo/bar/',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, {'baz/': 123, 'baf': 456}, 'application/json', 123];
+          env.rs.caching.rootPaths = ['/foo/'];
+          env.sync.fetchQueue = ['/foo/'];
+          env.sync.doTasks();
+          setTimeout(function() {
+            env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
+              test.assertAnd(objs['/foo/bar/baz/'].official.revision, 123);
+              test.assertAnd(objs['/foo/bar/baf'].official.revision, 456);
+              test.done();
+            });
+          }, 100);
         }
       },
 
       {
-        desc: "a success response to a PUT or DELETE moves local to official and removes remote",
+        desc: "a success response to a PUT moves local to official",
+        run: function(env, test) {
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { timestamp: 1234567890123 },
+              local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['put', '/foo/bar',
+                                   { ifNoneMatch: undefined } ]] =
+              [200, '', '', '123'];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official, { timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local, { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
+            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].official.revision, '123');
+                test.assertAnd(objs['/foo/bar'].official.body, 'asdf');
+                test.assertAnd(objs['/foo/bar'].official.contentType, 'qwer');
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "a success response to a DELETE moves local to official",
+        run: function(env, test) {
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              local: { timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['delete', '/foo/bar',
+                                   { ifMatch: '987' } ]] =
+              [200, '', '', ''];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, undefined);
+            test.assertAnd(objs['/foo/bar'].push.contentType, undefined);
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].official.revision, undefined);
+                test.assertAnd(objs['/foo/bar'].official.body, undefined);
+                test.assertAnd(objs['/foo/bar'].official.contentType, undefined);
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "a failure response to a PUT removes the push version",
         run: function(env, test) {
         }
       },
 
       {
-        desc: "a failure response to a PUT or DELETE removes the push version",
+        desc: "a failure response to a DELETE removes the push version",
         run: function(env, test) {
         }
       },
 
       {
-        desc: "a conflict response to a PUT or DELETE obeys the conflict handler if there is one",
+        desc: "a conflict response to a PUT obeys a 'local' conflict handler if there is one",
         run: function(env, test) {
         }
       },
 
       {
-        desc: "by default, conflicts are resolved as remote",
+        desc: "a conflict response to a DELETE obeys a 'local' conflict handler if there is one",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "a conflict response to a PUT obeys a 'remote' conflict handler if there is one",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "a conflict response to a DELETE obeys a 'remote' conflict handler if there is one",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "a conflict response to a PUT obeys 'remote' if there is no conflict handler",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "a conflict response to a DELETE obeys 'remote' if there is no conflict handler",
         run: function(env, test) {
         }
       },
