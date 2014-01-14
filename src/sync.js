@@ -236,18 +236,18 @@
         visibilityChange,
         rs = this;
 
-    function handleVisibilityChange(bg) {
+    function handleVisibilityChange(fg) {
       var oldValue, newValue;
       oldValue = rs.getCurrentSyncInterval();
-      isBackground = bg;
+      isBackground = !fg;
       newValue = rs.getCurrentSyncInterval();
-      rs._emit('sync-updated', {oldValue: oldValue, newValue: newValue});
+      rs._emit('sync-interval-change', {oldValue: oldValue, newValue: newValue});
     }
     RemoteStorage.Env.on("background", function () {
-      handleVisibilityChange(true);
+      handleVisibilityChange(false);
     });
     RemoteStorage.Env.on("foreground", function () {
-      handleVisibilityChange(false);
+      handleVisibilityChange(true);
     });
   }
 
@@ -308,7 +308,7 @@
     }
     var oldValue = syncInterval;
     syncInterval = parseInt(interval, 10);
-    this._emit('sync-updated', {oldValue: oldValue, newValue: interval});
+    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
   };
   /**
    * Method: getBackgroundSyncInterval
@@ -336,7 +336,7 @@
     }
     var oldValue = backgroundSyncInterval;
     backgroundSyncInterval = parseInt(interval, 10);
-    this._emit('sync-updated', {oldValue: oldValue, newValue: interval});
+    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
   };
   /**
    * Method: getCurrentSyncInterval
