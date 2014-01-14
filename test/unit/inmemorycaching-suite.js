@@ -186,9 +186,9 @@ define(['requirejs'], function(requirejs) {
             env.ims.delete('/foo/bar/baz').then(function(status) {
               test.assertAnd(status, 200, 'wrong status code: '+status); //TODO belongs in seperate test
               test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/bar/baz']), undefined);
-              test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/bar/']), undefined);
-              test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/']), undefined);
-              test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/']), undefined);
+              test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/bar/']).itemsMap, {});
+              test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/']).itemsMap, {});
+              test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/']).itemsMap, {});
               test.done();
             });
           });
@@ -201,7 +201,6 @@ define(['requirejs'], function(requirejs) {
           env.ims.put('/foo/bar/baz', 'bla', 'text/pain', true, 'a1b2c3').then(function() {
             env.ims.put('/foo/baz', 'bla', 'text/pain', true, 'a1b2c3').then(function() {
               env.ims.delete('/foo/bar/baz').then(function(status) {
-                console.log('after deletion', env.ims._storage);
                 test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/']).itemsMap, {
                   'foo/': true
                 });
@@ -210,7 +209,7 @@ define(['requirejs'], function(requirejs) {
                 });
                 test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/baz']).body, 'bla');
                 test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/baz']).contentType,
-                    'text/plain');
+                    'text/pain');
                 test.done();
               });
             });
@@ -224,21 +223,7 @@ define(['requirejs'], function(requirejs) {
           env.ims.put('/foo/bar/baz', 'bla', 'text/pain', 'a1b2c3').then(function() {
             env.ims.put('/foo/baz', 'bla', 'text/pain', 'a1b2c3').then(function() {
               env.ims.delete('/foo/bar/baz').then(function(status) {
-                test.assert(env.ims._storage['/'].cached['foo/'], true);
-              });
-            });
-          });
-        }
-      },
-
-      {
-        desc: "#delete records a change for outgoing changes",
-        run: function(env, test) {
-          env.ims.put('/foo/bla', 'basdf', 'text/plain', true, 'a1b2c3').then(function() {
-            env.ims.delete('/foo/bla').then(function() {
-              test.assert(env.ims._changes['/foo/bla'], {
-                action: 'DELETE',
-                path: '/foo/bla'
+                test.assert(env.ims._storage['/'].local.itemsMap, {'foo/': true});
               });
             });
           });

@@ -161,6 +161,10 @@
               objs[pathNodes[i]].local = _deepClone(objs[pathNodes[i]].official);
             }
             delete objs[pathNodes[i]].local.itemsMap[itemName];
+            if (Object.getOwnPropertyNames(objs[pathNodes[i]].local.itemsMap).length) {
+              //this folder still has other items, don't remove any further ancestors
+              break;
+            }
           }
         }
         return objs;
