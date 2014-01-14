@@ -175,6 +175,18 @@ define([], function() {
         }
       }
 
+      //first, complete all pending gets, in chron order (they should be pooled and throttled too!)
+      // -> add maxAge param, default to infinite.
+      //then push changes, in chron order
+      // -> when changing the connected-state, it might be there's soft-set data, which will lose in a conflict (fetch after 412).
+      //changes in unsynced folders are still pushed out
+      //default conflict resolution is remote, so after a 412 which is not resolved as 'local', the data is pulled in,
+      //and overwrites the local data with a change event. the idea here is that
+      //central data is more valuable than local data. this also makes soft-set data harmless. for offline notes, just use uuids to avoid data loss.
+      //items that have been accessed once, will remain synced until they are deleted, or the session is disconnected
+      //whenever all accessed items are in sync, the next step is to retrieve all parent folders up to the root,
+      //to make sync more efficient (Merkle tree strategy).
+      //once that's all done, it will loop through the root paths and spider out from them
     ]
   });
 
