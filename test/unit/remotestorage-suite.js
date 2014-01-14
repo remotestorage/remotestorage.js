@@ -10,7 +10,7 @@ define([], function() {
   function FakeRemote() {
     this.connected = true;
     this.configure = function() {};
-    RemoteStorage.eventHandling(this, 'connected', 'disconnected');
+    RemoteStorage.eventHandling(this, 'connected', 'disconnected', 'not-connected');
   }
 
   function fakeRequest(path) {

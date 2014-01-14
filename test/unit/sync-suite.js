@@ -125,21 +125,6 @@ define([], function() {
       },
 
       {
-        desc: "RemoteStorage.sync() emits busy and done when nothing to do",
-        run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.rs.on('sync-busy', busy);
-          env.rs.on('sync-done', done);
-          env.rs.sync().then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
-            test.done();
-          });
-        }
-      },
-
-      {
         desc: "Sync.sync() pushes the changes in local first",
         run: function(env, test) {
           env.local.put('/foo/bar/baz', 'body', 'text/plain');

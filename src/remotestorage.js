@@ -35,7 +35,6 @@
 
     put: function(path, body, contentType) {
       if (shareFirst.bind(this)(path)) {
-        //this.local.put(path, body, contentType);
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
       }
       else if (this.caching.cachePath(path)) {
@@ -54,12 +53,14 @@
     },
 
     _wrapBusyDone: function(result) {
-      this._emit('sync-busy');
+      var self = this;
+      this._emit('wire-busy');
       return result.then(function() {
         var promise = promising();
-        this._emit('sync-done');
+        self._emit('wire-done', { success: true });
         return promise.fulfill.apply(promise, arguments);
-      }.bind(this), function(err) {
+      }, function(err) {
+        self._emit('wire-done', { success: false });
         throw err;
       });
     }
@@ -122,21 +123,21 @@
      * fired before redirecting to the authing server
      **/
     /**
-     * Event: sync-busy
+     * Event: wire-busy
      *
-     * fired when a sync cycle starts
+     * fired when a wire request starts
      *
      **/
     /**
-     * Event: sync-done
+     * Event: wire-done
      *
-     * fired when a sync cycle completes
+     * fired when a wire request completes
      *
      **/
 
     RemoteStorage.eventHandling(
       this, 'ready', 'disconnected', 'disconnect', 'conflict', 'error',
-      'features-loaded', 'connecting', 'authing', 'sync-busy', 'sync-done',
+      'features-loaded', 'connecting', 'authing', 'wire-busy', 'wire-done',
       'sync-interval-change'
     );
 
@@ -204,6 +205,7 @@
       console.log.apply(console, arguments);
     }
   };
+
 
   RemoteStorage.prototype = {
     /**
@@ -385,8 +387,19 @@
      **/
 
     _init: function() {
+      var self = this, readyFired = false;
+      function fireReady() {
+        try {
+          if (!readyFired) {
+            self._emit('ready');
+            readyFired = true;
+          }
+        } catch(e) {
+          console.error("'ready' failed: ", e, e.stack);
+          self._emit('error', e);
+        }
+      }
       this._loadFeatures(function(features) {
-        var readyFired = false;
         this.log('all features loaded');
         this.local = features.local && new features.local();
         // (this.remote set by WireClient._rs_init
@@ -400,27 +413,10 @@
         }
 
         if (this.remote) {
-          this.remote.on('connected', function() {
-            try {
-              if (!readyFired) {
-                this._emit('ready');
-                readyFired = true;
-              }
-            } catch(e) {
-              console.error("'ready' failed: ", e, e.stack);
-              this._emit('error', e);
-            }
-          }.bind(this));
+          this.remote.on('connected', fireReady);
+          this.remote.on('not-connected', fireReady);
           if (this.remote.connected) {
-            try {
-              if (!readyFired) {
-                this._emit('ready');
-                readyFired = true;
-              }
-            } catch(e) {
-              console.error("'ready' failed: ", e, e.stack);
-              this._emit('error', e);
-            }
+            fireReady();
           }
         }
 

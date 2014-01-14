@@ -10,6 +10,13 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
+      require('./src/eventhandling');
+      if (global.rs_eventhandling) {
+        RemoteStorage.eventHandling = global.rs_eventhandling;
+      } else {
+        global.rs_eventhandling = RemoteStorage.eventHandling;
+      }
+
       require('./src/authorize');
 
       test.done();
@@ -105,6 +112,42 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           RemoteStorage.Authorize._rs_init(storage);
           storage.connect = function(userAddress) {
             test.assert(userAddress, 'nil@heahdk.net');
+          };
+          storage._handlers['features-loaded'][0]();
+        }
+      },
+
+      {
+        desc: "the 'features-loaded' handler calls remote.stopWaitingForToken when it sees no access_token and no user address",
+        run: function(env, test) {
+          var storage = new RemoteStorage();
+          document.location.href = 'http://foo/bar#a=b';
+          RemoteStorage.Authorize._rs_init(storage);
+          storage.connect = function(userAddress) {
+            test.assert(userAddress, 'nil@heahdk.net');
+          };
+          storage.remote = {
+            stopWaitingForToken: function() {
+              test.done();
+            }
+          };
+          storage._handlers['features-loaded'][0]();
+        }
+      },
+
+      {
+        desc: "the 'features-loaded' handler calls remote.stopWaitingForToken when there are no params",
+        run: function(env, test) {
+          var storage = new RemoteStorage();
+          document.location.href = 'http://foo/bar#a=b';
+          RemoteStorage.Authorize._rs_init(storage);
+          storage.connect = function(userAddress) {
+            test.assert(userAddress, 'nil@heahdk.net');
+          };
+          storage.remote = {
+            stopWaitingForToken: function() {
+              test.done();
+            }
           };
           storage._handlers['features-loaded'][0]();
         }

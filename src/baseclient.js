@@ -449,13 +449,14 @@
       return this.storage.delete(this.makePath(path));
     },
 
-    cache: function(path, disable) {
+
+    cache: function(path, enable) {
       if (typeof(path) !== 'string') {
         throw 'Argument \'path\' of baseClient.cache must be a string';
       }
-
-      this.storage.caching[disable !== false ? 'enable' : 'disable'](
-        this.makePath(path)
+      this.storage.caching[enable === false ? 'disable' : 'enable'](
+        this.makePath(path),
+        this.storage.connected
       );
       return this;// why?
     },
