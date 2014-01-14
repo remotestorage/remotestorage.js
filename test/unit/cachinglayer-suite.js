@@ -126,7 +126,7 @@ define(['requirejs'], function(requirejs) {
           test.assertAnd(env.ims._getInternals()._nodesFromRoot(p6),
               [p6, '/a/b/c d/', '/a/b/', '/a/', '/']);
           test.assertAnd(env.ims._getInternals()._nodesFromRoot(p7), [p7, '/']);
-          test.assert(env.ims._getInternals()._nodesFromRoot(p7).length, [p7, '/'].length);
+          test.done();
         }
       },
       {

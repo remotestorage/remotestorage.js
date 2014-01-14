@@ -53,7 +53,7 @@
         path = path.substring(0, path.length-1);
       }
       parts = path.split('/');
-      while(parts.length) {
+      while(parts.length > 1) {
         parts.pop();
         ret.push(parts.join('/')+'/');
       }
