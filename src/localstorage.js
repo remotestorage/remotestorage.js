@@ -51,7 +51,7 @@
       var i, ret = {}, promise = promising();
       for(i=0; i<paths.length; i++) {
         try {
-          ret[paths[i]] = JSON.parse(localStorage[paths[i]]);
+          ret[paths[i]] = JSON.parse(localStorage[NODES_PREFIX+paths[i]]);
         } catch(e) {
         }
       }
@@ -62,7 +62,7 @@
     setNodes: function(objs) {
       var i, promise = promising();
       for(i in objs) {
-        localStorage[i] = JSON.stringify(objs[i]);
+        localStorage[NODES_PREFIX+i] = JSON.stringify(objs[i]);
       }
       promise.fulfill();
       return promise;
