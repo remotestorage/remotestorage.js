@@ -42,6 +42,15 @@
         if (node.official && node.official.body && node.official.contentType) {
           return node.official;
         }
+        //migration code; once all apps use this version of the lib, we can publish clean-up code
+        //that migrates over any old-format data, and stop supporting it. for now, new apps will
+        //support data in both formats, thanks to this:
+        if (node.body && node.contentType) {
+          return {
+            body: node.body,
+            contentType: node.contentType
+          };
+        }
       }
     },
 

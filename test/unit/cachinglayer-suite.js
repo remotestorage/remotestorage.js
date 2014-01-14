@@ -101,6 +101,11 @@ define(['requirejs'], function(requirejs) {
             remote: {
               foo: 'bar'
             }
+          },
+          legacyNode = {
+            path: '/foo',
+            body: 'asdf',
+            contentType: 'text/plain'
           };
           test.assertAnd(env.ims._getInternals()._getLatest(undefined), undefined);
           test.assertAnd(env.ims._getInternals()._getLatest({local: {
@@ -110,7 +115,10 @@ define(['requirejs'], function(requirejs) {
           test.assertAnd(env.ims._getInternals()._getLatest(localNode).body, 'b');
           test.assertAnd(env.ims._getInternals()._getLatest(localNode).contentType, 'c');
           test.assertAnd(env.ims._getInternals()._getLatest(officialNode).body, 'b');
-          test.assert(env.ims._getInternals()._getLatest(officialNode).contentType, 'c');
+          test.assertAnd(env.ims._getInternals()._getLatest(officialNode).contentType, 'c');
+          test.assertAnd(env.ims._getInternals()._getLatest(legacyNode).body, 'asdf');
+          test.assertAnd(env.ims._getInternals()._getLatest(legacyNode).contentType, 'text/plain');
+          test.done()
         }
       },
       {
