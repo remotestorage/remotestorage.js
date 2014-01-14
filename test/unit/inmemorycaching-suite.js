@@ -100,6 +100,13 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
+        desc: "#get gets queued as a sync request if its maxAge param cannot be",
+        run: function(env, test) {
+          test.result(false, 'TODO: write this test');
+        }
+      },
+
+      {
         desc: "#put yields 200 and stores the node",
         run: function(env, test) {
           env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {

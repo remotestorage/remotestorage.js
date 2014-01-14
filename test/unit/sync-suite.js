@@ -173,20 +173,248 @@ define([], function() {
             test.result(true);
           }
         }
-      }
+      },
 
-      //first, complete all pending gets, in chron order (they should be pooled and throttled too!)
-      // -> add maxAge param, default to infinite.
-      //then push changes, in chron order
-      // -> when changing the connected-state, it might be there's soft-set data, which will lose in a conflict (fetch after 412).
-      //changes in unsynced folders are still pushed out
-      //default conflict resolution is remote, so after a 412 which is not resolved as 'local', the data is pulled in,
-      //and overwrites the local data with a change event. the idea here is that
-      //central data is more valuable than local data. this also makes soft-set data harmless. for offline notes, just use uuids to avoid data loss.
-      //items that have been accessed once, will remain synced until they are deleted, or the session is disconnected
-      //whenever all accessed items are in sync, the next step is to retrieve all parent folders up to the root,
-      //to make sync more efficient (Merkle tree strategy).
-      //once that's all done, it will loop through the root paths and spider out from them
+      {
+        desc: "Sync calls doTasks, and goes to findTasks only if necessary",
+        run: function(env, test) {
+           var doTasksCalled = 0, findTasksCalled = 0,
+             tmpDoTasks = env.sync.doTasks,
+             tmpFindTasks = env.sync.findTasks;
+           
+           env.sync.doTasks = function() {
+             doTasksCalled++;
+           }
+           env.sync.findTasks = function() {
+             findTasksCalled++;
+           }
+           env.sync.sync();
+           test.assertAnd(doTasksCalled, 1);
+           test.assertAnd(findTasksCalled, 1);
+           env.sync.addTask('/foo', function() {});
+           env.sync.sync();
+           test.assertAnd(doTasksCalled, 2);
+           test.assertAnd(findTasksCalled, 1);
+           env.sync.doTasks = tmpDoTasks;
+           env.sync.findTasks = tmpFindTasks;
+        }
+      },
+
+      {
+        desc: "findTasks calls checkDiffs and goes to checkRefresh only if necessary",
+        run: function(env, test) {
+           var checkDiffsCalled = 0, checkRefreshCalled = 0,
+             tmpCheckDiffs = env.sync.checkDiffs,
+             tmCheckRefresh = env.sync.checkRefresh;
+           env.sync.checkDiffs = function() {
+             checkDiffsCalled++;
+           }
+           env.sync.checkRefresh = function() {
+             checkRefreshCalled++;
+           }
+           env.sync.findTasks();
+           test.assertAnd(checkDiffsCalled, 1);
+           test.assertAnd(checkRefreshCalled, 1);
+           env.local.set('/foo', 'something', 'new');
+           env.sync.findTasks();
+           test.assertAnd(checkDiffsCalled, 2);
+           test.assertAnd(checkRefreshCalled, 1);
+           env.sync.checkDiffs = tmpCheckDiffs;
+           env.sync.checkRefresh = tmpCheckRefresh;
+        }
+      },
+
+      {
+        desc: "checkRefresh gives preference to caching rootPaths",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "sync will only run in one of the windows, but handle requests from all windows",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "go through the request-queue with 4-8 requests at a time",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "checkRefresh flushes cache for caching=false rootPaths",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "checkRefresh requests the parent rather than the stale node itself, unless it is an access root",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "an incoming folder listing creates subfolder nodes if it's under a cache root",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "an incoming folder listing creates document nodes if it's under a cache root that's not treeOnly",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "a success response to a PUT or DELETE moves local to official and removes remote",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "a failure response to a PUT or DELETE removes the push version",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "a conflict response to a PUT or DELETE obeys the conflict handler if there is one",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "by default, conflicts are resolved as remote",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "sync will not attempt requests outside the access scope",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "sync will attempt only one request, at low frequency, when offline",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "sync will not attempt any requests when not connected",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "sync will discard corrupt cache nodes",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "sync will reject its promise if the cache is not available",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "sync will fulfill its promise as long as the cache is available",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "requests that time out get cancelled",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "checkDiffs handles PUTs",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "checkDiffs handles DELETEs",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "checkDiffs retrieves body and Content-Type when a new remote revision is set",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "when a checkDiffs request completes, remote data is moved to official and local is dropped",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "checkDiffs does not queue request if one for the same node exists (whether push or fetch)",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "checkRefresh does not queue request if one for the same node exists (whether push or fetch)",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "checkDiffs does not push local if a remote exists",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "when push completes but local changes exist since, the push version (not the local) becomes official",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "when a document or folder is fetched, pending requests from all windows are resolved",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "changes in unsynced folders are still pushed out",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "when a conflict is resolved as remote, a change event is sent out",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "when a conflict is resolved as local, no change event is sent out",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "items that have been accessed once, will remain synced until they are deleted, or the session is disconnected",
+        run: function(env, test) {
+        }
+      },
+
+      {
+        desc: "",
+        run: function(env, test) {
+        }
+      }
     ]
   });
 
