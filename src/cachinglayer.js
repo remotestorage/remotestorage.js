@@ -83,10 +83,17 @@
     
   var methods = {
     //GPD interface:
-    get: function(path) {
+    get: function(path, maxAge) {
       var promise = promising();
       this.getNodes([path]).then(function(objs) {
         var latest = _getLatest(objs[path]);
+        if ((typeof(maxAge) === 'number') && (
+             !latest ||
+             !latest.timestamp ||
+             ((new Date().getTime()) - latest.timestamp > maxAge))) {
+          remoteStorage.sync.queueGetRequest(path, promise);
+          return promise;
+        }
         if (latest) {
             promise.fulfill(200, latest.body, latest.contentType);
         } else {

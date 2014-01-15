@@ -174,7 +174,7 @@ define([], function() {
           }
         }
       },
-
+], nothing: [
       {
         desc: "Sync calls doTasks, and goes to findTasks only if necessary",
         run: function(env, test) {

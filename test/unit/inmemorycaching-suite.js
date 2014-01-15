@@ -23,6 +23,9 @@ define(['requirejs'], function(requirejs) {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
       require('./src/inmemorystorage');
+      env.rs = new RemoteStorage();
+      env.rs.local = new RemoteStorage.InMemoryStorage();
+      global.remoteStorage = env.rs;
       test.done();
     },
 
@@ -100,9 +103,55 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#get gets queued as a sync request if its maxAge param cannot be",
+        desc: "#get gets queued as a sync request if its maxAge param cannot be satisfied because no node exists",
         run: function(env, test) {
-          test.result(false, 'TODO: write this test');
+          var requestQueued = false;
+          env.rs.sync = {
+            queueGetRequest: function(path, promise) {
+              test.assertAnd(path, '/foo');
+              requestQueued = true;
+              promise.fulfill(200, 'asdf', 'qwer');
+              //basically just checking that this ends up fulfilling the promise we have put in at the other end
+            }
+          };
+          env.rs.local.get('/foo', 100).then(function(status, body, contentType) {
+            test.assertAnd(requestQueued, true);
+            test.assertAnd(status, 200);
+            test.assertAnd(body, 'asdf');
+            test.assertAnd(contentType, 'qwer');
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "#get gets queued as a sync request if its maxAge param cannot be satisfied because node is too old",
+        run: function(env, test) {
+          var requestQueued = false;
+          env.rs.local._storage['/foo'] = {
+            path: '/foo',
+            official: {
+              timestamp: 1234567890123,
+              body: 'asdf',
+              contentType: 'qwer',
+              revision: '123'
+            }
+          };
+          env.rs.sync = {
+            queueGetRequest: function(path, promise) {
+              test.assertAnd(path, '/foo');
+              requestQueued = true;
+              promise.fulfill(200, 'asdf', 'qwer');
+              //basically just checking that this ends up fulfilling the promise we have put in at the other end
+            }
+          };
+          env.rs.local.get('/foo', 100).then(function(status, body, contentType) {
+            test.assertAnd(requestQueued, true);
+            test.assertAnd(status, 200);
+            test.assertAnd(body, 'asdf');
+            test.assertAnd(contentType, 'qwer');
+            test.done();
+          });
         }
       },
 
