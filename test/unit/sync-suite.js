@@ -44,7 +44,7 @@ define([], function() {
     setup: function(env, test){
       require('./lib/promising');
       global.RemoteStorage = function(){
-        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'sync-updated');
+        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'sync-interval-change');
       };
       global.RemoteStorage.log = function() {};
 
