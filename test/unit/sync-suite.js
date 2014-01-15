@@ -122,9 +122,11 @@ define([], function() {
           env.remote._responses[['get', '/foo/bar/baz',
                                  { ifNoneMatch: undefined } ]] =
             [200, "body", 'text/plain', 123];
-          env.rs.caching.rootPaths = ['/foo/'];
+          env.rs.caching.rootPaths = {
+            '/foo/': CACHING_ALL //valid values: CACHING_ALL, CACHING_SEEN_AND_FOLDERS, CACHING_SEEN
+          };
           env.rs.caching.get = function(path) {
-            return { data: true };
+            return 'all';
           };
           env.rs.caching.set = function(path, obj) {
             test.assertAnd(path, '/foo/');
@@ -270,7 +272,9 @@ define([], function() {
         desc: "checkRefresh gives preference to caching rootPaths",
         run: function(env, test) {
           var tmpForAllNodes = env.rs.local.forAllNodes;
-          env.rs.caching.rootPaths = ['/foo/'];
+          env.rs.caching.rootPaths = {
+            '/foo/': CACHING_ALL
+          };
           env.rs.local.forAllNodes = function(cb) {
             cb({
               path: '/bar/',
@@ -418,7 +422,9 @@ define([], function() {
       {
         desc: "checkRefresh flushes cache for caching=false rootPaths",
         run: function(env, test) {
-          env.rs.caching.rootPaths = ['/foo/'];
+          env.rs.caching.rootPaths = {
+            '/foo/': CACHING_ALL
+          };
           env.rs.local.setNodes({
             '/bar/': {
               path: '/bar/',
@@ -484,7 +490,9 @@ define([], function() {
           env.remote._responses[['get', '/foo/bar/',
                                  { ifNoneMatch: undefined } ]] =
             [200, {'baz/': '123', 'baf': '456'}, 'application/json', '123'];
-          env.rs.caching.rootPaths = ['/foo/'];
+          env.rs.caching.rootPaths = {
+            '/foo/': CACHING_ALL
+          };
           env.sync.jobQueue = ['/foo/'];
           env.sync.doTasks();
           setTimeout(function() {
@@ -503,7 +511,9 @@ define([], function() {
           env.remote._responses[['get', '/foo/',
                                  { ifNoneMatch: undefined } ]] =
             [200, {'baz/': '123', 'baf': '456'}, 'application/json', '123'];
-          env.rs.caching.rootPaths = ['/foo/'];
+          env.rs.caching.rootPaths = {
+            '/foo/': CACHING_ALL
+          };
           env.sync.jobQueue = ['/foo/'];
           env.sync.doTasks();
           setTimeout(function() {
@@ -530,7 +540,9 @@ define([], function() {
             env.remote._responses[['get', '/foo/',
                                  { ifNoneMatch: undefined } ]] =
               [200, {'baz/': '123', 'baf': '456'}, 'application/json', '123'];
-            env.rs.caching.rootPaths = ['/foo/'];
+            env.rs.caching.rootPaths = {
+              '/foo/': CACHING_ALL
+            };
             env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             setTimeout(function() {
@@ -549,7 +561,7 @@ define([], function() {
       {
         desc: "an incoming folder listing stores new revisions to existing child nodes if under a do-cache root",
         run: function(env, test) {
-          env.caching.set('/foo/', { data: true });
+          env.caching.set('/foo/', CACHING_ALL);
           env.rs.local.setNodes({
             '/foo/baz/': {
               official: { revision: '123', timestamp: 1234567890123 }
@@ -561,7 +573,6 @@ define([], function() {
             env.remote._responses[['get', '/foo/',
                                  { ifNoneMatch: undefined } ]] =
               [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
-            env.rs.caching.rootPaths = ['/foo/'];
             env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             setTimeout(function() {
@@ -578,9 +589,9 @@ define([], function() {
       },
 
       {
-        desc: "an incoming folder listing stores new revisions only to existing folder nodes if under a treeOnly root",
+        desc: "an incoming folder listing stores new revisions only to existing folder nodes if under a seen+folders root",
         run: function(env, test) {
-          env.caching.set('/foo/', { data: false });
+          env.caching.set('/foo/', CACHING_SEEN_AND_FOLDERS);
           env.rs.local.setNodes({
             '/foo/baz/': {
               official: { revision: '123', timestamp: 1234567890123 }
@@ -609,7 +620,7 @@ define([], function() {
       },
 
       {
-        desc: "an incoming folder listing stores new revisions to existing child nodes if under an auto-cache root",
+        desc: "an incoming folder listing stores new revisions to existing child nodes if under a seen-only root",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/baz/': {
@@ -639,7 +650,18 @@ define([], function() {
       },
 
       {
-        desc: "an incoming folder listing doesn't store new revisions to existing child nodes under a dont-cache root",
+        desc: "an incoming folder listing doesn't store new revisions to existing child nodes under a seen-only root",
+        run: function(env, test) {
+          env.caching.set('/foo/', false);
+          env.rs.local.setNodes({
+            '/foo/baz/': {
+              official: { revision: '123', timestamp: 1234567890123 }
+            },
+            '/foo/baf': {
+              official: { revision: '456', timestamp: 1234567890123 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/',
         run: function(env, test) {
           env.caching.set('/foo/', false);
           env.rs.local.setNodes({
@@ -722,17 +744,6 @@ define([], function() {
             },
             '/foo/baf': {
               official: { revision: '456', timestamp: 1234567890123 },
-              local: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.remote._responses[['get', '/foo/',
-                                 { ifNoneMatch: undefined } ]] =
-              [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
-            env.rs.caching.rootPaths = ['/foo/'];
-            env.sync.jobQueue = ['/foo/'];
-            env.sync.doTasks();
-            setTimeout(function() {
-              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
                 test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '129');
                 test.assertAnd(objs['/foo/bar/baz/'].local,
@@ -750,7 +761,7 @@ define([], function() {
 
 
       {
-        desc: "sub item new revisions stored as remote if local exists and no onConflict",
+        desc: "sub item new revisions left in conflict if local exists and undefined onConflict",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/baz/': {
@@ -799,6 +810,17 @@ define([], function() {
               [200, '', '', '123'];
             env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official, { timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local, { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
+            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].official.revision, '123');
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
             test.assertAnd(objs['/foo/bar'].official, { timestamp: 1234567890123 });
@@ -1577,17 +1599,6 @@ define([], function() {
             test.assertAnd(env.rs.sync.jobQueue, {});
             test.done();
           });
-        }
-      },
-
-      {
-        desc: "checkDiffs handles PUTs and DELETEs inside rw access scope",
-        run: function(env, test) {
-          env.rs.access.set('readings', 'r');
-          env.rs.access.set('writings', 'rw');
-          env.rs.local.setNodes({
-            '/writings/bar': {
-              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             },
             '/public/writings/bar': {
@@ -1681,21 +1692,9 @@ define([], function() {
         }
       },
 
-//TODO: change how onConflict works;
-//when you become aware of a conflict through parent folder revision, the app may want to see the remote version
-//before taking a decision.
-//also, it may then decide to merge the content to something which then becomes the new local.
-//it may even allow the user to interact with this decision.
-//this means onConflict cannot be a synchronous function.
-//this means that a node can be in 'needsFetch' state, as well as in 'needsDecision' state.
-
       {
-        desc: "checkDiffs does not push local if a remote exists and onConflict is remote",
+        desc: "checkDiffs does not push local if a remote exists",
         run: function(env, test) {
-          test.done(false, 'TODO 8');
-          env.rs.onConflict = function() {
-            return 'remote';
-          };
           env.rs.access.set('writings', 'rw');
           env.rs.local.setNodes({
             '/writings/bar': {
