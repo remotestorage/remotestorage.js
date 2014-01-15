@@ -991,10 +991,10 @@ define([], function() {
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
-            test.assertAnd(objs['/foo/bar'].official, { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].official, { body: 'a', contentType: 'b', timestamp: 1234567891000 });
             test.assertAnd(objs['/foo/bar'].local, undefined);
             test.assertAnd(objs['/foo/bar'].push, undefined);
-            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            test.assertAnd(objs['/foo/bar'].remote, { revision: 'fff' });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
             //now add a local while the request is running:
             return env.rs.local.setNodes({
@@ -1024,14 +1024,93 @@ define([], function() {
       {
         desc: "a success response to a document GET can resolve conflicts as 'remote' if local exists",
         run: function(env, test) {
-          test.done(false, 'TODO 20');
+          env.rs.onConflict = function() {
+            return 'remote';
+          };
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              remote: { revision: 'fff' },
+              official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/bar', { } ]] =
+              [200, 'zz', 'application/ld+json', '123'];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official, { body: 'a', contentType: 'b', timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].local, undefined);
+            test.assertAnd(objs['/foo/bar'].push, undefined);
+            test.assertAnd(objs['/foo/bar'].remote, { revision: 'fff' });
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            //now add a local while the request is running:
+            return env.rs.local.setNodes({
+              '/foo/bar': {
+                remote: { revision: 'fff' },
+                official: { body: 'a', contentType: 'b', timestamp: 1234567891000 },
+                local: { body: 'ab', contentType: 'bb', timestamp: 1234567891001 }
+              }
+            });
+          }).then(function() {
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].official.revision, '123');
+                test.assertAnd(objs['/foo/bar'].official.body, 'zz');
+                test.assertAnd(objs['/foo/bar'].official.contentType, 'application/ld+json');
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(env.rs.sync.running, {});
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
         desc: "a success response to a document GET can resolve conflicts as default ('remote') if local exists",
         run: function(env, test) {
-          test.done(false, 'TODO 19');
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              remote: { revision: 'fff' },
+              official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/bar', { } ]] =
+              [200, 'zz', 'application/ld+json', '123'];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official, { body: 'a', contentType: 'b', timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].local, undefined);
+            test.assertAnd(objs['/foo/bar'].push, undefined);
+            test.assertAnd(objs['/foo/bar'].remote, { revision: 'fff' });
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            //now add a local while the request is running:
+            return env.rs.local.setNodes({
+              '/foo/bar': {
+                remote: { revision: 'fff' },
+                official: { body: 'a', contentType: 'b', timestamp: 1234567891000 },
+                local: { body: 'ab', contentType: 'bb', timestamp: 1234567891001 }
+              }
+            });
+          }).then(function() {
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].official.revision, '123');
+                test.assertAnd(objs['/foo/bar'].official.body, 'zz');
+                test.assertAnd(objs['/foo/bar'].official.contentType, 'application/ld+json');
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(env.rs.sync.running, {});
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
@@ -1118,18 +1197,76 @@ define([], function() {
       {
         desc: "a failure response to a document GET leaves things as they are and marks offline",
         run: function(env, test) {
-                test.assertAnd(env.rs.sync.offline, true);
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              remote: { revision: '988' }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/bar',
+                                   { } ]] =
+              ['a', '', '', ''];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local, undefined);
+            test.assertAnd(objs['/foo/bar'].push, undefined);
+            test.assertAnd(objs['/foo/bar'].remote, { revision: '988' });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
-          test.done(false, 'TODO 18');
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].official,
+                    { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, { revision: '988' });
+                test.assertAnd(env.rs.sync.offline, true);
+                test.assertAnd(env.rs.sync.running, {});
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
         desc: "a failure response to a folder GET leaves things as they are and marks offline",
         run: function(env, test) {
-                test.assertAnd(env.rs.sync.offline, true);
+          env.rs.local.setNodes({
+            '/foo/bar/': {
+              official: { itemsMap: {asdf: 'qwer'} revision: '987', timestamp: 1234567890123 },
+              remote: { revision: '988' }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/bar',
+                                   { } ]] =
+              [685, '', '', ''];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local, undefined);
+            test.assertAnd(objs['/foo/bar'].push, undefined);
+            test.assertAnd(objs['/foo/bar'].remote, { revision: '988' });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
-          test.done(false, 'TODO 17');
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].official,
+                    { itemsMap: {asdf: 'qwer'}, revision: '987', timestamp: 1234567890123 });
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, { revision: '988' });
+                test.assertAnd(env.rs.sync.offline, true);
+                test.assertAnd(env.rs.sync.running, {});
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
