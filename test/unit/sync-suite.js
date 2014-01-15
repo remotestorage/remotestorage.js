@@ -258,7 +258,7 @@ define([], function() {
             });
           };
           env.sync.checkRefresh();
-          test.assertAnd(env.sync.fetchQueue, {
+          test.assertAnd(env.sync.jobQueue, {
            '/foo/': true
           });
           env.rs.local.forAllNodes = tmpForAllNodes;
@@ -282,7 +282,7 @@ define([], function() {
             });
           };
           env.sync.checkRefresh();
-          test.assertAnd(env.sync.fetchQueue, {
+          test.assertAnd(env.sync.jobQueue, {
            '/foo/': true
           });
           env.rs.local.forAllNodes = function(cb) {
@@ -304,7 +304,7 @@ define([], function() {
             });
           };
           env.sync.checkRefresh();
-          test.assertAnd(env.sync.fetchQueue, {
+          test.assertAnd(env.sync.jobQueue, {
            '/foo/': true,
            '/bar/': true
           });
@@ -318,7 +318,7 @@ define([], function() {
         desc: "go through the request-queue with 4-8 requests at a time",
         run: function(env, test) {
           env.rs.sync.numThreads = 5;
-          env.rs.sync.fetchQueue = {
+          env.rs.sync.jobQueue = {
             '/foo1/': true,
             '/foo2/': true,
             '/foo3': true,
@@ -330,7 +330,7 @@ define([], function() {
             '/fo/o/9/': true
           };
           env.rs.sync.doTasks();
-          test.assertAnd(env.rs.sync.fetchQueue, {
+          test.assertAnd(env.rs.sync.jobQueue, {
             '/foo/6/': true,
             '/foo7/': true,
             '/foo8': true,
@@ -352,7 +352,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.sync.numThreads = 5;
           env.rs.sync.offline = true;
-          env.rs.sync.fetchQueue = {
+          env.rs.sync.jobQueue = {
             '/foo1/': true,
             '/foo2/': true,
             '/foo3': true,
@@ -364,7 +364,7 @@ define([], function() {
             '/fo/o/9/': true
           };
           env.rs.sync.doTasks();
-          test.assertAnd(env.rs.sync.fetchQueue, {
+          test.assertAnd(env.rs.sync.jobQueue, {
             '/foo2/': true,
             '/foo3': true,
             '/foo4/': true,
@@ -386,7 +386,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.sync.numThreads = 5;
           env.rs.remote.connected = false;
-          env.rs.sync.fetchQueue = {
+          env.rs.sync.jobQueue = {
             '/foo1/': true,
             '/foo2/': true,
             '/foo3': true,
@@ -398,7 +398,7 @@ define([], function() {
             '/fo/o/9/': true
           };
           env.rs.sync.doTasks();
-          test.assertAnd(env.rs.sync.fetchQueue, {
+          test.assertAnd(env.rs.sync.jobQueue, {
             '/foo1/': true,
             '/foo2/': true,
             '/foo3': true,
@@ -470,7 +470,7 @@ define([], function() {
             }
           }).then(function() {
             env.sync.checkRefresh();
-            test.assertAnd(env.rs.sync.fetchQueue, {
+            test.assertAnd(env.rs.sync.jobQueue, {
               '/f/': true
             });
             test.done();
@@ -485,7 +485,7 @@ define([], function() {
                                  { ifNoneMatch: undefined } ]] =
             [200, {'baz/': '123', 'baf': '456'}, 'application/json', '123'];
           env.rs.caching.rootPaths = ['/foo/'];
-          env.sync.fetchQueue = ['/foo/'];
+          env.sync.jobQueue = ['/foo/'];
           env.sync.doTasks();
           setTimeout(function() {
             env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
@@ -504,7 +504,7 @@ define([], function() {
                                  { ifNoneMatch: undefined } ]] =
             [200, {'baz/': '123', 'baf': '456'}, 'application/json', '123'];
           env.rs.caching.rootPaths = ['/foo/'];
-          env.sync.fetchQueue = ['/foo/'];
+          env.sync.jobQueue = ['/foo/'];
           env.sync.doTasks();
           setTimeout(function() {
             env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
@@ -531,7 +531,7 @@ define([], function() {
                                  { ifNoneMatch: undefined } ]] =
               [200, {'baz/': '123', 'baf': '456'}, 'application/json', '123'];
             env.rs.caching.rootPaths = ['/foo/'];
-            env.sync.fetchQueue = ['/foo/'];
+            env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -562,7 +562,7 @@ define([], function() {
                                  { ifNoneMatch: undefined } ]] =
               [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
             env.rs.caching.rootPaths = ['/foo/'];
-            env.sync.fetchQueue = ['/foo/'];
+            env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -593,7 +593,7 @@ define([], function() {
                                  { ifNoneMatch: undefined } ]] =
               [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
             env.rs.caching.rootPaths = ['/foo/'];
-            env.sync.fetchQueue = ['/foo/'];
+            env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -623,7 +623,7 @@ define([], function() {
                                  { ifNoneMatch: undefined } ]] =
               [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
             env.rs.caching.rootPaths = ['/foo/'];
-            env.sync.fetchQueue = ['/foo/'];
+            env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -654,7 +654,7 @@ define([], function() {
                                  { ifNoneMatch: undefined } ]] =
               [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
             env.rs.caching.rootPaths = ['/foo/'];
-            env.sync.fetchQueue = ['/foo/'];
+            env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -690,7 +690,7 @@ define([], function() {
                                  { ifNoneMatch: undefined } ]] =
               [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
             env.rs.caching.rootPaths = ['/foo/'];
-            env.sync.fetchQueue = ['/foo/'];
+            env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -729,7 +729,7 @@ define([], function() {
                                  { ifNoneMatch: undefined } ]] =
               [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
             env.rs.caching.rootPaths = ['/foo/'];
-            env.sync.fetchQueue = ['/foo/'];
+            env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -766,7 +766,7 @@ define([], function() {
                                  { ifNoneMatch: undefined } ]] =
               [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
             env.rs.caching.rootPaths = ['/foo/'];
-            env.sync.fetchQueue = ['/foo/'];
+            env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -797,7 +797,7 @@ define([], function() {
             env.remote._responses[['put', '/foo/bar',
                                    { ifNoneMatch: undefined } ]] =
               [200, '', '', '123'];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -835,7 +835,7 @@ define([], function() {
             env.remote._responses[['delete', '/foo/bar',
                                    { ifMatch: '987' } ]] =
               [200, '', '', ''];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -873,7 +873,7 @@ define([], function() {
           }).then(function() {
             env.remote._responses[['get', '/foo/', { } ]] =
               [200, '{"items":{"a":{"ETag":"3"}}}', 'application/ld+json', '123'];
-            env.sync.pushQueue = ['/foo/'];
+            env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/']);
           }).then(function(objs) {
@@ -912,7 +912,7 @@ define([], function() {
           }).then(function() {
             env.remote._responses[['get', '/foo/', { } ]] =
               [200, '{"items":{"a":{"ETag":"3"}}}', 'application/ld+json', '123'];
-            env.sync.pushQueue = ['/foo/'];
+            env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/']);
           }).then(function(objs) {
@@ -948,7 +948,7 @@ define([], function() {
           }).then(function() {
             env.remote._responses[['get', '/foo/bar', { } ]] =
               [200, 'zz', 'application/ld+json', '123'];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -987,7 +987,7 @@ define([], function() {
           }).then(function() {
             env.remote._responses[['get', '/foo/bar', { } ]] =
               [200, 'zz', 'application/ld+json', '123'];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1035,7 +1035,7 @@ define([], function() {
           }).then(function() {
             env.remote._responses[['get', '/foo/bar', { } ]] =
               [200, 'zz', 'application/ld+json', '123'];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1080,7 +1080,7 @@ define([], function() {
           }).then(function() {
             env.remote._responses[['get', '/foo/bar', { } ]] =
               [200, 'zz', 'application/ld+json', '123'];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1126,7 +1126,7 @@ define([], function() {
             env.remote._responses[['put', '/foo/bar',
                                    { ifMatch: '987' } ]] =
               [573, '', '', ''];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1167,7 +1167,7 @@ define([], function() {
             env.remote._responses[['delete', '/foo/bar',
                                    { ifMatch: '987' } ]] =
               [480, '', '', ''];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1206,7 +1206,7 @@ define([], function() {
             env.remote._responses[['get', '/foo/bar',
                                    { } ]] =
               ['a', '', '', ''];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1244,7 +1244,7 @@ define([], function() {
             env.remote._responses[['get', '/foo/bar',
                                    { } ]] =
               [685, '', '', ''];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1285,7 +1285,7 @@ define([], function() {
             env.remote._responses[['put', '/foo/bar',
                                    { ifMatch: '987' } ]] =
               [412, '', '', 'fff'];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1328,7 +1328,7 @@ define([], function() {
             env.remote._responses[['delete', '/foo/bar',
                                    { ifMatch: '987' } ]] =
               [412, '', '', ''];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1369,7 +1369,7 @@ define([], function() {
             env.remote._responses[['put', '/foo/bar',
                                    { ifMatch: '987' } ]] =
               [412, '', '', 'fff'];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1412,7 +1412,7 @@ define([], function() {
             env.remote._responses[['delete', '/foo/bar',
                                    { ifMatch: '987' } ]] =
               [412, '', '', ''];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1451,7 +1451,7 @@ define([], function() {
             env.remote._responses[['put', '/foo/bar',
                                    { ifMatch: '987' } ]] =
               [412, '', '', 'fff'];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1491,7 +1491,7 @@ define([], function() {
             env.remote._responses[['delete', '/foo/bar',
                                    { ifMatch: '987' } ]] =
               [412, '', '', ''];
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1532,7 +1532,7 @@ define([], function() {
               local: { timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.jobQueue = ['/foo/bar'];
             env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1568,78 +1568,146 @@ define([], function() {
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             },
-            '/public/foo/bar': {
+            '/public/readings/bar': {
               official: { revision: '987', timestamp: 1234567890123 },
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
-            test.assertAnd(env.rs.sync.pushQueue, {});
+            env.rs.sync.checkDiffs();
+            test.assertAnd(env.rs.sync.jobQueue, {});
             test.done();
           });
         }
       },
 
       {
-        desc: "checkDiffs handles PUTs inside rw access scope",
+        desc: "checkDiffs handles PUTs and DELETEs inside rw access scope",
         run: function(env, test) {
-          test.done(false, 'TODO 16');
-        }
-      },
-
-      {
-        desc: "checkDiffs handles DELETEs inside rw access scope",
-        run: function(env, test) {
-          test.done(false, 'TODO 15');
+          env.rs.access.set('readings', 'r');
+          env.rs.access.set('writings', 'rw');
+          env.rs.local.setNodes({
+            '/writings/bar': {
+              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              local: { timestamp: 1234567891000 }
+            },
+            '/public/writings/bar': {
+              official: { revision: '987', timestamp: 1234567890123 },
+              local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.rs.sync.checkDiffs();
+            test.assertAnd(env.rs.sync.jobQueue, {
+              '/writings/bar': true,
+              '/public/writings/bar': true
+            });
+            test.done();
+          });
         }
       },
 
       {
         desc: "checkDiffs retrieves body and Content-Type when a new remote revision is set inside access scope",
         run: function(env, test) {
-          test.done(false, 'TODO 14');
+          env.rs.access.set('readings', 'r');
+          env.rs.access.set('writings', 'rw');
+          env.rs.local.setNodes({
+            '/readings/bar': {
+              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              remote: { revision: '900' }
+            },
+            '/public/writings/bar': {
+              official: { revision: '987', timestamp: 1234567890123 },
+              remote: { revision: 'a' }
+            }
+          }).then(function() {
+            env.rs.sync.checkDiffs();
+            test.assertAnd(env.rs.sync.jobQueue, {
+              '/writings/bar': true,
+              '/public/writings/bar': true
+            });
+            test.done();
+          });
         }
       },
 
       {
         desc: "sync will discard corrupt cache nodes",
         run: function(env, test) {
-          test.done(false, 'TODO 13');
+          env.rs.access.set('readings', 'r');
+          env.rs.access.set('writings', 'rw');
+          env.rs.local.setNodes({
+            '/readings/bar': {
+              official: { body: function() {}, contentType: 3, revision: '987', timestamp: 1234567890123 },
+              remote: 'no'
+            }
+          }).then(function() {
+            env.rs.sync.checkDiffs();
+            return env.rs.local.getNodes(['/readings/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/readings/bar'], undefined);
+            test.done();
+          });
         }
       },
 
       {
         desc: "sync will reject its promise if the cache is not available",
         run: function(env, test) {
-          test.done(false, 'TODO 12');
+          var tmp = env.rs.getNodes;
+          env.rs.getNodes = function() {
+            var promise;
+            promise.reject('i am broken, deal with it!');
+            return promise;
+          });
+          env.rs.sync().then(function() {
+            test.done(false, 'sync was supposed to reject its promise');
+          }, function(err) {
+            test.asserAnd(err, 'local store unavailable');
+            test.done();
+          });
+          env.rs.getNodes = tmp;
         }
       },
 
       {
         desc: "sync will fulfill its promise as long as the cache is available",
         run: function(env, test) {
-          test.done(false, 'TODO 11');
+          env.rs.sync().then(function() {
+            test.done();
+          }, function(err) {
+            test.done(false, 'sync was supposed to fulfill its promise');
+          });
+          env.rs.getNodes = tmp;
         }
       },
 
+//TODO: change how onConflict works;
+//when you become aware of a conflict through parent folder revision, the app may want to see the remote version
+//before taking a decision.
+//also, it may then decide to merge the content to something which then becomes the new local.
+//it may even allow the user to interact with this decision.
+//this means onConflict cannot be a synchronous function.
+//this means that a node can be in 'needsFetch' state, as well as in 'needsDecision' state.
 
       {
-        desc: "checkDiffs does not queue request if one for the same node exists (whether push or fetch)",
-        run: function(env, test) {
-          test.done(false, 'TODO 10');
-        }
-      },
-
-      {
-        desc: "checkRefresh does not queue request if one for the same node exists (whether push or fetch)",
-        run: function(env, test) {
-          test.done(false, 'TODO 9');
-        }
-      },
-
-      {
-        desc: "checkDiffs does not push local if a remote exists",
+        desc: "checkDiffs does not push local if a remote exists and onConflict is remote",
         run: function(env, test) {
           test.done(false, 'TODO 8');
+          env.rs.onConflict = function() {
+            return 'remote';
+          };
+          env.rs.access.set('writings', 'rw');
+          env.rs.local.setNodes({
+            '/writings/bar': {
+              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              local: { timestamp: 1234567891000 },
+              remote: { revision: 'fetch-me-first' }
+            }
+          }).then(function() {
+            env.rs.sync.checkDiffs();
+            test.assertAnd(env.rs.sync.jobQueue, {});
+            test.done();
+          });
         }
       },
 
