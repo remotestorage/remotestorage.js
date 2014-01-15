@@ -491,8 +491,8 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].official,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
             test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].push.body, undefined);
-            test.assertAnd(objs['/foo/bar'].push.contentType, undefined);
+            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
+            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
@@ -512,48 +512,310 @@ define([], function() {
       {
         desc: "a failure response to a PUT removes the push version",
         run: function(env, test) {
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { revision: '987', timestamp: 1234567890123 },
+              local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['put', '/foo/bar',
+                                   { ifMatch: '987' } ]] =
+              [573, '', '', ''];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local,
+                { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
+            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].official,
+                    { revision: '987', timestamp: 1234567890123 });
+                test.assertAnd(objs['/foo/bar'].local,
+                    { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
         desc: "a failure response to a DELETE removes the push version",
         run: function(env, test) {
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              local: { timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['delete', '/foo/bar',
+                                   { ifMatch: '987' } ]] =
+              [480, '', '', ''];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
+            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].official,
+                    { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+                test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
         desc: "a conflict response to a PUT obeys a 'local' conflict handler if there is one",
         run: function(env, test) {
+          env.rs.onConflict = function(path) {
+            return 'local';
+          });
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { revision: '987', timestamp: 1234567890123 },
+              local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['put', '/foo/bar',
+                                   { ifMatch: '987' } ]] =
+              [412, '', '', 'fff'];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local,
+                { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
+            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            setTimeout(function() {
+              //to make local win, the revision should be made official, so that the request goes through next time
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].official.revision, 'fff');
+                test.assertAnd(objs['/foo/bar'].local,
+                    { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
         desc: "a conflict response to a DELETE obeys a 'local' conflict handler if there is one",
         run: function(env, test) {
+          env.rs.onConflict = function(path) {
+            return 'local';
+          });
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              local: { timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['delete', '/foo/bar',
+                                   { ifMatch: '987' } ]] =
+              [412, '', '', ''];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
+            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            setTimeout(function() {
+              //to make local win, the revision should be made official, so that the request goes through next time
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].official.revision, 'fff');
+                test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
         desc: "a conflict response to a PUT obeys a 'remote' conflict handler if there is one",
         run: function(env, test) {
+          env.rs.onConflict = function(path) {
+            return 'remote';
+          });
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { revision: '987', timestamp: 1234567890123 },
+              local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['put', '/foo/bar',
+                                   { ifMatch: '987' } ]] =
+              [412, '', '', 'fff'];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local,
+                { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
+            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            setTimeout(function() {
+              //to make remote win, the revision should be made remote, and local should be deleted
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].remote.revision, 'fff');
+                test.assertAnd(objs['/foo/bar'].official,
+                    { revision: '987', timestamp: 1234567890123 });
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
         desc: "a conflict response to a DELETE obeys a 'remote' conflict handler if there is one",
         run: function(env, test) {
+          env.rs.onConflict = function(path) {
+            return 'remote';
+          });
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              local: { timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['delete', '/foo/bar',
+                                   { ifMatch: '987' } ]] =
+              [412, '', '', ''];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
+            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            setTimeout(function() {
+              //to make remote win, the revision should be made remote, and local should be deleted
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].remote.revision, 'fff');
+                test.assertAnd(objs['/foo/bar'].official,
+                    { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
         desc: "a conflict response to a PUT obeys 'remote' if there is no conflict handler",
         run: function(env, test) {
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { revision: '987', timestamp: 1234567890123 },
+              local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['put', '/foo/bar',
+                                   { ifMatch: '987' } ]] =
+              [412, '', '', 'fff'];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local,
+                { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
+            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            setTimeout(function() {
+              //to make remote win, the revision should be made remote, and local should be deleted
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].remote.revision, 'fff');
+                test.assertAnd(objs['/foo/bar'].official,
+                    { revision: '987', timestamp: 1234567890123 });
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
         desc: "a conflict response to a DELETE obeys 'remote' if there is no conflict handler",
         run: function(env, test) {
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              local: { timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['delete', '/foo/bar',
+                                   { ifMatch: '987' } ]] =
+              [412, '', '', ''];
+            env.sync.pushQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
+            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            setTimeout(function() {
+              //to make remote win, the revision should be made remote, and local should be deleted
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].remote.revision, 'fff');
+                test.assertAnd(objs['/foo/bar'].official,
+                    { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
