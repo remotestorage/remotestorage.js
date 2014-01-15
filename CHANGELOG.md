@@ -3,6 +3,19 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 0.10.0 (February 2014)
+
+This release contains a rewrite of the Merkle-tree sync system.
+
+* A new `maxAge` parameter is available in baseclient#get, where you can
+  specify the maximum age of cached results (in ms). This replaces the
+  ready-queue from 0.9.0. A value of `true` means any result that was
+  ever fetched from the account currently connected to is valid.
+* Caching of subtrees can now be configured as CACHING_ALL, CACHING_SEEN_AND_FOLDERS,
+  or CACHING_SEEN. This means documents that were seen once, will stay synced.
+* `baseclient#flush` is added, to flush subtrees from the cache (note this is different
+  than `baseclient#remove`, which causes DELETE requests to be sent to the server).
+
 ## 0.9.0 (December 2013)
 
 This release consists of awesome contributions from @skddc, @galfert, @ggrin,

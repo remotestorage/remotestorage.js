@@ -372,7 +372,7 @@ define([], function() {
             '/foo2/': true,
             '/foo3': true,
             '/foo4/': true,
-            '/foo/5': true
+            '/foo/5': true,
             '/foo/6/': true,
             '/foo7/': true,
             '/foo8': true,
@@ -407,7 +407,7 @@ define([], function() {
             '/foo2/': true,
             '/foo3': true,
             '/foo4/': true,
-            '/foo/5': true
+            '/foo/5': true,
             '/foo/6/': true,
             '/foo7/': true,
             '/foo8': true,
@@ -416,49 +416,6 @@ define([], function() {
           test.assertAnd(env.rs.sync.running, {
           });
          test.done();
-        }
-      },
-
-      {
-        desc: "checkRefresh flushes cache for caching=false rootPaths",
-        run: function(env, test) {
-          env.rs.caching.rootPaths = {
-            '/foo/': CACHING_ALL
-          };
-          env.rs.local.setNodes({
-            '/bar/': {
-              path: '/bar/',
-              official: {
-                body: 'off',
-                contentType: 'cT',
-                timestamp: 1234567890123
-              }
-            },
-            '/foo/': {
-              path: '/foo/',
-              official: {
-                body: 'off',
-                contentType: 'cT',
-                timestamp: 1234567890124
-              }
-            }
-          }).then(function() {
-            env.sync.checkRefresh();
-            return env.rs.local.getNodes(['/bar/', '/foo/']);
-          }).then(function(objs) {
-            test.assertAnd(objs, {
-              '/bar/': {
-                path: '/bar/',
-                official: {
-                  body: 'off',
-                  contentType: 'cT',
-                  timestamp: 1234567890123
-                }
-              },
-              '/foo/': undefined
-            });
-            test.done();
-          });
         }
       },
 
@@ -485,7 +442,28 @@ define([], function() {
       },
 
       {
-        desc: "an incoming folder listing creates subfolder nodes if it's under a do-cache root",
+        desc: "an incoming folder listing creates subfolder nodes if it's under a CACHING_SEEN_AND_FOLDERS root",
+        run: function(env, test) {
+          env.remote._responses[['get', '/foo/bar/',
+                                 { ifNoneMatch: undefined } ]] =
+            [200, {'baz/': '123', 'baf': '456'}, 'application/json', '123'];
+          env.rs.caching.rootPaths = {
+            '/foo/': CACHING_SEEN_AND_FOLDERS
+          };
+          env.sync.jobQueue = ['/foo/'];
+          env.sync.doTasks();
+          setTimeout(function() {
+            env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
+              test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
+              test.assertAnd(objs['/foo/bar/baf'], undefined);
+              test.done();
+            });
+          }, 100);
+        }
+      },
+
+      {
+        desc: "an incoming folder listing creates subfolder nodes if it's under a CACHING_ALL root",
         run: function(env, test) {
           env.remote._responses[['get', '/foo/bar/',
                                  { ifNoneMatch: undefined } ]] =
@@ -506,7 +484,7 @@ define([], function() {
       },
 
       {
-        desc: "an incoming folder listing creates document nodes if it's under a do-cache root that's not treeOnly",
+        desc: "an incoming folder listing creates document nodes if it's under a CACHING_ALL root",
         run: function(env, test) {
           env.remote._responses[['get', '/foo/',
                                  { ifNoneMatch: undefined } ]] =
@@ -559,7 +537,7 @@ define([], function() {
       },
 
       {
-        desc: "an incoming folder listing stores new revisions to existing child nodes if under a do-cache root",
+        desc: "an incoming folder listing stores new revisions to existing child nodes if under a CACHING_ALL root",
         run: function(env, test) {
           env.caching.set('/foo/', CACHING_ALL);
           env.rs.local.setNodes({
@@ -589,7 +567,7 @@ define([], function() {
       },
 
       {
-        desc: "an incoming folder listing stores new revisions only to existing folder nodes if under a seen+folders root",
+        desc: "an incoming folder listing stores new revisions to existing child nodes if under a CACHING_SEEN_AND_FOLDERS root",
         run: function(env, test) {
           env.caching.set('/foo/', CACHING_SEEN_AND_FOLDERS);
           env.rs.local.setNodes({
@@ -603,37 +581,6 @@ define([], function() {
             env.remote._responses[['get', '/foo/',
                                  { ifNoneMatch: undefined } ]] =
               [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
-            env.rs.caching.rootPaths = ['/foo/'];
-            env.sync.jobQueue = ['/foo/'];
-            env.sync.doTasks();
-            setTimeout(function() {
-              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
-                test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '129');
-                test.assertAnd(objs['/foo/bar/baf'].official.revision, '456');
-                test.assertAnd(objs['/foo/bar/baf'].remote, undefined);
-                test.done();
-              });
-            }, 100);
-          });
-        }
-      },
-
-      {
-        desc: "an incoming folder listing stores new revisions to existing child nodes if under a seen-only root",
-        run: function(env, test) {
-          env.rs.local.setNodes({
-            '/foo/baz/': {
-              official: { revision: '123', timestamp: 1234567890123 }
-            },
-            '/foo/baf': {
-              official: { revision: '456', timestamp: 1234567890123 }
-            }
-          }).then(function() {
-            env.remote._responses[['get', '/foo/',
-                                 { ifNoneMatch: undefined } ]] =
-              [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
-            env.rs.caching.rootPaths = ['/foo/'];
             env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             setTimeout(function() {
@@ -650,20 +597,9 @@ define([], function() {
       },
 
       {
-        desc: "an incoming folder listing doesn't store new revisions to existing child nodes under a seen-only root",
+        desc: "an incoming folder listing stores new revisions to existing child nodes if under a CACHING_SEEN root",
         run: function(env, test) {
-          env.caching.set('/foo/', false);
-          env.rs.local.setNodes({
-            '/foo/baz/': {
-              official: { revision: '123', timestamp: 1234567890123 }
-            },
-            '/foo/baf': {
-              official: { revision: '456', timestamp: 1234567890123 }
-            }
-          }).then(function() {
-            env.remote._responses[['get', '/foo/',
-        run: function(env, test) {
-          env.caching.set('/foo/', false);
+          env.caching.set('/foo/', CACHING_SEEN);
           env.rs.local.setNodes({
             '/foo/baz/': {
               official: { revision: '123', timestamp: 1234567890123 }
@@ -675,22 +611,20 @@ define([], function() {
             env.remote._responses[['get', '/foo/',
                                  { ifNoneMatch: undefined } ]] =
               [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
-            env.rs.caching.rootPaths = ['/foo/'];
             env.sync.jobQueue = ['/foo/'];
             env.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
-                test.assertAnd(objs['/foo/bar/baz/'].remote, undefined);
+                test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '129');
                 test.assertAnd(objs['/foo/bar/baf'].official.revision, '456');
-                test.assertAnd(objs['/foo/bar/baf'].remote, undefined);
+                test.assertAnd(objs['/foo/bar/baf'].remote.revision, '459');
                 test.done();
               });
             }, 100);
           });
         }
       },
-
 
       {
         desc: "sub item new revisions stored as official if local exists and onConflict is local",
@@ -744,6 +678,17 @@ define([], function() {
             },
             '/foo/baf': {
               official: { revision: '456', timestamp: 1234567890123 },
+              local: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+              [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
+            env.rs.caching.rootPaths = ['/foo/'];
+            env.sync.jobQueue = ['/foo/'];
+            env.sync.doTasks();
+            setTimeout(function() {
+              env.rs.local.getNodes(function(objs) {
                 test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
                 test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '129');
                 test.assertAnd(objs['/foo/bar/baz/'].local,
@@ -821,6 +766,33 @@ define([], function() {
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].official.revision, '123');
+                test.assertAnd(objs['/foo/bar'].official.body, 'asdf');
+                test.assertAnd(objs['/foo/bar'].official.contentType, 'qwer');
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(env.rs.sync.running, {});
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "when push completes but local changes exist since, the push version (not the local) becomes official",
+        run: function(env, test) {
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { timestamp: 1234567890123 },
+              local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['put', '/foo/bar',
+                                   { ifNoneMatch: undefined } ]] =
+              [200, '', '', '123'];
+            env.sync.jobQueue = ['/foo/bar'];
+            env.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
             test.assertAnd(objs['/foo/bar'].official, { timestamp: 1234567890123 });
@@ -829,12 +801,19 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            //delete the local version while it's being pushed out:
+            objs['/foo/bar/'].local = { timestamp: 1234567899999 };
+            return env.rs.local.setNodes({
+              '/foo/bar': objs['/foo/bar']
+            });
+          }).then(function() {
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].official.revision, '123');
                 test.assertAnd(objs['/foo/bar'].official.body, 'asdf');
                 test.assertAnd(objs['/foo/bar'].official.contentType, 'qwer');
-                test.assertAnd(objs['/foo/bar'].local, undefined);
+                //check that racing local is preserved:
+                test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567899999 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync.running, {});
@@ -928,7 +907,7 @@ define([], function() {
           env.rs.local.setNodes({
             '/foo/': {
               remote: { revision: 'fff' },
-              official: { itemsMap: {}, timestamp: 1234567891000 }
+              official: { itemsMap: {}, timestamp: 1234567891000 },
               local: { itemsMap: {a: true, b: {'ETag': 'aaa'}}, timestamp: 1234567891000 }
             }
           }).then(function() {
@@ -1092,7 +1071,7 @@ define([], function() {
       },
 
       {
-        desc: "a success response to a document GET can resolve conflicts as default ('remote') if local exists",
+        desc: "a success response to a document GET becomes a conflict if local exists and onConflict doesn't resolve it",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
@@ -1112,19 +1091,76 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].remote, { revision: 'fff' });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
             //now add a local while the request is running:
+            objs['/foo/bar'].local = { body: 'ab', contentType: 'bb', timestamp: 1234567891001 };
             return env.rs.local.setNodes({
-              '/foo/bar': {
-                remote: { revision: 'fff' },
-                official: { body: 'a', contentType: 'b', timestamp: 1234567891000 },
-                local: { body: 'ab', contentType: 'bb', timestamp: 1234567891001 }
-              }
+              '/foo/bar': objs['/foo/bar']
             });
           }).then(function() {
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].remote.revision, '123');
+                test.assertAnd(objs['/foo/bar'].remote.body, 'zz');
+                test.assertAnd(objs['/foo/bar'].remote.contentType, 'application/ld+json');
+                test.assertAnd(objs['/foo/bar'].local, { body: 'ab', contentType: 'bb', timestamp: 1234567891001 });
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].official, { body: 'a', contentType: 'b', timestamp: 1234567891000 });
+                test.assertAnd(env.rs.sync.running, {});
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "when a document or folder is fetched, pending requests from all windows are resolved",
+        run: function(env, test) {
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              remote: { revision: 'fff' },
+              official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            //with maxAge:true this will get queued since official has no revision:
+            env.rs.local.get('/foo/bar', true).then(function(status, body, contentType) {
+              test.assertAnd(status, 200);
+              test.assertAnd(body, 'zz');
+              test.assertAnd(contentType, 'application/ld+json');
+              test.done();
+            });
+            env.remote._responses[['get', '/foo/bar', { } ]] =
+              [200, 'zz', 'application/ld+json', '123'];
+            env.sync.jobQueue = ['/foo/bar'];
+            env.sync.doTasks();
+          });
+        }
+      },
+
+      {
+        desc: "a success response to a document GET resolves pending maxAge requests",
+        run: function(env, test) {
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              remote: { revision: 'fff' },
+              official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/bar', { } ]] =
+              [200, 'zz', 'application/ld+json', '123'];
+            env.sync.jobQueue = ['/foo/bar'];
+            env.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official, { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].local, undefined);
+            test.assertAnd(objs['/foo/bar'].push, undefined);
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].official.revision, '123');
                 test.assertAnd(objs['/foo/bar'].official.body, 'zz');
-                test.assertAnd(objs['/foo/bar'].official.contentType, 'application/ld+json');
+                test.assertAnd(objs['/foo/bar'].official.contentType, 'b');
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
@@ -1135,6 +1171,8 @@ define([], function() {
           });
         }
       },
+
+
 
       {
         desc: "a failure response to a PUT removes the push version and marks offline",
@@ -1259,7 +1297,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar/': {
-              official: { itemsMap: {asdf: 'qwer'} revision: '987', timestamp: 1234567890123 },
+              official: { itemsMap: {asdf: 'qwer'}, revision: '987', timestamp: 1234567890123 },
               remote: { revision: '988' }
             }
           }).then(function() {
@@ -1297,7 +1335,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.onConflict = function(path) {
             return 'local';
-          });
+          };
           env.rs.local.setNodes({
             '/foo/bar': {
               official: { revision: '987', timestamp: 1234567890123 },
@@ -1340,7 +1378,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.onConflict = function(path) {
             return 'local';
-          });
+          };
           env.rs.local.setNodes({
             '/foo/bar': {
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
@@ -1381,7 +1419,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.onConflict = function(path) {
             return 'remote';
-          });
+          };
           env.rs.local.setNodes({
             '/foo/bar': {
               official: { revision: '987', timestamp: 1234567890123 },
@@ -1424,7 +1462,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.onConflict = function(path) {
             return 'remote';
-          });
+          };
           env.rs.local.setNodes({
             '/foo/bar': {
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
@@ -1599,20 +1637,6 @@ define([], function() {
             test.assertAnd(env.rs.sync.jobQueue, {});
             test.done();
           });
-              local: { timestamp: 1234567891000 }
-            },
-            '/public/writings/bar': {
-              official: { revision: '987', timestamp: 1234567890123 },
-              local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.sync.checkDiffs();
-            test.assertAnd(env.rs.sync.jobQueue, {
-              '/writings/bar': true,
-              '/public/writings/bar': true
-            });
-            test.done();
-          });
         }
       },
 
@@ -1669,7 +1693,7 @@ define([], function() {
             var promise;
             promise.reject('i am broken, deal with it!');
             return promise;
-          });
+          };
           env.rs.sync().then(function() {
             test.done(false, 'sync was supposed to reject its promise');
           }, function(err) {
@@ -1711,49 +1735,21 @@ define([], function() {
       },
 
       {
-        desc: "when push completes but local changes exist since, the push version (not the local) becomes official",
-        run: function(env, test) {
-          test.done(false, 'TODO 7');
-        }
-      },
-
-      {
-        desc: "when a document or folder is fetched, pending requests from all windows are resolved",
-        run: function(env, test) {
-          test.done(false, 'TODO 6');
-        }
-      },
-
-      {
-        desc: "changes in unsynced folders are still pushed out",
-        run: function(env, test) {
-          test.done(false, 'TODO 5');
-        }
-      },
-
-      {
         desc: "when a conflict is resolved as remote, a change event is sent out",
-        run: function(env, test) {
-          test.done(false, 'TODO 4');
-        }
-      },
-
-      {
-        desc: "when a conflict is resolved as local, no change event is sent out",
         run: function(env, test) {
           test.done(false, 'TODO 3');
         }
       },
 
       {
-        desc: "items that have been accessed once, will remain synced until they are deleted, or the session is disconnected",
+        desc: "when a conflict is resolved as local, no change event is sent out",
         run: function(env, test) {
           test.done(false, 'TODO 2');
         }
       },
 
       {
-        desc: "",
+        desc: "items that have been accessed once, will remain synced until they are deleted, or the session is disconnected",
         run: function(env, test) {
           test.done(false, 'TODO 1');
         }
