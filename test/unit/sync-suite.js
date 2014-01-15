@@ -479,17 +479,17 @@ define([], function() {
       },
 
       {
-        desc: "an incoming folder listing creates subfolder nodes if it's under a cache root",
+        desc: "an incoming folder listing creates subfolder nodes if it's under a do-cache root",
         run: function(env, test) {
           env.remote._responses[['get', '/foo/bar/',
                                  { ifNoneMatch: undefined } ]] =
-            [200, {'baz/': 123, 'baf': 456}, 'application/json', 123];
+            [200, {'baz/': '123', 'baf': '456'}, 'application/json', '123'];
           env.rs.caching.rootPaths = ['/foo/'];
           env.sync.fetchQueue = ['/foo/'];
           env.sync.doTasks();
           setTimeout(function() {
             env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
-              test.assertAnd(objs['/foo/bar/baz/'].official.revision, 123);
+              test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
               test.assertAnd(objs['/foo/bar/baf'], undefined);
               test.done();
             });
@@ -498,18 +498,18 @@ define([], function() {
       },
 
       {
-        desc: "an incoming folder listing creates document nodes if it's under a cache root that's not treeOnly",
+        desc: "an incoming folder listing creates document nodes if it's under a do-cache root that's not treeOnly",
         run: function(env, test) {
-          env.remote._responses[['get', '/foo/bar/',
+          env.remote._responses[['get', '/foo/',
                                  { ifNoneMatch: undefined } ]] =
-            [200, {'baz/': 123, 'baf': 456}, 'application/json', 123];
+            [200, {'baz/': '123', 'baf': '456'}, 'application/json', '123'];
           env.rs.caching.rootPaths = ['/foo/'];
           env.sync.fetchQueue = ['/foo/'];
           env.sync.doTasks();
           setTimeout(function() {
             env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
-              test.assertAnd(objs['/foo/bar/baz/'].official.revision, 123);
-              test.assertAnd(objs['/foo/bar/baf'].official.revision, 456);
+              test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
+              test.assertAnd(objs['/foo/bar/baf'].official.revision, '456');
               test.done();
             });
           }, 100);
@@ -517,38 +517,271 @@ define([], function() {
       },
 
       {
-        desc: "an incoming folder listing doesn't store unchanged revisions to subfolder nodes",
+        desc: "an incoming folder listing doesn't store unchanged revisions to its children",
         run: function(env, test) {
-          test.done(false, 'TODO 25');
+          env.rs.local.setNodes({
+            '/foo/baz/': {
+              official: { revision: '123', timestamp: 1234567890123 }
+            },
+            '/foo/baf': {
+              official: { revision: '456', timestamp: 1234567890123 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+              [200, {'baz/': '123', 'baf': '456'}, 'application/json', '123'];
+            env.rs.caching.rootPaths = ['/foo/'];
+            env.sync.fetchQueue = ['/foo/'];
+            env.sync.doTasks();
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
+                test.assertAnd(objs['/foo/bar/baz/'].remote, undefined);
+                test.assertAnd(objs['/foo/bar/baf'].official.revision, '456');
+                test.assertAnd(objs['/foo/bar/baf'].remote, undefined);
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
-        desc: "an incoming folder listing stores new revisions to subfolder nodes if it's under a cache root",
+        desc: "an incoming folder listing stores new revisions to existing child nodes if under a do-cache root",
         run: function(env, test) {
-          test.done(false, 'TODO 24');
+          env.caching.set('/foo/', { data: true });
+          env.rs.local.setNodes({
+            '/foo/baz/': {
+              official: { revision: '123', timestamp: 1234567890123 }
+            },
+            '/foo/baf': {
+              official: { revision: '456', timestamp: 1234567890123 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+              [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
+            env.rs.caching.rootPaths = ['/foo/'];
+            env.sync.fetchQueue = ['/foo/'];
+            env.sync.doTasks();
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
+                test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '129');
+                test.assertAnd(objs['/foo/bar/baf'].official.revision, '456');
+                test.assertAnd(objs['/foo/bar/baf'].remote.revision, '459');
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
-        desc: "subfolder new revisions stored as official if local exists and onConflict is local",
+        desc: "an incoming folder listing stores new revisions only to existing folder nodes if under a treeOnly root",
         run: function(env, test) {
-          test.done(false, 'TODO 23');
+          env.caching.set('/foo/', { data: false });
+          env.rs.local.setNodes({
+            '/foo/baz/': {
+              official: { revision: '123', timestamp: 1234567890123 }
+            },
+            '/foo/baf': {
+              official: { revision: '456', timestamp: 1234567890123 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+              [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
+            env.rs.caching.rootPaths = ['/foo/'];
+            env.sync.fetchQueue = ['/foo/'];
+            env.sync.doTasks();
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
+                test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '129');
+                test.assertAnd(objs['/foo/bar/baf'].official.revision, '456');
+                test.assertAnd(objs['/foo/bar/baf'].remote, undefined);
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
-        desc: "subfolder new revisions stored as remote if local exists and onConflict is remote",
+        desc: "an incoming folder listing stores new revisions to existing child nodes if under an auto-cache root",
         run: function(env, test) {
-          test.done(false, 'TODO 22');
+          env.rs.local.setNodes({
+            '/foo/baz/': {
+              official: { revision: '123', timestamp: 1234567890123 }
+            },
+            '/foo/baf': {
+              official: { revision: '456', timestamp: 1234567890123 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+              [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
+            env.rs.caching.rootPaths = ['/foo/'];
+            env.sync.fetchQueue = ['/foo/'];
+            env.sync.doTasks();
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
+                test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '129');
+                test.assertAnd(objs['/foo/bar/baf'].official.revision, '456');
+                test.assertAnd(objs['/foo/bar/baf'].remote.revision, '459');
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "an incoming folder listing doesn't store new revisions to existing child nodes under a dont-cache root",
+        run: function(env, test) {
+          env.caching.set('/foo/', false);
+          env.rs.local.setNodes({
+            '/foo/baz/': {
+              official: { revision: '123', timestamp: 1234567890123 }
+            },
+            '/foo/baf': {
+              official: { revision: '456', timestamp: 1234567890123 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+              [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
+            env.rs.caching.rootPaths = ['/foo/'];
+            env.sync.fetchQueue = ['/foo/'];
+            env.sync.doTasks();
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
+                test.assertAnd(objs['/foo/bar/baz/'].remote, undefined);
+                test.assertAnd(objs['/foo/bar/baf'].official.revision, '456');
+                test.assertAnd(objs['/foo/bar/baf'].remote, undefined);
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
 
       {
-        desc: "subfolder new revisions stored as remote if local exists and no onConflict",
+        desc: "sub item new revisions stored as official if local exists and onConflict is local",
         run: function(env, test) {
-          test.done(false, 'TODO 21');
+          env.rs.onConflict = function() {
+            return 'local';
+          };
+          env.rs.local.setNodes({
+            '/foo/baz/': {
+              official: { revision: '123', timestamp: 1234567890123 },
+              local: { itemsMap: {a: true}, timestamp: 1234567891000 }
+            },
+            '/foo/baf': {
+              official: { revision: '456', timestamp: 1234567890123 },
+              local: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+              [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
+            env.rs.caching.rootPaths = ['/foo/'];
+            env.sync.fetchQueue = ['/foo/'];
+            env.sync.doTasks();
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar/baz/'].official.revision, '129');
+                test.assertAnd(objs['/foo/bar/baz/'].remote, undefined);
+                test.assertAnd(objs['/foo/bar/baz/'].local,
+                    { itemsMap: {a: true}, timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/bar/baf'].official.revision, '459');
+                test.assertAnd(objs['/foo/bar/baf'].remote, undefined);
+                test.assertAnd(objs['/foo/bar/baf'].local,
+                    { body: 'a', contentType: 'b', timestamp: 1234567891000 });
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "sub item new revisions stored as remote if local exists and onConflict is remote",
+        run: function(env, test) {
+          env.rs.onConflict = function() {
+            return 'remote';
+          };
+          env.rs.local.setNodes({
+            '/foo/baz/': {
+              official: { revision: '123', timestamp: 1234567890123 },
+              local: { itemsMap: {a: true}, timestamp: 1234567891000 }
+            },
+            '/foo/baf': {
+              official: { revision: '456', timestamp: 1234567890123 },
+              local: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+              [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
+            env.rs.caching.rootPaths = ['/foo/'];
+            env.sync.fetchQueue = ['/foo/'];
+            env.sync.doTasks();
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
+                test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '129');
+                test.assertAnd(objs['/foo/bar/baz/'].local,
+                    { itemsMap: {a: true}, timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/bar/baf'].official.revision, '456');
+                test.assertAnd(objs['/foo/bar/baf'].remote.revision, '459');
+                test.assertAnd(objs['/foo/bar/baf'].local,
+                    { body: 'a', contentType: 'b', timestamp: 1234567891000 });
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+
+      {
+        desc: "sub item new revisions stored as remote if local exists and no onConflict",
+        run: function(env, test) {
+          env.rs.local.setNodes({
+            '/foo/baz/': {
+              official: { revision: '123', timestamp: 1234567890123 },
+              local: { itemsMap: {a: true}, timestamp: 1234567891000 }
+            },
+            '/foo/baf': {
+              official: { revision: '456', timestamp: 1234567890123 },
+              local: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.remote._responses[['get', '/foo/',
+                                 { ifNoneMatch: undefined } ]] =
+              [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
+            env.rs.caching.rootPaths = ['/foo/'];
+            env.sync.fetchQueue = ['/foo/'];
+            env.sync.doTasks();
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
+                test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '129');
+                test.assertAnd(objs['/foo/bar/baz/'].local,
+                    { itemsMap: {a: true}, timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/bar/baf'].official.revision, '456');
+                test.assertAnd(objs['/foo/bar/baf'].remote.revision, '459');
+                test.assertAnd(objs['/foo/bar/baf'].local,
+                    { body: 'a', contentType: 'b', timestamp: 1234567891000 });
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
