@@ -9,6 +9,16 @@ define([], function() {
     this.rootPaths = [];
   }
 
+  function FakeAccess(){
+    this._data = {};
+    this.set = function(moduleName, value) {
+      this._data[moduleName] = value;
+    };
+    this.get = function(moduleName) {
+      return this._data[moduleName];
+    };
+  }
+
   function FakeRemote(){
     function GPD(target, path, body, contentType, options) {
       var args = Array.prototype.slice.call(arguments);
@@ -78,6 +88,7 @@ define([], function() {
       env.rs.local = env.local = new RemoteStorage.InMemoryStorage();
       env.rs.caching = new FakeCaching();
       env.rs.remote = env.remote = new FakeRemote();
+      env.rs.access = new FakeAccess();
       test.done();
     },
 
@@ -336,6 +347,27 @@ define([], function() {
       },
 
       {
+        desc: "sync will attempt only one request, at low frequency, when offline",
+        run: function(env, test) {
+         test.result(false, 'TODO');
+        }
+      },
+
+      {
+        desc: "sync will not attempt any requests when not connected",
+        run: function(env, test) {
+         test.result(false, 'TODO');
+        }
+      },
+
+      {
+        desc: "requests that time out get cancelled",
+        run: function(env, test) {
+         test.result(false, 'TODO');
+        }
+      },
+
+      {
         desc: "checkRefresh flushes cache for caching=false rootPaths",
         run: function(env, test) {
           env.rs.caching.rootPaths = ['/foo/'];
@@ -510,6 +542,48 @@ define([], function() {
       },
 
       {
+        desc: "a success response to a folder GET moves remote to official if no local exists",
+        run: function(env, test) {
+          test.done(false, 'TODO');
+        }
+      },
+
+      {
+        desc: "a success response to a folder GET fires no conflict even if a local exists",
+        run: function(env, test) {
+          test.done(false, 'TODO');
+        }
+      },
+
+      {
+        desc: "a success response to a document GET moves remote to official if no local exists",
+        run: function(env, test) {
+          test.done(false, 'TODO');
+        }
+      },
+
+      {
+        desc: "a success response to a document GET can resolve conflicts as 'local' if local exists",
+        run: function(env, test) {
+          test.done(false, 'TODO');
+        }
+      },
+
+      {
+        desc: "a success response to a document GET can resolve conflicts as 'remote' if local exists",
+        run: function(env, test) {
+          test.done(false, 'TODO');
+        }
+      },
+
+      {
+        desc: "a success response to a document GET can resolve conflicts as default ('remote') if local exists",
+        run: function(env, test) {
+          test.done(false, 'TODO');
+        }
+      },
+
+      {
         desc: "a failure response to a PUT removes the push version",
         run: function(env, test) {
           env.rs.local.setNodes({
@@ -580,6 +654,20 @@ define([], function() {
               });
             }, 100);
           });
+        }
+      },
+
+      {
+        desc: "a failure response to a document GET leaves things as they are",
+        run: function(env, test) {
+          test.done(false, 'TODO');
+        }
+      },
+
+      {
+        desc: "a failure response to a folder GET leaves things as they are",
+        run: function(env, test) {
+          test.done(false, 'TODO');
         }
       },
 
@@ -820,19 +908,40 @@ define([], function() {
       },
 
       {
-        desc: "sync will not attempt requests outside the access scope",
+        desc: "checkDiffs will not enqueue requests outside the access scope",
+        run: function(env, test) {
+          env.rs.access.set('readings', 'r');
+          env.rs.access.set('writings', 'rw');
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              local: { timestamp: 1234567891000 }
+            },
+            '/public/foo/bar': {
+              official: { revision: '987', timestamp: 1234567890123 },
+              local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            test.assertAnd(env.rs.sync.pushQueue, {});
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "checkDiffs handles PUTs inside rw access scope",
         run: function(env, test) {
         }
       },
 
       {
-        desc: "sync will attempt only one request, at low frequency, when offline",
+        desc: "checkDiffs handles DELETEs inside rw access scope",
         run: function(env, test) {
         }
       },
 
       {
-        desc: "sync will not attempt any requests when not connected",
+        desc: "checkDiffs retrieves body and Content-Type when a new remote revision is set inside access scope",
         run: function(env, test) {
         }
       },
@@ -855,35 +964,6 @@ define([], function() {
         }
       },
 
-      {
-        desc: "requests that time out get cancelled",
-        run: function(env, test) {
-        }
-      },
-
-      {
-        desc: "checkDiffs handles PUTs",
-        run: function(env, test) {
-        }
-      },
-
-      {
-        desc: "checkDiffs handles DELETEs",
-        run: function(env, test) {
-        }
-      },
-
-      {
-        desc: "checkDiffs retrieves body and Content-Type when a new remote revision is set",
-        run: function(env, test) {
-        }
-      },
-
-      {
-        desc: "when a checkDiffs request completes, remote data is moved to official and local is dropped",
-        run: function(env, test) {
-        }
-      },
 
       {
         desc: "checkDiffs does not queue request if one for the same node exists (whether push or fetch)",
