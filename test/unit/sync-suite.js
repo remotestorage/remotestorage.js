@@ -343,27 +343,55 @@ define([], function() {
             '/foo4/': true,
             '/foo/5': true
           });
+         test.done();
         }
       },
 
       {
         desc: "sync will attempt only one request, at low frequency, when offline",
         run: function(env, test) {
-         test.result(false, 'TODO');
+          env.rs.sync.numThreads = 5;
+          env.rs.sync.offline = true;
+          env.rs.sync.fetchQueue = {
+            '/foo1/': true,
+            '/foo2/': true,
+            '/foo3': true,
+            '/foo4/': true,
+            '/foo/5': true,
+            '/foo/6/': true,
+            '/foo7/': true,
+            '/foo8': true,
+            '/fo/o/9/': true
+          };
+          env.rs.sync.doTasks();
+          test.assertAnd(env.rs.sync.fetchQueue, {
+            '/foo2/': true,
+            '/foo3': true,
+            '/foo4/': true,
+            '/foo/5': true
+            '/foo/6/': true,
+            '/foo7/': true,
+            '/foo8': true,
+            '/fo/o/9/': true
+          });
+          test.assertAnd(env.rs.sync.running, {
+            '/foo1/': true,
+          });
+         test.done();
         }
       },
 
       {
         desc: "sync will not attempt any requests when not connected",
         run: function(env, test) {
-         test.result(false, 'TODO');
+         test.result(false, 'TODO 26');
         }
       },
 
       {
         desc: "requests that time out get cancelled",
         run: function(env, test) {
-         test.result(false, 'TODO');
+         test.result(false, 'TODO 25');
         }
       },
 
@@ -544,47 +572,47 @@ define([], function() {
       {
         desc: "a success response to a folder GET moves remote to official if no local exists",
         run: function(env, test) {
-          test.done(false, 'TODO');
+          test.done(false, 'TODO 24');
         }
       },
 
       {
         desc: "a success response to a folder GET fires no conflict even if a local exists",
         run: function(env, test) {
-          test.done(false, 'TODO');
+          test.done(false, 'TODO 23');
         }
       },
 
       {
         desc: "a success response to a document GET moves remote to official if no local exists",
         run: function(env, test) {
-          test.done(false, 'TODO');
+          test.done(false, 'TODO 22');
         }
       },
 
       {
         desc: "a success response to a document GET can resolve conflicts as 'local' if local exists",
         run: function(env, test) {
-          test.done(false, 'TODO');
+          test.done(false, 'TODO 21');
         }
       },
 
       {
         desc: "a success response to a document GET can resolve conflicts as 'remote' if local exists",
         run: function(env, test) {
-          test.done(false, 'TODO');
+          test.done(false, 'TODO 20');
         }
       },
 
       {
         desc: "a success response to a document GET can resolve conflicts as default ('remote') if local exists",
         run: function(env, test) {
-          test.done(false, 'TODO');
+          test.done(false, 'TODO 19');
         }
       },
 
       {
-        desc: "a failure response to a PUT removes the push version",
+        desc: "a failure response to a PUT removes the push version and marks offline",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
@@ -614,6 +642,7 @@ define([], function() {
                     { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(env.rs.sync.offline, true);
                 test.done();
               });
             }, 100);
@@ -622,7 +651,7 @@ define([], function() {
       },
 
       {
-        desc: "a failure response to a DELETE removes the push version",
+        desc: "a failure response to a DELETE removes the push version and marks offline",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
@@ -650,6 +679,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(env.rs.sync.offline, true);
                 test.done();
               });
             }, 100);
@@ -658,16 +688,18 @@ define([], function() {
       },
 
       {
-        desc: "a failure response to a document GET leaves things as they are",
+        desc: "a failure response to a document GET leaves things as they are and marks offline",
         run: function(env, test) {
-          test.done(false, 'TODO');
+                test.assertAnd(env.rs.sync.offline, true);
+          test.done(false, 'TODO 18');
         }
       },
 
       {
-        desc: "a failure response to a folder GET leaves things as they are",
+        desc: "a failure response to a folder GET leaves things as they are and marks offline",
         run: function(env, test) {
-          test.done(false, 'TODO');
+                test.assertAnd(env.rs.sync.offline, true);
+          test.done(false, 'TODO 17');
         }
       },
 
@@ -931,36 +963,42 @@ define([], function() {
       {
         desc: "checkDiffs handles PUTs inside rw access scope",
         run: function(env, test) {
+          test.done(false, 'TODO 16');
         }
       },
 
       {
         desc: "checkDiffs handles DELETEs inside rw access scope",
         run: function(env, test) {
+          test.done(false, 'TODO 15');
         }
       },
 
       {
         desc: "checkDiffs retrieves body and Content-Type when a new remote revision is set inside access scope",
         run: function(env, test) {
+          test.done(false, 'TODO 14');
         }
       },
 
       {
         desc: "sync will discard corrupt cache nodes",
         run: function(env, test) {
+          test.done(false, 'TODO 13');
         }
       },
 
       {
         desc: "sync will reject its promise if the cache is not available",
         run: function(env, test) {
+          test.done(false, 'TODO 12');
         }
       },
 
       {
         desc: "sync will fulfill its promise as long as the cache is available",
         run: function(env, test) {
+          test.done(false, 'TODO 11');
         }
       },
 
@@ -968,60 +1006,70 @@ define([], function() {
       {
         desc: "checkDiffs does not queue request if one for the same node exists (whether push or fetch)",
         run: function(env, test) {
+          test.done(false, 'TODO 10');
         }
       },
 
       {
         desc: "checkRefresh does not queue request if one for the same node exists (whether push or fetch)",
         run: function(env, test) {
+          test.done(false, 'TODO 9');
         }
       },
 
       {
         desc: "checkDiffs does not push local if a remote exists",
         run: function(env, test) {
+          test.done(false, 'TODO 8');
         }
       },
 
       {
         desc: "when push completes but local changes exist since, the push version (not the local) becomes official",
         run: function(env, test) {
+          test.done(false, 'TODO 7');
         }
       },
 
       {
         desc: "when a document or folder is fetched, pending requests from all windows are resolved",
         run: function(env, test) {
+          test.done(false, 'TODO 6');
         }
       },
 
       {
         desc: "changes in unsynced folders are still pushed out",
         run: function(env, test) {
+          test.done(false, 'TODO 5');
         }
       },
 
       {
         desc: "when a conflict is resolved as remote, a change event is sent out",
         run: function(env, test) {
+          test.done(false, 'TODO 4');
         }
       },
 
       {
         desc: "when a conflict is resolved as local, no change event is sent out",
         run: function(env, test) {
+          test.done(false, 'TODO 3');
         }
       },
 
       {
         desc: "items that have been accessed once, will remain synced until they are deleted, or the session is disconnected",
         run: function(env, test) {
+          test.done(false, 'TODO 2');
         }
       },
 
       {
         desc: "",
         run: function(env, test) {
+          test.done(false, 'TODO 1');
         }
       }
     ]
