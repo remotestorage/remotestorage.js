@@ -117,9 +117,11 @@
       }.bind(this));
     },
     handleResponse: function(path, action, status, body, contentType, revision) {
+    console.log('handleResponse', path, action, status, body, contentType, revision);
       var cachingStrategy;
       if (path.substr(-1) === '/' && action === 'get') {
         cachingStrategy = this.caching.checkPath(path);
+        console.log('cachingStrategy', cachingStrategy);
         if (cachingStrategy === this.caching.SEEN_AND_FOLDERS) {
           return this.markChildren(path, body, false);
         } else if (cachingStrategy === this.caching.ALL) {

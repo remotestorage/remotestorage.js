@@ -9,8 +9,9 @@ define([], function() {
     this.SEEN = 0;
     this.SEEN_AND_FOLDERS = 1;
     this.ALL = 2;
+    this._responses = {};
     this.checkPath = function(path) {
-      return this.SEEN_AND_FOLDERS;
+      return this._responses[path];
     };
   }
 
@@ -109,7 +110,7 @@ define([], function() {
       test.done();
     },
 
-    passing: [
+    tests1: [
       {
         desc: "getParentPath works correctly",
         run: function(env,test){
@@ -445,7 +446,6 @@ define([], function() {
           });
         }
       },
-], tests: [
       {
         desc: "an incoming folder listing creates subfolder nodes if it's under a env.rs.caching.SEEN_AND_FOLDERS root",
         run: function(env, test) {
@@ -454,8 +454,8 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/bar/' ]] =
                 [200, {'baz/': {ETag: '123'}, 'baf': {ETag: '456'}}, 'application/json', '123'];
-            env.rs.caching.rootPaths = {
-              '/foo/': env.rs.caching.SEEN_AND_FOLDERS
+            env.rs.caching._responses = {
+              '/foo/bar/': env.rs.caching.SEEN_AND_FOLDERS
             };
             env.rs.sync._tasks = {'/foo/bar/': true};
             env.rs.sync.doTasks();
@@ -470,17 +470,16 @@ define([], function() {
         }
       },
 
-], nothing: [
+], tests: [
       {
         desc: "an incoming folder listing creates subfolder nodes if it's under a env.rs.caching.ALL root",
         run: function(env, test) {
-          env.rs.remote._responses[['get', '/foo/bar/',
-                                 { ifNoneMatch: undefined } ]] =
+          env.rs.remote._responses[['get', '/foo/bar/' ]] =
             [200, {'baz/': '123', 'baf': '456'}, 'application/json', '123'];
-          env.rs.caching.rootPaths = {
-            '/foo/': env.rs.caching.ALL
+          env.rs.caching._responses = {
+            '/foo/bar/': env.rs.caching.ALL
           };
-          env.rs.sync._tasks = {'/foo/': true};
+          env.rs.sync._tasks = {'/foo/bar/': true};
           env.rs.sync.doTasks();
           setTimeout(function() {
             env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
@@ -492,6 +491,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "an incoming folder listing creates document nodes if it's under a env.rs.caching.ALL root",
         run: function(env, test) {
