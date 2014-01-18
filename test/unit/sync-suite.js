@@ -6,7 +6,12 @@ define([], function() {
   var suites = [];
 
   function FakeCaching(){
-    this.rootPaths = [];
+    this.SEEN = 0;
+    this.SEEN_AND_FOLDERS = 1;
+    this.ALL = 2;
+    this.checkPath = function(path) {
+      return this.SEEN_AND_FOLDERS;
+    };
   }
 
   function FakeAccess(){
@@ -34,7 +39,6 @@ define([], function() {
   function FakeRemote(){
     function GPD(target, path, body, contentType, options) {
       var args = Array.prototype.slice.call(arguments);
-      console.log('GPD called with : ', args);
       this['_'+target+'s'].push([path, body, contentType, options]);
       var p = promising();
       var resp = this._responses[args] || [200];
@@ -98,14 +102,14 @@ define([], function() {
     beforeEach: function(env, test){
       env.rs = new RemoteStorage();
       env.rs.local = new RemoteStorage.InMemoryStorage();
-      env.rs.caching = new FakeCaching();
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();
-      env.rs.sync = new RemoteStorage.Sync(env.rs.local, env.rs.remote, env.rs.access);
+      env.rs.caching = new FakeCaching();
+      env.rs.sync = new RemoteStorage.Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
       test.done();
     },
 
-    tests: [
+    passing: [
       {
         desc: "getParentPath works correctly",
         run: function(env,test){
@@ -441,16 +445,15 @@ define([], function() {
           });
         }
       },
-
+], tests: [
       {
         desc: "an incoming folder listing creates subfolder nodes if it's under a env.rs.caching.SEEN_AND_FOLDERS root",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar/': { official: {} }
           }).then(function() {
-            env.rs.remote._responses[['get', '/foo/bar/',
-                                 { ifNoneMatch: undefined } ]] =
-                [200, {'baz/': '123', 'baf': '456'}, 'application/json', '123'];
+            env.rs.remote._responses[['get', '/foo/bar/' ]] =
+                [200, {'baz/': {ETag: '123'}, 'baf': {ETag: '456'}}, 'application/json', '123'];
             env.rs.caching.rootPaths = {
               '/foo/': env.rs.caching.SEEN_AND_FOLDERS
             };

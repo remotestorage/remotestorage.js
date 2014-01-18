@@ -5,10 +5,11 @@
   /**
    * Class: RemoteStorage.Sync
    **/
-  RemoteStorage.Sync = function(setLocal, setRemote, setAccess) {
+  RemoteStorage.Sync = function(setLocal, setRemote, setAccess, setCaching) {
     this.local = setLocal;
     this.remote = setRemote;
     this.access = setAccess;
+    this.caching = setCaching;
     this._tasks = {};
     this._running = {};
   }
@@ -57,13 +58,10 @@
       }.bind(this));
     },
     doTask: function(path) {
-      console.log('doTask', path);
       return this.local.getNodes([path]).then(function(objs) {
         if(typeof(objs[path]) === 'undefined') {
-          console.log('doTask undefined', objs, path);
           return { action: undefined };
         } else if (objs[path].remote && objs[path].remote.revision && !objs[path].remote.itemsMap && !objs[path].remote.body) {
-          console.log('doTask get');
           return {
             action: 'get',
             promise: this.remote.get(path)
@@ -71,9 +69,7 @@
         } else if (objs[path].local && objs[path].local.body) {
           objs[path].push = this.local._getInternals()._deepClone(objs[path].local);
           objs[path].push.timestamp =  this.now();
-          console.log('doTask push put');
           return this.local.setNodes(objs).then(function() {
-            console.log('doTask put');
             return {
               action: 'put',
               promise: this.remote.put(path, objs[path].push.body, objs[path].push.contentType)
@@ -81,16 +77,13 @@
           });
         } else if (objs[path].local) {
           objs[path].push = { timestamp: this.now() };
-          console.log('doTask push delete');
           return this.local.setNodes(objs).then(function() {
-            console.log('doTask delete');
             return {
               action: 'delete',
               promise: this.remote.remove(path)
             };
           });
         } else {
-          console.log('doTask else');
           return {
             action: 'get',
             promise: this.remote.get(path)
@@ -117,11 +110,11 @@
               }
             }
           } else {
-            changedObjs[j] = { official: revisions[j] };
+            changedObjs[j] = { official: {revision: revisions[j]} };
           }
         }
         return this.local.setNodes(changedObjs);
-      });
+      }.bind(this));
     },
     handleResponse: function(path, action, status, body, contentType, revision) {
       var cachingStrategy;
@@ -150,7 +143,6 @@
       if (numToAdd === 0) {
         return 0;
       }
-      console.log('doTasks', this._tasks);
       for (path in this._tasks) {
         if (!this._running[path]) {
           this._running[path] = this.doTask(path);
@@ -158,10 +150,8 @@
             if(obj.action === undefined) {
               delete this._running[path];
             } else {
-              console.log('action running', obj.action);
               obj.promise.then(function(status, body, contentType, revision) {
-                console.log('action done', obj.action);
-                return this.handleResponse(path, this._running[path].action, status, body, contentType, revision);
+                return this.handleResponse(path, obj.action, status, body, contentType, revision);
               }.bind(this)).then(function() {
                   delete this._running[path];
               }.bind(this));
@@ -293,7 +283,6 @@
       this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
     }.bind(this),
     function(e) {
-      console.log('sync error, retrying');
       this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
     }.bind(this));
