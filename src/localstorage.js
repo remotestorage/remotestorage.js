@@ -82,6 +82,7 @@
           }
         }
       }
+      return promising().fulfill();
     }
   };
 

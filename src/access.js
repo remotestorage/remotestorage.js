@@ -54,6 +54,34 @@
       return actualMode && (mode === 'r' || actualMode === 'rw');
     },
 
+    getModuleName: function(path) {
+      var pos, parts = path.split('/');
+      if (parts[0] !== '') {
+        throw new Error('path should start with a slash');
+      }
+      // /a => ['', 'a'] parts.length: 2, pos: 1 -> *
+      // /a/ => ['', 'a', ''] parts.length: 3, pos: 1 -> a
+      // /public/a => ['', 'public', 'a'] parts.length: 3, pos: 2 -> *
+      // /public/a/ => ['', 'public', 'a', ''] parts.length: 4, pos: 2 -> a
+      if (parts[1] === 'public') {
+        pos = 2;
+      } else {
+        pos = 1;
+      }
+      if (parts.length <= pos+1) {
+        return '*';
+      }
+      return parts[pos];
+    },
+
+    checkPath: function(path, mode) {
+      //check root access
+      if (this.check('*', mode)) {
+        return true;
+      }
+      return !!this.check(this.getModuleName(path), mode);
+    },
+
     reset: function() {
       this.rootPaths = [];
       this.scopeModeMap = {};

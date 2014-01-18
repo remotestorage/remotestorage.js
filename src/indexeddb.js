@@ -119,6 +119,7 @@
     },
 
     forAllNodes: function(cb) {
+      var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var cursorReq = transaction.objectStore('nodes').openCursor();
       cursorReq.onsuccess = function(evt) {
@@ -126,8 +127,11 @@
         if (cursor) {
           cb(cursor.value);
           cursor.continue();
+        } else {
+          promise.fulfill();
         }
       };
+      return promise;
     },
 
     closeDB: function() {

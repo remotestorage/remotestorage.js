@@ -225,6 +225,7 @@
             isFolder: isFolder(uri),
             success: false
           });
+          self.online = false;
           promise.reject(error);
         } else {
           self._emit('wire-done', {
@@ -232,6 +233,7 @@
             isFolder: isFolder(uri),
             success: true
           });
+          self.online = true;
           if (isErrorStatus(response.status)) {
             promise.fulfill(response.status);
           } else if (isSuccessStatus(response.status) ||
@@ -480,6 +482,7 @@
   RS.WireClient._rs_init = function(remoteStorage) {
     hasLocalStorage = remoteStorage.localStorageAvailable();
     remoteStorage.remote = new RS.WireClient(remoteStorage);
+    this.online = true;
   };
 
   RS.WireClient._rs_supported = function() {
