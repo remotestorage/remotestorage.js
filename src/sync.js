@@ -92,27 +92,39 @@
       }.bind(this));
     },
     markChildren: function(path, itemsMap, documentsToo) {
-      var i, paths = [], revisions = {};
+      console.log('markChildren', path, itemsMap, documentsToo);
+      var i, paths = [], meta = {};
       for (i in itemsMap) {
         if (i.substr(-1) === '/' || documentsToo) {
           paths.push(path+i);
-          revisions[path+i] = itemsMap[i].ETag;
+          meta[path+i] = itemsMap[i];
         }
       }
       return this.local.getNodes(paths).then(function(objs) {
         var j, changedObjs = {};
         for (j in objs) {
           if (objs[j] && objs[j].official) {
-            if (objs[j].official.revision != revisions[j]) {
-              if (!objs[j].remote || objs[j].remote.revision != revisions[j]) {
+            console.log('updating', j);
+            if (objs[j].official.revision != meta[j].ETag) {
+              if (!objs[j].remote || objs[j].remote.revision != meta[j].ETag) {
                 changedObjs[j] = this.local._getInternals()._deepClone(objs[j]);
-                changedObjs[j].remote = { revision: revisions[j] };
+                changedObjs[j].remote = {
+                  revision: meta[j].ETag,
+                  contentType: meta[j]['Content-Type'],
+                  contentLength: meta[j]['Content-Length']
+                };
               }
             }
           } else {
-            changedObjs[j] = { official: {revision: revisions[j]} };
+            console.log('creating', j);
+            changedObjs[j] = { official: {
+              revision: meta[j].ETag,
+              contentType: meta[j]['Content-Type'],
+              contentLength: meta[j]['Content-Length']
+            } };
           }
         }
+        console.log('setting', changedObjs);
         return this.local.setNodes(changedObjs);
       }.bind(this));
     },
@@ -142,6 +154,7 @@
         numToHave = 0;
       }
       numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
+      console.log('numToAdd', numToAdd);
       if (numToAdd === 0) {
         return 0;
       }
@@ -149,6 +162,7 @@
         if (!this._running[path]) {
           this._running[path] = this.doTask(path);
           this._running[path].then(function(obj) {
+            console.log('thenning', path, obj);
             if(obj.action === undefined) {
               delete this._running[path];
             } else {
