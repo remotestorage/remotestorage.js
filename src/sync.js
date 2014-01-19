@@ -95,10 +95,8 @@
       console.log('markChildren', path, itemsMap, documentsToo);
       var i, paths = [], meta = {};
       for (i in itemsMap) {
-        if (i.substr(-1) === '/' || documentsToo) {
-          paths.push(path+i);
-          meta[path+i] = itemsMap[i];
-        }
+        paths.push(path+i);
+        meta[path+i] = itemsMap[i];
       }
       return this.local.getNodes(paths).then(function(objs) {
         var j, changedObjs = {};
@@ -115,7 +113,7 @@
                 };
               }
             }
-          } else {
+          } else if (j.substr(-1) === '/' || documentsToo) {
             console.log('creating', j);
             changedObjs[j] = { official: {
               revision: meta[j].ETag,

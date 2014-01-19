@@ -534,7 +534,6 @@ define([], function() {
         }
       },
 
-//], tests: [
       {
         desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.ALL root",
         run: function(env, test) {
@@ -569,12 +568,15 @@ define([], function() {
         }
       },
 
-], nothing: [
+//], tests: [
       {
         desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.SEEN_AND_FOLDERS root",
         run: function(env, test) {
-          env.caching.set('/foo/', env.rs.caching.SEEN_AND_FOLDERS);
+          env.rs.caching._responses = {
+            '/foo/': env.rs.caching.SEEN_AND_FOLDERS
+          };
           env.rs.local.setNodes({
+            '/foo/': { official: {} },
             '/foo/baz/': {
               official: { revision: '123', timestamp: 1234567890123 }
             },
@@ -582,17 +584,18 @@ define([], function() {
               official: { revision: '456', timestamp: 1234567890123 }
             }
           }).then(function() {
-            env.rs.remote._responses[['get', '/foo/',
-                                 { ifNoneMatch: undefined } ]] =
-              [200, {'baz/': '129', 'baf': '459'}, 'application/json', '123'];
+            env.rs.remote._responses[['get', '/foo/' ]] =
+              [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
             env.rs.sync._tasks = {'/foo/': true};
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar/baz/'].official.revision, '123');
-                test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '129');
-                test.assertAnd(objs['/foo/bar/baf'].official.revision, '456');
-                test.assertAnd(objs['/foo/bar/baf'].remote.revision, '459');
+                test.assertAnd(objs['/foo/baz/'].official.revision, '123');
+                test.assertAnd(objs['/foo/baz/'].remote.revision, '129');
+                test.assertAnd(objs['/foo/baf'].official.revision, '456');
+                test.assertAnd(objs['/foo/baf'].remote.revision, '459');
+                test.assertAnd(objs['/foo/baf'].remote.contentType, 'image/jpeg');
+                test.assertAnd(objs['/foo/baf'].remote.contentLength, 12345678);
                 test.done();
               });
             }, 100);
@@ -600,6 +603,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.SEEN root",
         run: function(env, test) {
