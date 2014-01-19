@@ -91,9 +91,11 @@
         }
       }.bind(this));
     },
-    markChildren: function(path, itemsMap, documentsToo) {
-      console.log('markChildren', path, itemsMap, documentsToo);
-      var i, paths = [], meta = {};
+    markChildren: function(path, itemsMap, cachingStrategy) {
+      var i, paths = [], meta = {},
+        createFolders = (cachingStrategy === this.caching.SEEN_AND_FOLDERS || cachingStrategy === this.caching.ALL);
+        createDocuments = (cachingStrategy === this.caching.ALL);
+      console.log('markChildren', path, itemsMap, createDocuments);
       for (i in itemsMap) {
         paths.push(path+i);
         meta[path+i] = itemsMap[i];
@@ -113,7 +115,7 @@
                 };
               }
             }
-          } else if (j.substr(-1) === '/' || documentsToo) {
+          } else if ((j.substr(-1) === '/' ? createFolders : createDocuments)) {
             console.log('creating', j);
             changedObjs[j] = { official: {
               revision: meta[j].ETag,
@@ -132,11 +134,7 @@
       if (path.substr(-1) === '/' && action === 'get') {
         cachingStrategy = this.caching.checkPath(path);
         console.log('cachingStrategy', cachingStrategy);
-        if (cachingStrategy === this.caching.SEEN_AND_FOLDERS) {
-          return this.markChildren(path, body, false);
-        } else if (cachingStrategy === this.caching.ALL) {
-          return this.markChildren(path, body, true);
-        }
+        return this.markChildren(path, body, cachingStrategy);
       }
       return promising().fulfill();
     },
