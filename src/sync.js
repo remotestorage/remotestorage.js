@@ -63,11 +63,13 @@
         if(typeof(objs[path]) === 'undefined') {
           return { action: undefined };
         } else if (objs[path].remote && objs[path].remote.revision && !objs[path].remote.itemsMap && !objs[path].remote.body) {
+          console.log('fetch action');
           return {
             action: 'get',
             promise: this.remote.get(path)
           };
         } else if (objs[path].local && objs[path].local.body) {
+          console.log('put action');
           objs[path].push = this.local._getInternals()._deepClone(objs[path].local);
           objs[path].push.timestamp =  this.now();
           return this.local.setNodes(objs).then(function() {
@@ -78,13 +80,15 @@
           }.bind(this));
         } else if (objs[path].local) {
           objs[path].push = { timestamp: this.now() };
+          console.log('delete action', objs);
           return this.local.setNodes(objs).then(function() {
             return {
               action: 'delete',
-              promise: this.remote.remove(path)
+              promise: this.remote.delete(path)
             };
           }.bind(this));
         } else {
+          console.log('refresh action');
           return {
             action: 'get',
             promise: this.remote.get(path)

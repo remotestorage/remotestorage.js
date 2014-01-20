@@ -765,7 +765,6 @@ define([], function() {
         }
       },
 
-], tests: [
       {
         desc: "a success response to a PUT moves local to official",
         run: function(env, test) {
@@ -804,7 +803,6 @@ define([], function() {
         }
       },
 
-], nothing: [
       {
         desc: "when push completes but local changes exist since, the push version (not the local) becomes official",
         run: function(env, test) {
@@ -814,8 +812,7 @@ define([], function() {
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['put', '/foo/bar',
-                                   { ifNoneMatch: undefined } ]] =
+            env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer' ]] =
               [200, '', '', '123'];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
@@ -826,9 +823,9 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
             test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             //delete the local version while it's being pushed out:
-            objs['/foo/bar/'].local = { timestamp: 1234567899999 };
+            objs['/foo/bar'].local = { timestamp: 1234567899999 };
             return env.rs.local.setNodes({
               '/foo/bar': objs['/foo/bar']
             });
@@ -842,7 +839,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567899999 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -850,6 +847,7 @@ define([], function() {
         }
       },
 
+], tests: [
       {
         desc: "a success response to a DELETE moves local to official",
         run: function(env, test) {
@@ -859,27 +857,29 @@ define([], function() {
               local: { timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['delete', '/foo/bar',
-                                   { ifMatch: '987' } ]] =
-              [200, '', '', ''];
+            env.rs.remote._responses[['delete', '/foo/bar' ]] = [200];
             env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
+            console.log('objs 1', objs);
             test.assertAnd(objs['/foo/bar'].official,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
             test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
-            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].push.body, undefined);
+            test.assertAnd(objs['/foo/bar'].push.contentType, undefined);
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                console.log('objs 2', objs);
                 test.assertAnd(objs['/foo/bar'].official.revision, undefined);
                 test.assertAnd(objs['/foo/bar'].official.body, undefined);
                 test.assertAnd(objs['/foo/bar'].official.contentType, undefined);
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -887,6 +887,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "a success response to a folder GET moves remote to official if no local exists",
         run: function(env, test) {
@@ -906,7 +907,7 @@ define([], function() {
             test.assertAnd(objs['/foo/'].local, undefined);
             test.assertAnd(objs['/foo/'].push, undefined);
             test.assertAnd(objs['/foo/'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
                 test.assertAnd(objs['/foo/'].official.revision, '123');
@@ -914,7 +915,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -945,7 +946,7 @@ define([], function() {
             test.assertAnd(objs['/foo/'].local, undefined);
             test.assertAnd(objs['/foo/'].push, undefined);
             test.assertAnd(objs['/foo/'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
                 test.assertAnd(objs['/foo/'].official.revision, '123');
@@ -954,7 +955,7 @@ define([], function() {
                     { itemsMap: {a: true, b: {'ETag': 'aaa'}}, timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -981,7 +982,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].local, undefined);
             test.assertAnd(objs['/foo/bar'].push, undefined);
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].official.revision, '123');
@@ -990,7 +991,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1020,7 +1021,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].local, undefined);
             test.assertAnd(objs['/foo/bar'].push, undefined);
             test.assertAnd(objs['/foo/bar'].remote, { revision: 'fff' });
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             //now add a local while the request is running:
             return env.rs.local.setNodes({
               '/foo/bar': {
@@ -1038,7 +1039,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, { body: 'ab', contentType: 'bb', timestamp: 1234567891001 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1068,7 +1069,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].local, undefined);
             test.assertAnd(objs['/foo/bar'].push, undefined);
             test.assertAnd(objs['/foo/bar'].remote, { revision: 'fff' });
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             //now add a local while the request is running:
             return env.rs.local.setNodes({
               '/foo/bar': {
@@ -1086,7 +1087,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1113,7 +1114,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].local, undefined);
             test.assertAnd(objs['/foo/bar'].push, undefined);
             test.assertAnd(objs['/foo/bar'].remote, { revision: 'fff' });
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             //now add a local while the request is running:
             objs['/foo/bar'].local = { body: 'ab', contentType: 'bb', timestamp: 1234567891001 };
             return env.rs.local.setNodes({
@@ -1128,7 +1129,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, { body: 'ab', contentType: 'bb', timestamp: 1234567891001 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].official, { body: 'a', contentType: 'b', timestamp: 1234567891000 });
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1179,7 +1180,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].local, undefined);
             test.assertAnd(objs['/foo/bar'].push, undefined);
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].official.revision, '123');
@@ -1188,7 +1189,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1221,7 +1222,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
             test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].official,
@@ -1230,7 +1231,7 @@ define([], function() {
                     { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1260,7 +1261,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
             test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].official,
@@ -1268,7 +1269,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1297,7 +1298,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].local, undefined);
             test.assertAnd(objs['/foo/bar'].push, undefined);
             test.assertAnd(objs['/foo/bar'].remote, { revision: '988' });
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].official,
@@ -1305,7 +1306,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, { revision: '988' });
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1334,7 +1335,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].local, undefined);
             test.assertAnd(objs['/foo/bar'].push, undefined);
             test.assertAnd(objs['/foo/bar'].remote, { revision: '988' });
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].official,
@@ -1342,7 +1343,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, { revision: '988' });
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1376,7 +1377,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
             test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               //to make local win, the revision should be made official, so that the request goes through next time
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
@@ -1385,7 +1386,7 @@ define([], function() {
                     { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1418,7 +1419,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
             test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               //to make local win, the revision should be made official, so that the request goes through next time
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
@@ -1426,7 +1427,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1460,7 +1461,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
             test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               //to make remote win, the revision should be made remote, and local should be deleted
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
@@ -1469,7 +1470,7 @@ define([], function() {
                     { revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].local, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1502,7 +1503,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
             test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               //to make remote win, the revision should be made remote, and local should be deleted
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
@@ -1511,7 +1512,7 @@ define([], function() {
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].local, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1542,7 +1543,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
             test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               //to make remote win, the revision should be made remote, and local should be deleted
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
@@ -1551,7 +1552,7 @@ define([], function() {
                     { revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].local, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1581,7 +1582,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
             test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               //to make remote win, the revision should be made remote, and local should be deleted
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
@@ -1590,7 +1591,7 @@ define([], function() {
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].local, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
@@ -1622,7 +1623,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
             test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync.running).length, 1);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].official,
@@ -1630,7 +1631,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync.running, {});
+                test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
             }, 100);
