@@ -63,13 +63,11 @@
         if(typeof(objs[path]) === 'undefined') {
           return { action: undefined };
         } else if (objs[path].remote && objs[path].remote.revision && !objs[path].remote.itemsMap && !objs[path].remote.body) {
-          console.log('fetch action');
           return {
             action: 'get',
             promise: this.remote.get(path)
           };
         } else if (objs[path].local && objs[path].local.body) {
-          console.log('put action');
           objs[path].push = this.local._getInternals()._deepClone(objs[path].local);
           objs[path].push.timestamp =  this.now();
           return this.local.setNodes(objs).then(function() {
@@ -80,7 +78,6 @@
           }.bind(this));
         } else if (objs[path].local) {
           objs[path].push = { timestamp: this.now() };
-          console.log('delete action', objs);
           return this.local.setNodes(objs).then(function() {
             return {
               action: 'delete',
@@ -88,7 +85,6 @@
             };
           }.bind(this));
         } else {
-          console.log('refresh action');
           return {
             action: 'get',
             promise: this.remote.get(path)
@@ -99,7 +95,6 @@
     autoMerge: function(obj) {
       var resolution, fetched;
       if (!obj.remote) {
-        console.log('autoMerge, no remote');
         return obj;
       }
       if (!obj.local) {
@@ -112,25 +107,18 @@
           if (fetched) {
             obj.official = obj.remote;
             delete obj.remote;
-            console.log('autoMerge, fetched');
-          } else {
-            console.log('autoMerge, fetching');
           }
-        } else {
-          console.log('autoMerge, no local');
         }
         return obj;
       }
       resolution = this.onConflict.check(obj);
       if (resolution === 'local') {
-        console.log('autoMerge, resolve as local');
         obj.official = obj.remote;
         delete obj.remote;
         return obj;
       }
       if (resolution === 'remote') {
         if (obj.remote.body) {
-          console.log('autoMerge, resolve as remote');
           obj.official = obj.remote;
           delete obj.remote;
           delete obj.push;
@@ -141,19 +129,15 @@
         }
       }
       if (resolution === 'wait' || resolution === undefined) {
-        console.log('autoMerge, resolve as wait');
         return obj;
       }
       if (resolution === 'fetch') {
-        console.log('autoMerge, resolve as fetch');
         return obj;
       }
-      console.log('autoMerge, unknown resolution', typeof(resolution), resolution);
       return obj;
     },
     markChildren: function(path, itemsMap, changedObjs) {
       var i, paths = [], meta = {};
-      console.log('markChildren', path, itemsMap);
       for (i in itemsMap) {
         paths.push(path+i);
         meta[path+i] = itemsMap[i];
@@ -162,7 +146,6 @@
         var j, cachingStrategy, create;
         for (j in objs) {
           if (objs[j] && objs[j].official) {
-            console.log('updating', j);
             if (objs[j].official.revision != meta[j].ETag) {
               if (!objs[j].remote || objs[j].remote.revision != meta[j].ETag) {
                 changedObjs[j] = this.local._getInternals()._deepClone(objs[j]);
@@ -182,7 +165,6 @@
               create = (cachingStrategy === this.caching.ALL);
             }
             if (create) {
-              console.log('creating', j);
               changedObjs[j] = { official: {
                 revision: meta[j].ETag,
                 contentType: meta[j]['Content-Type'],
@@ -191,7 +173,6 @@
             }
           }
         }
-        console.log('setting', changedObjs);
         return this.local.setNodes(changedObjs);
       }.bind(this));
     },
@@ -241,7 +222,6 @@
       }
     },
     handleResponse: function(path, action, status, bodyOrItemsMap, contentType, revision) {
-      console.log('handleResponse', path, action, status, bodyOrItemsMap, contentType, revision);
       var statusMeaning = this.interpretStatus(status);
       if (statusMeaning.successful) {
         if (action === 'get') {
@@ -274,7 +254,6 @@
         numToHave = 0;
       }
       numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
-      console.log('numToAdd', numToAdd);
       if (numToAdd === 0) {
         return 0;
       }
@@ -282,7 +261,6 @@
         if (!this._running[path]) {
           this._running[path] = this.doTask(path);
           this._running[path].then(function(obj) {
-            console.log('thenning', path, obj);
             if(obj.action === undefined) {
               delete this._running[path];
             } else {
