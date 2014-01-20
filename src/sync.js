@@ -154,6 +154,7 @@
         return obj;
       } else {
         //conflict resolution for document:
+        delete obj.push;
         resolution = this.onConflict.check(obj);
         if (resolution === 'local') {
           obj.official = obj.remote;
@@ -161,11 +162,10 @@
           return obj;
         }
         if (resolution === 'remote') {
+          delete obj.local;
           if (obj.remote.body) {
             obj.official = obj.remote;
             delete obj.remote;
-            delete obj.push;
-            delete obj.local;
             return obj;
           } else {
             resolution = 'fetch';
@@ -261,6 +261,7 @@
       }.bind(this));
     },
     dealWithFailure: function(path, action, statusMeaning) {
+      console.log('dealWithFailure', path, action, statusMeaning);
       return this.local.getNodes([path]).then(function(objs) {
         delete objs[path].push;
         return this.local.setNodes(objs);
