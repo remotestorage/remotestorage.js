@@ -16,8 +16,7 @@ define([], function() {
     this._responses = {};
     this.checkPath = function(path) {
       if (typeof(this._responses[path]) === 'undefined') {
-        console.log(this._responses);
-        throw new Error('no FakeCaching response for path ' + path);
+        throw new Error('no FakeCaching response for path ' + path + ' have: ' + JSON.stringify(this._responses));
       }
       return this._responses[path];
     };
@@ -451,9 +450,9 @@ define([], function() {
           });
         }
       },
-
+      
       {
-        desc: "sub document new revisions stored as remote if local exists and onConflict is remote",
+        desc: "sub document new revisions stored as remote and local removed if local exists and onConflict is remote",
         run: function(env, test) {
           env.conflicts._response = 'remote';
           env.rs.caching._responses = {
@@ -480,15 +479,14 @@ define([], function() {
               env.rs.local.getNodes(['/foo/baf']).then(function(objs) {
                 test.assertAnd(objs['/foo/baf'].official.revision, '456');
                 test.assertAnd(objs['/foo/baf'].remote.revision, '459');
-                test.assertAnd(objs['/foo/baf'].local,
-                    { body: 'a', contentType: 'b', timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/baf'].local, undefined);
                 test.done();
               });
             }, 100);
           });
         }
       },
-
+      
       {
         desc: "sub folder new revisions stored even if local exists and undefined onConflict",
         run: function(env, test) {
@@ -1080,7 +1078,6 @@ define([], function() {
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar/']);
           }).then(function(objs) {
-            console.log('objs 1', objs);
             test.assertAnd(objs['/foo/bar/'].official,
                 { itemsMap: {asdf: {ETag: 'qwer'}}, revision: '987', timestamp: 1234567890123 });
             test.assertAnd(objs['/foo/bar/'].local, undefined);
@@ -1089,7 +1086,6 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar/']).then(function(objs) {
-            console.log('objs 2', objs);
                 test.assertAnd(objs['/foo/bar/'].official,
                     { itemsMap: {asdf: {ETag: 'qwer'}}, revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar/'].local, undefined);
@@ -1130,7 +1126,6 @@ define([], function() {
             setTimeout(function() {
               //to make local win, the revision should be made official, so that the request goes through next time
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].official.revision, 'fff');
                 test.assertAnd(objs['/foo/bar'].local,
                     { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
@@ -1182,7 +1177,6 @@ define([], function() {
         }
       },
 
-], tests: [
       {
         desc: "a conflict response to a PUT obeys a 'remote' conflict handler if there is one",
         run: function(env, test) {
@@ -1210,7 +1204,6 @@ define([], function() {
             setTimeout(function() {
               //to make remote win, the revision should be made remote, and local should be deleted
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].remote.revision, 'fff');
                 test.assertAnd(objs['/foo/bar'].official,
                     { revision: '987', timestamp: 1234567890123 });
@@ -1250,7 +1243,6 @@ define([], function() {
             setTimeout(function() {
               //to make remote win, the revision should be made remote, and local should be deleted
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].remote.revision, 'fff');
                 test.assertAnd(objs['/foo/bar'].official,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
@@ -1264,9 +1256,8 @@ define([], function() {
         }
       },
 
-], nothing: [
       {
-        desc: "a conflict response to a PUT obeys 'remote' if there is no conflict handler",
+        desc: "a conflict response to a PUT obeys 'fetch' if there is no conflict handler",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
@@ -1275,7 +1266,7 @@ define([], function() {
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['put', '/foo/bar', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
+            env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
@@ -1289,13 +1280,12 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
-              //to make remote win, the revision should be made remote, and local should be deleted
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].remote.revision, 'fff');
                 test.assertAnd(objs['/foo/bar'].official,
                     { revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].local, { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
                 test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
@@ -1305,7 +1295,7 @@ define([], function() {
       },
 
       {
-        desc: "a conflict response to a DELETE obeys 'remote' if there is no conflict handler",
+        desc: "a conflict response to a DELETE obeys 'fetch' if there is no conflict handler",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
@@ -1314,9 +1304,7 @@ define([], function() {
               local: { timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['delete', '/foo/bar',
-                                   { ifMatch: '987' } ]] =
-              [412, '', '', ''];
+            env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
@@ -1324,8 +1312,8 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].official,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
             test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
-            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].push.body, undefined);
+            test.assertAnd(objs['/foo/bar'].push.contentType, undefined);
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
@@ -1335,7 +1323,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].official,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
                 test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
@@ -1344,6 +1332,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "when a document is missing from an incoming folder and it has no local changes, it is removed",
         run: function(env, test) {

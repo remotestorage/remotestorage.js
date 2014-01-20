@@ -64,7 +64,6 @@
         if(typeof(objs[path]) === 'undefined') {
           return { action: undefined };
         } else if (objs[path].remote && objs[path].remote.revision && !objs[path].remote.itemsMap && !objs[path].remote.body) {
-          console.log('getting 1', path);
           return {
             action: 'get',
             promise: this.remote.get(path)
@@ -104,7 +103,6 @@
             };
           }.bind(this));
         } else {
-          console.log('getting by default', path);
           return {
             action: 'get',
             promise: this.remote.get(path)
@@ -113,10 +111,8 @@
       }.bind(this));
     },
     autoMerge: function(obj) {
-      console.log('autoMerge', obj);
       var resolution, fetched;
       if (!obj.remote) {
-        console.log('no remote')
         return obj;
       }
       if (!obj.local) {
@@ -127,15 +123,12 @@
             fetched = !!obj.remote.body;
           }
           if (fetched) {
-            console.log('remote has been fetched');
             obj.official = obj.remote;
             delete obj.remote;
           }
-            console.log('remote has ? been fetched');
         }
         return obj;
       }
-      console.log('have local');
       if (obj.path.substr(-1) === '/') {
         //auto merge folder:
         obj.official = obj.remote;
@@ -221,7 +214,6 @@
       }.bind(this));
     },
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
-      console.log('completeFetch', path, bodyOrItemsMap, contentType, revision);
       return this.local.getNodes([path]).then(function(objs) {
         objs[path].remote = {
           revision: revision
@@ -232,7 +224,6 @@
           objs[path].remote.body = bodyOrItemsMap;
           objs[path].remote.contentType = contentType;
         }
-        console.log('passing to autoMerge', objs[path]);
         objs[path] = this.autoMerge(objs[path]);
         return objs;
       }.bind(this));
@@ -261,7 +252,6 @@
       }.bind(this));
     },
     dealWithFailure: function(path, action, statusMeaning) {
-      console.log('dealWithFailure', path, action, statusMeaning);
       return this.local.getNodes([path]).then(function(objs) {
         delete objs[path].push;
         return this.local.setNodes(objs);
@@ -275,11 +265,9 @@
       }
     },
     handleResponse: function(path, action, status, bodyOrItemsMap, contentType, revision) {
-      console.log('handleResponse');
       var statusMeaning = this.interpretStatus(status);
       if (statusMeaning.successful) {
         if (action === 'get') {
-          console.log('handleResponse get');
           return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(objs) {
             if (path.substr(-1) === '/') {
               return this.markChildren(path, bodyOrItemsMap, objs);
@@ -319,12 +307,9 @@
             if(obj.action === undefined) {
               delete this._running[path];
             } else {
-              console.log('thenning', path, obj);
               obj.promise.then(function(status, body, contentType, revision) {
-                console.log('thenned', path);
                 return this.handleResponse(path, obj.action, status, body, contentType, revision);
               }.bind(this)).then(function() {
-                console.log('back from handleResponse');
                 delete this._running[path];
               }.bind(this));
             }
