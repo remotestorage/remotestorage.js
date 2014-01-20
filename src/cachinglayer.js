@@ -91,11 +91,14 @@
              !latest ||
              !latest.timestamp ||
              ((new Date().getTime()) - latest.timestamp > maxAge))) {
+          console.log('queuing get request for fresh results');
           remoteStorage.sync.queueGetRequest(path, promise);
           return promise;
         }
+        console.log('no maxAge, returning latest', latest);
+        
         if (latest) {
-            promise.fulfill(200, latest.body, latest.contentType);
+            promise.fulfill(200, latest.body || latest.itemsMap, latest.contentType);
         } else {
           promise.fulfill(404);
         }       

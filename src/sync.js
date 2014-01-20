@@ -19,6 +19,16 @@
     now: function() {
       return new Date().getTime();
     },
+    queueGetRequest: function(path, promise) {
+      console.log('queueGetRequest', path, promise);
+      this.addTask(path, function() {
+        console.log('queueGetRequest cb', path, promise);
+        this.local.get(path).then(function(status, bodyOrItemsMap, contentType) {
+          promise.fulfill(status, bodyOrItemsMap, contentType);
+        });
+      }.bind(this));
+      console.log('task added', this._tasks);
+    },
     checkDiffs: function() {
       return [];
     },
@@ -272,6 +282,7 @@
             if (path.substr(-1) === '/') {
               return this.markChildren(path, bodyOrItemsMap, objs);
             } else {
+              console.log('setting doc fetch object', objs);
               return this.local.setNodes(objs);
             }
           }.bind(this));
@@ -297,10 +308,12 @@
         numToHave = 0;
       }
       numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
+      console.log(numToAdd, 'adding running');
       if (numToAdd === 0) {
         return 0;
       }
       for (path in this._tasks) {
+        console.log('considering', path, this._tasks);
         if (!this._running[path]) {
           this._running[path] = this.doTask(path);
           this._running[path].then(function(obj) {
@@ -311,6 +324,10 @@
                 return this.handleResponse(path, obj.action, status, body, contentType, revision);
               }.bind(this)).then(function() {
                 delete this._running[path];
+                for(i=0; i<this._tasks[path].length; i++) {
+                  this._tasks[path][i]();
+                }
+                delete this._tasks[path];
               }.bind(this));
             }
           }.bind(this));

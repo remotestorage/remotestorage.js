@@ -125,6 +125,7 @@ define([], function() {
       env.rs.caching = new FakeCaching();
       env.conflicts = new FakeConflicts();
       env.rs.sync = new RemoteStorage.Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching, env.conflicts);
+      global.remoteStorage = env.rs;
       test.done();
     },
 
@@ -441,10 +442,11 @@ define([], function() {
          test.done();
         }
       },
-], tests: [
+      
       {
-        desc: "when a document or folder is fetched, pending requests from all windows are resolved",
+        desc: "when a document is fetched, pending requests are resolved",
         run: function(env, test) {
+          console.log('in the test');
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
@@ -452,59 +454,71 @@ define([], function() {
               official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
           }).then(function() {
-            //with maxAge:true this will get queued since official has no revision:
-            env.rs.local.get('/foo/bar', true).then(function(status, body, contentType) {
+            console.log('calling get');
+            //with maxAge:1000000 this will get queued since official has no revision:
+            env.rs.local.get('/foo/bar', 1000000).then(function(status, body, contentType) {
+              console.log('in get then');
               test.assertAnd(status, 200);
               test.assertAnd(body, 'zz');
               test.assertAnd(contentType, 'application/ld+json');
               test.done();
             });
-            env.rs.remote._responses[['get', '/foo/bar', { } ]] =
-              [200, 'zz', 'application/ld+json', '123'];
-            env.rs.sync._tasks = {'/foo/bar': true};
-            env.rs.sync.doTasks();
-          });
-        }
-      },
-
-], nothing: [
-      {
-        desc: "a success response to a document GET resolves pending maxAge requests",
-        run: function(env, test) {
-          env.rs.local.setNodes({
-            '/foo/bar': {
-              path: '/foo/bar',
-              remote: { revision: 'fff' },
-              official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['get', '/foo/bar', { } ]] =
-              [200, 'zz', 'application/ld+json', '123'];
-            env.rs.sync._tasks = {'/foo/bar': true};
-            env.rs.sync.doTasks();
-            return env.rs.local.getNodes(['/foo/bar']);
-          }).then(function(objs) {
-            test.assertAnd(objs['/foo/bar'].official, { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].local, undefined);
-            test.assertAnd(objs['/foo/bar'].push, undefined);
-            test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
-              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar'].official.revision, '123');
-                test.assertAnd(objs['/foo/bar'].official.body, 'zz');
-                test.assertAnd(objs['/foo/bar'].official.contentType, 'b');
-                test.assertAnd(objs['/foo/bar'].local, undefined);
-                test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync._running, {});
-                test.done();
-              });
+              env.rs.remote._responses[['get', '/foo/bar' ]] = [200, 'zz', 'application/ld+json', '123'];
+              console.log('doing tasks', env.rs.sync._tasks);
+              env.rs.sync.doTasks();
             }, 100);
           });
         }
       },
 
+      {
+        desc: "when a folder is fetched, pending requests are resolved",
+        run: function(env, test) {
+          var done1, done2;
+          console.log('in the test');
+          env.rs.caching._responses = {
+            '/foo/bar/': env.rs.caching.ALL,
+            '/foo/bar/a': env.rs.caching.SEEN_AND_FOLDERS
+          };
+          env.rs.local.setNodes({
+            '/foo/bar/': {
+              path: '/foo/bar/',
+              remote: { revision: 'fff' },
+              official: { itemsMap: {a: {ETag: '1'}}, timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            console.log('calling get');
+            //with maxAge:1000000 this will get queued since official has no revision:
+            env.rs.local.get('/foo/bar/', 1000000).then(function(status, itemsMap) {
+              console.log('in get then');
+              test.assertAnd(status, 200);
+              console.log(itemsMap, 'itemsMap');
+              test.assertAnd(itemsMap, {});
+              done1 = true;
+              if (done2) {
+                test.done();
+              }
+            });
+            env.rs.local.get('/foo/bar/', 2000000).then(function(status, itemsMap) {
+              console.log('in get then');
+              test.assertAnd(status, 200);
+              test.assertAnd(itemsMap, {});
+              done2 = true;
+              if (done1) {
+                test.done();
+              }
+            });
+            setTimeout(function() {
+              env.rs.remote._responses[['get', '/foo/bar/' ]] = [200, {}, 'application/ld+json', '123'];
+              console.log('doing tasks', env.rs.sync._tasks);
+              env.rs.sync.doTasks();
+            }, 100);
+          });
+        }
+      },
+
+], tests: [
       {
         desc: "GET requests that time out get cancelled",
         run: function(env, test) {
@@ -559,6 +573,8 @@ define([], function() {
           });
         }
       },
+
+], nothing: [
 
       {
         desc: "checkDiffs will not enqueue requests outside the access scope",
