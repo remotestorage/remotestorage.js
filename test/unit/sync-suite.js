@@ -963,7 +963,6 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
-            console.log('official', objs['/foo/'].official);
                 test.assertAnd(objs['/foo/'].official.revision, '123');
                 test.assertAnd(objs['/foo/'].official.itemsMap, {a: {'ETag': '3'}});
                 test.assertAnd(objs['/foo/'].local, undefined);
@@ -981,11 +980,16 @@ define([], function() {
       {
         desc: "a success response to a folder GET fires no conflict even if a local exists",
         run: function(env, test) {
-          env.rs.on('conflict', function() {
+          env.rs.local.on('conflict', function() {
             test.done(false, 'onConflict was fired');
           });
+          env.rs.caching._responses = {
+            '/foo/': env.rs.caching.SEEN,
+            '/foo/a': env.rs.caching.SEEN
+          };
           env.rs.local.setNodes({
             '/foo/': {
+              path: '/foo/',
               remote: { revision: 'fff' },
               official: { itemsMap: {}, timestamp: 1234567891000 },
               local: { itemsMap: {a: true, b: {ETag: 'aaa'}}, timestamp: 1234567891000 }
@@ -997,19 +1001,21 @@ define([], function() {
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/']);
           }).then(function(objs) {
+            console.log('objs', objs);
             test.assertAnd(objs['/foo/'].official, { itemsMap: {}, timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/'].local, undefined);
+            test.assertAnd(objs['/foo/'].local, { itemsMap: {a: true, b: {ETag: 'aaa'}}, timestamp: 1234567891000 });
             test.assertAnd(objs['/foo/'].push, undefined);
-            test.assertAnd(objs['/foo/'].remote, undefined);
+            test.assertAnd(objs['/foo/'].remote, { revision: 'fff' });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
+            console.log('objs', objs);
                 test.assertAnd(objs['/foo/'].official.revision, '123');
-                test.assertAnd(objs['/foo/bar'].official.itemsMap, {a: {'ETag': '3'}});
-                test.assertAnd(objs['/foo/bar'].local,
+                test.assertAnd(objs['/foo/'].official.itemsMap, {a: {'ETag': '3'}});
+                test.assertAnd(objs['/foo/'].local,
                     { itemsMap: {a: true, b: {ETag: 'aaa'}}, timestamp: 1234567891000 });
-                test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(objs['/foo/'].push, undefined);
+                test.assertAnd(objs['/foo/'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
@@ -1024,6 +1030,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               remote: { revision: 'fff' },
               official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
@@ -1081,6 +1088,7 @@ define([], function() {
             //now add a local while the request is running:
             return env.rs.local.setNodes({
               '/foo/bar': {
+                path: '/foo/bar',
                 remote: { revision: 'fff' },
                 official: { body: 'a', contentType: 'b', timestamp: 1234567891000 },
                 local: { body: 'ab', contentType: 'bb', timestamp: 1234567891001 }
@@ -1111,6 +1119,7 @@ define([], function() {
           };
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               remote: { revision: 'fff' },
               official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
@@ -1129,6 +1138,7 @@ define([], function() {
             //now add a local while the request is running:
             return env.rs.local.setNodes({
               '/foo/bar': {
+                path: '/foo/bar',
                 remote: { revision: 'fff' },
                 official: { body: 'a', contentType: 'b', timestamp: 1234567891000 },
                 local: { body: 'ab', contentType: 'bb', timestamp: 1234567891001 }
@@ -1156,6 +1166,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               remote: { revision: 'fff' },
               official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
@@ -1198,6 +1209,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               remote: { revision: 'fff' },
               official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
@@ -1222,6 +1234,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               remote: { revision: 'fff' },
               official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
@@ -1260,6 +1273,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { revision: '987', timestamp: 1234567890123 },
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
@@ -1300,6 +1314,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             }
@@ -1338,6 +1353,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               remote: { revision: '988' }
             }
@@ -1375,6 +1391,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar/': {
+              path: '/foo/bar',
               official: { itemsMap: {asdf: 'qwer'}, revision: '987', timestamp: 1234567890123 },
               remote: { revision: '988' }
             }
@@ -1415,6 +1432,7 @@ define([], function() {
           };
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { revision: '987', timestamp: 1234567890123 },
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
@@ -1458,6 +1476,7 @@ define([], function() {
           };
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             }
@@ -1499,6 +1518,7 @@ define([], function() {
           };
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { revision: '987', timestamp: 1234567890123 },
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
@@ -1542,6 +1562,7 @@ define([], function() {
           };
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             }
@@ -1581,6 +1602,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { revision: '987', timestamp: 1234567890123 },
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
@@ -1621,6 +1643,7 @@ define([], function() {
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             }
@@ -1665,6 +1688,7 @@ define([], function() {
           };
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             }
@@ -1702,6 +1726,7 @@ define([], function() {
           env.rs.access.set('writings', 'rw');
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             },
@@ -1724,6 +1749,7 @@ define([], function() {
           env.rs.access.set('writings', 'rw');
           env.rs.local.setNodes({
             '/readings/bar': {
+              path: '/readings/bar',
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               remote: { revision: '900' }
             },
@@ -1749,6 +1775,7 @@ define([], function() {
           env.rs.access.set('writings', 'rw');
           env.rs.local.setNodes({
             '/readings/bar': {
+              path: '/readings/bar',
               official: { body: function() {}, contentType: 3, revision: '987', timestamp: 1234567890123 },
               remote: 'no'
             }
@@ -1799,6 +1826,7 @@ define([], function() {
           env.rs.access.set('writings', 'rw');
           env.rs.local.setNodes({
             '/writings/bar': {
+              path: '/writings/bar',
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 },
               remote: { revision: 'fetch-me-first' }
@@ -1827,6 +1855,7 @@ define([], function() {
           };
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             }
@@ -1852,6 +1881,7 @@ define([], function() {
           };
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             }
@@ -1936,6 +1966,51 @@ define([], function() {
         desc: "when a document comes back 404, and it has local changes, documents in its subtree that have local changes, are resolved as individual remote deletions",
         run: function(env, test) {
           test.done(false, 'TODO 10');
+        }
+      },
+
+      {
+        desc: "when a folder listing comes in and adds items to .official that are not in .local, and the child node exists, add it to .local and make child conflict",
+        run: function(env, test) {
+          var resolveThis = {
+            path: '/foo/',
+            official: { items: {}},
+            local: { items: { 'bar/': true }},
+            remote: { items: { 'baz/': {ETag: '1'}}
+          };
+          //solution:
+          //if a baz/ node exists but it's deleted in local, add a remote to baz/ so it comes in conflict, and add baz/ to the /foo/ local
+          test.done(false, 'TODO 11');
+        }
+      },
+
+      {
+        desc: "when a folder listing comes in and adds items to .official that are not in .local, and the child node does not exists, add it to .local + create child",
+        run: function(env, test) {
+          var resolveThis = {
+            path: '/foo/',
+            official: { items: {}},
+            local: { items: { 'bar/': true }},
+            remote: { items: { 'baz/': {ETag: '1'}}
+          };
+          //solution:
+          //if no baz/ node exists, then it's not a conflict; create it, and add baz/ to local
+          test.done(false, 'TODO 12');
+        }
+      },
+
+      {
+        desc: "folder listing items to .official not in .local, and the child node has a .push but an empty .local, add it to .local and make child conflict",
+        run: function(env, test) {
+          var resolveThis = {
+            path: '/foo/',
+            official: { items: {}},
+            local: { items: { 'bar/': true }},
+            remote: { items: { 'baz/': {ETag: '1'}}
+          };
+          //solution:
+          //if a baz/ node exists and it's still pushing but it's also already deleted in local, add a remote to baz/ so it comes in conflict, and add baz/ to the /foo/ local
+          test.done(false, 'TODO 11');
         }
       },
     ]
