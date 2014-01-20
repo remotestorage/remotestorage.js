@@ -97,13 +97,28 @@
       }.bind(this));
     },
     autoMerge: function(obj) {
-      var resolution;
+      var resolution, fetched;
       if (!obj.remote) {
         console.log('autoMerge, no remote');
         return obj;
       }
       if (!obj.local) {
-        console.log('autoMerge, no local');
+        if (obj.remote) {
+          if (obj.path.substr(-1) === '/') {
+            fetched = !!obj.remote.itemsMap;
+          } else {
+            fetched = !!obj.remote.body;
+          }
+          if (fetched) {
+            obj.official = obj.remote;
+            delete obj.remote;
+            console.log('autoMerge, fetched');
+          } else {
+            console.log('autoMerge, fetching');
+          }
+        } else {
+          console.log('autoMerge, no local');
+        }
         return obj;
       }
       resolution = this.onConflict.check(obj);
@@ -136,17 +151,15 @@
       console.log('autoMerge, unknown resolution', typeof(resolution), resolution);
       return obj;
     },
-    markChildren: function(path, itemsMap, cachingStrategy) {
-      var i, paths = [], meta = {},
-        createFolders = (cachingStrategy === this.caching.SEEN_AND_FOLDERS || cachingStrategy === this.caching.ALL);
-        createDocuments = (cachingStrategy === this.caching.ALL);
-      console.log('markChildren', path, itemsMap, createDocuments);
+    markChildren: function(path, itemsMap, changedObjs) {
+      var i, paths = [], meta = {};
+      console.log('markChildren', path, itemsMap);
       for (i in itemsMap) {
         paths.push(path+i);
         meta[path+i] = itemsMap[i];
       }
       return this.local.getNodes(paths).then(function(objs) {
-        var j, changedObjs = {};
+        var j, cachingStrategy, create;
         for (j in objs) {
           if (objs[j] && objs[j].official) {
             console.log('updating', j);
@@ -161,17 +174,40 @@
                 changedObjs[j] = this.autoMerge(changedObjs[j]);
               }
             }
-          } else if ((j.substr(-1) === '/' ? createFolders : createDocuments)) {
-            console.log('creating', j);
-            changedObjs[j] = { official: {
-              revision: meta[j].ETag,
-              contentType: meta[j]['Content-Type'],
-              contentLength: meta[j]['Content-Length']
-            } };
+          } else {
+            cachingStrategy = this.caching.checkPath(j);
+            if(j.substr(-1) === '/') {
+              create = (cachingStrategy === this.caching.FOLDERS || cachingStrategy === this.caching.SEEN_AND_FOLDERS || cachingStrategy === this.caching.ALL);
+            } else {
+              create = (cachingStrategy === this.caching.ALL);
+            }
+            if (create) {
+              console.log('creating', j);
+              changedObjs[j] = { official: {
+                revision: meta[j].ETag,
+                contentType: meta[j]['Content-Type'],
+                contentLength: meta[j]['Content-Length']
+              } };
+            }
           }
         }
         console.log('setting', changedObjs);
         return this.local.setNodes(changedObjs);
+      }.bind(this));
+    },
+    completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
+      return this.local.getNodes([path]).then(function(objs) {
+        objs[path].remote = {
+          revision: revision
+        };
+        if (path.substr(-1) === '/') {
+          objs[path].remote.itemsMap = bodyOrItemsMap;
+        } else {
+          objs[path].remote.body = bodyOrItemsMap;
+          objs[path].remote.contentType = contentType;
+        }
+        objs[path] = this.autoMerge(objs[path]);
+        return objs;
       }.bind(this));
     },
     completePush: function(path, action, conflict, revision) {
@@ -204,16 +240,18 @@
         conflict: (statusCode === 412)
       }
     },
-    handleResponse: function(path, action, status, body, contentType, revision) {
-      console.log('handleResponse', path, action, status, body, contentType, revision);
-      var cachingStrategy;
-      //TODO: test that fetching /foo doesn't store /foo/bar/ if cachingStrategy for /foo/bar/ is SEEN
+    handleResponse: function(path, action, status, bodyOrItemsMap, contentType, revision) {
+      console.log('handleResponse', path, action, status, bodyOrItemsMap, contentType, revision);
       var statusMeaning = this.interpretStatus(status);
       if (statusMeaning.successful) {
-        if (path.substr(-1) === '/' && action === 'get') {
-          cachingStrategy = this.caching.checkPath(path);
-          console.log('cachingStrategy', cachingStrategy);
-          return this.markChildren(path, body, cachingStrategy);
+        if (action === 'get') {
+          return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(objs) {
+            if (path.substr(-1) === '/') {
+              return this.markChildren(path, bodyOrItemsMap, objs);
+            } else {
+              return this.remote.setNodes(objs);
+            }
+          }.bind(this));
         } else if (action === 'put') {
           return this.completePush(path, action, statusMeaning.conflict, revision);
         } else if (action === 'delete') {

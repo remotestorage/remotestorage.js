@@ -6,9 +6,13 @@ define([], function() {
   var suites = [];
 
   function FakeCaching(){
-    this.SEEN = 0;
-    this.SEEN_AND_FOLDERS = 1;
-    this.ALL = 2;
+    this.FLUSH = 0;
+    this.SEEN = 1;
+    this.FOLDERS = 2;
+    this.SEEN_AND_FOLDERS = 3;
+    this.DOCUMENTS = 4;
+    this.ALL = 7;
+    
     this._responses = {};
     this.checkPath = function(path) {
       if (typeof(this._responses[path]) === 'undefined') {
@@ -470,7 +474,9 @@ define([], function() {
             env.rs.remote._responses[['get', '/foo/bar/' ]] =
                 [200, {'baz/': {ETag: '123'}, 'baf': {ETag: '456', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
             env.rs.caching._responses = {
-              '/foo/bar/': env.rs.caching.SEEN_AND_FOLDERS
+              '/foo/bar/': env.rs.caching.ALL,
+              '/foo/bar/baz/': env.rs.caching.SEEN_AND_FOLDERS,
+              '/foo/bar/baf': env.rs.caching.SEEN_AND_FOLDERS
             };
             env.rs.sync._tasks = {'/foo/bar/': true};
             env.rs.sync.doTasks();
@@ -494,7 +500,9 @@ define([], function() {
             env.rs.remote._responses[['get', '/foo/bar/' ]] =
               [200, {'baz/': {ETag: '123'}, 'baf': {ETag: '456', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
             env.rs.caching._responses = {
-              '/foo/bar/': env.rs.caching.ALL
+              '/foo/bar/': env.rs.caching.FLUSH,
+              '/foo/bar/baz/': env.rs.caching.ALL,
+              '/foo/bar/baf': env.rs.caching.ALL
             };
             env.rs.sync._tasks = {'/foo/bar/': true};
             env.rs.sync.doTasks();
@@ -547,7 +555,9 @@ define([], function() {
         desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.ALL root",
         run: function(env, test) {
           env.rs.caching._responses = {
-            '/foo/': env.rs.caching.ALL
+            '/foo/': env.rs.caching.FLUSH,
+            '/foo/baz/': env.rs.caching.ALL,
+            '/foo/baf': env.rs.caching.ALL
           };
           env.rs.local.setNodes({
             '/foo/': { official: {} },
@@ -581,7 +591,9 @@ define([], function() {
         desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.SEEN_AND_FOLDERS root",
         run: function(env, test) {
           env.rs.caching._responses = {
-            '/foo/': env.rs.caching.SEEN_AND_FOLDERS
+            '/foo/': env.rs.caching.FLUSH,
+            '/foo/baz/': env.rs.caching.SEEN_AND_FOLDERS,
+            '/foo/baf': env.rs.caching.SEEN_AND_FOLDERS
           };
           env.rs.local.setNodes({
             '/foo/': { official: {} },
@@ -615,7 +627,9 @@ define([], function() {
         desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.SEEN root",
         run: function(env, test) {
           env.rs.caching._responses = {
-            '/foo/': env.rs.caching.SEEN
+            '/foo/': env.rs.caching.ALL,
+            '/foo/baz/': env.rs.caching.SEEN,
+            '/foo/baf': env.rs.caching.SEEN
           };
           env.rs.local.setNodes({
             '/foo/': { official: {} },
@@ -847,7 +861,6 @@ define([], function() {
         }
       },
 
-], tests: [
       {
         desc: "a success response to a DELETE moves local to official",
         run: function(env, test) {
@@ -887,18 +900,23 @@ define([], function() {
         }
       },
 
-], nothing: [
+], tests: [
       {
         desc: "a success response to a folder GET moves remote to official if no local exists",
         run: function(env, test) {
+          env.rs.caching._responses = {
+            '/foo/': env.rs.caching.SEEN,
+            '/foo/a': env.rs.caching.SEEN
+          };
           env.rs.local.setNodes({
             '/foo/': {
+              path: '/foo/',
               remote: { revision: 'fff' },
               official: { itemsMap: {}, timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['get', '/foo/', { } ]] =
-              [200, '{"items":{"a":{"ETag":"3"}}}', 'application/ld+json', '123'];
+            env.rs.remote._responses[['get', '/foo/' ]] =
+              [200, {a: {ETag: '3'}}, 'application/ld+json', '123'];
             env.rs.sync._tasks = {'/foo/': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/']);
@@ -906,15 +924,17 @@ define([], function() {
             test.assertAnd(objs['/foo/'].official, { itemsMap: {}, timestamp: 1234567891000 });
             test.assertAnd(objs['/foo/'].local, undefined);
             test.assertAnd(objs['/foo/'].push, undefined);
-            test.assertAnd(objs['/foo/'].remote, undefined);
+            test.assertAnd(objs['/foo/'].remote, { revision: 'fff' });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
+            console.log('objs', objs);
+            console.log('official', objs['/foo/'].official);
                 test.assertAnd(objs['/foo/'].official.revision, '123');
-                test.assertAnd(objs['/foo/bar'].official.itemsMap, {a: {'ETag': '3'}});
-                test.assertAnd(objs['/foo/bar'].local, undefined);
-                test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(objs['/foo/'].official.itemsMap, {a: {'ETag': '3'}});
+                test.assertAnd(objs['/foo/'].local, undefined);
+                test.assertAnd(objs['/foo/'].push, undefined);
+                test.assertAnd(objs['/foo/'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
@@ -923,6 +943,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "a success response to a folder GET fires no conflict even if a local exists",
         run: function(env, test) {
