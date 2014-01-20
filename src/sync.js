@@ -78,6 +78,11 @@
               options = {
                 ifMatch: objs[path].official.revision
               };
+            } else {
+              //force this to be an initial PUT (fail if something is already there)
+              options = {
+                ifNoneMatch: '*'
+              };
             }
             return {
               action: 'put',
@@ -87,9 +92,15 @@
         } else if (objs[path].local) {
           objs[path].push = { timestamp: this.now() };
           return this.local.setNodes(objs).then(function() {
+            var options;
+            if (objs[path].official.revision) {
+              options = {
+                ifMatch: objs[path].official.revision
+              };
+            }
             return {
               action: 'delete',
-              promise: this.remote.delete(path)
+              promise: this.remote.delete(path, options)
             };
           }.bind(this));
         } else {
@@ -127,9 +138,9 @@
       console.log('have local');
       if (obj.path.substr(-1) === '/') {
         //auto merge folder:
-        if (obj.remote.itemsMap) {
-          obj.official = obj.remote;
-          delete obj.remote;
+        obj.official = obj.remote;
+        delete obj.remote;
+        if (obj.official.itemsMap) {
           for (i in obj.official.itemsMap) {
             if (!obj.local.itemsMap[i]) {
               //indicates the node is either newly being fetched

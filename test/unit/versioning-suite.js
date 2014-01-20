@@ -16,6 +16,7 @@ define([], function() {
     this._responses = {};
     this.checkPath = function(path) {
       if (typeof(this._responses[path]) === 'undefined') {
+        console.log(this._responses);
         throw new Error('no FakeCaching response for path ' + path);
       }
       return this._responses[path];
@@ -57,7 +58,7 @@ define([], function() {
       this['_'+target+'s'].push([path, body, contentType, options]);
       var p = promising();
       if (typeof(this._responses[args]) === 'undefined') {
-        throw new Error('no FakeRemote response for args ' + args);
+        throw new Error('no FakeRemote response for args ' + JSON.stringify(args));
       }
       var resp = this._responses[args] || [200];
       return p.fulfill.apply(p, resp);
@@ -369,7 +370,7 @@ define([], function() {
           });
         }
       },
-
+      
       {
         desc: "sub item new revisions stored as official if local exists and onConflict is local",
         run: function(env, test) {
@@ -413,11 +414,16 @@ define([], function() {
           });
         }
       },
-
+      
       {
-        desc: "sub item new revisions stored as remote if local exists and onConflict is remote",
+        desc: "sub folder new revisions stored as official if local exists and onConflict is remote",
         run: function(env, test) {
           env.conflicts._response = 'remote';
+          env.rs.caching._responses = {
+            '/foo/': env.rs.caching.ALL,
+            '/foo/baz/': env.rs.caching.SEEN,
+            '/foo/baf': env.rs.caching.SEEN
+          };
           env.rs.local.setNodes({
             '/foo/': {
               path: '/foo/',
@@ -427,6 +433,38 @@ define([], function() {
               path: '/foo/baz/',
               official: { revision: '123', timestamp: 1234567890123 },
               local: { itemsMap: {a: true}, timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.rs.remote._responses[['get', '/foo/' ]] =
+              [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459'}}, 'application/json', '123'];
+            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync.doTasks();
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/baz/']).then(function(objs) {
+                test.assertAnd(objs['/foo/baz/'].official.revision, '129');
+                test.assertAnd(objs['/foo/baz/'].remote, undefined);
+                test.assertAnd(objs['/foo/baz/'].local,
+                    { itemsMap: {a: true}, timestamp: 1234567891000 });
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "sub document new revisions stored as remote if local exists and onConflict is remote",
+        run: function(env, test) {
+          env.conflicts._response = 'remote';
+          env.rs.caching._responses = {
+            '/foo/': env.rs.caching.ALL,
+            '/foo/baz/': env.rs.caching.SEEN,
+            '/foo/baf': env.rs.caching.SEEN
+          };
+          env.rs.local.setNodes({
+            '/foo/': {
+              path: '/foo/',
+              official: {}
             },
             '/foo/baf': {
               path: '/foo/baf',
@@ -436,17 +474,10 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459'}}, 'application/json', '123'];
-            env.rs.caching._responses = {
-              '/foo/': env.rs.caching.ALL
-            };
             env.rs.sync._tasks = {'/foo/': true};
             env.rs.sync.doTasks();
             setTimeout(function() {
-              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
-                test.assertAnd(objs['/foo/baz/'].official.revision, '123');
-                test.assertAnd(objs['/foo/baz/'].remote.revision, '129');
-                test.assertAnd(objs['/foo/baz/'].local,
-                    { itemsMap: {a: true}, timestamp: 1234567891000 });
+              env.rs.local.getNodes(['/foo/baf']).then(function(objs) {
                 test.assertAnd(objs['/foo/baf'].official.revision, '456');
                 test.assertAnd(objs['/foo/baf'].remote.revision, '459');
                 test.assertAnd(objs['/foo/baf'].local,
@@ -459,7 +490,44 @@ define([], function() {
       },
 
       {
-        desc: "sub item new revisions left in conflict if local exists and undefined onConflict",
+        desc: "sub folder new revisions stored even if local exists and undefined onConflict",
+        run: function(env, test) {
+          env.conflicts._response = undefined;
+          env.rs.local.setNodes({
+            '/foo/': {
+              path: '/foo/',
+              official: {} 
+            },
+            '/foo/baz/': {
+              path: '/foo/baz/',
+              official: { revision: '123', timestamp: 1234567890123 },
+              local: { itemsMap: {a: true}, timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.rs.remote._responses[['get', '/foo/' ]] =
+              [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459'}}, 'application/json', '123'];
+            env.rs.caching._responses = {
+              '/foo/': env.rs.caching.ALL,
+              '/foo/baz/': env.rs.caching.SEEN,
+              '/foo/baf': env.rs.caching.SEEN
+            };
+            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync.doTasks();
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/baz/']).then(function(objs) {
+                test.assertAnd(objs['/foo/baz/'].official.revision, '129');
+                test.assertAnd(objs['/foo/baz/'].remote, undefined);
+                test.assertAnd(objs['/foo/baz/'].local,
+                    { itemsMap: {a: true}, timestamp: 1234567891000 });
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "sub document new revisions left in conflict if local exists and undefined onConflict",
         run: function(env, test) {
           env.conflicts._response = undefined;
           env.rs.local.setNodes({
@@ -481,16 +549,14 @@ define([], function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459'}}, 'application/json', '123'];
             env.rs.caching._responses = {
-              '/foo/': env.rs.caching.ALL
+              '/foo/': env.rs.caching.ALL,
+              '/foo/baz/': env.rs.caching.SEEN,
+              '/foo/baf': env.rs.caching.SEEN
             };
             env.rs.sync._tasks = {'/foo/': true};
             env.rs.sync.doTasks();
             setTimeout(function() {
-              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
-                test.assertAnd(objs['/foo/baz/'].official.revision, '123');
-                test.assertAnd(objs['/foo/baz/'].remote.revision, '129');
-                test.assertAnd(objs['/foo/baz/'].local,
-                    { itemsMap: {a: true}, timestamp: 1234567891000 });
+              env.rs.local.getNodes(['/foo/baf']).then(function(objs) {
                 test.assertAnd(objs['/foo/baf'].official.revision, '456');
                 test.assertAnd(objs['/foo/baf'].remote.revision, '459');
                 test.assertAnd(objs['/foo/baf'].local,
@@ -512,8 +578,7 @@ define([], function() {
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer' ]] =
-              [200, '', '', '123'];
+            env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifNoneMatch: '*' } ]] = [200, '', '', '123'];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
@@ -550,8 +615,7 @@ define([], function() {
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer' ]] =
-              [200, '', '', '123'];
+            env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifNoneMatch: '*' } ]] = [200, '', '', '123'];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
@@ -595,7 +659,7 @@ define([], function() {
               local: { timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['delete', '/foo/bar' ]] = [200];
+            env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] = [200];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
@@ -724,7 +788,6 @@ define([], function() {
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
-            console.log('objs', objs);
             test.assertAnd(objs['/foo/bar'].official, { body: 'a', contentType: 'b', timestamp: 1234567891000 });
             test.assertAnd(objs['/foo/bar'].local, undefined);
             test.assertAnd(objs['/foo/bar'].push, undefined);
@@ -732,14 +795,12 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-            console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].official.revision, '123');
                 test.assertAnd(objs['/foo/bar'].official.body, 'zz');
                 test.assertAnd(objs['/foo/bar'].official.contentType, 'application/ld+json');
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                console.log(env.rs.sync._running);
                 test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
@@ -782,7 +843,6 @@ define([], function() {
           }).then(function() {
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-            console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].official.revision, '123');
                 test.assertAnd(objs['/foo/bar'].official.body, 'zz');
                 test.assertAnd(objs['/foo/bar'].official.contentType, 'application/ld+json');
@@ -888,7 +948,6 @@ define([], function() {
         }
       },
 
-], tests: [
       {
         desc: "a failure response to a PUT removes the push version",
         run: function(env, test) {
@@ -899,8 +958,7 @@ define([], function() {
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifMatch: '987' } ]] =
-              [573, '', '', ''];
+            env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifMatch: '987' } ]] = [573, '', '', ''];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
@@ -915,7 +973,6 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].official,
                     { revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local,
@@ -930,7 +987,6 @@ define([], function() {
         }
       },
 
-], nothing: [
       {
         desc: "a failure response to a DELETE removes the push version",
         run: function(env, test) {
@@ -941,8 +997,7 @@ define([], function() {
               local: { timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['delete', '/foo/bar',
-                                   { ifMatch: '987' } ]] =
+            env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] =
               [480, '', '', ''];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
@@ -951,8 +1006,8 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].official,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
             test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
-            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
+            test.assertAnd(objs['/foo/bar'].push.body, undefined);
+            test.assertAnd(objs['/foo/bar'].push.contentType, undefined);
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
@@ -980,9 +1035,9 @@ define([], function() {
               remote: { revision: '988' }
             }
           }).then(function() {
-            env.rs.remote._responses[['get', '/foo/bar',
-                                   { } ]] =
-              ['a', '', '', ''];
+            //ifNoneMatch header doesn't make a difference here:
+            env.rs.remote._responses[['get', '/foo/bar' ]] = ['a', '', '', ''];
+            env.rs.remote._responses[['get', '/foo/bar', { ifNoneMatch: '987' } ]] = ['a', '', '', ''];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
@@ -1007,7 +1062,7 @@ define([], function() {
           });
         }
       },
-
+], tests2: [
       {
         desc: "a failure response to a folder GET leaves things as they are",
         run: function(env, test) {
@@ -1018,13 +1073,14 @@ define([], function() {
               remote: { revision: '988' }
             }
           }).then(function() {
-            env.rs.remote._responses[['get', '/foo/bar',
-                                   { } ]] =
-              [685, '', '', ''];
+            //ifNoneMatch header doesn't make a difference here:
+            env.rs.remote._responses[['get', '/foo/bar', { ifNoneMatch: '987' } ]] = [685, '', '', ''];
+            env.rs.remote._responses[['get', '/foo/bar' ]] = [685, '', '', ''];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
+            console.log('objs', objs);
             test.assertAnd(objs['/foo/bar'].official,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
             test.assertAnd(objs['/foo/bar'].local, undefined);
@@ -1046,6 +1102,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "a conflict response to a PUT obeys a 'local' conflict handler if there is one",
         run: function(env, test) {
@@ -1059,9 +1116,7 @@ define([], function() {
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['put', '/foo/bar',
-                                   { ifMatch: '987' } ]] =
-              [412, '', '', 'fff'];
+            env.rs.remote._responses[['put', '/foo/bar', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
@@ -1145,9 +1200,7 @@ define([], function() {
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['put', '/foo/bar',
-                                   { ifMatch: '987' } ]] =
-              [412, '', '', 'fff'];
+            env.rs.remote._responses[['put', '/foo/bar', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
@@ -1229,9 +1282,7 @@ define([], function() {
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['put', '/foo/bar',
-                                   { ifMatch: '987' } ]] =
-              [412, '', '', 'fff'];
+            env.rs.remote._responses[['put', '/foo/bar', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
