@@ -287,7 +287,7 @@ define([], function() {
           });
         }
       },
-
+//], tests: [
       {
         desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.SEEN_AND_FOLDERS root",
         run: function(env, test) {
@@ -662,7 +662,6 @@ define([], function() {
           });
         }
       },
-
 ], tests: [
       {
         desc: "a success response to a folder GET fires no conflict even if a local exists",
@@ -1378,7 +1377,7 @@ define([], function() {
             path: '/foo/',
             official: { items: {}},
             local: { items: { 'bar/': true }},
-            remote: { items: { 'baz/': {ETag: '1'}}
+            remote: { items: { 'baz/': {ETag: '1'}}}
           };
           //solution:
           //if a baz/ node exists but it's deleted in local, add a remote to baz/ so it comes in conflict, and add baz/ to the /foo/ local
@@ -1393,7 +1392,7 @@ define([], function() {
             path: '/foo/',
             official: { items: {}},
             local: { items: { 'bar/': true }},
-            remote: { items: { 'baz/': {ETag: '1'}}
+            remote: { items: { 'baz/': {ETag: '1'}}}
           };
           //solution:
           //if no baz/ node exists, then it's not a conflict; create it, and add baz/ to local
@@ -1408,7 +1407,7 @@ define([], function() {
             path: '/foo/',
             official: { items: {}},
             local: { items: { 'bar/': true }},
-            remote: { items: { 'baz/': {ETag: '1'}}
+            remote: { items: { 'baz/': {ETag: '1'}}}
           };
           //solution:
           //if a baz/ node exists and it's still pushing but it's also already deleted in local, add a remote to baz/ so it comes in conflict, and add baz/ to the /foo/ local

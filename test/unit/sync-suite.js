@@ -441,7 +441,7 @@ define([], function() {
          test.done();
         }
       },
-
+], tests: [
       {
         desc: "when a document or folder is fetched, pending requests from all windows are resolved",
         run: function(env, test) {
@@ -467,6 +467,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "a success response to a document GET resolves pending maxAge requests",
         run: function(env, test) {
