@@ -5,11 +5,12 @@
   /**
    * Class: RemoteStorage.Sync
    **/
-  RemoteStorage.Sync = function(setLocal, setRemote, setAccess, setCaching) {
+  RemoteStorage.Sync = function(setLocal, setRemote, setAccess, setCaching, setOnConflict) {
     this.local = setLocal;
     this.remote = setRemote;
     this.access = setAccess;
     this.caching = setCaching;
+    this.onConflict = setOnConflict;
     this._tasks = {};
     this._running = {};
   }
@@ -74,7 +75,7 @@
               action: 'put',
               promise: this.remote.put(path, objs[path].push.body, objs[path].push.contentType)
             };
-          });
+          }.bind(this));
         } else if (objs[path].local) {
           objs[path].push = { timestamp: this.now() };
           return this.local.setNodes(objs).then(function() {
@@ -82,7 +83,7 @@
               action: 'delete',
               promise: this.remote.remove(path)
             };
-          });
+          }.bind(this));
         } else {
           return {
             action: 'get',
@@ -90,6 +91,46 @@
           };
         }
       }.bind(this));
+    },
+    autoMerge: function(obj) {
+      var resolution;
+      if (!obj.remote) {
+        console.log('autoMerge, no remote');
+        return obj;
+      }
+      if (!obj.local) {
+        console.log('autoMerge, no local');
+        return obj;
+      }
+      resolution = this.onConflict.check(obj);
+      if (resolution === 'local') {
+        console.log('autoMerge, resolve as local');
+        obj.official = obj.remote;
+        delete obj.remote;
+        return obj;
+      }
+      if (resolution === 'remote') {
+        if (obj.remote.body) {
+          console.log('autoMerge, resolve as remote');
+          obj.official = obj.remote;
+          delete obj.remote;
+          delete obj.push;
+          delete obj.local;
+          return obj;
+        } else {
+          resolution = 'fetch';
+        }
+      }
+      if (resolution === 'wait' || resolution === undefined) {
+        console.log('autoMerge, resolve as wait');
+        return obj;
+      }
+      if (resolution === 'fetch') {
+        console.log('autoMerge, resolve as fetch');
+        return obj;
+      }
+      console.log('autoMerge, unknown resolution', typeof(resolution), resolution);
+      return obj;
     },
     markChildren: function(path, itemsMap, cachingStrategy) {
       var i, paths = [], meta = {},
@@ -113,6 +154,7 @@
                   contentType: meta[j]['Content-Type'],
                   contentLength: meta[j]['Content-Length']
                 };
+                changedObjs[j] = this.autoMerge(changedObjs[j]);
               }
             }
           } else if ((j.substr(-1) === '/' ? createFolders : createDocuments)) {
@@ -128,13 +170,53 @@
         return this.local.setNodes(changedObjs);
       }.bind(this));
     },
+    completePush: function(path, action, conflict, revision) {
+      return this.local.getNodes([path]).then(function(objs) {
+        if (conflict) {
+          if (!objs[path].remote || objs[path].remote.revision !== revision) {
+            objs[path].remote = { revision: revision };
+          }
+          objs[path] = this.autoMerge(objs[path]);
+        } else {
+          objs[path].official = {
+            revision: revision
+          };
+          if (action === 'put') {
+            objs[path].official.body = objs[path].push.body;
+            objs[path].official.contentType = objs[path].push.contentType;
+          }
+          if (objs[path].local.body === objs[path].push.body && objs[path].local.contentType === objs[path].push.contentType) {
+            delete objs[path].local;
+          }
+          delete objs[path].push;
+        }
+        return this.local.setNodes(objs);
+      }.bind(this));
+    },
+    interpretStatus: function(statusCode) {
+      var series = Math.floor(statusCode / 100);
+      return {
+        successful: (series === 2 || statusCode === 304 || statusCode === 412),
+        conflict: (statusCode === 412)
+      }
+    },
     handleResponse: function(path, action, status, body, contentType, revision) {
-    console.log('handleResponse', path, action, status, body, contentType, revision);
+      console.log('handleResponse', path, action, status, body, contentType, revision);
       var cachingStrategy;
-      if (path.substr(-1) === '/' && action === 'get') {
-        cachingStrategy = this.caching.checkPath(path);
-        console.log('cachingStrategy', cachingStrategy);
-        return this.markChildren(path, body, cachingStrategy);
+      //TODO: test that fetching /foo doesn't store /foo/bar/ if cachingStrategy for /foo/bar/ is SEEN
+      var statusMeaning = this.interpretStatus(status);
+      if (statusMeaning.successful) {
+        if (path.substr(-1) === '/' && action === 'get') {
+          cachingStrategy = this.caching.checkPath(path);
+          console.log('cachingStrategy', cachingStrategy);
+          return this.markChildren(path, body, cachingStrategy);
+        } else if (action === 'put') {
+          return this.completePush(path, action, statusMeaning.conflict, revision);
+        } else if (action === 'delete') {
+          return this.completePush(path, action, statusMeaning.conflict, revision);
+        }
+      } else {
+        //TODO: deal with notAuthorized, overQuota, backOff, timeout, serverError, etc.
       }
       return promising().fulfill();
     },
