@@ -73,9 +73,15 @@
           objs[path].push = this.local._getInternals()._deepClone(objs[path].local);
           objs[path].push.timestamp =  this.now();
           return this.local.setNodes(objs).then(function() {
+            var options;
+            if (objs[path].official.revision) {
+              options = {
+                ifMatch: objs[path].official.revision
+              };
+            }
             return {
               action: 'put',
-              promise: this.remote.put(path, objs[path].push.body, objs[path].push.contentType)
+              promise: this.remote.put(path, objs[path].push.body, objs[path].push.contentType, options)
             };
           }.bind(this));
         } else if (objs[path].local) {
@@ -243,6 +249,12 @@
         return this.local.setNodes(objs);
       }.bind(this));
     },
+    dealWithFailure: function(path, action, statusMeaning) {
+      return this.local.getNodes([path]).then(function(objs) {
+        delete objs[path].push;
+        return this.local.setNodes(objs);
+      }.bind(this));
+    },
     interpretStatus: function(statusCode) {
       var series = Math.floor(statusCode / 100);
       return {
@@ -269,7 +281,7 @@
           return this.completePush(path, action, statusMeaning.conflict, revision);
         }
       } else {
-        //TODO: deal with notAuthorized, overQuota, backOff, timeout, serverError, etc.
+        return this.dealWithFailure(path, action, statusMeaning);
       }
       return promising().fulfill();
     },
