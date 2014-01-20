@@ -119,30 +119,49 @@
         return obj;
       }
       console.log('have local');
-      resolution = this.onConflict.check(obj);
-      if (resolution === 'local') {
-        obj.official = obj.remote;
-        delete obj.remote;
-        return obj;
-      }
-      if (resolution === 'remote') {
-        if (obj.remote.body) {
+      if (obj.path.substr(-1) === '/') {
+        //auto merge folder:
+        if (obj.remote.itemsMap) {
           obj.official = obj.remote;
           delete obj.remote;
-          delete obj.push;
-          delete obj.local;
-          return obj;
-        } else {
-          resolution = 'fetch';
+          for (i in obj.official.itemsMap) {
+            if (!obj.local.itemsMap[i]) {
+              //indicates the node is either newly being fetched
+              //has been deleted locally (whether or not leading to conflict);
+              //before listing it in local listings, check if a local deletion
+              //exists.
+              obj.local.itemsMap[i] = false;
+            }
+          }
         }
-      }
-      if (resolution === 'wait' || resolution === undefined) {
+        return obj;
+      } else {
+        //conflict resolution for document:
+        resolution = this.onConflict.check(obj);
+        if (resolution === 'local') {
+          obj.official = obj.remote;
+          delete obj.remote;
+          return obj;
+        }
+        if (resolution === 'remote') {
+          if (obj.remote.body) {
+            obj.official = obj.remote;
+            delete obj.remote;
+            delete obj.push;
+            delete obj.local;
+            return obj;
+          } else {
+            resolution = 'fetch';
+          }
+        }
+        if (resolution === 'wait' || resolution === undefined) {
+          return obj;
+        }
+        if (resolution === 'fetch') {
+          return obj;
+        }
         return obj;
       }
-      if (resolution === 'fetch') {
-        return obj;
-      }
-      return obj;
     },
     markChildren: function(path, itemsMap, changedObjs) {
       var i, paths = [], meta = {};
@@ -241,7 +260,7 @@
             if (path.substr(-1) === '/') {
               return this.markChildren(path, bodyOrItemsMap, objs);
             } else {
-              return this.remote.setNodes(objs);
+              return this.local.setNodes(objs);
             }
           }.bind(this));
         } else if (action === 'put') {
@@ -281,7 +300,8 @@
                 console.log('thenned', path);
                 return this.handleResponse(path, obj.action, status, body, contentType, revision);
               }.bind(this)).then(function() {
-                  delete this._running[path];
+                console.log('back from handleResponse');
+                delete this._running[path];
               }.bind(this));
             }
           }.bind(this));

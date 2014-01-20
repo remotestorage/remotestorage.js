@@ -287,7 +287,7 @@ define([], function() {
           });
         }
       },
-//], tests: [
+
       {
         desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.SEEN_AND_FOLDERS root",
         run: function(env, test) {
@@ -662,7 +662,7 @@ define([], function() {
           });
         }
       },
-], tests: [
+
       {
         desc: "a success response to a folder GET fires no conflict even if a local exists",
         run: function(env, test) {
@@ -687,7 +687,6 @@ define([], function() {
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/']);
           }).then(function(objs) {
-            console.log('objs', objs);
             test.assertAnd(objs['/foo/'].official, { itemsMap: {}, timestamp: 1234567891000 });
             test.assertAnd(objs['/foo/'].local, { itemsMap: {a: true, b: {ETag: 'aaa'}}, timestamp: 1234567891000 });
             test.assertAnd(objs['/foo/'].push, undefined);
@@ -695,7 +694,6 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
-            console.log('objs', objs);
                 test.assertAnd(objs['/foo/'].official.revision, '123');
                 test.assertAnd(objs['/foo/'].official.itemsMap, {a: {'ETag': '3'}});
                 test.assertAnd(objs['/foo/'].local,
@@ -710,7 +708,6 @@ define([], function() {
         }
       },
 
-], nothing: [
       {
         desc: "a success response to a document GET moves remote to official if no local exists",
         run: function(env, test) {
@@ -721,25 +718,28 @@ define([], function() {
               official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['get', '/foo/bar', { } ]] =
+            env.rs.remote._responses[['get', '/foo/bar' ]] =
               [200, 'zz', 'application/ld+json', '123'];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
-            test.assertAnd(objs['/foo/bar'].official, { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
+            console.log('objs', objs);
+            test.assertAnd(objs['/foo/bar'].official, { body: 'a', contentType: 'b', timestamp: 1234567891000 });
             test.assertAnd(objs['/foo/bar'].local, undefined);
             test.assertAnd(objs['/foo/bar'].push, undefined);
-            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            test.assertAnd(objs['/foo/bar'].remote, { revision: 'fff' });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+            console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].official.revision, '123');
                 test.assertAnd(objs['/foo/bar'].official.body, 'zz');
-                test.assertAnd(objs['/foo/bar'].official.contentType, 'b');
+                test.assertAnd(objs['/foo/bar'].official.contentType, 'application/ld+json');
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
+                console.log(env.rs.sync._running);
                 test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
@@ -751,16 +751,15 @@ define([], function() {
       {
         desc: "a success response to a document GET can resolve conflicts as 'local' if local exists",
         run: function(env, test) {
-          env.rs.onConflict = function() {
-            return 'local';
-          };
+          env.conflicts._response = 'local';
           env.rs.local.setNodes({
             '/foo/bar': {
+              path: '/foo/bar',
               remote: { revision: 'fff' },
               official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['get', '/foo/bar', { } ]] =
+            env.rs.remote._responses[['get', '/foo/bar' ]] =
               [200, 'zz', 'application/ld+json', '123'];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
@@ -783,6 +782,7 @@ define([], function() {
           }).then(function() {
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+            console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].official.revision, '123');
                 test.assertAnd(objs['/foo/bar'].official.body, 'zz');
                 test.assertAnd(objs['/foo/bar'].official.contentType, 'application/ld+json');
@@ -800,9 +800,7 @@ define([], function() {
       {
         desc: "a success response to a document GET can resolve conflicts as 'remote' if local exists",
         run: function(env, test) {
-          env.rs.onConflict = function() {
-            return 'remote';
-          };
+          env.conflicts._response = 'remote';
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
@@ -810,7 +808,7 @@ define([], function() {
               official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['get', '/foo/bar', { } ]] =
+            env.rs.remote._responses[['get', '/foo/bar' ]] =
               [200, 'zz', 'application/ld+json', '123'];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
@@ -857,7 +855,7 @@ define([], function() {
               official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['get', '/foo/bar', { } ]] =
+            env.rs.remote._responses[['get', '/foo/bar' ]] =
               [200, 'zz', 'application/ld+json', '123'];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
@@ -890,6 +888,7 @@ define([], function() {
         }
       },
 
+], tests: [
       {
         desc: "a failure response to a PUT removes the push version",
         run: function(env, test) {
@@ -900,8 +899,7 @@ define([], function() {
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['put', '/foo/bar',
-                                   { ifMatch: '987' } ]] =
+            env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifMatch: '987' } ]] =
               [573, '', '', ''];
             env.rs.sync._tasks = {'/foo/bar': true};
             env.rs.sync.doTasks();
@@ -931,6 +929,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "a failure response to a DELETE removes the push version",
         run: function(env, test) {
