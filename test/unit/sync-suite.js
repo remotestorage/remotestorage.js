@@ -936,7 +936,6 @@ define([], function() {
         }
       },
 
-//], tests: [
       {
         desc: "a success response to a folder GET moves remote to official if no local exists",
         run: function(env, test) {
@@ -978,22 +977,22 @@ define([], function() {
         }
       },
 
-], nothing: [
+], tests: [
       {
         desc: "a success response to a folder GET fires no conflict even if a local exists",
         run: function(env, test) {
-          env.rs.onConflict = function() {
+          env.rs.on('conflict', function() {
             test.done(false, 'onConflict was fired');
-          };
+          });
           env.rs.local.setNodes({
             '/foo/': {
               remote: { revision: 'fff' },
               official: { itemsMap: {}, timestamp: 1234567891000 },
-              local: { itemsMap: {a: true, b: {'ETag': 'aaa'}}, timestamp: 1234567891000 }
+              local: { itemsMap: {a: true, b: {ETag: 'aaa'}}, timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.remote._responses[['get', '/foo/', { } ]] =
-              [200, '{"items":{"a":{"ETag":"3"}}}', 'application/ld+json', '123'];
+            env.rs.remote._responses[['get', '/foo/' ]] =
+              [200, {a: {ETag: '3'}}, 'application/ld+json', '123'];
             env.rs.sync._tasks = {'/foo/': true};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/']);
@@ -1008,7 +1007,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/'].official.revision, '123');
                 test.assertAnd(objs['/foo/bar'].official.itemsMap, {a: {'ETag': '3'}});
                 test.assertAnd(objs['/foo/bar'].local,
-                    { itemsMap: {a: true, b: {'ETag': 'aaa'}}, timestamp: 1234567891000 });
+                    { itemsMap: {a: true, b: {ETag: 'aaa'}}, timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
@@ -1019,6 +1018,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "a success response to a document GET moves remote to official if no local exists",
         run: function(env, test) {
