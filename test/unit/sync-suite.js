@@ -867,23 +867,64 @@ define([], function() {
         }
       },
 
-], nothing: [
+    ], tests: [
       {
         desc: "sync will discard corrupt cache nodes",
         run: function(env, test) {
-          env.rs.access.set('readings', 'r');
+          env.rs.access.set('writings', 'r');
           env.rs.access.set('writings', 'rw');
           env.rs.local.setNodes({
-            '/readings/bar': {
-              path: '/readings/bar',
+            '/writings/bar': {
+              path: '/writings/bar',
               official: { body: function() {}, contentType: 3, revision: '987', timestamp: 1234567890123 },
-              remote: 'no'
+              remote: { revision: 'yes' },
+              push: 'no'
+            },
+            '/writings/baz': {
+              official: { body: function() {}, contentType: 3, revision: '987', timestamp: 1234567890123 },
+              remote: { revision: 'yes' },
+              push: 'no'
+            },
+            '/writings/baf': {
+              path: '/writings/bar',
+              remote: { revision: 'yes' }
+            }
+          }).then(function() {
+            return env.rs.sync.checkDiffs();
+          }).then(function(num) {
+            console.log('num', num);
+            test.assertAnd(num, 0);
+            test.done();
+          });
+        }
+      },
+
+], nothing: [
+      {
+        desc: "sync will migrate legacy cache nodes",
+        run: function(env, test) {
+          env.rs.access.set('writings', 'r');
+          env.rs.access.set('writings', 'rw');
+          env.rs.local.setNodes({
+            '/writings/bar': {
+              path: '/writings/bar',
+              body: 'asdf',
+              contentType: 'qwer',
+              revision: '123'
+            },
+            '/writings/baz': {
+              path: '/writings/baz/',
+              body: {
+                a: '123',
+                'b/': '456'
+              },
+              revision: '123'
             }
           }).then(function() {
             env.rs.sync.checkDiffs();
-            return env.rs.local.getNodes(['/readings/bar']);
+            return env.rs.local.getNodes(['/writings/bar']);
           }).then(function(objs) {
-            test.assertAnd(objs['/readings/bar'], undefined);
+            test.assertAnd(objs['/writings/bar'], undefined);
             test.done();
           });
         }

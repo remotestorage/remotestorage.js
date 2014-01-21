@@ -29,9 +29,49 @@
       }.bind(this));
       console.log('task added', this._tasks);
     },
+    corruptItemsMap: function(itemsMap) {
+      var i;
+      if ((typeof(itemsMap) !== 'object') ||
+          (Array.isArray(itemsMap))) {
+         return true;
+      }
+      for (i in itemsMap) {
+        if ((typeof(i) !== 'string') ||
+            (i.substring(0, i.length-1).indexOf('/') !== -1) ||
+            ((itemsMap[i].ETag && typeof(itemsMap[i].ETag) !== 'string')) ||
+            ((itemsMap[i]['Content-Type'] && typeof(itemsMap[i]['Content-Type']) !== 'string')) ||
+            ((itemsMap[i]['Content-Length'] && typeof(itemsMap[i]['Content-Length']) !== 'number'))) {
+          return true;
+        }
+      }
+      return false;
+    },
+    corruptRevision: function(rev) {
+      return ((typeof(rev) !== 'object') ||
+          (Array.isArray(rev)) ||
+          (rev.revision && typeof(rev.revision) != 'string') ||
+          (rev.body && typeof(rev.body) != 'string') ||
+          (rev.contentType && typeof(rev.contentType) != 'string') ||
+          (rev.contentLength && typeof(rev.contentLength) != 'number') ||
+          (rev.timestamp && typeof(rev.timestamp) != 'number') ||
+          (rev.itemsMap && corruptItemsMap(rev.itemsMap)));
+    },
+    isCorrupt: function(node) {
+      return ((typeof(node) !== 'object') ||
+          (Array.isArray(node)) ||
+          (typeof(node.path) !== 'string') ||
+          (this.corruptRevision(node.official)) ||
+          (this.local && this.corruptRevision(node.local)) ||
+          (this.remote && this.corruptRevision(node.remote)) ||
+          (this.push && this.corruptRevision(node.push)));
+    },
     checkDiffs: function() {
       var num = 0;
-      this.local.forAllNodes(function(node) {
+      return this.local.forAllNodes(function(node) {
+        if (this.isCorrupt(node)) {
+          console.log('WARNING: corrupt node in local cache', node);
+          return;
+        }
         console.log('node', node, this.access.checkPath(node.path, 'rw'));
         if (node.remote && node.remote.revision
             && !node.remote.body && !node.remote.itemsMap
@@ -41,6 +81,7 @@
           num++;
         }
       }.bind(this)).then(function() {
+        console.log('returning num', num);
         return num;
       });
     },
