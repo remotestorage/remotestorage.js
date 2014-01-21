@@ -898,7 +898,6 @@ define([], function() {
         }
       },
 
-    ], tests: [
       {
         desc: "sync will reject its promise if the cache is not available",
         run: function(env, test) {
@@ -917,20 +916,20 @@ define([], function() {
           env.rs.getNodes = tmp;
         }
       },
-], nothing: [
+    ], tests: [
 
       {
         desc: "sync will fulfill its promise as long as the cache is available",
         run: function(env, test) {
-          env.rs.sync().then(function() {
+          env.rs.sync.sync().then(function() {
             test.done();
           }, function(err) {
             test.result(false, 'sync was supposed to fulfill its promise');
           });
-          env.rs.getNodes = tmp;
         }
       },
 
+], nothing: [
       {
         desc: "checkDiffs does not push local if a remote exists",
         run: function(env, test) {

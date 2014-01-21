@@ -83,6 +83,9 @@
       }.bind(this)).then(function() {
         console.log('returning num', num);
         return num;
+      }, function(err) {
+        console.log('checkDiffs error', err);
+        throw err;
       });
     },
     tooOld: function(node) {
@@ -120,7 +123,10 @@
             }
           }
         }
-      }.bind(this));
+      }.bind(this), function(err) {
+        console.log('checkRefresh error', err);
+        throw err;
+      });
     },
     doTask: function(path) {
       return this.local.getNodes([path]).then(function(objs) {
@@ -427,13 +433,11 @@
           promise.fulfill();
           return promise;
         } else {
-          return this.checkRefresh().then(function(refresh) {
-            var i;
-            for (i=0; i<refresh.length; i++) {
-              this.addTask(refresh[i], function() {});
-            }
-          });
+          return this.checkRefresh();
         }
+      }.bind(this), function(err) {
+        console.log('findTasks error', err);
+        throw err;
       });
     },
     addTask: function(path, cb) {
@@ -453,7 +457,11 @@
         console.log('sync calling findTasks');
         return this.findTasks().then(function() {
           console.log('sync calling doTasks second time');
-          this.doTasks();
+          try {
+            this.doTasks();
+          } catch(e) {
+            console.log('doTasks error', e);
+          }
         }.bind(this), function(err) {
           console.log('sync error', err);
           throw new Error('local cache unavailable');
