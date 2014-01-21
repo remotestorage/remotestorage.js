@@ -1340,11 +1340,9 @@ define([], function() {
           env.rs.sync.doTasks();
           env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
             test.assertAnd(objs['/foo/bar'], undefined);
-            console.log(env.rs.sync._running);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/bar']);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].official.revision, '123');
                 test.assertAnd(objs['/foo/bar'].official.body, 'asdf');
                 test.assertAnd(objs['/foo/bar'].official.contentType, 'qwer');
@@ -1370,11 +1368,9 @@ define([], function() {
           env.rs.sync.doTasks();
           env.rs.local.getNodes(['/foo/']).then(function(objs) {
             test.assertAnd(objs['/foo/'], undefined);
-            console.log(env.rs.sync._running);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/'].official.revision, 'fff');
                 test.assertAnd(objs['/foo/'].official.itemsMap, {a: {ETag: 'aaa'}});
                 test.assertAnd(objs['/foo/'].push, undefined);
@@ -1500,7 +1496,7 @@ define([], function() {
           };
           //solution:
           //if a baz/ node exists and it's still pushing but it's also already deleted in local, add a remote to baz/ so it comes in conflict, and add baz/ to the /foo/ local
-          test.result(false, 'TODO 11');
+          test.result(false, 'TODO 13');
         }
       },
     ]
