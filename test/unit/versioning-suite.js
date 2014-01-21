@@ -729,7 +729,7 @@ define([], function() {
         desc: "a success response to a folder GET fires no conflict even if a local exists",
         run: function(env, test) {
           env.rs.local.on('conflict', function() {
-            test.done(false, 'onConflict was fired');
+            test.result(false, 'onConflict was fired');
           });
           env.rs.caching._responses = {
             '/foo/': env.rs.caching.SEEN,
@@ -1336,70 +1336,70 @@ define([], function() {
       {
         desc: "when a document is missing from an incoming folder and it has no local changes, it is removed",
         run: function(env, test) {
-          test.done(false, 'TODO 1');
+          test.result(false, 'TODO 1');
         }
       },
 
       {
         desc: "when a document is missing from an incoming folder and it has local changes, and resolution is 'local', official is set to empty",
         run: function(env, test) {
-          test.done(false, 'TODO 2');
+          test.result(false, 'TODO 2');
         }
       },
 
       {
         desc: "when a document is missing from an incoming folder and it has local changes, and resolution is 'remote', official is set to empty and local is removed",
         run: function(env, test) {
-          test.done(false, 'TODO 3');
+          test.result(false, 'TODO 3');
         }
       },
 
       {
         desc: "when a document is missing from an incoming folder and it has local changes, and resolution is 'wait/fetch', remote is set to empty",
         run: function(env, test) {
-          test.done(false, 'TODO 4');
+          test.result(false, 'TODO 4');
         }
       },
 
       {
         desc: "when a sub folder is missing from an incoming folder, the parts of its subtree have no local changes, are removed recursively",
         run: function(env, test) {
-          test.done(false, 'TODO 5');
+          test.result(false, 'TODO 5');
         }
       },
 
       {
         desc: "when a sub folder is missing from an incoming folder, documents in its subtree that have local changes, are resolved as individual remote deletions",
         run: function(env, test) {
-          test.done(false, 'TODO 6');
+          test.result(false, 'TODO 6');
         }
       },
 
       {
         desc: "when a document comes back 404, and it has no local changes, it is removed",
         run: function(env, test) {
-          test.done(false, 'TODO 7');
+          test.result(false, 'TODO 7');
         }
       },
 
       {
         desc: "when a document comes back 404, and it has local changes, it is resolved according to its conflict handling",
         run: function(env, test) {
-          test.done(false, 'TODO 8');
+          test.result(false, 'TODO 8');
         }
       },
 
       {
         desc: "when a folder comes back 404, the parts of its subtree have no local changes, are removed recursively",
         run: function(env, test) {
-          test.done(false, 'TODO 9');
+          test.result(false, 'TODO 9');
         }
       },
 
       {
         desc: "when a document comes back 404, and it has local changes, documents in its subtree that have local changes, are resolved as individual remote deletions",
         run: function(env, test) {
-          test.done(false, 'TODO 10');
+          test.result(false, 'TODO 10');
         }
       },
 
@@ -1414,7 +1414,7 @@ define([], function() {
           };
           //solution:
           //if a baz/ node exists but it's deleted in local, add a remote to baz/ so it comes in conflict, and add baz/ to the /foo/ local
-          test.done(false, 'TODO 11');
+          test.result(false, 'TODO 11');
         }
       },
 
@@ -1429,7 +1429,7 @@ define([], function() {
           };
           //solution:
           //if no baz/ node exists, then it's not a conflict; create it, and add baz/ to local
-          test.done(false, 'TODO 12');
+          test.result(false, 'TODO 12');
         }
       },
 
@@ -1444,7 +1444,7 @@ define([], function() {
           };
           //solution:
           //if a baz/ node exists and it's still pushing but it's also already deleted in local, add a remote to baz/ so it comes in conflict, and add baz/ to the /foo/ local
-          test.done(false, 'TODO 11');
+          test.result(false, 'TODO 11');
         }
       },
     ]
