@@ -3,6 +3,7 @@
   RemoteStorage.InMemoryStorage = function(rs) {
     this.rs = rs;
     RemoteStorage.cachingLayer(this);
+    console.log('registering events');
     RemoteStorage.eventHandling(this, 'change', 'conflict');
     this._storage = {};
   };

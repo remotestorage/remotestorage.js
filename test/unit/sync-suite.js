@@ -135,7 +135,7 @@ define([], function() {
 
     beforeEach: function(env, test){
       env.rs = new RemoteStorage();
-      env.rs.local = new RemoteStorage.InMemoryStorage();
+      env.rs.local = new RemoteStorage.InMemoryStorage(env.rs);
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();
       env.rs.caching = new FakeCaching();
@@ -916,7 +916,6 @@ define([], function() {
           env.rs.getNodes = tmp;
         }
       },
-    ], tests: [
 
       {
         desc: "sync will fulfill its promise as long as the cache is available",
@@ -929,40 +928,20 @@ define([], function() {
         }
       },
 
-], nothing: [
-      {
-        desc: "checkDiffs does not push local if a remote exists",
-        run: function(env, test) {
-          env.rs.access.set('writings', 'rw');
-          env.rs.local.setNodes({
-            '/writings/bar': {
-              path: '/writings/bar',
-              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { timestamp: 1234567891000 },
-              remote: { revision: 'fetch-me-first' }
-            }
-          }).then(function() {
-            env.rs.sync.checkDiffs();
-            test.assertAnd(env.rs.sync._tasks, {});
-            test.done();
-          });
-        }
-      },
-
+    ], tests: [
       {
         desc: "when a conflict is resolved as remote, a change event is sent out",
         run: function(env, test) {
-          env.rs.on('change', function(evt) {
+          env.rs.local._emit = function(type, evt) {
+            test.assertAnd(type, 'change');
             test.assertAnd(evt, {
               oldValue: undefined,
               newValue: 'asdf',
               path: '/foo/bar'
             });
             test.done();
-          });
-          env.rs.onConflict = function(path) {
-            return 'remote';
           };
+          env.conflicts._response = 'remote';
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
@@ -979,6 +958,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "when a conflict is resolved as local, no change event is sent out",
         run: function(env, test) {
