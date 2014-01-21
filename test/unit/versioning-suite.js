@@ -1332,10 +1332,11 @@ define([], function() {
         }
       },
 
+], tests: [
       {
         desc: "non-existing document GET requests become official if successful",
         run: function(env, test) {
-          env.rs.remote._responses [['get', '/foo/bar',]] = [200, 'asdf', 'qwer', '123'];
+          env.rs.remote._responses [['get', '/foo/bar']] = [200, 'asdf', 'qwer', '123'];
           env.rs.sync._tasks = {'/foo/bar': []};
           env.rs.sync.doTasks();
           env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
@@ -1362,8 +1363,11 @@ define([], function() {
       {
         desc: "non-existing folder refresh GET requests become official if successful",
         run: function(env, test) {
-          env.rs.remote._responses [['get', '/foo/',]] = [200, {a: {ETag: 'aaa'}}, 'application/ld+json', 'fff'];
+          env.rs.remote._responses [['get', '/foo/']] = [200, {a: {ETag: 'aaa'}}, 'application/ld+json', 'fff'];
           env.rs.sync._tasks = {'/foo/': []};
+          env.rs.caching._responses = {
+            '/foo/a': env.rs.caching.ALL
+          };
           env.rs.sync.doTasks();
           env.rs.local.getNodes(['/foo/']).then(function(objs) {
             test.assertAnd(objs['/foo/'], undefined);
@@ -1372,7 +1376,7 @@ define([], function() {
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
                 console.log('objs', objs);
-                test.assertAnd(objs['/foo/'].official.revision, '123');
+                test.assertAnd(objs['/foo/'].official.revision, 'fff');
                 test.assertAnd(objs['/foo/'].official.itemsMap, {a: {ETag: 'aaa'}});
                 test.assertAnd(objs['/foo/'].push, undefined);
                 test.assertAnd(objs['/foo/'].local, undefined);
