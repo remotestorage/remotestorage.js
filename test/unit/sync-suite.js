@@ -620,7 +620,6 @@ define([], function() {
         }
       },
 
-], tests: [
       {
         desc: "folder fetch GET requests that time out get cancelled",
         run: function(env, test) {
@@ -658,7 +657,6 @@ define([], function() {
         }
       },
 
-], nothing: [
       {
         desc: "folder refresh GET requests that time out get cancelled",
         run: function(env, test) {
@@ -791,6 +789,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "checkDiffs will not enqueue requests outside the access scope",
         run: function(env, test) {

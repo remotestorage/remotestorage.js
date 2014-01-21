@@ -1332,7 +1332,6 @@ define([], function() {
         }
       },
 
-], tests: [
       {
         desc: "non-existing document GET requests become official if successful",
         run: function(env, test) {
