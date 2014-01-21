@@ -72,13 +72,19 @@
     doTask: function(path) {
       return this.local.getNodes([path]).then(function(objs) {
         if(typeof(objs[path]) === 'undefined') {
-          return { action: undefined };
+          //first fetch:
+          return {
+            action: 'get',
+            promise: this.remote.get(path)
+          };
         } else if (objs[path].remote && objs[path].remote.revision && !objs[path].remote.itemsMap && !objs[path].remote.body) {
+          //fetch known-stale child:
           return {
             action: 'get',
             promise: this.remote.get(path)
           };
         } else if (objs[path].local && objs[path].local.body) {
+          //push put:
           objs[path].push = this.local._getInternals()._deepClone(objs[path].local);
           objs[path].push.timestamp =  this.now();
           return this.local.setNodes(objs).then(function() {
@@ -99,6 +105,7 @@
             };
           }.bind(this));
         } else if (objs[path].local) {
+          //push delete:
           objs[path].push = { timestamp: this.now() };
           return this.local.setNodes(objs).then(function() {
             var options;
@@ -113,10 +120,21 @@
             };
           }.bind(this));
         } else {
-          return {
-            action: 'get',
-            promise: this.remote.get(path)
-          };
+          //refresh:
+          var options = undefined;
+          if (objs[path].official.revision) {
+            return {
+              action: 'get',
+              promise: this.remote.get(path, {
+                ifMatch: objs[path].official.revision
+              })
+            };
+          } else {
+            return {
+              action: 'get',
+              promise: this.remote.get(path)
+            };
+          }
         }
       }.bind(this));
     },
@@ -225,6 +243,12 @@
     },
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
       return this.local.getNodes([path]).then(function(objs) {
+        if(!objs[path]) {
+          objs[path] = {
+            path: path,
+            official: {}
+          };
+        }
         objs[path].remote = {
           revision: revision
         };
@@ -263,8 +287,10 @@
     },
     dealWithFailure: function(path, action, statusMeaning) {
       return this.local.getNodes([path]).then(function(objs) {
-        delete objs[path].push;
-        return this.local.setNodes(objs);
+        if (objs[path]) {
+          delete objs[path].push;
+          return this.local.setNodes(objs);
+        }
       }.bind(this));
     },
     interpretStatus: function(statusCode) {
@@ -315,8 +341,10 @@
       for (path in this._tasks) {
         console.log('considering', path, this._tasks);
         if (!this._running[path]) {
+          console.log('calling doTask');
           this._running[path] = this.doTask(path);
           this._running[path].then(function(obj) {
+            console.log('doTask thenned');
             if(obj.action === undefined) {
               delete this._running[path];
             } else {

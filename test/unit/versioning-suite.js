@@ -1332,6 +1332,59 @@ define([], function() {
         }
       },
 
+      {
+        desc: "non-existing document GET requests become official if successful",
+        run: function(env, test) {
+          env.rs.remote._responses [['get', '/foo/bar',]] = [200, 'asdf', 'qwer', '123'];
+          env.rs.sync._tasks = {'/foo/bar': []};
+          env.rs.sync.doTasks();
+          env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'], undefined);
+            console.log(env.rs.sync._running);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/bar']);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                console.log('objs', objs);
+                test.assertAnd(objs['/foo/bar'].official.revision, '123');
+                test.assertAnd(objs['/foo/bar'].official.body, 'asdf');
+                test.assertAnd(objs['/foo/bar'].official.contentType, 'qwer');
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(env.rs.sync._running, {});
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "non-existing folder refresh GET requests become official if successful",
+        run: function(env, test) {
+          env.rs.remote._responses [['get', '/foo/',]] = [200, {a: {ETag: 'aaa'}}, 'application/ld+json', 'fff'];
+          env.rs.sync._tasks = {'/foo/': []};
+          env.rs.sync.doTasks();
+          env.rs.local.getNodes(['/foo/']).then(function(objs) {
+            test.assertAnd(objs['/foo/'], undefined);
+            console.log(env.rs.sync._running);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/']).then(function(objs) {
+                console.log('objs', objs);
+                test.assertAnd(objs['/foo/'].official.revision, '123');
+                test.assertAnd(objs['/foo/'].official.itemsMap, {a: {ETag: 'aaa'}});
+                test.assertAnd(objs['/foo/'].push, undefined);
+                test.assertAnd(objs['/foo/'].local, undefined);
+                test.assertAnd(objs['/foo/'].remote, undefined);
+                test.assertAnd(env.rs.sync._running, {});
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
 ], nothing: [
       {
         desc: "when a document is missing from an incoming folder and it has no local changes, it is removed",

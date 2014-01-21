@@ -57,7 +57,7 @@ define([], function() {
       this['_'+target+'s'].push([path, body, contentType, options]);
       var p = promising();
       if (typeof(this._responses[args]) === 'undefined') {
-        throw new Error('no FakeRemote response for args ' + args);
+        throw new Error('no FakeRemote response for args ' + JSON.stringify(args) + ' - have: ' + JSON.stringify(Object.getOwnPropertyNames(this._responses)));
       }
       var resp = this._responses[args] || [200];
       if(resp === 'timeout') {
@@ -522,7 +522,6 @@ define([], function() {
         }
       },
 
-], tests: [
       {
         desc: "document fetch GET requests that time out get cancelled",
         run: function(env, test) {
@@ -562,15 +561,166 @@ define([], function() {
       },
 
       {
+        desc: "document refresh GET requests that time out get cancelled",
+        run: function(env, test) {
+          env.rs.remote._responses [['get', '/foo/bar', { IfNoneMatch: '987' }]] = ['timeout'];
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              path: '/foo/bar',
+              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 }
+            }
+          }).then(function() {
+            //checkRefresh would enqueue the parent folder here, but we explicitly enqueue a refresh
+            //of the document itself here:
+            env.rs.sync._tasks = {'/foo/bar': []};
+            env.rs.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local, undefined);
+            test.assertAnd(objs['/foo/bar'].push, undefined);
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                console.log('objs', objs);
+                test.assertAnd(objs['/foo/bar'].official,
+                    { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(env.rs.sync._running, {});
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "document non-existing GET requests that time out get cancelled",
+        run: function(env, test) {
+          env.rs.remote._responses [['get', '/foo/bar',]] = ['timeout'];
+          env.rs.sync._tasks = {'/foo/bar': []};
+          env.rs.sync.doTasks();
+          env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'], undefined);
+            console.log(env.rs.sync._running);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/bar']);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                console.log('objs', objs);
+                test.assertAnd(objs['/foo/bar'], undefined);
+                test.assertAnd(env.rs.sync._running, {});
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+], tests: [
+
+      {
+        desc: "folder refresh GET requests that time out get cancelled",
+        run: function(env, test) {
+          env.rs.remote._responses [['get', '/foo/', { ifNoneMatch: '987' }]] = ['timeout'];
+          env.rs.local.setNodes({
+            '/foo/': {
+              path: '/foo/',
+              official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
+            }
+          }).then(function() {
+            env.rs.sync._tasks = {'/foo/': []};
+            env.rs.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/'], {
+              path: '/foo/',
+              official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
+            });
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/']).then(function(objs) {
+                console.log('objs', objs);
+                test.assertAnd(objs['/foo/'], {
+                  path: '/foo/',
+                  official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
+                });
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+], nothing: [
+
+      {
+        desc: "folder non-existing GET requests that time out get cancelled",
+        run: function(env, test) {
+          env.rs.remote._responses [['get', '/foo/',]] = ['timeout'];
+          env.rs.sync._tasks = {'/foo/': []};
+          env.rs.sync.doTasks();
+          env.rs.local.getNodes(['/foo/']).then(function(objs) {
+            test.assertAnd(objs['/foo/'], undefined);
+            console.log(env.rs.sync._running);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/']).then(function(objs) {
+                console.log('objs', objs);
+                test.assertAnd(objs['/foo/'], undefined);
+                test.assertAnd(env.rs.sync._running, {});
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
         desc: "PUT requests that time out get cancelled",
         run: function(env, test) {
-          test.result(false, 'TODO: implement');
+          env.rs.remote._responses [['put', '/foo/bar', 'asdfz', 'qwerz', { ifMatch: '987' }]] = ['timeout'];
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              path: '/foo/bar',
+              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              local: { body: 'asdfz', contentType: 'qwerz', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/bar']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/bar'].official,
+                { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+            test.assertAnd(objs['/foo/bar'].local, { body: 'asdfz', contentType: 'qwerz', timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, 'asdfz');
+            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwerz');
+            test.assertAnd(objs['/foo/bar'].remote, undefined);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                console.log('objs', objs);
+                test.assertAnd(objs['/foo/bar'].official,
+                    { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+                test.assertAnd(objs['/foo/bar'].local, { body: 'asdfz', contentType: 'qwerz', timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/bar'].push, undefined);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(env.rs.sync._running, {});
+                test.done();
+              });
+            }, 100);
+          });
         }
       },
 
       {
         desc: "DELETE requests that time out get cancelled",
         run: function(env, test) {
+          env.rs.access.set('foo', 'r');
           env.rs.remote._responses [['delete', '/foo/bar', { ifMatch: '987' }]] = ['timeout'];
           env.rs.local.setNodes({
             '/foo/bar': {
@@ -605,8 +755,6 @@ define([], function() {
           });
         }
       },
-
-], nothing: [
 
       {
         desc: "checkDiffs will not enqueue requests outside the access scope",
