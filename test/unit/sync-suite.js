@@ -621,7 +621,44 @@ define([], function() {
       },
 
 ], tests: [
+      {
+        desc: "folder fetch GET requests that time out get cancelled",
+        run: function(env, test) {
+          env.rs.remote._responses [['get', '/foo/', { ifNoneMatch: '987' }]] = ['timeout'];
+          env.rs.remote._responses [['get', '/foo/']] = ['timeout'];
+          env.rs.local.setNodes({
+            '/foo/': {
+              path: '/foo/',
+              official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
+              remote: {revision: '123'}
+            }
+          }).then(function() {
+            env.rs.sync._tasks = {'/foo/': []};
+            env.rs.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/']);
+          }).then(function(objs) {
+            test.assertAnd(objs['/foo/'], {
+              path: '/foo/',
+              official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
+              remote: {revision: '123'}
+            });
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/']).then(function(objs) {
+                console.log('objs', objs);
+                test.assertAnd(objs['/foo/'], {
+                  path: '/foo/',
+                  official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
+                  remote: {revision: '123'}
+                });
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
 
+], nothing: [
       {
         desc: "folder refresh GET requests that time out get cancelled",
         run: function(env, test) {
@@ -654,8 +691,6 @@ define([], function() {
           });
         }
       },
-
-], nothing: [
 
       {
         desc: "folder non-existing GET requests that time out get cancelled",
