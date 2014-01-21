@@ -262,7 +262,7 @@ define([], function() {
            });
         }
       },
-      
+     
       {
         desc: "findTasks calls checkDiffs and goes to checkRefresh only if necessary",
         run: function(env, test) {
@@ -272,25 +272,27 @@ define([], function() {
              haveDiffs = 0;
            env.rs.sync.checkDiffs = function() {
              checkDiffsCalled++;
-             return haveDiffs;
+             return promising().fulfill(haveDiffs);
            }
            env.rs.sync.checkRefresh = function() {
              checkRefreshCalled++;
              return promising().fulfill([]);
            }
-           env.rs.sync.findTasks();
-           test.assertAnd(checkDiffsCalled, 1);
-           test.assertAnd(checkRefreshCalled, 1);
-           haveDiffs = 1;
-           env.rs.sync.findTasks();
-           test.assertAnd(checkDiffsCalled, 2);
-           test.assertAnd(checkRefreshCalled, 1);
-           env.rs.sync.checkDiffs = tmpCheckDiffs;
-           env.rs.sync.checkRefresh = tmpCheckRefresh;
-           test.done();
+           env.rs.sync.findTasks().then(function() {
+             test.assertAnd(checkDiffsCalled, 1);
+             test.assertAnd(checkRefreshCalled, 1);
+             haveDiffs = 1;
+             return env.rs.sync.findTasks();
+           }).then(function() {
+             test.assertAnd(checkDiffsCalled, 2);
+             test.assertAnd(checkRefreshCalled, 1);
+             env.rs.sync.checkDiffs = tmpCheckDiffs;
+             env.rs.sync.checkRefresh = tmpCheckRefresh;
+             test.done();
+           });
         }
       },
-      
+     
       {
         desc: "checkRefresh gives preference to caching parent",
         run: function(env, test) {
@@ -478,7 +480,6 @@ define([], function() {
       {
         desc: "when a document is fetched, pending requests are resolved",
         run: function(env, test) {
-          console.log('in the test');
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
@@ -486,10 +487,8 @@ define([], function() {
               official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
           }).then(function() {
-            console.log('calling get');
             //with maxAge:1000000 this will get queued since official has no revision:
             env.rs.local.get('/foo/bar', 1000000).then(function(status, body, contentType) {
-              console.log('in get then');
               test.assertAnd(status, 200);
               test.assertAnd(body, 'zz');
               test.assertAnd(contentType, 'application/ld+json');
@@ -497,7 +496,6 @@ define([], function() {
             });
             setTimeout(function() {
               env.rs.remote._responses[['get', '/foo/bar' ]] = [200, 'zz', 'application/ld+json', '123'];
-              console.log('doing tasks', env.rs.sync._tasks);
               env.rs.sync.doTasks();
             }, 100);
           });
@@ -508,7 +506,6 @@ define([], function() {
         desc: "when a folder is fetched, pending requests are resolved",
         run: function(env, test) {
           var done1, done2;
-          console.log('in the test');
           env.rs.caching._responses = {
             '/foo/bar/': env.rs.caching.ALL,
             '/foo/bar/a': env.rs.caching.SEEN_AND_FOLDERS
@@ -520,12 +517,9 @@ define([], function() {
               official: { itemsMap: {a: {ETag: '1'}}, timestamp: 1234567891000 }
             }
           }).then(function() {
-            console.log('calling get');
             //with maxAge:1000000 this will get queued since official has no revision:
             env.rs.local.get('/foo/bar/', 1000000).then(function(status, itemsMap) {
-              console.log('in get then');
               test.assertAnd(status, 200);
-              console.log(itemsMap, 'itemsMap');
               test.assertAnd(itemsMap, {});
               done1 = true;
               if (done2) {
@@ -533,7 +527,6 @@ define([], function() {
               }
             });
             env.rs.local.get('/foo/bar/', 2000000).then(function(status, itemsMap) {
-              console.log('in get then');
               test.assertAnd(status, 200);
               test.assertAnd(itemsMap, {});
               done2 = true;
@@ -543,7 +536,6 @@ define([], function() {
             });
             setTimeout(function() {
               env.rs.remote._responses[['get', '/foo/bar/' ]] = [200, {}, 'application/ld+json', '123'];
-              console.log('doing tasks', env.rs.sync._tasks);
               env.rs.sync.doTasks();
             }, 100);
           });
@@ -574,7 +566,6 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].official,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local, undefined);
@@ -612,7 +603,6 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].official,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local, undefined);
@@ -634,11 +624,9 @@ define([], function() {
           env.rs.sync.doTasks();
           env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
             test.assertAnd(objs['/foo/bar'], undefined);
-            console.log(env.rs.sync._running);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/bar']);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'], undefined);
                 test.assertAnd(env.rs.sync._running, {});
                 test.done();
@@ -672,7 +660,6 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/'], {
                   path: '/foo/',
                   official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
@@ -706,7 +693,6 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/'], {
                   path: '/foo/',
                   official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
@@ -726,11 +712,9 @@ define([], function() {
           env.rs.sync.doTasks();
           env.rs.local.getNodes(['/foo/']).then(function(objs) {
             test.assertAnd(objs['/foo/'], undefined);
-            console.log(env.rs.sync._running);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/'], undefined);
                 test.assertAnd(env.rs.sync._running, {});
                 test.done();
@@ -764,7 +748,6 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].official,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local, { body: 'asdfz', contentType: 'qwerz', timestamp: 1234567891000 });
@@ -803,7 +786,6 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar'].official,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
@@ -854,11 +836,8 @@ define([], function() {
               remote: { revision: 'a' }
             }
           }).then(function() {
-            env.rs.sync.checkDiffs();
-            console.log('tasks', env.rs.sync._tasks);
-            console.log('assert', env.rs.sync._tasks, {
-              '/public/writings/bar': [function() {}]
-            });
+            return env.rs.sync.checkDiffs();
+          }).then(function() {
             test.assertAnd(env.rs.sync._tasks, {
               '/public/writings/bar': [function() {}]
             });
@@ -891,7 +870,6 @@ define([], function() {
           }).then(function() {
             return env.rs.sync.checkDiffs();
           }).then(function(num) {
-            console.log('num', num);
             test.assertAnd(num, 0);
             test.done();
           });
@@ -928,7 +906,6 @@ define([], function() {
         }
       },
 
-    ], tests: [
       {
         desc: "when a conflict is resolved as remote, a change event is sent out",
         run: function(env, test) {
@@ -958,17 +935,14 @@ define([], function() {
         }
       },
 
-], nothing: [
       {
         desc: "when a conflict is resolved as local, no change event is sent out",
         run: function(env, test) {
           var changeCalled = false;
-          env.rs.on('change', function(evt) {
+          env.rs.local._emit = function(type, evt) {
             changeCalled = true;
-          });
-          env.rs.onConflict = function(path) {
-            return 'local';
           };
+          env.conflicts._response = 'local';
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',

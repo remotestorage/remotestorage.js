@@ -20,14 +20,11 @@
       return new Date().getTime();
     },
     queueGetRequest: function(path, promise) {
-      console.log('queueGetRequest', path, promise);
       this.addTask(path, function() {
-        console.log('queueGetRequest cb', path, promise);
         this.local.get(path).then(function(status, bodyOrItemsMap, contentType) {
           promise.fulfill(status, bodyOrItemsMap, contentType);
         });
       }.bind(this));
-      console.log('task added', this._tasks);
     },
     corruptItemsMap: function(itemsMap) {
       var i;
@@ -61,9 +58,9 @@
           (Array.isArray(node)) ||
           (typeof(node.path) !== 'string') ||
           (this.corruptRevision(node.official)) ||
-          (this.local && this.corruptRevision(node.local)) ||
-          (this.remote && this.corruptRevision(node.remote)) ||
-          (this.push && this.corruptRevision(node.push)));
+          (node.local && this.corruptRevision(node.local)) ||
+          (node.remote && this.corruptRevision(node.remote)) ||
+          (node.push && this.corruptRevision(node.push)));
     },
     checkDiffs: function() {
       var num = 0;
@@ -72,19 +69,15 @@
           console.log('WARNING: corrupt node in local cache', node);
           return;
         }
-        console.log('node', node, this.access.checkPath(node.path, 'rw'));
         if (node.remote && node.remote.revision
             && !node.remote.body && !node.remote.itemsMap
             && this.access.checkPath(node.path, 'rw')) {
-          console.log('pass', node);
           this.addTask(node.path, function() {});
           num++;
         }
       }.bind(this)).then(function() {
-        console.log('returning num', num);
         return num;
       }, function(err) {
-        console.log('checkDiffs error', err);
         throw err;
       });
     },
@@ -124,7 +117,6 @@
           }
         }
       }.bind(this), function(err) {
-        console.log('checkRefresh error', err);
         throw err;
       });
     },
@@ -198,18 +190,25 @@
       }.bind(this));
     },
     autoMerge: function(obj) {
-      var resolution, fetched;
+      var resolution, newValue, oldValue;
       if (!obj.remote) {
         return obj;
       }
       if (!obj.local) {
         if (obj.remote) {
           if (obj.path.substr(-1) === '/') {
-            fetched = !!obj.remote.itemsMap;
+            newValue = obj.remote.itemsMap;
+            oldValue = obj.official.itemsMap;
           } else {
-            fetched = !!obj.remote.body;
+            newValue = obj.remote.body;
+            oldValue = obj.official.body;
           }
-          if (fetched) {
+          if (newValue) {
+            this.local._emit('change', {
+              path: obj.path,
+              oldValue: oldValue,
+              newValue: newValue
+            });
             obj.official = obj.remote;
             delete obj.remote;
           }
@@ -237,19 +236,30 @@
         delete obj.push;
         resolution = this.onConflict.check(obj);
         if (resolution === 'local') {
+          //don't emit a change event for a local resolution
           obj.official = obj.remote;
           delete obj.remote;
           return obj;
         }
         if (resolution === 'remote') {
-          delete obj.local;
           if (obj.remote.body) {
+            this.local._emit('change', {
+              path: obj.path,
+              oldValue: obj.remote.body,
+              newValue: obj.official.body
+            });
             obj.official = obj.remote;
             delete obj.remote;
             return obj;
           } else {
+            this.local._emit('change', {
+              path: obj.path,
+              oldValue: obj.local.body,
+              newValue: obj.official.body
+            });
             resolution = 'fetch';
           }
+          delete obj.local;
         }
         if (resolution === 'wait' || resolution === undefined) {
           return obj;
@@ -367,7 +377,6 @@
             if (path.substr(-1) === '/') {
               return this.markChildren(path, bodyOrItemsMap, objs);
             } else {
-              console.log('setting doc fetch object', objs);
               return this.local.setNodes(objs);
             }
           }.bind(this));
@@ -393,17 +402,13 @@
         numToHave = 0;
       }
       numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
-      console.log(numToAdd, 'adding running');
       if (numToAdd === 0) {
         return 0;
       }
       for (path in this._tasks) {
-        console.log('considering', path, this._tasks);
         if (!this._running[path]) {
-          console.log('calling doTask');
           this._running[path] = this.doTask(path);
           this._running[path].then(function(obj) {
-            console.log('doTask thenned');
             if(obj.action === undefined) {
               delete this._running[path];
             } else {
@@ -436,7 +441,6 @@
           return this.checkRefresh();
         }
       }.bind(this), function(err) {
-        console.log('findTasks error', err);
         throw err;
       });
     },
@@ -452,11 +456,8 @@
      **/
     sync: function(remote, local, path) {
       var promise = promising();
-      console.log('sync calling doTasks once');
       if (!this.doTasks()) {
-        console.log('sync calling findTasks');
         return this.findTasks().then(function() {
-          console.log('sync calling doTasks second time');
           try {
             this.doTasks();
           } catch(e) {
