@@ -421,20 +421,20 @@
       return (numAdded > 0);
     },
     findTasks: function() {
-      var i,
-        refresh,
-        numDiffs = this.checkDiffs();
-      if (numDiffs) {
-        promise = promising();
-        promise.fulfill();
-        return promise;
-      } else {
-        return this.checkRefresh().then(function(refresh) {
-          for (i=0; i<refresh.length; i++) {
-            this.addTask(refresh[i], function() {});
-          }
-        });
-      }
+      return this.checkDiffs().then(function(numDiffs) {
+        if (numDiffs) {
+          promise = promising();
+          promise.fulfill();
+          return promise;
+        } else {
+          return this.checkRefresh().then(function(refresh) {
+            var i;
+            for (i=0; i<refresh.length; i++) {
+              this.addTask(refresh[i], function() {});
+            }
+          });
+        }
+      });
     },
     addTask: function(path, cb) {
       if(!this._tasks[path]) {
@@ -448,10 +448,16 @@
      **/
     sync: function(remote, local, path) {
       var promise = promising();
+      console.log('sync calling doTasks once');
       if (!this.doTasks()) {
+        console.log('sync calling findTasks');
         return this.findTasks().then(function() {
+          console.log('sync calling doTasks second time');
           this.doTasks();
-        }.bind(this));
+        }.bind(this), function(err) {
+          console.log('sync error', err);
+          throw new Error('local cache unavailable');
+        });
       } else {
         return promising().fulfill();
       }

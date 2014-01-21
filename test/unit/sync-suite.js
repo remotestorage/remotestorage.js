@@ -867,7 +867,6 @@ define([], function() {
         }
       },
 
-    ], tests: [
       {
         desc: "sync will discard corrupt cache nodes",
         run: function(env, test) {
@@ -899,55 +898,26 @@ define([], function() {
         }
       },
 
-], nothing: [
-      {
-        desc: "sync will migrate legacy cache nodes",
-        run: function(env, test) {
-          env.rs.access.set('writings', 'r');
-          env.rs.access.set('writings', 'rw');
-          env.rs.local.setNodes({
-            '/writings/bar': {
-              path: '/writings/bar',
-              body: 'asdf',
-              contentType: 'qwer',
-              revision: '123'
-            },
-            '/writings/baz': {
-              path: '/writings/baz/',
-              body: {
-                a: '123',
-                'b/': '456'
-              },
-              revision: '123'
-            }
-          }).then(function() {
-            env.rs.sync.checkDiffs();
-            return env.rs.local.getNodes(['/writings/bar']);
-          }).then(function(objs) {
-            test.assertAnd(objs['/writings/bar'], undefined);
-            test.done();
-          });
-        }
-      },
-
+    ], tests: [
       {
         desc: "sync will reject its promise if the cache is not available",
         run: function(env, test) {
           var tmp = env.rs.getNodes;
-          env.rs.getNodes = function() {
-            var promise;
+          env.rs.local.forAllNodes = function(cb) {
+            var promise = promising();
             promise.reject('i am broken, deal with it!');
             return promise;
           };
-          env.rs.sync().then(function() {
+          env.rs.sync.sync().then(function() {
             test.result(false, 'sync was supposed to reject its promise');
           }, function(err) {
-            test.asserAnd(err, 'local store unavailable');
+            test.assertAnd(err, new Error('local cache unavailable'));
             test.done();
           });
           env.rs.getNodes = tmp;
         }
       },
+], nothing: [
 
       {
         desc: "sync will fulfill its promise as long as the cache is available",
