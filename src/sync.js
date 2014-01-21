@@ -30,7 +30,19 @@
       console.log('task added', this._tasks);
     },
     checkDiffs: function() {
-      return [];
+      var num = 0;
+      this.local.forAllNodes(function(node) {
+        console.log('node', node, this.access.checkPath(node.path, 'rw'));
+        if (node.remote && node.remote.revision
+            && !node.remote.body && !node.remote.itemsMap
+            && this.access.checkPath(node.path, 'rw')) {
+          console.log('pass', node);
+          this.addTask(node.path, function() {});
+          num++;
+        }
+      }.bind(this)).then(function() {
+        return num;
+      });
     },
     tooOld: function(node) {
       if (node.official && node.official.timestamp) {
@@ -370,11 +382,8 @@
     findTasks: function() {
       var i,
         refresh,
-        diffs = this.checkDiffs();
-      if (diffs.length) {
-        for (i=0; i<diffs.length; i++) {
-          this.addTask(diffs[i], function() {});
-        }
+        numDiffs = this.checkDiffs();
+      if (numDiffs) {
         promise = promising();
         promise.fulfill();
         return promise;

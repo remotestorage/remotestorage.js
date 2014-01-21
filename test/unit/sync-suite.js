@@ -47,6 +47,18 @@ define([], function() {
       if (path.substring(0, '/write/access/'.length) === '/write/access/') {
         return true;
       }
+      if (path.substring(0, '/readings/'.length) === '/readings/' && mode === 'r') {
+        return true;
+      }
+      if (path.substring(0, '/public/readings/'.length) === '/public/readings/' && mode === 'r') {
+        return true;
+      }
+      if (path.substring(0, '/writings/'.length) === '/writings/') {
+        return true;
+      }
+      if (path.substring(0, '/public/writings/'.length) === '/public/writings/') {
+        return true;
+      }
       return false;
     };
   }
@@ -250,14 +262,14 @@ define([], function() {
            });
         }
       },
-
+      
       {
         desc: "findTasks calls checkDiffs and goes to checkRefresh only if necessary",
         run: function(env, test) {
            var checkDiffsCalled = 0, checkRefreshCalled = 0,
              tmpCheckDiffs = env.rs.sync.checkDiffs,
              tmpCheckRefresh = env.rs.sync.checkRefresh,
-             haveDiffs = [];
+             haveDiffs = 0;
            env.rs.sync.checkDiffs = function() {
              checkDiffsCalled++;
              return haveDiffs;
@@ -269,7 +281,7 @@ define([], function() {
            env.rs.sync.findTasks();
            test.assertAnd(checkDiffsCalled, 1);
            test.assertAnd(checkRefreshCalled, 1);
-           haveDiffs = ['/foo'];
+           haveDiffs = 1;
            env.rs.sync.findTasks();
            test.assertAnd(checkDiffsCalled, 2);
            test.assertAnd(checkRefreshCalled, 1);
@@ -278,7 +290,7 @@ define([], function() {
            test.done();
         }
       },
-
+      
       {
         desc: "checkRefresh gives preference to caching parent",
         run: function(env, test) {
@@ -337,6 +349,13 @@ define([], function() {
       {
         desc: "go through the request-queue with 4-8 requests at a time",
         run: function(env, test) {
+          var tmpDoTask = env.rs.sync.doTask;
+          env.rs.sync.doTask = function() {
+            return promising().fulfill({
+              action: undefined,
+              promise: promising().fulfill()
+            });
+          };
           env.rs.sync.numThreads = 5;
           env.rs.sync.remote.connected = true;
           env.rs.sync.remote.online = true;
@@ -372,12 +391,20 @@ define([], function() {
             '/foo/5'
           ].sort());
          test.done();
+         env.rs.sync.doTask = tmpDoTask;
         }
       },
 
       {
         desc: "sync will attempt only one request, at low frequency, when not online",
         run: function(env, test) {
+          var tmpDoTask = env.rs.sync.doTask;
+          env.rs.sync.doTask = function() {
+            return promising().fulfill({
+              action: undefined,
+              promise: promising().fulfill()
+            });
+          };
           env.rs.sync.numThreads = 5;
           env.rs.sync.remote.connected = true;
           env.rs.sync.remote.online = false;
@@ -409,6 +436,7 @@ define([], function() {
             '/foo1/'
           ]);
          test.done();
+         env.rs.sync.doTask = tmpDoTask;
         }
       },
 
@@ -789,12 +817,9 @@ define([], function() {
         }
       },
 
-], nothing: [
       {
         desc: "checkDiffs will not enqueue requests outside the access scope",
         run: function(env, test) {
-          env.rs.access.set('readings', 'r');
-          env.rs.access.set('writings', 'rw');
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
@@ -802,6 +827,7 @@ define([], function() {
               local: { timestamp: 1234567891000 }
             },
             '/public/readings/bar': {
+              path: '/public/readings/bar',
               official: { revision: '987', timestamp: 1234567890123 },
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
@@ -814,10 +840,8 @@ define([], function() {
       },
 
       {
-        desc: "checkDiffs retrieves body and Content-Type when a new remote revision is set inside access scope",
+        desc: "checkDiffs retrieves body and Content-Type when a new remote revision is set inside rw access scope",
         run: function(env, test) {
-          env.rs.access.set('readings', 'r');
-          env.rs.access.set('writings', 'rw');
           env.rs.local.setNodes({
             '/readings/bar': {
               path: '/readings/bar',
@@ -825,20 +849,25 @@ define([], function() {
               remote: { revision: '900' }
             },
             '/public/writings/bar': {
+              path: '/public/writings/bar',
               official: { revision: '987', timestamp: 1234567890123 },
               remote: { revision: 'a' }
             }
           }).then(function() {
             env.rs.sync.checkDiffs();
+            console.log('tasks', env.rs.sync._tasks);
+            console.log('assert', env.rs.sync._tasks, {
+              '/public/writings/bar': [function() {}]
+            });
             test.assertAnd(env.rs.sync._tasks, {
-              '/writings/bar': true,
-              '/public/writings/bar': true
+              '/public/writings/bar': [function() {}]
             });
             test.done();
           });
         }
       },
 
+], nothing: [
       {
         desc: "sync will discard corrupt cache nodes",
         run: function(env, test) {
@@ -934,7 +963,7 @@ define([], function() {
             env.rs.remote._responses[['delete', '/foo/bar',
                                    { ifMatch: '987' } ]] =
               [412, '', '', ''];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
           });
         }
@@ -960,7 +989,7 @@ define([], function() {
             env.rs.remote._responses[['delete', '/foo/bar',
                                    { ifMatch: '987' } ]] =
               [412, '', '', ''];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
               test.assertAnd(changeCalled, false);
