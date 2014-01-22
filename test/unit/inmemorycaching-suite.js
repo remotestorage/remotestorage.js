@@ -284,6 +284,51 @@ define(['requirejs'], function(requirejs) {
             });
           });
         }
+      },
+
+      {
+        desc: "getNodes, setNodes",
+        run: function(env, test) {
+          env.ims.getNodes(['/foo/bar/baz']).then(function(objs) {
+            test.assertAnd(objs, {'/foo/bar/baz': undefined});
+          }).then(function() {
+            return env.ims.setNodes({
+              '/foo/bar': {
+                path: '/foo/bar',
+                common: { body: 'asdf' }
+              }
+            });
+          }).then(function() {
+            return env.ims.getNodes(['/foo/bar', '/foo/bar/baz']);
+          }).then(function(objs) {
+            test.assertAnd(objs, {
+              '/foo/bar/baz': undefined,
+              '/foo/bar': {
+                path: '/foo/bar',
+                common: { body: 'asdf' }
+              }
+            });
+          }).then(function() {
+            return env.ims.setNodes({
+              '/foo/bar/baz': {
+                path: '/foo/bar/baz/',
+                common: { body: 'qwer' }
+              },
+              '/foo/bar': undefined
+            });
+          }).then(function() {
+            return env.ims.getNodes(['/foo/bar', '/foo/bar/baz']);
+          }).then(function(objs) {
+            test.assertAnd(objs, {
+              '/foo/bar': undefined,
+              '/foo/bar/baz': {
+                path: '/foo/bar/baz/',
+                common: { body: 'qwer' }
+              }
+            });
+            test.done();
+          });
+        }
       }
     ]
   });

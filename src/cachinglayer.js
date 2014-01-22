@@ -91,11 +91,9 @@
              !latest ||
              !latest.timestamp ||
              ((new Date().getTime()) - latest.timestamp > maxAge))) {
-          console.log('queuing get request for fresh results');
           remoteStorage.sync.queueGetRequest(path, promise);
           return promise;
         }
-        console.log('no maxAge, returning latest', latest);
         
         if (latest) {
             promise.fulfill(200, latest.body || latest.itemsMap, latest.contentType);
@@ -188,6 +186,49 @@
         }
         return objs;
       });
+    },
+    _getAllDescendentPaths: function(path) {
+      if (_isFolder(path)) {
+        return this.getNodes([path]).then(function(objs) {
+          var i, pending=0, allPaths = [path], latest = _getLatest(objs[path]), promise = promising();
+          for (i in latest.itemsMap) {
+            pending++;
+            var subPromise = this._getAllDescendentPaths(path+i)
+            subPromise.then(function(paths) {
+              var j;
+              pending--;
+              for (j=0; j<paths.length; j++) {
+                allPaths.push(paths[j]);
+              }
+              if (pending === 0) {
+                promise.fulfill(allPaths);
+              }
+            });
+          }
+          return promise;
+        }.bind(this));
+      } else {
+        return promising().fulfill([path]);
+      }
+    },
+    flush: function(path) {
+      return this._getAllDescendentPaths(path).then(function(paths) {
+        return this.getNodes(paths);
+      }.bind(this)).then(function(objs) {
+        var i;
+        for (i in objs) {
+          if (objs[i] && objs[i].common && objs[i].local) {
+            this._emit('change', {
+              path: objs[i].path,
+              origin: 'local',
+              oldValue: (objs[i].local.body === false ? undefined : objs[i].local.body),
+              newValue: (objs[i].common.body === false ? undefined : objs[i].common.body)
+            });
+          }
+          objs[i] = undefined;
+        }
+        return this.setNodes(objs);
+      }.bind(this));
     },
     fireInitial: function() {
       this.forAllNodes(function(node) {

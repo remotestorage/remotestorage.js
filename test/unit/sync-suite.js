@@ -168,7 +168,7 @@ define([], function() {
             failed = true;
           });
 
-          env.rs.doSync().then(function(){
+          env.rs.sync.sync().then(function(){
             test.assert(failed, false);
           });
         }
@@ -770,7 +770,7 @@ define([], function() {
             '/foo/bar': {
               path: '/foo/bar',
               common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { timestamp: 1234567891000 }
+              local: { body: false, timestamp: 1234567891000 }
             }
           }).then(function() {
             env.rs.sync._tasks = {'/foo/bar': true};
@@ -779,8 +779,8 @@ define([], function() {
           }).then(function(objs) {
             test.assertAnd(objs['/foo/bar'].common,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
-            test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].push.body, undefined);
+            test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, false);
             test.assertAnd(objs['/foo/bar'].push.contentType, undefined);
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
@@ -788,7 +788,7 @@ define([], function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].common,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
-                test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
@@ -806,7 +806,7 @@ define([], function() {
             '/foo/bar': {
               path: '/foo/bar',
               common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { timestamp: 1234567891000 }
+              local: { body: false, timestamp: 1234567891000 }
             },
             '/public/readings/bar': {
               path: '/public/readings/bar',
@@ -923,7 +923,7 @@ define([], function() {
             '/foo/bar': {
               path: '/foo/bar',
               common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { timestamp: 1234567891000 }
+              local: { body: false, timestamp: 1234567891000 }
             }
           }).then(function() {
             env.rs.remote._responses[['delete', '/foo/bar',
@@ -947,7 +947,7 @@ define([], function() {
             '/foo/bar': {
               path: '/foo/bar',
               common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { timestamp: 1234567891000 }
+              local: { body: false, timestamp: 1234567891000 }
             }
           }).then(function() {
             env.rs.remote._responses[['delete', '/foo/bar',
