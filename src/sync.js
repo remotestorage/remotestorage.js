@@ -13,7 +13,6 @@
     this.onConflict = setOnConflict;
     this._tasks = {};
     this._running = {};
-
   }
   RemoteStorage.Sync.prototype = {
     now: function() {
@@ -454,7 +453,7 @@
     /**
      * Method: sync
      **/
-    sync: function(remote, local, path) {
+    sync: function() {
       var promise = promising();
       if (!this.doTasks()) {
         return this.findTasks().then(function() {
@@ -470,15 +469,6 @@
       } else {
         return promising().fulfill();
       }
-    },
-    
-    /**
-     * Method: syncTree
-     **/
-    syncTree: function(remote, local, path) {
-      var promise = promising();
-      promise.fulfill();
-      return promise;
     }
   };
 
@@ -527,25 +517,10 @@
 
   SyncError.prototype = Object.create(Error.prototype);
 
-  RemoteStorage.prototype.doSync = function() {
-    if (! (this.local && this.caching)) {
-      throw "Sync requires 'local' and 'caching'!";
-    }
-    if (! this.remote.connected) {
-      return promising().fulfill();
-    }
-    var aborted = false;
-    var rs = this;
-
-    return promising(function(promise) {
-      return promise.fulfill();
-    });
-  };
-
   RemoteStorage.SyncError = SyncError;
 
   RemoteStorage.prototype.syncCycle = function() {
-    this.sync().then(function() {
+    this.sync.sync().then(function() {
       this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
     }.bind(this),
