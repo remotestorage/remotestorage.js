@@ -70,6 +70,21 @@
       this._rootPaths = {};
     }
   };
+
+  //at this point the global remoteStorage object has not been created yet,
+  //only its prototype exists so far, so we define a self-constructing
+  //property on there:
+  Object.defineProperty(RemoteStorage.prototype, 'caching', {
+    configurable: true,
+    get: function() {
+      var caching = new RemoteStorage.Caching();
+      Object.defineProperty(this, 'caching', {
+        value: caching
+      });
+      return caching;
+    }
+  });
+  
   RemoteStorage.Caching._rs_init = function() {};
 
 })(typeof(window) !== 'undefined' ? window : global);
