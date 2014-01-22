@@ -41,7 +41,7 @@ each of local, push, remote, and common can have,
   * revision
   * timestamp
 - for folders:
-  * itemsMap (itemName -> either true or {ETag: "", "Content-Type": "", "Content-Length": 123})
+  * itemsMap (itemName -> true)
   * revision
   * timestamp
 
