@@ -130,7 +130,7 @@ define([], function() {
 
     tests: [
       {
-        desc: "checkRefresh requests the parent rather than the stale node itself, if it is not an access root",
+        desc: "checkRefresh requests the parent rather than the stale node itself, if it is not a read-access root",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/read/access/f/o/o/': {
