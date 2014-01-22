@@ -66,6 +66,9 @@
     checkDiffs: function() {
       var num = 0;
       return this.local.forAllNodes(function(node) {
+        if (num > 100) {
+          return;
+        }
         if (this.isCorrupt(node)) {
           console.log('WARNING: corrupt node in local cache', node);
           return;
@@ -344,6 +347,7 @@
       }.bind(this));
     },
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
+      console.log('completeFetch', path, bodyOrItemsMap, contentType, revision);
       return this.local.getNodes([path]).then(function(objs) {
         var i;
         if(!objs[path]) {
@@ -365,6 +369,7 @@
           objs[path].remote.contentType = contentType;
         }
         objs[path] = this.autoMerge(objs[path]);
+        console.log('completeFetch after autoMerge', objs);
         return objs;
       }.bind(this));
     },
@@ -408,14 +413,23 @@
     interpretStatus: function(statusCode) {
       var series = Math.floor(statusCode / 100);
       return {
-        successful: (series === 2 || statusCode === 304 || statusCode === 412),
-        conflict: (statusCode === 412)
+        successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
+        conflict: (statusCode === 412),
+        notFound: (statusCode === 404)
       }
     },
     handleResponse: function(path, action, status, bodyOrItemsMap, contentType, revision) {
+      console.log('handleResponse', path, action, status, bodyOrItemsMap, contentType, revision);
       var statusMeaning = this.interpretStatus(status);
       if (statusMeaning.successful) {
         if (action === 'get') {
+          if (statusMeaning.notFound) {
+            if (path.substr(-1) === '/') {
+              bodyOrItemsMap = {};
+            } else {
+              bodyOrItemsmap = false;
+            }
+          }
           return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(objs) {
             if (path.substr(-1) === '/') {
               return this.markChildren(path, bodyOrItemsMap, objs);
@@ -433,6 +447,7 @@
       }
       return promising().fulfill();
     },
+    numThreads: 5,
     doTasks: function() {
       var numToHave, numAdded = 0, numToAdd;
       if (this.remote.connected) {
@@ -452,6 +467,7 @@
         if (!this._running[path]) {
           this._running[path] = this.doTask(path);
           this._running[path].then(function(obj) {
+            console.log('got task', obj);
             if(obj.action === undefined) {
               delete this._running[path];
             } else {
