@@ -8,29 +8,29 @@ If a conflict is resolved as 'local', this means the 'remote' revision is made c
 
 When consulting the base client about the current value of a node, you will get either its 'local' revision if it exists, or its 'common' revision otherwise.
 
-//in sync: 
-1)  . . . . [common]
+    //in sync: 
+    1)  . . . . [common]
 
-//dirty:
-2)  . . . . [common]
-                \
-                 \ . . . . [remote]
+    //dirty:
+    2)  . . . . [common]
+                    \
+                     \ . . . . [remote]
 
-//local change:
-3)  . . . . [common] . . . . [local]
+    //local change:
+    3)  . . . . [common] . . . . [local]
 
-//conflict:
-4) . . . . [common] . . . . [local]
-               \
-                \ . . . . [remote]
+    //conflict:
+    4) . . . . [common] . . . . [local]
+                   \
+                    \ . . . . [remote]
 
-//pushing:
-5)  . . . . [common] . . . . [push] . . . . [local]
+    //pushing:
+    5)  . . . . [common] . . . . [push] . . . . [local]
 
-//pushing, and known dirty (should abort the push, or just wait for the conflict to occur):
-6)  . . . . [common] . . . . [push] . . . . [local]
-                \
-                 \ . . . . [remote]
+    //pushing, and known dirty (should abort the push, or just wait for the conflict to occur):
+    6)  . . . . [common] . . . . [push] . . . . [local]
+                    \
+                     \ . . . . [remote]
 
 
 each of local, push, remote, and common can have,
