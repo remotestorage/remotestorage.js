@@ -21,7 +21,11 @@
     setNodes: function(objs) {
       var i, promise = promising();
       for(i in objs) {
-        this._storage[i] = objs[i];
+        if(objs[i] === undefined) {
+          delete this._storage[i];
+        } else {
+          this._storage[i] = objs[i];
+        }
       }
       promise.fulfill();
       return promise;
