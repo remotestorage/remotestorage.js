@@ -49,12 +49,4 @@ timestamp means when this data was written (local), push was initiated (push), f
 
 # caching strategies
 
-Up to now, our caching strategy was only 'yes', 'no', or 'folders only'. Also, setting a strategy for a subtree of a tree with a different strategy, was ignored. This pull request introduces 5 new caching strategies, which can be set for subtrees at will:
-
-- FLUSH: only cache outgoing changes of documents that have not been pushed out yet. only recommended for parts of the tree that are 'archived', like older parts of a history storage for instance.
-- SEEN: cache all nodes that were either fetched or pushed, plus their ancestor folders up to the access root. this is also the default strategy.
-- FOLDERS: cache only all folders. not recommended, except maybe for instance in an app that gives stats about your pictures without ever accessing the actual images.
-- SEEN_AND_FOLDERS: useful in subtrees where there are big documents, and a user action is required before they are actually downloaded.
-- ALL: cache the whole subtree
-
-The methods of remoteStorage.caching are changed from get, set, remove, to just set and checkPath. Here, setting a strategy affects not only the node, but a whole subtree (if the node is a folder). If none of the ancestors of the path you pass to checkPath has a caching strategy set, then the default strategy 'SEEN' is returned.
+Up to now, our caching strategy was only 'yes', 'no', or 'folders only'. Also, setting a strategy for a subtree of a tree with a different strategy, was ignored. This pull request fixes that by always caching nodes that were seen (even though their caching strategy is 'no'), and introducing a flush() method that flushes the cache for a subtree (which will emit change events that revert any pending outgoing changes there).

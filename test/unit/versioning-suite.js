@@ -625,7 +625,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             //delete the local version while it's being pushed out:
-            objs['/foo/bar'].local = { timestamp: 1234567899999 };
+            objs['/foo/bar'].local = { body: false, timestamp: 1234567899999 };
             return env.rs.local.setNodes({
               '/foo/bar': objs['/foo/bar']
             });
@@ -636,7 +636,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].common.body, 'asdf');
                 test.assertAnd(objs['/foo/bar'].common.contentType, 'qwer');
                 //check that racing local is preserved:
-                test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567899999 });
+                test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567899999 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
@@ -648,13 +648,13 @@ define([], function() {
       },
 
       {
-        desc: "a success response to a DELETE moves local to common",
+        desc: "a success response to a DELETE deletes the node",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
               common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { timestamp: 1234567891000 }
+              local: { body: false, timestamp: 1234567891000 }
             }
           }).then(function() {
             env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] = [200];
@@ -664,19 +664,14 @@ define([], function() {
           }).then(function(objs) {
             test.assertAnd(objs['/foo/bar'].common,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
-            test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].push.body, undefined);
+            test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, false);
             test.assertAnd(objs['/foo/bar'].push.contentType, undefined);
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar'].common.revision, undefined);
-                test.assertAnd(objs['/foo/bar'].common.body, undefined);
-                test.assertAnd(objs['/foo/bar'].common.contentType, undefined);
-                test.assertAnd(objs['/foo/bar'].local, undefined);
-                test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(objs['/foo/bar'], undefined);
                 test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
@@ -740,7 +735,7 @@ define([], function() {
               path: '/foo/',
               remote: { revision: 'fff' },
               common: { itemsMap: {}, timestamp: 1234567891000 },
-              local: { itemsMap: {a: true, b: {ETag: 'aaa'}}, timestamp: 1234567891000 }
+              local: { itemsMap: {a: true, b: true}, timestamp: 1234567891000 }
             }
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
@@ -750,16 +745,16 @@ define([], function() {
             return env.rs.local.getNodes(['/foo/']);
           }).then(function(objs) {
             test.assertAnd(objs['/foo/'].common, { itemsMap: {}, timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/'].local, { itemsMap: {a: true, b: {ETag: 'aaa'}}, timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/'].local, { itemsMap: {a: true, b: true}, timestamp: 1234567891000 });
             test.assertAnd(objs['/foo/'].push, undefined);
             test.assertAnd(objs['/foo/'].remote, { revision: 'fff' });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
                 test.assertAnd(objs['/foo/'].common.revision, '123');
-                test.assertAnd(objs['/foo/'].common.itemsMap, {a: {'ETag': '3'}});
+                test.assertAnd(objs['/foo/'].common.itemsMap, {a: true});
                 test.assertAnd(objs['/foo/'].local,
-                    { itemsMap: {a: true, b: {ETag: 'aaa'}}, timestamp: 1234567891000 });
+                    { itemsMap: {a: true, b: true}, timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/'].push, undefined);
                 test.assertAnd(objs['/foo/'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
@@ -992,7 +987,7 @@ define([], function() {
             '/foo/bar': {
               path: '/foo/bar',
               common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { timestamp: 1234567891000 }
+              local: { body: false, timestamp: 1234567891000 }
             }
           }).then(function() {
             env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] =
@@ -1003,8 +998,8 @@ define([], function() {
           }).then(function(objs) {
             test.assertAnd(objs['/foo/bar'].common,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
-            test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].push.body, undefined);
+            test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, false);
             test.assertAnd(objs['/foo/bar'].push.contentType, undefined);
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
@@ -1012,7 +1007,7 @@ define([], function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].common,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
-                test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
@@ -1067,7 +1062,7 @@ define([], function() {
           env.rs.local.setNodes({
             '/foo/bar/': {
               path: '/foo/bar/',
-              common: { itemsMap: {asdf: {ETag: 'qwer'}}, revision: '987', timestamp: 1234567890123 },
+              common: { itemsMap: {asdf: true}, revision: '987', timestamp: 1234567890123 },
               remote: { revision: '988' }
             }
           }).then(function() {
@@ -1079,7 +1074,7 @@ define([], function() {
             return env.rs.local.getNodes(['/foo/bar/']);
           }).then(function(objs) {
             test.assertAnd(objs['/foo/bar/'].common,
-                { itemsMap: {asdf: {ETag: 'qwer'}}, revision: '987', timestamp: 1234567890123 });
+                { itemsMap: {asdf: true}, revision: '987', timestamp: 1234567890123 });
             test.assertAnd(objs['/foo/bar/'].local, undefined);
             test.assertAnd(objs['/foo/bar/'].push, undefined);
             test.assertAnd(objs['/foo/bar/'].remote, { revision: '988' });
@@ -1087,7 +1082,7 @@ define([], function() {
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar/']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar/'].common,
-                    { itemsMap: {asdf: {ETag: 'qwer'}}, revision: '987', timestamp: 1234567890123 });
+                    { itemsMap: {asdf: true}, revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar/'].local, undefined);
                 test.assertAnd(objs['/foo/bar/'].push, undefined);
                 test.assertAnd(objs['/foo/bar/'].remote, { revision: '988' });
@@ -1147,7 +1142,7 @@ define([], function() {
             '/foo/bar': {
               path: '/foo/bar',
               common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { timestamp: 1234567891000 }
+              local: { body: false, timestamp: 1234567891000 }
             }
           }).then(function() {
             env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
@@ -1157,8 +1152,8 @@ define([], function() {
           }).then(function(objs) {
             test.assertAnd(objs['/foo/bar'].common,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
-            test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].push.body, undefined);
+            test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, false);
             test.assertAnd(objs['/foo/bar'].push.contentType, undefined);
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
@@ -1166,7 +1161,7 @@ define([], function() {
               //to make local win, the revision should be made common, so that the request goes through next time
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].common.revision, 'fff');
-                test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
@@ -1225,7 +1220,7 @@ define([], function() {
             '/foo/bar': {
               path: '/foo/bar',
               common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { timestamp: 1234567891000 }
+              local: { body: false, timestamp: 1234567891000 }
             }
           }).then(function() {
             env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
@@ -1235,8 +1230,8 @@ define([], function() {
           }).then(function(objs) {
             test.assertAnd(objs['/foo/bar'].common,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
-            test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].push.body, undefined);
+            test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, false);
             test.assertAnd(objs['/foo/bar'].push.contentType, undefined);
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
@@ -1301,7 +1296,7 @@ define([], function() {
             '/foo/bar': {
               path: '/foo/bar',
               common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { timestamp: 1234567891000 }
+              local: { body: false, timestamp: 1234567891000 }
             }
           }).then(function() {
             env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
@@ -1311,8 +1306,8 @@ define([], function() {
           }).then(function(objs) {
             test.assertAnd(objs['/foo/bar'].common,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
-            test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].push.body, undefined);
+            test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
+            test.assertAnd(objs['/foo/bar'].push.body, false);
             test.assertAnd(objs['/foo/bar'].push.contentType, undefined);
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
@@ -1323,7 +1318,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].common,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
+                test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
                 test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
@@ -1372,7 +1367,7 @@ define([], function() {
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
                 test.assertAnd(objs['/foo/'].common.revision, 'fff');
-                test.assertAnd(objs['/foo/'].common.itemsMap, {a: {ETag: 'aaa'}});
+                test.assertAnd(objs['/foo/'].common.itemsMap, {a: true});
                 test.assertAnd(objs['/foo/'].push, undefined);
                 test.assertAnd(objs['/foo/'].local, undefined);
                 test.assertAnd(objs['/foo/'].remote, undefined);
