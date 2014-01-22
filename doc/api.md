@@ -4,11 +4,11 @@ Start by defining a module (check out the repo to reuse an existing one):
 ````js
     remoteStorage.defineModule('name', function(privClient, pubCient) {
       //basics:
-      privClient.cache(path, strategy);
+      privClient.cache(path, strategy); //*** changed in 0.10 ***//
       privClient.on('change', function((evt) {});
       privClient.on('conflict', function(evt) {
         //...
-        privClient.resolveConflict(path, resolution);
+        privClient.resolveConflict(path, resolution); //*** changed in 0.10 ***//
       });
       return {
         exports: {
