@@ -23,12 +23,9 @@
   };
 
   RemoteStorage.Caching.prototype = {
-    FLUSH: 0,
-    SEEN: 1,
-    FOLDERS: 2,
-    SEEN_AND_FOLDERS: 3,
-    DOCUMENTS: 4,
-    ALL: 7,
+    SEEN: false,
+    SEEN_AND_FOLDERS: { data: false },
+    ALL: { data: true },
 
     /**
      ** configuration methods
@@ -38,7 +35,7 @@
       if(typeof(path) !== 'string') {
         throw new Error('path should be a string');
       }
-      if (typeof(value) !== 'number') {
+      if (typeof(value) === 'undefined') {
         throw new Error("value should be something like remoteStorage.caching.FOLDERS_AND_SEEN");
       }
       this._rootPaths[path] = value;
@@ -51,7 +48,7 @@
      * retrieves caching setting to smallest tree containing path.
      **/
     checkPath: function(path) {
-      if (this._rootPaths[path]) {
+      if (this._rootPaths[path] !== undefined) {
         return this._rootPaths[path];
       } else if (path === '/') {
         return this.SEEN;
