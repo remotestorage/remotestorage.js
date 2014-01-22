@@ -38,7 +38,7 @@
          return true;
       }
       for (i in itemsMap) {
-        if (typeof(i) !== 'boolean') {
+        if (typeof(itemsMap[i]) !== 'boolean') {
           return true;
         }
       }
@@ -48,11 +48,11 @@
       return ((typeof(rev) !== 'object') ||
           (Array.isArray(rev)) ||
           (rev.revision && typeof(rev.revision) != 'string') ||
-          (rev.body && typeof(rev.body) != 'string') ||
+          (rev.body && typeof(rev.body) != 'string' && typeof(rev.body) != 'object') ||
           (rev.contentType && typeof(rev.contentType) != 'string') ||
           (rev.contentLength && typeof(rev.contentLength) != 'number') ||
           (rev.timestamp && typeof(rev.timestamp) != 'number') ||
-          (rev.itemsMap && corruptItemsMap(rev.itemsMap)));
+          (rev.itemsMap && this.corruptItemsMap(rev.itemsMap)));
     },
     isCorrupt: function(node) {
       return ((typeof(node) !== 'object') ||
@@ -100,8 +100,12 @@
       return this.local.forAllNodes(function(node) {
         var parentPath;
         if (this.tooOld(node)) {
-          parentPath = this.getParentPath(node.path);
-          if (this.access.checkPath(parentPath, 'r')) {
+          try {
+            parentPath = this.getParentPath(node.path);
+          } catch(e) {
+            //node.path is already '/', can't take parentPath
+          }
+          if (parentPath && this.access.checkPath(parentPath, 'r')) {
             this._tasks[parentPath] = true;
           } else if (this.access.checkPath(node.path, 'r')) {
             this._tasks[node.path] = true;
@@ -236,7 +240,7 @@
       } else {
         //conflict resolution for document:
         delete obj.push;
-        resolution = this.onConflict.check(obj);
+        resolution = this.onConflict(obj);
         if (resolution === 'local') {
           //don't emit a change event for a local resolution
           obj.common = obj.remote;

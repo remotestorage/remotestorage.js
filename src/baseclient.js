@@ -450,15 +450,20 @@
     },
 
 
-    cache: function(path, enable) {
+    cache: function(path, strategy) {
       if (typeof(path) !== 'string') {
         throw 'Argument \'path\' of baseClient.cache must be a string';
       }
-      this.storage.caching[enable === false ? 'disable' : 'enable'](
-        this.makePath(path),
-        this.storage.connected
-      );
-      return this;// why?
+      if (strategy === undefined) {
+        strategy = this.storage.caching.ALL;
+      }
+      if (strategy !== this.storage.caching.SEEN &&
+          strategy !== this.storage.caching.SEEN_AND_FOLDERS &&
+          strategy !== this.storage.caching.ALL) {
+        throw 'Argument \'strategy\' of baseclient.cache must be one of '
+            + '[remoteStorage.caching.SEEN, remoteStorage.caching.SEEN_AND_FOLDERS, remoteStorage.caching.ALL]';
+      } 
+      this.storage.caching.set(this.makePath(path), strategy);
     },
 
     makePath: function(path) {
