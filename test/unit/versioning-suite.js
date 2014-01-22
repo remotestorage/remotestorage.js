@@ -708,7 +708,7 @@ define([], function() {
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
                 test.assertAnd(objs['/foo/'].common.revision, '123');
-                test.assertAnd(objs['/foo/'].common.itemsMap, {a: {'ETag': '3'}});
+                test.assertAnd(objs['/foo/'].common.itemsMap, {a: true});
                 test.assertAnd(objs['/foo/'].local, undefined);
                 test.assertAnd(objs['/foo/'].push, undefined);
                 test.assertAnd(objs['/foo/'].remote, undefined);
@@ -849,7 +849,7 @@ define([], function() {
           });
         }
       },
-], tests: [
+      
       {
         desc: "a success response to a document GET can resolve conflicts as 'remote' if local exists",
         run: function(env, test) {
@@ -887,7 +887,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].common.revision, '123');
                 test.assertAnd(objs['/foo/bar'].common.body, 'zz');
                 test.assertAnd(objs['/foo/bar'].common.contentType, 'application/ld+json');
-                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].local, { body: 'ab', contentType: 'bb', timestamp: 1234567891001 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
@@ -897,7 +897,7 @@ define([], function() {
           });
         }
       },
-], nothing: [
+      
       {
         desc: "a success response to a document GET becomes a conflict if local exists and onConflict doesn't resolve it",
         run: function(env, test) {

@@ -32,11 +32,7 @@
          return true;
       }
       for (i in itemsMap) {
-        if ((typeof(i) !== 'string') ||
-            (i.substring(0, i.length-1).indexOf('/') !== -1) ||
-            ((itemsMap[i].ETag && typeof(itemsMap[i].ETag) !== 'string')) ||
-            ((itemsMap[i]['Content-Type'] && typeof(itemsMap[i]['Content-Type']) !== 'string')) ||
-            ((itemsMap[i]['Content-Length'] && typeof(itemsMap[i]['Content-Length']) !== 'number'))) {
+        if (typeof(i) !== 'boolean') {
           return true;
         }
       }
@@ -154,9 +150,9 @@
               promise: this.remote.put(path, objs[path].push.body, objs[path].push.contentType, options)
             };
           }.bind(this));
-        } else if (objs[path].local) {
+        } else if (objs[path].local && objs[path].local.body === false) {
           //push delete:
-          objs[path].push = { timestamp: this.now() };
+          objs[path].push = { body: false, timestamp: this.now() };
           return this.local.setNodes(objs).then(function() {
             var options;
             if (objs[path].common.revision) {
@@ -189,6 +185,7 @@
       }.bind(this));
     },
     autoMerge: function(obj) {
+      console.log('autoMerge', obj);
       var resolution, newValue, oldValue;
       if (!obj.remote) {
         return obj;
@@ -199,8 +196,8 @@
             newValue = obj.remote.itemsMap;
             oldValue = obj.common.itemsMap;
           } else {
-            newValue = obj.remote.body;
-            oldValue = obj.common.body;
+            newValue = (obj.remote.body === false ? undefined : obj.remote.body);
+            oldValue = (obj.common.body === false ? undefined : obj.common.body);
           }
           if (newValue) {
             this.local._emit('change', {
@@ -241,22 +238,23 @@
           return obj;
         }
         if (resolution === 'remote') {
-          if (obj.remote.body) {
+          if (obj.remote.body === undefined) {
             this.local._emit('change', {
               path: obj.path,
-              oldValue: obj.remote.body,
-              newValue: obj.common.body
+              oldValue: (obj.local.body === false ? undefined : obj.local.body),
+              newValue: (obj.common.body === false ? undefined : obj.common.body)
+            });
+            resolution = 'fetch';
+          } else {
+            console.log('here?');
+            this.local._emit('change', {
+              path: obj.path,
+              oldValue: (obj.remote.body === false ? undefined : obj.remote.body),
+              newValue: (obj.common.body === false ? undefined : obj.common.body)
             });
             obj.common = obj.remote;
             delete obj.remote;
             return obj;
-          } else {
-            this.local._emit('change', {
-              path: obj.path,
-              oldValue: obj.local.body,
-              newValue: obj.common.body
-            });
-            resolution = 'fetch';
           }
           delete obj.local;
         }
@@ -311,6 +309,7 @@
     },
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
       return this.local.getNodes([path]).then(function(objs) {
+        var i;
         if(!objs[path]) {
           objs[path] = {
             path: path,
@@ -321,7 +320,10 @@
           revision: revision
         };
         if (path.substr(-1) === '/') {
-          objs[path].remote.itemsMap = bodyOrItemsMap;
+          objs[path].remote.itemsMap = {};
+          for (i in bodyOrItemsMap) {
+            objs[path].remote.itemsMap[i] = true;
+          }
         } else {
           objs[path].remote.body = bodyOrItemsMap;
           objs[path].remote.contentType = contentType;
@@ -344,11 +346,17 @@
           if (action === 'put') {
             objs[path].common.body = objs[path].push.body;
             objs[path].common.contentType = objs[path].push.contentType;
+            if (objs[path].local.body === objs[path].push.body && objs[path].local.contentType === objs[path].push.contentType) {
+              delete objs[path].local;
+            }
+            delete objs[path].push;
+          } else if (action === 'delete') {
+            if (objs[path].local.body === false) {//successfully deleted and no new local changes since push; flush it.
+              objs[path] = undefined;
+            } else {
+              delete objs[path].push;
+            }
           }
-          if (objs[path].local.body === objs[path].push.body && objs[path].local.contentType === objs[path].push.contentType) {
-            delete objs[path].local;
-          }
-          delete objs[path].push;
         }
         return this.local.setNodes(objs);
       }.bind(this));
