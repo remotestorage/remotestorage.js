@@ -544,7 +544,9 @@
         //call this now that all other modules are also ready:
         remoteStorage.sync = new RemoteStorage.Sync(
             remoteStorage.local, remoteStorage.remote, remoteStorage.access,
-            remoteStorage.caching, remoteStorage.conflicts);
+            remoteStorage.caching, function (path) {
+              remoteStorage._emit('conflict', {path: path});
+            });
       }
       remoteStorage.syncCycle();
     };
