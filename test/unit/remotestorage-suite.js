@@ -186,7 +186,7 @@ define([], function() {
       },
 
       {
-        desc: "#diconnect fires disconnected ",
+        desc: "#disconnect fires disconnected",
         run: function(env, test) {
           env.rs.on('disconnected', function() {
             test.done();
@@ -236,6 +236,20 @@ define([], function() {
             test.done();
           });
           env.rs.connect("someone@timeout");
+        }
+      },
+
+      {
+        desc: "get goes to local if it exists",
+        run: function(env, test) {
+          test.result(false, 'TODO 1');
+        }
+      },
+
+      {
+        desc: "get goes to remote if local doesn't exist",
+        run: function(env, test) {
+          test.result(false, 'TODO 2');
         }
       }
     ]

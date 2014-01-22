@@ -961,6 +961,20 @@ define([], function() {
             }, 100);
           });
         }
+      },
+
+      {
+        desc: "get with maxAge requirement is rejected if remote is not connected",
+        run: function(env, test) {
+          test.result(false, 'TODO 1');
+        }
+      },
+
+      {
+        desc: "get with maxAge requirement is rejected if remote is not online",
+        run: function(env, test) {
+          test.result(false, 'TODO 2');
+        }
       }
     ]
   });

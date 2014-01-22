@@ -19,11 +19,17 @@
       return new Date().getTime();
     },
     queueGetRequest: function(path, promise) {
-      this.addTask(path, function() {
-        this.local.get(path).then(function(status, bodyOrItemsMap, contentType) {
-          promise.fulfill(status, bodyOrItemsMap, contentType);
-        });
-      }.bind(this));
+      if (!this.remote.connected) {
+        promise.reject('cannot fulfill maxAge requirement - remote is not connected');
+      } else if (!this.remote.online) {
+        promise.reject('cannot fulfill maxAge requirement - remote is not online');
+      } else {
+        this.addTask(path, function() {
+          this.local.get(path).then(function(status, bodyOrItemsMap, contentType) {
+            promise.fulfill(status, bodyOrItemsMap, contentType);
+          });
+        }.bind(this));
+      }
     },
     corruptItemsMap: function(itemsMap) {
       var i;

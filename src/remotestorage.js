@@ -24,10 +24,8 @@
   var SyncedGetPutDelete = {
     get: function(path) {
       var self = this;
-      if (this.caching.cachePath(path)) {
-        return this.caching.waitForPath(path).then(function() {
-          return self.local.get(path);
-        });
+      if (this.local) {
+        return this.local.get(path);
       } else {
         return this.remote.get(path);
       }
