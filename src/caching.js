@@ -27,7 +27,9 @@
     SEEN: 1,
     FOLDERS: 2,
     SEEN_AND_FOLDERS: 3,
-    DOCUMENTS: 4,
+    //DOCUMENTS: 4, - not useful
+    //SEEN_AND_DOCUMENTS: 5, - not useful
+    //FOLDERS_AND_DOCUMENTS: 6, - not useful
     ALL: 7,
 
     /**

@@ -543,7 +543,7 @@ define([], function() {
       },
 
       {
-        desc: "document fetch GET requests that time out get cancelled",
+        desc: "document fetch GET requests that time out get cancelled and doTasks is called",
         run: function(env, test) {
           env.rs.remote._responses [['get', '/foo/bar', { IfNoneMatch: '987' }]] = ['timeout'];
           env.rs.remote._responses [['get', '/foo/bar']] = ['timeout'];
@@ -572,7 +572,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, {revision: '1234'});
                 test.assertAnd(env.rs.sync._running, {});
-                test.done();
+                test.result(false, 'TODO: check that doTasks is called');
               });
             }, 100);
           });
@@ -609,7 +609,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
-                test.done();
+                test.result(false, 'TODO: check that doTasks is called');
               });
             }, 100);
           });
@@ -629,7 +629,7 @@ define([], function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'], undefined);
                 test.assertAnd(env.rs.sync._running, {});
-                test.done();
+                test.result(false, 'TODO: check that doTasks is called');
               });
             }, 100);
           });
@@ -665,7 +665,7 @@ define([], function() {
                   common: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
                   remote: {revision: '123'}
                 });
-                test.done();
+                test.result(false, 'TODO: check that doTasks is called');
               });
             }, 100);
           });
@@ -697,7 +697,7 @@ define([], function() {
                   path: '/foo/',
                   common: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
                 });
-                test.done();
+                test.result(false, 'TODO: check that doTasks is called');
               });
             }, 100);
           });
@@ -717,7 +717,7 @@ define([], function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
                 test.assertAnd(objs['/foo/'], undefined);
                 test.assertAnd(env.rs.sync._running, {});
-                test.done();
+                test.result(false, 'TODO: check that doTasks is called');
               });
             }, 100);
           });
@@ -754,7 +754,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
-                test.done();
+                test.result(false, 'TODO: check that doTasks is called');
               });
             }, 100);
           });
@@ -792,7 +792,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
-                test.done();
+                test.result(false, 'TODO: check that doTasks is called');
               });
             }, 100);
           });
@@ -916,7 +916,7 @@ define([], function() {
               newValue: 'asdf',
               path: '/foo/bar'
             });
-            test.done();
+            test.result(false, 'TODO: check that doTasks is called');
           };
           env.conflicts._response = 'remote';
           env.rs.local.setNodes({
@@ -957,7 +957,7 @@ define([], function() {
             env.rs.sync.doTasks();
             setTimeout(function() {
               test.assertAnd(changeCalled, false);
-              test.done();
+              test.result(false, 'TODO: check that doTasks is called');
             }, 100);
           });
         }
@@ -974,6 +974,76 @@ define([], function() {
         desc: "get with maxAge requirement is rejected if remote is not online",
         run: function(env, test) {
           test.result(false, 'TODO 2');
+        }
+      },
+
+      {
+        desc: "when a running requests finishes, the next task from the queue is started, until the queue is empty",
+        run: function(env, test) {
+          test.result(false, 'TODO 3');
+        }
+      },
+
+      {
+        desc: "sync() returns its promise when there are no more tasks queued or running",
+        run: function(env, test) {
+          test.result(false, 'TODO 4');
+        }
+      },
+
+      {
+        desc: "addTask calls doTasks",
+        run: function(env, test) {
+          test.result(false, 'TODO 5');
+        }
+      },
+
+      {
+        desc: "a failed request calls doTasks",
+        run: function(env, test) {
+          test.result(false, 'TODO 6');
+        }
+      },
+
+      {
+        desc: "a fetch resolution calls addTask and doTasks",
+        run: function(env, test) {
+          test.result(false, 'TODO 7');
+        }
+      },
+
+      {
+        desc: "markChildren calls addTask and doTasks",
+        run: function(env, test) {
+          test.result(false, 'TODO 8');
+        }
+      },
+
+      {
+        desc: "newly created children call addTask and doTasks",
+        run: function(env, test) {
+          test.result(false, 'TODO 9');
+        }
+      },
+
+      {
+        desc: "caching.set calls addTask and doTasks if strategy is FOLDERS",
+        run: function(env, test) {
+          test.result(false, 'TODO 10');
+        }
+      },
+
+      {
+        desc: "caching.set calls addTask and doTasks if strategy is SEEN_AND_FOLDERS",
+        run: function(env, test) {
+          test.result(false, 'TODO 11');
+        }
+      },
+      
+      {
+        desc: "caching.set calls addTask and doTasks if strategy is ALL",
+        run: function(env, test) {
+          test.result(false, 'TODO 12');
         }
       }
     ]
