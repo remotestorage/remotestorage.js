@@ -460,7 +460,7 @@
         numToHave = 0;
       }
       numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
-      if (numToAdd === 0) {
+      if (numToAdd <= 0) {
         return 0;
       }
       for (path in this._tasks) {
