@@ -94,6 +94,7 @@
       var nodes = transaction.objectStore('nodes');
       var i, nodeReq;
       for (i in objs) {
+        console.log('putting', objs[i]);
         nodes.put(objs[i]);
       }
       

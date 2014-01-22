@@ -70,23 +70,41 @@
           console.log('WARNING: corrupt node in local cache', node);
           return;
         }
-        if (node.remote && node.remote.revision
+        if (this.needsFetch(node)) {
+          console.log('enqueuing', node.path);
+          this.addTask(node.path, function() {});
+          num++;
+        } else if (node.remote && node.remote.revision
             && !node.remote.body && !node.remote.itemsMap
             && this.access.checkPath(node.path, 'rw')) {
           this.addTask(node.path, function() {});
           num++;
         }
       }.bind(this)).then(function() {
+        console.log('checkDiffs found', num, this._tasks);
         return num;
       }, function(err) {
         throw err;
       });
     },
     tooOld: function(node) {
-      if (node.common && node.common.timestamp) {
+      console.log('checking tooOld for', node.path); return true;
+      if (node.common) {
+        if (!node.common.timestamp) {
+          return true;
+        }
         return (this.now() - node.common.timestamp > syncInterval);
       }
       return false;
+    },
+    needsFetch: function(node) {
+      if (node.common && node.common.itemsMap === undefined && node.common.body === undefined) {
+        return true;
+      }
+      if (node.remote && node.remote.itemsMap === undefined && node.remote.body === undefined) {
+        return true;
+      }
+      console.log('needsFetch false', node);
     },
     getParentPath: function(path) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
@@ -103,16 +121,20 @@
           try {
             parentPath = this.getParentPath(node.path);
           } catch(e) {
+            console.log('WARNING: can\'t get parentPath of', node.path);
             //node.path is already '/', can't take parentPath
           }
           if (parentPath && this.access.checkPath(parentPath, 'r')) {
-            this._tasks[parentPath] = true;
+            this._tasks[parentPath] = [];
           } else if (this.access.checkPath(node.path, 'r')) {
-            this._tasks[node.path] = true;
+            this._tasks[node.path] = [];
           }
         }
+        console.log('at end of cb', this._tasks);
       }.bind(this)).then(function() {
+        console.log('at start of then', this._tasks);
         var i, j;
+        console.log('checkRefresh found', this._tasks);
         for(i in this._tasks) {
           nodes = this.local._getInternals()._nodesFromRoot(i);
           for (j=1; j<nodes.length; j++) {
@@ -121,6 +143,7 @@
             }
           }
         }
+        console.log('checkRefresh selected', this._tasks);
       }.bind(this), function(err) {
         throw err;
       });
@@ -306,11 +329,14 @@
               create = (cachingStrategy === this.caching.ALL);
             }
             if (create) {
-              changedObjs[j] = { common: {
-                revision: meta[j].ETag,
-                contentType: meta[j]['Content-Type'],
-                contentLength: meta[j]['Content-Length']
-              } };
+              changedObjs[j] = {
+                path: j,
+                common: {
+                  revision: meta[j].ETag,
+                  contentType: meta[j]['Content-Type'],
+                  contentLength: meta[j]['Content-Length']
+                }
+              };
             }
           }
         }
@@ -433,10 +459,12 @@
                 return this.handleResponse(path, obj.action, status, body, contentType, revision);
               }.bind(this)).then(function() {
                 delete this._running[path];
-                for(i=0; i<this._tasks[path].length; i++) {
-                  this._tasks[path][i]();
+                if (this._tasks[path]) {
+                  for(i=0; i<this._tasks[path].length; i++) {
+                    this._tasks[path][i]();
+                  }
+                  delete this._tasks[path];
                 }
-                delete this._tasks[path];
               }.bind(this));
             }
           }.bind(this));
