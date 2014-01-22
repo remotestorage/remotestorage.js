@@ -520,7 +520,7 @@
   RemoteStorage.SyncError = SyncError;
 
   RemoteStorage.prototype.syncCycle = function() {
-    this.sync.sync().then(function() {
+    this.sync().then(function() {
       this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
     }.bind(this),
@@ -540,6 +540,10 @@
   var syncCycleCb;
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
     syncCycleCb = function() {
+      if(!remoteStorage.sync) {
+        //call this now that all other modules are also ready:
+        remoteStorage.sync = RemoteStorage.Sync(remoteStorage.local, remoteStorage.remote, remoteStorage.access, remoteStorage.caching, remoteStorage.conflicts);
+      }
       remoteStorage.syncCycle();
     };
     remoteStorage.on('ready', syncCycleCb);
