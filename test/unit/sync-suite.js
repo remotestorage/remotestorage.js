@@ -304,7 +304,7 @@ define([], function() {
           env.rs.local.forAllNodes = function(cb) {
             cb({
               path: '/foo/ba/and/then/some/sub/path', //should be overruled by ancestor /foo/ba/
-              official: {
+              common: {
                 body: 'off',
                 contentType: 'cT',
                 timestamp: 1234567890123
@@ -312,7 +312,7 @@ define([], function() {
             });
             cb({
               path: '/foo/ba/', //should retrieve /foo/ to get its new revision
-              official: {
+              common: {
                 body: 'off',
                 contentType: 'cT',
                 timestamp: 1234567890124
@@ -320,7 +320,7 @@ define([], function() {
             });
             cb({
               path: '/read/access/', // should retrieve
-              official: {
+              common: {
                 body: 'off',
                 contentType: 'cT',
                 timestamp: 1234567890124
@@ -328,7 +328,7 @@ define([], function() {
             });
             cb({
               path: '/no/access/', // no access
-              official: {
+              common: {
                 body: 'off',
                 contentType: 'cT',
                 timestamp: 1234567890124
@@ -484,10 +484,10 @@ define([], function() {
             '/foo/bar': {
               path: '/foo/bar',
               remote: { revision: 'fff' },
-              official: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
+              common: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
           }).then(function() {
-            //with maxAge:1000000 this will get queued since official has no revision:
+            //with maxAge:1000000 this will get queued since common has no revision:
             env.rs.local.get('/foo/bar', 1000000).then(function(status, body, contentType) {
               test.assertAnd(status, 200);
               test.assertAnd(body, 'zz');
@@ -514,10 +514,10 @@ define([], function() {
             '/foo/bar/': {
               path: '/foo/bar/',
               remote: { revision: 'fff' },
-              official: { itemsMap: {a: {ETag: '1'}}, timestamp: 1234567891000 }
+              common: { itemsMap: {a: {ETag: '1'}}, timestamp: 1234567891000 }
             }
           }).then(function() {
-            //with maxAge:1000000 this will get queued since official has no revision:
+            //with maxAge:1000000 this will get queued since common has no revision:
             env.rs.local.get('/foo/bar/', 1000000).then(function(status, itemsMap) {
               test.assertAnd(status, 200);
               test.assertAnd(itemsMap, {});
@@ -550,7 +550,7 @@ define([], function() {
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
-              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               remote: { revision: '1234' }
             }
           }).then(function() {
@@ -558,7 +558,7 @@ define([], function() {
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
-            test.assertAnd(objs['/foo/bar'].official,
+            test.assertAnd(objs['/foo/bar'].common,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
             test.assertAnd(objs['/foo/bar'].local, undefined);
             test.assertAnd(objs['/foo/bar'].push, undefined);
@@ -566,7 +566,7 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar'].official,
+                test.assertAnd(objs['/foo/bar'].common,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
@@ -586,7 +586,7 @@ define([], function() {
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
-              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 }
+              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 }
             }
           }).then(function() {
             //checkRefresh would enqueue the parent folder here, but we explicitly enqueue a refresh
@@ -595,7 +595,7 @@ define([], function() {
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
-            test.assertAnd(objs['/foo/bar'].official,
+            test.assertAnd(objs['/foo/bar'].common,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
             test.assertAnd(objs['/foo/bar'].local, undefined);
             test.assertAnd(objs['/foo/bar'].push, undefined);
@@ -603,7 +603,7 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar'].official,
+                test.assertAnd(objs['/foo/bar'].common,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
@@ -644,7 +644,7 @@ define([], function() {
           env.rs.local.setNodes({
             '/foo/': {
               path: '/foo/',
-              official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
+              common: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
               remote: {revision: '123'}
             }
           }).then(function() {
@@ -654,7 +654,7 @@ define([], function() {
           }).then(function(objs) {
             test.assertAnd(objs['/foo/'], {
               path: '/foo/',
-              official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
+              common: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
               remote: {revision: '123'}
             });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
@@ -662,7 +662,7 @@ define([], function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
                 test.assertAnd(objs['/foo/'], {
                   path: '/foo/',
-                  official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
+                  common: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
                   remote: {revision: '123'}
                 });
                 test.done();
@@ -679,7 +679,7 @@ define([], function() {
           env.rs.local.setNodes({
             '/foo/': {
               path: '/foo/',
-              official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
+              common: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
             }
           }).then(function() {
             env.rs.sync._tasks = {'/foo/': []};
@@ -688,14 +688,14 @@ define([], function() {
           }).then(function(objs) {
             test.assertAnd(objs['/foo/'], {
               path: '/foo/',
-              official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
+              common: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
             });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
                 test.assertAnd(objs['/foo/'], {
                   path: '/foo/',
-                  official: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
+                  common: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
                 });
                 test.done();
               });
@@ -731,7 +731,7 @@ define([], function() {
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
-              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { body: 'asdfz', contentType: 'qwerz', timestamp: 1234567891000 }
             }
           }).then(function() {
@@ -739,7 +739,7 @@ define([], function() {
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
-            test.assertAnd(objs['/foo/bar'].official,
+            test.assertAnd(objs['/foo/bar'].common,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
             test.assertAnd(objs['/foo/bar'].local, { body: 'asdfz', contentType: 'qwerz', timestamp: 1234567891000 });
             test.assertAnd(objs['/foo/bar'].push.body, 'asdfz');
@@ -748,7 +748,7 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar'].official,
+                test.assertAnd(objs['/foo/bar'].common,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local, { body: 'asdfz', contentType: 'qwerz', timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
@@ -769,7 +769,7 @@ define([], function() {
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
-              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             }
           }).then(function() {
@@ -777,7 +777,7 @@ define([], function() {
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
-            test.assertAnd(objs['/foo/bar'].official,
+            test.assertAnd(objs['/foo/bar'].common,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
             test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
             test.assertAnd(objs['/foo/bar'].push.body, undefined);
@@ -786,7 +786,7 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar'].official,
+                test.assertAnd(objs['/foo/bar'].common,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local, { timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
@@ -805,12 +805,12 @@ define([], function() {
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
-              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             },
             '/public/readings/bar': {
               path: '/public/readings/bar',
-              official: { revision: '987', timestamp: 1234567890123 },
+              common: { revision: '987', timestamp: 1234567890123 },
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
@@ -827,12 +827,12 @@ define([], function() {
           env.rs.local.setNodes({
             '/readings/bar': {
               path: '/readings/bar',
-              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               remote: { revision: '900' }
             },
             '/public/writings/bar': {
               path: '/public/writings/bar',
-              official: { revision: '987', timestamp: 1234567890123 },
+              common: { revision: '987', timestamp: 1234567890123 },
               remote: { revision: 'a' }
             }
           }).then(function() {
@@ -854,12 +854,12 @@ define([], function() {
           env.rs.local.setNodes({
             '/writings/bar': {
               path: '/writings/bar',
-              official: { body: function() {}, contentType: 3, revision: '987', timestamp: 1234567890123 },
+              common: { body: function() {}, contentType: 3, revision: '987', timestamp: 1234567890123 },
               remote: { revision: 'yes' },
               push: 'no'
             },
             '/writings/baz': {
-              official: { body: function() {}, contentType: 3, revision: '987', timestamp: 1234567890123 },
+              common: { body: function() {}, contentType: 3, revision: '987', timestamp: 1234567890123 },
               remote: { revision: 'yes' },
               push: 'no'
             },
@@ -922,7 +922,7 @@ define([], function() {
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
-              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             }
           }).then(function() {
@@ -946,7 +946,7 @@ define([], function() {
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
-              official: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { timestamp: 1234567891000 }
             }
           }).then(function() {

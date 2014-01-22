@@ -32,15 +32,15 @@
         if (node.local && node.local.itemsMap) {
           return node.local;
         }
-        if (node.official && node.official.itemsMap) {
-          return node.official;
+        if (node.common && node.common.itemsMap) {
+          return node.common;
         }
       } else {
         if (node.local && node.local.body && node.local.contentType) {
           return node.local;
         }
-        if (node.official && node.official.body && node.official.contentType) {
-          return node.official;
+        if (node.common && node.common.body && node.common.contentType) {
+          return node.common;
         }
         //migration code; once all apps use this version of the lib, we can publish clean-up code
         //that migrates over any old-format data, and stop supporting it. for now, new apps will
@@ -71,12 +71,12 @@
     _makeNode = function(path, now) {
       var ret = {
         path: path,
-        official: {
+        common: {
           timestamp: now
         }
       };
       if(_isFolder(path)) {
-        ret.official.itemsMap = {};
+        ret.common.itemsMap = {};
       }
       return ret;
     };
@@ -152,7 +152,7 @@
             //add it to all parents
             itemName = pathNodes[i-1].substring(pathNodes[i].length);
             if (!objs[pathNodes[i]].local) {
-              objs[pathNodes[i]].local = _deepClone(objs[pathNodes[i]].official);
+              objs[pathNodes[i]].local = _deepClone(objs[pathNodes[i]].common);
             }
             objs[pathNodes[i]].local.itemsMap[itemName] = true;
           }
@@ -177,7 +177,7 @@
             //remove it from all parents
             itemName = pathNodes[i-1].substring(pathNodes[i].length);
             if (!objs[pathNodes[i]].local) {
-              objs[pathNodes[i]].local = _deepClone(objs[pathNodes[i]].official);
+              objs[pathNodes[i]].local = _deepClone(objs[pathNodes[i]].common);
             }
             delete objs[pathNodes[i]].local.itemsMap[itemName];
             if (Object.getOwnPropertyNames(objs[pathNodes[i]].local.itemsMap).length) {

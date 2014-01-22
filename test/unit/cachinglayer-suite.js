@@ -76,7 +76,7 @@ define(['requirejs'], function(requirejs) {
               body: 'b',
               contentType: 'c'
             },
-            official: {
+            common: {
               foo: 'bar'
             },
             push: {
@@ -86,9 +86,9 @@ define(['requirejs'], function(requirejs) {
               foo: 'bar'
             }
           },
-          officialNode = {
+          commonNode = {
             path: '/a/b',
-            official: {
+            common: {
               body: 'b',
               contentType: 'c'
             },
@@ -114,8 +114,8 @@ define(['requirejs'], function(requirejs) {
           }}), undefined);
           test.assertAnd(env.ims._getInternals()._getLatest(localNode).body, 'b');
           test.assertAnd(env.ims._getInternals()._getLatest(localNode).contentType, 'c');
-          test.assertAnd(env.ims._getInternals()._getLatest(officialNode).body, 'b');
-          test.assertAnd(env.ims._getInternals()._getLatest(officialNode).contentType, 'c');
+          test.assertAnd(env.ims._getInternals()._getLatest(commonNode).body, 'b');
+          test.assertAnd(env.ims._getInternals()._getLatest(commonNode).contentType, 'c');
           test.assertAnd(env.ims._getInternals()._getLatest(legacyNode).body, 'asdf');
           test.assertAnd(env.ims._getInternals()._getLatest(legacyNode).contentType, 'text/plain');
           test.done()
@@ -142,14 +142,14 @@ define(['requirejs'], function(requirejs) {
         run: function(env, test) {
           test.assertAnd(env.ims._getInternals()._makeNode('/a/b/', 1234567890123), {
             path: '/a/b/',
-            official: {
+            common: {
               timestamp: 1234567890123,
               itemsMap: {}
             }
           });
           test.assert(env.ims._getInternals()._makeNode('/a/b', 1234567890123), {
             path: '/a/b',
-            official: {
+            common: {
               timestamp: 1234567890123
             }
           });

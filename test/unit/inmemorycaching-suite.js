@@ -72,11 +72,11 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#get loads a node from official",
+        desc: "#get loads a node from common",
         run: function(env, test) {
           var node = {
             path: '/foo',
-            official: {
+            common: {
               body: 'bar',
               contentType: 'text/plain',
               revision: 'someRev'
@@ -86,8 +86,8 @@ define(['requirejs'], function(requirejs) {
           env.ims.get('/foo').then(function(status, body,
                                            contentType) {
             test.assertAnd(status, 200);
-            test.assertAnd(body, node.official.body);
-            test.assertAnd(contentType, node.official.contentType);
+            test.assertAnd(body, node.common.body);
+            test.assertAnd(contentType, node.common.contentType);
             test.done();
           });
         }
@@ -130,7 +130,7 @@ define(['requirejs'], function(requirejs) {
           var requestQueued = false;
           env.rs.local._storage['/foo'] = {
             path: '/foo',
-            official: {
+            common: {
               timestamp: 1234567890123,
               body: 'asdf',
               contentType: 'qwer',

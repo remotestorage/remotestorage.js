@@ -33,7 +33,7 @@
    *       "device" origin events will also be fired for changes happening in
    *       other windows on the same device.
    *     - #on('conflict', ...) event. Conflict events usually have the following
-   *       attributes: official, local, remote. They also bring a "resolve" method,
+   *       attributes: common, local, remote. They also bring a "resolve" method,
    *       which can be called with either of the strings "remote" and "local" to
    *       mark the conflict as resolved. The actual resolution will usually take
    *       place in the next sync cycle. If no conflict handler is provided, all

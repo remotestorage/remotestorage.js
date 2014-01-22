@@ -12,8 +12,8 @@ define(['requirejs'], function(requirejs) {
     if(node && node.local && node.local.timestamp) {
       delete node.local.timestamp;
     }
-    if(node && node.official && node.official.timestamp) {
-      delete node.official.timestamp;
+    if(node && node.common && node.common.timestamp) {
+      delete node.common.timestamp;
     }
     test.assertAnd(node, expected);
   }
