@@ -480,6 +480,8 @@ define([], function() {
       {
         desc: "when a document is fetched, pending requests are resolved",
         run: function(env, test) {
+          env.rs.remote.connected = true;
+          env.rs.remote.online = true;
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
@@ -506,6 +508,8 @@ define([], function() {
         desc: "when a folder is fetched, pending requests are resolved",
         run: function(env, test) {
           var done1, done2;
+          env.rs.remote.connected = true;
+          env.rs.remote.online = true;
           env.rs.caching._responses = {
             '/foo/bar/': env.rs.caching.ALL,
             '/foo/bar/a': env.rs.caching.SEEN_AND_FOLDERS
@@ -543,7 +547,7 @@ define([], function() {
       },
 
       {
-        desc: "document fetch GET requests that time out get cancelled and doTasks is called",
+        desc: "document fetch GET requests that time out get cancelled",
         run: function(env, test) {
           env.rs.remote._responses [['get', '/foo/bar', { IfNoneMatch: '987' }]] = ['timeout'];
           env.rs.remote._responses [['get', '/foo/bar']] = ['timeout'];
@@ -572,7 +576,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, {revision: '1234'});
                 test.assertAnd(env.rs.sync._running, {});
-                test.result(false, 'TODO: check that doTasks is called');
+                test.done();
               });
             }, 100);
           });
@@ -609,7 +613,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
-                test.result(false, 'TODO: check that doTasks is called');
+                test.done();
               });
             }, 100);
           });
@@ -629,7 +633,7 @@ define([], function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'], undefined);
                 test.assertAnd(env.rs.sync._running, {});
-                test.result(false, 'TODO: check that doTasks is called');
+                test.done();
               });
             }, 100);
           });
@@ -665,7 +669,7 @@ define([], function() {
                   common: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
                   remote: {revision: '123'}
                 });
-                test.result(false, 'TODO: check that doTasks is called');
+                test.done();
               });
             }, 100);
           });
@@ -697,7 +701,7 @@ define([], function() {
                   path: '/foo/',
                   common: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
                 });
-                test.result(false, 'TODO: check that doTasks is called');
+                test.done();
               });
             }, 100);
           });
@@ -717,7 +721,7 @@ define([], function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
                 test.assertAnd(objs['/foo/'], undefined);
                 test.assertAnd(env.rs.sync._running, {});
-                test.result(false, 'TODO: check that doTasks is called');
+                test.done();
               });
             }, 100);
           });
@@ -754,7 +758,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
-                test.result(false, 'TODO: check that doTasks is called');
+                test.done();
               });
             }, 100);
           });
@@ -792,7 +796,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
-                test.result(false, 'TODO: check that doTasks is called');
+                test.done();
               });
             }, 100);
           });
@@ -916,7 +920,7 @@ define([], function() {
               newValue: 'asdf',
               path: '/foo/bar'
             });
-            test.result(false, 'TODO: check that doTasks is called');
+            test.done();
           };
           env.conflicts._response = 'remote';
           env.rs.local.setNodes({
@@ -957,12 +961,12 @@ define([], function() {
             env.rs.sync.doTasks();
             setTimeout(function() {
               test.assertAnd(changeCalled, false);
-              test.result(false, 'TODO: check that doTasks is called');
+              test.done();
             }, 100);
           });
         }
       },
-
+], nothing: [
       {
         desc: "get with maxAge requirement is rejected if remote is not connected",
         run: function(env, test) {

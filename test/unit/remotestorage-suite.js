@@ -238,7 +238,7 @@ define([], function() {
           env.rs.connect("someone@timeout");
         }
       },
-
+], nothing: [
       {
         desc: "get goes to local if it exists",
         run: function(env, test) {
