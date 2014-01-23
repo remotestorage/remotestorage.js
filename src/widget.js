@@ -139,7 +139,8 @@
       }.bind(this));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
       if (this.rs.sync) {
-        this.view.on('sync', this.rs.sync.bind(this.rs));
+//        this.view.on('sync', this.rs.sync.sync.bind(this.rs.sync));
+        this.view.on('sync', function() {console.log('sync click');});
       }
       try {
         this.view.on('reset', function(){

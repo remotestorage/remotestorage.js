@@ -13,6 +13,7 @@
     this.onConflict = setOnConflict;
     this._tasks = {};
     this._running = {};
+    this._startTime = {};
   }
   RemoteStorage.Sync.prototype = {
     now: function() {
@@ -100,14 +101,19 @@
       }
       return false;
     },
+    inConflict: function(node) {
+      return (node.local && node.remote && (node.remote.body !== undefined || node.remote.itemsMap));
+    },
     needsFetch: function(node) {
+      if (this.inConflict(node)) {
+        return false;
+      }
       if (node.common && node.common.itemsMap === undefined && node.common.body === undefined) {
         return true;
       }
       if (node.remote && node.remote.itemsMap === undefined && node.remote.body === undefined) {
         return true;
       }
-      console.log('needsFetch false', node);
     },
     getParentPath: function(path) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
@@ -120,7 +126,7 @@
     checkRefresh: function() {
       return this.local.forAllNodes(function(node) {
         var parentPath;
-        if (this.tooOld(node)) {
+        if (!this.inConflict(node) && this.tooOld(node)) {
           try {
             parentPath = this.getParentPath(node.path);
           } catch(e) {
@@ -441,22 +447,27 @@
           }
           return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(objs) {
             if (path.substr(-1) === '/') {
+              console.log('handleResponse calling markChildren');
               return this.markChildren(path, bodyOrItemsMap, objs);
             } else {
+              console.log('handleResponse calling setNodes');
               return this.local.setNodes(objs);
             }
           }.bind(this));
         } else if (action === 'put') {
+          console.log('handleResponse calling completePush');
           return this.completePush(path, action, statusMeaning.conflict, revision);
         } else if (action === 'delete') {
+          console.log('handleResponse calling completePush');
           return this.completePush(path, action, statusMeaning.conflict, revision);
         }
       } else {
+        console.log('handleResponse calling dealWithFailure');
         return this.dealWithFailure(path, action, statusMeaning);
       }
       return promising().fulfill();
     },
-    numThreads: 5,
+    numThreads: 1,
     doTasks: function() {
       var numToHave, numAdded = 0, numToAdd;
       if (this.remote.connected) {
@@ -474,6 +485,7 @@
       }
       for (path in this._tasks) {
         if (!this._running[path]) {
+          this._startTime[path] = this.now();
           this._running[path] = this.doTask(path);
           this._running[path].then(function(obj) {
             console.log('got task', obj);
@@ -481,20 +493,31 @@
               delete this._running[path];
             } else {
               obj.promise.then(function(status, body, contentType, revision) {
+                console.log('calling handleResponse');
                 return this.handleResponse(path, obj.action, status, body, contentType, revision);
               }.bind(this)).then(function() {
                 delete this._running[path];
+                delete this._startTime[path];
                 if (this._tasks[path]) {
                   for(i=0; i<this._tasks[path].length; i++) {
                     this._tasks[path][i]();
                   }
                   delete this._tasks[path];
+                  setTimeout(function() {
+                    console.log('resuming remoteStorage.sync.doTasks(); after success deletion');
+                    remoteStorage.sync.doTasks();
+                  }, 100);
                 }
               }.bind(this),
               function(err) {
                 console.log('task error', err);
                 this.remote.online = false;
                 delete this._running[path];
+                delete this._startTime[path];
+                 setTimeout(function() {
+                    console.log('resuming remoteStorage.sync.doTasks(); after error deletion');
+                    remoteStorage.sync.doTasks();
+                  }, 100);
               }.bind(this));
             }
           }.bind(this));
@@ -530,6 +553,7 @@
      * Method: sync
      **/
     sync: function() {
+      console.log('sync calling doTasks');
       var promise = promising();
       if (!this.doTasks()) {
         return this.findTasks().then(function() {
