@@ -318,8 +318,7 @@
                 changedObjs[j] = this.local._getInternals()._deepClone(objs[j]);
                 changedObjs[j].remote = {
                   revision: meta[j].ETag,
-                  contentType: meta[j]['Content-Type'],
-                  contentLength: meta[j]['Content-Length']
+                  timestamp: this.now()
                 };
                 changedObjs[j] = this.autoMerge(changedObjs[j]);
               }
@@ -336,12 +335,17 @@
                 path: j,
                 common: {
                   revision: meta[j].ETag,
-                  contentType: meta[j]['Content-Type'],
-                  contentLength: meta[j]['Content-Length']
+                  timestamp: this.now()
                 }
               };
             }
           }
+          if (meta[j]['Content-Type']) {
+            changedObjs[j].common.contentType = meta[j]['Content-Type'];
+          }
+          if (meta[j]['Content-Length']) {
+            changedObjs[j].common.contentLength = meta[j]['Content-Length'];
+          }       
         }
         return this.local.setNodes(changedObjs);
       }.bind(this));
@@ -357,7 +361,8 @@
           };
         }
         objs[path].remote = {
-          revision: revision
+          revision: revision,
+          timestamp: this.now()
         };
         if (path.substr(-1) === '/') {
           objs[path].remote.itemsMap = {};
@@ -377,12 +382,16 @@
       return this.local.getNodes([path]).then(function(objs) {
         if (conflict) {
           if (!objs[path].remote || objs[path].remote.revision !== revision) {
-            objs[path].remote = { revision: revision };
+            objs[path].remote = {
+              revision: revision,
+              timestamp: this.now()
+            };
           }
           objs[path] = this.autoMerge(objs[path]);
         } else {
           objs[path].common = {
-            revision: revision
+            revision: revision,
+            timestamp: this.now()
           };
           if (action === 'put') {
             objs[path].common.body = objs[path].push.body;
@@ -461,7 +470,7 @@
       }
       numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
       if (numToAdd <= 0) {
-        return 0;
+        return true;
       }
       for (path in this._tasks) {
         if (!this._running[path]) {
@@ -481,16 +490,21 @@
                   }
                   delete this._tasks[path];
                 }
+              }.bind(this),
+              function(err) {
+                console.log('task error', err);
+                this.remote.online = false;
+                delete this._running[path];
               }.bind(this));
             }
           }.bind(this));
           numAdded++;
-          if (numAdded === numToAdd) {
+          if (numAdded >= numToAdd) {
             return true;
           }
         }
       }
-      return (numAdded > 0);
+      return (numAdded >= numToAdd);
     },
     findTasks: function() {
       return this.checkDiffs().then(function(numDiffs) {
@@ -581,23 +595,22 @@
 
   RemoteStorage.SyncError = SyncError;
 
+  var stopped;
   RemoteStorage.prototype.syncCycle = function() {
+    if (stopped) {
+      return;
+    }  
     this.sync.sync().then(function() {
-      this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
     }.bind(this),
     function(e) {
-      this.stopSync();
       this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
     }.bind(this));
   };
 
   RemoteStorage.prototype.stopSync = function() {
-    if (this._syncTimer) {
-      clearTimeout(this._syncTimer);
-      delete this._syncTimer;
-    }
-  };
+    stopped = true;
+ };
 
   var syncCycleCb;
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
@@ -609,7 +622,7 @@
             remoteStorage.caching, function (path) {
               remoteStorage._emit('conflict', {path: path});
             });
-      }
+      }  
       remoteStorage.syncCycle();
     };
     remoteStorage.on('ready', syncCycleCb);
