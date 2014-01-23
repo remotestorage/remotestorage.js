@@ -5,15 +5,13 @@
   /**
    * Class: RemoteStorage.Sync
    **/
-  RemoteStorage.Sync = function(setLocal, setRemote, setAccess, setCaching, setOnConflict) {
+  RemoteStorage.Sync = function(setLocal, setRemote, setAccess, setCaching) {
     this.local = setLocal;
     this.remote = setRemote;
     this.access = setAccess;
     this.caching = setCaching;
-    this.onConflict = setOnConflict;
     this._tasks = {};
     this._running = {};
-    this._startTime = {};
   }
   RemoteStorage.Sync.prototype = {
     now: function() {
@@ -74,7 +72,8 @@
           console.log('WARNING: corrupt node in local cache', node);
           return;
         }
-        if (this.needsFetch(node)) {
+        if (this.needsFetch(node)
+            && this.access.checkPath(node.path, 'r')) {
           console.log('enqueuing', node.path);
           this.addTask(node.path, function() {});
           num++;
@@ -101,19 +100,14 @@
       }
       return false;
     },
-    inConflict: function(node) {
-      return (node.local && node.remote && (node.remote.body !== undefined || node.remote.itemsMap));
-    },
     needsFetch: function(node) {
-      if (this.inConflict(node)) {
-        return false;
-      }
       if (node.common && node.common.itemsMap === undefined && node.common.body === undefined) {
         return true;
       }
       if (node.remote && node.remote.itemsMap === undefined && node.remote.body === undefined) {
         return true;
       }
+      console.log('needsFetch false', node);
     },
     getParentPath: function(path) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
@@ -126,7 +120,7 @@
     checkRefresh: function() {
       return this.local.forAllNodes(function(node) {
         var parentPath;
-        if (!this.inConflict(node) && this.tooOld(node)) {
+        if (this.tooOld(node)) {
           try {
             parentPath = this.getParentPath(node.path);
           } catch(e) {
@@ -270,42 +264,8 @@
         }
         return obj;
       } else {
-        //conflict resolution for document:
+        //leave to conflict resolution for document:
         delete obj.push;
-        resolution = this.onConflict(obj);
-        if (resolution === 'local') {
-          //don't emit a change event for a local resolution
-          obj.common = obj.remote;
-          delete obj.remote;
-          return obj;
-        }
-        if (resolution === 'remote') {
-          if (obj.remote.body === undefined) {
-            this.local._emit('change', {
-              path: obj.path,
-              oldValue: (obj.local.body === false ? undefined : obj.local.body),
-              newValue: (obj.common.body === false ? undefined : obj.common.body)
-            });
-            resolution = 'fetch';
-          } else {
-            console.log('here?');
-            this.local._emit('change', {
-              path: obj.path,
-              oldValue: (obj.remote.body === false ? undefined : obj.remote.body),
-              newValue: (obj.common.body === false ? undefined : obj.common.body)
-            });
-            obj.common = obj.remote;
-            delete obj.remote;
-            return obj;
-          }
-          delete obj.local;
-        }
-        if (resolution === 'wait' || resolution === undefined) {
-          return obj;
-        }
-        if (resolution === 'fetch') {
-          return obj;
-        }
         return obj;
       }
     },
@@ -353,7 +313,14 @@
             changedObjs[j].common.contentLength = meta[j]['Content-Length'];
           }       
         }
-        return this.local.setNodes(changedObjs);
+        return this.local.setNodes(changedObjs).then(function() {
+          var j;
+          for (j in changedObjs) {
+            if(changedObjs[j].local && changedObjs[j].remote) {
+              this.local._emit('conflict', changedObjs[j]);
+            }
+          }
+        }.bind(this));
       }.bind(this));
     },
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
@@ -414,7 +381,14 @@
             }
           }
         }
-        return this.local.setNodes(objs);
+        return this.local.setNodes(objs).then(function() {
+          var j;
+          for (j in objs) {
+            if(objs[j].local && objs[j].remote) {
+              this.local._emit('conflict', objs[j]);
+            }
+          }
+        }.bind(this));
       }.bind(this));
     },
     dealWithFailure: function(path, action, statusMeaning) {
@@ -447,27 +421,29 @@
           }
           return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(objs) {
             if (path.substr(-1) === '/') {
-              console.log('handleResponse calling markChildren');
               return this.markChildren(path, bodyOrItemsMap, objs);
             } else {
-              console.log('handleResponse calling setNodes');
-              return this.local.setNodes(objs);
+              return this.local.setNodes(objs).then(function() {
+                var j;
+                for (j in objs) {
+                  if(objs[j].local && objs[j].remote) {
+                    this.local._emit('conflict', objs[j]);
+                  }
+                }
+              }.bind(this));
             }
           }.bind(this));
         } else if (action === 'put') {
-          console.log('handleResponse calling completePush');
           return this.completePush(path, action, statusMeaning.conflict, revision);
         } else if (action === 'delete') {
-          console.log('handleResponse calling completePush');
           return this.completePush(path, action, statusMeaning.conflict, revision);
         }
       } else {
-        console.log('handleResponse calling dealWithFailure');
         return this.dealWithFailure(path, action, statusMeaning);
       }
       return promising().fulfill();
     },
-    numThreads: 1,
+    numThreads: 5,
     doTasks: function() {
       var numToHave, numAdded = 0, numToAdd;
       if (this.remote.connected) {
@@ -485,7 +461,6 @@
       }
       for (path in this._tasks) {
         if (!this._running[path]) {
-          this._startTime[path] = this.now();
           this._running[path] = this.doTask(path);
           this._running[path].then(function(obj) {
             console.log('got task', obj);
@@ -493,31 +468,20 @@
               delete this._running[path];
             } else {
               obj.promise.then(function(status, body, contentType, revision) {
-                console.log('calling handleResponse');
                 return this.handleResponse(path, obj.action, status, body, contentType, revision);
               }.bind(this)).then(function() {
                 delete this._running[path];
-                delete this._startTime[path];
                 if (this._tasks[path]) {
                   for(i=0; i<this._tasks[path].length; i++) {
                     this._tasks[path][i]();
                   }
                   delete this._tasks[path];
-                  setTimeout(function() {
-                    console.log('resuming remoteStorage.sync.doTasks(); after success deletion');
-                    remoteStorage.sync.doTasks();
-                  }, 100);
                 }
               }.bind(this),
               function(err) {
                 console.log('task error', err);
                 this.remote.online = false;
                 delete this._running[path];
-                delete this._startTime[path];
-                 setTimeout(function() {
-                    console.log('resuming remoteStorage.sync.doTasks(); after error deletion');
-                    remoteStorage.sync.doTasks();
-                  }, 100);
               }.bind(this));
             }
           }.bind(this));
@@ -553,7 +517,6 @@
      * Method: sync
      **/
     sync: function() {
-      console.log('sync calling doTasks');
       var promise = promising();
       if (!this.doTasks()) {
         return this.findTasks().then(function() {
@@ -569,6 +532,37 @@
       } else {
         return promising().fulfill();
       }
+    },
+    resolveConflict: function(path, resolution) {
+      return this.local.getNodes([path]).then(function(objs) {
+        var obj = objs[path];
+        if (resolution === 'local') {
+          //don't emit a change event for a local resolution
+          obj.common = obj.remote;
+          delete obj.remote;
+        } else if (resolution === 'remote') {
+          if (obj.remote.body === undefined) {
+            this.local._emit('change', {
+              path: obj.path,
+              oldValue: (obj.local.body === false ? undefined : obj.local.body),
+              newValue: (obj.common.body === false ? undefined : obj.common.body)
+            });
+            resolution = 'fetch';
+          } else {
+            this.local._emit('change', {
+              path: obj.path,
+              oldValue: (obj.remote.body === false ? undefined : obj.remote.body),
+              newValue: (obj.common.body === false ? undefined : obj.common.body)
+            });
+            obj.common = obj.remote;
+            delete obj.remote;
+          }
+          delete obj.local;
+        }
+        return obj;
+      }.bind(this)).then(function(obj) {
+        return this.local.setNodes({path: obj});
+      }.bind(this));
     }
   };
 

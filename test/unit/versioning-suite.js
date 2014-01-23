@@ -145,7 +145,7 @@ define([], function() {
             return env.rs.sync.checkRefresh();
           }).then(function() {
             test.assertAnd(env.rs.sync._tasks, {
-              '/read/access/f/o/': true
+              '/read/access/f/o/': []
             });
             test.done();
           });
@@ -167,10 +167,11 @@ define([], function() {
               '/foo/bar/baz/': env.rs.caching.SEEN_AND_FOLDERS,
               '/foo/bar/baf': env.rs.caching.SEEN_AND_FOLDERS
             };
-            env.rs.sync._tasks = {'/foo/bar/': true};
+            env.rs.sync._tasks = {'/foo/bar/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
+                console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar/baz/'].common.revision, '123');
                 test.assertAnd(objs['/foo/bar/baf'], undefined);
                 test.done();
@@ -195,7 +196,7 @@ define([], function() {
               '/foo/bar/baz/': env.rs.caching.ALL,
               '/foo/bar/baf': env.rs.caching.ALL
             };
-            env.rs.sync._tasks = {'/foo/bar/': true};
+            env.rs.sync._tasks = {'/foo/bar/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
@@ -232,7 +233,7 @@ define([], function() {
             env.rs.caching._responses = {
               '/foo/': env.rs.caching.ALL
             };
-            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -271,7 +272,7 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
-            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -312,7 +313,7 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
-            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -353,7 +354,7 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
-            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -395,7 +396,7 @@ define([], function() {
             env.rs.caching._responses = {
               '/foo/': env.rs.caching.ALL
             };
-            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
@@ -436,7 +437,7 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459'}}, 'application/json', '123'];
-            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/']).then(function(objs) {
@@ -473,7 +474,7 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459'}}, 'application/json', '123'];
-            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baf']).then(function(objs) {
@@ -509,7 +510,7 @@ define([], function() {
               '/foo/baz/': env.rs.caching.SEEN,
               '/foo/baf': env.rs.caching.SEEN
             };
-            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/']).then(function(objs) {
@@ -551,7 +552,7 @@ define([], function() {
               '/foo/baz/': env.rs.caching.SEEN,
               '/foo/baf': env.rs.caching.SEEN
             };
-            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baf']).then(function(objs) {
@@ -577,7 +578,7 @@ define([], function() {
             }
           }).then(function() {
             env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifNoneMatch: '*' } ]] = [200, '', '', '123'];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -614,7 +615,7 @@ define([], function() {
             }
           }).then(function() {
             env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifNoneMatch: '*' } ]] = [200, '', '', '123'];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -658,7 +659,7 @@ define([], function() {
             }
           }).then(function() {
             env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] = [200];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -696,7 +697,7 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {a: {ETag: '3'}}, 'application/ld+json', '123'];
-            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/']);
           }).then(function(objs) {
@@ -740,7 +741,7 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {a: {ETag: '3'}}, 'application/ld+json', '123'];
-            env.rs.sync._tasks = {'/foo/': true};
+            env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/']);
           }).then(function(objs) {
@@ -777,7 +778,7 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/bar' ]] =
               [200, 'zz', 'application/ld+json', '123'];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -815,7 +816,7 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/bar' ]] =
               [200, 'zz', 'application/ld+json', '123'];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -863,7 +864,7 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/bar' ]] =
               [200, 'zz', 'application/ld+json', '123'];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -910,7 +911,7 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/bar' ]] =
               [200, 'zz', 'application/ld+json', '123'];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -952,7 +953,7 @@ define([], function() {
             }
           }).then(function() {
             env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifMatch: '987' } ]] = [573, '', '', ''];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -992,7 +993,7 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] =
               [480, '', '', ''];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1031,7 +1032,7 @@ define([], function() {
             //ifNoneMatch header doesn't make a difference here:
             env.rs.remote._responses[['get', '/foo/bar' ]] = ['a', '', '', ''];
             env.rs.remote._responses[['get', '/foo/bar', { ifNoneMatch: '987' } ]] = ['a', '', '', ''];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1069,7 +1070,7 @@ define([], function() {
             //ifNoneMatch header doesn't make a difference here:
             env.rs.remote._responses[['get', '/foo/bar/', { ifNoneMatch: '987' } ]] = [685, '', '', ''];
             env.rs.remote._responses[['get', '/foo/bar/' ]] = [685, '', '', ''];
-            env.rs.sync._tasks = {'/foo/bar/': true};
+            env.rs.sync._tasks = {'/foo/bar/': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar/']);
           }).then(function(objs) {
@@ -1106,7 +1107,7 @@ define([], function() {
             }
           }).then(function() {
             env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1146,7 +1147,7 @@ define([], function() {
             }
           }).then(function() {
             env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1184,7 +1185,7 @@ define([], function() {
             }
           }).then(function() {
             env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1224,7 +1225,7 @@ define([], function() {
             }
           }).then(function() {
             env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1262,7 +1263,7 @@ define([], function() {
             }
           }).then(function() {
             env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
@@ -1300,7 +1301,7 @@ define([], function() {
             }
           }).then(function() {
             env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
-            env.rs.sync._tasks = {'/foo/bar': true};
+            env.rs.sync._tasks = {'/foo/bar': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {

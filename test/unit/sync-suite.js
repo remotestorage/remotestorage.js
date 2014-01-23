@@ -22,13 +22,6 @@ define([], function() {
     };
   }
 
-  function FakeConflicts(){
-    this._response;
-    this.check = function(obj) {
-      return this._response;
-    };
-  }
-
   function FakeAccess(){
     this._data = {};
     this.set = function(moduleName, value) {
@@ -139,8 +132,7 @@ define([], function() {
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();
       env.rs.caching = new FakeCaching();
-      env.conflicts = new FakeConflicts();
-      env.rs.sync = new RemoteStorage.Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching, env.conflicts);
+      env.rs.sync = new RemoteStorage.Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
       global.remoteStorage = env.rs;
       test.done();
     },
@@ -338,8 +330,8 @@ define([], function() {
           };
           env.rs.sync.checkRefresh().then(function() {
             test.assertAnd(env.rs.sync._tasks, {
-             '/foo/': true,
-             '/read/access/': true
+             '/foo/': [],
+             '/read/access/': []
             });
             env.rs.local.forAllNodes = tmpForAllNodes;
             env.rs.sync.now = tmpNow;
@@ -711,7 +703,7 @@ define([], function() {
       {
         desc: "folder non-existing GET requests that time out get cancelled",
         run: function(env, test) {
-          env.rs.remote._responses [['get', '/foo/',]] = ['timeout'];
+          env.rs.remote._responses [['get', '/foo/']] = ['timeout'];
           env.rs.sync._tasks = {'/foo/': []};
           env.rs.sync.doTasks();
           env.rs.local.getNodes(['/foo/']).then(function(objs) {
@@ -802,10 +794,12 @@ define([], function() {
           });
         }
       },
-
       {
         desc: "checkDiffs will not enqueue requests outside the access scope",
         run: function(env, test) {
+          env.rs.sync.numThreads = 5;
+          env.rs.remote.connected = true;
+          env.rs.remote.online = true;
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
@@ -813,7 +807,7 @@ define([], function() {
               local: { body: false, timestamp: 1234567891000 }
             },
             '/public/readings/bar': {
-              path: '/public/readings/bar',
+              path: '/public/nothings/bar',
               common: { revision: '987', timestamp: 1234567890123 },
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
@@ -824,13 +818,12 @@ define([], function() {
           });
         }
       },
-
       {
         desc: "checkDiffs retrieves body and Content-Type when a new remote revision is set inside rw access scope",
         run: function(env, test) {
           env.rs.local.setNodes({
-            '/readings/bar': {
-              path: '/readings/bar',
+            '/nothings/bar': {
+              path: '/nothings/bar',
               common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               remote: { revision: '900' }
             },
@@ -909,20 +902,21 @@ define([], function() {
           });
         }
       },
-
       {
         desc: "when a conflict is resolved as remote, a change event is sent out",
         run: function(env, test) {
           env.rs.local._emit = function(type, evt) {
-            test.assertAnd(type, 'change');
-            test.assertAnd(evt, {
-              oldValue: undefined,
-              newValue: 'asdf',
-              path: '/foo/bar'
-            });
-            test.done();
+            if (type === 'conflict') {
+              env.rs.sync.resolveConflict(evt.path, 'remote');
+            } else if (type === 'change') {
+              test.assertAnd(evt, {
+                oldValue: undefined,
+                newValue: 'asdf',
+                path: '/foo/bar'
+              });
+              test.done();
+            }
           };
-          env.conflicts._response = 'remote';
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
@@ -938,15 +932,17 @@ define([], function() {
           });
         }
       },
-
       {
         desc: "when a conflict is resolved as local, no change event is sent out",
         run: function(env, test) {
           var changeCalled = false;
           env.rs.local._emit = function(type, evt) {
-            changeCalled = true;
+            if (type === 'conflict') {
+              env.rs.sync.resolveConflict(evt.path, 'local');
+            } else if (type === 'change') {
+              changeCalled = true;
+            }
           };
-          env.conflicts._response = 'local';
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
