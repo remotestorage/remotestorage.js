@@ -477,7 +477,7 @@
               obj.promise.then(function(status, body, contentType, revision) {
                 return this.handleResponse(path, obj.action, status, body, contentType, revision);
               }.bind(this)).then(function() {
-                delete this.timeStarted[path];
+                delete this._timeStarted[path];
                 delete this._running[path];
                 setTimeout(function() {
                   console.log('restarting doTasks after success');
@@ -493,7 +493,7 @@
               function(err) {
                 console.log('task error', err);
                 this.remote.online = false;
-                delete this.timeStarted[path];
+                delete this._timeStarted[path];
                 delete this._running[path];
                 setTimeout(function() {
                   console.log('restarting doTasks after failure');

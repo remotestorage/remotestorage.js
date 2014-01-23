@@ -479,6 +479,7 @@
     },
 
     _fireChange: function(event) {
+      console.log('emitting change', event);
       this._emit('change', event);
     },
 
@@ -486,7 +487,7 @@
       if (this._handlers.conflict.length > 0) {
         this._emit('conflict', event);
       } else {
-        event.resolve('remote');
+        remoteStorage.sync.resolveConflict(event.path, 'remote');
       }
     },
 
