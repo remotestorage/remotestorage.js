@@ -12,6 +12,7 @@
     this.caching = setCaching;
     this._tasks = {};
     this._running = {};
+    this._timeStarted = {};
   }
   RemoteStorage.Sync.prototype = {
     now: function() {
@@ -100,14 +101,19 @@
       }
       return false;
     },
+    inConflict: function(node) {
+      return (node.local && node.remote && (node.remote.body !== undefined || node.remote.itemsMap));
+    },
     needsFetch: function(node) {
+      if (this.inConflict(node)) {
+        return false;
+      }
       if (node.common && node.common.itemsMap === undefined && node.common.body === undefined) {
         return true;
       }
       if (node.remote && node.remote.itemsMap === undefined && node.remote.body === undefined) {
         return true;
       }
-      console.log('needsFetch false', node);
     },
     getParentPath: function(path) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
@@ -120,7 +126,7 @@
     checkRefresh: function() {
       return this.local.forAllNodes(function(node) {
         var parentPath;
-        if (this.tooOld(node)) {
+        if (!this.inConflict(node) && this.tooOld(node)) {
           try {
             parentPath = this.getParentPath(node.path);
           } catch(e) {
@@ -443,7 +449,7 @@
       }
       return promising().fulfill();
     },
-    numThreads: 5,
+    numThreads: 1,
     doTasks: function() {
       var numToHave, numAdded = 0, numToAdd;
       if (this.remote.connected) {
@@ -461,6 +467,7 @@
       }
       for (path in this._tasks) {
         if (!this._running[path]) {
+          this._timeStarted = this.now();
           this._running[path] = this.doTask(path);
           this._running[path].then(function(obj) {
             console.log('got task', obj);
@@ -470,7 +477,12 @@
               obj.promise.then(function(status, body, contentType, revision) {
                 return this.handleResponse(path, obj.action, status, body, contentType, revision);
               }.bind(this)).then(function() {
+                delete this.timeStarted[path];
                 delete this._running[path];
+                setTimeout(function() {
+                  console.log('restarting doTasks after success');
+                  remoteStorage.sync.doTasks();
+                }, 100);
                 if (this._tasks[path]) {
                   for(i=0; i<this._tasks[path].length; i++) {
                     this._tasks[path][i]();
@@ -481,7 +493,12 @@
               function(err) {
                 console.log('task error', err);
                 this.remote.online = false;
+                delete this.timeStarted[path];
                 delete this._running[path];
+                setTimeout(function() {
+                  console.log('restarting doTasks after failure');
+                  remoteStorage.sync.doTasks();
+                }, 100);
               }.bind(this));
             }
           }.bind(this));
