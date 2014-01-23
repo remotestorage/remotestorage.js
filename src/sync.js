@@ -264,42 +264,8 @@
         }
         return obj;
       } else {
-        //conflict resolution for document:
+        //leave to conflict resolution for document:
         delete obj.push;
-        resolution = this.onConflict(obj);
-        if (resolution === 'local') {
-          //don't emit a change event for a local resolution
-          obj.common = obj.remote;
-          delete obj.remote;
-          return obj;
-        }
-        if (resolution === 'remote') {
-          if (obj.remote.body === undefined) {
-            this.local._emit('change', {
-              path: obj.path,
-              oldValue: (obj.local.body === false ? undefined : obj.local.body),
-              newValue: (obj.common.body === false ? undefined : obj.common.body)
-            });
-            resolution = 'fetch';
-          } else {
-            console.log('here?');
-            this.local._emit('change', {
-              path: obj.path,
-              oldValue: (obj.remote.body === false ? undefined : obj.remote.body),
-              newValue: (obj.common.body === false ? undefined : obj.common.body)
-            });
-            obj.common = obj.remote;
-            delete obj.remote;
-            return obj;
-          }
-          delete obj.local;
-        }
-        if (resolution === 'wait' || resolution === undefined) {
-          return obj;
-        }
-        if (resolution === 'fetch') {
-          return obj;
-        }
         return obj;
       }
     },
@@ -347,7 +313,14 @@
             changedObjs[j].common.contentLength = meta[j]['Content-Length'];
           }       
         }
-        return this.local.setNodes(changedObjs);
+        return this.local.setNodes(changedObjs).then(function() {
+          var j;
+          for (j in changedObjs) {
+            if(changedObjs[j].local && changedObjs[j].remote) {
+              this.onConflict(changedObjs[j]);
+            }
+          }
+        }.bind(this));
       }.bind(this));
     },
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
@@ -408,7 +381,14 @@
             }
           }
         }
-        return this.local.setNodes(objs);
+        return this.local.setNodes(objs).then(function() {
+          var j;
+          for (j in objs) {
+            if(objs[j].local && objs[j].remote) {
+              this.onConflict(objs[j]);
+            }
+          }
+        }.bind(this));
       }.bind(this));
     },
     dealWithFailure: function(path, action, statusMeaning) {
@@ -443,7 +423,14 @@
             if (path.substr(-1) === '/') {
               return this.markChildren(path, bodyOrItemsMap, objs);
             } else {
-              return this.local.setNodes(objs);
+              return this.local.storeNodes(objs).then(function() {
+                var j;
+                for (j in objs) {
+                  if(objs[j].local && objs[j].remote) {
+                    this.onConflict(objs[j]);
+                  }
+                }
+              }.bind(this));
             }
           }.bind(this));
         } else if (action === 'put') {
@@ -545,6 +532,37 @@
       } else {
         return promising().fulfill();
       }
+    },
+    resolveConflict: function(path, resolution) {
+      return this.local.getNodes([path]).then(objs) {
+        var obj = objs[path];
+        if (resolution === 'local') {
+          //don't emit a change event for a local resolution
+          obj.common = obj.remote;
+          delete obj.remote;
+        } else if (resolution === 'remote') {
+          if (obj.remote.body === undefined) {
+            this.local._emit('change', {
+              path: obj.path,
+              oldValue: (obj.local.body === false ? undefined : obj.local.body),
+              newValue: (obj.common.body === false ? undefined : obj.common.body)
+            });
+            resolution = 'fetch';
+          } else {
+            this.local._emit('change', {
+              path: obj.path,
+              oldValue: (obj.remote.body === false ? undefined : obj.remote.body),
+              newValue: (obj.common.body === false ? undefined : obj.common.body)
+            });
+            obj.common = obj.remote;
+            delete obj.remote;
+          }
+          delete obj.local;
+        }
+        return obj;
+      }).then(function(obj) {
+        return this.local.setNodes({path: obj});
+      });
     }
   };
 
