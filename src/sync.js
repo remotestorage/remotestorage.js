@@ -5,12 +5,11 @@
   /**
    * Class: RemoteStorage.Sync
    **/
-  RemoteStorage.Sync = function(setLocal, setRemote, setAccess, setCaching, setOnConflict) {
+  RemoteStorage.Sync = function(setLocal, setRemote, setAccess, setCaching) {
     this.local = setLocal;
     this.remote = setRemote;
     this.access = setAccess;
     this.caching = setCaching;
-    this.onConflict = setOnConflict;
     this._tasks = {};
     this._running = {};
   }
@@ -73,7 +72,8 @@
           console.log('WARNING: corrupt node in local cache', node);
           return;
         }
-        if (this.needsFetch(node)) {
+        if (this.needsFetch(node)
+            && this.access.checkPath(node.path, 'r')) {
           console.log('enqueuing', node.path);
           this.addTask(node.path, function() {});
           num++;
@@ -317,7 +317,7 @@
           var j;
           for (j in changedObjs) {
             if(changedObjs[j].local && changedObjs[j].remote) {
-              this.onConflict(changedObjs[j]);
+              this.local._emit('conflict', changedObjs[j]);
             }
           }
         }.bind(this));
@@ -385,7 +385,7 @@
           var j;
           for (j in objs) {
             if(objs[j].local && objs[j].remote) {
-              this.onConflict(objs[j]);
+              this.local._emit('conflict', objs[j]);
             }
           }
         }.bind(this));
@@ -423,11 +423,11 @@
             if (path.substr(-1) === '/') {
               return this.markChildren(path, bodyOrItemsMap, objs);
             } else {
-              return this.local.storeNodes(objs).then(function() {
+              return this.local.setNodes(objs).then(function() {
                 var j;
                 for (j in objs) {
                   if(objs[j].local && objs[j].remote) {
-                    this.onConflict(objs[j]);
+                    this.local._emit('conflict', objs[j]);
                   }
                 }
               }.bind(this));
@@ -534,7 +534,7 @@
       }
     },
     resolveConflict: function(path, resolution) {
-      return this.local.getNodes([path]).then(objs) {
+      return this.local.getNodes([path]).then(function(objs) {
         var obj = objs[path];
         if (resolution === 'local') {
           //don't emit a change event for a local resolution
@@ -560,9 +560,9 @@
           delete obj.local;
         }
         return obj;
-      }).then(function(obj) {
+      }.bind(this)).then(function(obj) {
         return this.local.setNodes({path: obj});
-      });
+      }.bind(this));
     }
   };
 
