@@ -902,66 +902,6 @@ define([], function() {
           });
         }
       },
-      {
-        desc: "when a conflict is resolved as remote, a change event is sent out",
-        run: function(env, test) {
-          env.rs.local._emit = function(type, evt) {
-            if (type === 'conflict') {
-              env.rs.sync.resolveConflict(evt.path, 'remote');
-            } else if (type === 'change') {
-              test.assertAnd(evt, {
-                oldValue: undefined,
-                newValue: 'asdf',
-                path: '/foo/bar'
-              });
-              test.done();
-            }
-          };
-          env.rs.local.setNodes({
-            '/foo/bar': {
-              path: '/foo/bar',
-              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { body: false, timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['delete', '/foo/bar',
-                                   { ifMatch: '987' } ]] =
-              [412, '', '', ''];
-            env.rs.sync._tasks = {'/foo/bar': []};
-            env.rs.sync.doTasks();
-          });
-        }
-      },
-      {
-        desc: "when a conflict is resolved as local, no change event is sent out",
-        run: function(env, test) {
-          var changeCalled = false;
-          env.rs.local._emit = function(type, evt) {
-            if (type === 'conflict') {
-              env.rs.sync.resolveConflict(evt.path, 'local');
-            } else if (type === 'change') {
-              changeCalled = true;
-            }
-          };
-          env.rs.local.setNodes({
-            '/foo/bar': {
-              path: '/foo/bar',
-              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { body: false, timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['delete', '/foo/bar',
-                                   { ifMatch: '987' } ]] =
-              [412, '', '', ''];
-            env.rs.sync._tasks = {'/foo/bar': []};
-            env.rs.sync.doTasks();
-            setTimeout(function() {
-              test.assertAnd(changeCalled, false);
-              test.done();
-            }, 100);
-          });
-        }
-      },
 ], nothing: [
       {
         desc: "get with maxAge requirement is rejected if remote is not connected",

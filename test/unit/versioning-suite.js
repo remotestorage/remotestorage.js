@@ -22,13 +22,6 @@ define([], function() {
     };
   }
 
-  function FakeConflicts(){
-    this._response;
-    this.check = function(obj) {
-      return this._response;
-    };
-  }
-
   function FakeAccess(){
     this._data = {};
     this.set = function(moduleName, value) {
@@ -123,8 +116,7 @@ define([], function() {
       env.rs.remote = new FakeRemote();
       env.rs.access = new FakeAccess();
       env.rs.caching = new FakeCaching();
-      env.conflicts = new FakeConflicts();
-      env.rs.sync = new RemoteStorage.Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching, env.conflicts);
+      env.rs.sync = new RemoteStorage.Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
       test.done();
     },
 
@@ -372,9 +364,8 @@ define([], function() {
       },
       
       {
-        desc: "sub item new revisions stored as common if local exists and onConflict is local",
+        desc: "sub item new revisions stored as remote",
         run: function(env, test) {
-          env.conflicts._response = 'local';
           env.rs.local.setNodes({
             '/foo/': {
               path: '/foo/',
@@ -400,164 +391,12 @@ define([], function() {
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
-                test.assertAnd(objs['/foo/baz/'].common.revision, '129');
-                test.assertAnd(objs['/foo/baz/'].remote, undefined);
+                test.assertAnd(objs['/foo/baz/'].remote.revision, '129');
+                test.assertAnd(objs['/foo/baz/'].common, { revision: '123', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/baz/'].local,
                     { itemsMap: {a: true}, timestamp: 1234567891000 });
-                test.assertAnd(objs['/foo/baf'].common.revision, '459');
-                test.assertAnd(objs['/foo/baf'].remote, undefined);
-                test.assertAnd(objs['/foo/baf'].local,
-                    { body: 'a', contentType: 'b', timestamp: 1234567891000 });
-                test.done();
-              });
-            }, 100);
-          });
-        }
-      },
-      
-      {
-        desc: "sub folder new revisions stored as common if local exists and onConflict is remote",
-        run: function(env, test) {
-          env.conflicts._response = 'remote';
-          env.rs.caching._responses = {
-            '/foo/': env.rs.caching.ALL,
-            '/foo/baz/': env.rs.caching.SEEN,
-            '/foo/baf': env.rs.caching.SEEN
-          };
-          env.rs.local.setNodes({
-            '/foo/': {
-              path: '/foo/',
-              common: {}
-            },
-            '/foo/baz/': {
-              path: '/foo/baz/',
-              common: { revision: '123', timestamp: 1234567890123 },
-              local: { itemsMap: {a: true}, timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['get', '/foo/' ]] =
-              [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459'}}, 'application/json', '123'];
-            env.rs.sync._tasks = {'/foo/': []};
-            env.rs.sync.doTasks();
-            setTimeout(function() {
-              env.rs.local.getNodes(['/foo/baz/']).then(function(objs) {
-                test.assertAnd(objs['/foo/baz/'].common.revision, '129');
-                test.assertAnd(objs['/foo/baz/'].remote, undefined);
-                test.assertAnd(objs['/foo/baz/'].local,
-                    { itemsMap: {a: true}, timestamp: 1234567891000 });
-                test.done();
-              });
-            }, 100);
-          });
-        }
-      },
-      
-      {
-        desc: "sub document new revisions stored as remote and local removed if local exists and onConflict is remote",
-        run: function(env, test) {
-          env.conflicts._response = 'remote';
-          env.rs.caching._responses = {
-            '/foo/': env.rs.caching.ALL,
-            '/foo/baz/': env.rs.caching.SEEN,
-            '/foo/baf': env.rs.caching.SEEN
-          };
-          env.rs.local.setNodes({
-            '/foo/': {
-              path: '/foo/',
-              common: {}
-            },
-            '/foo/baf': {
-              path: '/foo/baf',
-              common: { revision: '456', timestamp: 1234567890123 },
-              local: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['get', '/foo/' ]] =
-              [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459'}}, 'application/json', '123'];
-            env.rs.sync._tasks = {'/foo/': []};
-            env.rs.sync.doTasks();
-            setTimeout(function() {
-              env.rs.local.getNodes(['/foo/baf']).then(function(objs) {
-                test.assertAnd(objs['/foo/baf'].common.revision, '456');
                 test.assertAnd(objs['/foo/baf'].remote.revision, '459');
-                test.assertAnd(objs['/foo/baf'].local, undefined);
-                test.done();
-              });
-            }, 100);
-          });
-        }
-      },
-      
-      {
-        desc: "sub folder new revisions stored even if local exists and undefined onConflict",
-        run: function(env, test) {
-          env.conflicts._response = undefined;
-          env.rs.local.setNodes({
-            '/foo/': {
-              path: '/foo/',
-              common: {} 
-            },
-            '/foo/baz/': {
-              path: '/foo/baz/',
-              common: { revision: '123', timestamp: 1234567890123 },
-              local: { itemsMap: {a: true}, timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['get', '/foo/' ]] =
-              [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459'}}, 'application/json', '123'];
-            env.rs.caching._responses = {
-              '/foo/': env.rs.caching.ALL,
-              '/foo/baz/': env.rs.caching.SEEN,
-              '/foo/baf': env.rs.caching.SEEN
-            };
-            env.rs.sync._tasks = {'/foo/': []};
-            env.rs.sync.doTasks();
-            setTimeout(function() {
-              env.rs.local.getNodes(['/foo/baz/']).then(function(objs) {
-                test.assertAnd(objs['/foo/baz/'].common.revision, '129');
-                test.assertAnd(objs['/foo/baz/'].remote, undefined);
-                test.assertAnd(objs['/foo/baz/'].local,
-                    { itemsMap: {a: true}, timestamp: 1234567891000 });
-                test.done();
-              });
-            }, 100);
-          });
-        }
-      },
-
-      {
-        desc: "sub document new revisions left in conflict if local exists and undefined onConflict",
-        run: function(env, test) {
-          env.conflicts._response = undefined;
-          env.rs.local.setNodes({
-            '/foo/': {
-              path: '/foo/',
-              common: {} 
-            },
-            '/foo/baz/': {
-              path: '/foo/baz/',
-              common: { revision: '123', timestamp: 1234567890123 },
-              local: { itemsMap: {a: true}, timestamp: 1234567891000 }
-            },
-            '/foo/baf': {
-              path: '/foo/baf',
-              common: { revision: '456', timestamp: 1234567890123 },
-              local: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['get', '/foo/' ]] =
-              [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459'}}, 'application/json', '123'];
-            env.rs.caching._responses = {
-              '/foo/': env.rs.caching.ALL,
-              '/foo/baz/': env.rs.caching.SEEN,
-              '/foo/baf': env.rs.caching.SEEN
-            };
-            env.rs.sync._tasks = {'/foo/': []};
-            env.rs.sync.doTasks();
-            setTimeout(function() {
-              env.rs.local.getNodes(['/foo/baf']).then(function(objs) {
-                test.assertAnd(objs['/foo/baf'].common.revision, '456');
-                test.assertAnd(objs['/foo/baf'].remote.revision, '459');
+                test.assertAnd(objs['/foo/baf'].common, { revision: '456', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/baf'].local,
                     { body: 'a', contentType: 'b', timestamp: 1234567891000 });
                 test.done();
@@ -605,7 +444,7 @@ define([], function() {
       },
 
       {
-        desc: "when push completes but local changes exist since, the push version (not the local) becomes common",
+        desc: "when push succeeds but new local changes exist since, the push version (not the local) becomes common",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
@@ -722,51 +561,6 @@ define([], function() {
       },
 
       {
-        desc: "a success response to a folder GET fires no conflict even if a local exists",
-        run: function(env, test) {
-          env.rs.local.on('conflict', function() {
-            test.result(false, 'onConflict was fired');
-          });
-          env.rs.caching._responses = {
-            '/foo/': env.rs.caching.SEEN,
-            '/foo/a': env.rs.caching.SEEN
-          };
-          env.rs.local.setNodes({
-            '/foo/': {
-              path: '/foo/',
-              remote: { revision: 'fff' },
-              common: { itemsMap: {}, timestamp: 1234567891000 },
-              local: { itemsMap: {a: true, b: true}, timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['get', '/foo/' ]] =
-              [200, {a: {ETag: '3'}}, 'application/ld+json', '123'];
-            env.rs.sync._tasks = {'/foo/': []};
-            env.rs.sync.doTasks();
-            return env.rs.local.getNodes(['/foo/']);
-          }).then(function(objs) {
-            test.assertAnd(objs['/foo/'].common, { itemsMap: {}, timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/'].local, { itemsMap: {a: true, b: true}, timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/'].push, undefined);
-            test.assertAnd(objs['/foo/'].remote, { revision: 'fff' });
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
-            setTimeout(function() {
-              env.rs.local.getNodes(['/foo/']).then(function(objs) {
-                test.assertAnd(objs['/foo/'].common.revision, '123');
-                test.assertAnd(objs['/foo/'].common.itemsMap, {a: true});
-                test.assertAnd(objs['/foo/'].local,
-                    { itemsMap: {a: true, b: true}, timestamp: 1234567891000 });
-                test.assertAnd(objs['/foo/'].push, undefined);
-                test.assertAnd(objs['/foo/'].remote, undefined);
-                test.assertAnd(env.rs.sync._running, {});
-                test.done();
-              });
-            }, 100);
-          });
-        }
-      },
-
-      {
         desc: "a success response to a document GET moves remote to common if no local exists",
         run: function(env, test) {
           env.rs.local.setNodes({
@@ -804,9 +598,25 @@ define([], function() {
       },
 
       {
-        desc: "a success response to a document GET can resolve conflicts as 'local' if local exists",
+        desc: "a success response to a document GET fires a revert-or-swallow event if local exists",
         run: function(env, test) {
-          env.conflicts._response = 'local';
+          var eventsSeen = 0;
+          env.rs.local.on('change', function(evt) {
+            if (eventsSeen === 0) {
+              test.assertAnd(evt.origin, 'local');
+              test.assertAnd(evt.oldValue, 'a');
+              test.assertAnd(evt.newValue, 'ab');
+              //test.assertAnd(evt.oldContentType, 'b');
+              //test.assertAnd(evt.newContentType, 'bb');
+            } else {
+              test.assertAnd(evt.origin, 'conflict');
+              test.assertAnd(evt.oldValue, 'ab');
+              test.assertAnd(evt.newValue, 'zz');
+              test.assertAnd(evt.oldContentType, 'bb');
+              test.assertAnd(evt.newContentType, 'application/ld+json');
+            }
+            eventsSeen++;
+          });
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
@@ -840,101 +650,11 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].common.revision, '123');
                 test.assertAnd(objs['/foo/bar'].common.body, 'zz');
                 test.assertAnd(objs['/foo/bar'].common.contentType, 'application/ld+json');
-                test.assertAnd(objs['/foo/bar'].local, { body: 'ab', contentType: 'bb', timestamp: 1234567891001 });
+                test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
-                test.done();
-              });
-            }, 100);
-          });
-        }
-      },
-      
-      {
-        desc: "a success response to a document GET can resolve conflicts as 'remote' if local exists",
-        run: function(env, test) {
-          env.conflicts._response = 'remote';
-          env.rs.local.setNodes({
-            '/foo/bar': {
-              path: '/foo/bar',
-              remote: { revision: 'fff' },
-              common: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['get', '/foo/bar' ]] =
-              [200, 'zz', 'application/ld+json', '123'];
-            env.rs.sync._tasks = {'/foo/bar': []};
-            env.rs.sync.doTasks();
-            return env.rs.local.getNodes(['/foo/bar']);
-          }).then(function(objs) {
-            test.assertAnd(objs['/foo/bar'].common, { body: 'a', contentType: 'b', timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].local, undefined);
-            test.assertAnd(objs['/foo/bar'].push, undefined);
-            test.assertAnd(objs['/foo/bar'].remote, { revision: 'fff' });
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
-            //now add a local while the request is running:
-            return env.rs.local.setNodes({
-              '/foo/bar': {
-                path: '/foo/bar',
-                remote: { revision: 'fff' },
-                common: { body: 'a', contentType: 'b', timestamp: 1234567891000 },
-                local: { body: 'ab', contentType: 'bb', timestamp: 1234567891001 }
-              }
-            });
-          }).then(function() {
-            setTimeout(function() {
-              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar'].common.revision, '123');
-                test.assertAnd(objs['/foo/bar'].common.body, 'zz');
-                test.assertAnd(objs['/foo/bar'].common.contentType, 'application/ld+json');
-                test.assertAnd(objs['/foo/bar'].local, { body: 'ab', contentType: 'bb', timestamp: 1234567891001 });
-                test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync._running, {});
-                test.done();
-              });
-            }, 100);
-          });
-        }
-      },
-      
-      {
-        desc: "a success response to a document GET becomes a conflict if local exists and onConflict doesn't resolve it",
-        run: function(env, test) {
-          env.rs.local.setNodes({
-            '/foo/bar': {
-              path: '/foo/bar',
-              remote: { revision: 'fff' },
-              common: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['get', '/foo/bar' ]] =
-              [200, 'zz', 'application/ld+json', '123'];
-            env.rs.sync._tasks = {'/foo/bar': []};
-            env.rs.sync.doTasks();
-            return env.rs.local.getNodes(['/foo/bar']);
-          }).then(function(objs) {
-            test.assertAnd(objs['/foo/bar'].common, { body: 'a', contentType: 'b', timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].local, undefined);
-            test.assertAnd(objs['/foo/bar'].push, undefined);
-            test.assertAnd(objs['/foo/bar'].remote, { revision: 'fff' });
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
-            //now add a local while the request is running:
-            objs['/foo/bar'].local = { body: 'ab', contentType: 'bb', timestamp: 1234567891001 };
-            return env.rs.local.setNodes({
-              '/foo/bar': objs['/foo/bar']
-            });
-          }).then(function() {
-            setTimeout(function() {
-              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar'].remote.revision, '123');
-                test.assertAnd(objs['/foo/bar'].remote.body, 'zz');
-                test.assertAnd(objs['/foo/bar'].remote.contentType, 'application/ld+json');
-                test.assertAnd(objs['/foo/bar'].local, { body: 'ab', contentType: 'bb', timestamp: 1234567891001 });
-                test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].common, { body: 'a', contentType: 'b', timestamp: 1234567891000 });
-                test.assertAnd(env.rs.sync._running, {});
+                test.assertAnd(eventsSeen, 2);
                 test.done();
               });
             }, 100);
@@ -1096,9 +816,8 @@ define([], function() {
       },
 
       {
-        desc: "a conflict response to a PUT obeys a 'local' conflict handler if there is one",
+        desc: "a conflict response to a PUT puts the node in fetch state",
         run: function(env, test) {
-          env.conflicts._response = 'local';
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
@@ -1122,11 +841,14 @@ define([], function() {
             setTimeout(function() {
               //to make local win, the revision should be made common, so that the request goes through next time
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar'].common.revision, 'fff');
+                test.assertAnd(objs['/foo/bar'].common, { revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local,
                     { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(objs['/foo/bar'].remote.revision, 'fff');
+                test.assertAnd(objs['/foo/bar'].remote.body, undefined);
+                test.assertAnd(objs['/foo/bar'].remote.contentType, undefined);
+                test.assertAnd(objs['/foo/bar'].remote.itemsMap, undefined);
                 test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
@@ -1136,9 +858,8 @@ define([], function() {
       },
 
       {
-        desc: "a conflict response to a DELETE obeys a 'local' conflict handler if there is one",
+        desc: "a conflict response to a DELETE puts the node into fetch mode",
         run: function(env, test) {
-          env.conflicts._response = 'local';
           env.rs.local.setNodes({
             '/foo/bar': {
               path: '/foo/bar',
@@ -1161,50 +882,13 @@ define([], function() {
             setTimeout(function() {
               //to make local win, the revision should be made common, so that the request goes through next time
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar'].common.revision, 'fff');
+                test.assertAnd(objs['/foo/bar'].common, { revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync._running, {});
-                test.done();
-              });
-            }, 100);
-          });
-        }
-      },
-
-      {
-        desc: "a conflict response to a PUT obeys a 'remote' conflict handler if there is one",
-        run: function(env, test) {
-          env.conflicts._response = 'remote';
-          env.rs.local.setNodes({
-            '/foo/bar': {
-              path: '/foo/bar',
-              common: { revision: '987', timestamp: 1234567890123 },
-              local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['put', '/foo/bar', 'asdf', 'qwer', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
-            env.rs.sync._tasks = {'/foo/bar': []};
-            env.rs.sync.doTasks();
-            return env.rs.local.getNodes(['/foo/bar']);
-          }).then(function(objs) {
-            test.assertAnd(objs['/foo/bar'].common,
-                { revision: '987', timestamp: 1234567890123 });
-            test.assertAnd(objs['/foo/bar'].local,
-                { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].push.body, 'asdf');
-            test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
-            test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
-            setTimeout(function() {
-              //to make remote win, the revision should be made remote, and local should be deleted
-              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].remote.revision, 'fff');
-                test.assertAnd(objs['/foo/bar'].common,
-                    { revision: '987', timestamp: 1234567890123 });
-                test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].local, undefined);
+                test.assertAnd(objs['/foo/bar'].remote.body, undefined);
+                test.assertAnd(objs['/foo/bar'].remote.contentType, undefined);
+                test.assertAnd(objs['/foo/bar'].remote.itemsMap, undefined);
                 test.assertAnd(env.rs.sync._running, {});
                 test.done();
               });
@@ -1214,46 +898,7 @@ define([], function() {
       },
 
       {
-        desc: "a conflict response to a DELETE obeys a 'remote' conflict handler if there is one",
-        run: function(env, test) {
-          env.conflicts._response = 'remote';
-          env.rs.local.setNodes({
-            '/foo/bar': {
-              path: '/foo/bar',
-              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
-              local: { body: false, timestamp: 1234567891000 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['delete', '/foo/bar', { ifMatch: '987' } ]] = [412, '', '', 'fff'];
-            env.rs.sync._tasks = {'/foo/bar': []};
-            env.rs.sync.doTasks();
-            return env.rs.local.getNodes(['/foo/bar']);
-          }).then(function(objs) {
-            test.assertAnd(objs['/foo/bar'].common,
-                { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
-            test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
-            test.assertAnd(objs['/foo/bar'].push.body, false);
-            test.assertAnd(objs['/foo/bar'].push.contentType, undefined);
-            test.assertAnd(objs['/foo/bar'].remote, undefined);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
-            setTimeout(function() {
-              //to make remote win, the revision should be made remote, and local should be deleted
-              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar'].remote.revision, 'fff');
-                test.assertAnd(objs['/foo/bar'].common,
-                    { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
-                test.assertAnd(objs['/foo/bar'].push, undefined);
-                test.assertAnd(objs['/foo/bar'].local, undefined);
-                test.assertAnd(env.rs.sync._running, {});
-                test.done();
-              });
-            }, 100);
-          });
-        }
-      },
-
-      {
-        desc: "a conflict response to a PUT obeys 'fetch' if there is no conflict handler",
+        desc: "a conflict response to a PUT obeys 'fetch'",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
@@ -1291,7 +936,7 @@ define([], function() {
       },
 
       {
-        desc: "a conflict response to a DELETE obeys 'fetch' if there is no conflict handler",
+        desc: "a conflict response to a DELETE obeys 'fetch'",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/foo/bar': {
@@ -1382,72 +1027,48 @@ define([], function() {
 
 ], nothing: [
       {
-        desc: "when a document is missing from an incoming folder and it has no local changes, it is removed",
+        desc: "when a document is missing from an incoming folder and it has no local changes, it is removed with a change event",
         run: function(env, test) {
           test.result(false, 'TODO 1');
         }
       },
 
       {
-        desc: "when a document is missing from an incoming folder and it has local changes, and resolution is 'local', common is set to empty",
+        desc: "when a document is missing from an incoming folder and it has local changes, it is deleted with a revert-or-swallow event",
         run: function(env, test) {
           test.result(false, 'TODO 2');
         }
       },
 
       {
-        desc: "when a document is missing from an incoming folder and it has local changes, and resolution is 'remote', common is set to empty and local is removed",
+        desc: "when a sub folder is missing from an incoming folder, its whole subtree is removed recursively and appropriate events are sent out for all docs",
         run: function(env, test) {
+          //for unchanged docs, this should trigger remote events
+          //for changed docs, this should trigger conflict events (revert-or-swallow)
           test.result(false, 'TODO 3');
-        }
-      },
-
-      {
-        desc: "when a document is missing from an incoming folder and it has local changes, and resolution is 'wait/fetch', remote is set to empty",
-        run: function(env, test) {
-          test.result(false, 'TODO 4');
-        }
-      },
-
-      {
-        desc: "when a sub folder is missing from an incoming folder, the parts of its subtree have no local changes, are removed recursively",
-        run: function(env, test) {
-          test.result(false, 'TODO 5');
-        }
-      },
-
-      {
-        desc: "when a sub folder is missing from an incoming folder, documents in its subtree that have local changes, are resolved as individual remote deletions",
-        run: function(env, test) {
-          test.result(false, 'TODO 6');
         }
       },
 
       {
         desc: "when a document comes back 404, and it has no local changes, it is removed",
         run: function(env, test) {
-          test.result(false, 'TODO 7');
+          test.result(false, 'TODO 4');
         }
       },
 
       {
-        desc: "when a document comes back 404, and it has local changes, it is resolved according to its conflict handling",
+        desc: "when a document comes back 404, and it has local changes, it is deleted in a revert-or-swallow",
         run: function(env, test) {
-          test.result(false, 'TODO 8');
+          test.result(false, 'TODO 5');
         }
       },
 
       {
-        desc: "when a folder comes back 404, the parts of its subtree have no local changes, are removed recursively",
+        desc: "when a folder comes back 404, the parts of its subtree is removed recursively and appropriate events are sent out for all docs",
         run: function(env, test) {
-          test.result(false, 'TODO 9');
-        }
-      },
-
-      {
-        desc: "when a document comes back 404, and it has local changes, documents in its subtree that have local changes, are resolved as individual remote deletions",
-        run: function(env, test) {
-          test.result(false, 'TODO 10');
+          //for unchanged docs, this should trigger remote events
+          //for changed docs, this should trigger conflict events (revert-or-swallow)
+          test.result(false, 'TODO 6');
         }
       },
 
@@ -1458,11 +1079,11 @@ define([], function() {
             path: '/foo/',
             common: { items: {}},
             local: { items: { 'bar/': true }},
-            remote: { items: { 'baz/': {ETag: '1'}}}
+            remote: { items: { 'baz/': true}}
           };
           //solution:
           //if a baz/ node exists but it's deleted in local, add a remote to baz/ so it comes in conflict, and add baz/ to the /foo/ local
-          test.result(false, 'TODO 11');
+          test.result(false, 'TODO 7');
         }
       },
 
@@ -1477,7 +1098,7 @@ define([], function() {
           };
           //solution:
           //if no baz/ node exists, then it's not a conflict; create it, and add baz/ to local
-          test.result(false, 'TODO 12');
+          test.result(false, 'TODO 8');
         }
       },
 
@@ -1492,7 +1113,7 @@ define([], function() {
           };
           //solution:
           //if a baz/ node exists and it's still pushing but it's also already deleted in local, add a remote to baz/ so it comes in conflict, and add baz/ to the /foo/ local
-          test.result(false, 'TODO 13');
+          test.result(false, 'TODO 9');
         }
       },
     ]

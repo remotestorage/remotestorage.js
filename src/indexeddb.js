@@ -32,17 +32,6 @@
    *       whenever a change comes in from RemoteStorage.Sync. In the future,
    *       "device" origin events will also be fired for changes happening in
    *       other windows on the same device.
-   *     - #on('conflict', ...) event. Conflict events usually have the following
-   *       attributes: common, local, remote. They also bring a "resolve" method,
-   *       which can be called with either of the strings "remote" and "local" to
-   *       mark the conflict as resolved. The actual resolution will usually take
-   *       place in the next sync cycle. If no conflict handler is provided, all
-   *       conflicts will automatically be resolved as "remote". This will then
-   *       result in a 'change' event with origin 'remote', so it will look like
-   *       no conflict ever happened, but the local version was pushed out first,
-   *       and the remote version came in after that. The app can then still decide
-   *       what to do about the incoming change, and whether to warn the user about
-   *       it in the UI, and provide an option to undo the incoming change.
    *
    *   The sync interface (also on RemoteStorage.IndexedDB object):
    *     - #getNodes([paths]) returns the requested nodes in a promise.
@@ -62,7 +51,7 @@
       return undefined;
     }
     RS.cachingLayer(this);
-    RS.eventHandling(this, 'change', 'conflict');
+    RS.eventHandling(this, 'change');
   };
 
   RS.IndexedDB.prototype = {

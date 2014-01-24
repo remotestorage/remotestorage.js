@@ -5,7 +5,7 @@
 
   RemoteStorage.LocalStorage = function() {
     RemoteStorage.cachingLayer(this);
-    RemoteStorage.eventHandling(this, 'change', 'conflict');
+    RemoteStorage.eventHandling(this, 'change');
   };
 
   function b64ToUint6 (nChr) {

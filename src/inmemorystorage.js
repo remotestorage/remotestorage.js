@@ -4,7 +4,7 @@
     this.rs = rs;
     RemoteStorage.cachingLayer(this);
     console.log('registering events');
-    RemoteStorage.eventHandling(this, 'change', 'conflict');
+    RemoteStorage.eventHandling(this, 'change');
     this._storage = {};
   };
 

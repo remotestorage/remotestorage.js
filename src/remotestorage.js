@@ -92,12 +92,6 @@
      * deprecated use disconnected
      **/
     /**
-     * Event: conflict
-     *
-     * fired when a conflict occurs
-     * TODO: arguments, how does this work
-     **/
-    /**
      * Event: error
      *
      * fired when an error occurs
@@ -134,7 +128,7 @@
      **/
 
     RemoteStorage.eventHandling(
-      this, 'ready', 'disconnected', 'disconnect', 'conflict', 'error',
+      this, 'ready', 'disconnected', 'disconnect', 'error',
       'features-loaded', 'connecting', 'authing', 'wire-busy', 'wire-done'
     );
 
@@ -149,7 +143,7 @@
 
     this._cleanups = [];
 
-    this._pathHandlers = { change: {}, conflict: {} };
+    this._pathHandlers = { change: {} };
 
     this.apiKeys = {};
 
@@ -324,21 +318,6 @@
         this._pathHandlers.change[path] = [];
       }
       this._pathHandlers.change[path].push(handler);
-    },
-
-    onConflict: function(path, handler) {
-      if (! this._conflictBound) {
-        this.on('features-loaded', function() {
-          if (this.local) {
-            this.local.on('conflict', this._dispatchEvent.bind(this, 'conflict'));
-          }
-        }.bind(this));
-        this._conflictBound = true;
-      }
-      if (! this._pathHandlers.conflict[path]) {
-        this._pathHandlers.conflict[path] = [];
-      }
-      this._pathHandlers.conflict[path].push(handler);
     },
 
     /**

@@ -91,15 +91,10 @@
      *
      * * when newValue and oldValue are set you are dealing with an update
      **/
-    /**
-     * Event: conflict
-     *
-     **/
 
-    RS.eventHandling(this, 'change', 'conflict');
+    RS.eventHandling(this, 'change');
     this.on = this.on.bind(this);
     storage.onChange(this.base, this._fireChange.bind(this));
-    storage.onConflict(this.base, this._fireConflict.bind(this));
   };
 
   RS.BaseClient.prototype = {
@@ -484,28 +479,12 @@
       return this.storage.local.flush(path);
     },
     
-    resolveConflict: function(path, resolution) {
-      return this.storage.sync.resolveConflict(path, resolution);
-    },
-
-    fireConflicts: function() {
-      return this.storage.sync.fireConflicts(this.base);
-    },
-
     makePath: function(path) {
       return this.base + (path || '');
     },
 
     _fireChange: function(event) {
       this._emit('change', event);
-    },
-
-    _fireConflict: function(event) {
-      if (this._handlers.conflict.length > 0) {
-        this._emit('conflict', event);
-      } else {
-        remoteStorage.sync.resolveConflict(event.path, 'remote');
-      }
     },
 
     _cleanPath: RS.WireClient.cleanPath,

@@ -114,15 +114,9 @@
     inConflict: function(node) {
       return (node.local && node.remote && (node.remote.body !== undefined || node.remote.itemsMap));
     },
-    fireConflict: function(obj) {
-      obj.resolve = function(resolution) {
-        this.resolveConflict(obj.path, resolution);
-      };
-      this.local._emit('conflict', obj);
-    },
     needsFetch: function(node) {
       if (this.inConflict(node)) {
-        return false;
+        return true;
       }
       if (node.common && node.common.itemsMap === undefined && node.common.body === undefined) {
         return true;
@@ -150,7 +144,7 @@
     checkRefresh: function() {
       return this.local.forAllNodes(function(node) {
         var parentPath;
-        if (!this.inConflict(node) && this.tooOld(node)) {
+        if (this.tooOld(node)) {
           try {
             parentPath = this.getParentPath(node.path);
           } catch(e) {
@@ -252,7 +246,7 @@
     },
     autoMerge: function(obj) {
       console.log('autoMerge', obj);
-      var resolution, newValue, oldValue;
+      var newValue, oldValue;
       if (!obj.remote) {
         return obj;
       }
@@ -267,6 +261,7 @@
           }
           if (newValue) {
             this.local._emit('change', {
+              origin: 'remote',
               path: obj.path,
               oldValue: oldValue,
               newValue: newValue
@@ -294,7 +289,20 @@
         }
         return obj;
       } else {
-        //leave to conflict resolution for document:
+        if (obj.remote.body !== undefined) {
+          //revert-or-swallow:
+          this.local._emit('change', {
+            origin: 'conflict',
+            path: obj.path,
+            oldValue: obj.local.body,
+            newValue: obj.remote.body,
+            oldContentType: obj.local.contentType,
+            newContentType: obj.remote.contentType
+          });
+          obj.common = obj.remote;
+          delete obj.remote;
+          delete obj.local;
+        }
         delete obj.push;
         return obj;
       }
@@ -343,14 +351,7 @@
             changedObjs[j].common.contentLength = meta[j]['Content-Length'];
           }       
         }
-        return this.local.setNodes(changedObjs).then(function() {
-          var j;
-          for (j in changedObjs) {
-            if(changedObjs[j].local && changedObjs[j].remote) {
-              this.fireConflict(changedObjs[j]);
-            }
-          }
-        }.bind(this));
+        return this.local.setNodes(changedObjs);
       }.bind(this));
     },
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
@@ -411,14 +412,7 @@
             }
           }
         }
-        return this.local.setNodes(objs).then(function() {
-          var j;
-          for (j in objs) {
-            if(objs[j].local && objs[j].remote) {
-              this.local._emit('conflict', objs[j]);
-            }
-          }
-        }.bind(this));
+        return this.local.setNodes(objs);
       }.bind(this));
     },
     dealWithFailure: function(path, action, statusMeaning) {
@@ -461,14 +455,7 @@
                 return this.markChildren(path, bodyOrItemsMap, objs);
               }
             } else {
-              return this.local.setNodes(objs).then(function() {
-                var j;
-                for (j in objs) {
-                  if(objs[j].local && objs[j].remote) {
-                    this.local._emit('conflict', objs[j]);
-                  }
-                }
-              }.bind(this));
+              return this.local.setNodes(objs);
             }
           }.bind(this));
         } else if (action === 'put') {
@@ -589,50 +576,6 @@
       } else {
         return promising().fulfill();
       }
-    },
-    resolveConflict: function(path, resolution) {
-      return this.local.getNodes([path]).then(function(objs) {
-        var obj = objs[path];
-        if (resolution === 'local') {
-          //don't emit a change event for a local resolution
-          obj.common = obj.remote;
-          delete obj.remote;
-        } else if (resolution === 'remote') {
-          if (obj.remote.body === undefined) {
-            this.local._emit('change', {
-              path: obj.path,
-              oldValue: (obj.local.body === false ? undefined : obj.local.body),
-              newValue: (obj.common.body === false ? undefined : obj.common.body)
-            });
-            resolution = 'fetch';
-          } else {
-            this.local._emit('change', {
-              path: obj.path,
-              oldValue: (obj.remote.body === false ? undefined : obj.remote.body),
-              newValue: (obj.common.body === false ? undefined : obj.common.body)
-            });
-            obj.common = obj.remote;
-            delete obj.remote;
-          }
-          delete obj.local;
-        }
-        return obj;
-      }.bind(this)).then(function(obj) {
-        return this.local.setNodes({path: obj});
-      }.bind(this));
-    },
-    fireConflicts: function(prefix) {
-      return this.local.forAllNodes(function(obj) {
-        if (obj.path.substring(0, prefix.length) === prefix && this.inConflict(obj)) {
-          console.log(obj.path, 'yes');
-          this.fireConflict(obj);
-        }else {
-          if(obj.path === '/sockethub/config.json') {
-            console.log(obj, this.inConflict(obj), prefix);
-          }
-          console.log(obj.path, 'no');
-        }
-      }.bind(this));
     }
   };
 
@@ -706,9 +649,7 @@
         //call this now that all other modules are also ready:
         remoteStorage.sync = new RemoteStorage.Sync(
             remoteStorage.local, remoteStorage.remote, remoteStorage.access,
-            remoteStorage.caching, function (path) {
-              remoteStorage._emit('conflict', {path: path});
-            });
+            remoteStorage.caching);
       }  
       remoteStorage.syncCycle();
     };

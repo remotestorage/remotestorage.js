@@ -6,11 +6,7 @@ Start by defining a module (check out the repo to reuse an existing one):
       //basics:
       privClient.cache(path, strategy); //*** new behavior in 0.10 ***//
       privClient.flush(path); //*** new in 0.10 ***//
-      privClient.on('change', function((evt) {});
-      privClient.on('conflict', function(evt) { //*** new behavior in 0.10 ***//
-        //...
-        privClient.resolveConflict(path, resolution); //*** new in 0.10 ***//
-      });
+      privClient.on('change', function((evt) {}); //*** new behavior in 0.10 ***//
       return {
         exports: {
           storeData: function() {
@@ -33,7 +29,6 @@ Start by defining a module (check out the repo to reuse an existing one):
           advanced: function() {
             privClient.scope('prefix/')
             privClient.getAll('path/')
-            privClient.fireConflicts() //*** new in 0.10.0 ***//
           }
         }
       };
