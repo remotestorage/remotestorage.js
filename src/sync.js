@@ -72,9 +72,18 @@
         }
         if (this.isCorrupt(node)) {
           console.log('WARNING: corrupt node in local cache', node);
-          return;
-        }
-        if (this.needsFetch(node)
+          //console.log((typeof(node) !== 'object'),
+          //  (Array.isArray(node)),
+          //  (typeof(node.path) !== 'string'),
+          //  (this.corruptRevision(node.common)),
+          //  (node.local && this.corruptRevision(node.local)),
+          //  (node.remote && this.corruptRevision(node.remote)),
+          //  (node.push && this.corruptRevision(node.push)));
+          if (typeof(node) === 'object' && node.path) {
+            this.addTask(node.path, function() {});
+            num++;
+          }
+        } else if (this.needsFetch(node)
             && this.access.checkPath(node.path, 'r')) {
           console.log('enqueuing', node.path);
           this.addTask(node.path, function() {});
@@ -292,8 +301,8 @@
         var j, cachingStrategy, create;
         for (j in objs) {
           if (objs[j] && objs[j].common) {
-            if (objs[j].common.revision != meta[j].ETag) {
-              if (!objs[j].remote || objs[j].remote.revision != meta[j].ETag) {
+            if (objs[j].common.revision !== meta[j].ETag) {
+              if (!objs[j].remote || objs[j].remote.revision !== meta[j].ETag) {
                 changedObjs[j] = this.local._getInternals()._deepClone(objs[j]);
                 changedObjs[j].remote = {
                   revision: meta[j].ETag,
@@ -434,7 +443,12 @@
           }
           return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(objs) {
             if (path.substr(-1) === '/') {
-              return this.markChildren(path, bodyOrItemsMap, objs);
+              if (this.corruptItemsMap(bodyOrItemsMap)) {
+                console.log('WARNING: discarding corrupt folder description from server for ' + path);
+                return promising().fulfill();
+              } else {
+                return this.markChildren(path, bodyOrItemsMap, objs);
+              }
             } else {
               return this.local.setNodes(objs).then(function() {
                 var j;
