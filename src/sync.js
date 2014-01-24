@@ -19,6 +19,7 @@
       return new Date().getTime();
     },
     queueGetRequest: function(path, promise) {
+      console.log('get request queued', path, promise);
       if (!this.remote.connected) {
         promise.reject('cannot fulfill maxAge requirement - remote is not connected');
       } else if (!this.remote.online) {
@@ -103,6 +104,12 @@
     },
     inConflict: function(node) {
       return (node.local && node.remote && (node.remote.body !== undefined || node.remote.itemsMap));
+    },
+    fireConflict: function(obj) {
+      obj.resolve = function(resolution) {
+        this.resolveConflict(obj.path, resolution);
+      };
+      this.local._emit('conflict', obj);
     },
     needsFetch: function(node) {
       if (this.inConflict(node)) {
@@ -323,7 +330,7 @@
           var j;
           for (j in changedObjs) {
             if(changedObjs[j].local && changedObjs[j].remote) {
-              this.local._emit('conflict', changedObjs[j]);
+              this.fireConflict(changedObjs[j]);
             }
           }
         }.bind(this));
@@ -474,8 +481,8 @@
             if(obj.action === undefined) {
               delete this._running[path];
             } else {
-              obj.promise.then(function(status, body, contentType, revision) {
-                return this.handleResponse(path, obj.action, status, body, contentType, revision);
+              obj.promise.then(function(status, bodyOrItemsMap, contentType, revision) {
+                return this.handleResponse(path, obj.action, status, bodyOrItemsMap, contentType, revision);
               }.bind(this)).then(function() {
                 delete this._timeStarted[path];
                 delete this._running[path];
@@ -579,6 +586,19 @@
         return obj;
       }.bind(this)).then(function(obj) {
         return this.local.setNodes({path: obj});
+      }.bind(this));
+    },
+    fireConflicts: function(prefix) {
+      return this.local.forAllNodes(function(obj) {
+        if (obj.path.substring(0, prefix.length) === prefix && this.inConflict(obj)) {
+          console.log(obj.path, 'yes');
+          this.fireConflict(obj);
+        }else {
+          if(obj.path === '/sockethub/config.json') {
+            console.log(obj, this.inConflict(obj), prefix);
+          }
+          console.log(obj.path, 'no');
+        }
       }.bind(this));
     }
   };

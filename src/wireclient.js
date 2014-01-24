@@ -126,6 +126,7 @@
    **/
   RS.WireClient = function(rs) {
     this.connected = false;
+
     /**
      * Event: change
      *   never fired for some reason
@@ -235,10 +236,17 @@
           });
           self.online = true;
           if (isErrorStatus(response.status)) {
-            promise.fulfill(response.status);
+            console.log('239 revision', response.status);
+            if (getEtag) {
+              revision = stripQuotes(response.getResponseHeader('ETag'));
+            } else {
+              revision = response.status === 200 ? fakeRevision : undefined;
+            }
+            promise.fulfill(response.status, undefined, undefined, revision);
           } else if (isSuccessStatus(response.status) ||
                      (response.status === 200 && method !== 'GET')) {
             revision = stripQuotes(response.getResponseHeader('ETag'));
+            console.log('242 revision', revision);
             promise.fulfill(response.status, undefined, undefined, revision);
           } else {
             var mimeType = response.getResponseHeader('Content-Type');
@@ -251,7 +259,8 @@
 
             if ((! mimeType) || mimeType.match(/charset=binary/)) {
               RS.WireClient.readBinaryData(response.response, mimeType, function(result) {
-                promise.fulfill(response.status, result, mimeType, revision);
+              console.log('255 revision', revision);
+              promise.fulfill(response.status, result, mimeType, revision);
               });
             } else {
               if (mimeType && mimeType.match(/^application\/json/)) {
@@ -259,6 +268,7 @@
               } else {
                 body = response.responseText;
               }
+              console.log('264 revision', revision);
               promise.fulfill(response.status, body, mimeType, revision);
             }
           }
@@ -286,6 +296,7 @@
       }
       if (this.href && this.token) {
         this.connected = true;
+        this.online = true;
         this._emit('connected');
       } else {
         this.connected = false;

@@ -84,9 +84,14 @@
   var methods = {
     //GPD interface:
     get: function(path, maxAge) {
+      console.log('get', path, maxAge);
       var promise = promising();
       this.getNodes([path]).then(function(objs) {
         var latest = _getLatest(objs[path]);
+//        console.log('maxAge', maxAge, (typeof(maxAge) === 'number'),
+//             !latest,
+//             !latest.timestamp,
+//             ((new Date().getTime()) - latest.timestamp > maxAge));
         if ((typeof(maxAge) === 'number') && (
              !latest ||
              !latest.timestamp ||
