@@ -15,12 +15,12 @@ define(['requirejs'], function(requirejs, undefined) {
       RemoteStorage.prototype = {
         onChange: function() {},
         caching: {
-          enabled: {},
-          enable: function(path) {
-            this.enabled[path] = true;
-          },
-          disable: function(path) {
-            delete this.enabled[path];
+          SEEN: false,
+          SEEN_AND_FOLDERS: { data: false },
+          ALL: { data: true },
+          _rootPaths: {},
+          set: function(path, value) {
+            this._rootPaths[path] = value;
           }
         }
       };
@@ -322,7 +322,7 @@ define(['requirejs'], function(requirejs, undefined) {
         desc: "#cache enables caching for a given path",
         run: function(env, test) {
           env.client.cache('bar/');
-          test.assertType(env.storage.caching.enabled['/foo/bar/'], 'boolean');
+          test.assert(env.storage.caching._rootPaths, {'/foo/bar/': {data: true}});
         }
       },
 
@@ -331,7 +331,7 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           env.client.cache('bar/');
           env.client.cache('bar/', false);
-          test.assertType(env.storage.caching.enabled['/foo/bar/'], 'undefined');
+          test.assert(env.storage.caching._rootPaths['/foo/bar/'], false);
         }
       },
 

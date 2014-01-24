@@ -354,7 +354,6 @@
      *   (end code)
      */
     getObject: function(path, maxAge) {
-      console.log('getObject', path, typeof(maxAge), maxAge);
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
       }
@@ -471,7 +470,7 @@
           strategy !== this.storage.caching.ALL) {
         throw 'Argument \'strategy\' of baseclient.cache must be one of '
             + '[remoteStorage.caching.SEEN, remoteStorage.caching.SEEN_AND_FOLDERS, remoteStorage.caching.ALL]';
-      } 
+      }
       this.storage.caching.set(this.makePath(path), strategy);
     },
 
