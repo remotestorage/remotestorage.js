@@ -426,12 +426,15 @@
       return {
         successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
         conflict: (statusCode === 412),
+        unAuth: (statusCode === 401 || statusCode === 402 ||statusCode === 403),
         notFound: (statusCode === 404)
       }
     },
     handleResponse: function(path, action, status, bodyOrItemsMap, contentType, revision) {
       console.log('handleResponse', path, action, status, bodyOrItemsMap, contentType, revision);
       var statusMeaning = this.interpretStatus(status);
+      console.log('status meaning', statusMeaning);
+      
       if (statusMeaning.successful) {
         if (action === 'get') {
           if (statusMeaning.notFound) {
@@ -466,6 +469,10 @@
           return this.completePush(path, action, statusMeaning.conflict, revision);
         }
       } else {
+        if (statusMeaning.unAuth) {
+          console.log('emitting UnAuth!');
+          remoteStorage._emit('error', new RemoteStorage.Unauthorized());
+        }
         return this.dealWithFailure(path, action, statusMeaning);
       }
       return promising().fulfill();
