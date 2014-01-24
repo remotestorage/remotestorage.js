@@ -80,18 +80,19 @@
           //  (node.remote && this.corruptRevision(node.remote)),
           //  (node.push && this.corruptRevision(node.push)));
           if (typeof(node) === 'object' && node.path) {
-            this.addTask(node.path, function() {});
+            console.log('enqueuing corrupt', node.path);
+            this.addTask(node.path);
             num++;
           }
         } else if (this.needsFetch(node)
             && this.access.checkPath(node.path, 'r')) {
           console.log('enqueuing fetch', node.path);
-          this.addTask(node.path, function() {});
+          this.addTask(node.path);
           num++;
         } else if (this.needsPush(node)
             && this.access.checkPath(node.path, 'rw')) {
           console.log('enqueuing push', node.path);
-          this.addTask(node.path, function() {});
+          this.addTask(node.path);
           num++;
         }
       }.bind(this)).then(function() {
@@ -505,6 +506,7 @@
                 if (!this.stopped) {
                   setTimeout(function() {
                     console.log('restarting doTasks after success');
+                    console.log('_running/_tasks', this._running, this._tasks);
                     remoteStorage.sync.doTasks();
                   }, 100);
                 }
@@ -551,10 +553,12 @@
       });
     },
     addTask: function(path, cb) {
-      if(!this._tasks[path]) {
+      if (!this._tasks[path]) {
         this._tasks[path] = [];
       }
-      this._tasks[path].push(cb);
+      if (typeof(cb) === 'function') {
+        this._tasks[path].push(cb);
+      }
     },
 
     /**

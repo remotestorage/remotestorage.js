@@ -254,7 +254,6 @@ define([], function() {
            });
         }
       },
-     
       {
         desc: "findTasks calls checkDiffs and goes to checkRefresh only if necessary",
         run: function(env, test) {
@@ -468,10 +467,10 @@ define([], function() {
          test.done();
         }
       },
-      
       {
         desc: "when a document is fetched, pending requests are resolved",
         run: function(env, test) {
+          console.log('starting with', env.rs.sync._running, env.rs.sync._tasks);
           env.rs.remote.connected = true;
           env.rs.remote.online = true;
           env.rs.local.setNodes({
@@ -486,7 +485,9 @@ define([], function() {
               test.assertAnd(status, 200);
               test.assertAnd(body, 'zz');
               test.assertAnd(contentType, 'application/ld+json');
-              test.done();
+              setTimeout(function() {
+                test.done();
+              }, 200);
             });
             setTimeout(function() {
               env.rs.remote._responses[['get', '/foo/bar' ]] = [200, 'zz', 'application/ld+json', '123'];
@@ -495,10 +496,10 @@ define([], function() {
           });
         }
       },
-
       {
         desc: "when a folder is fetched, pending requests are resolved",
         run: function(env, test) {
+          console.log('starting with', env.rs.sync._running, env.rs.sync._tasks);
           var done1, done2;
           env.rs.remote.connected = true;
           env.rs.remote.online = true;
@@ -519,7 +520,9 @@ define([], function() {
               test.assertAnd(itemsMap, {});
               done1 = true;
               if (done2) {
-                test.done();
+                setTimeout(function() {
+                  test.done();
+                }, 200);
               }
             });
             env.rs.local.get('/foo/bar/', 2000000).then(function(status, itemsMap) {
@@ -527,7 +530,9 @@ define([], function() {
               test.assertAnd(itemsMap, {});
               done2 = true;
               if (done1) {
-                test.done();
+                setTimeout(function() {
+                  test.done();
+                }, 200);
               }
             });
             setTimeout(function() {
@@ -537,7 +542,6 @@ define([], function() {
           });
         }
       },
-
       {
         desc: "document fetch GET requests that time out get cancelled",
         run: function(env, test) {
@@ -794,6 +798,7 @@ define([], function() {
           });
         }
       },
+
       {
         desc: "checkDiffs will not enqueue requests outside the access scope",
         run: function(env, test) {
@@ -806,18 +811,20 @@ define([], function() {
               common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
               local: { body: false, timestamp: 1234567891000 }
             },
-            '/public/readings/bar': {
+            '/public/nothings/bar': {
               path: '/public/nothings/bar',
               common: { revision: '987', timestamp: 1234567890123 },
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
             env.rs.sync.checkDiffs();
-            test.assertAnd(env.rs.sync._tasks, {});
+            console.log(env.rs.sync._tasks);
+            test.assertAnd(env.rs.sync._tasks, {'/foo/bar': []});
             test.done();
           });
         }
       },
+
       {
         desc: "checkDiffs retrieves body and Content-Type when a new remote revision is set inside rw access scope",
         run: function(env, test) {
@@ -836,7 +843,7 @@ define([], function() {
             return env.rs.sync.checkDiffs();
           }).then(function() {
             test.assertAnd(env.rs.sync._tasks, {
-              '/public/writings/bar': [function() {}]
+              '/public/writings/bar': []
             });
             test.done();
           });
@@ -844,7 +851,7 @@ define([], function() {
       },
 
       {
-        desc: "sync will discard corrupt cache nodes",
+        desc: "sync will discard corrupt cache nodes but try to retrieve them if node.path is readable",
         run: function(env, test) {
           env.rs.access.set('writings', 'r');
           env.rs.access.set('writings', 'rw');
@@ -861,13 +868,17 @@ define([], function() {
               push: 'no'
             },
             '/writings/baf': {
-              path: '/writings/bar',
+              path: '/writings/baf',
               remote: { revision: 'yes' }
             }
           }).then(function() {
             return env.rs.sync.checkDiffs();
           }).then(function(num) {
-            test.assertAnd(num, 0);
+            test.assertAnd(num, 2);
+            test.assertAnd(env.rs.sync._tasks, {
+              '/writings/bar': [],
+              '/writings/baf': []
+            });
             test.done();
           });
         }
