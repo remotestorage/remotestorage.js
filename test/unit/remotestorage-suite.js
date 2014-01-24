@@ -242,14 +242,29 @@ define([], function() {
       {
         desc: "get goes to local if it exists",
         run: function(env, test) {
-          test.result(false, 'TODO 1');
+          env.rs.local = {
+            get: function(path, maxAge) {
+              test.assertAnd(path, 'path');
+              test.assertAnd(maxAge, 123);
+              test.done();
+            }
+          };
+          env.rs.get('path', 123);
         }
       },
 
       {
         desc: "get goes to remote if local doesn't exist",
         run: function(env, test) {
-          test.result(false, 'TODO 2');
+          delete env.rs.local;
+          env.rs.remote = {
+            get: function(path, options) {
+              test.assertAnd(path, 'path');
+              test.assertAnd(options, undefined);
+              test.done();
+            }
+          };
+          env.rs.get('path', 123);
         }
       }
     ]
