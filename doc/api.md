@@ -4,12 +4,12 @@ Start by defining a module (check out the repo to reuse an existing one):
 ````js
     remoteStorage.defineModule('name', function(privClient, pubCient) {
       //basics:
-      privClient.cache(path, strategy); //*** behavior changed in 0.10 ***//
-      privClient.flush(path); //*** added in 0.10 ***//
+      privClient.cache(path, strategy); //*** new behavior in 0.10 ***//
+      privClient.flush(path); //*** new in 0.10 ***//
       privClient.on('change', function((evt) {});
-      privClient.on('conflict', function(evt) { //*** behavior changed in 0.10 ***//
+      privClient.on('conflict', function(evt) { //*** new behavior in 0.10 ***//
         //...
-        privClient.resolveConflict(path, resolution); //*** added in 0.10 ***//
+        privClient.resolveConflict(path, resolution); //*** new in 0.10 ***//
       });
       return {
         exports: {
@@ -19,13 +19,13 @@ Start by defining a module (check out the repo to reuse an existing one):
             privClient.remove(path);
           },
           getData: function() {
-            privClient.getListing(path[, maxAge]).then(function(itemsMap) { //*** behavior changed in 0.10 ***//
+            privClient.getListing(path[, maxAge]).then(function(itemsMap) { //*** new behavior in 0.10 ***//
               //itemsMap === { 'a/': {ETag: '123'}}
             });
-            privClient.getObject(path[, maxAge]).then(function(obj) { //*** behavior changed in 0.10 ***//
+            privClient.getObject(path[, maxAge]).then(function(obj) { //*** new behavior in 0.10 ***//
               //obj == { '@context': '...', firstName: '...' }
             });
-            privClient.getFile(path[, maxAge]).then(function(obj) { //*** behavior changed in 0.10 ***//
+            privClient.getFile(path[, maxAge]).then(function(obj) { //*** new behavior in 0.10 ***//
               //obj = { data: arrBuffOrStr, mimeType: 'application/json'}
             });
             var url = pubClient.getItemURL(path)
@@ -33,6 +33,7 @@ Start by defining a module (check out the repo to reuse an existing one):
           advanced: function() {
             privClient.scope('prefix/')
             privClient.getAll('path/')
+            privClient.fireConflicts() //*** new in 0.10.0 ***//
           }
         }
       };

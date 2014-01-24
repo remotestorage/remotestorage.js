@@ -170,6 +170,9 @@
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
+      if (typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number') {
+        return promising().reject('Argument \'maxAge\' of baseClient.getListing must be undefined or a number');
+      }
       return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
           return (status === 404) ? undefined : body;
@@ -204,6 +207,10 @@
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
+      if (typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number') {
+        return promising().reject('Argument \'maxAge\' of baseClient.getAll must be undefined or a number');
+      }
+
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
         if (status === 404) { return; }
         if (typeof(body) === 'object') {
@@ -262,6 +269,9 @@
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
       }
 
+      if (typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number') {
+        return promising().reject('Argument \'maxAge\' of baseClient.getFile must be undefined or a number');
+      }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         return {
           data: body,
@@ -349,8 +359,12 @@
      *   (end code)
      */
     getObject: function(path, maxAge) {
+      console.log('getObject', path, typeof(maxAge), maxAge);
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
+      }
+      if (typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number') {
+        return promising().reject('Argument \'maxAge\' of baseClient.getObject must be undefined or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         if (typeof(body) === 'object') {
@@ -474,6 +488,10 @@
       return this.storage.sync.resolveConflict(path, resolution);
     },
 
+    fireConflicts: function() {
+      return this.storage.sync.fireConflicts(this.base);
+    },
+
     makePath: function(path) {
       return this.base + (path || '');
     },
@@ -486,7 +504,7 @@
       if (this._handlers.conflict.length > 0) {
         this._emit('conflict', event);
       } else {
-        event.resolve('remote');
+        remoteStorage.sync.resolveConflict(event.path, 'remote');
       }
     },
 

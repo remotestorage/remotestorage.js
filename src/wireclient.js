@@ -126,6 +126,7 @@
    **/
   RS.WireClient = function(rs) {
     this.connected = false;
+
     /**
      * Event: change
      *   never fired for some reason
@@ -235,10 +236,17 @@
           });
           self.online = true;
           if (isErrorStatus(response.status)) {
-            promise.fulfill(response.status);
+            console.log('239 revision', response.status);
+            if (getEtag) {
+              revision = stripQuotes(response.getResponseHeader('ETag'));
+            } else {
+              revision = response.status === 200 ? fakeRevision : undefined;
+            }
+            promise.fulfill(response.status, undefined, undefined, revision);
           } else if (isSuccessStatus(response.status) ||
                      (response.status === 200 && method !== 'GET')) {
             revision = stripQuotes(response.getResponseHeader('ETag'));
+            console.log('242 revision', revision);
             promise.fulfill(response.status, undefined, undefined, revision);
           } else {
             var mimeType = response.getResponseHeader('Content-Type');
@@ -251,7 +259,8 @@
 
             if ((! mimeType) || mimeType.match(/charset=binary/)) {
               RS.WireClient.readBinaryData(response.response, mimeType, function(result) {
-                promise.fulfill(response.status, result, mimeType, revision);
+              console.log('255 revision', revision);
+              promise.fulfill(response.status, result, mimeType, revision);
               });
             } else {
               if (mimeType && mimeType.match(/^application\/json/)) {
@@ -259,6 +268,7 @@
               } else {
                 body = response.responseText;
               }
+              console.log('264 revision', revision);
               promise.fulfill(response.status, body, mimeType, revision);
             }
           }
@@ -286,6 +296,7 @@
       }
       if (this.href && this.token) {
         this.connected = true;
+        this.online = true;
         this._emit('connected');
       } else {
         this.connected = false;
@@ -324,11 +335,9 @@
       }
       var promise = this._request('GET', this.href + cleanPath(path), this.token, headers,
                             undefined, this.supportsRevs, this._revisionCache[path]);
-      if (!isFolder(path)) {
-        return promise;
-      } else {
+      if (isFolder(path)) {
         return promise.then(function(status, body, contentType, revision) {
-          var listing = {};
+          var itemsMap = {};
 
           // New folder listing received
           if (status === 200 && typeof(body) === 'object') {
@@ -341,31 +350,22 @@
               for (var item in body.items) {
                 this._revisionCache[path + item] = body.items[item].ETag;
               }
-              listing = body.items;
+              itemsMap = body.items;
             }
             // < 02 spec
             else {
               Object.keys(body).forEach(function(key){
                 this._revisionCache[path + key] = body[key];
-                listing[key] = {"ETag": body[key]};
+                itemsMap[key] = {"ETag": body[key]};
               }.bind(this));
             }
-            return promising().fulfill(status, listing, contentType, revision);
-          }
-          // No folder listing received
-          else if (status === 404) {
-            return promising().fulfill(404);
-          }
-          // Cached folder listing received
-          else if (status === 304) {
+            return promising().fulfill(status, itemsMap, contentType, revision);
+          } else {
             return promising().fulfill(status, body, contentType, revision);
           }
-          // Faulty folder listing received
-          else {
-            var error = new Error("Received faulty folder response for: "+path);
-            return promising().reject(error);
-          }
         }.bind(this));
+      } else {
+        return promise;
       }
     },
 

@@ -12,12 +12,14 @@
     this.caching = setCaching;
     this._tasks = {};
     this._running = {};
+    this._timeStarted = {};
   }
   RemoteStorage.Sync.prototype = {
     now: function() {
       return new Date().getTime();
     },
     queueGetRequest: function(path, promise) {
+      console.log('get request queued', path, promise);
       if (!this.remote.connected) {
         promise.reject('cannot fulfill maxAge requirement - remote is not connected');
       } else if (!this.remote.online) {
@@ -70,16 +72,25 @@
         }
         if (this.isCorrupt(node)) {
           console.log('WARNING: corrupt node in local cache', node);
-          return;
-        }
-        if (this.needsFetch(node)
+          //console.log((typeof(node) !== 'object'),
+          //  (Array.isArray(node)),
+          //  (typeof(node.path) !== 'string'),
+          //  (this.corruptRevision(node.common)),
+          //  (node.local && this.corruptRevision(node.local)),
+          //  (node.remote && this.corruptRevision(node.remote)),
+          //  (node.push && this.corruptRevision(node.push)));
+          if (typeof(node) === 'object' && node.path) {
+            this.addTask(node.path, function() {});
+            num++;
+          }
+        } else if (this.needsFetch(node)
             && this.access.checkPath(node.path, 'r')) {
-          console.log('enqueuing', node.path);
+          console.log('enqueuing fetch', node.path);
           this.addTask(node.path, function() {});
           num++;
-        } else if (node.remote && node.remote.revision
-            && !node.remote.body && !node.remote.itemsMap
+        } else if (this.needsPush(node)
             && this.access.checkPath(node.path, 'rw')) {
+          console.log('enqueuing push', node.path);
           this.addTask(node.path, function() {});
           num++;
         }
@@ -100,14 +111,33 @@
       }
       return false;
     },
+    inConflict: function(node) {
+      return (node.local && node.remote && (node.remote.body !== undefined || node.remote.itemsMap));
+    },
+    fireConflict: function(obj) {
+      obj.resolve = function(resolution) {
+        this.resolveConflict(obj.path, resolution);
+      };
+      this.local._emit('conflict', obj);
+    },
     needsFetch: function(node) {
+      if (this.inConflict(node)) {
+        return false;
+      }
       if (node.common && node.common.itemsMap === undefined && node.common.body === undefined) {
         return true;
       }
       if (node.remote && node.remote.itemsMap === undefined && node.remote.body === undefined) {
         return true;
       }
-      console.log('needsFetch false', node);
+    },
+    needsPush: function(node) {
+      if (this.inConflict(node)) {
+        return false;
+      }
+      if (node.local && !node.push) {
+        return true;
+      }
     },
     getParentPath: function(path) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
@@ -120,7 +150,7 @@
     checkRefresh: function() {
       return this.local.forAllNodes(function(node) {
         var parentPath;
-        if (this.tooOld(node)) {
+        if (!this.inConflict(node) && this.tooOld(node)) {
           try {
             parentPath = this.getParentPath(node.path);
           } catch(e) {
@@ -279,8 +309,8 @@
         var j, cachingStrategy, create;
         for (j in objs) {
           if (objs[j] && objs[j].common) {
-            if (objs[j].common.revision != meta[j].ETag) {
-              if (!objs[j].remote || objs[j].remote.revision != meta[j].ETag) {
+            if (objs[j].common.revision !== meta[j].ETag) {
+              if (!objs[j].remote || objs[j].remote.revision !== meta[j].ETag) {
                 changedObjs[j] = this.local._getInternals()._deepClone(objs[j]);
                 changedObjs[j].remote = {
                   revision: meta[j].ETag,
@@ -317,7 +347,7 @@
           var j;
           for (j in changedObjs) {
             if(changedObjs[j].local && changedObjs[j].remote) {
-              this.local._emit('conflict', changedObjs[j]);
+              this.fireConflict(changedObjs[j]);
             }
           }
         }.bind(this));
@@ -404,12 +434,15 @@
       return {
         successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
         conflict: (statusCode === 412),
+        unAuth: (statusCode === 401 || statusCode === 402 ||statusCode === 403),
         notFound: (statusCode === 404)
       }
     },
     handleResponse: function(path, action, status, bodyOrItemsMap, contentType, revision) {
       console.log('handleResponse', path, action, status, bodyOrItemsMap, contentType, revision);
       var statusMeaning = this.interpretStatus(status);
+      console.log('status meaning', statusMeaning);
+      
       if (statusMeaning.successful) {
         if (action === 'get') {
           if (statusMeaning.notFound) {
@@ -421,7 +454,12 @@
           }
           return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(objs) {
             if (path.substr(-1) === '/') {
-              return this.markChildren(path, bodyOrItemsMap, objs);
+              if (this.corruptItemsMap(bodyOrItemsMap)) {
+                console.log('WARNING: discarding corrupt folder description from server for ' + path);
+                return promising().fulfill();
+              } else {
+                return this.markChildren(path, bodyOrItemsMap, objs);
+              }
             } else {
               return this.local.setNodes(objs).then(function() {
                 var j;
@@ -439,11 +477,15 @@
           return this.completePush(path, action, statusMeaning.conflict, revision);
         }
       } else {
+        if (statusMeaning.unAuth) {
+          console.log('emitting UnAuth!');
+          remoteStorage._emit('error', new RemoteStorage.Unauthorized());
+        }
         return this.dealWithFailure(path, action, statusMeaning);
       }
       return promising().fulfill();
     },
-    numThreads: 5,
+    numThreads: 1,
     doTasks: function() {
       var numToHave, numAdded = 0, numToAdd;
       if (this.remote.connected) {
@@ -461,16 +503,24 @@
       }
       for (path in this._tasks) {
         if (!this._running[path]) {
+          this._timeStarted = this.now();
           this._running[path] = this.doTask(path);
           this._running[path].then(function(obj) {
             console.log('got task', obj);
             if(obj.action === undefined) {
               delete this._running[path];
             } else {
-              obj.promise.then(function(status, body, contentType, revision) {
-                return this.handleResponse(path, obj.action, status, body, contentType, revision);
+              obj.promise.then(function(status, bodyOrItemsMap, contentType, revision) {
+                return this.handleResponse(path, obj.action, status, bodyOrItemsMap, contentType, revision);
               }.bind(this)).then(function() {
+                delete this._timeStarted[path];
                 delete this._running[path];
+                if (!this.stopped) {
+                  setTimeout(function() {
+                    console.log('restarting doTasks after success');
+                    remoteStorage.sync.doTasks();
+                  }, 100);
+                }
                 if (this._tasks[path]) {
                   for(i=0; i<this._tasks[path].length; i++) {
                     this._tasks[path][i]();
@@ -481,7 +531,14 @@
               function(err) {
                 console.log('task error', err);
                 this.remote.online = false;
+                delete this._timeStarted[path];
                 delete this._running[path];
+                if (!this.stopped) {
+                  setTimeout(function() {
+                    console.log('restarting doTasks after failure');
+                    remoteStorage.sync.doTasks();
+                  }, 100);
+                }
               }.bind(this));
             }
           }.bind(this));
@@ -563,6 +620,19 @@
       }.bind(this)).then(function(obj) {
         return this.local.setNodes({path: obj});
       }.bind(this));
+    },
+    fireConflicts: function(prefix) {
+      return this.local.forAllNodes(function(obj) {
+        if (obj.path.substring(0, prefix.length) === prefix && this.inConflict(obj)) {
+          console.log(obj.path, 'yes');
+          this.fireConflict(obj);
+        }else {
+          if(obj.path === '/sockethub/config.json') {
+            console.log(obj, this.inConflict(obj), prefix);
+          }
+          console.log(obj.path, 'no');
+        }
+      }.bind(this));
     }
   };
 
@@ -613,9 +683,8 @@
 
   RemoteStorage.SyncError = SyncError;
 
-  var stopped;
   RemoteStorage.prototype.syncCycle = function() {
-    if (stopped) {
+    if (this.sync.stopped) {
       return;
     }  
     this.sync.sync().then(function() {
@@ -627,7 +696,7 @@
   };
 
   RemoteStorage.prototype.stopSync = function() {
-    stopped = true;
+    this.sync.stopped = true;
  };
 
   var syncCycleCb;

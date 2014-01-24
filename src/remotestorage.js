@@ -22,10 +22,10 @@
   }
 
   var SyncedGetPutDelete = {
-    get: function(path) {
+    get: function(path, maxAge) {
       var self = this;
       if (this.local) {
-        return this.local.get(path);
+        return this.local.get(path, maxAge);
       } else {
         return this.remote.get(path);
       }
