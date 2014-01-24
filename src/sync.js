@@ -85,12 +85,12 @@
           }
         } else if (this.needsFetch(node)
             && this.access.checkPath(node.path, 'r')) {
-          console.log('enqueuing', node.path);
+          console.log('enqueuing fetch', node.path);
           this.addTask(node.path, function() {});
           num++;
-        } else if (node.remote && node.remote.revision
-            && !node.remote.body && !node.remote.itemsMap
+        } else if (this.needsPush(node)
             && this.access.checkPath(node.path, 'rw')) {
+          console.log('enqueuing push', node.path);
           this.addTask(node.path, function() {});
           num++;
         }
@@ -128,6 +128,14 @@
         return true;
       }
       if (node.remote && node.remote.itemsMap === undefined && node.remote.body === undefined) {
+        return true;
+      }
+    },
+    needsPush: function(node) {
+      if (this.inConflict(node)) {
+        return false;
+      }
+      if (node.local && !node.push) {
         return true;
       }
     },
@@ -507,10 +515,12 @@
               }.bind(this)).then(function() {
                 delete this._timeStarted[path];
                 delete this._running[path];
-                setTimeout(function() {
-                  console.log('restarting doTasks after success');
-                  remoteStorage.sync.doTasks();
-                }, 100);
+                if (!this.stopped) {
+                  setTimeout(function() {
+                    console.log('restarting doTasks after success');
+                    remoteStorage.sync.doTasks();
+                  }, 100);
+                }
                 if (this._tasks[path]) {
                   for(i=0; i<this._tasks[path].length; i++) {
                     this._tasks[path][i]();
@@ -523,10 +533,12 @@
                 this.remote.online = false;
                 delete this._timeStarted[path];
                 delete this._running[path];
-                setTimeout(function() {
-                  console.log('restarting doTasks after failure');
-                  remoteStorage.sync.doTasks();
-                }, 100);
+                if (!this.stopped) {
+                  setTimeout(function() {
+                    console.log('restarting doTasks after failure');
+                    remoteStorage.sync.doTasks();
+                  }, 100);
+                }
               }.bind(this));
             }
           }.bind(this));
@@ -671,9 +683,8 @@
 
   RemoteStorage.SyncError = SyncError;
 
-  var stopped;
   RemoteStorage.prototype.syncCycle = function() {
-    if (stopped) {
+    if (this.sync.stopped) {
       return;
     }  
     this.sync.sync().then(function() {
@@ -685,7 +696,7 @@
   };
 
   RemoteStorage.prototype.stopSync = function() {
-    stopped = true;
+    this.sync.stopped = true;
  };
 
   var syncCycleCb;

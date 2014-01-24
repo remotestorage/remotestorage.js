@@ -28,6 +28,12 @@
     },
 
     set: function(scope, mode) {
+      if (typeof(scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
+        throw new Error('scope should be a non-empty string without forward slashes');
+      }
+      if (mode !== 'r' && mode !== 'rw') {
+        throw new Error('mode should be either \'r\' or \'rw\'');
+      }
       this._adjustRootPaths(scope);
       this.scopeModeMap[scope] = mode;
     },
