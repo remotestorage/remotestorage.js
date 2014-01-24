@@ -164,7 +164,7 @@ define([], function() {
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
                 console.log('objs', objs);
-                test.assertAnd(objs['/foo/bar/baz/'].common.revision, '123');
+                test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '123');
                 test.assertAnd(objs['/foo/bar/baf'], undefined);
                 test.done();
               });
@@ -192,10 +192,10 @@ define([], function() {
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar/baz/'].common.revision, '123');
-                test.assertAnd(objs['/foo/bar/baf'].common.revision, '456');
-                test.assertAnd(objs['/foo/bar/baf'].common.contentType, 'image/jpeg');
-                test.assertAnd(objs['/foo/bar/baf'].common.contentLength, 12345678);
+                test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '123');
+                test.assertAnd(objs['/foo/bar/baf'].remote.revision, '456');
+                test.assertAnd(objs['/foo/bar/baf'].remote.contentType, 'image/jpeg');
+                test.assertAnd(objs['/foo/bar/baf'].remote.contentLength, 12345678);
                 test.done();
               });
             }, 100);
