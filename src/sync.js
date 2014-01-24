@@ -32,6 +32,46 @@
         }.bind(this));
       }
     },
+    corruptServerItemsMap: function(itemsMap, force02) {
+      var i;
+      if ((typeof(itemsMap) !== 'object') ||
+          (Array.isArray(itemsMap))) {
+         console.log('not an object', itemsMap);
+         return true;
+      }
+      for (i in itemsMap) {
+        if (typeof(itemsMap[i]) !== 'object') {
+          console.log('not an object', itemsMap, i);
+          return true;
+        }
+        if(typeof(itemsMap[i].ETag) !== 'string') {
+          console.log('ETag not a string', itemsMap, i);
+          return true;
+        }
+        if (i.substr(-1) === '/') {
+          if (i.substring(0, i.length-1).indexOf('/') != -1) {
+            console.log('multiple slashes in item name', itemsMap, i);
+            return true;
+          }
+        } else {
+          if (i.indexOf('/') != -1) {
+            console.log('middle slash in item name', itemsMap, i);
+            return true;
+          }
+          if (force02) {
+            if (typeof(itemsMap[i]['Content-Type']) !== 'string') {
+              console.log('Content-Type not a string', itemsMap, i);
+              return true;
+            }
+            if (typeof(itemsMap[i]['Content-Length']) !== 'number') {
+              console.log('Content-Length not a number', itemsMap, i);
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    },
     corruptItemsMap: function(itemsMap) {
       var i;
       if ((typeof(itemsMap) !== 'object') ||
@@ -70,7 +110,7 @@
         if (num > 100) {
           return;
         }
-        if (this.isCorrupt(node)) {
+        if (this.isCorrupt(node, false)) {
           console.log('WARNING: corrupt node in local cache', node);
           //console.log((typeof(node) !== 'object'),
           //  (Array.isArray(node)),
@@ -274,17 +314,19 @@
         return obj;
       }
       if (obj.path.substr(-1) === '/') {
-        //auto merge folder:
-        obj.common = obj.remote;
-        delete obj.remote;
-        if (obj.common.itemsMap) {
-          for (i in obj.common.itemsMap) {
-            if (!obj.local.itemsMap[i]) {
-              //indicates the node is either newly being fetched
-              //has been deleted locally (whether or not leading to conflict);
-              //before listing it in local listings, check if a local deletion
-              //exists.
-              obj.local.itemsMap[i] = false;
+        //auto merge folder once remote was fetched:
+        if (obj.remote.itemsMap) {
+          obj.common = obj.remote;
+          delete obj.remote;
+          if (obj.common.itemsMap) {
+            for (i in obj.common.itemsMap) {
+              if (!obj.local.itemsMap[i]) {
+                //indicates the node is either newly being fetched
+                //has been deleted locally (whether or not leading to conflict);
+                //before listing it in local listings, check if a local deletion
+                //exists.
+                obj.local.itemsMap[i] = false;
+              }
             }
           }
         }
@@ -309,6 +351,7 @@
       }
     },
     markChildren: function(path, itemsMap, changedObjs) {
+      console.log('markChildren', path, itemsMap, changedObjs);
       var i, paths = [], meta = {};
       for (i in itemsMap) {
         paths.push(path+i);
@@ -320,6 +363,7 @@
           if (objs[j] && objs[j].common) {
             if (objs[j].common.revision !== meta[j].ETag) {
               if (!objs[j].remote || objs[j].remote.revision !== meta[j].ETag) {
+    //            console.log('set remote', j);
                 changedObjs[j] = this.local._getInternals()._deepClone(objs[j]);
                 changedObjs[j].remote = {
                   revision: meta[j].ETag,
@@ -331,25 +375,29 @@
           } else {
             cachingStrategy = this.caching.checkPath(j);
             if(j.substr(-1) === '/') {
-              create = (cachingStrategy === this.caching.FOLDERS || cachingStrategy === this.caching.SEEN_AND_FOLDERS || cachingStrategy === this.caching.ALL);
+              create = (cachingStrategy === this.caching.SEEN_AND_FOLDERS || cachingStrategy === this.caching.ALL);
             } else {
               create = (cachingStrategy === this.caching.ALL);
             }
             if (create) {
+      //        console.log('create', j);
               changedObjs[j] = {
                 path: j,
                 common: {
+                  timestamp: this.now()
+                },
+                remote: {
                   revision: meta[j].ETag,
                   timestamp: this.now()
                 }
               };
             }
           }
-          if (meta[j]['Content-Type']) {
-            changedObjs[j].common.contentType = meta[j]['Content-Type'];
+          if (changedObjs[j] && meta[j]['Content-Type']) {
+            changedObjs[j].remote.contentType = meta[j]['Content-Type'];
           }
-          if (meta[j]['Content-Length']) {
-            changedObjs[j].common.contentLength = meta[j]['Content-Length'];
+          if (changedObjs[j] && meta[j]['Content-Length']) {
+            changedObjs[j].remote.contentLength = meta[j]['Content-Length'];
           }       
         }
         return this.local.setNodes(changedObjs);
@@ -449,7 +497,7 @@
           }
           return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(objs) {
             if (path.substr(-1) === '/') {
-              if (this.corruptItemsMap(bodyOrItemsMap)) {
+              if (this.corruptServerItemsMap(bodyOrItemsMap)) {
                 console.log('WARNING: discarding corrupt folder description from server for ' + path);
                 return promising().fulfill();
               } else {
@@ -507,8 +555,8 @@
                   setTimeout(function() {
                     console.log('restarting doTasks after success');
                     console.log('_running/_tasks', this._running, this._tasks);
-                    remoteStorage.sync.doTasks();
-                  }, 100);
+                    this.doTasks();
+                  }.bind(this), 100);
                 }
                 if (this._tasks[path]) {
                   for(i=0; i<this._tasks[path].length; i++) {
@@ -525,8 +573,8 @@
                 if (!this.stopped) {
                   setTimeout(function() {
                     console.log('restarting doTasks after failure');
-                    remoteStorage.sync.doTasks();
-                  }, 100);
+                    this.doTasks();
+                  }.bind(this), 100);
                 }
               }.bind(this));
             }

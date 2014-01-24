@@ -166,7 +166,9 @@ define([], function() {
                 console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '123');
                 test.assertAnd(objs['/foo/bar/baf'], undefined);
-                test.done();
+                setTimeout(function() {
+                  test.done();
+                }, 200);
               });
             }, 100);
           });
@@ -391,6 +393,7 @@ define([], function() {
             env.rs.sync.doTasks();
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
+                console.log('objs', objs);
                 test.assertAnd(objs['/foo/baz/'].remote.revision, '129');
                 test.assertAnd(objs['/foo/baz/'].common, { revision: '123', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/baz/'].local,
@@ -603,11 +606,11 @@ define([], function() {
           var eventsSeen = 0;
           env.rs.local.on('change', function(evt) {
             if (eventsSeen === 0) {
-              test.assertAnd(evt.origin, 'local');
+              test.assertAnd(evt.origin, 'window');
               test.assertAnd(evt.oldValue, 'a');
               test.assertAnd(evt.newValue, 'ab');
-              //test.assertAnd(evt.oldContentType, 'b');
-              //test.assertAnd(evt.newContentType, 'bb');
+              test.assertAnd(evt.oldContentType, 'b');
+              test.assertAnd(evt.newContentType, 'bb');
             } else {
               test.assertAnd(evt.origin, 'conflict');
               test.assertAnd(evt.oldValue, 'ab');
@@ -636,14 +639,7 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].remote, { revision: 'fff' });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             //now add a local while the request is running:
-            return env.rs.local.setNodes({
-              '/foo/bar': {
-                path: '/foo/bar',
-                remote: { revision: 'fff' },
-                common: { body: 'a', contentType: 'b', timestamp: 1234567891000 },
-                local: { body: 'ab', contentType: 'bb', timestamp: 1234567891001 }
-              }
-            });
+            return env.rs.local.put('/foo/bar', 'ab', 'bb');
           }).then(function() {
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
@@ -880,9 +876,8 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             setTimeout(function() {
-              //to make local win, the revision should be made common, so that the request goes through next time
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                test.assertAnd(objs['/foo/bar'].common, { revision: '987', timestamp: 1234567890123 });
+                test.assertAnd(objs['/foo/bar'].common, { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local, { body: false, timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote.revision, 'fff');

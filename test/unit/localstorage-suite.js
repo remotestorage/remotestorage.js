@@ -131,7 +131,9 @@ define(['requirejs'], function(requirejs) {
               path: '/foo/bla',
               origin: 'window',
               oldValue: undefined,
-              newValue: 'basdf'
+              newValue: 'basdf',
+              oldContentType: undefined,
+              newContentType: 'text/plain'
             });
           });
           env.ls.put('/foo/bla', 'basdf', 'text/plain');
@@ -149,14 +151,18 @@ define(['requirejs'], function(requirejs) {
                 path: '/foo/bla',
                 origin: 'window',
                 oldValue: undefined,
-                newValue: 'basdf'
+                newValue: 'basdf',
+                oldContentType: undefined,
+                newContentType: 'text/plain'
               });
             } else if (i === 2) {
               test.assertAnd(event, {
                 path: '/foo/bla',
                 origin: 'window',
                 oldValue: 'basdf',
-                newValue: 'fdsab'
+                newValue: 'fdsab',
+                oldContentType: 'text/plain',
+                newContentType: 'text/plain'
               });
               setTimeout(function() {
                 test.done();

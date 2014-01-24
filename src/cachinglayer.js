@@ -122,9 +122,12 @@
               path: i,
               origin: 'window',
               oldValue: objs[i].local.previousBody,
-              newValue: objs[i].local.body
+              newValue: objs[i].local.body,
+              oldContentType: objs[i].local.previousContentType,
+              newContentType: objs[i].local.contentType
             });
             delete objs[i].local.previousBody;
+            delete objs[i].local.previousContentType;
           }
         }
         return this.setNodes(objs).then(function() {
@@ -147,6 +150,7 @@
             previous = _getLatest(objs[pathNodes[i]]);
             objs[pathNodes[i]].local = {
               previousBody: (previous ? previous.body : undefined),
+              previousContentType: (previous ? previous.contentType : undefined),
               body: body,
               contentType: contentType,
               timestamp: now
