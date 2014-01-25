@@ -24,6 +24,7 @@ define(['requirejs'], function(requirejs) {
       }
       require('./src/inmemorystorage');
       env.rs = new RemoteStorage();
+      console.log(RemoteStorage);
       env.rs.local = new RemoteStorage.InMemoryStorage();
       global.remoteStorage = env.rs;
       test.done();

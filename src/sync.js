@@ -354,7 +354,7 @@
         return obj;
       } else {
         if (obj.remote.body !== undefined) {
-          //revert-or-swallow:
+          //keep/revert:
           this.local._emit('change', {
             origin: 'conflict',
             path: obj.path,

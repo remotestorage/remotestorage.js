@@ -625,7 +625,7 @@ define([], function() {
       },
 
       {
-        desc: "a success response to a document GET fires a revert-or-swallow event if local exists",
+        desc: "a success response to a document GET fires a keep/revert event if local exists",
         run: function(env, test) {
           var eventsSeen = 0;
           env.rs.local.on('change', function(evt) {
@@ -1069,7 +1069,7 @@ define([], function() {
       },
 
       {
-        desc: "when a document is missing from an incoming folder and it has local changes, it is deleted with a revert-or-swallow event",
+        desc: "when a document is missing from an incoming folder and it has local changes, it is deleted with a keep/revert event",
         run: function(env, test) {
           test.result(false, 'TODO 2');
         }
@@ -1079,7 +1079,7 @@ define([], function() {
         desc: "when a sub folder is missing from an incoming folder, its whole subtree is removed recursively and appropriate events are sent out for all docs",
         run: function(env, test) {
           //for unchanged docs, this should trigger remote events
-          //for changed docs, this should trigger conflict events (revert-or-swallow)
+          //for changed docs, this should trigger conflict events (keep/revert)
           test.result(false, 'TODO 3');
         }
       },
@@ -1092,7 +1092,7 @@ define([], function() {
       },
 
       {
-        desc: "when a document comes back 404, and it has local changes, it is deleted in a revert-or-swallow",
+        desc: "when a document comes back 404, and it has local changes, it is deleted in a keep/revert",
         run: function(env, test) {
           test.result(false, 'TODO 5');
         }
@@ -1102,7 +1102,7 @@ define([], function() {
         desc: "when a folder comes back 404, the parts of its subtree is removed recursively and appropriate events are sent out for all docs",
         run: function(env, test) {
           //for unchanged docs, this should trigger remote events
-          //for changed docs, this should trigger conflict events (revert-or-swallow)
+          //for changed docs, this should trigger conflict events (keep/revert)
           test.result(false, 'TODO 6');
         }
       },
