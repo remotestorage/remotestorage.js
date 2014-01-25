@@ -734,12 +734,10 @@
     if (this.sync.stopped) {
       return;
     }  
-    this.sync.sync().then(function() {
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
-    }.bind(this),
-    function(e) {
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), this.getSyncInterval());
+    this.sync.on('done', function() {
+      this._syncTimer = setTimeout(this.sync.sync().bind(this.sync), this.getSyncInterval());
     }.bind(this));
+    this.sync.sync();
   };
 
   RemoteStorage.prototype.stopSync = function() {

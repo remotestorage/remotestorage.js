@@ -487,7 +487,6 @@ define([], function() {
           test.done();
         }
       },
-      ], tests: [
       {
         desc: "when a document is fetched, pending requests are resolved",
         run: function(env, test) {
@@ -802,7 +801,6 @@ define([], function() {
           });
         }
       },
-      ], tests: [
       {
         desc: "PUT requests that time out get cancelled and restarted",
         run: function(env, test) {
@@ -1079,7 +1077,6 @@ define([], function() {
           });
         }
       },
-], tests: [
       {
         desc: "when a running requests finishes, the next task from the queue is started, until the queue is empty",
         run: function(env, test) {
@@ -1102,7 +1099,7 @@ define([], function() {
           p1.then(function() {
             console.log('task 1 done');
             console.log('_tasks/_running', env.rs.sync._tasks, env.rs.sync._running);
-            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._tasks), '/2');
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._tasks), ['/2']);
             if (done2 && syncDone && syncReturned) {
               test.done();
             } else {
@@ -1127,8 +1124,6 @@ define([], function() {
           env.rs.sync.sync().then(function() {
             console.log('sync() returned its promise');
             console.log('_tasks/_running', env.rs.sync._tasks, env.rs.sync._running);
-            test.assertAnd(env.rs.sync._tasks, {});
-            test.assertAnd(env.rs.sync._running, {});
             if (done1 && done2 && syncDone) {
               test.done();
             } else {
@@ -1138,7 +1133,7 @@ define([], function() {
         }
       },
 
-   ], test2s:[
+   ], nothing:[
       {
         desc: "a fetch resolution calls addTask and doTasks",
         run: function(env, test) {
