@@ -138,8 +138,8 @@ define([], function() {
       env.rs.sync.numThreads = 5;
       env.rs.remote.connected = true;
       env.rs.remote.online = true;
-      env.rs._tasks = {};
-      env.rs._running = {};
+      env.rs.sync._tasks = {};
+      env.rs.sync._running = {};
       
       test.done();
     },
@@ -483,16 +483,15 @@ define([], function() {
             '/foo8': true,
             '/fo/o/9/': true
           });
-          test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).sort(), [
-          ]);
-          setTimeout(function() {
-            test.done();
-          }, 100);
+          test.assertAnd(env.rs.sync._running, {});
+          test.done();
         }
       },
+      ], tests: [
       {
         desc: "when a document is fetched, pending requests are resolved",
         run: function(env, test) {
+          var syncDone;
                 test.assertAnd(env.rs.sync._tasks, {});
                 test.assertAnd(env.rs.sync._running, {});
           console.log('starting with', env.rs.sync._running, env.rs.sync._tasks);
@@ -505,14 +504,17 @@ define([], function() {
               common: { body: 'a', contentType: 'b', timestamp: 1234567891000 }
             }
           }).then(function() {
+            env.rs.sync.on('done', function() {
+              console.log('sync done fired!');
+              syncDone = true;
+            });
             //with maxAge:1000000 this will get queued since common has no revision:
             env.rs.local.get('/foo/bar', 1000000).then(function(status, body, contentType) {
               test.assertAnd(status, 200);
               test.assertAnd(body, 'zz');
               test.assertAnd(contentType, 'application/ld+json');
-              setTimeout(function() {
-                test.done();
-              }, 200);
+              test.assertAnd(syncDone, true);
+              test.done();
             });
             env.rs.remote._responses[['get', '/foo/bar' ]] = [200, 'zz', 'application/ld+json', '123'];
             //no need to call sync or doTasks explicitly, that will be triggered by enqueueGetRequest.
@@ -539,29 +541,32 @@ define([], function() {
               common: { itemsMap: {a: {ETag: '1'}}, timestamp: 1234567891000 }
             }
           }).then(function() {
+            var syncDone;
+            env.rs.sync.on('done', function() {
+              syncDone = true;
+              if (done1 && done2) {
+                test.done();
+              }
+            });
             //with maxAge:1000000 this will get queued since common has no revision:
             env.rs.local.get('/foo/bar/', 1000000).then(function(status, itemsMap) {
               test.assertAnd(status, 200);
               test.assertAnd(itemsMap, {});
               done1 = true;
-              if (done2) {
-                setTimeout(function() {
-                  test.assertAnd(env.rs.sync._tasks, {});
-                  test.assertAnd(env.rs.sync._running, {});
+              console.log('done1');
+              if (done2 && syncDone) {
+                env.rs.sync.on('done', function() {
                   test.done();
-                }, 100);
+                });
               }
             });
             env.rs.local.get('/foo/bar/', 2000000).then(function(status, itemsMap) {
               test.assertAnd(status, 200);
               test.assertAnd(itemsMap, {});
               done2 = true;
-              if (done1) {
-                setTimeout(function() {
-                  test.assertAnd(env.rs.sync._tasks, {});
-                  test.assertAnd(env.rs.sync._running, {});
-                  test.done();
-                }, 100);
+              console.log('done2');
+              if (done1 && syncDone) {
+                test.done();
               }
             });
             env.rs.remote._responses[['get', '/foo/bar/' ]] = [200, {}, 'application/ld+json', '123'];
@@ -603,12 +608,9 @@ define([], function() {
                 test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
                 env.rs.remote._responses [['get', '/foo/bar1', { IfNoneMatch: '987' }]] = [200, 'you are done', 'thank', 'you'];
                 env.rs.remote._responses [['get', '/foo/bar1']] = [200, 'you are done', 'thank', 'you'];
-                setTimeout(function() {
-                  console.log('tasks!', env.rs.sync._tasks);
-                  test.assertAnd(env.rs.sync._tasks, {});
-                  test.assertAnd(env.rs.sync._running, {});
+                env.rs.sync.on('done', function() {
                   test.done();
-                }, 200);
+                });
               });
             }, 100);
           });
@@ -646,11 +648,13 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
                 test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
-                setTimeout(function() {
+                env.rs.remote._responses [['get', '/foo/bar', { IfNoneMatch: '987' }]] = [200, 'you are done', 'thank', 'you'];
+                env.rs.remote._responses [['get', '/foo/bar']] = [200, 'you are done', 'thank', 'you'];
+                env.rs.sync.on('done', function() {
                   test.assertAnd(env.rs.sync._tasks, {});
                   test.assertAnd(env.rs.sync._running, {});
                   test.done();
-                }, 100);
+                });
               });
             }, 100);
           });
@@ -672,17 +676,18 @@ define([], function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'], undefined);
                 test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/bar']);
-                setTimeout(function() {
+                env.rs.remote._responses [['get', '/foo/bar', { IfNoneMatch: '987' }]] = [200, 'you are done', 'thank', 'you'];
+                env.rs.remote._responses [['get', '/foo/bar']] = [200, 'you are done', 'thank', 'you'];
+                env.rs.sync.on('done', function() {
                   test.assertAnd(env.rs.sync._tasks, {});
                   test.assertAnd(env.rs.sync._running, {});
                   test.done();
-                }, 100);
+                });
               });
             }, 100);
           });
         }
       },
-
       {
         desc: "folder fetch GET requests that time out get restarted",
         run: function(env, test) {
@@ -708,24 +713,27 @@ define([], function() {
             });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
             setTimeout(function() {
-              env.rs.remote._responses [['get', '/foo/', { ifNoneMatch: '987' }]] = [200];
+              var stored;
+              env.rs.remote._responses [['get', '/foo/', { IfNoneMatch: '987' }]] = [200, {}, '', 'thank you'];
+              env.rs.remote._responses [['get', '/foo/']] = [200, {}, '', 'thank you'];
+              env.rs.sync.on('done', function() {
+                test.assertAnd(env.rs.sync._tasks, {});
+                test.assertAnd(env.rs.sync._running, {});
+                test.assertAnd(stored, true);
+                test.done();
+              });
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
                 test.assertAnd(objs['/foo/'], {
                   path: '/foo/',
                   common: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 },
                   remote: {revision: '123'}
                 });
-                setTimeout(function() {
-                  test.assertAnd(env.rs.sync._tasks, {});
-                  test.assertAnd(env.rs.sync._running, {});
-                  test.done();
-                }, 100);
+                stored = true;
               });
             }, 100);
           });
         }
       },
-
       {
         desc: "folder refresh GET requests that time out get cancelled",
         run: function(env, test) {
@@ -754,11 +762,13 @@ define([], function() {
                   path: '/foo/',
                   common: { itemsMap: {a: {ETag: 'zzz'}}, revision: '987', timestamp: 1234567890123 }
                 });
-                setTimeout(function() {
+                env.rs.remote._responses [['get', '/foo/', { IfNoneMatch: '987' }]] = [200, {}, '', 'thank you'];
+                env.rs.remote._responses [['get', '/foo/']] = [200, {}, '', 'thank you'];
+                env.rs.sync.on('done', function() {
                   test.assertAnd(env.rs.sync._tasks, {});
                   test.assertAnd(env.rs.sync._running, {});
                   test.done();
-                }, 100);
+                });
               });
             }, 100);
           });
@@ -780,16 +790,19 @@ define([], function() {
                 env.rs.remote._responses [['get', '/foo/']] = [200];
                 test.assertAnd(objs['/foo/'], undefined);
                 test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
-                setTimeout(function() {
+                env.rs.remote._responses [['get', '/foo/', { IfNoneMatch: '987' }]] = [200, {}, '', 'thank you'];
+                env.rs.remote._responses [['get', '/foo/']] = [200, {}, '', 'thank you'];
+                env.rs.sync.on('done', function() {
                   test.assertAnd(env.rs.sync._tasks, {});
                   test.assertAnd(env.rs.sync._running, {});
                   test.done();
-                }, 100);
+                });
               });
             }, 100);
           });
         }
       },
+      ], tests: [
       {
         desc: "PUT requests that time out get cancelled and restarted",
         run: function(env, test) {
@@ -818,6 +831,7 @@ define([], function() {
             //no need to call sync or doTasks explicitly, that will be triggered by _updateNodes.
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
+            var done;
             test.assertAnd(objs['/foo/bar'].common,
                 { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
             test.assertAnd(objs['/foo/bar'].local.body, 'asdfz');
@@ -827,26 +841,35 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
             env.rs.remote._responses [['put', '/foo/bar', 'asdfz', 'qwerz', { ifMatch: '987' }]] = [200, undefined, undefined, '383a'];
+            env.rs.sync.on('done', function() {
+              test.assertAnd(env.rs.sync._tasks, {});
+              test.assertAnd(env.rs.sync._running, {});
+              if (done) {
+                test.done();
+              } else {
+                done = true;
+              }
+              console.log('sync done');
+            });
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('objs', objs);
+                console.log('done objs', objs);
                 test.assertAnd(objs['/foo/bar'].common.body, 'asdfz');
                 test.assertAnd(objs['/foo/bar'].common.contentType, 'qwerz');
                 test.assertAnd(objs['/foo/bar'].common.revision, '383a');
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                setTimeout(function() {
-                  test.assertAnd(env.rs.sync._tasks, {});
-                  test.assertAnd(env.rs.sync._running, {});
+                if (done) {
                   test.done();
-                }, 100);
-              });
-            }, 100);
+                } else {
+                  done = true;
+                }
+              }.bind(this));
+            }.bind(this), 200);
           });
         }
       },
-     ], nothing: [
       {
         desc: "DELETE requests that time out get cancelled and retried",
         run: function(env, test) {
@@ -879,26 +902,38 @@ define([], function() {
             //no need to call sync or doTasks explicitly, that will be triggered by _updateNodes.
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
+            var done;
+            env.rs.sync.on('done', function() {
+              console.log('in second timeout');
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                console.log('objs'. objs);
+                test.assertAnd(objs['/foo/bar'], undefined);
+                test.assertAnd(env.rs.sync._tasks, {});
+                test.assertAnd(env.rs.sync._running, {});
+                if (done) {
+                  test.done();
+                } else {
+                  done = true;
+                }
+              });
+            });
             setTimeout(function() {
               console.log('ini first timeout', env.rs.sync._tasks, env.rs.sync._running);
-              test.assertAnd(objs['/foo/bar'].common,
-                  { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
-              test.assertAnd(objs['/foo/bar'].local.body, false);
-              test.assertAnd(objs['/foo/bar'].push, undefined);
-              test.assertAnd(objs['/foo/bar'].remote, undefined);
-              test.assertAnd(env.rs.sync._tasks, {'/foo/bar': []});
-              test.assertAnd(env.rs.sync._running, {});
-              env.rs.remote._responses [['delete', '/foo/bar', { ifMatch: '987' }]] = [200];
-              setTimeout(function() {
-                console.log('in second timeout');
-                env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                  console.log('objs'. objs);
-                  test.assertAnd(objs['/foo/bar'], undefined);
-                  test.assertAnd(env.rs.sync._tasks, {});
-                  test.assertAnd(env.rs.sync._running, {});
+              env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
+                test.assertAnd(objs['/foo/bar'].common,
+                    { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
+                test.assertAnd(objs['/foo/bar'].local.body, false);
+                test.assertAnd(objs['/foo/bar'].push.body, false);
+                test.assertAnd(objs['/foo/bar'].remote, undefined);
+                test.assertAnd(env.rs.sync._tasks, {'/foo/bar': []});
+                test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/bar/']);
+                env.rs.remote._responses [['delete', '/foo/bar', { ifMatch: '987' }]] = [200];
+                if (done) {
                   test.done();
-                });
-              }, 100);
+                } else {
+                  done = true;
+                }
+              });
             }, 100);
           });
         }
@@ -924,7 +959,9 @@ define([], function() {
             env.rs.sync.checkDiffs();
             console.log(env.rs.sync._tasks);
             test.assertAnd(env.rs.sync._tasks, {'/foo/bar': []});
+            //env.rs.sync.on('done', function() {
             test.done();
+            //});
           });
         }
       },
@@ -949,7 +986,9 @@ define([], function() {
             test.assertAnd(env.rs.sync._tasks, {
               '/public/writings/bar': []
             });
+            //env.rs.sync.on('done', function() {
             test.done();
+            //});
           });
         }
       },
@@ -1040,45 +1079,62 @@ define([], function() {
           });
         }
       },
-
+], tests: [
       {
         desc: "when a running requests finishes, the next task from the queue is started, until the queue is empty",
         run: function(env, test) {
-          var done1, done2;
-          env.rs._running = {};
-          env.rs._tasks = {};
+          var done1, done2, syncDone, syncReturned;
+          env.rs.sync._running = {};
+          env.rs.sync._tasks = {};
           env.rs.remote.connected = true;
           env.rs.remote.online = true;
           var p1 = promising();
           var p2 = promising();
+          env.rs.sync.on('done', function() {
+            console.log('sync done');
+            console.log('_tasks/_running', env.rs.sync._tasks, env.rs.sync._running);
+            if (done1 && done2 && syncReturned) {
+              test.done();
+            } else {
+              syncDone = true;
+            }
+          });
           p1.then(function() {
             console.log('task 1 done');
-            test.assertAnd(env.rs.sync._running, {});
-            test.assertAnd(Object.getOwnPropertyNames(en.rs._tasks), '/2');
-            done1 = true;
+            console.log('_tasks/_running', env.rs.sync._tasks, env.rs.sync._running);
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._tasks), '/2');
+            if (done2 && syncDone && syncReturned) {
+              test.done();
+            } else {
+              done1 = true;
+            }
           });
           p2.then(function() {
             console.log('task 2 done');
-            test.assertAnd(env.rs.sync._running, {});
-            done2 = true;
+            console.log('_tasks/_running', env.rs.sync._tasks, env.rs.sync._running);
+            if (done1 && syncDone && syncReturned) {
+              test.done();
+            } else {
+              done2 = true;
+            }
           });
-          remoteStorage.sync.queueGetRequest('/1', p1);
-          remoteStorage.sync.queueGetRequest('/2', p2);
           env.rs.remote._responses[['get', '/1']] = [200, 'asdf', 'qwer', '123'];
           env.rs.remote._responses[['get', '/2']] = [200, 'asdf', 'qwer', '123'];
           env.rs.sync.numThreads = 1;
+          remoteStorage.sync.queueGetRequest('/1', p1);
+          remoteStorage.sync.queueGetRequest('/2', p2);
           console.log('calling sync.sync()');
           env.rs.sync.sync().then(function() {
             console.log('sync() returned its promise');
-            test.assertAnd(done1, true);
-            test.assertAnd(done2, true);
-            test.assertAnd(env.rs._tasks, {});
-            test.assertAnd(env.rs._running, {});
-            setTimeout(function() {
+            console.log('_tasks/_running', env.rs.sync._tasks, env.rs.sync._running);
+            test.assertAnd(env.rs.sync._tasks, {});
+            test.assertAnd(env.rs.sync._running, {});
+            if (done1 && done2 && syncDone) {
               test.done();
-            }, 200);
+            } else {
+              syncReturned = true;
+            }
           });
-          test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/1']);
         }
       },
 

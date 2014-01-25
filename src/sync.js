@@ -17,6 +17,7 @@
     this._tasks = {};
     this._running = {};
     this._timeStarted = {};
+    RemoteStorage.eventHandling(this, 'done');
   }
   RemoteStorage.Sync.prototype = {
     now: function() {
@@ -232,6 +233,7 @@
           //first fetch:
           return {
             action: 'get',
+            path: path,
             promise: this.remote.get(path)
           };
         } else if (objs[path].remote && objs[path].remote.revision && !objs[path].remote.itemsMap && !objs[path].remote.body) {
@@ -239,6 +241,7 @@
           console.log('known stale');
           return {
             action: 'get',
+            path: path,
             promise: this.remote.get(path)
           };
         } else if (objs[path].local && objs[path].local.body) {
@@ -260,6 +263,7 @@
             console.log('push put');
             return {
               action: 'put',
+              path: path,
               promise: this.remote.put(path, objs[path].push.body, objs[path].push.contentType, options)
             };
           }.bind(this));
@@ -276,6 +280,7 @@
             console.log('action is delete');
             return {
               action: 'delete',
+              path: path,
               promise: this.remote.delete(path, options)
             };
           }.bind(this));
@@ -286,6 +291,7 @@
           if (objs[path].common.revision) {
             return {
               action: 'get',
+              path: path,
               promise: this.remote.get(path, {
                 ifMatch: objs[path].common.revision
               })
@@ -293,6 +299,7 @@
           } else {
             return {
               action: 'get',
+              path: path,
               promise: this.remote.get(path)
             };
           }
@@ -509,9 +516,12 @@
             }
           }
           return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(objs) {
+          console.log('completeFetch', path, bodyOrItemsMap, contentType, revision);
             if (path.substr(-1) === '/') {
               if (this.corruptServerItemsMap(bodyOrItemsMap)) {
                 console.log('WARNING: discarding corrupt folder description from server for ' + path);
+                console.log(bodyOrItemsMap);
+                breakz();
                 return false;
               } else {
                 return this.markChildren(path, bodyOrItemsMap, objs).then(function() {
@@ -548,6 +558,56 @@
       }
     },
     numThreads: 1,
+    finishTask: function (obj) {
+      console.log('got task', obj);
+      if(obj.action === undefined) {
+        delete this._running[obj.path];
+      } else {
+        obj.promise.then(function(status, bodyOrItemsMap, contentType, revision) {
+          return this.handleResponse(obj.path, obj.action, status, bodyOrItemsMap, contentType, revision);
+        }.bind(this)).then(function(completed) {
+          console.log('handleResponse success; completed:', completed);
+          delete this._timeStarted[obj.path];
+          delete this._running[obj.path];
+          if (completed) {
+            console.log('calling back queued gets for '+obj.path, this._tasks);
+            if (this._tasks[obj.path]) {
+              for(i=0; i<this._tasks[obj.path].length; i++) {
+                this._tasks[obj.path][i]();
+              }
+              delete this._tasks[obj.path];
+            }
+          } else {
+            console.log('task not completed', this._tasks, this._running);
+          }
+          console.log('restarting doTasks after success (whether or not completed)');
+          console.log('_running/_tasks', this._running, this._tasks);
+          if (Object.getOwnPropertyNames(this._tasks).length === 0 || this.stopped) {
+            console.log('sync is done!');
+            this._emit('done');
+          } else {
+            console.log('sync is not done!');
+            //use a zero timeout to let the JavaScript runtime catch its breath
+            //(and hopefully force an IndexedDB auto-commit?):
+            setTimeout(function() {
+              this.doTasks();
+            }.bind(this), 0);
+          }
+        }.bind(this),
+        function(err) {
+          console.log('task error', err);
+          this.remote.online = false;
+          delete this._timeStarted[obj.path];
+          delete this._running[obj.path];
+          if (!this.stopped) {
+            setTimeout(function() {
+              console.log('restarting doTasks after failure');
+              this.doTasks();
+            }.bind(this), 0);
+          }
+        }.bind(this));
+      }
+    },
     doTasks: function() {
       console.log('in doTasks');
       var numToHave, numAdded = 0, numToAdd;
@@ -570,50 +630,7 @@
           console.log('starting', path);
           this._timeStarted = this.now();
           this._running[path] = this.doTask(path);
-          this._running[path].then(function(obj) {
-            console.log('got task', obj);
-            if(obj.action === undefined) {
-              delete this._running[path];
-            } else {
-              obj.promise.then(function(status, bodyOrItemsMap, contentType, revision) {
-                return this.handleResponse(path, obj.action, status, bodyOrItemsMap, contentType, revision);
-              }.bind(this)).then(function(completed) {
-                console.log('handleResponse success; completed:', completed);
-                delete this._timeStarted[path];
-                delete this._running[path];
-                if (completed) {
-                  console.log('calling back queued gets for '+path, this._tasks);
-                  if (this._tasks[path]) {
-                    for(i=0; i<this._tasks[path].length; i++) {
-                      this._tasks[path][i]();
-                    }
-                    delete this._tasks[path];
-                  }
-                } else {
-                  console.log('task not completed', this._tasks, this._running);
-                }
-                if (!this.stopped) {
-                  setTimeout(function() {
-                    console.log('restarting doTasks after success (whether or not completed)');
-                    console.log('_running/_tasks', this._running, this._tasks);
-                    this.doTasks();
-                  }.bind(this), 0);
-                }
-              }.bind(this),
-              function(err) {
-                console.log('task error', err);
-                this.remote.online = false;
-                delete this._timeStarted[path];
-                delete this._running[path];
-                if (!this.stopped) {
-                  setTimeout(function() {
-                    console.log('restarting doTasks after failure');
-                    this.doTasks();
-                  }.bind(this), 0);
-                }
-              }.bind(this));
-            }
-          }.bind(this));
+          this._running[path].then(this.finishTask.bind(this));
           numAdded++;
           if (numAdded >= numToAdd) {
             return true;
