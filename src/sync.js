@@ -17,7 +17,7 @@
     this._tasks = {};
     this._running = {};
     this._timeStarted = {};
-    RemoteStorage.eventHandling(this, 'done');
+    RemoteStorage.eventHandling(this, 'done', 'req-done');
   }
   RemoteStorage.Sync.prototype = {
     now: function() {
@@ -521,7 +521,6 @@
               if (this.corruptServerItemsMap(bodyOrItemsMap)) {
                 console.log('WARNING: discarding corrupt folder description from server for ' + path);
                 console.log(bodyOrItemsMap);
-                breakz();
                 return false;
               } else {
                 return this.markChildren(path, bodyOrItemsMap, objs).then(function() {
@@ -580,6 +579,7 @@
           } else {
             console.log('task not completed', this._tasks, this._running);
           }
+          this._emit('req-done');
           console.log('restarting doTasks after success (whether or not completed)');
           console.log('_running/_tasks', this._running, this._tasks);
           if (Object.getOwnPropertyNames(this._tasks).length === 0 || this.stopped) {
@@ -599,6 +599,7 @@
           this.remote.online = false;
           delete this._timeStarted[obj.path];
           delete this._running[obj.path];
+          this._emit('req-done');
           if (!this.stopped) {
             setTimeout(function() {
               console.log('restarting doTasks after failure');

@@ -139,6 +139,8 @@ define([], function() {
             test.assertAnd(env.rs.sync._tasks, {
               '/read/access/f/o/': []
             });
+            //env.rs.sync._tasks = {};
+            //env.rs.sync._running = {};
             test.done();
           });
         }
@@ -146,6 +148,8 @@ define([], function() {
       {
         desc: "an incoming folder listing creates subfolder nodes if it's under a env.rs.caching.SEEN_AND_FOLDERS root",
         run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
           env.rs.local.setNodes({
             '/foo/bar/': { 
               path: '/foo/bar/',
@@ -161,16 +165,14 @@ define([], function() {
             };
             env.rs.sync._tasks = {'/foo/bar/': []};
             env.rs.sync.doTasks();
-            setTimeout(function() {
+            env.rs.sync.on('done', function() {
               env.rs.local.getNodes(['/foo/bar/baz/', '/foo/bar/baf']).then(function(objs) {
                 console.log('objs', objs);
                 test.assertAnd(objs['/foo/bar/baz/'].remote.revision, '123');
                 test.assertAnd(objs['/foo/bar/baf'], undefined);
-                setTimeout(function() {
-                  test.done();
-                }, 200);
+                test.done();
               });
-            }, 100);
+            });
           });
         }
       },
@@ -178,6 +180,8 @@ define([], function() {
       {
         desc: "an incoming folder listing creates subfolder and document nodes if it's under a env.rs.caching.ALL root",
         run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
           env.rs.local.setNodes({
             '/foo/bar/': { 
               path: '/foo/bar/',
@@ -208,6 +212,8 @@ define([], function() {
       {
         desc: "an incoming folder listing doesn't store unchanged revisions to its children",
         run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
           env.rs.local.setNodes({
             '/foo/': {
               path: '/foo/',
@@ -222,6 +228,7 @@ define([], function() {
               common: { revision: '456', timestamp: 1234567890123 }
             }
           }).then(function() {
+            var done;
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {'baz/': {ETag: '123'}, 'baf': {ETag: '456', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
             env.rs.caching._responses = {
@@ -229,13 +236,28 @@ define([], function() {
             };
             env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
+            env.rs.sync.on('done', function() {
+              if (done) {
+                //env.rs.sync._tasks = {};
+                //env.rs.sync._running = {};
+                test.done();
+              } else {
+                done = true;
+              }
+            });
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
                 test.assertAnd(objs['/foo/baz/'].common.revision, '123');
                 test.assertAnd(objs['/foo/baz/'].remote, undefined);
                 test.assertAnd(objs['/foo/baf'].common.revision, '456');
                 test.assertAnd(objs['/foo/baf'].remote, undefined);
-                test.done();
+                if (done) {
+                  env.rs._tasks = {};
+                  env.rs._running = {};
+                  test.done();
+                } else {
+                  done = true;
+                }
               });
             }, 100);
           });
@@ -245,6 +267,8 @@ define([], function() {
       {
         desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.ALL root",
         run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
           env.rs.caching._responses = {
             '/foo/': env.rs.caching.FLUSH,
             '/foo/baz/': env.rs.caching.ALL,
@@ -681,7 +705,16 @@ define([], function() {
             test.assertAnd(objs['/foo/bar'].push.contentType, 'qwer');
             test.assertAnd(objs['/foo/bar'].remote, undefined);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
-            setTimeout(function() {
+            env.rs.sync.on('done', function() {
+              if (done) {
+                test.assertAnd(env.rs.sync._tasks, {});
+                test.assertAnd(env.rs.sync._running, {});
+                test.done();
+              } else {
+                done = true;
+              }
+            });
+            env.rs.sync.on('req-done', function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].common,
                     { revision: '987', timestamp: 1234567890123 });
@@ -689,8 +722,15 @@ define([], function() {
                     { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 });
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync._running, {});
-                test.done();
+                env.rs.sync.on('done', function() {
+                  if (done) {
+                    test.assertAnd(env.rs.sync._tasks, {});
+                    test.assertAnd(env.rs.sync._running, {});
+                    test.done();
+                  } else {
+                    done = true;
+                  }
+                });
               });
             }, 100);
           });
