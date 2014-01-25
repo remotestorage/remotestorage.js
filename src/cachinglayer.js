@@ -114,6 +114,7 @@
        return this.getNodes(nodePaths).then(function(objs) {
         var copyObjs = _deepClone(objs);
         objs = cb(objs);
+        console.log('done with cb', objs);
         for (i in objs) {
           if (_equal(objs[i], copyObjs[i])) {
             delete objs[i];
@@ -131,8 +132,18 @@
           }
         }
         return this.setNodes(objs).then(function() {
+          console.log('setNodes done', objs);
           return 200;
-        });
+        }).then(function(status) {
+          var i;
+          if (this.diffHandler) {
+            for (i in objs) {
+              console.log('calling diffHandler', i);
+              this.diffHandler(i);
+            }
+          }
+          return status;
+        }.bind(this));
       }.bind(this),
       function(err) {
         throw(err);
@@ -173,11 +184,12 @@
         var i, now = new Date().getTime();
         for (i=0; i<pathNodes.length; i++) {
           if (!objs[pathNodes[i]]) {
-            throw new Exception('cannot delete a non-existing node; retrieve its parent folder first');
+            throw new Error('cannot delete a non-existing node; retrieve its parent folder first; missing node: '+pathNodes[i]);
           }
           if(i === 0) {
             //delete the document itself
             objs[path].local = {
+              body: false,
               timestamp: now
             };
           } else {
@@ -256,6 +268,9 @@
           }
         }
       }.bind(this));
+    },
+    onDiff: function(setOnDiff) {
+      this.diffHandler = setOnDiff;
     },
     _getInternals: function() {
       return {

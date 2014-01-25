@@ -7,6 +7,10 @@
    **/
   RemoteStorage.Sync = function(setLocal, setRemote, setAccess, setCaching) {
     this.local = setLocal;
+    this.local.onDiff(function(path) {
+      this.addTask(path);
+      this.doTasks();
+    }.bind(this));
     this.remote = setRemote;
     this.access = setAccess;
     this.caching = setCaching;
@@ -26,10 +30,14 @@
         promise.reject('cannot fulfill maxAge requirement - remote is not online');
       } else {
         this.addTask(path, function() {
+            console.log('fulfilling task get', path);
           this.local.get(path).then(function(status, bodyOrItemsMap, contentType) {
+            console.log('fulfilling task got', path);
             promise.fulfill(status, bodyOrItemsMap, contentType);
           });
         }.bind(this));
+            console.log('fulfilling task resume', path);
+        this.doTasks();
       }
     },
     corruptServerItemsMap: function(itemsMap, force02) {
@@ -218,7 +226,9 @@
     },
     doTask: function(path) {
       return this.local.getNodes([path]).then(function(objs) {
+        console.log('doTask objs', objs);
         if(typeof(objs[path]) === 'undefined') {
+          console.log('first fetch');
           //first fetch:
           return {
             action: 'get',
@@ -226,6 +236,7 @@
           };
         } else if (objs[path].remote && objs[path].remote.revision && !objs[path].remote.itemsMap && !objs[path].remote.body) {
           //fetch known-stale child:
+          console.log('known stale');
           return {
             action: 'get',
             promise: this.remote.get(path)
@@ -246,6 +257,7 @@
                 ifNoneMatch: '*'
               };
             }
+            console.log('push put');
             return {
               action: 'put',
               promise: this.remote.put(path, objs[path].push.body, objs[path].push.contentType, options)
@@ -261,12 +273,14 @@
                 ifMatch: objs[path].common.revision
               };
             }
+            console.log('action is delete');
             return {
               action: 'delete',
               promise: this.remote.delete(path, options)
             };
           }.bind(this));
         } else {
+          console.log('refresh');
           //refresh:
           var options = undefined;
           if (objs[path].common.revision) {
@@ -404,7 +418,6 @@
       }.bind(this));
     },
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
-      console.log('completeFetch', path, bodyOrItemsMap, contentType, revision);
       return this.local.getNodes([path]).then(function(objs) {
         var i;
         if(!objs[path]) {
@@ -523,6 +536,7 @@
     },
     numThreads: 1,
     doTasks: function() {
+      console.log('in doTasks');
       var numToHave, numAdded = 0, numToAdd;
       if (this.remote.connected) {
         if (this.remote.online) {
@@ -534,11 +548,13 @@
         numToHave = 0;
       }
       numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
+      console.log('numToAdd', numToAdd, this._tasks, this._running);
       if (numToAdd <= 0) {
         return true;
       }
       for (path in this._tasks) {
         if (!this._running[path]) {
+          console.log('starting', path);
           this._timeStarted = this.now();
           this._running[path] = this.doTask(path);
           this._running[path].then(function(obj) {
@@ -558,6 +574,7 @@
                     this.doTasks();
                   }.bind(this), 100);
                 }
+               console.log('calling back queued gets for '+path, this._tasks);
                 if (this._tasks[path]) {
                   for(i=0; i<this._tasks[path].length; i++) {
                     this._tasks[path][i]();
