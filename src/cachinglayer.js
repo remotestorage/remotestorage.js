@@ -138,8 +138,10 @@
           var i;
           if (this.diffHandler) {
             for (i in objs) {
-              console.log('calling diffHandler', i);
-              this.diffHandler(i);
+              if (i.substr(-1) !== '/') {
+                console.log('calling diffHandler', i);
+                this.diffHandler(i);
+              }
             }
           }
           return status;

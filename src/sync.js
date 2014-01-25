@@ -497,7 +497,7 @@
     handleResponse: function(path, action, status, bodyOrItemsMap, contentType, revision) {
       console.log('handleResponse', path, action, status, bodyOrItemsMap, contentType, revision);
       var statusMeaning = this.interpretStatus(status);
-      console.log('status meaning', statusMeaning);
+      console.log('status meaning', status, statusMeaning);
       
       if (statusMeaning.successful) {
         if (action === 'get') {
@@ -512,27 +512,40 @@
             if (path.substr(-1) === '/') {
               if (this.corruptServerItemsMap(bodyOrItemsMap)) {
                 console.log('WARNING: discarding corrupt folder description from server for ' + path);
-                return promising().fulfill();
+                return false;
               } else {
-                return this.markChildren(path, bodyOrItemsMap, objs);
+                return this.markChildren(path, bodyOrItemsMap, objs).then(function() {
+                  return true;//task completed
+                });
               }
             } else {
-              return this.local.setNodes(objs);
+              console.log('setting node after success doc get');
+              return this.local.setNodes(objs).then(function() {
+                console.log('returning completed: true');
+                return true;//task completed
+              });
             }
           }.bind(this));
         } else if (action === 'put') {
-          return this.completePush(path, action, statusMeaning.conflict, revision);
+          return this.completePush(path, action, statusMeaning.conflict, revision).then(function() {
+            return true;//task completed
+          });
         } else if (action === 'delete') {
-          return this.completePush(path, action, statusMeaning.conflict, revision);
+          return this.completePush(path, action, statusMeaning.conflict, revision).then(function() {
+            return true;//task completed
+          });
+        } else {
+          throw new Error('cannot handle response for unknown action', action);
         }
       } else {
         if (statusMeaning.unAuth) {
           console.log('emitting UnAuth!');
           remoteStorage._emit('error', new RemoteStorage.Unauthorized());
         }
-        return this.dealWithFailure(path, action, statusMeaning);
+        return this.dealWithFailure(path, action, statusMeaning).then(function() {
+          return false;
+        });
       }
-      return promising().fulfill();
     },
     numThreads: 1,
     doTasks: function() {
@@ -564,22 +577,27 @@
             } else {
               obj.promise.then(function(status, bodyOrItemsMap, contentType, revision) {
                 return this.handleResponse(path, obj.action, status, bodyOrItemsMap, contentType, revision);
-              }.bind(this)).then(function() {
+              }.bind(this)).then(function(completed) {
+                console.log('handleResponse success; completed:', completed);
                 delete this._timeStarted[path];
                 delete this._running[path];
+                if (completed) {
+                  console.log('calling back queued gets for '+path, this._tasks);
+                  if (this._tasks[path]) {
+                    for(i=0; i<this._tasks[path].length; i++) {
+                      this._tasks[path][i]();
+                    }
+                    delete this._tasks[path];
+                  }
+                } else {
+                  console.log('task not completed', this._tasks, this._running);
+                }
                 if (!this.stopped) {
                   setTimeout(function() {
-                    console.log('restarting doTasks after success');
+                    console.log('restarting doTasks after success (whether or not completed)');
                     console.log('_running/_tasks', this._running, this._tasks);
                     this.doTasks();
-                  }.bind(this), 100);
-                }
-               console.log('calling back queued gets for '+path, this._tasks);
-                if (this._tasks[path]) {
-                  for(i=0; i<this._tasks[path].length; i++) {
-                    this._tasks[path][i]();
-                  }
-                  delete this._tasks[path];
+                  }.bind(this), 0);
                 }
               }.bind(this),
               function(err) {
@@ -591,7 +609,7 @@
                   setTimeout(function() {
                     console.log('restarting doTasks after failure');
                     this.doTasks();
-                  }.bind(this), 100);
+                  }.bind(this), 0);
                 }
               }.bind(this));
             }
