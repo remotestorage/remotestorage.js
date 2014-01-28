@@ -20,6 +20,7 @@ define([], function() {
       }
       return this._responses[path];
     };
+    this.onActivate = function() {};
   }
 
   function FakeAccess(){

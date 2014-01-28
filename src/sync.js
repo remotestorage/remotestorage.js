@@ -14,6 +14,10 @@
     this.remote = setRemote;
     this.access = setAccess;
     this.caching = setCaching;
+    this.caching.onActivate(function(path) {
+      this.addTask(path);
+      this.doTasks();
+    }.bind(this));
     this._tasks = {};
     this._running = {};
     this._timeStarted = {};
