@@ -269,7 +269,6 @@ define([], function() {
         }
       },
 
-], nothing: [
       {
         desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.ALL root",
         run: function(env, test) {
@@ -688,6 +687,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "a failure response to a PUT removes the push version",
         run: function(env, test) {
