@@ -123,6 +123,11 @@ define([], function() {
       }
 
       require('src/sync.js');
+      if (global.rs_sync) {
+        RemoteStorage.Sync = global.rs_sync;
+      } else {
+        global.rs_sync = RemoteStorage.Sync;
+      }
       test.done();
     },
 
@@ -297,6 +302,7 @@ define([], function() {
         }
       },
      
+], nothing: [
       {
         desc: "checkRefresh gives preference to caching parent",
         run: function(env, test) {

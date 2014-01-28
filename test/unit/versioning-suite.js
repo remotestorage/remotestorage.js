@@ -107,6 +107,11 @@ define([], function() {
       }
 
       require('src/sync.js');
+      if (global.rs_sync) {
+        RemoteStorage.Sync = global.rs_sync;
+      } else {
+        global.rs_sync = RemoteStorage.Sync;
+      }
       test.done();
     },
 
@@ -264,6 +269,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.ALL root",
         run: function(env, test) {
