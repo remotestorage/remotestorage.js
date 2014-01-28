@@ -497,7 +497,6 @@ define([], function() {
           var syncDone;
                 test.assertAnd(env.rs.sync._tasks, {});
                 test.assertAnd(env.rs.sync._running, {});
-          console.log('starting with', env.rs.sync._running, env.rs.sync._tasks);
           env.rs.remote.connected = true;
           env.rs.remote.online = true;
           env.rs.local.setNodes({
@@ -508,7 +507,6 @@ define([], function() {
             }
           }).then(function() {
             env.rs.sync.on('done', function() {
-              console.log('sync done fired!');
               syncDone = true;
             });
             //with maxAge:1000000 this will get queued since common has no revision:
@@ -529,7 +527,6 @@ define([], function() {
         run: function(env, test) {
                 test.assertAnd(env.rs.sync._tasks, {});
                 test.assertAnd(env.rs.sync._running, {});
-          console.log('starting with', env.rs.sync._running, env.rs.sync._tasks);
           var done1, done2;
           env.rs.remote.connected = true;
           env.rs.remote.online = true;
@@ -556,7 +553,6 @@ define([], function() {
               test.assertAnd(status, 200);
               test.assertAnd(itemsMap, {});
               done1 = true;
-              console.log('done1');
               if (done2 && syncDone) {
                 env.rs.sync.on('done', function() {
                   test.done();
@@ -567,7 +563,6 @@ define([], function() {
               test.assertAnd(status, 200);
               test.assertAnd(itemsMap, {});
               done2 = true;
-              console.log('done2');
               if (done1 && syncDone) {
                 test.done();
               }
@@ -608,7 +603,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar1'].local, undefined);
                 test.assertAnd(objs['/foo/bar1'].push, undefined);
                 test.assertAnd(objs['/foo/bar1'].remote, {revision: '1234'});
-                test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
+                //don't know much about what's running here
                 env.rs.remote._responses [['get', '/foo/bar1', { IfNoneMatch: '987' }]] = [200, 'you are done', 'thank', 'you'];
                 env.rs.remote._responses [['get', '/foo/bar1']] = [200, 'you are done', 'thank', 'you'];
                 env.rs.sync.on('done', function() {
@@ -650,7 +645,7 @@ define([], function() {
                 test.assertAnd(objs['/foo/bar'].local, undefined);
                 test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
+                //don't know much about what's running here
                 env.rs.remote._responses [['get', '/foo/bar', { IfNoneMatch: '987' }]] = [200, 'you are done', 'thank', 'you'];
                 env.rs.remote._responses [['get', '/foo/bar']] = [200, 'you are done', 'thank', 'you'];
                 env.rs.sync.on('done', function() {
@@ -678,7 +673,7 @@ define([], function() {
               env.rs.remote._responses [['get', '/foo/bar']] = [200];
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'], undefined);
-                test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/bar']);
+                //don't know much about what's running here
                 env.rs.remote._responses [['get', '/foo/bar', { IfNoneMatch: '987' }]] = [200, 'you are done', 'thank', 'you'];
                 env.rs.remote._responses [['get', '/foo/bar']] = [200, 'you are done', 'thank', 'you'];
                 env.rs.sync.on('done', function() {
@@ -717,6 +712,7 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
             setTimeout(function() {
               var stored;
+              //don't know much about what's running here
               env.rs.remote._responses [['get', '/foo/', { IfNoneMatch: '987' }]] = [200, {}, '', 'thank you'];
               env.rs.remote._responses [['get', '/foo/']] = [200, {}, '', 'thank you'];
               env.rs.sync.on('done', function() {
@@ -759,6 +755,7 @@ define([], function() {
             });
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
             setTimeout(function() {
+              //don't know much about what's running here
               env.rs.remote._responses [['get', '/foo/', { ifNoneMatch: '987' }]] = [200];
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
                 test.assertAnd(objs['/foo/'], {
@@ -790,6 +787,7 @@ define([], function() {
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/']).then(function(objs) {
+                //don't know much about what's running here
                 env.rs.remote._responses [['get', '/foo/']] = [200];
                 test.assertAnd(objs['/foo/'], undefined);
                 test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/']);
@@ -805,7 +803,6 @@ define([], function() {
           });
         }
       },
-], nothing: [
       {
         desc: "PUT requests that time out get cancelled and restarted",
         run: function(env, test) {
@@ -852,17 +849,15 @@ define([], function() {
               } else {
                 done = true;
               }
-              console.log('sync done');
             });
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('done objs', objs);
                 test.assertAnd(objs['/foo/bar'].common.body, 'asdfz');
                 test.assertAnd(objs['/foo/bar'].common.contentType, 'qwerz');
                 test.assertAnd(objs['/foo/bar'].common.revision, '383a');
                 test.assertAnd(objs['/foo/bar'].local, undefined);
-                test.assertAnd(objs['/foo/bar'].push, undefined);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
+                //don't know much about what's running here
                 if (done) {
                   test.done();
                 } else {
@@ -894,10 +889,8 @@ define([], function() {
               common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 }
             }
           }).then(function() {
-            console.log('delete start');
             return env.rs.local.delete('/foo/bar');
           }).then(function() {
-            console.log('delete finish');
             return env.rs.local.getNodes(['/foo/bar']);
           }).then(function(objs) {
             //check that .local.body: false was set by the delete action:
@@ -907,9 +900,7 @@ define([], function() {
           }).then(function(objs) {
             var done;
             env.rs.sync.on('done', function() {
-              console.log('in second timeout');
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
-                console.log('objs'. objs);
                 test.assertAnd(objs['/foo/bar'], undefined);
                 test.assertAnd(env.rs.sync._tasks, {});
                 test.assertAnd(env.rs.sync._running, {});
@@ -921,15 +912,12 @@ define([], function() {
               });
             });
             setTimeout(function() {
-              console.log('ini first timeout', env.rs.sync._tasks, env.rs.sync._running);
               env.rs.local.getNodes(['/foo/bar']).then(function(objs) {
                 test.assertAnd(objs['/foo/bar'].common,
                     { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 });
                 test.assertAnd(objs['/foo/bar'].local.body, false);
-                test.assertAnd(objs['/foo/bar'].push.body, false);
                 test.assertAnd(objs['/foo/bar'].remote, undefined);
-                test.assertAnd(env.rs.sync._tasks, {'/foo/bar': []});
-                test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running), ['/foo/bar/']);
+                //don't know much about what's running and pushing here
                 env.rs.remote._responses [['delete', '/foo/bar', { ifMatch: '987' }]] = [200];
                 if (done) {
                   test.done();
@@ -960,7 +948,6 @@ define([], function() {
             }
           }).then(function() {
             env.rs.sync.checkDiffs();
-            console.log(env.rs.sync._tasks);
             test.assertAnd(env.rs.sync._tasks, {'/foo/bar': []});
             //env.rs.sync.on('done', function() {
             test.done();
@@ -1093,8 +1080,6 @@ define([], function() {
           var p1 = promising();
           var p2 = promising();
           env.rs.sync.on('done', function() {
-            console.log('sync done');
-            console.log('_tasks/_running', env.rs.sync._tasks, env.rs.sync._running);
             if (done1 && done2 && syncReturned) {
               test.done();
             } else {
@@ -1102,8 +1087,6 @@ define([], function() {
             }
           });
           p1.then(function() {
-            console.log('task 1 done');
-            console.log('_tasks/_running', env.rs.sync._tasks, env.rs.sync._running);
             test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._tasks), ['/2']);
             if (done2 && syncDone && syncReturned) {
               test.done();
@@ -1112,8 +1095,6 @@ define([], function() {
             }
           });
           p2.then(function() {
-            console.log('task 2 done');
-            console.log('_tasks/_running', env.rs.sync._tasks, env.rs.sync._running);
             if (done1 && syncDone && syncReturned) {
               test.done();
             } else {
@@ -1125,10 +1106,7 @@ define([], function() {
           env.rs.sync.numThreads = 1;
           remoteStorage.sync.queueGetRequest('/1', p1);
           remoteStorage.sync.queueGetRequest('/2', p2);
-          console.log('calling sync.sync()');
           env.rs.sync.sync().then(function() {
-            console.log('sync() returned its promise');
-            console.log('_tasks/_running', env.rs.sync._tasks, env.rs.sync._running);
             if (done1 && done2 && syncDone) {
               test.done();
             } else {

@@ -24,20 +24,16 @@
       return new Date().getTime();
     },
     queueGetRequest: function(path, promise) {
-      console.log('get request queued', path, promise);
       if (!this.remote.connected) {
         promise.reject('cannot fulfill maxAge requirement - remote is not connected');
       } else if (!this.remote.online) {
         promise.reject('cannot fulfill maxAge requirement - remote is not online');
       } else {
         this.addTask(path, function() {
-            console.log('fulfilling task get', path);
           this.local.get(path).then(function(status, bodyOrItemsMap, contentType) {
-            console.log('fulfilling task got', path);
             promise.fulfill(status, bodyOrItemsMap, contentType);
           });
         }.bind(this));
-            console.log('fulfilling task resume', path);
         this.doTasks();
       }
     },
@@ -45,35 +41,28 @@
       var i;
       if ((typeof(itemsMap) !== 'object') ||
           (Array.isArray(itemsMap))) {
-         console.log('not an object', itemsMap);
          return true;
       }
       for (i in itemsMap) {
         if (typeof(itemsMap[i]) !== 'object') {
-          console.log('not an object', itemsMap, i);
           return true;
         }
         if(typeof(itemsMap[i].ETag) !== 'string') {
-          console.log('ETag not a string', itemsMap, i);
           return true;
         }
         if (i.substr(-1) === '/') {
           if (i.substring(0, i.length-1).indexOf('/') != -1) {
-            console.log('multiple slashes in item name', itemsMap, i);
             return true;
           }
         } else {
           if (i.indexOf('/') != -1) {
-            console.log('middle slash in item name', itemsMap, i);
             return true;
           }
           if (force02) {
             if (typeof(itemsMap[i]['Content-Type']) !== 'string') {
-              console.log('Content-Type not a string', itemsMap, i);
               return true;
             }
             if (typeof(itemsMap[i]['Content-Length']) !== 'number') {
-              console.log('Content-Length not a number', itemsMap, i);
               return true;
             }
           }
@@ -129,30 +118,25 @@
           //  (node.remote && this.corruptRevision(node.remote)),
           //  (node.push && this.corruptRevision(node.push)));
           if (typeof(node) === 'object' && node.path) {
-            console.log('enqueuing corrupt', node.path);
             this.addTask(node.path);
             num++;
           }
         } else if (this.needsFetch(node)
             && this.access.checkPath(node.path, 'r')) {
-          console.log('enqueuing fetch', node.path);
           this.addTask(node.path);
           num++;
         } else if (this.needsPush(node)
             && this.access.checkPath(node.path, 'rw')) {
-          console.log('enqueuing push', node.path);
           this.addTask(node.path);
           num++;
         }
       }.bind(this)).then(function() {
-        console.log('checkDiffs found', num, this._tasks);
         return num;
       }, function(err) {
         throw err;
       });
     },
     tooOld: function(node) {
-      console.log('checking tooOld for', node.path); return true;
       if (node.common) {
         if (!node.common.timestamp) {
           return true;
@@ -207,11 +191,8 @@
             this._tasks[node.path] = [];
           }
         }
-        console.log('at end of cb', this._tasks);
       }.bind(this)).then(function() {
-        console.log('at start of then', this._tasks);
         var i, j;
-        console.log('checkRefresh found', this._tasks);
         for(i in this._tasks) {
           nodes = this.local._getInternals()._nodesFromRoot(i);
           for (j=1; j<nodes.length; j++) {
@@ -220,16 +201,13 @@
             }
           }
         }
-        console.log('checkRefresh selected', this._tasks);
       }.bind(this), function(err) {
         throw err;
       });
     },
     doTask: function(path) {
       return this.local.getNodes([path]).then(function(objs) {
-        console.log('doTask objs', objs);
         if(typeof(objs[path]) === 'undefined') {
-          console.log('first fetch');
           //first fetch:
           return {
             action: 'get',
@@ -238,7 +216,6 @@
           };
         } else if (objs[path].remote && objs[path].remote.revision && !objs[path].remote.itemsMap && !objs[path].remote.body) {
           //fetch known-stale child:
-          console.log('known stale');
           return {
             action: 'get',
             path: path,
@@ -260,7 +237,6 @@
                 ifNoneMatch: '*'
               };
             }
-            console.log('push put');
             return {
               action: 'put',
               path: path,
@@ -277,7 +253,6 @@
                 ifMatch: objs[path].common.revision
               };
             }
-            console.log('action is delete');
             return {
               action: 'delete',
               path: path,
@@ -285,7 +260,6 @@
             };
           }.bind(this));
         } else {
-          console.log('refresh');
           //refresh:
           var options = undefined;
           if (objs[path].common.revision) {
@@ -307,7 +281,6 @@
       }.bind(this));
     },
     autoMerge: function(obj) {
-      console.log('autoMerge', obj);
       var newValue, oldValue;
       if (!obj.remote) {
         return obj;
@@ -372,7 +345,6 @@
       }
     },
     markChildren: function(path, itemsMap, changedObjs) {
-      console.log('markChildren', path, itemsMap, changedObjs);
       var i, paths = [], meta = {};
       for (i in itemsMap) {
         paths.push(path+i);
@@ -384,7 +356,6 @@
           if (objs[j] && objs[j].common) {
             if (objs[j].common.revision !== meta[j].ETag) {
               if (!objs[j].remote || objs[j].remote.revision !== meta[j].ETag) {
-    //            console.log('set remote', j);
                 changedObjs[j] = this.local._getInternals()._deepClone(objs[j]);
                 changedObjs[j].remote = {
                   revision: meta[j].ETag,
@@ -401,7 +372,6 @@
               create = (cachingStrategy === this.caching.ALL);
             }
             if (create) {
-      //        console.log('create', j);
               changedObjs[j] = {
                 path: j,
                 common: {
@@ -447,7 +417,6 @@
           objs[path].remote.contentType = contentType;
         }
         objs[path] = this.autoMerge(objs[path]);
-        console.log('completeFetch after autoMerge', objs);
         return objs;
       }.bind(this));
     },
@@ -504,7 +473,6 @@
     handleResponse: function(path, action, status, bodyOrItemsMap, contentType, revision) {
       console.log('handleResponse', path, action, status, bodyOrItemsMap, contentType, revision);
       var statusMeaning = this.interpretStatus(status);
-      console.log('status meaning', status, statusMeaning);
       
       if (statusMeaning.successful) {
         if (action === 'get') {
@@ -516,11 +484,9 @@
             }
           }
           return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(objs) {
-          console.log('completeFetch', path, bodyOrItemsMap, contentType, revision);
             if (path.substr(-1) === '/') {
               if (this.corruptServerItemsMap(bodyOrItemsMap)) {
                 console.log('WARNING: discarding corrupt folder description from server for ' + path);
-                console.log(bodyOrItemsMap);
                 return false;
               } else {
                 return this.markChildren(path, bodyOrItemsMap, objs).then(function() {
@@ -528,9 +494,7 @@
                 });
               }
             } else {
-              console.log('setting node after success doc get');
               return this.local.setNodes(objs).then(function() {
-                console.log('returning completed: true');
                 return true;//task completed
               });
             }
@@ -548,7 +512,6 @@
         }
       } else {
         if (statusMeaning.unAuth) {
-          console.log('emitting UnAuth!');
           remoteStorage._emit('error', new RemoteStorage.Unauthorized());
         }
         return this.dealWithFailure(path, action, statusMeaning).then(function() {
@@ -558,18 +521,15 @@
     },
     numThreads: 1,
     finishTask: function (obj) {
-      console.log('got task', obj);
       if(obj.action === undefined) {
         delete this._running[obj.path];
       } else {
         obj.promise.then(function(status, bodyOrItemsMap, contentType, revision) {
           return this.handleResponse(obj.path, obj.action, status, bodyOrItemsMap, contentType, revision);
         }.bind(this)).then(function(completed) {
-          console.log('handleResponse success; completed:', completed);
           delete this._timeStarted[obj.path];
           delete this._running[obj.path];
           if (completed) {
-            console.log('calling back queued gets for '+obj.path, this._tasks);
             if (this._tasks[obj.path]) {
               for(i=0; i<this._tasks[obj.path].length; i++) {
                 this._tasks[obj.path][i]();
@@ -577,16 +537,12 @@
               delete this._tasks[obj.path];
             }
           } else {
-            console.log('task not completed', this._tasks, this._running);
           }
           this._emit('req-done');
-          console.log('restarting doTasks after success (whether or not completed)');
           console.log('_running/_tasks', this._running, this._tasks);
           if (Object.getOwnPropertyNames(this._tasks).length === 0 || this.stopped) {
-            console.log('sync is done!');
             this._emit('done');
           } else {
-            console.log('sync is not done!');
             //use a zero timeout to let the JavaScript runtime catch its breath
             //(and hopefully force an IndexedDB auto-commit?):
             setTimeout(function() {
@@ -595,14 +551,12 @@
           }
         }.bind(this),
         function(err) {
-          console.log('task error', err);
           this.remote.online = false;
           delete this._timeStarted[obj.path];
           delete this._running[obj.path];
           this._emit('req-done');
           if (!this.stopped) {
             setTimeout(function() {
-              console.log('restarting doTasks after failure');
               this.doTasks();
             }.bind(this), 0);
           }
@@ -610,7 +564,6 @@
       }
     },
     doTasks: function() {
-      console.log('in doTasks');
       var numToHave, numAdded = 0, numToAdd;
       if (this.remote.connected) {
         if (this.remote.online) {
@@ -622,13 +575,11 @@
         numToHave = 0;
       }
       numToAdd = numToHave - Object.getOwnPropertyNames(this._running).length;
-      console.log('numToAdd', numToAdd, this._tasks, this._running);
       if (numToAdd <= 0) {
         return true;
       }
       for (path in this._tasks) {
         if (!this._running[path]) {
-          console.log('starting', path);
           this._timeStarted = this.now();
           this._running[path] = this.doTask(path);
           this._running[path].then(this.finishTask.bind(this));
