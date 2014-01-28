@@ -23,6 +23,11 @@ define(['requirejs'], function(requirejs) {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
       require('./src/inmemorystorage');
+      if (global.rs_ims) {
+        RemoteStorage.InMemoryStorage = global.rs_ims;
+      } else {
+        global.rs_ims = RemoteStorage.InMemoryStorage;
+      }
       test.done();
     },
 

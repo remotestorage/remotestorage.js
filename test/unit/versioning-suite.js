@@ -101,7 +101,7 @@ define([], function() {
 
       require('./src/inmemorystorage.js');
       if (global.rs_ims) {
-        RemoteStorage.InMemoryCaching = global.rs_ims;
+        RemoteStorage.InMemoryStorage = global.rs_ims;
       } else {
         global.rs_ims = RemoteStorage.InMemoryStorage;
       }
