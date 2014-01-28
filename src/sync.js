@@ -348,59 +348,128 @@
         return obj;
       }
     },
-    markChildren: function(path, itemsMap, changedObjs) {
-      var i, paths = [], meta = {};
+    markChildren: function(path, itemsMap, changedObjs, missingChildren) {
+      var i, paths = [], meta = {}, recurse = {};
       for (i in itemsMap) {
         paths.push(path+i);
         meta[path+i] = itemsMap[i];
       }
+      for (i in missingChildren) {
+        paths.push(path+i);
+      }
       return this.local.getNodes(paths).then(function(objs) {
-        var j, cachingStrategy, create;
+        var j, k, cachingStrategy, create;
         for (j in objs) {
-          if (objs[j] && objs[j].common) {
-            if (objs[j].common.revision !== meta[j].ETag) {
-              if (!objs[j].remote || objs[j].remote.revision !== meta[j].ETag) {
-                changedObjs[j] = this.local._getInternals()._deepClone(objs[j]);
-                changedObjs[j].remote = {
-                  revision: meta[j].ETag,
-                  timestamp: this.now()
+          if (itemsMap[j]) {
+            if (objs[j] && objs[j].common) {
+              if (objs[j].common.revision !== meta[j].ETag) {
+                if (!objs[j].remote || objs[j].remote.revision !== meta[j].ETag) {
+                  changedObjs[j] = this.local._getInternals()._deepClone(objs[j]);
+                  changedObjs[j].remote = {
+                    revision: meta[j].ETag,
+                    timestamp: this.now()
+                  };
+                  changedObjs[j] = this.autoMerge(changedObjs[j]);
+                }
+              }
+            } else {
+              cachingStrategy = this.caching.checkPath(j);
+              if(j.substr(-1) === '/') {
+                create = (cachingStrategy === this.caching.SEEN_AND_FOLDERS || cachingStrategy === this.caching.ALL);
+              } else {
+                create = (cachingStrategy === this.caching.ALL);
+              }
+              if (create) {
+                changedObjs[j] = {
+                  path: j,
+                  common: {
+                    timestamp: this.now()
+                  },
+                  remote: {
+                    revision: meta[j].ETag,
+                    timestamp: this.now()
+                  }
                 };
-                changedObjs[j] = this.autoMerge(changedObjs[j]);
               }
             }
-          } else {
-            cachingStrategy = this.caching.checkPath(j);
-            if(j.substr(-1) === '/') {
-              create = (cachingStrategy === this.caching.SEEN_AND_FOLDERS || cachingStrategy === this.caching.ALL);
-            } else {
-              create = (cachingStrategy === this.caching.ALL);
+            if (changedObjs[j] && meta[j]['Content-Type']) {
+              changedObjs[j].remote.contentType = meta[j]['Content-Type'];
             }
-            if (create) {
-              changedObjs[j] = {
-                path: j,
-                common: {
-                  timestamp: this.now()
-                },
-                remote: {
-                  revision: meta[j].ETag,
-                  timestamp: this.now()
-                }
-              };
+            if (changedObjs[j] && meta[j]['Content-Length']) {
+              changedObjs[j].remote.contentLength = meta[j]['Content-Length'];
             }
+          } else if (missingChildren[i] && objs[j] && objs[j].common) {
+            if (objs[j].common.itemsMap) {
+              for (k in objs[j].common.itemsMap) {
+                recurse[j+k] = true;
+              }
+            }
+            if (objs[j].local && objs[j].local.itemsMap) {
+              for (k in objs[j].local.itemsMap) {
+                recurse[j+k] = true;
+              }
+            }
+            //TODO: emit remote change event here?
+            //and conflict event if there's a local?
+            //pass it through autoMerge for that maybe?
+            changedObjs[j] = undefined;
           }
-          if (changedObjs[j] && meta[j]['Content-Type']) {
-            changedObjs[j].remote.contentType = meta[j]['Content-Type'];
-          }
-          if (changedObjs[j] && meta[j]['Content-Length']) {
-            changedObjs[j].remote.contentLength = meta[j]['Content-Length'];
-          }       
         }
-        return this.local.setNodes(changedObjs);
+        return this.deleteTrees(Object.keys(recurse), changedObjs).then(function(changedObjs2) {
+          return this.local.setNodes(changedObjs2);
+        });
       }.bind(this));
+    },
+    deleteTrees: function(paths, changedObjs) {
+      if (paths.length === 0) {
+        return promising().fulfill(changedObjs);
+      }
+      this.local.getNodes(paths).then(function(objs) {
+        var i, j, subPaths = {};
+        for (i in objs) {
+          if (objs[i]) {
+            if (i.substr(-1) === '/') {
+              if (objs[i].common && objs[i].common.itemsMap) {
+                for (j in objs[i].common.itemsMap) {
+                  subPaths[i+j] = true;
+                }
+              }
+              if (objs[i].local && objs[i].local.itemsMap) {
+                for (j in objs[i].local.itemsMap) {
+                  subPaths[i+j] = true;
+                }
+              }
+            } else {
+              if (objs[i].local) {
+                this.local._emit('change', {
+                  origin: 'conflict',
+                  oldValue: objs[i].local.body,
+                  newValue: undefined,
+                  oldContentType: objs[i].local.contentType,
+                  newContentType: undefined
+                });
+              } else if (objs[i].common) {
+                this.local._emit('change', {
+                  origin: 'remote',
+                  oldValue: objs[i].common.body,
+                  newValue: undefined,
+                  oldContentType: objs[i].common.contentType,
+                  newContentType: undefined
+                });
+              }
+            }
+            changedObjs[i] = undefined;
+          }
+        }
+        //recurse whole tree depth levels at once:
+        return this.deleteTrees(Object.keys(subPaths), changedObjs).then(function(changedObjs2) {
+          return this.local.setNodes(changedObjs2);
+        });
+      });
     },
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
       return this.local.getNodes([path]).then(function(objs) {
-        var i;
+        var i, missingChildren = {};
         if(!objs[path]) {
           objs[path] = {
             path: path,
@@ -413,6 +482,20 @@
         };
         if (path.substr(-1) === '/') {
           objs[path].remote.itemsMap = {};
+          if (objs[path].common && objs[path].common.itemsMap) {
+            for (i in objs[path].common.itemsMap) {
+              if (!bodyOrItemsMap[i]) {
+                missingChildren[i] = true;
+              }
+            }
+          }
+          if (objs[path].local && objs[path].local.itemsMap) {
+            for (i in objs[path].local.itemsMap) {
+              if (!bodyOrItemsMap[i]) {
+                missingChildren[i] = true;
+              }
+            }
+          }
           for (i in bodyOrItemsMap) {
             objs[path].remote.itemsMap[i] = true;
           }
@@ -421,7 +504,10 @@
           objs[path].remote.contentType = contentType;
         }
         objs[path] = this.autoMerge(objs[path]);
-        return objs;
+        return {
+          toBeSaved: objs,
+          missingChildren: missingChildren
+        };
       }.bind(this));
     },
     completePush: function(path, action, conflict, revision) {
@@ -487,13 +573,13 @@
               bodyOrItemsmap = false;
             }
           }
-          return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(objs) {
+          return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(dataFromFetch) {
             if (path.substr(-1) === '/') {
               if (this.corruptServerItemsMap(bodyOrItemsMap)) {
                 console.log('WARNING: discarding corrupt folder description from server for ' + path);
                 return false;
               } else {
-                return this.markChildren(path, bodyOrItemsMap, objs).then(function() {
+                return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren).then(function() {
                   return true;//task completed
                 });
               }
