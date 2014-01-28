@@ -302,7 +302,6 @@ define([], function() {
         }
       },
      
-], nothing: [
       {
         desc: "checkRefresh gives preference to caching parent",
         run: function(env, test) {
@@ -359,7 +358,6 @@ define([], function() {
           });
         }
       },
-
       {
         desc: "go through the request-queue with 4-8 requests at a time",
         run: function(env, test) {
@@ -807,6 +805,7 @@ define([], function() {
           });
         }
       },
+], nothing: [
       {
         desc: "PUT requests that time out get cancelled and restarted",
         run: function(env, test) {
