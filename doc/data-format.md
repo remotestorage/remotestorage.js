@@ -76,12 +76,3 @@ As noted before, merging a subtree is done by merging each document that exists 
 * in which subtrees all previously existing documents were deleted (folder item disappeared)
 * in which subtrees at least one document was either created, updated, or deleted (new ETag on a folder item)
 
-
-# TO DO:
-* set event origin to 'conflict'
-* only resolve full-conflicts, not pre-conflicts
-
-# TESTS TO ADD:
-- delete does not leave a tombstone if common is also empty anyway
-- 404 creates empty remotes for all existing subnodes
-
