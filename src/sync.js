@@ -415,12 +415,12 @@
             changedObjs[j] = undefined;
           }
         }
-        return this.deleteTrees(Object.keys(recurse), changedObjs).then(function(changedObjs2) {
+        return this.deleteRemoteTrees(Object.keys(recurse), changedObjs).then(function(changedObjs2) {
           return this.local.setNodes(changedObjs2);
         });
       }.bind(this));
     },
-    deleteTrees: function(paths, changedObjs) {
+    deleteRemoteTrees: function(paths, changedObjs) {
       if (paths.length === 0) {
         return promising().fulfill(changedObjs);
       }
@@ -440,29 +440,19 @@
                 }
               }
             } else {
-              if (objs[i].local) {
-                this.local._emit('change', {
-                  origin: 'conflict',
-                  oldValue: objs[i].local.body,
-                  newValue: undefined,
-                  oldContentType: objs[i].local.contentType,
-                  newContentType: undefined
-                });
-              } else if (objs[i].common) {
-                this.local._emit('change', {
-                  origin: 'remote',
-                  oldValue: objs[i].common.body,
-                  newValue: undefined,
-                  oldContentType: objs[i].common.contentType,
-                  newContentType: undefined
-                });
+              if (objs[i].common && typeof(objs[i].common.body) !== undefined) {
+                changedObjs[j] = this.local._getInternals()._deepClone(objs[j]);
+                changedObjs[j].remote = {
+                  body: false,
+                  timestamp: this.now()
+                };
+                changedObjs[j] = this.autoMerge(changedObjs[j]);
               }
             }
-            changedObjs[i] = undefined;
           }
         }
         //recurse whole tree depth levels at once:
-        return this.deleteTrees(Object.keys(subPaths), changedObjs).then(function(changedObjs2) {
+        return this.deleteRemoteTrees(Object.keys(subPaths), changedObjs).then(function(changedObjs2) {
           return this.local.setNodes(changedObjs2);
         });
       });
