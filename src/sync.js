@@ -486,6 +486,13 @@
               }
             }
           }
+          if (objs[path].remote && objs[path].remote.itemsMap) {
+            for (i in objs[path].remote.itemsMap) {
+              if (!bodyOrItemsMap[i]) {
+                missingChildren[i] = true;
+              }
+            }
+          }
           for (i in bodyOrItemsMap) {
             objs[path].remote.itemsMap[i] = true;
           }
