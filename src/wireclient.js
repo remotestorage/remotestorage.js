@@ -78,7 +78,9 @@
     var promise = promising();
     var revision;
 
-    headers['Authorization'] = 'Bearer ' + token;
+    if(token != 'implied') {
+      headers['Authorization'] = 'Bearer ' + token;
+    }
 
     RS.WireClient.request(method, uri, {
       body: body,

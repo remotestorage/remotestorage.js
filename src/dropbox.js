@@ -508,7 +508,9 @@
     _request: function(method, url, options, callback) {
       callback = callback.bind(this);
       if (! options.headers) { options.headers = {}; }
-      options.headers['Authorization'] = 'Bearer ' + this.token;
+      if(this.token != 'implied') {
+        options.headers['Authorization'] = 'Bearer ' + this.token;
+      }
       RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
         //503 means retry this later
         if(xhr && xhr.status === 503) {
