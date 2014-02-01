@@ -76,7 +76,7 @@
 
     var promise = promising();
 
-    if(token != 'implied') {
+    if(token !== 'implied') {
       headers['Authorization'] = 'Bearer ' + token;
     }
 
