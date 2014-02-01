@@ -78,7 +78,7 @@
     var promise = promising();
     var revision;
 
-    if(token != 'implied') {
+    if(token !== 'implied') {
       headers['Authorization'] = 'Bearer ' + token;
     }
 
