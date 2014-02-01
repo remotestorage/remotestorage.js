@@ -208,7 +208,7 @@
       var reqType;
       var self = this;
 
-      if(token != 'implied') {
+      if(token !== 'implied') {
         headers['Authorization'] = 'Bearer ' + token;
       }
 
