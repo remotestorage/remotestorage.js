@@ -381,7 +381,9 @@
     _request: function(method, url, options, callback) {
       callback = callback.bind(this);
       if(! options.headers) options.headers = {};
-      options.headers['Authorization'] = 'Bearer ' + this.token;
+      if(this.token != 'implied') {
+        options.headers['Authorization'] = 'Bearer ' + this.token;
+      }
       RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
         // // dropbox tokens might  expire from time to time...
         // if(xhr.status == 401) {

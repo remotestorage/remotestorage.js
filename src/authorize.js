@@ -24,6 +24,13 @@
     document.location = url;
   };
 
+  RemoteStorage.ImpliedAuth = function(storageApi, redirectUri) {
+    RemoteStorage.log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
+    // Set a fixed access token, signalling to not send it as Bearer
+    remoteStorage.remote.configure(undefined, undefined, undefined, 'implied');
+    document.location = redirectUri;
+  };
+
   RemoteStorage.prototype.authorize = function(authURL) {
     var scopes = this.access.scopeModeMap;
     var scope = [];
@@ -43,6 +50,11 @@
 
     RemoteStorage.Authorize(authURL, scope, redirectUri, clientId);
   };
+
+  RemoteStorage.prototype.impliedauth = function() {
+    RemoteStorage.ImpliedAuth(this.remote.storageApi, String(document.location));
+  };
+
 
   RemoteStorage.Authorize._rs_supported = function(remoteStorage) {
     return typeof(document) != 'undefined';
