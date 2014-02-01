@@ -106,7 +106,9 @@
       remote.get(path, {
         ifNoneMatch: localRevision
       }).then(function(remoteStatus, remoteBody, remoteContentType, remoteRevision) {
-        if (remoteStatus === 401 || remoteStatus === 403) {
+        if ((remoteStatus === 401) && (remote.token != 'implied')) {
+          throw new RemoteStorage.Unauthorized();
+        } else if (remoteStatus === 403) {
           throw new RemoteStorage.Unauthorized();
         } else if (remoteStatus === 412 || remoteStatus === 304) {
           // up to date.

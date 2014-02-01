@@ -208,7 +208,9 @@
       var reqType;
       var self = this;
 
-      headers['Authorization'] = 'Bearer ' + token;
+      if(token != 'implied') {
+        headers['Authorization'] = 'Bearer ' + token;
+      }
 
       this._emit('wire-busy', {
         method: method,
