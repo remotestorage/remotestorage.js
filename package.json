@@ -15,6 +15,6 @@
     "xhr2": "0.0.7"
   },
   "scripts": {
-    "test": "for i in `ls test/unit`; do echo ./node_modules/teste/bin/teste test/unit/$i; done | sh"
+    "test": "./node_modules/teste/bin/teste"
   }
 }

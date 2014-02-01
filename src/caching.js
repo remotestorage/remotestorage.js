@@ -26,7 +26,7 @@
     SEEN: false,
     SEEN_AND_FOLDERS: { data: false },
     ALL: { data: true },
-
+    
     /**
      ** configuration methods
      **/
@@ -39,6 +39,14 @@
         throw new Error("value should be something like remoteStorage.caching.FOLDERS_AND_SEEN");
       }
       this._rootPaths[path] = value;
+      if ((value === this.SEEN_AND_FOLDERS || value === this.ALL)
+          && (this.activateHandler)) {
+        this.activateHandler(path);
+      } 
+    },
+
+    onActivate: function(cb) {
+      this.activateHandler = cb;
     },
     
     /**

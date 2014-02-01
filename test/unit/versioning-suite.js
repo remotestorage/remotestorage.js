@@ -20,6 +20,7 @@ define([], function() {
       }
       return this._responses[path];
     };
+    this.onActivate = function() {};
   }
 
   function FakeAccess(){
@@ -101,12 +102,17 @@ define([], function() {
 
       require('./src/inmemorystorage.js');
       if (global.rs_ims) {
-        RemoteStorage.InMemoryCaching = global.rs_ims;
+        RemoteStorage.InMemoryStorage = global.rs_ims;
       } else {
         global.rs_ims = RemoteStorage.InMemoryStorage;
       }
 
       require('src/sync.js');
+      if (global.rs_sync) {
+        RemoteStorage.Sync = global.rs_sync;
+      } else {
+        global.rs_sync = RemoteStorage.Sync;
+      }
       test.done();
     },
 
@@ -682,6 +688,7 @@ define([], function() {
         }
       },
 
+], nothing: [
       {
         desc: "a failure response to a PUT removes the push version",
         run: function(env, test) {
