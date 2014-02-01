@@ -9,6 +9,12 @@ define(['requirejs'], function(requirejs) {
 
   function assertNode(test, path, expected) {
     var node = JSON.parse(localStorage[NODES_PREFIX + path]);
+    if(node && node.local && node.local.timestamp) {
+      delete node.local.timestamp;
+    }
+    if(node && node.common && node.common.timestamp) {
+      delete node.common.timestamp;
+    }
     test.assertAnd(node, expected);
   }
 
@@ -66,15 +72,17 @@ define(['requirejs'], function(requirejs) {
         desc: "#get loads a node",
         run: function(env, test) {
           global.localStorage[NODES_PREFIX + '/foo'] = JSON.stringify({
-            body: "bar",
-            contentType: "text/plain",
-            revision: "123"
+            path: '/foo',
+            local: {
+              body: "bar",
+              contentType: "text/plain",
+              revision: "123"
+            }
           });
-          env.ls.get('/foo').then(function(status, body, contentType, revision) {
+          env.ls.get('/foo').then(function(status, body, contentType) {
             test.assertAnd(status, 200);
             test.assertAnd(body, "bar");
             test.assertAnd(contentType, "text/plain");
-            test.assertAnd(revision, "123");
             test.done();
           });
         }
@@ -103,49 +111,12 @@ define(['requirejs'], function(requirejs) {
         run: function(env, test) {
           env.ls.put('/foo/bar/baz', 'bar', 'text/plain').then(function() {
             assertNode(test, '/foo/bar/baz', {
-              body: 'bar',
-              contentType: 'text/plain',
-              path: '/foo/bar/baz'
+              path: '/foo/bar/baz',
+              local: {
+                body: 'bar',
+                contentType: 'text/plain'
+              }
             });
-            test.done();
-          });
-        }
-      },
-
-      {
-        desc: "#put records a change for outgoing changes",
-        run: function(env, test) {
-          env.ls.put('/foo/bla', 'basdf', 'text/plain').then(function() {
-            assertChange(test, '/foo/bla', {
-              action: 'PUT',
-              path: '/foo/bla'
-            });
-            test.done();
-          });
-        }
-      },
-
-      {
-        desc: "#put doesn't record a change for incoming changes",
-        run: function(env, test) {
-          env.ls.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
-            assertNoChange(test, '/foo/bla');
-            test.done();
-          });
-        }
-      },
-
-      {
-        desc: "#put sets a revision for incoming changes",
-        run: function(env, test) {
-          env.ls.put('/foo/bla', 'basdf', 'text/plain', true, 'meh').then(function() {
-            var expectedCacheNode = {
-              path: '/foo/bla',
-              body: 'basdf',
-              contentType: 'text/plain',
-              revision: 'meh'
-            };
-            assertNode(test, '/foo/bla', expectedCacheNode);
             test.done();
           });
         }
@@ -160,25 +131,12 @@ define(['requirejs'], function(requirejs) {
               path: '/foo/bla',
               origin: 'window',
               oldValue: undefined,
-              newValue: 'basdf'
+              newValue: 'basdf',
+              oldContentType: undefined,
+              newContentType: 'text/plain'
             });
           });
           env.ls.put('/foo/bla', 'basdf', 'text/plain');
-        }
-      },
-
-      {
-        desc: "#put fires a 'change' with origin=remote for incoming changes",
-        run: function(env, test) {
-          env.ls.on('change', function(event) {
-            test.assert(event, {
-              path: '/foo/bla',
-              origin: 'remote',
-              oldValue: undefined,
-              newValue: 'adsf'
-            });
-          });
-          env.ls.put('/foo/bla', 'adsf', 'text/plain', true);
         }
       },
 
@@ -191,16 +149,20 @@ define(['requirejs'], function(requirejs) {
             if (i === 1) {
               test.assertAnd(event, {
                 path: '/foo/bla',
-                origin: 'remote',
+                origin: 'window',
                 oldValue: undefined,
-                newValue: 'basdf'
+                newValue: 'basdf',
+                oldContentType: undefined,
+                newContentType: 'text/plain'
               });
             } else if (i === 2) {
               test.assertAnd(event, {
                 path: '/foo/bla',
                 origin: 'window',
                 oldValue: 'basdf',
-                newValue: 'fdsab'
+                newValue: 'fdsab',
+                oldContentType: 'text/plain',
+                newContentType: 'text/plain'
               });
               setTimeout(function() {
                 test.done();
@@ -210,139 +172,74 @@ define(['requirejs'], function(requirejs) {
               test.result(false);
             }
           });
-          env.ls.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
+          env.ls.put('/foo/bla', 'basdf', 'text/plain').then(function() {
             env.ls.put('/foo/bla', 'fdsab', 'text/plain');
           });
         }
       },
 
-      {
-        desc: "#putFolder adds the folder cache node with the given body",
-        run: function(env, test) {
-          var folderItems = {'item1': {'ETag': '123', 'Content-Type': 'text/plain'},
-                                'subfolder/': {'ETag': '321'}};
-
-          env.ls.putFolder('/foo/bar/', folderItems, 'meh').then(function() {
-            var expectedCacheNode = {
-              path: '/foo/bar/',
-              body: folderItems,
-              cached: {},
-              contentType: 'application/json',
-              revision: 'meh'
-            };
-            assertNode(test, '/foo/bar/', expectedCacheNode);
-            test.done();
-          });
-        }
-      },
-
-      {
-        desc: "#putFolder adds the path to the parents",
-        run: function(env, test) {
-          var folderItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
-                                'subfolder/': {'ETag': '321'}};
-
-          env.ls.putFolder('/foo/bar/', folderItems).then(function() {
-            var fooNode = JSON.parse(localStorage[NODES_PREFIX + '/foo/']);
-            var rootNode = JSON.parse(localStorage[NODES_PREFIX + '/']);
-
-            test.assertAnd(fooNode.body['bar/'], true);
-            test.assertAnd(rootNode.body['foo/'], true);
-            test.done();
-          });
-        }
-      },
-
-      {
-        desc: "#delete records a change for outgoing changes",
-        run: function(env, test) {
-          env.ls.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
-            env.ls.delete('/foo/bla').then(function() {
-              assertChange(test, '/foo/bla', {
-                action: 'DELETE',
-                path: '/foo/bla'
-              });
-              test.done();
-            });
-          });
-        }
-      },
-
-      {
-        desc: "#delete doesn't record a change for incoming changes",
-        run: function(env, test) {
-          env.ls.put('/foo/bla', 'basfd', 'text/plain', true).then(function() {
-            env.ls.delete('/foo/bla', true).then(function() {
-              assertNoChange(test, '/foo/bla');
-              test.done();
-            });
-          });
-        }
-      },
-
-      // TODO delete removes node and cached item from parent nodes
 
       {
         desc: "fireInitial fires change event with 'local' origin for initial cache content",
         timeout: 250,
         run: function(env, test) {
-          env.ls.put('/foo/bla', 'basdf', 'text/plain');
-          env.ls.on('change', function(event) {
-            test.assert(event.origin, 'local');
+          env.ls.put('/foo/bla', 'basdf', 'text/plain').then(function() {
+            env.ls.on('change', function(event) {
+              test.assert(event.origin, 'local');
+            });
+            //the mock is just an in-memory object; need to explicitly set its .length and its .key() function now:
+            localStorage.length = 1;
+            localStorage.key = function(i) {
+              if (i === 0) {
+                return NODES_PREFIX+'/foo/bla';
+              }
+            };
+            env.ls.fireInitial();
           });
-          //the mock is just an in-memory object; need to explicitly set its .length and its .key() function now:
-          localStorage.length = 1;
-          localStorage.key = function(i) {
-            if (i === 0) {
-              return NODES_PREFIX+'/foo/bla';
-            }
-          };
-          env.ls.fireInitial();
         }
       },
 
       {
-        desc: "#_setRevision updates `cached` items of parent folders",
+        desc: "getNodes, setNodes",
         run: function(env, test) {
-          env.ls._setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
-            test.assertAnd(env.ls._get('/foo/bar/'), {
-              body: {},
-              cached: { 'baz': 'a1b2c3' },
-              contentType: 'application/json',
-              path: '/foo/bar/'
+          env.ls.getNodes(['/foo/bar/baz']).then(function(objs) {
+            test.assertAnd(objs, {'/foo/bar/baz': undefined});
+          }).then(function() {
+            return env.ls.setNodes({
+              '/foo/bar': {
+                path: '/foo/bar',
+                common: { body: 'asdf' }
+              }
             });
-
-            test.assertAnd(env.ls._get('/foo/'), {
-              body: {},
-              cached: { 'bar/': true },
-              contentType: 'application/json',
-              path: '/foo/'
+          }).then(function() {
+            return env.ls.getNodes(['/foo/bar', '/foo/bar/baz']);
+          }).then(function(objs) {
+            test.assertAnd(objs, {
+              '/foo/bar/baz': undefined,
+              '/foo/bar': {
+                path: '/foo/bar',
+                common: { body: 'asdf' }
+              }
             });
-
-            test.assertAnd(env.ls._get('/'), {
-              body: {},
-              cached: { 'foo/': true },
-              contentType: 'application/json',
-              path: '/'
+          }).then(function() {
+            return env.ls.setNodes({
+              '/foo/bar/baz': {
+                path: '/foo/bar/baz/',
+                common: { body: 'qwer' }
+              },
+              '/foo/bar': undefined
             });
-
+          }).then(function() {
+            return env.ls.getNodes(['/foo/bar', '/foo/bar/baz']);
+          }).then(function(objs) {
+            test.assertAnd(objs, {
+              '/foo/bar': undefined,
+              '/foo/bar/baz': {
+                path: '/foo/bar/baz/',
+                common: { body: 'qwer' }
+              }
+            });
             test.done();
-          });
-        }
-      },
-
-      {
-        desc: "#setRevision doesn't overwrite `cached` items in parent folders",
-        run: function(env, test) {
-          env.ls._setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
-            env.ls._setRevision('/foo/bar/booze', 'd4e5f6').then(function() {
-              test.assert(env.ls._get('/foo/bar/'), {
-                body: {},
-                cached: { 'baz': 'a1b2c3', 'booze': 'd4e5f6' },
-                contentType: 'application/json',
-                path: '/foo/bar/'
-              });
-            });
           });
         }
       }

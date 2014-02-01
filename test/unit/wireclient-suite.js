@@ -173,15 +173,17 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "client.get() of a folder emits wire-busy and wire-done on success",
+        desc: "client.get() of a folder emits wire-busy and wire-done on success, and sets remote.online to true",
         run: function(env,test){
           var busy = new test.Stub(function(){});
           var done = new test.Stub(function(){});
+          env.connectedClient.online = false;
           env.connectedClient.on('wire-busy', busy);
           env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo/').then(function(){
             test.assertAnd(busy.numCalled, 1);
             test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.connectedClient.online, true);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -193,16 +195,18 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "client.get() of a folder emits wire-busy and wire-done on failure",
+        desc: "client.get() of a folder emits wire-busy and wire-done on failure, and sets remote.online to false",
         run: function(env,test){
           var busy = new test.Stub(function(){});
           var done = new test.Stub(function(){});
+          env.connectedClient.online = true;
           env.connectedClient.on('wire-busy', busy);
           env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo/').then(function(){
           }, function(err) {
             test.assertAnd(busy.numCalled, 1);
             test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.connectedClient.online, false);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
