@@ -385,7 +385,7 @@
     _request: function(method, url, options, callback) {
       callback = callback.bind(this);
       if (! options.headers) { options.headers = {}; }
-      if(this.token !== 'implied') {
+      if(this.token !== IMPLIED_FAKE_TOKEN) {
         options.headers['Authorization'] = 'Bearer ' + this.token;
       }
       RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
