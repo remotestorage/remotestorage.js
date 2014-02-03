@@ -503,9 +503,6 @@ define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient'
       },
 
       {
-<<<<<<< HEAD
-        desc: "#get unpacks pre-02 folder listings",
-=======
         desc: "#get turns binary data into ArrayBuffers",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar.bin').
@@ -532,7 +529,6 @@ define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient'
 
       {
         desc: "#get unpacks pre-02 directory listings",
->>>>>>> WireClient tests
         run: function(env, test) {
           env.connectedClient.get('/foo/01/').
             then(function(status, body, contentType) {
