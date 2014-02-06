@@ -8,7 +8,6 @@ global.RemoteStorage = function() {};
 
 define(['../../lib/promising','../../src/caching'], function() {
   var suites = [];
-
   suites.push({
     name: "caching",
     desc: "Caching stores settings about which paths to cache locally",

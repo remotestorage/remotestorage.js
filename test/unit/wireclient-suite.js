@@ -4,7 +4,7 @@ if (typeof define !== 'function') {
 
 if(typeof global === 'undefined') global = window
 global.RemoteStorage = function() {};
-define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient'], function(promising, eventhandling, wireclient, undefined) {
+define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient'], function() {
   var suites = [];
   
   suites.push({

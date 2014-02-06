@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    
+    <!-- RemoteStorage -->
+    <script src="../../lib/promising.js"></script>
+    <script src="../../lib/tv4.js"></script>
+    <script src="../../src/remotestorage.js"></script>
+    <script src="../../src/i18n.js"></script>
+    <script src="../../src/version.js"></script>
+    <script src="../../src/caching.js"></script>
+    <script src="../../src/access.js"></script>
+    <script src="../../src/eventhandling.js"></script>
+    <script src="../../src/wireclient.js"></script>
+    <script src="../../src/cachinglayer.js"></script>
+    <script src="../../src/localstorage.js"></script>
+    <script src="../../src/indexeddb.js"></script>
+    <script src="../../src/localstorage.js"></script>
+    <script src="../../src/debug/inspect.js"></script>
+    <script src="../../src/baseclient.js"></script>
+    <script src="../../src/baseclient/types.js"></script>
+    <script src="../../src/dropbox.js"></script>
+    <script src="../../src/googledrive.js"></script>
+    <script src="../../src/widget.js"></script>
+    <script src="../../src/discover.js"></script>
+    <script src="../../src/authorize.js"></script>
+    <script src="../../src/sync.js"></script>
+    <script src="../../src/assets.js"></script>
+    <script src="../../src/view.js"></script>
+    
+    <!-- App -->
+    <script src="../../build/mustache.js"></script>
+  </head>
+
+  <!-- LAYOUT -->
+
+  <body>
+    <div id="content"></div>
+    <div id="code"></div>
+    <div id="tests">
+     
+      <h3>Binary Data</h3>
+      <form id="binary-form">
+        <input type="text" name="path" placeholder="Path..."></input>
+        <input type="file" name="file">Image</input>
+        <button name="put">PUT</button>
+        <h4>from Input</h4>
+        <img id="binary-from-input"></img>
+        <h4>from Remote</h4>
+        <img id="binary-from-remote"></img>
+        <button name="get_remote">GET</button>
+        <h4>from Local</h4>
+        <img id="binary-from-local"></img>
+        <button name="get_local">GET</button>
+      </form>
+    
+    </div>
+  </body>
+
+  <!-- TEMPLATES -->
+
+  <script type="text/mustache" data-template-name="loading">
+    <em>Loading {{version}}...</em>
+  </script>
+
+  <script type="text/mustache" data-template-name="info">
+    <h3>Version:</h3>
+    <div id="version">{{version}}</div>
+    <h3>Supported Features:</h3>
+    <ul id="features">
+      {{#features}}
+        <li>{{name}}</li>
+      {{/features}}
+    </ul>
+
+    <h3>API Keys:</h3>
+    <ul id="api-keys">
+      {{#apiKeys}}
+        <li>
+          Google Drive:
+          <input placeholder="Client ID" title="Client ID" name="googledrive.client_id" value="{{googledrive.client_id}}">
+          <input placeholder="API Key" title="API Key" name="googledrive.api_key" value="{{googledrive.api_key}}">
+        </li>
+        <li>Dropbox: <input placeholder="API Key" name="dropbox.api_key" title="API Key" value="{{dropbox.api_key}}"></li>
+      {{/apiKeys}}
+    </ul>
+
+    <h3>Access:</h3>
+    <ul id="access">
+      {{#access}}
+        {{#scopes}}
+          <li data-scope="{{name}}">
+            {{name}}: {{mode}}
+            <span class="delete">×</span>
+          </li>
+        {{/scopes}}
+      {{/access}}
+      <li>
+        <form id="add-access-form">
+          <input name="name" type="text" placeholder="Name...">
+          <select name="mode">
+            <option value="r">Read only</option>
+            <option value="rw">Read+Write</option>
+          </select>
+          <input type="submit" value="Add">
+        </form>
+      </li>
+    </ul>
+
+    <label>
+      Access roots:
+      {{#access}}
+        {{#rootPaths}}<span class="root-path">{{.}}</span>{{/rootPaths}}
+      {{/access}}
+    </label>
+
+    <h3>Caching:</h3>
+    <p>Caching tells remotestorage.js which data to keep local copies of.</p>
+    
+    <ul id="caching">
+      {{#caching}}
+        {{#list}}
+          <li data-path="{{path}}">
+            {{path}}
+            <span class="delete">×</span>
+          <li>
+        {{/list}}
+      {{/caching}}
+      <li>
+        <form id="add-caching-form">
+          <input type="text" placeholder="Path..." name="path">
+          <input type="submit" value="Add">
+        </form>
+      </li>
+    </ul>
+
+    <label>
+      Caching roots:
+      {{#caching}}
+        {{#rootPaths}}<span class="root-path">{{.}}</span>{{/rootPaths}}
+      {{/caching}}
+    </label>
+
+    <h3>Test Client (base: /test-sync/)</h3>
+    <form id="client-form">
+      <input type="text" name="path" placeholder="Path...">
+      <button id="client-action-get">GET</button>
+      <button id="client-action-put">PUT</button>
+      <button id="client-action-delete">DELETE</button>
+      <br/>
+      <textarea name="data" placeholder="Data..."></textarea>
+    </form>
+    <h4>Events:</h4>
+    <pre id="client-events"></pre>
+  </script>
+
+  <!-- STYLE -->
+
+  <style type="text/css">
+    body { font-family: sans-serif; }
+    span.delete { cursor: pointer; }
+    span.root-path { font-family: courier; }
+    span.root-path:after { content: ", "; }
+    span.root-path:last-child:after { content: "."; }
+    label { font-weight: bold; }
+
+    #code {
+      position: absolute;
+      top: 5em;
+      left: 34em;
+      font-family: courier;
+      white-space: pre;
+    }
+  </style>
+
+  <!-- APP -->
+
+  <script src="generator.js"></script>
+  <script src="main.js"></script>
+  <script type="text/javascript">
+    init();
+  </script>
+</html>

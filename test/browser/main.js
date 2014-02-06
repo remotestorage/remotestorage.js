@@ -2,9 +2,10 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 
+
 define([
-  '../../../node_modules/teste/lib/teste',
-  './util'
+  '../../node_modules/teste/lib/teste',
+  'util'
 ], function(teste, util) {
 
   var container = document.getElementById('container');
@@ -15,9 +16,7 @@ define([
 
   function runSuites(path, done) {
     console.log('LOADING SUITES FROM', path);
-    var origEnv = Object.keys(window).reduce(function(e,k) {e[k]=true;return e;},{});
-    require([path], function(suites) {
-      
+    require([path], function(suites) {  
       var testOutput = document.createElement('pre');
       testOutput.id = 'test-output';
       testOutput.classList.add('test-output');
@@ -30,17 +29,11 @@ define([
       container.appendChild(wrapper);
 
       util.outputTarget = testOutput;
-
+      console.log("Suites : ", suites)
       console.log('FOUND', suites.length, 'SUITES');
       teste.reset(); // removing earlier suites
       suites.forEach(load);
       teste.begin(function(t){
-        for(var key in window) {
-          if(! (key in origEnv)) delete window[key];
-        }
-        require.config({
-          urlArgs: new Date().getTime().toString()
-        });
         done();
       });
     });
@@ -83,21 +76,22 @@ define([
   };
 
 
-  runAllSuites(['../../unit/wireclient-suite', 
-                '../../unit/access-suite',
-                '../../unit/caching-suite',
-                '../../unit/baseclient-suite',
-                '../../unit/authorize-suite',
-                '../../unit/sync-suite',
-                '../../unit/i18n-suite',
-                '../../unit/localstorage-suite',
-                '../../unit/inmemorycaching-suite',
-                '../../unit/indexeddb-suite',
-                '../../unit/discover-suite',
+  runAllSuites(['../unit/wireclient-suite', 
+                '../unit/access-suite',
+                '../unit/caching-suite',
+                '../unit/baseclient-suite',
+                '../unit/authorize-suite',
+                '../unit/sync-suite',
+                '../unit/i18n-suite',
+                '../unit/localstorage-suite',
+                '../unit/inmemorycaching-suite',
+                '../unit/indexeddb-suite',
+                '../unit/discover-suite',
                 //'../../unit/baseclient/types-suite',
-                '../../unit/googledrive-suite',
-                '../../unit/dropbox-suite',
-                '../../unit/remotestorage-suite']);
+                '../unit/googledrive-suite',
+                '../unit/dropbox-suite',
+                '../unit/remotestorage-suite'
+               ]);
 
 });
 
