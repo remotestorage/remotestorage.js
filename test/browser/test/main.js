@@ -9,10 +9,15 @@ define([
 
   var container = document.getElementById('container');
 
+  function toggleSuite(el, e) {
+        el.classList.toggle('hidden');
+  }
+
   function runSuites(path, done) {
     console.log('LOADING SUITES FROM', path);
     var origEnv = Object.keys(window).reduce(function(e,k) {e[k]=true;return e;},{});
     require([path], function(suites) {
+      
       var testOutput = document.createElement('pre');
       testOutput.id = 'test-output';
       testOutput.classList.add('test-output');
@@ -21,6 +26,7 @@ define([
       var wrapper = document.createElement('li');
       wrapper.appendChild(heading);
       wrapper.appendChild(testOutput);
+      heading.addEventListener('click', toggleSuite.bind(this, wrapper))
       container.appendChild(wrapper);
 
       util.outputTarget = testOutput;
