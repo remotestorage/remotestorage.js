@@ -2,9 +2,28 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 if(typeof global === 'undefined') global = window
+
+requirejs.config({ 
+  paths: {
+    dropbox: '../../src/dropbox'
+  },
+  shim: {
+    dropbox: ['../../src/wireclient', 
+              '../../lib/promising',
+              '../../src/eventhandling']
+  }
+})
+
+if (global.rs_eventhandling) {
+  RemoteStorage.eventHandling = global.rs_eventhandling;
+}
+if (global.rs_wireclient) {
+  RemoteStorage.WireClient = global.rs_wireclient;
+}
+
 global.RemoteStorage = function() {};
 
-define(['../../lib/promising','../../src/eventhandling','../../src/wireclient', '../../src/dropbox'], function() {
+define(['dropbox'], function() {
   var suites = [];
 
   suites.push({
@@ -23,16 +42,12 @@ define(['../../lib/promising','../../src/eventhandling','../../src/wireclient', 
       global.RemoteStorage.Unauthorized = function() {};
 
 
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
+      if(!global.rs_eventhandling) {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
 
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
+      if(!global.rs_wireclient) {
         global.rs_wireclient = RemoteStorage.WireClient;
       }
 

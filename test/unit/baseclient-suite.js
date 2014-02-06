@@ -3,13 +3,35 @@ if (typeof define !== 'function') {
 }
 
 if(typeof global === 'undefined') global = window
+
+requirejs.config({
+  paths: {
+    baseclient: '../../src/baseclient',
+    basceclientTypes: '../../src/baseclient/types'
+  },
+  shim: {
+    baseclient: {
+      deps: [  '../../lib/promising', '../../lib/Math.uuid', '../../src/eventhandling', '../../src/wireclient'],
+      exports: 'RS'
+    },
+    basceclientTypes: ['baseclient']
+  }
+})
+
 global.RemoteStorage = function() {};
 
-define([
-  '../../lib/promising', '../../lib/Math.uuid',
-  '../../src/eventhandling', '../../src/wireclient', 
-  '../../src/baseclient', '../../src/baseclient/types'
-], function(__promising, uuid, eventhandling, wireclient, baseclient, baseclientTypes, undefined) {
+if (global.rs_eventhandling) {
+  RemoteStorage.eventHandling = global.rs_eventhandling;
+}
+if (global.rs_wireclient) {
+  RemoteStorage.WireClient = global.rs_wireclient;
+}
+if (global.rs_types) {
+  RemoteStorage.BaseClient.Types = global.rs_types;
+}
+
+define(['baseclient', 'basceclientTypes'
+], function() {
   var suites = [];
          
   suites.push({
@@ -17,6 +39,17 @@ define([
     desc: "High-level client, scoped to a path",
     setup: function(env, test) {
       
+      if (!global.rs_eventhandling) {
+        global.rs_eventhandling = RemoteStorage.eventHandling;
+      }
+      if (!global.rs_wireclient) {
+        global.rs_wireclient = RemoteStorage.WireClient;
+      }
+      if (!global.rs_types) {
+        global.rs_types = RemoteStorage.BaseClient.Types;
+      }
+
+
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
         onChange: function() {},
@@ -32,23 +65,6 @@ define([
         }
       };
 
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-
-      if (global.rs_types) {
-        RemoteStorage.BaseClient.Types = global.rs_types;
-      } else {
-        global.rs_types = RemoteStorage.BaseClient.Types;
-      }
       test.done();
     },
 
@@ -395,5 +411,5 @@ define([
     ]
   });
 
-          return suites;
-        });
+  return suites;
+});
