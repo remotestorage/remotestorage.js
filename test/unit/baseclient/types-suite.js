@@ -4,15 +4,24 @@ if (typeof(define) !== 'function') {
 if(typeof global === 'undefined') global = window
 global.RemoteStorage = function() {};
 global.RemoteStorage.BaseClient = function() {};
+RemoteStorage.BaseClient.prototype.extend = function() {};
 
-define(['../../../src/baseclient/types'], function() {
+requirejs.config({
+  paths: {
+    basceclientTypes: '../../src/baseclient/types'
+  },
+  shim: {
+    baseclientTypes: []
+  }
+})
+
+define(['basceclientTypes'], function() {
   var suites = [];
 
   suites.push({
     name: "BaseClient.Types",
     desc: "Type and schema handling",
     setup: function(env, test) {
-      RemoteStorage.BaseClient.prototype.extend = function() {};
       if (global.rs_types) {
         RemoteStorage.BaseClient.Types = global.rs_types;
       } else {

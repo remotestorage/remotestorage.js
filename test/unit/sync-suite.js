@@ -28,7 +28,6 @@ define([
   function FakeRemote(){
     function GPD(target, path, body, contentType, options) {
       var args = Array.prototype.slice.call(arguments);
-      console.log('GPD called with : ', args);
       this['_'+target+'s'].push([path, body, contentType, options]);
       var p = promising();
       var resp = this._responses[args] || [200];

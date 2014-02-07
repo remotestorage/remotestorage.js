@@ -4,7 +4,7 @@ if (typeof define !== 'function') {
 if(typeof global === 'undefined') global = window
 global.RemoteStorage = function() {};
 
-define(['../../src/authorize'], function( undefined) {
+define(['../../src/eventhandling', '../../src/authorize'], function() {
   var suites = [];
 
   suites.push({
@@ -12,14 +12,11 @@ define(['../../src/authorize'], function( undefined) {
     desc: "OAuth dance",
     setup: function(env, test) {
       RemoteStorage.log = function() {};
-      require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-
-      require('./src/authorize');
       test.done();
     },
 
@@ -148,7 +145,7 @@ define(['../../src/authorize'], function( undefined) {
         desc: "the 'features-loaded' handler calls remote.stopWaitingForToken when it sees no access_token and no user address",
         run: function(env, test) {
           var storage = new RemoteStorage();
-          document.location.href = 'http://foo/bar#a=b';
+          myDocument.location.href = 'http://foo/bar#a=b';
           RemoteStorage.Authorize._rs_init(storage);
           storage.connect = function(userAddress) {
             test.assert(userAddress, 'nil@heahdk.net');
@@ -166,7 +163,7 @@ define(['../../src/authorize'], function( undefined) {
         desc: "the 'features-loaded' handler calls remote.stopWaitingForToken when there are no params",
         run: function(env, test) {
           var storage = new RemoteStorage();
-          document.location.href = 'http://foo/bar#a=b';
+          myDocument.location.href = 'http://foo/bar#a=b';
           RemoteStorage.Authorize._rs_init(storage);
           storage.connect = function(userAddress) {
             test.assert(userAddress, 'nil@heahdk.net');

@@ -511,7 +511,6 @@ define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient'
               test.assertAnd(s, 200);
               test.assertTypeAnd(b, 'object');
               var v = new Uint8Array(b);
-              console.log('v0,1,2', v[0], v[1], v[2]);
               for(var i = 0; i < 256; i++)
                 test.assertAnd(v[i], i);
               test.done();
@@ -728,7 +727,7 @@ define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient'
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
               test.assertTypeAnd(body, 'object');
-              console.log(body);
+              // console.log(body);
               test.assertAnd(body instanceof ArrayBuffer, true);
               test.done();
             });

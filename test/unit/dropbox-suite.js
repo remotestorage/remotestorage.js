@@ -14,14 +14,15 @@ requirejs.config({
   }
 })
 
+
+global.RemoteStorage = function() {};
+
 if (global.rs_eventhandling) {
   RemoteStorage.eventHandling = global.rs_eventhandling;
 }
 if (global.rs_wireclient) {
   RemoteStorage.WireClient = global.rs_wireclient;
 }
-
-global.RemoteStorage = function() {};
 
 define(['dropbox'], function() {
   var suites = [];

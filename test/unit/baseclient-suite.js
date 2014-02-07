@@ -10,10 +10,10 @@ requirejs.config({
     basceclientTypes: '../../src/baseclient/types'
   },
   shim: {
-    baseclient: {
-      deps: [  '../../lib/promising', '../../lib/Math.uuid', '../../src/eventhandling', '../../src/wireclient'],
-      exports: 'RS'
-    },
+    baseclient: ['../../lib/promising', 
+                 '../../lib/Math.uuid', 
+                 '../../src/eventhandling', 
+                 '../../src/wireclient'],
     basceclientTypes: ['baseclient']
   }
 })

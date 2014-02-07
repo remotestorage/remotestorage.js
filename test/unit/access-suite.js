@@ -107,9 +107,7 @@ define(['../../src/access'], function(access, undefined) {
         run: function(env, test) {
           env.access.reset();
           env.access.set('foo', 'rw');
-          console.log('foo:rw !=' , env.access.scopeParameter);
           test.assert(env.access.scopeParameter, 'foo:rw');
-
           env.access.reset();
           env.access.set('foo', 'r');
           test.assert(env.access.scopeParameter, 'foo:r');

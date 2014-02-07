@@ -15,7 +15,6 @@ define(['../../lib/promising', '../../src/remotestorage','../../src/eventhandlin
 
   function fakeRequest(path) {
     var promise = promising();
-    console.log('GET CALLED');
     if (path === '/testing403') {
       promise.fulfill(403);
     } else {
@@ -178,7 +177,7 @@ define(['../../lib/promising', '../../src/remotestorage','../../src/eventhandlin
         run: function(env, test) {
           localStorage ={};
           env.rs.connect('user@ho.st');
-          test.assert(localStorage, {'remotestorage:backend': 'remotestorage'});
+          test.assert(localStorage['remotestorage:backend'], 'remotestorage');
         }
       },
 

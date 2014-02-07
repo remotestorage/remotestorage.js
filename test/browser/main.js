@@ -80,6 +80,7 @@ define([
                 '../unit/access-suite',
                 '../unit/caching-suite',
                 '../unit/baseclient-suite',
+                '../unit/baseclient/types-suite',
                 '../unit/authorize-suite',
                 '../unit/sync-suite',
                 '../unit/i18n-suite',
@@ -87,90 +88,9 @@ define([
                 '../unit/inmemorycaching-suite',
                 '../unit/indexeddb-suite',
                 '../unit/discover-suite',
-                //'../../unit/baseclient/types-suite',
                 '../unit/googledrive-suite',
                 '../unit/dropbox-suite',
                 '../unit/remotestorage-suite'
                ]);
 
 });
-
-/***
-
-
-define([
-  '../../../node_modules/teste/lib/teste', 
-  './util',
-  '../../unit/wireclient-suite', 
-  '../../unit/access-suite',
-  '../../unit/caching-suite',
-  '../../unit/baseclient-suite',
-  '../../unit/authorize-suite',
-  '../../unit/sync-suite',
-  '../../unit/i18n-suite',
-  '../../unit/localstorage-suite',
-  '../../unit/inmemorycaching-suite',
-  '../../unit/indexeddb-suite',
-  '../../unit/discover-suite',
-  //'../../unit/baseclient/types-suite',
-  '../../unit/googledrive-suite',
-  '../../unit/dropbox-suite',
-  '../../unit/remotestorage-suite'    
-], function(
-  teste,
-  util,
-  wireclient, 
-  access, 
-  caching, 
-  baseclient,
-  authorize,
-  sync,
-  i18n,
-  localstorage,
-  ims,
-  idb,
-  discover,
-  //types,
-  googledrive,
-  dropbox,
-  remotestorage
-) {
-  function load(suite) {
-    teste.loadSuite(suite);
-  };
-  
-  remotestorage.forEach(load);
-  wireclient.forEach(load);
-  access.forEach(load);
-  caching.forEach(load);
-  baseclient.forEach(load);
-  authorize.forEach(load);
-  sync.forEach(load);
-  i18n.forEach(load);
-  localstorage.forEach(load);
-  ims.forEach(load);
-  idb.forEach(load);
-  discover.forEach(load);
-  // // types.forEach(load);
-  googledrive.forEach(load);
-  dropbox.forEach(load);
-  
-  var noScroll = false;
-  document.addEventListener('keypress', function (e) {
-    if(e.which == 32) {
-     e.preventDefault();
-      noScroll = !noScroll;
-    }
-  })
-
-  util.changeHandler = function() {
-    if(noScroll) return;
-    var out = document.getElementById('test-output');
-    window.scrollTo(0, out.scrollHeight)
-  };
-  teste.begin(function(t){
-    alert("Tests Done");
-  });  
-  
-});
-*/
