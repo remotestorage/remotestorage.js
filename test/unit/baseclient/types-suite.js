@@ -6,16 +6,22 @@ global.RemoteStorage = function() {};
 global.RemoteStorage.BaseClient = function() {};
 RemoteStorage.BaseClient.prototype.extend = function() {};
 
-requirejs.config({
-  paths: {
-    basceclientTypes: '../../src/baseclient/types'
-  },
-  shim: {
-    baseclientTypes: []
-  }
-});
+var includes = [];
+if(typeof window !== 'undefined') {
+  requirejs.config({
+    paths: {
+      basceclientTypes: '../../src/baseclient/types'
+    },
+    shim: {
+      baseclientTypes: []
+    }
+  });
+  includes = ['basceclientTypes'];
+} else {
+  includes = ['../../../src/baseclient/types']
+}
 
-define(['basceclientTypes'], function() {
+define(includes, function() {
   var suites = [];
 
   suites.push({

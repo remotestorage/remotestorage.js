@@ -4,19 +4,31 @@ if (typeof define !== 'function') {
 
 if(typeof global === 'undefined') global = window;
 
-requirejs.config({
-  paths: {
-    baseclient: '../../src/baseclient',
-    basceclientTypes: '../../src/baseclient/types'
-  },
-  shim: {
-    baseclient: ['../../lib/promising',
-                 '../../lib/Math.uuid',
-                 '../../src/eventhandling',
-                 '../../src/wireclient'],
-    basceclientTypes: ['baseclient']
-  }
-});
+var includes = [];
+if(typeof window !== 'undefined') {
+  requirejs.config({
+    paths: {
+      baseclient: '../../src/baseclient',
+      basceclientTypes: '../../src/baseclient/types'
+    },
+    shim: {
+      baseclient: ['../../lib/promising',
+                   '../../lib/Math.uuid',
+                   '../../src/eventhandling',
+                   '../../src/wireclient'],
+      basceclientTypes: ['baseclient']
+    }
+  });
+  includes = ['baseclient', 'basceclientTypes'];
+} else {
+  includes = ['../../lib/promising',
+              '../../lib/Math.uuid',
+              '../../src/eventhandling',
+              '../../src/wireclient',
+              '../../src/baseclient.js',
+              '../../src/baseclient/types']
+
+}
 
 global.RemoteStorage = function() {};
 
@@ -30,7 +42,7 @@ if (global.rs_types) {
   RemoteStorage.BaseClient.Types = global.rs_types;
 }
 
-define(['baseclient', 'basceclientTypes'], function() {
+define(includes, function() {
   var suites = [];
          
   suites.push({

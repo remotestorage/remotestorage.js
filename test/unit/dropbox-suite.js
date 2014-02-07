@@ -3,19 +3,27 @@ if (typeof define !== 'function') {
 }
 if(typeof global === 'undefined') global = window;
 
-requirejs.config({
-  paths: {
-    dropbox: '../../src/dropbox'
-  },
-  shim: {
-    dropbox: ['../../src/wireclient',
-              '../../lib/promising',
-              '../../src/eventhandling']
-  }
-});
-
-
 global.RemoteStorage = function() {};
+
+var includes = [];
+if(typeof window !== 'undefined') {
+  requirejs.config({
+    paths: {
+      dropbox: '../../src/dropbox'
+    },
+    shim: {
+      dropbox: ['../../src/wireclient',
+                '../../lib/promising',
+                '../../src/eventhandling']
+    }
+  });
+  includes = ['dropbox'];
+} else {
+  require('src/wireclient');
+  includes = ['../../lib/promising',
+              '../../src/eventhandling',
+              '../../src/dropbox.js']
+}
 
 if (global.rs_eventhandling) {
   RemoteStorage.eventHandling = global.rs_eventhandling;
@@ -24,7 +32,7 @@ if (global.rs_wireclient) {
   RemoteStorage.WireClient = global.rs_wireclient;
 }
 
-define(['dropbox'], function() {
+define(includes, function() {
   var suites = [];
 
   suites.push({
