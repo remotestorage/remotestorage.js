@@ -22,10 +22,17 @@ define([
       testOutput.classList.add('test-output');
       var heading = document.createElement('h3');
       heading.textContent = path;
+      var collapser = document.createElement('span');
+      collapser.classList.add('collapser');
+      collapser.textContent = '-';
       var wrapper = document.createElement('li');
       wrapper.appendChild(heading);
       wrapper.appendChild(testOutput);
+      wrapper.appendChild(collapser);
       heading.addEventListener('click', toggleSuite.bind(this, wrapper))
+      collapser.addEventListener('click', toggleSuite.bind(this, wrapper));
+  
+
       container.appendChild(wrapper);
 
       util.outputTarget = testOutput;
