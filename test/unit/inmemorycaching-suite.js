@@ -2,17 +2,14 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
 
-if(typeof global === 'undefined') global = window
+if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 
-define([
-  '../../lib/promising', 
-  '../../src/eventhandling', 
-  '../../src/cachinglayer',
-  '../../src/inmemorystorage'
-], function() {
+define(['../../lib/promising',
+        '../../src/eventhandling',
+        '../../src/cachinglayer',
+        '../../src/inmemorystorage'], function() {
   var suites = [];
-
   suites.push({
     name: 'InMemoryStorage',
     desc: 'inmemory caching as a fallback for indexdb and localstorage',

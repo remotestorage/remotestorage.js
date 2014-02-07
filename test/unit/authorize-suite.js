@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-if(typeof global === 'undefined') global = window
+if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 
 define(['../../src/eventhandling', '../../src/authorize'], function() {
@@ -45,8 +45,8 @@ define(['../../src/eventhandling', '../../src/authorize'], function() {
             href: ''
           }
         };
-        global.rs_setLocation = RemoteStorage.Authorize.setLocation 
-        global.rs_getLocation = RemoteStorage.Authorize.getLocation
+        global.rs_setLocation = RemoteStorage.Authorize.setLocation;
+        global.rs_getLocation = RemoteStorage.Authorize.getLocation;
         RemoteStorage.Authorize.setLocation = function(location) {
           if (typeof location === 'string') {
             global.myDocument.location.href = location;
@@ -55,7 +55,7 @@ define(['../../src/eventhandling', '../../src/authorize'], function() {
           } else {
             throw "Invalid location " + location;
           }
-        }
+        };
         RemoteStorage.Authorize.getLocation = function () {
           return global.myDocument.location;
         };
@@ -72,9 +72,9 @@ define(['../../src/eventhandling', '../../src/authorize'], function() {
       if(typeof window === 'undefined' ) {
         delete global.document;
       } else {
-        delete global.myDocument
-        RemoteStorage.Authorize.setLocation = global.rs_setLocation 
-        RemoteStorage.Authorize.getLocation = global.rs_getLocation 
+        delete global.myDocument;
+        RemoteStorage.Authorize.setLocation = global.rs_setLocation;
+        RemoteStorage.Authorize.getLocation = global.rs_getLocation;
       }
       test.done();
     },

@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-if(typeof global === 'undefined') global = window
+if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 global.RemoteStorage.BaseClient = function() {};
 RemoteStorage.BaseClient.prototype.extend = function() {};
@@ -13,7 +13,7 @@ requirejs.config({
   shim: {
     baseclientTypes: []
   }
-})
+});
 
 define(['basceclientTypes'], function() {
   var suites = [];

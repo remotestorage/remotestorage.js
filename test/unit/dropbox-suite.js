@@ -1,18 +1,18 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-if(typeof global === 'undefined') global = window
+if(typeof global === 'undefined') global = window;
 
-requirejs.config({ 
+requirejs.config({
   paths: {
     dropbox: '../../src/dropbox'
   },
   shim: {
-    dropbox: ['../../src/wireclient', 
+    dropbox: ['../../src/wireclient',
               '../../lib/promising',
               '../../src/eventhandling']
   }
-})
+});
 
 
 global.RemoteStorage = function() {};

@@ -2,14 +2,14 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-if(typeof global === 'undefined') global = window
+if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
       
 define([
-  '../../lib/promising', 
-  '../../src/eventhandling', 
-  '../../src/cachinglayer', 
-  '../../src/inmemorystorage.js', 
+  '../../lib/promising',
+  '../../src/eventhandling',
+  '../../src/cachinglayer',
+  '../../src/inmemorystorage.js',
   '../../src/sync.js'
 ], function(promises, eventhandling, cachinglayer, inmemorystorage, sync) {
 

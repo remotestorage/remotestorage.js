@@ -3,7 +3,7 @@ if (typeof define !== 'function') {
 }
 
 
-if(typeof global === 'undefined') global = window
+if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
       
 define(['../../src/access'], function(access, undefined) {

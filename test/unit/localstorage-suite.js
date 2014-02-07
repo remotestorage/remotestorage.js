@@ -1,14 +1,13 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-if(typeof global === 'undefined') global = window
+if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 
-define([
-  '../../lib/promising', 
-  '../../src/eventhandling', 
-  '../../src/cachinglayer', 
-  '../../src/localstorage'], function(undefined) {
+define(['../../lib/promising',
+        '../../src/eventhandling',
+        '../../src/cachinglayer',
+        '../../src/localstorage'], function() {
   var suites = [];
 
   var NODES_PREFIX = 'remotestorage:cache:nodes:';

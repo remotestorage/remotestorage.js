@@ -2,7 +2,7 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 
-if(typeof global === 'undefined') global = window
+if(typeof global === 'undefined') global = window;
 
 requirejs.config({
   paths: {
@@ -10,13 +10,13 @@ requirejs.config({
     basceclientTypes: '../../src/baseclient/types'
   },
   shim: {
-    baseclient: ['../../lib/promising', 
-                 '../../lib/Math.uuid', 
-                 '../../src/eventhandling', 
+    baseclient: ['../../lib/promising',
+                 '../../lib/Math.uuid',
+                 '../../src/eventhandling',
                  '../../src/wireclient'],
     basceclientTypes: ['baseclient']
   }
-})
+});
 
 global.RemoteStorage = function() {};
 
@@ -30,8 +30,7 @@ if (global.rs_types) {
   RemoteStorage.BaseClient.Types = global.rs_types;
 }
 
-define(['baseclient', 'basceclientTypes'
-], function() {
+define(['baseclient', 'basceclientTypes'], function() {
   var suites = [];
          
   suites.push({

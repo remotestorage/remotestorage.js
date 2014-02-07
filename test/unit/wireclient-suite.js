@@ -2,7 +2,7 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 
-if(typeof global === 'undefined') global = window
+if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient'], function() {
   var suites = [];
@@ -27,14 +27,14 @@ define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient'
         global.rs_wireclient = RemoteStorage.WireClient;
       }
 
-      if(typeof window === 'undefined') {  
+      if(typeof window === 'undefined') {
         global.FileReader = require('file-api').FileReader;
 
         global.Blob = function(inputs, options) {
           this.inputs = inputs;
           this.name = 'Blob';
           this.options = options;
-          this.buffer = Buffer.concat(inputs.map(function(t) { 
+          this.buffer = Buffer.concat(inputs.map(function(t) {
             return new Buffer(t);
           }));
           env.blob = this;
@@ -511,16 +511,18 @@ define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient'
               test.assertAnd(s, 200);
               test.assertTypeAnd(b, 'object');
               var v = new Uint8Array(b);
-              for(var i = 0; i < 256; i++)
+              for(var i = 0; i < 256; i++) {
                 test.assertAnd(v[i], i);
+              }
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
           req.status = 200;
           var str = '';
-          for(var i = 0; i < 256; i++)
+          for(var i = 0; i < 256; i++) {
             str+=String.fromCharCode(i);
+          }
           req.response = req.responseText = str;
           req._onload();
         }

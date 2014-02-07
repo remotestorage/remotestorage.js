@@ -1,10 +1,13 @@
 if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
+  var define = require('amdefine')(module);
 }
-if(typeof global === 'undefined') global = window
+if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 
-define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient', '../../src/googledrive'], function( undefined) {
+define(['../../lib/promising',
+        '../../src/eventhandling',
+        '../../src/wireclient',
+        '../../src/googledrive'], function() {
   var suites = [];
 
   suites.push({

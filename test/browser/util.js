@@ -1,12 +1,4 @@
 define([], function (undefined) {
-  // return { puts: console.log.bind(console),
-  //          print: console.log.bind(console)
-  //        }
-  // var outputTarget = document.createElement('pre');
-  // outputTarget.style.background = 'black';
-  // outputTarget.style.color = '#eee';
-  // outputTarget.style.padding = '1em';
-  // outputTarget.style.whiteSpace = 'pre-wrap';
   var queue = [];
   var util = {
     changeHandler: undefined,
@@ -19,14 +11,15 @@ define([], function (undefined) {
         queue.push(s);
       } else {
         util.outputTarget.innerHTML += s.replace(/[<>&]/g, function(x) {
-          return x == '>' ? '&gt;' : x == '<' ? '&lt;' : '&amp;';
+          return x === '>' ? '&gt;' : x === '<' ? '&lt;' : '&amp;';
         }).replace(/\{\{[^\}]+\}\}/g, function(m) {
-          if(m == '{{/}}') return '</span>';
+          if(m === '{{/}}') return '</span>';
           return '<span style="' + m.slice(2, -2) + '">';
         }).replace(/\n/g, '<br/>');
       }
-      if(util.changeHandler)
+      if(util.changeHandler) {
         setTimeout(util.changeHandler,0);
+      }
       return s;
     }
   };

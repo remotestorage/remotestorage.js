@@ -11,12 +11,12 @@ define([
   var container = document.getElementById('container');
 
   function toggleSuite(el, e) {
-        el.classList.toggle('hidden');
+    el.classList.toggle('hidden');
   }
 
   function runSuites(path, done) {
     console.log('LOADING SUITES FROM', path);
-    require([path], function(suites) {  
+    require([path], function(suites) {
       var testOutput = document.createElement('pre');
       testOutput.id = 'test-output';
       testOutput.classList.add('test-output');
@@ -29,14 +29,13 @@ define([
       wrapper.appendChild(heading);
       wrapper.appendChild(testOutput);
       wrapper.appendChild(collapser);
-      heading.addEventListener('click', toggleSuite.bind(this, wrapper))
+      heading.addEventListener('click', toggleSuite.bind(this, wrapper));
       collapser.addEventListener('click', toggleSuite.bind(this, wrapper));
   
 
       container.appendChild(wrapper);
 
       util.outputTarget = testOutput;
-      console.log("Suites : ", suites)
       console.log('FOUND', suites.length, 'SUITES');
       teste.reset(); // removing earlier suites
       suites.forEach(load);
@@ -48,7 +47,7 @@ define([
 
   function load(suite) {
     teste.loadSuite(suite);
-  };
+  }
 
   function runAllSuites(allSuites) {
     var n = allSuites.length, i = 0;
@@ -57,7 +56,7 @@ define([
     }
     function oneDone() {
       i++;
-      if(i == n) {
+      if(i === n) {
         alert('all really done now.');
       } else {
         runOne();
@@ -69,21 +68,20 @@ define([
 
   var noScroll = false;
   document.addEventListener('keypress', function (e) {
-    if(e.which == 32) {
-     e.preventDefault();
+    if(e.which === 32) {
+      e.preventDefault();
       noScroll = !noScroll;
     }
-  })
+  });
 
   util.changeHandler = function() {
     if(noScroll) return;
     var out = document.getElementsByClassName('test-output');
     out = out[out.length-1];
-    window.scrollTo(0, out.scrollHeight)
+    window.scrollTo(0, out.scrollHeight);
   };
 
-
-  runAllSuites(['../unit/wireclient-suite', 
+  runAllSuites(['../unit/wireclient-suite',
                 '../unit/access-suite',
                 '../unit/caching-suite',
                 '../unit/baseclient-suite',

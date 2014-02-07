@@ -1,10 +1,10 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-if(typeof global === 'undefined') global = window
+if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 
-define(['../../src/discover'], function( undefined) {
+define(['../../src/discover'], function( ) {
   var suites = [];
 
   suites.push({

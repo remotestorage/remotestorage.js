@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
-if(typeof global === 'undefined') global = window
+if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 
 define(['../../src/i18n'], function(i18n, undefined) {
