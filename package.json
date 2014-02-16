@@ -12,8 +12,7 @@
   "devDependencies": {
     "teste": "0.1.2",
     "uglify-js": "2.4.x",
-    "xhr2": "0.0.7",
-    "remotestorage-example-server": "0.0.4-pre"
+    "xhr2": "0.0.7"
   },
   "scripts": {
     "test": "node_modules/.bin/teste"
