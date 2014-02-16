@@ -4,17 +4,14 @@ if (typeof define !== 'function') {
 if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 
-define(['../../lib/promising',
-        '../../src/eventhandling',
-        '../../src/wireclient',
-        '../../src/googledrive'], function() {
+define([], function() {
   var suites = [];
 
   suites.push({
     name: "GoogleDrive Client",
     desc: "tests for the GoogleDrive backend",
     setup: function(env, test) {
-      global.localStorage = {};
+      if(typeof window === 'undefined')global.localStorage = {};
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
         setBackend: function(b){
@@ -23,20 +20,23 @@ define(['../../lib/promising',
       };
       global.RemoteStorage.Unauthorized = function() {};
       
-      
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
+      require(['../../lib/promising',
+        '../../src/eventhandling',
+        '../../src/wireclient',
+        '../../src/googledrive'], function() {
+          if (global.rs_eventhandling) {
+            RemoteStorage.eventHandling = global.rs_eventhandling;
+          } else {
+            global.rs_eventhandling = RemoteStorage.eventHandling;
+          }
+          if (global.rs_wireclient) {
+            RemoteStorage.WireClient = global.rs_wireclient;
+          } else {
+            global.rs_wireclient = RemoteStorage.WireClient;
+          }
 
-      test.done();
+          test.done();
+        });
     },
 
     beforeEach: function(env, test) {

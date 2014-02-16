@@ -19,20 +19,13 @@ if(typeof window !== 'undefined') {
   });
   includes = ['dropbox'];
 } else {
-  require('src/wireclient');
-  includes = ['../../lib/promising',
+  includes = ['../../src/wireclient',
+              '../../lib/promising',
               '../../src/eventhandling',
-              '../../src/dropbox.js']
+              '../../src/dropbox'];
 }
 
-if (global.rs_eventhandling) {
-  RemoteStorage.eventHandling = global.rs_eventhandling;
-}
-if (global.rs_wireclient) {
-  RemoteStorage.WireClient = global.rs_wireclient;
-}
-
-define(includes, function() {
+define([], function() {
   var suites = [];
 
   suites.push({
@@ -50,17 +43,23 @@ define(includes, function() {
       };
       global.RemoteStorage.Unauthorized = function() {};
 
-
-      if(!global.rs_eventhandling) {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
+      
+      if (global.rs_wireclient) {
+        RemoteStorage.WireClient = global.rs_wireclient;
       }
 
+      require(includes, function() {
+        if (global.rs_eventhandling) {
+          RemoteStorage.eventHandling = global.rs_eventhandling;
+        } else {
+          global.rs_eventhandling = RemoteStorage.eventHandling;
+        }
+        if(!global.rs_wireclient) {
+          global.rs_wireclient = RemoteStorage.WireClient;
+        }
 
-      if(!global.rs_wireclient) {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-
-      test.done();
+        test.done();
+      });
     },
 
     beforeEach: function(env, test) {

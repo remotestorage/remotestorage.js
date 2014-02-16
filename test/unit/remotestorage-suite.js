@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
-define(['../../lib/promising', '../../src/remotestorage','../../src/eventhandling'], function() {
+define([], function() {
 
   var suites = [];
 
@@ -62,20 +62,22 @@ define(['../../lib/promising', '../../src/remotestorage','../../src/eventhandlin
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      RemoteStorage.Discover = function(userAddress, callback) {
-        if (userAddress === "someone@somewhere") {
-          callback();
+      require(['../../lib/promising', '../../src/remotestorage','../../src/eventhandling'], function() {
+        if (global.rs_eventhandling) {
+          RemoteStorage.eventHandling = global.rs_eventhandling;
+        } else {
+          global.rs_eventhandling = RemoteStorage.eventHandling;
         }
-      };
-      if(typeof window === 'undefined') global.localStorage = {};
-      RemoteStorage.prototype.remote = new FakeRemote();
-      //RemoteStorage.prototype.local = new FakeLocal();
-      test.done();
+        RemoteStorage.Discover = function(userAddress, callback) {
+          if (userAddress === "someone@somewhere") {
+            callback();
+          }
+        };
+        if(typeof window === 'undefined') global.localStorage = {};
+        RemoteStorage.prototype.remote = new FakeRemote();
+        //RemoteStorage.prototype.local = new FakeLocal();
+        test.done();
+      });
     },
 
     beforeEach: function(env, test) {
@@ -175,7 +177,11 @@ define(['../../lib/promising', '../../src/remotestorage','../../src/eventhandlin
       {
         desc: "#connect sets the backend to remotestorage",
         run: function(env, test) {
-          localStorage ={};
+          if(typeof window === 'undefined') {
+            localStorage = {};
+          } else {
+            localStorage.clear();
+          }
           env.rs.connect('user@ho.st');
           test.assert(localStorage['remotestorage:backend'], 'remotestorage');
         }
@@ -241,13 +247,15 @@ define(['../../lib/promising', '../../src/remotestorage','../../src/eventhandlin
     name: "RemoteStorage",
     desc: "The global RemoteStorage namespace",
     setup: function(env, test) {
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
+      require(['../../lib/promising', '../../src/remotestorage','../../src/eventhandling'], function() {
+        if (global.rs_eventhandling) {
+          RemoteStorage.eventHandling = global.rs_eventhandling;
+        } else {
+          global.rs_eventhandling = RemoteStorage.eventHandling;
+        }
       
-      test.done();
+        test.done();
+      });
     },
 
     beforeEach: function(env, test) {

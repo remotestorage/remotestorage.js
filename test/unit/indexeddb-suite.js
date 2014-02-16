@@ -5,30 +5,30 @@ if (typeof(define) !== 'function') {
 if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 
-define(['../../lib/promising',
-        '../../src/eventhandling',
-        '../../src/cachinglayer',
-        '../../src/indexeddb'], function() {
+define([], function() {
   var suites = [];
 
   suites.push({
     name: "IndexedDB",
     desc: "indexedDB caching layer",
     setup: function(env, test) {
-      
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
+      require(['../../lib/promising',
+        '../../src/eventhandling',
+        '../../src/cachinglayer',
+        '../../src/indexeddb'], function() {
+          if (global.rs_eventhandling) {
+            RemoteStorage.eventHandling = global.rs_eventhandling;
+          } else {
+            global.rs_eventhandling = RemoteStorage.eventHandling;
+          }
 
-      if (global.rs_cachinglayer) {
-        RemoteStorage.cachingLayer = global.rs_cachinglayer;
-      } else {
-        global.rs_cachinglayer = RemoteStorage.cachingLayer;
-      }
-
-      test.done();
+          if (global.rs_cachinglayer) {
+            RemoteStorage.cachingLayer = global.rs_cachinglayer;
+          } else {
+            global.rs_cachinglayer = RemoteStorage.cachingLayer;
+          }
+          test.done();
+        });
     },
 
     beforeEach: function(env, test) {

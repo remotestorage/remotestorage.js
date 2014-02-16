@@ -24,43 +24,20 @@ if(typeof window !== 'undefined') {
   includes = ['../../lib/promising',
               '../../lib/Math.uuid',
               '../../src/eventhandling',
-              '../../src/wireclient',
-              '../../src/baseclient.js',
-              '../../src/baseclient/types']
+              '../../src/baseclient',
+              '../../src/baseclient/types'];
 
 }
 
 global.RemoteStorage = function() {};
 
-if (global.rs_eventhandling) {
-  RemoteStorage.eventHandling = global.rs_eventhandling;
-}
-if (global.rs_wireclient) {
-  RemoteStorage.WireClient = global.rs_wireclient;
-}
-if (global.rs_types) {
-  RemoteStorage.BaseClient.Types = global.rs_types;
-}
-
-define(includes, function() {
+define([], function() {
   var suites = [];
          
   suites.push({
     name: "BaseClient",
     desc: "High-level client, scoped to a path",
     setup: function(env, test) {
-      
-      if (!global.rs_eventhandling) {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      if (!global.rs_wireclient) {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-      if (!global.rs_types) {
-        global.rs_types = RemoteStorage.BaseClient.Types;
-      }
-
-
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
         onChange: function() {},
@@ -76,7 +53,36 @@ define(includes, function() {
         }
       };
 
-      test.done();
+      
+      if(typeof window === 'undefined') {
+        require('../../src/wireclient');
+      }
+      if (global.rs_wireclient) {
+        RemoteStorage.WireClient = global.rs_wireclient;
+      }
+      
+      require(includes, function() {
+        if (!global.rs_wireclient) {
+          global.rs_wireclient = RemoteStorage.WireClient;
+        }
+        if (global.rs_baseclient) {
+          RemoteStorage.Baseclient = global.rs_baseclient;
+        } else {
+          global.rs_baseclient = RemoteStorage.Baseclient;
+        }
+        if (global.rs_eventhandling) {
+          RemoteStorage.eventHandling = global.rs_eventhandling;
+        } else {
+          global.rs_eventhandling = RemoteStorage.eventHandling;
+        }
+        if (global.rs_types) {
+          RemoteStorage.BaseClient.Types = global.rs_types;
+        } else {
+          global.rs_types = RemoteStorage.BaseClient.Types;
+        }
+
+        test.done();
+      });
     },
 
     tests: [
@@ -151,11 +157,13 @@ define(includes, function() {
           onChange: function() {}
         };
       }
-      // if (typeof(RemoteStorage.BaseClient) !== 'function') {
-      //   require('./src/eventhandling');
-      //   require('./src/baseclient');
-      // }
-      test.done();
+      if (typeof(RemoteStorage.BaseClient) !== 'function') {
+        require(['../../src/eventhandling', '../../src/wireclient', '../../src/baseclient'], function() {
+          test.done();
+        });
+      } else {
+        test.done();
+      }
     },
 
     beforeEach: function(env, test) {

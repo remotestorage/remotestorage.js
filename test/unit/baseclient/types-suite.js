@@ -2,7 +2,11 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
 if(typeof global === 'undefined') global = window;
+
 global.RemoteStorage = function() {};
+if (RemoteStorage.Baseclient) {
+  global.rs_baseclient = RemoteStorage.Baseclient;
+}
 global.RemoteStorage.BaseClient = function() {};
 RemoteStorage.BaseClient.prototype.extend = function() {};
 
@@ -18,7 +22,7 @@ if(typeof window !== 'undefined') {
   });
   includes = ['basceclientTypes'];
 } else {
-  includes = ['../../../src/baseclient/types']
+  includes = ['../../../src/baseclient/types'];
 }
 
 define(includes, function() {

@@ -6,16 +6,17 @@ if (typeof define !== 'function') {
 if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 
-define(['../../lib/promising','../../src/caching'], function() {
+define([], function() {
   var suites = [];
   suites.push({
     name: "caching",
     desc: "Caching stores settings about which paths to cache locally",
     setup: function(env, test) {
       RemoteStorage.log = function() {};
-      env.Caching = RemoteStorage.Caching;
-
-      test.result(true);
+      require(['../../lib/promising','../../src/caching'], function() {
+        env.Caching = RemoteStorage.Caching;
+        test.result(true);
+      });
     },
 
     beforeEach: function(env, test) {

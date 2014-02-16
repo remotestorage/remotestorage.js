@@ -4,7 +4,7 @@ if (typeof define !== 'function') {
 if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 
-define(['../../src/eventhandling', '../../src/authorize'], function() {
+define([], function() {
   var suites = [];
 
   suites.push({
@@ -12,12 +12,14 @@ define(['../../src/eventhandling', '../../src/authorize'], function() {
     desc: "OAuth dance",
     setup: function(env, test) {
       RemoteStorage.log = function() {};
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      test.done();
+      require(['../../src/eventhandling', '../../src/authorize'], function(){
+        if (global.rs_eventhandling) {
+          RemoteStorage.eventHandling = global.rs_eventhandling;
+        } else {
+          global.rs_eventhandling = RemoteStorage.eventHandling;
+        }
+        test.done();
+      });
     },
 
     beforeEach: function(env, test) {

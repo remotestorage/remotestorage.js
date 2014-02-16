@@ -4,7 +4,7 @@ if (typeof define !== 'function') {
 if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 
-define(['../../src/discover'], function( ) {
+define([], function( ) {
   var suites = [];
 
   suites.push({
@@ -13,8 +13,9 @@ define(['../../src/discover'], function( ) {
     setup: function(env, test) {
       RemoteStorage.log = function() {};
       global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
-
-      test.done();
+      require(['../../src/discover'], function() {
+        test.done();
+      });
     },
 
     beforeEach: function(env, test) {

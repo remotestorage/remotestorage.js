@@ -4,7 +4,8 @@ if (typeof define !== 'function') {
 
 if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
-define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient'], function() {
+
+define([], function(promising) {
   var suites = [];
   
   suites.push({
@@ -12,20 +13,23 @@ define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient'
     desc: "Low-level remotestorage client based on XMLHttpRequest",
     setup: function(env, test) {
       RemoteStorage.log = function() {};
-      global.RemoteStorage.Unauthorized = function() {};
-      global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
-
-      if(global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      if(global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
+      RemoteStorage.Unauthorized = function() {};
+      RemoteStorage.prototype.localStorageAvailable = function() { return false; };
+            
+      require(['../../lib/promising', '../../src/wireclient', '../../src/eventhandling'], function() {
+        if(global.rs_wireclient) {
+          RemoteStorage.WireClient = global.rs_wireclient;
+        } else {
+          global.rs_wireclient = RemoteStorage.WireClient;
+        }
+      
+        if(global.rs_eventhandling) {
+          RemoteStorage.eventHandling = global.rs_eventhandling;
+        } else {
+          global.rs_eventhandling = RemoteStorage.eventHandling;
+        }
+        test.done();
+      });
 
       if(typeof window === 'undefined') {
         global.FileReader = require('file-api').FileReader;
@@ -47,7 +51,6 @@ define(['../../lib/promising', '../../src/eventhandling', '../../src/wireclient'
 
         global.ArrayBuffer = Buffer;
       }
-      test.done();
     },
 
     beforeEach: function(env, test) {

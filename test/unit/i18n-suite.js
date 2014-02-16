@@ -4,7 +4,7 @@ if (typeof(define) !== 'function') {
 if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
 
-define(['../../src/i18n'], function(i18n, undefined) {
+define([], function(i18n, undefined) {
   var suites = [],t;
 
   suites.push({
@@ -12,8 +12,10 @@ define(['../../src/i18n'], function(i18n, undefined) {
     desc: "Internationalization features",
 
     setup: function(env, test) {
-      t = RemoteStorage.I18n.translate;
-      test.done();
+      require(['../../src/i18n'], function() {
+        t = RemoteStorage.I18n.translate;
+        test.done();
+      });
     },
 
     beforeEach: function(env, test) {

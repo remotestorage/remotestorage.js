@@ -6,7 +6,7 @@ if (typeof define !== 'function') {
 if(typeof global === 'undefined') global = window;
 global.RemoteStorage = function() {};
       
-define(['../../src/access'], function(access, undefined) {
+define([], function(undefined) {
   var suites = [];
 
   suites.push({
@@ -14,12 +14,11 @@ define(['../../src/access'], function(access, undefined) {
     desc: "access knows all about the scope we claimed and which paths that gives us access to",
     setup: function(env, test) {
       RemoteStorage.log = function() {};
-
-      env.Access = RemoteStorage.Access;
-
-      env.access = new env.Access();
-
-      test.result(true);
+      require(['../../src/access'], function() {
+        env.Access = RemoteStorage.Access;
+        env.access = new env.Access();
+        test.result(true);
+      });
     },
 
     tests: [
