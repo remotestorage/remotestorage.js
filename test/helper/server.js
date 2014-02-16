@@ -5,33 +5,70 @@ define([
 
   var port = 10999;
   var token = 'test-token';
+  var user = 'me';
   var httpServer;
 
+  function extend() {
+    var result = arguments[0];
+    var objs = Array.prototype.slice.call(arguments, 1);
+    objs.forEach(function(obj) {
+        if(obj) {
+          for(var key in obj) {
+            result[key] = obj[key];
+          }
+        }
+      });
+    return result;
+  }
+
+  var tokenStore = { 
+    _data: {}, 
+    get: function(user, key, cb) { cb(undefined, this._data[user +':'+ key]); }, 
+    set: function(user, key, value, cb) { this._data[user+ ':'+ key] = value; cb(); },
+    clear: function() { this._data = {}; }
+  };
+
+  var dataStore = { 
+    _data: {}, 
+    get: function(user, key, cb) { cb(undefined, this._data[key]); }, 
+    set: function(user, key, value, cb) { this._data[key] = value; cb(); },
+    clear: function() { this._data = {}; }
+  }
+
+
   var serverHelper = {
+
     captured: [],
 
+    init: function(rsServer) {
+      var server = new rsServer(this.getStorageInfo().type, tokenStore, dataStore);
+      extend(this, server);
+    },
+
     serve: function(req, resp) {
+      console.log("SERVE")
       var body = "";
+      // FIXME this part causes problems
       req.on('data', function(t) {
         body+=t;
       });
       req.on('end', function() {
+        console.log('Server: ', req.method, ' : ', req.url)
         serverHelper.captured.push({
           method: req.method,
           path: url.parse(req.url, true).pathname.substring('/storage/'.length),
           body: body
         });
-        
+        console.log("SERVE : req.on('end') : ", serverHelper.captured)
       });
       serverHelper.storage(req, resp);
     },
 
     start: function(callback) {
-      if(! this.createHandler ) {
+      if(! this.storage ) {
         throw "You need to extend the serverHelper with the nodejs example server!";
       }
-      this.storage = this.createHandler(this.tokenStore, this.dataStore);
-
+      
       if(typeof(httpServer) !== 'undefined') {
         throw "Server already started. Stop it first.";
       }
@@ -52,7 +89,7 @@ define([
     },
 
     setScope: function(scope) {
-      this.addToken(token, scope);
+      tokenStore._data[user +':'+ token] = this.makeScopePaths( scope, '*');
     },
 
     getBearerToken: function() {
@@ -61,15 +98,15 @@ define([
 
     getStorageInfo: function() {
       return {
-        type: 'draft-dejong-remotestorage-01',
+        type: 'draft-dejong-remotestorage-02',
         href: 'http://localhost:' + port + '/storage/me',
         token: token
       };
     },
 
     resetState: function() {
-      this.tokenStore.clear();
-      this.dataStore.clear();
+      tokenStore.clear();
+      dataStore.clear();
       console.log("STATE CLEARED")
     },
 
@@ -106,7 +143,7 @@ define([
     },
 
     expectThisRequest: function(test, method, path, body) {
-      var r = this.captured.shift();
+      var r = serverHelper.captured.shift();
       if( !this.matchRequest(r, method, path, body)) {
         console.log('(found request: ', r, ')');
         test.result(false, "expected Result "+method+"  "+path+" but found "+ (r ? r.method+"  "+r.path : 'nothing') );
@@ -151,12 +188,6 @@ define([
     },
 
   };
-
-  // requirejs([
-  //   './src/lib/util', './server/nodejs-example'
-  // ], function(util, nodejsServer) {
-  //   util.extend(serverHelper, nodejsServer.server);
-  // });
 
   return serverHelper;
 });
