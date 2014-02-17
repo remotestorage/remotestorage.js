@@ -46,11 +46,11 @@ define([], function() {
 
     setup: function(env, test){
       require([
-        '../../lib/promising',
-        '../../src/eventhandling',
-        '../../src/cachinglayer',
-        '../../src/inmemorystorage',
-        '../../src/sync'
+        './lib/promising',
+        './src/eventhandling',
+        './src/cachinglayer',
+        './src/inmemorystorage',
+        './src/sync'
       ], function() {
         global.RemoteStorage.log = function() {};
 

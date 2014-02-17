@@ -2,7 +2,6 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 
-
 define([
   '../../node_modules/teste/lib/teste',
   'util'
@@ -50,6 +49,8 @@ define([
   }
 
   function runAllSuites(allSuites) {
+    requirejs.config({baseUrl : '../../'});
+
     var n = allSuites.length, i = 0;
     function runOne() {
       runSuites(allSuites.shift(), oneDone);
@@ -81,21 +82,21 @@ define([
     window.scrollTo(0, out.scrollHeight);
   };
 
-  runAllSuites(['../unit/wireclient-suite',
-                '../unit/access-suite',
-                '../unit/caching-suite',
-                '../unit/baseclient-suite',
-                '../unit/baseclient/types-suite',
-                '../unit/authorize-suite',
-                '../unit/sync-suite',
-                '../unit/i18n-suite',
-                '../unit/localstorage-suite',
-                '../unit/inmemorycaching-suite',
-                '../unit/indexeddb-suite',
-                '../unit/discover-suite',
-                '../unit/googledrive-suite',
-                '../unit/dropbox-suite',
-                '../unit/remotestorage-suite'
+  runAllSuites(['./test/unit/wireclient-suite',
+                './test/unit/access-suite',
+                './test/unit/caching-suite',
+                './test/unit/baseclient-suite',
+                './test/unit/baseclient/types-suite',
+                './test/unit/authorize-suite',
+                './test/unit/sync-suite',
+                './test/unit/i18n-suite',
+                './test/unit/localstorage-suite',
+                './test/unit/inmemorycaching-suite',
+                './test/unit/indexeddb-suite',
+                './test/unit/discover-suite',
+                './test/unit/googledrive-suite',
+                './test/unit/dropbox-suite',
+                './test/unit/remotestorage-suite'
                ]);
 
 });

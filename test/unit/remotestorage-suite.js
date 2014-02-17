@@ -62,7 +62,7 @@ define([], function() {
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-      require(['../../lib/promising', '../../src/remotestorage','../../src/eventhandling'], function() {
+      require(['./lib/promising', './src/remotestorage','./src/eventhandling'], function() {
         if (global.rs_eventhandling) {
           RemoteStorage.eventHandling = global.rs_eventhandling;
         } else {
@@ -247,7 +247,7 @@ define([], function() {
     name: "RemoteStorage",
     desc: "The global RemoteStorage namespace",
     setup: function(env, test) {
-      require(['../../lib/promising', '../../src/remotestorage','../../src/eventhandling'], function() {
+      require(['./lib/promising', './src/remotestorage','./src/eventhandling'], function() {
         if (global.rs_eventhandling) {
           RemoteStorage.eventHandling = global.rs_eventhandling;
         } else {

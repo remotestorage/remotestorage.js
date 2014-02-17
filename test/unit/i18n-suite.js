@@ -12,7 +12,7 @@ define([], function(i18n, undefined) {
     desc: "Internationalization features",
 
     setup: function(env, test) {
-      require(['../../src/i18n'], function() {
+      require(['./src/i18n'], function() {
         t = RemoteStorage.I18n.translate;
         test.done();
       });

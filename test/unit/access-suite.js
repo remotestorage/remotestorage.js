@@ -14,7 +14,7 @@ define([], function(undefined) {
     desc: "access knows all about the scope we claimed and which paths that gives us access to",
     setup: function(env, test) {
       RemoteStorage.log = function() {};
-      require(['../../src/access'], function() {
+      require(['./src/access'], function() {
         env.Access = RemoteStorage.Access;
         env.access = new env.Access();
         test.result(true);

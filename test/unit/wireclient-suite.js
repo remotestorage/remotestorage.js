@@ -16,7 +16,7 @@ define([], function(promising) {
       RemoteStorage.Unauthorized = function() {};
       RemoteStorage.prototype.localStorageAvailable = function() { return false; };
             
-      require(['../../lib/promising', '../../src/wireclient', '../../src/eventhandling'], function() {
+      require(['./lib/promising', './src/wireclient', './src/eventhandling'], function() {
         if(global.rs_wireclient) {
           RemoteStorage.WireClient = global.rs_wireclient;
         } else {

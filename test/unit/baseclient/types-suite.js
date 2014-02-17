@@ -14,7 +14,7 @@ var includes = [];
 if(typeof window !== 'undefined') {
   requirejs.config({
     paths: {
-      basceclientTypes: '../../src/baseclient/types'
+      basceclientTypes: './src/baseclient/types'
     },
     shim: {
       baseclientTypes: []

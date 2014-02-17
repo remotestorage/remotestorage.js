@@ -20,10 +20,10 @@ define([], function() {
       };
       global.RemoteStorage.Unauthorized = function() {};
       
-      require(['../../lib/promising',
-        '../../src/eventhandling',
-        '../../src/wireclient',
-        '../../src/googledrive'], function() {
+      require(['./lib/promising',
+        './src/eventhandling',
+        './src/wireclient',
+        './src/googledrive'], function() {
           if (global.rs_eventhandling) {
             RemoteStorage.eventHandling = global.rs_eventhandling;
           } else {

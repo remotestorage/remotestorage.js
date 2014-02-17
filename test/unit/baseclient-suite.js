@@ -8,24 +8,24 @@ var includes = [];
 if(typeof window !== 'undefined') {
   requirejs.config({
     paths: {
-      baseclient: '../../src/baseclient',
-      basceclientTypes: '../../src/baseclient/types'
+      baseclient: './src/baseclient',
+      basceclientTypes: './src/baseclient/types'
     },
     shim: {
-      baseclient: ['../../lib/promising',
-                   '../../lib/Math.uuid',
-                   '../../src/eventhandling',
-                   '../../src/wireclient'],
+      baseclient: ['./lib/promising',
+                   './lib/Math.uuid',
+                   './src/eventhandling',
+                   './src/wireclient'],
       basceclientTypes: ['baseclient']
     }
   });
   includes = ['baseclient', 'basceclientTypes'];
 } else {
-  includes = ['../../lib/promising',
-              '../../lib/Math.uuid',
-              '../../src/eventhandling',
-              '../../src/baseclient',
-              '../../src/baseclient/types'];
+  includes = ['./lib/promising',
+              './lib/Math.uuid',
+              './src/eventhandling',
+              './src/baseclient',
+              './src/baseclient/types'];
 
 }
 
@@ -55,7 +55,7 @@ define([], function() {
 
       
       if(typeof window === 'undefined') {
-        require('../../src/wireclient');
+        require('./src/wireclient');
       }
       if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;

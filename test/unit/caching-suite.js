@@ -13,7 +13,7 @@ define([], function() {
     desc: "Caching stores settings about which paths to cache locally",
     setup: function(env, test) {
       RemoteStorage.log = function() {};
-      require(['../../lib/promising','../../src/caching'], function() {
+      require(['./lib/promising','./src/caching'], function() {
         env.Caching = RemoteStorage.Caching;
         test.result(true);
       });

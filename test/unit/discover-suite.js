@@ -13,7 +13,7 @@ define([], function( ) {
     setup: function(env, test) {
       RemoteStorage.log = function() {};
       global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
-      require(['../../src/discover'], function() {
+      require(['./src/discover'], function() {
         test.done();
       });
     },

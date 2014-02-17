@@ -12,7 +12,7 @@ define([], function() {
     desc: "OAuth dance",
     setup: function(env, test) {
       RemoteStorage.log = function() {};
-      require(['../../src/eventhandling', '../../src/authorize'], function(){
+      require(['./src/eventhandling', './src/authorize'], function(){
         if (global.rs_eventhandling) {
           RemoteStorage.eventHandling = global.rs_eventhandling;
         } else {

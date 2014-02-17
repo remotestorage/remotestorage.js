@@ -11,10 +11,10 @@ define([], function() {
     name: 'InMemoryStorage',
     desc: 'inmemory caching as a fallback for indexdb and localstorage',
     setup: function(env, test) {
-      require(['../../lib/promising',
-        '../../src/eventhandling',
-        '../../src/cachinglayer',
-        '../../src/inmemorystorage'], function() {
+      require(['./lib/promising',
+        './src/eventhandling',
+        './src/cachinglayer',
+        './src/inmemorystorage'], function() {
           if ( global.rs_eventhandling ) {
             RemoteStorage.eventHandling = global.rs_eventhandling;
           } else {

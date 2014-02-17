@@ -9,20 +9,20 @@ var includes = [];
 if(typeof window !== 'undefined') {
   requirejs.config({
     paths: {
-      dropbox: '../../src/dropbox'
+      dropbox: './src/dropbox'
     },
     shim: {
-      dropbox: ['../../src/wireclient',
-                '../../lib/promising',
-                '../../src/eventhandling']
+      dropbox: ['./src/wireclient',
+                './lib/promising',
+                './src/eventhandling']
     }
   });
   includes = ['dropbox'];
 } else {
-  includes = ['../../src/wireclient',
-              '../../lib/promising',
-              '../../src/eventhandling',
-              '../../src/dropbox'];
+  includes = ['./src/wireclient',
+              './lib/promising',
+              './src/eventhandling',
+              './src/dropbox'];
 }
 
 define([], function() {

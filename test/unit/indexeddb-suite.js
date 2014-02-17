@@ -12,10 +12,10 @@ define([], function() {
     name: "IndexedDB",
     desc: "indexedDB caching layer",
     setup: function(env, test) {
-      require(['../../lib/promising',
-        '../../src/eventhandling',
-        '../../src/cachinglayer',
-        '../../src/indexeddb'], function() {
+      require(['./lib/promising',
+        './src/eventhandling',
+        './src/cachinglayer',
+        './src/indexeddb'], function() {
           if (global.rs_eventhandling) {
             RemoteStorage.eventHandling = global.rs_eventhandling;
           } else {
