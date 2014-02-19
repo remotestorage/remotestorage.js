@@ -43,10 +43,10 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
 
     setup: function(env, test) {
       requirejs([
-        '../../remotestorage-node',
+        './remotestorage-node',
         'remotestorage-server',
-        '../../test/helper/server',
-        '../../test/helper/root-module'
+        './test/helper/server',
+        './test/helper/root-module'
       ], function(remoteStorage, rsServer, serverHelper, root) {
 
         curry = util.curry;
