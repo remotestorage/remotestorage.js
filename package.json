@@ -16,6 +16,6 @@
     "remotestorage-server": "*"
   },
   "scripts": {
-    "test": "node_modules/.bin/teste"
+    "test": "make remotestorage-node.js && node_modules/.bin/teste"
   }
 }
