@@ -45,9 +45,8 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
       requirejs([
         './remotestorage-node',
         'remotestorage-server',
-        './test/helper/server',
-        './test/helper/root-module'
-      ], function(remoteStorage, rsServer, serverHelper, root) {
+        './test/helper/server'
+      ], function(remoteStorage, rsServer, serverHelper) {
 
         curry = util.curry;
         //RemoteStorage._log = true;
