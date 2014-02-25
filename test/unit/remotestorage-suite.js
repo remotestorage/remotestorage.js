@@ -78,13 +78,11 @@ define([], function() {
       };
       global.localStorage = {};
       RemoteStorage.prototype.remote = new FakeRemote();
-      //RemoteStorage.prototype.local = new FakeLocal();
       test.done();
     },
 
     beforeEach: function(env, test) {
       var remoteStorage = new RemoteStorage();
-      //remoteStorage._emit('ready');
       env.rs = remoteStorage;
       test.done();
     },
@@ -186,7 +184,7 @@ define([], function() {
       },
 
       {
-        desc: "#diconnect fires disconnected ",
+        desc: "#disconnect fires disconnected ",
         run: function(env, test) {
           env.rs.on('disconnected', function() {
             test.done();
