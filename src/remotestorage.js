@@ -91,7 +91,7 @@
     /**
      * Event: disconnect
      *
-     * deprecated use disconnected
+     * deprecated, use disconnected instead
      **/
     /**
      * Event: conflict
@@ -386,7 +386,9 @@
      **/
 
     _init: function() {
-      var self = this, readyFired = false;
+      var self = this,
+          readyFired = false;
+
       function fireReady() {
         try {
           if (!readyFired) {
@@ -398,11 +400,12 @@
           self._emit('error', e);
         }
       }
+
       this._loadFeatures(function(features) {
         this.log('all features loaded');
         this.local = features.local && new features.local();
-        // (this.remote set by WireClient._rs_init
-        //  as lazy property on RS.prototype)
+        // this.remote set by WireClient._rs_init as lazy property on
+        // RS.prototype
 
         if (this.local && this.remote) {
           this._setGPD(SyncedGetPutDelete, this);
