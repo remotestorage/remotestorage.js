@@ -194,6 +194,26 @@ define([], function() {
       },
 
       {
+        desc: "remote connected fires connected",
+        run: function(env, test) {
+          env.rs.on('connected', function() {
+            test.done();
+          });
+          env.rs.remote._emit('connected');
+        }
+      },
+
+      {
+        desc: "remote not-conneced fires disconnected",
+        run: function(env, test) {
+          env.rs.on('not-connected', function() {
+            test.done();
+          });
+          env.rs.remote._emit('not-connected');
+        }
+      },
+
+      {
         desc: "connected fires ready only once",
         run: function(env, test) {
           var times = 0;
