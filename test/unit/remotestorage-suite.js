@@ -204,7 +204,7 @@ define([], function() {
       },
 
       {
-        desc: "remote not-conneced fires disconnected",
+        desc: "remote not-connected fires not-connected",
         run: function(env, test) {
           env.rs.on('not-connected', function() {
             test.done();
