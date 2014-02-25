@@ -81,7 +81,17 @@
     /**
      * Event: ready
      *
-     * fired when connected and ready
+     * fired when ready
+     **/
+    /**
+     * Event: not-connected
+     *
+     * fired when ready, but no storage connected ("anonymous mode")
+     **/
+    /**
+     * Event: connected
+     *
+     * fired when a remote storage has been connected
      **/
     /**
      * Event: disconnected
@@ -136,8 +146,9 @@
      **/
 
     RemoteStorage.eventHandling(
-      this, 'ready', 'disconnected', 'disconnect', 'conflict', 'error',
-      'features-loaded', 'connecting', 'authing', 'wire-busy', 'wire-done'
+      this, 'ready', 'connected', 'disconnected', 'disconnect',
+            'not-connected', 'conflict', 'error', 'features-loaded',
+            'connecting', 'authing', 'wire-busy', 'wire-done'
     );
 
     // pending get/put/delete calls.
@@ -415,8 +426,14 @@
         }
 
         if (this.remote) {
-          this.remote.on('connected', fireReady);
-          this.remote.on('not-connected', fireReady);
+          this.remote.on('connected', function(){
+            fireReady();
+            self._emit('connected');
+          });
+          this.remote.on('not-connected', function(){
+            fireReady();
+            self._emit('not-connected');
+          });
           if (this.remote.connected) {
             fireReady();
           }
