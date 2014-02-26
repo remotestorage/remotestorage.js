@@ -436,6 +436,7 @@
           });
           if (this.remote.connected) {
             fireReady();
+            self._emit('connected');
           }
         }
 
