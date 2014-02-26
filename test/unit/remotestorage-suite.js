@@ -214,6 +214,16 @@ define([], function() {
       },
 
       {
+        desc: "fires connected when remote already connected",
+        run: function(env, test) {
+          env.rs.on('connected', function() {
+            test.done();
+          });
+          env.rs._init();
+        }
+      },
+
+      {
         desc: "connected fires ready only once",
         run: function(env, test) {
           var times = 0;
