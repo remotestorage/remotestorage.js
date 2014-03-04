@@ -339,19 +339,15 @@ define([], function() {
       },
 
       {
-        desc: "responses with the charset set to 'binary' are read using a FileReader, after constructing a Blob",
+        desc: "responses with the charset set to 'binary' return ArrayBuffers",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
-              // check Blob
-              test.assertTypeAnd(env.blob, 'object');
-              test.assertAnd(env.blob.input, ['response-body']);
-              test.assertAnd(env.blob.options, {
-                type: 'application/octet-stream; charset=binary'
-              });
-
+              // check Body
+              
               test.assertAnd(status, 200);
-              test.assertAnd(body, env.fileReaderResult);
+              test.assertTypeAnd(body, 'object');
+              test.assertAnd(body instanceof ArrayBuffer, true, "body : "+ body +"  ; instance : "+typeof body );
               test.assert(contentType, 'application/octet-stream; charset=binary');
             });
           var req = XMLHttpRequest.instances.shift();
@@ -367,12 +363,13 @@ define([], function() {
       },
 
       {
-        desc: "responses without a Content-Type header still work",
+        desc: "responses without a Content-Type header still works and return ArrayBuffers",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
-              test.assertAnd(body, env.fileReaderResult);
+              test.assertTypeAnd(body, 'object');
+              test.assertAnd(body instanceof ArrayBuffer, true);
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -384,6 +381,37 @@ define([], function() {
           req._onload();
         }
       },
+     
+      {
+        desc: "#get turns binary data into ArrayBuffers",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar.bin').
+            then(function(s, b, ct) {
+              //console.log('get resulted in', arguments);
+              test.assertAnd(s, 200);
+              test.assertTypeAnd(b, 'object');
+              var v = new Uint8Array(b);
+              for(var i = 0; i < 256; i++) {
+                test.assertAnd(v[i], i);
+              }
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
+          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
+            mime_type: 'application/octet-stream; charset=binary',
+            rev: 'rev'
+          });
+          req.status = 200;
+          var str = '';
+          for(var i = 0; i < 256; i++) {
+            str+=String.fromCharCode(i);
+          }
+          req.response = req.responseText = str;
+          req._onload();
+        }
+      },
+
 
       {
         desc: "404 responses discard the body altogether",

@@ -711,7 +711,7 @@ define([], function(promising) {
 
               // check Body
               test.assertTypeAnd(body, 'object');
-              test.assertAnd(body instanceof ArrayBuffer, true, "body : "+ body +"  ;instance : "+typeof body );
+              test.assertAnd(body instanceof ArrayBuffer, true, "body : "+ body +"  ; instance : "+typeof body );
 
               test.done();
             });
