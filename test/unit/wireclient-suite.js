@@ -48,8 +48,6 @@ define([], function(promising) {
             this.buf.slice(a,b);
           }
         };
-
-        global.ArrayBuffer = Buffer;
       }
     },
 
@@ -713,7 +711,7 @@ define([], function(promising) {
 
               // check Body
               test.assertTypeAnd(body, 'object');
-              test.assertAnd(body instanceof ArrayBuffer, true);
+              test.assertAnd(body instanceof ArrayBuffer, true, "body : "+ body +"  ;instance : "+typeof body );
 
               test.done();
             });
