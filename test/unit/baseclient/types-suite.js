@@ -1,17 +1,37 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define([], function() {
+if(typeof global === 'undefined') global = window;
+
+global.RemoteStorage = function() {};
+if (RemoteStorage.Baseclient) {
+  global.rs_baseclient = RemoteStorage.Baseclient;
+}
+global.RemoteStorage.BaseClient = function() {};
+RemoteStorage.BaseClient.prototype.extend = function() {};
+
+var includes = [];
+if(typeof window !== 'undefined') {
+  requirejs.config({
+    paths: {
+      basceclientTypes: './src/baseclient/types'
+    },
+    shim: {
+      baseclientTypes: []
+    }
+  });
+  includes = ['basceclientTypes'];
+} else {
+  includes = ['../../../src/baseclient/types'];
+}
+
+define(includes, function() {
   var suites = [];
 
   suites.push({
     name: "BaseClient.Types",
     desc: "Type and schema handling",
     setup: function(env, test) {
-      global.RemoteStorage = function() {};
-      RemoteStorage.BaseClient = function() {};
-      RemoteStorage.BaseClient.prototype.extend = function() {};
-      require('./src/baseclient/types');
       if (global.rs_types) {
         RemoteStorage.BaseClient.Types = global.rs_types;
       } else {

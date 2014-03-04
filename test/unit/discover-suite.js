@@ -1,19 +1,21 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
+if(typeof global === 'undefined') global = window;
+global.RemoteStorage = function() {};
+
+define([], function( ) {
   var suites = [];
 
   suites.push({
     name: "Discover",
     desc: "Webfinger discovery",
     setup: function(env, test) {
-      global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
-      require('./src/discover');
-
-      test.done();
+      require(['./src/discover'], function() {
+        test.done();
+      });
     },
 
     beforeEach: function(env, test) {
@@ -48,7 +50,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "it isn't supported with no XMLHttpRequest",
         run: function(env, test) {
-          delete global.XMLHttpRequest; // in case it was declared by another test.
+          global.XMLHttpRequest = undefined; // in case it was declared by another test.
           test.assert(RemoteStorage.Discover._rs_supported(), false);
         }
       },

@@ -2,7 +2,11 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
+if(typeof global === 'undefined') global = window;
+global.RemoteStorage = function() {};
+      
 define([], function() {
+
   var suites = [];
 
   function FakeCaching(){
@@ -12,7 +16,6 @@ define([], function() {
   function FakeRemote(){
     function GPD(target, path, body, contentType, options) {
       var args = Array.prototype.slice.call(arguments);
-      console.log('GPD called with : ', args);
       this['_'+target+'s'].push([path, body, contentType, options]);
       var p = promising();
       var resp = this._responses[args] || [200];
@@ -42,39 +45,40 @@ define([], function() {
     desc: "testing the sync adapter instance",
 
     setup: function(env, test){
-      require('./lib/promising');
-      global.RemoteStorage = function(){
-        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready');
-      };
-      global.RemoteStorage.log = function() {};
+      require([
+        './lib/promising',
+        './src/eventhandling',
+        './src/cachinglayer',
+        './src/inmemorystorage',
+        './src/sync'
+      ], function() {
+        global.RemoteStorage.log = function() {};
 
-      require('./src/eventhandling');
-      if (global.rs_eventhandling){
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
+        if (global.rs_eventhandling){
+          RemoteStorage.eventHandling = global.rs_eventhandling;
+        } else {
+          global.rs_eventhandling = RemoteStorage.eventHandling;
+        }
+        
+        if (global.rs_cachinglayer) {
+          RemoteStorage.cachingLayer = global.rs_cachinglayer;
+        } else {
+          global.rs_cachinglayer = RemoteStorage.cachingLayer;
+        }
 
-      require('./src/cachinglayer');
-      if (global.rs_cachinglayer) {
-        RemoteStorage.cachingLayer = global.rs_cachinglayer;
-      } else {
-        global.rs_cachinglayer = RemoteStorage.cachingLayer;
-      }
+        if (global.rs_ims) {
+          RemoteStorage.InMemoryStorage = global.rs_ims;
+        } else {
+          global.rs_ims = RemoteStorage.InMemoryStorage;
+        }
 
-      require('./src/inmemorystorage.js');
-      if (global.rs_ims) {
-        RemoteStorage.InMemoryCaching = global.rs_ims;
-      } else {
-        global.rs_ims = RemoteStorage.InMemoryStorage;
-      }
-
-      require('src/sync.js');
-      test.done();
+        test.done();
+      });
     },
 
     beforeEach: function(env, test){
       env.rs = new RemoteStorage();
+      RemoteStorage.eventHandling(env.rs, 'sync-busy', 'sync-done', 'ready');
       env.rs.local = env.local = new RemoteStorage.InMemoryStorage();
       env.rs.caching = new FakeCaching();
       env.rs.remote = env.remote = new FakeRemote();

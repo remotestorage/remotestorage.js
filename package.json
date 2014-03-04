@@ -10,9 +10,13 @@
   },
   "homepage": "http://remotestorage.io",
   "devDependencies": {
-    "teste": "0.1.2",
+    "teste": "*",
     "uglify-js": "2.4.x",
-    "xhr2": "0.0.7"
+    "xhr2": "0.0.7",
+    "file-api": "0.9.3",
+    "bufferjs": "1.2.0",
+    "mime": "*",
+    "remedial": "*"
   },
   "scripts": {
     "test": "node_modules/.bin/teste"

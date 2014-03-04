@@ -1,29 +1,41 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs) {
-  var suites = [];
 
+if(typeof global === 'undefined') global = window;
+global.RemoteStorage = function() {};
+
+define([], function() {
+  var suites = [];
   suites.push({
     name: 'InMemoryStorage',
     desc: 'inmemory caching as a fallback for indexdb and localstorage',
     setup: function(env, test) {
-      require('./lib/promising');
-      global.RemoteStorage = function() {};
-      require('./src/eventhandling');
-      if ( global.rs_eventhandling ) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      require('./src/cachinglayer');
-      if (global.rs_cachinglayer) {
-        RemoteStorage.cachingLayer = global.rs_cachinglayer;
-      } else {
-        global.rs_cachinglayer = RemoteStorage.cachingLayer;
-      }
-      require('./src/inmemorystorage');
-      test.done();
+      require(['./lib/promising',
+        './src/eventhandling',
+        './src/cachinglayer',
+        './src/inmemorystorage'], function() {
+          if ( global.rs_eventhandling ) {
+            RemoteStorage.eventHandling = global.rs_eventhandling;
+          } else {
+            global.rs_eventhandling = RemoteStorage.eventHandling;
+          }
+
+          if (global.rs_cachinglayer) {
+            RemoteStorage.cachingLayer = global.rs_cachinglayer;
+          } else {
+            global.rs_cachinglayer = RemoteStorage.cachingLayer;
+          }
+
+          
+          if (global.rs_ims) {
+            RemoteStorage.InMemoryStorage = global.rs_ims;
+          } else {
+            global.rs_ims = RemoteStorage.InMemoryStorage;
+          }
+
+          test.done();
+        });
     },
 
     beforeEach: function(env, test) {

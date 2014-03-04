@@ -1,17 +1,17 @@
 if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
+  var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
+if(typeof global === 'undefined') global = window;
+global.RemoteStorage = function() {};
+
+define([], function() {
   var suites = [];
 
   suites.push({
     name: "GoogleDrive Client",
     desc: "tests for the GoogleDrive backend",
     setup: function(env, test) {
-      global.localStorage = {};
-      global.RemoteStorage = function() {
-        RemoteStorage.eventHandling(this, 'error');
-      };
+      if(typeof window === 'undefined')global.localStorage = {};
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
         setBackend: function(b){
@@ -20,25 +20,23 @@ define(['requirejs'], function(requirejs, undefined) {
       };
       global.RemoteStorage.Unauthorized = function() {};
       
+      require(['./lib/promising',
+        './src/eventhandling',
+        './src/wireclient',
+        './src/googledrive'], function() {
+          if (global.rs_eventhandling) {
+            RemoteStorage.eventHandling = global.rs_eventhandling;
+          } else {
+            global.rs_eventhandling = RemoteStorage.eventHandling;
+          }
+          if (global.rs_wireclient) {
+            RemoteStorage.WireClient = global.rs_wireclient;
+          } else {
+            global.rs_wireclient = RemoteStorage.WireClient;
+          }
 
-      require('./lib/promising');
-      require('./src/eventhandling');
-      
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      require('./src/wireclient');
-      
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-      require('./src/googledrive');
-
-      test.done();
+          test.done();
+        });
     },
 
     beforeEach: function(env, test) {
@@ -71,6 +69,7 @@ define(['requirejs'], function(requirejs, undefined) {
         });
       });
       env.rs = new RemoteStorage();
+      RemoteStorage.eventHandling(env.rs, 'error');
       env.rs.apiKeys= { googledrive: {api_key: 'testkey'} };
       env.client = new RemoteStorage.GoogleDrive(env.rs);
       env.connectedClient = new RemoteStorage.GoogleDrive(env.rs);

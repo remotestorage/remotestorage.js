@@ -1,33 +1,54 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
-  var suites = [];
 
+if(typeof global === 'undefined') global = window;
+global.RemoteStorage = function() {};
+
+define([], function(promising) {
+  var suites = [];
+  
   suites.push({
     name: "WireClient",
     desc: "Low-level remotestorage client based on XMLHttpRequest",
     setup: function(env, test) {
-      global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      global.RemoteStorage.Unauthorized = function() {};
-      global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
-      require('./lib/promising');
-      require('./src/eventhandling');
+      RemoteStorage.Unauthorized = function() {};
+      RemoteStorage.prototype.localStorageAvailable = function() { return false; };
+            
+      require(['./lib/promising', './src/wireclient', './src/eventhandling'], function() {
+        if(global.rs_wireclient) {
+          RemoteStorage.WireClient = global.rs_wireclient;
+        } else {
+          global.rs_wireclient = RemoteStorage.WireClient;
+        }
+      
+        if(global.rs_eventhandling) {
+          RemoteStorage.eventHandling = global.rs_eventhandling;
+        } else {
+          global.rs_eventhandling = RemoteStorage.eventHandling;
+        }
+        test.done();
+      });
 
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      require('./src/wireclient');
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
+      if(typeof window === 'undefined') {
+        global.FileReader = require('file-api').FileReader;
 
-      test.done();
+        global.Blob = function(inputs, options) {
+          this.inputs = inputs;
+          this.name = 'Blob';
+          this.options = options;
+          this.buffer = Buffer.concat(inputs.map(function(t) {
+            return new Buffer(t);
+          }));
+          env.blob = this;
+        };
+        global.Blob.prototype = {
+          slice: function(a, b) {
+            this.buf.slice(a,b);
+          }
+        };
+      }
     },
 
     beforeEach: function(env, test) {
@@ -68,37 +89,22 @@ define(['requirejs'], function(requirejs, undefined) {
       env.connectedClient.configure(
         undefined, env.baseURI, undefined, env.token
       );
-      global.Blob = function(input, options) {
-        this.input = input;
-        this.options = options;
-        env.blob = this;
-      };
-      global.FileReader = function() {};
-      FileReader.prototype = {
-        _events: {
-          loadend: []
-        },
-        addEventListener: function(eventName, handler) {
-          this._events[eventName].push(handler);
-        },
-        readAsArrayBuffer: function(blob) {
-          setTimeout(function() {
-            this.result = env.fileReaderResult = Math.random();
-            this._events.loadend[0]();
-          }.bind(this), 0);
-        }
-      };
-
       test.done();
     },
 
     afterEach: function(env, test) {
       delete global.XMLHttpRequest;
-      delete global.Blob;
-      delete global.FileReader;
       delete env.client;
       delete env.blob;
-      delete env.fileReaderResult;
+      test.done();
+    },
+
+    takedown: function(env, test) {
+      if(typeof window === 'undefined' ) {
+        delete global.Blob;
+        delete global.FileReader;
+        delete global.ArrayBuffer;
+      }
       test.done();
     },
 
@@ -498,7 +504,33 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#get unpacks pre-02 folder listings",
+        desc: "#get turns binary data into ArrayBuffers",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar.bin').
+            then(function(s, b, ct) {
+              //console.log('get resulted in', arguments);
+              test.assertAnd(s, 200);
+              test.assertTypeAnd(b, 'object');
+              var v = new Uint8Array(b);
+              for(var i = 0; i < 256; i++) {
+                test.assertAnd(v[i], i);
+              }
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
+          req.status = 200;
+          var str = '';
+          for(var i = 0; i < 256; i++) {
+            str+=String.fromCharCode(i);
+          }
+          req.response = req.responseText = str;
+          req._onload();
+        }
+      },
+
+      {
+        desc: "#get unpacks pre-02 directory listings",
         run: function(env, test) {
           env.connectedClient.get('/foo/01/').
             then(function(status, body, contentType) {
@@ -670,20 +702,18 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "responses with the charset set to 'binary' are read using a FileReader, after constructing a Blob",
+        desc: "responses with the charset set to 'binary' return ArrayBuffers",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
-              // check Blob
-              test.assertTypeAnd(env.blob, 'object');
-              test.assertAnd(env.blob.input, ['response-body']);
-              test.assertAnd(env.blob.options, {
-                type: 'application/octet-stream; charset=binary'
-              });
-
               test.assertAnd(status, 200);
-              test.assertAnd(body, env.fileReaderResult);
-              test.assert(contentType, 'application/octet-stream; charset=binary');
+              test.assertAnd(contentType, 'application/octet-stream; charset=binary');
+
+              // check Body
+              test.assertTypeAnd(body, 'object');
+              test.assertAnd(body instanceof ArrayBuffer, true, "body : "+ body +"  ; instance : "+typeof body );
+
+              test.done();
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
@@ -694,12 +724,14 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "responses without a Content-Type header still work",
+        desc: "responses without a Content-Type header still works and returns an ArrayBuffer instance",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
-              test.assertAnd(body, env.fileReaderResult);
+              test.assertTypeAnd(body, 'object');
+              // console.log(body);
+              test.assertAnd(body instanceof ArrayBuffer, true);
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -710,7 +742,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "404 responses for documents discard the body altogether",
+        desc: "404 responses discard the body altogether",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {

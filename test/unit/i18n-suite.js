@@ -1,20 +1,21 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
+if(typeof global === 'undefined') global = window;
+global.RemoteStorage = function() {};
 
-define([], function() {
-  var suites = [],
-      t;
+define([], function(i18n, undefined) {
+  var suites = [],t;
 
   suites.push({
     name: "I18n Suite",
     desc: "Internationalization features",
 
     setup: function(env, test) {
-      global.RemoteStorage = {};
-      require('src/i18n.js');
-      t = RemoteStorage.I18n.translate;
-      test.done();
+      require(['./src/i18n'], function() {
+        t = RemoteStorage.I18n.translate;
+        test.done();
+      });
     },
 
     beforeEach: function(env, test) {

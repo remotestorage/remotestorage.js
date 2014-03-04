@@ -1,0 +1,18 @@
+li.hidden .test-output {
+    display: none;
+}
+
+li.hidden h3:after {
+    content: "+";
+    display: "inline";
+}
+.collapser {
+    font-weight: bold;
+    cursor:pointer;
+}
+li.hidden .collapser{
+    display: none;
+}
+.test-output {
+    background-color: black; color: #eee; padding: 1em; white-space: pre-wrap;
+}

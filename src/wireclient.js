@@ -90,12 +90,12 @@
   }
 
   function readBinaryData(content, mimeType, callback) {
-    var blob = new Blob([content], { type: mimeType });
-    var reader = new FileReader();
-    reader.addEventListener("loadend", function() {
-      callback(reader.result); // reader.result contains the contents of blob as a typed array
-    });
-    reader.readAsArrayBuffer(blob);
+    var resultBuf = new ArrayBuffer(content.length);
+    var view = new Uint8Array(resultBuf);
+    for (var i = 0; i < content.length; i++) {
+      view[i] = content.charCodeAt(i);
+    }
+    callback(view.buffer);
   }
 
   function cleanPath(path) {

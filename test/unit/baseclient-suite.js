@@ -1,16 +1,43 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
+
+if(typeof global === 'undefined') global = window;
+
+var includes = [];
+if(typeof window !== 'undefined') {
+  requirejs.config({
+    paths: {
+      baseclient: './src/baseclient',
+      basceclientTypes: './src/baseclient/types'
+    },
+    shim: {
+      baseclient: ['./lib/promising',
+                   './lib/Math.uuid',
+                   './src/eventhandling',
+                   './src/wireclient'],
+      basceclientTypes: ['baseclient']
+    }
+  });
+  includes = ['baseclient', 'basceclientTypes'];
+} else {
+  includes = ['./lib/promising',
+              './lib/Math.uuid',
+              './src/eventhandling',
+              './src/baseclient',
+              './src/baseclient/types'];
+
+}
+
+global.RemoteStorage = function() {};
+
+define([], function() {
   var suites = [];
-
-  require('./lib/promising');
-
+         
   suites.push({
     name: "BaseClient",
     desc: "High-level client, scoped to a path",
     setup: function(env, test) {
-      global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
         onChange: function() {},
@@ -26,28 +53,36 @@ define(['requirejs'], function(requirejs, undefined) {
         }
       };
 
-      require('./src/eventhandling');
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
+      
+      if(typeof window === 'undefined') {
+        require('./src/wireclient');
       }
-      require('./src/wireclient');
       if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
       }
+      
+      require(includes, function() {
+        if (!global.rs_wireclient) {
+          global.rs_wireclient = RemoteStorage.WireClient;
+        }
+        if (global.rs_baseclient) {
+          RemoteStorage.Baseclient = global.rs_baseclient;
+        } else {
+          global.rs_baseclient = RemoteStorage.Baseclient;
+        }
+        if (global.rs_eventhandling) {
+          RemoteStorage.eventHandling = global.rs_eventhandling;
+        } else {
+          global.rs_eventhandling = RemoteStorage.eventHandling;
+        }
+        if (global.rs_types) {
+          RemoteStorage.BaseClient.Types = global.rs_types;
+        } else {
+          global.rs_types = RemoteStorage.BaseClient.Types;
+        }
 
-      require('./lib/Math.uuid');
-      require('./src/baseclient');
-      require('./src/baseclient/types');
-      if (global.rs_types) {
-        RemoteStorage.BaseClient.Types = global.rs_types;
-      } else {
-        global.rs_types = RemoteStorage.BaseClient.Types;
-      }
-      test.done();
+        test.done();
+      });
     },
 
     tests: [
@@ -118,16 +153,17 @@ define(['requirejs'], function(requirejs, undefined) {
     desc: "BaseClient folder handling",
     setup: function(env, test) {
       if (typeof(RemoteStorage) !== 'function') {
-        global.RemoteStorage = function() {};
         RemoteStorage.prototype = {
           onChange: function() {}
         };
       }
       if (typeof(RemoteStorage.BaseClient) !== 'function') {
-        require('./src/eventhandling');
-        require('./src/baseclient');
+        require(['../../src/eventhandling', '../../src/wireclient', '../../src/baseclient'], function() {
+          test.done();
+        });
+      } else {
+        test.done();
       }
-      test.done();
     },
 
     beforeEach: function(env, test) {

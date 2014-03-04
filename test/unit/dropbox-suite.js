@@ -1,16 +1,37 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
+if(typeof global === 'undefined') global = window;
+
+global.RemoteStorage = function() {};
+
+var includes = [];
+if(typeof window !== 'undefined') {
+  requirejs.config({
+    paths: {
+      dropbox: './src/dropbox'
+    },
+    shim: {
+      dropbox: ['./src/wireclient',
+                './lib/promising',
+                './src/eventhandling']
+    }
+  });
+  includes = ['dropbox'];
+} else {
+  includes = ['./src/wireclient',
+              './lib/promising',
+              './src/eventhandling',
+              './src/dropbox'];
+}
+
+define([], function() {
   var suites = [];
 
   suites.push({
-    name: "DropbixClient",
+    name: "DropboxClient",
     desc: "Low-level Dropbox client based on XMLHttpRequest",
     setup: function(env, test) {
-      global.RemoteStorage = function() {
-        RemoteStorage.eventHandling(this, 'error');
-      };
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
         setBackend: function(b){
@@ -22,24 +43,23 @@ define(['requirejs'], function(requirejs, undefined) {
       };
       global.RemoteStorage.Unauthorized = function() {};
 
-      require('./lib/promising');
-      require('./src/eventhandling');
-
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      require('./src/wireclient');
-
+      
       if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
       }
-      require('./src/dropbox');
 
-      test.done();
+      require(includes, function() {
+        if (global.rs_eventhandling) {
+          RemoteStorage.eventHandling = global.rs_eventhandling;
+        } else {
+          global.rs_eventhandling = RemoteStorage.eventHandling;
+        }
+        if(!global.rs_wireclient) {
+          global.rs_wireclient = RemoteStorage.WireClient;
+        }
+
+        test.done();
+      });
     },
 
     beforeEach: function(env, test) {
@@ -72,6 +92,8 @@ define(['requirejs'], function(requirejs, undefined) {
         });
       });
       env.rs = new RemoteStorage();
+      RemoteStorage.eventHandling(env.rs, 'error');
+      
       env.rs.apiKeys= { dropbox: {api_key: 'testkey'} };
       env.client = new RemoteStorage.Dropbox(env.rs);
       env.connectedClient = new RemoteStorage.Dropbox(env.rs);
@@ -317,19 +339,15 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "responses with the charset set to 'binary' are read using a FileReader, after constructing a Blob",
+        desc: "responses with the charset set to 'binary' return ArrayBuffers",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
-              // check Blob
-              test.assertTypeAnd(env.blob, 'object');
-              test.assertAnd(env.blob.input, ['response-body']);
-              test.assertAnd(env.blob.options, {
-                type: 'application/octet-stream; charset=binary'
-              });
-
+              // check Body
+              
               test.assertAnd(status, 200);
-              test.assertAnd(body, env.fileReaderResult);
+              test.assertTypeAnd(body, 'object');
+              test.assertAnd(body instanceof ArrayBuffer, true, "body : "+ body +"  ; instance : "+typeof body );
               test.assert(contentType, 'application/octet-stream; charset=binary');
             });
           var req = XMLHttpRequest.instances.shift();
@@ -345,12 +363,13 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "responses without a Content-Type header still work",
+        desc: "responses without a Content-Type header still works and return ArrayBuffers",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
-              test.assertAnd(body, env.fileReaderResult);
+              test.assertTypeAnd(body, 'object');
+              test.assertAnd(body instanceof ArrayBuffer, true);
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -362,6 +381,37 @@ define(['requirejs'], function(requirejs, undefined) {
           req._onload();
         }
       },
+     
+      {
+        desc: "#get turns binary data into ArrayBuffers",
+        run: function(env, test) {
+          env.connectedClient.get('/foo/bar.bin').
+            then(function(s, b, ct) {
+              //console.log('get resulted in', arguments);
+              test.assertAnd(s, 200);
+              test.assertTypeAnd(b, 'object');
+              var v = new Uint8Array(b);
+              for(var i = 0; i < 256; i++) {
+                test.assertAnd(v[i], i);
+              }
+              test.done();
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
+          req._responseHeaders['x-dropbox-metadata'] = JSON.stringify({
+            mime_type: 'application/octet-stream; charset=binary',
+            rev: 'rev'
+          });
+          req.status = 200;
+          var str = '';
+          for(var i = 0; i < 256; i++) {
+            str+=String.fromCharCode(i);
+          }
+          req.response = req.responseText = str;
+          req._onload();
+        }
+      },
+
 
       {
         desc: "404 responses discard the body altogether",
@@ -413,6 +463,8 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "dropbox Adapter sets and removes EventHandlers",
         run: function(env, test){
+          var rs = new RemoteStorage();
+          RemoteStorage.eventHandling(rs, 'error');
           function allHandlers() {
             var handlers = rs._handlers;
             var l = 0;
@@ -421,7 +473,7 @@ define(['requirejs'], function(requirejs, undefined) {
             }
             return l;
           }
-          var rs = new RemoteStorage();
+
           rs.apiKeys= { dropbox: {api_key: 'testkey'} };
 
           test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;

@@ -1,22 +1,24 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
+
+
+if(typeof global === 'undefined') global = window;
+global.RemoteStorage = function() {};
+      
+define([], function(undefined) {
   var suites = [];
 
   suites.push({
     name: "access",
     desc: "access knows all about the scope we claimed and which paths that gives us access to",
     setup: function(env, test) {
-      global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
-      require('./src/access');
-
-      env.Access = RemoteStorage.Access;
-
-      env.access = new env.Access();
-
-      test.result(true);
+      require(['./src/access'], function() {
+        env.Access = RemoteStorage.Access;
+        env.access = new env.Access();
+        test.result(true);
+      });
     },
 
     tests: [
@@ -104,9 +106,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         run: function(env, test) {
           env.access.reset();
           env.access.set('foo', 'rw');
-          console.log('foo:rw !=' , env.access.scopeParameter);
           test.assert(env.access.scopeParameter, 'foo:rw');
-
           env.access.reset();
           env.access.set('foo', 'r');
           test.assert(env.access.scopeParameter, 'foo:r');
