@@ -63,6 +63,37 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
           test.result(true);
         });
       });
+      
+      global.EventHelper = function(event) {
+        this.event = event;
+        this.receivedEvents = [];
+        env.client.on(event, function(event) {
+          this.receivedEvents.push(event);
+        }.bind(this));
+      };
+
+      EventHelper.prototype = {
+        expectEvent: function(expected) {
+          var rel = this.receivedEvents.length;
+          var matching, matchIndex;
+          for(var i=0;i<rel;i++) {
+            var e = this.receivedEvents[i];
+            for(var key in expected) {
+              if(e[key] !== expected[key]) {
+                continue;
+              }
+            }
+            matching = e;
+            matchIndex = i;
+            break;
+          }
+          test.assertTypeAnd(matching, 'object', "No event found matching: " + JSON.stringify(expected));
+          if(matching) {
+            this.receivedEvents.splice(matchIndex, 1);
+          }
+        }
+      };
+
     },
 
     takedown: function(env, test) {
@@ -117,7 +148,6 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
     },
 
     tests: [
-
       {
         desc: "Simple outgoing requests",
         run: function(env, test) {
@@ -200,15 +230,15 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
               console.log('CACHING', env.remoteStorage.caching);
             }).
             // do a full sync
-            then(curry(env.remoteStorage.sync.bind(env.remoteStorage))).
+            then(env.remoteStorage.sync.bind(env.remoteStorage)).
             then(function() {
               env.serverHelper.expectRequest(test, 'GET', 'me/a/');
               env.serverHelper.expectRequest(test, 'GET', 'me/a/obj-1');
               env.serverHelper.expectRequest(test, 'GET', 'me/a/obj-2');
               env.serverHelper.expectRequest(test, 'GET', 'me/a/obj-3');
               env.serverHelper.expectNoMoreRequest(test);
-
-              test.assert(true, true);
+              env.client.cache('a/', false);
+              test.done();
             }, function(err) {
               console.log('err', err, err.stack);
               test.result(false);
@@ -302,41 +332,17 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
       {
         desc: "change events with outgoing changes with caching disabled ",
         run: function(env, test) {
-          var receivedEvents = [];
           env.client.cache('', false);
-          env.client.on('change', function(event) {
-            receivedEvents.push(event);
-          });
-
-          function expectEvent(expected) {
-            var rel = receivedEvents.length;
-            var matching, matchIndex;
-            for(var i=0;i<rel;i++) {
-              var e = receivedEvents[i];
-              for(var key in expected) {
-                if(e[key] !== expected[key]) {
-                  continue;
-                }
-              }
-              matching = e;
-              matchIndex = i;
-              break;
-            }
-            test.assertTypeAnd(matching, 'object', "No event found matching: "+ JSON.stringify(expected) +" only found : "+ JSON.stringify(receivedEvents));
-            if(matching) {
-              receivedEvents.splice(matchIndex, 1);
-            }
-          }
-
+          eh = new EventHelper('change');
           env.client.storeObject('test', 'foo/bar/test-obj', { phu: 'quoc' }).
             then(function() {
-              expectEvent({
+              eh.expectEvent({
                 origin: 'window',
                 path: 'foo/bar/test-obj',
                 oldValue: undefined,
                 newValue: { phu: 'quoc', '@context': 'http://remotestoragejs.com/spec/modules/root/test' }
               });
-              test.assertAnd(receivedEvents, [], "There are still events in the queue: " + JSON.stringify(receivedEvents,null,2));
+              test.assertAnd(eh.receivedEvents, [], "There are still events in the queue: " + JSON.stringify(eh.receivedEvents,null,2));
               test.done();
             }, function(err) {
               console.log('err', err);
@@ -348,42 +354,17 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
       {
         desc: "change events with outgoing changes with caching enabled",
         run: function(env, test) {
-          var receivedEvents = [];
           env.client.cache('', true);
-          env.client.on('change', function(event) {
-            receivedEvents.push(event);
-          });
-
-          function expectEvent(expected) {
-            var rel = receivedEvents.length;
-            var matching, matchIndex;
-            for(var i=0;i<rel;i++) {
-              var e = receivedEvents[i];
-              for(var key in expected) {
-                if(e[key] !== expected[key]) {
-                  continue;
-                }
-              }
-              matching = e;
-              matchIndex = i;
-              break;
-            }
-            test.assertTypeAnd(matching, 'object', "No event found matching: " + JSON.stringify(expected));
-            if(matching) {
-              receivedEvents.splice(matchIndex, 1);
-            }
-          }
-
+          var eh = new EventHelper('change');
           env.client.storeObject('test', 'foo/bar/test-obj', { phu: 'quoc' }).
             then(function() {
-              console.log('RECEIVED', receivedEvents);
-              expectEvent({
+              eh.expectEvent({
                 origin: 'window',
                 path: 'foo/bar/test-obj',
                 oldValue: undefined,
                 newValue: { phu: 'quoc', '@context': 'http://remotestoragejs.com/spec/modules/root/test' }
               });
-              test.assertAnd(receivedEvents, [], "There are still events in the queue: " + JSON.stringify(receivedEvents,null,2));
+              test.assertAnd(eh.receivedEvents, [], "There are still events in the queue: " + JSON.stringify(eh.receivedEvents,null,2));
               test.done();
             }, function(err) {
               console.log('err', err);
@@ -398,9 +379,13 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
           // store the file first
           return env.client.storeObject('test', 'locations/hackerbeach/2013', { island: "Phu Quoc" }).
             //syncing to send the file to the server
-            then(env.remoteStorage.sync.bind(env.remoteStorage)).
+            then(function() {
+              return env.remoteStorage.sync();
+            }).
             // disconnect client
-            then(env.rsDisconnect).
+            then(function() {
+              return env.rsDisconnect;
+            }).
             then(function() {
               // reconnect client
               env.rsConnect();
@@ -438,7 +423,9 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
           // store the file first
           return env.client.storeFile('text/plain', 'locations/hackerbeach/2013', 'Phu Quoc Island').
                // push file to server
-            then(env.remoteStorage.sync.bind(env.remoteStorage) ).
+            then(function() {
+              return env.remoteStorage.sync();
+            }).
                // disconnect client
             then(env.rsDisconnect).
             then(function() {
@@ -450,6 +437,7 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
               return env.remoteStorage.sync();
             }).
             then(function() {
+              
               return env.client.getListing('locations/hackerbeach/');
             }).
             then(function(listing) {
@@ -494,13 +482,14 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
       {
         desc: "getting an empty dir with tree-force enabled doesn't cause a request",
         run: function(env, test) {
-          return env.remoteStorage.sync().
+          env.remoteStorage.sync().
             then(function() {
               env.serverHelper.clearCaptured();
               return env.client.getListing('locations/hackerbeach/');
             }).
             then(function() {
               env.serverHelper.expectNoMoreRequest(test);
+              test.done();
             }, function(err) {
               console.log('err', err);
               test.result(false);
@@ -512,12 +501,12 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
         desc: "storing a file directly to remote, without local caching",
         run: function(env, test) {
           env.remoteStorage.caching.disable('/');
-          return env.client.storeFile('text/plain', 'greetings/default', 'Hello World!', false).
+          env.client.storeFile('text/plain', 'greetings/default', 'Hello World!', false).
             then(function() {
               // check requests
               env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
-
               env.serverHelper.expectNoMoreRequest(test);
+              test.done();
             }, function(err) {
               console.log('err', err);
               test.result(false);
@@ -529,23 +518,19 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
         desc: "storing a file w/o caching, then listing & getting",
         run: function(env, test) {
           env.remoteStorage.caching.disable('/');
-
           env.client.storeFile('text/plain', 'greetings/default', 'Hello World!', false).
             then(function() {
-              console.log("123");
               env.serverHelper.expectRequest(test, 'PUT', 'me/greetings/default', 'Hello World!');
               env.serverHelper.expectNoMoreRequest(test);
               return env.client.getListing('greetings/');
             }).
             then(function(listing) {
-              console.log("123");
               env.serverHelper.expectRequest(test, 'GET', 'me/greetings/');
               env.serverHelper.expectNoMoreRequest(test);
               env.serverHelper.assertListing(test, listing, ['default']);
               return env.client.getFile('greetings/default');
             }).
             then(function(file) {
-              console.log("123");
               env.serverHelper.expectRequest(test, 'GET', 'me/greetings/default');
               env.serverHelper.expectNoMoreRequest(test);
               test.assertAnd(!!file.mimeType.match(/text\/plain/), true, "mimeType -> file was "+JSON.stringify(file) );
@@ -596,7 +581,6 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
               return env.client.getFile('test/a');
             }).
             then(function(file) {
-              console.log('FILE NOW', file);
               // verify file
               test.assertAnd(!!file.mimeType.match(/text\/plain/), true, "mimeType "+file.mimeType);
               test.assertAnd(file.data, 'content-a' , "data "+file.data);
@@ -613,11 +597,7 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
           env.client.cache('',false);
           env.client.storeFile('text/plain', 'something', 'blue', false).
             then(function() {
-              console.log('saved something');
               return env.client.getFile('something');
-            }).
-            then(function(something) {
-              console.log('something contains', something);
             }).
             // * disconnect, then reconnect
             then(env.rsDisconnect).
@@ -625,7 +605,6 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
             // * check that the listing shows the item we saved
             then(env.client.getListing.bind(env.client, '') ).
             then(function(listing) {
-              console.log('got listing', listing);
               env.serverHelper.assertListing(test, listing, ['something']);
             }).
             then(function() {
@@ -669,7 +648,6 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
             then(env.client.remove.bind(env.client, 'something') ).
             then(env.remoteStorage.sync.bind(env.remoteStorage)).
             then(function() {
-              console.log('serverHelper', env.serverHelper);
               env.serverHelper.expectRequest(
                 test, 'DELETE', 'me/something'
               );
@@ -718,7 +696,6 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
         timeout: 750,
         run: function(env, test) {
           env.client.on('change', function(event) {
-            console.log('got change', event);
             test.assertAnd(event.origin, 'window' , "origin -> event was "+JSON.stringify(event, null, 2) );
             test.assertAnd(event.path, '/hello' , "path -> event was "+JSON.stringify(event, null, 2) );
             test.assertAnd(event.oldValue, undefined , "oldValue -> event was "+JSON.stringify(event, null, 2) );
