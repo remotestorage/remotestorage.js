@@ -251,9 +251,11 @@ define(['requirejs', 'xhr2'], function(requirejs,  request) {
       //   run: function(env, test) {
       //     env.client.storeFile('text/plain', 'note.txt', 'foo').
       //       then(function() {
+      //         console.log('stored');
       //         return env.client.storeFile('text/plain', 'note.txt', 'bar');
       //       }).then(function() {
-      //         return env.client.getFile('note.txt');
+      //         console.log('stored again');
+      //         return env.client.getFile('note.txt'); // FIXME here it hangs(no request is ever sent through the wire(caching)) ... is this desired behaviour?
       //       }).then(function(file) {
       //         console.log("testing mime-type and body now" , file.mimeType, file.data);
       //         test.assertAnd(!!file.mimeType.match(/text\/plain/),true, 'wrong mime type '+file.mimeType);
