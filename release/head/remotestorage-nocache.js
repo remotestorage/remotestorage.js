@@ -196,7 +196,17 @@
     /**
      * Event: ready
      *
-     * fired when connected and ready
+     * fired when ready
+     **/
+    /**
+     * Event: not-connected
+     *
+     * fired when ready, but no storage connected ("anonymous mode")
+     **/
+    /**
+     * Event: connected
+     *
+     * fired when a remote storage has been connected
      **/
     /**
      * Event: disconnected
@@ -206,7 +216,7 @@
     /**
      * Event: disconnect
      *
-     * deprecated use disconnected
+     * deprecated, use disconnected instead
      **/
     /**
      * Event: conflict
@@ -251,8 +261,9 @@
      **/
 
     RemoteStorage.eventHandling(
-      this, 'ready', 'disconnected', 'disconnect', 'conflict', 'error',
-      'features-loaded', 'connecting', 'authing', 'wire-busy', 'wire-done'
+      this, 'ready', 'connected', 'disconnected', 'disconnect',
+            'not-connected', 'conflict', 'error', 'features-loaded',
+            'connecting', 'authing', 'wire-busy', 'wire-done'
     );
 
     // pending get/put/delete calls.
@@ -501,7 +512,9 @@
      **/
 
     _init: function() {
-      var self = this, readyFired = false;
+      var self = this,
+          readyFired = false;
+
       function fireReady() {
         try {
           if (!readyFired) {
@@ -513,11 +526,12 @@
           self._emit('error', e);
         }
       }
+
       this._loadFeatures(function(features) {
         this.log('all features loaded');
         this.local = features.local && new features.local();
-        // (this.remote set by WireClient._rs_init
-        //  as lazy property on RS.prototype)
+        // this.remote set by WireClient._rs_init as lazy property on
+        // RS.prototype
 
         if (this.local && this.remote) {
           this._setGPD(SyncedGetPutDelete, this);
@@ -527,10 +541,17 @@
         }
 
         if (this.remote) {
-          this.remote.on('connected', fireReady);
-          this.remote.on('not-connected', fireReady);
+          this.remote.on('connected', function(){
+            fireReady();
+            self._emit('connected');
+          });
+          this.remote.on('not-connected', function(){
+            fireReady();
+            self._emit('not-connected');
+          });
           if (this.remote.connected) {
             fireReady();
+            self._emit('connected');
           }
         }
 
@@ -972,6 +993,25 @@
     };
   }
 
+  function addQuotes(str) {
+    if (typeof(str) !== 'string') {
+      return str;
+    }
+    if (str === '*') {
+      return '*';
+    }
+
+    return '"' + str + '"';
+  }
+
+  function stripQuotes(str) {
+    if (typeof(str) !== 'string') {
+      return str;
+    }
+
+    return str.replace(/^["']|["']$/g, '');
+  }
+
   function readBinaryData(content, mimeType, callback) {
     var blob = new Blob([content], { type: mimeType });
     var reader = new FileReader();
@@ -1119,13 +1159,13 @@
             promise.fulfill(response.status);
           } else if (isSuccessStatus(response.status) ||
                      (response.status === 200 && method !== 'GET')) {
-            revision = response.getResponseHeader('ETag');
+            revision = stripQuotes(response.getResponseHeader('ETag'));
             promise.fulfill(response.status, undefined, undefined, revision);
           } else {
             var mimeType = response.getResponseHeader('Content-Type');
             var body;
             if (getEtag) {
-              revision = response.getResponseHeader('ETag');
+              revision = stripQuotes(response.getResponseHeader('ETag'));
             } else {
               revision = response.status === 200 ? fakeRevision : undefined;
             }
@@ -1198,7 +1238,7 @@
       var headers = {};
       if (this.supportsRevs) {
         if (options.ifNoneMatch) {
-          headers['If-None-Match'] = options.ifNoneMatch;
+          headers['If-None-Match'] = addQuotes(options.ifNoneMatch);
         }
       } else if (options.ifNoneMatch) {
         var oldRev = this._revisionCache[path];
@@ -1261,10 +1301,10 @@
       var headers = { 'Content-Type': contentType };
       if (this.supportsRevs) {
         if (options.ifMatch) {
-          headers['If-Match'] = options.ifMatch;
+          headers['If-Match'] = addQuotes(options.ifMatch);
         }
         if (options.ifNoneMatch) {
-          headers['If-None-Match'] = options.ifNoneMatch;
+          headers['If-None-Match'] = addQuotes(options.ifNoneMatch);
         }
       }
       return this._request('PUT', this.href + cleanPath(path), this.token,
@@ -1279,7 +1319,7 @@
       var headers = {};
       if (this.supportsRevs) {
         if (options.ifMatch) {
-          headers['If-Match'] = options.ifMatch;
+          headers['If-Match'] = addQuotes(options.ifMatch);
         }
       }
       return this._request('DELETE', this.href + cleanPath(path), this.token,

@@ -79,7 +79,17 @@
     /**
      * Event: ready
      *
-     * fired when connected and ready
+     * fired when ready
+     **/
+    /**
+     * Event: not-connected
+     *
+     * fired when ready, but no storage connected ("anonymous mode")
+     **/
+    /**
+     * Event: connected
+     *
+     * fired when a remote storage has been connected
      **/
     /**
      * Event: disconnected
@@ -89,7 +99,7 @@
     /**
      * Event: disconnect
      *
-     * deprecated use disconnected
+     * deprecated, use disconnected instead
      **/
     /**
      * Event: error
@@ -128,8 +138,9 @@
      **/
 
     RemoteStorage.eventHandling(
-      this, 'ready', 'disconnected', 'disconnect', 'error',
-      'features-loaded', 'connecting', 'authing', 'wire-busy', 'wire-done'
+      this, 'ready', 'connected', 'disconnected', 'disconnect',
+            'not-connected', 'conflict', 'error', 'features-loaded',
+            'connecting', 'authing', 'wire-busy', 'wire-done'
     );
 
     // pending get/put/delete calls.
@@ -364,7 +375,9 @@
      **/
 
     _init: function() {
-      var self = this, readyFired = false;
+      var self = this,
+          readyFired = false;
+
       function fireReady() {
         try {
           if (!readyFired) {
@@ -376,11 +389,12 @@
           self._emit('error', e);
         }
       }
+
       this._loadFeatures(function(features) {
         this.log('all features loaded');
         this.local = features.local && new features.local();
-        // (this.remote set by WireClient._rs_init
-        //  as lazy property on RS.prototype)
+        // this.remote set by WireClient._rs_init as lazy property on
+        // RS.prototype
 
         if (this.local && this.remote) {
           this._setGPD(SyncedGetPutDelete, this);
@@ -390,10 +404,17 @@
         }
 
         if (this.remote) {
-          this.remote.on('connected', fireReady);
-          this.remote.on('not-connected', fireReady);
+          this.remote.on('connected', function(){
+            fireReady();
+            self._emit('connected');
+          });
+          this.remote.on('not-connected', function(){
+            fireReady();
+            self._emit('not-connected');
+          });
           if (this.remote.connected) {
             fireReady();
+            self._emit('connected');
           }
         }
 
