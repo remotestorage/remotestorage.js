@@ -30,7 +30,7 @@
     pendingActivations: [],
 
     /**
-     ** configuration methods
+     ** Configuration methods
      **/
 
     set: function(path, value) {
@@ -54,6 +54,7 @@
     enable: function(path) {
       this.set(path, this.ALL);
     },
+
     disable: function(path) {
       this.set(path, this.FLUSH);
     },
@@ -71,8 +72,10 @@
     /**
      * Method: checkPath
      *
+     * Retrieves caching setting to smallest tree containing the given path.
      *
-     * retrieves caching setting to smallest tree containing path.
+     * Parameters:
+     *   path
      **/
     checkPath: function(path) {
       if (this._rootPaths[path] !== undefined) {
@@ -87,8 +90,7 @@
     /**
      * Method: reset
      *
-     * resets the state of caching;
-     * deletes all caching information.
+     * Resets the state of caching by deleting all caching information.
      **/
     reset: function() {
       this._rootPaths = {};
