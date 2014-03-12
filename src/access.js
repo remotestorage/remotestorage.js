@@ -55,7 +55,7 @@
       }
     },
 
-    check: function(scope, mode) {
+    checkPermission: function(scope, mode) {
       var actualMode = this.get(scope);
       return actualMode && (mode === 'r' || actualMode === 'rw');
     },
@@ -82,10 +82,10 @@
 
     checkPath: function(path, mode) {
       //check root access
-      if (this.check('*', mode)) {
+      if (this.checkPermission('*', mode)) {
         return true;
       }
-      return !!this.check(this.getModuleName(path), mode);
+      return !!this.checkPermission(this.getModuleName(path), mode);
     },
 
     reset: function() {

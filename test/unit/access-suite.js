@@ -39,30 +39,30 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "#check returns true for scope=readings, mode=r",
+        desc: "#checkPermission returns true for scope=readings, mode=r",
         run: function(env, test) {
-          test.assert(env.access.check('readings', 'r'), true);
+          test.assert(env.access.checkPermission('readings', 'r'), true);
         }
       },
 
       {
-        desc: "#check returns true for scope=writings, mode=r",
+        desc: "#checkPermission returns true for scope=writings, mode=r",
         run: function(env, test) {
-          test.assert(env.access.check('writings', 'r'), true);
+          test.assert(env.access.checkPermission('writings', 'r'), true);
         }
       },
 
       {
-        desc: "#check returns false for scope=readings, mode=rw",
+        desc: "#checkPermission returns false for scope=readings, mode=rw",
         run: function(env, test) {
-          test.assert(env.access.check('readings', 'rw'), false);
+          test.assert(env.access.checkPermission('readings', 'rw'), false);
         }
       },
 
       {
-        desc: "#check returns true for scope=writings, mode=rw",
+        desc: "#checkPermission returns true for scope=writings, mode=rw",
         run: function(env, test) {
-          test.assert(env.access.check('writings', 'rw'), true);
+          test.assert(env.access.checkPermission('writings', 'rw'), true);
         }
       },
 
