@@ -119,11 +119,11 @@
             num++;
           }
         } else if (this.needsFetch(node)
-            && this.access.checkPath(node.path, 'r')) {
+            && this.access.checkPathPermission(node.path, 'r')) {
           this.addTask(node.path);
           num++;
         } else if (this.needsPush(node)
-            && this.access.checkPath(node.path, 'rw')) {
+            && this.access.checkPathPermission(node.path, 'rw')) {
           this.addTask(node.path);
           num++;
         }
@@ -181,9 +181,9 @@
           } catch(e) {
             //node.path is already '/', can't take parentPath
           }
-          if (parentPath && this.access.checkPath(parentPath, 'r')) {
+          if (parentPath && this.access.checkPathPermission(parentPath, 'r')) {
             this._tasks[parentPath] = [];
-          } else if (this.access.checkPath(node.path, 'r')) {
+          } else if (this.access.checkPathPermission(node.path, 'r')) {
             this._tasks[node.path] = [];
           }
         }

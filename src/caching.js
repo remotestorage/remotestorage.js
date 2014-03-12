@@ -28,7 +28,7 @@
     SEEN_AND_FOLDERS: { data: false },
     ALL: { data: true },
     pendingActivations: [],
-   
+
     /**
      ** configuration methods
      **/
@@ -50,7 +50,7 @@
         }
       }
     },
-   
+
     enable: function(path) {
       this.set(path, this.ALL);
     },
@@ -67,7 +67,7 @@
       }
       delete this.pendingActivations;
     },
-   
+
     /**
      * Method: checkPath
      *
@@ -83,7 +83,7 @@
         return this.checkPath(containingFolder(path));
       }
     },
-   
+
     /**
      * Method: reset
      *
@@ -108,7 +108,7 @@
       return caching;
     }
   });
- 
+
   RemoteStorage.Caching._rs_init = function() {};
 
 })(typeof(window) !== 'undefined' ? window : global);

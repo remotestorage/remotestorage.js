@@ -9,7 +9,6 @@
    */
   RemoteStorage.Access = function() {
     this.reset();
-
   };
 
   RemoteStorage.Access.prototype = {
@@ -80,8 +79,7 @@
       return parts[pos];
     },
 
-    checkPath: function(path, mode) {
-      //check root access
+    checkPathPermission: function(path, mode) {
       if (this.checkPermission('*', mode)) {
         return true;
       }

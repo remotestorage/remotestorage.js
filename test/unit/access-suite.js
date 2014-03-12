@@ -97,7 +97,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           test.done();
         }
       },
-      
+
       {
         desc: "#getModuleName return the module name for various in-module paths",
         run: function(env, test) {
@@ -116,96 +116,96 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "#checkPath returns true for paths inside writings, mode=rw",
+        desc: "#checkPathPermission returns true for paths inside writings, mode=rw",
         run: function(env, test) {
-          test.assertAnd(env.access.checkPath('/writings/a', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/writings/a/', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/writings/a/b', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a/', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a/b', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a/', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a/b', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a/', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a/b', 'rw'), true);
           test.done();
         }
       },
 
       {
-        desc: "#checkPath returns true for paths inside writings, mode=r",
+        desc: "#checkPathPermission returns true for paths inside writings, mode=r",
         run: function(env, test) {
-          test.assertAnd(env.access.checkPath('/writings/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/writings/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/writings/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a/b', 'r'), true);
           test.done();
         }
       },
 
       {
-        desc: "#checkPath returns true for paths inside readings, mode=r",
+        desc: "#checkPathPermission returns true for paths inside readings, mode=r",
         run: function(env, test) {
-          test.assertAnd(env.access.checkPath('/readings/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/readings/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/readings/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/readings/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/readings/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/readings/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/readings/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/readings/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/readings/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a/b', 'r'), true);
           test.done();
         }
       },
-      
+
       {
-        desc: "#checkPath returns false for paths inside readings, mode=rw",
+        desc: "#checkPathPermission returns false for paths inside readings, mode=rw",
         run: function(env, test) {
-          test.assertAnd(env.access.checkPath('/readings/a', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/readings/a/', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/readings/a/b', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/readings/a', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/readings/a/', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/readings/a/b', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/readings/a', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/readings/a/', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/readings/a/b', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a/', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a/b', 'rw'), false);
           test.done();
         }
       },
-      
+
       {
-        desc: "#checkPath returns false for paths outside readings and writings, mode=rw",
+        desc: "#checkPathPermission returns false for paths outside readings and writings, mode=rw",
         run: function(env, test) {
-          test.assertAnd(env.access.checkPath('/redings/a', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/radings/a/', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/eadings/a/b', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/readngs/a', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/reaings/a/', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/redings/a/b', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/redings/a', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/radings/a/', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/eadings/a/b', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/readngs/a', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/reaings/a/', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/redings/a/b', 'rw'), false);
           test.done();
         }
       },
-      
+
       {
-        desc: "#checkPath returns false for paths outside readings and writings, mode=r",
+        desc: "#checkPathPermission returns false for paths outside readings and writings, mode=r",
         run: function(env, test) {
-          test.assertAnd(env.access.checkPath('/redings/a', 'r'), false);
-          test.assertAnd(env.access.checkPath('/radings/a/', 'r'), false);
-          test.assertAnd(env.access.checkPath('/eadings/a/b', 'r'), false);
-          test.assertAnd(env.access.checkPath('/public/readngs/a', 'r'), false);
-          test.assertAnd(env.access.checkPath('/public/reaings/a/', 'r'), false);
-          test.assertAnd(env.access.checkPath('/public/redings/a/b', 'r'), false);
+          test.assertAnd(env.access.checkPathPermission('/redings/a', 'r'), false);
+          test.assertAnd(env.access.checkPathPermission('/radings/a/', 'r'), false);
+          test.assertAnd(env.access.checkPathPermission('/eadings/a/b', 'r'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/readngs/a', 'r'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/reaings/a/', 'r'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/redings/a/b', 'r'), false);
           test.done();
         }
       },
-      
+
       {
-        desc: "#checkPath returns false for paths outside modules",
+        desc: "#checkPathPermission returns false for paths outside modules",
         run: function(env, test) {
-          test.assertAnd(env.access.checkPath('/', 'r'), false);
-          test.assertAnd(env.access.checkPath('/a', 'r'), false);
-          test.assertAnd(env.access.checkPath('/public/a', 'r'), false);
-          test.assertAnd(env.access.checkPath('/', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/a', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/a', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/', 'r'), false);
+          test.assertAnd(env.access.checkPathPermission('/a', 'r'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/a', 'r'), false);
+          test.assertAnd(env.access.checkPathPermission('/', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/a', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/a', 'rw'), false);
           test.done();
         }
       },
-      
+
       {
         desc: "#rootPaths contain correct private paths",
         run: function(env, test) {
@@ -233,123 +233,123 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "#checkPath returns true for read with *:r access",
+        desc: "#checkPathPermission returns true for read with *:r access",
         run: function(env, test) {
-          test.assertAnd(env.access.checkPath('/readings/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/readings/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/readings/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/readings/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/readings/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/readings/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/writings/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/writings/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/writings/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/foo/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/foo/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/foo/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/foo/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/foo/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/foo/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/foo', 'r'), true);
-          test.assertAnd(env.access.checkPath('/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/foo', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/readings/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/readings/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/readings/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/foo/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/foo/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/foo/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/foo', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/', 'r'), true);
           test.done();
         }
       },
-      
-      {
-        desc: "#checkPath returns false for write with *:r access, except inside writings",
-        run: function(env, test) {
-          test.assertAnd(env.access.checkPath('/readings/a', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/readings/a/', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/readings/a/b', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/readings/a', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/readings/a/', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/readings/a/b', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/writings/a', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/writings/a/', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/writings/a/b', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a/', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a/b', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/foo/a', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/foo/a/', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/foo/a/b', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/foo/a', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/foo/a/', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/foo/a/b', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/foo', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/foo', 'rw'), false);
-          test.assertAnd(env.access.checkPath('/public/', 'rw'), false);
-          test.done();
-        }
-      },
-      
 
       {
-        desc: "#checkPath returns true for read with *:rw access",
+        desc: "#checkPathPermission returns false for write with *:r access, except inside writings",
+        run: function(env, test) {
+          test.assertAnd(env.access.checkPathPermission('/readings/a', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/readings/a/', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/readings/a/b', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a/', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a/b', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/writings/a', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a/', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a/b', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a/', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a/b', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo/a', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/foo/a/', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/foo/a/b', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/foo/a', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/foo/a/', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/foo/a/b', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/foo', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/foo', 'rw'), false);
+          test.assertAnd(env.access.checkPathPermission('/public/', 'rw'), false);
+          test.done();
+        }
+      },
+
+
+      {
+        desc: "#checkPathPermission returns true for read with *:rw access",
         run: function(env, test) {
           env.access.set('*', 'rw');
-          test.assertAnd(env.access.checkPath('/readings/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/readings/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/readings/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/readings/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/readings/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/readings/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/writings/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/writings/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/writings/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/foo/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/foo/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/foo/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/foo/a', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/foo/a/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/foo/a/b', 'r'), true);
-          test.assertAnd(env.access.checkPath('/foo', 'r'), true);
-          test.assertAnd(env.access.checkPath('/', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/foo', 'r'), true);
-          test.assertAnd(env.access.checkPath('/public/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/readings/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/readings/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/readings/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/foo/a', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/foo/a/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/foo/a/b', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/foo', 'r'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/', 'r'), true);
           test.done();
         }
       },
-      
+
       {
-        desc: "#checkPath returns true for write with *:rw access",
+        desc: "#checkPathPermission returns true for write with *:rw access",
         run: function(env, test) {
-          test.assertAnd(env.access.checkPath('/readings/a', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/readings/a/', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/readings/a/b', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/readings/a', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/readings/a/', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/readings/a/b', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/writings/a', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/writings/a/', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/writings/a/b', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a/', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/writings/a/b', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/foo/a', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/foo/a/', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/foo/a/b', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/foo/a', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/foo/a/', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/foo/a/b', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/foo', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/foo', 'rw'), true);
-          test.assertAnd(env.access.checkPath('/public/', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/readings/a', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/readings/a/', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/readings/a/b', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a/', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/readings/a/b', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a/', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/writings/a/b', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a/', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/writings/a/b', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo/a', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo/a/', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo/a/b', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/foo/a', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/foo/a/', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/foo/a/b', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/foo', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/foo', 'rw'), true);
+          test.assertAnd(env.access.checkPathPermission('/public/', 'rw'), true);
           test.done();
         }
       },
-      
+
       {
         desc: "#reset clears all scopes and paths",
         run: function(env, test) {

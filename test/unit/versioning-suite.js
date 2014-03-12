@@ -31,7 +31,7 @@ define([], function() {
     this.get = function(moduleName) {
       return this._data[moduleName];
     };
-    this.checkPath = function(path, mode) {
+    this.checkPathPermission = function(path, mode) {
       if (path.substring(0, '/foo/'.length) === '/foo/') {
         return true;
       }
