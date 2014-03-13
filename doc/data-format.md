@@ -69,12 +69,12 @@ Up to now, our caching strategies were 'yes', 'no', or 'folders only'.
 The new caching strategies are 'ALL', 'SEEN', and 'FLUSH'. 'ALL' means
 that once all outgoing changes have been pushed, sync will start
 retrieving nodes to cache pro-actively. If a local copy exists of
-everything, it will check each `<syncInterval>`ms whether the ETag of the
-root folder changed, and retrieve remote changes if they exist. 'SEEN'
-does this only for documents and folders that have been either read from
-or written to, and their parent folders up to the root (to make
-tree-based sync possible). 'FLUSH' will only cache outgoing changes, and
-forget them as soon as they have been saved to remote successfully.
+everything, it will check on each sync whether the ETag of the root
+folder changed, and retrieve remote changes if they exist. 'SEEN' does
+this only for documents and folders that have been either read from or
+written to, and their parent folders up to the root (to make tree-based
+sync possible). 'FLUSH' will only cache outgoing changes, and forget
+them as soon as they have been saved to remote successfully.
 
 # "keep/revert" conflict resolution
 
