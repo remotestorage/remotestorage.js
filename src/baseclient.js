@@ -99,6 +99,7 @@
 
   RS.BaseClient.prototype = {
 
+    // TODO has been lagacy for a long time, should be removed
     // BEGIN LEGACY
     use: function(path) {
       deprecate('BaseClient#use(path)', 'BaseClient#cache(path)');
@@ -137,7 +138,9 @@
      * The callback semantics of getListing are identical to those of getObject.
      *
      * Parameters:
-     *   path     - The path to query. It MUST end with a forward slash.
+     *   path   - The path to query. It MUST end with a forward slash.
+     *   maxAge - (optional) Maximum age of cached listing in
+     *            milliseconds
      *
      * Returns:
      *
@@ -165,7 +168,7 @@
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      if (typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number') {
+      if (maxAgeInvalid(maxAge)) {
         return promising().reject('Argument \'maxAge\' of baseClient.getListing must be undefined or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(
@@ -181,8 +184,9 @@
      * Get all objects directly below a given path.
      *
      * Parameters:
-     *   path      - path to the folder
-     *   typeAlias - (optional) local type-alias to filter for
+     *   path   - path to the folder
+     *   maxAge - (optional) Maximum age of cached objects in
+     *            milliseconds
      *
      * Returns:
      *   a promise for an object in the form { path : object, ... }
@@ -191,7 +195,7 @@
      *   (start code)
      *   client.getAll('').then(function(objects) {
      *     for (var key in objects) {
-     *       RemoteStorage.log('- ' + key + ': ', objects[key]);
+     *       console.log('- ' + key + ': ', objects[key]);
      *     }
      *   });
      *   (end code)
@@ -202,7 +206,7 @@
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      if (typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number') {
+      if (maxAgeInvalid(maxAge)) {
         return promising().reject('Argument \'maxAge\' of baseClient.getAll must be undefined or a number');
       }
 
@@ -263,7 +267,7 @@
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
       }
-      if (typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number') {
+      if (maxAgeInvalid(maxAge)) {
         return promising().reject('Argument \'maxAge\' of baseClient.getFile must be undefined or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
@@ -356,7 +360,7 @@
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
       }
-      if (typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number') {
+      if (maxAgeInvalid(maxAge)) {
         return promising().reject('Argument \'maxAge\' of baseClient.getObject must be undefined or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
@@ -558,5 +562,9 @@
     };
   });
   */
+
+  maxAgeInvalid = function(maxAge) {
+    return typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number';
+  };
 
 })(typeof(window) !== 'undefined' ? window : global);
