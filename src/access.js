@@ -160,10 +160,10 @@
 
   function setModuleCaching(remoteStorage, key) {
     if (key === '*' || key === '') {
-      remoteStorage.caching.set('/', { data: true });
+      remoteStorage.caching.set('/', remoteStorage.caching.ALL);
     } else {
-      remoteStorage.caching.set('/' + key + '/', { data: true });
-      remoteStorage.caching.set('/public/' + key + '/', { data: true });
+      remoteStorage.caching.set('/' + key + '/', remoteStorage.caching.ALL);
+      remoteStorage.caching.set('/public/' + key + '/', remoteStorage.caching.ALL);
     }
   }
 
