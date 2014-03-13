@@ -23,17 +23,17 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       // tests are dependent on each other, as they modify the same 'access' object
 
       {
-        desc: "#set scope=readings, mode=r, #get scope=readings",
+        desc: "#claim scope=readings, mode=r, #get scope=readings",
         run: function(env, test) {
-          env.access.set('readings', 'r');
+          env.access.claim('readings', 'r');
           test.assert(env.access.get('readings'), 'r');
         }
       },
 
       {
-        desc: "#set scope=writings, mode=rw, #get scope=writings",
+        desc: "#claim scope=writings, mode=rw, #get scope=writings",
         run: function(env, test) {
-          env.access.set('writings', 'rw');
+          env.access.claim('writings', 'rw');
           test.assert(env.access.get('writings'), 'rw');
         }
       },
@@ -225,9 +225,9 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "root access causes #rootPaths to only contain '/'",
         run: function(env, test) {
-          env.access.set('*', 'r');
-          env.access.set('readings', 'r');
-          env.access.set('writings', 'rw');
+          env.access.claim('*', 'r');
+          env.access.claim('readings', 'r');
+          env.access.claim('writings', 'rw');
           test.assert(env.access.rootPaths, ['/']);
         }
       },
@@ -294,7 +294,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "#checkPathPermission returns true for read with *:rw access",
         run: function(env, test) {
-          env.access.set('*', 'rw');
+          env.access.claim('*', 'rw');
           test.assertAnd(env.access.checkPathPermission('/readings/a', 'r'), true);
           test.assertAnd(env.access.checkPathPermission('/readings/a/', 'r'), true);
           test.assertAnd(env.access.checkPathPermission('/readings/a/b', 'r'), true);
@@ -363,11 +363,11 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "#scopeParameter is correct for one module",
         run: function(env, test) {
           env.access.reset();
-          env.access.set('foo', 'rw');
+          env.access.claim('foo', 'rw');
           test.assert(env.access.scopeParameter, 'foo:rw');
 
           env.access.reset();
-          env.access.set('foo', 'r');
+          env.access.claim('foo', 'r');
           test.assert(env.access.scopeParameter, 'foo:r');
         }
       },
@@ -376,8 +376,8 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "#scopeParameter is correct for multiple modules",
         run: function(env, test) {
           env.access.reset();
-          env.access.set('foo', 'rw');
-          env.access.set('bar', 'r');
+          env.access.claim('foo', 'rw');
+          env.access.claim('bar', 'r');
           test.assert(env.access.scopeParameter, 'foo:rw bar:r');
         }
       },
@@ -387,7 +387,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         run: function(env, test) {
           env.access.reset();
           env.access.setStorageType('2012.04');
-          env.access.set('*', 'rw');
+          env.access.claim('*', 'rw');
           test.assert(env.access.scopeParameter, ':rw');
         }
       },
@@ -397,7 +397,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         run: function(env, test) {
           env.access.reset();
           env.access.setStorageType('remotestorage-00');
-          env.access.set('*', 'rw');
+          env.access.claim('*', 'rw');
           test.assert(env.access.scopeParameter, 'root:rw');
         }
       },
@@ -407,7 +407,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         run: function(env, test) {
           env.access.reset();
           env.access.setStorageType('remotestorage-01');
-          env.access.set('*', 'rw');
+          env.access.claim('*', 'rw');
           test.assert(env.access.scopeParameter, 'root:rw');
         }
       },
@@ -417,7 +417,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         run: function(env, test) {
           env.access.reset();
           env.access.setStorageType('remotestorage-02');
-          env.access.set('*', 'rw');
+          env.access.claim('*', 'rw');
           test.assert(env.access.scopeParameter, '*:rw');
         }
       }

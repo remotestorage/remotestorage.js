@@ -22,16 +22,12 @@
      *   scope - An access scope, such as "contacts" or "calendar".
      *   mode  - Access mode to use. Either "r" or "rw".
      */
-    claim: function() {
-      this.set.apply(this, arguments);
-    },
-
-    set: function(scope, mode) {
+    claim: function(scope, mode) {
       if (typeof(scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
-        throw new Error('scope should be a non-empty string without forward slashes');
+        throw new Error('Scope should be a non-empty string without forward slashes');
       }
-      if (mode !== 'r' && mode !== 'rw') {
-        throw new Error('mode should be either \'r\' or \'rw\'');
+      if (!mode.match(/^rw?$/)) {
+        throw new Error('Mode should be either \'r\' or \'rw\'');
       }
       this._adjustRootPaths(scope);
       this.scopeModeMap[scope] = mode;
@@ -54,16 +50,22 @@
       }
     },
 
+    /**
+     * Verify permission for a given scope.
+     */
     checkPermission: function(scope, mode) {
       var actualMode = this.get(scope);
       return actualMode && (mode === 'r' || actualMode === 'rw');
     },
 
+    /**
+     * Verify permission for a given path.
+     */
     checkPathPermission: function(path, mode) {
       if (this.checkPermission('*', mode)) {
         return true;
       }
-      return !!this.checkPermission(this.getModuleName(path), mode);
+      return !!this.checkPermission(this._getModuleName(path), mode);
     },
 
     reset: function() {
@@ -137,7 +139,7 @@
     }
   });
 
-  // documented in src/remotestorage.js
+  // Documented in src/remotestorage.js
   Object.defineProperty(RemoteStorage.prototype, 'access', {
     get: function() {
       var access = new RemoteStorage.Access();
@@ -149,16 +151,8 @@
     configurable: true
   });
 
-  function setModuleCaching(remoteStorage, key) {
-    if (key === '*' || key === '') {
-      remoteStorage.caching.set('/', remoteStorage.caching.ALL);
-    } else {
-      remoteStorage.caching.set('/' + key + '/', remoteStorage.caching.ALL);
-      remoteStorage.caching.set('/public/' + key + '/', remoteStorage.caching.ALL);
-    }
-  }
-
-  // documented in src/remotestorage.js
+  // Documented in src/remotestorage.js
+  // TODO claimAccess is outdated, should be deleted soon
   RemoteStorage.prototype.claimAccess = function(scopes) {
     if (typeof(scopes) === 'object') {
       for (var key in scopes) {
