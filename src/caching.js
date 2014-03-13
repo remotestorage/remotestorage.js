@@ -29,19 +29,28 @@
     ALL: { data: true },
     pendingActivations: [],
 
-    /**
-     ** Configuration methods
-     **/
 
+    /**
+     * Method: set
+     *
+     * Set the caching strategy for a given path explicitly.
+     *
+     * Not needed when using <enable>/<disable>.
+     *
+     * Parameters:
+     *   path
+     *   value
+     */
     set: function(path, value) {
-      if(typeof(path) !== 'string') {
+      if (typeof(path) !== 'string') {
         throw new Error('path should be a string');
       }
       if (typeof(value) === 'undefined') {
-        throw new Error("value should be something like remoteStorage.caching.FOLDERS_AND_SEEN");
+        throw new Error("value should be something like remoteStorage.caching.SEEN");
       }
+
       this._rootPaths[path] = value;
-      RemoteStorage.log('call activate handler?', (value === this.SEEN_AND_FOLDERS), (value === this.ALL), (this.activateHandler));
+
       if (value === this.SEEN_AND_FOLDERS || value === this.ALL) {
         if (this.activateHandler) {
           this.activateHandler(path);
@@ -51,19 +60,48 @@
       }
     },
 
+    /**
+     * Method: enable
+     *
+     * Enable caching for a given path.
+     *
+     * Uses caching strategy ALL.
+     *
+     * Parameters:
+     *   path
+     */
     enable: function(path) {
       this.set(path, this.ALL);
     },
 
+    /**
+     * Method: disable
+     *
+     * Disable caching for a given path.
+     *
+     * Uses caching strategy FLUSH (meaning items are only cached until
+     * successfully pushed to the remote).
+     *
+     * Parameters:
+     *   path
+     */
     disable: function(path) {
       this.set(path, this.FLUSH);
     },
 
+    /**
+     * Method: onActivate
+     *
+     * Set a callback for when caching is activated for a path.
+     *
+     * Parameters:
+     *   callback - Callback function
+     */
     onActivate: function(cb) {
       var i;
       RemoteStorage.log('setting activate handler', cb, this.pendingActivations);
       this.activateHandler = cb;
-      for(i=0; i<this.pendingActivations.length; i++) {
+      for (i=0; i<this.pendingActivations.length; i++) {
         cb(this.pendingActivations[i]);
       }
       delete this.pendingActivations;
@@ -72,7 +110,8 @@
     /**
      * Method: checkPath
      *
-     * Retrieves caching setting to smallest tree containing the given path.
+     * Retrieve caching setting for a given path, or its next parent
+     * with a caching strategy set.
      *
      * Parameters:
      *   path
@@ -90,16 +129,18 @@
     /**
      * Method: reset
      *
-     * Resets the state of caching by deleting all caching information.
+     * Reset the state of caching by deleting all caching information.
      **/
     reset: function() {
       this._rootPaths = {};
     }
   };
 
-  //at this point the global remoteStorage object has not been created yet,
-  //only its prototype exists so far, so we define a self-constructing
-  //property on there:
+  // TODO clean up/harmonize how modules are loaded and/or document this architecture properly
+  //
+  // At this point the global remoteStorage object has not been created yet.
+  // Only its prototype exists so far, so we define a self-constructing
+  // property on there:
   Object.defineProperty(RemoteStorage.prototype, 'caching', {
     configurable: true,
     get: function() {

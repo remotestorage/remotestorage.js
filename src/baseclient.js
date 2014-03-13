@@ -476,7 +476,7 @@
     flush: function(path) {
       return this.storage.local.flush(path);
     },
-    
+
     makePath: function(path) {
       return this.base + (path || '');
     },
