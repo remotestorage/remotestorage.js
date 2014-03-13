@@ -59,26 +59,6 @@
       return actualMode && (mode === 'r' || actualMode === 'rw');
     },
 
-    getModuleName: function(path) {
-      var pos, parts = path.split('/');
-      if (parts[0] !== '') {
-        throw new Error('path should start with a slash');
-      }
-      // /a => ['', 'a'] parts.length: 2, pos: 1 -> *
-      // /a/ => ['', 'a', ''] parts.length: 3, pos: 1 -> a
-      // /public/a => ['', 'public', 'a'] parts.length: 3, pos: 2 -> *
-      // /public/a/ => ['', 'public', 'a', ''] parts.length: 4, pos: 2 -> a
-      if (parts[1] === 'public') {
-        pos = 2;
-      } else {
-        pos = 1;
-      }
-      if (parts.length <= pos+1) {
-        return '*';
-      }
-      return parts[pos];
-    },
-
     checkPathPermission: function(path, mode) {
       if (this.checkPermission('*', mode)) {
         return true;
@@ -89,6 +69,17 @@
     reset: function() {
       this.rootPaths = [];
       this.scopeModeMap = {};
+    },
+
+    /**
+     * Return the module name for a given path.
+     */
+    _getModuleName: function(path) {
+      if (path[0] !== '/') {
+        throw new Error('Path should start with a slash');
+      }
+      var moduleMatch = path.replace(/^\/public/, '').match(/^\/([^\/]*)\//);
+      return moduleMatch ? moduleMatch[1] : '*';
     },
 
     _adjustRootPaths: function(newScope) {

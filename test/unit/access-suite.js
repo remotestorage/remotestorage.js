@@ -67,50 +67,50 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "#getModuleName throws an error for sub-root paths",
+        desc: "#_getModuleName throws an error for sub-root paths",
         run: function(env, test) {
           var errors = 0;
-          try { env.access.getModuleName('a'); } catch(e) { errors++; }
-          try { env.access.getModuleName('a/'); } catch(e) { errors++; }
-          try { env.access.getModuleName('a/b'); } catch(e) { errors++; }
-          try { env.access.getModuleName('a/b/'); } catch(e) { errors++; }
-          try { env.access.getModuleName('a/b/c'); } catch(e) { errors++; }
-          try { env.access.getModuleName('a/b/c/'); } catch(e) { errors++; }
-          try { env.access.getModuleName('public'); } catch(e) { errors++; }
-          try { env.access.getModuleName('public/'); } catch(e) { errors++; }
-          try { env.access.getModuleName('public/a'); } catch(e) { errors++; }
-          try { env.access.getModuleName('public/a/'); } catch(e) { errors++; }
+          try { env.access._getModuleName('a'); } catch(e) { errors++; }
+          try { env.access._getModuleName('a/'); } catch(e) { errors++; }
+          try { env.access._getModuleName('a/b'); } catch(e) { errors++; }
+          try { env.access._getModuleName('a/b/'); } catch(e) { errors++; }
+          try { env.access._getModuleName('a/b/c'); } catch(e) { errors++; }
+          try { env.access._getModuleName('a/b/c/'); } catch(e) { errors++; }
+          try { env.access._getModuleName('public'); } catch(e) { errors++; }
+          try { env.access._getModuleName('public/'); } catch(e) { errors++; }
+          try { env.access._getModuleName('public/a'); } catch(e) { errors++; }
+          try { env.access._getModuleName('public/a/'); } catch(e) { errors++; }
           test.assert(errors, 10);
-          test.assertAnd(env.access.getModuleName('/a'), '*');
-          test.assertAnd(env.access.getModuleName('/public'), '*');
-          test.assertAnd(env.access.getModuleName('/public/a'), '*');
+          test.assertAnd(env.access._getModuleName('/a'), '*');
+          test.assertAnd(env.access._getModuleName('/public'), '*');
+          test.assertAnd(env.access._getModuleName('/public/a'), '*');
           test.done();
         }
       },
 
       {
-        desc: "#getModuleName return '*' for sub-module paths",
+        desc: "#_getModuleName return '*' for sub-module paths",
         run: function(env, test) {
-          test.assertAnd(env.access.getModuleName('/a'), '*');
-          test.assertAnd(env.access.getModuleName('/public'), '*');
-          test.assertAnd(env.access.getModuleName('/public/a'), '*');
+          test.assertAnd(env.access._getModuleName('/a'), '*');
+          test.assertAnd(env.access._getModuleName('/public'), '*');
+          test.assertAnd(env.access._getModuleName('/public/a'), '*');
           test.done();
         }
       },
 
       {
-        desc: "#getModuleName return the module name for various in-module paths",
+        desc: "#_getModuleName return the module name for various in-module paths",
         run: function(env, test) {
-          test.assertAnd(env.access.getModuleName('/a/'), 'a');
-          test.assertAnd(env.access.getModuleName('/a/b'), 'a');
-          test.assertAnd(env.access.getModuleName('/a/b/'), 'a');
-          test.assertAnd(env.access.getModuleName('/a/b/c'), 'a');
-          test.assertAnd(env.access.getModuleName('/a/b/c/'), 'a');
-          test.assertAnd(env.access.getModuleName('/public/a/'), 'a');
-          test.assertAnd(env.access.getModuleName('/public/a/b'), 'a');
-          test.assertAnd(env.access.getModuleName('/public/a/b/'), 'a');
-          test.assertAnd(env.access.getModuleName('/public/a/b/c'), 'a');
-          test.assertAnd(env.access.getModuleName('/public/a/b/c/'), 'a');
+          test.assertAnd(env.access._getModuleName('/a/'), 'a');
+          test.assertAnd(env.access._getModuleName('/a/b'), 'a');
+          test.assertAnd(env.access._getModuleName('/a/b/'), 'a');
+          test.assertAnd(env.access._getModuleName('/a/b/c'), 'a');
+          test.assertAnd(env.access._getModuleName('/a/b/c/'), 'a');
+          test.assertAnd(env.access._getModuleName('/public/a/'), 'a');
+          test.assertAnd(env.access._getModuleName('/public/a/b'), 'a');
+          test.assertAnd(env.access._getModuleName('/public/a/b/'), 'a');
+          test.assertAnd(env.access._getModuleName('/public/a/b/c'), 'a');
+          test.assertAnd(env.access._getModuleName('/public/a/b/c/'), 'a');
           test.done();
         }
       },
