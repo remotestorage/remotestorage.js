@@ -16,7 +16,6 @@ define(['requirejs'], function(requirejs, undefined) {
         onChange: function() {},
         caching: {
           SEEN: false,
-          SEEN_AND_FOLDERS: { data: false },
           ALL: { data: true },
           _rootPaths: {},
           set: function(path, value) {

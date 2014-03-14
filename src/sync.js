@@ -106,6 +106,12 @@
           (node.remote && this.corruptRevision(node.remote)) ||
           (node.push && this.corruptRevision(node.push)));
     },
+    isFolderNode: function(node) {
+      return (node.path.substr(-1) === '/');
+    },
+    isDocumentNode: function(node) {
+      return (!this.isFolderNode(node));
+    },
     checkDiffs: function() {
       var num = 0;
       return this.local.forAllNodes(function(node) {
@@ -122,7 +128,7 @@
             && this.access.checkPathPermission(node.path, 'r')) {
           this.addTask(node.path);
           num++;
-        } else if (this.needsPush(node)
+        } else if (this.isDocumentNode(node) && this.needsPush(node)
             && this.access.checkPathPermission(node.path, 'rw')) {
           this.addTask(node.path);
           num++;
@@ -380,11 +386,7 @@
               }
             } else {
               cachingStrategy = this.caching.checkPath(j);
-              if(j.substr(-1) === '/') {
-                create = (cachingStrategy === this.caching.SEEN_AND_FOLDERS || cachingStrategy === this.caching.ALL);
-              } else {
-                create = (cachingStrategy === this.caching.ALL);
-              }
+              create = (cachingStrategy === this.caching.ALL);
               if (create) {
                 changedObjs[j] = {
                   path: j,

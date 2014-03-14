@@ -9,7 +9,6 @@ define([], function() {
     this.FLUSH = 0;
     this.SEEN = 1;
     this.FOLDERS = 2;
-    this.SEEN_AND_FOLDERS = 3;
     this.DOCUMENTS = 4;
     this.ALL = 7;
     
@@ -160,47 +159,6 @@ define([], function() {
             '/foo/': env.rs.caching.FLUSH,
             '/foo/baz/': env.rs.caching.ALL,
             '/foo/baf': env.rs.caching.ALL
-          };
-          env.rs.local.setNodes({
-            '/foo/': {
-              path: '/foo/',
-              common: {}
-            },
-            '/foo/baz/': {
-              path: '/foo/baz/',
-              common: { revision: '123', timestamp: 1234567890123 }
-            },
-            '/foo/baf': {
-              path: '/foo/baf',
-              common: { revision: '456', timestamp: 1234567890123 }
-            }
-          }).then(function() {
-            env.rs.remote._responses[['get', '/foo/' ]] =
-              [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
-            env.rs.sync._tasks = {'/foo/': []};
-            env.rs.sync.doTasks();
-            setTimeout(function() {
-              env.rs.local.getNodes(['/foo/baz/', '/foo/baf']).then(function(objs) {
-                test.assertAnd(objs['/foo/baz/'].common.revision, '123');
-                test.assertAnd(objs['/foo/baz/'].remote.revision, '129');
-                test.assertAnd(objs['/foo/baf'].common.revision, '456');
-                test.assertAnd(objs['/foo/baf'].remote.revision, '459');
-                test.assertAnd(objs['/foo/baf'].remote.contentType, 'image/jpeg');
-                test.assertAnd(objs['/foo/baf'].remote.contentLength, 12345678);
-                test.done();
-              });
-            }, 100);
-          });
-        }
-      },
-
-      {
-        desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.SEEN_AND_FOLDERS root",
-        run: function(env, test) {
-          env.rs.caching._responses = {
-            '/foo/': env.rs.caching.FLUSH,
-            '/foo/baz/': env.rs.caching.SEEN_AND_FOLDERS,
-            '/foo/baf': env.rs.caching.SEEN_AND_FOLDERS
           };
           env.rs.local.setNodes({
             '/foo/': {
