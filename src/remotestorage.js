@@ -279,9 +279,9 @@
         i++;
         if (i >= n) {
           this._init();
-          RemoteStorage.log('done cleaning up, emitting disconnected and disconnect events');
+          RemoteStorage.log('Done cleaning up, emitting disconnected and disconnect events');
           this._emit('disconnected');
-          this._emit('disconnect');// DEPRECATED?
+          this._emit('disconnect'); // DEPRECATED
         }
       }.bind(this);
 
@@ -675,9 +675,9 @@
    * Usually either a <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage>
    * instance.
    */
-    
+
   /**
-   ** reset
+   * Method: reset
    **/
   RemoteStorage.prototype.reset = function() {
     indexedDB.deleteDatabase('remotestorage');
