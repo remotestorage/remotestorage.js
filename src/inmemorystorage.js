@@ -1,4 +1,7 @@
 (function(global) {
+  /**
+   * Class: RemoteStorage.InMemoryStorage
+   **/
 
   RemoteStorage.InMemoryStorage = function(rs) {
     this.rs = rs;

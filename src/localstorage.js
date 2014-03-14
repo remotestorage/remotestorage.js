@@ -1,4 +1,7 @@
 (function(global) {
+  /**
+   * Class: RemoteStorage.LocalStorage
+   **/
 
   var NODES_PREFIX = "remotestorage:cache:nodes:";
   var CHANGES_PREFIX = "remotestorage:cache:changes:";

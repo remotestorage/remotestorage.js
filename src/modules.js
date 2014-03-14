@@ -4,31 +4,29 @@
   /*
      Method: RemoteStorage.defineModule
 
-     the defineModule method takes a module name and a builder function as parameters
+     The defineModule method takes a module name and a builder function as parameters.
 
-     the function should return an object containtin an object called exports,
-     which will be exported to any remoteStorage instance under the modules name.
+     The function should return an object containing an object called exports,
+     which will be exported to any remoteStorage instance under the module's name.
 
-     So when having an a locations module like in the example it would be accesible
-     via remoteStorage.locations, which would have a features and collections property
+     So when having an a locations module, like in the example, it would be accessible
+     via remoteStorage.locations, which would have a features and collections property.
 
-     the function gets a private and a public client, which are both scopes,
-
-     in this example the scope of priv is /locations
-
-     and the scope of pub is /public/locations
+     The function gets a private and a public client, which are both
+     scopes. In this example the scope of privateClient is /locations and the
+     scope of publicClient is /public/locations.
 
      Example:
      (start code)
-     remoteStorage.defineModule('locations', function(priv, pub) {
+     RemoteStorage.defineModule('locations', function(privateClient, publicClient) {
        return {
          exports: {
-           features: priv.scope('features/').defaultType('feature'),
-           collections: priv.scope('collections/').defaultType('feature-collection');
-       }
-     };
+           features: privateClient.scope('features/').defaultType('feature'),
+           collections: privateClient.scope('collections/').defaultType('feature-collection')
+         }
+       };
+     });
      (end code)
-  });
   */
 
   RemoteStorage.defineModule = function(moduleName, builder) {

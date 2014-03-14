@@ -7,6 +7,8 @@
    * IndexedDB Interface
    * -------------------
    *
+   * TODO rewrite, doesn't expose GPD anymore, it's in cachinglayer now
+   *
    * This file exposes a get/put/delete interface, accessing data in an indexedDB.
    *
    * There are multiple parts to this interface:

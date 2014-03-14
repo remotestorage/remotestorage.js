@@ -1,16 +1,15 @@
 (function() {
   /**
-   * Class: cachinglayer
+   * Interface: cachinglayer
    *
-   * This class defines functions that are mixed into remoteStorage.local when it is
-   * instantiated. In terms of OOP, it therefore effectively acts as a base class for
-   * indexeddb.js, localstorage.js, and inmemorystorage.js.
-   * These three remoteStorage.local implementations should therefore implement
-   * this.getNodes, this.setNodes, and this.forAllNodes.
-   * The rest is blended in here to create a GPD (get/put/delete) interface
-   * which the baseclient can talk to.
-   * The objects itself should only expose getNodes, setNodes, and forAllNodes.
+   * This module defines functions that are mixed into remoteStorage.local when
+   * it is instantiated (currently one of indexeddb.js, localstorage.js, and
+   * inmemorystorage.js).
    *
+   * All remoteStorage.local implementations should therefore implement
+   * this.getNodes, this.setNodes, and this.forAllNodes. The rest is blended in
+   * here to create a GPD (get/put/delete) interface which the BaseClient can
+   * talk to.
    */
 
   var  _isFolder = function(path) {

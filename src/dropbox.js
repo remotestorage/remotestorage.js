@@ -13,6 +13,10 @@
 
 
   /**
+   * Class: RemoteStorage.Dropbox
+   *
+   * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
+   *
    * Dropbox backend for RemoteStorage.js
    * this file exposes a get/put/delete interface which is compatible with the wireclient
    * it requires to get configured with a dropbox token similar to the wireclient.configure

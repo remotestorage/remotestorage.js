@@ -8,4 +8,5 @@ server/server-state
 server-state
 doc/code
 doc/config
+!doc/config/Menu.txt
 /remotestorage*.js

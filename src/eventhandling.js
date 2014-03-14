@@ -1,6 +1,6 @@
 (function(global) {
   /**
-   * Class: eventhandling
+   * Interface: eventhandling
    */
   var methods = {
     /**

@@ -54,19 +54,31 @@ Group: Public API  {
    File: RemoteStorage.BaseClient  (baseclient/types.js)
    File: RemoteStorage.Caching  (caching.js)
    File: RemoteStorage.defineModule  (modules.js)
+   File: RemoteStorage.I18n  (i18n.js)
    }  # Group: Public API
 
 Group: Internals  {
 
-   File: cachinglayer  (cachinglayer.js)
-   File: eventhandling  (eventhandling.js)
-   File: fetchDelta  (dropbox.js)
-   File: RemoteStorage.Widget  (widget.js)
-   File: RemoteStorage.Widget.View  (view.js)
-   File: RemoteStorage.WireClient  (wireclient.js)
-   File: RemoteStorage.Discover  (discover.js)
-   File: RemoteStorage.IndexedDB  (indexeddb.js)
-   File: RemoteStorage.Sync  (sync.js)
+   Group: Classes  {
+
+      File: Discover  (discover.js)
+      File: Dropbox  (dropbox.js)
+      File: GoogleDrive  (googledrive.js)
+      File: IndexedDB  (indexeddb.js)
+      File: InMemoryStorage  (inmemorystorage.js)
+      File: LocalStorage  (localstorage.js)
+      File: Sync  (sync.js)
+      File: Widget  (widget.js)
+      File: Widget.View  (view.js)
+      File: WireClient  (wireclient.js)
+      }  # Group: Classes
+
+   Group: Modules  {
+
+      File: cachinglayer  (cachinglayer.js)
+      File: eventhandling  (eventhandling.js)
+      }  # Group: Modules
+
    }  # Group: Internals
 
 Group: Index  {
@@ -76,5 +88,6 @@ Group: Index  {
    Event Index: Events
    Function Index: Functions
    Property Index: Properties
+   Interface Index: Interfaces
    }  # Group: Index
 

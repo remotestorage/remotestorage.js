@@ -1,4 +1,9 @@
 (function(global) {
+  /**
+   * Class: RemoteStorage.GoogleDrive
+   *
+   * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
+   **/
 
   var RS = RemoteStorage;
 
