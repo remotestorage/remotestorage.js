@@ -7,13 +7,14 @@ All releases can also be found and downloaded on the
 
 This release contains a rewrite of the tree-based sync system.
 
-* A new `maxAge` parameter is available in baseclient#get, where you can
-  specify the maximum age of cached results (in ms). This replaces the
-  ready-queue from 0.9.0. A value of `true` means any result that was
-  ever fetched from the account currently connected to is valid.
+* A new `maxAge` parameter is available in the various baseclient get... functions, where
+  you can specify the maximum age of cached results (in ms). This replaces the
+  ready-queue from 0.9.0.
 * Caching of subtrees can now be configured as ALL, SEEN,
   or FlUSH. The second one means documents that were seen once, will stay synced.
-
+  Check the [caching documentation](http://remotestorage.io/doc/code/files/caching-js.html)
+  for details.
+ 
 ## 0.9.0 (December 2013)
 
 This release consists of awesome contributions from @skddc, @galfert, @ggrin,

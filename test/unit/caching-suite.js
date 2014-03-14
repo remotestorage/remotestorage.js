@@ -7,7 +7,6 @@ var promising = require('./lib/promising');
 //    this.FLUSH = 0;
 //    this.SEEN = 1; <- false
 //    this.FOLDERS = 2;
-//    this.SEEN_AND_FOLDERS = 3; <- { data: false }
 //    this.DOCUMENTS = 4;
 //    this.ALL = 7; <- { data: true }
 // default: SEEN
@@ -67,16 +66,16 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "#set() sets caching settings for given path and subtree",
         run: function(env, test) {
-          env.caching.set('/foo/', env.caching.SEEN_AND_FOLDERS);
+          env.caching.set('/foo/', env.caching.FLUSH);
           test.assertAnd(env.caching.checkPath('/'), env.caching.SEEN);
           test.assertAnd(env.caching.checkPath('/bar'), env.caching.SEEN);
           test.assertAnd(env.caching.checkPath('/bar/'), env.caching.SEEN);
           test.assertAnd(env.caching.checkPath('/bar/foo'), env.caching.SEEN);
-          test.assertAnd(env.caching.checkPath('/foo/'), env.caching.SEEN_AND_FOLDERS);
-          test.assertAnd(env.caching.checkPath('/foo/bar'), env.caching.SEEN_AND_FOLDERS);
-          test.assertAnd(env.caching.checkPath('/foo/bar/'), env.caching.SEEN_AND_FOLDERS);
-          test.assertAnd(env.caching.checkPath('/foo/bar/baz'), env.caching.SEEN_AND_FOLDERS);
-          test.assertAnd(env.caching.checkPath('/foo/bar/baz/'), env.caching.SEEN_AND_FOLDERS);
+          test.assertAnd(env.caching.checkPath('/foo/'), env.caching.FLUSH);
+          test.assertAnd(env.caching.checkPath('/foo/bar'), env.caching.FLUSH);
+          test.assertAnd(env.caching.checkPath('/foo/bar/'), env.caching.FLUSH);
+          test.assertAnd(env.caching.checkPath('/foo/bar/baz'), env.caching.FLUSH);
+          test.assertAnd(env.caching.checkPath('/foo/bar/baz/'), env.caching.FLUSH);
           test.done();
         }
       },
@@ -93,23 +92,23 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "#checkPath returns value of tightest fitting rootPath",
         run: function(env, test) {
           env.caching.set('/foo/', env.caching.ALL);
-          env.caching.set('/foo/bar/baz', env.caching.SEEN_AND_FOLDERS);
+          env.caching.set('/foo/bar/baz', env.caching.FLUSH);
           env.caching.set('/foo/baf/', env.caching.SEEN);
-          env.caching.set('/bar/', env.caching.SEEN_AND_FOLDERS);
+          env.caching.set('/bar/', env.caching.FLUSH);
           test.assertAnd(env.caching.checkPath('/foo/'), env.caching.ALL);
           test.assertAnd(env.caching.checkPath('/foo/1'), env.caching.ALL);
           test.assertAnd(env.caching.checkPath('/foo/2/'), env.caching.ALL);
           test.assertAnd(env.caching.checkPath('/foo/2/3'), env.caching.ALL);
           test.assertAnd(env.caching.checkPath('/foo/bar/'), env.caching.ALL);
-          test.assertAnd(env.caching.checkPath('/foo/bar/baz'), env.caching.SEEN_AND_FOLDERS);
+          test.assertAnd(env.caching.checkPath('/foo/bar/baz'), env.caching.FLUSH);
           test.assertAnd(env.caching.checkPath('/foo/baf/'), env.caching.SEEN);
           test.assertAnd(env.caching.checkPath('/foo/baf/1'), env.caching.SEEN);
           test.assertAnd(env.caching.checkPath('/foo/baf/2/'), env.caching.SEEN);
           test.assertAnd(env.caching.checkPath('/foo/baf/2/1'), env.caching.SEEN);
-          test.assertAnd(env.caching.checkPath('/bar/'), env.caching.SEEN_AND_FOLDERS);
-          test.assertAnd(env.caching.checkPath('/bar/1'), env.caching.SEEN_AND_FOLDERS);
-          test.assertAnd(env.caching.checkPath('/bar/2/'), env.caching.SEEN_AND_FOLDERS);
-          test.assertAnd(env.caching.checkPath('/bar/2/3'), env.caching.SEEN_AND_FOLDERS);
+          test.assertAnd(env.caching.checkPath('/bar/'), env.caching.FLUSH);
+          test.assertAnd(env.caching.checkPath('/bar/1'), env.caching.FLUSH);
+          test.assertAnd(env.caching.checkPath('/bar/2/'), env.caching.FLUSH);
+          test.assertAnd(env.caching.checkPath('/bar/2/3'), env.caching.FLUSH);
           test.assertAnd(env.caching.checkPath('/'), env.caching.SEEN);
           test.assertAnd(env.caching.checkPath('/1'), env.caching.SEEN);
           test.assertAnd(env.caching.checkPath('/2/'), env.caching.SEEN);
@@ -124,8 +123,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         run: function(env, test) {
           env.caching.set('/foo/', env.caching.ALL);
           env.caching.set('/foo/bar/baz/', env.caching.ALL);
-          env.caching.set('/bar/foo/baz/', env.caching.SEEN_AND_FOLDERS);
-          env.caching.set('/bar/', env.caching.SEEN_AND_FOLDERS);
+          env.caching.set('/bar/foo/baz/', env.caching.FLUSH);
           env.caching.reset();
           test.assertAnd(env.caching.checkPath('/foo/'), env.caching.SEEN);
           test.assertAnd(env.caching.checkPath('/bar/'), env.caching.SEEN);

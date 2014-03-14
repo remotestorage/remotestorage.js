@@ -10,7 +10,7 @@
   };
 
   function stateSetter(widget, state) {
-    console.log('producing stateSetter for', state);
+    RemoteStorage.log('producing stateSetter for', state);
     return function() {
       RemoteStorage.log('setting state', state, arguments);
       if (hasLocalStorage) {
@@ -28,7 +28,6 @@
   }
 
   function errorsHandler(widget){
-    //decided to not store error state
     return function(error){
       if (error instanceof RemoteStorage.DiscoveryError) {
         console.error('discovery failed',  error, '"' + error.message + '"');
@@ -121,6 +120,15 @@
       return this;
     },
 
+    linkWidgetToSync: function() {
+      if (typeof(this.rs.sync) === 'object' && typeof(this.rs.sync.sync) === 'function') {
+        this.view.on('sync', this.rs.sync.sync.bind(this.rs.sync));
+      } else {
+        RemoteStorage.log('typeof this.rs.sync check fail', this.rs.sync);
+        setTimeout(this.linkWidgetToSync.bind(this), 1000);
+      }
+    },
+
     /**
     *   Method: setView(view)
     *    sets the view and initializes event listeners to
@@ -137,11 +145,7 @@
         }
       }.bind(this));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
-      if (typeof(this.rs.sync) === 'object' && typeof(this.rs.sync.sync) === 'function') {
-        this.view.on('sync', this.rs.sync.sync.bind(this.rs));
-      } else {
-        console.log('typeof this.rs.sync check fail', this.rs.sync);
-      }
+      this.linkWidgetToSync();
       try {
         this.view.on('reset', function(){
           var location = RemoteStorage.Authorize.getLocation();
