@@ -8,9 +8,6 @@ define([], function() {
   function FakeCaching(){
     this.FLUSH = 0;
     this.SEEN = 1;
-    this.FOLDERS = 2;
-    this.SEEN_AND_FOLDERS = 3;
-    this.DOCUMENTS = 4;
     this.ALL = 7;
     
     this._responses = {};
@@ -583,7 +580,7 @@ define([], function() {
       {
         desc: "sync will reject its promise if the cache is not available",
         run: function(env, test) {
-          var tmp = env.rs.getNodes;
+          var tmp = env.rs.forAllNodes;
           env.rs.local.forAllNodes = function(cb) {
             var promise = promising();
             promise.reject('i am broken, deal with it!');
@@ -595,7 +592,7 @@ define([], function() {
             test.assertAnd(err, new Error('local cache unavailable'));
             test.done();
           });
-          env.rs.getNodes = tmp;
+          env.rs.forAllNodes = tmp;
         }
       },
 
