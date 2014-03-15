@@ -61,6 +61,12 @@
         }
       }
     },
+
+    _isOutdated = function(node, maxAge) {
+      return !node || !node.timestamp ||
+             ((new Date().getTime()) - node.timestamp > maxAge);
+    },
+
     _nodesFromRoot = function(path) {
       var parts, ret = [path];
       if(path.substr(-1) === '/') {
@@ -92,24 +98,22 @@
     //GPD interface:
     get: function(path, maxAge) {
       var promise = promising();
+
       this.getNodes([path]).then(function(objs) {
-        var latest = _getLatest(objs[path]);
-        if ((typeof(maxAge) === 'number') && (
-             !latest ||
-             !latest.timestamp ||
-             ((new Date().getTime()) - latest.timestamp > maxAge))) {
+        var node = _getLatest(objs[path]);
+        if ((typeof(maxAge) === 'number') && _isOutdated(node, maxAge)) {
           remoteStorage.sync.queueGetRequest(path, promise);
-          return promise;
         }
 
-        if (latest) {
-          promise.fulfill(200, latest.body || latest.itemsMap, latest.contentType);
+        if (node) {
+          promise.fulfill(200, node.body || node.itemsMap, node.contentType);
         } else {
           promise.fulfill(404);
         }
       }.bind(this), function(err) {
         promise.reject(err);
       }.bind(this));
+
       return promise;
     },
     _updateNodes: function(nodePaths, cb) {
