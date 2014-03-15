@@ -10,11 +10,11 @@
   },
   "homepage": "http://remotestorage.io",
   "devDependencies": {
-    "teste": "0.1.2",
+    "jaribu": "0.1.x",
     "uglify-js": "2.4.x",
     "xhr2": "0.0.7"
   },
   "scripts": {
-    "test": "node_modules/.bin/teste"
+    "test": "node_modules/.bin/jaribu"
   }
 }

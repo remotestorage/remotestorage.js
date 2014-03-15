@@ -128,15 +128,12 @@
      * Event: wire-busy
      *
      * fired when a wire request starts
-     *
      **/
     /**
      * Event: wire-done
      *
      * fired when a wire request completes
-     *
      **/
-
     RemoteStorage.eventHandling(
       this, 'ready', 'connected', 'disconnected', 'disconnect',
             'not-connected', 'conflict', 'error', 'features-loaded',
