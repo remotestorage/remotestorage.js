@@ -69,18 +69,18 @@
 
     _nodesFromRoot = function(path) {
       var parts, ret = [path];
-      if(path.substr(-1) === '/') {
-        //remove trailing slash if present,
-        //so it's not counted as a path level
+      if (path.substr(-1) === '/') {
+        // Remove trailing slash if present, so it's not counted as a path level
         path = path.substring(0, path.length-1);
       }
       parts = path.split('/');
-      while(parts.length > 1) {
+      while (parts.length > 1) {
         parts.pop();
         ret.push(parts.join('/')+'/');
       }
       return ret;
     },
+
     _makeNode = function(path, now) {
       var ret = {
         path: path,
@@ -88,14 +88,14 @@
           timestamp: now
         }
       };
-      if(_isFolder(path)) {
+      if (_isFolder(path)) {
         ret.common.itemsMap = {};
       }
       return ret;
     };
 
   var methods = {
-    //GPD interface:
+
     get: function(path, maxAge) {
       var promise = promising();
 
@@ -116,44 +116,7 @@
 
       return promise;
     },
-    _updateNodes: function(nodePaths, cb) {
-      return this.getNodes(nodePaths).then(function(objs) {
-        var i, copyObjs = _deepClone(objs);
-        objs = cb(objs);
-        for (i in objs) {
-          if (_equal(objs[i], copyObjs[i])) {
-            delete objs[i];
-          } else if(_isDocument(i)) {
-            this._emit('change', {
-              path: i,
-              origin: 'window',
-              oldValue: objs[i].local.previousBody,
-              newValue: objs[i].local.body,
-              oldContentType: objs[i].local.previousContentType,
-              newContentType: objs[i].local.contentType
-            });
-            delete objs[i].local.previousBody;
-            delete objs[i].local.previousContentType;
-          }
-        }
-        return this.setNodes(objs).then(function() {
-          return 200;
-        }).then(function(status) {
-          var i;
-          if (this.diffHandler) {
-            for (i in objs) {
-              if (i.substr(-1) !== '/') {
-                this.diffHandler(i);
-              }
-            }
-          }
-          return status;
-        }.bind(this));
-      }.bind(this),
-      function(err) {
-        throw(err);
-      });
-    },
+
     put: function(path, body, contentType) {
       var i, now = new Date().getTime(), pathNodes = _nodesFromRoot(path), previous;
       return this._updateNodes(pathNodes, function(objs) {
@@ -200,6 +163,7 @@
         }
       });
     },
+
     delete: function(path) {
       var pathNodes = _nodesFromRoot(path);
       return this._updateNodes(pathNodes, function(objs) {
@@ -230,6 +194,108 @@
         return objs;
       });
     },
+
+    flush: function(path) {
+      return this._getAllDescendentPaths(path).then(function(paths) {
+        return this.getNodes(paths);
+      }.bind(this)).then(function(objs) {
+        var i;
+        for (i in objs) {
+          if (objs[i] && objs[i].common && objs[i].local) {
+            this._emit('change', {
+              path: objs[i].path,
+              origin: 'local',
+              oldValue: (objs[i].local.body === false ? undefined : objs[i].local.body),
+              newValue: (objs[i].common.body === false ? undefined : objs[i].common.body)
+            });
+          }
+          objs[i] = undefined;
+        }
+        return this.setNodes(objs);
+      }.bind(this));
+    },
+
+    fireInitial: function() {
+      this.forAllNodes(function(node) {
+        var latest;
+        if (_isDocument(node.path)) {
+          latest = _getLatest(node);
+          if (latest) {
+            this._emit('change', {
+              path: node.path,
+              origin: 'local',
+              oldValue: undefined,
+              oldContentType: undefined,
+              newValue: latest.body,
+              newContentType: latest.contentType
+            });
+          }
+        }
+      }.bind(this));
+    },
+
+    onDiff: function(setOnDiff) {
+      this.diffHandler = setOnDiff;
+    },
+
+    migrate: function(node) {
+      if (typeof(node) === 'object' && !node.common) {
+        node.common = {};
+        if (typeof(node.path) === 'string') {
+          if (node.path.substr(-1) === '/' && typeof(node.body) === 'object') {
+            node.common.itemsMap = node.body;
+          }
+        } else {
+          //save legacy content of document node as local version
+          if (!node.local) {
+            node.local = {};
+          }
+          node.local.body = node.body;
+          node.local.contentType = node.contentType;
+        }
+      }
+      return node;
+    },
+
+    _updateNodes: function(nodePaths, cb) {
+      return this.getNodes(nodePaths).then(function(objs) {
+        var i, copyObjs = _deepClone(objs);
+        objs = cb(objs);
+        for (i in objs) {
+          if (_equal(objs[i], copyObjs[i])) {
+            delete objs[i];
+          } else if(_isDocument(i)) {
+            this._emit('change', {
+              path: i,
+              origin: 'window',
+              oldValue: objs[i].local.previousBody,
+              newValue: objs[i].local.body,
+              oldContentType: objs[i].local.previousContentType,
+              newContentType: objs[i].local.contentType
+            });
+            delete objs[i].local.previousBody;
+            delete objs[i].local.previousContentType;
+          }
+        }
+        return this.setNodes(objs).then(function() {
+          return 200;
+        }).then(function(status) {
+          var i;
+          if (this.diffHandler) {
+            for (i in objs) {
+              if (i.substr(-1) !== '/') {
+                this.diffHandler(i);
+              }
+            }
+          }
+          return status;
+        }.bind(this));
+      }.bind(this),
+      function(err) {
+        throw(err);
+      });
+    },
+
     _getAllDescendentPaths: function(path) {
       if (_isFolder(path)) {
         return this.getNodes([path]).then(function(objs) {
@@ -254,64 +320,7 @@
         return promising().fulfill([path]);
       }
     },
-    flush: function(path) {
-      return this._getAllDescendentPaths(path).then(function(paths) {
-        return this.getNodes(paths);
-      }.bind(this)).then(function(objs) {
-        var i;
-        for (i in objs) {
-          if (objs[i] && objs[i].common && objs[i].local) {
-            this._emit('change', {
-              path: objs[i].path,
-              origin: 'local',
-              oldValue: (objs[i].local.body === false ? undefined : objs[i].local.body),
-              newValue: (objs[i].common.body === false ? undefined : objs[i].common.body)
-            });
-          }
-          objs[i] = undefined;
-        }
-        return this.setNodes(objs);
-      }.bind(this));
-    },
-    fireInitial: function() {
-      this.forAllNodes(function(node) {
-        var latest;
-        if (_isDocument(node.path)) {
-          latest = _getLatest(node);
-          if (latest) {
-            this._emit('change', {
-              path: node.path,
-              origin: 'local',
-              oldValue: undefined,
-              oldContentType: undefined,
-              newValue: latest.body,
-              newContentType: latest.contentType
-            });
-          }
-        }
-      }.bind(this));
-    },
-    onDiff: function(setOnDiff) {
-      this.diffHandler = setOnDiff;
-    },
-    migrate: function(node) {
-      if (typeof(node) === 'object' && !node.common) {
-        node.common = {};
-        if (typeof(node.path) === 'string') {
-          if (node.path.substr(-1) === '/' && typeof(node.body) === 'object') {
-            node.common.itemsMap = node.body;
-          }
-        } else {
-          //save legacy content of document node as local version
-          if (!node.local) {
-            node.local = {};
-          }
-          node.local.body = node.body;
-          node.local.contentType = node.contentType;
-        }
-      }
-      return node;
-    },
+
     _getInternals: function() {
       return {
         _isFolder: _isFolder,
