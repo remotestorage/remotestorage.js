@@ -40,125 +40,134 @@ define(['requirejs'], function(requirejs) {
 
     tests: [
       {
-        desc: "_isFolder, _isDocument",
+        desc: "_isFolder",
         run: function(env, test) {
-          test.assertAnd(env.ims._getInternals()._isFolder('/'), true);
-          test.assertAnd(env.ims._getInternals()._isDocument('/'), false);
-          test.assertAnd(env.ims._getInternals()._isFolder('/foo/'), true);
-          test.assertAnd(env.ims._getInternals()._isDocument('/foo/'), false);
-          test.assertAnd(env.ims._getInternals()._isFolder('/foo//'), true);
-          test.assertAnd(env.ims._getInternals()._isDocument('/foo//'), false);
-          test.assertAnd(env.ims._getInternals()._isFolder('/foo/b ar/'), true);
-          test.assertAnd(env.ims._getInternals()._isDocument('/foo/b ar/'), false);
-          test.assertAnd(env.ims._getInternals()._isFolder('/foo'), false);
-          test.assertAnd(env.ims._getInternals()._isDocument('/foo'), true);
-          test.assertAnd(env.ims._getInternals()._isFolder('/%2F'), false);
-          test.assertAnd(env.ims._getInternals()._isDocument('/%2F'), true);
-          test.assertAnd(env.ims._getInternals()._isFolder('/foo/%2F'), false);
-          test.assertAnd(env.ims._getInternals()._isDocument('/foo/%2F'), true);
-          test.assertAnd(env.ims._getInternals()._isFolder('/foo/ '), false);
-          test.assert(env.ims._getInternals()._isDocument('/foo/ '), true);
+          test.assertAnd(env.ims._getInternals().isFolder('/'), true);
+          test.assertAnd(env.ims._getInternals().isFolder('/foo/'), true);
+          test.assertAnd(env.ims._getInternals().isFolder('/foo//'), true);
+          test.assertAnd(env.ims._getInternals().isFolder('/foo/b ar/'), true);
+          test.assertAnd(env.ims._getInternals().isFolder('/foo'), false);
+          test.assertAnd(env.ims._getInternals().isFolder('/%2F'), false);
+          test.assertAnd(env.ims._getInternals().isFolder('/foo/%2F'), false);
+          test.assert(env.ims._getInternals().isFolder('/foo/ '), false);
         }
       },
+
       {
-        desc: "_deepClone, _equal",
+        desc: "isDocument",
         run: function(env, test) {
+          test.assertAnd(env.ims._getInternals().isDocument('/'), false);
+          test.assertAnd(env.ims._getInternals().isDocument('/foo/'), false);
+          test.assertAnd(env.ims._getInternals().isDocument('/foo//'), false);
+          test.assertAnd(env.ims._getInternals().isDocument('/foo/b ar/'), false);
+          test.assertAnd(env.ims._getInternals().isDocument('/foo'), true);
+          test.assertAnd(env.ims._getInternals().isDocument('/%2F'), true);
+          test.assertAnd(env.ims._getInternals().isDocument('/foo/%2F'), true);
+          test.assert(env.ims._getInternals().isDocument('/foo/ '), true);
+        }
+      },
+
+      {
+        desc: "deepClone",
+        run: function(env, test) {
+          var deepClone = env.ims._getInternals().deepClone;
           var obj = { str: 'a', i: 0, b: true };
-          var cloned = env.ims._getInternals()._deepClone(obj);
+          var cloned = deepClone(obj);
+
           test.assertAnd(cloned, obj);
-          test.assertAnd(env.ims._getInternals()._equal(cloned, obj), true);
           obj.nested = cloned;
-          test.assertAnd(env.ims._getInternals()._equal(cloned, obj), false);
-          cloned = env.ims._getInternals()._deepClone(obj);
-          test.assertAnd(cloned, obj);
-          test.assert(env.ims._getInternals()._equal(cloned, obj), true);
+          cloned = deepClone(obj);
+          test.assert(cloned, obj);
         }
       },
+
       {
-        desc: "_getLatest",
+        desc: "equal",
         run: function(env, test) {
+          var deepClone = env.ims._getInternals().deepClone;
+          var equal = env.ims._getInternals().equal;
+          var obj = { str: 'a', i: 0, b: true, obj: { str: 'a' } };
+          var obj2 = deepClone(obj);
+
+          test.assertAnd(equal(obj, obj2), true);
+          obj.nested = obj2;
+          test.assert(equal(obj, obj2), false);
+          ob2 = deepClone(obj);
+          test.assertAnd(equal(obj, obj2), true);
+        }
+      },
+
+      {
+        desc: "getLatest",
+        run: function(env, test) {
+          var getLatest = env.ims._getInternals().getLatest;
           var localNode = {
-            path: '/a/b',
-            local: {
-              body: 'b',
-              contentType: 'c'
-            },
-            common: {
-              foo: 'bar'
-            },
-            push: {
-              foo: 'bar'
-            },
-            remote: {
-              foo: 'bar'
-            }
+            path:   '/a/b',
+            local:  { body: 'b', contentType: 'c' },
+            common: { foo: 'bar' },
+            push:   { foo: 'bar' },
+            remote: { foo: 'bar' }
           },
           commonNode = {
-            path: '/a/b',
-            common: {
-              body: 'b',
-              contentType: 'c'
-            },
-            local: {
-              foo: 'bar'
-            },
-            push: {
-              foo: 'bar'
-            },
-            remote: {
-              foo: 'bar'
-            }
+            path:   '/a/b',
+            common: { body: 'b', contentType: 'c' },
+            local:  { foo: 'bar' },
+            push:   { foo: 'bar' },
+            remote: { foo: 'bar' }
           },
           legacyNode = {
-            path: '/foo',
-            body: 'asdf',
+            path:        '/foo',
+            body:        'asdf',
             contentType: 'text/plain'
           };
-          test.assertAnd(env.ims._getInternals()._getLatest(undefined), undefined);
-          test.assertAnd(env.ims._getInternals()._getLatest({local: {
-            revision: 1,
-            timestamp: 1
-          }}), undefined);
-          test.assertAnd(env.ims._getInternals()._getLatest(localNode).body, 'b');
-          test.assertAnd(env.ims._getInternals()._getLatest(localNode).contentType, 'c');
-          test.assertAnd(env.ims._getInternals()._getLatest(commonNode).body, 'b');
-          test.assertAnd(env.ims._getInternals()._getLatest(commonNode).contentType, 'c');
-          test.assertAnd(env.ims._getInternals()._getLatest(legacyNode).body, 'asdf');
-          test.assertAnd(env.ims._getInternals()._getLatest(legacyNode).contentType, 'text/plain');
+
+          test.assertAnd(getLatest(undefined), undefined);
+          test.assertAnd(getLatest({local: { revision: 1, timestamp: 1 }}), undefined);
+          test.assertAnd(getLatest(localNode).body, 'b');
+          test.assertAnd(getLatest(localNode).contentType, 'c');
+          test.assertAnd(getLatest(commonNode).body, 'b');
+          test.assertAnd(getLatest(commonNode).contentType, 'c');
+          test.assertAnd(getLatest(legacyNode).body, 'asdf');
+          test.assertAnd(getLatest(legacyNode).contentType, 'text/plain');
           test.done();
         }
       },
+
       {
-        desc: "_nodesFromRoot",
+        desc: "nodesFromRoot",
         run: function(env, test) {
-          var p1 = '/', p2 = '/a/b/c/d/e', p3 = '/a/b/c', p4 = '/a/b//', p5 = '//', p6 = '/a/b/c d/e/', p7 = '/foo';
-          test.assertAnd(env.ims._getInternals()._nodesFromRoot(p1), [p1]);
-          test.assertAnd(env.ims._getInternals()._nodesFromRoot(p2),
-              [p2, '/a/b/c/d/', '/a/b/c/', '/a/b/', '/a/', '/']);
-          test.assertAnd(env.ims._getInternals()._nodesFromRoot(p3), [p3, '/a/b/', '/a/', '/']);
-          test.assertAnd(env.ims._getInternals()._nodesFromRoot(p4), [p4, '/a/b/', '/a/', '/']);
-          test.assertAnd(env.ims._getInternals()._nodesFromRoot(p5), [p5, '/']);
-          test.assertAnd(env.ims._getInternals()._nodesFromRoot(p6),
-              [p6, '/a/b/c d/', '/a/b/', '/a/', '/']);
-          test.assertAnd(env.ims._getInternals()._nodesFromRoot(p7), [p7, '/']);
+          var nodesFromRoot = env.ims._getInternals().nodesFromRoot;
+          var p1 = '/',
+              p2 = '/a/b/c/d/e',
+              p3 = '/a/b/c',
+              p4 = '/a/b//',
+              p5 = '//',
+              p6 = '/a/b/c d/e/',
+              p7 = '/foo';
+
+          test.assertAnd(nodesFromRoot(p1), [p1]);
+          test.assertAnd(nodesFromRoot(p2), [p2, '/a/b/c/d/', '/a/b/c/', '/a/b/', '/a/', '/']);
+          test.assertAnd(nodesFromRoot(p3), [p3, '/a/b/', '/a/', '/']);
+          test.assertAnd(nodesFromRoot(p4), [p4, '/a/b/', '/a/', '/']);
+          test.assertAnd(nodesFromRoot(p5), [p5, '/']);
+          test.assertAnd(nodesFromRoot(p6), [p6, '/a/b/c d/', '/a/b/', '/a/', '/']);
+          test.assertAnd(nodesFromRoot(p7), [p7, '/']);
           test.done();
         }
       },
+
       {
-        desc: "_makeNode",
+        desc: "makeNode",
         run: function(env, test) {
-          test.assertAnd(env.ims._getInternals()._makeNode('/a/b/', 1234567890123), {
+          var makeNode = env.ims._getInternals().makeNode;
+
+          test.assertAnd(makeNode('/a/b/', 1234567890123), {
             path: '/a/b/',
-            common: {
-              timestamp: 1234567890123,
-              itemsMap: {}
-            }
+            common: { timestamp: 1234567890123, itemsMap: {} }
           });
-          test.assert(env.ims._getInternals()._makeNode('/a/b', 1234567890123), {
+          test.assert(makeNode('/a/b', 1234567890123), {
             path: '/a/b',
-            common: {
-              timestamp: 1234567890123
-            }
+            common: { timestamp: 1234567890123 }
           });
         }
       },

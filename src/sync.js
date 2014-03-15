@@ -196,7 +196,7 @@
       }.bind(this)).then(function() {
         var i, j;
         for(i in this._tasks) {
-          nodes = this.local._getInternals()._nodesFromRoot(i);
+          nodes = this.local._getInternals().nodesFromRoot(i);
           for (j=1; j<nodes.length; j++) {
             if (this._tasks[nodes[j]]) {
               delete this._tasks[i];
@@ -235,7 +235,7 @@
           };
         } else if (objs[path].local && objs[path].local.body) {
           //push put:
-          objs[path].push = this.local._getInternals()._deepClone(objs[path].local);
+          objs[path].push = this.local._getInternals().deepClone(objs[path].local);
           objs[path].push.timestamp =  this.now();
           return this.local.setNodes(this.flush(objs)).then(function() {
             var options;
@@ -376,7 +376,7 @@
             if (objs[j] && objs[j].common) {
               if (objs[j].common.revision !== meta[j].ETag) {
                 if (!objs[j].remote || objs[j].remote.revision !== meta[j].ETag) {
-                  changedObjs[j] = this.local._getInternals()._deepClone(objs[j]);
+                  changedObjs[j] = this.local._getInternals().deepClone(objs[j]);
                   changedObjs[j].remote = {
                     revision: meta[j].ETag,
                     timestamp: this.now()
@@ -449,7 +449,7 @@
             } else {
               if (objs[i].common && typeof(objs[i].common.body) !== undefined) {
                 RemoteStorage.log('cloning', changedObjs, i, objs, j);
-                changedObjs[i] = this.local._getInternals()._deepClone(objs[i]);
+                changedObjs[i] = this.local._getInternals().deepClone(objs[i]);
                 changedObjs[i].remote = {
                   body: false,
                   timestamp: this.now()

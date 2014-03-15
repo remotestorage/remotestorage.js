@@ -12,87 +12,81 @@
    * talk to.
    */
 
-  var  _isFolder = function(path) {
-      return path.substr(-1) === '/';
-    },
+  function isFolder(path) {
+    return path.substr(-1) === '/';
+  }
 
-    _isDocument = function(path) {
-      return path.substr(-1) !== '/';
-    },
+  function isDocument(path) {
+    return path.substr(-1) !== '/';
+  }
 
-    _deepClone = function(obj) {
-      if (obj === undefined) {
-        return undefined;
-      } else {
-        return JSON.parse(JSON.stringify(obj));
+  function deepClone(obj) {
+    if (obj === undefined) {
+      return undefined;
+    } else {
+      return JSON.parse(JSON.stringify(obj));
+    }
+  }
+
+  function equal(obj1, obj2) {
+    return JSON.stringify(obj1) === JSON.stringify(obj2);
+  }
+
+  function getLatest(node) {
+    if (typeof(node) !== 'object' || typeof(node.path) !== 'string') {
+      return;
+    }
+    if (isFolder(node.path)) {
+      if (node.local && node.local.itemsMap) {
+        return node.local;
       }
-    },
-
-    _equal = function(obj1, obj2) {
-      return JSON.stringify(obj1) === JSON.stringify(obj2);
-    },
-
-    _getLatest = function(node) {
-      if (typeof(node) !== 'object' || typeof(node.path) !== 'string') {
-        return;
+      if (node.common && node.common.itemsMap) {
+        return node.common;
       }
-      if (_isFolder(node.path)) {
-        if (node.local && node.local.itemsMap) {
-          return node.local;
-        }
-        if (node.common && node.common.itemsMap) {
-          return node.common;
-        }
-      } else {
-        if (node.local && node.local.body && node.local.contentType) {
-          return node.local;
-        }
-        if (node.common && node.common.body && node.common.contentType) {
-          return node.common;
-        }
-        //migration code; once all apps use this version of the lib, we can publish clean-up code
-        //that migrates over any old-format data, and stop supporting it. for now, new apps will
-        //support data in both formats, thanks to this:
-        if (node.body && node.contentType) {
-          return {
-            body: node.body,
-            contentType: node.contentType
-          };
-        }
+    } else {
+      if (node.local && node.local.body && node.local.contentType) {
+        return node.local;
       }
-    },
+      if (node.common && node.common.body && node.common.contentType) {
+        return node.common;
+      }
+      // Migration code! Once all apps use at least this version of the lib, we
+      // can publish clean-up code that migrates over any old-format data, and
+      // stop supporting it. For now, new apps will support data in both
+      // formats, thanks to this:
+      if (node.body && node.contentType) {
+        return {
+          body: node.body,
+          contentType: node.contentType
+        };
+      }
+    }
+  }
 
-    _isOutdated = function(node, maxAge) {
-      return !node || !node.timestamp ||
-             ((new Date().getTime()) - node.timestamp > maxAge);
-    },
+  function isOutdated(node, maxAge) {
+    return !node || !node.timestamp ||
+           ((new Date().getTime()) - node.timestamp > maxAge);
+  }
 
-    _nodesFromRoot = function(path) {
-      var parts, ret = [path];
-      if (path.substr(-1) === '/') {
-        // Remove trailing slash if present, so it's not counted as a path level
-        path = path.substring(0, path.length-1);
-      }
-      parts = path.split('/');
-      while (parts.length > 1) {
-        parts.pop();
-        ret.push(parts.join('/')+'/');
-      }
-      return ret;
-    },
+  function nodesFromRoot(path) {
+    var paths = [path];
+    var parts = path.replace(/\/$/, '').split('/');
 
-    _makeNode = function(path, now) {
-      var ret = {
-        path: path,
-        common: {
-          timestamp: now
-        }
-      };
-      if (_isFolder(path)) {
-        ret.common.itemsMap = {};
-      }
-      return ret;
-    };
+    while (parts.length > 1) {
+      parts.pop();
+      paths.push(parts.join('/')+'/');
+    }
+    return paths;
+  }
+
+  function makeNode(path, now) {
+    var node = { path: path, common: { timestamp: now } };
+
+    if (isFolder(path)) {
+      node.common.itemsMap = {};
+    }
+    return node;
+  }
 
   var methods = {
 
@@ -100,8 +94,8 @@
       var promise = promising();
 
       this.getNodes([path]).then(function(objs) {
-        var node = _getLatest(objs[path]);
-        if ((typeof(maxAge) === 'number') && _isOutdated(node, maxAge)) {
+        var node = getLatest(objs[path]);
+        if ((typeof(maxAge) === 'number') && isOutdated(node, maxAge)) {
           remoteStorage.sync.queueGetRequest(path, promise);
         }
 
@@ -118,16 +112,16 @@
     },
 
     put: function(path, body, contentType) {
-      var i, now = new Date().getTime(), pathNodes = _nodesFromRoot(path), previous;
+      var i, now = new Date().getTime(), pathNodes = nodesFromRoot(path), previous;
       return this._updateNodes(pathNodes, function(objs) {
         try {
           for (i=0; i<pathNodes.length; i++) {
             if (!objs[pathNodes[i]]) {
-              objs[pathNodes[i]] = _makeNode(pathNodes[i], now);
+              objs[pathNodes[i]] = makeNode(pathNodes[i], now);
             }
             if (i === 0) {
               //save the document itself
-              previous = _getLatest(objs[pathNodes[i]]);
+              previous = getLatest(objs[pathNodes[i]]);
               objs[pathNodes[i]].local = {
                 previousBody: (previous ? previous.body : undefined),
                 previousContentType: (previous ? previous.contentType : undefined),
@@ -145,7 +139,7 @@
                 };
               }
               if (!objs[pathNodes[i]].local) {
-                objs[pathNodes[i]].local = _deepClone(objs[pathNodes[i]].common);
+                objs[pathNodes[i]].local = deepClone(objs[pathNodes[i]].common);
               }
               if (!objs[pathNodes[i]].common.itemsMap) {
                 objs[pathNodes[i]].common.itemsMap = {};
@@ -165,7 +159,7 @@
     },
 
     delete: function(path) {
-      var pathNodes = _nodesFromRoot(path);
+      var pathNodes = nodesFromRoot(path);
       return this._updateNodes(pathNodes, function(objs) {
         var i, now = new Date().getTime();
         for (i=0; i<pathNodes.length; i++) {
@@ -182,7 +176,7 @@
             //remove it from all parents
             itemName = pathNodes[i-1].substring(pathNodes[i].length);
             if (!objs[pathNodes[i]].local) {
-              objs[pathNodes[i]].local = _deepClone(objs[pathNodes[i]].common);
+              objs[pathNodes[i]].local = deepClone(objs[pathNodes[i]].common);
             }
             delete objs[pathNodes[i]].local.itemsMap[itemName];
             if (Object.getOwnPropertyNames(objs[pathNodes[i]].local.itemsMap).length) {
@@ -218,8 +212,8 @@
     fireInitial: function() {
       this.forAllNodes(function(node) {
         var latest;
-        if (_isDocument(node.path)) {
-          latest = _getLatest(node);
+        if (isDocument(node.path)) {
+          latest = getLatest(node);
           if (latest) {
             this._emit('change', {
               path: node.path,
@@ -259,12 +253,12 @@
 
     _updateNodes: function(nodePaths, cb) {
       return this.getNodes(nodePaths).then(function(objs) {
-        var i, copyObjs = _deepClone(objs);
+        var i, copyObjs = deepClone(objs);
         objs = cb(objs);
         for (i in objs) {
-          if (_equal(objs[i], copyObjs[i])) {
+          if (equal(objs[i], copyObjs[i])) {
             delete objs[i];
-          } else if(_isDocument(i)) {
+          } else if(isDocument(i)) {
             this._emit('change', {
               path: i,
               origin: 'window',
@@ -297,9 +291,9 @@
     },
 
     _getAllDescendentPaths: function(path) {
-      if (_isFolder(path)) {
+      if (isFolder(path)) {
         return this.getNodes([path]).then(function(objs) {
-          var i, pending=0, allPaths = [path], latest = _getLatest(objs[path]), promise = promising();
+          var i, pending=0, allPaths = [path], latest = getLatest(objs[path]), promise = promising();
           for (i in latest.itemsMap) {
             pending++;
             var subPromise = this._getAllDescendentPaths(path+i);
@@ -323,13 +317,13 @@
 
     _getInternals: function() {
       return {
-        _isFolder: _isFolder,
-        _isDocument: _isDocument,
-        _deepClone: _deepClone,
-        _equal: _equal,
-        _getLatest: _getLatest,
-        _nodesFromRoot: _nodesFromRoot,
-        _makeNode: _makeNode
+        isFolder: isFolder,
+        isDocument: isDocument,
+        deepClone: deepClone,
+        equal: equal,
+        getLatest: getLatest,
+        nodesFromRoot: nodesFromRoot,
+        makeNode: makeNode
       };
     }
   };

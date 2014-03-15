@@ -253,10 +253,10 @@ define(['requirejs'], function(requirejs) {
 
             env.ims.delete('/foo/bar/baz').then(function(status) {
               test.assertAnd(status, 200, 'wrong status code: '+status); //TODO belongs in seperate test
-              test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/bar/baz']), undefined);
-              test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/bar/']).itemsMap, {});
-              test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/']).itemsMap, {});
-              test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/']).itemsMap, {});
+              test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/foo/bar/baz']), undefined);
+              test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/foo/bar/']).itemsMap, {});
+              test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/foo/']).itemsMap, {});
+              test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/']).itemsMap, {});
               test.done();
             });
           });
@@ -269,14 +269,14 @@ define(['requirejs'], function(requirejs) {
           env.ims.put('/foo/bar/baz', 'bla', 'text/pain', true, 'a1b2c3').then(function() {
             env.ims.put('/foo/baz', 'bla', 'text/pain', true, 'a1b2c3').then(function() {
               env.ims.delete('/foo/bar/baz').then(function(status) {
-                test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/']).itemsMap, {
+                test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/']).itemsMap, {
                   'foo/': true
                 });
-                test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/']).itemsMap, {
+                test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/foo/']).itemsMap, {
                   'baz': true
                 });
-                test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/baz']).body, 'bla');
-                test.assertAnd(env.ims._getInternals()._getLatest(env.ims._storage['/foo/baz']).contentType,
+                test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/foo/baz']).body, 'bla');
+                test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/foo/baz']).contentType,
                     'text/pain');
                 test.done();
               });
