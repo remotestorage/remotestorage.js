@@ -1549,6 +1549,8 @@
         hash;
     if (hashPos === -1) { return; }
     hash = location.href.substring(hashPos+1);
+    // if hash is not of the form #key=val&key=val, it's probably not for us
+    if (hash.indexOf('=') === -1) { return; }
     return hash.split('&').reduce(function(m, kvs) {
       var kv = kvs.split('=');
       m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
