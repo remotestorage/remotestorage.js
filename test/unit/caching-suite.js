@@ -177,7 +177,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           env.caching.set('/bar/', { data: true });
           env.caching.set('/foo/bar/baz/', { data: true });
           env.caching.remove('/foo/');
-          test.assert(env.caching.rootPaths, ['/foo/bar/baz/', '/bar/']);
+          test.assert(env.caching.rootPaths.sort(), ['/foo/bar/baz/', '/bar/'].sort());
         }
       },
 
