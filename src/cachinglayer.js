@@ -3,7 +3,7 @@
    * Interface: cachinglayer
    *
    * This module defines functions that are mixed into remoteStorage.local when
-   * it is instantiated (currently one of indexeddb.js, localstorage.js, and
+   * it is instantiated (currently one of indexeddb.js, localstorage.js, or
    * inmemorystorage.js).
    *
    * All remoteStorage.local implementations should therefore implement
