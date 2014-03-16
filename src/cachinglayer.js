@@ -79,12 +79,33 @@
     return paths;
   }
 
-  function makeNode(path, now) {
-    var node = { path: path, common: { timestamp: now } };
+  function makeNode(path, timestamp) {
+    var node = { path: path, common: { timestamp: timestamp } };
 
     if (isFolder(path)) {
       node.common.itemsMap = {};
     }
+    return node;
+  }
+
+  function updateFolderNodeWithItemName(node, itemName) {
+    if (!node.common) {
+      node.common = {
+        timestamp: now,
+        itemsMap: {}
+      };
+    }
+    if (!node.common.itemsMap) {
+      node.common.itemsMap = {};
+    }
+    if (!node.local) {
+      node.local = deepClone(node.common);
+    }
+    if (!node.local.itemsMap) {
+      node.local.itemsMap = node.common.itemsMap;
+    }
+    node.local.itemsMap[itemName] = true;
+
     return node;
   }
 
@@ -112,54 +133,40 @@
     },
 
     put: function(path, body, contentType) {
-      var i, previous;
-      var now = new Date().getTime();
       var paths = pathsFromRoot(path);
+      var now = new Date().getTime();
 
-      return this._updateNodes(paths, function(objs) {
+      return this._updateNodes(paths, function(nodes) {
         try {
-          for (i=0; i<paths.length; i++) {
-            // ?
-            if (!objs[paths[i]]) {
-              objs[paths[i]] = makeNode(paths[i], now);
+          for (var i=0; i<paths.length; i++) {
+            var path = paths[i];
+            var node = nodes[path];
+            var previous;
+
+            if (!node) {
+              nodes[path] = node = makeNode(path, now);
             }
-            // ?
+
+            // Document
             if (i === 0) {
-              //save the document itself
-              previous = getLatest(objs[paths[i]]);
-              objs[paths[i]].local = {
-                previousBody: (previous ? previous.body : undefined),
+              previous = getLatest(node);
+              node.local = {
+                body:                body,
+                contentType:         contentType,
+                timestamp:           now,
+                previousBody:        (previous ? previous.body : undefined),
                 previousContentType: (previous ? previous.contentType : undefined),
-                body: body,
-                contentType: contentType,
-                timestamp: now
               };
             }
-            // ?
+            // Folder
             else {
-              //add it to all parents
-              itemName = paths[i-1].substring(paths[i].length);
-              if (!objs[paths[i]].common) {
-                objs[paths[i]].common = {
-                  timestamp: now,
-                  itemsMap: {}
-                };
-              }
-              if (!objs[paths[i]].local) {
-                objs[paths[i]].local = deepClone(objs[paths[i]].common);
-              }
-              if (!objs[paths[i]].common.itemsMap) {
-                objs[paths[i]].common.itemsMap = {};
-              }
-              if (!objs[paths[i]].local.itemsMap) {
-                objs[paths[i]].local.itemsMap = objs[paths[i]].common.itemsMap;
-              }
-              objs[paths[i]].local.itemsMap[itemName] = true;
+              var itemName = paths[i-1].substring(path.length);
+              node = updateFolderNodeWithItemName(node, itemName);
             }
           }
-          return objs;
+          return nodes;
         } catch(e) {
-          RemoteStorage.log('error while putting', objs, i, e);
+          RemoteStorage.log('Error during PUT', nodes, i, e);
           throw e;
         }
       });
