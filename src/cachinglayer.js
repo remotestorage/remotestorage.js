@@ -278,10 +278,10 @@
           }
           else if(isDocument(path)) {
             changeEvents.push({
-              path: path,
-              origin: 'window',
-              oldValue: nodes[path].local.previousBody,
-              newValue: nodes[path].local.body,
+              path:           path,
+              origin:         'window',
+              oldValue:       nodes[path].local.previousBody,
+              newValue:       nodes[path].local.body,
               oldContentType: nodes[path].local.previousContentType,
               newContentType: nodes[path].local.contentType
             });
@@ -291,13 +291,10 @@
         }
 
         return self.setNodes(nodes).then(function() {
-          return 200;
-        }).then(function(status) {
           self._emitChangeEvents(changeEvents);
-          return status;
+          return 200;
         });
       },
-
       function(err) {
         throw(err);
       });
