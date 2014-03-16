@@ -196,7 +196,7 @@
       }.bind(this)).then(function() {
         var i, j;
         for(i in this._tasks) {
-          nodes = this.local._getInternals().nodesFromRoot(i);
+          nodes = this.local._getInternals().pathsFromRoot(i);
           for (j=1; j<nodes.length; j++) {
             if (this._tasks[nodes[j]]) {
               delete this._tasks[i];

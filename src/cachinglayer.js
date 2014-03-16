@@ -68,7 +68,7 @@
            ((new Date().getTime()) - node.timestamp > maxAge);
   }
 
-  function nodesFromRoot(path) {
+  function pathsFromRoot(path) {
     var paths = [path];
     var parts = path.replace(/\/$/, '').split('/');
 
@@ -112,42 +112,49 @@
     },
 
     put: function(path, body, contentType) {
-      var i, now = new Date().getTime(), pathNodes = nodesFromRoot(path), previous;
-      return this._updateNodes(pathNodes, function(objs) {
+      var i, previous;
+      var now = new Date().getTime();
+      var paths = pathsFromRoot(path);
+
+      return this._updateNodes(paths, function(objs) {
         try {
-          for (i=0; i<pathNodes.length; i++) {
-            if (!objs[pathNodes[i]]) {
-              objs[pathNodes[i]] = makeNode(pathNodes[i], now);
+          for (i=0; i<paths.length; i++) {
+            // ?
+            if (!objs[paths[i]]) {
+              objs[paths[i]] = makeNode(paths[i], now);
             }
+            // ?
             if (i === 0) {
               //save the document itself
-              previous = getLatest(objs[pathNodes[i]]);
-              objs[pathNodes[i]].local = {
+              previous = getLatest(objs[paths[i]]);
+              objs[paths[i]].local = {
                 previousBody: (previous ? previous.body : undefined),
                 previousContentType: (previous ? previous.contentType : undefined),
                 body: body,
                 contentType: contentType,
                 timestamp: now
               };
-            } else {
+            }
+            // ?
+            else {
               //add it to all parents
-              itemName = pathNodes[i-1].substring(pathNodes[i].length);
-              if (!objs[pathNodes[i]].common) {
-                objs[pathNodes[i]].common = {
+              itemName = paths[i-1].substring(paths[i].length);
+              if (!objs[paths[i]].common) {
+                objs[paths[i]].common = {
                   timestamp: now,
                   itemsMap: {}
                 };
               }
-              if (!objs[pathNodes[i]].local) {
-                objs[pathNodes[i]].local = deepClone(objs[pathNodes[i]].common);
+              if (!objs[paths[i]].local) {
+                objs[paths[i]].local = deepClone(objs[paths[i]].common);
               }
-              if (!objs[pathNodes[i]].common.itemsMap) {
-                objs[pathNodes[i]].common.itemsMap = {};
+              if (!objs[paths[i]].common.itemsMap) {
+                objs[paths[i]].common.itemsMap = {};
               }
-              if (!objs[pathNodes[i]].local.itemsMap) {
-                objs[pathNodes[i]].local.itemsMap = objs[pathNodes[i]].common.itemsMap;
+              if (!objs[paths[i]].local.itemsMap) {
+                objs[paths[i]].local.itemsMap = objs[paths[i]].common.itemsMap;
               }
-              objs[pathNodes[i]].local.itemsMap[itemName] = true;
+              objs[paths[i]].local.itemsMap[itemName] = true;
             }
           }
           return objs;
@@ -159,7 +166,7 @@
     },
 
     delete: function(path) {
-      var pathNodes = nodesFromRoot(path);
+      var pathNodes = pathsFromRoot(path);
       return this._updateNodes(pathNodes, function(objs) {
         var i, now = new Date().getTime();
         for (i=0; i<pathNodes.length; i++) {
@@ -228,8 +235,13 @@
       }.bind(this));
     },
 
-    onDiff: function(setOnDiff) {
-      this.diffHandler = setOnDiff;
+    /**
+     * Method: onDiff
+     *
+     * Set an event handler for ?
+     */
+    onDiff: function(diffHandler) {
+      this.diffHandler = diffHandler;
     },
 
     migrate: function(node) {
@@ -251,43 +263,53 @@
       return node;
     },
 
-    _updateNodes: function(nodePaths, cb) {
-      return this.getNodes(nodePaths).then(function(objs) {
-        var i, copyObjs = deepClone(objs);
-        objs = cb(objs);
-        for (i in objs) {
-          if (equal(objs[i], copyObjs[i])) {
-            delete objs[i];
-          } else if(isDocument(i)) {
-            this._emit('change', {
-              path: i,
+    _updateNodes: function(paths, cb) {
+      var self = this;
+
+      return this.getNodes(paths).then(function(nodes) {
+        var existingNodes = deepClone(nodes);
+        var changeEvents = [];
+
+        nodes = cb(nodes);
+
+        for (var path in nodes) {
+          if (equal(nodes[path], existingNodes[path])) {
+            delete nodes[path];
+          }
+          else if(isDocument(path)) {
+            changeEvents.push({
+              path: path,
               origin: 'window',
-              oldValue: objs[i].local.previousBody,
-              newValue: objs[i].local.body,
-              oldContentType: objs[i].local.previousContentType,
-              newContentType: objs[i].local.contentType
+              oldValue: nodes[path].local.previousBody,
+              newValue: nodes[path].local.body,
+              oldContentType: nodes[path].local.previousContentType,
+              newContentType: nodes[path].local.contentType
             });
-            delete objs[i].local.previousBody;
-            delete objs[i].local.previousContentType;
+            delete nodes[path].local.previousBody;
+            delete nodes[path].local.previousContentType;
           }
         }
-        return this.setNodes(objs).then(function() {
+
+        return self.setNodes(nodes).then(function() {
           return 200;
         }).then(function(status) {
-          var i;
-          if (this.diffHandler) {
-            for (i in objs) {
-              if (i.substr(-1) !== '/') {
-                this.diffHandler(i);
-              }
-            }
-          }
+          self._emitChangeEvents(changeEvents);
           return status;
-        }.bind(this));
-      }.bind(this),
+        });
+      },
+
       function(err) {
         throw(err);
       });
+    },
+
+    _emitChangeEvents: function(events) {
+      for (var i=0; i<events.length; i++) {
+        this._emit('change', events[i]);
+        if (this.diffHandler) {
+          this.diffHandler(events[i].path);
+        }
+      }
     },
 
     _getAllDescendentPaths: function(path) {
@@ -322,7 +344,7 @@
         deepClone: deepClone,
         equal: equal,
         getLatest: getLatest,
-        nodesFromRoot: nodesFromRoot,
+        pathsFromRoot: pathsFromRoot,
         makeNode: makeNode
       };
     }
