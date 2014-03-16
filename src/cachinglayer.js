@@ -173,33 +173,39 @@
     },
 
     delete: function(path) {
-      var pathNodes = pathsFromRoot(path);
-      return this._updateNodes(pathNodes, function(objs) {
-        var i, now = new Date().getTime();
-        for (i=0; i<pathNodes.length; i++) {
-          if (!objs[pathNodes[i]]) {
-            throw new Error('cannot delete a non-existing node; retrieve its parent folder first; missing node: '+pathNodes[i]);
+      var paths = pathsFromRoot(path);
+
+      return this._updateNodes(paths, function(nodes) {
+        var now = new Date().getTime();
+
+        for (var i=0; i<paths.length; i++) {
+          var path = paths[i];
+          var node = nodes[path];
+
+          if (!node) {
+            throw new Error('Cannot delete non-existing node '+path);
           }
-          if(i === 0) {
-            //delete the document itself
-            objs[path].local = {
-              body: false,
-              timestamp: now
-            };
-          } else {
-            //remove it from all parents
-            itemName = pathNodes[i-1].substring(pathNodes[i].length);
-            if (!objs[pathNodes[i]].local) {
-              objs[pathNodes[i]].local = deepClone(objs[pathNodes[i]].common);
+
+          // Document
+          if (i === 0) {
+            // TODO should body better be undefined?
+            node.local = { body: false, timestamp: now };
+          }
+          // Folder
+          else {
+            if (!node.local) {
+              node.local = deepClone(node.common);
             }
-            delete objs[pathNodes[i]].local.itemsMap[itemName];
-            if (Object.getOwnPropertyNames(objs[pathNodes[i]].local.itemsMap).length) {
-              //this folder still has other items, don't remove any further ancestors
+            var itemName = paths[i-1].substring(path.length);
+            delete node.local.itemsMap[itemName];
+
+            if (Object.getOwnPropertyNames(node.local.itemsMap).length > 0) {
+              // This folder still contains other items, don't remove any further ancestors
               break;
             }
           }
         }
-        return objs;
+        return nodes;
       });
     },
 
