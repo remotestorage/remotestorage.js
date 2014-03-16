@@ -212,20 +212,20 @@
     flush: function(path) {
       return this._getAllDescendentPaths(path).then(function(paths) {
         return this.getNodes(paths);
-      }.bind(this)).then(function(objs) {
-        var i;
-        for (i in objs) {
-          if (objs[i] && objs[i].common && objs[i].local) {
+      }.bind(this)).then(function(nodes) {
+        for (var path in nodes) {
+          var node = nodes[path];
+          if (node && node.common && node.local) {
             this._emit('change', {
-              path: objs[i].path,
-              origin: 'local',
-              oldValue: (objs[i].local.body === false ? undefined : objs[i].local.body),
-              newValue: (objs[i].common.body === false ? undefined : objs[i].common.body)
+              path:     node.path,
+              origin:   'local',
+              oldValue: (node.local.body === false ? undefined : node.local.body),
+              newValue: (node.common.body === false ? undefined : node.common.body)
             });
           }
-          objs[i] = undefined;
+          nodes[path] = undefined;
         }
-        return this.setNodes(objs);
+        return this.setNodes(nodes);
       }.bind(this));
     },
 
@@ -236,11 +236,11 @@
           latest = getLatest(node);
           if (latest) {
             this._emit('change', {
-              path: node.path,
-              origin: 'local',
-              oldValue: undefined,
+              path:           node.path,
+              origin:         'local',
+              oldValue:       undefined,
               oldContentType: undefined,
-              newValue: latest.body,
+              newValue:       latest.body,
               newContentType: latest.contentType
             });
           }
