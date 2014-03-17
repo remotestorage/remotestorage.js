@@ -673,14 +673,6 @@
    * instance.
    */
 
-  /**
-   * Method: reset
-   **/
-  RemoteStorage.prototype.reset = function() {
-    indexedDB.deleteDatabase('remotestorage');
-    localStorage.clear();
-  };
-
   global.RemoteStorage = RemoteStorage;
 
 })(typeof(window) !== 'undefined' ? window : global);
