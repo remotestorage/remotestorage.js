@@ -6,10 +6,6 @@ define([], function() {
   var suites = [];
 
   function FakeCaching(){
-    this.FLUSH = 0;
-    this.SEEN = 1;
-    this.ALL = 7;
-
     this._responses = {};
     this.checkPath = function(path) {
       if (typeof(this._responses[path]) === 'undefined') {

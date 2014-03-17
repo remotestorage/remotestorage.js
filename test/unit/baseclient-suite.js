@@ -15,8 +15,6 @@ define(['requirejs'], function(requirejs, undefined) {
       RemoteStorage.prototype = {
         onChange: function() {},
         caching: {
-          SEEN: false,
-          ALL: { data: true },
           _rootPaths: {},
           set: function(path, value) {
             this._rootPaths[path] = value;
@@ -321,7 +319,7 @@ define(['requirejs'], function(requirejs, undefined) {
         desc: "#cache enables caching for a given path",
         run: function(env, test) {
           env.client.cache('bar/');
-          test.assert(env.storage.caching._rootPaths, {'/foo/bar/': {data: true}});
+          test.assert(env.storage.caching._rootPaths, {'/foo/bar/': 'ALL'});
         }
       },
 
@@ -330,7 +328,7 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           env.client.cache('bar/');
           env.client.cache('bar/', false);
-          test.assert(env.storage.caching._rootPaths['/foo/bar/'], false);
+          test.assert(env.storage.caching._rootPaths['/foo/bar/'], 'FLUSH');
         }
       },
 

@@ -465,14 +465,20 @@
       if (typeof(path) !== 'string') {
         throw 'Argument \'path\' of baseClient.cache must be a string';
       }
-      if (strategy === undefined) {
-        strategy = this.storage.caching.ALL;
+      if (strategy === false) {
+        deprecate('caching strategy <false> is deprecated, please use <"FLUSH"> instead');
+        strategy = 'FLUSH';
+      } else if (strategy === undefined) {
+        strategy = 'ALL';
+      } else if (strategy) {
+        deprecate('that caching strategy is deprecated, please use <"ALL"> instead');
+        strategy = 'ALL';
       }
-      if (strategy !== this.storage.caching.SEEN &&
-          strategy !== this.storage.caching.FLUSH &&
-          strategy !== this.storage.caching.ALL) {
+      if (strategy !== 'FLUSH' &&
+          strategy !== 'SEEN' &&
+          strategy !== 'ALL') {
         throw 'Argument \'strategy\' of baseclient.cache must be one of '
-            + '[remoteStorage.caching.SEEN, remoteStorage.caching.FLUSH, remoteStorage.caching.ALL]';
+            + '["FLUSH", "SEEN", "ALL"]';
       }
       this.storage.caching.set(this.makePath(path), strategy);
     },

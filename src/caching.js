@@ -44,9 +44,6 @@
   };
 
   RemoteStorage.Caching.prototype = {
-    FLUSH: false,
-    SEEN: 'seen',
-    ALL: { data: true },
     pendingActivations: [],
 
 
@@ -66,12 +63,12 @@
         throw new Error('path should be a string');
       }
       if (typeof(value) === 'undefined') {
-        throw new Error("value should be something like remoteStorage.caching.SEEN");
+        throw new Error("value should be 'FLUSH', 'SEEN', or 'ALL'");
       }
 
       this._rootPaths[path] = value;
 
-      if (value === this.ALL) {
+      if (value === 'ALL') {
         if (this.activateHandler) {
           this.activateHandler(path);
         } else {
@@ -85,13 +82,13 @@
      *
      * Enable caching for a given path.
      *
-     * Uses caching strategy ALL.
+     * Uses caching strategy 'ALL'.
      *
      * Parameters:
      *   path
      */
     enable: function(path) {
-      this.set(path, this.ALL);
+      this.set(path, 'ALL');
     },
 
     /**
@@ -99,14 +96,14 @@
      *
      * Disable caching for a given path.
      *
-     * Uses caching strategy FLUSH (meaning items are only cached until
+     * Uses caching strategy 'FLUSH' (meaning items are only cached until
      * successfully pushed to the remote).
      *
      * Parameters:
      *   path
      */
     disable: function(path) {
-      this.set(path, this.FLUSH);
+      this.set(path, 'FLUSH');
     },
 
     /**
@@ -140,7 +137,7 @@
       if (this._rootPaths[path] !== undefined) {
         return this._rootPaths[path];
       } else if (path === '/') {
-        return this.SEEN;
+        return 'SEEN';
       } else {
         return this.checkPath(containingFolder(path));
       }

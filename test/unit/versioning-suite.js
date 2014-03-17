@@ -6,12 +6,6 @@ define([], function() {
   var suites = [];
 
   function FakeCaching(){
-    this.FLUSH = 0;
-    this.SEEN = 1;
-    this.FOLDERS = 2;
-    this.DOCUMENTS = 4;
-    this.ALL = 7;
-
     this._responses = {};
     this.checkPath = function(path) {
       if (typeof(this._responses[path]) === 'undefined') {
@@ -151,14 +145,14 @@ define([], function() {
         }
       },
       {
-        desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.ALL root",
+        desc: "an incoming folder listing stores new revisions to existing child nodes if under a 'ALL' root",
         run: function(env, test) {
           test.assertAnd(env.rs.sync._tasks, {});
           test.assertAnd(env.rs.sync._running, {});
           env.rs.caching._responses = {
-            '/foo/': env.rs.caching.FLUSH,
-            '/foo/baz/': env.rs.caching.ALL,
-            '/foo/baf': env.rs.caching.ALL
+            '/foo/': 'FLUSH',
+            '/foo/baz/': 'ALL',
+            '/foo/baf': 'ALL'
           };
           env.rs.local.setNodes({
             '/foo/': {
@@ -194,12 +188,12 @@ define([], function() {
       },
 
       {
-        desc: "an incoming folder listing stores new revisions to existing child nodes if under a env.rs.caching.SEEN root",
+        desc: "an incoming folder listing stores new revisions to existing child nodes if under a 'SEEN' root",
         run: function(env, test) {
           env.rs.caching._responses = {
-            '/foo/': env.rs.caching.ALL,
-            '/foo/baz/': env.rs.caching.SEEN,
-            '/foo/baf': env.rs.caching.SEEN
+            '/foo/': 'ALL',
+            '/foo/baz/': 'SEEN',
+            '/foo/baf': 'SEEN'
           };
           env.rs.local.setNodes({
             '/foo/': {
@@ -237,8 +231,8 @@ define([], function() {
         desc: "a success response to a folder GET moves remote to common if no local exists",
         run: function(env, test) {
           env.rs.caching._responses = {
-            '/foo/': env.rs.caching.SEEN,
-            '/foo/a': env.rs.caching.SEEN
+            '/foo/': 'SEEN',
+            '/foo/a': 'SEEN'
           };
           env.rs.local.setNodes({
             '/foo/': {

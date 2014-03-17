@@ -210,7 +210,7 @@
     flush: function(objs) {
       var i;
       for (i in objs) {
-        if (this.caching.checkPath(i) === this.caching.FLUSH && !objs[i].local) {//strategy is FLUSH and no local changes exist
+        if (this.caching.checkPath(i) === 'FLUSH' && !objs[i].local) {//strategy is 'FLUSH' and no local changes exist
           RemoteStorage.log('flushing', i);
           objs[i] = undefined;//cause node to be flushed from cache
         }
@@ -388,7 +388,7 @@
               }
             } else {
               cachingStrategy = this.caching.checkPath(j);
-              create = (cachingStrategy === this.caching.ALL);
+              create = (cachingStrategy === 'ALL');
               if (create) {
                 changedObjs[j] = {
                   path: j,
