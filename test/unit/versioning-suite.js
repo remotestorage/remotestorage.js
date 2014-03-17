@@ -11,7 +11,7 @@ define([], function() {
     this.FOLDERS = 2;
     this.DOCUMENTS = 4;
     this.ALL = 7;
-    
+
     this._responses = {};
     this.checkPath = function(path) {
       if (typeof(this._responses[path]) === 'undefined') {

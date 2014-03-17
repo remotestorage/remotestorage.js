@@ -73,7 +73,7 @@
           };
         })(i);
       }
-      
+
       transaction.oncomplete = function() {
         promise.fulfill(ret);
         this.getsRunning--;
@@ -84,7 +84,7 @@
         promise.reject('get transaction error/abort');
         this.getsRunning--;
       }.bind(this);
-      
+
       return promise;
     },
 
@@ -112,7 +112,7 @@
           }
         }
       }
-      
+
       transaction.oncomplete = function() {
         promise.fulfill();
         this.putsRunning--;

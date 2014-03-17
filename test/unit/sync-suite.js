@@ -9,7 +9,7 @@ define([], function() {
     this.FLUSH = 0;
     this.SEEN = 1;
     this.ALL = 7;
-    
+
     this._responses = {};
     this.checkPath = function(path) {
       if (typeof(this._responses[path]) === 'undefined') {
@@ -137,13 +137,13 @@ define([], function() {
       env.rs.caching = new FakeCaching();
       env.rs.sync = new RemoteStorage.Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
       global.remoteStorage = env.rs;
-      
+
       env.rs.sync.numThreads = 5;
       env.rs.remote.connected = true;
       env.rs.remote.online = true;
       env.rs.sync._tasks = {};
       env.rs.sync._running = {};
-      
+
       test.done();
     },
 
@@ -160,7 +160,7 @@ define([], function() {
           test.done();
         }
       },
-      
+
       {
         desc: "RemoteStorage.sync() returns immediately if not connected",
         run: function(env,test){
@@ -237,7 +237,7 @@ define([], function() {
             tmpDoTasks = env.rs.sync.doTasks,
             tmpFindTasks = env.rs.sync.findTasks,
             tmpAddTasks = env.rs.sync.addTasks;
-           
+
           env.rs.sync.doTasks = function() {
             doTasksCalled++;
             if (addTaskCalled) {
@@ -299,7 +299,7 @@ define([], function() {
           });
         }
       },
-     
+
       {
         desc: "checkRefresh gives preference to caching parent",
         run: function(env, test) {
