@@ -303,12 +303,14 @@
           if (obj.path.substr(-1) === '/') {
             newValue = (typeof(obj.remote.itemsMap) === 'object' && Object.keys(obj.remote.itemsMap).length ? obj.remote.itemsMap : undefined);
             oldValue = (typeof(obj.common.itemsMap) === 'object' && Object.keys(obj.common.itemsMap).length ? obj.common.itemsMap : undefined);
+            haveRemote = (obj.remote.itemsMap !== undefined);
           } else {
             newValue = (obj.remote.body === false ? undefined : obj.remote.body);
             oldValue = (obj.common.body === false ? undefined : obj.common.body);
+            haveRemote = (obj.remote.body !== undefined);
           }
 
-          if (newValue) {
+          if (haveRemote) {
             this.local._emit('change', {
               origin: 'remote',
               path: obj.path,
