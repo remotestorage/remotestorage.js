@@ -88,10 +88,10 @@
     return node;
   }
 
-  function updateFolderNodeWithItemName(node, itemName) {
+  function updateFolderNodeWithItemName(node, itemName, timestamp) {
     if (!node.common) {
       node.common = {
-        timestamp: now,
+        timestamp: timestamp,
         itemsMap: {}
       };
     }
@@ -161,7 +161,7 @@
             // Folder
             else {
               var itemName = paths[i-1].substring(path.length);
-              node = updateFolderNodeWithItemName(node, itemName);
+              node = updateFolderNodeWithItemName(node, itemName, now);
             }
           }
           return nodes;
