@@ -121,7 +121,7 @@ define([], function() {
 
     tests: [
       {
-        desc: "checkRefresh requests the parent rather than the stale node itself, if it is not a read-access root",
+        desc: "collectRefreshTasks requests the parent rather than the stale node itself, if it is not a read-access root",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/read/access/f/o/o/': {
@@ -133,7 +133,7 @@ define([], function() {
               }
             }
           }).then(function() {
-            return env.rs.sync.checkRefresh();
+            return env.rs.sync.collectRefreshTasks();
           }).then(function() {
             test.assertAnd(env.rs.sync._tasks, {
               '/read/access/f/o/': []

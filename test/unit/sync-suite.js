@@ -225,13 +225,13 @@ define([], function() {
         }
       },
       {
-        desc: "Sync calls doTasks, and goes to findTasks only if necessary",
+        desc: "Sync calls doTasks, and goes to collectTasks only if necessary",
         run: function(env, test) {
           test.assertAnd(env.rs.sync._tasks, {});
           test.assertAnd(env.rs.sync._running, {});
-          var doTasksCalled = 0, findTasksCalled = 0, addTaskCalled = 0,
+          var doTasksCalled = 0, collectTasksCalled = 0, addTaskCalled = 0,
             tmpDoTasks = env.rs.sync.doTasks,
-            tmpFindTasks = env.rs.sync.findTasks,
+            tmpFindTasks = env.rs.sync.collectTasks,
             tmpAddTasks = env.rs.sync.addTasks;
 
           env.rs.sync.doTasks = function() {
@@ -242,8 +242,8 @@ define([], function() {
               return false;
             }
           };
-          env.rs.sync.findTasks = function() {
-            findTasksCalled++;
+          env.rs.sync.collectTasks = function() {
+            collectTasksCalled++;
             return promising().fulfill();
           };
           env.rs.sync.addTask = function() {
@@ -251,61 +251,64 @@ define([], function() {
           };
           env.rs.sync.sync().then(function() {
             test.assertAnd(doTasksCalled, 2);
-            test.assertAnd(findTasksCalled, 1);
+            test.assertAnd(collectTasksCalled, 1);
             env.rs.sync.addTask('/foo', function() {});
             return env.rs.sync.sync();
           }).then(function() {
             test.assertAnd(doTasksCalled, 3);
-            test.assertAnd(findTasksCalled, 1);
+            test.assertAnd(collectTasksCalled, 1);
             env.rs.sync.doTasks = tmpDoTasks;
-            env.rs.sync.findTasks = tmpFindTasks;
+            env.rs.sync.collectTasks = tmpFindTasks;
             env.rs.sync.addTasks = tmpAddTasks;
             test.done();
           });
         }
       },
       {
-        desc: "findTasks calls checkDiffs and goes to checkRefresh only if necessary",
+        desc: "collectTasks calls collectDiffTasks and goes to collectRefreshTasks only if necessary",
         run: function(env, test) {
           test.assertAnd(env.rs.sync._tasks, {});
           test.assertAnd(env.rs.sync._running, {});
-          var checkDiffsCalled = 0, checkRefreshCalled = 0,
-            tmpCheckDiffs = env.rs.sync.checkDiffs,
-            tmpCheckRefresh = env.rs.sync.checkRefresh,
+          var collectDiffTasksCalled = 0, collectRefreshTasksCalled = 0,
+            tmpCheckDiffs = env.rs.sync.collectDiffTasks,
+            tmpCheckRefresh = env.rs.sync.collectRefreshTasks,
             haveDiffs = 0;
-          env.rs.sync.checkDiffs = function() {
-            checkDiffsCalled++;
+          env.rs.sync.collectDiffTasks = function() {
+            collectDiffTasksCalled++;
             return promising().fulfill(haveDiffs);
           };
-          env.rs.sync.checkRefresh = function() {
-            checkRefreshCalled++;
+          env.rs.sync.collectRefreshTasks = function() {
+            collectRefreshTasksCalled++;
             return promising().fulfill([]);
           };
-          env.rs.sync.findTasks().then(function() {
-            test.assertAnd(checkDiffsCalled, 1);
-            test.assertAnd(checkRefreshCalled, 1);
+          env.rs.sync.collectTasks().then(function() {
+            test.assertAnd(collectDiffTasksCalled, 1);
+            test.assertAnd(collectRefreshTasksCalled, 1);
             haveDiffs = 1;
-            return env.rs.sync.findTasks();
+            return env.rs.sync.collectTasks();
           }).then(function() {
-            test.assertAnd(checkDiffsCalled, 2);
-            test.assertAnd(checkRefreshCalled, 1);
-            env.rs.sync.checkDiffs = tmpCheckDiffs;
-            env.rs.sync.checkRefresh = tmpCheckRefresh;
+            test.assertAnd(collectDiffTasksCalled, 2);
+            test.assertAnd(collectRefreshTasksCalled, 1);
+            env.rs.sync.collectDiffTasks = tmpCheckDiffs;
+            env.rs.sync.collectRefreshTasks = tmpCheckRefresh;
             test.done();
           });
         }
       },
 
       {
-        desc: "checkRefresh gives preference to caching parent",
+        desc: "collectRefreshTasks gives preference to caching parent",
         run: function(env, test) {
+          var tmpForAllNodes = env.rs.local.forAllNodes;
+          var tmpNow = env.rs.sync.now;
+
           test.assertAnd(env.rs.sync._tasks, {});
           test.assertAnd(env.rs.sync._running, {});
-          var tmpForAllNodes = env.rs.local.forAllNodes,
-            tmpNow = env.rs.sync.now;
+
           env.rs.sync.now = function() {
             return 1234568654321;
           };
+
           env.rs.local.forAllNodes = function(cb) {
             cb({
               path: '/foo/ba/and/then/some/sub/path', //should be overruled by ancestor /foo/ba/
@@ -341,7 +344,8 @@ define([], function() {
             });
             return promising().fulfill();
           };
-          env.rs.sync.checkRefresh().then(function() {
+
+          env.rs.sync.collectRefreshTasks().then(function() {
             test.assertAnd(env.rs.sync._tasks, {
               '/foo/': [],
               '/read/access/': []
@@ -486,7 +490,7 @@ define([], function() {
         }
       },
       {
-        desc: "checkDiffs will not enqueue requests outside the access scope",
+        desc: "collectDiffTasks will not enqueue requests outside the access scope",
         run: function(env, test) {
           env.rs.sync.numThreads = 5;
           env.rs.remote.connected = true;
@@ -503,7 +507,7 @@ define([], function() {
               local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
             }
           }).then(function() {
-            env.rs.sync.checkDiffs();
+            env.rs.sync.collectDiffTasks();
             test.assertAnd(env.rs.sync._tasks, {'/foo/bar': []});
             //env.rs.sync.on('done', function() {
             test.done();
@@ -513,7 +517,7 @@ define([], function() {
       },
 
       {
-        desc: "checkDiffs retrieves body and Content-Type when a new remote revision is set inside rw access scope",
+        desc: "collectDiffTasks retrieves body and Content-Type when a new remote revision is set inside rw access scope",
         run: function(env, test) {
           env.rs.local.setNodes({
             '/nothings/bar': {
@@ -527,7 +531,7 @@ define([], function() {
               remote: { revision: 'a' }
             }
           }).then(function() {
-            return env.rs.sync.checkDiffs();
+            return env.rs.sync.collectDiffTasks();
           }).then(function() {
             test.assertAnd(env.rs.sync._tasks, {
               '/public/writings/bar': []
@@ -561,7 +565,7 @@ define([], function() {
               remote: { revision: 'yes' }
             }
           }).then(function() {
-            return env.rs.sync.checkDiffs();
+            return env.rs.sync.collectDiffTasks();
           }).then(function(num) {
             test.assertAnd(num, 2);
             test.assertAnd(env.rs.sync._tasks, {

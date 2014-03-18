@@ -41,6 +41,7 @@
             promise.fulfill(status, bodyOrItemsMap, contentType);
           });
         }.bind(this));
+
         this.doTasks();
       }
     },
@@ -91,23 +92,23 @@
 
     corruptRevision: function(rev) {
       return ((typeof(rev) !== 'object') ||
-          (Array.isArray(rev)) ||
-          (rev.revision && typeof(rev.revision) !== 'string') ||
-          (rev.body && typeof(rev.body) !== 'string' && typeof(rev.body) !== 'object') ||
-          (rev.contentType && typeof(rev.contentType) !== 'string') ||
-          (rev.contentLength && typeof(rev.contentLength) !== 'number') ||
-          (rev.timestamp && typeof(rev.timestamp) !== 'number') ||
-          (rev.itemsMap && this.corruptItemsMap(rev.itemsMap)));
+              (Array.isArray(rev)) ||
+              (rev.revision && typeof(rev.revision) !== 'string') ||
+              (rev.body && typeof(rev.body) !== 'string' && typeof(rev.body) !== 'object') ||
+              (rev.contentType && typeof(rev.contentType) !== 'string') ||
+              (rev.contentLength && typeof(rev.contentLength) !== 'number') ||
+              (rev.timestamp && typeof(rev.timestamp) !== 'number') ||
+              (rev.itemsMap && this.corruptItemsMap(rev.itemsMap)));
     },
 
     isCorrupt: function(node) {
       return ((typeof(node) !== 'object') ||
-          (Array.isArray(node)) ||
-          (typeof(node.path) !== 'string') ||
-          (this.corruptRevision(node.common)) ||
-          (node.local && this.corruptRevision(node.local)) ||
-          (node.remote && this.corruptRevision(node.remote)) ||
-          (node.push && this.corruptRevision(node.push)));
+              (Array.isArray(node)) ||
+              (typeof(node.path) !== 'string') ||
+              (this.corruptRevision(node.common)) ||
+              (node.local && this.corruptRevision(node.local)) ||
+              (node.remote && this.corruptRevision(node.remote)) ||
+              (node.push && this.corruptRevision(node.push)));
     },
 
     isFolderNode: function(node) {
@@ -118,25 +119,29 @@
       return (!this.isFolderNode(node));
     },
 
-    checkDiffs: function() {
+    hasTasks: function() {
+      return Object.getOwnPropertyNames(this._tasks).length > 0;
+    },
+
+    collectDiffTasks: function() {
       var num = 0;
 
       return this.local.forAllNodes(function(node) {
         if (num > 100) {
           return;
         }
-        if (this.isCorrupt(node, false)) {
+
+        if (this.isCorrupt(node)) {
           RemoteStorage.log('WARNING: corrupt node in local cache', node);
           if (typeof(node) === 'object' && node.path) {
             this.addTask(node.path);
             num++;
           }
-        } else if (this.needsFetch(node)
-            && this.access.checkPathPermission(node.path, 'r')) {
+        } else if (this.needsFetch(node) && this.access.checkPathPermission(node.path, 'r')) {
           this.addTask(node.path);
           num++;
-        } else if (this.isDocumentNode(node) && this.needsPush(node)
-            && this.access.checkPathPermission(node.path, 'rw')) {
+        } else if (this.isDocumentNode(node) && this.needsPush(node) &&
+                   this.access.checkPathPermission(node.path, 'rw')) {
           this.addTask(node.path);
           num++;
         }
@@ -147,7 +152,11 @@
       });
     },
 
-    tooOld: function(node) {
+    inConflict: function(node) {
+      return (node.local && node.remote && (node.remote.body !== undefined || node.remote.itemsMap));
+    },
+
+    needsRefresh: function(node) {
       if (node.common) {
         if (!node.common.timestamp) {
           return true;
@@ -155,10 +164,6 @@
         return (this.now() - node.common.timestamp > syncInterval);
       }
       return false;
-    },
-
-    inConflict: function(node) {
-      return (node.local && node.remote && (node.remote.body !== undefined || node.remote.itemsMap));
     },
 
     needsFetch: function(node) {
@@ -192,31 +197,35 @@
       }
     },
 
-    checkRefresh: function() {
+    deleteChildPathsFromTasks: function() {
+      for (var path in this._tasks) {
+        paths = this.local._getInternals().pathsFromRoot(path);
+
+        for (var i=1; i<paths.length; i++) {
+          if (this._tasks[paths[i]]) {
+            delete this._tasks[path];
+          }
+        }
+      }
+    },
+
+    collectRefreshTasks: function() {
       return this.local.forAllNodes(function(node) {
         var parentPath;
-
-        if (this.tooOld(node)) {
+        if (this.needsRefresh(node)) {
           try {
             parentPath = this.getParentPath(node.path);
           } catch(e) {
             // node.path is already '/', can't take parentPath
           }
           if (parentPath && this.access.checkPathPermission(parentPath, 'r')) {
-            this._tasks[parentPath] = [];
+            this.addTask(parentPath);
           } else if (this.access.checkPathPermission(node.path, 'r')) {
-            this._tasks[node.path] = [];
+            this.addTask(node.path);
           }
         }
       }.bind(this)).then(function() {
-        for (var path in this._tasks) {
-          nodes = this.local._getInternals().pathsFromRoot(path);
-          for (var i=1; i<nodes.length; i++) {
-            if (this._tasks[nodes[i]]) {
-              delete this._tasks[path];
-            }
-          }
-        }
+        this.deleteChildPathsFromTasks();
       }.bind(this), function(err) {
         throw err;
       });
@@ -685,8 +694,8 @@
             }
           }
           this._emit('req-done');
-          this.findTasks(false).then(function() {//see if there are any more tasks that are not refresh tasks
-            if (Object.getOwnPropertyNames(this._tasks).length === 0 || this.stopped) {
+          this.collectTasks(false).then(function() {//see if there are any more tasks that are not refresh tasks
+            if (!this.hasTasks() || this.stopped) {
               RemoteStorage.log('sync is done! reschedule?', Object.getOwnPropertyNames(this._tasks).length, this.stopped);
               this._emit('done');
             } else {
@@ -743,19 +752,20 @@
       return (numAdded >= numToAdd);
     },
 
-    findTasks: function(alsoCheckRefresh) {
-      if (Object.getOwnPropertyNames(this._tasks).length > 0 || this.stopped) {
+    collectTasks: function(alsoCheckRefresh) {
+      if (this.hasTasks() || this.stopped) {
         promise = promising();
         promise.fulfill();
         return promise;
       }
-      return this.checkDiffs().then(function(numDiffs) {
+
+      return this.collectDiffTasks().then(function(numDiffs) {
         if (numDiffs || alsoCheckRefresh === false) {
           promise = promising();
           promise.fulfill();
           return promise;
         } else {
-          return this.checkRefresh();
+          return this.collectRefreshTasks();
         }
       }.bind(this), function(err) {
         throw err;
@@ -778,7 +788,7 @@
       var promise = promising();
 
       if (!this.doTasks()) {
-        return this.findTasks().then(function() {
+        return this.collectTasks().then(function() {
           try {
             this.doTasks();
           } catch(e) {
@@ -791,7 +801,7 @@
       } else {
         return promising().fulfill();
       }
-    }
+    },
   };
 
   /**
