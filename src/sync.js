@@ -444,7 +444,6 @@
             changedObjs[j] = undefined;
           }
         }
-        RemoteStorage.log('line 421', this);
         return this.deleteRemoteTrees(Object.keys(recurse), changedObjs).then(function(changedObjs2) {
           return this.local.setNodes(this.flush(changedObjs2));
         }.bind(this));
@@ -455,7 +454,6 @@
       if (paths.length === 0) {
         return promising().fulfill(changedObjs);
       }
-      RemoteStorage.log('431');
       this.local.getNodes(paths).then(function(objs) {
         var i, j, subPaths = {};
         for (i in objs) {
@@ -473,7 +471,6 @@
               }
             } else {
               if (objs[i].common && typeof(objs[i].common.body) !== undefined) {
-                RemoteStorage.log('cloning', changedObjs, i, objs, j);
                 changedObjs[i] = this.local._getInternals().deepClone(objs[i]);
                 changedObjs[i].remote = {
                   body: false,
@@ -547,7 +544,6 @@
     completePush: function(path, action, conflict, revision) {
       return this.local.getNodes([path]).then(function(objs) {
         if (!objs[path].push) {
-          RemoteStorage.log('whoops!', path, action, conflict, revision, objs);
           this.stopped = true;
           throw new Error('completePush called but no push version!');
         }
@@ -704,7 +700,7 @@
           }.bind(this));
         }.bind(this),
         function(err) {
-          RemoteStorage.log('bug!', err);
+          RemoteStorage.log('Error', err);
           this.remote.online = false;
           delete this._timeStarted[obj.path];
           delete this._running[obj.path];
