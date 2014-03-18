@@ -2,6 +2,22 @@
 
   var syncInterval = 10000;
 
+  function taskFor(action, path, promise) {
+    return {
+      action:  action,
+      path:    path,
+      promise: promise
+    };
+  }
+
+  function isStaleChild(node) {
+    return node.remote && node.remote.revision && !node.remote.itemsMap && !node.remote.body;
+  }
+
+  function hasCommonRevision(node) {
+    return node.common && node.common.revision;
+  }
+
   /**
    * Class: RemoteStorage.Sync
    **/
@@ -153,7 +169,8 @@
     },
 
     inConflict: function(node) {
-      return (node.local && node.remote && (node.remote.body !== undefined || node.remote.itemsMap));
+      return (node.local && node.remote &&
+              (node.remote.body !== undefined || node.remote.itemsMap));
     },
 
     needsRefresh: function(node) {
@@ -185,6 +202,14 @@
       if (node.local && !node.push) {
         return true;
       }
+    },
+
+    needsRemotePut: function(node) {
+      return node.local && node.local.body;
+    },
+
+    needsRemoteDelete: function(node) {
+      return node.local && node.local.body === false;
     },
 
     getParentPath: function(path) {
@@ -231,93 +256,74 @@
       });
     },
 
-    flush: function(objs) {
-      // TODO rename objs
-      for (var i in objs) {
+    flush: function(nodes) {
+      for (var path in nodes) {
         // Strategy is 'FLUSH' and no local changes exist
-        if (this.caching.checkPath(i) === 'FLUSH' && !objs[i].local) {
-          RemoteStorage.log('flushing', i);
-          objs[i] = undefined; // cause node to be flushed from cache
+        if (this.caching.checkPath(path) === 'FLUSH' && !nodes[path].local) {
+          RemoteStorage.log('Flushing', path);
+          nodes[path] = undefined; // Cause node to be flushed from cache
         }
       }
-      return objs;
+      return nodes;
     },
 
     doTask: function(path) {
-      return this.local.getNodes([path]).then(function(objs) {
-        if (typeof(objs[path]) === 'undefined') {
-          //first fetch:
-          return {
-            action: 'get',
-            path: path,
-            promise: this.remote.get(path)
-          };
-        } else if (objs[path].remote && objs[path].remote.revision && !objs[path].remote.itemsMap && !objs[path].remote.body) {
-          //fetch known-stale child:
-          return {
-            action: 'get',
-            path: path,
-            promise: this.remote.get(path)
-          };
-        } else if (objs[path].local && objs[path].local.body) {
-          //push put:
-          objs[path].push = this.local._getInternals().deepClone(objs[path].local);
-          objs[path].push.timestamp =  this.now();
-          return this.local.setNodes(this.flush(objs)).then(function() {
+      var promise = this.local.getNodes([path]).then(function(nodes) {
+        var node = nodes[path];
+
+        // First fetch:
+        if (typeof(node) === 'undefined') {
+          return taskFor('get', path, this.remote.get(path));
+        }
+        // Fetch known-stale child:
+        else if (isStaleChild(node)) {
+          return taskFor('get', path, this.remote.get(path));
+        }
+        // Push PUT:
+        else if (this.needsRemotePut(node)) {
+          node.push = this.local._getInternals().deepClone(node.local);
+          node.push.timestamp = this.now();
+
+          return this.local.setNodes(this.flush(nodes)).then(function() {
             var options;
-            if (objs[path].common && objs[path].common.revision) {
-              options = {
-                ifMatch: objs[path].common.revision
-              };
+            if (hasCommonRevision(node)) {
+              options = { ifMatch: node.common.revision };
             } else {
-              //force this to be an initial PUT (fail if something is already there)
-              options = {
-                ifNoneMatch: '*'
-              };
+              // Initial PUT (fail if something is already there)
+              options = { ifNoneMatch: '*' };
             }
-            return {
-              action: 'put',
-              path: path,
-              promise: this.remote.put(path, objs[path].push.body, objs[path].push.contentType, options)
-            };
+
+            return taskFor('put', path,
+              this.remote.put(path, node.push.body, node.push.contentType, options)
+            );
           }.bind(this));
-        } else if (objs[path].local && objs[path].local.body === false) {
-          //push delete:
-          objs[path].push = { body: false, timestamp: this.now() };
-          return this.local.setNodes(this.flush(objs)).then(function() {
-            if (objs[path].common && objs[path].common.revision) {
-              return {
-                action: 'delete',
-                path: path,
-                promise: this.remote.delete(path, {
-                  ifMatch: objs[path].common.revision
-                })
-              };
-            } else { //ascertain current common or remote revision first
-              return {
-                action: 'get',
-                path: path,
-                promise: this.remote.get(path)
-              };
+        }
+        // Push DELETE:
+        else if (this.needsRemoteDelete(node)) {
+          node.push = { body: false, timestamp: this.now() };
+
+          return this.local.setNodes(this.flush(nodes)).then(function() {
+            if (hasCommonRevision(node)) {
+              return taskFor('delete', path,
+                this.remote.delete(path, { ifMatch: node.common.revision })
+              );
+            } else { // Ascertain current common or remote revision first
+              return taskFor('get', path, this.remote.get(path));
             }
           }.bind(this));
-        } else if (objs[path].common && objs[path].common.revision) {
-          //conditional refresh:
-          return {
-            action: 'get',
-            path: path,
-            promise: this.remote.get(path, {
-              ifNoneMatch: objs[path].common.revision
-            })
-          };
-        } else {
-          return {
-            action: 'get',
-            path: path,
-            promise: this.remote.get(path)
-          };
+        }
+        // Conditional refresh:
+        else if (hasCommonRevision(node)) {
+          return taskFor('get', path,
+            this.remote.get(path, { ifNoneMatch: node.common.revision })
+          );
+        }
+        else {
+          return taskFor('get', path, this.remote.get(path));
         }
       }.bind(this));
+
+      return promise;
     },
 
     autoMerge: function(obj) {
@@ -401,15 +407,15 @@
         paths.push(path+i);
       }
 
-      return this.local.getNodes(paths).then(function(objs) {
+      return this.local.getNodes(paths).then(function(nodes) {
         var j, k, cachingStrategy, create;
 
-        for (j in objs) {
+        for (j in nodes) {
           if (meta[j]) {
-            if (objs[j] && objs[j].common) {
-              if (objs[j].common.revision !== meta[j].ETag) {
-                if (!objs[j].remote || objs[j].remote.revision !== meta[j].ETag) {
-                  changedObjs[j] = this.local._getInternals().deepClone(objs[j]);
+            if (nodes[j] && nodes[j].common) {
+              if (nodes[j].common.revision !== meta[j].ETag) {
+                if (!nodes[j].remote || nodes[j].remote.revision !== meta[j].ETag) {
+                  changedObjs[j] = this.local._getInternals().deepClone(nodes[j]);
                   changedObjs[j].remote = {
                     revision: meta[j].ETag,
                     timestamp: this.now()
@@ -439,14 +445,14 @@
             if (changedObjs[j] && meta[j]['Content-Length']) {
               changedObjs[j].remote.contentLength = meta[j]['Content-Length'];
             }
-          } else if (missingChildren[i] && objs[j] && objs[j].common) {
-            if (objs[j].common.itemsMap) {
-              for (k in objs[j].common.itemsMap) {
+          } else if (missingChildren[i] && nodes[j] && nodes[j].common) {
+            if (nodes[j].common.itemsMap) {
+              for (k in nodes[j].common.itemsMap) {
                 recurse[j+k] = true;
               }
             }
-            if (objs[j].local && objs[j].local.itemsMap) {
-              for (k in objs[j].local.itemsMap) {
+            if (nodes[j].local && nodes[j].local.itemsMap) {
+              for (k in nodes[j].local.itemsMap) {
                 recurse[j+k] = true;
               }
             }
@@ -463,24 +469,24 @@
       if (paths.length === 0) {
         return promising().fulfill(changedObjs);
       }
-      this.local.getNodes(paths).then(function(objs) {
+      this.local.getNodes(paths).then(function(nodes) {
         var i, j, subPaths = {};
-        for (i in objs) {
-          if (objs[i]) {
+        for (i in nodes) {
+          if (nodes[i]) {
             if (i.substr(-1) === '/') {
-              if (objs[i].common && objs[i].common.itemsMap) {
-                for (j in objs[i].common.itemsMap) {
+              if (nodes[i].common && nodes[i].common.itemsMap) {
+                for (j in nodes[i].common.itemsMap) {
                   subPaths[i+j] = true;
                 }
               }
-              if (objs[i].local && objs[i].local.itemsMap) {
-                for (j in objs[i].local.itemsMap) {
+              if (nodes[i].local && nodes[i].local.itemsMap) {
+                for (j in nodes[i].local.itemsMap) {
                   subPaths[i+j] = true;
                 }
               }
             } else {
-              if (objs[i].common && typeof(objs[i].common.body) !== undefined) {
-                changedObjs[i] = this.local._getInternals().deepClone(objs[i]);
+              if (nodes[i].common && typeof(nodes[i].common.body) !== undefined) {
+                changedObjs[i] = this.local._getInternals().deepClone(nodes[i]);
                 changedObjs[i].remote = {
                   body: false,
                   timestamp: this.now()
@@ -498,102 +504,102 @@
     },
 
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
-      return this.local.getNodes([path]).then(function(objs) {
+      return this.local.getNodes([path]).then(function(nodes) {
         var i, missingChildren = {};
-        if (typeof(objs[path]) !== 'object'  || objs[path].path !== path || typeof(objs[path].common) !== 'object') {
-          objs[path] = {
+        if (typeof(nodes[path]) !== 'object'  || nodes[path].path !== path || typeof(nodes[path].common) !== 'object') {
+          nodes[path] = {
             path: path,
             common: {}
           };
         }
-        objs[path].remote = {
+        nodes[path].remote = {
           revision: revision,
           timestamp: this.now()
         };
         if (path.substr(-1) === '/') {
-          objs[path].remote.itemsMap = {};
-          if (objs[path].common && objs[path].common.itemsMap) {
-            for (i in objs[path].common.itemsMap) {
+          nodes[path].remote.itemsMap = {};
+          if (nodes[path].common && nodes[path].common.itemsMap) {
+            for (i in nodes[path].common.itemsMap) {
               if (!bodyOrItemsMap[i]) {
                 missingChildren[i] = true;
               }
             }
           }
-          if (objs[path].local && objs[path].local.itemsMap) {
-            for (i in objs[path].local.itemsMap) {
+          if (nodes[path].local && nodes[path].local.itemsMap) {
+            for (i in nodes[path].local.itemsMap) {
               if (!bodyOrItemsMap[i]) {
                 missingChildren[i] = true;
               }
             }
           }
-          if (objs[path].remote && objs[path].remote.itemsMap) {
-            for (i in objs[path].remote.itemsMap) {
+          if (nodes[path].remote && nodes[path].remote.itemsMap) {
+            for (i in nodes[path].remote.itemsMap) {
               if (!bodyOrItemsMap[i]) {
                 missingChildren[i] = true;
               }
             }
           }
           for (i in bodyOrItemsMap) {
-            objs[path].remote.itemsMap[i] = true;
+            nodes[path].remote.itemsMap[i] = true;
           }
         } else {
-          objs[path].remote.body = bodyOrItemsMap;
-          objs[path].remote.contentType = contentType;
+          nodes[path].remote.body = bodyOrItemsMap;
+          nodes[path].remote.contentType = contentType;
         }
 
-        objs[path] = this.autoMerge(objs[path]);
+        nodes[path] = this.autoMerge(nodes[path]);
 
         return {
-          toBeSaved: objs,
+          toBeSaved: nodes,
           missingChildren: missingChildren
         };
       }.bind(this));
     },
 
     completePush: function(path, action, conflict, revision) {
-      return this.local.getNodes([path]).then(function(objs) {
-        if (!objs[path].push) {
+      return this.local.getNodes([path]).then(function(nodes) {
+        if (!nodes[path].push) {
           this.stopped = true;
           throw new Error('completePush called but no push version!');
         }
         if (conflict) {
           RemoteStorage.log('we have conflict');
-          if (!objs[path].remote || objs[path].remote.revision !== revision) {
-            objs[path].remote = {
+          if (!nodes[path].remote || nodes[path].remote.revision !== revision) {
+            nodes[path].remote = {
               revision: revision,
               timestamp: this.now()
             };
           }
-          objs[path] = this.autoMerge(objs[path]);
+          nodes[path] = this.autoMerge(nodes[path]);
         } else {
-          objs[path].common = {
+          nodes[path].common = {
             revision: revision,
             timestamp: this.now()
           };
           if (action === 'put') {
-            objs[path].common.body = objs[path].push.body;
-            objs[path].common.contentType = objs[path].push.contentType;
-            if (objs[path].local.body === objs[path].push.body && objs[path].local.contentType === objs[path].push.contentType) {
-              delete objs[path].local;
+            nodes[path].common.body = nodes[path].push.body;
+            nodes[path].common.contentType = nodes[path].push.contentType;
+            if (nodes[path].local.body === nodes[path].push.body && nodes[path].local.contentType === nodes[path].push.contentType) {
+              delete nodes[path].local;
             }
-            delete objs[path].push;
+            delete nodes[path].push;
           } else if (action === 'delete') {
-            if (objs[path].local.body === false) {//successfully deleted and no new local changes since push; flush it.
-              objs[path] = undefined;
+            if (nodes[path].local.body === false) {//successfully deleted and no new local changes since push; flush it.
+              nodes[path] = undefined;
             } else {
-              delete objs[path].push;
+              delete nodes[path].push;
             }
           }
         }
-        return this.local.setNodes(this.flush(objs));
+        return this.local.setNodes(this.flush(nodes));
       }.bind(this));
     },
 
     dealWithFailure: function(path, action, statusMeaning) {
-      return this.local.getNodes([path]).then(function(objs) {
-        if (objs[path]) {
-          delete objs[path].push;
-          return this.local.setNodes(this.flush(objs));
+      return this.local.getNodes([path]).then(function(nodes) {
+        if (nodes[path]) {
+          delete nodes[path].push;
+          return this.local.setNodes(this.flush(nodes));
         }
       }.bind(this));
     },
@@ -673,54 +679,62 @@
 
     numThreads: 10,
 
-    finishTask: function (obj) {
-      if (obj.action === undefined) {
-        delete this._running[obj.path];
-      } else {
-        obj.promise.then(function(status, bodyOrItemsMap, contentType, revision) {
-          return this.handleResponse(obj.path, obj.action, status, bodyOrItemsMap, contentType, revision);
-        }.bind(this), function(err) {
-          RemoteStorage.log('wireclient rejects its promise!', obj.path, obj.action, err);
-          return this.handleResponse(obj.path, obj.action, 'offline');
-        }.bind(this)).then(function(completed) {
-          delete this._timeStarted[obj.path];
-          delete this._running[obj.path];
-          if (completed) {
-            if (this._tasks[obj.path]) {
-              for (i=0; i<this._tasks[obj.path].length; i++) {
-                this._tasks[obj.path][i]();
-              }
-              delete this._tasks[obj.path];
+    finishTask: function(task) {
+      if (task.action === undefined) {
+        delete this._running[task.path];
+        return;
+      }
+
+      task.promise.then(function(status, bodyOrItemsMap, contentType, revision) {
+        return this.handleResponse(task.path, task.action, status, bodyOrItemsMap, contentType, revision);
+      }.bind(this), function(err) {
+        RemoteStorage.log('wireclient rejects its promise!', task.path, task.action, err);
+        return this.handleResponse(task.path, task.action, 'offline');
+      }.bind(this))
+
+      .then(function(completed) {
+        delete this._timeStarted[task.path];
+        delete this._running[task.path];
+
+        if (completed) {
+          if (this._tasks[task.path]) {
+            for (i=0; i<this._tasks[task.path].length; i++) {
+              this._tasks[task.path][i]();
             }
+            delete this._tasks[task.path];
           }
-          this._emit('req-done');
-          this.collectTasks(false).then(function() {//see if there are any more tasks that are not refresh tasks
-            if (!this.hasTasks() || this.stopped) {
-              RemoteStorage.log('sync is done! reschedule?', Object.getOwnPropertyNames(this._tasks).length, this.stopped);
-              this._emit('done');
-            } else {
-              //use a 10ms timeout to let the JavaScript runtime catch its breath
-              //(and hopefully force an IndexedDB auto-commit?), and also to cause
-              //the threads to get staggered and get a good spread over time:
-              setTimeout(function() {
-                this.doTasks();
-              }.bind(this), 10);
-            }
-          }.bind(this));
-        }.bind(this),
-        function(err) {
-          RemoteStorage.log('Error', err);
-          this.remote.online = false;
-          delete this._timeStarted[obj.path];
-          delete this._running[obj.path];
-          this._emit('req-done');
-          if (!this.stopped) {
+        }
+
+        this._emit('req-done');
+
+        this.collectTasks(false).then(function() {
+          // See if there are any more tasks that are not refresh tasks
+          if (!this.hasTasks() || this.stopped) {
+            RemoteStorage.log('sync is done! reschedule?', Object.getOwnPropertyNames(this._tasks).length, this.stopped);
+            this._emit('done');
+          } else {
+            // Use a 10ms timeout to let the JavaScript runtime catch its breath
+            // (and hopefully force an IndexedDB auto-commit?), and also to cause
+            // the threads to get staggered and get a good spread over time:
             setTimeout(function() {
               this.doTasks();
-            }.bind(this), 0);
+            }.bind(this), 10);
           }
         }.bind(this));
-      }
+      }.bind(this),
+
+      function(err) {
+        RemoteStorage.log('Error', err);
+        this.remote.online = false;
+        delete this._timeStarted[task.path];
+        delete this._running[task.path];
+        this._emit('req-done');
+        if (!this.stopped) {
+          setTimeout(function() {
+            this.doTasks();
+          }.bind(this), 0);
+        }
+      }.bind(this));
     },
 
     doTasks: function() {
