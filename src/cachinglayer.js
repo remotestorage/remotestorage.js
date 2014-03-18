@@ -215,6 +215,7 @@
       }.bind(this)).then(function(nodes) {
         for (var path in nodes) {
           var node = nodes[path];
+
           if (node && node.common && node.local) {
             this._emit('change', {
               path:     node.path,
@@ -324,16 +325,18 @@
 
     _getAllDescendentPaths: function(path) {
       if (isFolder(path)) {
-        return this.getNodes([path]).then(function(objs) {
-          var i, pending=0, allPaths = [path], latest = getLatest(objs[path]), promise = promising();
-          for (i in latest.itemsMap) {
+        return this.getNodes([path]).then(function(nodes) {
+          var pending = 0;
+          var allPaths = [path];
+          var latest = getLatest(nodes[path]);
+          var promise = promising();
+
+          for (var itemName in latest.itemsMap) {
             pending++;
-            var subPromise = this._getAllDescendentPaths(path+i);
-            subPromise.then(function(paths) {
-              var j;
+            this._getAllDescendentPaths(path+itemName).then(function(paths) {
               pending--;
-              for (j=0; j<paths.length; j++) {
-                allPaths.push(paths[j]);
+              for (var i=0; i<paths.length; i++) {
+                allPaths.push(paths[i]);
               }
               if (pending === 0) {
                 promise.fulfill(allPaths);
