@@ -249,11 +249,6 @@
       }.bind(this));
     },
 
-    /**
-     * Method: onDiff
-     *
-     * Set an event handler for ?
-     */
     onDiff: function(diffHandler) {
       this.diffHandler = diffHandler;
     },
