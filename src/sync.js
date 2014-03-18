@@ -23,10 +23,13 @@
       this.doTasks();
     }.bind(this));
   };
+
   RemoteStorage.Sync.prototype = {
+
     now: function() {
       return new Date().getTime();
     },
+
     queueGetRequest: function(path, promise) {
       if (!this.remote.connected) {
         promise.reject('cannot fulfill maxAge requirement - remote is not connected');
@@ -41,17 +44,16 @@
         this.doTasks();
       }
     },
+
     corruptServerItemsMap: function(itemsMap, force02) {
-      var i;
-      if ((typeof(itemsMap) !== 'object') ||
-          (Array.isArray(itemsMap))) {
+      if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
         return true;
       }
-      for (i in itemsMap) {
+      for (var i in itemsMap) {
         if (typeof(itemsMap[i]) !== 'object') {
           return true;
         }
-        if(typeof(itemsMap[i].ETag) !== 'string') {
+        if (typeof(itemsMap[i].ETag) !== 'string') {
           return true;
         }
         if (i.substr(-1) === '/') {
@@ -74,19 +76,19 @@
       }
       return false;
     },
+
     corruptItemsMap: function(itemsMap) {
-      var i;
-      if ((typeof(itemsMap) !== 'object') ||
-          (Array.isArray(itemsMap))) {
+      if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
         return true;
       }
-      for (i in itemsMap) {
+      for (var i in itemsMap) {
         if (typeof(itemsMap[i]) !== 'boolean') {
           return true;
         }
       }
       return false;
     },
+
     corruptRevision: function(rev) {
       return ((typeof(rev) !== 'object') ||
           (Array.isArray(rev)) ||
@@ -97,6 +99,7 @@
           (rev.timestamp && typeof(rev.timestamp) !== 'number') ||
           (rev.itemsMap && this.corruptItemsMap(rev.itemsMap)));
     },
+
     isCorrupt: function(node) {
       return ((typeof(node) !== 'object') ||
           (Array.isArray(node)) ||
@@ -106,14 +109,18 @@
           (node.remote && this.corruptRevision(node.remote)) ||
           (node.push && this.corruptRevision(node.push)));
     },
+
     isFolderNode: function(node) {
       return (node.path.substr(-1) === '/');
     },
+
     isDocumentNode: function(node) {
       return (!this.isFolderNode(node));
     },
+
     checkDiffs: function() {
       var num = 0;
+
       return this.local.forAllNodes(function(node) {
         if (num > 100) {
           return;
@@ -139,6 +146,7 @@
         throw err;
       });
     },
+
     tooOld: function(node) {
       if (node.common) {
         if (!node.common.timestamp) {
@@ -148,9 +156,11 @@
       }
       return false;
     },
+
     inConflict: function(node) {
       return (node.local && node.remote && (node.remote.body !== undefined || node.remote.itemsMap));
     },
+
     needsFetch: function(node) {
       if (this.inConflict(node)) {
         return true;
@@ -162,6 +172,7 @@
         return true;
       }
     },
+
     needsPush: function(node) {
       if (this.inConflict(node)) {
         return false;
@@ -170,22 +181,26 @@
         return true;
       }
     },
+
     getParentPath: function(path) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
+
       if (parts) {
         return parts[1];
       } else {
-        throw new Error('not a valid path: "'+path+'"');
+        throw new Error('Not a valid path: "'+path+'"');
       }
     },
+
     checkRefresh: function() {
       return this.local.forAllNodes(function(node) {
         var parentPath;
+
         if (this.tooOld(node)) {
           try {
             parentPath = this.getParentPath(node.path);
           } catch(e) {
-            //node.path is already '/', can't take parentPath
+            // node.path is already '/', can't take parentPath
           }
           if (parentPath && this.access.checkPathPermission(parentPath, 'r')) {
             this._tasks[parentPath] = [];
@@ -194,12 +209,11 @@
           }
         }
       }.bind(this)).then(function() {
-        var i, j;
-        for(i in this._tasks) {
-          nodes = this.local._getInternals().pathsFromRoot(i);
-          for (j=1; j<nodes.length; j++) {
-            if (this._tasks[nodes[j]]) {
-              delete this._tasks[i];
+        for (var path in this._tasks) {
+          nodes = this.local._getInternals().pathsFromRoot(path);
+          for (var i=1; i<nodes.length; i++) {
+            if (this._tasks[nodes[i]]) {
+              delete this._tasks[path];
             }
           }
         }
@@ -207,19 +221,22 @@
         throw err;
       });
     },
+
     flush: function(objs) {
-      var i;
-      for (i in objs) {
-        if (this.caching.checkPath(i) === 'FLUSH' && !objs[i].local) {//strategy is 'FLUSH' and no local changes exist
+      // TODO rename objs
+      for (var i in objs) {
+        // Strategy is 'FLUSH' and no local changes exist
+        if (this.caching.checkPath(i) === 'FLUSH' && !objs[i].local) {
           RemoteStorage.log('flushing', i);
-          objs[i] = undefined;//cause node to be flushed from cache
+          objs[i] = undefined; // cause node to be flushed from cache
         }
       }
       return objs;
     },
+
     doTask: function(path) {
       return this.local.getNodes([path]).then(function(objs) {
-        if(typeof(objs[path]) === 'undefined') {
+        if (typeof(objs[path]) === 'undefined') {
           //first fetch:
           return {
             action: 'get',
@@ -293,8 +310,10 @@
         }
       }.bind(this));
     },
+
     autoMerge: function(obj) {
       var newValue, oldValue, i;
+
       if (!obj.remote) {
         return obj;
       }
@@ -361,9 +380,10 @@
         return obj;
       }
     },
-    markChildren: function(path, itemsMap, changedObjs, missingChildren) {
 
+    markChildren: function(path, itemsMap, changedObjs, missingChildren) {
       var i, paths = [], meta = {}, recurse = {};
+
       for (i in itemsMap) {
         paths.push(path+i);
         meta[path+i] = itemsMap[i];
@@ -371,8 +391,10 @@
       for (i in missingChildren) {
         paths.push(path+i);
       }
+
       return this.local.getNodes(paths).then(function(objs) {
         var j, k, cachingStrategy, create;
+
         for (j in objs) {
           if (meta[j]) {
             if (objs[j] && objs[j].common) {
@@ -428,6 +450,7 @@
         }.bind(this));
       }.bind(this));
     },
+
     deleteRemoteTrees: function(paths, changedObjs) {
       if (paths.length === 0) {
         return promising().fulfill(changedObjs);
@@ -467,10 +490,11 @@
         }.bind(this));
       }.bind(this));
     },
+
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
       return this.local.getNodes([path]).then(function(objs) {
         var i, missingChildren = {};
-        if(typeof(objs[path]) !== 'object'  || objs[path].path !== path || typeof(objs[path].common) !== 'object') {
+        if (typeof(objs[path]) !== 'object'  || objs[path].path !== path || typeof(objs[path].common) !== 'object') {
           objs[path] = {
             path: path,
             common: {}
@@ -519,6 +543,7 @@
         };
       }.bind(this));
     },
+
     completePush: function(path, action, conflict, revision) {
       return this.local.getNodes([path]).then(function(objs) {
         if (!objs[path].push) {
@@ -558,6 +583,7 @@
         return this.local.setNodes(this.flush(objs));
       }.bind(this));
     },
+
     dealWithFailure: function(path, action, statusMeaning) {
       return this.local.getNodes([path]).then(function(objs) {
         if (objs[path]) {
@@ -566,6 +592,7 @@
         }
       }.bind(this));
     },
+
     interpretStatus: function(statusCode) {
       if (statusCode === 'offline' || statusCode === 'timeout') {
         return {
@@ -582,6 +609,7 @@
         changed: (statusCode !== 304)
       };
     },
+
     handleResponse: function(path, action, status, bodyOrItemsMap, contentType, revision) {
       var statusMeaning = this.interpretStatus(status);
 
@@ -594,7 +622,7 @@
               bodyOrItemsmap = false;
             }
           }
-          if(statusMeaning.changed) {
+          if (statusMeaning.changed) {
             return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(dataFromFetch) {
               if (path.substr(-1) === '/') {
                 if (this.corruptServerItemsMap(bodyOrItemsMap)) {
@@ -637,9 +665,11 @@
         });
       }
     },
+
     numThreads: 10,
+
     finishTask: function (obj) {
-      if(obj.action === undefined) {
+      if (obj.action === undefined) {
         delete this._running[obj.path];
       } else {
         obj.promise.then(function(status, bodyOrItemsMap, contentType, revision) {
@@ -652,7 +682,7 @@
           delete this._running[obj.path];
           if (completed) {
             if (this._tasks[obj.path]) {
-              for(i=0; i<this._tasks[obj.path].length; i++) {
+              for (i=0; i<this._tasks[obj.path].length; i++) {
                 this._tasks[obj.path][i]();
               }
               delete this._tasks[obj.path];
@@ -687,6 +717,7 @@
         }.bind(this));
       }
     },
+
     doTasks: function() {
       var numToHave, numAdded = 0, numToAdd, path;
       if (this.remote.connected) {
@@ -715,6 +746,7 @@
       }
       return (numAdded >= numToAdd);
     },
+
     findTasks: function(alsoCheckRefresh) {
       if (Object.getOwnPropertyNames(this._tasks).length > 0 || this.stopped) {
         promise = promising();
@@ -733,6 +765,7 @@
         throw err;
       });
     },
+
     addTask: function(path, cb) {
       if (!this._tasks[path]) {
         this._tasks[path] = [];
@@ -747,6 +780,7 @@
      **/
     sync: function() {
       var promise = promising();
+
       if (!this.doTasks()) {
         return this.findTasks().then(function() {
           try {
@@ -754,12 +788,11 @@
           } catch(e) {
             RemoteStorage.log('doTasks error', e);
           }
-        }.bind(this), function(err) {
-          RemoteStorage.log('sync error', err);
-          throw new Error('local cache unavailable');
+        }.bind(this), function(e) {
+          RemoteStorage.log('Sync error', e);
+          throw new Error('Local cache unavailable');
         });
       } else {
-        RemoteStorage.log('doTasks returned true');
         return promising().fulfill();
       }
     }
@@ -816,25 +849,28 @@
     if (this.sync.stopped) {
       return;
     }
+
     this.sync.on('done', function() {
-      RemoteStorage.log('done caught! setting timer', this.getSyncInterval());
+      RemoteStorage.log('Sync done. Setting timer to', this.getSyncInterval());
       if (!this.sync.stopped) {
         this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getSyncInterval());
       }
     }.bind(this));
-    RemoteStorage.log('syncCycle calling sync.sync:');
+
     this.sync.sync();
   };
 
   RemoteStorage.prototype.stopSync = function() {
     if (this.sync) {
-      RemoteStorage.log('stopping sync');
+      RemoteStorage.log('Stopping sync');
       this.sync.stopped = true;
     } else {
-      RemoteStorage.log('will instantiate sync stopped');
+      // TODO When is this ever the case and what is syncStopped for then?
+      RemoteStorage.log('Will instantiate sync stopped');
       this.syncStopped = true;
     }
   };
+
   RemoteStorage.prototype.startSync = function() {
     this.sync.stopped = false;
     this.syncStopped = false;
@@ -842,23 +878,28 @@
   };
 
   var syncCycleCb;
+
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
     syncCycleCb = function() {
       RemoteStorage.log('syncCycleCb calling syncCycle:');
-      if(!remoteStorage.sync) {
-        //call this now that all other modules are also ready:
+
+      if (!remoteStorage.sync) {
+        // Call this now that all other modules are also ready:
         remoteStorage.sync = new RemoteStorage.Sync(
             remoteStorage.local, remoteStorage.remote, remoteStorage.access,
             remoteStorage.caching);
+
         if (remoteStorage.syncStopped) {
-          RemoteStorage.log('instantiating sync stopped');
+          RemoteStorage.log('Instantiating sync stopped');
           remoteStorage.sync.stopped = true;
           delete remoteStorage.syncStopped;
         }
       }
+
       RemoteStorage.log('syncCycleCb calling syncCycle:');
       remoteStorage.syncCycle();
     };
+
     remoteStorage.on('ready', syncCycleCb);
   };
 
