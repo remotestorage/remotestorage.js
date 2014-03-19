@@ -628,6 +628,39 @@ define([], function() {
             test.done();
           });
         }
+      },
+
+      {
+        desc: "completePush for put without conflict updates 'common', removes 'local' and 'push' from node",
+        run: function(env, test) {
+          env.rs.caching._responses['/foo/bar'] = 'ALL';
+
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              path: '/foo/bar',
+              local: {
+                body: {foo: 'bar'},
+                contentType: 'application/json',
+                timestamp: 1234567891000
+              },
+              push: {
+                body: {foo: 'bar'},
+                contentType: 'application/json',
+                timestamp: 1234567891234
+              }
+            }
+          }).then(function() {
+            return env.rs.sync.completePush('/foo/bar', 'put', false, '12345');
+          }).then(function() {
+            env.rs.local.getNodes(['/foo/bar']).then(function(nodes) {
+              var node = nodes['/foo/bar'];
+              test.assertAnd(node.common.body, {foo: 'bar'});
+              test.assertAnd(node.common.contentType, 'application/json');
+              test.assertTypeAnd(node.local, 'undefined');
+              test.assertType(node.remote, 'undefined');
+            });
+          });
+        }
       }
     ]
   });

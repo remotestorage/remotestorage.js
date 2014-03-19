@@ -18,6 +18,10 @@
     return node.common && node.common.revision;
   }
 
+  function equal(obj1, obj2) {
+    return JSON.stringify(obj1) === JSON.stringify(obj2);
+  }
+
   /**
    * Class: RemoteStorage.Sync
    **/
@@ -579,7 +583,8 @@
           if (action === 'put') {
             nodes[path].common.body = nodes[path].push.body;
             nodes[path].common.contentType = nodes[path].push.contentType;
-            if (nodes[path].local.body === nodes[path].push.body && nodes[path].local.contentType === nodes[path].push.contentType) {
+            if (equal(nodes[path].local.body, nodes[path].push.body) &&
+                nodes[path].local.contentType === nodes[path].push.contentType) {
               delete nodes[path].local;
             }
             delete nodes[path].push;
