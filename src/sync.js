@@ -486,7 +486,14 @@
 
       this.local.getNodes(paths).then(function(nodes) {
         var subPaths = {};
-        var itemName;
+
+        collectSubPaths = function(folder, path) {
+          if (folder && folder.itemsMap) {
+            for (var itemName in folder.itemsMap) {
+              subPaths[path+itemName] = true;
+            }
+          }
+        };
 
         for (var path in nodes) {
           var node = nodes[path];
@@ -497,17 +504,8 @@
           }
 
           if (isFolder(path)) {
-            if (node.common && node.common.itemsMap) {
-              for (itemName in node.common.itemsMap) {
-                subPaths[path+itemName] = true;
-              }
-            }
-
-            if (node.local && node.local.itemsMap) {
-              for (itemName in node.local.itemsMap) {
-                subPaths[path+itemName] = true;
-              }
-            }
+            collectSubPaths(node.common, path);
+            collectSubPaths(node.local, path);
           } else {
             if (node.common && typeof(node.common.body) !== undefined) {
               changedNodes[path] = this.local._getInternals().deepClone(node);
