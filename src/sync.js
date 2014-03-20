@@ -522,56 +522,57 @@
     },
 
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
-      return this.local.getNodes([path]).then(function(nodes) {
-        var i, missingChildren = {};
-        if (typeof(nodes[path]) !== 'object'  || nodes[path].path !== path || typeof(nodes[path].common) !== 'object') {
-          nodes[path] = {
+      var promise = this.local.getNodes([path]).then(function(nodes) {
+        var itemName;
+        var missingChildren = {};
+        var node = nodes[path];
+
+        collectMissingChildren = function(nodeSet) {
+          if (nodeSet && nodeSet.itemsMap) {
+            for (var itemName in nodeSet.itemsMap) {
+              if (!bodyOrItemsMap[itemName]) {
+                missingChildren[itemName] = true;
+              }
+            }
+          }
+        };
+
+        if (typeof(node) !== 'object'  || node.path !== path ||
+            typeof(node.common) !== 'object') {
+          node = {
             path: path,
             common: {}
           };
         }
-        nodes[path].remote = {
+
+        node.remote = {
           revision: revision,
           timestamp: this.now()
         };
-        if (path.substr(-1) === '/') {
-          if (nodes[path].common && nodes[path].common.itemsMap) {
-            for (i in nodes[path].common.itemsMap) {
-              if (!bodyOrItemsMap[i]) {
-                missingChildren[i] = true;
-              }
-            }
-          }
-          if (nodes[path].local && nodes[path].local.itemsMap) {
-            for (i in nodes[path].local.itemsMap) {
-              if (!bodyOrItemsMap[i]) {
-                missingChildren[i] = true;
-              }
-            }
-          }
-          if (nodes[path].remote && nodes[path].remote.itemsMap) {
-            for (i in nodes[path].remote.itemsMap) {
-              if (!bodyOrItemsMap[i]) {
-                missingChildren[i] = true;
-              }
-            }
-          }
-          nodes[path].remote.itemsMap = {};
-          for (i in bodyOrItemsMap) {
-            nodes[path].remote.itemsMap[i] = true;
+
+        if (isFolder(path)) {
+          collectMissingChildren(node.common);
+          collectMissingChildren(node.local);
+          collectMissingChildren(node.remote);
+
+          node.remote.itemsMap = {};
+          for (itemName in bodyOrItemsMap) {
+            node.remote.itemsMap[itemName] = true;
           }
         } else {
-          nodes[path].remote.body = bodyOrItemsMap;
-          nodes[path].remote.contentType = contentType;
+          node.remote.body = bodyOrItemsMap;
+          node.remote.contentType = contentType;
         }
 
-        nodes[path] = this.autoMerge(nodes[path]);
+        node = this.autoMerge(node);
 
         return {
-          toBeSaved: nodes,
+          toBeSaved:       nodes,
           missingChildren: missingChildren
         };
       }.bind(this));
+
+      return promise;
     },
 
     completePush: function(path, action, conflict, revision) {
