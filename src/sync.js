@@ -330,73 +330,78 @@
       return promise;
     },
 
-    autoMerge: function(obj) {
-      var newValue, oldValue, i;
+    autoMerge: function(node) {
+      var newValue, oldValue;
 
-      if (!obj.remote) {
-        return obj;
+      if (!node.remote) {
+        return node;
       }
-      if (!obj.local) {
-        if (obj.remote) {
-          if (obj.path.substr(-1) === '/') {
-            newValue = (typeof(obj.remote.itemsMap) === 'object' && Object.keys(obj.remote.itemsMap).length ? obj.remote.itemsMap : undefined);
-            oldValue = (typeof(obj.common.itemsMap) === 'object' && Object.keys(obj.common.itemsMap).length ? obj.common.itemsMap : undefined);
-            haveRemote = (obj.remote.itemsMap !== undefined);
+
+      if (!node.local) {
+        if (node.remote) {
+          if (node.path.substr(-1) === '/') {
+            newValue = (typeof(node.remote.itemsMap) === 'object' && Object.keys(node.remote.itemsMap).length ? node.remote.itemsMap : undefined);
+            oldValue = (typeof(node.common.itemsMap) === 'object' && Object.keys(node.common.itemsMap).length ? node.common.itemsMap : undefined);
+            haveRemote = (node.remote.itemsMap !== undefined);
           } else {
-            newValue = (obj.remote.body === false ? undefined : obj.remote.body);
-            oldValue = (obj.common.body === false ? undefined : obj.common.body);
-            haveRemote = (obj.remote.body !== undefined);
+            newValue = (node.remote.body === false ? undefined : node.remote.body);
+            oldValue = (node.common.body === false ? undefined : node.common.body);
+            haveRemote = (node.remote.body !== undefined);
           }
 
           if (haveRemote) {
             this.local._emit('change', {
-              origin: 'remote',
-              path: obj.path,
+              origin:   'remote',
+              path:     node.path,
               oldValue: oldValue,
               newValue: newValue
             });
-            obj.common = obj.remote;
-            delete obj.remote;
+            node.common = node.remote;
+            delete node.remote;
           }
         }
-        return obj;
+        return node;
       }
-      if (obj.path.substr(-1) === '/') {
+
+      if (node.path.substr(-1) === '/') {
         //auto merge folder once remote was fetched:
-        if (obj.remote.itemsMap) {
-          obj.common = obj.remote;
-          delete obj.remote;
-          if (obj.common.itemsMap) {
-            for (i in obj.common.itemsMap) {
-              if (!obj.local.itemsMap[i]) {
-                //indicates the node is either newly being fetched
-                //has been deleted locally (whether or not leading to conflict);
-                //before listing it in local listings, check if a local deletion
-                //exists.
-                obj.local.itemsMap[i] = false;
+        if (node.remote.itemsMap) {
+          node.common = node.remote;
+          delete node.remote;
+
+          if (node.common.itemsMap) {
+            for (var i in node.common.itemsMap) {
+              if (!node.local.itemsMap[i]) {
+                // Indicates the node is either newly being fetched
+                // has been deleted locally (whether or not leading to conflict);
+                // before listing it in local listings, check if a local deletion
+                // exists.
+                node.local.itemsMap[i] = false;
               }
             }
           }
         }
-        return obj;
+        return node;
       } else {
-        if (obj.remote.body !== undefined) {
+        if (node.remote.body !== undefined) {
           //keep/revert:
-          RemoteStorage.log('emitting keep/revert');
+          RemoteStorage.log('Emitting keep/revert');
+
           this.local._emit('change', {
-            origin: 'conflict',
-            path: obj.path,
-            oldValue: obj.local.body,
-            newValue: obj.remote.body,
-            oldContentType: obj.local.contentType,
-            newContentType: obj.remote.contentType
+            origin:         'conflict',
+            path:           node.path,
+            oldValue:       node.local.body,
+            newValue:       node.remote.body,
+            oldContentType: node.local.contentType,
+            newContentType: node.remote.contentType
           });
-          obj.common = obj.remote;
-          delete obj.remote;
-          delete obj.local;
+
+          node.common = node.remote;
+          delete node.remote;
+          delete node.local;
         }
-        delete obj.push;
-        return obj;
+        delete node.push;
+        return node;
       }
     },
 
