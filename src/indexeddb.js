@@ -9,12 +9,12 @@
    *
    * TODO rewrite, doesn't expose GPD anymore, it's in cachinglayer now
    *
-   * This file exposes a get/put/delete interface, accessing data in an indexedDB.
+   * This file exposes a get/put/delete interface, accessing data in an IndexedDB.
    *
    * There are multiple parts to this interface:
    *
    *   The RemoteStorage integration:
-   *     - RemoteStorage.IndexedDB._rs_supported() determines if indexedDB support
+   *     - RemoteStorage.IndexedDB._rs_supported() determines if IndexedDB support
    *       is available. If it isn't, RemoteStorage won't initialize the feature.
    *     - RemoteStorage.IndexedDB._rs_init() initializes the feature. It returns
    *       a promise that is fulfilled as soon as the database has been opened and
@@ -43,17 +43,22 @@
 
   var RS = RemoteStorage;
 
+  var DB_VERSION = 2;
+
   var DEFAULT_DB_NAME = 'remotestorage';
   var DEFAULT_DB;
 
   RS.IndexedDB = function(database) {
     this.db = database || DEFAULT_DB;
-    if (! this.db) {
+
+    if (!this.db) {
       RemoteStorage.log("Failed to open indexedDB");
       return undefined;
     }
+
     RS.cachingLayer(this);
     RS.eventHandling(this, 'change');
+
     this.getsRunning = 0;
     this.putsRunning = 0;
   };
@@ -63,21 +68,23 @@
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var nodes = transaction.objectStore('nodes');
-      var ret = {}, i, nodeReq, startTime = new Date().getTime();
+      var retrievedNodes = {};
+      var startTime = new Date().getTime();
+
       this.getsRunning++;
-//      RemoteStorage.log('starting get', paths, this.getsRunning);
-      for (i=0; i<paths.length; i++) {
-        (function(captureI) {
-          nodes.get(paths[captureI]).onsuccess = function(evt) {
-            ret[paths[captureI]] = evt.target.result;
+
+      for (var i=0; i<paths.length; i++) {
+        (function(index) {
+          var path = paths[index];
+          nodes.get(path).onsuccess = function(evt) {
+            retrievedNodes[path] = evt.target.result;
           };
         })(i);
       }
 
       transaction.oncomplete = function() {
-        promise.fulfill(ret);
+        promise.fulfill(retrievedNodes);
         this.getsRunning--;
-//        RemoteStorage.log('finished get', paths, this.getsRunning, (new Date().getTime() - startTime)+'ms');
       }.bind(this);
 
       transaction.onerror = transaction.onabort = function() {
@@ -88,26 +95,30 @@
       return promise;
     },
 
-    setNodes: function(objs) {
+    setNodes: function(nodes) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
-      var nodes = transaction.objectStore('nodes');
-      var i, nodeReq, startTime = new Date().getTime();
+      var nodesStore = transaction.objectStore('nodes');
+      var startTime = new Date().getTime();
+
       this.putsRunning++;
-      RemoteStorage.log('starting put', objs, this.putsRunning);
-      for (i in objs) {
-        if(typeof(objs[i]) === 'object') {
+
+      RemoteStorage.log('Starting put', nodes, this.putsRunning);
+
+      for (var path in nodes) {
+        var node = nodes[path];
+        if(typeof(node) === 'object') {
           try {
-            nodes.put(objs[i]);
+            nodesStore.put(node);
           } catch(e) {
-            RemoteStorage.log('error while putting', objs[i], e);
+            RemoteStorage.log('Error while putting', node, e);
             throw e;
           }
         } else {
           try {
-            nodes.delete(i);
+            nodesStore.delete(path);
           } catch(e) {
-            RemoteStorage.log('error while removing', nodes, objs[i], e);
+            RemoteStorage.log('Error while removing', nodesStore, node, e);
             throw e;
           }
         }
@@ -116,24 +127,28 @@
       transaction.oncomplete = function() {
         promise.fulfill();
         this.putsRunning--;
-        RemoteStorage.log('finished put', objs, this.putsRunning, (new Date().getTime() - startTime)+'ms');
+        RemoteStorage.log('Finished put', nodes, this.putsRunning, (new Date().getTime() - startTime)+'ms');
       }.bind(this);
 
       transaction.onerror = function() {
         promise.reject('transaction error');
         this.putsRunning--;
       }.bind(this);
+
       transaction.onabort = function() {
         promise.reject('transaction abort');
         this.putsRunning--;
       }.bind(this);
+
       return promise;
     },
 
     reset: function(callback) {
       var dbName = this.db.name;
-      this.db.close();
       var self = this;
+
+      this.db.close();
+
       RS.IndexedDB.clean(this.db.name, function() {
         RS.IndexedDB.open(dbName, function(other) {
           // hacky!
@@ -147,8 +162,10 @@
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var cursorReq = transaction.objectStore('nodes').openCursor();
+
       cursorReq.onsuccess = function(evt) {
         var cursor = evt.target.result;
+
         if (cursor) {
           cb(this.migrate(cursor.value));
           cursor.continue();
@@ -156,6 +173,7 @@
           promise.fulfill();
         }
       }.bind(this);
+
       return promise;
     },
 
@@ -165,51 +183,57 @@
 
   };
 
-  var DB_VERSION = 2;
-
   RS.IndexedDB.open = function(name, callback) {
     var timer = setTimeout(function() {
       callback("timeout trying to open db");
     }, 3500);
 
-    var dbOpen = indexedDB.open(name, DB_VERSION);
+    var req = indexedDB.open(name, DB_VERSION);
 
-    dbOpen.onerror = function() {
-      RemoteStorage.log('opening db failed', dbOpen);
+    req.onerror = function() {
+      RemoteStorage.log('Opening DB failed', req);
+
       clearTimeout(timer);
-      callback(dbOpen.error);
+      callback(req.error);
     };
 
-    dbOpen.onupgradeneeded = function(event) {
+    req.onupgradeneeded = function(event) {
+      var db = req.result;
+
       RemoteStorage.log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
-      var db = dbOpen.result;
+
       if (event.oldVersion !== 1) {
         RemoteStorage.log("[IndexedDB] Creating object store: nodes");
         db.createObjectStore('nodes', { keyPath: 'path' });
       }
+
       RemoteStorage.log("[IndexedDB] Creating object store: changes");
+
       db.createObjectStore('changes', { keyPath: 'path' });
     };
 
-    dbOpen.onsuccess = function() {
+    req.onsuccess = function() {
       clearTimeout(timer);
-      callback(null, dbOpen.result);
+      callback(null, req.result);
     };
   };
 
   RS.IndexedDB.clean = function(databaseName, callback) {
     var req = indexedDB.deleteDatabase(databaseName);
+
     req.onsuccess = function() {
-      RemoteStorage.log('done removing db');
+      RemoteStorage.log('Done removing DB');
       callback();
     };
+
     req.onerror = req.onabort = function(evt) {
-      console.error('failed to remove database "' + databaseName + '"', evt);
+      console.error('Failed to remove database "' + databaseName + '"', evt);
     };
   };
 
   RS.IndexedDB._rs_init = function(remoteStorage) {
     var promise = promising();
+
     RS.IndexedDB.open(DEFAULT_DB_NAME, function(err, db) {
       if (err) {
         promise.reject(err);
@@ -224,17 +248,20 @@
   };
 
   RS.IndexedDB._rs_supported = function() {
-    return 'indexedDB' in global;
+    return ('indexedDB' in global);
   };
 
   RS.IndexedDB._rs_cleanup = function(remoteStorage) {
+    var promise = promising();
+
     if (remoteStorage.local) {
       remoteStorage.local.closeDB();
     }
-    var promise = promising();
+
     RS.IndexedDB.clean(DEFAULT_DB_NAME, function() {
       promise.fulfill();
     });
+
     return promise;
   };
 
