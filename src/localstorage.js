@@ -1,6 +1,8 @@
 (function(global) {
   /**
    * Class: RemoteStorage.LocalStorage
+   *
+   * localStorage caching adapter. Used when no IndexedDB available.
    **/
 
   var NODES_PREFIX = "remotestorage:cache:nodes:";
@@ -8,10 +10,11 @@
 
   RemoteStorage.LocalStorage = function() {
     RemoteStorage.cachingLayer(this);
+    RemoteStorage.log('[localstorage] Registering events');
     RemoteStorage.eventHandling(this, 'change');
   };
 
-  function b64ToUint6 (nChr) {
+  function b64ToUint6(nChr) {
     return nChr > 64 && nChr < 91 ?
       nChr - 65
       : nChr > 96 && nChr < 123 ?
@@ -26,7 +29,7 @@
       0;
   }
 
-  function base64DecToArr (sBase64, nBlocksSize) {
+  function base64DecToArr(sBase64, nBlocksSize) {
     var
     sB64Enc = sBase64.replace(/[^A-Za-z0-9\+\/]/g, ""), nInLen = sB64Enc.length,
     nOutLen = nBlocksSize ? Math.ceil((nInLen * 3 + 1 >> 2) / nBlocksSize) * nBlocksSize : nInLen * 3 + 1 >> 2, taBytes = new Uint8Array(nOutLen);
@@ -44,49 +47,67 @@
     return taBytes;
   }
 
-  // Helper to decide if node body is binary or not
-  function isBinary(node){
+  function isBinary(node) {
     return node.match(/charset=binary/);
   }
 
+  function isRemoteStorageKey(key) {
+    return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX ||
+           key.substr(0, CHANGES_PREFIX.length) === CHANGES_PREFIX;
+  }
+
+  function isNodeKey(key) {
+    return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX;
+  }
+
   RemoteStorage.LocalStorage.prototype = {
+
     getNodes: function(paths) {
-      var i, ret = {}, promise = promising();
+      var promise = promising();
+      var nodes = {};
+
       for(i=0; i<paths.length; i++) {
         try {
-          ret[paths[i]] = JSON.parse(localStorage[NODES_PREFIX+paths[i]]);
+          nodes[paths[i]] = JSON.parse(localStorage[NODES_PREFIX+paths[i]]);
         } catch(e) {
         }
       }
-      promise.fulfill(ret);
+
+      promise.fulfill(nodes);
       return promise;
     },
 
-    setNodes: function(objs) {
-      var i, promise = promising();
-      for(i in objs) {
-        localStorage[NODES_PREFIX+i] = JSON.stringify(objs[i]);
+    setNodes: function(nodes) {
+      var promise = promising();
+
+      for (var path in nodes) {
+        // TODO shouldn't we use getItem/setItem?
+        localStorage[NODES_PREFIX+path] = JSON.stringify(nodes[path]);
       }
+
       promise.fulfill();
       return promise;
     },
 
     forAllNodes: function(cb) {
-      var i, node;
-      for(i=0; i<localStorage.length; i++) {
-        if(localStorage.key(i).substring(0, NODES_PREFIX.length) === NODES_PREFIX) {
+      var node;
+
+      for(var i=0; i<localStorage.length; i++) {
+        if (isNodeKey(localStorage.key(i))) {
           try {
             node = this.migrate(JSON.parse(localStorage[localStorage.key(i)]));
           } catch(e) {
             node = undefined;
           }
-          if(node) {
+          if (node) {
             cb(node);
           }
         }
       }
+
       return promising().fulfill();
     }
+
   };
 
   RemoteStorage.LocalStorage._rs_init = function() {};
@@ -95,21 +116,20 @@
     return 'localStorage' in global;
   };
 
+  // TODO tests missing!
   RemoteStorage.LocalStorage._rs_cleanup = function() {
-    var l = localStorage.length;
-    var npl = NODES_PREFIX.length, cpl = CHANGES_PREFIX.length;
-    var remove = [];
-    for (var i=0;i<l;i++) {
+    var keys = [];
+
+    for (var i=0; i<localStorage.length; i++) {
       var key = localStorage.key(i);
-      if (key.substr(0, npl) === NODES_PREFIX ||
-         key.substr(0, cpl) === CHANGES_PREFIX) {
-        remove.push(key);
+      if (isRemoteStorageKey(key)) {
+        keys.push(key);
       }
     }
-    remove.forEach(function(key) {
-      RemoteStorage.log('removing', key);
+
+    keys.forEach(function(key) {
+      RemoteStorage.log('[localstorage] Removing', key);
       delete localStorage[key];
     });
   };
-
 })(typeof(window) !== 'undefined' ? window : global);

@@ -9,10 +9,11 @@ define(['requirejs'], function(requirejs) {
 
   function assertNode(test, path, expected) {
     var node = JSON.parse(localStorage[NODES_PREFIX + path]);
-    if(node && node.local && node.local.timestamp) {
+
+    if (node && node.local && node.local.timestamp) {
       delete node.local.timestamp;
     }
-    if(node && node.common && node.common.timestamp) {
+    if (node && node.common && node.common.timestamp) {
       delete node.common.timestamp;
     }
     test.assertAnd(node, expected);
@@ -29,9 +30,10 @@ define(['requirejs'], function(requirejs) {
 
   function assertHaveNodes(test, expected) {
     var haveNodes = [];
-    var keys = Object.keys(localStorage), kl = keys.length;
-    for (var i=0;i<kl;i++) {
-      if (keys[i].substr(0, NODES_PREFIX.length) === NODES_PREFIX) {
+    var keys = Object.keys(localStorage);
+
+    for (var i=0; i<keys.length; i++) {
+      if (isNodeKey(keys[i])) {
         haveNodes.push(keys[i].substr(NODES_PREFIX.length));
       }
     }
@@ -41,6 +43,7 @@ define(['requirejs'], function(requirejs) {
   suites.push({
     name: "LocalStorage",
     desc: "localStorage caching layer",
+
     setup: function(env, test) {
       require('./lib/promising');
       global.RemoteStorage = function() {};
@@ -63,7 +66,6 @@ define(['requirejs'], function(requirejs) {
 
     beforeEach: function(env, test) {
       global.localStorage = {};
-
       env.ls = new RemoteStorage.LocalStorage();
       test.done();
     },
@@ -145,6 +147,7 @@ define(['requirejs'], function(requirejs) {
         desc: "#put attaches the oldValue correctly for updates",
         run: function(env, test) {
           var i = 0;
+
           env.ls.on('change', function(event) {
             i++;
             if (i === 1) {
@@ -173,6 +176,7 @@ define(['requirejs'], function(requirejs) {
               test.result(false);
             }
           });
+
           env.ls.put('/foo/bla', 'basdf', 'text/plain').then(function() {
             env.ls.put('/foo/bla', 'fdsab', 'text/plain');
           });
@@ -188,18 +192,22 @@ define(['requirejs'], function(requirejs) {
             env.ls.on('change', function(event) {
               test.assert(event.origin, 'local');
             });
-            //the mock is just an in-memory object; need to explicitly set its .length and its .key() function now:
+
+            // The mock is just an in-memory object; need to explicitly set its
+            // .length and its .key() function now:
             localStorage.length = 1;
             localStorage.key = function(i) {
               if (i === 0) {
                 return NODES_PREFIX+'/foo/bla';
               }
             };
+
             env.ls.fireInitial();
           });
         }
       },
 
+      // TODO belongs in separate examples; missing description
       {
         desc: "getNodes, setNodes",
         run: function(env, test) {
