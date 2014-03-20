@@ -99,11 +99,6 @@
      * Fired after disconnect
      **/
     /**
-     * Event: disconnect
-     *
-     * Deprecated, use disconnected instead
-     **/
-    /**
      * Event: error
      *
      * Fired when an error occurs
@@ -137,9 +132,9 @@
      * Fired when a wire request completes
      **/
     RemoteStorage.eventHandling(
-      this, 'ready', 'connected', 'disconnected', 'disconnect',
-            'not-connected', 'conflict', 'error', 'features-loaded',
-            'connecting', 'authing', 'wire-busy', 'wire-done'
+      this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
+            'error', 'features-loaded', 'connecting', 'authing', 'wire-busy',
+            'wire-done'
     );
 
     // pending get/put/delete calls.
@@ -276,7 +271,6 @@
           this._init();
           RemoteStorage.log('Done cleaning up, emitting disconnected and disconnect events');
           this._emit('disconnected');
-          this._emit('disconnect'); // DEPRECATED
         }
       }.bind(this);
 
