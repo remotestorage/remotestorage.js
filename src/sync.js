@@ -74,31 +74,35 @@
       if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
         return true;
       }
-      for (var i in itemsMap) {
-        if (typeof(itemsMap[i]) !== 'object') {
+
+      for (var itemName in itemsMap) {
+        var item = itemsMap[itemName];
+
+        if (typeof(item) !== 'object') {
           return true;
         }
-        if (typeof(itemsMap[i].ETag) !== 'string') {
+        if (typeof(item.ETag) !== 'string') {
           return true;
         }
-        if (i.substr(-1) === '/') {
-          if (i.substring(0, i.length-1).indexOf('/') !== -1) {
+        if (isFolder(itemName)) {
+          if (itemName.substring(0, itemName.length-1).indexOf('/') !== -1) {
             return true;
           }
         } else {
-          if (i.indexOf('/') !== -1) {
+          if (itemName.indexOf('/') !== -1) {
             return true;
           }
           if (force02) {
-            if (typeof(itemsMap[i]['Content-Type']) !== 'string') {
+            if (typeof(item['Content-Type']) !== 'string') {
               return true;
             }
-            if (typeof(itemsMap[i]['Content-Length']) !== 'number') {
+            if (typeof(item['Content-Length']) !== 'number') {
               return true;
             }
           }
         }
       }
+
       return false;
     },
 
@@ -106,11 +110,13 @@
       if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
         return true;
       }
-      for (var i in itemsMap) {
-        if (typeof(itemsMap[i]) !== 'boolean') {
+
+      for (var itemName in itemsMap) {
+        if (typeof(itemsMap[itemName]) !== 'boolean') {
           return true;
         }
       }
+
       return false;
     },
 
