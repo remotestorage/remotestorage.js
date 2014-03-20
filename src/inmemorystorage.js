@@ -1,51 +1,61 @@
 (function(global) {
   /**
    * Class: RemoteStorage.InMemoryStorage
+   *
+   * In-memory caching adapter. Used when no IndexedDB or localStorage
+   * available.
    **/
 
-  RemoteStorage.InMemoryStorage = function(rs) {
-    this.rs = rs;
+  RemoteStorage.InMemoryStorage = function() {
     RemoteStorage.cachingLayer(this);
-    RemoteStorage.log('registering events');
+    RemoteStorage.log('[inmemorystorage] Registering events');
     RemoteStorage.eventHandling(this, 'change');
+
     this._storage = {};
   };
 
   RemoteStorage.InMemoryStorage.prototype = {
+
     getNodes: function(paths) {
-      var i, ret = {}, promise = promising();
+      var promise = promising();
+      var nodes = {};
+
       for(i=0; i<paths.length; i++) {
-        ret[paths[i]] = this._storage[paths[i]];
+        nodes[paths[i]] = this._storage[paths[i]];
       }
-      promise.fulfill(ret);
+
+      promise.fulfill(nodes);
       return promise;
     },
 
-    setNodes: function(objs) {
-      var i, promise = promising();
-      for(i in objs) {
-        if(objs[i] === undefined) {
-          delete this._storage[i];
+    setNodes: function(nodes) {
+      var promise = promising();
+
+      for (var path in nodes) {
+        if (nodes[path] === undefined) {
+          delete this._storage[path];
         } else {
-          this._storage[i] = objs[i];
+          this._storage[path] = nodes[path];
         }
       }
+
       promise.fulfill();
       return promise;
     },
 
     forAllNodes: function(cb) {
-      var i;
-      for(i in this._storage) {
-        cb(this.migrate(this._storage[i]));
+      for(var path in this._storage) {
+        cb(this.migrate(this._storage[path]));
       }
       return promising().fulfill();
     }
+
   };
 
   RemoteStorage.InMemoryStorage._rs_init = function() {};
 
   RemoteStorage.InMemoryStorage._rs_supported = function() {
+    // In-memory storage is always supported
     return true;
   };
 

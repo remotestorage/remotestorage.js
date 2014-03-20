@@ -6,7 +6,8 @@ define(['requirejs'], function(requirejs) {
 
   suites.push({
     name: 'InMemoryStorage',
-    desc: 'inmemory caching as a fallback for indexdb and localstorage',
+    desc: 'In-memory caching layer',
+
     setup: function(env, test) {
       require('./lib/promising');
       global.RemoteStorage = function() {};
@@ -42,33 +43,15 @@ define(['requirejs'], function(requirejs) {
 
     tests: [
       {
-        desc: "#put adds node to parents",
-        run: function(env, test) {
-          env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {
-            test.assertAnd(status, 200);
-            test.assertAnd(env.ims._storage['/'].path, '/');
-            test.assertAnd(env.ims._storage['/'].local.itemsMap, {
-              'foo': true
-            });
-            test.done();
-          });
-        }
-      },
-
-      {
         desc: "#get loads a node from local",
         run: function(env, test) {
           var node = {
             path: '/foo',
-            local: {
-              body: 'bar',
-              contentType: 'text/plain',
-              revision: 'someRev'
-            }
+            local: { body: 'bar', contentType: 'text/plain', revision: 'someRev' }
           };
           env.ims._storage['/foo'] = node;
-          env.ims.get('/foo').then(function(status, body,
-                                           contentType) {
+
+          env.ims.get('/foo').then(function(status, body, contentType) {
             test.assertAnd(status, 200);
             test.assertAnd(body, node.local.body);
             test.assertAnd(contentType, node.local.contentType);
@@ -82,15 +65,11 @@ define(['requirejs'], function(requirejs) {
         run: function(env, test) {
           var node = {
             path: '/foo',
-            common: {
-              body: 'bar',
-              contentType: 'text/plain',
-              revision: 'someRev'
-            }
+            common: { body: 'bar', contentType: 'text/plain', revision: 'someRev' }
           };
           env.ims._storage['/foo'] = node;
-          env.ims.get('/foo').then(function(status, body,
-                                           contentType) {
+
+          env.ims.get('/foo').then(function(status, body, contentType) {
             test.assertAnd(status, 200);
             test.assertAnd(body, node.common.body);
             test.assertAnd(contentType, node.common.contentType);
@@ -112,14 +91,15 @@ define(['requirejs'], function(requirejs) {
         desc: "#get gets queued as a sync request if its maxAge param cannot be satisfied because no node exists",
         run: function(env, test) {
           var requestQueued = false;
+
           env.rs.sync = {
             queueGetRequest: function(path, promise) {
               test.assertAnd(path, '/foo');
               requestQueued = true;
               promise.fulfill(200, 'asdf', 'qwer');
-              //basically just checking that this ends up fulfilling the promise we have put in at the other end
             }
           };
+
           env.rs.local.get('/foo', 100).then(function(status, body, contentType) {
             test.assertAnd(requestQueued, true);
             test.assertAnd(status, 200);
@@ -134,6 +114,7 @@ define(['requirejs'], function(requirejs) {
         desc: "#get gets queued as a sync request if its maxAge param cannot be satisfied because node is too old",
         run: function(env, test) {
           var requestQueued = false;
+
           env.rs.local._storage['/foo'] = {
             path: '/foo',
             common: {
@@ -143,14 +124,15 @@ define(['requirejs'], function(requirejs) {
               revision: '123'
             }
           };
+
           env.rs.sync = {
             queueGetRequest: function(path, promise) {
               test.assertAnd(path, '/foo');
               requestQueued = true;
               promise.fulfill(200, 'asdf', 'qwer');
-              //basically just checking that this ends up fulfilling the promise we have put in at the other end
             }
           };
+
           env.rs.local.get('/foo', 100).then(function(status, body, contentType) {
             test.assertAnd(requestQueued, true);
             test.assertAnd(status, 200);
@@ -180,9 +162,7 @@ define(['requirejs'], function(requirejs) {
           env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {
             test.assertAnd(status, 200);
             test.assertAnd(env.ims._storage['/'].path, '/');
-            test.assertAnd(env.ims._storage['/'].local.itemsMap, {
-              'foo': true
-            });
+            test.assertAnd(env.ims._storage['/'].local.itemsMap, {'foo': true});
             test.done();
           });
         }
@@ -210,6 +190,7 @@ define(['requirejs'], function(requirejs) {
         desc: "#put attaches the newValue and oldValue correctly for updates",
         run: function(env, test) {
           var i = 0;
+
           env.ims.on('change', function(event) {
             i++;
             if (i === 1) {
@@ -238,6 +219,7 @@ define(['requirejs'], function(requirejs) {
               test.result(false);
             }
           });
+
           env.ims.put('/foo/bla', 'basdf', 'text/plain').then(function() {
             env.ims.put('/foo/bla', 'fdsab', 'text/plain');
           });
@@ -247,16 +229,20 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#delete removes the node and empty parents",
         run: function(env, test) {
+          var storage = env.ims._storage;
+          var getLatest = env.ims._getInternals().getLatest;
+
           env.ims.put('/foo/bar/baz', 'bla', 'text/pain', 'a1b2c3').then(function() {
             var storageKeys = ['/foo/bar/baz', '/foo/bar/', '/foo/', '/'];
-            test.assertAnd(Object.keys(env.ims._storage), storageKeys);
+
+            test.assertAnd(Object.keys(storage), storageKeys);
 
             env.ims.delete('/foo/bar/baz').then(function(status) {
-              test.assertAnd(status, 200, 'wrong status code: '+status); //TODO belongs in seperate test
-              test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/foo/bar/baz']), undefined);
-              test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/foo/bar/']).itemsMap, {});
-              test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/foo/']).itemsMap, {});
-              test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/']).itemsMap, {});
+              test.assertAnd(status, 200, 'Wrong status code: '+status); //TODO belongs in seperate test
+              test.assertAnd(getLatest(storage['/foo/bar/baz']), undefined);
+              test.assertAnd(getLatest(storage['/foo/bar/']).itemsMap, {});
+              test.assertAnd(getLatest(storage['/foo/']).itemsMap, {});
+              test.assertAnd(getLatest(storage['/']).itemsMap, {});
               test.done();
             });
           });
@@ -266,18 +252,16 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#delete doesn't remove nonempty nodes",
         run: function(env, test) {
+          var storage = env.ims._storage;
+          var getLatest = env.ims._getInternals().getLatest;
+
           env.ims.put('/foo/bar/baz', 'bla', 'text/pain', true, 'a1b2c3').then(function() {
             env.ims.put('/foo/baz', 'bla', 'text/pain', true, 'a1b2c3').then(function() {
               env.ims.delete('/foo/bar/baz').then(function(status) {
-                test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/']).itemsMap, {
-                  'foo/': true
-                });
-                test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/foo/']).itemsMap, {
-                  'baz': true
-                });
-                test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/foo/baz']).body, 'bla');
-                test.assertAnd(env.ims._getInternals().getLatest(env.ims._storage['/foo/baz']).contentType,
-                    'text/pain');
+                test.assertAnd(getLatest(storage['/']).itemsMap, { 'foo/': true });
+                test.assertAnd(getLatest(storage['/foo/']).itemsMap, { 'baz': true });
+                test.assertAnd(getLatest(storage['/foo/baz']).body, 'bla');
+                test.assertAnd(getLatest(storage['/foo/baz']).contentType, 'text/pain');
                 test.done();
               });
             });
@@ -299,6 +283,7 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
+        // TODO belongs in separate examples; missing description
         desc: "getNodes, setNodes",
         run: function(env, test) {
           env.ims.getNodes(['/foo/bar/baz']).then(function(objs) {
