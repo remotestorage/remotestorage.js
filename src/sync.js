@@ -410,70 +410,80 @@
       return node;
     },
 
-    markChildren: function(path, itemsMap, changedObjs, missingChildren) {
-      var i, paths = [], meta = {}, recurse = {};
+    markChildren: function(path, itemsMap, changedNodes, missingChildren) {
+      var paths = [];
+      var meta = {};
+      var recurse = {};
 
-      for (i in itemsMap) {
-        paths.push(path+i);
-        meta[path+i] = itemsMap[i];
+      for (var item in itemsMap) {
+        paths.push(path+item);
+        meta[path+item] = itemsMap[item];
       }
-      for (i in missingChildren) {
-        paths.push(path+i);
+      for (var childName in missingChildren) {
+        paths.push(path+childName);
       }
 
       return this.local.getNodes(paths).then(function(nodes) {
-        var j, k, cachingStrategy, create;
+        var cachingStrategy;
+        var node;
 
-        for (j in nodes) {
-          if (meta[j]) {
-            if (nodes[j] && nodes[j].common) {
-              if (nodes[j].common.revision !== meta[j].ETag) {
-                if (!nodes[j].remote || nodes[j].remote.revision !== meta[j].ETag) {
-                  changedObjs[j] = this.local._getInternals().deepClone(nodes[j]);
-                  changedObjs[j].remote = {
-                    revision: meta[j].ETag,
-                    timestamp: this.now()
-                  };
-                  changedObjs[j] = this.autoMerge(changedObjs[j]);
-                }
+        nodeChanged = function(node, etag) {
+          return node.common.revision !== etag && (!node.remote || node.remote.revision !== etag);
+        };
+
+        for (var nodePath in nodes) {
+          node = nodes[nodePath];
+
+          if (meta[nodePath]) {
+            if (node && node.common) {
+              if (nodeChanged(node, meta[nodePath].ETag)) {
+                changedNodes[nodePath] = this.local._getInternals().deepClone(node);
+                changedNodes[nodePath].remote = {
+                  revision:  meta[nodePath].ETag,
+                  timestamp: this.now()
+                };
+                changedNodes[nodePath] = this.autoMerge(changedNodes[nodePath]);
               }
             } else {
-              cachingStrategy = this.caching.checkPath(j);
-              create = (cachingStrategy === 'ALL');
-              if (create) {
-                changedObjs[j] = {
-                  path: j,
+              cachingStrategy = this.caching.checkPath(nodePath);
+              if (cachingStrategy === 'ALL') {
+                changedNodes[nodePath] = {
+                  path: nodePath,
                   common: {
                     timestamp: this.now()
                   },
                   remote: {
-                    revision: meta[j].ETag,
+                    revision: meta[nodePath].ETag,
                     timestamp: this.now()
                   }
                 };
               }
             }
-            if (changedObjs[j] && meta[j]['Content-Type']) {
-              changedObjs[j].remote.contentType = meta[j]['Content-Type'];
+
+            if (changedNodes[nodePath] && meta[nodePath]['Content-Type']) {
+              changedNodes[nodePath].remote.contentType = meta[nodePath]['Content-Type'];
             }
-            if (changedObjs[j] && meta[j]['Content-Length']) {
-              changedObjs[j].remote.contentLength = meta[j]['Content-Length'];
+
+            if (changedNodes[nodePath] && meta[nodePath]['Content-Length']) {
+              changedNodes[nodePath].remote.contentLength = meta[nodePath]['Content-Length'];
             }
-          } else if (missingChildren[j.substring(path.length)] && nodes[j] && nodes[j].common) {
-            if (nodes[j].common.itemsMap) {
-              for (k in nodes[j].common.itemsMap) {
-                recurse[j+k] = true;
+          } else if (missingChildren[nodePath.substring(path.length)] && node && node.common) {
+            if (node.common.itemsMap) {
+              for (var commonItem in node.common.itemsMap) {
+                recurse[nodePath+commonItem] = true;
               }
             }
-            if (nodes[j].local && nodes[j].local.itemsMap) {
-              for (k in nodes[j].local.itemsMap) {
-                recurse[j+k] = true;
+
+            if (node.local && node.local.itemsMap) {
+              for (var localItem in node.local.itemsMap) {
+                recurse[nodePath+localItem] = true;
               }
             }
-            changedObjs[j] = undefined;
+            changedNodes[nodePath] = undefined;
           }
         }
-        return this.deleteRemoteTrees(Object.keys(recurse), changedObjs).then(function(changedObjs2) {
+
+        return this.deleteRemoteTrees(Object.keys(recurse), changedNodes).then(function(changedObjs2) {
           return this.local.setNodes(this.flush(changedObjs2));
         }.bind(this));
       }.bind(this));
