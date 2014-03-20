@@ -22,6 +22,10 @@
     return JSON.stringify(obj1) === JSON.stringify(obj2);
   }
 
+  function isFolder(path) {
+    return path.substr(-1) === '/';
+  }
+
   /**
    * Class: RemoteStorage.Sync
    **/
@@ -469,40 +473,50 @@
       }.bind(this));
     },
 
-    deleteRemoteTrees: function(paths, changedObjs) {
+    deleteRemoteTrees: function(paths, changedNodes) {
       if (paths.length === 0) {
-        return promising().fulfill(changedObjs);
+        return promising().fulfill(changedNodes);
       }
+
       this.local.getNodes(paths).then(function(nodes) {
-        var i, j, subPaths = {};
-        for (i in nodes) {
-          if (nodes[i]) {
-            if (i.substr(-1) === '/') {
-              if (nodes[i].common && nodes[i].common.itemsMap) {
-                for (j in nodes[i].common.itemsMap) {
-                  subPaths[i+j] = true;
-                }
+        var subPaths = {};
+        var itemName;
+
+        for (var path in nodes) {
+          var node = nodes[path];
+
+          // TODO Why check for the node here? I don't think this check ever applies
+          if (!node) {
+            continue;
+          }
+
+          if (isFolder(path)) {
+            if (node.common && node.common.itemsMap) {
+              for (itemName in node.common.itemsMap) {
+                subPaths[path+itemName] = true;
               }
-              if (nodes[i].local && nodes[i].local.itemsMap) {
-                for (j in nodes[i].local.itemsMap) {
-                  subPaths[i+j] = true;
-                }
+            }
+
+            if (node.local && node.local.itemsMap) {
+              for (itemName in node.local.itemsMap) {
+                subPaths[path+itemName] = true;
               }
-            } else {
-              if (nodes[i].common && typeof(nodes[i].common.body) !== undefined) {
-                changedObjs[i] = this.local._getInternals().deepClone(nodes[i]);
-                changedObjs[i].remote = {
-                  body: false,
-                  timestamp: this.now()
-                };
-                changedObjs[i] = this.autoMerge(changedObjs[i]);
-              }
+            }
+          } else {
+            if (node.common && typeof(node.common.body) !== undefined) {
+              changedNodes[path] = this.local._getInternals().deepClone(node);
+              changedNodes[path].remote = {
+                body:      false,
+                timestamp: this.now()
+              };
+              changedNodes[path] = this.autoMerge(changedNodes[path]);
             }
           }
         }
-        //recurse whole tree depth levels at once:
-        return this.deleteRemoteTrees(Object.keys(subPaths), changedObjs).then(function(changedObjs2) {
-          return this.local.setNodes(this.flush(changedObjs2));
+
+        // Recurse whole tree depth levels at once:
+        return this.deleteRemoteTrees(Object.keys(subPaths), changedNodes).then(function(changedNodes2) {
+          return this.local.setNodes(this.flush(changedNodes2));
         }.bind(this));
       }.bind(this));
     },
