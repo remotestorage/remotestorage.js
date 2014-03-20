@@ -576,43 +576,54 @@
     },
 
     completePush: function(path, action, conflict, revision) {
-      return this.local.getNodes([path]).then(function(nodes) {
-        if (!nodes[path].push) {
+      var promise = this.local.getNodes([path]).then(function(nodes) {
+        var node = nodes[path];
+
+        if (!node.push) {
           this.stopped = true;
           throw new Error('completePush called but no push version!');
         }
+
         if (conflict) {
-          RemoteStorage.log('we have conflict');
-          if (!nodes[path].remote || nodes[path].remote.revision !== revision) {
-            nodes[path].remote = {
-              revision: revision,
+          RemoteStorage.log('We have a conflict');
+
+          if (!node.remote || node.remote.revision !== revision) {
+            node.remote = {
+              revision:  revision,
               timestamp: this.now()
             };
           }
-          nodes[path] = this.autoMerge(nodes[path]);
+
+          node = this.autoMerge(node);
         } else {
-          nodes[path].common = {
-            revision: revision,
+          node.common = {
+            revision:  revision,
             timestamp: this.now()
           };
+
           if (action === 'put') {
-            nodes[path].common.body = nodes[path].push.body;
-            nodes[path].common.contentType = nodes[path].push.contentType;
-            if (equal(nodes[path].local.body, nodes[path].push.body) &&
-                nodes[path].local.contentType === nodes[path].push.contentType) {
-              delete nodes[path].local;
+            node.common.body = node.push.body;
+            node.common.contentType = node.push.contentType;
+
+            if (equal(node.local.body, node.push.body) &&
+                node.local.contentType === node.push.contentType) {
+              delete node.local;
             }
-            delete nodes[path].push;
+
+            delete node.push;
           } else if (action === 'delete') {
-            if (nodes[path].local.body === false) {//successfully deleted and no new local changes since push; flush it.
-              nodes[path] = undefined;
+            if (node.local.body === false) { // No new local changes since push; flush it.
+              node = undefined;
             } else {
-              delete nodes[path].push;
+              delete node.push;
             }
           }
         }
+
         return this.local.setNodes(this.flush(nodes));
       }.bind(this));
+
+      return promise;
     },
 
     dealWithFailure: function(path, action, statusMeaning) {
