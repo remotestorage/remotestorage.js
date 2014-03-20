@@ -153,6 +153,7 @@
 
   // Documented in src/remotestorage.js
   // TODO claimAccess is outdated, should be deleted soon
+  // Also, this does not even do what the docs say anymore.
   RemoteStorage.prototype.claimAccess = function(scopes) {
     if (typeof(scopes) === 'object') {
       for (var key in scopes) {
