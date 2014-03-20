@@ -644,17 +644,19 @@
     interpretStatus: function(statusCode) {
       if (statusCode === 'offline' || statusCode === 'timeout') {
         return {
-          successful: false,
+          successful:      false,
           networkProblems: true
         };
       }
+
       var series = Math.floor(statusCode / 100);
+
       return {
         successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
-        conflict: (statusCode === 412),
-        unAuth: (statusCode === 401 || statusCode === 402 ||statusCode === 403),
-        notFound: (statusCode === 404),
-        changed: (statusCode !== 304)
+        conflict:   (statusCode === 412),
+        unAuth:     (statusCode === 401 || statusCode === 402 ||statusCode === 403),
+        notFound:   (statusCode === 404),
+        changed:    (statusCode !== 304)
       };
     },
 
