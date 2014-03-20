@@ -660,57 +660,61 @@
       };
     },
 
-    handleResponse: function(path, action, status, bodyOrItemsMap, contentType, revision) {
-      var statusMeaning = this.interpretStatus(status);
+    handleGetResponse: function(path, status, bodyOrItemsMap, contentType, revision) {
+      if (status.notFound) {
+        if (isFolder(path)) {
+          bodyOrItemsMap = {};
+        } else {
+          bodyOrItemsMap = false;
+        }
+      }
 
-      if (statusMeaning.successful) {
-        if (action === 'get') {
-          if (statusMeaning.notFound) {
-            if (path.substr(-1) === '/') {
-              bodyOrItemsMap = {};
+      if (status.changed) {
+        return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(dataFromFetch) {
+          if (isFolder(path)) {
+            if (this.corruptServerItemsMap(bodyOrItemsMap)) {
+              RemoteStorage.log('WARNING: Discarding corrupt folder description from server for ' + path);
+              return false;
             } else {
-              bodyOrItemsmap = false;
+              return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren).then(function() {
+                return true;
+              });
             }
-          }
-          if (statusMeaning.changed) {
-            return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(dataFromFetch) {
-              if (path.substr(-1) === '/') {
-                if (this.corruptServerItemsMap(bodyOrItemsMap)) {
-                  RemoteStorage.log('WARNING: discarding corrupt folder description from server for ' + path);
-                  return false;
-                } else {
-                  return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren).then(function() {
-                    return true;//task completed
-                  });
-                }
-              } else {
-                return this.local.setNodes(this.flush(dataFromFetch.toBeSaved)).then(function() {
-                  return true;//task completed
-                });
-              }
-            }.bind(this));
           } else {
-            return promising().fulfill(true);//task completed
+            return this.local.setNodes(this.flush(dataFromFetch.toBeSaved)).then(function() {
+              return true;
+            });
           }
-        } else if (action === 'put') {
-          return this.completePush(path, action, statusMeaning.conflict, revision).then(function() {
-            return true;//task completed
-          });
-        } else if (action === 'delete') {
-          return this.completePush(path, action, statusMeaning.conflict, revision).then(function() {
-            return true;//task completed
+        }.bind(this));
+      } else {
+        return promising().fulfill(true);
+      }
+    },
+
+    handleResponse: function(path, action, statusCode, bodyOrItemsMap, contentType, revision) {
+      var status = this.interpretStatus(statusCode);
+
+      if (status.successful) {
+        if (action === 'get') {
+          return this.handleGetResponse(path, status, bodyOrItemsMap, contentType, revision);
+        } else if (action === 'put' || action === 'delete') {
+          return this.completePush(path, action, status.conflict, revision).then(function() {
+            return true;
           });
         } else {
           throw new Error('cannot handle response for unknown action', action);
         }
-      } else {
-        if (statusMeaning.unAuth) {
+      }
+      // Unsuccessful
+      else {
+        if (status.unAuth) {
           remoteStorage._emit('error', new RemoteStorage.Unauthorized());
         }
-        if (statusMeaning.networkProblems) {
+        if (status.networkProblems) {
           remoteStorage._emit('error', new RemoteStorage.SyncError());
         }
-        return this.dealWithFailure(path, action, statusMeaning).then(function() {
+
+        return this.dealWithFailure(path, action, status).then(function() {
           return false;
         });
       }
