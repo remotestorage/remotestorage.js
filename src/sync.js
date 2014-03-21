@@ -454,7 +454,7 @@
             if (changedObjs[j] && meta[j]['Content-Length']) {
               changedObjs[j].remote.contentLength = meta[j]['Content-Length'];
             }
-          } else if (missingChildren[i] && nodes[j] && nodes[j].common) {
+          } else if (missingChildren[j.substring(path.length)] && nodes[j] && nodes[j].common) {
             if (nodes[j].common.itemsMap) {
               for (k in nodes[j].common.itemsMap) {
                 recurse[j+k] = true;
