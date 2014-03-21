@@ -339,28 +339,30 @@
 
       return promise;
     },
+
     autoMergeFolder: function(node) {
       if (node.remote.itemsMap) {
         node.common = node.remote;
         delete node.remote;
 
         if (node.common.itemsMap) {
-          for (var i in node.common.itemsMap) {
-            if (!node.local.itemsMap[i]) {
+          for (var itemName in node.common.itemsMap) {
+            if (!node.local.itemsMap[itemName]) {
               // Indicates the node is either newly being fetched
               // has been deleted locally (whether or not leading to conflict);
               // before listing it in local listings, check if a local deletion
               // exists.
-              node.local.itemsMap[i] = false;
+              node.local.itemsMap[itemName] = false;
             }
           }
         }
       }
       return node;
     },
+
     autoMergeDocument: function(node) {
       if (node.remote.body !== undefined) {
-        //keep/revert:
+        // keep/revert:
         RemoteStorage.log('Emitting keep/revert');
 
         this.local._emit('change', {
@@ -379,21 +381,22 @@
       delete node.push;
       return node;
     },
+
     autoMerge: function(node) {
       if (node.remote) {
         if (node.local) {
-          if (node.path.substr(-1) === '/') {
+          if (isFolder(node.path)) {
             return autoMergeFolder(node);
           } else {
             return autoMergeDocument(node);
           }
-        } else {//remotely created node
-          if (node.path.substr(-1) === '/') {//remotely created folder
+        } else { // remotely created node
+          if (isFolder(node.path)) {
             if (node.remote.itemsMap !== undefined) {
               node.common = node.remote;
               delete node.remote;
             }
-          } else {//remotely created document
+          } else {
             if (node.remote.body !== undefined) {
               this.local._emit('change', {
                 origin:   'remote',
@@ -401,6 +404,7 @@
                 oldValue: (node.common.body === false ? undefined : node.common.body),
                 newValue: (node.remote.body === false ? undefined : node.remote.body)
               });
+
               node.common = node.remote;
               delete node.remote;
             }
