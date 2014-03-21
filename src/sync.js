@@ -329,80 +329,75 @@
 
       return promise;
     },
+    autoMergeFolder: function(node) {
+      if (node.remote.itemsMap) {
+        node.common = node.remote;
+        delete node.remote;
 
-    autoMerge: function(node) {
-      var newValue, oldValue;
-
-      if (!node.remote) {
-        return node;
-      }
-
-      if (!node.local) {
-        if (node.remote) {
-          if (node.path.substr(-1) === '/') {
-            newValue = (typeof(node.remote.itemsMap) === 'object' && Object.keys(node.remote.itemsMap).length ? node.remote.itemsMap : undefined);
-            oldValue = (typeof(node.common.itemsMap) === 'object' && Object.keys(node.common.itemsMap).length ? node.common.itemsMap : undefined);
-            haveRemote = (node.remote.itemsMap !== undefined);
-          } else {
-            newValue = (node.remote.body === false ? undefined : node.remote.body);
-            oldValue = (node.common.body === false ? undefined : node.common.body);
-            haveRemote = (node.remote.body !== undefined);
-          }
-
-          if (haveRemote) {
-            this.local._emit('change', {
-              origin:   'remote',
-              path:     node.path,
-              oldValue: oldValue,
-              newValue: newValue
-            });
-            node.common = node.remote;
-            delete node.remote;
-          }
-        }
-        return node;
-      }
-
-      if (node.path.substr(-1) === '/') {
-        //auto merge folder once remote was fetched:
-        if (node.remote.itemsMap) {
-          node.common = node.remote;
-          delete node.remote;
-
-          if (node.common.itemsMap) {
-            for (var i in node.common.itemsMap) {
-              if (!node.local.itemsMap[i]) {
-                // Indicates the node is either newly being fetched
-                // has been deleted locally (whether or not leading to conflict);
-                // before listing it in local listings, check if a local deletion
-                // exists.
-                node.local.itemsMap[i] = false;
-              }
+        if (node.common.itemsMap) {
+          for (var i in node.common.itemsMap) {
+            if (!node.local.itemsMap[i]) {
+              // Indicates the node is either newly being fetched
+              // has been deleted locally (whether or not leading to conflict);
+              // before listing it in local listings, check if a local deletion
+              // exists.
+              node.local.itemsMap[i] = false;
             }
           }
         }
-        return node;
-      } else {
-        if (node.remote.body !== undefined) {
-          //keep/revert:
-          RemoteStorage.log('Emitting keep/revert');
-
-          this.local._emit('change', {
-            origin:         'conflict',
-            path:           node.path,
-            oldValue:       node.local.body,
-            newValue:       node.remote.body,
-            oldContentType: node.local.contentType,
-            newContentType: node.remote.contentType
-          });
-
-          node.common = node.remote;
-          delete node.remote;
-          delete node.local;
-        }
-        delete node.push;
-        return node;
       }
+      return node;
+    },
+    autoMergeDocument: function(node) {
+      if (node.remote.body !== undefined) {
+        //keep/revert:
+        RemoteStorage.log('Emitting keep/revert');
+
+        this.local._emit('change', {
+          origin:         'conflict',
+          path:           node.path,
+          oldValue:       node.local.body,
+          newValue:       node.remote.body,
+          oldContentType: node.local.contentType,
+          newContentType: node.remote.contentType
+        });
+
+        node.common = node.remote;
+        delete node.remote;
+        delete node.local;
+      }
+      delete node.push;
+      return node;
+    },
+    autoMerge: function(node) {
+      if (node.remote) {
+        if (node.local) {
+          if (node.path.substr(-1) === '/') {
+            return autoMergeFolder(node);
+          } else {
+            return autoMergeDocument(node);
+          }
+        } else {//remotely created node
+          if (node.path.substr(-1) === '/') {//remotely created folder
+            if (node.remote.itemsMap !== undefined) {
+              node.common = node.remote;
+              delete node.remote;
+            }
+          } else {//remotely created document
+            if (node.remote.body !== undefined) {
+              this.local._emit('change', {
+                origin:   'remote',
+                path:     node.path,
+                oldValue: (node.common.body === false ? undefined : node.common.body),
+                newValue: (node.remote.body === false ? undefined : node.remote.body)
+              });
+              node.common = node.remote;
+              delete node.remote;
+            }
+          }
+        }
+      }
+      return node;
     },
 
     markChildren: function(path, itemsMap, changedObjs, missingChildren) {
