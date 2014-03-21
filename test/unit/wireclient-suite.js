@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
+define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, undefined) {
   var suites = [];
 
   function setup(env, test) {
@@ -101,18 +101,19 @@ define(['requirejs'], function(requirejs, undefined) {
 
   suites.push({
     name: "WireClient",
+    desc: "behaves like a backend",
+    setup: setup,
+    beforeEach: beforeEach,
+    afterEach: afterEach,
+    tests: backend.behavior
+  });
+  suites.push({
+    name: "WireClient",
     desc: "Low-level remotestorage client based on XMLHttpRequest",
     setup: setup,
     beforeEach: beforeEach,
     afterEach: afterEach,
     tests: [
-      {
-        desc: "it's initially not connected",
-        run: function(env, test) {
-          test.assert(env.client.connected, false);
-        }
-      },
-
       {
         desc: "#get / #put / #delete throw an exception if not connected",
         run: function(env, test) {
