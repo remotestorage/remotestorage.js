@@ -69,12 +69,12 @@
     this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
 
     setTimeout(function() {
-      this.configure(undefined, undefined, undefined, localStorage['remotestorage:googledrive:token']);
+//      this.configure(undefined, undefined, undefined, localStorage['remotestorage:googledrive:token']);
     }.bind(this), 0);
   };
 
   RS.GoogleDrive.prototype = {
-
+    connected: false,
     configure: function(_x, _y, _z, token) { // parameter list compatible with WireClient
       if (token) {
         localStorage['remotestorage:googledrive:token'] = token;

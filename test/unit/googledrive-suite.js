@@ -20,20 +20,25 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
 
     require('./lib/promising');
     require('./src/eventhandling');
-    
     if (global.rs_eventhandling) {
       RemoteStorage.eventHandling = global.rs_eventhandling;
     } else {
       global.rs_eventhandling = RemoteStorage.eventHandling;
     }
-    require('./src/wireclient');
     
+    require('./src/wireclient');
     if (global.rs_wireclient) {
       RemoteStorage.WireClient = global.rs_wireclient;
     } else {
       global.rs_wireclient = RemoteStorage.WireClient;
     }
+    
     require('./src/googledrive');
+    if (global.rs_googledrive) {
+      RemoteStorage.GoogleDrive = global.rs_googledrive;
+    } else {
+      global.rs_googledrive = RemoteStorage.GoogleDrive;
+    }
 
     test.done();
   }
@@ -123,7 +128,7 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
     name: "GoogleDrive Client",
     desc: "tests for the GoogleDrive backend",
     setup: setup,
-    beforeEac: beforeEach,
+    beforeEach: beforeEach,
     afterEach: afterEach,
     tests: [
       {
