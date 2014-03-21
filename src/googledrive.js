@@ -66,7 +66,7 @@
 
   RS.GoogleDrive = function(remoteStorage, clientId) {
 
-    RS.eventHandling(this, 'connected');
+    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     this.rs = remoteStorage;
     this.clientId = clientId;
@@ -74,11 +74,13 @@
     this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
 
     setTimeout(function() {
-      this.configure(undefined, undefined, undefined, localStorage['remotestorage:googledrive:token']);
+//      this.configure(undefined, undefined, undefined, localStorage['remotestorage:googledrive:token']);
     }.bind(this), 0);
   };
 
   RS.GoogleDrive.prototype = {
+    connected: false,
+    online: true,
 
     configure: function(_x, _y, _z, token) { // parameter list compatible with WireClient
       if (token) {
@@ -98,6 +100,12 @@
     connect: function() {
       this.rs.setBackend('googledrive');
       RS.Authorize(AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
+    },
+
+    stopWaitingForToken: function() {
+      if (!this.connected) {
+        this._emit('not-connected');
+      }
     },
 
     get: function(path, options) {
@@ -218,13 +226,24 @@
         } else {
           this._getMeta(id, function(metaError, meta) {
             var etagWithoutQuotes;
+            RemoteStorage.log('path, options, metaError, meta', path, options, metaError, meta);
             if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
               etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
             }
             if (metaError) {
               promise.reject(metaError);
-            } else if (meta.downloadUrl) {
+            } else {
               var options = {};
+              if (!meta.downloadUrl) {
+                if(meta.exportLinks && meta.exportLinks['text/html']) {
+                  meta.mimeType += ';export=text/html';
+                  meta.downloadUrl = meta.exportLinks['text/html'];
+                } else { 
+                  // empty file
+                  promise.fulfill(200, '', meta.mimeType, etagWithoutQuotes);
+                  return;
+                }
+              }
               if (meta.mimeType.match(/charset=binary/)) {
                 options.responseType = 'blob';
               }
@@ -241,9 +260,6 @@
                   promise.fulfill(200, body, meta.mimeType, etagWithoutQuotes);
                 }
               });
-            } else {
-              // empty file
-              promise.fulfill(200, '', meta.mimeType, etagWithoutQuotes);
             }
           });
         }
@@ -364,7 +380,13 @@
         this._getFolder(parentPath(path)).then(function() {
           var id = this._fileIdCache.get(path);
           if (!id) {
-            callback('no file or folder found at the path: ' + path, null);
+            if (path.substr(-1) === '/') {
+              this._createFolder(path, function() {
+                this._getFileId(path, callback);
+              }.bind(this));
+            } else {
+              callback(null, null);
+            }
             return;
           }
           callback(null, id);

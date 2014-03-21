@@ -148,7 +148,7 @@
       }
     };
 
-    RS.eventHandling(this, 'change', 'connected');
+    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
     rs.on('error', onErrorCb);
 
     this.clientId = rs.apiKeys.dropbox.api_key;
@@ -173,6 +173,8 @@
   };
 
   RS.Dropbox.prototype = {
+    online: true,
+
     /**
      * Method : connect()
      *   redirects to AUTH_URL(https://www.dropbox.com/1/oauth2/authorize)
@@ -215,6 +217,13 @@
                                                        userAddress: this.userAddress } );
       }
     },
+    
+    stopWaitingForToken: function() {
+      if (!this.connected) {
+        this._emit('not-connected');
+      }
+    },
+    
     /**
      * Method : _getFolder(path, options)
      **/
@@ -244,9 +253,9 @@
             listing = body.contents.reduce(function(m, item) {
               var itemName = item.path.split('/').slice(-1)[0] + ( item.is_dir ? '/' : '' );
               if (item.is_dir){
-                m[itemName] = revCache.get(path+itemName);
+                m[itemName] = { ETag: revCache.get(path+itemName) };
               } else {
-                m[itemName] = item.rev;
+                m[itemName] = { ETag: item.rev };
               }
               return m;
             }, {});
