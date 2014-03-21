@@ -526,7 +526,6 @@
           timestamp: this.now()
         };
         if (path.substr(-1) === '/') {
-          nodes[path].remote.itemsMap = {};
           if (nodes[path].common && nodes[path].common.itemsMap) {
             for (i in nodes[path].common.itemsMap) {
               if (!bodyOrItemsMap[i]) {
@@ -548,6 +547,7 @@
               }
             }
           }
+          nodes[path].remote.itemsMap = {};
           for (i in bodyOrItemsMap) {
             nodes[path].remote.itemsMap[i] = true;
           }
