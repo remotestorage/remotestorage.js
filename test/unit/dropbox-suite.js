@@ -1,127 +1,138 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
+define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, undefined) {
   var suites = [];
 
-  suites.push({
-    name: "DropbixClient",
-    desc: "Low-level Dropbox client based on XMLHttpRequest",
-    setup: function(env, test) {
-      global.RemoteStorage = function() {
-        RemoteStorage.eventHandling(this, 'error');
-      };
-      RemoteStorage.log = function() {};
-      RemoteStorage.prototype = {
-        setBackend: function(b){
-          this.backend = b;
-        },
-        localStorageAvailable: function() {
-          return false;
-        }
-      };
-      global.RemoteStorage.Unauthorized = function() {};
-
-      require('./lib/promising');
-      require('./src/eventhandling');
-
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      require('./src/wireclient');
-
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-      require('./src/dropbox');
-
-      test.done();
-    },
-
-    beforeEach: function(env, test) {
-      global.XMLHttpRequest = function() {
-        XMLHttpRequest.instances.push(this);
-        this._headers = {};
-        this._responseHeaders = {};
-      };
-      XMLHttpRequest.instances = [];
-      XMLHttpRequest.prototype = {
-        open: function() {
-          this._open = Array.prototype.slice.call(arguments);
-        },
-        send: function() {
-          this._send = Array.prototype.slice.call(arguments);
-        },
-        setRequestHeader: function(key, value) {
-          this._headers[key] = value;
-        },
-        getResponseHeader: function(key) {
-          return this._responseHeaders[key];
-        }
-      };
-      ['load', 'abort', 'error'].forEach(function(cb) {
-        Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
-          configurable: true,
-          set: function(f) {
-            this['_on' + cb] = f;
-          }
-        });
-      });
-      env.rs = new RemoteStorage();
-      env.rs.apiKeys= { dropbox: {api_key: 'testkey'} };
-      env.client = new RemoteStorage.Dropbox(env.rs);
-      env.connectedClient = new RemoteStorage.Dropbox(env.rs);
-      env.baseURI = 'https://example.com/storage/test';
-      env.token = 'foobarbaz';
-      env.connectedClient.configure(
-        'dboxuser', env.baseURI, undefined, env.token
-      );
-      global.Blob = function(input, options) {
-        this.input = input;
-        this.options = options;
-        env.blob = this;
-      };
-      global.FileReader = function() {};
-      FileReader.prototype = {
-        _events: {
-          loadend: []
-        },
-        addEventListener: function(eventName, handler) {
-          this._events[eventName].push(handler);
-        },
-        readAsArrayBuffer: function(blob) {
-          setTimeout(function() {
-            this.result = env.fileReaderResult = Math.random();
-            this._events.loadend[0]();
-          }.bind(this), 0);
-        }
-      };
-
-      test.done();
-    },
-
-    afterEach: function(env, test) {
-      delete global.XMLHttpRequest;
-      delete global.Blob;
-      delete global.FileReader;
-      delete env.client;
-      delete env.blob;
-      delete env.fileReaderResult;
-      test.done();
-    },
-
-    tests: [
-      {
-        desc: "it's initially not connected",
-        run: function(env, test) {
-          test.assert(env.client.connected, false);
-        }
+  function setup(env, test) {
+    global.RemoteStorage = function() {
+      RemoteStorage.eventHandling(this, 'error');
+    };
+    RemoteStorage.log = function() {};
+    RemoteStorage.prototype = {
+      setBackend: function(b){
+        this.backend = b;
       },
+      localStorageAvailable: function() {
+        return false;
+      }
+    };
+    global.RemoteStorage.Unauthorized = function() {};
 
+    require('./lib/promising');
+    require('./src/eventhandling');
+
+    if (global.rs_eventhandling) {
+      RemoteStorage.eventHandling = global.rs_eventhandling;
+    } else {
+      global.rs_eventhandling = RemoteStorage.eventHandling;
+    }
+    require('./src/wireclient');
+
+    if (global.rs_wireclient) {
+      RemoteStorage.WireClient = global.rs_wireclient;
+    } else {
+      global.rs_wireclient = RemoteStorage.WireClient;
+    }
+    require('./src/dropbox');
+
+    if (global.rs_dropbox) {
+      RemoteStorage.Dropbox = global.rs_dropbox;
+    } else {
+      global.rs_dropbox = RemoteStorage.Dropbox;
+    }
+    test.done();
+  }
+
+  function beforeEach(env, test) {
+    global.XMLHttpRequest = function() {
+      XMLHttpRequest.instances.push(this);
+      this._headers = {};
+      this._responseHeaders = {};
+    console.log('beforeEach, ', typeof(RemoteStorage.Dropbox), typeof(global.rs_dropbox));
+    };
+    XMLHttpRequest.instances = [];
+    XMLHttpRequest.prototype = {
+      open: function() {
+        this._open = Array.prototype.slice.call(arguments);
+      },
+      send: function() {
+        this._send = Array.prototype.slice.call(arguments);
+      },
+      setRequestHeader: function(key, value) {
+        this._headers[key] = value;
+      },
+      getResponseHeader: function(key) {
+        return this._responseHeaders[key];
+      }
+    };
+    ['load', 'abort', 'error'].forEach(function(cb) {
+      Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
+        configurable: true,
+        set: function(f) {
+          this['_on' + cb] = f;
+        }
+      });
+    });
+    env.rs = new RemoteStorage();
+    env.rs.apiKeys= { dropbox: {api_key: 'testkey'} };
+    env.client = new RemoteStorage.Dropbox(env.rs);
+    env.connectedClient = new RemoteStorage.Dropbox(env.rs);
+    env.baseURI = 'https://example.com/storage/test';
+    env.token = 'foobarbaz';
+    env.connectedClient.configure(
+      'dboxuser', env.baseURI, undefined, env.token
+    );
+    global.Blob = function(input, options) {
+      this.input = input;
+      this.options = options;
+      env.blob = this;
+    };
+    global.FileReader = function() {};
+    FileReader.prototype = {
+      _events: {
+        loadend: []
+      },
+      addEventListener: function(eventName, handler) {
+        this._events[eventName].push(handler);
+      },
+      readAsArrayBuffer: function(blob) {
+        setTimeout(function() {
+          this.result = env.fileReaderResult = Math.random();
+          this._events.loadend[0]();
+        }.bind(this), 0);
+      }
+    };
+
+    test.done();
+  }
+
+  function afterEach(env, test) {
+    delete global.XMLHttpRequest;
+    delete global.Blob;
+    delete global.FileReader;
+    delete env.client;
+    delete env.blob;
+    delete env.fileReaderResult;
+    test.done();
+  }
+
+  suites.push({
+    name: "DropboxClient",
+    desc: "backend behavior",
+    setup: setup,
+    beforeEach: beforeEach,
+    afterEach: afterEach,
+    tests: backend.behavior
+  });
+
+  suites.push({
+    name: "DropboxClient",
+    desc: "Low-level Dropbox client based on XMLHttpRequest",
+    setup: setup,
+    beforeEach: beforeEach,
+    afterEach: afterEach,
+    tests: [
       {
         desc: "#get / #put / #delete throw an exception if not connected",
         run: function(env, test) {
