@@ -386,9 +386,9 @@
       if (node.remote) {
         if (node.local) {
           if (isFolder(node.path)) {
-            return autoMergeFolder(node);
+            return this.autoMergeFolder(node);
           } else {
-            return autoMergeDocument(node);
+            return this.autoMergeDocument(node);
           }
         } else { // remotely created node
           if (isFolder(node.path)) {
