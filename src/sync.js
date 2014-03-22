@@ -631,7 +631,7 @@
             delete node.push;
           } else if (action === 'delete') {
             if (node.local.body === false) { // No new local changes since push; flush it.
-              node = undefined;
+              nodes[path] = undefined;
             } else {
               delete node.push;
             }
