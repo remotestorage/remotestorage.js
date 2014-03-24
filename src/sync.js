@@ -928,6 +928,9 @@
     this.sync.on('done', function() {
       RemoteStorage.log('Sync done. Setting timer to', this.getSyncInterval());
       if (!this.sync.stopped) {
+        if (this._syncTimer) {
+          clearTimeout(this._syncTimer);
+        }
         this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getSyncInterval());
       }
     }.bind(this));
