@@ -766,7 +766,10 @@
           // See if there are any more tasks that are not refresh tasks
           if (!this.hasTasks() || this.stopped) {
             RemoteStorage.log('sync is done! reschedule?', Object.getOwnPropertyNames(this._tasks).length, this.stopped);
-            this._emit('done');
+            if (!this.done) {
+              this.done = true;
+              this._emit('done');
+            }
           } else {
             // Use a 10ms timeout to let the JavaScript runtime catch its breath
             // (and hopefully force an IndexedDB auto-commit?), and also to cause
@@ -855,6 +858,7 @@
      **/
     sync: function() {
       var promise = promising();
+      this.done = false;
 
       if (!this.doTasks()) {
         return this.collectTasks().then(function() {
