@@ -470,7 +470,7 @@
         strategy = 'FLUSH';
       } else if (strategy === undefined) {
         strategy = 'ALL';
-      } else if (strategy) {
+      } else if (typeof(strategy) !== 'string') {
         deprecate('that caching strategy is deprecated, please use <"ALL"> instead');
         strategy = 'ALL';
       }
