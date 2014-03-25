@@ -481,6 +481,7 @@
             + '["FLUSH", "SEEN", "ALL"]';
       }
       this.storage.caching.set(this.makePath(path), strategy);
+      return this;
     },
 
     flush: function(path) {

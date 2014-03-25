@@ -324,6 +324,14 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "#cache calls can be chained",
+        run: function(env, test) {
+          env.client.cache('bar/').cache('baz/');
+          test.assert(env.storage.caching._rootPaths, {'/foo/bar/': 'ALL', '/foo/baz/': 'ALL'});
+        }
+      },
+
+      {
         desc: "#cache with 'false' flag disables caching for a given path",
         run: function(env, test) {
           env.client.cache('bar/');
