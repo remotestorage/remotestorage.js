@@ -545,9 +545,9 @@
         var missingChildren = {};
         var node = nodes[path];
 
-        collectMissingChildren = function(nodeSet) {
-          if (nodeSet && nodeSet.itemsMap) {
-            for (var itemName in nodeSet.itemsMap) {
+        collectMissingChildren = function(folder) {
+          if (folder && folder.itemsMap) {
+            for (var itemName in folder.itemsMap) {
               if (!bodyOrItemsMap[itemName]) {
                 missingChildren[itemName] = true;
               }
@@ -561,6 +561,7 @@
             path: path,
             common: {}
           };
+          nodes[path] = node;
         }
 
         node.remote = {
@@ -582,7 +583,7 @@
           node.remote.contentType = contentType;
         }
 
-        node = this.autoMerge(node);
+        nodes[path] = this.autoMerge(node);
 
         return {
           toBeSaved:       nodes,
@@ -612,7 +613,7 @@
             };
           }
 
-          node = this.autoMerge(node);
+          nodes[path] = this.autoMerge(node);
         } else {
           node.common = {
             revision:  revision,
