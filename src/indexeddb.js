@@ -186,7 +186,7 @@
   RS.IndexedDB.open = function(name, callback) {
     var timer = setTimeout(function() {
       callback("timeout trying to open db");
-    }, 3500);
+    }, 10000);
 
     var req = indexedDB.open(name, DB_VERSION);
 
