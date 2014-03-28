@@ -571,7 +571,6 @@
 
         if (isFolder(path)) {
           collectMissingChildren(node.common);
-          collectMissingChildren(node.local);
           collectMissingChildren(node.remote);
 
           node.remote.itemsMap = {};
