@@ -170,6 +170,8 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
+            env.rs.remote._responses[['get', '/foo/baz/' ]] =
+              [500, '', '', ''];
             env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
@@ -211,6 +213,8 @@ define([], function() {
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
+            env.rs.remote._responses[['get', '/foo/baz/' ]] =
+              [500, '', '', ''];
             env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
@@ -227,6 +231,389 @@ define([], function() {
           });
         }
       },
+
+
+      {
+        desc: "an incoming folder listing removes items from common and remote but not from local",
+        run: function(env, test) {
+          env.rs.caching._responses = {
+            '/foo/': 'ALL',
+            '/foo/f-common/': 'ALL',
+            '/foo/f-created/': 'ALL',
+            '/foo/f-changed/': 'ALL',
+            '/foo/f-deleted/': 'ALL',
+            '/foo/f-common-fetching/': 'ALL',
+            '/foo/f-created-fetching/': 'ALL',
+            '/foo/f-changed-fetching/': 'ALL',
+            '/foo/f-deleted-fetching/': 'ALL',
+            '/foo/f-common/a': 'ALL',
+            '/foo/f-created/a': 'ALL',
+            '/foo/f-changed/a': 'ALL',
+            '/foo/f-deleted/a': 'ALL',
+            '/foo/f-common-fetching/a': 'ALL',
+            '/foo/f-created-fetching/a': 'ALL',
+            '/foo/f-changed-fetching/a': 'ALL',
+            '/foo/f-deleted-fetching/a': 'ALL',
+            '/foo/d-common': 'ALL',
+            '/foo/d-created': 'ALL',
+            '/foo/d-changed': 'ALL',
+            '/foo/d-deleted': 'ALL',
+            '/foo/d-common-fetching': 'ALL',
+            '/foo/d-created-fetching': 'ALL',
+            '/foo/d-changed-fetching': 'ALL',
+            '/foo/d-deleted-fetching': 'ALL'
+          };
+          env.rs.local.setNodes({
+            '/foo/': {
+              path: '/foo/',
+              common: {
+                itemsMap: {
+                  'f-common/': true,
+                  'f-changed/': true,
+                  'f-deleted/': true,
+                  'f-common-fetching/': true,
+                  'f-changed-fetching/': true,
+                  'f-deleted-fetching/': true,
+                  'd-common': true,
+                  'd-changed': true,
+                  'd-deleted': true,
+                  'd-common-fetching': true,
+                  'd-changed-fetching': true,
+                  'd-deleted-fetching': true
+                }
+              },
+              local: {
+                itemsMap: {
+                  'f-created/': true,
+                  'f-changed/': true,
+                  'f-deleted/': false,
+                  'f-created-fetching/': true,
+                  'f-changed-fetching/': true,
+                  'f-deleted-fetching/': false,
+                  'd-created': true,
+                  'd-changed': true,
+                  'd-deleted': false,
+                  'd-created-fetching': true,
+                  'd-changed-fetching': true,
+                  'd-deleted-fetching': false
+                }
+              },
+              remote: {
+                itemsMap: {
+                  'f-common-fetching/': true,
+                  'f-created-fetching/': true,
+                  'f-changed-fetching/': true,
+                  'f-deleted-fetching/': true,
+                  'd-common-fetching': true,
+                  'd-created-fetching': true,
+                  'd-changed-fetching': true,
+                  'd-deleted-fetching': true
+                }
+              }
+            },
+            '/foo/f-common/': {
+              path: '/foo/f-common/',
+              common: {
+                itemsMap: {
+                  'a' : true
+                }
+              }
+            },
+            '/foo/f-common/a': {
+              path: '/foo/f-common/a',
+              common: {
+                body: 'bloo'
+              }
+            },
+            '/foo/f-created/': {
+              path: '/foo/f-created/',
+              common: {
+              },
+              local: {
+                itemsMap: {
+                  'a' : true
+                }
+              }
+            },
+            '/foo/f-created/a': {
+              path: '/foo/f-created/a',
+              common: {
+              },
+              local: {
+                body: 'bloo'
+              }
+            },
+            '/foo/f-changed/': {
+              path: '/foo/f-changed/',
+              common: {
+                itemsMap: {
+                  'a' : true
+                }
+              }
+            },
+            '/foo/f-changed/a': {
+              path: '/foo/f-changed/a',
+              common: {
+                body: 'bloo'
+              },
+              local: {
+                body: 'blooz'
+              }
+            },
+            '/foo/f-deleted/': {
+              path: '/foo/f-deleted/',
+              common: {
+                itemsMap: {
+                  'a' : true
+                }
+              },
+              local: {
+                itemsMap: {
+                  'a' : false
+                }
+              }
+            },
+            '/foo/f-deleted/a': {
+              path: '/foo/f-deleted/a',
+              common: {
+                body: 'bloo'
+              },
+              local: {
+                body: false
+              }
+            },
+            '/foo/d-common': {
+              path: '/foo/d-common',
+              common: {
+                body: 'bloo'
+              }
+            },
+            '/foo/d-created': {
+              path: '/foo/d-created',
+              common: {
+              },
+              local: {
+                body: 'bloo'
+              }
+            },
+            '/foo/d-changed': {
+              path: '/foo/d-changed',
+              common: {
+                body: 'bloo'
+              },
+              local: {
+                body: 'blooz'
+              }
+            },
+            '/foo/d-deleted': {
+              path: '/foo/d-deleted',
+              common: {
+                body: 'bloo'
+              },
+              local: {
+                body: false
+              }
+            },
+            '/foo/f-common-fetching/': {
+              path: '/foo/f-common-fetching/',
+              common: {
+                itemsMap: {
+                  'a' : true
+                }
+              },
+              remote: {
+                revision: 'unfetched'
+              }
+            },
+            '/foo/f-common-fetching/a': {
+              path: '/foo/f-common-fetching/a',
+              common: {
+                body: 'bloo'
+              },
+              remote: {
+                revision: 'unfetched'
+              }
+            },
+            '/foo/f-created-fetching/': {
+              path: '/foo/f-created-fetching/',
+              common: {
+              },
+              local: {
+                itemsMap: {
+                  'a' : true
+                }
+              },
+              remote: {
+                revision: 'unfetched'
+              }
+            },
+            '/foo/f-created-fetching/a': {
+              path: '/foo/f-created-fetching/a',
+              common: {
+              },
+              local: {
+                body: 'bloo'
+              },
+              remote: {
+                revision: 'unfetched'
+              }
+            },
+            '/foo/f-changed-fetching/': {
+              path: '/foo/f-changed-fetching/',
+              common: {
+                itemsMap: {
+                  'a' : true
+                }
+              },
+              remote: {
+                revision: 'unfetched'
+              }
+            },
+            '/foo/f-changed-fetching/a': {
+              path: '/foo/f-changed-fetching/a',
+              common: {
+                body: 'bloo'
+              },
+              local: {
+                body: 'blooz'
+              },
+              remote: {
+                revision: 'unfetched'
+              }
+            },
+            '/foo/f-deleted-fetching/': {
+              path: '/foo/f-deleted-fetching/',
+              common: {
+                itemsMap: {
+                  'a' : true
+                }
+              },
+              local: {
+                itemsMap: {
+                  'a' : false
+                }
+              },
+              remote: {
+                revision: 'unfetched'
+              }
+            },
+            '/foo/f-deleted-fetching/a': {
+              path: '/foo/f-deleted-fetching/a',
+              common: {
+                body: 'bloo'
+              },
+              local: {
+                body: false
+              },
+              remote: {
+                revision: 'unfetched'
+              }
+            },
+            '/foo/d-common-fetching': {
+              path: '/foo/d-common-fetching',
+              common: {
+                body: 'bloo'
+              },
+              remote: {
+                revision: 'unfetched'
+              }
+            },
+            '/foo/d-created-fetching': {
+              path: '/foo/d-created-fetching',
+              common: {
+              },
+              local: {
+                body: 'bloo'
+              },
+              remote: {
+                revision: 'unfetched'
+              }
+            },
+            '/foo/d-changed-fetching': {
+              path: '/foo/d-changed-fetching',
+              common: {
+                body: 'bloo'
+              },
+              local: {
+                body: 'blooz'
+              },
+              remote: {
+                revision: 'unfetched'
+              }
+            },
+            '/foo/d-deleted-fetching': {
+              path: '/foo/d-deleted-fetching',
+              common: {
+                body: 'bloo'
+              },
+              local: {
+                body: false
+              },
+              remote: {
+                revision: 'unfetched'
+              }
+            },
+          }).then(function() {
+            env.rs.remote._responses[['get', '/foo/' ]] =
+              [200, {}, 'application/json', '123'];
+            env.rs.remote._responses[['get', '/foo/', {ifNoneMatch: '123'} ]] =
+              [200, {}, 'application/json', '123'];
+            env.rs.remote._responses[['get', '/foo/f-created/' ]] =
+              [500, {}, 'application/json', '123'];
+            env.rs.remote._responses[["put","/foo/f-created/a","bloo",null,{"ifNoneMatch":"*"}]] =
+              [500, '', '', ''];
+            env.rs.sync._tasks = {'/foo/': []};
+            env.rs.sync.doTasks();
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/f-common/', '/foo/f-created/', '/foo/f-changed/', '/foo/f-deleted/',
+                  '/foo/f-common/a', '/foo/f-created/a', '/foo/f-changed/a', '/foo/f-deleted/a',
+                  '/foo/d-common', '/foo/d-created', '/foo/d-changed', '/foo/d-deleted',
+                  '/foo/f-common-fetching/', '/foo/f-created-fetching/', '/foo/f-changed-fetching/', '/foo/f-deleted-fetching/',
+                  '/foo/f-common-fetching/a', '/foo/f-created-fetching/a', '/foo/f-changed-fetching/a', '/foo/f-deleted-fetching/a',
+                  '/foo/d-common-fetching', '/foo/d-created-fetching', '/foo/d-changed-fetching', '/foo/d-deleted-fetching']).then(function(objs) {
+
+                test.assertAnd(objs['/foo/f-common/'], undefined);
+                test.assertAnd(objs['/foo/f-created/'].local.itemsMap.a, true);
+                test.assertAnd(objs['/foo/f-changed/'], undefined);
+                test.assertAnd(objs['/foo/f-deleted/'], undefined);
+                test.assertAnd(objs['/foo/f-common-fetching/'], undefined);
+                
+                //the created-fetching case is discussable, because on the one hand,
+                //data was created locally so you may want to preserve that, 
+                //but on the other hand, there is a remote deletion, which should also not be
+                //ignored. choosing to let the client win in this case:
+                test.assertAnd(objs['/foo/f-created-fetching/'].local.itemsMap.a, true);
+                test.assertAnd(objs['/foo/f-changed-fetching/'], undefined);
+                test.assertAnd(objs['/foo/f-deleted-fetching/'], undefined);
+
+                //i'm not sure whether it's necessary that these tombstones are created:
+                test.assertAnd(objs['/foo/f-common/a'].common.body, false);
+                test.assertAnd(objs['/foo/f-created/a'].local.body, 'bloo');
+                test.assertAnd(objs['/foo/f-changed/a'].common.body, false);
+                test.assertAnd(objs['/foo/f-deleted/a'].common.body, false);
+                test.assertAnd(objs['/foo/f-common-fetching/a'].common.body, false);
+                test.assertAnd(objs['/foo/f-created-fetching/a'].local.body, 'bloo');
+                test.assertAnd(objs['/foo/f-changed-fetching/a'].common.body, false);
+                test.assertAnd(objs['/foo/f-deleted-fetching/a'].common.body, false);
+
+                //i'm also not sure why no tombstones are created on the first tree depth:
+                test.assertAnd(objs['/foo/d-common'], undefined);
+                test.assertAnd(objs['/foo/d-created'].local.body, 'bloo');
+                test.assertAnd(objs['/foo/d-changed'], undefined);
+                test.assertAnd(objs['/foo/d-deleted'], undefined);
+                test.assertAnd(objs['/foo/d-common-fetching'], undefined);
+                test.assertAnd(objs['/foo/d-created-fetching'].local.body, 'bloo');
+                test.assertAnd(objs['/foo/d-changed-fetching'], undefined);
+                test.assertAnd(objs['/foo/d-deleted-fetching'], undefined);
+
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+
       {
         desc: "a success response to a folder GET moves remote to common if no local exists",
         run: function(env, test) {
