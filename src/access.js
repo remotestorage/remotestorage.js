@@ -9,7 +9,6 @@
    */
   RemoteStorage.Access = function() {
     this.reset();
-
   };
 
   RemoteStorage.Access.prototype = {
@@ -22,12 +21,19 @@
      * Parameters:
      *   scope - An access scope, such as "contacts" or "calendar".
      *   mode  - Access mode to use. Either "r" or "rw".
+     *
+     * Example:
+     *   (start code)
+     *   remoteStorage.access.claim('foo', 'r');
+     *   remoteStorage.access.claim('bar', 'rw');
      */
-    claim: function() {
-      this.set.apply(this, arguments);
-    },
-
-    set: function(scope, mode) {
+    claim: function(scope, mode) {
+      if (typeof(scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
+        throw new Error('Scope should be a non-empty string without forward slashes');
+      }
+      if (!mode.match(/^rw?$/)) {
+        throw new Error('Mode should be either \'r\' or \'rw\'');
+      }
       this._adjustRootPaths(scope);
       this.scopeModeMap[scope] = mode;
     },
@@ -49,14 +55,38 @@
       }
     },
 
-    check: function(scope, mode) {
+    /**
+     * Verify permission for a given scope.
+     */
+    checkPermission: function(scope, mode) {
       var actualMode = this.get(scope);
       return actualMode && (mode === 'r' || actualMode === 'rw');
+    },
+
+    /**
+     * Verify permission for a given path.
+     */
+    checkPathPermission: function(path, mode) {
+      if (this.checkPermission('*', mode)) {
+        return true;
+      }
+      return !!this.checkPermission(this._getModuleName(path), mode);
     },
 
     reset: function() {
       this.rootPaths = [];
       this.scopeModeMap = {};
+    },
+
+    /**
+     * Return the module name for a given path.
+     */
+    _getModuleName: function(path) {
+      if (path[0] !== '/') {
+        throw new Error('Path should start with a slash');
+      }
+      var moduleMatch = path.replace(/^\/public/, '').match(/^\/([^\/]*)\//);
+      return moduleMatch ? moduleMatch[1] : '*';
     },
 
     _adjustRootPaths: function(newScope) {
@@ -89,14 +119,6 @@
    *
    * Holds an array of claimed scopes in the form
    * > { name: "<scope-name>", mode: "<mode>" }
-   *
-   * Example:
-   *   (start code)
-   *   remoteStorage.access.claim('foo', 'r');
-   *   remoteStorage.access.claim('bar', 'rw');
-   *
-   *   remoteStorage.access.scopes
-   *   // -> [ { name: 'foo', mode: 'r' }, { name: 'bar', mode: 'rw' } ]
    */
   Object.defineProperty(RemoteStorage.Access.prototype, 'scopes', {
     get: function() {
@@ -114,7 +136,7 @@
     }
   });
 
-  // documented in src/remotestorage.js
+  // Documented in src/remotestorage.js
   Object.defineProperty(RemoteStorage.prototype, 'access', {
     get: function() {
       var access = new RemoteStorage.Access();
@@ -126,16 +148,9 @@
     configurable: true
   });
 
-  function setModuleCaching(remoteStorage, key) {
-    if (key === '*' || key === '') {
-      remoteStorage.caching.set('/', { data: true });
-    } else {
-      remoteStorage.caching.set('/' + key + '/', { data: true });
-      remoteStorage.caching.set('/public/' + key + '/', { data: true });
-    }
-  }
-
-  // documented in src/remotestorage.js
+  // Documented in src/remotestorage.js
+  // TODO claimAccess is outdated, should be deleted soon
+  // Also, this does not even do what the docs say anymore.
   RemoteStorage.prototype.claimAccess = function(scopes) {
     if (typeof(scopes) === 'object') {
       for (var key in scopes) {

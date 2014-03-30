@@ -72,7 +72,7 @@
      * the context has to have a @context property
      *
      * Returns:
-     *   A validate object giving you information about errors 
+     *   A validate object giving you information about errors
      **/
     validate: function(object) {
       var schema = RemoteStorage.BaseClient.Types.getSchema(object['@context']);

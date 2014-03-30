@@ -43,9 +43,10 @@
   /**
    * Class: RemoteStorage.Widget.View
    *
-   * The View controles the actual visible widget
+   * Controls the visible widget
    *
    * States:
+   *
    *   initial      - not connected
    *   authing      - in auth flow
    *   connected    - connected to remote storage, not syncing at the moment
@@ -92,10 +93,14 @@
     },
 
     /**
-     * Method: setState(state, args)
-     *    calls states[state]
-     *    args are the arguments for the
-     *    state(errors mostly)
+     * Method: setState
+     *
+     * Call the function that applies the state to the widget
+     *
+     * Parameters:
+     *
+     *   state
+     *   args
      **/
     setState: function(state, args) {
       RemoteStorage.log('widget.view.setState(',state,',',args,');');
@@ -103,12 +108,13 @@
       if (typeof(s) === 'undefined') {
         throw new Error("Bad State assigned to view: " + state);
       }
-      s.apply(this,args);
+      s.apply(this, args);
     },
 
     /**
      * Method: setUserAddres
-     *    set userAddress of the input field
+     *
+     * Set user address of the input field
      **/
     setUserAddress: function(addr) {
       this.userAddress = addr || '';
@@ -120,8 +126,9 @@
     },
 
     /**
-    *  toggleBubble()
-    *    shows the bubble when hidden and the other way around
+    * Method: toggleBubble
+    *
+    * Show the bubble when hidden and the other way around
     **/
     toggleBubble: function(event) {
       if (this.bubble.className.search('rs-hidden') < 0) {
@@ -132,8 +139,9 @@
     },
 
     /**
-     *  hideBubble()
-     *   hides the bubble
+     * Method: hideBubble
+     *
+     * Hide the bubble
      **/
     hideBubble: function(){
       addClass(this.bubble, 'rs-hidden');
@@ -141,8 +149,9 @@
     },
 
     /**
-     * Method: showBubble()
-     *   shows the bubble
+     * Method: showBubble
+     *
+     * Show the bubble
      **/
     showBubble: function(event){
       removeClass(this.bubble, 'rs-hidden');
@@ -153,10 +162,18 @@
       gTl(this.bubble,'form').userAddress.focus();
     },
 
-     /**
-     * Method: display(domID)
-     *   draws the widget inside of the dom element with the id domID
-     *   returns: the widget div
+    /**
+     * Method: display
+     *
+     * Draw the widget inside of the dom element with the id domID
+     *
+     * Parameters:
+     *
+     *   domID
+     *
+     * Returns:
+     *
+     *   The widget div
      **/
     display: function(domID) {
       if (typeof this.div !== 'undefined') {
@@ -345,7 +362,8 @@
     events: {
     /**
      * Event: connect
-     * emitted when the connect button is clicked
+     *
+     * Emitted when the connect button is clicked
      **/
       connect: function(event) {
         stopPropagation(event);
@@ -355,7 +373,8 @@
 
       /**
        * Event: sync
-       * emitted when the sync button is clicked
+       *
+       * Emitted when the sync button is clicked
        **/
       sync: function(event) {
         stopPropagation(event);
@@ -366,7 +385,8 @@
 
       /**
        * Event: disconnect
-       * emitted when the disconnect button is clicked
+       *
+       * Emitted when the disconnect button is clicked
        **/
       disconnect: function(event) {
         stopPropagation(event);
@@ -376,7 +396,8 @@
 
       /**
        * Event: reset
-       * fired after crash triggers disconnect
+       *
+       * Emitted after crash triggers disconnect
        **/
       reset: function(event){
         event.preventDefault();
@@ -388,7 +409,8 @@
 
       /**
        * Event: display
-       * fired when finished displaying the widget
+       *
+       * Emitted when finished displaying the widget
        **/
       display : function(event) {
         if (event) {

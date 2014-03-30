@@ -3,6 +3,29 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 0.10.0 (February 2014)
+
+This release contains a major rewrite of the tree-based sync and caching
+system. Old cached data will be converted to the new format automatically.
+
+### Breaking changes
+
+* `disconnect` event removed in favor `disconnected`
+
+### New features
+
+* A new `maxAge` parameter is available in the various BaseClient get...
+  functions, where you can specify the maximum age of cached results (in ms).
+  This replaces the ready-queue from 0.9.0.
+* Caching of subtrees can now be configured as 'ALL', 'SEEN', or 'FLUSH'. The second
+  one means documents that were seen once, will stay synced. Check the
+  [caching documentation](http://remotestorage.io/doc/code/files/caching-js.html)
+  for details. `caching.enable(path)` will use 'ALL' by default.
+
+### Bugfixes
+
+* [issue no] Anonymous mode is fixed and working as expected again
+
 ## 0.9.0 (December 2013)
 
 This release consists of awesome contributions from @skddc, @galfert, @ggrin,

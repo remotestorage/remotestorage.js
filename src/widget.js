@@ -10,7 +10,9 @@
   };
 
   function stateSetter(widget, state) {
+    RemoteStorage.log('Producing stateSetter for', state);
     return function() {
+      RemoteStorage.log('Setting state', state, arguments);
       if (hasLocalStorage) {
         localStorage[LS_STATE_KEY] = state;
       }
@@ -25,17 +27,17 @@
     };
   }
 
-  function errorsHandler(widget){
-    //decided to not store error state
-    return function(error){
+  function errorsHandler(widget) {
+    return function(error) {
       if (error instanceof RemoteStorage.DiscoveryError) {
-        console.error('discovery failed',  error, '"' + error.message + '"');
+        console.error('Discovery failed', error, '"' + error.message + '"');
         widget.view.setState('initial', [error.message]);
       } else if (error instanceof RemoteStorage.SyncError) {
         widget.view.setState('offline', []);
-      } else if (error instanceof RemoteStorage.Unauthorized){
+      } else if (error instanceof RemoteStorage.Unauthorized) {
         widget.view.setState('unauthorized');
       } else {
+        RemoteStorage.log('Unknown error');
         widget.view.setState('error', [error]);
       }
     };
@@ -50,19 +52,20 @@
 
   /**
    * Class: RemoteStorage.Widget
-   *   the Widget Controler that comunicates with the view
-   *   and listens to its remoteStorage instance
    *
-   *   While listening to the Events emitted by its remoteStorage
-   *   it set's corresponding states of the View.
+   * The widget controller that communicates with the view and listens to
+   * its remoteStorage instance.
    *
-   *   connected    :  connected
-   *   disconnected :  initial
-   *   connecting   :  authing
-   *   authing      :  authing
-   *   wire-busy    :  busy
-   *   wire-done    :  connected
-   *   error        :  depending on the error initial,offline, unauthorized or error
+   * While listening to the events emitted by its remoteStorage it sets
+   * corresponding states of the view.
+   *
+   * - connected    ->  connected
+   * - disconnected ->  initial
+   * - connecting   ->  authing
+   * - authing      ->  authing
+   * - wire-busy    ->  busy
+   * - wire-done    ->  connected
+   * - error        ->  one of initial, offline, unauthorized, or error
    **/
   RemoteStorage.Widget = function(remoteStorage) {
     var self = this;
@@ -99,10 +102,6 @@
       var state = localStorage[LS_STATE_KEY];
       if (state && VALID_ENTRY_STATES[state]) {
         this._rememberedState = state;
-
-        if (state === 'connected' && ! remoteStorage.connected) {
-          this._rememberedState = 'initial';
-        }
       }
     }
   };
@@ -110,9 +109,13 @@
   RemoteStorage.Widget.prototype = {
 
     /**
-    *   Method: display(domID)
-    *     displays the widget via the view.display method
-    *     returns: this
+    * Method: display
+    *
+    * Displays the widget via the view.display method
+    *
+    * Parameters:
+    *
+    *   domID
     **/
     display: function(domID) {
       if (! this.view) {
@@ -122,10 +125,20 @@
       return this;
     },
 
+    linkWidgetToSync: function() {
+      if (typeof(this.rs.sync) === 'object' && typeof(this.rs.sync.sync) === 'function') {
+        this.view.on('sync', this.rs.sync.sync.bind(this.rs.sync));
+      } else {
+        RemoteStorage.log('typeof this.rs.sync check fail', this.rs.sync);
+        setTimeout(this.linkWidgetToSync.bind(this), 1000);
+      }
+    },
+
     /**
-    *   Method: setView(view)
-    *    sets the view and initializes event listeners to
-    *    react on widget(widget.view) events
+    *  Method: setView(view)
+    *
+    *  Sets the view and initializes event listeners to react on
+    *  widget (widget.view) events
     **/
     setView: function(view) {
       this.view = view;
@@ -138,9 +151,7 @@
         }
       }.bind(this));
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
-      if (this.rs.sync) {
-        this.view.on('sync', this.rs.sync.bind(this.rs));
-      }
+      this.linkWidgetToSync();
       try {
         this.view.on('reset', function(){
           var location = RemoteStorage.Authorize.getLocation();
@@ -161,9 +172,11 @@
       }
     }
   };
+
   /**
-   *  Method: displayWidget(domID)
-   *    same as display
+   * Method: displayWidget
+   *
+   * Same as <display>
    **/
   RemoteStorage.prototype.displayWidget = function(domID) {
     return this.widget.display(domID);
