@@ -61,10 +61,52 @@
 
     this.getsRunning = 0;
     this.putsRunning = 0;
+    //both these caches store path -> the uncommitted node, or false for a deletion:
+    this.commitCache = {};
+    this.flushing = {};
   };
 
   RS.IndexedDB.prototype = {
     getNodes: function(paths) {
+      var i ,misses = [], results = {};
+      for (i=0; i<paths.length; i++) {
+        if(this.commitCache[path[i]] === undefined) {
+          if(this.flushing[path[i]] === undefined) {
+            misses.push(paths[i]);
+          } else if(this.flushing[paths[i]] !== false) {
+            results[paths[i]] = this._deepClone(this.flushing[paths[i]]);
+          }
+        } else if(this.commitCache[paths[i]] !== false) {
+          results[paths[i]] = this._deepClone(this.commitCache[paths[i]]);
+        }
+      }
+      if (misses.length > 0) {
+        return this.getNodesFromDb(misses).then(function(nodes) {
+          for (i in results) {
+            nodes[i] = results[i];
+          }
+          return nodes;
+        });
+      } else {
+        promise = Promising();
+        promise.fulfill(results);
+        return promise;
+      }
+    },
+    setNodes: function(nodes) {
+      for(var i in nodes) {
+        this.commitCache[i] = nodes[i] || false;
+      }
+      this.maybeFlush();
+    },
+    maybeFlush: function() {
+      if (this.putsRunning === 0) {
+        this.flushing = this.commitCache;
+        this.commitCache = {};
+        this.setNodesToDb(this.flushing);
+      }
+    },
+    getNodesFromDb: function(paths) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var nodes = transaction.objectStore('nodes');
@@ -95,7 +137,7 @@
       return promise;
     },
 
-    setNodes: function(nodes) {
+    setNodesToDb: function(nodes) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodesStore = transaction.objectStore('nodes');
