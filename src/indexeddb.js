@@ -68,22 +68,20 @@
 
   RS.IndexedDB.prototype = {
     getNodes: function(paths) {
-      var i ,misses = [], results = {};
+      var i ,misses = [], fromCache = {};
       for (i=0; i<paths.length; i++) {
-        if(this.commitCache[path[i]] === undefined) {
-          if(this.flushing[path[i]] === undefined) {
-            misses.push(paths[i]);
-          } else if(this.flushing[paths[i]] !== false) {
-            results[paths[i]] = this._deepClone(this.flushing[paths[i]]);
-          }
-        } else if(this.commitCache[paths[i]] !== false) {
-          results[paths[i]] = this._deepClone(this.commitCache[paths[i]]);
+        if(this.commitCache[path[i]] !== undefined) {
+          fromCache[paths[i]] = this._deepClone(this.commitCache[paths[i]] || undefined);
+        } else if(this.flushing[path[i]] !== undefined) {
+           fromCache[paths[i]] = this._deepClone(this.flushing[paths[i]] || undefined);
+        } else {
+          misses.push(paths[i]);
         }
       }
       if (misses.length > 0) {
         return this.getNodesFromDb(misses).then(function(nodes) {
-          for (i in results) {
-            nodes[i] = results[i];
+          for (i in fromCache) {
+            nodes[i] = fromCache[i];
           }
           return nodes;
         });
@@ -101,9 +99,14 @@
     },
     maybeFlush: function() {
       if (this.putsRunning === 0) {
+        this.flushCommitCache();
+      }
+    },
+    flushCommitCache: function() {
+      if (Object.keys(this.commitCache).length > 0) {
         this.flushing = this.commitCache;
         this.commitCache = {};
-        this.setNodesToDb(this.flushing);
+        this.setNodesToDb(this.flushing).then(this.flushCommitCache.bind(this));
       }
     },
     getNodesFromDb: function(paths) {
