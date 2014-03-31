@@ -625,26 +625,6 @@
   };
 
   /**
-   * Method: claimAccess
-   *
-   * High-level method to claim access on one or multiple scopes and enable
-   * caching for them. WARNING: when using Caching control, use remoteStorage.access.claim instead,
-   * see https://github.com/remotestorage/remotestorage.js/issues/380
-   *
-   * Examples:
-   *   (start code)
-   *     remoteStorage.claimAccess('foo', 'rw');
-   *     // is equivalent to:
-   *     remoteStorage.claimAccess({ foo: 'rw' });
-   *
-   *     // is equivalent to:
-   *     remoteStorage.access.claim('foo', 'rw');
-   *     remoteStorage.caching.enable('/foo/');
-   *     remoteStorage.caching.enable('/public/foo/');
-   *   (end code)
-   */
-
-  /**
    * Property: connected
    *
    * Boolean property indicating if remoteStorage is currently connected.

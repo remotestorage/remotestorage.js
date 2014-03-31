@@ -18,8 +18,6 @@ There are two ways to configure caching:
 Configuring caching from a module
 ---------------------------------
 
-# WARNING: Make sure you never combine cache control with remoteStorage.claimAccess, but always with remoteStorage.access.claim instead, see https://github.com/remotestorage/remotestorage.js/issues/380#issuecomment-22217969
-
 The `BaseClient#cache` interface is only a convenience method that internally uses `remoteStorage.caching`.
 
 This example shows how to configure caching in a module:
