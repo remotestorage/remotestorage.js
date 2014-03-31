@@ -7,6 +7,8 @@
 * Bump version in `src/version.js`
 * Bump version in `package.json`
 * Build everything: `make all`
+* Manually test all browsers you have access to, including mobile devices and private browsing mode
+* Manually test the special build files (.amd.js, .nocache.js)
 * Create release dir in `/release` and move build files there
 * Commit changes to Git
 * Tag version in Git: `git tag x.x.x` and push to GitHub master: `git push --tags`
@@ -29,6 +31,7 @@
     * Commit
     * Tag new version
     * `git push --tags`
+* update https://www.npmjs.org/package/remotestoragejs
 * Announce release on community forums
     * Create a new topic in "remoteStorage.js Core" similar to e.g. this one: http://community.remotestorage.io/t/remotestorage-js-0-8-3-released/95
 * Link release announcement on forums from
