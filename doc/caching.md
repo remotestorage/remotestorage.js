@@ -1,3 +1,4 @@
+TODO: Update to new API
 
 Caching in remotestorage.js
 ===========================
