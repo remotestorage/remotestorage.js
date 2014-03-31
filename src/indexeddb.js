@@ -248,7 +248,25 @@
   };
 
   RS.IndexedDB._rs_supported = function() {
-    return ('indexedDB' in global);
+    var promise = promising();
+
+    if ('indexedDB' in global) {
+      try {
+        var check = indexedDB.open("MyTestDatabase");
+        check.onerror = function(event) {
+          promise.reject();
+        };
+        check.onsuccess = function(event) {
+          promise.fulfill();
+        };
+      } catch(e) {
+        promise.reject();
+      }
+    } else {
+      promise.reject();
+    }
+
+    return promise;
   };
 
   RS.IndexedDB._rs_cleanup = function(remoteStorage) {
