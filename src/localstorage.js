@@ -70,6 +70,7 @@
         try {
           nodes[paths[i]] = JSON.parse(localStorage[NODES_PREFIX+paths[i]]);
         } catch(e) {
+          nodes[paths[i]] = undefined;
         }
       }
 
