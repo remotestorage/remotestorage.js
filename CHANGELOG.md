@@ -3,14 +3,15 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
-## 0.10.0 (February 2014)
+## 0.10.0 (April 2014)
 
 This release contains a major rewrite of the tree-based sync and caching
 system. Old cached data will be converted to the new format automatically.
 
 ### Breaking changes
 
-* `disconnect` event removed in favor `disconnected`
+* `disconnect` event removed in favor of `disconnected`
+* `remoteStorage.claimAccess` removed in favor of `remoteStorage.access.claim`
 
 ### New features
 
@@ -24,7 +25,11 @@ system. Old cached data will be converted to the new format automatically.
 
 ### Bugfixes
 
-* [issue no] Anonymous mode is fixed and working as expected again
+* Anonymous mode is fixed and working as expected again
+* Handle 404s for directory GETs (#573)
+* Always quote If-None-Match headers (#584)
+* Widget only pulses when syncing changes (#437)
+* Fire `connected` event on startup if remote already connected
 
 ## 0.9.0 (December 2013)
 
