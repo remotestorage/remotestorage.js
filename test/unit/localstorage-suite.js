@@ -118,7 +118,8 @@ define(['requirejs'], function(requirejs) {
               local: {
                 body: 'bar',
                 contentType: 'text/plain'
-              }
+              },
+              common: {}
             });
             test.done();
           });

@@ -52,7 +52,7 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           var storage = new RemoteStorage();
           var client = new RemoteStorage.BaseClient(storage, '/foo/');
-          test.assertAnd(client.storage, storage);
+          test.assertAnd(client.storage instanceof RemoteStorage, true);
           test.assertAnd(client.base, '/foo/');
           test.done();
         }
