@@ -212,11 +212,6 @@ define(['requirejs'], function(requirejs) {
         desc: "getNodes, setNodes",
         run: function(env, test) {
           env.ls.getNodes(['/foo/bar/baz']).then(function(objs) {
-
-            // Need to explicitly check if property exists, because Jaribu
-            // comparison doesn't work properly when value of a key is undefined
-            test.assertAnd(objs.hasOwnProperty('/foo/bar/baz'), true);
-
             test.assertAnd(objs, {'/foo/bar/baz': undefined});
           }).then(function() {
             return env.ls.setNodes({
