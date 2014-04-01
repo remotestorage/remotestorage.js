@@ -232,7 +232,7 @@ define(['requirejs'], function(requirejs) {
           var storage = env.ims._storage;
           var getLatest = env.ims._getInternals().getLatest;
 
-          env.ims.put('/foo/bar/baz', 'bla', 'text/pain', 'a1b2c3').then(function() {
+          env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function() {
             var storageKeys = ['/foo/bar/baz', '/foo/bar/', '/foo/', '/'];
 
             test.assertAnd(Object.keys(storage), storageKeys);
@@ -276,13 +276,13 @@ define(['requirejs'], function(requirejs) {
           var storage = env.ims._storage;
           var getLatest = env.ims._getInternals().getLatest;
 
-          env.ims.put('/foo/bar/baz', 'bla', 'text/pain', true, 'a1b2c3').then(function() {
-            env.ims.put('/foo/baz', 'bla', 'text/pain', true, 'a1b2c3').then(function() {
+          env.ims.put('/foo/bar/baz', 'bla', 'text/plain', true, 'a1b2c3').then(function() {
+            env.ims.put('/foo/baz', 'bla', 'text/plain', true, 'a1b2c3').then(function() {
               env.ims.delete('/foo/bar/baz').then(function(status) {
                 test.assertAnd(getLatest(storage['/']).itemsMap, { 'foo/': true });
                 test.assertAnd(getLatest(storage['/foo/']).itemsMap, { 'baz': true });
                 test.assertAnd(getLatest(storage['/foo/baz']).body, 'bla');
-                test.assertAnd(getLatest(storage['/foo/baz']).contentType, 'text/pain');
+                test.assertAnd(getLatest(storage['/foo/baz']).contentType, 'text/plain');
                 test.done();
               });
             });
@@ -293,8 +293,8 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#delete propagates changes through empty folders",
         run: function(env, test) {
-          env.ims.put('/foo/bar/baz', 'bla', 'text/pain', 'a1b2c3').then(function() {
-            env.ims.put('/foo/baz', 'bla', 'text/pain', 'a1b2c3').then(function() {
+          env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function() {
+            env.ims.put('/foo/baz', 'bla', 'text/plain', 'a1b2c3').then(function() {
               env.ims.delete('/foo/bar/baz').then(function(status) {
                 test.assert(env.ims._storage['/'].local.itemsMap, {'foo/': true});
               });
