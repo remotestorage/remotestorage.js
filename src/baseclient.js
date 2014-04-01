@@ -99,19 +99,6 @@
 
   RS.BaseClient.prototype = {
 
-    // TODO has been lagacy for a long time, should be removed
-    // BEGIN LEGACY
-    use: function(path) {
-      deprecate('BaseClient#use(path)', 'BaseClient#cache(path)');
-      return this.cache(path);
-    },
-
-    release: function(path) {
-      deprecate('BaseClient#release(path)', 'BaseClient#cache(path, false)');
-      return this.cache(path, false);
-    },
-    // END LEGACY
-
     extend: function(object) {
       for (var key in object) {
         this[key] = object[key];
