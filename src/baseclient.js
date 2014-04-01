@@ -466,12 +466,12 @@
         throw 'Argument \'path\' of baseClient.cache must be a string';
       }
       if (strategy === false) {
-        deprecate('caching strategy <false> is deprecated, please use <"FLUSH"> instead');
+        deprecate('caching strategy <false>', '<"FLUSH">');
         strategy = 'FLUSH';
       } else if (strategy === undefined) {
         strategy = 'ALL';
       } else if (typeof(strategy) !== 'string') {
-        deprecate('that caching strategy is deprecated, please use <"ALL"> instead');
+        deprecate('that caching strategy', '<"ALL">');
         strategy = 'ALL';
       }
       if (strategy !== 'FLUSH' &&
