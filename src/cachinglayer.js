@@ -188,8 +188,13 @@
 
           // Document
           if (i === 0) {
-            // TODO should body better be undefined?
-            node.local = { body: false, timestamp: now };
+            previous = getLatest(node);
+            node.local = {
+              body:                false,
+              timestamp:           now,
+              previousBody:        (previous ? previous.body : undefined),
+              previousContentType: (previous ? previous.contentType : undefined),
+            };
           }
           // Folder
           else {

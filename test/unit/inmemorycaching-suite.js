@@ -250,6 +250,27 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
+        desc: "#delete emits change event",
+        run: function(env, test) {
+          env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function() {
+
+            env.ims.on('change', function(event) {
+              test.assert(event, {
+                path: '/foo/bar/baz',
+                origin: 'window',
+                oldValue: 'bla',
+                oldContentType: 'text/plain',
+                newValue: false,
+                newContentType: undefined
+              });
+            });
+
+            env.ims.delete('/foo/bar/baz');
+          });
+        }
+      },
+
+      {
         desc: "#delete doesn't remove nonempty nodes",
         run: function(env, test) {
           var storage = env.ims._storage;
