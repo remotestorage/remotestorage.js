@@ -10,9 +10,9 @@
   };
 
   function stateSetter(widget, state) {
-    RemoteStorage.log('Producing stateSetter for', state);
+    RemoteStorage.log('[Widget] Producing stateSetter for', state);
     return function() {
-      RemoteStorage.log('Setting state', state, arguments);
+      RemoteStorage.log('[Widget] Setting state', state, arguments);
       if (hasLocalStorage) {
         localStorage[LS_STATE_KEY] = state;
       }
@@ -37,7 +37,7 @@
       } else if (error instanceof RemoteStorage.Unauthorized) {
         widget.view.setState('unauthorized');
       } else {
-        RemoteStorage.log('Unknown error');
+        RemoteStorage.log('[Widget] Unknown error');
         widget.view.setState('error', [error]);
       }
     };
@@ -129,7 +129,7 @@
       if (typeof(this.rs.sync) === 'object' && typeof(this.rs.sync.sync) === 'function') {
         this.view.on('sync', this.rs.sync.sync.bind(this.rs.sync));
       } else {
-        RemoteStorage.log('typeof this.rs.sync check fail', this.rs.sync);
+        RemoteStorage.log('[Widget] typeof this.rs.sync check fail', this.rs.sync);
         setTimeout(this.linkWidgetToSync.bind(this), 1000);
       }
     },

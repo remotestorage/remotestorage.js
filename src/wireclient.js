@@ -236,7 +236,7 @@
           });
           self.online = true;
           if (isErrorStatus(response.status)) {
-            RemoteStorage.log('239 revision', response.status);
+            RemoteStorage.log('[WireClient] Error response status', response.status);
             if (getEtag) {
               revision = stripQuotes(response.getResponseHeader('ETag'));
             } else {
@@ -246,7 +246,7 @@
           } else if (isSuccessStatus(response.status) ||
                      (response.status === 200 && method !== 'GET')) {
             revision = stripQuotes(response.getResponseHeader('ETag'));
-            RemoteStorage.log('242 revision', revision);
+            RemoteStorage.log('[WireClient] Successful request', revision);
             promise.fulfill(response.status, undefined, undefined, revision);
           } else {
             var mimeType = response.getResponseHeader('Content-Type');
@@ -257,9 +257,9 @@
               revision = response.status === 200 ? fakeRevision : undefined;
             }
 
-            if ((! mimeType) || mimeType.match(/charset=binary/)) {
+            if ((!mimeType) || mimeType.match(/charset=binary/)) {
               RS.WireClient.readBinaryData(response.response, mimeType, function(result) {
-                RemoteStorage.log('255 revision', revision);
+                RemoteStorage.log('[WireClient] Successful request with unknown or binary mime-type', revision);
                 promise.fulfill(response.status, result, mimeType, revision);
               });
             } else {
@@ -268,7 +268,7 @@
               } else {
                 body = response.responseText;
               }
-              RemoteStorage.log('264 revision', revision);
+              RemoteStorage.log('[WireClient] Successful request', revision);
               promise.fulfill(response.status, body, mimeType, revision);
             }
           }
@@ -417,7 +417,7 @@
 
   // Shared request function used by WireClient, GoogleDrive and Dropbox.
   RS.WireClient.request = function(method, url, options, callback) {
-    RemoteStorage.log(method, url);
+    RemoteStorage.log('[WireClient]', method, url);
 
     callback = callback.bind(this);
 

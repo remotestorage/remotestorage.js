@@ -52,7 +52,7 @@
     this.db = database || DEFAULT_DB;
 
     if (!this.db) {
-      RemoteStorage.log("Failed to open indexedDB");
+      RemoteStorage.log("[IndexedDB] Failed to open DB");
       return undefined;
     }
 
@@ -103,7 +103,7 @@
 
       this.putsRunning++;
 
-      RemoteStorage.log('Starting put', nodes, this.putsRunning);
+      RemoteStorage.log('[IndexedDB] Starting put', nodes, this.putsRunning);
 
       for (var path in nodes) {
         var node = nodes[path];
@@ -111,14 +111,14 @@
           try {
             nodesStore.put(node);
           } catch(e) {
-            RemoteStorage.log('Error while putting', node, e);
+            RemoteStorage.log('[IndexedDB] Error while putting', node, e);
             throw e;
           }
         } else {
           try {
             nodesStore.delete(path);
           } catch(e) {
-            RemoteStorage.log('Error while removing', nodesStore, node, e);
+            RemoteStorage.log('[IndexedDB] Error while removing', nodesStore, node, e);
             throw e;
           }
         }
@@ -127,7 +127,7 @@
       transaction.oncomplete = function() {
         promise.fulfill();
         this.putsRunning--;
-        RemoteStorage.log('Finished put', nodes, this.putsRunning, (new Date().getTime() - startTime)+'ms');
+        RemoteStorage.log('[IndexedDB] Finished put', nodes, this.putsRunning, (new Date().getTime() - startTime)+'ms');
       }.bind(this);
 
       transaction.onerror = function() {
@@ -191,7 +191,7 @@
     var req = indexedDB.open(name, DB_VERSION);
 
     req.onerror = function() {
-      RemoteStorage.log('Opening DB failed', req);
+      RemoteStorage.log('[IndexedDB] Opening DB failed', req);
 
       clearTimeout(timer);
       callback(req.error);
@@ -222,7 +222,7 @@
     var req = indexedDB.deleteDatabase(databaseName);
 
     req.onsuccess = function() {
-      RemoteStorage.log('Done removing DB');
+      RemoteStorage.log('[IndexedDB] Done removing DB');
       callback();
     };
 

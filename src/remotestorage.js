@@ -380,7 +380,7 @@
       }
 
       this._loadFeatures(function(features) {
-        this.log('all features loaded');
+        this.log('[RemoteStorage] All features loaded');
         this.local = features.local && new features.local();
         // this.remote set by WireClient._rs_init as lazy property on
         // RS.prototype
@@ -477,7 +477,7 @@
       }
 
       function featureInitialized(name) {
-        self.log("[FEATURE "+name+"] initialized.");
+        self.log("[RemoteStorage] [FEATURE "+name+"] initialized.");
         features.push({
           name : name,
           init :  RemoteStorage[name]._rs_init,
@@ -488,12 +488,12 @@
       }
 
       function featureFailed(name, err) {
-        self.log("[FEATURE "+name+"] initialization failed ( "+err+")");
+        self.log("[RemoteStorage] [FEATURE "+name+"] initialization failed ( "+err+")");
         featureDone();
       }
 
       function featureSupported(name, success) {
-        self.log("[FEATURE "+name+"]" + success ? "":" not"+" supported");
+        self.log("[RemoteStorage] [FEATURE "+name+"]" + success ? "":" not"+" supported");
         if (!success) {
           featureDone();
         }
@@ -518,7 +518,7 @@
       }
 
       featureList.forEach(function(featureName) {
-        self.log("[FEATURE " + featureName + "] initializing...");
+        self.log("[RemoteStorage] [FEATURE " + featureName + "] initializing...");
         var impl = RemoteStorage[featureName];
         var supported;
 

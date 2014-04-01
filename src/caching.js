@@ -116,7 +116,7 @@
      */
     onActivate: function(cb) {
       var i;
-      RemoteStorage.log('setting activate handler', cb, this.pendingActivations);
+      RemoteStorage.log('[Caching] Setting activate handler', cb, this.pendingActivations);
       this.activateHandler = cb;
       for (i=0; i<this.pendingActivations.length; i++) {
         cb(this.pendingActivations[i]);

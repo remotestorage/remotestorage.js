@@ -10,7 +10,7 @@
 
   RemoteStorage.LocalStorage = function() {
     RemoteStorage.cachingLayer(this);
-    RemoteStorage.log('[localstorage] Registering events');
+    RemoteStorage.log('[LocalStorage] Registering events');
     RemoteStorage.eventHandling(this, 'change');
   };
 
@@ -129,7 +129,7 @@
     }
 
     keys.forEach(function(key) {
-      RemoteStorage.log('[localstorage] Removing', key);
+      RemoteStorage.log('[LocalStorage] Removing', key);
       delete localStorage[key];
     });
   };
