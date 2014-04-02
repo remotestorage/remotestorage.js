@@ -240,7 +240,7 @@
             if (getEtag) {
               revision = stripQuotes(response.getResponseHeader('ETag'));
             } else {
-              revision = response.status === 200 ? fakeRevision : undefined;
+              revision = undefined;
             }
             promise.fulfill(response.status, undefined, undefined, revision);
           } else if (isSuccessStatus(response.status) ||
