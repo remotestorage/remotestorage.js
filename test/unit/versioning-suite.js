@@ -106,6 +106,324 @@ define([], function() {
       } else {
         global.rs_sync = RemoteStorage.Sync;
       }
+      env.responses1 = {
+        '/foo/': 'ALL',
+        '/foo/f-common/': 'ALL',
+        '/foo/f-created/': 'ALL',
+        '/foo/f-changed/': 'ALL',
+        '/foo/f-deleted/': 'ALL',
+        '/foo/f-common-fetching/': 'ALL',
+        '/foo/f-created-fetching/': 'ALL',
+        '/foo/f-changed-fetching/': 'ALL',
+        '/foo/f-deleted-fetching/': 'ALL',
+        '/foo/f-common/a': 'ALL',
+        '/foo/f-created/a': 'ALL',
+        '/foo/f-changed/a': 'ALL',
+        '/foo/f-deleted/a': 'ALL',
+        '/foo/f-common-fetching/a': 'ALL',
+        '/foo/f-created-fetching/a': 'ALL',
+        '/foo/f-changed-fetching/a': 'ALL',
+        '/foo/f-deleted-fetching/a': 'ALL',
+        '/foo/d-common': 'ALL',
+        '/foo/d-created': 'ALL',
+        '/foo/d-changed': 'ALL',
+        '/foo/d-deleted': 'ALL',
+        '/foo/d-common-fetching': 'ALL',
+        '/foo/d-created-fetching': 'ALL',
+        '/foo/d-changed-fetching': 'ALL',
+        '/foo/d-deleted-fetching': 'ALL'
+      };
+      env.fixture1 = {
+        '/foo/': {
+          path: '/foo/',
+          common: {
+            itemsMap: {
+              'f-common/': true,
+              'f-changed/': true,
+              'f-deleted/': true,
+              'f-common-fetching/': true,
+              'f-changed-fetching/': true,
+              'f-deleted-fetching/': true,
+              'd-common': true,
+              'd-changed': true,
+              'd-deleted': true,
+              'd-common-fetching': true,
+              'd-changed-fetching': true,
+              'd-deleted-fetching': true
+            }
+          },
+          local: {
+            itemsMap: {
+              'f-created/': true,
+              'f-changed/': true,
+              'f-deleted/': false,
+              'f-created-fetching/': true,
+              'f-changed-fetching/': true,
+              'f-deleted-fetching/': false,
+              'd-created': true,
+              'd-changed': true,
+              'd-deleted': false,
+              'd-created-fetching': true,
+              'd-changed-fetching': true,
+              'd-deleted-fetching': false
+            }
+          },
+          remote: {
+            itemsMap: {
+              'f-common-fetching/': true,
+              'f-created-fetching/': true,
+              'f-changed-fetching/': true,
+              'f-deleted-fetching/': true,
+              'd-common-fetching': true,
+              'd-created-fetching': true,
+              'd-changed-fetching': true,
+              'd-deleted-fetching': true
+            }
+          }
+        },
+        '/foo/f-common/': {
+          path: '/foo/f-common/',
+          common: {
+            itemsMap: {
+              'a' : true
+            }
+          }
+        },
+        '/foo/f-common/a': {
+          path: '/foo/f-common/a',
+          common: {
+            body: 'bloo'
+          }
+        },
+        '/foo/f-created/': {
+          path: '/foo/f-created/',
+          common: {
+          },
+          local: {
+            itemsMap: {
+              'a' : true
+            }
+          }
+        },
+        '/foo/f-created/a': {
+          path: '/foo/f-created/a',
+          common: {
+          },
+          local: {
+            body: 'bloo'
+          }
+        },
+        '/foo/f-changed/': {
+          path: '/foo/f-changed/',
+          common: {
+            itemsMap: {
+              'a' : true
+            }
+          }
+        },
+        '/foo/f-changed/a': {
+          path: '/foo/f-changed/a',
+          common: {
+            body: 'bloo'
+          },
+          local: {
+            body: 'blooz'
+          }
+        },
+        '/foo/f-deleted/': {
+          path: '/foo/f-deleted/',
+          common: {
+            itemsMap: {
+              'a' : true
+            }
+          },
+          local: {
+            itemsMap: {
+              'a' : false
+            }
+          }
+        },
+        '/foo/f-deleted/a': {
+          path: '/foo/f-deleted/a',
+          common: {
+            body: 'bloo'
+          },
+          local: {
+            body: false
+          }
+        },
+        '/foo/d-common': {
+          path: '/foo/d-common',
+          common: {
+            body: 'bloo'
+          }
+        },
+        '/foo/d-created': {
+          path: '/foo/d-created',
+          common: {
+          },
+          local: {
+            body: 'bloo'
+          }
+        },
+        '/foo/d-changed': {
+          path: '/foo/d-changed',
+          common: {
+            body: 'bloo'
+          },
+          local: {
+            body: 'blooz'
+          }
+        },
+        '/foo/d-deleted': {
+          path: '/foo/d-deleted',
+          common: {
+            body: 'bloo'
+          },
+          local: {
+            body: false
+          }
+        },
+        '/foo/f-common-fetching/': {
+          path: '/foo/f-common-fetching/',
+          common: {
+            itemsMap: {
+              'a' : true
+            }
+          },
+          remote: {
+            revision: 'unfetched'
+          }
+        },
+        '/foo/f-common-fetching/a': {
+          path: '/foo/f-common-fetching/a',
+          common: {
+            body: 'bloo'
+          },
+          remote: {
+            revision: 'unfetched'
+          }
+        },
+        '/foo/f-created-fetching/': {
+          path: '/foo/f-created-fetching/',
+          common: {
+          },
+          local: {
+            itemsMap: {
+              'a' : true
+            }
+          },
+          remote: {
+            revision: 'unfetched'
+          }
+        },
+        '/foo/f-created-fetching/a': {
+          path: '/foo/f-created-fetching/a',
+          common: {
+          },
+          local: {
+            body: 'bloo'
+          },
+          remote: {
+            revision: 'unfetched'
+          }
+        },
+        '/foo/f-changed-fetching/': {
+          path: '/foo/f-changed-fetching/',
+          common: {
+            itemsMap: {
+              'a' : true
+            }
+          },
+          remote: {
+            revision: 'unfetched'
+          }
+        },
+        '/foo/f-changed-fetching/a': {
+          path: '/foo/f-changed-fetching/a',
+          common: {
+            body: 'bloo'
+          },
+          local: {
+            body: 'blooz'
+          },
+          remote: {
+            revision: 'unfetched'
+          }
+        },
+        '/foo/f-deleted-fetching/': {
+          path: '/foo/f-deleted-fetching/',
+          common: {
+            itemsMap: {
+              'a' : true
+            }
+          },
+          local: {
+            itemsMap: {
+              'a' : false
+            }
+          },
+          remote: {
+            revision: 'unfetched'
+          }
+        },
+        '/foo/f-deleted-fetching/a': {
+          path: '/foo/f-deleted-fetching/a',
+          common: {
+            body: 'bloo'
+          },
+          local: {
+            body: false
+          },
+          remote: {
+            revision: 'unfetched'
+          }
+        },
+        '/foo/d-common-fetching': {
+          path: '/foo/d-common-fetching',
+          common: {
+            body: 'bloo'
+          },
+          remote: {
+            revision: 'unfetched'
+          }
+        },
+        '/foo/d-created-fetching': {
+          path: '/foo/d-created-fetching',
+          common: {
+          },
+          local: {
+            body: 'bloo'
+          },
+          remote: {
+            revision: 'unfetched'
+          }
+        },
+        '/foo/d-changed-fetching': {
+          path: '/foo/d-changed-fetching',
+          common: {
+            body: 'bloo'
+          },
+          local: {
+            body: 'blooz'
+          },
+          remote: {
+            revision: 'unfetched'
+          }
+        },
+        '/foo/d-deleted-fetching': {
+          path: '/foo/d-deleted-fetching',
+          common: {
+            body: 'bloo'
+          },
+          local: {
+            body: false
+          },
+          remote: {
+            revision: 'unfetched'
+          }
+        }
+      };
       test.done();
     },
 
@@ -236,324 +554,8 @@ define([], function() {
       {
         desc: "an incoming folder listing removes items from common and remote but not from local",
         run: function(env, test) {
-          env.rs.caching._responses = {
-            '/foo/': 'ALL',
-            '/foo/f-common/': 'ALL',
-            '/foo/f-created/': 'ALL',
-            '/foo/f-changed/': 'ALL',
-            '/foo/f-deleted/': 'ALL',
-            '/foo/f-common-fetching/': 'ALL',
-            '/foo/f-created-fetching/': 'ALL',
-            '/foo/f-changed-fetching/': 'ALL',
-            '/foo/f-deleted-fetching/': 'ALL',
-            '/foo/f-common/a': 'ALL',
-            '/foo/f-created/a': 'ALL',
-            '/foo/f-changed/a': 'ALL',
-            '/foo/f-deleted/a': 'ALL',
-            '/foo/f-common-fetching/a': 'ALL',
-            '/foo/f-created-fetching/a': 'ALL',
-            '/foo/f-changed-fetching/a': 'ALL',
-            '/foo/f-deleted-fetching/a': 'ALL',
-            '/foo/d-common': 'ALL',
-            '/foo/d-created': 'ALL',
-            '/foo/d-changed': 'ALL',
-            '/foo/d-deleted': 'ALL',
-            '/foo/d-common-fetching': 'ALL',
-            '/foo/d-created-fetching': 'ALL',
-            '/foo/d-changed-fetching': 'ALL',
-            '/foo/d-deleted-fetching': 'ALL'
-          };
-          env.rs.local.setNodes({
-            '/foo/': {
-              path: '/foo/',
-              common: {
-                itemsMap: {
-                  'f-common/': true,
-                  'f-changed/': true,
-                  'f-deleted/': true,
-                  'f-common-fetching/': true,
-                  'f-changed-fetching/': true,
-                  'f-deleted-fetching/': true,
-                  'd-common': true,
-                  'd-changed': true,
-                  'd-deleted': true,
-                  'd-common-fetching': true,
-                  'd-changed-fetching': true,
-                  'd-deleted-fetching': true
-                }
-              },
-              local: {
-                itemsMap: {
-                  'f-created/': true,
-                  'f-changed/': true,
-                  'f-deleted/': false,
-                  'f-created-fetching/': true,
-                  'f-changed-fetching/': true,
-                  'f-deleted-fetching/': false,
-                  'd-created': true,
-                  'd-changed': true,
-                  'd-deleted': false,
-                  'd-created-fetching': true,
-                  'd-changed-fetching': true,
-                  'd-deleted-fetching': false
-                }
-              },
-              remote: {
-                itemsMap: {
-                  'f-common-fetching/': true,
-                  'f-created-fetching/': true,
-                  'f-changed-fetching/': true,
-                  'f-deleted-fetching/': true,
-                  'd-common-fetching': true,
-                  'd-created-fetching': true,
-                  'd-changed-fetching': true,
-                  'd-deleted-fetching': true
-                }
-              }
-            },
-            '/foo/f-common/': {
-              path: '/foo/f-common/',
-              common: {
-                itemsMap: {
-                  'a' : true
-                }
-              }
-            },
-            '/foo/f-common/a': {
-              path: '/foo/f-common/a',
-              common: {
-                body: 'bloo'
-              }
-            },
-            '/foo/f-created/': {
-              path: '/foo/f-created/',
-              common: {
-              },
-              local: {
-                itemsMap: {
-                  'a' : true
-                }
-              }
-            },
-            '/foo/f-created/a': {
-              path: '/foo/f-created/a',
-              common: {
-              },
-              local: {
-                body: 'bloo'
-              }
-            },
-            '/foo/f-changed/': {
-              path: '/foo/f-changed/',
-              common: {
-                itemsMap: {
-                  'a' : true
-                }
-              }
-            },
-            '/foo/f-changed/a': {
-              path: '/foo/f-changed/a',
-              common: {
-                body: 'bloo'
-              },
-              local: {
-                body: 'blooz'
-              }
-            },
-            '/foo/f-deleted/': {
-              path: '/foo/f-deleted/',
-              common: {
-                itemsMap: {
-                  'a' : true
-                }
-              },
-              local: {
-                itemsMap: {
-                  'a' : false
-                }
-              }
-            },
-            '/foo/f-deleted/a': {
-              path: '/foo/f-deleted/a',
-              common: {
-                body: 'bloo'
-              },
-              local: {
-                body: false
-              }
-            },
-            '/foo/d-common': {
-              path: '/foo/d-common',
-              common: {
-                body: 'bloo'
-              }
-            },
-            '/foo/d-created': {
-              path: '/foo/d-created',
-              common: {
-              },
-              local: {
-                body: 'bloo'
-              }
-            },
-            '/foo/d-changed': {
-              path: '/foo/d-changed',
-              common: {
-                body: 'bloo'
-              },
-              local: {
-                body: 'blooz'
-              }
-            },
-            '/foo/d-deleted': {
-              path: '/foo/d-deleted',
-              common: {
-                body: 'bloo'
-              },
-              local: {
-                body: false
-              }
-            },
-            '/foo/f-common-fetching/': {
-              path: '/foo/f-common-fetching/',
-              common: {
-                itemsMap: {
-                  'a' : true
-                }
-              },
-              remote: {
-                revision: 'unfetched'
-              }
-            },
-            '/foo/f-common-fetching/a': {
-              path: '/foo/f-common-fetching/a',
-              common: {
-                body: 'bloo'
-              },
-              remote: {
-                revision: 'unfetched'
-              }
-            },
-            '/foo/f-created-fetching/': {
-              path: '/foo/f-created-fetching/',
-              common: {
-              },
-              local: {
-                itemsMap: {
-                  'a' : true
-                }
-              },
-              remote: {
-                revision: 'unfetched'
-              }
-            },
-            '/foo/f-created-fetching/a': {
-              path: '/foo/f-created-fetching/a',
-              common: {
-              },
-              local: {
-                body: 'bloo'
-              },
-              remote: {
-                revision: 'unfetched'
-              }
-            },
-            '/foo/f-changed-fetching/': {
-              path: '/foo/f-changed-fetching/',
-              common: {
-                itemsMap: {
-                  'a' : true
-                }
-              },
-              remote: {
-                revision: 'unfetched'
-              }
-            },
-            '/foo/f-changed-fetching/a': {
-              path: '/foo/f-changed-fetching/a',
-              common: {
-                body: 'bloo'
-              },
-              local: {
-                body: 'blooz'
-              },
-              remote: {
-                revision: 'unfetched'
-              }
-            },
-            '/foo/f-deleted-fetching/': {
-              path: '/foo/f-deleted-fetching/',
-              common: {
-                itemsMap: {
-                  'a' : true
-                }
-              },
-              local: {
-                itemsMap: {
-                  'a' : false
-                }
-              },
-              remote: {
-                revision: 'unfetched'
-              }
-            },
-            '/foo/f-deleted-fetching/a': {
-              path: '/foo/f-deleted-fetching/a',
-              common: {
-                body: 'bloo'
-              },
-              local: {
-                body: false
-              },
-              remote: {
-                revision: 'unfetched'
-              }
-            },
-            '/foo/d-common-fetching': {
-              path: '/foo/d-common-fetching',
-              common: {
-                body: 'bloo'
-              },
-              remote: {
-                revision: 'unfetched'
-              }
-            },
-            '/foo/d-created-fetching': {
-              path: '/foo/d-created-fetching',
-              common: {
-              },
-              local: {
-                body: 'bloo'
-              },
-              remote: {
-                revision: 'unfetched'
-              }
-            },
-            '/foo/d-changed-fetching': {
-              path: '/foo/d-changed-fetching',
-              common: {
-                body: 'bloo'
-              },
-              local: {
-                body: 'blooz'
-              },
-              remote: {
-                revision: 'unfetched'
-              }
-            },
-            '/foo/d-deleted-fetching': {
-              path: '/foo/d-deleted-fetching',
-              common: {
-                body: 'bloo'
-              },
-              local: {
-                body: false
-              },
-              remote: {
-                revision: 'unfetched'
-              }
-            },
-          }).then(function() {
+          env.rs.caching._responses = env.responses1;
+          env.rs.local.setNodes(env.fixture1).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
               [200, {}, 'application/json', '123'];
             env.rs.remote._responses[['get', '/foo/', {ifNoneMatch: '123'} ]] =
@@ -609,6 +611,44 @@ define([], function() {
                 test.done();
               });
             }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "an incoming deletion triggers a change event",
+        run: function(env, test) {
+          env.rs.caching._responses = env.responses1;
+          env.rs.local.setNodes(env.fixture1).then(function() {
+            var expected = {
+              '/foo/f-common/a': 'bloo',
+              '/foo/f-changed/a': 'blooz'
+            };
+            env.rs.remote._responses[['get', '/foo/' ]] =
+              [200, {}, 'application/json', '123'];
+            env.rs.remote._responses[['get', '/foo/', {ifNoneMatch: '123'} ]] =
+              [200, {}, 'application/json', '123'];
+            env.rs.remote._responses[['get', '/foo/f-created/' ]] =
+              [500, {}, 'application/json', '123'];
+            env.rs.remote._responses[["put","/foo/f-created/a","bloo",null,{"ifNoneMatch":"*"}]] =
+              [500, '', '', ''];
+            env.rs.sync._tasks = {'/foo/': []};
+            env.rs.local.on('change', function(e) {
+              
+              if (expected[e.path]
+                && e.oldValue === expected[e.path]
+                && e.newValue === undefined) {
+                delete expected[e.path];
+                if (Object.keys(expected).length === 0) {
+                  setTimeout(function() {
+                    test.done();
+                  }, 100);
+                }
+              } else {
+                test.result(false, 'unexpected change event: '+JSON.stringify(e));
+              }
+            });
+            env.rs.sync.doTasks();
           });
         }
       },
