@@ -24,8 +24,8 @@
      *
      * Example:
      *   (start code)
-     *   remoteStorage.access.claim('foo', 'r');
-     *   remoteStorage.access.claim('bar', 'rw');
+     *   remoteStorage.access.claim('contacts', 'r');
+     *   remoteStorage.access.claim('pictures', 'rw');
      */
     claim: function(scope, mode) {
       if (typeof(scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
