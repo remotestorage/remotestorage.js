@@ -260,7 +260,7 @@ define(['requirejs'], function(requirejs) {
                 origin: 'window',
                 oldValue: 'bla',
                 oldContentType: 'text/plain',
-                newValue: false,
+                newValue: undefined,
                 newContentType: undefined
               });
             });

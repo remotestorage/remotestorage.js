@@ -283,24 +283,26 @@
       return this.getNodes(paths).then(function(nodes) {
         var existingNodes = deepClone(nodes);
         var changeEvents = [];
+        var node;
 
         nodes = cb(nodes);
 
         for (var path in nodes) {
-          if (equal(nodes[path], existingNodes[path])) {
+          node = nodes[path];
+          if (equal(node, existingNodes[path])) {
             delete nodes[path];
           }
           else if(isDocument(path)) {
             changeEvents.push({
               path:           path,
               origin:         'window',
-              oldValue:       nodes[path].local.previousBody,
-              newValue:       nodes[path].local.body,
-              oldContentType: nodes[path].local.previousContentType,
-              newContentType: nodes[path].local.contentType
+              oldValue:       node.local.previousBody,
+              newValue:       node.local.body === false ? undefined : node.local.body,
+              oldContentType: node.local.previousContentType,
+              newContentType: node.local.contentType
             });
-            delete nodes[path].local.previousBody;
-            delete nodes[path].local.previousContentType;
+            delete node.local.previousBody;
+            delete node.local.previousContentType;
           }
         }
 
