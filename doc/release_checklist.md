@@ -13,7 +13,7 @@
 * Publish release on GitHub
     * Go to https://github.com/remotestorage/remotestorage.js/tags and click "add release notes"
     * Use version string as title and changelog items as description
-    * For RCs and betas, tick the "This is a pre-release" option on the bottom
+    * For RCs, tick the "This is a pre-release" option on the bottom
 * Publish release on remotestorage.io
     * While in the gh-pages branch:
         * Copy the release from the remotestorage.js repo into `release/` dir
@@ -29,12 +29,6 @@
     * Commit
     * Tag new version
     * `git push --tags`
-* Update https://github.com/remotestorage/myfavoritedrinks to use new release
-    * Replace `remotestorage.js` with new release build
-    * Check if everything is still working
-    * Commit
-    * `git push origin`
-    * `git push 5apps master`
 * Announce release on community forums
     * Create a new topic in "remoteStorage.js Core" similar to e.g. this one: http://community.remotestorage.io/t/remotestorage-js-0-8-3-released/95
 * Link release announcement on forums from
