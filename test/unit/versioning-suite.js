@@ -579,9 +579,9 @@ define([], function() {
                 test.assertAnd(objs['/foo/f-changed/'], undefined);
                 test.assertAnd(objs['/foo/f-deleted/'], undefined);
                 test.assertAnd(objs['/foo/f-common-fetching/'], undefined);
-                
+
                 //the created-fetching case is discussable, because on the one hand,
-                //data was created locally so you may want to preserve that, 
+                //data was created locally so you may want to preserve that,
                 //but on the other hand, there is a remote deletion, which should also not be
                 //ignored. choosing to let the client win in this case:
                 test.assertAnd(objs['/foo/f-created-fetching/'].local.itemsMap.a, true);
@@ -618,36 +618,52 @@ define([], function() {
       {
         desc: "an incoming deletion triggers a change event",
         run: function(env, test) {
+          var fixture = {
+            '/foo/': {
+              path: '/foo/',
+              common: {
+                itemsMap: {
+                  'item1': 'rev1-1',
+                  'item2': 'rev2-1'
+                },
+                revision: 'dir-rev1',
+                timestamp: 1396524337906
+              }
+            },
+            '/foo/item1': { path: '/foo/item1',
+              common: { body: 'body1', contentType: 'text/plain', revision: 'rev1-1', timestamp: 1396524337906 }
+            },
+            '/foo/item2': { path: '/foo/item2',
+              common: { body: 'body2', contentType: 'text/plain', revision: 'rev2-1', timestamp: 1396524337906 }
+            }
+          };
+
+          var response = {
+            'item1': {ETag: 'rev1-1', 'Content-Type': 'text/plain', 'Content-Length': 12345678 }
+          };
+
           env.rs.caching._responses = env.responses1;
-          env.rs.local.setNodes(env.fixture1).then(function() {
-            var expected = {
-              '/foo/f-common/a': 'bloo',
-              '/foo/f-changed/a': 'blooz'
+
+          env.rs.local.setNodes(fixture).then(function() {
+            var expectedBody = {
+              '/foo/item2': 'body2'
             };
-            env.rs.remote._responses[['get', '/foo/' ]] =
-              [200, {}, 'application/json', '123'];
-            env.rs.remote._responses[['get', '/foo/', {ifNoneMatch: '123'} ]] =
-              [200, {}, 'application/json', '123'];
-            env.rs.remote._responses[['get', '/foo/f-created/' ]] =
-              [500, {}, 'application/json', '123'];
-            env.rs.remote._responses[["put","/foo/f-created/a","bloo",null,{"ifNoneMatch":"*"}]] =
-              [500, '', '', ''];
+            env.rs.remote._responses[['get', '/foo/', {ifNoneMatch: 'dir-rev1'} ]] =
+              [200, response, 'application/json', 'changedrevision'];
+
             env.rs.sync._tasks = {'/foo/': []};
-            env.rs.local.on('change', function(e) {
-              
-              if (expected[e.path]
-                && e.oldValue === expected[e.path]
-                && e.newValue === undefined) {
-                delete expected[e.path];
-                if (Object.keys(expected).length === 0) {
-                  setTimeout(function() {
-                    test.done();
-                  }, 100);
-                }
-              } else {
-                test.result(false, 'unexpected change event: '+JSON.stringify(e));
+
+            env.rs.local.on('change', function(event) {
+              test.assertAnd(event.path, '/foo/item2');
+              test.assertAnd(event.oldValue, 'body2');
+              test.assertAnd(event.newValue, undefined);
+              test.done();
+
+              if (event.path !== '/foo/item2') {
+                test.result(false, 'unexpected change event: '+JSON.stringify(event));
               }
             });
+
             env.rs.sync.doTasks();
           });
         }

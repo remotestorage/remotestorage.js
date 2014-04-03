@@ -410,6 +410,15 @@
             }
           }
         }
+      } else {
+        this.local._emit('change', {
+          origin:   'remote',
+          path:     node.path,
+          oldValue: (node.common.body === false ? undefined : node.common.body),
+          newValue: undefined
+        });
+
+        return undefined;
       }
       return node;
     },
@@ -483,7 +492,12 @@
                 recurse[nodePath+localItem] = true;
               }
             }
-            changedNodes[nodePath] = undefined;
+
+            if (node.remote || isFolder(nodePath)) {
+              changedNodes[nodePath] = undefined;
+            } else {
+              changedNodes[nodePath] = this.autoMerge(node);
+            }
           }
         }
 
