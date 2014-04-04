@@ -6,10 +6,12 @@ define(['requirejs'], function(requirejs) {
 
   suites.push({
     name: 'InMemoryStorage',
-    desc: 'inmemory caching as a fallback for indexdb and localstorage',
+    desc: 'In-memory caching layer',
+
     setup: function(env, test) {
       require('./lib/promising');
       global.RemoteStorage = function() {};
+      global.RemoteStorage.log = function() {};
       require('./src/eventhandling');
       if ( global.rs_eventhandling ) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
@@ -23,6 +25,14 @@ define(['requirejs'], function(requirejs) {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
       require('./src/inmemorystorage');
+      if (global.rs_ims) {
+        RemoteStorage.InMemoryStorage = global.rs_ims;
+      } else {
+        global.rs_ims = RemoteStorage.InMemoryStorage;
+      }
+      env.rs = new RemoteStorage();
+      env.rs.local = new RemoteStorage.InMemoryStorage();
+      global.remoteStorage = env.rs;
       test.done();
     },
 
@@ -33,20 +43,36 @@ define(['requirejs'], function(requirejs) {
 
     tests: [
       {
-        desc: "#get loads a node",
+        desc: "#get loads a node from local",
         run: function(env, test) {
           var node = {
-            body: 'bar',
-            contentType: 'text/plain',
-            revision: 'someRev'
+            path: '/foo',
+            local: { body: 'bar', contentType: 'text/plain', revision: 'someRev' }
           };
           env.ims._storage['/foo'] = node;
-          env.ims.get('/foo').then(function(status, body,
-                                           contentType, revision) {
+
+          env.ims.get('/foo').then(function(status, body, contentType) {
             test.assertAnd(status, 200);
-            test.assertAnd(body, node.body);
-            test.assertAnd(contentType, node.contentType);
-            test.assertAnd(revision, node.revision);
+            test.assertAnd(body, node.local.body);
+            test.assertAnd(contentType, node.local.contentType);
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "#get loads a node from common",
+        run: function(env, test) {
+          var node = {
+            path: '/foo',
+            common: { body: 'bar', contentType: 'text/plain', revision: 'someRev' }
+          };
+          env.ims._storage['/foo'] = node;
+
+          env.ims.get('/foo').then(function(status, body, contentType) {
+            test.assertAnd(status, 200);
+            test.assertAnd(body, node.common.body);
+            test.assertAnd(contentType, node.common.contentType);
             test.done();
           });
         }
@@ -62,47 +88,82 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#put yields 200 and stores the node",
+        desc: "#get gets queued as a sync request if its maxAge param cannot be satisfied because no node exists",
         run: function(env, test) {
-          env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {
+          var requestQueued = false;
+
+          env.rs.sync = {
+            queueGetRequest: function(path, promise) {
+              test.assertAnd(path, '/foo');
+              requestQueued = true;
+              promise.fulfill(200, 'asdf', 'qwer');
+            }
+          };
+
+          env.rs.local.get('/foo', 100).then(function(status, body, contentType) {
+            test.assertAnd(requestQueued, true);
             test.assertAnd(status, 200);
-            test.assertAnd(env.ims._storage['/foo'].path,'/foo');
-            test.assertAnd(env.ims._storage['/foo'].contentType,'text/plain');
-            test.assertAnd(env.ims._storage['/foo'].body,'bar');
-            test.assertAnd(env.ims._storage['/foo'], {path:'/foo',body:'bar',contentType:'text/plain'});
+            test.assertAnd(body, 'asdf');
+            test.assertAnd(contentType, 'qwer');
             test.done();
           });
         }
       },
 
       {
-        desc: "#put records a change for outgoing changes",
+        desc: "#get gets queued as a sync request if its maxAge param cannot be satisfied because node is too old",
         run: function(env, test) {
-          env.ims.put('/foo/bla', 'basdf', 'text/plain').then(function() {
-            test.assert(env.ims._changes['/foo/bla'], {
-              action: 'PUT',
-              path: '/foo/bla'
-            });
+          var requestQueued = false;
+
+          env.rs.local._storage['/foo'] = {
+            path: '/foo',
+            common: {
+              timestamp: 1234567890123,
+              body: 'asdf',
+              contentType: 'qwer',
+              revision: '123'
+            }
+          };
+
+          env.rs.sync = {
+            queueGetRequest: function(path, promise) {
+              test.assertAnd(path, '/foo');
+              requestQueued = true;
+              promise.fulfill(200, 'asdf', 'qwer');
+            }
+          };
+
+          env.rs.local.get('/foo', 100).then(function(status, body, contentType) {
+            test.assertAnd(requestQueued, true);
+            test.assertAnd(status, 200);
+            test.assertAnd(body, 'asdf');
+            test.assertAnd(contentType, 'qwer');
+            test.done();
           });
         }
       },
 
       {
-        desc: "#put doesn't record a change for incoming changes",
+        desc: "#put yields 200 and stores the node",
         run: function(env, test) {
-          env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
-            test.assertType(env.ims._changes['/foo/bla'], 'undefined');
+          env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {
+            test.assertAnd(status, 200);
+            test.assertAnd(env.ims._storage['/foo'].path, '/foo');
+            test.assertAnd(env.ims._storage['/foo'].local.contentType,'text/plain');
+            test.assertAnd(env.ims._storage['/foo'].local.body,'bar');
+            test.done();
           });
         }
       },
 
       {
-        desc: "#put doesn't record a change for incoming changes",
+        desc: "#put adds node to parents",
         run: function(env, test) {
-          env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
-            env.ims.delete('/foo/bla', true).then(function() {
-              test.assertType(env.ims._changes['/foo/bla'], 'undefined');
-            });
+          env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {
+            test.assertAnd(status, 200);
+            test.assertAnd(env.ims._storage['/'].path, '/');
+            test.assertAnd(env.ims._storage['/'].local.itemsMap, {'foo': true});
+            test.done();
           });
         }
       },
@@ -116,7 +177,9 @@ define(['requirejs'], function(requirejs) {
               path: '/foo/bla',
               origin: 'window',
               oldValue: undefined,
-              newValue: 'basdf'
+              newValue: 'basdf',
+              oldContentType: undefined,
+              newContentType: 'text/plain'
             });
           });
           env.ims.put('/foo/bla', 'basdf', 'text/plain');
@@ -124,39 +187,29 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#put fires a 'change' with origin=remote for incoming changes",
-        run: function(env, test) {
-          env.ims.on('change', function(event) {
-            test.assert(event, {
-              path: '/foo/bla',
-              origin: 'remote',
-              oldValue: undefined,
-              newValue: 'adsf'
-            });
-          });
-          env.ims.put('/foo/bla', 'adsf', 'text/plain', true);
-        }
-      },
-
-      {
         desc: "#put attaches the newValue and oldValue correctly for updates",
         run: function(env, test) {
           var i = 0;
+
           env.ims.on('change', function(event) {
             i++;
             if (i === 1) {
               test.assertAnd(event, {
                 path: '/foo/bla',
-                origin: 'remote',
+                origin: 'window',
                 oldValue: undefined,
-                newValue: 'basdf'
+                newValue: 'basdf',
+                oldContentType: undefined,
+                newContentType: 'text/plain'
               });
             } else if (i === 2) {
               test.assertAnd(event, {
                 path: '/foo/bla',
                 origin: 'window',
                 oldValue: 'basdf',
-                newValue: 'fdsab'
+                newValue: 'fdsab',
+                oldContentType: 'text/plain',
+                newContentType: 'text/plain'
               });
               setTimeout(function() {
                 test.done();
@@ -166,38 +219,9 @@ define(['requirejs'], function(requirejs) {
               test.result(false);
             }
           });
-          env.ims.put('/foo/bla', 'basdf', 'text/plain', true).then(function() {
+
+          env.ims.put('/foo/bla', 'basdf', 'text/plain').then(function() {
             env.ims.put('/foo/bla', 'fdsab', 'text/plain');
-          });
-        }
-      },
-
-      {
-        desc: "#putFolder adds the folder cache node with the given body",
-        run: function(env, test) {
-          var folderItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
-                                'subfolder/': {'ETag': '321'}};
-
-          env.ims.putFolder('/foo/bar/', folderItems).then(function() {
-            var cacheNode = env.ims._storage['/foo/bar/'];
-            test.assertAnd(cacheNode.body, folderItems);
-            test.assertAnd(cacheNode.cached, {});
-            test.assertAnd(cacheNode.contentType, 'application/json');
-            test.done();
-          });
-        }
-      },
-
-      {
-        desc: "#putFolder adds the path to the parents",
-        run: function(env, test) {
-          var folderItems = {item1: {'ETag': '123', 'Content-Type': 'text/plain'},
-                                'subfolder/': {'ETag': '321'}};
-
-          env.ims.putFolder('/foo/bar/', folderItems).then(function() {
-            test.assertAnd(env.ims._storage['/foo/'].body['bar/'], true);
-            test.assertAnd(env.ims._storage['/'].body['foo/'], true);
-            test.done();
           });
         }
       },
@@ -205,14 +229,20 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#delete removes the node and empty parents",
         run: function(env, test) {
-          env.ims.put('/foo/bar/baz', 'bla', 'text/pain', 'a1b2c3').then(function() {
+          var storage = env.ims._storage;
+          var getLatest = env.ims._getInternals().getLatest;
+
+          env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function() {
             var storageKeys = ['/foo/bar/baz', '/foo/bar/', '/foo/', '/'];
-            test.assertAnd(Object.keys(env.ims._storage), storageKeys);
+
+            test.assertAnd(Object.keys(storage), storageKeys);
 
             env.ims.delete('/foo/bar/baz').then(function(status) {
-              test.assertAnd(status, 200, 'wrong status code: '+status); //TODO belongs in seperate test
-              test.assertAnd(Object.keys(env.ims._storage), [],
-                             'wrong nodes after delete : '+Object.keys(env.ims._storage));
+              test.assertAnd(status, 200, 'Wrong status code: '+status); //TODO belongs in seperate test
+              test.assertAnd(getLatest(storage['/foo/bar/baz']), undefined);
+              test.assertAnd(getLatest(storage['/foo/bar/']).itemsMap, {});
+              test.assertAnd(getLatest(storage['/foo/']).itemsMap, {});
+              test.assertAnd(getLatest(storage['/']).itemsMap, {});
               test.done();
             });
           });
@@ -220,18 +250,39 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
+        desc: "#delete emits change event",
+        run: function(env, test) {
+          env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function() {
+
+            env.ims.on('change', function(event) {
+              test.assert(event, {
+                path: '/foo/bar/baz',
+                origin: 'window',
+                oldValue: 'bla',
+                oldContentType: 'text/plain',
+                newValue: undefined,
+                newContentType: undefined
+              });
+            });
+
+            env.ims.delete('/foo/bar/baz');
+          });
+        }
+      },
+
+      {
         desc: "#delete doesn't remove nonempty nodes",
         run: function(env, test) {
-          env.ims.put('/foo/bar/baz', 'bla', 'text/pain', true, 'a1b2c3').then(function() {
-            env.ims.put('/foo/baz', 'bla', 'text/pain', true, 'a1b2c3').then(function() {
+          var storage = env.ims._storage;
+          var getLatest = env.ims._getInternals().getLatest;
+
+          env.ims.put('/foo/bar/baz', 'bla', 'text/plain', true, 'a1b2c3').then(function() {
+            env.ims.put('/foo/baz', 'bla', 'text/plain', true, 'a1b2c3').then(function() {
               env.ims.delete('/foo/bar/baz').then(function(status) {
-                test.assertAnd(Object.keys(env.ims._storage).sort(), ['/', '/foo/', '/foo/baz'], 'wrong nodes after delete '+Object.keys(env.ims._storage).sort());
-                test.assertAnd(env.ims._storage['/foo/'], {
-                  path: '/foo/',
-                  body: {},
-                  cached: { 'baz': 'a1b2c3' },
-                  contentType: 'application/json'
-                }, JSON.stringify(env.ims._storage['/foo/']));
+                test.assertAnd(getLatest(storage['/']).itemsMap, { 'foo/': true });
+                test.assertAnd(getLatest(storage['/foo/']).itemsMap, { 'baz': true });
+                test.assertAnd(getLatest(storage['/foo/baz']).body, 'bla');
+                test.assertAnd(getLatest(storage['/foo/baz']).contentType, 'text/plain');
                 test.done();
               });
             });
@@ -242,10 +293,10 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#delete propagates changes through empty folders",
         run: function(env, test) {
-          env.ims.put('/foo/bar/baz', 'bla', 'text/pain', 'a1b2c3').then(function() {
-            env.ims.put('/foo/baz', 'bla', 'text/pain', 'a1b2c3').then(function() {
+          env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function() {
+            env.ims.put('/foo/baz', 'bla', 'text/plain', 'a1b2c3').then(function() {
               env.ims.delete('/foo/bar/baz').then(function(status) {
-                test.assert(env.ims._storage['/'].cached['foo/'], true);
+                test.assert(env.ims._storage['/'].local.itemsMap, {'foo/': true});
               });
             });
           });
@@ -253,147 +304,48 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#delete records a change for outgoing changes",
+        // TODO belongs in separate examples; missing description
+        desc: "getNodes, setNodes",
         run: function(env, test) {
-          env.ims.put('/foo/bla', 'basdf', 'text/plain', true, 'a1b2c3').then(function() {
-            env.ims.delete('/foo/bla').then(function() {
-              test.assert(env.ims._changes['/foo/bla'], {
-                action: 'DELETE',
-                path: '/foo/bla'
-              });
-            });
-          });
-        }
-      },
-
-      {
-        desc: "#_setRevision updates `cached` items of parent folders",
-        run: function(env, test) {
-          env.ims._setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
-            test.assertAnd(env.ims._storage['/foo/bar/'], {
-              body: {},
-              cached: { 'baz': 'a1b2c3' },
-              contentType: 'application/json',
-              path: '/foo/bar/'
-            });
-
-            test.assertAnd(env.ims._storage['/foo/'], {
-              body: {},
-              cached: { 'bar/': true },
-              contentType: 'application/json',
-              path: '/foo/'
-            }, JSON.stringify( env.ims._storage['/foo/'] ));
-
-            test.assertAnd(env.ims._storage['/'], {
-              body: {},
-              cached: { 'foo/': true },
-              contentType: 'application/json',
-              path: '/'
-            });
-
-            test.done();
-          });
-        }
-      },
-
-      {
-        desc: "#_setRevision doesn't overwrite `cached` items in parent folders",
-        run: function(env, test) {
-          env.ims._setRevision('/foo/bar/baz', 'a1b2c3').then(function() {
-            env.ims._setRevision('/foo/bar/booze', 'd4e5f6').then(function() {
-              test.assert(env.ims._storage['/foo/bar/'], {
-                body: {},
-                cached: { 'baz': 'a1b2c3', 'booze': 'd4e5f6' },
-                contentType: 'application/json',
-                path: '/foo/bar/'
-              });
-            });
-          });
-        }
-      },
-
-      {
-        desc: '#getRevision returns right revision',
-        run: function(env, test) {
-          env.ims.put('/foo/bar','blablub', 'text/plain', true, '123987').then(function() {
-            env.ims.getRevision('/foo/bar').then(function(rev) {
-              test.assert(rev, '123987');
-            });
-          });
-        }
-      },
-
-      {
-        desc: '#changesBelow fulfills with the right changes',
-        run: function(env, test) {
-          env.ims._changes = {'/foo/': true,
-                              '/foo/bar/': true,
-                              '/foo/bar/baz': true,
-                              '/foo/baz': true,
-                              '/foobar/': false,
-                              '/foobar/baz': false,
-                              '/a': false,
-                              '/b/' : false,
-                              '/b/foo/': false};
-          env.ims.changesBelow('/foo/').then(function(changes) {
-            changes.forEach(function(val) {
-              test.assertAnd(val, true);
-            });
-            test.assertAnd(changes.length, 4, 'wrong ammount found '+changes.length);
-            test.done();
-          });
-        }
-      },
-
-      {
-        desc: "#setConflict emits conflicy event",
-        run: function(env, test) {
-          env.ims.on('conflict', function(event) {
-            test.assertTypeAnd(event.resolve, 'function');
-            test.assertAnd(event.remoteAction, 'foo');
-            test.assertAnd(event.localAction, 'bar');
-            test.assertAnd(event.path, '/foobar');
-            test.done();
-          });
-          env.ims.setConflict('/foobar', { remoteAction: 'foo', localAction: 'bar' });
-        }
-      },
-
-      {
-        desc: "#setConflict event.resolve emits Error when resolved wrong",
-        run: function(env, test) {
-          env.ims.on('conflict', function(event) {
-            var success = false;
-            var err = 'no error';
-            try {
-              event.resolve('nonsense');
-            } catch(e) {
-              if (e.message === 'Invalid resolution: nonsense') {
-                success = true;
+          env.ims.getNodes(['/foo/bar/baz']).then(function(objs) {
+            test.assertAnd(objs, {'/foo/bar/baz': undefined});
+          }).then(function() {
+            return env.ims.setNodes({
+              '/foo/bar': {
+                path: '/foo/bar',
+                common: { body: 'asdf' }
               }
-              err = e;
-            }
-            test.assertAnd(success, true, "yielded : " + JSON.stringify(err));
+            });
+          }).then(function() {
+            return env.ims.getNodes(['/foo/bar', '/foo/bar/baz']);
+          }).then(function(objs) {
+            test.assertAnd(objs, {
+              '/foo/bar/baz': undefined,
+              '/foo/bar': {
+                path: '/foo/bar',
+                common: { body: 'asdf' }
+              }
+            });
+          }).then(function() {
+            return env.ims.setNodes({
+              '/foo/bar/baz': {
+                path: '/foo/bar/baz/',
+                common: { body: 'qwer' }
+              },
+              '/foo/bar': undefined
+            });
+          }).then(function() {
+            return env.ims.getNodes(['/foo/bar', '/foo/bar/baz']);
+          }).then(function(objs) {
+            test.assertAnd(objs, {
+              '/foo/bar': undefined,
+              '/foo/bar/baz': {
+                path: '/foo/bar/baz/',
+                common: { body: 'qwer' }
+              }
+            });
             test.done();
           });
-          env.ims.setConflict('/foobar', { remoteAction: 'foo', localAction: 'bar' });
-        }
-      },
-
-      {
-        desc: "#setConflict event resolve records Changes after beeing resolved",
-        run: function(env, test) {
-          env.ims.on('conflict', function(event) {
-            event.resolve('remote');
-            test.assertAnd(env.ims._changes['/foobar'],
-                           { conflict:
-                             { remoteAction: 'PUT',
-                               localAction: 'DELETE',
-                               resolution: 'remote' },
-                             path: '/foobar' });
-            test.done();
-          });
-          env.ims.setConflict('/foobar', {remoteAction: 'PUT', localAction: 'DELETE'});
         }
       }
     ]

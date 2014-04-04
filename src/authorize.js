@@ -17,7 +17,7 @@
   }
 
   RemoteStorage.Authorize = function(authURL, scope, redirectUri, clientId) {
-    RemoteStorage.log('Authorize authURL = ', authURL);
+    RemoteStorage.log('[Authorize] authURL = ', authURL);
 
     var url = authURL;
     url += authURL.indexOf('?') > 0 ? '&' : '?';

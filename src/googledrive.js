@@ -1,4 +1,9 @@
 (function(global) {
+  /**
+   * Class: RemoteStorage.GoogleDrive
+   *
+   * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
+   **/
 
   var RS = RemoteStorage;
 
@@ -280,7 +285,7 @@
                     itemsMap[data.items[i].title + '/'] = {
                       ETag: etagWithoutQuotes
                     };
-                  } else { 
+                  } else {
                     this._fileIdCache.set(path + data.items[i].title, data.items[i].id);
                     itemsMap[data.items[i].title] = {
                       ETag: etagWithoutQuotes,

@@ -91,30 +91,13 @@
      *
      * * when newValue and oldValue are set you are dealing with an update
      **/
-    /**
-     * Event: conflict
-     *
-     **/
 
-    RS.eventHandling(this, 'change', 'conflict');
+    RS.eventHandling(this, 'change');
     this.on = this.on.bind(this);
     storage.onChange(this.base, this._fireChange.bind(this));
-    storage.onConflict(this.base, this._fireConflict.bind(this));
   };
 
   RS.BaseClient.prototype = {
-
-    // BEGIN LEGACY
-    use: function(path) {
-      deprecate('BaseClient#use(path)', 'BaseClient#cache(path)');
-      return this.cache(path);
-    },
-
-    release: function(path) {
-      deprecate('BaseClient#release(path)', 'BaseClient#cache(path, false)');
-      return this.cache(path, false);
-    },
-    // END LEGACY
 
     extend: function(object) {
       for (var key in object) {
@@ -142,7 +125,9 @@
      * The callback semantics of getListing are identical to those of getObject.
      *
      * Parameters:
-     *   path     - The path to query. It MUST end with a forward slash.
+     *   path   - The path to query. It MUST end with a forward slash.
+     *   maxAge - (optional) Maximum age of cached listing in
+     *            milliseconds
      *
      * Returns:
      *
@@ -164,13 +149,16 @@
      *   });
      *   (end code)
      */
-    getListing: function(path) {
+    getListing: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      return this.storage.get(this.makePath(path)).then(
+      if (maxAgeInvalid(maxAge)) {
+        return promising().reject('Argument \'maxAge\' of baseClient.getListing must be undefined or a number');
+      }
+      return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
           return (status === 404) ? undefined : body;
         }
@@ -183,8 +171,9 @@
      * Get all objects directly below a given path.
      *
      * Parameters:
-     *   path      - path to the folder
-     *   typeAlias - (optional) local type-alias to filter for
+     *   path   - path to the folder
+     *   maxAge - (optional) Maximum age of cached objects in
+     *            milliseconds
      *
      * Returns:
      *   a promise for an object in the form { path : object, ... }
@@ -198,13 +187,17 @@
      *   });
      *   (end code)
      */
-    getAll: function(path) {
+    getAll: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      return this.storage.get(this.makePath(path)).then(function(status, body) {
+      if (maxAgeInvalid(maxAge)) {
+        return promising().reject('Argument \'maxAge\' of baseClient.getAll must be undefined or a number');
+      }
+
+      return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
         if (status === 404) { return; }
         if (typeof(body) === 'object') {
           var promise = promising();
@@ -215,7 +208,7 @@
             return;
           }
           for (var key in body) {
-            this.storage.get(this.makePath(path + key)).
+            this.storage.get(this.makePath(path + key), maxAge).
               then(function(status, b) {
                 body[this.key] = b;
                 i++;
@@ -257,12 +250,14 @@
      *   });
      *   (end code)
      */
-    getFile: function(path) {
+    getFile: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
       }
-
-      return this.storage.get(this.makePath(path)).then(function(status, body, mimeType, revision) {
+      if (maxAgeInvalid(maxAge)) {
+        return promising().reject('Argument \'maxAge\' of baseClient.getFile must be undefined or a number');
+      }
+      return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         return {
           data: body,
           mimeType: mimeType,
@@ -348,11 +343,14 @@
      *     });
      *   (end code)
      */
-    getObject: function(path) {
+    getObject: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
       }
-      return this.storage.get(this.makePath(path)).then(function(status, body, mimeType, revision) {
+      if (maxAgeInvalid(maxAge)) {
+        return promising().reject('Argument \'maxAge\' of baseClient.getObject must be undefined or a number');
+      }
+      return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         if (typeof(body) === 'object') {
           return body;
         } else if (typeof(body) !== 'undefined' && status === 200) {
@@ -450,15 +448,31 @@
     },
 
 
-    cache: function(path, enable) {
+    cache: function(path, strategy) {
       if (typeof(path) !== 'string') {
         throw 'Argument \'path\' of baseClient.cache must be a string';
       }
-      this.storage.caching[enable === false ? 'disable' : 'enable'](
-        this.makePath(path),
-        this.storage.connected
-      );
-      return this;// why?
+      if (strategy === false) {
+        deprecate('caching strategy <false>', '<"FLUSH">');
+        strategy = 'FLUSH';
+      } else if (strategy === undefined) {
+        strategy = 'ALL';
+      } else if (typeof(strategy) !== 'string') {
+        deprecate('that caching strategy', '<"ALL">');
+        strategy = 'ALL';
+      }
+      if (strategy !== 'FLUSH' &&
+          strategy !== 'SEEN' &&
+          strategy !== 'ALL') {
+        throw 'Argument \'strategy\' of baseclient.cache must be one of '
+            + '["FLUSH", "SEEN", "ALL"]';
+      }
+      this.storage.caching.set(this.makePath(path), strategy);
+      return this;
+    },
+
+    flush: function(path) {
+      return this.storage.local.flush(path);
     },
 
     makePath: function(path) {
@@ -467,14 +481,6 @@
 
     _fireChange: function(event) {
       this._emit('change', event);
-    },
-
-    _fireConflict: function(event) {
-      if (this._handlers.conflict.length > 0) {
-        this._emit('conflict', event);
-      } else {
-        event.resolve('remote');
-      }
     },
 
     _cleanPath: RS.WireClient.cleanPath,
@@ -550,5 +556,9 @@
     };
   });
   */
+
+  maxAgeInvalid = function(maxAge) {
+    return typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number';
+  };
 
 })(typeof(window) !== 'undefined' ? window : global);

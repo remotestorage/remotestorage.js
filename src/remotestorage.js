@@ -22,12 +22,10 @@
   }
 
   var SyncedGetPutDelete = {
-    get: function(path) {
+    get: function(path, maxAge) {
       var self = this;
-      if (this.caching.cachePath(path)) {
-        return this.caching.waitForPath(path).then(function() {
-          return self.local.get(path);
-        });
+      if (this.local) {
+        return this.local.get(path, maxAge);
       } else {
         return this.remote.get(path);
       }
@@ -37,7 +35,7 @@
       if (shareFirst.bind(this)(path)) {
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
       }
-      else if (this.caching.cachePath(path)) {
+      else if (this.local) {
         return this.local.put(path, body, contentType);
       } else {
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
@@ -45,7 +43,7 @@
     },
 
     'delete': function(path) {
-      if (this.caching.cachePath(path)) {
+      if (this.local) {
         return this.local.delete(path);
       } else {
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.delete(path));
@@ -69,6 +67,8 @@
   /**
    * Class: RemoteStorage
    *
+   * TODO needs proper introduction and links to relevant classes etc
+   *
    * Constructor for global remoteStorage object.
    *
    * This class primarily contains feature detection code and a global convenience API.
@@ -81,38 +81,27 @@
     /**
      * Event: ready
      *
-     * fired when ready
+     * Fired when ready
      **/
     /**
      * Event: not-connected
      *
-     * fired when ready, but no storage connected ("anonymous mode")
+     * Fired when ready, but no storage connected ("anonymous mode")
      **/
     /**
      * Event: connected
      *
-     * fired when a remote storage has been connected
+     * Fired when a remote storage has been connected
      **/
     /**
      * Event: disconnected
      *
-     * fired after disconnect
-     **/
-    /**
-     * Event: disconnect
-     *
-     * deprecated, use disconnected instead
-     **/
-    /**
-     * Event: conflict
-     *
-     * fired when a conflict occurs
-     * TODO: arguments, how does this work
+     * Fired after disconnect
      **/
     /**
      * Event: error
      *
-     * fired when an error occurs
+     * Fired when an error occurs
      *
      * Arguments:
      * the error
@@ -120,35 +109,32 @@
     /**
      * Event: features-loaded
      *
-     * fired when all features are loaded
+     * Fired when all features are loaded
      **/
     /**
      * Event: connecting
      *
-     * fired before webfinger lookup
+     * Fired before webfinger lookup
      **/
     /**
      * Event: authing
      *
-     * fired before redirecting to the authing server
+     * Fired before redirecting to the authing server
      **/
     /**
      * Event: wire-busy
      *
-     * fired when a wire request starts
-     *
+     * Fired when a wire request starts
      **/
     /**
      * Event: wire-done
      *
-     * fired when a wire request completes
-     *
+     * Fired when a wire request completes
      **/
-
     RemoteStorage.eventHandling(
-      this, 'ready', 'connected', 'disconnected', 'disconnect',
-            'not-connected', 'conflict', 'error', 'features-loaded',
-            'connecting', 'authing', 'wire-busy', 'wire-done'
+      this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
+            'error', 'features-loaded', 'connecting', 'authing', 'wire-busy',
+            'wire-done'
     );
 
     // pending get/put/delete calls.
@@ -162,7 +148,7 @@
 
     this._cleanups = [];
 
-    this._pathHandlers = { change: {}, conflict: {} };
+    this._pathHandlers = { change: {} };
 
     this.apiKeys = {};
 
@@ -208,7 +194,9 @@
   /**
    * Method: RemoteStorage.log
    *
-   * Logging using console.log, when logging is enabled.
+   * Log using console.log, when remoteStorage logging is enabled.
+   *
+   * You can enable logging with <enableLog>.
    */
   RemoteStorage.log = function() {
     if (RemoteStorage._log) {
@@ -219,13 +207,9 @@
 
   RemoteStorage.prototype = {
     /**
-     ** PUBLIC INTERFACE
-     **/
-
-    /**
      * Method: connect
      *
-     * Connect to a remotestorage server.
+     * Connect to a remoteStorage server.
      *
      * Parameters:
      *   userAddress - The user address (user@host) to connect to.
@@ -267,10 +251,8 @@
      * Method: disconnect
      *
      * "Disconnect" from remotestorage server to terminate current session.
-     * This method clears all stored settings and deletes the entire local cache.
-     *
-     * Once the disconnect is complete, the "disconnected" event will be fired.
-     * From that point on you can connect again (using <connect>).
+     * This method clears all stored settings and deletes the entire local
+     * cache.
      */
     disconnect: function() {
       if (this.remote) {
@@ -287,8 +269,8 @@
         i++;
         if (i >= n) {
           this._init();
+          RemoteStorage.log('Done cleaning up, emitting disconnected and disconnect events');
           this._emit('disconnected');
-          this._emit('disconnect');// DEPRECATED?
         }
       }.bind(this);
 
@@ -320,13 +302,13 @@
     /**
      * Method: onChange
      *
-     * Adds a 'change' event handler to the given path.
-     * Whenever a 'change' happens (as determined by the backend, such
-     * as <RemoteStorage.IndexedDB>) and the affected path is equal to
-     * or below the given 'path', the given handler is called.
+     * Add a "change" event handler to the given path. Whenever a "change"
+     * happens (as determined by the backend, such as e.g.
+     * <RemoteStorage.IndexedDB>) and the affected path is equal to or below
+     * the given 'path', the given handler is called.
      *
-     * You shouldn't need to use this method directly, but instead use
-     * the "change" events provided by <RemoteStorage.BaseClient>.
+     * You should usually not use this method directly, but instead use the
+     * "change" events provided by <RemoteStorage.BaseClient>.
      *
      * Parameters:
      *   path    - Absolute path to attach handler to.
@@ -339,25 +321,10 @@
       this._pathHandlers.change[path].push(handler);
     },
 
-    onConflict: function(path, handler) {
-      if (! this._conflictBound) {
-        this.on('features-loaded', function() {
-          if (this.local) {
-            this.local.on('conflict', this._dispatchEvent.bind(this, 'conflict'));
-          }
-        }.bind(this));
-        this._conflictBound = true;
-      }
-      if (! this._pathHandlers.conflict[path]) {
-        this._pathHandlers.conflict[path] = [];
-      }
-      this._pathHandlers.conflict[path].push(handler);
-    },
-
     /**
      * Method: enableLog
      *
-     * enable logging
+     * Enable remoteStorage logging
      */
     enableLog: function() {
       RemoteStorage._log = true;
@@ -366,7 +333,7 @@
     /**
      * Method: disableLog
      *
-     * disable logging
+     * Disable remoteStorage logging
      */
     disableLog: function() {
       RemoteStorage._log = false;
@@ -413,7 +380,7 @@
       }
 
       this._loadFeatures(function(features) {
-        this.log('all features loaded');
+        this.log('[RemoteStorage] All features loaded');
         this.local = features.local && new features.local();
         // this.remote set by WireClient._rs_init as lazy property on
         // RS.prototype
@@ -509,58 +476,74 @@
         }
       }
 
-      function featureInitializedCb(name) {
-        return function() {
-          self.log("[FEATURE "+name+"] initialized.");
-          features.push( {
-            name : name,
-            init :  RemoteStorage[name]._rs_init,
-            supported : true,
-            cleanup : RemoteStorage[name]._rs_cleanup
-          } );
-          featureDone();
-        };
+      function featureInitialized(name) {
+        self.log("[RemoteStorage] [FEATURE "+name+"] initialized.");
+        features.push({
+          name : name,
+          init :  RemoteStorage[name]._rs_init,
+          supported : true,
+          cleanup : RemoteStorage[name]._rs_cleanup
+        });
+        featureDone();
       }
 
-      function featureFailedCb(name) {
-        return function(err) {
-          self.log("[FEATURE "+name+"] initialization failed ( "+err+")");
-          featureDone();
-        };
+      function featureFailed(name, err) {
+        self.log("[RemoteStorage] [FEATURE "+name+"] initialization failed ( "+err+")");
+        featureDone();
       }
 
-      function featureSupportedCb(name) {
-        return function(success) {
-          self.log("[FEATURE "+name+"]" + success ? "":" not"+" supported");
-          if (!success) {
-            featureDone();
-          }
-        };
+      function featureSupported(name, success) {
+        self.log("[RemoteStorage] [FEATURE "+name+"]" + success ? "":" not"+" supported");
+        if (!success) {
+          featureDone();
+        }
+      }
+
+      function initFeature(name) {
+        var initResult;
+        try {
+          initResult = RemoteStorage[name]._rs_init(self);
+        } catch(e) {
+          featureFailed(name, e);
+          return;
+        }
+        if (typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
+          initResult.then(
+            function(){ featureInitialized(name); },
+            function(err){ featureFailed(name, err); }
+          );
+        } else {
+          featureInitialized(name);
+        }
       }
 
       featureList.forEach(function(featureName) {
-        self.log("[FEATURE " + featureName + "] initializing...");
+        self.log("[RemoteStorage] [FEATURE " + featureName + "] initializing...");
         var impl = RemoteStorage[featureName];
-        var initializedCb = featureInitializedCb(featureName);
-        var failedCb = featureFailedCb(featureName);
-        var supportedCb = featureSupportedCb(featureName);
+        var supported;
 
-        if (impl && (!impl._rs_supported || impl._rs_supported())) {
-          supportedCb(true);
-          var initResult;
-          try {
-            initResult = impl._rs_init(self);
-          } catch(e) {
-            failedCb(e);
-            return;
+        if (impl) {
+          supported = !impl._rs_supported || impl._rs_supported();
+
+          if (typeof supported === 'object') {
+            supported.then(
+              function(){
+                featureSupported(featureName, true);
+                initFeature(featureName);
+              },
+              function(){
+                featureSupported(featureName, false);
+              }
+            );
           }
-          if (typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
-            initResult.then(initializedCb, failedCb);
-          } else {
-            initializedCb();
+          else if (typeof supported === 'boolean') {
+            featureSupported(featureName, supported);
+            if (supported) {
+              initFeature(featureName);
+            }
           }
         } else {
-          supportedCb(false);
+          featureSupported(featureName, false);
         }
       });
     },
@@ -642,26 +625,6 @@
   };
 
   /**
-   * Method: claimAccess
-   *
-   * High-level method to claim access on one or multiple scopes and enable
-   * caching for them. WARNING: when using Caching control, use remoteStorage.access.claim instead,
-   * see https://github.com/remotestorage/remotestorage.js/issues/380
-   *
-   * Examples:
-   *   (start code)
-   *     remoteStorage.claimAccess('foo', 'rw');
-   *     // is equivalent to:
-   *     remoteStorage.claimAccess({ foo: 'rw' });
-   *
-   *     // is equivalent to:
-   *     remoteStorage.access.claim('foo', 'rw');
-   *     remoteStorage.caching.enable('/foo/');
-   *     remoteStorage.caching.enable('/public/foo/');
-   *   (end code)
-   */
-
-  /**
    * Property: connected
    *
    * Boolean property indicating if remoteStorage is currently connected.
@@ -682,7 +645,7 @@
    *
    * Caching settings. A <RemoteStorage.Caching> instance.
    *
-   * (only available when caching is built in)
+   * Not available in no-cache builds.
    *
    *
    * Property: remote
@@ -692,10 +655,10 @@
    *
    * Property: local
    *
-   * Access to the local caching backend used.
-   * Only available when caching is built in.
-   * Usually either a <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage>
-   * instance.
+   * Access to the local caching backend used. Usually either a
+   * <RemoteStorage.IndexedDB> or <RemoteStorage.LocalStorage> instance.
+   *
+   * Not available in no-cache builds.
    */
 
   global.RemoteStorage = RemoteStorage;
