@@ -21,7 +21,7 @@
         * Copy the release from the remotestorage.js repo into `release/` dir
         * `rm -rf doc/`
         * Copy `/doc/code` from remoteStorage.js repo to `doc/code`
-        * Commit docs and release to Git
+        * Commit changes to Git
     * While back in master branch:
         * Update version number, links, file size in `views/integrate/_hero.jade`
         * Run `./deploy`
