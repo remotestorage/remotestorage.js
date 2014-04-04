@@ -60,7 +60,7 @@ There are a number of different builds available:
 ### Running tests
 
 Install development dependencies including the
-[testing framework](https://github.com/silverbucket/teste):
+[testing framework](https://github.com/silverbucket/jaribu):
 
     npm install
 
@@ -68,9 +68,9 @@ Run all suites:
 
     npm test
 
-Use the `teste` executable in order to test single files, like so e.g.:
+Use the `jaribu` executable in order to test single files, like so e.g.:
 
-    node_modules/.bin/teste test/unit/baseclient-suite.js
+    node_modules/.bin/jaribu test/unit/baseclient-suite.js
 
 ### How to build
 
