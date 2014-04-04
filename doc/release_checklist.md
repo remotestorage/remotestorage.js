@@ -11,7 +11,7 @@
 * Manually test the special build files (.amd.js, .nocache.js)
 * Create release dir in `/release` and move build files there
 * Commit changes to Git
-* Tag version in Git: `git tag x.x.x` and push to GitHub master: `git push --tags`
+* Tag version in Git: `git tag x.x.x` and push to GitHub master: `git push origin master --tags`
 * Publish release on GitHub
     * Go to https://github.com/remotestorage/remotestorage.js/tags and click "add release notes"
     * Use version string as title and changelog items as description
@@ -30,7 +30,7 @@
     * Update version in config files
     * Commit
     * Tag new version
-    * `git push --tags`
+    * `git push origin master --tags`
 * Update https://www.npmjs.org/package/remotestoragejs
 * Update https://github.com/remotestorage/myfavoritedrinks to use new release
     * Replace `remotestorage.js` with new release build
