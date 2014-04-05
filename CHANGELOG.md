@@ -27,7 +27,7 @@ system. Old cached data will be converted to the new format automatically.
 ### Bugfixes
 
 * Anonymous mode is fixed and working as expected again
-* Using private browsing mode works by falling back to in-memory caching
+* Fix private browsing mode in Firefox
 * Handle 404s for directory GETs (#573)
 * Always quote If-None-Match headers (#584)
 * Widget only pulses when syncing changes (#437)
