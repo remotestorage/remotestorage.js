@@ -347,6 +347,7 @@
     put: function(path, body, contentType, options){
       RemoteStorage.log('dropbox.put', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
+      var pathbk=path;
       path = cleanPath(path);
 
       var promise = this._sharePromise(path);
@@ -377,7 +378,7 @@
             var response = JSON.parse(resp.responseText);
             // if dropbox reports an file conflict they just change the name of the file
             // TODO find out which stays the origianl and how to deal with this
-            if (response.path !== path){
+            if (response.path !== pathbk){
               promise.fulfill(412);
               this.rs.log('Dropbox created conflicting File ', response.path);
             }
@@ -398,6 +399,7 @@
     'delete': function(path, options){
       RemoteStorage.log('dropbox.delete ', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
+      var pathbkk=path;
       path = cleanPath(path);
 
       var promise = promising();
@@ -409,7 +411,7 @@
         return promise;
       }
 
-      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path='+encodeURIComponent(path);
+      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path='+encodeURIComponent(pathbkk);
       this._request('POST', url, {}, function(err, resp){
         if (err) {
           promise.reject(error);
