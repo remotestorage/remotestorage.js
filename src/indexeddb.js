@@ -150,9 +150,13 @@
       this.db.close();
 
       RS.IndexedDB.clean(this.db.name, function() {
-        RS.IndexedDB.open(dbName, function(other) {
-          // hacky!
-          self.db = other.db;
+        RS.IndexedDB.open(dbName, function(err, other) {
+          if (err) {
+            RemoteStorage.log('[IndexedDB] Error while reseting local storage', err);
+          } else {
+            // hacky!
+            self.db = other;
+          }
           callback(self);
         });
       });
