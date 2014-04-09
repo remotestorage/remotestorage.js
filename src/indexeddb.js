@@ -152,12 +152,12 @@
       RS.IndexedDB.clean(this.db.name, function() {
         RS.IndexedDB.open(dbName, function(err, other) {
           if (err) {
-            RemoteStorage.log('[IndexedDB] Error while reseting local storage', err);
+            RemoteStorage.log('[IndexedDB] Error while resetting local storage', err);
           } else {
             // hacky!
             self.db = other;
           }
-          callback(self);
+          if (typeof callback === 'function') { callback(self); }
         });
       });
     },
