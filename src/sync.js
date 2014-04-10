@@ -239,6 +239,7 @@
       if (node.remote && node.remote.itemsMap === undefined && node.remote.body === undefined) {
         return true;
       }
+      return false;
     },
 
     needsPush: function(node) {
