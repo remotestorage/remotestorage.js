@@ -9,6 +9,7 @@
 * Build everything: `make all`
 * Manually test all browsers you have access to, including mobile devices and private browsing mode
 * Manually test the special build files (.amd.js, .nocache.js)
+* Copy build files into `/release/head/`
 * Create release dir in `/release` and move build files there
 * Commit changes to Git
 * Tag version in Git: `git tag x.x.x` and push to GitHub master: `git push origin master --tags`
