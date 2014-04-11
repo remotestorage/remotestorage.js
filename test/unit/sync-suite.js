@@ -759,7 +759,81 @@ define([], function() {
             });
           });
         }
-      }
+      },
+
+      {
+        desc: "when a document has been deleted remotely, it's removed from local itemsMap",
+        run: function(env, test) {
+          env.rs.caching._responses['/foo/'] = 'ALL';
+          env.rs.caching._responses['/foo/new'] = 'ALL';
+          env.rs.caching._responses['/foo/old'] = 'ALL';
+
+          var newItemsMap = {
+            'bar': { 'ETag': 'bardocrevision' },
+            'new': { 'ETag': 'newdocrevision' }
+          };
+
+          env.rs.local.setNodes({
+            '/foo/': {
+              path: '/foo/',
+              common: {
+                itemsMap: {
+                  'bar': true,
+                  'old': true,
+                },
+                revision: 'remotefolderrevision',
+                timestamp: 1397210425598,
+              },
+              local: {
+                itemsMap: {
+                  'bar': true,
+                  'old': true,
+                  'new': true
+                },
+                revision: 'localfolderrevision',
+                timestamp: 1397210425612
+              }
+            },
+            '/foo/bar': {
+              path: '/foo/bar',
+              common: {
+                body: { foo: 'bar' },
+                contentType: 'application/json',
+                revision: 'bardocrevision',
+                timestamp: 1234567891000
+              }
+            },
+            '/foo/old': {
+              path: '/foo/old',
+              common: {
+                body: { foo: 'old' },
+                contentType: 'application/json',
+                revision: 'olddocrevision',
+                timestamp: 1234567891000
+              }
+            },
+            '/foo/new': {
+              path: '/foo/new',
+              local: {
+                body: { foo: 'new' },
+                contentType: 'application/json',
+                timestamp: 1234567891000
+              }
+            }
+          }).then(function() {
+            return env.rs.sync.handleResponse('/foo/', 'get', 200, newItemsMap, 'application/json', 'newfolderrevision');
+          }).then(function() {
+            env.rs.local.getNodes(['/foo/', '/foo/old']).then(function(nodes) {
+              var parentNode = nodes['/foo/'];
+
+              test.assertAnd(parentNode.common.itemsMap, { 'bar': true, 'new': true });
+              test.assertTypeAnd(parentNode.local, 'undefined');
+              test.assertTypeAnd(parentNode.remote, 'undefined');
+              test.assertType(nodes['/foo/old'], 'undefined');
+            });
+          });
+        }
+      },
     ]
   });
 
