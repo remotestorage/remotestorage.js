@@ -535,6 +535,19 @@
               changedNodes[nodePath] = undefined;
             } else {
               changedNodes[nodePath] = this.autoMerge(node);
+
+              if (typeof changedNodes[nodePath] === 'undefined') {
+                var parentPath = this.getParentPath(nodePath);
+                var parentNode = changedNodes[parentPath];
+                var itemName = nodePath.substring(path.length);
+                if (parentNode && parentNode.local) {
+                  delete parentNode.local.itemsMap[itemName];
+
+                  if (equalObj(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+                    delete parentNode.local;
+                  }
+                }
+              }
             }
           }
         }
@@ -592,10 +605,22 @@
     },
 
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
-      var promise = this.local.getNodes([path]).then(function(nodes) {
+      var paths;
+      var parentPath;
+      var pathsFromRoot = this.local._getInternals().pathsFromRoot(path);
+
+      if (!isFolder(path)) {
+        parentPath = pathsFromRoot[1];
+        paths = [path, parentPath];
+      } else {
+        paths = [path];
+      }
+
+      var promise = this.local.getNodes(paths).then(function(nodes) {
         var itemName;
         var missingChildren = {};
         var node = nodes[path];
+        var parentNode;
 
         collectMissingChildren = function(folder) {
           if (folder && folder.itemsMap) {
@@ -632,6 +657,15 @@
         } else {
           node.remote.body = bodyOrItemsMap;
           node.remote.contentType = contentType;
+
+          parentNode = nodes[parentPath];
+          if (parentNode && parentNode.local && parentNode.local.itemsMap) {
+            itemName = path.substring(parentPath.length);
+            parentNode.local.itemsMap[itemName] = true;
+            if (equalObj(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+              delete parentNode.local;
+            }
+          }
         }
 
         nodes[path] = this.autoMerge(node);
