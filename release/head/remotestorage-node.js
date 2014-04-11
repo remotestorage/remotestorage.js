@@ -1,4 +1,4 @@
-/** remotestorage.js 0.10.0-beta, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.10.0-beta2, http://remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/promising.js **/
 (function(global) {
@@ -2748,33 +2748,20 @@ Math.uuid = function (len, radix) {
 
     /**
      * Event: change
-     * emitted when a node changes
      *
-     * Arguments: event
+     * Emitted when a node changes
+     *
+     * Arguments:
+     *   event - Event object containing information about the changed node
+     *
      * (start code)
      * {
-     *    path: path,
-     *    origin: 'window', 'local', or 'remote'
-     *    oldValue: oldBody,
-     *    newValue: newBody
+     *    path: path, // Path of the changed node
+     *    origin: 'window', 'local', or 'remote' // emitted by user action within the app, local data store, or remote sync
+     *    oldValue: oldBody, // Old body of the changed node (undefined if creation)
+     *    newValue: newBody  // New body of the changed node (undefined if deletion)
      *  }
      * (end code)
-     *
-     * * the path ofcourse is the path of the node that changed
-     *
-     *
-     * * the origin tells you if it's a change pulled by sync(remote)
-     * or some user action within the app(window) or a result of connecting
-     * with the local data store(local).
-     *
-     *
-     * * the oldValue defaults to undefined if you are dealing with some
-     * new file
-     *
-     *
-     * * the newValue defaults to undefined if you are dealing with a deletion
-     *
-     * * when newValue and oldValue are set you are dealing with an update
      **/
 
     RS.eventHandling(this, 'change');
@@ -3567,6 +3554,38 @@ Math.uuid = function (len, radix) {
     return JSON.stringify(obj1) === JSON.stringify(obj2);
   }
 
+  function equalObj(x, y) {
+    var p;
+    for (p in y) {
+      if (typeof(x[p]) === 'undefined') {return false;}
+    }
+    for (p in y) {
+      if (y[p]) {
+        switch (typeof(y[p])) {
+          case 'object':
+            if (!y[p].equals(x[p])) { return false; }
+            break;
+          case 'function':
+            if (typeof(x[p])==='undefined' ||
+                (p !== 'equals' && y[p].toString() !== x[p].toString())) {
+              return false;
+            }
+            break;
+          default:
+            if (y[p] !== x[p]) { return false; }
+        }
+      } else {
+        if (x[p]) { return false; }
+      }
+    }
+    for (p in x) {
+      if(typeof(y[p]) === 'undefined') {
+        return false;
+      }
+    }
+    return true;
+  }
+
   function isFolder(path) {
     return path.substr(-1) === '/';
   }
@@ -3752,6 +3771,7 @@ Math.uuid = function (len, radix) {
       if (node.remote && node.remote.itemsMap === undefined && node.remote.body === undefined) {
         return true;
       }
+      return false;
     },
 
     needsPush: function(node) {
@@ -3900,6 +3920,11 @@ Math.uuid = function (len, radix) {
               node.local.itemsMap[itemName] = false;
             }
           }
+
+          // TODO test
+          if (equalObj(node.local.itemsMap, node.common.itemsMap)) {
+            delete node.local;
+          }
         }
       }
       return node;
@@ -4042,6 +4067,19 @@ Math.uuid = function (len, radix) {
               changedNodes[nodePath] = undefined;
             } else {
               changedNodes[nodePath] = this.autoMerge(node);
+
+              if (typeof changedNodes[nodePath] === 'undefined') {
+                var parentPath = this.getParentPath(nodePath);
+                var parentNode = changedNodes[parentPath];
+                var itemName = nodePath.substring(path.length);
+                if (parentNode && parentNode.local) {
+                  delete parentNode.local.itemsMap[itemName];
+
+                  if (equalObj(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+                    delete parentNode.local;
+                  }
+                }
+              }
             }
           }
         }
@@ -4099,10 +4137,22 @@ Math.uuid = function (len, radix) {
     },
 
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
-      var promise = this.local.getNodes([path]).then(function(nodes) {
+      var paths;
+      var parentPath;
+      var pathsFromRoot = this.local._getInternals().pathsFromRoot(path);
+
+      if (!isFolder(path)) {
+        parentPath = pathsFromRoot[1];
+        paths = [path, parentPath];
+      } else {
+        paths = [path];
+      }
+
+      var promise = this.local.getNodes(paths).then(function(nodes) {
         var itemName;
         var missingChildren = {};
         var node = nodes[path];
+        var parentNode;
 
         collectMissingChildren = function(folder) {
           if (folder && folder.itemsMap) {
@@ -4139,6 +4189,15 @@ Math.uuid = function (len, radix) {
         } else {
           node.remote.body = bodyOrItemsMap;
           node.remote.contentType = contentType;
+
+          parentNode = nodes[parentPath];
+          if (parentNode && parentNode.local && parentNode.local.itemsMap) {
+            itemName = path.substring(parentPath.length);
+            parentNode.local.itemsMap[itemName] = true;
+            if (equalObj(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+              delete parentNode.local;
+            }
+          }
         }
 
         nodes[path] = this.autoMerge(node);
@@ -5095,10 +5154,14 @@ Math.uuid = function (len, radix) {
       this.db.close();
 
       RS.IndexedDB.clean(this.db.name, function() {
-        RS.IndexedDB.open(dbName, function(other) {
-          // hacky!
-          self.db = other.db;
-          callback(self);
+        RS.IndexedDB.open(dbName, function(err, other) {
+          if (err) {
+            RemoteStorage.log('[IndexedDB] Error while resetting local storage', err);
+          } else {
+            // hacky!
+            self.db = other;
+          }
+          if (typeof callback === 'function') { callback(self); }
         });
       });
     },
@@ -5197,11 +5260,12 @@ Math.uuid = function (len, radix) {
 
     if ('indexedDB' in global) {
       try {
-        var check = indexedDB.open("MyTestDatabase");
+        var check = indexedDB.open("rs-check");
         check.onerror = function(event) {
           promise.reject();
         };
         check.onsuccess = function(event) {
+          indexedDB.deleteDatabase("rs-check");
           promise.fulfill();
         };
       } catch(e) {

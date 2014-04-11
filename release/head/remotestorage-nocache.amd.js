@@ -1,4 +1,4 @@
-/** remotestorage.js 0.10.0-beta, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.10.0-beta2, http://remotestorage.io, MIT-licensed **/
 define([], function() {
 
 /** FILE: lib/promising.js **/
@@ -3450,33 +3450,20 @@ Math.uuid = function (len, radix) {
 
     /**
      * Event: change
-     * emitted when a node changes
      *
-     * Arguments: event
+     * Emitted when a node changes
+     *
+     * Arguments:
+     *   event - Event object containing information about the changed node
+     *
      * (start code)
      * {
-     *    path: path,
-     *    origin: 'window', 'local', or 'remote'
-     *    oldValue: oldBody,
-     *    newValue: newBody
+     *    path: path, // Path of the changed node
+     *    origin: 'window', 'local', or 'remote' // emitted by user action within the app, local data store, or remote sync
+     *    oldValue: oldBody, // Old body of the changed node (undefined if creation)
+     *    newValue: newBody  // New body of the changed node (undefined if deletion)
      *  }
      * (end code)
-     *
-     * * the path ofcourse is the path of the node that changed
-     *
-     *
-     * * the origin tells you if it's a change pulled by sync(remote)
-     * or some user action within the app(window) or a result of connecting
-     * with the local data store(local).
-     *
-     *
-     * * the oldValue defaults to undefined if you are dealing with some
-     * new file
-     *
-     *
-     * * the newValue defaults to undefined if you are dealing with a deletion
-     *
-     * * when newValue and oldValue are set you are dealing with an update
      **/
 
     RS.eventHandling(this, 'change');
