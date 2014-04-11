@@ -19,11 +19,12 @@
 * Publish release on remotestorage.io
     * While in the gh-pages branch:
         * Copy the release from the remotestorage.js repo into `release/` dir
-        * `rm -rf doc/`
+        * `rm -rf doc/*`
         * Copy `/doc/code` from remoteStorage.js repo to `doc/code`
         * Commit changes to Git
     * While back in master branch:
         * Update version number, links, file size in `views/integrate/_hero.jade`
+        * Commit changes to Git
         * Run `./deploy`
 * Update shim repo with new release (components-remotestorage)
     * Add release files
