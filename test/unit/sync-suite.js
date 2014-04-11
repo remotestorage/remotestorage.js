@@ -709,8 +709,57 @@ define([], function() {
             });
           });
         }
-      }
+      },
 
+      {
+        desc: "fetching a new document keeps the local itemsMap from parent folder when there are other pending changes",
+        run: function(env, test) {
+          env.rs.caching._responses['/foo/'] = 'ALL';
+          env.rs.caching._responses['/foo/new'] = 'ALL';
+
+          env.rs.local.setNodes({
+            '/foo/': {
+              path: '/foo/',
+              common: {
+                itemsMap: {
+                  'bar':      true,
+                  'new':      true,
+                  'othernew': true
+                },
+                revision: 'remotefolderrevision',
+                timestamp: 1397210425598,
+              },
+              local: {
+                itemsMap: {
+                  'bar':      true,
+                  'new':      false,
+                  'othernew': false
+                },
+                revision: 'localfolderrevision',
+                timestamp: 1397210425612
+              }
+            },
+            '/foo/bar': {
+              path: '/foo/bar',
+              common: {
+                body: { foo: 'bar' },
+                contentType: 'application/json',
+                revision: 'docrevision',
+                timestamp: 1234567891000
+              }
+            }
+          }).then(function() {
+            return env.rs.sync.handleResponse('/foo/new', 'get', 200, { foo: 'new' }, 'application/json', 'newrevision');
+          }).then(function() {
+            env.rs.local.getNodes(['/foo/']).then(function(nodes) {
+              var parentNode = nodes['/foo/'];
+              test.assertAnd(parentNode.common.itemsMap, { 'bar': true, 'new': true, 'othernew': true });
+              test.assertAnd(parentNode.local.itemsMap, { 'bar': true, 'new': true, 'othernew': false });
+              test.assertType(parentNode.remote, 'undefined');
+            });
+          });
+        }
+      }
     ]
   });
 
