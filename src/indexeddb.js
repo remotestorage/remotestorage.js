@@ -256,11 +256,12 @@
 
     if ('indexedDB' in global) {
       try {
-        var check = indexedDB.open("MyTestDatabase");
+        var check = indexedDB.open("rs-check");
         check.onerror = function(event) {
           promise.reject();
         };
         check.onsuccess = function(event) {
+          indexedDB.deleteDatabase("rs-check");
           promise.fulfill();
         };
       } catch(e) {
