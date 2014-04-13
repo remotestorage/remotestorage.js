@@ -61,6 +61,13 @@
       this.moduleName = 'root';
     }
 
+    // Defined in baseclient/types.js
+    /**
+     * Property: schemas
+     *
+     * Contains schema objects of all types known to the BaseClient instance
+     **/
+
     /**
      * Event: change
      *
@@ -397,7 +404,9 @@
       if (typeof(object) !== 'object') {
         return promising().reject('Argument \'object\' of baseClient.storeObject must be an object');
       }
+
       this._attachType(object, typeAlias);
+
       try {
         var validationResult = this.validate(object);
         if (! validationResult.valid) {
@@ -408,6 +417,7 @@
           return promising().reject(exc);
         }
       }
+
       return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
         if (status === 200 || status === 201) {
           return revision;
@@ -547,5 +557,13 @@
   maxAgeInvalid = function(maxAge) {
     return typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number';
   };
+
+  // Defined in baseclient/types.js
+  /**
+   * Method: declareType
+   *
+   * Declare a remoteStorage object type using a JSON schema. See
+   * <RemoteStorage.BaseClient.Types>
+   **/
 
 })(typeof(window) !== 'undefined' ? window : global);
