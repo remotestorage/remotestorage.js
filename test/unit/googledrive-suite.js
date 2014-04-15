@@ -223,12 +223,12 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
       },
 
       {
-        desc: "#get to 404 document results in error",
+        desc: "#get to 404 document results in 404",
         run: function(env, test) {
           env.connectedClient.get('/foo').then(function(status, body, contentType) {
-            test.assert('we should not have got here', false);
+            test.assert(status, 404);
           }, function(err) {
-            test.assert(err, 'request failed or something: 404');
+            test.assert('we should not have got here', false);
           });
           var req = XMLHttpRequest.instances.shift();
           req.status = 404;
@@ -237,12 +237,12 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
       },
 
       {
-        desc: "#get to 404 folder results in error",
+        desc: "#get to 404 folder results in 404",
         run: function(env, test) {
           env.connectedClient.get('/foo/').then(function(status, body, contentType) {
-            test.assert('we should not have got here', false);
+            test.assert(status, 404);
           }, function(err) {
-            test.assert(err, 'request failed or something: 404');
+            test.assert('we should not have got here', false);
           });
           var req = XMLHttpRequest.instances.shift();
           req.status = 404;
