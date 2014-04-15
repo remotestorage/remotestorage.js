@@ -248,38 +248,6 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
           req.status = 404;
           req._onload();
         }
-      },
-
-      {
-        desc: "#get to document results in error if getFolder doesn't fill the fileId cache",
-        run: function(env, test) {
-          env.connectedClient._fileIdCache.set('/foo', false);
-          env.connectedClient.get('/foo').then(function(status, body, contentType) {
-            test.assert('we should not have got here', false);
-          }, function(err) {
-            test.assert(err, 'no file or folder found at the path: /foo');
-          });
-          var req = XMLHttpRequest.instances.shift();
-          req.status = 200;
-          req.responseText = JSON.stringify({ items: [] });
-          req._onload();
-        }
-      },
-
-      {
-        desc: "#get to folder results in error if getFolder doesn't fill the fileId cache",
-        run: function(env, test) {
-          env.connectedClient._fileIdCache.set('/foo/', false);
-          env.connectedClient.get('/foo/').then(function(status, body, contentType) {
-            test.assert('we should not have got here', false);
-          }, function(err) {
-            test.assert(err, 'no file or folder found at the path: /foo/');
-          });
-          var req = XMLHttpRequest.instances.shift();
-          req.status = 200;
-          req.responseText = JSON.stringify({ items: [] });
-          req._onload();
-        }
       }
 
     ]
