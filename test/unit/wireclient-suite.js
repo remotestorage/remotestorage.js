@@ -86,6 +86,11 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
       }
     };
 
+    env.busy = new test.Stub(function(){});
+    env.done = new test.Stub(function(){});
+    env.connectedClient.on('wire-busy', env.busy);
+    env.connectedClient.on('wire-done', env.done);
+
     test.done();
   }
 
@@ -141,13 +146,9 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
       {
         desc: "client.get() of a document emits wire-busy and wire-done on success",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo').then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -161,14 +162,10 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
       {
         desc: "client.get() of a document emits wire-busy and wire-done on failure",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo').then(function(){
           }, function(err) {
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -179,14 +176,10 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
       {
         desc: "client.get() of a folder emits wire-busy and wire-done on success, and sets remote.online to true",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
           env.connectedClient.online = false;
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo/').then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.assertAnd(env.connectedClient.online, true);
             test.done();
           });
@@ -201,15 +194,11 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
       {
         desc: "client.get() of a folder emits wire-busy and wire-done on failure, and sets remote.online to false",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
           env.connectedClient.online = true;
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo/').then(function(){
           }, function(err) {
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.assertAnd(env.connectedClient.online, false);
             test.done();
           });
@@ -221,13 +210,9 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
       {
         desc: "client.put() emits wire-busy and wire-done on success",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.put('/foo', 'body', 'content-type', {}).then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -241,14 +226,10 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
       {
         desc: "client.put() emits wire-busy and wire-done on failure",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.put('/foo', 'body', 'content-type', {}).then(function(){
           }, function(err) {
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -259,13 +240,9 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
       {
         desc: "client.delete() emits wire-busy and wire-done on success",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.delete('/foo').then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -279,14 +256,10 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
       {
         desc: "client.delete() emits wire-busy and wire-done on failure",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.delete('/foo', 'body', 'content-type', {}).then(function(){
           }, function(err) {
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
