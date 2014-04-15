@@ -120,12 +120,16 @@
      *
      * Parameters:
      *   path   - The path to query. It MUST end with a forward slash.
-     *   maxAge - (optional) Maximum age of cached listing in
-     *            milliseconds
+     *   maxAge - Either false or the maximum age of cached listing in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
      *
-     *   A promise for an object, representing child nodes.
+     *   A promise for an object, representing child nodes. If the maxAge
+     *   requirement cannot be met because of network problems, this promise
+     *   will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
      *
      *   Keys ending in a forward slash represent *folder nodes*, while all
      *   other keys represent *data nodes*.
@@ -136,7 +140,7 @@
      *
      * Example:
      *   (start code)
-     *   client.getListing('').then(function(listing) {
+     *   client.getListing('', false).then(function(listing) {
      *     listing.forEach(function(item) {
      *       console.log(item);
      *     });
@@ -148,9 +152,6 @@
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
-      }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getListing must be undefined or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
@@ -165,16 +166,20 @@
      * Get all objects directly below a given path.
      *
      * Parameters:
-     *   path   - path to the folder
-     *   maxAge - (optional) Maximum age of cached objects in
-     *            milliseconds
+     *   path   - Path to the folder.
+     *   maxAge - Either false or the maximum age of cached objects in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
-     *   a promise for an object in the form { path : object, ... }
+     *   A promise for an object in the form { path : object, ... }. If the
+     *   maxAge requirement cannot be met because of network problems, this
+     *   promise will be rejected. If the maxAge requirement is set to false,
+     *   the promise will always be fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
-     *   client.getAll('').then(function(objects) {
+     *   client.getAll('', false).then(function(objects) {
      *     for (var key in objects) {
      *       console.log('- ' + key + ': ', objects[key]);
      *     }
@@ -186,9 +191,6 @@
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
-      }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getAll must be undefined or a number');
       }
 
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
@@ -226,7 +228,10 @@
      * getObject.
      *
      * Parameters:
-     *   path     - see getObject
+     *   path   - See getObject.
+     *   maxAge - Either false or the maximum age of cached file in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
      *   A promise for an object:
@@ -234,10 +239,14 @@
      *   mimeType - String representing the MIME Type of the document.
      *   data     - Raw data of the document (either a string or an ArrayBuffer)
      *
+     *   If the maxAge requirement cannot be met because of network problems, this
+     *   promise will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
+     *
      * Example:
      *   (start code)
      *   // Display an image:
-     *   client.getFile('path/to/some/image').then(function(file) {
+     *   client.getFile('path/to/some/image', false).then(function(file) {
      *     var blob = new Blob([file.data], { type: file.mimeType });
      *     var targetElement = document.findElementById('my-image-element');
      *     targetElement.src = window.URL.createObjectURL(blob);
@@ -247,9 +256,6 @@
     getFile: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
-      }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getFile must be undefined or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         return {
@@ -324,14 +330,20 @@
      * Get a JSON object from given path.
      *
      * Parameters:
-     *   path     - relative path from the module root (without leading slash)
+     *   path   - Relative path from the module root (without leading slash).
+     *   maxAge - Either false or the maximum age of cached object in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
-     *   A promise for the object.
+     *   A promise for the object. If the maxAge requirement cannot be met
+     *   because of network problems, this promise will be rejected. If the
+     *   maxAge requirement is set to false, the promise will always be
+     *   fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
-     *   client.getObject('/path/to/object').
+     *   client.getObject('/path/to/object', false).
      *     then(function(object) {
      *       // object is either an object or null
      *     });
@@ -340,9 +352,6 @@
     getObject: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
-      }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getObject must be undefined or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         if (typeof(body) === 'object') {
@@ -553,10 +562,6 @@
     };
   });
   */
-
-  maxAgeInvalid = function(maxAge) {
-    return typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number';
-  };
 
   // Defined in baseclient/types.js
   /**
