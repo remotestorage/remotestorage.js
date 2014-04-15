@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, undefined) {
+define(['requirejs', 'test/behavior/backend', 'test/mocks'], function(requirejs, backend, mocks, undefined) {
   var suites = [];
 
   function setup(env, test) {
@@ -83,26 +83,8 @@ define(['requirejs', 'test/behavior/backend'], function(requirejs, backend, unde
     env.connectedClient.configure(
       'dboxuser', env.baseURI, undefined, env.token
     );
-    global.Blob = function(input, options) {
-      this.input = input;
-      this.options = options;
-      env.blob = this;
-    };
-    global.FileReader = function() {};
-    FileReader.prototype = {
-      _events: {
-        loadend: []
-      },
-      addEventListener: function(eventName, handler) {
-        this._events[eventName].push(handler);
-      },
-      readAsArrayBuffer: function(blob) {
-        setTimeout(function() {
-          this.result = env.fileReaderResult = Math.random();
-          this._events.loadend[0]();
-        }.bind(this), 0);
-      }
-    };
+
+    mocks.defineMocks(env);
 
     test.done();
   }
