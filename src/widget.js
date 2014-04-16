@@ -29,16 +29,20 @@
 
   function errorsHandler(widget) {
     return function(error) {
-      if (error instanceof RemoteStorage.DiscoveryError) {
-        console.error('Discovery failed', error, '"' + error.message + '"');
-        widget.view.setState('initial', [error.message]);
-      } else if (error instanceof RemoteStorage.SyncError) {
-        widget.view.setState('offline', []);
-      } else if (error instanceof RemoteStorage.Unauthorized) {
-        widget.view.setState('unauthorized');
+      if (widget.view) {
+        if (error instanceof RemoteStorage.DiscoveryError) {
+          console.error('Discovery failed', error, '"' + error.message + '"');
+          widget.view.setState('initial', [error.message]);
+        } else if (error instanceof RemoteStorage.SyncError) {
+          widget.view.setState('offline', []);
+        } else if (error instanceof RemoteStorage.Unauthorized) {
+          widget.view.setState('unauthorized');
+        } else {
+          RemoteStorage.log('[Widget] Unknown error');
+          widget.view.setState('error', [error]);
+        }
       } else {
-        RemoteStorage.log('[Widget] Unknown error');
-        widget.view.setState('error', [error]);
+        RemoteStorage.log('[widget] Undisplayed error:', error);
       }
     };
   }
