@@ -1,4 +1,10 @@
 (function() {
+  /**
+   * Class: RemoteStorage.I18n
+   *
+   * TODO add documentation
+   **/
+
   "use strict";
 
   var dictionary = {

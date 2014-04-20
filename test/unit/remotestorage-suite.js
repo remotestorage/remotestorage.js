@@ -78,13 +78,11 @@ define([], function() {
       };
       global.localStorage = {};
       RemoteStorage.prototype.remote = new FakeRemote();
-      //RemoteStorage.prototype.local = new FakeLocal();
       test.done();
     },
 
     beforeEach: function(env, test) {
       var remoteStorage = new RemoteStorage();
-      //remoteStorage._emit('ready');
       env.rs = remoteStorage;
       test.done();
     },
@@ -179,19 +177,49 @@ define([], function() {
       {
         desc: "#connect sets the backend to remotestorage",
         run: function(env, test) {
-          localStorage ={};
+          localStorage = {};
           env.rs.connect('user@ho.st');
           test.assert(localStorage, {'remotestorage:backend': 'remotestorage'});
         }
       },
 
       {
-        desc: "#diconnect fires disconnected ",
+        desc: "#disconnect fires disconnected",
         run: function(env, test) {
           env.rs.on('disconnected', function() {
             test.done();
           });
           env.rs.disconnect();
+        }
+      },
+
+      {
+        desc: "remote connected fires connected",
+        run: function(env, test) {
+          env.rs.on('connected', function() {
+            test.done();
+          });
+          env.rs.remote._emit('connected');
+        }
+      },
+
+      {
+        desc: "remote not-connected fires not-connected",
+        run: function(env, test) {
+          env.rs.on('not-connected', function() {
+            test.done();
+          });
+          env.rs.remote._emit('not-connected');
+        }
+      },
+
+      {
+        desc: "fires connected when remote already connected",
+        run: function(env, test) {
+          env.rs.on('connected', function() {
+            test.done();
+          });
+          env.rs._init();
         }
       },
 

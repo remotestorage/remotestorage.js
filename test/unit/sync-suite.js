@@ -6,17 +6,64 @@ define([], function() {
   var suites = [];
 
   function FakeCaching(){
-    this.rootPaths = [];
+    this._responses = {};
+    this.checkPath = function(path) {
+      if (typeof(this._responses[path]) === 'undefined') {
+        throw new Error('no FakeCaching response for path ' + path);
+      }
+      return this._responses[path];
+    };
+    this.onActivate = function() {};
+  }
+
+  function FakeAccess(){
+    this._data = {};
+    this.set = function(moduleName, value) {
+      this._data[moduleName] = value;
+    };
+    this.get = function(moduleName) {
+      return this._data[moduleName];
+    };
+    this.checkPathPermission = function(path, mode) {
+      if (path.substring(0, '/foo/'.length) === '/foo/') {
+        return true;
+      }
+      if (path.substring(0, '/read/access/'.length) === '/read/access/' && mode === 'r') {
+        return true;
+      }
+      if (path.substring(0, '/write/access/'.length) === '/write/access/') {
+        return true;
+      }
+      if (path.substring(0, '/readings/'.length) === '/readings/' && mode === 'r') {
+        return true;
+      }
+      if (path.substring(0, '/public/readings/'.length) === '/public/readings/' && mode === 'r') {
+        return true;
+      }
+      if (path.substring(0, '/writings/'.length) === '/writings/') {
+        return true;
+      }
+      if (path.substring(0, '/public/writings/'.length) === '/public/writings/') {
+        return true;
+      }
+      return false;
+    };
   }
 
   function FakeRemote(){
     function GPD(target, path, body, contentType, options) {
       var args = Array.prototype.slice.call(arguments);
-      console.log('GPD called with : ', args);
       this['_'+target+'s'].push([path, body, contentType, options]);
       var p = promising();
+      if (typeof(this._responses[args]) === 'undefined') {
+        throw new Error('no FakeRemote response for args ' + JSON.stringify(args) + ' - have: ' + JSON.stringify(Object.getOwnPropertyNames(this._responses)));
+      }
       var resp = this._responses[args] || [200];
-      return p.fulfill.apply(p, resp);
+      if(resp === 'timeout') {
+        return p.reject.apply(p, resp);
+      } else {
+        return p.fulfill.apply(p, resp);
+      }
     }
     this.connected = true;
     this._puts = [];
@@ -64,24 +111,52 @@ define([], function() {
 
       require('./src/inmemorystorage.js');
       if (global.rs_ims) {
-        RemoteStorage.InMemoryCaching = global.rs_ims;
+        RemoteStorage.InMemoryStorage = global.rs_ims;
       } else {
         global.rs_ims = RemoteStorage.InMemoryStorage;
       }
 
       require('src/sync.js');
+      if (global.rs_sync) {
+        RemoteStorage.Sync = global.rs_sync;
+      } else {
+        global.rs_sync = RemoteStorage.Sync;
+      }
       test.done();
     },
 
     beforeEach: function(env, test){
       env.rs = new RemoteStorage();
-      env.rs.local = env.local = new RemoteStorage.InMemoryStorage();
+      env.rs.local = new RemoteStorage.InMemoryStorage(env.rs);
+      env.rs.remote = new FakeRemote();
+      env.rs.access = new FakeAccess();
       env.rs.caching = new FakeCaching();
-      env.rs.remote = env.remote = new FakeRemote();
+      env.rs.sync = new RemoteStorage.Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
+      global.remoteStorage = env.rs;
+
+      env.rs.sync.numThreads = 5;
+      env.rs.remote.connected = true;
+      env.rs.remote.online = true;
+      env.rs.sync._tasks = {};
+      env.rs.sync._running = {};
+
       test.done();
     },
 
     tests: [
+      {
+        desc: "getParentPath works correctly",
+        run: function(env,test){
+          test.assertAnd(env.rs.sync.getParentPath('/a'), '/');
+          test.assertAnd(env.rs.sync.getParentPath('/a/'), '/');
+          test.assertAnd(env.rs.sync.getParentPath('/a/b'), '/a/');
+          test.assertAnd(env.rs.sync.getParentPath('/a/b/'), '/a/');
+          test.assertAnd(env.rs.sync.getParentPath('/a/b/c'), '/a/b/');
+          test.assertAnd(env.rs.sync.getParentPath('/a/b/c/'), '/a/b/');
+          test.done();
+        }
+      },
+
       {
         desc: "RemoteStorage.sync() returns immediately if not connected",
         run: function(env,test){
@@ -91,132 +166,8 @@ define([], function() {
             failed = true;
           });
 
-          env.rs.sync().then(function(){
+          env.rs.sync.sync().then(function(){
             test.assert(failed, false);
-          });
-        }
-      },
-
-      {
-        desc: "RemoteStorage.sync() sets cached path ready",
-        run: function(env,test){
-          env.local.put('/foo/bar/baz', 'body', 'text/plain');
-          env.remote._responses[['get', '/foo/',
-                                 { ifNoneMatch: undefined } ]] =
-            [200, {'bar/': 123}, 'application/json', 123];
-          env.remote._responses[['get', '/foo/bar/',
-                                 { ifNoneMatch: undefined } ]] =
-            [200, {'baz': 123}, 'application/json', 123];
-
-          env.remote._responses[['get', '/foo/bar/baz',
-                                 { ifNoneMatch: undefined } ]] =
-            [200, "body", 'text/plain', 123];
-          env.rs.caching.rootPaths = ['/foo/'];
-          env.rs.caching.get = function(path) {
-            return { data: true };
-          };
-          env.rs.caching.set = function(path, obj) {
-            test.assertAnd(path, '/foo/');
-            test.assertType(obj, 'object');
-            test.assert(obj.ready, true);
-          };
-          env.rs.sync();
-        }
-      },
-
-      {
-        desc: "Sync.sync() pushes the changes in local first",
-        run: function(env, test) {
-          env.local.put('/foo/bar/baz', 'body', 'text/plain');
-          env.local.put('/foo/bar/bla', 'body', 'text/plain');
-          env.local.delete('/foo/bar/bla');
-          env.remote._responses[['get', '/foo/',
-                                 { ifNoneMatch: undefined } ]] =
-            [200, {'bar/': 123}, 'application/json', 123];
-          env.remote._responses[['get', '/foo/bar/',
-                                 { ifNoneMatch: undefined } ]] =
-            [200, {'baz': 123}, 'application/json', 123];
-
-          env.remote._responses[['get', '/foo/bar/baz',
-                                 { ifNoneMatch: undefined } ]] =
-            [200, "body", 'text/plain', 123];
-          RemoteStorage.Sync.sync(env.remote, env.local, '/foo/').then(function() {
-            test.assertAnd(env.remote._puts[0], ['/foo/bar/baz', 'body', 'text/plain', { ifNoneMatch: '*' }], 'got '+JSON.stringify(env.remote._puts[0])+' for put instead');
-            test.assertAnd(env.remote._puts.length, 1, 'too many put requests here');
-            test.assertAnd(env.remote._deletes[0], ['/foo/bar/bla', {}, null, null], 'got '+JSON.stringify(env.remote._deletes[0])+' for delete instead');
-            test.assertAnd(env.remote._deletes.length, 1);
-            test.done();
-          });
-        }
-      },
-
-      {
-        desc: "Sync.sync() for cached folder only syncs changed objects therein",
-        run: function(env, test) {
-          var cachedFolderItems = {vodka:{ETag:'123'},whiskey:{ETag:'456'},rum:{ETag:'789'}};
-          env.local.putFolder('/foo/bar/booze/', cachedFolderItems, 'abc');
-          env.local.put('/foo/bar/booze/vodka', 'russian', 'text/plain', true, '123');
-          env.local.put('/foo/bar/booze/whiskey', 'scotch', 'text/plain', true, '456');
-          env.local.put('/foo/bar/booze/rum', 'jamaican', 'text/plain', true, '789');
-          env.remote._responses[['get', '/foo/bar/booze/', {ifNoneMatch: 'abc'} ]] =
-            [200, {vodka:{ETag:'123'},whiskey:{ETag:'321'}}, 'application/json', 'def'];
-
-          RemoteStorage.Sync.sync(env.remote, env.local, '/foo/bar/booze/').then(function() {
-            test.assertAnd(env.remote._gets.length, 3);
-            var getKeys = flatten(env.remote._gets);
-            var contains = function(arr, val) {
-              return arr.indexOf(val) !== -1;
-            };
-            test.assertAnd(contains(getKeys, '/foo/bar/booze/'), true);
-            test.assertAnd(contains(getKeys, '/foo/bar/booze/vodka'), false);
-            test.assertAnd(contains(getKeys, '/foo/bar/booze/whiskey'), true);
-            test.assertAnd(contains(getKeys, '/foo/bar/booze/rum'), true);
-            test.done();
-          });
-        }
-      },
-
-      {
-        desc: "Sync.sync() resolves conflict resolutions",
-        run: function(env, test) {
-          env.local.put('/foo/bar', 'local body', 'text/plain');
-          env.local.setConflict('/foo/bar', { resolution: 'remote', localAction: 'PUT', remoteAction: 'PUT' });
-
-          env.remote._responses[['get', '/foo/',
-                                 { ifNoneMatch: undefined } ]] =
-            [200, {'bar': 123}, 'application/json', 123];
-          env.remote._responses[['get', '/foo/bar',
-                                 { ifNoneMatch: undefined } ]] =
-            [200, "remote body", 'text/plain', 123];
-
-          RemoteStorage.Sync.sync(env.remote, env.local, '/foo/').then(function() {
-            test.assertAnd(env.local._changes, {}, 'still some changes left: '+JSON.stringify(env.local._changes));
-            test.assertAnd(env.remote._puts[0], ['/foo/bar', 'local body', 'text/plain', {}], 'got '+JSON.stringify(env.remote._puts[0])+' for put instead');
-            test.done();
-          });
-        }
-      },
-
-      {
-        desc: "Sync.sync() keeps conflicts without resolution pending",
-        run: function(env, test) {
-          var path = '/foo/bar';
-          var conflict = { localAction: 'PUT', remoteAction: 'PUT' };
-
-          env.local.put(path, 'local body', 'text/plain');
-          env.local.setConflict(path, conflict);
-
-          env.remote._responses[['get', '/foo/',
-                                 { ifNoneMatch: undefined } ]] =
-            [200, {'bar': 123}, 'application/json', 123];
-          env.remote._responses[['get', '/foo/bar',
-                                 { ifNoneMatch: undefined } ]] =
-            [200, "remote body", 'text/plain', 123];
-
-          RemoteStorage.Sync.sync(env.remote, env.local, '/foo/').then(function() {
-            test.assertAnd(env.local._changes[path]['conflict'], conflict, 'got conflict '+JSON.stringify(env.local._changes[path]['conflict'])+' instead');
-            test.assertAnd(env.remote._puts.length, 0, 'got '+JSON.stringify(env.remote._puts)+' for puts instead');
-            test.done();
           });
         }
       },
@@ -263,6 +214,8 @@ define([], function() {
       {
         desc: "Setting a wrong sync interval throws an error",
         run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
           try {
             env.rs.setSyncInterval('60000');
             test.result(false, "setSyncInterval() didn't fail");
@@ -270,8 +223,445 @@ define([], function() {
             test.result(true);
           }
         }
-      }
+      },
+      {
+        desc: "Sync calls doTasks, and goes to collectTasks only if necessary",
+        run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
+          var doTasksCalled = 0, collectTasksCalled = 0, addTaskCalled = 0,
+            tmpDoTasks = env.rs.sync.doTasks,
+            tmpFindTasks = env.rs.sync.collectTasks,
+            tmpAddTasks = env.rs.sync.addTasks;
 
+          env.rs.sync.doTasks = function() {
+            doTasksCalled++;
+            if (addTaskCalled) {
+              return true;
+            } else {
+              return false;
+            }
+          };
+          env.rs.sync.collectTasks = function() {
+            collectTasksCalled++;
+            return promising().fulfill();
+          };
+          env.rs.sync.addTask = function() {
+            addTaskCalled++;
+          };
+          env.rs.sync.sync().then(function() {
+            test.assertAnd(doTasksCalled, 2);
+            test.assertAnd(collectTasksCalled, 1);
+            env.rs.sync.addTask('/foo', function() {});
+            return env.rs.sync.sync();
+          }).then(function() {
+            test.assertAnd(doTasksCalled, 3);
+            test.assertAnd(collectTasksCalled, 1);
+            env.rs.sync.doTasks = tmpDoTasks;
+            env.rs.sync.collectTasks = tmpFindTasks;
+            env.rs.sync.addTasks = tmpAddTasks;
+            test.done();
+          });
+        }
+      },
+      {
+        desc: "collectTasks calls collectDiffTasks and goes to collectRefreshTasks only if necessary",
+        run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
+          var collectDiffTasksCalled = 0, collectRefreshTasksCalled = 0,
+            tmpCheckDiffs = env.rs.sync.collectDiffTasks,
+            tmpCheckRefresh = env.rs.sync.collectRefreshTasks,
+            haveDiffs = 0;
+          env.rs.sync.collectDiffTasks = function() {
+            collectDiffTasksCalled++;
+            return promising().fulfill(haveDiffs);
+          };
+          env.rs.sync.collectRefreshTasks = function() {
+            collectRefreshTasksCalled++;
+            return promising().fulfill([]);
+          };
+          env.rs.sync.collectTasks().then(function() {
+            test.assertAnd(collectDiffTasksCalled, 1);
+            test.assertAnd(collectRefreshTasksCalled, 1);
+            haveDiffs = 1;
+            return env.rs.sync.collectTasks();
+          }).then(function() {
+            test.assertAnd(collectDiffTasksCalled, 2);
+            test.assertAnd(collectRefreshTasksCalled, 1);
+            env.rs.sync.collectDiffTasks = tmpCheckDiffs;
+            env.rs.sync.collectRefreshTasks = tmpCheckRefresh;
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "collectRefreshTasks gives preference to caching parent",
+        run: function(env, test) {
+          var tmpForAllNodes = env.rs.local.forAllNodes;
+          var tmpNow = env.rs.sync.now;
+
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
+
+          env.rs.sync.now = function() {
+            return 1234568654321;
+          };
+
+          env.rs.local.forAllNodes = function(cb) {
+            cb({
+              path: '/foo/ba/and/then/some/sub/path', //should be overruled by ancestor /foo/ba/
+              common: {
+                body: 'off',
+                contentType: 'cT',
+                timestamp: 1234567890123
+              }
+            });
+            cb({
+              path: '/foo/ba/', //should retrieve /foo/ to get its new revision
+              common: {
+                body: 'off',
+                contentType: 'cT',
+                timestamp: 1234567890124
+              }
+            });
+            cb({
+              path: '/read/access/', // should retrieve
+              common: {
+                body: 'off',
+                contentType: 'cT',
+                timestamp: 1234567890124
+              }
+            });
+            cb({
+              path: '/no/access/', // no access
+              common: {
+                body: 'off',
+                contentType: 'cT',
+                timestamp: 1234567890124
+              }
+            });
+            return promising().fulfill();
+          };
+
+          env.rs.sync.collectRefreshTasks().then(function() {
+            test.assertAnd(env.rs.sync._tasks, {
+              '/foo/': [],
+              '/read/access/': []
+            });
+            env.rs.local.forAllNodes = tmpForAllNodes;
+            env.rs.sync.now = tmpNow;
+            test.done();
+          });
+        }
+      },
+      {
+        desc: "go through the request-queue with 4-8 requests at a time",
+        run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
+          var tmpDoTask = env.rs.sync.doTask;
+          env.rs.sync.doTask = function() {
+            return promising().fulfill({
+              action: undefined,
+              promise: promising().fulfill()
+            });
+          };
+          env.rs.sync.numThreads = 5;
+          env.rs.sync.remote.connected = true;
+          env.rs.sync.remote.online = true;
+          env.rs.sync._tasks = {
+            '/foo1/': true,
+            '/foo2/': true,
+            '/foo3': true,
+            '/foo4/': true,
+            '/foo/5': true,
+            '/foo/6/': true,
+            '/foo7/': true,
+            '/foo8': true,
+            '/fo/o/9/': true
+          };
+          env.rs.sync._running = {};
+          env.rs.sync.doTasks();
+          test.assertAnd(env.rs.sync._tasks, {
+            '/foo1/': true,
+            '/foo2/': true,
+            '/foo3': true,
+            '/foo4/': true,
+            '/foo/5': true,
+            '/foo/6/': true,
+            '/foo7/': true,
+            '/foo8': true,
+            '/fo/o/9/': true
+          });
+          test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).sort(), [
+            '/foo1/',
+            '/foo2/',
+            '/foo3',
+            '/foo4/',
+            '/foo/5'
+          ].sort());
+          test.done();
+          env.rs.sync.doTask = tmpDoTask;
+        }
+      },
+
+      {
+        desc: "sync will attempt only one request, at low frequency, when not online",
+        run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
+          var tmpDoTask = env.rs.sync.doTask;
+          env.rs.sync.doTask = function() {
+            return promising().fulfill({
+              action: undefined,
+              promise: promising().fulfill()
+            });
+          };
+          env.rs.sync.numThreads = 5;
+          env.rs.sync.remote.connected = true;
+          env.rs.sync.remote.online = false;
+          env.rs.sync._tasks = {
+            '/foo1/': true,
+            '/foo2/': true,
+            '/foo3': true,
+            '/foo4/': true,
+            '/foo/5': true,
+            '/foo/6/': true,
+            '/foo7/': true,
+            '/foo8': true,
+            '/fo/o/9/': true
+          };
+          env.rs.sync._running = {};
+          env.rs.sync.doTasks();
+          test.assertAnd(env.rs.sync._tasks, {
+            '/foo1/': true,
+            '/foo2/': true,
+            '/foo3': true,
+            '/foo4/': true,
+            '/foo/5': true,
+            '/foo/6/': true,
+            '/foo7/': true,
+            '/foo8': true,
+            '/fo/o/9/': true
+          });
+          test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).sort(), [
+            '/foo1/'
+          ]);
+          test.done();
+          env.rs.sync.doTask = tmpDoTask;
+        }
+      },
+
+      {
+        desc: "sync will not attempt any requests when not connected",
+        run: function(env, test) {
+          test.assertAnd(env.rs.sync._tasks, {});
+          test.assertAnd(env.rs.sync._running, {});
+          env.rs.sync.numThreads = 5;
+          env.rs.remote.connected = false;
+          env.rs.sync._tasks = {
+            '/foo1/': true,
+            '/foo2/': true,
+            '/foo3': true,
+            '/foo4/': true,
+            '/foo/5': true,
+            '/foo/6/': true,
+            '/foo7/': true,
+            '/foo8': true,
+            '/fo/o/9/': true
+          };
+          env.rs.sync._running = {};
+          env.rs.sync.doTasks();
+          test.assertAnd(env.rs.sync._tasks, {
+            '/foo1/': true,
+            '/foo2/': true,
+            '/foo3': true,
+            '/foo4/': true,
+            '/foo/5': true,
+            '/foo/6/': true,
+            '/foo7/': true,
+            '/foo8': true,
+            '/fo/o/9/': true
+          });
+          test.assertAnd(env.rs.sync._running, {});
+          test.done();
+        }
+      },
+      {
+        desc: "collectDiffTasks will not enqueue requests outside the access scope",
+        run: function(env, test) {
+          env.rs.sync.numThreads = 5;
+          env.rs.remote.connected = true;
+          env.rs.remote.online = true;
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              path: '/foo/bar',
+              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              local: { body: false, timestamp: 1234567891000 }
+            },
+            '/public/nothings/bar': {
+              path: '/public/nothings/bar',
+              common: { revision: '987', timestamp: 1234567890123 },
+              local: { body: 'asdf', contentType: 'qwer', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.rs.sync.collectDiffTasks();
+            test.assertAnd(env.rs.sync._tasks, {'/foo/bar': []});
+            //env.rs.sync.on('done', function() {
+            test.done();
+            //});
+          });
+        }
+      },
+
+      {
+        desc: "collectDiffTasks retrieves body and Content-Type when a new remote revision is set inside rw access scope",
+        run: function(env, test) {
+          env.rs.local.setNodes({
+            '/nothings/bar': {
+              path: '/nothings/bar',
+              common: { body: 'asdf', contentType: 'qwer', revision: '987', timestamp: 1234567890123 },
+              remote: { revision: '900' }
+            },
+            '/public/writings/bar': {
+              path: '/public/writings/bar',
+              common: { revision: '987', timestamp: 1234567890123 },
+              remote: { revision: 'a' }
+            }
+          }).then(function() {
+            return env.rs.sync.collectDiffTasks();
+          }).then(function() {
+            test.assertAnd(env.rs.sync._tasks, {
+              '/public/writings/bar': []
+            });
+            //env.rs.sync.on('done', function() {
+            test.done();
+            //});
+          });
+        }
+      },
+
+      {
+        desc: "sync will discard corrupt cache nodes but try to retrieve them if node.path is readable",
+        run: function(env, test) {
+          env.rs.access.set('writings', 'r');
+          env.rs.access.set('writings', 'rw');
+          env.rs.local.setNodes({
+            '/writings/bar': {
+              path: '/writings/bar',
+              common: { body: function() {}, contentType: 3, revision: '987', timestamp: 1234567890123 },
+              remote: { revision: 'yes' },
+              push: 'no'
+            },
+            '/writings/baz': {
+              common: { body: function() {}, contentType: 3, revision: '987', timestamp: 1234567890123 },
+              remote: { revision: 'yes' },
+              push: 'no'
+            },
+            '/writings/baf': {
+              path: '/writings/baf',
+              remote: { revision: 'yes' }
+            }
+          }).then(function() {
+            return env.rs.sync.collectDiffTasks();
+          }).then(function(num) {
+            test.assertAnd(num, 2);
+            test.assertAnd(env.rs.sync._tasks, {
+              '/writings/bar': [],
+              '/writings/baf': []
+            });
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "sync will reject its promise if the cache is not available",
+        run: function(env, test) {
+          var tmp = env.rs.forAllNodes;
+          env.rs.local.forAllNodes = function(cb) {
+            var promise = promising();
+            promise.reject('i am broken, deal with it!');
+            return promise;
+          };
+          env.rs.sync.sync().then(function() {
+            test.result(false, 'sync was supposed to reject its promise');
+          }, function(err) {
+            test.assertAnd(err, new Error('local cache unavailable'));
+            test.done();
+          });
+          env.rs.forAllNodes = tmp;
+        }
+      },
+
+      {
+        desc: "sync will fulfill its promise as long as the cache is available",
+        run: function(env, test) {
+          env.rs.sync.sync().then(function() {
+            test.done();
+          }, function(err) {
+            test.result(false, 'sync was supposed to fulfill its promise');
+          });
+        }
+      },
+      {
+        desc: "get with maxAge requirement is rejected if remote is not connected",
+        run: function(env, test) {
+          env.rs.remote.connected = false;
+          env.rs.local.get('asdf', 2).then(function() {
+            test.result(false, 'should have been rejected');
+          }, function(err) {
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "get with maxAge requirement is rejected if remote is not online",
+        run: function(env, test) {
+          env.rs.remote.online = false;
+          env.rs.local.get('asdf', 2).then(function() {
+            test.result(false, 'should have been rejected');
+          }, function(err) {
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "completePush for put without conflict updates 'common', removes 'local' and 'push' from node",
+        run: function(env, test) {
+          env.rs.caching._responses['/foo/bar'] = 'ALL';
+
+          env.rs.local.setNodes({
+            '/foo/bar': {
+              path: '/foo/bar',
+              local: {
+                body: {foo: 'bar'},
+                contentType: 'application/json',
+                timestamp: 1234567891000
+              },
+              push: {
+                body: {foo: 'bar'},
+                contentType: 'application/json',
+                timestamp: 1234567891234
+              }
+            }
+          }).then(function() {
+            return env.rs.sync.completePush('/foo/bar', 'put', false, '12345');
+          }).then(function() {
+            env.rs.local.getNodes(['/foo/bar']).then(function(nodes) {
+              var node = nodes['/foo/bar'];
+              test.assertAnd(node.common.body, {foo: 'bar'});
+              test.assertAnd(node.common.contentType, 'application/json');
+              test.assertTypeAnd(node.local, 'undefined');
+              test.assertType(node.remote, 'undefined');
+            });
+          });
+        }
+      }
     ]
   });
 

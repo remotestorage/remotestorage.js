@@ -40,7 +40,7 @@
       var xhr = new XMLHttpRequest();
       var url = urls.shift();
       if (!url) { return callback(); }
-      RemoteStorage.log('try url', url);
+      RemoteStorage.log('[Discover] Trying URL', url);
       xhr.open('GET', url, true);
       xhr.onabort = xhr.onerror = function() {
         console.error("webfinger error", arguments, '(', url, ')');
@@ -53,13 +53,13 @@
         try {
           profile = JSON.parse(xhr.responseText);
         } catch(e) {
-          RemoteStorage.log("Failed to parse profile ", xhr.responseText, e);
+          RemoteStorage.log("[Discover] Failed to parse profile ", xhr.responseText, e);
           tryOne();
           return;
         }
 
         if (!profile.links) {
-          RemoteStorage.log("profile has no links section ", JSON.stringify(profile));
+          RemoteStorage.log("[Discover] Profile has no links section ", JSON.stringify(profile));
           tryOne();
           return;
         }
@@ -72,7 +72,7 @@
             link = l;
           }
         });
-        RemoteStorage.log('got profile', profile, 'and link', link);
+        RemoteStorage.log('[Discover] Got profile', profile, 'and link', link);
         if (link) {
           var authURL = link.properties['http://tools.ietf.org/html/rfc6749#section-4.2']
                   || link.properties['auth-endpoint'],
