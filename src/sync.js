@@ -22,6 +22,38 @@
     return JSON.stringify(obj1) === JSON.stringify(obj2);
   }
 
+  function equalObj(x, y) {
+    var p;
+    for (p in y) {
+      if (typeof(x[p]) === 'undefined') {return false;}
+    }
+    for (p in y) {
+      if (y[p]) {
+        switch (typeof(y[p])) {
+          case 'object':
+            if (!y[p].equals(x[p])) { return false; }
+            break;
+          case 'function':
+            if (typeof(x[p])==='undefined' ||
+                (p !== 'equals' && y[p].toString() !== x[p].toString())) {
+              return false;
+            }
+            break;
+          default:
+            if (y[p] !== x[p]) { return false; }
+        }
+      } else {
+        if (x[p]) { return false; }
+      }
+    }
+    for (p in x) {
+      if(typeof(y[p]) === 'undefined') {
+        return false;
+      }
+    }
+    return true;
+  }
+
   function isFolder(path) {
     return path.substr(-1) === '/';
   }
@@ -207,6 +239,7 @@
       if (node.remote && node.remote.itemsMap === undefined && node.remote.body === undefined) {
         return true;
       }
+      return false;
     },
 
     needsPush: function(node) {
@@ -355,6 +388,11 @@
               node.local.itemsMap[itemName] = false;
             }
           }
+
+          // TODO test
+          if (equalObj(node.local.itemsMap, node.common.itemsMap)) {
+            delete node.local;
+          }
         }
       }
       return node;
@@ -497,6 +535,19 @@
               changedNodes[nodePath] = undefined;
             } else {
               changedNodes[nodePath] = this.autoMerge(node);
+
+              if (typeof changedNodes[nodePath] === 'undefined') {
+                var parentPath = this.getParentPath(nodePath);
+                var parentNode = changedNodes[parentPath];
+                var itemName = nodePath.substring(path.length);
+                if (parentNode && parentNode.local) {
+                  delete parentNode.local.itemsMap[itemName];
+
+                  if (equalObj(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+                    delete parentNode.local;
+                  }
+                }
+              }
             }
           }
         }
@@ -554,10 +605,22 @@
     },
 
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
-      var promise = this.local.getNodes([path]).then(function(nodes) {
+      var paths;
+      var parentPath;
+      var pathsFromRoot = this.local._getInternals().pathsFromRoot(path);
+
+      if (!isFolder(path)) {
+        parentPath = pathsFromRoot[1];
+        paths = [path, parentPath];
+      } else {
+        paths = [path];
+      }
+
+      var promise = this.local.getNodes(paths).then(function(nodes) {
         var itemName;
         var missingChildren = {};
         var node = nodes[path];
+        var parentNode;
 
         collectMissingChildren = function(folder) {
           if (folder && folder.itemsMap) {
@@ -594,6 +657,15 @@
         } else {
           node.remote.body = bodyOrItemsMap;
           node.remote.contentType = contentType;
+
+          parentNode = nodes[parentPath];
+          if (parentNode && parentNode.local && parentNode.local.itemsMap) {
+            itemName = path.substring(parentPath.length);
+            parentNode.local.itemsMap[itemName] = true;
+            if (equalObj(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+              delete parentNode.local;
+            }
+          }
         }
 
         nodes[path] = this.autoMerge(node);

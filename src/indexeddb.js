@@ -150,10 +150,14 @@
       this.db.close();
 
       RS.IndexedDB.clean(this.db.name, function() {
-        RS.IndexedDB.open(dbName, function(other) {
-          // hacky!
-          self.db = other.db;
-          callback(self);
+        RS.IndexedDB.open(dbName, function(err, other) {
+          if (err) {
+            RemoteStorage.log('[IndexedDB] Error while resetting local storage', err);
+          } else {
+            // hacky!
+            self.db = other;
+          }
+          if (typeof callback === 'function') { callback(self); }
         });
       });
     },
@@ -252,11 +256,12 @@
 
     if ('indexedDB' in global) {
       try {
-        var check = indexedDB.open("MyTestDatabase");
+        var check = indexedDB.open("rs-check");
         check.onerror = function(event) {
           promise.reject();
         };
         check.onsuccess = function(event) {
+          indexedDB.deleteDatabase("rs-check");
           promise.fulfill();
         };
       } catch(e) {

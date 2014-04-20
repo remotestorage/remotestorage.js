@@ -9,6 +9,7 @@
 * Build everything: `make all`
 * Manually test all browsers you have access to, including mobile devices and private browsing mode
 * Manually test the special build files (.amd.js, .nocache.js)
+* Copy build files into `/release/head/`
 * Create release dir in `/release` and move build files there
 * Commit changes to Git
 * Tag version in Git: `git tag x.x.x` and push to GitHub master: `git push origin master --tags`
@@ -19,11 +20,12 @@
 * Publish release on remotestorage.io
     * While in the gh-pages branch:
         * Copy the release from the remotestorage.js repo into `release/` dir
-        * `rm -rf doc/`
+        * `rm -rf doc/*`
         * Copy `/doc/code` from remoteStorage.js repo to `doc/code`
         * Commit changes to Git
     * While back in master branch:
         * Update version number, links, file size in `views/integrate/_hero.jade`
+        * Commit changes to Git
         * Run `./deploy`
 * Update shim repo with new release (components-remotestorage)
     * Add release files

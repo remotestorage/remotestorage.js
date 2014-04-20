@@ -51,7 +51,6 @@ Group: Public API  {
    File: RemoteStorage  (remotestorage.js)
    File: RemoteStorage.Access  (access.js)
    File: RemoteStorage.BaseClient  (baseclient.js)
-   File: RemoteStorage.BaseClient  (baseclient/types.js)
    File: RemoteStorage.Caching  (caching.js)
    File: RemoteStorage.defineModule  (modules.js)
    File: RemoteStorage.I18n  (i18n.js)
@@ -61,6 +60,7 @@ Group: Internals  {
 
    Group: Classes  {
 
+      File: BaseClient.Types  (no auto-title, baseclient/types.js)
       File: Discover  (discover.js)
       File: Dropbox  (dropbox.js)
       File: GoogleDrive  (googledrive.js)

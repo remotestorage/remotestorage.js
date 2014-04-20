@@ -61,35 +61,29 @@
       this.moduleName = 'root';
     }
 
+    // Defined in baseclient/types.js
+    /**
+     * Property: schemas
+     *
+     * Contains schema objects of all types known to the BaseClient instance
+     **/
+
     /**
      * Event: change
-     * emitted when a node changes
      *
-     * Arguments: event
+     * Emitted when a node changes
+     *
+     * Arguments:
+     *   event - Event object containing information about the changed node
+     *
      * (start code)
      * {
-     *    path: path,
-     *    origin: 'window', 'local', or 'remote'
-     *    oldValue: oldBody,
-     *    newValue: newBody
+     *    path: path, // Path of the changed node
+     *    origin: 'window', 'local', or 'remote' // emitted by user action within the app, local data store, or remote sync
+     *    oldValue: oldBody, // Old body of the changed node (undefined if creation)
+     *    newValue: newBody  // New body of the changed node (undefined if deletion)
      *  }
      * (end code)
-     *
-     * * the path ofcourse is the path of the node that changed
-     *
-     *
-     * * the origin tells you if it's a change pulled by sync(remote)
-     * or some user action within the app(window) or a result of connecting
-     * with the local data store(local).
-     *
-     *
-     * * the oldValue defaults to undefined if you are dealing with some
-     * new file
-     *
-     *
-     * * the newValue defaults to undefined if you are dealing with a deletion
-     *
-     * * when newValue and oldValue are set you are dealing with an update
      **/
 
     RS.eventHandling(this, 'change');
@@ -410,7 +404,9 @@
       if (typeof(object) !== 'object') {
         return promising().reject('Argument \'object\' of baseClient.storeObject must be an object');
       }
+
       this._attachType(object, typeAlias);
+
       try {
         var validationResult = this.validate(object);
         if (! validationResult.valid) {
@@ -421,6 +417,7 @@
           return promising().reject(exc);
         }
       }
+
       return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
         if (status === 200 || status === 201) {
           return revision;
@@ -560,5 +557,13 @@
   maxAgeInvalid = function(maxAge) {
     return typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number';
   };
+
+  // Defined in baseclient/types.js
+  /**
+   * Method: declareType
+   *
+   * Declare a remoteStorage object type using a JSON schema. See
+   * <RemoteStorage.BaseClient.Types>
+   **/
 
 })(typeof(window) !== 'undefined' ? window : global);
