@@ -289,11 +289,11 @@
 
     this._init();
 
-    this.on('ready', function() {
+    this.fireInitial = function() {
       if (this.local) {
         setTimeout(this.local.fireInitial.bind(this.local), 0);
       }
-    }.bind(this));
+    };
   };
 
   RemoteStorage.DiscoveryError = function(message) {
@@ -2746,6 +2746,13 @@ Math.uuid = function (len, radix) {
       this.moduleName = 'root';
     }
 
+    // Defined in baseclient/types.js
+    /**
+     * Property: schemas
+     *
+     * Contains schema objects of all types known to the BaseClient instance
+     **/
+
     /**
      * Event: change
      *
@@ -2798,7 +2805,7 @@ Math.uuid = function (len, radix) {
      *
      * Parameters:
      *   path   - The path to query. It MUST end with a forward slash.
-     *   maxAge - (optional) Maximum age of cached listing in
+     *   maxAge - Either false or the maximum age of cached listing in
      *            milliseconds
      *
      * Returns:
@@ -2828,7 +2835,7 @@ Math.uuid = function (len, radix) {
         throw "Not a folder: " + path;
       }
       if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getListing must be undefined or a number');
+        return promising().reject('Argument \'maxAge\' of baseClient.getListing must be false or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
@@ -2844,7 +2851,7 @@ Math.uuid = function (len, radix) {
      *
      * Parameters:
      *   path   - path to the folder
-     *   maxAge - (optional) Maximum age of cached objects in
+     *   maxAge - Either false or the maximum age of cached objects in
      *            milliseconds
      *
      * Returns:
@@ -2866,7 +2873,7 @@ Math.uuid = function (len, radix) {
         throw "Not a folder: " + path;
       }
       if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getAll must be undefined or a number');
+        return promising().reject('Argument \'maxAge\' of baseClient.getAll must be false or a number');
       }
 
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
@@ -2905,6 +2912,8 @@ Math.uuid = function (len, radix) {
      *
      * Parameters:
      *   path     - see getObject
+     *   maxAge - Either false or the maximum age of cached listing in
+     *            milliseconds
      *
      * Returns:
      *   A promise for an object:
@@ -2927,7 +2936,7 @@ Math.uuid = function (len, radix) {
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
       }
       if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getFile must be undefined or a number');
+        return promising().reject('Argument \'maxAge\' of baseClient.getFile must be false or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         return {
@@ -3003,6 +3012,8 @@ Math.uuid = function (len, radix) {
      *
      * Parameters:
      *   path     - relative path from the module root (without leading slash)
+     *   maxAge - Either false or the maximum age of cached listing in
+     *            milliseconds
      *
      * Returns:
      *   A promise for the object.
@@ -3020,7 +3031,7 @@ Math.uuid = function (len, radix) {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
       }
       if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getObject must be undefined or a number');
+        return promising().reject('Argument \'maxAge\' of baseClient.getObject must be false or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         if (typeof(body) === 'object') {
@@ -3082,7 +3093,9 @@ Math.uuid = function (len, radix) {
       if (typeof(object) !== 'object') {
         return promising().reject('Argument \'object\' of baseClient.storeObject must be an object');
       }
+
       this._attachType(object, typeAlias);
+
       try {
         var validationResult = this.validate(object);
         if (! validationResult.valid) {
@@ -3093,6 +3106,7 @@ Math.uuid = function (len, radix) {
           return promising().reject(exc);
         }
       }
+
       return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
         if (status === 200 || status === 201) {
           return revision;
@@ -3230,8 +3244,16 @@ Math.uuid = function (len, radix) {
   */
 
   maxAgeInvalid = function(maxAge) {
-    return typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number';
+    return maxAge !== false && typeof(maxAge) !== 'number';
   };
+
+  // Defined in baseclient/types.js
+  /**
+   * Method: declareType
+   *
+   * Declare a remoteStorage object type using a JSON schema. See
+   * <RemoteStorage.BaseClient.Types>
+   **/
 
 })(typeof(window) !== 'undefined' ? window : global);
 
@@ -3239,6 +3261,13 @@ Math.uuid = function (len, radix) {
 /** FILE: src/baseclient/types.js **/
 (function(global) {
 
+  /**
+   * Class: RemoteStorage.BaseClient.Types
+   *
+   * - Manages and validates types of remoteStorage objects, using JSON-LD and
+   *   JSON Schema
+   * - Adds schema declaration/validation methods to BaseClient instances.
+   **/
   RemoteStorage.BaseClient.Types = {
     // <alias> -> <uri>
     uris: {},
@@ -3300,18 +3329,65 @@ Math.uuid = function (len, radix) {
   SchemaNotFound.prototype = Error.prototype;
 
   RemoteStorage.BaseClient.Types.SchemaNotFound = SchemaNotFound;
+
   /**
    * Class: RemoteStorage.BaseClient
    **/
   RemoteStorage.BaseClient.prototype.extend({
     /**
-     * Method: validate(object)
+     * Method: declareType
      *
-     * validates an Object against the associated schema
-     * the context has to have a @context property
+     * Declare a remoteStorage object type using a JSON schema.
+     *
+     * Parameters:
+     *   alias  - A type alias/shortname
+     *   uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
+     *   schema - A JSON Schema object describing the object type
+     *
+     * Example:
+     *
+     * (start code)
+     * client.declareType('todo-item', {
+     *   "type": "object",
+     *   "properties": {
+     *     "id": {
+     *       "type": "string"
+     *     },
+     *     "title": {
+     *       "type": "string"
+     *     },
+     *     "finished": {
+     *       "type": "boolean"
+     *       "default": false
+     *     },
+     *     "createdAt": {
+     *       "type": "date"
+     *     }
+     *   },
+     *   "required": ["id", "title"]
+     * })
+     * (end code)
+     *
+     * Visit <http://json-schema.org> for details on how to use JSON Schema.
+     **/
+    declareType: function(alias, uri, schema) {
+      if (! schema) {
+        schema = uri;
+        uri = this._defaultTypeURI(alias);
+      }
+      RemoteStorage.BaseClient.Types.declare(this.moduleName, alias, uri, schema);
+    },
+
+    /**
+     * Method: validate
+     *
+     * Validate an object against the associated schema.
+     *
+     * Parameters:
+     *  object - Object to validate. Must have a @context property.
      *
      * Returns:
-     *   A validate object giving you information about errors
+     *   An object containing information about validation errors
      **/
     validate: function(object) {
       var schema = RemoteStorage.BaseClient.Types.getSchema(object['@context']);
@@ -3320,17 +3396,6 @@ Math.uuid = function (len, radix) {
       } else {
         throw new SchemaNotFound(object['@context']);
       }
-    },
-
-    // client.declareType(alias, schema);
-    //  /* OR */
-    // client.declareType(alias, uri, schema);
-    declareType: function(alias, uri, schema) {
-      if (! schema) {
-        schema = uri;
-        uri = this._defaultTypeURI(alias);
-      }
-      RemoteStorage.BaseClient.Types.declare(this.moduleName, alias, uri, schema);
     },
 
     _defaultTypeURI: function(alias) {
@@ -3342,6 +3407,7 @@ Math.uuid = function (len, radix) {
     }
   });
 
+  // Documented in baseclient.js
   Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
     configurable: true,
     get: function() {
@@ -4634,11 +4700,37 @@ Math.uuid = function (len, radix) {
     return path.substr(-1) !== '/';
   }
 
+  function fixArrayBuffers(srcObj, dstObj) {
+    var field, srcArr, dstArr;
+    console.log('fixArrayBuffers', srcObj, dstObj);
+    if (typeof(srcObj) != 'object' || typeof(dstObj) != 'object') {
+      return;
+    }
+    for (field in srcObj) {
+      if (typeof(srcObj[field]) === 'object') {
+        console.log('considering', field);
+        if (srcObj[field].toString() === '[object ArrayBuffer]' && dstObj[field].toString() === '[object Object]') {
+          console.log('ArrayBuffer');
+          dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
+          srcArr = new Int8Array(srcObj[field]);
+          dstArr = new Int8Array(dstObj[field]);
+          dstArr.set(srcArr);
+        } else {
+          console.log('recursion');
+          fixArrayBuffers(srcObj[field], dstObj[field]);
+        }
+      }
+    }
+  }
+
   function deepClone(obj) {
+    var clone;
     if (obj === undefined) {
       return undefined;
     } else {
-      return JSON.parse(JSON.stringify(obj));
+      clone = JSON.parse(JSON.stringify(obj));
+      fixArrayBuffers(obj, clone);
+      return clone;
     }
   }
 
@@ -4732,9 +4824,7 @@ Math.uuid = function (len, radix) {
         var node = getLatest(objs[path]);
         if ((typeof(maxAge) === 'number') && isOutdated(node, maxAge)) {
           remoteStorage.sync.queueGetRequest(path, promise);
-        }
-
-        if (node) {
+        } else if (node) {
           promise.fulfill(200, node.body || node.itemsMap, node.contentType);
         } else {
           promise.fulfill(404);
@@ -5065,10 +5155,58 @@ Math.uuid = function (len, radix) {
 
     this.getsRunning = 0;
     this.putsRunning = 0;
+    //both these caches store path -> the uncommitted node, or false for a deletion:
+    this.commitQueued = {};
+    this.commitRunning = {};
   };
 
   RS.IndexedDB.prototype = {
     getNodes: function(paths) {
+      var i ,misses = [], fromCache = {};
+      for (i=0; i<paths.length; i++) {
+        if (this.commitQueued[paths[i]] !== undefined) {
+          fromCache[paths[i]] = this._getInternals().deepClone(this.commitQueued[paths[i]] || undefined);
+        } else if(this.commitRunning[paths[i]] !== undefined) {
+           fromCache[paths[i]] = this._getInternals().deepClone(this.commitRunning[paths[i]] || undefined);
+        } else {
+          misses.push(paths[i]);
+        }
+      }
+      if (misses.length > 0) {
+        return this.getNodesFromDb(misses).then(function(nodes) {
+          for (i in fromCache) {
+            nodes[i] = fromCache[i];
+          }
+          return nodes;
+        });
+      } else {
+        promise = promising();
+        promise.fulfill(fromCache);
+        return promise;
+      }
+    },
+    setNodes: function(nodes) {
+      var promise = promising();
+      for (var i in nodes) {
+        this.commitQueued[i] = nodes[i] || false;
+      }
+      this.maybeFlush();
+      promise.fulfill();
+      return promise;
+    },
+    maybeFlush: function() {
+      if (this.putsRunning === 0) {
+        this.flushcommitQueued();
+      }
+    },
+    flushcommitQueued: function() {
+      if (Object.keys(this.commitQueued).length > 0) {
+        this.commitRunning = this.commitQueued;
+        this.commitQueued = {};
+        this.setNodesToDb(this.commitRunning).then(this.flushcommitQueued.bind(this));
+      }
+    },
+    getNodesFromDb: function(paths) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var nodes = transaction.objectStore('nodes');
@@ -5099,7 +5237,7 @@ Math.uuid = function (len, radix) {
       return promise;
     },
 
-    setNodes: function(nodes) {
+    setNodesToDb: function(nodes) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodesStore = transaction.objectStore('nodes');

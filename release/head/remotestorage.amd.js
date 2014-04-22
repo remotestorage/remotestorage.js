@@ -290,11 +290,11 @@ define([], function() {
 
     this._init();
 
-    this.on('ready', function() {
+    this.fireInitial = function() {
       if (this.local) {
         setTimeout(this.local.fireInitial.bind(this.local), 0);
       }
-    }.bind(this));
+    };
   };
 
   RemoteStorage.DiscoveryError = function(message) {
@@ -1937,16 +1937,20 @@ RemoteStorage.Assets = {
 
   function errorsHandler(widget) {
     return function(error) {
-      if (error instanceof RemoteStorage.DiscoveryError) {
-        console.error('Discovery failed', error, '"' + error.message + '"');
-        widget.view.setState('initial', [error.message]);
-      } else if (error instanceof RemoteStorage.SyncError) {
-        widget.view.setState('offline', []);
-      } else if (error instanceof RemoteStorage.Unauthorized) {
-        widget.view.setState('unauthorized');
+      if (widget.view) {
+        if (error instanceof RemoteStorage.DiscoveryError) {
+          console.error('Discovery failed', error, '"' + error.message + '"');
+          widget.view.setState('initial', [error.message]);
+        } else if (error instanceof RemoteStorage.SyncError) {
+          widget.view.setState('offline', []);
+        } else if (error instanceof RemoteStorage.Unauthorized) {
+          widget.view.setState('unauthorized');
+        } else {
+          RemoteStorage.log('[Widget] Unknown error');
+          widget.view.setState('error', [error]);
+        }
       } else {
-        RemoteStorage.log('[Widget] Unknown error');
-        widget.view.setState('error', [error]);
+        RemoteStorage.log('[widget] Undisplayed error:', error);
       }
     };
   }
@@ -3448,6 +3452,13 @@ Math.uuid = function (len, radix) {
       this.moduleName = 'root';
     }
 
+    // Defined in baseclient/types.js
+    /**
+     * Property: schemas
+     *
+     * Contains schema objects of all types known to the BaseClient instance
+     **/
+
     /**
      * Event: change
      *
@@ -3500,7 +3511,7 @@ Math.uuid = function (len, radix) {
      *
      * Parameters:
      *   path   - The path to query. It MUST end with a forward slash.
-     *   maxAge - (optional) Maximum age of cached listing in
+     *   maxAge - Either false or the maximum age of cached listing in
      *            milliseconds
      *
      * Returns:
@@ -3530,7 +3541,7 @@ Math.uuid = function (len, radix) {
         throw "Not a folder: " + path;
       }
       if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getListing must be undefined or a number');
+        return promising().reject('Argument \'maxAge\' of baseClient.getListing must be false or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
@@ -3546,7 +3557,7 @@ Math.uuid = function (len, radix) {
      *
      * Parameters:
      *   path   - path to the folder
-     *   maxAge - (optional) Maximum age of cached objects in
+     *   maxAge - Either false or the maximum age of cached objects in
      *            milliseconds
      *
      * Returns:
@@ -3568,7 +3579,7 @@ Math.uuid = function (len, radix) {
         throw "Not a folder: " + path;
       }
       if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getAll must be undefined or a number');
+        return promising().reject('Argument \'maxAge\' of baseClient.getAll must be false or a number');
       }
 
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
@@ -3607,6 +3618,8 @@ Math.uuid = function (len, radix) {
      *
      * Parameters:
      *   path     - see getObject
+     *   maxAge - Either false or the maximum age of cached listing in
+     *            milliseconds
      *
      * Returns:
      *   A promise for an object:
@@ -3629,7 +3642,7 @@ Math.uuid = function (len, radix) {
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
       }
       if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getFile must be undefined or a number');
+        return promising().reject('Argument \'maxAge\' of baseClient.getFile must be false or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         return {
@@ -3705,6 +3718,8 @@ Math.uuid = function (len, radix) {
      *
      * Parameters:
      *   path     - relative path from the module root (without leading slash)
+     *   maxAge - Either false or the maximum age of cached listing in
+     *            milliseconds
      *
      * Returns:
      *   A promise for the object.
@@ -3722,7 +3737,7 @@ Math.uuid = function (len, radix) {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
       }
       if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getObject must be undefined or a number');
+        return promising().reject('Argument \'maxAge\' of baseClient.getObject must be false or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         if (typeof(body) === 'object') {
@@ -3784,7 +3799,9 @@ Math.uuid = function (len, radix) {
       if (typeof(object) !== 'object') {
         return promising().reject('Argument \'object\' of baseClient.storeObject must be an object');
       }
+
       this._attachType(object, typeAlias);
+
       try {
         var validationResult = this.validate(object);
         if (! validationResult.valid) {
@@ -3795,6 +3812,7 @@ Math.uuid = function (len, radix) {
           return promising().reject(exc);
         }
       }
+
       return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
         if (status === 200 || status === 201) {
           return revision;
@@ -3932,8 +3950,16 @@ Math.uuid = function (len, radix) {
   */
 
   maxAgeInvalid = function(maxAge) {
-    return typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number';
+    return maxAge !== false && typeof(maxAge) !== 'number';
   };
+
+  // Defined in baseclient/types.js
+  /**
+   * Method: declareType
+   *
+   * Declare a remoteStorage object type using a JSON schema. See
+   * <RemoteStorage.BaseClient.Types>
+   **/
 
 })(typeof(window) !== 'undefined' ? window : global);
 
@@ -3941,6 +3967,13 @@ Math.uuid = function (len, radix) {
 /** FILE: src/baseclient/types.js **/
 (function(global) {
 
+  /**
+   * Class: RemoteStorage.BaseClient.Types
+   *
+   * - Manages and validates types of remoteStorage objects, using JSON-LD and
+   *   JSON Schema
+   * - Adds schema declaration/validation methods to BaseClient instances.
+   **/
   RemoteStorage.BaseClient.Types = {
     // <alias> -> <uri>
     uris: {},
@@ -4002,18 +4035,65 @@ Math.uuid = function (len, radix) {
   SchemaNotFound.prototype = Error.prototype;
 
   RemoteStorage.BaseClient.Types.SchemaNotFound = SchemaNotFound;
+
   /**
    * Class: RemoteStorage.BaseClient
    **/
   RemoteStorage.BaseClient.prototype.extend({
     /**
-     * Method: validate(object)
+     * Method: declareType
      *
-     * validates an Object against the associated schema
-     * the context has to have a @context property
+     * Declare a remoteStorage object type using a JSON schema.
+     *
+     * Parameters:
+     *   alias  - A type alias/shortname
+     *   uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
+     *   schema - A JSON Schema object describing the object type
+     *
+     * Example:
+     *
+     * (start code)
+     * client.declareType('todo-item', {
+     *   "type": "object",
+     *   "properties": {
+     *     "id": {
+     *       "type": "string"
+     *     },
+     *     "title": {
+     *       "type": "string"
+     *     },
+     *     "finished": {
+     *       "type": "boolean"
+     *       "default": false
+     *     },
+     *     "createdAt": {
+     *       "type": "date"
+     *     }
+     *   },
+     *   "required": ["id", "title"]
+     * })
+     * (end code)
+     *
+     * Visit <http://json-schema.org> for details on how to use JSON Schema.
+     **/
+    declareType: function(alias, uri, schema) {
+      if (! schema) {
+        schema = uri;
+        uri = this._defaultTypeURI(alias);
+      }
+      RemoteStorage.BaseClient.Types.declare(this.moduleName, alias, uri, schema);
+    },
+
+    /**
+     * Method: validate
+     *
+     * Validate an object against the associated schema.
+     *
+     * Parameters:
+     *  object - Object to validate. Must have a @context property.
      *
      * Returns:
-     *   A validate object giving you information about errors
+     *   An object containing information about validation errors
      **/
     validate: function(object) {
       var schema = RemoteStorage.BaseClient.Types.getSchema(object['@context']);
@@ -4022,17 +4102,6 @@ Math.uuid = function (len, radix) {
       } else {
         throw new SchemaNotFound(object['@context']);
       }
-    },
-
-    // client.declareType(alias, schema);
-    //  /* OR */
-    // client.declareType(alias, uri, schema);
-    declareType: function(alias, uri, schema) {
-      if (! schema) {
-        schema = uri;
-        uri = this._defaultTypeURI(alias);
-      }
-      RemoteStorage.BaseClient.Types.declare(this.moduleName, alias, uri, schema);
     },
 
     _defaultTypeURI: function(alias) {
@@ -4044,6 +4113,7 @@ Math.uuid = function (len, radix) {
     }
   });
 
+  // Documented in baseclient.js
   Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
     configurable: true,
     get: function() {
@@ -5336,11 +5406,37 @@ Math.uuid = function (len, radix) {
     return path.substr(-1) !== '/';
   }
 
+  function fixArrayBuffers(srcObj, dstObj) {
+    var field, srcArr, dstArr;
+    console.log('fixArrayBuffers', srcObj, dstObj);
+    if (typeof(srcObj) != 'object' || typeof(dstObj) != 'object') {
+      return;
+    }
+    for (field in srcObj) {
+      if (typeof(srcObj[field]) === 'object') {
+        console.log('considering', field);
+        if (srcObj[field].toString() === '[object ArrayBuffer]' && dstObj[field].toString() === '[object Object]') {
+          console.log('ArrayBuffer');
+          dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
+          srcArr = new Int8Array(srcObj[field]);
+          dstArr = new Int8Array(dstObj[field]);
+          dstArr.set(srcArr);
+        } else {
+          console.log('recursion');
+          fixArrayBuffers(srcObj[field], dstObj[field]);
+        }
+      }
+    }
+  }
+
   function deepClone(obj) {
+    var clone;
     if (obj === undefined) {
       return undefined;
     } else {
-      return JSON.parse(JSON.stringify(obj));
+      clone = JSON.parse(JSON.stringify(obj));
+      fixArrayBuffers(obj, clone);
+      return clone;
     }
   }
 
@@ -5434,9 +5530,7 @@ Math.uuid = function (len, radix) {
         var node = getLatest(objs[path]);
         if ((typeof(maxAge) === 'number') && isOutdated(node, maxAge)) {
           remoteStorage.sync.queueGetRequest(path, promise);
-        }
-
-        if (node) {
+        } else if (node) {
           promise.fulfill(200, node.body || node.itemsMap, node.contentType);
         } else {
           promise.fulfill(404);
@@ -5767,10 +5861,58 @@ Math.uuid = function (len, radix) {
 
     this.getsRunning = 0;
     this.putsRunning = 0;
+    //both these caches store path -> the uncommitted node, or false for a deletion:
+    this.commitQueued = {};
+    this.commitRunning = {};
   };
 
   RS.IndexedDB.prototype = {
     getNodes: function(paths) {
+      var i ,misses = [], fromCache = {};
+      for (i=0; i<paths.length; i++) {
+        if (this.commitQueued[paths[i]] !== undefined) {
+          fromCache[paths[i]] = this._getInternals().deepClone(this.commitQueued[paths[i]] || undefined);
+        } else if(this.commitRunning[paths[i]] !== undefined) {
+           fromCache[paths[i]] = this._getInternals().deepClone(this.commitRunning[paths[i]] || undefined);
+        } else {
+          misses.push(paths[i]);
+        }
+      }
+      if (misses.length > 0) {
+        return this.getNodesFromDb(misses).then(function(nodes) {
+          for (i in fromCache) {
+            nodes[i] = fromCache[i];
+          }
+          return nodes;
+        });
+      } else {
+        promise = promising();
+        promise.fulfill(fromCache);
+        return promise;
+      }
+    },
+    setNodes: function(nodes) {
+      var promise = promising();
+      for (var i in nodes) {
+        this.commitQueued[i] = nodes[i] || false;
+      }
+      this.maybeFlush();
+      promise.fulfill();
+      return promise;
+    },
+    maybeFlush: function() {
+      if (this.putsRunning === 0) {
+        this.flushcommitQueued();
+      }
+    },
+    flushcommitQueued: function() {
+      if (Object.keys(this.commitQueued).length > 0) {
+        this.commitRunning = this.commitQueued;
+        this.commitQueued = {};
+        this.setNodesToDb(this.commitRunning).then(this.flushcommitQueued.bind(this));
+      }
+    },
+    getNodesFromDb: function(paths) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var nodes = transaction.objectStore('nodes');
@@ -5801,7 +5943,7 @@ Math.uuid = function (len, radix) {
       return promise;
     },
 
-    setNodes: function(nodes) {
+    setNodesToDb: function(nodes) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodesStore = transaction.objectStore('nodes');
@@ -6613,7 +6755,7 @@ Math.uuid = function (len, radix) {
 
   RS.GoogleDrive = function(remoteStorage, clientId) {
 
-    RS.eventHandling(this, 'connected');
+    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     this.rs = remoteStorage;
     this.clientId = clientId;
@@ -6621,11 +6763,13 @@ Math.uuid = function (len, radix) {
     this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
 
     setTimeout(function() {
-      this.configure(undefined, undefined, undefined, localStorage['remotestorage:googledrive:token']);
+//      this.configure(undefined, undefined, undefined, localStorage['remotestorage:googledrive:token']);
     }.bind(this), 0);
   };
 
   RS.GoogleDrive.prototype = {
+    connected: false,
+    online: true,
 
     configure: function(_x, _y, _z, token) { // parameter list compatible with WireClient
       if (token) {
@@ -6645,6 +6789,12 @@ Math.uuid = function (len, radix) {
     connect: function() {
       this.rs.setBackend('googledrive');
       RS.Authorize(AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
+    },
+
+    stopWaitingForToken: function() {
+      if (!this.connected) {
+        this._emit('not-connected');
+      }
     },
 
     get: function(path, options) {
@@ -6765,13 +6915,24 @@ Math.uuid = function (len, radix) {
         } else {
           this._getMeta(id, function(metaError, meta) {
             var etagWithoutQuotes;
+            RemoteStorage.log('path, options, metaError, meta', path, options, metaError, meta);
             if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
               etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
             }
             if (metaError) {
               promise.reject(metaError);
-            } else if (meta.downloadUrl) {
+            } else {
               var options = {};
+              if (!meta.downloadUrl) {
+                if(meta.exportLinks && meta.exportLinks['text/html']) {
+                  meta.mimeType += ';export=text/html';
+                  meta.downloadUrl = meta.exportLinks['text/html'];
+                } else { 
+                  // empty file
+                  promise.fulfill(200, '', meta.mimeType, etagWithoutQuotes);
+                  return;
+                }
+              }
               if (meta.mimeType.match(/charset=binary/)) {
                 options.responseType = 'blob';
               }
@@ -6788,9 +6949,6 @@ Math.uuid = function (len, radix) {
                   promise.fulfill(200, body, meta.mimeType, etagWithoutQuotes);
                 }
               });
-            } else {
-              // empty file
-              promise.fulfill(200, '', meta.mimeType, etagWithoutQuotes);
             }
           });
         }
@@ -6911,7 +7069,13 @@ Math.uuid = function (len, radix) {
         this._getFolder(parentPath(path)).then(function() {
           var id = this._fileIdCache.get(path);
           if (!id) {
-            callback('no file or folder found at the path: ' + path, null);
+            if (path.substr(-1) === '/') {
+              this._createFolder(path, function() {
+                this._getFileId(path, callback);
+              }.bind(this));
+            } else {
+              callback(null, null);
+            }
             return;
           }
           callback(null, id);
@@ -7126,7 +7290,7 @@ Math.uuid = function (len, radix) {
       }
     };
 
-    RS.eventHandling(this, 'change', 'connected');
+    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
     rs.on('error', onErrorCb);
 
     this.clientId = rs.apiKeys.dropbox.api_key;
@@ -7151,6 +7315,8 @@ Math.uuid = function (len, radix) {
   };
 
   RS.Dropbox.prototype = {
+    online: true,
+
     /**
      * Method : connect()
      *   redirects to AUTH_URL(https://www.dropbox.com/1/oauth2/authorize)
@@ -7172,7 +7338,6 @@ Math.uuid = function (len, radix) {
      *   set's the connected flag
      **/
     configure: function(userAddress, href, storageApi, token) {
-      RemoteStorage.log('dropbox configure',arguments);
       if (typeof token !== 'undefined') { this.token = token; }
       if (typeof userAddress !== 'undefined') { this.userAddress = userAddress; }
 
@@ -7193,6 +7358,13 @@ Math.uuid = function (len, radix) {
                                                        userAddress: this.userAddress } );
       }
     },
+    
+    stopWaitingForToken: function() {
+      if (!this.connected) {
+        this._emit('not-connected');
+      }
+    },
+    
     /**
      * Method : _getFolder(path, options)
      **/
@@ -7222,9 +7394,9 @@ Math.uuid = function (len, radix) {
             listing = body.contents.reduce(function(m, item) {
               var itemName = item.path.split('/').slice(-1)[0] + ( item.is_dir ? '/' : '' );
               if (item.is_dir){
-                m[itemName] = revCache.get(path+itemName);
+                m[itemName] = { ETag: revCache.get(path+itemName) };
               } else {
-                m[itemName] = item.rev;
+                m[itemName] = { ETag: item.rev };
               }
               return m;
             }, {});
@@ -7242,7 +7414,6 @@ Math.uuid = function (len, radix) {
      *   calls share(path) afterwards to fill the _hrefCache
      **/
     get: function(path, options){
-      RemoteStorage.log('dropbox.get', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
       var url = 'https://api-content.dropbox.com/1/files/auto' + path;
@@ -7251,14 +7422,12 @@ Math.uuid = function (len, radix) {
       var savedRev = this._revCache.get(path);
       if (savedRev === null) {
         //file was deleted server side
-        RemoteStorage.log(path,' deleted 404');
         promise.fulfill(404);
         return promise;
       }
       if (options && options.ifNoneMatch &&
          savedRev && (savedRev === options.ifNoneMatch)) {
         // nothing changed.
-        RemoteStorage.log("nothing changed for",path,savedRev, options.ifNoneMatch);
         promise.fulfill(304);
         return promise;
       }
@@ -7298,7 +7467,7 @@ Math.uuid = function (len, radix) {
                   body = JSON.parse(body);
                   mime = 'application/json; charset=UTF-8';
                 } catch(e) {
-                  RS.log("Failed parsing Json, assume it is something else then", mime, path);
+                  //Failed parsing Json, assume it is something else then
                 }
               }
               promise.fulfill(status, body, mime, rev);
@@ -7318,7 +7487,6 @@ Math.uuid = function (len, radix) {
      *   also shares via share(path)
      **/
     put: function(path, body, contentType, options){
-      RemoteStorage.log('dropbox.put', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
 
@@ -7369,7 +7537,6 @@ Math.uuid = function (len, radix) {
      *   similar to get and set
      **/
     'delete': function(path, options){
-      RemoteStorage.log('dropbox.delete ', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
 
@@ -7411,16 +7578,12 @@ Math.uuid = function (len, radix) {
       var promise = promising();
       var self = this;
       if (path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] === 'undefined') {
-        RemoteStorage.log('shareing this one ', path);
         promise.then(function(){
           var args = Array.prototype.slice.call(arguments);
           var p = promising();
-          RemoteStorage.log('calling share now');
           self.share(path).then(function() {
-            RemoteStorage.log('shareing fullfilled promise',arguments);
             p.fulfill.apply(p,args);
           }, function(err) {
-            RemoteStorage.log("shareing failed" , err);
             p.fulfill.apply(p,args);
           });
           return p;
@@ -7450,7 +7613,6 @@ Math.uuid = function (len, radix) {
             var response = JSON.parse(resp.responseText);
             var url = response.url;
             itemRefs[path] = url;
-            RemoteStorage.log("SHAREING URL :::: ",url,' for ',path);
             if (hasLocalStorage) {
               localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
             }
@@ -7529,7 +7691,6 @@ Math.uuid = function (len, radix) {
               this.rs._emit('error', new RemoteStorage.Unauthorized());
               promise.fulfill.apply(promise, args);
             } else {
-              RemoteStorage.log("!!!!dropbox.fetchDelta returned "+response.status+response.responseText);
               promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
             }
             return promise;
@@ -7544,7 +7705,6 @@ Math.uuid = function (len, radix) {
           }
           // break if no entries found
           if (!delta.entries) {
-            RemoteStorage.log("!!!!!DropBox.fetchDeltas() NO ENTRIES FOUND!!", delta);
             return promise.reject('dropbox.fetchDeltas failed, no entries found');
           }
 
