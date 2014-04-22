@@ -22,21 +22,17 @@
 
   function fixArrayBuffers(srcObj, dstObj) {
     var field, srcArr, dstArr;
-    console.log('fixArrayBuffers', srcObj, dstObj);
     if (typeof(srcObj) != 'object' || typeof(dstObj) != 'object') {
       return;
     }
     for (field in srcObj) {
       if (typeof(srcObj[field]) === 'object') {
-        console.log('considering', field);
-        if (srcObj[field].toString() === '[object ArrayBuffer]' && dstObj[field].toString() === '[object Object]') {
-          console.log('ArrayBuffer');
+        if (typeof(srcObj[field]) === 'object' && srcObj[field].toString() === '[object ArrayBuffer]') {
           dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
           srcArr = new Int8Array(srcObj[field]);
           dstArr = new Int8Array(dstObj[field]);
           dstArr.set(srcArr);
         } else {
-          console.log('recursion');
           fixArrayBuffers(srcObj[field], dstObj[field]);
         }
       }
