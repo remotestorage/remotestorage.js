@@ -24,6 +24,7 @@
     url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
+    url += 'state=' + encodeURIComponent(redirectUri.replace(/^.*#/, ''));
     url += '&response_type=token';
     RemoteStorage.Authorize.setLocation(url);
   };
@@ -48,7 +49,7 @@
   };
 
   /**
-   * Get current document location
+   * Set current document location
    *
    * Override this method if access to document.location is forbidden
    */
@@ -82,6 +83,9 @@
         if (params.remotestorage) {
           remoteStorage.connect(params.remotestorage);
           authParamsUsed = true;
+        }
+        if (params.state) {
+          RemoteStorage.Authorize.setLocation('#'+params.state);
         }
       }
       if (!authParamsUsed) {
