@@ -399,7 +399,10 @@
     },
 
     autoMergeDocument: function(node) {
-      if (node.remote.body !== undefined) {
+      if ((node.common.body === undefined && node.remote.body === false) 
+          || (node.remote.body === node.common.body && node.remote.contentType = node.common.contentType)) {
+        delete node.remote;
+      } else if (node.remote.body !== undefined) {
         // keep/revert:
         RemoteStorage.log('[Sync] Emitting keep/revert');
 
