@@ -416,7 +416,6 @@
         delete node.remote;
         delete node.local;
       }
-      delete node.push;
       return node;
     },
 
