@@ -27,7 +27,7 @@
     }
     for (field in srcObj) {
       if (typeof(srcObj[field]) === 'object') {
-        if (typeof(srcObj[field]) === 'object' && srcObj[field].toString() === '[object ArrayBuffer]') {
+        if (typeof(srcObj[field]) === 'object' && srcObj[field] !== null && srcObj[field].toString() === '[object ArrayBuffer]') {
           dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
           srcArr = new Int8Array(srcObj[field]);
           dstArr = new Int8Array(dstObj[field]);
