@@ -136,7 +136,7 @@
      *
      * Example:
      *   (start code)
-     *   client.getListing('').then(function(listing) {
+     *   client.getListing('', false).then(function(listing) {
      *     listing.forEach(function(item) {
      *       console.log(item);
      *     });
@@ -174,7 +174,7 @@
      *
      * Example:
      *   (start code)
-     *   client.getAll('').then(function(objects) {
+     *   client.getAll('', false).then(function(objects) {
      *     for (var key in objects) {
      *       console.log('- ' + key + ': ', objects[key]);
      *     }
@@ -239,7 +239,7 @@
      * Example:
      *   (start code)
      *   // Display an image:
-     *   client.getFile('path/to/some/image').then(function(file) {
+     *   client.getFile('path/to/some/image', false).then(function(file) {
      *     var blob = new Blob([file.data], { type: file.mimeType });
      *     var targetElement = document.findElementById('my-image-element');
      *     targetElement.src = window.URL.createObjectURL(blob);
@@ -335,7 +335,7 @@
      *
      * Example:
      *   (start code)
-     *   client.getObject('/path/to/object').
+     *   client.getObject('/path/to/object', false).
      *     then(function(object) {
      *       // object is either an object or null
      *     });
