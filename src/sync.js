@@ -400,7 +400,7 @@
 
     autoMergeDocument: function(node) {
       if ((node.common.body === undefined && node.remote.body === false) 
-          || (node.remote.body === node.common.body && node.remote.contentType = node.common.contentType)) {
+          || (node.remote.body === node.common.body && node.remote.contentType === node.common.contentType)) {
         delete node.remote;
       } else if (node.remote.body !== undefined) {
         // keep/revert:
