@@ -607,8 +607,8 @@
       for (var path in this._pathHandlers[eventName]) {
         var pl = path.length;
         var self = this;
-        this._pathHandlers[eventName][path].forEach(function(handler) {
-          if (event.path.substr(0, pl) === path) {
+        if (event.path.substr(0, pl) === path) {
+          this._pathHandlers[eventName][path].forEach(function(handler) {
             var ev = {};
             for (var key in event) { ev[key] = event[key]; }
             ev.relativePath = event.path.replace(new RegExp('^' + path), '');
@@ -618,8 +618,8 @@
               console.error("'change' handler failed: ", e, e.stack);
               self._emit('error', e);
             }
-          }
-        });
+          });
+        }
       }
     }
   };
