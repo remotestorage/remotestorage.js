@@ -443,7 +443,7 @@
         // keep/revert:
         RemoteStorage.log('[Sync] Emitting keep/revert');
 
-        this.local._emit('change', {
+        this.local._emitChange({
           origin:         'conflict',
           path:           node.path,
           oldValue:       node.local.body,
@@ -475,7 +475,7 @@
             }
           } else {
             if (node.remote.body !== undefined) {
-              this.local._emit('change', {
+              this.local._emitChange({
                 origin:   'remote',
                 path:     node.path,
                 oldValue: (node.common.body === false ? undefined : node.common.body),
@@ -488,7 +488,7 @@
           }
         }
       } else {
-        this.local._emit('change', {
+        this.local._emitChange({
           origin:   'remote',
           path:     node.path,
           oldValue: (node.common.body === false ? undefined : node.common.body),
