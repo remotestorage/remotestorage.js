@@ -242,6 +242,9 @@
     },
 
     fireInitial: function() {
+      if (RemoteStorage.enableChangeEvents && !RemoteStorage.enableChangeEvents.local) {
+        return;
+      }
       this.forAllNodes(function(node) {
         var latest;
         if (isDocument(node.path)) {
