@@ -85,9 +85,15 @@
     }
   }
 
-  function isOutdated(node, maxAge) {
-    return !node || !node.timestamp ||
-           ((new Date().getTime()) - node.timestamp > maxAge);
+  function isOutdated(objs, maxAge) {
+    var i, node;
+    for (i in objs) {
+      node = getLatest(objs[path]);
+      if (node && node.timestamp && (new Date().getTime()) - node.timestamp <= maxAge) {
+        return false;
+      }
+    }
+    return true;
   }
 
   function pathsFromRoot(path) {
@@ -133,22 +139,41 @@
 
   var methods = {
 
-    get: function(path, maxAge) {
+    get: function(path, maxAge, softMaxAge) {
       var promise = promising();
 
-      this.getNodes([path]).then(function(objs) {
-        var node = getLatest(objs[path]);
-        if ((typeof(maxAge) === 'number') && isOutdated(node, maxAge)) {
-          remoteStorage.sync.queueGetRequest(path, promise);
-        } else if (node) {
-          promise.fulfill(200, node.body || node.itemsMap, node.contentType);
-        } else {
-          promise.fulfill(404);
-        }
-      }.bind(this), function(err) {
-        promise.reject(err);
-      }.bind(this));
-
+      if (typeof(maxAge) === 'number') {
+        this.getNodes(pathsFromRoot(path)).then(function(objs) {
+          var node = getLatest(objs[path]);
+          if (isOutdated(objs, maxAge)) {
+            remoteStorage.sync.queueGetRequest(path, promise);
+          } else if (node) {
+            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+          } else {
+            promise.fulfill(404);
+          }
+        }.bind(this), function(err) {
+          var node = getLatest(objs[path]);
+          if (softMaxAge) {
+            if (node) {
+              promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+            } else {
+              promise.fulfill(404);
+            }
+          } else {
+            promise.reject(err);
+          }
+        }.bind(this));
+      } else {
+        this.getNodes([path]).then(function(objs) {
+          var node = getLatest(objs[path]);
+          if (node) {
+            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+          } else {
+            promise.fulfill(404);
+          }
+        }.bind(this));
+      }
       return promise;
     },
 
