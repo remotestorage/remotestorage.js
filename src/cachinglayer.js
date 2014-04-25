@@ -242,7 +242,7 @@
           var node = nodes[path];
 
           if (node && node.common && node.local) {
-            this._emit('change', {
+            this._emitChange({
               path:     node.path,
               origin:   'local',
               oldValue: (node.local.body === false ? undefined : node.local.body),
@@ -255,13 +255,19 @@
       }.bind(this));
     },
 
+    _emitChange: function(obj) {
+      if (!RemoteStorage.disableChangeEvents) {
+        this._emit('change', obj);
+      }
+    },
+
     fireInitial: function() {
       this.forAllNodes(function(node) {
         var latest;
         if (isDocument(node.path)) {
           latest = getLatest(node);
           if (latest) {
-            this._emit('change', {
+            this._emitChange({
               path:           node.path,
               origin:         'local',
               oldValue:       undefined,
@@ -338,7 +344,7 @@
 
     _emitChangeEvents: function(events) {
       for (var i=0; i<events.length; i++) {
-        this._emit('change', events[i]);
+        this._emitChange(events[i]);
         if (this.diffHandler) {
           this.diffHandler(events[i].path);
         }
