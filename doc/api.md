@@ -46,6 +46,13 @@ Start by defining a module (check out the repo to reuse an existing one):
 # Custom backends and widgets
 
 ````js
+    RemoteStorage.enableChangeEvents = {
+      local: false,//for better page load performance
+      window: false,//for better write performance
+      remote: true,
+      conflict: true
+    };
+    RemoteStorage._log = false;
     remoteStorage.on('ready', ...)
     remoteStorage.setApiKeys(backend, keys);
     remoteStorage.connect('user@host'[, backend]);

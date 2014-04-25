@@ -266,12 +266,15 @@
     },
 
     _emitChange: function(obj) {
-      if (!RemoteStorage.disableChangeEvents) {
+      if (!RemoteStorage.enableChangeEvents || RemoteStorage.enableChangeEvents[obj.origin]) {
         this._emit('change', obj);
       }
     },
 
     fireInitial: function() {
+      if (RemoteStorage.enableChangeEvents && !RemoteStorage.enableChangeEvents.local) {
+        return;
+      }
       this.forAllNodes(function(node) {
         var latest;
         if (isDocument(node.path)) {
