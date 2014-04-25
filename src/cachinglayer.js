@@ -237,7 +237,7 @@
 
     _emitChange: function(obj) {
       if (!RemoteStorage.disableChangeEvents) {
-        this._emit(obj);
+        this._emit('change', obj);
       }
     },
 
