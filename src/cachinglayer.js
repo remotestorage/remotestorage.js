@@ -281,7 +281,7 @@
     },
 
     _emitChange: function(obj) {
-      if (!RemoteStorage.disableChangeEvents) {
+      if (!RemoteStorage.enableChangeEvents || RemoteStorage.enableChangeEvents[obj.origin]) {
         this._emit('change', obj);
       }
     },
