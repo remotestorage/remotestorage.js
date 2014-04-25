@@ -111,22 +111,28 @@
 
   var methods = {
 
-    get: function(path, maxAge) {
+    get: function(path, maxAge, softMaxAge) {
       var promise = promising();
 
       this.getNodes([path]).then(function(objs) {
         var node = getLatest(objs[path]);
         if ((typeof(maxAge) === 'number') && isOutdated(node, maxAge)) {
           remoteStorage.sync.queueGetRequest(path, promise);
-        }
-
-        if (node) {
+        } else if (node) {
           promise.fulfill(200, node.body || node.itemsMap, node.contentType);
         } else {
           promise.fulfill(404);
         }
       }.bind(this), function(err) {
-        promise.reject(err);
+        if (softMaxAge) {
+          if (node) {
+            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+          } else {
+            promise.fulfill(404);
+          }
+        } else {
+          promise.reject(err);
+        }
       }.bind(this));
 
       return promise;
