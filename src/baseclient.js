@@ -477,7 +477,9 @@
     },
 
     _fireChange: function(event) {
-      this._emit('change', event);
+      if (!RemoteStorage.disableChangeEvents) {
+        this._emit('change', event);
+      }
     },
 
     _cleanPath: RS.WireClient.cleanPath,
