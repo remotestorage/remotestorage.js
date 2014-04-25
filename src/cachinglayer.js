@@ -88,7 +88,7 @@
   function isOutdated(objs, maxAge) {
     var i, node;
     for (i in objs) {
-      node = getLatest(objs[path]);
+      node = getLatest(objs[i]);
       if (node && node.timestamp && (new Date().getTime()) - node.timestamp <= maxAge) {
         return false;
       }
