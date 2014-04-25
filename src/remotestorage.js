@@ -174,12 +174,11 @@
 
     this._init();
 
-    this.fireInitial = function() {
+    this.on('ready', function() {
       if (this.local) {
         setTimeout(this.local.fireInitial.bind(this.local), 0);
       }
-    };
-    this.on('ready', this.fireInitial.bind(this));
+    }.bind(this));
   };
 
   RemoteStorage.DiscoveryError = function(message) {
