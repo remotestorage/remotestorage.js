@@ -149,16 +149,10 @@
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      if (maxAge === undefined) {
-        maxAge = 2*remoteStorage.getSyncInterval();
-        softMaxAge = true;
-      } else {
-        softMaxAge = false;
-      }
       if (maxAgeInvalid(maxAge)) {
         return promising().reject('Argument \'maxAge\' of baseClient.getListing must be false or a number');
       }
-      return this.storage.get(this.makePath(path), maxAge, softMaxAge).then(
+      return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
           return (status === 404) ? undefined : body;
         }
@@ -193,17 +187,11 @@
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      if (maxAge === undefined) {
-        maxAge = 2*remoteStorage.getSyncInterval();
-        softMaxAge = true;
-      } else {
-        softMaxAge = false;
-      }
       if (maxAgeInvalid(maxAge)) {
         return promising().reject('Argument \'maxAge\' of baseClient.getAll must be false or a number');
       }
 
-      return this.storage.get(this.makePath(path), maxAge, softMaxAge).then(function(status, body) {
+      return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
         if (status === 404) { return; }
         if (typeof(body) === 'object') {
           var promise = promising();
@@ -262,16 +250,10 @@
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
       }
-      if (maxAge === undefined) {
-        maxAge = 2*remoteStorage.getSyncInterval();
-        softMaxAge = true;
-      } else {
-        softMaxAge = false;
-      }
       if (maxAgeInvalid(maxAge)) {
         return promising().reject('Argument \'maxAge\' of baseClient.getFile must be false or a number');
       }
-      return this.storage.get(this.makePath(path), maxAge, softMaxAge).then(function(status, body, mimeType, revision) {
+      return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         return {
           data: body,
           mimeType: mimeType,
@@ -363,16 +345,10 @@
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
       }
-      if (maxAge === undefined) {
-        maxAge = 2*remoteStorage.getSyncInterval();
-        softMaxAge = true;
-      } else {
-        softMaxAge = false;
-      }
       if (maxAgeInvalid(maxAge)) {
         return promising().reject('Argument \'maxAge\' of baseClient.getObject must be false or a number');
       }
-      return this.storage.get(this.makePath(path), maxAge, softMaxAge).then(function(status, body, mimeType, revision) {
+      return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         if (typeof(body) === 'object') {
           return body;
         } else if (typeof(body) !== 'undefined' && status === 200) {

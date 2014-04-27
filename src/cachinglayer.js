@@ -69,6 +69,8 @@
       node = getLatest(objs[i]);
       if (node && node.timestamp && (new Date().getTime()) - node.timestamp <= maxAge) {
         return false;
+      } else if (!node) {
+        return true;
       }
     }
     return true;
@@ -117,7 +119,7 @@
 
   var methods = {
 
-    get: function(path, maxAge, softMaxAge) {
+    get: function(path, maxAge) {
       var promise = promising();
 
       if (typeof(maxAge) === 'number') {
@@ -129,17 +131,6 @@
             promise.fulfill(200, node.body || node.itemsMap, node.contentType);
           } else {
             promise.fulfill(404);
-          }
-        }.bind(this), function(err) {
-          var node = getLatest(objs[path]);
-          if (softMaxAge) {
-            if (node) {
-              promise.fulfill(200, node.body || node.itemsMap, node.contentType);
-            } else {
-              promise.fulfill(404);
-            }
-          } else {
-            promise.reject(err);
           }
         }.bind(this));
       } else {
