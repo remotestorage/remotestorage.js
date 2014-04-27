@@ -20,8 +20,6 @@
     return path.substr(-1) !== '/';
   }
 
-  function isMap(x) {
-  
   /**
    * Function: fixArrayBuffers
    *
