@@ -2,57 +2,13 @@
 
   var hasLocalStorage;
   var LS_STATE_KEY = "remotestorage:widget:state";
+
   // states allowed to immediately jump into after a reload.
   var VALID_ENTRY_STATES = {
     initial: true,
     connected: true,
     offline: true
   };
-
-  function stateSetter(widget, state) {
-    RemoteStorage.log('[Widget] Producing stateSetter for', state);
-    return function() {
-      RemoteStorage.log('[Widget] Setting state', state, arguments);
-      if (hasLocalStorage) {
-        localStorage[LS_STATE_KEY] = state;
-      }
-      if (widget.view) {
-        if (widget.rs.remote) {
-          widget.view.setUserAddress(widget.rs.remote.userAddress);
-        }
-        widget.view.setState(state, arguments);
-      } else {
-        widget._rememberedState = state;
-      }
-    };
-  }
-
-  function errorsHandler(widget) {
-    return function(error) {
-      if (widget.view) {
-        if (error instanceof RemoteStorage.DiscoveryError) {
-          console.error('Discovery failed', error, '"' + error.message + '"');
-          widget.view.setState('initial', [error.message]);
-        } else if (error instanceof RemoteStorage.SyncError) {
-          widget.view.setState('offline', []);
-        } else if (error instanceof RemoteStorage.Unauthorized) {
-          widget.view.setState('unauthorized');
-        } else {
-          RemoteStorage.log('[Widget] Unknown error');
-          widget.view.setState('error', [error]);
-        }
-      } else {
-        RemoteStorage.log('[widget] Undisplayed error:', error);
-      }
-    };
-  }
-
-  function flashFor(evt) {
-    if (evt.method === 'GET' && evt.isFolder) {
-      return false;
-    }
-    return true;
-  }
 
   /**
    * Class: RemoteStorage.Widget
@@ -197,4 +153,44 @@
     return typeof(document) !== 'undefined';
   };
 
+  function stateSetter(widget, state) {
+    RemoteStorage.log('[Widget] Producing stateSetter for', state);
+    return function() {
+      RemoteStorage.log('[Widget] Setting state', state, arguments);
+      if (hasLocalStorage) {
+        localStorage[LS_STATE_KEY] = state;
+      }
+      if (widget.view) {
+        if (widget.rs.remote) {
+          widget.view.setUserAddress(widget.rs.remote.userAddress);
+        }
+        widget.view.setState(state, arguments);
+      } else {
+        widget._rememberedState = state;
+      }
+    };
+  }
+
+  function errorsHandler(widget) {
+    return function(error) {
+      if (error instanceof RemoteStorage.DiscoveryError) {
+        console.error('Discovery failed', error, '"' + error.message + '"');
+        widget.view.setState('initial', [error.message]);
+      } else if (error instanceof RemoteStorage.SyncError) {
+        widget.view.setState('offline', []);
+      } else if (error instanceof RemoteStorage.Unauthorized) {
+        widget.view.setState('unauthorized');
+      } else {
+        RemoteStorage.log('[Widget] Unknown error');
+        widget.view.setState('error', [error]);
+      }
+    };
+  }
+
+  function flashFor(evt) {
+    if (evt.method === 'GET' && evt.isFolder) {
+      return false;
+    }
+    return true;
+  }
 })(typeof(window) !== 'undefined' ? window : global);

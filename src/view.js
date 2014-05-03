@@ -2,32 +2,6 @@
 
   var t = RemoteStorage.I18n.translate;
 
-  function removeClass(el, className) {
-    return el.classList.remove(className);
-  }
-
-  function addClass(el, className) {
-    return el.classList.add(className);
-  }
-
-  function stopPropagation(event) {
-    if (typeof(event.stopPropagation) === 'function') {
-      event.stopPropagation();
-    } else {
-      event.cancelBubble = true;
-    }
-  }
-
-  function setupButton(parent, className, iconName, eventListener) {
-    var element = parent.querySelector('.' + className);
-    if (typeof iconName !== 'undefined') {
-      var img = element.querySelector('img');
-      (img || element).src = RemoteStorage.Assets[iconName];
-    }
-    element.addEventListener('click', eventListener);
-    return element;
-  }
-
   /**
    * Class: RemoteStorage.Widget.View
    *
@@ -237,13 +211,6 @@
       return this.div;
     },
 
-    _renderTranslatedInitialContent: function() {
-      this.div.querySelector('.rs-status-text').innerHTML = t("view_connect");
-      this.div.querySelector('.remotestorage-reset').innerHTML = t("view_get_me_out");
-      this.div.querySelector('.rs-error-plz-report').innerHTML = t("view_error_plz_report");
-      this.div.querySelector('.remotestorage-unauthorized').innerHTML = t("view_unauthorized");
-    },
-
     states:  {
       initial: function(message) {
         var cube = this.cube;
@@ -408,6 +375,13 @@
       }
     },
 
+    _renderTranslatedInitialContent: function() {
+      this.div.querySelector('.rs-status-text').innerHTML = t("view_connect");
+      this.div.querySelector('.remotestorage-reset').innerHTML = t("view_get_me_out");
+      this.div.querySelector('.rs-error-plz-report').innerHTML = t("view_error_plz_report");
+      this.div.querySelector('.remotestorage-unauthorized').innerHTML = t("view_unauthorized");
+    },
+
     _activateBackend: function activateBackend(backendName) {
       var className = 'rs-' + backendName;
       if (this.rs.apiKeys[backendName]) {
@@ -419,4 +393,30 @@
       }
     }
   };
+
+  function removeClass(el, className) {
+    return el.classList.remove(className);
+  }
+
+  function addClass(el, className) {
+    return el.classList.add(className);
+  }
+
+  function stopPropagation(event) {
+    if (typeof(event.stopPropagation) === 'function') {
+      event.stopPropagation();
+    } else {
+      event.cancelBubble = true;
+    }
+  }
+
+  function setupButton(parent, className, iconName, eventListener) {
+    var element = parent.querySelector('.' + className);
+    if (typeof iconName !== 'undefined') {
+      var img = element.querySelector('img');
+      (img || element).src = RemoteStorage.Assets[iconName];
+    }
+    element.addEventListener('click', eventListener);
+    return element;
+  }
 })(typeof(window) !== 'undefined' ? window : global);
