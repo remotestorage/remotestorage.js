@@ -148,7 +148,7 @@
       }
     };
 
-    RS.eventHandling(this, 'change', 'connected');
+    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
     rs.on('error', onErrorCb);
 
     this.clientId = rs.apiKeys.dropbox.api_key;
@@ -173,6 +173,8 @@
   };
 
   RS.Dropbox.prototype = {
+    online: true,
+
     /**
      * Method : connect()
      *   redirects to AUTH_URL(https://www.dropbox.com/1/oauth2/authorize)
@@ -194,7 +196,6 @@
      *   set's the connected flag
      **/
     configure: function(userAddress, href, storageApi, token) {
-      RemoteStorage.log('dropbox configure',arguments);
       if (typeof token !== 'undefined') { this.token = token; }
       if (typeof userAddress !== 'undefined') { this.userAddress = userAddress; }
 
@@ -215,6 +216,13 @@
                                                        userAddress: this.userAddress } );
       }
     },
+    
+    stopWaitingForToken: function() {
+      if (!this.connected) {
+        this._emit('not-connected');
+      }
+    },
+    
     /**
      * Method : _getFolder(path, options)
      **/
@@ -244,9 +252,9 @@
             listing = body.contents.reduce(function(m, item) {
               var itemName = item.path.split('/').slice(-1)[0] + ( item.is_dir ? '/' : '' );
               if (item.is_dir){
-                m[itemName] = revCache.get(path+itemName);
+                m[itemName] = { ETag: revCache.get(path+itemName) };
               } else {
-                m[itemName] = item.rev;
+                m[itemName] = { ETag: item.rev };
               }
               return m;
             }, {});
@@ -264,7 +272,6 @@
      *   calls share(path) afterwards to fill the _hrefCache
      **/
     get: function(path, options){
-      RemoteStorage.log('dropbox.get', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
       var url = 'https://api-content.dropbox.com/1/files/auto' + path;
@@ -273,14 +280,12 @@
       var savedRev = this._revCache.get(path);
       if (savedRev === null) {
         //file was deleted server side
-        RemoteStorage.log(path,' deleted 404');
         promise.fulfill(404);
         return promise;
       }
       if (options && options.ifNoneMatch &&
          savedRev && (savedRev === options.ifNoneMatch)) {
         // nothing changed.
-        RemoteStorage.log("nothing changed for",path,savedRev, options.ifNoneMatch);
         promise.fulfill(304);
         return promise;
       }
@@ -320,7 +325,7 @@
                   body = JSON.parse(body);
                   mime = 'application/json; charset=UTF-8';
                 } catch(e) {
-                  RS.log("Failed parsing Json, assume it is something else then", mime, path);
+                  //Failed parsing Json, assume it is something else then
                 }
               }
               promise.fulfill(status, body, mime, rev);
@@ -340,7 +345,6 @@
      *   also shares via share(path)
      **/
     put: function(path, body, contentType, options){
-      RemoteStorage.log('dropbox.put', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
 
@@ -391,7 +395,6 @@
      *   similar to get and set
      **/
     'delete': function(path, options){
-      RemoteStorage.log('dropbox.delete ', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
 
@@ -433,16 +436,12 @@
       var promise = promising();
       var self = this;
       if (path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] === 'undefined') {
-        RemoteStorage.log('shareing this one ', path);
         promise.then(function(){
           var args = Array.prototype.slice.call(arguments);
           var p = promising();
-          RemoteStorage.log('calling share now');
           self.share(path).then(function() {
-            RemoteStorage.log('shareing fullfilled promise',arguments);
             p.fulfill.apply(p,args);
           }, function(err) {
-            RemoteStorage.log("shareing failed" , err);
             p.fulfill.apply(p,args);
           });
           return p;
@@ -472,7 +471,6 @@
             var response = JSON.parse(resp.responseText);
             var url = response.url;
             itemRefs[path] = url;
-            RemoteStorage.log("SHAREING URL :::: ",url,' for ',path);
             if (hasLocalStorage) {
               localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
             }
@@ -551,7 +549,6 @@
               this.rs._emit('error', new RemoteStorage.Unauthorized());
               promise.fulfill.apply(promise, args);
             } else {
-              RemoteStorage.log("!!!!dropbox.fetchDelta returned "+response.status+response.responseText);
               promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
             }
             return promise;
@@ -566,7 +563,6 @@
           }
           // break if no entries found
           if (!delta.entries) {
-            RemoteStorage.log("!!!!!DropBox.fetchDeltas() NO ENTRIES FOUND!!", delta);
             return promise.reject('dropbox.fetchDeltas failed, no entries found');
           }
 

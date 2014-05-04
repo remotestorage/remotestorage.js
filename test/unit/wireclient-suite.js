@@ -1,115 +1,107 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
+define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(requirejs, backend, mocks, undefined) {
   var suites = [];
+
+  function setup(env, test) {
+    global.RemoteStorage = function() {};
+    RemoteStorage.log = function() {};
+    global.RemoteStorage.Unauthorized = function() {};
+    global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
+    require('./lib/promising');
+    require('./src/eventhandling');
+
+    if (global.rs_eventhandling) {
+      RemoteStorage.eventHandling = global.rs_eventhandling;
+    } else {
+      global.rs_eventhandling = RemoteStorage.eventHandling;
+    }
+    require('./src/wireclient');
+    if (global.rs_wireclient) {
+      RemoteStorage.WireClient = global.rs_wireclient;
+    } else {
+      global.rs_wireclient = RemoteStorage.WireClient;
+    }
+
+    test.done();
+  }
+
+  function beforeEach(env, test) {
+    global.XMLHttpRequest = function() {
+      XMLHttpRequest.instances.push(this);
+      this._headers = {};
+      this._responseHeaders = {};
+    };
+    XMLHttpRequest.instances = [];
+    XMLHttpRequest.prototype = {
+      open: function() {
+        this._open = Array.prototype.slice.call(arguments);
+      },
+      send: function() {
+        this._send = Array.prototype.slice.call(arguments);
+      },
+      setRequestHeader: function(key, value) {
+        this._headers[key] = value;
+      },
+      getResponseHeader: function(key) {
+        return this._responseHeaders[key];
+      }
+    };
+    ['load', 'abort', 'error'].forEach(function(cb) {
+      Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
+        configurable: true,
+        set: function(f) {
+          this['_on' + cb] = f;
+        }
+      });
+    });
+    env.rs = new RemoteStorage();
+    RemoteStorage.eventHandling(env.rs, 'error');
+    env.client = new RemoteStorage.WireClient(env.rs);
+    env.connectedClient = new RemoteStorage.WireClient(env.rs);
+    env.baseURI = 'https://example.com/storage/test';
+    env.token = 'foobarbaz';
+    env.connectedClient.configure(
+      undefined, env.baseURI, undefined, env.token
+    );
+
+    mocks.defineMocks(env);
+
+    env.busy = new test.Stub(function(){});
+    env.done = new test.Stub(function(){});
+    env.connectedClient.on('wire-busy', env.busy);
+    env.connectedClient.on('wire-done', env.done);
+
+    test.done();
+  }
+
+  function afterEach(env, test) {
+    delete global.XMLHttpRequest;
+    delete global.Blob;
+    delete global.FileReader;
+    delete env.client;
+    delete env.blob;
+    delete env.fileReaderResult;
+    test.done();
+  }
+
+  suites.push({
+    name: "WireClient",
+    desc: "behaves like a backend",
+    setup: setup,
+    beforeEach: beforeEach,
+    afterEach: afterEach,
+    tests: backend.behavior
+  });
 
   suites.push({
     name: "WireClient",
     desc: "Low-level remotestorage client based on XMLHttpRequest",
-    setup: function(env, test) {
-      global.RemoteStorage = function() {};
-      RemoteStorage.log = function() {};
-      global.RemoteStorage.Unauthorized = function() {};
-      global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
-      require('./lib/promising');
-      require('./src/eventhandling');
-
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      require('./src/wireclient');
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-
-      test.done();
-    },
-
-    beforeEach: function(env, test) {
-      global.XMLHttpRequest = function() {
-        XMLHttpRequest.instances.push(this);
-        this._headers = {};
-        this._responseHeaders = {};
-      };
-      XMLHttpRequest.instances = [];
-      XMLHttpRequest.prototype = {
-        open: function() {
-          this._open = Array.prototype.slice.call(arguments);
-        },
-        send: function() {
-          this._send = Array.prototype.slice.call(arguments);
-        },
-        setRequestHeader: function(key, value) {
-          this._headers[key] = value;
-        },
-        getResponseHeader: function(key) {
-          return this._responseHeaders[key];
-        }
-      };
-      ['load', 'abort', 'error'].forEach(function(cb) {
-        Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
-          configurable: true,
-          set: function(f) {
-            this['_on' + cb] = f;
-          }
-        });
-      });
-      env.rs = new RemoteStorage();
-      RemoteStorage.eventHandling(env.rs, 'error');
-      env.client = new RemoteStorage.WireClient(env.rs);
-      env.connectedClient = new RemoteStorage.WireClient(env.rs);
-      env.baseURI = 'https://example.com/storage/test';
-      env.token = 'foobarbaz';
-      env.connectedClient.configure(
-        undefined, env.baseURI, undefined, env.token
-      );
-      global.Blob = function(input, options) {
-        this.input = input;
-        this.options = options;
-        env.blob = this;
-      };
-      global.FileReader = function() {};
-      FileReader.prototype = {
-        _events: {
-          loadend: []
-        },
-        addEventListener: function(eventName, handler) {
-          this._events[eventName].push(handler);
-        },
-        readAsArrayBuffer: function(blob) {
-          setTimeout(function() {
-            this.result = env.fileReaderResult = Math.random();
-            this._events.loadend[0]();
-          }.bind(this), 0);
-        }
-      };
-
-      test.done();
-    },
-
-    afterEach: function(env, test) {
-      delete global.XMLHttpRequest;
-      delete global.Blob;
-      delete global.FileReader;
-      delete env.client;
-      delete env.blob;
-      delete env.fileReaderResult;
-      test.done();
-    },
-
+    setup: setup,
+    beforeEach: beforeEach,
+    afterEach: afterEach,
     tests: [
-      {
-        desc: "it's initially not connected",
-        run: function(env, test) {
-          test.assert(env.client.connected, false);
-        }
-      },
-
       {
         desc: "#get / #put / #delete throw an exception if not connected",
         run: function(env, test) {
@@ -137,13 +129,9 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.get() of a document emits wire-busy and wire-done on success",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo').then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -157,14 +145,10 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.get() of a document emits wire-busy and wire-done on failure",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo').then(function(){
           }, function(err) {
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -175,14 +159,10 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.get() of a folder emits wire-busy and wire-done on success, and sets remote.online to true",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
           env.connectedClient.online = false;
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo/').then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.assertAnd(env.connectedClient.online, true);
             test.done();
           });
@@ -197,15 +177,11 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.get() of a folder emits wire-busy and wire-done on failure, and sets remote.online to false",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
           env.connectedClient.online = true;
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo/').then(function(){
           }, function(err) {
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.assertAnd(env.connectedClient.online, false);
             test.done();
           });
@@ -217,13 +193,9 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.put() emits wire-busy and wire-done on success",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.put('/foo', 'body', 'content-type', {}).then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -237,14 +209,10 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.put() emits wire-busy and wire-done on failure",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.put('/foo', 'body', 'content-type', {}).then(function(){
           }, function(err) {
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -255,13 +223,9 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.delete() emits wire-busy and wire-done on success",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.delete('/foo').then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -275,14 +239,10 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.delete() emits wire-busy and wire-done on failure",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.delete('/foo', 'body', 'content-type', {}).then(function(){
           }, function(err) {
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();

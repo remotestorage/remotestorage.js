@@ -15,6 +15,6 @@
     "xhr2": "0.0.7"
   },
   "scripts": {
-    "test": "node_modules/.bin/jaribu"
+    "test": "node_modules/jaribu/bin/jaribu"
   }
 }
