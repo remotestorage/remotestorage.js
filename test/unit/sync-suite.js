@@ -606,6 +606,7 @@ define([], function() {
           });
         }
       },
+
       {
         desc: "get with maxAge requirement is rejected if remote is not connected",
         run: function(env, test) {
@@ -626,6 +627,74 @@ define([], function() {
             test.result(false, 'should have been rejected');
           }, function(err) {
             test.done();
+          });
+        }
+      },
+
+      {
+        desc: "get with maxAge fetches from remote when no local data exists",
+        run: function(env, test) {
+          env.rs.caching._responses['/'] = 'ALL';
+          env.rs.caching._responses['/foo'] = 'ALL';
+          env.rs.remote._responses[['get', '/foo' ]] = [200, 'body', 'text/plain', 'revision'];
+          env.rs.remote.connected = true;
+
+          env.rs.local.get('/foo', 5).then(function(statusCode, body, contentType) {
+            test.assertAnd(statusCode, 200);
+            test.assertAnd(body, 'body');
+            test.assertAnd(contentType, 'text/plain');
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "get with maxAge fetches from remote when local data is too old",
+        run: function(env, test) {
+          env.rs.caching._responses['/'] = 'ALL';
+          env.rs.caching._responses['/foo'] = 'ALL';
+          env.rs.remote._responses[['get', '/foo' ]] = [200, 'body', 'text/plain', 'revision'];
+          env.rs.remote.connected = true;
+
+          env.rs.local.setNodes({
+            '/foo': {
+              path: '/foo',
+              common: {
+                body: 'old data',
+                contentType: 'text/html',
+                timestamp: new Date().getTime() - 60000
+              }
+            }
+          }).then(function() {
+            env.rs.local.get('/foo', 5).then(function(statusCode, body, contentType) {
+              test.assertAnd(statusCode, 200);
+              test.assertAnd(body, 'body');
+              test.assertAnd(contentType, 'text/plain');
+              test.done();
+            });
+          });
+        }
+      },
+
+      {
+        desc: "get with maxAge returns local data when it's not outdated",
+        run: function(env, test) {
+          env.rs.local.setNodes({
+            '/foo': {
+              path: '/foo',
+              common: {
+                body: 'old data',
+                contentType: 'text/html',
+                timestamp: new Date().getTime() - 60000
+              }
+            }
+          }).then(function() {
+            env.rs.local.get('/foo', 120000).then(function(statusCode, body, contentType) {
+              test.assertAnd(statusCode, 200);
+              test.assertAnd(body, 'old data');
+              test.assertAnd(contentType, 'text/html');
+              test.done();
+            });
           });
         }
       },
