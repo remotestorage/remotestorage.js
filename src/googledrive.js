@@ -220,7 +220,6 @@
         } else {
           this._getMeta(id, function(metaError, meta) {
             var etagWithoutQuotes;
-            RemoteStorage.log('path, options, metaError, meta', path, options, metaError, meta);
             if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
               etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
             }
