@@ -57,6 +57,21 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
 
     tests: [
       {
+        desc: "Authorize redirects to the provider's OAuth location",
+        run: function(env, test) {
+          var authUrl = 'http://storage.provider.com/oauth';
+          var scope = 'contacts:r';
+          var redirectUri = 'http://awesome.app.com/#custom/path';
+          var clientId = 'http://awesome.app.com/';
+
+          RemoteStorage.Authorize(authUrl, scope, redirectUri, clientId);
+
+          var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&state=custom%2Fpath&response_type=token';
+          test.assert(document.location.href, expectedUrl);
+        }
+      },
+
+      {
         desc: "document.location getter",
         run: function(env, test) {
           test.assert(RemoteStorage.Authorize.getLocation().href, "http://foo/bar");
@@ -101,6 +116,21 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
             }
           };
           storage._handlers['features-loaded'][0]();
+        }
+      },
+
+      {
+        desc: "the 'features-loaded' handler adds the state param to the location when given",
+        run: function(env, test) {
+          var storage = new RemoteStorage();
+          document.location.href = 'http://foo/bar#access_token=my-token&state=custom%2Fpath';
+          RemoteStorage.Authorize._rs_init(storage);
+          storage.remote = {
+            configure: function(userAddress, href, type, token) {}
+          };
+          storage._handlers['features-loaded'][0]();
+
+          test.assert(document.location.href, '#custom/path');
         }
       },
 
