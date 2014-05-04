@@ -306,16 +306,16 @@ define([], function() {
       },
 
       {
-        desc: "#log calls console.log, when _log is true",
+        desc: "#log calls console.log, when config.logging is true",
         run: function(env, test) {
           replaceConsoleLog();
           try {
-            RemoteStorage._log = true;
+            RemoteStorage.config.logging = true;
             RemoteStorage.log('foo', 'bar', 'baz');
             assertConsoleLog(test, 'foo', 'bar', 'baz');
           } catch(e) {
             restoreConsoleLog();
-            RemoteStorage._log = false;
+            RemoteStorage.config.logging = false;
             throw e;
           }
           restoreConsoleLog();

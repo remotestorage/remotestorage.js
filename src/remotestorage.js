@@ -178,7 +178,7 @@
       if (this.local) {
         setTimeout(this.local.fireInitial.bind(this.local), 0);
       }
-    }.bind(this));
+    }.bind(this);
     this.on('ready', this.fireInitial.bind(this));
   };
 
@@ -200,11 +200,20 @@
    * You can enable logging with <enableLog>.
    */
   RemoteStorage.log = function() {
-    if (RemoteStorage._log) {
+    if (RemoteStorage.config.logging) {
       console.log.apply(console, arguments);
     }
   };
 
+  RemoteStorage.config = {
+    logging: false,
+    changeEvents: {
+      local:    true,
+      window:   false,
+      remote:   true,
+      conflict: true
+    }
+  };
 
   RemoteStorage.prototype = {
     /**
@@ -328,7 +337,7 @@
      * Enable remoteStorage logging
      */
     enableLog: function() {
-      RemoteStorage._log = true;
+      RemoteStorage.config.logging = true;
     },
 
     /**
@@ -337,7 +346,7 @@
      * Disable remoteStorage logging
      */
     disableLog: function() {
-      RemoteStorage._log = false;
+      RemoteStorage.config.logging = false;
     },
 
     /**
