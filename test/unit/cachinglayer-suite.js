@@ -203,6 +203,44 @@ define(['requirejs'], function(requirejs) {
             });
           });
         }
+      },
+
+      {
+        desc: "_emitChange emits change events",
+        run: function(env, test) {
+          var changeEvent = {
+            path:   '/foo',
+            origin: 'local'
+          };
+
+          env.ims.on('change', function(event) {
+            test.assert(event, changeEvent);
+          });
+
+          env.ims._emitChange(changeEvent);
+        }
+      },
+
+      {
+        desc: "_emitChange doesn't emit events that are not enabled",
+        run: function(env, test) {
+          var changeEvent = {
+            path:   '/foo',
+            origin: 'local'
+          };
+
+          RemoteStorage.config.changeEvents.local = false;
+
+          env.ims.on('change', function(event) {
+            test.result(false, 'change event should not have been fired');
+          });
+
+          env.ims._emitChange(changeEvent);
+
+          setTimeout(function() {
+            test.done();
+          }, 10);
+        }
       }
     ]
   });
