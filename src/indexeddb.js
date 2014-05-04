@@ -31,9 +31,7 @@
    *       distinguish create/update/delete operations and analyze changes in
    *       change handlers. In addition they carry a "origin" property, which
    *       is either "window", "local", or "remote". "remote" events are fired
-   *       whenever a change comes in from RemoteStorage.Sync. In the future,
-   *       "device" origin events will also be fired for changes happening in
-   *       other windows on the same device.
+   *       whenever a change comes in from RemoteStorage.Sync.
    *
    *   The sync interface (also on RemoteStorage.IndexedDB object):
    *     - #getNodes([paths]) returns the requested nodes in a promise.
