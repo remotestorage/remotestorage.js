@@ -229,6 +229,8 @@
               var options = {};
               if (!meta.downloadUrl) {
                 if(meta.exportLinks && meta.exportLinks['text/html']) {
+                  // Documents that were generated inside GoogleDocs have no
+                  // downloadUrl, but you can export them to text/html instead:
                   meta.mimeType += ';export=text/html';
                   meta.downloadUrl = meta.exportLinks['text/html'];
                 } else { 
