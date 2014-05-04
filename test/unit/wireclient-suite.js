@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs', 'test/behavior/backend', 'test/mocks'], function(requirejs, backend, mocks, undefined) {
+define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(requirejs, backend, mocks, undefined) {
   var suites = [];
 
   function setup(env, test) {
@@ -94,6 +94,7 @@ define(['requirejs', 'test/behavior/backend', 'test/mocks'], function(requirejs,
     afterEach: afterEach,
     tests: backend.behavior
   });
+
   suites.push({
     name: "WireClient",
     desc: "Low-level remotestorage client based on XMLHttpRequest",

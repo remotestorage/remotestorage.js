@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs', 'test/behavior/backend', 'test/mocks'], function(requirejs, backend, mocks, undefined) {
+define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(requirejs, backend, mocks, undefined) {
   var suites = [];
 
   function setup (env, test) {
@@ -24,14 +24,14 @@ define(['requirejs', 'test/behavior/backend', 'test/mocks'], function(requirejs,
     } else {
       global.rs_eventhandling = RemoteStorage.eventHandling;
     }
-    
+
     require('./src/wireclient');
     if (global.rs_wireclient) {
       RemoteStorage.WireClient = global.rs_wireclient;
     } else {
       global.rs_wireclient = RemoteStorage.WireClient;
     }
-    
+
     require('./src/googledrive');
     if (global.rs_googledrive) {
       RemoteStorage.GoogleDrive = global.rs_googledrive;

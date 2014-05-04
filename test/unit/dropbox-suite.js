@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs', 'test/behavior/backend', 'test/mocks'], function(requirejs, backend, mocks, undefined) {
+define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(requirejs, backend, mocks, undefined) {
   var suites = [];
 
   function setup(env, test) {
@@ -49,7 +49,6 @@ define(['requirejs', 'test/behavior/backend', 'test/mocks'], function(requirejs,
       XMLHttpRequest.instances.push(this);
       this._headers = {};
       this._responseHeaders = {};
-    console.log('beforeEach, ', typeof(RemoteStorage.Dropbox), typeof(global.rs_dropbox));
     };
     XMLHttpRequest.instances = [];
     XMLHttpRequest.prototype = {
