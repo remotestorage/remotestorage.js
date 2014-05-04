@@ -46,9 +46,9 @@ Start by defining a module (check out the repo to reuse an existing one):
 # Custom backends and widgets
 
 ````js
-    RemoteStorage.enableChangeEvents = {
-      local: false,//for better page load performance
-      window: false,//for better write performance
+    RemoteStorage.config.changeEvents = {
+      local: false, // for better page load performance
+      window: false, // for better write performance
       remote: true,
       conflict: true
     };

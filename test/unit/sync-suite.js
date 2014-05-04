@@ -94,6 +94,9 @@ define([], function() {
         RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready');
       };
       global.RemoteStorage.log = function() {};
+      global.RemoteStorage.config = {
+        changeEvents: { local: true, window: false, remote: true, conflict: true }
+      };
 
       require('./src/eventhandling');
       if (global.rs_eventhandling){

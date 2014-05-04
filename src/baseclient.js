@@ -477,7 +477,7 @@
     },
 
     _fireChange: function(event) {
-      if (!RemoteStorage.enableChangeEvents || RemoteStorage.enableChangeEvents[event.origin]) {
+      if (RemoteStorage.config.changeEvents[event.origin]) {
         this._emit('change', event);
       }
     },

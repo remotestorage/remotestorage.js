@@ -236,13 +236,13 @@
     },
 
     _emitChange: function(obj) {
-      if (!RemoteStorage.enableChangeEvents || RemoteStorage.enableChangeEvents[obj.origin]) {
+      if (RemoteStorage.config.changeEvents[obj.origin]) {
         this._emit('change', obj);
       }
     },
 
     fireInitial: function() {
-      if (RemoteStorage.enableChangeEvents && !RemoteStorage.enableChangeEvents.local) {
+      if (!RemoteStorage.config.changeEvents.local) {
         return;
       }
       this.forAllNodes(function(node) {

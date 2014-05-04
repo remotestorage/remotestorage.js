@@ -12,6 +12,9 @@ define(['requirejs'], function(requirejs) {
       require('./lib/promising');
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
+      global.RemoteStorage.config = {
+        changeEvents: { local: true, window: false, remote: true, conflict: true }
+      };
       require('./src/eventhandling');
       if ( global.rs_eventhandling ) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
@@ -172,6 +175,7 @@ define(['requirejs'], function(requirejs) {
         desc: "#put fires a 'change' with origin=window for outgoing changes",
         timeout: 250,
         run: function(env, test) {
+          RemoteStorage.config.changeEvents.window = true;
           env.ims.on('change', function(event) {
             test.assert(event, {
               path: '/foo/bla',
