@@ -1534,16 +1534,13 @@
   }
 
   RemoteStorage.Authorize = function(authURL, scope, redirectUri, clientId) {
-    RemoteStorage.log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
+    RemoteStorage.log('[Authorize] authURL = ', authURL);
 
-    var url = authURL, hashPos = redirectUri.indexOf('#');
+    var url = authURL;
     url += authURL.indexOf('?') > 0 ? '&' : '?';
     url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
-    if (hashPos !== -1) {
-      url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos+1));
-    }
     url += '&response_type=token';
     RemoteStorage.Authorize.setLocation(url);
   };
@@ -1568,7 +1565,7 @@
   };
 
   /**
-   * Set current document location
+   * Get current document location
    *
    * Override this method if access to document.location is forbidden
    */
@@ -1602,9 +1599,6 @@
         if (params.remotestorage) {
           remoteStorage.connect(params.remotestorage);
           authParamsUsed = true;
-        }
-        if (params.state) {
-          RemoteStorage.Authorize.setLocation('#'+params.state);
         }
       }
       if (!authParamsUsed) {
@@ -2752,13 +2746,6 @@ Math.uuid = function (len, radix) {
       this.moduleName = 'root';
     }
 
-    // Defined in baseclient/types.js
-    /**
-     * Property: schemas
-     *
-     * Contains schema objects of all types known to the BaseClient instance
-     **/
-
     /**
      * Event: change
      *
@@ -3095,9 +3082,7 @@ Math.uuid = function (len, radix) {
       if (typeof(object) !== 'object') {
         return promising().reject('Argument \'object\' of baseClient.storeObject must be an object');
       }
-
       this._attachType(object, typeAlias);
-
       try {
         var validationResult = this.validate(object);
         if (! validationResult.valid) {
@@ -3108,7 +3093,6 @@ Math.uuid = function (len, radix) {
           return promising().reject(exc);
         }
       }
-
       return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
         if (status === 200 || status === 201) {
           return revision;
@@ -3249,27 +3233,12 @@ Math.uuid = function (len, radix) {
     return typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number';
   };
 
-  // Defined in baseclient/types.js
-  /**
-   * Method: declareType
-   *
-   * Declare a remoteStorage object type using a JSON schema. See
-   * <RemoteStorage.BaseClient.Types>
-   **/
-
 })(typeof(window) !== 'undefined' ? window : global);
 
 
 /** FILE: src/baseclient/types.js **/
 (function(global) {
 
-  /**
-   * Class: RemoteStorage.BaseClient.Types
-   *
-   * - Manages and validates types of remoteStorage objects, using JSON-LD and
-   *   JSON Schema
-   * - Adds schema declaration/validation methods to BaseClient instances.
-   **/
   RemoteStorage.BaseClient.Types = {
     // <alias> -> <uri>
     uris: {},
@@ -3331,65 +3300,18 @@ Math.uuid = function (len, radix) {
   SchemaNotFound.prototype = Error.prototype;
 
   RemoteStorage.BaseClient.Types.SchemaNotFound = SchemaNotFound;
-
   /**
    * Class: RemoteStorage.BaseClient
    **/
   RemoteStorage.BaseClient.prototype.extend({
     /**
-     * Method: declareType
+     * Method: validate(object)
      *
-     * Declare a remoteStorage object type using a JSON schema.
-     *
-     * Parameters:
-     *   alias  - A type alias/shortname
-     *   uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
-     *   schema - A JSON Schema object describing the object type
-     *
-     * Example:
-     *
-     * (start code)
-     * client.declareType('todo-item', {
-     *   "type": "object",
-     *   "properties": {
-     *     "id": {
-     *       "type": "string"
-     *     },
-     *     "title": {
-     *       "type": "string"
-     *     },
-     *     "finished": {
-     *       "type": "boolean"
-     *       "default": false
-     *     },
-     *     "createdAt": {
-     *       "type": "date"
-     *     }
-     *   },
-     *   "required": ["id", "title"]
-     * })
-     * (end code)
-     *
-     * Visit <http://json-schema.org> for details on how to use JSON Schema.
-     **/
-    declareType: function(alias, uri, schema) {
-      if (! schema) {
-        schema = uri;
-        uri = this._defaultTypeURI(alias);
-      }
-      RemoteStorage.BaseClient.Types.declare(this.moduleName, alias, uri, schema);
-    },
-
-    /**
-     * Method: validate
-     *
-     * Validate an object against the associated schema.
-     *
-     * Parameters:
-     *  object - Object to validate. Must have a @context property.
+     * validates an Object against the associated schema
+     * the context has to have a @context property
      *
      * Returns:
-     *   An object containing information about validation errors
+     *   A validate object giving you information about errors
      **/
     validate: function(object) {
       var schema = RemoteStorage.BaseClient.Types.getSchema(object['@context']);
@@ -3398,6 +3320,17 @@ Math.uuid = function (len, radix) {
       } else {
         throw new SchemaNotFound(object['@context']);
       }
+    },
+
+    // client.declareType(alias, schema);
+    //  /* OR */
+    // client.declareType(alias, uri, schema);
+    declareType: function(alias, uri, schema) {
+      if (! schema) {
+        schema = uri;
+        uri = this._defaultTypeURI(alias);
+      }
+      RemoteStorage.BaseClient.Types.declare(this.moduleName, alias, uri, schema);
     },
 
     _defaultTypeURI: function(alias) {
@@ -3409,7 +3342,6 @@ Math.uuid = function (len, radix) {
     }
   });
 
-  // Documented in baseclient.js
   Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
     configurable: true,
     get: function() {
