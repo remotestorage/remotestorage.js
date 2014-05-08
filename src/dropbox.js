@@ -346,7 +346,7 @@
      **/
     put: function(path, body, contentType, options){
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
-      var pathTempBeforeClean=path; //Temp variable to store the value beafore cleanPath, to be used later
+      var pathTempBeforeClean = path; //Temp variable to store the value beafore cleanPath, to be used later
       path = cleanPath(path);
 
       var promise = this._sharePromise(path);
@@ -377,7 +377,7 @@
             var response = JSON.parse(resp.responseText);
             // if dropbox reports an file conflict they just change the name of the file
             // TODO find out which stays the origianl and how to deal with this
-            if (response.path !== pathTempBeforeClean){
+            if (response.path !== pathTempBeforeClean) {
               promise.fulfill(412);
               this.rs.log('Dropbox created conflicting File ', response.path);
             }
@@ -397,7 +397,7 @@
      **/
     'delete': function(path, options){
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
-      var pathTempBeforeCleanD=path; //Temp variable to store the value beafore cleanPath, to be used later
+      var pathTempBeforeClean = path; //Temp variable to store the value beafore cleanPath, to be used later
       path = cleanPath(path);
 
       var promise = promising();
@@ -409,7 +409,7 @@
         return promise;
       }
 
-      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path='+encodeURIComponent(pathTempBeforeCleanD);
+      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(pathTempBeforeClean);
       this._request('POST', url, {}, function(err, resp){
         if (err) {
           promise.reject(error);
