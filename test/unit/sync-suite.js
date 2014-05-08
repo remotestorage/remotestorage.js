@@ -91,7 +91,7 @@ define([], function() {
     setup: function(env, test){
       require('./lib/promising');
       global.RemoteStorage = function(){
-        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready');
+        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'sync-interval-change');
       };
       global.RemoteStorage.log = function() {};
 
@@ -903,6 +903,30 @@ define([], function() {
           });
         }
       },
+
+      {
+        desc: "Setting a wrong (string) sync interval throws an error",
+        run: function(env, test) {
+          try {
+            env.rs.setSyncInterval('60000');
+            test.result(false, "setSyncInterval() didn't fail");
+          } catch(e) {
+            test.result(true);
+          }
+        }
+      },
+
+      {
+        desc: "Setting a wrong (small) sync interval throws an error",
+        run: function(env, test) {
+          try {
+            env.rs.setSyncInterval(10);
+            test.result(false, "setSyncInterval() didn't fail");
+          } catch(e) {
+            test.result(true);
+          }
+        }
+      }
     ]
   });
 
