@@ -354,18 +354,60 @@ define(['requirejs'], function(requirejs, undefined) {
         }
       },
 
+/*     * client.declareType('todo-item', {yy
+     *   "type": "object",
+     *   "properties": {
+     *     "id": {
+     *       "type": "string"
+     *     },
+     *     "title": {
+     *       "type": "string"
+     *     },
+     *     "finished": {
+     *       "type": "boolean"
+     *       "default": false
+     *     },
+     *     "createdAt": {
+     *       "type": "date"
+     *     }
+     *   },
+     *   "required": ["id", "title"]
+     * })
+     */
       {
         desc: "test storeObject",
         run: function(env, test) {
           env.storage.put = function(path, body, contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar');
-            test.assertAnd(body.test, 1);
+            test.assertAnd(body, {
+              test: 1,
+              '@context': 'http://remotestorage.io/spec/modules/foo/test'
+            });
             test.assertAnd(contentType, 'application/json; charset=UTF-8');
             test.assertType(incoming, 'undefined');
             test.result(true);
             return promising().fulfill(200);
           };
           env.client.storeObject('test', 'foo/bar', {test: 1});
+        }
+      },
+
+      {
+        desc: "test declareType, storeObject with custom URI",
+        run: function(env, test) {
+          env.storage.put = function(path, body, contentType, incoming) {
+            test.assertAnd(path, '/foo/foo/bar');
+            test.assertAnd(body, {
+              test: 1,
+              '@context': 'http://to.do/spec/item'
+            });
+            test.assertAnd(contentType, 'application/json; charset=UTF-8');
+            test.assertType(incoming, 'undefined');
+            test.result(true);
+            return promising().fulfill(200);
+          };
+          env.client.declareType('todo-item', 'http://to.do/spec/item', {});
+          env.client.storeObject('todo-item', 'foo/bar', {test: 1});
         }
       },
 
