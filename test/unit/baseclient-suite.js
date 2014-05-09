@@ -354,29 +354,36 @@ define(['requirejs'], function(requirejs, undefined) {
         }
       },
 
-/*     * client.declareType('todo-item', {yy
-     *   "type": "object",
-     *   "properties": {
-     *     "id": {
-     *       "type": "string"
-     *     },
-     *     "title": {
-     *       "type": "string"
-     *     },
-     *     "finished": {
-     *       "type": "boolean"
-     *       "default": false
-     *     },
-     *     "createdAt": {
-     *       "type": "date"
-     *     }
-     *   },
-     *   "required": ["id", "title"]
-     * })
-     */
+      {
+        desc: "test declareType, storeObject violating schema",
+        run: function(env, test) {
+          env.client.declareType('todo-item', 'http://to.do/spec/item', {
+            type: 'object',
+            properties: {
+              locale: 'string',
+              required: true
+            }
+          });
+          tv4 = {
+            validateResult: function(object, schema) {
+              test.assertAnd(object, { test: 1, '@context': 'http://to.do/spec/item' });
+              test.assertAnd(schema, { type: 'object', properties: { locale: 'string', required: true } });
+              throw new Error('tv4 validation failed');
+            }
+          };
+          env.client.storeObject('todo-item', 'foo/bar', {test: 1}).then(function() {
+            test.result(false, 'should have rejected');
+          }, function(err) {
+            test.assertAnd(err.message, 'tv4 validation failed');
+            test.done();
+          });
+        }
+      },
+
       {
         desc: "test storeObject",
         run: function(env, test) {
+          env.client.declareType('test', {});
           env.storage.put = function(path, body, contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar');
             test.assertAnd(body, {
@@ -387,6 +394,11 @@ define(['requirejs'], function(requirejs, undefined) {
             test.assertType(incoming, 'undefined');
             test.result(true);
             return promising().fulfill(200);
+          };
+          tv4 = {
+            validateResult: function(object, schema) {
+              return { valid: true };
+            }
           };
           env.client.storeObject('test', 'foo/bar', {test: 1});
         }
