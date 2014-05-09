@@ -360,14 +360,14 @@ define(['requirejs'], function(requirejs, undefined) {
           env.client.declareType('todo-item', 'http://to.do/spec/item', {
             type: 'object',
             properties: {
-              locale: 'string',
-              required: true
-            }
+              locale: { type: 'string'}
+            },
+            required: ['locale']
           });
           tv4 = {
             validateResult: function(object, schema) {
               test.assertAnd(object, { test: 1, '@context': 'http://to.do/spec/item' });
-              test.assertAnd(schema, { type: 'object', properties: { locale: 'string', required: true } });
+              test.assertAnd(schema, { type: 'object', properties: { locale: { type: 'string'} }, required: ['locale'] });
               throw new Error('tv4 validation failed');
             }
           };
