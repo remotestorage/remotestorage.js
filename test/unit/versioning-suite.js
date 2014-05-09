@@ -269,7 +269,9 @@ define([], function() {
         '/foo/d-changed': {
           path: '/foo/d-changed',
           common: {
-            body: 'bloo'
+            body: 'bloo',
+            contentType: 'text/plain',
+            revision: '123'
           },
           local: {
             body: 'blooz'
