@@ -41,8 +41,6 @@
           RemoteStorage.log('[Widget] Unknown error');
           widget.view.setState('error', [error]);
         }
-      } else if(remoteStorage) {
-        remoteStorage._emit('error', error);
       } else {
         RemoteStorage.log('[widget] Undisplayed error:', error);
       }
