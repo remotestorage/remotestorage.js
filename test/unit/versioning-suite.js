@@ -714,8 +714,8 @@ define([], function() {
         run: function(env, test) {
           env.rs.caching._responses = env.responses1;
           env.rs.local.setNodes(env.fixture1).then(function() {
-            env.rs.sync.handleGetResponse('/foo/d-created', 404);
-            env.rs.sync.handleGetResponse('/foo/d-changed', 200, 'bloo', 'text/plain', '123');
+            env.rs.sync.handleResponse('/foo/d-created', 'get', 404);
+            env.rs.sync.handleResponse('/foo/d-changed', 'get', 200, 'bloo', 'text/plain', '123');
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/d-created', '/foo/d-changed']).then(function(objs) {
 
