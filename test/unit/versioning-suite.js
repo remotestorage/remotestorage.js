@@ -550,6 +550,25 @@ define([], function() {
         }
       },
 
+      {
+        desc: "an unchanged document doesn't delete local changes",
+        run: function(env, test) {
+          env.rs.caching._responses = env.responses1;
+          env.rs.local.setNodes(env.fixture1).then(function() {
+            env.rs.sync.handleGetResponse('/foo/d-created', 404);
+            env.rs.sync.handleGetResponse('/foo/d-created', 200, 'bloo', 'text/plain', '123');
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/d-created', '/foo/d-changed']).then(function(objs) {
+
+                test.assertAnd(objs['/foo/d-created'].local.body, 'bloo');
+                test.assertAnd(objs['/foo/d-changed'].local.body, 'blooz');
+
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
 
       {
         desc: "an incoming folder listing removes items from common and remote but not from local",
