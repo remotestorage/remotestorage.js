@@ -413,9 +413,7 @@
           return promising(function(p) { p.reject(validationResult); });
         }
       } catch(exc) {
-        if (! (exc instanceof RS.BaseClient.Types.SchemaNotFound)) {
-          return promising().reject(exc);
-        }
+        return promising().reject(exc);
       }
 
       return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
