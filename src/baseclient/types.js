@@ -138,7 +138,7 @@
     },
 
     _defaultTypeURI: function(alias) {
-      return 'http://remotestorage.io/spec/modules/' + this.moduleName + '/' + alias;
+      return 'http://remotestorage.io/spec/modules/' + encodeURIComponent(this.moduleName) + '/' + encodeURIComponent(alias);
     },
 
     _attachType: function(object, alias) {
