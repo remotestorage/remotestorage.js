@@ -126,7 +126,10 @@
      *
      * Returns:
      *
-     *   A promise for an object, representing child nodes.
+     *   A promise for an object, representing child nodes. If the maxAge
+     *   requirement cannot be met because of network problems, this promise
+     *   will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
      *
      *   Keys ending in a forward slash represent *folder nodes*, while all
      *   other keys represent *data nodes*.
@@ -179,7 +182,10 @@
      *            2*syncInterval in connected mode
      *
      * Returns:
-     *   a promise for an object in the form { path : object, ... }
+     *   a promise for an object in the form { path : object, ... }. If the maxAge
+     *   requirement cannot be met because of network problems, this promise
+     *   will be rejected. If the maxAge requirement is set to false, the
+     *   promise will alway be fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
@@ -252,6 +258,10 @@
      *
      *   mimeType - String representing the MIME Type of the document.
      *   data     - Raw data of the document (either a string or an ArrayBuffer)
+     *
+     *   If the maxAge requirement cannot be met because of network problems, this
+     *   promise will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
@@ -356,7 +366,10 @@
      *            2*syncInterval in connected mode
      *
      * Returns:
-     *   A promise for the object.
+     *   A promise for the object. If the maxAge
+     *   requirement cannot be met because of network problems, this promise
+     *   will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
