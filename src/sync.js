@@ -399,8 +399,13 @@
     },
 
     autoMergeDocument: function(node) {
-      if ((node.common.body === undefined && node.remote.body === false) 
-          || (node.remote.body === node.common.body && node.remote.contentType === node.common.contentType)) {
+      hasNoRemoteChanges = function(node) {
+        return (node.common.body === undefined && node.remote.body === false) ||
+               (node.remote.body === node.common.body &&
+                node.remote.contentType === node.common.contentType);
+      };
+
+      if (hasNoRemoteChanges(node)) {
         delete node.remote;
       } else if (node.remote.body !== undefined) {
         // keep/revert:
