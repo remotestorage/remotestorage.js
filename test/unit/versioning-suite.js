@@ -269,7 +269,9 @@ define([], function() {
         '/foo/d-changed': {
           path: '/foo/d-changed',
           common: {
-            body: 'bloo'
+            body: 'bloo',
+            contentType: 'text/plain',
+            revision: '123'
           },
           local: {
             body: 'blooz'
@@ -550,7 +552,6 @@ define([], function() {
         }
       },
 
-
       {
         desc: "an incoming folder listing removes items from common and remote but not from local",
         run: function(env, test) {
@@ -703,6 +704,46 @@ define([], function() {
                 test.assertAnd(objs['/foo/'].push, undefined);
                 test.assertAnd(objs['/foo/'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "an unchanged incoming document does not delete local changes",
+        run: function(env, test) {
+          env.rs.caching._responses = env.responses1;
+          env.rs.local.setNodes(env.fixture1).then(function() {
+            env.rs.sync.handleResponse('/foo/d-created', 'get', 404);
+            env.rs.sync.handleResponse('/foo/d-changed', 'get', 200, 'bloo', 'text/plain', '123');
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/d-created', '/foo/d-changed']).then(function(objs) {
+
+                test.assertAnd(objs['/foo/d-created'].local.body, 'bloo');
+                test.assertAnd(objs['/foo/d-changed'].local.body, 'blooz');
+
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "a changed incoming document deletes local changes",
+        run: function(env, test) {
+          env.rs.caching._responses = env.responses1;
+          env.rs.local.setNodes(env.fixture1).then(function() {
+            env.rs.sync.handleResponse('/foo/d-created', 'get', 200, 'something else', 'text/plain', '123');
+            env.rs.sync.handleResponse('/foo/d-changed', 'get', 200, 'something else', 'text/plain', '123');
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/d-created', '/foo/d-changed']).then(function(objs) {
+
+                test.assertAnd(objs['/foo/d-created'].local, undefined);
+                test.assertAnd(objs['/foo/d-changed'].local, undefined);
+
                 test.done();
               });
             }, 100);
