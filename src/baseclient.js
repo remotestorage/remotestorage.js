@@ -121,7 +121,8 @@
      * Parameters:
      *   path   - The path to query. It MUST end with a forward slash.
      *   maxAge - Either false or the maximum age of cached listing in
-     *            milliseconds
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
      *
@@ -149,6 +150,13 @@
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
+      if (maxAge === undefined) {
+        if (this.storage.connected) {
+          maxAge = 2*this.storage.getSyncInterval();
+        } else {
+          maxAge = false;
+        }
+      }
       if (maxAgeInvalid(maxAge)) {
         return promising().reject('Argument \'maxAge\' of baseClient.getListing must be false or a number');
       }
@@ -167,7 +175,8 @@
      * Parameters:
      *   path   - path to the folder
      *   maxAge - Either false or the maximum age of cached objects in
-     *            milliseconds
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode
      *
      * Returns:
      *   a promise for an object in the form { path : object, ... }
@@ -186,6 +195,13 @@
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
+      }
+      if (maxAge === undefined) {
+        if (this.storage.connected) {
+          maxAge = 2*this.storage.getSyncInterval();
+        } else {
+          maxAge = false;
+        }
       }
       if (maxAgeInvalid(maxAge)) {
         return promising().reject('Argument \'maxAge\' of baseClient.getAll must be false or a number');
@@ -228,7 +244,8 @@
      * Parameters:
      *   path     - see getObject
      *   maxAge - Either false or the maximum age of cached listing in
-     *            milliseconds
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode
      *
      * Returns:
      *   A promise for an object:
@@ -249,6 +266,13 @@
     getFile: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
+      }
+      if (maxAge === undefined) {
+        if (this.storage.connected) {
+          maxAge = 2*this.storage.getSyncInterval();
+        } else {
+          maxAge = false;
+        }
       }
       if (maxAgeInvalid(maxAge)) {
         return promising().reject('Argument \'maxAge\' of baseClient.getFile must be false or a number');
@@ -328,7 +352,8 @@
      * Parameters:
      *   path     - relative path from the module root (without leading slash)
      *   maxAge - Either false or the maximum age of cached listing in
-     *            milliseconds
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode
      *
      * Returns:
      *   A promise for the object.
@@ -344,6 +369,13 @@
     getObject: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
+      }
+      if (maxAge === undefined) {
+        if (this.storage.connected) {
+          maxAge = 2*this.storage.getSyncInterval();
+        } else {
+          maxAge = false;
+        }
       }
       if (maxAgeInvalid(maxAge)) {
         return promising().reject('Argument \'maxAge\' of baseClient.getObject must be false or a number');
