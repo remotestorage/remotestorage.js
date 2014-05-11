@@ -1,6 +1,8 @@
 (function(global) {
 
-  var syncInterval = 10000;
+  var syncInterval = 10000,
+      backgroundSyncInterval = 60000,
+      isBackground = false;
 
   function taskFor(action, path, promise) {
     return {
@@ -56,6 +58,34 @@
 
   function isFolder(path) {
     return path.substr(-1) === '/';
+  }
+
+  function handleVisibility() {
+    var hidden,
+        visibilityChange,
+        rs = this;
+
+    function handleVisibilityChange(fg) {
+      var oldValue, newValue;
+      oldValue = rs.getCurrentSyncInterval();
+      isBackground = !fg;
+      newValue = rs.getCurrentSyncInterval();
+      rs._emit('sync-interval-change', {oldValue: oldValue, newValue: newValue});
+    }
+    RemoteStorage.Env.on("background", function () {
+      handleVisibilityChange(false);
+    });
+    RemoteStorage.Env.on("foreground", function () {
+      handleVisibilityChange(true);
+    });
+  }
+
+  /**
+   * Check if interval is valid: numeric and between 10000 and 3600000ms
+   *
+   */
+  function isValidInterval(interval) {
+    return (typeof interval === 'number' && interval > 10000 && interval < 3600000);
   }
 
   /**
@@ -992,14 +1022,51 @@
    *
    */
   RemoteStorage.prototype.setSyncInterval = function(interval) {
-    if (typeof(interval) !== 'number') {
+    if (!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
+    var oldValue = syncInterval;
     syncInterval = parseInt(interval, 10);
-    if (this._syncTimer) {
-      this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
+    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+  };
+  /**
+   * Method: getBackgroundSyncInterval
+   *
+   * Get the value of the sync interval when application is in the background
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getBackgroundSyncInterval = function() {
+    return backgroundSyncInterval;
+  };
+  /**
+   * Method: setBackgroundSyncInterval
+   *
+   * Set the value of the sync interval when the application is in the background
+   *
+   * Parameters:
+   *   interval - sync interval in milliseconds
+   *
+   */
+  RemoteStorage.prototype.setBackgroundSyncInterval = function(interval) {
+    if(!isValidInterval(interval)) {
+      throw interval + " is not a valid sync interval";
     }
+    var oldValue = backgroundSyncInterval;
+    backgroundSyncInterval = parseInt(interval, 10);
+    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+  };
+  /**
+   * Method: getCurrentSyncInterval
+   *
+   * Get the value of the current sync interval
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getCurrentSyncInterval = function() {
+    return isBackground ? backgroundSyncInterval : syncInterval;
   };
 
   var SyncError = function(originalError) {
@@ -1023,12 +1090,12 @@
     }
 
     this.sync.on('done', function() {
-      RemoteStorage.log('[Sync] Sync done. Setting timer to', this.getSyncInterval());
+      RemoteStorage.log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
       if (!this.sync.stopped) {
         if (this._syncTimer) {
           clearTimeout(this._syncTimer);
         }
-        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getSyncInterval());
+        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
       }
     }.bind(this));
 
@@ -1057,7 +1124,9 @@
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
     syncCycleCb = function() {
       RemoteStorage.log('[Sync] syncCycleCb calling syncCycle');
-
+      if (RemoteStorage.Env.isBrowser()) {
+        handleVisibility.bind(remoteStorage)();
+      }
       if (!remoteStorage.sync) {
         // Call this now that all other modules are also ready:
         remoteStorage.sync = new RemoteStorage.Sync(
