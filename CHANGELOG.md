@@ -16,6 +16,10 @@ system. Old cached data will be converted to the new format automatically.
 
 ### New features
 
+* Major rewrite of the tree-based sync and caching system
+* GoogleDrive is now supported as an experimental backend
+* Dropbox is now supported as an experimental backend
+* Performance was improved, especially when storing many small objects
 * A new `maxAge` parameter is available in the various BaseClient get...
   functions, where you can specify the maximum age of cached results (in ms).
   This replaces the ready-queue from 0.9.0.
@@ -23,6 +27,7 @@ system. Old cached data will be converted to the new format automatically.
   one means documents that were seen once, will stay synced. Check the
   [caching documentation](http://remotestorage.io/doc/code/files/caching-js.html)
   for details. `caching.enable(path)` will use 'ALL' by default.
+* The sync interval now reacts to the page visibility in your browser (#462)
 
 ### Bugfixes
 
@@ -33,6 +38,9 @@ system. Old cached data will be converted to the new format automatically.
 * Widget only pulses when syncing changes (#437)
 * Fire `connected` event on startup if remote already connected
 * Fix error on remoteStorage.local.reset (#630)
+* Support non-ascii filenames in the Dropbox backend (#628)
+* When no widget is present, log undisplayed errors (#639)
+* Restore the document fragment (hash URL) after the OAuth dance (#646)
 
 ## 0.9.0 (December 2013)
 
