@@ -38,10 +38,10 @@ define(['requirejs'], function(requirejs, undefined) {
       require('./lib/Math.uuid');
       require('./src/baseclient');
       require('./src/baseclient/types');
-      if (global.rs_types) {
-        RemoteStorage.BaseClient.Types = global.rs_types;
+      if (global.rs_baseclient_with_types) {
+        RemoteStorage.BaseClient = global.rs_baseclient_with_types;
       } else {
-        global.rs_types = RemoteStorage.BaseClient.Types;
+        global.rs_baseclient_with_types = RemoteStorage.BaseClient;
       }
       test.done();
     },
