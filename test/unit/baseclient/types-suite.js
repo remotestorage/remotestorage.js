@@ -9,25 +9,38 @@ define([], function() {
     desc: "Type and schema handling",
     setup: function(env, test) {
       global.RemoteStorage = function() {};
-      RemoteStorage.BaseClient = function() {
-        this.moduleName = 'foo';
-      };
-      RemoteStorage.BaseClient.prototype.extend = function(obj) {
-        console.log('extending', obj);
-        for (var field in obj) {
-          this[field] = obj[field];
+      RemoteStorage.log = function() {};
+      RemoteStorage.prototype = {
+        onChange: function() {},
+        caching: {
+          _rootPaths: {},
+          set: function(path, value) {
+            this._rootPaths[path] = value;
+          }
         }
-        return this;
       };
-      require('./src/baseclient/types');
-      if (global.rs_types) {
-        RemoteStorage.BaseClient.Types = global.rs_types;
+
+      require('./src/eventhandling');
+      if (global.rs_eventhandling) {
+        RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
-        global.rs_types = RemoteStorage.BaseClient.Types;
+        global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      env.storage = new RemoteStorage();
-      env.client = new RemoteStorage.BaseClient(env.storage, '/foo/');
-      console.log('client', env.client);
+      require('./src/wireclient');
+      if (global.rs_wireclient) {
+        RemoteStorage.WireClient = global.rs_wireclient;
+      } else {
+        global.rs_wireclient = RemoteStorage.WireClient;
+      }
+
+      require('./lib/Math.uuid');
+      require('./src/baseclient');
+      require('./src/baseclient/types');
+      if (global.rs_baseclient_with_types) {
+        RemoteStorage.BaseClient = global.rs_baseclient_with_types;
+      } else {
+        global.rs_baseclient_with_types = RemoteStorage.BaseClient;
+      }
       test.done();
     },
 
@@ -62,8 +75,9 @@ define([], function() {
           var obj = {
             some: 'value'
           };
+          env.storage = new RemoteStorage();
+          env.client = new RemoteStorage.BaseClient(env.storage, '/foo/');
           env.client._attachType(obj, 'ba/F');
-          console.log('obj', obj);
           test.assertAnd(obj, {
             some: 'value',
             '@context': 'http://remotestorage.io/spec/modules/foo/ba%2FF'
