@@ -218,13 +218,13 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#getAll results in 'undefined' when it sees a 404",
+        desc: "#getAll returns an empty object when it sees a 404",
         run: function(env, test) {
           env.storage.get = function(path) {
             return promising().fulfill(404);
           };
           env.client.getAll('').then(function(result) {
-            test.assertType(result, 'undefined');
+            test.assert(result, {});
           });
         }
       },
