@@ -154,7 +154,7 @@
       }
       return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
-          return (status === 404) ? undefined : body;
+          return (status === 404) ? {} : body;
         }
       );
     },
