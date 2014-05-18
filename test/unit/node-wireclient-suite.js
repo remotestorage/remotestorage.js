@@ -28,6 +28,11 @@ define(['requirejs'], function(requirejs) {
       }
       oldReadBinaryData = RemoteStorage.WireClient.readBinaryData;
       require('./src/nodejs_ext');
+
+      RemoteStorage.Authorize = {
+        IMPLIED_FAKE_TOKEN: false
+      };
+
       test.done();
     },
 

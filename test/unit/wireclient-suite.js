@@ -24,6 +24,10 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       global.rs_wireclient = RemoteStorage.WireClient;
     }
 
+    RemoteStorage.Authorize = {
+      IMPLIED_FAKE_TOKEN: false
+    };
+    
     test.done();
   }
 

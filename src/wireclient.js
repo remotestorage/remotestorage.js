@@ -209,7 +209,7 @@
       var reqType;
       var self = this;
 
-      if (token !== IMPLIED_FAKE_TOKEN) {
+      if (token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) {
         headers['Authorization'] = 'Bearer ' + token;
       }
 

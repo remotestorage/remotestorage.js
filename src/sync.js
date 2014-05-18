@@ -751,7 +751,7 @@
       return {
         successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
         conflict:   (statusCode === 412),
-        unAuth:     ((statusCode === 401 && remote.token !== IMPLIED_FAKE_TOKEN)
+        unAuth:     ((statusCode === 401 && remote.token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN)
             || statusCode === 402 ||statusCode === 403),
         notFound:   (statusCode === 404),
         changed:    (statusCode !== 304)
