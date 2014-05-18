@@ -25,6 +25,22 @@
     get: function(path, maxAge) {
       var self = this;
       if (this.local) {
+        if (maxAge === undefined) {
+          if (this.connected) {
+            maxAge = 2*this.getSyncInterval();
+          } else {
+            maxAge = false;
+          }
+        }
+        var maxAgeInvalid = function(maxAge) {
+          return maxAge !== false && typeof(maxAge) !== 'number';
+        };
+
+        if (maxAgeInvalid(maxAge)) {
+          var promise = promising();
+          promise.reject('Argument \'maxAge\' of baseClient.getListing must be false or a number');
+          return promise;
+        }
         return this.local.get(path, maxAge);
       } else {
         return this.remote.get(path);
