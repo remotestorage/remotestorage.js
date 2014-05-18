@@ -12,6 +12,8 @@
    *   initial      - not connected
    *   authing      - in auth flow
    *   connected    - connected to remote storage, not syncing at the moment
+   *   ciphered     - connected, with cipher
+   *   notciphered  - connected, without cipher
    *   busy         - connected, syncing at the moment
    *   offline      - connected, but no network connectivity
    *   error        - connected, but sync error happened
@@ -24,6 +26,8 @@
     }
     RemoteStorage.eventHandling(this,
                                 'connect',
+                                'cipher',
+                                'nocipher',
                                 'disconnect',
                                 'sync',
                                 'display',
@@ -74,7 +78,7 @@
     },
 
     /**
-     * Method: setUserAddres
+     * Method: setUserAddress
      *
      * Set user address of the input field
      **/
@@ -82,9 +86,18 @@
       this.userAddress = addr || '';
 
       var el;
-      if (this.div && (el = this.div.querySelector('form').userAddress)) {
+      if (this.div && (el = this.div.querySelector('form.remotestorage-initial').userAddress)) {
         el.value = this.userAddress;
       }
+    },
+
+    /**
+     * Method: setUserSecretKey
+     *
+     * Set user secret key
+     **/
+    setUserSecretKey: function(secretKey) {
+      this.userSecretKey = secretKey;
     },
 
     /**
@@ -121,7 +134,11 @@
         stopPropagation(event);
       }
       document.body.addEventListener('click', this.hideBubbleOnBodyClick);
-      this.bubble.querySelector('form').userAddress.focus();
+      if (this.div.querySelector('.remotestorage-connected').classList.contains('remotestorage-cipher') && !this.userSecretKey) {
+        this.bubble.querySelector('form.remotestorage-cipher-form').userSecretKey.focus();
+      } else {
+        this.bubble.querySelector('form.remotestorage-initial').userAddress.focus();
+      }
     },
 
     /**
@@ -132,12 +149,13 @@
      * Parameters:
      *
      *   domID
+     *   cipher
      *
      * Returns:
      *
      *   The widget div
      **/
-    display: function(domID) {
+    display: function(domID, cipher) {
       if (typeof this.div !== 'undefined') {
         return this.div;
       }
@@ -171,20 +189,39 @@
       setupButton(element, 'remotestorage-reset', undefined, this.events.reset);
 
       // Connect button
-      var cb = setupButton(element, 'connect', 'connectIcon', this.events.connect);
+      var connectButton = setupButton(element, 'connect', 'connectIcon', this.events.connect);
 
-      // Input
-      this.form = element.querySelector('form');
+      // Handle connectButton state
+      this.form = element.querySelector('form.remotestorage-initial');
       var el = this.form.userAddress;
       el.addEventListener('keyup', function(event) {
         if (event.target.value) {
-          cb.removeAttribute('disabled');
+          connectButton.removeAttribute('disabled');
         } else {
-          cb.setAttribute('disabled','disabled');
+          connectButton.setAttribute('disabled','disabled');
         }
       });
       if (this.userAddress) {
         el.value = this.userAddress;
+      }
+
+      if (cipher) {
+        this.cipher = true;
+
+        // Cipher button
+        var cipherButton = setupButton(element, 'rs-cipher', 'cipherIcon', this.events.cipher);
+
+        // Handle cipherButton state
+        element.querySelector('form.remotestorage-cipher-form').userSecretKey.addEventListener('keyup', function(event) {
+          if (event.target.value) {
+            cipherButton.removeAttribute('disabled');
+          } else {
+            cipherButton.setAttribute('disabled','disabled');
+          }
+        });
+
+        // No cipher button
+        setupButton(element, 'rs-nocipher', 'nocipherIcon', this.events.nocipher);
       }
 
       // The cube
@@ -216,6 +253,8 @@
         var cube = this.cube;
         var info = message || t("view_info");
 
+        cube.src = RemoteStorage.Assets.remoteStorageIcon;
+
         this._renderTranslatedInitialContent();
 
         if (message) {
@@ -231,6 +270,10 @@
           this.hideBubble();
         }
         this.div.className = "remotestorage-state-initial";
+
+        if (this.userSecretKey) {
+          delete this.userSecretKey;
+        }
 
         // Google Drive and Dropbox icons
         var backends = 1;
@@ -258,14 +301,38 @@
         this.div.removeEventListener('click', this.events.connect);
         this.div.className = "remotestorage-state-authing";
         this.div.querySelector('.rs-status-text').innerHTML = t("view_connecting", this.userAddress);
-        addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone, when is that neccesary
+        addClass(this.cube, 'remotestorage-loading');
       },
 
       connected: function() {
+        var cube = this.cube;
         this.div.className = "remotestorage-state-connected";
         this.div.querySelector('.userAddress').innerHTML = this.userAddress;
-        this.cube.src = RemoteStorage.Assets.remoteStorageIcon;
-        removeClass(this.cube, 'remotestorage-loading');
+        cube.src = RemoteStorage.Assets.remoteStorageIcon;
+        removeClass(cube, 'remotestorage-loading');
+
+        if (this.cipher) {
+          if (this.userSecretKey) {
+            if (this.userSecretKeyError) {
+              cube.src = RemoteStorage.Assets.remoteStorageIconError;
+              addClass(this.div.querySelector('.remotestorage-connected'), 'remotestorage-cipher');
+              addClass(this.div.querySelector('.remotestorage-invalid-key'), 'remotestorage-cipher-error');
+              this.showBubble();
+
+              // Show the red error cube for 5 seconds, then show the normal orange one again
+              setTimeout(function(){
+                cube.src = RemoteStorage.Assets.remoteStorageIcon;
+              },5000);
+            } else {
+              removeClass(this.div.querySelector('.remotestorage-invalid-key'), 'remotestorage-cipher-error');
+              cube.src = RemoteStorage.Assets.remoteStorageIconCiphered;
+            }
+          } else {
+            addClass(this.div.querySelector('.remotestorage-connected'), 'remotestorage-cipher');
+            this.showBubble();
+          }
+        }
+
         var icons = {
           googledrive: this.div.querySelector('.rs-googledrive'),
           dropbox: this.div.querySelector('.rs-dropbox')
@@ -279,10 +346,27 @@
         }
       },
 
+      ciphered: function() {
+        this.div.querySelector('form.remotestorage-cipher-form').userSecretKey.value = '';
+        removeClass(this.div.querySelector('.remotestorage-invalid-key'), 'remotestorage-cipher-error');
+        removeClass(this.div.querySelector('.remotestorage-connected'), 'remotestorage-cipher');
+        this.cube.src = RemoteStorage.Assets.remoteStorageIconCiphered;
+        this.hideBubble();
+      },
+
+      notciphered: function() {
+        this.cipher = false;
+        removeClass(this.div.querySelector('.remotestorage-invalid-key'), 'remotestorage-cipher-error');
+        removeClass(this.div.querySelector('.remotestorage-connected'), 'remotestorage-cipher');
+        this.hideBubble();
+      },
+
       busy: function() {
         this.div.className = "remotestorage-state-busy";
-        addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
-        this.hideBubble();
+        addClass(this.cube, 'remotestorage-loading');
+        if (!this.cipher) {
+          this.hideBubble();
+        }
       },
 
       offline: function() {
@@ -323,7 +407,29 @@
       connect: function(event) {
         stopPropagation(event);
         event.preventDefault();
-        this._emit('connect', this.div.querySelector('form').userAddress.value);
+        this._emit('connect', this.div.querySelector('form.remotestorage-initial').userAddress.value);
+      },
+
+    /**
+     * Event: cipher
+     *
+     * Emitted when the cipher button is clicked
+     **/
+      cipher: function(event) {
+        stopPropagation(event);
+        event.preventDefault();
+        this._emit('cipher', this.div.querySelector('form.remotestorage-cipher-form').userSecretKey.value);
+      },
+
+    /**
+     * Event: nocipher
+     *
+     * Emitted when the nocipher button is clicked
+     **/
+      nocipher: function(event) {
+        stopPropagation(event);
+        event.preventDefault();
+        this._emit('nocipher');
       },
 
       /**
@@ -380,6 +486,7 @@
       this.div.querySelector('.remotestorage-reset').innerHTML = t("view_get_me_out");
       this.div.querySelector('.rs-error-plz-report').innerHTML = t("view_error_plz_report");
       this.div.querySelector('.remotestorage-unauthorized').innerHTML = t("view_unauthorized");
+      this.div.querySelector('.remotestorage-invalid-key').innerHTML = t("view_invalid_key");
     },
 
     _activateBackend: function activateBackend(backendName) {

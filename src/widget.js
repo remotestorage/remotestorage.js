@@ -76,8 +76,9 @@
     * Parameters:
     *
     *   domID
+    *   cipher
     **/
-    display: function(domID) {
+    display: function(domID, cipher) {
       if (! this.view) {
         this.setView(new RemoteStorage.Widget.View(this.rs));
       }
@@ -110,7 +111,18 @@
           this.rs[options.special].connect(options);
         }
       }.bind(this));
+
+      this.view.on('cipher', function(secretKey) {
+        this.view.setUserSecretKey(secretKey);
+        stateSetter(this, 'ciphered')();
+      }.bind(this));
+
+      this.view.on('nocipher', function() { 
+        stateSetter(this, 'notciphered')();
+      }.bind(this));
+
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
+
       this.linkWidgetToSync();
       try {
         this.view.on('reset', function(){
@@ -138,8 +150,8 @@
    *
    * Same as <display>
    **/
-  RemoteStorage.prototype.displayWidget = function(domID) {
-    return this.widget.display(domID);
+  RemoteStorage.prototype.displayWidget = function(domID, cipher) {
+    return this.widget.display(domID, cipher);
   };
 
   RemoteStorage.Widget._rs_init = function(remoteStorage) {
