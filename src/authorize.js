@@ -1,7 +1,5 @@
 (function(global) {
 
-  var IMPLIED_FAKE_TOKEN = false;
-
   function extractParams() {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
     var location = RemoteStorage.Authorize.getLocation(),
@@ -21,7 +19,7 @@
   RemoteStorage.ImpliedAuth = function(storageApi, redirectUri) {
     RemoteStorage.log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
     // Set a fixed access token, signalling to not send it as Bearer
-    remoteStorage.remote.configure(undefined, undefined, undefined, IMPLIED_FAKE_TOKEN);
+    remoteStorage.remote.configure(undefined, undefined, undefined, RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN);
     document.location = redirectUri;
   };
 
@@ -39,6 +37,8 @@
     url += '&response_type=token';
     RemoteStorage.Authorize.setLocation(url);
   };
+
+  RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN = false;
 
   RemoteStorage.prototype.authorize = function(authURL) {
     this.access.setStorageType(this.remote.storageType);
