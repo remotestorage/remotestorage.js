@@ -369,7 +369,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "test storeObject",
+        desc: "storeObject adds @context and sets application/json Content-Type",
         run: function(env, test) {
           env.client.declareType('test', {});
           env.storage.put = function(path, body, contentType, incoming) {
@@ -393,7 +393,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "test declareType, storeObject with custom URI",
+        desc: "when declareType is called with a custom URI, storeObject sets that in @context",
         run: function(env, test) {
           env.storage.put = function(path, body, contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar');
