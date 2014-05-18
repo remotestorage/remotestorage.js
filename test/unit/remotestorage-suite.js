@@ -265,6 +265,44 @@ define([], function() {
           });
           env.rs.connect("someone@timeout");
         }
+      },
+
+      {
+        desc: "maxAge defaults to false when not connected",
+        run: function(env, test) {
+          var rs = {
+            get: RemoteStorage.SyncedGetPutDelete.get,
+            local: {
+              get: function(path, maxAge) {
+                test.assertAnd(path, 'foo');
+                test.assertAnd(maxAge, false);
+                test.done();
+              }
+            },
+            connected: false
+          };
+          rs.get('foo');
+        }
+      },
+      {
+        desc: "maxAge defaults to 2*getSyncInterval when connected",
+        run: function(env, test) {
+          var rs = {
+            get: RemoteStorage.SyncedGetPutDelete.get,
+            local: {
+              get: function(path, maxAge) {
+                test.assertAnd(path, 'foo');
+                test.assertAnd(maxAge, 34222);
+                test.done();
+              }
+            },
+            connected: true,
+            getSyncInterval: function() {
+              return 17111;
+            }
+          };
+          rs.get('foo');
+        }
       }
     ]
   });

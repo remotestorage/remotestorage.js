@@ -197,6 +197,8 @@
     }.bind(this));
   };
 
+  RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
+
   RemoteStorage.DiscoveryError = function(message) {
     Error.apply(this, arguments);
     this.message = message;
