@@ -43,7 +43,7 @@ Start by defining a module (check out the repo to reuse an existing one):
     remoteStorage[name].func1()...
 ````
 
-# Custom backends and widgets
+# Customization
 
 ````js
     RemoteStorage.config.changeEvents = {
@@ -52,7 +52,7 @@ Start by defining a module (check out the repo to reuse an existing one):
       remote: true,
       conflict: true
     };
-    RemoteStorage._log = false;
+    RemoteStorage.config.logging = false;
     remoteStorage.on('ready', ...)
     remoteStorage.setApiKeys(backend, keys);
     remoteStorage.connect('user@host'[, backend]);
