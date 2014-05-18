@@ -121,6 +121,21 @@
 
     get: function(path, maxAge) {
       var promise = promising();
+      if (maxAge === undefined) {
+        if (this.storage.connected) {
+          maxAge = 2*this.storage.getSyncInterval();
+        } else {
+          maxAge = false;
+        }
+      }
+      var maxAgeInvalid = function(maxAge) {
+        return maxAge !== false && typeof(maxAge) !== 'number';
+      };
+
+      if (maxAgeInvalid(maxAge)) {
+        promise.reject('Argument \'maxAge\' of baseClient.getListing must be false or a number');
+        return promise;
+      }
 
       if (typeof(maxAge) === 'number') {
         this.getNodes(pathsFromRoot(path)).then(function(objs) {
