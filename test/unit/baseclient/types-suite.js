@@ -70,7 +70,7 @@ define([], function() {
       },
 
       {
-        desc: "default @context is http://remotestorage.io/spec/modules/{module}/{type}",
+        desc: "_attachType attaches default context to object",
         run: function(env, test) {
           var obj = {
             some: 'value'
