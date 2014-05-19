@@ -286,6 +286,17 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       },
 
       {
+        desc: "#get responds with status 304 if the file has not changed",
+        run: function(env, test) {
+          env.connectedClient._revCache.set('/foo/bar', 'foo');
+          env.connectedClient.get('/foo/bar', { ifNoneMatch: 'foo' }).
+            then(function(status) {
+              test.assert(status, 304);
+            });
+        }
+      },
+
+      {
         desc: "#put causes the revision to propagate down in revCache",
         run: function(env, test) {
           env.connectedClient._revCache.set('/foo/', 'foo');
@@ -302,6 +313,174 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
               path: '/foo/bar',
               rev: 'bar'
             });
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#put responds with status 412 if ifMatch condition fails",
+        run: function(env, test) {
+          env.connectedClient._revCache.set('/foo/bar', 'bar');
+          env.connectedClient.put('/foo/bar', 'data', 'text/plain', { ifMatch: 'foo' }).
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assertAnd(rev, 'bar');
+            });
+
+          env.connectedClient._revCache.set('/foo/baz', 'foo');
+          env.connectedClient.put('/foo/baz', 'data', 'text/plain', { ifMatch: 'foo' }).
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assert(rev, 'bar');
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              rev: 'bar'
+            });
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#put responds with status 412 if ifNoneMatch condition fails",
+        run: function(env, test) {
+          env.connectedClient._revCache.set('/foo/bar', 'foo');
+          env.connectedClient.put('/foo/bar', 'data', 'text/plain', { ifNoneMatch: '*' }).
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assertAnd(rev, 'foo');
+            });
+
+          env.connectedClient.put('/foo/baz', 'data', 'text/plain', { ifNoneMatch: '*' }).
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assert(rev, 'foo');
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              hash: 'hash123',
+              rev: 'foo'
+            });
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#put responds with status 200 on successful put",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', 'data', 'text/plain').
+            then(function(status) {
+              test.assert(status, 200);
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              path: '/foo/bar'
+            });
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#put correctly handles a conflict after metadata check",
+        run: function(env, test) {
+          var waitlist = [];
+
+          // PUT
+          waitlist.push(function(req) {
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              path: '/foo/bar_2'
+            });
+            setTimeout(function() {
+              req._onload();
+            }, 10);
+          });
+
+          // delete
+          waitlist.push(function(req) {
+            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Ffoo%2Fbar_2', true]);
+          });
+
+          // metadata
+          waitlist.push(function(req) {
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              rev: 'foo'
+            });
+            setTimeout(function() {
+              req._onload();
+            }, 10);
+          });
+
+          env.connectedClient.put('/foo/bazz', 'data', 'text/plain').
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assert(rev, 'foo');
+            });
+
+          (function handleWaitlist() {
+            if (waitlist.length > 0) {
+              if (XMLHttpRequest.instances.length > 0) {
+                waitlist.shift()(XMLHttpRequest.instances.shift());
+              }
+              setTimeout(handleWaitlist, 5);
+            }
+          })();
+        }
+      },
+
+      {
+        desc: "#delete returns status 412 if ifMatch condition fails",
+        run: function(env, test) {
+          env.connectedClient._revCache.set('/foo/bar', 'bar');
+          env.connectedClient.delete('/foo/bar', { ifMatch: 'foo' }).
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assertAnd(rev, 'bar');
+            });
+
+          env.connectedClient._revCache.set('/foo/baz', 'foo');
+          env.connectedClient.delete('/foo/baz', { ifMatch: 'foo' }).
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assert(rev, 'bar');
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              hash: 'hash123',
+              rev: 'bar'
+            });
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#delete properly deletes file, removes it from revCache and responds with 200",
+        run: function(env, test) {
+          env.connectedClient._revCache.set('/foo/bar', 'foo');
+          env.connectedClient.delete('/foo/bar').
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 200);
+              test.assert(env.connectedClient._revCache.get('/foo/bar'), 'rev');
+            });
+
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Ffoo%2Fbar', true]);
             req._onload();
           }, 100);
         }
