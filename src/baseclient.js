@@ -382,7 +382,7 @@
      *   Now that is what the *type* is for.
      *
      *   Within remoteStorage.js, @context values are built using three components:
-     *     http://remotestorage.io/spec/modules/ - A prefix to guarantee unqiueness
+     *     http://remotestorage.io/spec/modules/ - A prefix to guarantee uniqueness
      *     the module name     - module names should be unique as well
      *     the type given here - naming this particular kind of object within this module
      *
