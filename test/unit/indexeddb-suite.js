@@ -11,6 +11,9 @@ define(['requirejs'], function(requirejs) {
       require('./lib/promising');
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
+      global.RemoteStorage.config = {
+        changeEvents: { local: true, window: false, remote: true, conflict: true }
+      };
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;

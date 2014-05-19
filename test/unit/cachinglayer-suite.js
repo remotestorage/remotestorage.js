@@ -11,6 +11,9 @@ define(['requirejs'], function(requirejs) {
       require('./lib/promising');
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
+      global.RemoteStorage.config = {
+        changeEvents: { local: true, window: false, remote: true, conflict: true }
+      };
 
       require('./src/eventhandling');
       if ( global.rs_eventhandling ) {
@@ -199,6 +202,44 @@ define(['requirejs'], function(requirejs) {
               test.done();
             });
           });
+        }
+      },
+
+      {
+        desc: "_emitChange emits change events",
+        run: function(env, test) {
+          var changeEvent = {
+            path:   '/foo',
+            origin: 'local'
+          };
+
+          env.ims.on('change', function(event) {
+            test.assert(event, changeEvent);
+          });
+
+          env.ims._emitChange(changeEvent);
+        }
+      },
+
+      {
+        desc: "_emitChange doesn't emit events that are not enabled",
+        run: function(env, test) {
+          var changeEvent = {
+            path:   '/foo',
+            origin: 'local'
+          };
+
+          RemoteStorage.config.changeEvents.local = false;
+
+          env.ims.on('change', function(event) {
+            test.result(false, 'change event should not have been fired');
+          });
+
+          env.ims._emitChange(changeEvent);
+
+          setTimeout(function() {
+            test.done();
+          }, 10);
         }
       }
     ]
