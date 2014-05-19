@@ -138,11 +138,11 @@
     },
 
     _defaultTypeURI: function(alias) {
-      return 'http://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+      return 'http://remotestorage.io/spec/modules/' + encodeURIComponent(this.moduleName) + '/' + encodeURIComponent(alias);
     },
 
     _attachType: function(object, alias) {
-      object['@context'] = RemoteStorage.BaseClient.Types.resolveAlias(alias) || this._defaultTypeURI(alias);
+      object['@context'] = RemoteStorage.BaseClient.Types.resolveAlias(this.moduleName + '/' + alias) || this._defaultTypeURI(alias);
     }
   });
 
