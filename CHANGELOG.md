@@ -33,6 +33,7 @@ system. Old cached data will be converted to the new format automatically.
 * Widget only pulses when syncing changes (#437)
 * Fire `connected` event on startup if remote already connected
 * Fix error on remoteStorage.local.reset (#630)
+* Fix handling of custom JSON-LD contexts for types (#661)
 
 ## 0.9.0 (December 2013)
 
