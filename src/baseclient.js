@@ -154,7 +154,7 @@
       }
       return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
-          return (status === 404) ? undefined : body;
+          return (status === 404) ? {} : body;
         }
       );
     },
@@ -192,7 +192,7 @@
       }
 
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
-        if (status === 404) { return; }
+        if (status === 404) { return {}; }
         if (typeof(body) === 'object') {
           var promise = promising();
           var count = Object.keys(body).length, i = 0;

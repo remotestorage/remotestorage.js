@@ -144,11 +144,11 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#getListing results in 'undefined' when it sees '404'",
+        desc: "#getListing results in an empty object when it sees '404'",
         run: function(env, test) {
           env.storage.get = function(path) { return promising().fulfill(404); };
           env.client.getListing('bar/').then(function(result) {
-            test.assertType(result, 'undefined');
+            test.assert(result, {});
           });
         }
       },
@@ -206,25 +206,13 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#getListing results in 'undefined' when it sees a 404",
-        run: function(env, test) {
-          env.storage.get = function(path) {
-            return promising().fulfill(404);
-          };
-          env.client.getListing('').then(function(result) {
-            test.assertType(result, 'undefined');
-          });
-        }
-      },
-
-      {
-        desc: "#getAll results in 'undefined' when it sees a 404",
+        desc: "#getAll returns an empty object when it sees a 404",
         run: function(env, test) {
           env.storage.get = function(path) {
             return promising().fulfill(404);
           };
           env.client.getAll('').then(function(result) {
-            test.assertType(result, 'undefined');
+            test.assert(result, {});
           });
         }
       },
