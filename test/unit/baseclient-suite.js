@@ -36,12 +36,13 @@ define(['requirejs'], function(requirejs, undefined) {
       }
 
       require('./lib/Math.uuid');
+      require('./lib/tv4');
       require('./src/baseclient');
       require('./src/baseclient/types');
-      if (global.rs_types) {
-        RemoteStorage.BaseClient.Types = global.rs_types;
+      if (global.rs_baseclient_with_types) {
+        RemoteStorage.BaseClient = global.rs_baseclient_with_types;
       } else {
-        global.rs_types = RemoteStorage.BaseClient.Types;
+        global.rs_baseclient_with_types = RemoteStorage.BaseClient;
       }
       test.done();
     },
@@ -343,17 +344,56 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "test storeObject",
+        desc: "storeObject rejects promise with tv4 validation result when object invalid",
         run: function(env, test) {
+          env.client.declareType('todo-item', 'http://to.do/spec/item', {
+            type: 'object',
+            properties: {
+              locale: { type: 'string'}
+            },
+            required: ['locale']
+          });
+          env.client.storeObject('todo-item', 'foo/bar', {test: 1}).then(function() {
+            test.result(false, 'should have rejected');
+          }, function(err) {
+            test.assertAnd(err.error.message, "Missing required property: locale");
+            test.assert(err.valid, false);
+          });
+        }
+      },
+
+      {
+        desc: "storeObject adds @context and sets application/json Content-Type",
+        run: function(env, test) {
+          env.client.declareType('test', {});
           env.storage.put = function(path, body, contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar');
-            test.assertAnd(body.test, 1);
+            test.assertAnd(body, {
+              test: 1,
+              '@context': 'http://remotestorage.io/spec/modules/foo/test'
+            });
             test.assertAnd(contentType, 'application/json; charset=UTF-8');
-            test.assertType(incoming, 'undefined');
             test.result(true);
             return promising().fulfill(200);
           };
           env.client.storeObject('test', 'foo/bar', {test: 1});
+        }
+      },
+
+      {
+        desc: "storeObject adds correct @context for types with custom context",
+        run: function(env, test) {
+          env.storage.put = function(path, body, contentType, incoming) {
+            test.assertAnd(path, '/foo/foo/bar');
+            test.assertAnd(body, {
+              test: 1,
+              '@context': 'http://to.do/spec/item'
+            });
+            test.result(true);
+            return promising().fulfill(200);
+          };
+          env.client.declareType('todo-item', 'http://to.do/spec/item', {});
+          env.client.storeObject('todo-item', 'foo/bar', {test: 1});
         }
       },
 
