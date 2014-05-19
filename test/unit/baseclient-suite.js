@@ -36,6 +36,7 @@ define(['requirejs'], function(requirejs, undefined) {
       }
 
       require('./lib/Math.uuid');
+      require('./lib/tv4');
       require('./src/baseclient');
       require('./src/baseclient/types');
       if (global.rs_baseclient_with_types) {
@@ -343,7 +344,7 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "test declareType, storeObject violating schema",
+        desc: "storeObject rejects promise with tv4 validation result when object invalid",
         run: function(env, test) {
           env.client.declareType('todo-item', 'http://to.do/spec/item', {
             type: 'object',
@@ -352,18 +353,11 @@ define(['requirejs'], function(requirejs, undefined) {
             },
             required: ['locale']
           });
-          tv4 = {
-            validateResult: function(object, schema) {
-              test.assertAnd(object, { test: 1, '@context': 'http://to.do/spec/item' });
-              test.assertAnd(schema, { type: 'object', properties: { locale: { type: 'string'} }, required: ['locale'] });
-              throw new Error('tv4 validation failed');
-            }
-          };
           env.client.storeObject('todo-item', 'foo/bar', {test: 1}).then(function() {
             test.result(false, 'should have rejected');
           }, function(err) {
-            test.assertAnd(err.message, 'tv4 validation failed');
-            test.done();
+            test.assertAnd(err.error.message, "Missing required property: locale");
+            test.assert(err.valid, false);
           });
         }
       },
@@ -379,21 +373,15 @@ define(['requirejs'], function(requirejs, undefined) {
               '@context': 'http://remotestorage.io/spec/modules/foo/test'
             });
             test.assertAnd(contentType, 'application/json; charset=UTF-8');
-            test.assertType(incoming, 'undefined');
             test.result(true);
             return promising().fulfill(200);
-          };
-          tv4 = {
-            validateResult: function(object, schema) {
-              return { valid: true };
-            }
           };
           env.client.storeObject('test', 'foo/bar', {test: 1});
         }
       },
 
       {
-        desc: "when declareType is called with a custom URI, storeObject sets that in @context",
+        desc: "storeObject adds correct @context for types with custom context",
         run: function(env, test) {
           env.storage.put = function(path, body, contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar');
@@ -401,8 +389,6 @@ define(['requirejs'], function(requirejs, undefined) {
               test: 1,
               '@context': 'http://to.do/spec/item'
             });
-            test.assertAnd(contentType, 'application/json; charset=UTF-8');
-            test.assertType(incoming, 'undefined');
             test.result(true);
             return promising().fulfill(200);
           };
