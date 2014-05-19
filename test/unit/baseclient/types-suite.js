@@ -33,7 +33,6 @@ define([], function() {
         global.rs_wireclient = RemoteStorage.WireClient;
       }
 
-      require('./lib/Math.uuid');
       require('./src/baseclient');
       require('./src/baseclient/types');
       if (global.rs_baseclient_with_types) {
@@ -70,7 +69,24 @@ define([], function() {
       },
 
       {
-        desc: "_attachType attaches default context to object",
+        desc: "_attachType attaches default context to objects",
+        run: function(env, test) {
+          var obj = {
+            some: 'value'
+          };
+          env.storage = new RemoteStorage();
+          env.client = new RemoteStorage.BaseClient(env.storage, '/contacts/');
+          env.client._attachType(obj, 'contact');
+          test.assertAnd(obj, {
+            some: 'value',
+            '@context': 'http://remotestorage.io/spec/modules/contacts/contact'
+          });
+          test.done();
+        }
+      },
+
+      {
+        desc: "_attachType encodes special characters in type names for @context URI",
         run: function(env, test) {
           var obj = {
             some: 'value'
