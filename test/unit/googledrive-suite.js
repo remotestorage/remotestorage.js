@@ -205,6 +205,24 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       },
 
       {
+        desc: "#get responds with 304 if the file has not changed",
+        run: function(env, test) {
+          env.connectedClient._fileIdCache.set('/foo', 'foo_id');
+          env.connectedClient.get('/foo', { ifNoneMatch: 'foo' }).
+            then(function(status) {
+              test.assert(status, 304);
+            });
+
+          var reqMeta = XMLHttpRequest.instances.shift();
+          reqMeta.status = 200;
+          reqMeta.responseText = JSON.stringify({
+            etag: '"foo"'
+          });
+          reqMeta._onload();
+        }
+      },
+
+      {
         desc: "#get to 404 document results in error",
         run: function(env, test) {
           env.connectedClient.get('/foo').then(function(status, body, contentType) {
@@ -229,6 +247,35 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           var req = XMLHttpRequest.instances.shift();
           req.status = 404;
           req._onload();
+        }
+      },
+
+      {
+        desc: "#put responds with 412 if ifNoneMatch condition fails",
+        run: function(env, test) {
+          env.connectedClient._fileIdCache.set('/foo', 'foo_id');
+          env.connectedClient.put('/foo', 'data', 'text/plain', { ifNoneMatch: '*' }).
+            then(function(status) {
+              test.assert(status, 412);
+            });
+        }
+      },
+
+      {
+        desc: "#delete responds with 412 if ifMatch condition fails",
+        run: function(env, test) {
+          env.connectedClient._fileIdCache.set('/foo', 'foo_id');
+          env.connectedClient.delete('/foo', { ifMatch: 'foo_id' }).
+            then(function(status) {
+              test.assert(status, 412);
+            });
+
+          var reqMeta = XMLHttpRequest.instances.shift();
+          reqMeta.status = 200;
+          reqMeta.responseText = JSON.stringify({
+            etag: '"foo"'
+          });
+          reqMeta._onload();
         }
       }
 
