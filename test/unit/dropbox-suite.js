@@ -286,6 +286,28 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       },
 
       {
+        desc: "#put causes the revision to propagate down in revCache",
+        run: function(env, test) {
+          env.connectedClient._revCache.set('/foo/', 'foo');
+          env.connectedClient._revCache.set('/foo/bar', 'foo');
+          env.connectedClient.put('/foo/bar', 'data', 'text/plain').
+            then(function(status) {
+              test.assertAnd(env.connectedClient._revCache.get('/foo/'), 'bar');
+              test.assert(env.connectedClient._revCache.get('/foo/bar'), 'bar');
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              path: '/foo/bar',
+              rev: 'bar'
+            });
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
         desc: "WireClient destroys the bearer token after Unauthorized Error",
         run: function(env, test){
           env.rs._emit('error', new RemoteStorage.Unauthorized());
