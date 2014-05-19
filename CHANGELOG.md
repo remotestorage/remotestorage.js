@@ -43,6 +43,7 @@ system. Old cached data will be converted to the new format automatically.
 * Support non-ascii filenames in the Dropbox backend (#628)
 * When no widget is present, log undisplayed errors (#639)
 * Restore the document fragment (hash URL) after the OAuth dance (#646)
+* Fix handling of custom JSON-LD contexts for types (#661)
 
 ## 0.9.0 (December 2013)
 
