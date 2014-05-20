@@ -33,6 +33,7 @@ system. Old cached data will be converted to the new format automatically.
   for details. `caching.enable(path)` will use 'ALL' by default.
 * The sync interval now reacts to the page visibility in your browser (#462)
 * Choose from which origins change events are emitted via `RemoteStorage.config.changeEvents`
+* Support for browser implied authentication
 
 ### Bugfixes
 
