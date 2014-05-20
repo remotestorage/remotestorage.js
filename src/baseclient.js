@@ -229,7 +229,7 @@
      *
      * Parameters:
      *   path     - see getObject
-     *   maxAge - Either false or the maximum age of cached listing in
+     *   maxAge - Either false or the maximum age of cached file in
      *            milliseconds. Defaults to false in anonymous mode and to
      *            2*syncInterval in connected mode
      *
@@ -331,7 +331,7 @@
      *
      * Parameters:
      *   path     - relative path from the module root (without leading slash)
-     *   maxAge - Either false or the maximum age of cached listing in
+     *   maxAge - Either false or the maximum age of cached object in
      *            milliseconds. Defaults to false in anonymous mode and to
      *            2*syncInterval in connected mode
      *
