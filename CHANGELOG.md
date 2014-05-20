@@ -15,6 +15,8 @@ system. Old cached data will be converted to the new format automatically.
 * `disconnect` event removed in favor of `disconnected`
 * `remoteStorage.claimAccess` removed in favor of `remoteStorage.access.claim`
 * `BaseClient#use` and `BaseClient#release` removed in favor of `BaseClient#cache`
+* Change events with origin 'local' and 'window' are not disabled by default
+* The config variable `RemoteStorage._log` was renamed to `RemoteStorage.config.logging`
 
 ### New features
 
@@ -30,6 +32,7 @@ system. Old cached data will be converted to the new format automatically.
   [caching documentation](http://remotestorage.io/doc/code/files/caching-js.html)
   for details. `caching.enable(path)` will use 'ALL' by default.
 * The sync interval now reacts to the page visibility in your browser (#462)
+* Choose from which origins change events are emitted via `RemoteStorage.config.changeEvents`
 
 ### Bugfixes
 
