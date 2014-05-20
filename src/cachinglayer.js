@@ -63,10 +63,10 @@
     }
   }
 
-  function isOutdated(objs, maxAge) {
-    var i, node;
-    for (i in objs) {
-      node = getLatest(objs[i]);
+  function isOutdated(nodes, maxAge) {
+    var path, node;
+    for (path in nodes) {
+      node = getLatest(nodes[path]);
       if (node && node.timestamp && (new Date().getTime()) - node.timestamp <= maxAge) {
         return false;
       } else if (!node) {
