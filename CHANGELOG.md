@@ -15,7 +15,7 @@ system. Old cached data will be converted to the new format automatically.
 * `disconnect` event removed in favor of `disconnected`
 * `remoteStorage.claimAccess` removed in favor of `remoteStorage.access.claim`
 * `BaseClient#use` and `BaseClient#release` removed in favor of `BaseClient#cache`
-* Change events with origin 'local' and 'window' are not disabled by default
+* Change events with origin 'window' are now disabled by default
 * The config variable `RemoteStorage._log` was renamed to `RemoteStorage.config.logging`
 
 ### New features
