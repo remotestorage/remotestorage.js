@@ -144,6 +144,34 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
+        desc: "#get returns local data if it's newer than the maxAge param",
+        run: function(env, test) {
+          env.rs.local._storage['/note'] = {
+            path: '/note',
+            common: {
+              timestamp: new Date().getTime(),
+              body: 'cached note',
+              contentType: 'text/plain',
+              revision: '123'
+            }
+          };
+
+          env.rs.sync = {
+            queueGetRequest: function(path, promise) {
+              test.result(false, 'should have been served from local cache');
+            }
+          };
+
+          env.rs.local.get('/note', 10000).then(function(status, body, contentType) {
+            test.assertAnd(status, 200);
+            test.assertAnd(body, 'cached note');
+            test.assertAnd(contentType, 'text/plain');
+            test.done();
+          });
+        }
+      },
+
+      {
         desc: "#put yields 200 and stores the node",
         run: function(env, test) {
           env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {
