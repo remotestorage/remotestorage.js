@@ -119,8 +119,8 @@ define(['requirejs'], function(requirejs) {
             path: '/foo',
             common: {
               timestamp: 1234567890123,
-              body: 'asdf',
-              contentType: 'qwer',
+              body: 'old body',
+              contentType: 'text/old',
               revision: '123'
             }
           };
@@ -129,15 +129,15 @@ define(['requirejs'], function(requirejs) {
             queueGetRequest: function(path, promise) {
               test.assertAnd(path, '/foo');
               requestQueued = true;
-              promise.fulfill(200, 'asdf', 'qwer');
+              promise.fulfill(200, 'new body', 'text/new');
             }
           };
 
           env.rs.local.get('/foo', 100).then(function(status, body, contentType) {
             test.assertAnd(requestQueued, true);
             test.assertAnd(status, 200);
-            test.assertAnd(body, 'asdf');
-            test.assertAnd(contentType, 'qwer');
+            test.assertAnd(body, 'new body');
+            test.assertAnd(contentType, 'text/new');
             test.done();
           });
         }
