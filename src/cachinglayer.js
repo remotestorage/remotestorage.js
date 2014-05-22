@@ -132,7 +132,9 @@
           } else {
             promise.fulfill(404);
           }
-        }.bind(this));
+        }.bind(this), function(err) {
+          promise.reject(err);
+        });
       } else {
         this.getNodes([path]).then(function(objs) {
           var node = getLatest(objs[path]);
@@ -141,7 +143,9 @@
           } else {
             promise.fulfill(404);
           }
-        }.bind(this));
+        }.bind(this), function(err) {
+          promise.reject(err);
+        });
       }
       return promise;
     },

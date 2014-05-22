@@ -182,6 +182,23 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
+        desc: "#get rejects the promise when there is an error reading the local data",
+        run: function(env, test) {
+          env.rs.local.getNodes = function(paths) {
+            return promising().reject('Could not read local data');
+          };
+
+          env.rs.local.get('/note').then(function(status, body, contentType) {
+            test.result(false);
+            test.done();
+          }, function(error) {
+            test.assertAnd('Could not read local data', error);
+            test.done();
+          });
+        }
+      },
+
+      {
         desc: "#put yields 200 and stores the node",
         run: function(env, test) {
           env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {
