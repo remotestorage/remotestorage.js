@@ -38,7 +38,7 @@
 
         if (maxAgeInvalid(maxAge)) {
           var promise = promising();
-          promise.reject('Argument \'maxAge\' of baseClient.getListing must be false or a number');
+          promise.reject('Argument \'maxAge\' must be false or a number');
           return promise;
         }
         return this.local.get(path, maxAge);
