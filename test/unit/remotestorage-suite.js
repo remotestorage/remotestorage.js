@@ -63,9 +63,14 @@ define([], function() {
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-      require('./src/remotestorage');
-      require('./src/eventhandling');
       require('./lib/promising');
+      require('./src/remotestorage');
+      if (global.rs_rs) {
+        RemoteStorage = global.rs_rs;
+      } else {
+        global.rs_rs = RemoteStorage;
+      }
+      require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
