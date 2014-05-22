@@ -166,16 +166,16 @@
      * Get all objects directly below a given path.
      *
      * Parameters:
-     *   path   - path to the folder
+     *   path   - Path to the folder.
      *   maxAge - Either false or the maximum age of cached objects in
      *            milliseconds. Defaults to false in anonymous mode and to
-     *            2*syncInterval in connected mode
+     *            2*syncInterval in connected mode.
      *
      * Returns:
-     *   a promise for an object in the form { path : object, ... }. If the maxAge
-     *   requirement cannot be met because of network problems, this promise
-     *   will be rejected. If the maxAge requirement is set to false, the
-     *   promise will alway be fulfilled with data from the local store.
+     *   A promise for an object in the form { path : object, ... }. If the
+     *   maxAge requirement cannot be met because of network problems, this
+     *   promise will be rejected. If the maxAge requirement is set to false,
+     *   the promise will always be fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
@@ -228,10 +228,10 @@
      * getObject.
      *
      * Parameters:
-     *   path     - see getObject
+     *   path   - See getObject.
      *   maxAge - Either false or the maximum age of cached file in
      *            milliseconds. Defaults to false in anonymous mode and to
-     *            2*syncInterval in connected mode
+     *            2*syncInterval in connected mode.
      *
      * Returns:
      *   A promise for an object:
@@ -330,16 +330,16 @@
      * Get a JSON object from given path.
      *
      * Parameters:
-     *   path     - relative path from the module root (without leading slash)
+     *   path   - Relative path from the module root (without leading slash).
      *   maxAge - Either false or the maximum age of cached object in
      *            milliseconds. Defaults to false in anonymous mode and to
-     *            2*syncInterval in connected mode
+     *            2*syncInterval in connected mode.
      *
      * Returns:
-     *   A promise for the object. If the maxAge
-     *   requirement cannot be met because of network problems, this promise
-     *   will be rejected. If the maxAge requirement is set to false, the
-     *   promise will always be fulfilled with data from the local store.
+     *   A promise for the object. If the maxAge requirement cannot be met
+     *   because of network problems, this promise will be rejected. If the
+     *   maxAge requirement is set to false, the promise will always be
+     *   fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
