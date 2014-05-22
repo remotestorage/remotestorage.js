@@ -111,14 +111,24 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#get gets queued as a sync request if its maxAge param cannot be satisfied because node is too old",
+        desc: "#get gets queued as a sync request if node is older than the maxAge",
         run: function(env, test) {
           var requestQueued = false;
+          var oldTimestamp = (new Date().getTime()) - 1000;
+
+          env.rs.local._storage['/'] = {
+            path: '/',
+            common: {
+              itemsMap: { foo: true },
+              timestamp: oldTimestamp,
+              revision: '123'
+            }
+          };
 
           env.rs.local._storage['/foo'] = {
             path: '/foo',
             common: {
-              timestamp: 1234567890123,
+              timestamp: oldTimestamp,
               body: 'old body',
               contentType: 'text/old',
               revision: '123'
