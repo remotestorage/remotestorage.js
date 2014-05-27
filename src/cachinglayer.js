@@ -290,7 +290,9 @@
             });
           }
         }
-      }.bind(this));
+      }.bind(this)).then(function () {
+        this._emit('values-loaded');
+      });
     },
 
     onDiff: function(diffHandler) {
