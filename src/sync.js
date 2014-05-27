@@ -753,7 +753,8 @@
         successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
         conflict:   (statusCode === 412),
         unAuth:     (statusCode === 401 || statusCode === 402 ||statusCode === 403),
-        notFound:   (statusCode === 404)
+        notFound:   (statusCode === 404),
+        changed:    (statusCode !== 304)
       };
     },
 
@@ -766,22 +767,26 @@
         }
       }
 
-      return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(dataFromFetch) {
-        if (isFolder(path)) {
-          if (this.corruptServerItemsMap(bodyOrItemsMap)) {
-            RemoteStorage.log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
-            return false;
+      if (status.changed) {
+        return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(dataFromFetch) {
+          if (isFolder(path)) {
+            if (this.corruptServerItemsMap(bodyOrItemsMap)) {
+              RemoteStorage.log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
+              return false;
+            } else {
+              return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren).then(function() {
+                return true;
+              });
+            }
           } else {
-            return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren).then(function() {
+            return this.local.setNodes(this.flush(dataFromFetch.toBeSaved)).then(function() {
               return true;
             });
           }
-        } else {
-          return this.local.setNodes(this.flush(dataFromFetch.toBeSaved)).then(function() {
-            return true;
-          });
-        }
-      }.bind(this));
+        }.bind(this));
+      } else {
+        return promising().fulfill(true);
+      }
     },
 
     handleResponse: function(path, action, statusCode, bodyOrItemsMap, contentType, revision) {
