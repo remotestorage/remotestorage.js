@@ -467,9 +467,7 @@
           nodes[path].common.timestamp = this.now();
         }
         return this.local.setNodes(this.flush(nodes));
-      }.bind(this)).then(function() {
-        return true; //completed
-      });
+      }.bind(this));
     },
 
     markChildren: function(path, itemsMap, changedNodes, missingChildren) {
@@ -796,7 +794,9 @@
           }
         }.bind(this));
       } else {
-        return this.updateCommonTimestamp(path, revision);
+        return this.updateCommonTimestamp(path, revision).then(function() {
+          return true;
+        });
       }
     },
 
