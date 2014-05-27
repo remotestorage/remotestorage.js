@@ -609,11 +609,11 @@
       var parentPath;
       var pathsFromRoot = this.local._getInternals().pathsFromRoot(path);
 
-      if (!isFolder(path)) {
+      if (isFolder(path)) {
+        paths = [path];
+      } else {
         parentPath = pathsFromRoot[1];
         paths = [path, parentPath];
-      } else {
-        paths = [path];
       }
 
       var promise = this.local.getNodes(paths).then(function(nodes) {
