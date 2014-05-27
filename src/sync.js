@@ -428,7 +428,7 @@
           } else {
             return this.autoMergeDocument(node);
           }
-        } else { // remotely created node
+        } else { // no local changes
           if (isFolder(node.path)) {
             if (node.remote.itemsMap !== undefined) {
               node.common = node.remote;
