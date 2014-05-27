@@ -461,6 +461,17 @@
       return node;
     },
 
+    updateCommonTimestamp: function(path, revision) {
+      return this.local.getNodes([path]).then(function(nodes) {
+        if (nodes[path] && nodes[path].common && nodes[path].common.revision === revision) {
+          nodes[path].common.timestamp = this.now();
+        }
+        return this.local.setNodes(this.flush(nodes));
+      }.bind(this)).then(function() {
+        return true; //completed
+      });
+    },
+
     markChildren: function(path, itemsMap, changedNodes, missingChildren) {
       var paths = [];
       var meta = {};
@@ -785,7 +796,7 @@
           }
         }.bind(this));
       } else {
-        return promising().fulfill(true);
+        return this.updateCommonTimestamp(path, revision);
       }
     },
 
