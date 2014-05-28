@@ -204,7 +204,15 @@
           for (var key in body) {
             this.storage.get(this.makePath(path + key), maxAge).
               then(function(status, b) {
-                body[this.key] = b;
+                if (typeof(b) === 'string') {
+                  try {
+                    b = JSON.parse(b);
+                  } catch (e) {
+                  }
+                }
+                if (typeof(b) === 'object') {
+                  body[this.key] = body;
+                }
                 i++;
                 if (i === count) { promise.fulfill(body); }
               }.bind({ key: key }));
