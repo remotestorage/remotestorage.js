@@ -380,10 +380,10 @@ define(['requirejs'], function(requirejs, undefined) {
           env.client.declareType('test', {});
           env.storage.put = function(path, body, contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar');
-            test.assertAnd(body, {
+            test.assertAnd(body, JSON.stringify({
               test: 1,
               '@context': 'http://remotestorage.io/spec/modules/foo/test'
-            });
+            }));
             test.assertAnd(contentType, 'application/json; charset=UTF-8');
             test.result(true);
             return promising().fulfill(200);
@@ -397,10 +397,10 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           env.storage.put = function(path, body, contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar');
-            test.assertAnd(body, {
+            test.assertAnd(body, JSON.stringify({
               test: 1,
               '@context': 'http://to.do/spec/item'
-            });
+            }));
             test.result(true);
             return promising().fulfill(200);
           };
