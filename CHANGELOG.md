@@ -35,7 +35,7 @@ system. Old cached data will be converted to the new format automatically.
 
 ### Experimental features
 
-* GoogleDrive is now supported as an experimental backend
+* Google Drive is now supported as an experimental backend
 * Dropbox is now supported as an experimental backend
 
 ### Bugfixes
