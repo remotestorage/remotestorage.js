@@ -270,14 +270,14 @@ define(['requirejs'], function(requirejs, undefined) {
             if (path === '/foo/') {
               promise.fulfill(200, { bar: true, baz: true });
             } else {
-              promise.fulfill(200, "content of " + path);
+              promise.fulfill(200, JSON.stringify({ "content of ": path }));
             }
             return promise;
           };
           env.client.getAll('').then(function(result) {
             test.assert(result, {
-              bar: "content of /foo/bar",
-              baz: "content of /foo/baz"
+              bar: { "content of ": "/foo/bar" },
+              baz: { "content of ": "/foo/baz" }
             });
           });
         }

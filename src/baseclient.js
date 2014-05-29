@@ -213,7 +213,7 @@
                   }
                 }
                 if (typeof(b) === 'object') {
-                  body[this.key] = body;
+                  body[this.key] = b;
                 }
                 i++;
                 if (i === count) { promise.fulfill(body); }
