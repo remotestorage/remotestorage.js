@@ -382,7 +382,7 @@
               this.rs.log('Dropbox created conflicting File ', response.path);
             }
             else {
-              revCache.set(path, response.rev);
+              revCache.propagateSet(path, response.rev);
               promise.fulfill(resp.status);
             }
           }
