@@ -55,7 +55,7 @@
     }
 
     RS.cachingLayer(this);
-    RS.eventHandling(this, 'change');
+    RS.eventHandling(this, 'change', 'values-loaded');
 
     this.getsRunning = 0;
     this.putsRunning = 0;
