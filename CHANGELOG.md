@@ -21,8 +21,6 @@ system. Old cached data will be converted to the new format automatically.
 ### New features
 
 * Major rewrite of the tree-based sync and caching system
-* GoogleDrive is now supported as an experimental backend
-* Dropbox is now supported as an experimental backend
 * Performance was improved, especially when storing many small objects
 * A new `maxAge` parameter is available in the various BaseClient get...
   functions, where you can specify the maximum age of cached results (in ms).
@@ -34,6 +32,11 @@ system. Old cached data will be converted to the new format automatically.
 * Add and use background sync interval, based on Page Visibility API (#462)
 * Choose from which origins change events are emitted via `RemoteStorage.config.changeEvents`
 * Support for browser implied authentication
+
+### Experimental features
+
+* GoogleDrive is now supported as an experimental backend
+* Dropbox is now supported as an experimental backend
 
 ### Bugfixes
 
