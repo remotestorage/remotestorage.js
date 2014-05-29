@@ -207,10 +207,33 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "#getListing treats undefined paths as ''",
+        run: function(env, test) {
+          env.storage.get = function(path) {
+            test.assert(path, '/foo/');
+            return promising().fulfill(404);
+          };
+          env.client.getListing();
+        }
+      },
+
+      {
         desc: "#getAll returns an empty object when it sees a 404",
         run: function(env, test) {
           env.storage.get = function(path) {
             return promising().fulfill(404);
+          };
+          env.client.getAll('').then(function(result) {
+            test.assert(result, {});
+          });
+        }
+      },
+
+      {
+        desc: "#getAll returns an empty object when there are no objects",
+        run: function(env, test) {
+          env.storage.get = function(path) {
+            return promising().fulfill(200, {});
           };
           env.client.getAll('').then(function(result) {
             test.assert(result, {});
@@ -257,17 +280,6 @@ define(['requirejs'], function(requirejs, undefined) {
               baz: "content of /foo/baz"
             });
           });
-        }
-      },
-
-      {
-        desc: "#getListing treats undefined paths as ''",
-        run: function(env, test) {
-          env.storage.get = function(path) {
-            test.assert(path, '/foo/');
-            return promising().fulfill(404);
-          };
-          env.client.getListing();
         }
       },
 
