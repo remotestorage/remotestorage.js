@@ -34,6 +34,7 @@ system. Old cached data will be converted to the new format automatically.
 * Add and use background sync interval, based on Page Visibility API (#462)
 * Choose from which origins change events are emitted via `RemoteStorage.config.changeEvents`
 * Support for browser implied authentication
+* [experimental] with `remoteStorage.displayWidget({encryption: true})`, the user will be invited to enter a secret (password) into the widget, which the app can then use for client-side encryption.
 
 ### Bugfixes
 
