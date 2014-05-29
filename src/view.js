@@ -26,8 +26,8 @@
     }
     RemoteStorage.eventHandling(this,
                                 'connect',
-                                'cipher',
-                                'nocipher',
+                                'secret-entered',
+                                'secret-cancelled',
                                 'disconnect',
                                 'sync',
                                 'display',
@@ -144,18 +144,17 @@
     /**
      * Method: display
      *
-     * Draw the widget inside of the dom element with the id domID
+     * Draw the widget inside of the dom element with the id options.domID
      *
      * Parameters:
      *
-     *   domID
-     *   cipher
+     *   options
      *
      * Returns:
      *
      *   The widget div
      **/
-    display: function(domID, cipher) {
+    display: function(options) {
       if (typeof this.div !== 'undefined') {
         return this.div;
       }
@@ -169,10 +168,10 @@
       element.innerHTML = RemoteStorage.Assets.widget;
 
       element.appendChild(style);
-      if (domID) {
-        var parent = document.getElementById(domID);
+      if (options.domID) {
+        var parent = document.getElementById(options.domID);
         if (! parent) {
-          throw "Failed to find target DOM element with id=\"" + domID + "\"";
+          throw "Failed to find target DOM element with id=\"" + options.domID + "\"";
         }
         parent.appendChild(element);
       } else {
@@ -205,11 +204,11 @@
         el.value = this.userAddress;
       }
 
-      if (cipher) {
+      if (options.encryption) {
         this.cipher = true;
 
         // Cipher button
-        var cipherButton = setupButton(element, 'rs-cipher', 'cipherIcon', this.events.cipher);
+        var cipherButton = setupButton(element, 'rs-cipher', 'cipherIcon', this.events['secret-entered']);
 
         // Handle cipherButton state
         element.querySelector('form.remotestorage-cipher-form').userSecretKey.addEventListener('keyup', function(event) {
@@ -221,7 +220,7 @@
         });
 
         // No cipher button
-        setupButton(element, 'rs-nocipher', 'nocipherIcon', this.events.nocipher);
+        setupButton(element, 'rs-nocipher', 'nocipherIcon', this.events['secret-cancelled']);
       }
 
       // The cube
@@ -411,25 +410,25 @@
       },
 
     /**
-     * Event: cipher
+     * Event: secret-entered
      *
      * Emitted when the cipher button is clicked
      **/
-      cipher: function(event) {
+      'secret-entered': function(event) {
         stopPropagation(event);
         event.preventDefault();
-        this._emit('cipher', this.div.querySelector('form.remotestorage-cipher-form').userSecretKey.value);
+        this._emit('secret-entered', this.div.querySelector('form.remotestorage-cipher-form').userSecretKey.value);
       },
 
     /**
-     * Event: nocipher
+     * Event: secret-cancelled
      *
      * Emitted when the nocipher button is clicked
      **/
-      nocipher: function(event) {
+      'secret-cancelled': function(event) {
         stopPropagation(event);
         event.preventDefault();
-        this._emit('nocipher');
+        this._emit('secret-cancelled');
       },
 
       /**
