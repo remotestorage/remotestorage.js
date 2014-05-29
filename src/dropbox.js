@@ -154,6 +154,7 @@
     this.clientId = rs.apiKeys.dropbox.api_key;
     this._revCache = new LowerCaseCache('rev');
     this._itemRefs = {};
+    this._metadataCache = {};
 
     if (hasLocalStorage){
       var settings;
@@ -349,14 +350,20 @@
       var pathTempBeforeClean = path; // Temp variable to store the value beafore cleanPath, to be used later
       path = cleanPath(path);
 
+      var self = this;
       var promise = this._sharePromise(path);
-
       var revCache = this._revCache;
 
       //check if file has changed and return 412
       var savedRev = revCache.get(path);
-      if (options && options.ifMatch &&  savedRev && (savedRev !== options.ifMatch) ) {
-        promise.fulfill(412);
+      if (options && options.ifMatch &&
+          savedRev && (savedRev !== options.ifMatch)) {
+        promise.fulfill(412, undefined, undefined, savedRev);
+        return promise;
+      }
+      if (options && (options.ifNoneMatch === '*') &&
+          savedRev && (savedRev !== 'rev')) {
+        promise.fulfill(412, undefined, undefined, savedRev);
         return promise;
       }
       if (! contentType.match(/charset=/)) {
@@ -370,22 +377,47 @@
         //https://www.dropbox.com/developers/core/docs#chunked-upload
         RemoteStorage.log('files larger than 150MB not supported yet');
       } else {
-        this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
-          if (err) {
-            promise.reject(err);
-          } else {
-            var response = JSON.parse(resp.responseText);
-            // if dropbox reports an file conflict they just change the name of the file
-            // TODO find out which stays the origianl and how to deal with this
-            if (response.path !== pathTempBeforeClean) {
-              promise.fulfill(412);
-              this.rs.log('Dropbox created conflicting File ', response.path);
-            }
-            else {
-              revCache.set(path, response.rev);
-              promise.fulfill(resp.status);
-            }
+        var promiseMetadata = promising();
+        if (options && (options.ifMatch || (options.ifNoneMatch === '*'))) {
+          this._getMetadata(pathTempBeforeClean).then(function(metadata) {
+            promiseMetadata.fulfill(metadata);
+          });
+        } else {
+          promiseMetadata.fulfill();
+        }
+        promiseMetadata.then(function(metadata) {
+          if (options && (options.ifNoneMatch === '*') && metadata) {
+            // if !!metadata === true, the file exists
+            promise.fulfill(412, undefined, undefined, metadata.rev);
+            return;
           }
+          if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
+            promise.fulfill(412, undefined, undefined, metadata.rev);
+            return;
+          }
+          self._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
+            if (err) {
+              promise.reject(err);
+            } else {
+              var response = JSON.parse(resp.responseText);
+              if (response.path === pathTempBeforeClean) {
+                revCache.set(path, response.rev);
+                promise.fulfill(resp.status);
+              } else {
+                // Conflict happened. Delete the copy created by Dropbox
+                var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
+                self._request('POST', deleteUrl, {}, function() {});
+
+                // If we got into this situation here, then it means that the
+                // file changed between the metadata request and this PUT
+                // request. Because of that the previously requested metadata
+                // cannot be reused here and a new request has to be made:
+                self._getMetadata(path).then(function(metadata) {
+                  promise.fulfill(412, undefined, undefined, metadata.rev);
+                });
+              }
+            }
+          });
         });
       }
       return promise;
@@ -400,23 +432,41 @@
       var pathTempBeforeClean = path; // Temp variable to store the value before cleanPath, to be used later
       path = cleanPath(path);
 
+      var self = this;
       var promise = promising();
       var revCache = this._revCache;
       //check if file has changed and return 412
       var savedRev = revCache.get(path);
-      if (options.ifMatch && savedRev && (options.ifMatch !== savedRev)) {
-        promise.fulfill(412);
+      if (options && options.ifMatch &&
+          savedRev && (options.ifMatch !== savedRev)) {
+        promise.fulfill(412, undefined, undefined, savedRev);
         return promise;
       }
 
-      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(pathTempBeforeClean);
-      this._request('POST', url, {}, function(err, resp){
-        if (err) {
-          promise.reject(error);
-        } else {
-          promise.fulfill(resp.status);
-          revCache.delete(path);
+      var promiseMetadata = promising();
+      if (options && options.ifMatch) {
+        this._getMetadata(pathTempBeforeClean).then(function(metadata) {
+          promiseMetadata.fulfill(metadata);
+        });
+      } else {
+        promiseMetadata.fulfill();
+      }
+
+      promiseMetadata.then(function(metadata) {
+        if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
+          promise.fulfill(412, undefined, undefined, metadata.rev);
+          return;
         }
+
+        var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(pathTempBeforeClean);
+        self._request('POST', url, {}, function(err, resp){
+          if (err) {
+            promise.reject(error);
+          } else {
+            promise.fulfill(resp.status);
+            revCache.delete(path);
+          }
+        });
       });
 
       return promise.then(function(){
@@ -602,6 +652,35 @@
           promise.fulfill.apply(promise, args);
         }
       });
+      return promise;
+    },
+
+    _getMetadata: function(path, options) {
+      var promise = promising();
+      var self = this;
+      var cached = this._metadataCache[path];
+      var url = 'https://api.dropbox.com/1/metadata/auto' + cleanPath(path);
+      url += '?list=' + ((options && options.list) ? 'true' : 'false');
+      if (cached && cached.hash) {
+        url += '&hash=' + encodeURIComponent(cached.hash);
+      }
+      this._request('GET', url, {}, function(err, resp) {
+        if (err) {
+          promise.reject(err);
+          return;
+        }
+        if (resp.status === 304) {
+          promise.fulfill(cached);
+        } else if (resp.status === 200) {
+          var response = JSON.parse(resp.responseText);
+          self._metadataCache[path] = response;
+          promise.fulfill(response);
+        } else {
+          // The file doesn't exist
+          promise.fulfill();
+        }
+      });
+
       return promise;
     }
   };
