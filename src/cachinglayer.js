@@ -311,7 +311,7 @@
           }
         }
       }.bind(this)).then(function () {
-        this._emit('values-loaded');
+        this._emit('local-events-done');
       });
     },
 
