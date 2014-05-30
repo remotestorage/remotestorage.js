@@ -297,6 +297,19 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       },
 
       {
+        desc: "#get returns the erroneous status it received from DropBox",
+        run: function(env, test) {
+          env.connectedClient.get('/foo').
+            then(function(status) {
+              test.assert(status, 401);
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 401;
+          req._onload();
+        }
+      },
+
+      {
         desc: "#put causes the revision to propagate down in revCache",
         run: function(env, test) {
           env.connectedClient._revCache.set('/foo/', 'foo');
@@ -440,6 +453,21 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       },
 
       {
+        desc: "#put returns the erroneous status it received from DropBox",
+        run: function(env, test) {
+          env.connectedClient.put('/foo', 'data', 'text/plain').
+            then(function(status) {
+              test.assert(status, 401);
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 401;
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
         desc: "#delete returns status 412 if ifMatch condition fails",
         run: function(env, test) {
           env.connectedClient._revCache.set('/foo/bar', 'bar');
@@ -481,6 +509,21 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
             test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Ffoo%2Fbar', true]);
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#delete returns the erroneous status it received from DropBox",
+        run: function(env, test) {
+          env.connectedClient.delete('/foo').
+            then(function(status) {
+              test.assert(status, 401);
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 401;
             req._onload();
           }, 100);
         }
