@@ -193,13 +193,8 @@
       // Handle connectButton state
       this.form = element.querySelector('form.remotestorage-initial');
       var el = this.form.userAddress;
-      el.addEventListener('keyup', function(event) {
-        if (event.target.value) {
-          connectButton.removeAttribute('disabled');
-        } else {
-          connectButton.setAttribute('disabled','disabled');
-        }
-      });
+      el.addEventListener('load', handleButtonState);
+      el.addEventListener('keyup', handleButtonState);
       if (this.userAddress) {
         el.value = this.userAddress;
       }
@@ -211,13 +206,9 @@
         var cipherButton = setupButton(element, 'rs-cipher', 'cipherIcon', this.events['secret-entered']);
 
         // Handle cipherButton state
-        element.querySelector('form.remotestorage-cipher-form').userSecretKey.addEventListener('keyup', function(event) {
-          if (event.target.value) {
-            cipherButton.removeAttribute('disabled');
-          } else {
-            cipherButton.setAttribute('disabled','disabled');
-          }
-        });
+        element.querySelector('form.remotestorage-cipher-form').userSecretKey
+          .addEventListener('load', handleButtonState)
+          .addEventListener('keyup', handleButtonState);
 
         // No cipher button
         setupButton(element, 'rs-nocipher', 'nocipherIcon', this.events['secret-cancelled']);
@@ -524,5 +515,13 @@
     }
     element.addEventListener('click', eventListener);
     return element;
+  }
+
+  function handleButtonState(event) {
+    if (event.target.value) {
+      event.target.nextElementSibling.removeAttribute('disabled');
+    } else {
+      event.target.nextElementSibling.setAttribute('disabled','disabled');
+    }
   }
 })(typeof(window) !== 'undefined' ? window : global);
