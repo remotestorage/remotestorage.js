@@ -201,7 +201,7 @@
           if (count === 0) {
             // treat this like 404. it probably means a folder listing that
             // has changes that haven't been pushed out yet.
-            return;
+            return {};
           }
           for (var key in body) {
             this.storage.get(this.makePath(path + key), maxAge).
