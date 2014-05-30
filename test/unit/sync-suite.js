@@ -91,12 +91,14 @@ define([], function() {
     setup: function(env, test){
       require('./lib/promising');
       global.RemoteStorage = function(){
-        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'sync-interval-change');
+        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'sync-interval-change', 'error');
       };
       global.RemoteStorage.log = function() {};
       global.RemoteStorage.config = {
         changeEvents: { local: true, window: false, remote: true, conflict: true }
       };
+      RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
+      RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
       require('./src/eventhandling');
       if (global.rs_eventhandling){
@@ -124,6 +126,13 @@ define([], function() {
         RemoteStorage.Sync = global.rs_sync;
       } else {
         global.rs_sync = RemoteStorage.Sync;
+      }
+
+      require('src/authorize.js');
+      if (global.rs_authorize) {
+        RemoteStorage.Authorize = global.rs_authorize;
+      } else {
+        global.rs_authorize = RemoteStorage.Authorize;
       }
       test.done();
     },
@@ -928,6 +937,20 @@ define([], function() {
           } catch(e) {
             test.result(true);
           }
+        }
+      },
+
+      {
+        desc: "handleResponse emits Unauthorized error for status 401",
+        run: function(env, test) {
+          env.rs.on('error', function(err) {
+            if (err instanceof RemoteStorage.Unauthorized) {
+              test.result(true, "handleResponse() emitted Unauthorized error");
+            } else {
+              test.result(false);
+            }
+          });
+          env.rs.sync.handleResponse(undefined, undefined, 401);
         }
       }
     ]
