@@ -200,7 +200,7 @@
       if (typeof token !== 'undefined') { this.token = token; }
       if (typeof userAddress !== 'undefined') { this.userAddress = userAddress; }
 
-      if (this.token){
+      if (this.token) {
         this.connected = true;
         if ( !this.userAddress ){
           this.info().then(function(info){
@@ -300,9 +300,7 @@
         } else {
           var status = resp.status;
           var meta, body, mime, rev;
-          if (status === 404){
-            promise.fulfill(404);
-          } else if (status === 200) {
+          if (status === 200) {
             body = resp.responseText;
             try {
               meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') );
@@ -331,7 +329,6 @@
               }
               promise.fulfill(status, body, mime, rev);
             }
-
           } else {
             promise.fulfill(status);
           }
@@ -399,7 +396,7 @@
           self._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
             if (err) {
               promise.reject(err);
-            } else {
+            } else if (resp.status === 200) {
               var response = JSON.parse(resp.responseText);
               if (response.path === pathTempBeforeClean) {
                 revCache.propagateSet(path, response.rev);
@@ -417,6 +414,8 @@
                   promise.fulfill(412, undefined, undefined, metadata.rev);
                 });
               }
+            } else {
+              promise.fulfill(resp.status);
             }
           });
         });
@@ -464,8 +463,10 @@
           if (err) {
             promise.reject(error);
           } else {
+            if (resp.status === 200) {
+              revCache.delete(path);
+            }
             promise.fulfill(resp.status);
-            revCache.delete(path);
           }
         });
       });
