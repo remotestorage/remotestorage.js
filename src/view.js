@@ -327,7 +327,6 @@
       busy: function() {
         this.div.className = "remotestorage-state-busy";
         addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
-        this.hideBubble();
       },
 
       offline: function() {

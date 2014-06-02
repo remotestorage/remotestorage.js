@@ -3,7 +3,7 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
-## 0.10.0 (April 2014)
+## 0.10.0 (June 2014)
 
 This release contains a major rewrite of the tree-based sync and caching
 system. Old cached data will be converted to the new format automatically.
@@ -31,12 +31,13 @@ system. Old cached data will be converted to the new format automatically.
   for details. `caching.enable(path)` will use 'ALL' by default.
 * Add and use background sync interval, based on Page Visibility API (#462)
 * Choose from which origins change events are emitted via `RemoteStorage.config.changeEvents`
-* Support for browser implied authentication
+* More unit tests
 
 ### Experimental features
 
 * Google Drive is now supported as an experimental backend
 * Dropbox is now supported as an experimental backend
+* Support for browser implied authentication
 
 ### Bugfixes
 
@@ -51,6 +52,7 @@ system. Old cached data will be converted to the new format automatically.
 * When no widget is present, log undisplayed errors (#639)
 * Restore the document fragment (hash URL) after the OAuth dance (#646)
 * Fix handling of custom JSON-LD contexts for types (#661)
+* Widget bubble closing spontaneously (#683)
 
 ## 0.9.0 (December 2013)
 
