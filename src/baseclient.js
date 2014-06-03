@@ -490,6 +490,14 @@
 
     _fireChange: function(event) {
       if (RemoteStorage.config.changeEvents[event.origin]) {
+        ['newValue', 'oldValue', 'lastCommonValue'].forEach(function(fieldName) {
+          if (typeof(event[fieldName]) === 'string') {
+            try {
+              event[fieldName] = JSON.parse(event[fieldName]);
+            } catch(e) {
+            }
+          }
+        });
         this._emit('change', event);
       }
     },
