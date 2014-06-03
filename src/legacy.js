@@ -45,7 +45,7 @@
         }
         if (typeof(result) === 'object' && typeof(result.then) === 'function') {
           result.then(function(res) { results[index] = res; oneDone(); },
-                      function(error) { errors[index] = res; oneDone(); });
+                      function(error) { errors[index] = error; oneDone(); });
         } else {
           oneDone();
           results[index] = result;
