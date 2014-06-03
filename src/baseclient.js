@@ -311,6 +311,9 @@
       if (typeof(body) !== 'string' && typeof(body) !== 'object') {
         return promising().reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
       }
+      if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
+        console.warn('WARNING: Editing a document to which only read access (\'r\') was claimed');
+      }
 
       var self = this;
       return this.storage.put(this.makePath(path), body, mimeType).then(function(status, _body, _mimeType, revision) {
@@ -448,6 +451,10 @@
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.remove must be a string');
       }
+      if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
+        console.warn('WARNING: Removing a document to which only read access (\'r\') was claimed');
+      }
+
       return this.storage.delete(this.makePath(path));
     },
 
@@ -548,6 +555,9 @@
         throw 'Argument \'path\' of baseClient.scope must be a string';
       }
 
+      if (this.access.checkPathPermission(path, 'r')) {
+        console.warn('WARNING: please call remoteStorage.access.claim(\'foo\', \'r\') (read only) or remoteStorage.access.claim(\'foo\', \'rw\') (read/write) first');
+      }
       return new RS.BaseClient(this, path);
     };
   };
