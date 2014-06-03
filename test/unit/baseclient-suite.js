@@ -13,7 +13,10 @@ define(['requirejs'], function(requirejs, undefined) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
-        onChange: function() {},
+        onChange: function(basePath, handler) {
+          console.log('onChange called', handler);
+          this.onChange = handler;
+        },
         caching: {
           _rootPaths: {},
           set: function(path, value) {
@@ -21,7 +24,11 @@ define(['requirejs'], function(requirejs, undefined) {
           }
         }
       };
-
+      RemoteStorage.config = {
+        changeEvents: {
+          remote: true
+        }
+      };
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
@@ -432,6 +439,48 @@ define(['requirejs'], function(requirejs, undefined) {
 
           var itemURL = env.client.getItemURL('A%2FB /C/%bla//D');
           test.assert(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
+        }
+      },
+
+      {
+        desc: "values in change events are JSON-parsed when possible",
+        run: function(env, test) {
+          var storage = new RemoteStorage();
+          var client = new RemoteStorage.BaseClient(storage, '/foo/');
+          var expected = [{
+            path: '/foo/a',
+            origin: 'remote',
+            relativePath: 'a',
+            newValue: { as: 'df' },
+            oldValue: 'qwer'
+          },
+          {
+            path: '/foo/a',
+            origin: 'remote',
+            relativePath: 'a',
+            newValue: 'asdf',
+            oldValue: 'qwer'
+          }];
+          client.on('change', function(e) {
+            test.assertAnd(expected.pop(), e);
+            if (expected.length === 0) {
+              test.done();
+             }
+          });
+          storage.onChange({
+            path: '/foo/a',
+            origin: 'remote',
+            relativePath: 'a',
+            newValue: 'asdf',
+            oldValue: 'qwer'
+          });
+          storage.onChange({
+            path: '/foo/a',
+            origin: 'remote',
+            relativePath: 'a',
+            newValue: JSON.stringify({ as: 'df'}),
+            oldValue: 'qwer'
+          });
         }
       }
     ]
