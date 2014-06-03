@@ -14,7 +14,6 @@ define(['requirejs'], function(requirejs, undefined) {
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
         onChange: function(basePath, handler) {
-          console.log('onChange called', handler);
           this.onChange = handler;
         },
         caching: {
