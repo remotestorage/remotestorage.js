@@ -80,8 +80,12 @@
      * {
      *    path: path, // Path of the changed node
      *    origin: 'window', 'local', 'remote', or 'conflict' // emitted by user action within the app, local data store, remote sync, or versioning conflicts
-     *    oldValue: oldBody, // Old body of the changed node (undefined if creation)
-     *    newValue: newBody  // New body of the changed node (undefined if deletion)
+     *    oldValue: oldBody, // Old body of the changed node ('yours' for conflicts; undefined if creation)
+     *    newValue: newBody, // New body of the changed node ('theirs' for conflicts; undefined if deletion)
+     *    lastCommonValue: lastCommonValue, //most recent known common ancestor body of 'yours' and 'theirs' in case of conflict
+     *    oldContentType: oldContentType, // Old contentType of the changed node ('yours' for conflicts; undefined if creation)
+     *    newContentType: newContentType, // New contentType of the changed node ('theirs' for conflicts; undefined if deletion)
+     *    lastCommonContentType: lastCommonContentType //most recent known common ancestor contentType of 'yours' and 'theirs' in case of conflict
      *  }
      * (end code)
      **/
