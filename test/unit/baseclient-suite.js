@@ -452,7 +452,9 @@ define(['requirejs'], function(requirejs, undefined) {
             origin: 'remote',
             relativePath: 'a',
             newValue: { as: 'df' },
-            oldValue: 'qwer'
+            oldValue: 'qwer',
+            newContentType: 'application/ld+json',
+            oldContentType: 'text/plain'
           },
           {
             path: '/foo/a',
@@ -479,7 +481,9 @@ define(['requirejs'], function(requirejs, undefined) {
             origin: 'remote',
             relativePath: 'a',
             newValue: JSON.stringify({ as: 'df'}),
-            oldValue: 'qwer'
+            oldValue: 'qwer',
+            newContentType: 'application/ld+json',
+            oldContentType: 'text/plain'
           });
         }
       }
