@@ -89,9 +89,13 @@ define(['requirejs'], function(requirejs) {
         desc: "fireInitial fires change event with 'local' origin for initial cache content",
         timeout: 250,
         run: function(env, test) {
+          env.idb.putsRunning = 0;
           env.idb.put('/foo/bla', 'basdf', 'text/plain').then(function() {
             env.idb.on('change', function(event) {
-              test.assert(event.origin, 'local');
+              test.assertAnd(event.origin, 'local');
+              setTimeout(function() {
+                test.done();
+              }, 50);
             });
             //the mock is just an in-memory object; need to explicitly set its .length and its .key() function now:
             env.idb.fireInitial();
@@ -101,11 +105,32 @@ define(['requirejs'], function(requirejs) {
           setTimeout(function() {
             env._puts[0].onsuccess();
             env._transactions[1].oncomplete();
-          }, 100);
+          }, 10);
           env._gets[0].onsuccess({ target: {}});
           env._transactions[0].oncomplete();
         }
       },
+
+      {
+        desc: "setNodes calls setNodesToDb when putsRunning is 0",
+        run: function(env, test) {
+          var setNodesToDb = env.idb.setNodesToDb,
+            getNodesFromDb = env.idb.getNodesFromDb;
+          env.idb.setNodesToDb = function(nodes) {
+            var promise = promising();
+            test.assertAnd(nodes, {foo: {path: 'foo'}});
+            setTimeout(function() {
+              env.idb.setNodesToDb = setNodesToDb;
+              env.idb.getNodesFromDb = getNodesFromDb;
+              test.done();
+            }, 100);
+            promise.fulfill();
+            return promise;
+          };
+          env.idb.putsRunning = 0;
+          env.idb.setNodes({foo: {path: 'foo'}});
+        }
+      }
 /* TODO: mock indexeddb with some nodejs library
       {
         desc: "getNodes, setNodes",
