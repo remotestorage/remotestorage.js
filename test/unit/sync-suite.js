@@ -929,6 +929,19 @@ define([], function() {
             test.result(true);
           }
         }
+      },
+
+      {
+        desc: "deleteRemoteTrees returns a promise",
+        run: function(env, test) {
+          env.rs.sync.deleteRemoteTrees([], {changed: 'nodes'}).then(function(ret1) {
+            test.assertAnd(ret1, {changed: 'nodes'});
+            env.rs.sync.deleteRemoteTrees(['foo'], {}).then(function(ret2) {
+              test.assertAnd(ret2, undefined);
+              test.done();
+            });
+          });
+        }
       }
     ]
   });
