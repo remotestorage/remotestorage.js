@@ -79,7 +79,7 @@
      * (start code)
      * {
      *    path: path, // Path of the changed node
-     *    origin: 'window', 'local', or 'remote' // emitted by user action within the app, local data store, or remote sync
+     *    origin: 'window', 'local', 'remote', or 'conflict' // emitted by user action within the app, local data store, remote sync, or versioning conflicts
      *    oldValue: oldBody, // Old body of the changed node (undefined if creation)
      *    newValue: newBody  // New body of the changed node (undefined if deletion)
      *  }
