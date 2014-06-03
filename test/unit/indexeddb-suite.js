@@ -123,12 +123,45 @@ define(['requirejs'], function(requirejs) {
               env.idb.setNodesToDb = setNodesToDb;
               env.idb.getNodesFromDb = getNodesFromDb;
               test.done();
-            }, 100);
+            }, 10);
             promise.fulfill();
             return promise;
           };
           env.idb.putsRunning = 0;
           env.idb.setNodes({foo: {path: 'foo'}});
+        }
+      },
+
+      {
+        desc: "setNodes doesn't call setNodesToDb when putsRunning is 1, but will flush later",
+        run: function(env, test) {
+          var setNodesToDb = env.idb.setNodesToDb,
+            getNodesFromDb = env.idb.getNodesFromDb;
+          env.idb.commitQueued = {};
+          env.idb.commitRunning = {};
+          env.idb.setNodesToDb = function(nodes) {
+            test.result(false, 'should not have called this function');
+          };
+          env.idb.putsRunning = 1;
+          env.idb.setNodes({foo: {path: 'foo'}});
+          test.assertAnd(env.idb.commitQueued, {foo: {path: 'foo'}});
+          test.assertAnd(env.idb.commitRunning, {});
+          
+          env.idb.setNodesToDb = function(nodes) {
+            var promise = promising();
+            test.assertAnd(nodes, {foo: {path: 'foo'}});
+            setTimeout(function() {
+              env.idb.setNodesToDb = setNodesToDb;
+              env.idb.getNodesFromDb = getNodesFromDb;
+              test.done();
+            }, 10);
+            promise.fulfill();
+            return promise;
+          };
+          env.idb.putsRunning = 0;
+          env.idb.maybeFlush();
+          test.assertAnd(env.idb.commitQueued, {});
+          test.assertAnd(env.idb.commitRunning, {foo: {path: 'foo'}});
         }
       }
 /* TODO: mock indexeddb with some nodejs library
