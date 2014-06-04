@@ -354,9 +354,6 @@
       busy: function() {
         this.div.className = "remotestorage-state-busy";
         addClass(this.cube, 'remotestorage-loading');
-        if (!this.cipher) {
-          this.hideBubble();
-        }
       },
 
       offline: function() {
