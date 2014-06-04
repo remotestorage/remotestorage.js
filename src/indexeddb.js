@@ -66,7 +66,7 @@
 
   RS.IndexedDB.prototype = {
     getNodes: function(paths) {
-      var i ,misses = [], fromCache = {};
+      var i, misses = [], fromCache = {};
       for (i=0; i<paths.length; i++) {
         if (this.commitQueued[paths[i]] !== undefined) {
           fromCache[paths[i]] = this._getInternals().deepClone(this.commitQueued[paths[i]] || undefined);
