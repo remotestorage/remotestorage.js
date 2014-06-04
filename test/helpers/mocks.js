@@ -20,6 +20,12 @@ define([], function() {
             this.result = env.fileReaderResult = Math.random();
             this._events.loadend[0]();
           }.bind(this), 0);
+        },
+        readAsText: function(buffer, encoding) {
+          setTimeout(function() {
+            this.result = env.fileReaderResult = buffer.input[0].content;
+            this._events.loadend[0]({target: {result: this.result}});
+          }.bind(this), 0);
         }
       };
     }

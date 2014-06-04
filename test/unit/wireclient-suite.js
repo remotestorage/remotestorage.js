@@ -27,11 +27,17 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
     RemoteStorage.Authorize = {
       IMPLIED_FAKE_TOKEN: false
     };
-    
+
     test.done();
   }
 
   function beforeEach(env, test) {
+    global.MockArrayBuffer = function(str) {
+      return {
+        iAmA: 'MockArrayBuffer',
+        content: str
+      };
+    };
     global.XMLHttpRequest = function() {
       XMLHttpRequest.instances.push(this);
       this._headers = {};
@@ -141,7 +147,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
           req.status = 200;
-          req.responseText = 'response-body';
+          req.response = MockArrayBuffer('response-body');
           req._onload();
         }
       },
@@ -173,7 +179,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
           req.status = 200;
-          req.responseText = JSON.stringify({'@context':'http://remotestorage.io/spec/folder-description', items: {}});
+          req.response = MockArrayBuffer(JSON.stringify({'@context':'http://remotestorage.io/spec/folder-description', items: {}}));
           req._onload();
         }
       },
@@ -205,7 +211,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
           req.status = 200;
-          req.responseText = 'response-body';
+          req.response = MockArrayBuffer('response-body');
           req._onload();
         }
       },
@@ -235,7 +241,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
           req.status = 200;
-          req.responseText = 'response-body';
+          req.response = MockArrayBuffer('response-body');
           req._onload();
         }
       },
@@ -443,7 +449,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
           req.status = 200;
-          req.responseText = 'response-body';
+          req.response = MockArrayBuffer('response-body');
           req._onload();
         }
       },
@@ -460,7 +466,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
           req.status = 200;
-          req.responseText = '{"response":"body"}';
+          req.response = MockArrayBuffer('{"response":"body"}');
           req._onload();
         }
       },
@@ -477,7 +483,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
           req.status = 200;
-          req.responseText = '{"a":"qwer","b/":"asdf"}';
+          req.response = MockArrayBuffer('{"a":"qwer","b/":"asdf"}');
           req._onload();
         }
       },
@@ -498,7 +504,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
           req.status = 200;
-          req.responseText = JSON.stringify({
+          req.response = MockArrayBuffer(JSON.stringify({
             "@context": "http://remotestorage.io/spec/folder-description",
             items: {
               a: {
@@ -512,7 +518,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
                 "Content-Length": 137
               }
             }
-          });
+          }));
           req._onload();
         }
       },
@@ -638,25 +644,21 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       },
 
       {
-        desc: "responses with the charset set to 'binary' are read using a FileReader, after constructing a Blob",
+        desc: "responses with the charset set to 'binary' are left as the raw response",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
-              // check Blob
-              test.assertTypeAnd(env.blob, 'object');
-              test.assertAnd(env.blob.input, ['response-body']);
-              test.assertAnd(env.blob.options, {
-                type: 'application/octet-stream; charset=binary'
-              });
-
               test.assertAnd(status, 200);
-              test.assertAnd(body, env.fileReaderResult);
+              test.assertAnd(body, {
+                iAmA: 'MockArrayBuffer',
+                content: 'response-body'
+              });
               test.assert(contentType, 'application/octet-stream; charset=binary');
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
           req.status = 200;
-          req.response = 'response-body';
+          req.response = MockArrayBuffer('response-body');
           req._onload();
         }
       },
@@ -667,12 +669,15 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
-              test.assertAnd(body, env.fileReaderResult);
+              test.assertAnd(body, {
+                iAmA: 'MockArrayBuffer',
+                content: 'response-body'
+              });
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
           req.status = 200;
-          req.response = 'response-body';
+          req.response = MockArrayBuffer('response-body');
           req._onload();
         }
       },
