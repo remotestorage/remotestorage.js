@@ -98,7 +98,7 @@
   function isOutdated(nodes, maxAge) {
     var path, node;
     for (path in nodes) {
-      if (node.remote) {
+      if (nodes[path] && nodes[path].remote) {
         return true;
       }
       node = getLatest(nodes[path]);
