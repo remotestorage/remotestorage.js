@@ -59,7 +59,7 @@
 
     this.getsRunning = 0;
     this.putsRunning = 0;
-    //both these caches store path -> the uncommitted node, or false for a deletion:
+    // Both these caches store path -> the uncommitted node, or false for a deletion:
     this.commitQueued = {};
     this.commitRunning = {};
   };
@@ -89,6 +89,7 @@
         return promise;
       }
     },
+
     setNodes: function(nodes) {
       var promise = promising();
       for (var i in nodes) {
@@ -98,6 +99,7 @@
       promise.fulfill();
       return promise;
     },
+    
     maybeFlush: function() {
       if (this.putsRunning === 0) {
         this.flushcommitQueued();
@@ -107,6 +109,7 @@
         }, 10000);
       }
     },
+    
     flushcommitQueued: function() {
       if (this.commitSlownessWarning) {
         clearInterval(this.commitSlownessWarning);
@@ -117,6 +120,7 @@
         this.setNodesToDb(this.commitRunning).then(this.flushcommitQueued.bind(this));
       }
     },
+    
     getNodesFromDb: function(paths) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
