@@ -8,6 +8,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
     global.RemoteStorage = function() {};
     RemoteStorage.log = function() {};
     global.RemoteStorage.Unauthorized = function() {};
+    global.RemoteStorage.SyncError = function() {};
     global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
     require('./lib/promising');
     require('./src/eventhandling');
@@ -620,6 +621,16 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           env.rs._emit('error', new RemoteStorage.Unauthorized());
           setTimeout(function() {
             test.assert(env.connectedClient.token, null);
+          }, 100);
+        }
+      },
+
+      {
+        desc: "WireClient disconnects after SyncError",
+        run: function(env, test){
+          env.rs._emit('error', new RemoteStorage.SyncError());
+          setTimeout(function() {
+            test.assert(env.connectedClient.connected, false);
           }, 100);
         }
       },
