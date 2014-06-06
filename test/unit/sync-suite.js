@@ -941,7 +941,6 @@ define([], function() {
       },
 
       {
-<<<<<<< HEAD
         desc: "handleResponse emits Unauthorized error for status 401",
         run: function(env, test) {
           env.rs.on('error', function(err) {
@@ -952,7 +951,10 @@ define([], function() {
             }
           });
           env.rs.sync.handleResponse(undefined, undefined, 401);
-=======
+        }
+      },
+
+      {
         desc: "deleteRemoteTrees returns a promise",
         run: function(env, test) {
           env.rs.sync.deleteRemoteTrees([], {changed: 'nodes'}).then(function(ret1) {
@@ -962,7 +964,6 @@ define([], function() {
               test.done();
             });
           });
->>>>>>> deleteRemoteTrees_should_return_promise
         }
       }
     ]
