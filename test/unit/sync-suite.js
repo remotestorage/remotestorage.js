@@ -2,78 +2,8 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define([], function() {
+define(['test/helpers/mocks'], function(mocks) {
   var suites = [];
-
-  function FakeCaching(){
-    this._responses = {};
-    this.checkPath = function(path) {
-      if (typeof(this._responses[path]) === 'undefined') {
-        throw new Error('no FakeCaching response for path ' + path);
-      }
-      return this._responses[path];
-    };
-    this.onActivate = function() {};
-  }
-
-  function FakeAccess(){
-    this._data = {};
-    this.set = function(moduleName, value) {
-      this._data[moduleName] = value;
-    };
-    this.get = function(moduleName) {
-      return this._data[moduleName];
-    };
-    this.checkPathPermission = function(path, mode) {
-      if (path.substring(0, '/foo/'.length) === '/foo/') {
-        return true;
-      }
-      if (path.substring(0, '/read/access/'.length) === '/read/access/' && mode === 'r') {
-        return true;
-      }
-      if (path.substring(0, '/write/access/'.length) === '/write/access/') {
-        return true;
-      }
-      if (path.substring(0, '/readings/'.length) === '/readings/' && mode === 'r') {
-        return true;
-      }
-      if (path.substring(0, '/public/readings/'.length) === '/public/readings/' && mode === 'r') {
-        return true;
-      }
-      if (path.substring(0, '/writings/'.length) === '/writings/') {
-        return true;
-      }
-      if (path.substring(0, '/public/writings/'.length) === '/public/writings/') {
-        return true;
-      }
-      return false;
-    };
-  }
-
-  function FakeRemote(){
-    function GPD(target, path, body, contentType, options) {
-      var args = Array.prototype.slice.call(arguments);
-      this['_'+target+'s'].push([path, body, contentType, options]);
-      var p = promising();
-      if (typeof(this._responses[args]) === 'undefined') {
-        throw new Error('no FakeRemote response for args ' + JSON.stringify(args) + ' - have: ' + JSON.stringify(Object.getOwnPropertyNames(this._responses)));
-      }
-      var resp = this._responses[args] || [200];
-      if(resp === 'timeout') {
-        return p.reject.apply(p, resp);
-      } else {
-        return p.fulfill.apply(p, resp);
-      }
-    }
-    this.connected = true;
-    this._puts = [];
-    this.put = GPD.bind(this, 'put');
-    this._deletes = [];
-    this.delete = GPD.bind(this, 'delete');
-    this._gets = [];
-    this.get = GPD.bind(this, 'get');
-    this._responses = {};
-  }
 
   function flatten(array){
     var flat = [];
@@ -89,6 +19,8 @@ define([], function() {
     desc: "testing the sync adapter instance",
 
     setup: function(env, test){
+      mocks.defineMocks(env);
+  
       require('./lib/promising');
       global.RemoteStorage = function(){
         RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'sync-interval-change', 'error');
