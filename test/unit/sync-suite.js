@@ -932,20 +932,16 @@ define([], function() {
       },
 
       {
-        desc: "autoMergeDocument leaves a remote version in place even if it has only a revision and a timestamp",
+        desc: "autoMergeDocument leaves a remote version in place even if it has only a revision",
         run: function(env, test) {
-          var result = env.rs.sync.autoMergeDocument({
+          var node = {
             path: 'foo',
             common: { body: 'foo', contentType: 'bloo', revision: 'common' },
             local: { body: 'floo', contentType: 'blaloo' },
             remote: { revision: 'conflict' }
-          });
-          test.assertAnd(result, {
-            path: 'foo',
-            common: { body: 'foo', contentType: 'bloo', revision: 'common' },
-            local: { body: 'floo', contentType: 'blaloo' },
-            remote: { revision: 'conflict' }
-          });
+          };
+          var result = env.rs.sync.autoMergeDocument(node);
+          test.assertAnd(result, node);
           test.done();
         }
       },
