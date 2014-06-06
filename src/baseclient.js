@@ -500,7 +500,8 @@
     _fireChange: function(event) {
       if (RemoteStorage.config.changeEvents[event.origin]) {
         ['new', 'old', 'lastCommon'].forEach(function(fieldNamePrefix) {
-          if (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix+'ContentType'])) {
+          if ((!event[fieldNamePrefix+'ContentType'])
+              || (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix+'ContentType']))) {
             if (typeof(event[fieldNamePrefix+'Value']) === 'string') {
               try {
                 event[fieldNamePrefix+'Value'] = JSON.parse(event[fieldNamePrefix+'Value']);
