@@ -406,6 +406,16 @@ define(['requirejs'], function(requirejs) {
             test.done();
           });
         }
+      },
+
+      {
+        desc: "fireInitial leads to local-events-done event",
+        run: function(env, test) {
+          env.ims.on('local-events-done', function() {
+            test.done();
+          });
+          env.ims.fireInitial();
+        }
       }
     ]
   });
