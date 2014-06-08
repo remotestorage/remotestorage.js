@@ -66,19 +66,19 @@
 
   RS.IndexedDB.prototype = {
     getNodes: function(paths) {
-      var i, misses = [], fromCache = {};
-      for (i=0; i<paths.length; i++) {
+      var misses = [], fromCache = {};
+      for (var i=0; i<paths.length; i++) {
         if (this.commitQueued[paths[i]] !== undefined) {
           fromCache[paths[i]] = this._getInternals().deepClone(this.commitQueued[paths[i]] || undefined);
         } else if(this.commitRunning[paths[i]] !== undefined) {
-           fromCache[paths[i]] = this._getInternals().deepClone(this.commitRunning[paths[i]] || undefined);
+          fromCache[paths[i]] = this._getInternals().deepClone(this.commitRunning[paths[i]] || undefined);
         } else {
           misses.push(paths[i]);
         }
       }
       if (misses.length > 0) {
         return this.getNodesFromDb(misses).then(function(nodes) {
-          for (i in fromCache) {
+          for (var i in fromCache) {
             nodes[i] = fromCache[i];
           }
           return nodes;
@@ -99,7 +99,7 @@
       promise.fulfill();
       return promise;
     },
-    
+
     maybeFlush: function() {
       if (this.putsRunning === 0) {
         this.flushcommitQueued();
@@ -109,7 +109,7 @@
         }, 10000);
       }
     },
-    
+
     flushcommitQueued: function() {
       if (this.commitSlownessWarning) {
         clearInterval(this.commitSlownessWarning);
@@ -120,7 +120,7 @@
         this.setNodesToDb(this.commitRunning).then(this.flushcommitQueued.bind(this));
       }
     },
-    
+
     getNodesFromDb: function(paths) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
