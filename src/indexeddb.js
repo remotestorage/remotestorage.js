@@ -104,15 +104,18 @@
       if (this.putsRunning === 0) {
         this.flushcommitQueued();
       } else {
-        this.commitSlownessWarning = setInterval(function() {
-          console.log('WARNING: waited more than 10 seconds for previous commit to finish');
-        }, 10000);
+        if (!this.commitSlownessWarning) {
+          this.commitSlownessWarning = setInterval(function() {
+            console.log('WARNING: waited more than 10 seconds for previous commit to finish');
+          }, 10000);
+        }
       }
     },
 
     flushcommitQueued: function() {
       if (this.commitSlownessWarning) {
         clearInterval(this.commitSlownessWarning);
+        this.commitSlownessWarning = null;
       }
       if (Object.keys(this.commitQueued).length > 0) {
         this.commitRunning = this.commitQueued;
