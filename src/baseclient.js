@@ -556,7 +556,8 @@
       }
 
       if (!this.access.checkPathPermission(path, 'r')) {
-        console.warn('WARNING: please call remoteStorage.access.claim(\'foo\', \'r\') (read only) or remoteStorage.access.claim(\'foo\', \'rw\') (read/write) first');
+        var escapedPath = path.replace(/(['\\])/g, '\\$1');
+        console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
       }
       return new RS.BaseClient(this, path);
     };
