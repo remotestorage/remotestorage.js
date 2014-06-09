@@ -555,7 +555,7 @@
         throw 'Argument \'path\' of baseClient.scope must be a string';
       }
 
-      if (this.access.checkPathPermission(path, 'r')) {
+      if (!this.access.checkPathPermission(path, 'r')) {
         console.warn('WARNING: please call remoteStorage.access.claim(\'foo\', \'r\') (read only) or remoteStorage.access.claim(\'foo\', \'rw\') (read/write) first');
       }
       return new RS.BaseClient(this, path);
