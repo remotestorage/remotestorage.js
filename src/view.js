@@ -207,7 +207,8 @@
 
         // Handle cipherButton state
         element.querySelector('form.remotestorage-cipher-form').userSecretKey
-          .addEventListener('load', handleButtonState)
+          .addEventListener('load', handleButtonState);
+        element.querySelector('form.remotestorage-cipher-form').userSecretKey
           .addEventListener('keyup', handleButtonState);
 
         // No cipher button
