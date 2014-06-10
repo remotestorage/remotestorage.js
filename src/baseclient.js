@@ -79,11 +79,69 @@
      * (start code)
      * {
      *    path: path, // Path of the changed node
-     *    origin: 'window', 'local', or 'remote' // emitted by user action within the app, local data store, or remote sync
-     *    oldValue: oldBody, // Old body of the changed node (undefined if creation)
-     *    newValue: newBody  // New body of the changed node (undefined if deletion)
+     *    origin: 'window', 'local', 'remote', or 'conflict' // emitted by user action within the app, local data store, remote sync, or versioning conflicts
+     *    oldValue: oldBody, // Old body of the changed node (local version in conflicts; undefined if creation)
+     *    newValue: newBody, // New body of the changed node (remote version in conflicts; undefined if deletion)
+     *    lastCommonValue: lastCommonValue, //most recent known common ancestor body of 'yours' and 'theirs' in case of conflict
+     *    oldContentType: oldContentType, // Old contentType of the changed node ('yours' for conflicts; undefined if creation)
+     *    newContentType: newContentType, // New contentType of the changed node ('theirs' for conflicts; undefined if deletion)
+     *    lastCommonContentType: lastCommonContentType // Most recent known common ancestor contentType of 'yours' and 'theirs' in case of conflict
      *  }
      * (end code)
+     *
+     * Example of an event with origin 'local' (fired on page load):
+     * 
+     * (start code)
+     * {
+     *    path: 'color.txt'
+     *    origin: 'local',
+     *    oldValue: undefined,
+     *    newValue: 'white',
+     *    oldContentType: undefined,
+     *    newContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * Example of a conflict:
+     * Say you changed 'color.txt' from 'white' to 'blue'; if you have set `RemoteStorage.config.changeEvents.window` to `true`,
+     * then you will receive:
+     *
+     * (start code)
+     * {
+     *    path: 'color.txt'
+     *    origin: 'window',
+     *    oldValue: 'white',
+     *    newValue: 'blue',
+     *    oldContentType: 'text/plain',
+     *    newContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * But when this change is pushed out by asynchronous synchronization, this change may rejected by the
+     * server, if the remote version has in the meantime changed from 'white' to  for instance 'red'; this will then lead to a change
+     * event with origin 'conflict' (usually a few seconds after the event with origin 'window', if you had that activated). Note
+     * that since you already changed it from 'white' to 'blue' in the local version a few seconds ago, `oldValue` is now your local
+     * value of 'blue':
+     * 
+     * (start code)
+     * {
+     *    path: 'color.txt'
+     *    origin: 'conflict',
+     *    oldValue: 'blue',
+     *    newValue: 'red',
+     *    lastCommonValue: 'white',
+     *    oldContentType: 'text/plain,
+     *    newContentType: 'text/plain'
+     *    lastCommonContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * In practice, you should always redraw your views to display the content of the `newValue` field when a change event is received,
+     * regardless of its origin. Events with origin 'local' are fired conveniently during the page load, so that you can fill your views
+     * when the page loads. Events with origin 'window' are fired whenever you change a value by calling a method on the baseClient;
+     * these are disabled by default. Events with origin 'remote' are fired when remote changes are discovered during sync (only for caching
+     * startegies 'SEEN' and 'ALL'). Events with origin 'conflict' are fired when a conflict occurs while pushing out your local changes to
+     * the remote store in asynchronous synchronization (see example above). 
      **/
 
     RS.eventHandling(this, 'change');
