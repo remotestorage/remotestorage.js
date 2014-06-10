@@ -141,6 +141,22 @@ define([], function() {
     get: function(path, maxAge) {
       var self = this;
       if (this.local) {
+        if (maxAge === undefined) {
+          if (this.connected) {
+            maxAge = 2*this.getSyncInterval();
+          } else {
+            maxAge = false;
+          }
+        }
+        var maxAgeInvalid = function(maxAge) {
+          return maxAge !== false && typeof(maxAge) !== 'number';
+        };
+
+        if (maxAgeInvalid(maxAge)) {
+          var promise = promising();
+          promise.reject('Argument \'maxAge\' must be false or a number');
+          return promise;
+        }
         return this.local.get(path, maxAge);
       } else {
         return this.remote.get(path);
@@ -295,8 +311,11 @@ define([], function() {
         setTimeout(this.local.fireInitial.bind(this.local), 0);
       }
     }.bind(this);
+
     this.on('ready', this.fireInitial.bind(this));
   };
+
+  RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
 
   RemoteStorage.DiscoveryError = function(message) {
     Error.apply(this, arguments);
@@ -1053,7 +1072,8 @@ define([], function() {
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     onErrorCb = function(error){
-      if (error instanceof RemoteStorage.Unauthorized) {
+      if (error instanceof RemoteStorage.Unauthorized ||
+          error instanceof RemoteStorage.SyncError) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this);
@@ -1180,11 +1200,7 @@ define([], function() {
                 promise.fulfill(response.status, result, mimeType, revision);
               });
             } else {
-              if (mimeType && mimeType.match(/^application\/json/)) {
-                body = JSON.parse(response.responseText);
-              } else {
-                body = response.responseText;
-              }
+              body = response.responseText;
               RemoteStorage.log('[WireClient] Successful request', revision);
               promise.fulfill(response.status, body, mimeType, revision);
             }
@@ -1256,6 +1272,13 @@ define([], function() {
         return promise.then(function(status, body, contentType, revision) {
           var itemsMap = {};
 
+          if (typeof(body) !== 'undefined') {
+            try {
+              body = JSON.parse(body);
+            } catch (e) {
+              throw 'Folder description at ' + this.href + cleanPath(path) + ' is not JSON';
+            }
+          }
           // New folder listing received
           if (status === 200 && typeof(body) === 'object') {
             // Empty folder listing of any spec
@@ -1378,8 +1401,6 @@ define([], function() {
       }
       else if (body instanceof ArrayBuffer) {
         body = new Uint8Array(body);
-      } else {
-        body = JSON.stringify(body);
       }
     }
     xhr.send(body);
@@ -2481,7 +2502,6 @@ RemoteStorage.Assets = {
       busy: function() {
         this.div.className = "remotestorage-state-busy";
         addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
-        this.hideBubble();
       },
 
       offline: function() {
@@ -3513,11 +3533,69 @@ Math.uuid = function (len, radix) {
      * (start code)
      * {
      *    path: path, // Path of the changed node
-     *    origin: 'window', 'local', or 'remote' // emitted by user action within the app, local data store, or remote sync
-     *    oldValue: oldBody, // Old body of the changed node (undefined if creation)
-     *    newValue: newBody  // New body of the changed node (undefined if deletion)
+     *    origin: 'window', 'local', 'remote', or 'conflict' // emitted by user action within the app, local data store, remote sync, or versioning conflicts
+     *    oldValue: oldBody, // Old body of the changed node (local version in conflicts; undefined if creation)
+     *    newValue: newBody, // New body of the changed node (remote version in conflicts; undefined if deletion)
+     *    lastCommonValue: lastCommonValue, //most recent known common ancestor body of 'yours' and 'theirs' in case of conflict
+     *    oldContentType: oldContentType, // Old contentType of the changed node ('yours' for conflicts; undefined if creation)
+     *    newContentType: newContentType, // New contentType of the changed node ('theirs' for conflicts; undefined if deletion)
+     *    lastCommonContentType: lastCommonContentType // Most recent known common ancestor contentType of 'yours' and 'theirs' in case of conflict
      *  }
      * (end code)
+     *
+     * Example of an event with origin 'local' (fired on page load):
+     * 
+     * (start code)
+     * {
+     *    path: 'color.txt'
+     *    origin: 'local',
+     *    oldValue: undefined,
+     *    newValue: 'white',
+     *    oldContentType: undefined,
+     *    newContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * Example of a conflict:
+     * Say you changed 'color.txt' from 'white' to 'blue'; if you have set `RemoteStorage.config.changeEvents.window` to `true`,
+     * then you will receive:
+     *
+     * (start code)
+     * {
+     *    path: 'color.txt'
+     *    origin: 'window',
+     *    oldValue: 'white',
+     *    newValue: 'blue',
+     *    oldContentType: 'text/plain',
+     *    newContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * But when this change is pushed out by asynchronous synchronization, this change may rejected by the
+     * server, if the remote version has in the meantime changed from 'white' to  for instance 'red'; this will then lead to a change
+     * event with origin 'conflict' (usually a few seconds after the event with origin 'window', if you had that activated). Note
+     * that since you already changed it from 'white' to 'blue' in the local version a few seconds ago, `oldValue` is now your local
+     * value of 'blue':
+     * 
+     * (start code)
+     * {
+     *    path: 'color.txt'
+     *    origin: 'conflict',
+     *    oldValue: 'blue',
+     *    newValue: 'red',
+     *    lastCommonValue: 'white',
+     *    oldContentType: 'text/plain,
+     *    newContentType: 'text/plain'
+     *    lastCommonContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * In practice, you should always redraw your views to display the content of the `newValue` field when a change event is received,
+     * regardless of its origin. Events with origin 'local' are fired conveniently during the page load, so that you can fill your views
+     * when the page loads. Events with origin 'window' are fired whenever you change a value by calling a method on the baseClient;
+     * these are disabled by default. Events with origin 'remote' are fired when remote changes are discovered during sync (only for caching
+     * startegies 'SEEN' and 'ALL'). Events with origin 'conflict' are fired when a conflict occurs while pushing out your local changes to
+     * the remote store in asynchronous synchronization (see example above). 
      **/
 
     RS.eventHandling(this, 'change');
@@ -3554,12 +3632,16 @@ Math.uuid = function (len, radix) {
      *
      * Parameters:
      *   path   - The path to query. It MUST end with a forward slash.
-     *   maxAge - (optional) Maximum age of cached listing in
-     *            milliseconds
+     *   maxAge - Either false or the maximum age of cached listing in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
      *
-     *   A promise for an object, representing child nodes.
+     *   A promise for an object, representing child nodes. If the maxAge
+     *   requirement cannot be met because of network problems, this promise
+     *   will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
      *
      *   Keys ending in a forward slash represent *folder nodes*, while all
      *   other keys represent *data nodes*.
@@ -3570,7 +3652,7 @@ Math.uuid = function (len, radix) {
      *
      * Example:
      *   (start code)
-     *   client.getListing('').then(function(listing) {
+     *   client.getListing('', false).then(function(listing) {
      *     listing.forEach(function(item) {
      *       console.log(item);
      *     });
@@ -3582,9 +3664,6 @@ Math.uuid = function (len, radix) {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
-      }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getListing must be undefined or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
@@ -3599,16 +3678,20 @@ Math.uuid = function (len, radix) {
      * Get all objects directly below a given path.
      *
      * Parameters:
-     *   path   - path to the folder
-     *   maxAge - (optional) Maximum age of cached objects in
-     *            milliseconds
+     *   path   - Path to the folder.
+     *   maxAge - Either false or the maximum age of cached objects in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
-     *   a promise for an object in the form { path : object, ... }
+     *   A promise for an object in the form { path : object, ... }. If the
+     *   maxAge requirement cannot be met because of network problems, this
+     *   promise will be rejected. If the maxAge requirement is set to false,
+     *   the promise will always be fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
-     *   client.getAll('').then(function(objects) {
+     *   client.getAll('', false).then(function(objects) {
      *     for (var key in objects) {
      *       console.log('- ' + key + ': ', objects[key]);
      *     }
@@ -3621,9 +3704,6 @@ Math.uuid = function (len, radix) {
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getAll must be undefined or a number');
-      }
 
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
         if (status === 404) { return {}; }
@@ -3633,12 +3713,20 @@ Math.uuid = function (len, radix) {
           if (count === 0) {
             // treat this like 404. it probably means a folder listing that
             // has changes that haven't been pushed out yet.
-            return;
+            return {};
           }
           for (var key in body) {
             this.storage.get(this.makePath(path + key), maxAge).
               then(function(status, b) {
-                body[this.key] = b;
+                if (typeof(b) === 'string') {
+                  try {
+                    b = JSON.parse(b);
+                  } catch (e) {
+                  }
+                }
+                if (typeof(b) === 'object') {
+                  body[this.key] = b;
+                }
                 i++;
                 if (i === count) { promise.fulfill(body); }
               }.bind({ key: key }));
@@ -3660,7 +3748,10 @@ Math.uuid = function (len, radix) {
      * getObject.
      *
      * Parameters:
-     *   path     - see getObject
+     *   path   - See getObject.
+     *   maxAge - Either false or the maximum age of cached file in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
      *   A promise for an object:
@@ -3668,10 +3759,14 @@ Math.uuid = function (len, radix) {
      *   mimeType - String representing the MIME Type of the document.
      *   data     - Raw data of the document (either a string or an ArrayBuffer)
      *
+     *   If the maxAge requirement cannot be met because of network problems, this
+     *   promise will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
+     *
      * Example:
      *   (start code)
      *   // Display an image:
-     *   client.getFile('path/to/some/image').then(function(file) {
+     *   client.getFile('path/to/some/image', false).then(function(file) {
      *     var blob = new Blob([file.data], { type: file.mimeType });
      *     var targetElement = document.findElementById('my-image-element');
      *     targetElement.src = window.URL.createObjectURL(blob);
@@ -3681,9 +3776,6 @@ Math.uuid = function (len, radix) {
     getFile: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
-      }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getFile must be undefined or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         return {
@@ -3758,14 +3850,20 @@ Math.uuid = function (len, radix) {
      * Get a JSON object from given path.
      *
      * Parameters:
-     *   path     - relative path from the module root (without leading slash)
+     *   path   - Relative path from the module root (without leading slash).
+     *   maxAge - Either false or the maximum age of cached object in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
-     *   A promise for the object.
+     *   A promise for the object. If the maxAge requirement cannot be met
+     *   because of network problems, this promise will be rejected. If the
+     *   maxAge requirement is set to false, the promise will always be
+     *   fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
-     *   client.getObject('/path/to/object').
+     *   client.getObject('/path/to/object', false).
      *     then(function(object) {
      *       // object is either an object or null
      *     });
@@ -3775,12 +3873,15 @@ Math.uuid = function (len, radix) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
       }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getObject must be undefined or a number');
-      }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
-        if (typeof(body) === 'object') {
+        if (typeof(body) === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
           return body;
+        } else if (typeof(body) === 'string') {
+          try {
+            return JSON.parse(body);
+          } catch (e) {
+            throw "Not valid JSON: " + this.makePath(path);
+          }
         } else if (typeof(body) !== 'undefined' && status === 200) {
           throw "Not an object: " + this.makePath(path);
         }
@@ -3850,7 +3951,7 @@ Math.uuid = function (len, radix) {
         return promising().reject(exc);
       }
 
-      return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
+      return this.storage.put(this.makePath(path), JSON.stringify(object), 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
         if (status === 200 || status === 201) {
           return revision;
         } else {
@@ -3910,6 +4011,17 @@ Math.uuid = function (len, radix) {
 
     _fireChange: function(event) {
       if (RemoteStorage.config.changeEvents[event.origin]) {
+        ['new', 'old', 'lastCommon'].forEach(function(fieldNamePrefix) {
+          if ((!event[fieldNamePrefix+'ContentType'])
+              || (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix+'ContentType']))) {
+            if (typeof(event[fieldNamePrefix+'Value']) === 'string') {
+              try {
+                event[fieldNamePrefix+'Value'] = JSON.parse(event[fieldNamePrefix+'Value']);
+              } catch(e) {
+              }
+            }
+          }
+        });
         this._emit('change', event);
       }
     },
@@ -3987,10 +4099,6 @@ Math.uuid = function (len, radix) {
     };
   });
   */
-
-  maxAgeInvalid = function(maxAge) {
-    return typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number';
-  };
 
   // Defined in baseclient/types.js
   /**
@@ -4791,8 +4899,10 @@ Math.uuid = function (len, radix) {
           path:           node.path,
           oldValue:       node.local.body,
           newValue:       node.remote.body,
+          lastCommonValue: node.common.body,
           oldContentType: node.local.contentType,
-          newContentType: node.remote.contentType
+          newContentType: node.remote.contentType,
+          lastCommonContentType: node.common.contentType
         });
 
         node.common = node.remote;
@@ -4810,7 +4920,7 @@ Math.uuid = function (len, radix) {
           } else {
             return this.autoMergeDocument(node);
           }
-        } else { // remotely created node
+        } else { // no local changes
           if (isFolder(node.path)) {
             if (node.remote.itemsMap !== undefined) {
               node.common = node.remote;
@@ -4841,6 +4951,15 @@ Math.uuid = function (len, radix) {
         return undefined;
       }
       return node;
+    },
+
+    updateCommonTimestamp: function(path, revision) {
+      return this.local.getNodes([path]).then(function(nodes) {
+        if (nodes[path] && nodes[path].common && nodes[path].common.revision === revision) {
+          nodes[path].common.timestamp = this.now();
+        }
+        return this.local.setNodes(this.flush(nodes));
+      }.bind(this));
     },
 
     markChildren: function(path, itemsMap, changedNodes, missingChildren) {
@@ -4945,7 +5064,7 @@ Math.uuid = function (len, radix) {
         return promising().fulfill(changedNodes);
       }
 
-      this.local.getNodes(paths).then(function(nodes) {
+      return this.local.getNodes(paths).then(function(nodes) {
         var subPaths = {};
 
         collectSubPaths = function(folder, path) {
@@ -4991,11 +5110,11 @@ Math.uuid = function (len, radix) {
       var parentPath;
       var pathsFromRoot = this.local._getInternals().pathsFromRoot(path);
 
-      if (!isFolder(path)) {
+      if (isFolder(path)) {
+        paths = [path];
+      } else {
         parentPath = pathsFromRoot[1];
         paths = [path, parentPath];
-      } else {
-        paths = [path];
       }
 
       var promise = this.local.getNodes(paths).then(function(nodes) {
@@ -5134,8 +5253,8 @@ Math.uuid = function (len, radix) {
       return {
         successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
         conflict:   (statusCode === 412),
-        unAuth:     ((statusCode === 401 && remote.token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN)
-            || statusCode === 402 ||statusCode === 403),
+        unAuth:     ((statusCode === 401 && this.remote.token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) ||
+                     statusCode === 402 || statusCode === 403),
         notFound:   (statusCode === 404),
         changed:    (statusCode !== 304)
       };
@@ -5168,7 +5287,9 @@ Math.uuid = function (len, radix) {
           }
         }.bind(this));
       } else {
-        return promising().fulfill(true);
+        return this.updateCommonTimestamp(path, revision).then(function() {
+          return true;
+        });
       }
     },
 
@@ -5602,9 +5723,20 @@ Math.uuid = function (len, radix) {
     }
   }
 
-  function isOutdated(node, maxAge) {
-    return !node || !node.timestamp ||
-           ((new Date().getTime()) - node.timestamp > maxAge);
+  function isOutdated(nodes, maxAge) {
+    var path, node;
+    for (path in nodes) {
+      if (nodes[path] && nodes[path].remote) {
+        return true;
+      }
+      node = getLatest(nodes[path]);
+      if (node && node.timestamp && (new Date().getTime()) - node.timestamp <= maxAge) {
+        return false;
+      } else if (!node) {
+        return true;
+      }
+    }
+    return true;
   }
 
   function pathsFromRoot(path) {
@@ -5653,19 +5785,31 @@ Math.uuid = function (len, radix) {
     get: function(path, maxAge) {
       var promise = promising();
 
-      this.getNodes([path]).then(function(objs) {
-        var node = getLatest(objs[path]);
-        if ((typeof(maxAge) === 'number') && isOutdated(node, maxAge)) {
-          remoteStorage.sync.queueGetRequest(path, promise);
-        } else if (node) {
-          promise.fulfill(200, node.body || node.itemsMap, node.contentType);
-        } else {
-          promise.fulfill(404);
-        }
-      }.bind(this), function(err) {
-        promise.reject(err);
-      }.bind(this));
-
+      if (typeof(maxAge) === 'number') {
+        this.getNodes(pathsFromRoot(path)).then(function(objs) {
+          var node = getLatest(objs[path]);
+          if (isOutdated(objs, maxAge)) {
+            remoteStorage.sync.queueGetRequest(path, promise);
+          } else if (node) {
+            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+          } else {
+            promise.fulfill(404);
+          }
+        }.bind(this), function(err) {
+          promise.reject(err);
+        });
+      } else {
+        this.getNodes([path]).then(function(objs) {
+          var node = getLatest(objs[path]);
+          if (node) {
+            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+          } else {
+            promise.fulfill(404);
+          }
+        }.bind(this), function(err) {
+          promise.reject(err);
+        });
+      }
       return promise;
     },
 
@@ -5797,6 +5941,8 @@ Math.uuid = function (len, radix) {
             });
           }
         }
+      }.bind(this)).then(function () {
+        this._emit('local-events-done');
       }.bind(this));
     },
 
@@ -5991,7 +6137,7 @@ Math.uuid = function (len, radix) {
     }
 
     RS.cachingLayer(this);
-    RS.eventHandling(this, 'change');
+    RS.eventHandling(this, 'change', 'local-events-done');
 
     this.getsRunning = 0;
     this.putsRunning = 0;
@@ -6239,7 +6385,7 @@ Math.uuid = function (len, radix) {
   RemoteStorage.LocalStorage = function() {
     RemoteStorage.cachingLayer(this);
     RemoteStorage.log('[LocalStorage] Registering events');
-    RemoteStorage.eventHandling(this, 'change');
+    RemoteStorage.eventHandling(this, 'change', 'local-events-done');
   };
 
   function b64ToUint6(nChr) {
@@ -6376,7 +6522,7 @@ Math.uuid = function (len, radix) {
   RemoteStorage.InMemoryStorage = function() {
     RemoteStorage.cachingLayer(this);
     RemoteStorage.log('[InMemoryStorage] Registering events');
-    RemoteStorage.eventHandling(this, 'change');
+    RemoteStorage.eventHandling(this, 'change', 'local-events-done');
 
     this._storage = {};
   };
@@ -6733,7 +6879,7 @@ Math.uuid = function (len, radix) {
         }
         if (typeof(result) === 'object' && typeof(result.then) === 'function') {
           result.then(function(res) { results[index] = res; oneDone(); },
-                      function(error) { errors[index] = res; oneDone(); });
+                      function(error) { errors[index] = error; oneDone(); });
         } else {
           oneDone();
           results[index] = result;
@@ -6900,7 +7046,10 @@ Math.uuid = function (len, radix) {
           promise.reject(error);
         } else if (response.status >= 200 && response.status < 300) {
           var meta = JSON.parse(response.responseText);
-          promise.fulfill(200, undefined, meta.mimeType, meta.etag);
+          var etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+          promise.fulfill(200, undefined, meta.mimeType, etagWithoutQuotes);
+        } else if (response.status === 412) {
+          promise.fulfill(412, undefined, undefined, 'conflict');
         } else {
           promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
         }
@@ -6910,6 +7059,10 @@ Math.uuid = function (len, radix) {
           promise.reject(idError);
           return;
         } else if (id) {
+          if (options && (options.ifNoneMatch === '*')) {
+            putDone(undefined, { status: 412 });
+            return;
+          }
           this._updateFile(id, path, body, contentType, options, putDone);
         } else {
           this._createFile(path, body, contentType, options, putDone);
@@ -6923,7 +7076,27 @@ Math.uuid = function (len, radix) {
       this._getFileId(path, function(idError, id) {
         if (idError) {
           promise.reject(idError);
-        } else if (id) {
+          return;
+        } else if (!id) {
+          // File doesn't exist. Ignore.
+          promise.fulfill(200);
+          return;
+        }
+
+        this._getMeta(id, function(metaError, meta) {
+          var etagWithoutQuotes;
+          if ((typeof meta === 'object') && (typeof meta.etag === 'string')) {
+            etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+          }
+          if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
+            promise.fulfill(412, undefined, undefined, etagWithoutQuotes);
+            return;
+          }
+          if (metaError) {
+            promise.reject(metaError);
+            return;
+          }
+
           this._request('DELETE', BASE_URL + '/drive/v2/files/' + id, {}, function(deleteError, response) {
             if (deleteError) {
               promise.reject(deleteError);
@@ -6933,10 +7106,7 @@ Math.uuid = function (len, radix) {
               promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
             }
           });
-        } else {
-          // file doesn't exist. ignore.
-          promise.fulfill(200);
-        }
+        });
       });
       return promise;
     },
@@ -6946,13 +7116,21 @@ Math.uuid = function (len, radix) {
       var metadata = {
         mimeType: contentType
       };
+      var headers = {
+        'Content-Type': 'application/json; charset=UTF-8'
+      };
+
+      if (options && options.ifMatch) {
+        headers['If-Match'] = '"' + options.ifMatch + '"';
+      }
+
       this._request('PUT', BASE_URL + '/upload/drive/v2/files/' + id + '?uploadType=resumable', {
         body: JSON.stringify(metadata),
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8'
-        }
+        headers: headers
       }, function(metadataError, response) {
-        if (metadataError) {
+        if (response.status === 412) {
+          callback(undefined, response);
+        } else if (metadataError) {
           callback(metadataError);
         } else {
           this._request('PUT', response.getResponseHeader('Location'), {
@@ -7009,23 +7187,28 @@ Math.uuid = function (len, radix) {
             if (metaError) {
               promise.reject(metaError);
             } else {
-              var options = {};
+              if (options && options.ifNoneMatch && (etagWithoutQuotes == options.ifNoneMatch)) {
+                promise.fulfill(304);
+                return;
+              }
+
+              var options2 = {};
               if (!meta.downloadUrl) {
                 if(meta.exportLinks && meta.exportLinks['text/html']) {
                   // Documents that were generated inside GoogleDocs have no
                   // downloadUrl, but you can export them to text/html instead:
                   meta.mimeType += ';export=text/html';
                   meta.downloadUrl = meta.exportLinks['text/html'];
-                } else { 
+                } else {
                   // empty file
                   promise.fulfill(200, '', meta.mimeType, etagWithoutQuotes);
                   return;
                 }
               }
               if (meta.mimeType.match(/charset=binary/)) {
-                options.responseType = 'blob';
+                options2.responseType = 'blob';
               }
-              this._request('GET', meta.downloadUrl, options, function(downloadError, response) {
+              this._request('GET', meta.downloadUrl, options2, function(downloadError, response) {
                 if (downloadError) {
                   promise.reject(downloadError);
                 } else {
@@ -7385,6 +7568,7 @@ Math.uuid = function (len, radix) {
     this.clientId = rs.apiKeys.dropbox.api_key;
     this._revCache = new LowerCaseCache('rev');
     this._itemRefs = {};
+    this._metadataCache = {};
 
     if (hasLocalStorage){
       var settings;
@@ -7430,7 +7614,7 @@ Math.uuid = function (len, radix) {
       if (typeof token !== 'undefined') { this.token = token; }
       if (typeof userAddress !== 'undefined') { this.userAddress = userAddress; }
 
-      if (this.token){
+      if (this.token) {
         this.connected = true;
         if ( !this.userAddress ){
           this.info().then(function(info){
@@ -7530,9 +7714,7 @@ Math.uuid = function (len, radix) {
         } else {
           var status = resp.status;
           var meta, body, mime, rev;
-          if (status === 404){
-            promise.fulfill(404);
-          } else if (status === 200) {
+          if (status === 200) {
             body = resp.responseText;
             try {
               meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') );
@@ -7561,7 +7743,6 @@ Math.uuid = function (len, radix) {
               }
               promise.fulfill(status, body, mime, rev);
             }
-
           } else {
             promise.fulfill(status);
           }
@@ -7580,14 +7761,20 @@ Math.uuid = function (len, radix) {
       var pathTempBeforeClean = path; // Temp variable to store the value beafore cleanPath, to be used later
       path = cleanPath(path);
 
+      var self = this;
       var promise = this._sharePromise(path);
-
       var revCache = this._revCache;
 
       //check if file has changed and return 412
       var savedRev = revCache.get(path);
-      if (options && options.ifMatch &&  savedRev && (savedRev !== options.ifMatch) ) {
-        promise.fulfill(412);
+      if (options && options.ifMatch &&
+          savedRev && (savedRev !== options.ifMatch)) {
+        promise.fulfill(412, undefined, undefined, savedRev);
+        return promise;
+      }
+      if (options && (options.ifNoneMatch === '*') &&
+          savedRev && (savedRev !== 'rev')) {
+        promise.fulfill(412, undefined, undefined, savedRev);
         return promise;
       }
       if (! contentType.match(/charset=/)) {
@@ -7601,22 +7788,50 @@ Math.uuid = function (len, radix) {
         //https://www.dropbox.com/developers/core/docs#chunked-upload
         RemoteStorage.log('files larger than 150MB not supported yet');
       } else {
-        this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
-          if (err) {
-            promise.reject(err);
-          } else {
-            var response = JSON.parse(resp.responseText);
-            // if dropbox reports an file conflict they just change the name of the file
-            // TODO find out which stays the origianl and how to deal with this
-            if (response.path !== pathTempBeforeClean) {
-              promise.fulfill(412);
-              this.rs.log('Dropbox created conflicting File ', response.path);
-            }
-            else {
-              revCache.set(path, response.rev);
+        var promiseMetadata = promising();
+        if (options && (options.ifMatch || (options.ifNoneMatch === '*'))) {
+          this._getMetadata(pathTempBeforeClean).then(function(metadata) {
+            promiseMetadata.fulfill(metadata);
+          });
+        } else {
+          promiseMetadata.fulfill();
+        }
+
+        promiseMetadata.then(function(metadata) {
+          if (options && (options.ifNoneMatch === '*') && metadata) {
+            // if !!metadata === true, the file exists
+            promise.fulfill(412, undefined, undefined, metadata.rev);
+            return;
+          }
+          if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
+            promise.fulfill(412, undefined, undefined, metadata.rev);
+            return;
+          }
+          self._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
+            if (err) {
+              promise.reject(err);
+            } else if (resp.status === 200) {
+              var response = JSON.parse(resp.responseText);
+              if (response.path === pathTempBeforeClean) {
+                revCache.propagateSet(path, response.rev);
+                promise.fulfill(resp.status);
+              } else {
+                // Conflict happened. Delete the copy created by Dropbox
+                var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
+                self._request('POST', deleteUrl, {}, function() {});
+
+                // If we got into this situation here, then it means that the
+                // file changed between the metadata request and this PUT
+                // request. Because of that the previously requested metadata
+                // cannot be reused here and a new request has to be made:
+                self._getMetadata(path).then(function(metadata) {
+                  promise.fulfill(412, undefined, undefined, metadata.rev);
+                });
+              }
+            } else {
               promise.fulfill(resp.status);
             }
-          }
+          });
         });
       }
       return promise;
@@ -7631,23 +7846,43 @@ Math.uuid = function (len, radix) {
       var pathTempBeforeClean = path; // Temp variable to store the value before cleanPath, to be used later
       path = cleanPath(path);
 
+      var self = this;
       var promise = promising();
       var revCache = this._revCache;
       //check if file has changed and return 412
       var savedRev = revCache.get(path);
-      if (options.ifMatch && savedRev && (options.ifMatch !== savedRev)) {
-        promise.fulfill(412);
+      if (options && options.ifMatch &&
+          savedRev && (options.ifMatch !== savedRev)) {
+        promise.fulfill(412, undefined, undefined, savedRev);
         return promise;
       }
 
-      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(pathTempBeforeClean);
-      this._request('POST', url, {}, function(err, resp){
-        if (err) {
-          promise.reject(error);
-        } else {
-          promise.fulfill(resp.status);
-          revCache.delete(path);
+      var promiseMetadata = promising();
+      if (options && options.ifMatch) {
+        this._getMetadata(pathTempBeforeClean).then(function(metadata) {
+          promiseMetadata.fulfill(metadata);
+        });
+      } else {
+        promiseMetadata.fulfill();
+      }
+
+      promiseMetadata.then(function(metadata) {
+        if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
+          promise.fulfill(412, undefined, undefined, metadata.rev);
+          return;
         }
+
+        var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(pathTempBeforeClean);
+        self._request('POST', url, {}, function(err, resp){
+          if (err) {
+            promise.reject(error);
+          } else {
+            if (resp.status === 200) {
+              revCache.delete(path);
+            }
+            promise.fulfill(resp.status);
+          }
+        });
       });
 
       return promise.then(function(){
@@ -7833,6 +8068,35 @@ Math.uuid = function (len, radix) {
           promise.fulfill.apply(promise, args);
         }
       });
+      return promise;
+    },
+
+    _getMetadata: function(path, options) {
+      var promise = promising();
+      var self = this;
+      var cached = this._metadataCache[path];
+      var url = 'https://api.dropbox.com/1/metadata/auto' + cleanPath(path);
+      url += '?list=' + ((options && options.list) ? 'true' : 'false');
+      if (cached && cached.hash) {
+        url += '&hash=' + encodeURIComponent(cached.hash);
+      }
+      this._request('GET', url, {}, function(err, resp) {
+        if (err) {
+          promise.reject(err);
+          return;
+        }
+        if (resp.status === 304) {
+          promise.fulfill(cached);
+        } else if (resp.status === 200) {
+          var response = JSON.parse(resp.responseText);
+          self._metadataCache[path] = response;
+          promise.fulfill(response);
+        } else {
+          // The file doesn't exist
+          promise.fulfill();
+        }
+      });
+
       return promise;
     }
   };
