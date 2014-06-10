@@ -174,7 +174,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
           req.status = 200;
-          req.responseText = {'@context':'http://remotestorage.io/spec/folder-description', items: {}};
+          req.responseText = JSON.stringify({'@context':'http://remotestorage.io/spec/folder-description', items: {}});
           req._onload();
         }
       },
@@ -450,12 +450,12 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       },
 
       {
-        desc: "#get unpacks JSON responses",
+        desc: "#get does not unpack JSON responses",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
-              test.assertAnd(body, { response: 'body' });
+              test.assertAnd(body, JSON.stringify({ response: 'body' }));
               test.assert(contentType, 'application/json; charset=UTF-8');
             });
           var req = XMLHttpRequest.instances.shift();

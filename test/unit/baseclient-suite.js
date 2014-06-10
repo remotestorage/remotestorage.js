@@ -13,7 +13,9 @@ define(['requirejs'], function(requirejs, undefined) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
-        onChange: function() {},
+        onChange: function(basePath, handler) {
+          this.onChange = handler;
+        },
         caching: {
           _rootPaths: {},
           set: function(path, value) {
@@ -21,7 +23,11 @@ define(['requirejs'], function(requirejs, undefined) {
           }
         }
       };
-
+      RemoteStorage.config = {
+        changeEvents: {
+          remote: true
+        }
+      };
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
@@ -270,14 +276,14 @@ define(['requirejs'], function(requirejs, undefined) {
             if (path === '/foo/') {
               promise.fulfill(200, { bar: true, baz: true });
             } else {
-              promise.fulfill(200, "content of " + path);
+              promise.fulfill(200, JSON.stringify({ "content of ": path }));
             }
             return promise;
           };
           env.client.getAll('').then(function(result) {
             test.assert(result, {
-              bar: "content of /foo/bar",
-              baz: "content of /foo/baz"
+              bar: { "content of ": "/foo/bar" },
+              baz: { "content of ": "/foo/baz" }
             });
           });
         }
@@ -380,10 +386,10 @@ define(['requirejs'], function(requirejs, undefined) {
           env.client.declareType('test', {});
           env.storage.put = function(path, body, contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar');
-            test.assertAnd(body, {
+            test.assertAnd(body, JSON.stringify({
               test: 1,
               '@context': 'http://remotestorage.io/spec/modules/foo/test'
-            });
+            }));
             test.assertAnd(contentType, 'application/json; charset=UTF-8');
             test.result(true);
             return promising().fulfill(200);
@@ -397,10 +403,10 @@ define(['requirejs'], function(requirejs, undefined) {
         run: function(env, test) {
           env.storage.put = function(path, body, contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar');
-            test.assertAnd(body, {
+            test.assertAnd(body, JSON.stringify({
               test: 1,
               '@context': 'http://to.do/spec/item'
-            });
+            }));
             test.result(true);
             return promising().fulfill(200);
           };
@@ -432,6 +438,52 @@ define(['requirejs'], function(requirejs, undefined) {
 
           var itemURL = env.client.getItemURL('A%2FB /C/%bla//D');
           test.assert(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
+        }
+      },
+
+      {
+        desc: "values in change events are JSON-parsed when possible",
+        run: function(env, test) {
+          var storage = new RemoteStorage();
+          var client = new RemoteStorage.BaseClient(storage, '/foo/');
+          var expected = [{
+            path: '/foo/a',
+            origin: 'remote',
+            relativePath: 'a',
+            newValue: { as: 'df' },
+            oldValue: 'qwer',
+            newContentType: 'application/ld+json',
+            oldContentType: 'text/plain'
+          },
+          {
+            path: '/foo/a',
+            origin: 'remote',
+            relativePath: 'a',
+            newValue: 'asdf',
+            oldValue: 'qwer'
+          }];
+          client.on('change', function(e) {
+            test.assertAnd(expected.pop(), e);
+            if (expected.length === 0) {
+              test.done();
+             }
+          });
+          storage.onChange({
+            path: '/foo/a',
+            origin: 'remote',
+            relativePath: 'a',
+            newValue: 'asdf',
+            oldValue: 'qwer'
+          });
+          storage.onChange({
+            path: '/foo/a',
+            origin: 'remote',
+            relativePath: 'a',
+            newValue: JSON.stringify({ as: 'df'}),
+            oldValue: 'qwer',
+            newContentType: 'application/ld+json',
+            oldContentType: 'text/plain'
+          });
         }
       }
     ]
