@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
+define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
   var suites = [];
 
   require('./lib/promising');
@@ -10,6 +10,8 @@ define(['requirejs'], function(requirejs, undefined) {
     name: "BaseClient",
     desc: "High-level client, scoped to a path",
     setup: function(env, test) {
+      mocks.defineMocks(env);
+  
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
@@ -52,15 +54,18 @@ define(['requirejs'], function(requirejs, undefined) {
       }
       test.done();
     },
-
+    beforeEach: function(env, test) {
+      env.storage = new RemoteStorage();
+      env.storage.access = new FakeAccess();
+      env.client = new RemoteStorage.BaseClient(env.storage, '/foo/');
+      test.done();
+    },
     tests: [
       {
         desc: "it takes a storage object and base path",
         run: function(env, test) {
-          var storage = new RemoteStorage();
-          var client = new RemoteStorage.BaseClient(storage, '/foo/');
-          test.assertAnd(client.storage instanceof RemoteStorage, true);
-          test.assertAnd(client.base, '/foo/');
+          test.assertAnd(env.client.storage instanceof RemoteStorage, true);
+          test.assertAnd(env.client.base, '/foo/');
           test.done();
         }
       },
@@ -69,8 +74,7 @@ define(['requirejs'], function(requirejs, undefined) {
         desc: "it doesn't accept non-folder paths",
         run: function(env, test) {
           try {
-            var storage = new RemoteStorage();
-            var client = new RemoteStorage.BaseClient(storage, '/foo');
+            new RemoteStorage.BaseClient(env.storage, '/foo');
             test.result(false);
           } catch(e) {
             test.done();
@@ -81,10 +85,9 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "it detects the module name correctly",
         run: function(env, test) {
-          var storage = new RemoteStorage();
-          var rootClient = new RemoteStorage.BaseClient(storage, '/');
-          var moduleClient = new RemoteStorage.BaseClient(storage, '/contacts/');
-          var nestedClient = new RemoteStorage.BaseClient(storage, '/email/credentials/');
+          var rootClient = new RemoteStorage.BaseClient(env.storage, '/');
+          var moduleClient = new RemoteStorage.BaseClient(env.storage, '/contacts/');
+          var nestedClient = new RemoteStorage.BaseClient(env.storage, '/email/credentials/');
           test.assertAnd(rootClient.moduleName, 'root');
           test.assertAnd(moduleClient.moduleName, 'contacts');
           test.assertAnd(nestedClient.moduleName, 'email');
@@ -95,21 +98,19 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "it installs a change handler for its base",
         run: function(env, test) {
-          var storage = new RemoteStorage();
-          storage.onChange = function(path, handler) {
+          env.storage.onChange = function(path, handler) {
             test.assertTypeAnd(handler, 'function');
             test.assertAnd(path, '/foo/');
             test.done();
           };
-          var client = new RemoteStorage.BaseClient(storage, '/foo/');
+          var client = new RemoteStorage.BaseClient(env.storage, '/foo/');
         }
       },
 
       {
         desc: "it understands the 'change' events",
         run: function(env, test) {
-          var client = new RemoteStorage.BaseClient(new RemoteStorage(), '/foo/');
-          client.on('change', function() {});
+          env.client.on('change', function() {});
           test.done();
         }
       }
@@ -134,6 +135,7 @@ define(['requirejs'], function(requirejs, undefined) {
 
     beforeEach: function(env, test) {
       env.storage = new RemoteStorage();
+      env.storage.access = new FakeAccess();
       env.client = new RemoteStorage.BaseClient(env.storage, '/foo/');
       test.done();
     },
