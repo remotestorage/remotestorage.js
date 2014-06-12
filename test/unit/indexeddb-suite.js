@@ -102,10 +102,6 @@ define(['requirejs'], function(requirejs) {
           }, function(e) {
             test.result(false, e);
           });
-          setTimeout(function() {
-            env._puts[0].onsuccess();
-            env._transactions[1].oncomplete();
-          }, 10);
           env._gets[0].onsuccess({ target: {}});
           env._transactions[0].oncomplete();
         }
@@ -137,15 +133,15 @@ define(['requirejs'], function(requirejs) {
         run: function(env, test) {
           var setNodesToDb = env.idb.setNodesToDb,
             getNodesFromDb = env.idb.getNodesFromDb;
-          env.idb.commitQueued = {};
-          env.idb.commitRunning = {};
+          env.idb.changesQueued = {};
+          env.idb.changesRunning = {};
           env.idb.setNodesToDb = function(nodes) {
             test.result(false, 'should not have called this function');
           };
           env.idb.putsRunning = 1;
           env.idb.setNodes({foo: {path: 'foo'}});
-          test.assertAnd(env.idb.commitQueued, {foo: {path: 'foo'}});
-          test.assertAnd(env.idb.commitRunning, {});
+          test.assertAnd(env.idb.changesQueued, {foo: {path: 'foo'}});
+          test.assertAnd(env.idb.changesRunning, {});
           
           env.idb.setNodesToDb = function(nodes) {
             var promise = promising();
@@ -160,8 +156,8 @@ define(['requirejs'], function(requirejs) {
           };
           env.idb.putsRunning = 0;
           env.idb.maybeFlush();
-          test.assertAnd(env.idb.commitQueued, {});
-          test.assertAnd(env.idb.commitRunning, {foo: {path: 'foo'}});
+          test.assertAnd(env.idb.changesQueued, {});
+          test.assertAnd(env.idb.changesRunning, {foo: {path: 'foo'}});
         }
       }
 /* TODO: mock indexeddb with some nodejs library
