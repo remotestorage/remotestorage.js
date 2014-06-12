@@ -59,7 +59,15 @@
 
     this.getsRunning = 0;
     this.putsRunning = 0;
-    // Both these caches store path -> the uncommitted node, or false for a deletion:
+    // Given a node for which uncommitted changes exist, both these caches
+    // store either the entire uncommitted node, or false for a deletion.
+    // The node's path is used as the key.
+    // changesQueued stores changes for which no IndexedDB transaction has
+    // been started yet.
+    // At any time there is at most one IndexedDB transaction running.
+    // changesRunning stores the changes that are included in that currently
+    // running IndexedDB transaction, or if none is running, of the last one
+    // that ran.
     this.changesQueued = {};
     this.changesRunning = {};
   };
