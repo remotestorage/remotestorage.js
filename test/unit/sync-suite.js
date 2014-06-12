@@ -897,6 +897,60 @@ define(['test/helpers/mocks'], function(mocks) {
             });
           });
         }
+      },
+
+      {
+        desc: "autoMergeDocument leaves a remote version in place even if it has only a revision",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: { body: 'foo', contentType: 'bloo', revision: 'common' },
+            local: { body: 'floo', contentType: 'blaloo' },
+            remote: { revision: 'conflict' }
+          };
+          var result = env.rs.sync.autoMergeDocument(node);
+          test.assertAnd(result, node);
+          test.done();
+        }
+      },
+
+      {
+        desc: "completePush of a conflict sets revision to the incoming revision, or to 'conflict' if null",
+        run: function(env, test) {
+          var getNodes = env.rs.sync.local.getNodes,
+           setNodes = env.rs.sync.local.setNodes;
+          env.rs.caching._responses['foo'] = 'ALL';
+          env.rs.sync.local.getNodes = function(paths) {
+            var promise = promising();
+            test.assertAnd(paths, ['foo']);
+            promise.fulfill({
+              foo: {
+                path: 'foo',
+                common: { body: 'foo', contentType: 'bloo', revision: 'common' },
+                local: { body: 'floo', contentType: 'blaloo' },
+                push: { body: 'floo', contentType: 'blaloo' }
+              }
+            });
+            return promise;
+          };
+          env.rs.sync.local.setNodes = function(nodes) {
+            test.assert(nodes, {
+              foo: {
+                path: 'foo',
+                common: { body: 'foo', contentType: 'bloo', revision: 'common' },
+                local: { body: 'floo', contentType: 'blaloo' },
+                remote: { revision: '123', timestamp: 1234567890123 }
+              }
+            });
+            setTimeout(function() {
+              env.rs.sync.getNodes = getNodes;
+              env.rs.sync.setNodes = setNodes;
+              test.done();
+            }, 0);
+          };
+          env.rs.sync.now = function() { return 1234567890123; };
+          env.rs.sync.completePush('foo', 'put', true, '123')
+        }
       }
     ]
   });

@@ -432,6 +432,9 @@
 
     autoMergeDocument: function(node) {
       hasNoRemoteChanges = function(node) {
+        if (node.remote && node.remote.revision !== node.common.revision) {
+          return false;
+        }
         return (node.common.body === undefined && node.remote.body === false) ||
                (node.remote.body === node.common.body &&
                 node.remote.contentType === node.common.contentType);
@@ -743,9 +746,10 @@
 
           if (!node.remote || node.remote.revision !== revision) {
             node.remote = {
-              revision:  revision,
+              revision:  revision || 'conflict',
               timestamp: this.now()
             };
+            delete node.push;
           }
 
           nodes[path] = this.autoMerge(node);
