@@ -60,18 +60,18 @@
     this.getsRunning = 0;
     this.putsRunning = 0;
     // Both these caches store path -> the uncommitted node, or false for a deletion:
-    this.commitQueued = {};
-    this.commitRunning = {};
+    this.changesQueued = {};
+    this.changesRunning = {};
   };
 
   RS.IndexedDB.prototype = {
     getNodes: function(paths) {
       var misses = [], fromCache = {};
       for (var i=0; i<paths.length; i++) {
-        if (this.commitQueued[paths[i]] !== undefined) {
-          fromCache[paths[i]] = this._getInternals().deepClone(this.commitQueued[paths[i]] || undefined);
-        } else if(this.commitRunning[paths[i]] !== undefined) {
-          fromCache[paths[i]] = this._getInternals().deepClone(this.commitRunning[paths[i]] || undefined);
+        if (this.changesQueued[paths[i]] !== undefined) {
+          fromCache[paths[i]] = this._getInternals().deepClone(this.changesQueued[paths[i]] || undefined);
+        } else if(this.changesRunning[paths[i]] !== undefined) {
+          fromCache[paths[i]] = this._getInternals().deepClone(this.changesRunning[paths[i]] || undefined);
         } else {
           misses.push(paths[i]);
         }
@@ -93,7 +93,7 @@
     setNodes: function(nodes) {
       var promise = promising();
       for (var i in nodes) {
-        this.commitQueued[i] = nodes[i] || false;
+        this.changesQueued[i] = nodes[i] || false;
       }
       this.maybeFlush();
       promise.fulfill();
@@ -102,7 +102,7 @@
 
     maybeFlush: function() {
       if (this.putsRunning === 0) {
-        this.flushcommitQueued();
+        this.flushChangesQueued();
       } else {
         if (!this.commitSlownessWarning) {
           this.commitSlownessWarning = setInterval(function() {
@@ -112,15 +112,15 @@
       }
     },
 
-    flushcommitQueued: function() {
+    flushChangesQueued: function() {
       if (this.commitSlownessWarning) {
         clearInterval(this.commitSlownessWarning);
         this.commitSlownessWarning = null;
       }
-      if (Object.keys(this.commitQueued).length > 0) {
-        this.commitRunning = this.commitQueued;
-        this.commitQueued = {};
-        this.setNodesToDb(this.commitRunning).then(this.flushcommitQueued.bind(this));
+      if (Object.keys(this.changesQueued).length > 0) {
+        this.changesRunning = this.changesQueued;
+        this.changesQueued = {};
+        this.setNodesToDb(this.changesRunning).then(this.flushChangesQueued.bind(this));
       }
     },
 
