@@ -114,6 +114,33 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
+        desc: "#get removes falsy items from local version itemsMap",
+        run: function(env, test) {
+          var requestQueued = false;
+          var oldTimestamp = (new Date().getTime()) - 1000;
+
+          env.rs.local._storage['/'] = {
+            path: '/',
+            common: {
+              itemsMap: { foo: true, bar: true },
+              timestamp: oldTimestamp,
+              revision: '123'
+            },
+            local: {
+              itemsMap: { foo: true, bar: false },
+              timestamp: oldTimestamp,
+              revision: '123'
+            }
+          };
+          env.rs.local.get('/', false).then(function(status, itemsMap) {
+            test.assertAnd(status, 200);
+            test.assertAnd(itemsMap, { foo: true });
+            test.done();
+          });
+        }
+      },
+
+      {
         desc: "#get gets queued as a sync request if node is older than the maxAge",
         run: function(env, test) {
           var requestQueued = false;

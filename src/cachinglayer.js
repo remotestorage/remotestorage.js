@@ -174,6 +174,13 @@
         this.getNodes([path]).then(function(objs) {
           var node = getLatest(objs[path]);
           if (node) {
+            if (isFolder(path)) {
+              for (var i in node.itemsMap) {
+                if (node.itemsMap[i] === false) {
+                  delete node.itemsMap[i];
+                }
+              }
+            }
             promise.fulfill(200, node.body || node.itemsMap, node.contentType);
           } else {
             promise.fulfill(404);
