@@ -12,6 +12,7 @@ system. Old cached data will be converted to the new format automatically.
 
 * `getAll` and `getListing` now return an empty object instead of undefined when no items
   match the query
+* `getListing` no longer includes Content-Type information; use `getFile` for that now.
 * `disconnect` event removed in favor of `disconnected`
 * `remoteStorage.claimAccess` removed in favor of `remoteStorage.access.claim`
 * `BaseClient#use` and `BaseClient#release` removed in favor of `BaseClient#cache`
