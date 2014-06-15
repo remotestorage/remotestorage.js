@@ -202,7 +202,7 @@
      * Example:
      *   (start code)
      *   client.getListing('', false).then(function(listing) {
-     *     //listing is for instance:
+     *     // listing is for instance:
      *     // {
      *     //   'folder/': true,
      *     //   'document.txt': true
