@@ -12,7 +12,7 @@ system. Old cached data will be converted to the new format automatically.
 
 * `getAll` and `getListing` now return an empty object instead of undefined when no items
     match the query
-* Object meta data has been removed from the getListing response, until we have a better
+* Object meta data has been removed from the `getListing` response, until we have a better
     implementation (#652, #720, #721)
 * `disconnect` event removed in favor of `disconnected`
 * `remoteStorage.claimAccess` removed in favor of `remoteStorage.access.claim`
