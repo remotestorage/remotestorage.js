@@ -108,15 +108,15 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "setNodes calls setNodesToDb when putsRunning is 0",
+        desc: "setNodes calls setNodesInDb when putsRunning is 0",
         run: function(env, test) {
-          var setNodesToDb = env.idb.setNodesToDb,
+          var setNodesInDb = env.idb.setNodesInDb,
             getNodesFromDb = env.idb.getNodesFromDb;
-          env.idb.setNodesToDb = function(nodes) {
+          env.idb.setNodesInDb = function(nodes) {
             var promise = promising();
             test.assertAnd(nodes, {foo: {path: 'foo'}});
             setTimeout(function() {
-              env.idb.setNodesToDb = setNodesToDb;
+              env.idb.setNodesInDb = setNodesInDb;
               env.idb.getNodesFromDb = getNodesFromDb;
               test.done();
             }, 10);
@@ -129,13 +129,13 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "setNodes doesn't call setNodesToDb when putsRunning is 1, but will flush later",
+        desc: "setNodes doesn't call setNodesInDb when putsRunning is 1, but will flush later",
         run: function(env, test) {
-          var setNodesToDb = env.idb.setNodesToDb,
+          var setNodesInDb = env.idb.setNodesInDb,
             getNodesFromDb = env.idb.getNodesFromDb;
           env.idb.changesQueued = {};
           env.idb.changesRunning = {};
-          env.idb.setNodesToDb = function(nodes) {
+          env.idb.setNodesInDb = function(nodes) {
             test.result(false, 'should not have called this function');
           };
           env.idb.putsRunning = 1;
@@ -143,11 +143,11 @@ define(['requirejs'], function(requirejs) {
           test.assertAnd(env.idb.changesQueued, {foo: {path: 'foo'}});
           test.assertAnd(env.idb.changesRunning, {});
           
-          env.idb.setNodesToDb = function(nodes) {
+          env.idb.setNodesInDb = function(nodes) {
             var promise = promising();
             test.assertAnd(nodes, {foo: {path: 'foo'}});
             setTimeout(function() {
-              env.idb.setNodesToDb = setNodesToDb;
+              env.idb.setNodesInDb = setNodesInDb;
               env.idb.getNodesFromDb = getNodesFromDb;
               test.done();
             }, 10);
