@@ -128,7 +128,7 @@
       if (Object.keys(this.changesQueued).length > 0) {
         this.changesRunning = this.changesQueued;
         this.changesQueued = {};
-        this.setNodesToDb(this.changesRunning).then(this.flushChangesQueued.bind(this));
+        this.setNodesInDb(this.changesRunning).then(this.flushChangesQueued.bind(this));
       }
     },
 
@@ -163,7 +163,7 @@
       return promise;
     },
 
-    setNodesToDb: function(nodes) {
+    setNodesInDb: function(nodes) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodesStore = transaction.objectStore('nodes');
