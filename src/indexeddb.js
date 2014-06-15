@@ -37,17 +37,6 @@
    *     - #getNodes([paths]) returns the requested nodes in a promise.
    *     - #setNodes(map) stores all the nodes given in the (path -> node) map.
    *
-   *   A note about the `changesQueued` and `changesRunning` variables:
-   *   Given a node for which uncommitted changes exist, both these caches
-   *   store either the entire uncommitted node, or false for a deletion.
-   *   The node's path is used as the key.
-   *   changesQueued stores changes for which no IndexedDB transaction has
-   *   been started yet.
-   *   At any time there is at most one IndexedDB transaction running.
-   *   changesRunning stores the changes that are included in that currently
-   *   running IndexedDB transaction, or if none is running, of the last one
-   *   that ran.
-   *
    */
 
   var RS = RemoteStorage;
@@ -71,8 +60,30 @@
     this.getsRunning = 0;
     this.putsRunning = 0;
 
-    //see comment "A note about the `changesQueued` and `changesRunning` variables" above:
+    /**
+     * Property: changesQueued
+     *
+     * Given a node for which uncommitted changes exist, this cache
+     * stores either the entire uncommitted node, or false for a deletion.
+     * The node's path is used as the key.
+     *
+     * changesQueued stores changes for which no IndexedDB transaction has
+     * been started yet.
+     */
     this.changesQueued = {};
+
+    /**
+     * Property: changesRunning
+     *
+     * Given a node for which uncommitted changes exist, this cache
+     * stores either the entire uncommitted node, or false for a deletion.
+     * The node's path is used as the key.
+     *
+     * At any time there is at most one IndexedDB transaction running.
+     * changesRunning stores the changes that are included in that currently
+     * running IndexedDB transaction, or if none is running, of the last one
+     * that ran.
+     */
     this.changesRunning = {};
   };
 
