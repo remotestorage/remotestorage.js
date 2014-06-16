@@ -176,7 +176,8 @@
           if (node) {
             if (isFolder(path)) {
               for (var i in node.itemsMap) {
-                if (node.itemsMap[i] === false) {
+                // the hasOwnProperty check here is only because our jshint settings require it:
+                if (node.itemsMap.hasOwnProperty(i) && node.itemsMap[i] === false) {
                   delete node.itemsMap[i];
                 }
               }
