@@ -174,6 +174,14 @@
         this.getNodes([path]).then(function(objs) {
           var node = getLatest(objs[path]);
           if (node) {
+            if (isFolder(path)) {
+              for (var i in node.itemsMap) {
+                // the hasOwnProperty check here is only because our jshint settings require it:
+                if (node.itemsMap.hasOwnProperty(i) && node.itemsMap[i] === false) {
+                  delete node.itemsMap[i];
+                }
+              }
+            }
             promise.fulfill(200, node.body || node.itemsMap, node.contentType);
           } else {
             promise.fulfill(404);

@@ -14,9 +14,12 @@
    *
    * A BaseClient deals with three types of data: folders, objects and files.
    *
-   * <getListing> returns a list of all items within a folder, or undefined
-   * if a 404 is encountered. Items that end with a forward slash ("/") are
-   * child folders.
+   * <getListing> returns a mapping of all items within a folder. Items that
+   * end with a forward slash ("/") are child folders. For instance:
+   * {
+   *   'folder/': true,
+   *   'document.txt': true
+   * }
    *
    * <getObject> / <storeObject> operate on JSON objects. Each object has a type.
    *
@@ -199,9 +202,11 @@
      * Example:
      *   (start code)
      *   client.getListing('', false).then(function(listing) {
-     *     listing.forEach(function(item) {
-     *       console.log(item);
-     *     });
+     *     // listing is for instance:
+     *     // {
+     *     //   'folder/': true,
+     *     //   'document.txt': true
+     *     // }
      *   });
      *   (end code)
      */
