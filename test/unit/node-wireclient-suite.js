@@ -104,6 +104,33 @@ define(['requirejs'], function(requirejs) {
           req.response = 'response content';
           req._onload();
         }
+      },
+
+      {
+        desc: "GET requests for text data respond with the proper content",
+        run: function(env, test) {
+          function string2ArrayBuffer(str) {
+            var buf = new ArrayBuffer(str.length); // assuming str only contains 1-byte UTF characters
+            var bufView = new Uint8Array(buf);
+            for (var i=0, strLen=str.length; i<strLen; i++) {
+              bufView[i] = str.charCodeAt(i);
+            }
+            return buf;
+          }
+
+          env.connectedClient.get('/foo/bar').
+            then(function(status, content, contentType) {
+              test.assertAnd(status, 200);
+              test.assertAnd(content, 'response content');
+              test.assert(contentType, 'text/plain');
+            });
+
+          var req = XMLHttpRequest.instances.shift();
+          req._responseHeaders['Content-Type'] = 'text/plain';
+          req.status = 200;
+          req.response = string2ArrayBuffer('response content');
+          req._onload();
+        }
       }
     ]
   });
