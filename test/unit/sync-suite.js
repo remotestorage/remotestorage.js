@@ -950,6 +950,8 @@ define(['test/helpers/mocks'], function(mocks) {
 
           env.rs.sync.local._emitChange = function(changeEvent) {
             test.assertAnd(changeEvent, {
+              origin: 'remote',
+              path: 'foo',
               newValue: 'new value',
               oldValue: 'old value',
               newContentType: 'new content-type',
