@@ -490,6 +490,8 @@
               };
               if (change.oldValue || change.newValue) {
                 this.local._emitChange(change);
+              } else { // no local, no common, and no remote, so don't create the node:
+                return undefined;
               }
               node.common = node.remote;
               delete node.remote;
