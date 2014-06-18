@@ -507,7 +507,9 @@
             origin:   'remote',
             path:     node.path,
             oldValue: node.common.body,
+            newValue: undefined,
             oldContentType: node.common.contentType,
+            newContentType: undefined
           });
         }
 
