@@ -480,25 +480,33 @@
             }
           } else {
             if (node.remote.body !== undefined) {
-              this.local._emitChange({
+              var change = {
                 origin:   'remote',
                 path:     node.path,
                 oldValue: (node.common.body === false ? undefined : node.common.body),
-                newValue: (node.remote.body === false ? undefined : node.remote.body)
-              });
-
+                newValue: (node.remote.body === false ? undefined : node.remote.body),
+                oldContentType: node.common.contentType,
+                newContentType: node.remote.contentType
+              };
+              if (change.oldValue || change.newValue) {
+                this.local._emitChange(change);
+              }
               node.common = node.remote;
               delete node.remote;
             }
           }
         }
       } else {
-        this.local._emitChange({
-          origin:   'remote',
-          path:     node.path,
-          oldValue: (node.common.body === false ? undefined : node.common.body),
-          newValue: undefined
-        });
+        if (node.common.body) {
+          this.local._emitChange({
+            origin:   'remote',
+            path:     node.path,
+            oldValue: node.common.body,
+            newValue: undefined,
+            oldContentType: node.common.contentType,
+            newContentType: undefined
+          });
+        }
 
         return undefined;
       }
