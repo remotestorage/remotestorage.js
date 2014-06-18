@@ -20,7 +20,7 @@ define(['test/helpers/mocks'], function(mocks) {
 
     setup: function(env, test){
       mocks.defineMocks(env);
-  
+
       require('./lib/promising');
       global.RemoteStorage = function(){
         RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'sync-interval-change', 'error');
@@ -911,6 +911,116 @@ define(['test/helpers/mocks'], function(mocks) {
           var result = env.rs.sync.autoMergeDocument(node);
           test.assertAnd(result, node);
           test.done();
+        }
+      },
+
+      {
+        desc: "autoMergeDocument on an empty node removes a remote version if it has a null revision",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: {},
+            remote: { revision: null }
+          };
+          var remoteRemoved = {
+            path: 'foo',
+            common: {}
+          };
+          var result = env.rs.sync.autoMergeDocument(node);
+          test.assertAnd(result, remoteRemoved);
+          test.done();
+        }
+      },
+
+      {
+        desc: "autoMerge auto-merges and sends out a change event if a node changed",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: { body: 'old value', contentType: 'old content-type', revision: 'common' },
+            remote: { body: 'new value', contentType: 'new content-type', revision: 'remote' }
+          };
+          var merged = {
+            path: 'foo',
+            common: { body: 'new value', contentType: 'new content-type', revision: 'remote' }
+          };
+          var otherDone = false;
+
+          env.rs.sync.local._emitChange = function(changeEvent) {
+            test.assertAnd(changeEvent, {
+              origin: 'remote',
+              path: 'foo',
+              newValue: 'new value',
+              oldValue: 'old value',
+              newContentType: 'new content-type',
+              oldContentType: 'old content-type'
+            });
+            if (otherDone) {
+              test.done();
+            } else {
+              otherDone = true;
+            }
+          };
+          var result = env.rs.sync.autoMerge(node);
+          test.assertAnd(result, merged);
+          if (otherDone) {
+            test.done();
+          } else {
+            otherDone = true;
+          }
+        }
+      },
+
+      {
+        desc: "autoMerge removes the whole node on 404 and sends out a change event if a node existed before",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: { body: 'foo', contentType: 'bloo', revision: 'common' },
+            remote: { body: false, revision: 'null' }
+          };
+          var otherDone = false;
+          env.rs.sync.local._emitChange = function(obj) {
+            test.assertAnd(obj, {
+              origin: 'remote',
+              path: 'foo',
+              oldValue: 'foo',
+              newValue: undefined,
+              oldContentType: 'bloo',
+              newContentType: undefined
+            });
+            if (otherDone) {
+              test.done();
+            } else {
+              otherDone = true;
+            }
+          };
+          var result = env.rs.sync.autoMerge(node);
+          test.assertAnd(result, undefined);
+          if (otherDone) {
+            test.done();
+          } else {
+            otherDone = true;
+          }
+        }
+      },
+
+      {
+        desc: "autoMerge doesn't send out a change event on 404 if a node didn't exist before",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: {},
+            remote: { body: false, revision: 'null' }
+          };
+          env.rs.sync.local._emitChange = function(obj) {
+            test.result(false, 'should not have emitted '+JSON.stringify(obj));
+          };
+          var result = env.rs.sync.autoMerge(node);
+          test.assertAnd(result, undefined);
+          setTimeout(function() {
+            test.done();
+          }, 100);
         }
       },
 
