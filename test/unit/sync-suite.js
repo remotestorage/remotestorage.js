@@ -20,7 +20,7 @@ define(['test/helpers/mocks'], function(mocks) {
 
     setup: function(env, test){
       mocks.defineMocks(env);
-  
+
       require('./lib/promising');
       global.RemoteStorage = function(){
         RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'sync-interval-change', 'error');
@@ -939,20 +939,21 @@ define(['test/helpers/mocks'], function(mocks) {
         run: function(env, test) {
           var node = {
             path: 'foo',
-            common: { body: 'foo', contentType: 'bloo', revision: 'common' },
-            remote: { body: 'floo', contentType: 'blaloo', revision: 'remote' }
+            common: { body: 'old value', contentType: 'old content-type', revision: 'common' },
+            remote: { body: 'new value', contentType: 'new content-type', revision: 'remote' }
           };
           var merged = {
             path: 'foo',
-            common: { body: 'floo', contentType: 'blaloo', revision: 'remote' }
+            common: { body: 'new value', contentType: 'new content-type', revision: 'remote' }
           };
           var otherDone = false;
-          env.rs.sync.local._emitChange = function(obj) {
-            test.assertAnd(obj, {
-              newValue: 'floo',
-              oldValue: 'foo',
-              newContentType: 'blaloo',
-              oldContentType: 'bloo'
+
+          env.rs.sync.local._emitChange = function(changeEvent) {
+            test.assertAnd(changeEvent, {
+              newValue: 'new value',
+              oldValue: 'old value',
+              newContentType: 'new content-type',
+              oldContentType: 'old content-type'
             });
             if (otherDone) {
               test.done();
