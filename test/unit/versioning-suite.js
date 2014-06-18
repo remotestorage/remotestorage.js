@@ -593,11 +593,11 @@ define([], function() {
                 test.assertAnd(objs['/foo/f-deleted-fetching/'], undefined);
 
                 //i'm not sure whether it's necessary that these tombstones are created:
-                test.assertAnd(objs['/foo/f-common/a'].common.body, false);
+                test.assertAnd(objs['/foo/f-common/a'], undefined);
                 test.assertAnd(objs['/foo/f-created/a'].local.body, 'bloo');
                 test.assertAnd(objs['/foo/f-changed/a'].common.body, false);
                 test.assertAnd(objs['/foo/f-deleted/a'].common.body, false);
-                test.assertAnd(objs['/foo/f-common-fetching/a'].common.body, false);
+                test.assertAnd(objs['/foo/f-common-fetching/a'], undefined);
                 test.assertAnd(objs['/foo/f-created-fetching/a'].local.body, 'bloo');
                 test.assertAnd(objs['/foo/f-changed-fetching/a'].common.body, false);
                 test.assertAnd(objs['/foo/f-deleted-fetching/a'].common.body, false);

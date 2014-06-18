@@ -491,6 +491,11 @@
               if (change.oldValue || change.newValue) {
                 this.local._emitChange(change);
               }
+
+              if (!node.remote.body) { // no remote, so delete/don't create
+                return;
+              }
+
               node.common = node.remote;
               delete node.remote;
             }
