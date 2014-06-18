@@ -915,6 +915,111 @@ define(['test/helpers/mocks'], function(mocks) {
       },
 
       {
+        desc: "autoMergeDocument removes a remote version if it has a null revision",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: { body: 'foo', contentType: 'bloo', revision: 'common' },
+            local: { body: 'floo', contentType: 'blaloo' },
+            remote: { revision: null }
+          };
+          var remoteRemoved = {
+            path: 'foo',
+            common: { body: 'foo', contentType: 'bloo', revision: 'common' },
+            local: { body: 'floo', contentType: 'blaloo' }
+          };
+          var result = env.rs.sync.autoMergeDocument(node);
+          test.assertAnd(result, remoteRemoved);
+          test.done();
+        }
+      },
+
+      {
+        desc: "autoMerge auto-merges and sends out a change event if a node changed",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: { body: 'foo', contentType: 'bloo', revision: 'common' },
+            remote: { body: 'floo', contentType: 'blaloo', revision: 'remote' }
+          };
+          var merged = {
+            path: 'foo',
+            common: { body: 'floo', contentType: 'blaloo', revision: 'remote' }
+          };
+          var otherDone = false;
+          env.rs.sync.local._emitChange = function(obj) {
+            test.assertAnd(obj, {
+              newValue: 'floo',
+              oldValue: 'foo',
+              newContentType: 'blaloo',
+              oldContentType: 'bloo'
+            });
+            if (otherDone) {
+              test.done();
+            } else {
+              otherDone = true;
+            }
+          };
+          var result = env.rs.sync.autoMerge(node);
+          test.assertAnd(result, merged);
+          if (otherDone) {
+            test.done();
+          } else {
+            otherDone = true;
+          }
+        }
+      },
+
+      {
+        desc: "autoMerge removes the whole node on 404 and sends out a change event if a node existed before",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: { body: 'foo', contentType: 'bloo', revision: 'common' },
+            remote: { body: false, revision: 'null' }
+          };
+          var otherDone = false;
+          env.rs.sync.local._emitChange = function(obj) {
+            test.assertAnd(obj, {
+              oldValue: 'foo',
+              oldContentType: 'bloo'
+            });
+            if (otherDone) {
+              test.done();
+            } else {
+              otherDone = true;
+            }
+          };
+          var result = env.rs.sync.autoMerge(node);
+          test.assertAnd(result, undefined);
+          if (otherDone) {
+            test.done();
+          } else {
+            otherDone = true;
+          }
+        }
+      },
+
+      {
+        desc: "autoMerge doesn't send out a change event on 404 if a node didn't exist before",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: {},
+            remote: { body: false, revision: 'null' }
+          };
+          env.rs.sync.local._emitChange = function(obj) {
+            test.result(false, 'should not have emitted '+JSON.stringify(obj));
+          };
+          var result = env.rs.sync.autoMerge(node);
+          test.assertAnd(result, undefined);
+          setTimeout(function() {
+            test.done();
+          }, 100);
+        }
+      },
+
+      {
         desc: "completePush of a conflict sets revision to the incoming revision, or to 'conflict' if null",
         run: function(env, test) {
           var getNodes = env.rs.sync.local.getNodes,
