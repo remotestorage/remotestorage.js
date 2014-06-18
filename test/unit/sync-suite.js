@@ -984,8 +984,12 @@ define(['test/helpers/mocks'], function(mocks) {
           var otherDone = false;
           env.rs.sync.local._emitChange = function(obj) {
             test.assertAnd(obj, {
+              origin: 'remote',
+              path: 'foo',
               oldValue: 'foo',
-              oldContentType: 'bloo'
+              newValue: undefined,
+              oldContentType: 'bloo',
+              newContentType: undefined
             });
             if (otherDone) {
               test.done();
