@@ -432,7 +432,7 @@
 
     autoMergeDocument: function(node) {
       hasNoRemoteChanges = function(node) {
-        if (node.remote && node.remote.revision !== node.common.revision) {
+        if (node.remote && node.remote.revision && node.remote.revision !== node.common.revision) {
           return false;
         }
         return (node.common.body === undefined && node.remote.body === false) ||
