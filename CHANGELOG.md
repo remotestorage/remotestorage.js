@@ -55,6 +55,7 @@ system. Old cached data will be converted to the new format automatically.
 * Restore the document fragment (hash URL) after the OAuth dance (#646)
 * Fix handling of custom JSON-LD contexts for types (#661)
 * Widget bubble closing spontaneously (#683)
+* Fix incorrect handling of 404 responses (#718)
 
 ## 0.9.0 (December 2013)
 
