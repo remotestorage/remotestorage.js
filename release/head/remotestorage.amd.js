@@ -1032,6 +1032,34 @@ define([], function() {
     reader.readAsArrayBuffer(blob);
   }
 
+  function getTextFromArrayBuffer(arrayBuffer, encoding, callback) {
+    if (typeof Blob === 'undefined') {
+      var buffer = new Buffer(new Uint8Array(arrayBuffer));
+      callback(buffer.toString(encoding));
+    } else {
+      var blob = new Blob([arrayBuffer]);
+      var fileReader = new FileReader();
+      fileReader.addEventListener("loadend", function(evt) {
+        callback(evt.target.result);
+      });
+      fileReader.readAsText(blob, encoding);
+    }
+  }
+
+  function determineCharset(mimeType) {
+    var charset = 'utf-8';
+    var charsetMatch;
+
+    if (mimeType) {
+      charsetMatch = mimeType.match(/charset=(.+)$/);
+      if (charsetMatch) {
+        charset = charsetMatch[1];
+      }
+    }
+
+    return charset;
+  }
+
   function cleanPath(path) {
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
@@ -1155,7 +1183,8 @@ define([], function() {
 
       RS.WireClient.request(method, uri, {
         body: body,
-        headers: headers
+        headers: headers,
+        responseType: 'arraybuffer'
       }, function(error, response) {
         if (error) {
           self._emit('wire-done', {
@@ -1194,15 +1223,16 @@ define([], function() {
               revision = response.status === 200 ? fakeRevision : undefined;
             }
 
-            if ((!mimeType) || mimeType.match(/charset=binary/)) {
-              RS.WireClient.readBinaryData(response.response, mimeType, function(result) {
-                RemoteStorage.log('[WireClient] Successful request with unknown or binary mime-type', revision);
-                promise.fulfill(response.status, result, mimeType, revision);
-              });
+            var charset = determineCharset(mimeType);
+
+            if ((!mimeType) || charset === 'binary') {
+              RemoteStorage.log('[WireClient] Successful request with unknown or binary mime-type', revision);
+              promise.fulfill(response.status, response.response, mimeType, revision);
             } else {
-              body = response.responseText;
-              RemoteStorage.log('[WireClient] Successful request', revision);
-              promise.fulfill(response.status, body, mimeType, revision);
+              getTextFromArrayBuffer(response.response, charset, function(body) {
+                RemoteStorage.log('[WireClient] Successful request', revision);
+                promise.fulfill(response.status, body, mimeType, revision);
+              });
             }
           }
         }
@@ -3468,9 +3498,12 @@ Math.uuid = function (len, radix) {
    *
    * A BaseClient deals with three types of data: folders, objects and files.
    *
-   * <getListing> returns a list of all items within a folder, or undefined
-   * if a 404 is encountered. Items that end with a forward slash ("/") are
-   * child folders.
+   * <getListing> returns a mapping of all items within a folder. Items that
+   * end with a forward slash ("/") are child folders. For instance:
+   * {
+   *   'folder/': true,
+   *   'document.txt': true
+   * }
    *
    * <getObject> / <storeObject> operate on JSON objects. Each object has a type.
    *
@@ -3653,9 +3686,11 @@ Math.uuid = function (len, radix) {
      * Example:
      *   (start code)
      *   client.getListing('', false).then(function(listing) {
-     *     listing.forEach(function(item) {
-     *       console.log(item);
-     *     });
+     *     // listing is for instance:
+     *     // {
+     *     //   'folder/': true,
+     *     //   'document.txt': true
+     *     // }
      *   });
      *   (end code)
      */
@@ -4800,7 +4835,7 @@ Math.uuid = function (len, radix) {
     flush: function(nodes) {
       for (var path in nodes) {
         // Strategy is 'FLUSH' and no local changes exist
-        if (this.caching.checkPath(path) === 'FLUSH' && !nodes[path].local) {
+        if (this.caching.checkPath(path) === 'FLUSH' && nodes[path] && !nodes[path].local) {
           RemoteStorage.log('[Sync] Flushing', path);
           nodes[path] = undefined; // Cause node to be flushed from cache
         }
@@ -4894,6 +4929,9 @@ Math.uuid = function (len, radix) {
 
     autoMergeDocument: function(node) {
       hasNoRemoteChanges = function(node) {
+        if (node.remote && node.remote.revision && node.remote.revision !== node.common.revision) {
+          return false;
+        }
         return (node.common.body === undefined && node.remote.body === false) ||
                (node.remote.body === node.common.body &&
                 node.remote.contentType === node.common.contentType);
@@ -4916,7 +4954,11 @@ Math.uuid = function (len, radix) {
           lastCommonContentType: node.common.contentType
         });
 
-        node.common = node.remote;
+        if (node.remote.body) {
+          node.common = node.remote;
+        } else {
+          node.common = {};
+        }
         delete node.remote;
         delete node.local;
       }
@@ -4939,12 +4981,21 @@ Math.uuid = function (len, radix) {
             }
           } else {
             if (node.remote.body !== undefined) {
-              this.local._emitChange({
+              var change = {
                 origin:   'remote',
                 path:     node.path,
                 oldValue: (node.common.body === false ? undefined : node.common.body),
-                newValue: (node.remote.body === false ? undefined : node.remote.body)
-              });
+                newValue: (node.remote.body === false ? undefined : node.remote.body),
+                oldContentType: node.common.contentType,
+                newContentType: node.remote.contentType
+              };
+              if (change.oldValue || change.newValue) {
+                this.local._emitChange(change);
+              }
+
+              if (!node.remote.body) { // no remote, so delete/don't create
+                return;
+              }
 
               node.common = node.remote;
               delete node.remote;
@@ -4952,12 +5003,16 @@ Math.uuid = function (len, radix) {
           }
         }
       } else {
-        this.local._emitChange({
-          origin:   'remote',
-          path:     node.path,
-          oldValue: (node.common.body === false ? undefined : node.common.body),
-          newValue: undefined
-        });
+        if (node.common.body) {
+          this.local._emitChange({
+            origin:   'remote',
+            path:     node.path,
+            oldValue: node.common.body,
+            newValue: undefined,
+            oldContentType: node.common.contentType,
+            newContentType: undefined
+          });
+        }
 
         return undefined;
       }
@@ -5205,9 +5260,10 @@ Math.uuid = function (len, radix) {
 
           if (!node.remote || node.remote.revision !== revision) {
             node.remote = {
-              revision:  revision,
+              revision:  revision || 'conflict',
               timestamp: this.now()
             };
+            delete node.push;
           }
 
           nodes[path] = this.autoMerge(node);
@@ -5383,7 +5439,7 @@ Math.uuid = function (len, radix) {
       }.bind(this),
 
       function(err) {
-        RemoteStorage.log('[Sync] Error', err);
+        console.error('[Sync] Error', err);
         this.remote.online = false;
         delete this._timeStarted[task.path];
         delete this._running[task.path];
@@ -5466,10 +5522,10 @@ Math.uuid = function (len, radix) {
           try {
             this.doTasks();
           } catch(e) {
-            RemoteStorage.log('[Sync] doTasks error', e);
+            console.error('[Sync] doTasks error', e);
           }
         }.bind(this), function(e) {
-          RemoteStorage.log('[Sync] Sync error', e);
+          console.error('[Sync] Sync error', e);
           throw new Error('Local cache unavailable');
         });
       } else {
@@ -5813,6 +5869,14 @@ Math.uuid = function (len, radix) {
         this.getNodes([path]).then(function(objs) {
           var node = getLatest(objs[path]);
           if (node) {
+            if (isFolder(path)) {
+              for (var i in node.itemsMap) {
+                // the hasOwnProperty check here is only because our jshint settings require it:
+                if (node.itemsMap.hasOwnProperty(i) && node.itemsMap[i] === false) {
+                  delete node.itemsMap[i];
+                }
+              }
+            }
             promise.fulfill(200, node.body || node.itemsMap, node.contentType);
           } else {
             promise.fulfill(404);
@@ -6152,10 +6216,95 @@ Math.uuid = function (len, radix) {
 
     this.getsRunning = 0;
     this.putsRunning = 0;
+
+    /**
+     * Property: changesQueued
+     *
+     * Given a node for which uncommitted changes exist, this cache
+     * stores either the entire uncommitted node, or false for a deletion.
+     * The node's path is used as the key.
+     *
+     * changesQueued stores changes for which no IndexedDB transaction has
+     * been started yet.
+     */
+    this.changesQueued = {};
+
+    /**
+     * Property: changesRunning
+     *
+     * Given a node for which uncommitted changes exist, this cache
+     * stores either the entire uncommitted node, or false for a deletion.
+     * The node's path is used as the key.
+     *
+     * At any time there is at most one IndexedDB transaction running.
+     * changesRunning stores the changes that are included in that currently
+     * running IndexedDB transaction, or if none is running, of the last one
+     * that ran.
+     */
+    this.changesRunning = {};
   };
 
   RS.IndexedDB.prototype = {
     getNodes: function(paths) {
+      var misses = [], fromCache = {};
+      for (var i=0; i<paths.length; i++) {
+        if (this.changesQueued[paths[i]] !== undefined) {
+          fromCache[paths[i]] = this._getInternals().deepClone(this.changesQueued[paths[i]] || undefined);
+        } else if(this.changesRunning[paths[i]] !== undefined) {
+          fromCache[paths[i]] = this._getInternals().deepClone(this.changesRunning[paths[i]] || undefined);
+        } else {
+          misses.push(paths[i]);
+        }
+      }
+      if (misses.length > 0) {
+        return this.getNodesFromDb(misses).then(function(nodes) {
+          for (var i in fromCache) {
+            nodes[i] = fromCache[i];
+          }
+          return nodes;
+        });
+      } else {
+        promise = promising();
+        promise.fulfill(fromCache);
+        return promise;
+      }
+    },
+
+    setNodes: function(nodes) {
+      var promise = promising();
+      for (var i in nodes) {
+        this.changesQueued[i] = nodes[i] || false;
+      }
+      this.maybeFlush();
+      promise.fulfill();
+      return promise;
+    },
+
+    maybeFlush: function() {
+      if (this.putsRunning === 0) {
+        this.flushChangesQueued();
+      } else {
+        if (!this.commitSlownessWarning) {
+          this.commitSlownessWarning = setInterval(function() {
+            console.log('WARNING: waited more than 10 seconds for previous commit to finish');
+          }, 10000);
+        }
+      }
+    },
+
+    flushChangesQueued: function() {
+      if (this.commitSlownessWarning) {
+        clearInterval(this.commitSlownessWarning);
+        this.commitSlownessWarning = null;
+      }
+      if (Object.keys(this.changesQueued).length > 0) {
+        this.changesRunning = this.changesQueued;
+        this.changesQueued = {};
+        this.setNodesInDb(this.changesRunning).then(this.flushChangesQueued.bind(this));
+      }
+    },
+
+    getNodesFromDb: function(paths) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var nodes = transaction.objectStore('nodes');
@@ -6186,7 +6335,7 @@ Math.uuid = function (len, radix) {
       return promise;
     },
 
-    setNodes: function(nodes) {
+    setNodesInDb: function(nodes) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodesStore = transaction.objectStore('nodes');

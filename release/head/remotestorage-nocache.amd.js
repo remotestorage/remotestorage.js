@@ -1032,6 +1032,34 @@ define([], function() {
     reader.readAsArrayBuffer(blob);
   }
 
+  function getTextFromArrayBuffer(arrayBuffer, encoding, callback) {
+    if (typeof Blob === 'undefined') {
+      var buffer = new Buffer(new Uint8Array(arrayBuffer));
+      callback(buffer.toString(encoding));
+    } else {
+      var blob = new Blob([arrayBuffer]);
+      var fileReader = new FileReader();
+      fileReader.addEventListener("loadend", function(evt) {
+        callback(evt.target.result);
+      });
+      fileReader.readAsText(blob, encoding);
+    }
+  }
+
+  function determineCharset(mimeType) {
+    var charset = 'utf-8';
+    var charsetMatch;
+
+    if (mimeType) {
+      charsetMatch = mimeType.match(/charset=(.+)$/);
+      if (charsetMatch) {
+        charset = charsetMatch[1];
+      }
+    }
+
+    return charset;
+  }
+
   function cleanPath(path) {
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
@@ -1155,7 +1183,8 @@ define([], function() {
 
       RS.WireClient.request(method, uri, {
         body: body,
-        headers: headers
+        headers: headers,
+        responseType: 'arraybuffer'
       }, function(error, response) {
         if (error) {
           self._emit('wire-done', {
@@ -1194,15 +1223,16 @@ define([], function() {
               revision = response.status === 200 ? fakeRevision : undefined;
             }
 
-            if ((!mimeType) || mimeType.match(/charset=binary/)) {
-              RS.WireClient.readBinaryData(response.response, mimeType, function(result) {
-                RemoteStorage.log('[WireClient] Successful request with unknown or binary mime-type', revision);
-                promise.fulfill(response.status, result, mimeType, revision);
-              });
+            var charset = determineCharset(mimeType);
+
+            if ((!mimeType) || charset === 'binary') {
+              RemoteStorage.log('[WireClient] Successful request with unknown or binary mime-type', revision);
+              promise.fulfill(response.status, response.response, mimeType, revision);
             } else {
-              body = response.responseText;
-              RemoteStorage.log('[WireClient] Successful request', revision);
-              promise.fulfill(response.status, body, mimeType, revision);
+              getTextFromArrayBuffer(response.response, charset, function(body) {
+                RemoteStorage.log('[WireClient] Successful request', revision);
+                promise.fulfill(response.status, body, mimeType, revision);
+              });
             }
           }
         }
@@ -3468,9 +3498,12 @@ Math.uuid = function (len, radix) {
    *
    * A BaseClient deals with three types of data: folders, objects and files.
    *
-   * <getListing> returns a list of all items within a folder, or undefined
-   * if a 404 is encountered. Items that end with a forward slash ("/") are
-   * child folders.
+   * <getListing> returns a mapping of all items within a folder. Items that
+   * end with a forward slash ("/") are child folders. For instance:
+   * {
+   *   'folder/': true,
+   *   'document.txt': true
+   * }
    *
    * <getObject> / <storeObject> operate on JSON objects. Each object has a type.
    *
@@ -3653,9 +3686,11 @@ Math.uuid = function (len, radix) {
      * Example:
      *   (start code)
      *   client.getListing('', false).then(function(listing) {
-     *     listing.forEach(function(item) {
-     *       console.log(item);
-     *     });
+     *     // listing is for instance:
+     *     // {
+     *     //   'folder/': true,
+     *     //   'document.txt': true
+     *     // }
      *   });
      *   (end code)
      */
