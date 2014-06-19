@@ -942,7 +942,7 @@
       }.bind(this),
 
       function(err) {
-        RemoteStorage.log('[Sync] Error', err);
+        console.error('[Sync] Error', err);
         this.remote.online = false;
         delete this._timeStarted[task.path];
         delete this._running[task.path];
@@ -1025,10 +1025,10 @@
           try {
             this.doTasks();
           } catch(e) {
-            RemoteStorage.log('[Sync] doTasks error', e);
+            console.error('[Sync] doTasks error', e);
           }
         }.bind(this), function(e) {
-          RemoteStorage.log('[Sync] Sync error', e);
+          console.error('[Sync] Sync error', e);
           throw new Error('Local cache unavailable');
         });
       } else {
