@@ -915,18 +915,16 @@ define(['test/helpers/mocks'], function(mocks) {
       },
 
       {
-        desc: "autoMergeDocument removes a remote version if it has a null revision",
+        desc: "autoMergeDocument on an empty node removes a remote version if it has a null revision",
         run: function(env, test) {
           var node = {
             path: 'foo',
-            common: { body: 'foo', contentType: 'bloo', revision: 'common' },
-            local: { body: 'floo', contentType: 'blaloo' },
+            common: {},
             remote: { revision: null }
           };
           var remoteRemoved = {
             path: 'foo',
-            common: { body: 'foo', contentType: 'bloo', revision: 'common' },
-            local: { body: 'floo', contentType: 'blaloo' }
+            common: {}
           };
           var result = env.rs.sync.autoMergeDocument(node);
           test.assertAnd(result, remoteRemoved);
