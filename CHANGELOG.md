@@ -56,6 +56,7 @@ system. Old cached data will be converted to the new format automatically.
 * Fix handling of custom JSON-LD contexts for types (#661)
 * Widget bubble closing spontaneously (#683)
 * Fix incorrect handling of 404 responses (#718)
+* Add content-types to remote change events (#655)
 
 ## 0.9.0 (December 2013)
 
