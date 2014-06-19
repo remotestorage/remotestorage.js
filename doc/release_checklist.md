@@ -18,6 +18,7 @@
     * Use version string as title and changelog items as description
     * For RCs and betas, tick the "This is a pre-release" option on the bottom
 * Publish release on remotestorage.io
+    * `git up`
     * While in the gh-pages branch:
         * Copy the release from the remotestorage.js repo into `release/` dir
         * `rm -rf doc/*`
@@ -27,13 +28,15 @@
         * Update version number, links, file size in `views/integrate/_hero.jade`
         * Commit changes to Git
         * Run `./deploy`
+        * `git push origin master`
 * Update shim repo with new release (components-remotestorage)
     * Add release files
-    * Update version in config files
+    * Update version in config files (bower.json & package.json)
     * Commit
     * Tag new version
     * `git push origin master --tags`
-* Update https://www.npmjs.org/package/remotestoragejs
+    * Update https://www.npmjs.org/package/remotestoragejs:
+        * `npm publish ./`
 * Update https://github.com/remotestorage/myfavoritedrinks to use new release
     * Replace `remotestorage.js` with new release build
     * Check if everything is still working
