@@ -457,7 +457,11 @@
           lastCommonContentType: node.common.contentType
         });
 
-        node.common = node.remote;
+        if (node.remote.body) {
+          node.common = node.remote;
+        } else {
+          node.common = {};
+        }
         delete node.remote;
         delete node.local;
       }
