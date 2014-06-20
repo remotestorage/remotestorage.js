@@ -202,14 +202,17 @@
       if (options.encryption) {
         this.cipher = true;
 
+        var secretKeyInput = element.querySelector('form.remotestorage-cipher-form').userSecretKey;
+
+        // This is to avoid the 'password field on an insecured page' warning, when not used and on http (not https)
+        secretKeyInput.type = 'password';
+
         // Cipher button
         var cipherButton = setupButton(element, 'rs-cipher', 'cipherIcon', this.events['secret-entered']);
 
         // Handle cipherButton state
-        element.querySelector('form.remotestorage-cipher-form').userSecretKey
-          .addEventListener('load', handleButtonState);
-        element.querySelector('form.remotestorage-cipher-form').userSecretKey
-          .addEventListener('keyup', handleButtonState);
+        secretKeyInput.addEventListener('load', handleButtonState);
+        secretKeyInput.addEventListener('keyup', handleButtonState);
 
         // No cipher button
         setupButton(element, 'rs-nocipher', 'nocipherIcon', this.events['secret-cancelled']);
