@@ -2,57 +2,13 @@
 
   var hasLocalStorage;
   var LS_STATE_KEY = "remotestorage:widget:state";
+
   // states allowed to immediately jump into after a reload.
   var VALID_ENTRY_STATES = {
     initial: true,
     connected: true,
     offline: true
   };
-
-  function stateSetter(widget, state) {
-    RemoteStorage.log('[Widget] Producing stateSetter for', state);
-    return function() {
-      RemoteStorage.log('[Widget] Setting state', state, arguments);
-      if (hasLocalStorage) {
-        localStorage[LS_STATE_KEY] = state;
-      }
-      if (widget.view) {
-        if (widget.rs.remote) {
-          widget.view.setUserAddress(widget.rs.remote.userAddress);
-        }
-        widget.view.setState(state, arguments);
-      } else {
-        widget._rememberedState = state;
-      }
-    };
-  }
-
-  function errorsHandler(widget) {
-    return function(error) {
-      if (widget.view) {
-        if (error instanceof RemoteStorage.DiscoveryError) {
-          console.error('Discovery failed', error, '"' + error.message + '"');
-          widget.view.setState('initial', [error.message]);
-        } else if (error instanceof RemoteStorage.SyncError) {
-          widget.view.setState('offline', []);
-        } else if (error instanceof RemoteStorage.Unauthorized) {
-          widget.view.setState('unauthorized');
-        } else {
-          RemoteStorage.log('[Widget] Unknown error');
-          widget.view.setState('error', [error]);
-        }
-      } else {
-        RemoteStorage.log('[widget] Undisplayed error:', error);
-      }
-    };
-  }
-
-  function flashFor(evt) {
-    if (evt.method === 'GET' && evt.isFolder) {
-      return false;
-    }
-    return true;
-  }
 
   /**
    * Class: RemoteStorage.Widget
@@ -119,13 +75,18 @@
     *
     * Parameters:
     *
-    *   domID
+    *   options
     **/
-    display: function(domID) {
+    display: function(options) {
+      if (typeof(options) === 'string') {
+        options = { domID: domID };
+      } else if (typeof(options) === 'undefined') {
+        options = {};
+      }
       if (! this.view) {
         this.setView(new RemoteStorage.Widget.View(this.rs));
       }
-      this.view.display.apply(this.view, arguments);
+      this.view.display(options);
       return this;
     },
 
@@ -154,7 +115,18 @@
           this.rs[options.special].connect(options);
         }
       }.bind(this));
+
+      this.view.on('secret-entered', function(secretKey) {
+        this.view.setUserSecretKey(secretKey);
+        stateSetter(this, 'ciphered')();
+      }.bind(this));
+
+      this.view.on('secret-cancelled', function() { 
+        stateSetter(this, 'notciphered')();
+      }.bind(this));
+
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
+
       this.linkWidgetToSync();
       try {
         this.view.on('reset', function(){
@@ -182,8 +154,8 @@
    *
    * Same as <display>
    **/
-  RemoteStorage.prototype.displayWidget = function(domID) {
-    return this.widget.display(domID);
+  RemoteStorage.prototype.displayWidget = function(options) {
+    return this.widget.display(options);
   };
 
   RemoteStorage.Widget._rs_init = function(remoteStorage) {
@@ -197,4 +169,44 @@
     return typeof(document) !== 'undefined';
   };
 
+  function stateSetter(widget, state) {
+    RemoteStorage.log('[Widget] Producing stateSetter for', state);
+    return function() {
+      RemoteStorage.log('[Widget] Setting state', state, arguments);
+      if (hasLocalStorage) {
+        localStorage[LS_STATE_KEY] = state;
+      }
+      if (widget.view) {
+        if (widget.rs.remote) {
+          widget.view.setUserAddress(widget.rs.remote.userAddress);
+        }
+        widget.view.setState(state, arguments);
+      } else {
+        widget._rememberedState = state;
+      }
+    };
+  }
+
+  function errorsHandler(widget) {
+    return function(error) {
+      if (error instanceof RemoteStorage.DiscoveryError) {
+        console.error('Discovery failed', error, '"' + error.message + '"');
+        widget.view.setState('initial', [error.message]);
+      } else if (error instanceof RemoteStorage.SyncError) {
+        widget.view.setState('offline', []);
+      } else if (error instanceof RemoteStorage.Unauthorized) {
+        widget.view.setState('unauthorized');
+      } else {
+        RemoteStorage.log('[Widget] Unknown error');
+        widget.view.setState('error', [error]);
+      }
+    };
+  }
+
+  function flashFor(evt) {
+    if (evt.method === 'GET' && evt.isFolder) {
+      return false;
+    }
+    return true;
+  }
 })(typeof(window) !== 'undefined' ? window : global);

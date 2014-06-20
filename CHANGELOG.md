@@ -40,6 +40,7 @@ system. Old cached data will be converted to the new format automatically.
 * Google Drive is now supported as an experimental backend
 * Dropbox is now supported as an experimental backend
 * Support for browser implied authentication
+* [experimental] with `remoteStorage.displayWidget({encryption: true})`, the user will be invited to enter a secret (password) into the widget, which the app can then use for client-side encryption.
 
 ### Bugfixes
 

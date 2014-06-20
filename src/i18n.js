@@ -13,6 +13,7 @@
     "view_connecting": "Connecting <strong>%s</strong>",
     "view_offline": "Offline",
     "view_error_occured": "Sorry! An error occured.",
+    "view_invalid_key": "Wrong key!",
     "view_confirm_reset": "Are you sure you want to reset everything? This will clear your local data and reload the page.",
     "view_get_me_out": "Get me out of here!",
     "view_error_plz_report": 'If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!',
