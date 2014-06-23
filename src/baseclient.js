@@ -81,7 +81,8 @@
      *
      * (start code)
      * {
-     *    path: path, // Path of the changed node
+     *    path: path, // Absolute path of the changed node, from the storage root
+     *    relativePath: relativePath, // Path of the changed node, relative to this baseclient's scope root
      *    origin: 'window', 'local', 'remote', or 'conflict' // emitted by user action within the app, local data store, remote sync, or versioning conflicts
      *    oldValue: oldBody, // Old body of the changed node (local version in conflicts; undefined if creation)
      *    newValue: newBody, // New body of the changed node (remote version in conflicts; undefined if deletion)
@@ -96,7 +97,8 @@
      * 
      * (start code)
      * {
-     *    path: 'color.txt'
+     *    path: '/public/design/color.txt',
+     *    relativePath: 'color.txt',
      *    origin: 'local',
      *    oldValue: undefined,
      *    newValue: 'white',
@@ -111,7 +113,8 @@
      *
      * (start code)
      * {
-     *    path: 'color.txt'
+     *    path: '/public/design/color.txt',
+     *    relativePath: 'color.txt',
      *    origin: 'window',
      *    oldValue: 'white',
      *    newValue: 'blue',
@@ -128,7 +131,8 @@
      * 
      * (start code)
      * {
-     *    path: 'color.txt'
+     *    path: '/public/design/color.txt',
+     *    relativePath: 'color.txt',
      *    origin: 'conflict',
      *    oldValue: 'blue',
      *    newValue: 'red',
