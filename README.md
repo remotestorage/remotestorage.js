@@ -49,6 +49,9 @@ There are a number of different builds available:
   for use with
   [AMD](https://en.wikipedia.org/wiki/Asynchronous_module_definition) loaders
   such as [RequireJS](http://requirejs.org/).
+  WARNING: When using AMD, be aware of
+  issues [#709](https://github.com/remotestorage/remotestorage.js/issues/709) and
+  [#726](https://github.com/remotestorage/remotestorage.js/issues/726).
 * <kbd>remotestorage.min.js</kbd> - Minified version of remotestorage.js
 * <kbd>remotestorage-nocache.js</kbd> - Contains a version of remotestorage.js
   without any caching features included. Use this if you want your app to write
