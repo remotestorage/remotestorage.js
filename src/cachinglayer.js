@@ -154,14 +154,14 @@
 
   var methods = {
 
-    get: function(path, maxAge) {
+    get: function(path, maxAge, queueGetRequest) {
       var promise = promising();
 
       if (typeof(maxAge) === 'number') {
         this.getNodes(pathsFromRoot(path)).then(function(objs) {
           var node = getLatest(objs[path]);
           if (isOutdated(objs, maxAge)) {
-            remoteStorage.sync.queueGetRequest(path, promise);
+            queueGetRequest(path, promise);
           } else if (node) {
             promise.fulfill(200, node.body || node.itemsMap, node.contentType);
           } else {
