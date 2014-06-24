@@ -61,17 +61,17 @@
 /* less obtrusive cube when connected */
 #remotestorage-widget.remotestorage-state-connected .rs-cube,
 #remotestorage-widget.remotestorage-state-busy .rs-cube {
-	opacity:.3;
-	-webkit-transition: opacity .3s ease;
-	-moz-transition: opacity .3s ease;
-	-ms-transition: opacity .3s ease;
-	-o-transition: opacity .3s ease;
-	transition: opacity .3s ease;
+    opacity:.3;
+    -webkit-transition: opacity .3s ease;
+    -moz-transition: opacity .3s ease;
+    -ms-transition: opacity .3s ease;
+    -o-transition: opacity .3s ease;
+    transition: opacity .3s ease;
 }
 #remotestorage-widget.remotestorage-state-connected:hover .rs-cube,
 #remotestorage-widget.remotestorage-state-busy:hover .rs-cube,
 #remotestorage-widget.remotestorage-state-connected .rs-bubble:not(.rs-hidden) + .rs-cube {
-	opacity:1 !important;
+    opacity:1 !important;
 }
 
 #remotestorage-widget .rs-backends {
@@ -128,10 +128,12 @@
     cursor: default !important;
 }
 
-#remotestorage-widget form input[type=email]:focus {
+#remotestorage-widget form input[type=email]:focus,
+#remotestorage-widget form input[type=password]:focus {
     background: #223;
 }
-#remotestorage-widget form input[type=email] {
+#remotestorage-widget form input[type=email],
+#remotestorage-widget form input[type=password] {
     background: #000;
     width: 100%;
     height: 26px;
@@ -139,7 +141,8 @@
     border-top: 1px solid #111;
     border-bottom: 1px solid #999;
 }
-#remotestorage-widget form input[type=email]:focus {
+#remotestorage-widget form input[type=email]:focus,
+#remotestorage-widget form input[type=password]:focus {
     background: #223;
 }
 
@@ -148,16 +151,20 @@
     box-shadow: 0 0 4px #ccc;
 }
 
-#remotestorage-widget form input[type=email]::-webkit-input-placeholder {
+#remotestorage-widget form input[type=email]::-webkit-input-placeholder,
+#remotestorage-widget form input[type=password]::-webkit-input-placeholder {
     color: #999;
 }
-#remotestorage-widget form input[type=email]:-moz-placeholder {
+#remotestorage-widget form input[type=email]:-moz-placeholder,
+#remotestorage-widget form input[type=password]:-moz-placeholder {
     color: #999;
 }
-#remotestorage-widget form input[type=email]::-moz-placeholder {
+#remotestorage-widget form input[type=email]::-moz-placeholder,
+#remotestorage-widget form input[type=password]::-moz-placeholder {
     color: #999;
 }
-#remotestorage-widget form input[type=email]:-ms-input-placeholder {
+#remotestorage-widget form input[type=email]:-ms-input-placeholder,
+#remotestorage-widget form input[type=password]:-ms-input-placeholder {
     color: #999;
 }
 
@@ -209,23 +216,38 @@
     background: #333;
 }
 
-#remotestorage-widget .rs-bubble button.connect {
+#remotestorage-widget .rs-bubble button.connect, 
+#remotestorage-widget .rs-bubble button.rs-cipher, 
+#remotestorage-widget .rs-bubble button.rs-nocipher {
     display: block;
     background: none;
     position: absolute;
     right: 0;
     top: 0;
     opacity: 1;
-    /* increase clickable area of connect button */
+    /* increase clickable area of connect, rs-cipher & rs-nocipher buttons */
     margin: -5px;
     padding: 10px;
     width: 36px;
     height: 36px;
 }
-#remotestorage-widget .rs-bubble button.connect:not([disabled]):hover {
+#remotestorage-widget .rs-bubble button.rs-cipher {
+    width: 46px;
+}
+#remotestorage-widget .rs-bubble button.rs-nocipher {
+    height: 26px;
+    margin: 0;
+    padding: 4px 5px 5px;
+    right: -32px;
+    width: 26px;
+}
+#remotestorage-widget .rs-bubble button.connect:not([disabled]):hover, 
+#remotestorage-widget .rs-bubble button.rs-cipher:not([disabled]):hover, 
+#remotestorage-widget .rs-bubble button.rs-nocipher:not([disabled]):hover {
     background: rgba(150,150,150,.5);
 }
-#remotestorage-widget .rs-bubble button.connect[disabled] {
+#remotestorage-widget .rs-bubble button.connect[disabled], 
+#remotestorage-widget .rs-bubble button.rs-cipher[disabled] {
     opacity: .5;
     cursor: default !important;
 }
@@ -296,6 +318,18 @@
     display: none;
 }
 .remotestorage-state-connected .remotestorage-connected {
+    display: block;
+}
+.remotestorage-cipher-form {
+    display: none;
+}
+.remotestorage-cipher .remotestorage-cipher-form {
+    display: block;
+}
+.remotestorage-invalid-key {
+    display: none;
+}
+.remotestorage-invalid-key.remotestorage-cipher-error {
     display: block;
 }
 .remotestorage-initial {
