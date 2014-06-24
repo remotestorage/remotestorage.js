@@ -555,7 +555,7 @@ define(['test/helpers/mocks'], function(mocks) {
         desc: "get with maxAge requirement is rejected if remote is not connected",
         run: function(env, test) {
           env.rs.remote.connected = false;
-          env.rs.local.get('asdf', 2).then(function() {
+          env.rs.local.get('asdf', 2, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function() {
             test.result(false, 'should have been rejected');
           }, function(err) {
             test.done();
@@ -567,7 +567,7 @@ define(['test/helpers/mocks'], function(mocks) {
         desc: "get with maxAge requirement is rejected if remote is not online",
         run: function(env, test) {
           env.rs.remote.online = false;
-          env.rs.local.get('asdf', 2).then(function() {
+          env.rs.local.get('asdf', 2, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function() {
             test.result(false, 'should have been rejected');
           }, function(err) {
             test.done();
@@ -583,7 +583,7 @@ define(['test/helpers/mocks'], function(mocks) {
           env.rs.remote._responses[['get', '/foo' ]] = [200, 'body', 'text/plain', 'revision'];
           env.rs.remote.connected = true;
 
-          env.rs.local.get('/foo', 5).then(function(statusCode, body, contentType) {
+          env.rs.local.get('/foo', 5, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(statusCode, body, contentType) {
             test.assertAnd(statusCode, 200);
             test.assertAnd(body, 'body');
             test.assertAnd(contentType, 'text/plain');
@@ -610,7 +610,7 @@ define(['test/helpers/mocks'], function(mocks) {
               }
             }
           }).then(function() {
-            env.rs.local.get('/foo', 5).then(function(statusCode, body, contentType) {
+            env.rs.local.get('/foo', 5, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(statusCode, body, contentType) {
               test.assertAnd(statusCode, 200);
               test.assertAnd(body, 'body');
               test.assertAnd(contentType, 'text/plain');
@@ -633,7 +633,7 @@ define(['test/helpers/mocks'], function(mocks) {
               }
             }
           }).then(function() {
-            env.rs.local.get('/foo', 120000).then(function(statusCode, body, contentType) {
+            env.rs.local.get('/foo', 120000, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(statusCode, body, contentType) {
               test.assertAnd(statusCode, 200);
               test.assertAnd(body, 'old data');
               test.assertAnd(contentType, 'text/html');
