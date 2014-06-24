@@ -128,10 +128,12 @@
     cursor: default !important;
 }
 
-#remotestorage-widget form input[type=email]:focus, #remotestorage-widget form input[type=password]:focus {
+#remotestorage-widget form input[type=email]:focus,
+#remotestorage-widget form input[type=password]:focus {
     background: #223;
 }
-#remotestorage-widget form input[type=email], #remotestorage-widget form input[type=password] {
+#remotestorage-widget form input[type=email],
+#remotestorage-widget form input[type=password] {
     background: #000;
     width: 100%;
     height: 26px;
@@ -139,7 +141,8 @@
     border-top: 1px solid #111;
     border-bottom: 1px solid #999;
 }
-#remotestorage-widget form input[type=email]:focus, #remotestorage-widget form input[type=password]:focus {
+#remotestorage-widget form input[type=email]:focus,
+#remotestorage-widget form input[type=password]:focus {
     background: #223;
 }
 
@@ -148,16 +151,20 @@
     box-shadow: 0 0 4px #ccc;
 }
 
-#remotestorage-widget form input[type=email]::-webkit-input-placeholder, #remotestorage-widget form input[type=password]::-webkit-input-placeholder {
+#remotestorage-widget form input[type=email]::-webkit-input-placeholder,
+#remotestorage-widget form input[type=password]::-webkit-input-placeholder {
     color: #999;
 }
-#remotestorage-widget form input[type=email]:-moz-placeholder, #remotestorage-widget form input[type=password]:-moz-placeholder {
+#remotestorage-widget form input[type=email]:-moz-placeholder,
+#remotestorage-widget form input[type=password]:-moz-placeholder {
     color: #999;
 }
-#remotestorage-widget form input[type=email]::-moz-placeholder, #remotestorage-widget form input[type=password]::-moz-placeholder {
+#remotestorage-widget form input[type=email]::-moz-placeholder,
+#remotestorage-widget form input[type=password]::-moz-placeholder {
     color: #999;
 }
-#remotestorage-widget form input[type=email]:-ms-input-placeholder, #remotestorage-widget form input[type=password]:-ms-input-placeholder {
+#remotestorage-widget form input[type=email]:-ms-input-placeholder,
+#remotestorage-widget form input[type=password]:-ms-input-placeholder {
     color: #999;
 }
 
