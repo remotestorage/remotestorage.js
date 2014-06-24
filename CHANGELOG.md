@@ -34,13 +34,14 @@ system. Old cached data will be converted to the new format automatically.
 * Add and use background sync interval, based on Page Visibility API (#462)
 * Choose from which origins change events are emitted via `RemoteStorage.config.changeEvents`
 * More unit tests
+* A 'local-events-done' event is emitted by `remoteStorage.local` after all events with origin 'local' have been emitted on page load.
 
 ### Experimental features
 
 * Google Drive is now supported as an experimental backend
 * Dropbox is now supported as an experimental backend
 * Support for browser implied authentication
-* [experimental] with `remoteStorage.displayWidget({encryption: true})`, the user will be invited to enter a secret (password) into the widget, which the app can then use for client-side encryption.
+* With `remoteStorage.displayWidget({encryption: true})`, the user will be invited to enter a secret (password) into the widget, which the app can then use for client-side encryption.
 
 ### Bugfixes
 
@@ -59,6 +60,7 @@ system. Old cached data will be converted to the new format automatically.
 * Fix incorrect handling of 404 responses (#718)
 * Add content-types to remote change events (#655)
 * Fix caching of binary data (#670)
+* The widget placeholder text was restored to 'user@provider.com' (#731)
 
 ## 0.9.0 (December 2013)
 
