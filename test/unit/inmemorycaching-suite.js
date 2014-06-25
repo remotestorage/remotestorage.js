@@ -103,7 +103,7 @@ define(['requirejs'], function(requirejs) {
             }
           };
 
-          env.rs.local.get('/foo', 100).then(function(status, body, contentType) {
+          env.rs.local.get('/foo', 100, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(status, body, contentType) {
             test.assertAnd(requestQueued, true);
             test.assertAnd(status, 200);
             test.assertAnd(body, 'asdf');
@@ -173,7 +173,7 @@ define(['requirejs'], function(requirejs) {
             }
           };
 
-          env.rs.local.get('/foo', 100).then(function(status, body, contentType) {
+          env.rs.local.get('/foo', 100, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(status, body, contentType) {
             test.assertAnd(requestQueued, true);
             test.assertAnd(status, 200);
             test.assertAnd(body, 'new body');

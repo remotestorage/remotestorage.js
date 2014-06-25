@@ -284,6 +284,10 @@ define([], function() {
                 test.done();
               }
             },
+            sync: {
+              queueGetRequest: function() {
+              }
+            },
             connected: false
           };
           rs.get('foo');
@@ -299,6 +303,10 @@ define([], function() {
                 test.assertAnd(path, 'foo');
                 test.assertAnd(maxAge, 34222);
                 test.done();
+              }
+            },
+            sync: {
+              queueGetRequest: function() {
               }
             },
             connected: true,
