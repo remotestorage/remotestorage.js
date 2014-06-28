@@ -157,7 +157,7 @@ define([], function() {
           promise.reject('Argument \'maxAge\' must be false or a number');
           return promise;
         }
-        return this.local.get(path, maxAge);
+        return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
       } else {
         return this.remote.get(path);
       }

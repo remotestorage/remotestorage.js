@@ -156,7 +156,7 @@
           promise.reject('Argument \'maxAge\' must be false or a number');
           return promise;
         }
-        return this.local.get(path, maxAge);
+        return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
       } else {
         return this.remote.get(path);
       }
@@ -5174,14 +5174,17 @@ Math.uuid = function (len, radix) {
 
   var methods = {
 
-    get: function(path, maxAge) {
+    // TODO: improve our code structure so that this function
+    // could call sync.queueGetRequest directly instead of needing
+    // this hacky third parameter as a callback
+    get: function(path, maxAge, queueGetRequest) {
       var promise = promising();
 
       if (typeof(maxAge) === 'number') {
         this.getNodes(pathsFromRoot(path)).then(function(objs) {
           var node = getLatest(objs[path]);
           if (isOutdated(objs, maxAge)) {
-            remoteStorage.sync.queueGetRequest(path, promise);
+            queueGetRequest(path, promise);
           } else if (node) {
             promise.fulfill(200, node.body || node.itemsMap, node.contentType);
           } else {
