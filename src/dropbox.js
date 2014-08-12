@@ -363,8 +363,8 @@
         promise.fulfill(412, undefined, undefined, savedRev);
         return promise;
       }
-      if (! contentType.match(/charset=/)) {
-        contentType += '; charset=' + ((body instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(body)) ? 'binary' : 'utf-8');
+      if ((! contentType.match(/charset=/)) && (body instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(body))) {
+        contentType += '; charset=binary';
       }
       var url = 'https://api-content.dropbox.com/1/files_put/auto' + path + '?';
       if (options && options.ifMatch) {

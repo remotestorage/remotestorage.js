@@ -675,6 +675,56 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       },
 
       {
+        desc: "PUTs of ArrayBuffers get a binary charset added",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', new ArrayBuffer('bla', 'UTF-8'), 'image/jpeg', {});
+          var request = XMLHttpRequest.instances.shift();
+          var contentTypeHeader = request._headers['Content-Type'];
+          test.assert(contentTypeHeader, 'image/jpeg; charset=binary');
+        }
+      },
+
+      {
+        desc: "PUTs of ArrayBuffers get no second binary charset added",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', new ArrayBuffer('bla', 'UTF-8'), 'image/jpeg; charset=custom', {});
+          var request = XMLHttpRequest.instances.shift();
+          var contentTypeHeader = request._headers['Content-Type'];
+          test.assert(contentTypeHeader, 'image/jpeg; charset=custom');
+        }
+      },
+
+      {
+        desc: "PUTs of strings get no charset added",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', 'bla', 'text/html', {});
+          var request = XMLHttpRequest.instances.shift();
+          var contentTypeHeader = request._headers['Content-Type'];
+          test.assert(contentTypeHeader, 'text/html');
+        }
+      },
+
+      {
+        desc: "PUTs of strings have UTF-8 charset preserved",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', 'bla', 'text/html; charset=UTF-8', {});
+          var request = XMLHttpRequest.instances.shift();
+          var contentTypeHeader = request._headers['Content-Type'];
+          test.assert(contentTypeHeader, 'text/html; charset=UTF-8');
+        }
+      },
+
+      {
+        desc: "PUTs of strings have custom charset preserved",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', 'bla', 'text/html; charset=myown', {});
+          var request = XMLHttpRequest.instances.shift();
+          var contentTypeHeader = request._headers['Content-Type'];
+          test.assert(contentTypeHeader, 'text/html; charset=myown');
+        }
+      },
+
+      {
         desc: "responses without a Content-Type header are left as the raw response",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
