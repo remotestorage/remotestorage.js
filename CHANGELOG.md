@@ -3,6 +3,16 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 0.10.1 (August 2014)
+
+### Bugfixes
+
+* Report unhandled HTTP status codes as errors (#594)
+* Remove old webfinger URL and increase discovery timeout (#591)
+* Set the charset for binary, but not for UTF-8 (#668)
+* Fix coming back online (#725)
+* Fix merging of mutual deletions (#737)
+
 ## 0.10.0 (June 2014)
 
 This release contains a major rewrite of the tree-based sync and caching
