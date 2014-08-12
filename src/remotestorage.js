@@ -231,7 +231,8 @@
       window:   false,
       remote:   true,
       conflict: true
-    }
+    },
+    discoveryTimeout: 10000
   };
 
   RemoteStorage.prototype = {
@@ -273,7 +274,7 @@
 
       var discoveryTimeout = setTimeout(function() {
         this._emit('error', new RemoteStorage.DiscoveryError("No storage information found at that user address."));
-      }.bind(this), 5000);
+      }.bind(this), RemoteStorage.config.discoveryTimeout);
 
       RemoteStorage.Discover(userAddress, function(href, storageApi, authURL) {
         clearTimeout(discoveryTimeout);

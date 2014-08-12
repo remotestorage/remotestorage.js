@@ -263,6 +263,7 @@ define([], function() {
       {
         desc: "#connect throws DiscoveryError on timeout of RemoteStorage.Discover",
         run: function(env, test) {
+          RemoteStorage.config.discoveryTimeout = 500;
           env.rs.on('error', function(e) {
             test.assertAnd(e instanceof RemoteStorage.DiscoveryError, true);
             test.assertAnd(e.message, "No storage information found at that user address.", "wrong error message : "+e.message);
