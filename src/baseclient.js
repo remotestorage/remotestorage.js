@@ -244,6 +244,10 @@
      *   promise will be rejected. If the maxAge requirement is set to false,
      *   the promise will always be fulfilled with data from the local store.
      *
+     *   For items that are not JSON-stringified objects (e.g. stored using
+     *   `storeFile` instead of `storeObject`), the object's value is filled in
+     *   with `true`.
+     *
      * Example:
      *   (start code)
      *   client.getAll('', false).then(function(objects) {
