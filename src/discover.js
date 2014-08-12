@@ -10,7 +10,10 @@
   /**
    * Class: RemoteStorage.Discover
    *
-   * This class deals with the webfinger lookup
+   * This class deals with the webfinger lookup.
+   *
+   * The discovery timeout can be configured via
+   * `RemoteStorage.config.discoveryTimeout` (in ms).
    *
    * Arguments:
    * userAddress - user@host
