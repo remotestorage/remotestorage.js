@@ -166,8 +166,9 @@
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     onErrorCb = function(error){
-      if (error instanceof RemoteStorage.Unauthorized ||
-          error instanceof RemoteStorage.SyncError) {
+      if (error instanceof RemoteStorage.SyncError) {
+        this.online = false;
+      } else if (error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this);

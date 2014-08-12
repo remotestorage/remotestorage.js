@@ -51,9 +51,9 @@
       this.rs.remote.on('wire-done', function(evt) {
         if (flashFor(evt)) {
           requestsToFlashFor--;
-          if (requestsToFlashFor <= 0) {
-            stateSetter(self, 'connected')();
-          }
+        }
+        if (requestsToFlashFor <= 0 && evt.success) {
+          stateSetter(self, 'connected')();
         }
       });
     }

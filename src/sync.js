@@ -918,6 +918,7 @@
       .then(function(completed) {
         delete this._timeStarted[task.path];
         delete this._running[task.path];
+        this.remote.online = true;
 
         if (completed) {
           if (this._tasks[task.path]) {
