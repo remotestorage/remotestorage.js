@@ -230,7 +230,9 @@
     /**
      * Method: getAll
      *
-     * Get all objects directly below a given path.
+     * Get all objects directly below a given path. For items that are not
+     * JSON stringified objects (e.g. stored using `storeFile` instead of
+     * `storeObject`), the value `true` is filled in.
      *
      * Parameters:
      *   path   - Path to the folder.
