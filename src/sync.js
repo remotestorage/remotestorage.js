@@ -802,7 +802,7 @@
     },
 
     dealWithFailure: function(path, action, statusMeaning) {
-      remoteStorage._emit('error', 'http response ' + statusMeaning.statusCode);
+      remoteStorage._emit('error', 'HTTP response code ' + statusMeaning.statusCode + ' received.');
       return this.local.getNodes([path]).then(function(nodes) {
         if (nodes[path]) {
           delete nodes[path].push;
