@@ -447,8 +447,8 @@
         return node;
       };
 
-      node = mergeMutualDeletion(node);
       if (hasNoRemoteChanges(node)) {
+        node = mergeMutualDeletion(node);
         delete node.remote;
       } else if (node.remote.body !== undefined) {
         // keep/revert:
