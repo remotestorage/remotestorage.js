@@ -439,8 +439,16 @@
                (node.remote.body === node.common.body &&
                 node.remote.contentType === node.common.contentType);
       };
+      mergeMutualDeletion = function(node) {
+        if (node.remote && node.remote.body === false
+            && node.local && node.local.body === false) {
+           delete node.local;
+        }
+        return node;
+      };
 
       if (hasNoRemoteChanges(node)) {
+        node = mergeMutualDeletion(node);
         delete node.remote;
       } else if (node.remote.body !== undefined) {
         // keep/revert:

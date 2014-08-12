@@ -933,6 +933,35 @@ define(['test/helpers/mocks'], function(mocks) {
       },
 
       {
+        desc: "autoMergeDocument merges mutual deletions (#737)",
+        run: function(env, test) {
+          var node = {
+            "path": "/myfavoritedrinks/b",
+            "common": {
+              "timestamp": 1405488508303
+            },
+            "local": {
+              "body": false,
+              "timestamp": 1405488515881
+            },
+            "remote": {
+              "body": false,
+              "timestamp": 1405488740722
+            }
+          };
+          var localAndRemoteRemoved = {
+            "path": "/myfavoritedrinks/b",
+            "common": {
+              "timestamp": 1405488508303
+            }
+          };
+          var result = env.rs.sync.autoMergeDocument(node);
+          test.assertAnd(result, localAndRemoteRemoved);
+          test.done();
+        }
+      },
+
+      {
         desc: "autoMerge auto-merges and sends out a change event if a node changed",
         run: function(env, test) {
           var node = {
