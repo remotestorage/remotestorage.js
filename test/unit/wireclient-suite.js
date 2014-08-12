@@ -631,11 +631,12 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       },
 
       {
-        desc: "WireClient disconnects after SyncError",
+        desc: "WireClient is marked offline after SyncError",
         run: function(env, test){
+          env.connectedClient.online = true;
           env.rs._emit('error', new RemoteStorage.SyncError());
           setTimeout(function() {
-            test.assert(env.connectedClient.connected, false);
+            test.assert(env.connectedClient.online, false);
           }, 100);
         }
       },
