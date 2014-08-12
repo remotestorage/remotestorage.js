@@ -113,7 +113,7 @@
   }
 
   function determineCharset(mimeType) {
-    var charset = 'utf-8';
+    var charset = 'UTF-8';
     var charsetMatch;
 
     if (mimeType) {
@@ -122,7 +122,6 @@
         charset = charsetMatch[1];
       }
     }
-
     return charset;
   }
 
@@ -410,8 +409,8 @@
         throw new Error("not connected (path: " + path + ")");
       }
       if (!options) { options = {}; }
-      if (!contentType.match(/charset=/)) {
-        contentType += '; charset=' + ((body instanceof ArrayBuffer || isArrayBufferView(body)) ? 'binary' : 'utf-8');
+      if ((!contentType.match(/charset=/)) && (body instanceof ArrayBuffer || isArrayBufferView(body))) {
+        contentType +=  '; charset=binary';
       }
       var headers = { 'Content-Type': contentType };
       if (this.supportsRevs) {
