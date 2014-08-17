@@ -1,4 +1,4 @@
-/** remotestorage.js 0.10.0, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.10.1, http://remotestorage.io, MIT-licensed **/
 define([], function() {
 
 /** FILE: lib/promising.js **/
