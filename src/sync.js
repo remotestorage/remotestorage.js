@@ -894,8 +894,9 @@
           error = new RemoteStorage.Unauthorized();
         } else if (status.networkProblems) {
           error = new RemoteStorage.SyncError('Network request failed.');
+          this.remote.online = false;
         } else {
-          error = new RemoteStorage.SyncError('HTTP response code ' + status.statusCode + ' received.');
+          error = new Error('HTTP response code ' + status.statusCode + ' received.');
         }
 
         return this.dealWithFailure(path, action, status).then(function() {
@@ -957,19 +958,12 @@
 
       function(err) {
         console.error('[Sync] Error', err);
-        this.remote.online = false;
         delete this._timeStarted[task.path];
         delete this._running[task.path];
         this._emit('req-done');
-        if (!this.stopped && this.remote.online) {
-          setTimeout(function() {
-            this.doTasks();
-          }.bind(this), 0);
-        } else {
-          if (!this.done) {
-            this.done = true;
-            this._emit('done');
-          }
+        if (!this.done) {
+          this.done = true;
+          this._emit('done');
         }
       }.bind(this));
     },
