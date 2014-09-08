@@ -887,6 +887,20 @@ define(['test/helpers/mocks'], function(mocks) {
       },
 
       {
+        desc: "handleResponse emits an error for unhandled status codes",
+        run: function(env, test) {
+          env.rs.on('error', function(err) {
+            if (err instanceof RemoteStorage.SyncError) {
+              test.assert(err.message, 'Sync failed: HTTP response code 418 received.');
+            } else {
+              test.result(false);
+            }
+          });
+          env.rs.sync.handleResponse(undefined, undefined, 418);
+        }
+      },
+
+      {
         desc: "deleteRemoteTrees returns a promise",
         run: function(env, test) {
           env.rs.sync.deleteRemoteTrees([], {changed: 'nodes'}).then(function(ret1) {
