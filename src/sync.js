@@ -1128,10 +1128,11 @@
       msg += originalError;
     }
     this.originalError = originalError;
-    Error.apply(this, [msg]);
+    this.message = msg;
   };
 
-  SyncError.prototype = Object.create(Error.prototype);
+  SyncError.prototype = new Error();
+  SyncError.prototype.constructor = SyncError;
 
   RemoteStorage.SyncError = SyncError;
 
