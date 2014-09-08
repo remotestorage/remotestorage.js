@@ -822,7 +822,8 @@
       if (statusCode === 'offline' || statusCode === 'timeout') {
         return {
           successful:      false,
-          networkProblems: true
+          networkProblems: true,
+          statusCode: statusCode
         };
       }
 
@@ -834,7 +835,8 @@
         unAuth:     ((statusCode === 401 && this.remote.token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) ||
                      statusCode === 402 || statusCode === 403),
         notFound:   (statusCode === 404),
-        changed:    (statusCode !== 304)
+        changed:    (statusCode !== 304),
+        statusCode: statusCode
       };
     },
 
