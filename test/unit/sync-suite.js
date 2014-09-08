@@ -925,8 +925,8 @@ define(['test/helpers/mocks'], function(mocks) {
           var errorEmitted, errorThrown;
 
           env.rs.on('error', function(err) {
-            if (err instanceof RemoteStorage.SyncError) {
-              test.assertAnd(err.message, 'Sync failed: HTTP response code 418 received.');
+            if (err instanceof Error) {
+              test.assertAnd(err.message, 'HTTP response code 418 received.');
               errorEmitted = true;
               if (errorThrown) {
                 test.done();
@@ -939,7 +939,7 @@ define(['test/helpers/mocks'], function(mocks) {
           env.rs.sync.handleResponse(undefined, undefined, 418).then(function() {
             test.result(false);
           }, function(error) {
-            test.assertAnd(error.message, 'Sync failed: HTTP response code 418 received.');
+            test.assertAnd(error.message, 'HTTP response code 418 received.');
             errorThrown = true;
             if (errorEmitted) {
               test.done();

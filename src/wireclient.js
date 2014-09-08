@@ -166,7 +166,6 @@
 
     onErrorCb = function(error){
       if (error instanceof RemoteStorage.SyncError) {
-        this.online = false;
       } else if (error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
@@ -258,7 +257,6 @@
             isFolder: isFolder(uri),
             success: false
           });
-          self.online = false;
           promise.reject(error);
         } else {
           self._emit('wire-done', {
