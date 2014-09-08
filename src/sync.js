@@ -802,7 +802,7 @@
     },
 
     dealWithFailure: function(path, action, statusMeaning) {
-      remoteStorage._emit('error', 'HTTP response code ' + statusMeaning.statusCode + ' received.');
+      remoteStorage._emit('error', new SyncError('HTTP response code ' + statusMeaning.statusCode + ' received.'));
       return this.local.getNodes([path]).then(function(nodes) {
         if (nodes[path]) {
           delete nodes[path].push;
@@ -1120,10 +1120,11 @@
       msg += originalError;
     }
     this.originalError = originalError;
-    Error.apply(this, [msg]);
+    this.message = msg;
   };
 
-  SyncError.prototype = Object.create(Error.prototype);
+  SyncError.prototype = new Error();
+  SyncError.prototype.constructor = SyncError;
 
   RemoteStorage.SyncError = SyncError;
 
