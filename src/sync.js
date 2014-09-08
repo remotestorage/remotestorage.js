@@ -889,15 +889,18 @@
       }
       // Unsuccessful
       else {
+        var error;
         if (status.unAuth) {
-          remoteStorage._emit('error', new RemoteStorage.Unauthorized());
-        }
-        if (status.networkProblems) {
-          remoteStorage._emit('error', new RemoteStorage.SyncError());
+          error = new RemoteStorage.Unauthorized();
+        } else if (status.networkProblems) {
+          error = new RemoteStorage.SyncError('Network request failed.');
+        } else {
+          error = new RemoteStorage.SyncError('HTTP response code ' + status.statusCode + ' received.');
         }
 
         return this.dealWithFailure(path, action, status).then(function() {
-          return false;
+          remoteStorage._emit('error', error);
+          throw error;
         });
       }
     },
@@ -958,10 +961,15 @@
         delete this._timeStarted[task.path];
         delete this._running[task.path];
         this._emit('req-done');
-        if (!this.stopped) {
+        if (!this.stopped && this.remote.online) {
           setTimeout(function() {
             this.doTasks();
           }.bind(this), 0);
+        } else {
+          if (!this.done) {
+            this.done = true;
+            this._emit('done');
+          }
         }
       }.bind(this));
     },
