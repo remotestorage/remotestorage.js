@@ -166,13 +166,25 @@ define(['require'], function(require) {
         run: function(env, test) {
           var makeNode = env.ims._getInternals().makeNode;
 
-          test.assertAnd(makeNode('/a/b/', 1234567890123), {
+          test.assertAnd(makeNode('/a/b/'), {
             path: '/a/b/',
-            common: { timestamp: 1234567890123, itemsMap: {} }
+            common: { itemsMap: {} }
           });
-          test.assert(makeNode('/a/b', 1234567890123), {
+          test.assert(makeNode('/a/b'), {
             path: '/a/b',
-            common: { timestamp: 1234567890123 }
+            common: { }
+          });
+        }
+      },
+
+      {
+        desc: "locally created documents are considered outdated",
+        run: function(env, test) {
+          env.ims.put('/new/document', 'content', 'text/plain').then(function() {
+            var paths = env.ims._getInternals().pathsFromRoot('/new/document');
+            env.ims.getNodes(paths).then(function(nodes) {
+              test.assert(env.ims._getInternals().isOutdated(nodes, 1000), true);
+            });
           });
         }
       },
