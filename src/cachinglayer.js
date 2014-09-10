@@ -352,8 +352,19 @@
       return node;
     },
 
+    _updateNodesRunning: false,
+    _updateNodesQueued: [],
     _updateNodes: function(paths, cb) {
       var self = this;
+
+      if (this._updateNodesRunning) {
+        this._updateNodesQueued.push({
+          paths: paths,
+          cb: cb
+        });
+      } else {
+        this._updateNodesRunning = true;
+      }
 
       return this.getNodes(paths).then(function(nodes) {
         var existingNodes = deepClone(nodes);
@@ -383,10 +394,20 @@
 
         return self.setNodes(nodes).then(function() {
           self._emitChangeEvents(changeEvents);
+          this._updateNodesRunning = false;
+          var nextJob = this._updateNodesQueued.shift();
+          if (nextJob) {
+            this._updateNodes(nextJob.paths, nextJob.cb);
+          }
           return 200;
-        });
-      },
+        }.bind(this));
+      }.bind(this),
       function(err) {
+          this._updateNodesRunning = false;
+          var nextJob = this._updateNodesQueued.shift();
+          if (nextJob) {
+            this._updateNodes(nextJob.paths, nextJob.cb);
+          }
         throw(err);
       });
     },
