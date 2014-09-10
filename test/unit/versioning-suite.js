@@ -75,7 +75,7 @@ define([], function() {
     setup: function(env, test){
       require('./lib/promising');
       global.RemoteStorage = function(){
-        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready');
+        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'error');
       };
       global.RemoteStorage.log = function() {};
       global.RemoteStorage.config = {
@@ -134,7 +134,8 @@ define([], function() {
         '/foo/d-common-fetching': 'ALL',
         '/foo/d-created-fetching': 'ALL',
         '/foo/d-changed-fetching': 'ALL',
-        '/foo/d-deleted-fetching': 'ALL'
+        '/foo/d-deleted-fetching': 'ALL',
+        '/foo/item2': 'ALL'
       };
       env.fixture1 = {
         '/foo/': {
@@ -439,6 +440,7 @@ define([], function() {
       env.rs.access = new FakeAccess();
       env.rs.caching = new FakeCaching();
       env.rs.sync = new RemoteStorage.Sync(env.rs.local, env.rs.remote, env.rs.access, env.rs.caching);
+      global.remoteStorage = env.rs;
       test.done();
     },
 
@@ -495,6 +497,8 @@ define([], function() {
               [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
             env.rs.remote._responses[['get', '/foo/baz/' ]] =
               [500, '', '', ''];
+            env.rs.remote._responses[['get', '/foo/baf' ]] =
+              [500, '', '', ''];
             env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
@@ -538,6 +542,8 @@ define([], function() {
               [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
             env.rs.remote._responses[['get', '/foo/baz/' ]] =
               [500, '', '', ''];
+            env.rs.remote._responses[['get', '/foo/baf' ]] =
+              [500, '', '', ''];
             env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
@@ -567,6 +573,22 @@ define([], function() {
             env.rs.remote._responses[['get', '/foo/f-created/' ]] =
               [500, {}, 'application/json', '123'];
             env.rs.remote._responses[["put","/foo/f-created/a","bloo",null,{"ifNoneMatch":"*"}]] =
+              [500, '', '', ''];
+            env.rs.remote._responses[["get","/foo/f-changed/a"]] =
+              [500, '', '', ''];
+            env.rs.remote._responses[["get","/foo/f-deleted/a"]] =
+              [500, '', '', ''];
+            env.rs.remote._responses[['get', '/foo/f-created-fetching/' ]] =
+              [500, {}, 'application/json', '123'];
+            env.rs.remote._responses[["get","/foo/f-created-fetching/a"]] =
+              [500, '', '', ''];
+            env.rs.remote._responses[["get","/foo/f-changed-fetching/a"]] =
+              [500, '', '', ''];
+            env.rs.remote._responses[["get","/foo/f-deleted-fetching/a"]] =
+              [500, '', '', ''];
+            env.rs.remote._responses[["get","/foo/d-created-fetching"]] =
+              [500, '', '', ''];
+            env.rs.remote._responses[["put","/foo/d-created","bloo",null,{"ifNoneMatch":"*"}]] =
               [500, '', '', ''];
             env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();

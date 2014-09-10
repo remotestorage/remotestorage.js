@@ -3,6 +3,13 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## HEAD
+
+### Bugixes
+
+* Report unhandled HTTP status codes as errors (#594)
+* Pause between sync retries when offline (#740)
+
 ## 0.10.1 (August 2014)
 
 ### Bugfixes

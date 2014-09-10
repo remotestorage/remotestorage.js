@@ -185,14 +185,13 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       },
 
       {
-        desc: "client.get() of a folder emits wire-busy and wire-done on failure, and sets remote.online to false",
+        desc: "client.get() of a folder emits wire-busy and wire-done on failure",
         run: function(env,test){
           env.connectedClient.online = true;
           env.connectedClient.get('/foo/').then(function(){
           }, function(err) {
             test.assertAnd(env.busy.numCalled, 1);
             test.assertAnd(env.done.numCalled, 1);
-            test.assertAnd(env.connectedClient.online, false);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -631,12 +630,12 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       },
 
       {
-        desc: "WireClient is marked offline after SyncError",
+        desc: "WireClient is not marked offline after SyncError",
         run: function(env, test){
           env.connectedClient.online = true;
           env.rs._emit('error', new RemoteStorage.SyncError());
           setTimeout(function() {
-            test.assert(env.connectedClient.online, false);
+            test.assert(env.connectedClient.online, true);
           }, 100);
         }
       },

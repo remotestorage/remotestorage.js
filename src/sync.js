@@ -822,7 +822,8 @@
       if (statusCode === 'offline' || statusCode === 'timeout') {
         return {
           successful:      false,
-          networkProblems: true
+          networkProblems: true,
+          statusCode: statusCode
         };
       }
 
@@ -834,7 +835,8 @@
         unAuth:     ((statusCode === 401 && this.remote.token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) ||
                      statusCode === 402 || statusCode === 403),
         notFound:   (statusCode === 404),
-        changed:    (statusCode !== 304)
+        changed:    (statusCode !== 304),
+        statusCode: statusCode
       };
     },
 
@@ -887,15 +889,19 @@
       }
       // Unsuccessful
       else {
+        var error;
         if (status.unAuth) {
-          remoteStorage._emit('error', new RemoteStorage.Unauthorized());
-        }
-        if (status.networkProblems) {
-          remoteStorage._emit('error', new RemoteStorage.SyncError());
+          error = new RemoteStorage.Unauthorized();
+        } else if (status.networkProblems) {
+          error = new RemoteStorage.SyncError('Network request failed.');
+          this.remote.online = false;
+        } else {
+          error = new Error('HTTP response code ' + status.statusCode + ' received.');
         }
 
         return this.dealWithFailure(path, action, status).then(function() {
-          return false;
+          remoteStorage._emit('error', error);
+          throw error;
         });
       }
     },
@@ -952,14 +958,12 @@
 
       function(err) {
         console.error('[Sync] Error', err);
-        this.remote.online = false;
         delete this._timeStarted[task.path];
         delete this._running[task.path];
         this._emit('req-done');
-        if (!this.stopped) {
-          setTimeout(function() {
-            this.doTasks();
-          }.bind(this), 0);
+        if (!this.done) {
+          this.done = true;
+          this._emit('done');
         }
       }.bind(this));
     },
@@ -1126,10 +1130,11 @@
       msg += originalError;
     }
     this.originalError = originalError;
-    Error.apply(this, [msg]);
+    this.message = msg;
   };
 
-  SyncError.prototype = Object.create(Error.prototype);
+  SyncError.prototype = new Error();
+  SyncError.prototype.constructor = SyncError;
 
   RemoteStorage.SyncError = SyncError;
 
