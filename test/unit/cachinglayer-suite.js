@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
+define(['requirejs'], function(requirejs) {
   var suites = [];
 
   suites.push({
@@ -27,12 +27,17 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
-      mocks.defineMocks(env);
+      require('./src/inmemorystorage');
+      if (global.rs_ims) {
+        RemoteStorage.InMemoryStorage = global.rs_ims;
+      } else {
+        global.rs_ims = RemoteStorage.InMemoryStorage;
+      }
       test.done();
     },
 
     beforeEach: function(env, test) {
-      env.ims = new FakeStorage(100);
+      env.ims = new RemoteStorage.InMemoryStorage();
       test.done();
     },
 
