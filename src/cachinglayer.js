@@ -403,10 +403,7 @@
           self._emitChangeEvents(changeEvents);
           promise.fulfill(200);
         });
-      }).then(function() {
-      }, function(err) {
-        promise.reject(err);
-      }).then(function() {
+      }).then(undefined, promise.reject).then(function() {
         this._updateNodesRunning = false;
         var nextJob = this._updateNodesQueued.shift();
         if (nextJob) {
