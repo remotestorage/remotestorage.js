@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs) {
+define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
   var suites = [];
 
   suites.push({
@@ -27,17 +27,12 @@ define(['requirejs'], function(requirejs) {
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
-      require('./src/inmemorystorage');
-      if (global.rs_ims) {
-        RemoteStorage.InMemoryStorage = global.rs_ims;
-      } else {
-        global.rs_ims = RemoteStorage.InMemoryStorage;
-      }
+      mocks.defineMocks(env);
       test.done();
     },
 
     beforeEach: function(env, test) {
-      env.ims = new RemoteStorage.InMemoryStorage();
+      env.ims = new FakeStorage(10);
       test.done();
     },
 
@@ -267,26 +262,26 @@ define(['requirejs'], function(requirejs) {
             test.assertAnd(jobOneCompleted, false);
             test.assertAnd(jobTwoCompleted, false);
             jobOneCompleted = true;
-            env.ims._updateNodes(['/foo'], function(currentValue) {
-              test.assertAnd(jobOneCbCalled, true);
-              test.assertAnd(jobTwoCbCalled, false);
-              test.assertAnd(jobOneCompleted, true);
-              test.assertAnd(jobTwoCompleted, false);
-              test.assertAnd(currentValue, {
-                '/foo': {
-                  local: {some: 'data'}
-                }
-              });
-              currentValue['/foo'] = {local: {some: 'other data'}};
-              jobTwoCbCalled = true;
-              return currentValue;
-            }).then(function() {
-              test.assertAnd(jobOneCbCalled, true);
-              test.assertAnd(jobTwoCbCalled, true);
-              test.assertAnd(jobOneCompleted, true);
-              test.assertAnd(jobTwoCompleted, false);
-              test.done();
-            });
+          });
+	  env.ims._updateNodes(['/foo'], function(currentValue) {
+	    test.assertAnd(jobOneCbCalled, true);
+	    test.assertAnd(jobTwoCbCalled, false);
+	    test.assertAnd(jobOneCompleted, false);
+	    test.assertAnd(jobTwoCompleted, false);
+	    test.assertAnd(currentValue, {
+	      '/foo': {
+		local: {some: 'data'}
+	      }
+	    });
+	    currentValue['/foo'] = {local: {some: 'other data'}};
+	    jobTwoCbCalled = true;
+	    return currentValue;
+	  }).then(function() {
+	    test.assertAnd(jobOneCbCalled, true);
+	    test.assertAnd(jobTwoCbCalled, true);
+	    test.assertAnd(jobOneCompleted, true);
+	    test.assertAnd(jobTwoCompleted, false);
+	    test.done();
           });
         }
       }

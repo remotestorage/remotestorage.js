@@ -98,6 +98,51 @@ define([], function() {
         this._responses = {};
       }
 
-    }
-  };
+      global.FakeStorage = function(delay) {
+        this.delay = delay;
+	RemoteStorage.cachingLayer(this);
+	RemoteStorage.log('[InMemoryStorage] Registering events');
+	RemoteStorage.eventHandling(this, 'change', 'local-events-done');
+
+	this._storage = {};
+      };
+
+      global.FakeStorage.prototype = {
+
+	getNodes: function(paths) {
+	  var promise = promising();
+	  var nodes = {};
+
+	  for(i=0; i<paths.length; i++) {
+				    nodes[paths[i]] = this._storage[paths[i]];
+	  }
+          setTimeout(function() {
+	    promise.fulfill(nodes);
+          }, this.delay);
+	  return promise;
+	},
+
+	setNodes: function(nodes) {
+	  var promise = promising();
+
+	  for (var path in nodes) {
+				    if (nodes[path] === undefined) {
+					    delete this._storage[path];
+				    } else {
+					    this._storage[path] = nodes[path];
+				    }
+	  }
+	  promise.fulfill();
+	  return promise;
+	},
+
+	forAllNodes: function(cb) {
+	  for(var path in this._storage) {
+				    cb(this.migrate(this._storage[path]));
+						    }
+					    return promising().fulfill();
+				    }
+			    };
+	}
+      };
 });
