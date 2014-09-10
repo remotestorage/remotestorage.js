@@ -241,6 +241,54 @@ define(['requirejs'], function(requirejs) {
             test.done();
           }, 10);
         }
+      },
+
+      {
+        desc: "_updateNodes calls run sequentially",
+        run: function(env, test) {
+          var jobOneCbCalled = false;
+          var jobOneCompleted = false;
+          var jobTwoCbCalled = false;
+          var jobTwoCompleted = false;
+          env.ims._updateNodes(['/foo'], function(currentValue) {
+            test.assertAnd(jobOneCbCalled, false);
+            test.assertAnd(jobTwoCbCalled, false);
+            test.assertAnd(jobOneCompleted, false);
+            test.assertAnd(jobTwoCompleted, false);
+            test.assertAnd(currentValue, {
+              '/foo': undefined
+            });
+            currentValue['/foo'] = {local: {some: 'data'}};
+            jobOneCbCalled = true;
+            return currentValue;
+          }).then(function() {
+            test.assertAnd(jobOneCbCalled, true);
+            test.assertAnd(jobTwoCbCalled, false);
+            test.assertAnd(jobOneCompleted, false);
+            test.assertAnd(jobTwoCompleted, false);
+            jobOneCompleted = true;
+            env.ims._updateNodes(['/foo'], function(currentValue) {
+              test.assertAnd(jobOneCbCalled, true);
+              test.assertAnd(jobTwoCbCalled, false);
+              test.assertAnd(jobOneCompleted, true);
+              test.assertAnd(jobTwoCompleted, false);
+              test.assertAnd(currentValue, {
+                '/foo': {
+                  local: {some: 'data'}
+                }
+              });
+              currentValue['/foo'] = {local: {some: 'other data'}};
+              jobTwoCbCalled = true;
+              return currentValue;
+            }).then(function() {
+              test.assertAnd(jobOneCbCalled, true);
+              test.assertAnd(jobTwoCbCalled, true);
+              test.assertAnd(jobOneCompleted, true);
+              test.assertAnd(jobTwoCompleted, false);
+              test.done();
+            });
+          });
+        }
       }
     ]
   });
