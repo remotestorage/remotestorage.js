@@ -78,6 +78,9 @@ define([], function() {
         RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready');
       };
       global.RemoteStorage.log = function() {};
+      global.RemoteStorage.config = {
+        changeEvents: { local: true, window: false, remote: true, conflict: true }
+      };
 
       require('./src/eventhandling');
       if (global.rs_eventhandling){
@@ -269,7 +272,9 @@ define([], function() {
         '/foo/d-changed': {
           path: '/foo/d-changed',
           common: {
-            body: 'bloo'
+            body: 'bloo',
+            contentType: 'text/plain',
+            revision: '123'
           },
           local: {
             body: 'blooz'
@@ -550,7 +555,6 @@ define([], function() {
         }
       },
 
-
       {
         desc: "an incoming folder listing removes items from common and remote but not from local",
         run: function(env, test) {
@@ -588,15 +592,14 @@ define([], function() {
                 test.assertAnd(objs['/foo/f-changed-fetching/'], undefined);
                 test.assertAnd(objs['/foo/f-deleted-fetching/'], undefined);
 
-                //i'm not sure whether it's necessary that these tombstones are created:
-                test.assertAnd(objs['/foo/f-common/a'].common.body, false);
+                test.assertAnd(objs['/foo/f-common/a'], undefined);
                 test.assertAnd(objs['/foo/f-created/a'].local.body, 'bloo');
-                test.assertAnd(objs['/foo/f-changed/a'].common.body, false);
-                test.assertAnd(objs['/foo/f-deleted/a'].common.body, false);
-                test.assertAnd(objs['/foo/f-common-fetching/a'].common.body, false);
+                test.assertAnd(objs['/foo/f-changed/a'].common, {});
+                test.assertAnd(objs['/foo/f-deleted/a'].common, {});
+                test.assertAnd(objs['/foo/f-common-fetching/a'], undefined);
                 test.assertAnd(objs['/foo/f-created-fetching/a'].local.body, 'bloo');
-                test.assertAnd(objs['/foo/f-changed-fetching/a'].common.body, false);
-                test.assertAnd(objs['/foo/f-deleted-fetching/a'].common.body, false);
+                test.assertAnd(objs['/foo/f-changed-fetching/a'].common, {});
+                test.assertAnd(objs['/foo/f-deleted-fetching/a'].common, {});
 
                 //i'm also not sure why no tombstones are created on the first tree depth:
                 test.assertAnd(objs['/foo/d-common'], undefined);
@@ -703,6 +706,115 @@ define([], function() {
                 test.assertAnd(objs['/foo/'].push, undefined);
                 test.assertAnd(objs['/foo/'].remote, undefined);
                 test.assertAnd(env.rs.sync._running, {});
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "an unchanged incoming document does not delete local changes",
+        run: function(env, test) {
+          env.rs.caching._responses = env.responses1;
+          env.rs.local.setNodes(env.fixture1).then(function() {
+            env.rs.sync.handleResponse('/foo/d-created', 'get', 404);
+            env.rs.sync.handleResponse('/foo/d-changed', 'get', 200, 'bloo', 'text/plain', '123');
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/d-created', '/foo/d-changed']).then(function(objs) {
+
+                test.assertAnd(objs['/foo/d-created'].local.body, 'bloo');
+                test.assertAnd(objs['/foo/d-changed'].local.body, 'blooz');
+
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "a changed incoming document deletes local changes",
+        run: function(env, test) {
+          env.rs.caching._responses = env.responses1;
+          env.rs.local.setNodes(env.fixture1).then(function() {
+            env.rs.sync.handleResponse('/foo/d-created', 'get', 200, 'something else', 'text/plain', '123');
+            env.rs.sync.handleResponse('/foo/d-changed', 'get', 200, 'something else', 'text/plain', '123');
+            setTimeout(function() {
+              env.rs.local.getNodes(['/foo/d-created', '/foo/d-changed']).then(function(objs) {
+
+                test.assertAnd(objs['/foo/d-created'].local, undefined);
+                test.assertAnd(objs['/foo/d-changed'].local, undefined);
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "a 304 response to a folder GET updates the common timestamp if the ETags match",
+        run: function(env, test) {
+          env.rs.sync.now = function() { return 2234567890123; };
+          env.rs.caching._responses = {
+            '/foo/': 'SEEN',
+            '/foo/a': 'SEEN'
+          };
+          env.rs.local.setNodes({
+            '/foo/': {
+              path: '/foo/',
+              common: { itemsMap: {}, revision: 'fff', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.rs.remote._responses[['get', '/foo/', { ifNoneMatch: 'fff' } ]] =
+              [304, undefined, undefined, 'fff'];
+            env.rs.sync._tasks = {'/foo/': []};
+            env.rs.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/']);
+          }).then(function(objs) {
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
+            setTimeout(function() {
+              test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 0);
+              env.rs.local.getNodes(['/foo/']).then(function(objs) {
+                test.assertAnd(objs['/foo/'].common, { itemsMap: {}, timestamp: 2234567890123, revision: 'fff' });
+                test.assertAnd(objs['/foo/'].local, undefined);
+                test.assertAnd(objs['/foo/'].push, undefined);
+                test.assertAnd(objs['/foo/'].remote, undefined);
+                test.done();
+              });
+            }, 100);
+          });
+        }
+      },
+
+      {
+        desc: "a 304 response to a folder GET does not update the common timestamp if the ETags don't match",
+        run: function(env, test) {
+          env.rs.sync.now = function() { return 2234567890123; };
+          env.rs.caching._responses = {
+            '/foo/': 'SEEN',
+            '/foo/a': 'SEEN'
+          };
+          env.rs.local.setNodes({
+            '/foo/': {
+              path: '/foo/',
+              common: { itemsMap: {}, revision: 'fff', timestamp: 1234567891000 }
+            }
+          }).then(function() {
+            env.rs.remote._responses[['get', '/foo/', { ifNoneMatch: 'fff' } ]] =
+              [304, undefined, undefined, 'something else'];
+            env.rs.sync._tasks = {'/foo/': []};
+            env.rs.sync.doTasks();
+            return env.rs.local.getNodes(['/foo/']);
+          }).then(function(objs) {
+            test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 1);
+            setTimeout(function() {
+              test.assertAnd(Object.getOwnPropertyNames(env.rs.sync._running).length, 0);
+              env.rs.local.getNodes(['/foo/']).then(function(objs) {
+                test.assertAnd(objs['/foo/'].common, { itemsMap: {}, timestamp: 1234567891000, revision: 'fff' });
+                test.assertAnd(objs['/foo/'].local, undefined);
+                test.assertAnd(objs['/foo/'].push, undefined);
+                //test.assertAnd(objs['/foo/'].remote, { revision: 'something else', timestamp: 2234567890123 });
                 test.done();
               });
             }, 100);

@@ -13,6 +13,16 @@
     <div class="rs-bubble-text remotestorage-connected">
       <strong class="userAddress">{{USER_ADDRESS}}</strong>
       <p class="remotestorage-unauthorized">{{view_unauthorized}}</p>
+      <p class="remotestorage-invalid-key">{{view_invalid_key}}</p>
+      <form novalidate class="remotestorage-cipher-form">
+        <input placeholder="Secret key" name="userSecretKey" novalidate>
+        <button class="rs-cipher" name="rs-cipher" title="cipher" disabled="disabled">
+          <img>
+        </button>
+        <button class="rs-nocipher" name="rs-nocipher" title="no cipher">
+          <img>
+        </button>
+      </form>
     </div>
     <div class="rs-content remotestorage-connected">
       <button class="rs-sync" title="sync"><img></button>
@@ -20,7 +30,7 @@
     </div>
     <!-- initial -->
     <form novalidate class="remotestorage-initial">
-      <input type="email" placeholder="user@host" name="userAddress" novalidate>
+      <input type="email" placeholder="user@provider.com" name="userAddress" novalidate>
       <button class="connect" name="connect" title="connect" disabled="disabled">
         <img>
       </button>

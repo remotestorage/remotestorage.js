@@ -45,6 +45,8 @@ The easiest way to update your local repository with all remote changes, includi
 
 #### Reviewing pull requests
 
+* Check if it works, if it has unit tests, if the tests pass, and if jshint and CodeClimate are happy.
+* Check if the code is understandable, with clear and unambiguous names for functions and variables, and that it has (naturaldocs) comments and a changelog entry.
 * If you use `git up`, like recommended above, it will automatically create tracked branches for all remote branches. So in order to review/test a branch on the org repo, just do `git checkout [branchname]`. You can then also add new commits to that branch and push them in order to add your changes to the pull request.
 * If the pull request was issued from a user's own repository, you'll have to fetch the code from there, of course. If you haven't pulled from that user yet, you can add a new remote for the user with `git remote add [username] [repo-url]`. After that, `git up` will fetch code from that remote as well, so you can then check it out using `git checkout [username]/branchname`.
 

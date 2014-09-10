@@ -25,7 +25,23 @@
     get: function(path, maxAge) {
       var self = this;
       if (this.local) {
-        return this.local.get(path, maxAge);
+        if (maxAge === undefined) {
+          if (this.connected) {
+            maxAge = 2*this.getSyncInterval();
+          } else {
+            maxAge = false;
+          }
+        }
+        var maxAgeInvalid = function(maxAge) {
+          return maxAge !== false && typeof(maxAge) !== 'number';
+        };
+
+        if (maxAgeInvalid(maxAge)) {
+          var promise = promising();
+          promise.reject('Argument \'maxAge\' must be false or a number');
+          return promise;
+        }
+        return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
       } else {
         return this.remote.get(path);
       }
@@ -134,7 +150,7 @@
     RemoteStorage.eventHandling(
       this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
             'error', 'features-loaded', 'connecting', 'authing', 'wire-busy',
-            'wire-done'
+            'wire-done', 'sync-interval-change'
     );
 
     // pending get/put/delete calls.
@@ -174,12 +190,16 @@
 
     this._init();
 
-    this.on('ready', function() {
+    this.fireInitial = function() {
       if (this.local) {
         setTimeout(this.local.fireInitial.bind(this.local), 0);
       }
-    }.bind(this));
+    }.bind(this);
+
+    this.on('ready', this.fireInitial.bind(this));
   };
+
+  RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
 
   RemoteStorage.DiscoveryError = function(message) {
     Error.apply(this, arguments);
@@ -199,13 +219,36 @@
    * You can enable logging with <enableLog>.
    */
   RemoteStorage.log = function() {
-    if (RemoteStorage._log) {
+    if (RemoteStorage.config.logging) {
       console.log.apply(console, arguments);
     }
   };
 
+  RemoteStorage.config = {
+    logging: false,
+    changeEvents: {
+      local:    true,
+      window:   false,
+      remote:   true,
+      conflict: true
+    },
+    discoveryTimeout: 10000
+  };
 
   RemoteStorage.prototype = {
+
+    /**
+     * Method: displayWidget
+     *
+     * Displays the widget at the top right of the page. Make sure to call this function
+     * once on every pageload (after the html 'body' tag), unless you use a custom widget.
+     *
+     * Parameters:
+     *
+     *   domID: identifier of the DOM element which should embody the widget (optional)
+     */
+     // (see src/widget.js for implementation)
+
     /**
      * Method: connect
      *
@@ -223,7 +266,7 @@
     connect: function(userAddress) {
       this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
-        this._emit('error', new RemoteStorage.DiscoveryError("User adress doesn't contain an @."));
+        this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
         return;
       }
       this.remote.configure(userAddress);
@@ -231,7 +274,7 @@
 
       var discoveryTimeout = setTimeout(function() {
         this._emit('error', new RemoteStorage.DiscoveryError("No storage information found at that user address."));
-      }.bind(this), 5000);
+      }.bind(this), RemoteStorage.config.discoveryTimeout);
 
       RemoteStorage.Discover(userAddress, function(href, storageApi, authURL) {
         clearTimeout(discoveryTimeout);
@@ -242,7 +285,16 @@
         this._emit('authing');
         this.remote.configure(userAddress, href, storageApi);
         if (! this.remote.connected) {
-          this.authorize(authURL);
+          if (authURL) {
+            this.authorize(authURL);
+          } else {
+            // In lieu of an excplicit authURL, assume that the browser
+            // and server handle any authorization needs; for instance,
+            // TLS may trigger the browser to use a client certificate,
+            // or a 401 Not Authorized response may make the browser
+            // send a Kerberos ticket using the SPNEGO method.
+            this.impliedauth();
+          }
         }
       }.bind(this));
     },
@@ -327,7 +379,7 @@
      * Enable remoteStorage logging
      */
     enableLog: function() {
-      RemoteStorage._log = true;
+      RemoteStorage.config.logging = true;
     },
 
     /**
@@ -336,7 +388,7 @@
      * Disable remoteStorage logging
      */
     disableLog: function() {
-      RemoteStorage._log = false;
+      RemoteStorage.config.logging = false;
     },
 
     /**
@@ -348,6 +400,19 @@
       RemoteStorage.log.apply(RemoteStorage, arguments);
     },
 
+    /**
+     * Method: setApiKeys (experimental)
+     *
+     * Set API keys for (currently) GoogleDrive and/or Dropbox backend support.
+     * See also the 'backends' example in the starter-kit. Note that support for
+     * both these backends is still experimental.
+     *
+     * Parameters:
+     * type - string, either 'googledrive' or 'dropbox'
+     * keys - object, with one string field; 'client_id' for GoogleDrive, or
+     *          'api_key' for Dropbox.
+     *
+     */
     setApiKeys: function(type, keys) {
       if (keys) {
         this.apiKeys[type] = keys;
@@ -607,8 +672,8 @@
       for (var path in this._pathHandlers[eventName]) {
         var pl = path.length;
         var self = this;
-        this._pathHandlers[eventName][path].forEach(function(handler) {
-          if (event.path.substr(0, pl) === path) {
+        if (event.path.substr(0, pl) === path) {
+          this._pathHandlers[eventName][path].forEach(function(handler) {
             var ev = {};
             for (var key in event) { ev[key] = event[key]; }
             ev.relativePath = event.path.replace(new RegExp('^' + path), '');
@@ -618,8 +683,8 @@
               console.error("'change' handler failed: ", e, e.stack);
               self._emit('error', e);
             }
-          }
-        });
+          });
+        }
       }
     }
   };

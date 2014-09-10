@@ -2,78 +2,8 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define([], function() {
+define(['test/helpers/mocks'], function(mocks) {
   var suites = [];
-
-  function FakeCaching(){
-    this._responses = {};
-    this.checkPath = function(path) {
-      if (typeof(this._responses[path]) === 'undefined') {
-        throw new Error('no FakeCaching response for path ' + path);
-      }
-      return this._responses[path];
-    };
-    this.onActivate = function() {};
-  }
-
-  function FakeAccess(){
-    this._data = {};
-    this.set = function(moduleName, value) {
-      this._data[moduleName] = value;
-    };
-    this.get = function(moduleName) {
-      return this._data[moduleName];
-    };
-    this.checkPathPermission = function(path, mode) {
-      if (path.substring(0, '/foo/'.length) === '/foo/') {
-        return true;
-      }
-      if (path.substring(0, '/read/access/'.length) === '/read/access/' && mode === 'r') {
-        return true;
-      }
-      if (path.substring(0, '/write/access/'.length) === '/write/access/') {
-        return true;
-      }
-      if (path.substring(0, '/readings/'.length) === '/readings/' && mode === 'r') {
-        return true;
-      }
-      if (path.substring(0, '/public/readings/'.length) === '/public/readings/' && mode === 'r') {
-        return true;
-      }
-      if (path.substring(0, '/writings/'.length) === '/writings/') {
-        return true;
-      }
-      if (path.substring(0, '/public/writings/'.length) === '/public/writings/') {
-        return true;
-      }
-      return false;
-    };
-  }
-
-  function FakeRemote(){
-    function GPD(target, path, body, contentType, options) {
-      var args = Array.prototype.slice.call(arguments);
-      this['_'+target+'s'].push([path, body, contentType, options]);
-      var p = promising();
-      if (typeof(this._responses[args]) === 'undefined') {
-        throw new Error('no FakeRemote response for args ' + JSON.stringify(args) + ' - have: ' + JSON.stringify(Object.getOwnPropertyNames(this._responses)));
-      }
-      var resp = this._responses[args] || [200];
-      if(resp === 'timeout') {
-        return p.reject.apply(p, resp);
-      } else {
-        return p.fulfill.apply(p, resp);
-      }
-    }
-    this.connected = true;
-    this._puts = [];
-    this.put = GPD.bind(this, 'put');
-    this._deletes = [];
-    this.delete = GPD.bind(this, 'delete');
-    this._gets = [];
-    this.get = GPD.bind(this, 'get');
-    this._responses = {};
-  }
 
   function flatten(array){
     var flat = [];
@@ -89,11 +19,18 @@ define([], function() {
     desc: "testing the sync adapter instance",
 
     setup: function(env, test){
+      mocks.defineMocks(env);
+
       require('./lib/promising');
       global.RemoteStorage = function(){
-        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready');
+        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'sync-interval-change', 'error');
       };
       global.RemoteStorage.log = function() {};
+      global.RemoteStorage.config = {
+        changeEvents: { local: true, window: false, remote: true, conflict: true }
+      };
+      RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
+      RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
       require('./src/eventhandling');
       if (global.rs_eventhandling){
@@ -121,6 +58,13 @@ define([], function() {
         RemoteStorage.Sync = global.rs_sync;
       } else {
         global.rs_sync = RemoteStorage.Sync;
+      }
+
+      require('src/authorize.js');
+      if (global.rs_authorize) {
+        RemoteStorage.Authorize = global.rs_authorize;
+      } else {
+        global.rs_authorize = RemoteStorage.Authorize;
       }
       test.done();
     },
@@ -606,11 +550,12 @@ define([], function() {
           });
         }
       },
+
       {
         desc: "get with maxAge requirement is rejected if remote is not connected",
         run: function(env, test) {
           env.rs.remote.connected = false;
-          env.rs.local.get('asdf', 2).then(function() {
+          env.rs.local.get('asdf', 2, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function() {
             test.result(false, 'should have been rejected');
           }, function(err) {
             test.done();
@@ -622,10 +567,78 @@ define([], function() {
         desc: "get with maxAge requirement is rejected if remote is not online",
         run: function(env, test) {
           env.rs.remote.online = false;
-          env.rs.local.get('asdf', 2).then(function() {
+          env.rs.local.get('asdf', 2, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function() {
             test.result(false, 'should have been rejected');
           }, function(err) {
             test.done();
+          });
+        }
+      },
+
+      {
+        desc: "get with maxAge fetches from remote when no local data exists",
+        run: function(env, test) {
+          env.rs.caching._responses['/'] = 'ALL';
+          env.rs.caching._responses['/foo'] = 'ALL';
+          env.rs.remote._responses[['get', '/foo' ]] = [200, 'body', 'text/plain', 'revision'];
+          env.rs.remote.connected = true;
+
+          env.rs.local.get('/foo', 5, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(statusCode, body, contentType) {
+            test.assertAnd(statusCode, 200);
+            test.assertAnd(body, 'body');
+            test.assertAnd(contentType, 'text/plain');
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "get with maxAge fetches from remote when local data is too old",
+        run: function(env, test) {
+          env.rs.caching._responses['/'] = 'ALL';
+          env.rs.caching._responses['/foo'] = 'ALL';
+          env.rs.remote._responses[['get', '/foo' ]] = [200, 'body', 'text/plain', 'revision'];
+          env.rs.remote.connected = true;
+
+          env.rs.local.setNodes({
+            '/foo': {
+              path: '/foo',
+              common: {
+                body: 'old data',
+                contentType: 'text/html',
+                timestamp: new Date().getTime() - 60000
+              }
+            }
+          }).then(function() {
+            env.rs.local.get('/foo', 5, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(statusCode, body, contentType) {
+              test.assertAnd(statusCode, 200);
+              test.assertAnd(body, 'body');
+              test.assertAnd(contentType, 'text/plain');
+              test.done();
+            });
+          });
+        }
+      },
+
+      {
+        desc: "get with maxAge returns local data when it's not outdated",
+        run: function(env, test) {
+          env.rs.local.setNodes({
+            '/foo': {
+              path: '/foo',
+              common: {
+                body: 'old data',
+                contentType: 'text/html',
+                timestamp: new Date().getTime() - 60000
+              }
+            }
+          }).then(function() {
+            env.rs.local.get('/foo', 120000, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(statusCode, body, contentType) {
+              test.assertAnd(statusCode, 200);
+              test.assertAnd(body, 'old data');
+              test.assertAnd(contentType, 'text/html');
+              test.done();
+            });
           });
         }
       },
@@ -834,6 +847,250 @@ define([], function() {
           });
         }
       },
+
+      {
+        desc: "Setting a wrong (string) sync interval throws an error",
+        run: function(env, test) {
+          try {
+            env.rs.setSyncInterval('60000');
+            test.result(false, "setSyncInterval() didn't fail");
+          } catch(e) {
+            test.result(true);
+          }
+        }
+      },
+
+      {
+        desc: "Setting a wrong (small) sync interval throws an error",
+        run: function(env, test) {
+          try {
+            env.rs.setSyncInterval(10);
+            test.result(false, "setSyncInterval() didn't fail");
+          } catch(e) {
+            test.result(true);
+          }
+        }
+      },
+
+      {
+        desc: "handleResponse emits Unauthorized error for status 401",
+        run: function(env, test) {
+          env.rs.on('error', function(err) {
+            if (err instanceof RemoteStorage.Unauthorized) {
+              test.result(true, "handleResponse() emitted Unauthorized error");
+            } else {
+              test.result(false);
+            }
+          });
+          env.rs.sync.handleResponse(undefined, undefined, 401);
+        }
+      },
+
+      {
+        desc: "deleteRemoteTrees returns a promise",
+        run: function(env, test) {
+          env.rs.sync.deleteRemoteTrees([], {changed: 'nodes'}).then(function(ret1) {
+            test.assertAnd(ret1, {changed: 'nodes'});
+            env.rs.sync.deleteRemoteTrees(['foo'], {}).then(function(ret2) {
+              test.assertAnd(ret2, undefined);
+              test.done();
+            });
+          });
+        }
+      },
+
+      {
+        desc: "autoMergeDocument leaves a remote version in place even if it has only a revision",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: { body: 'foo', contentType: 'bloo', revision: 'common' },
+            local: { body: 'floo', contentType: 'blaloo' },
+            remote: { revision: 'conflict' }
+          };
+          var result = env.rs.sync.autoMergeDocument(node);
+          test.assertAnd(result, node);
+          test.done();
+        }
+      },
+
+      {
+        desc: "autoMergeDocument on an empty node removes a remote version if it has a null revision",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: {},
+            remote: { revision: null }
+          };
+          var remoteRemoved = {
+            path: 'foo',
+            common: {}
+          };
+          var result = env.rs.sync.autoMergeDocument(node);
+          test.assertAnd(result, remoteRemoved);
+          test.done();
+        }
+      },
+
+      {
+        desc: "autoMergeDocument merges mutual deletions (#737)",
+        run: function(env, test) {
+          var node = {
+            "path": "/myfavoritedrinks/b",
+            "common": {
+              "timestamp": 1405488508303
+            },
+            "local": {
+              "body": false,
+              "timestamp": 1405488515881
+            },
+            "remote": {
+              "body": false,
+              "timestamp": 1405488740722
+            }
+          };
+          var localAndRemoteRemoved = {
+            "path": "/myfavoritedrinks/b",
+            "common": {
+              "timestamp": 1405488508303
+            }
+          };
+          var result = env.rs.sync.autoMergeDocument(node);
+          test.assertAnd(result, localAndRemoteRemoved);
+          test.done();
+        }
+      },
+
+      {
+        desc: "autoMerge auto-merges and sends out a change event if a node changed",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: { body: 'old value', contentType: 'old content-type', revision: 'common' },
+            remote: { body: 'new value', contentType: 'new content-type', revision: 'remote' }
+          };
+          var merged = {
+            path: 'foo',
+            common: { body: 'new value', contentType: 'new content-type', revision: 'remote' }
+          };
+          var otherDone = false;
+
+          env.rs.sync.local._emitChange = function(changeEvent) {
+            test.assertAnd(changeEvent, {
+              origin: 'remote',
+              path: 'foo',
+              newValue: 'new value',
+              oldValue: 'old value',
+              newContentType: 'new content-type',
+              oldContentType: 'old content-type'
+            });
+            if (otherDone) {
+              test.done();
+            } else {
+              otherDone = true;
+            }
+          };
+          var result = env.rs.sync.autoMerge(node);
+          test.assertAnd(result, merged);
+          if (otherDone) {
+            test.done();
+          } else {
+            otherDone = true;
+          }
+        }
+      },
+
+      {
+        desc: "autoMerge removes the whole node on 404 and sends out a change event if a node existed before",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: { body: 'foo', contentType: 'bloo', revision: 'common' },
+            remote: { body: false, revision: 'null' }
+          };
+          var otherDone = false;
+          env.rs.sync.local._emitChange = function(obj) {
+            test.assertAnd(obj, {
+              origin: 'remote',
+              path: 'foo',
+              oldValue: 'foo',
+              newValue: undefined,
+              oldContentType: 'bloo',
+              newContentType: undefined
+            });
+            if (otherDone) {
+              test.done();
+            } else {
+              otherDone = true;
+            }
+          };
+          var result = env.rs.sync.autoMerge(node);
+          test.assertAnd(result, undefined);
+          if (otherDone) {
+            test.done();
+          } else {
+            otherDone = true;
+          }
+        }
+      },
+
+      {
+        desc: "autoMerge doesn't send out a change event on 404 if a node didn't exist before",
+        run: function(env, test) {
+          var node = {
+            path: 'foo',
+            common: {},
+            remote: { body: false, revision: 'null' }
+          };
+          env.rs.sync.local._emitChange = function(obj) {
+            test.result(false, 'should not have emitted '+JSON.stringify(obj));
+          };
+          var result = env.rs.sync.autoMerge(node);
+          test.assertAnd(result, undefined);
+          setTimeout(function() {
+            test.done();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "completePush of a conflict sets revision to the incoming revision, or to 'conflict' if null",
+        run: function(env, test) {
+          var getNodes = env.rs.sync.local.getNodes,
+           setNodes = env.rs.sync.local.setNodes;
+          env.rs.caching._responses['foo'] = 'ALL';
+          env.rs.sync.local.getNodes = function(paths) {
+            var promise = promising();
+            test.assertAnd(paths, ['foo']);
+            promise.fulfill({
+              foo: {
+                path: 'foo',
+                common: { body: 'foo', contentType: 'bloo', revision: 'common' },
+                local: { body: 'floo', contentType: 'blaloo' },
+                push: { body: 'floo', contentType: 'blaloo' }
+              }
+            });
+            return promise;
+          };
+          env.rs.sync.local.setNodes = function(nodes) {
+            test.assert(nodes, {
+              foo: {
+                path: 'foo',
+                common: { body: 'foo', contentType: 'bloo', revision: 'common' },
+                local: { body: 'floo', contentType: 'blaloo' },
+                remote: { revision: '123', timestamp: 1234567890123 }
+              }
+            });
+            setTimeout(function() {
+              env.rs.sync.getNodes = getNodes;
+              env.rs.sync.setNodes = setNodes;
+              test.done();
+            }, 0);
+          };
+          env.rs.sync.now = function() { return 1234567890123; };
+          env.rs.sync.completePush('foo', 'put', true, '123')
+        }
+      }
     ]
   });
 

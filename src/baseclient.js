@@ -14,9 +14,12 @@
    *
    * A BaseClient deals with three types of data: folders, objects and files.
    *
-   * <getListing> returns a list of all items within a folder, or undefined
-   * if a 404 is encountered. Items that end with a forward slash ("/") are
-   * child folders.
+   * <getListing> returns a mapping of all items within a folder. Items that
+   * end with a forward slash ("/") are child folders. For instance:
+   * {
+   *   'folder/': true,
+   *   'document.txt': true
+   * }
    *
    * <getObject> / <storeObject> operate on JSON objects. Each object has a type.
    *
@@ -78,12 +81,74 @@
      *
      * (start code)
      * {
-     *    path: path, // Path of the changed node
-     *    origin: 'window', 'local', or 'remote' // emitted by user action within the app, local data store, or remote sync
-     *    oldValue: oldBody, // Old body of the changed node (undefined if creation)
-     *    newValue: newBody  // New body of the changed node (undefined if deletion)
+     *    path: path, // Absolute path of the changed node, from the storage root
+     *    relativePath: relativePath, // Path of the changed node, relative to this baseclient's scope root
+     *    origin: 'window', 'local', 'remote', or 'conflict' // emitted by user action within the app, local data store, remote sync, or versioning conflicts
+     *    oldValue: oldBody, // Old body of the changed node (local version in conflicts; undefined if creation)
+     *    newValue: newBody, // New body of the changed node (remote version in conflicts; undefined if deletion)
+     *    lastCommonValue: lastCommonValue, //most recent known common ancestor body of 'yours' and 'theirs' in case of conflict
+     *    oldContentType: oldContentType, // Old contentType of the changed node ('yours' for conflicts; undefined if creation)
+     *    newContentType: newContentType, // New contentType of the changed node ('theirs' for conflicts; undefined if deletion)
+     *    lastCommonContentType: lastCommonContentType // Most recent known common ancestor contentType of 'yours' and 'theirs' in case of conflict
      *  }
      * (end code)
+     *
+     * Example of an event with origin 'local' (fired on page load):
+     * 
+     * (start code)
+     * {
+     *    path: '/public/design/color.txt',
+     *    relativePath: 'color.txt',
+     *    origin: 'local',
+     *    oldValue: undefined,
+     *    newValue: 'white',
+     *    oldContentType: undefined,
+     *    newContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * Example of a conflict:
+     * Say you changed 'color.txt' from 'white' to 'blue'; if you have set `RemoteStorage.config.changeEvents.window` to `true`,
+     * then you will receive:
+     *
+     * (start code)
+     * {
+     *    path: '/public/design/color.txt',
+     *    relativePath: 'color.txt',
+     *    origin: 'window',
+     *    oldValue: 'white',
+     *    newValue: 'blue',
+     *    oldContentType: 'text/plain',
+     *    newContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * But when this change is pushed out by asynchronous synchronization, this change may rejected by the
+     * server, if the remote version has in the meantime changed from 'white' to  for instance 'red'; this will then lead to a change
+     * event with origin 'conflict' (usually a few seconds after the event with origin 'window', if you had that activated). Note
+     * that since you already changed it from 'white' to 'blue' in the local version a few seconds ago, `oldValue` is now your local
+     * value of 'blue':
+     * 
+     * (start code)
+     * {
+     *    path: '/public/design/color.txt',
+     *    relativePath: 'color.txt',
+     *    origin: 'conflict',
+     *    oldValue: 'blue',
+     *    newValue: 'red',
+     *    lastCommonValue: 'white',
+     *    oldContentType: 'text/plain,
+     *    newContentType: 'text/plain'
+     *    lastCommonContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * In practice, you should always redraw your views to display the content of the `newValue` field when a change event is received,
+     * regardless of its origin. Events with origin 'local' are fired conveniently during the page load, so that you can fill your views
+     * when the page loads. Events with origin 'window' are fired whenever you change a value by calling a method on the baseClient;
+     * these are disabled by default. Events with origin 'remote' are fired when remote changes are discovered during sync (only for caching
+     * startegies 'SEEN' and 'ALL'). Events with origin 'conflict' are fired when a conflict occurs while pushing out your local changes to
+     * the remote store in asynchronous synchronization (see example above). 
      **/
 
     RS.eventHandling(this, 'change');
@@ -120,12 +185,16 @@
      *
      * Parameters:
      *   path   - The path to query. It MUST end with a forward slash.
-     *   maxAge - (optional) Maximum age of cached listing in
-     *            milliseconds
+     *   maxAge - Either false or the maximum age of cached listing in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
      *
-     *   A promise for an object, representing child nodes.
+     *   A promise for an object, representing child nodes. If the maxAge
+     *   requirement cannot be met because of network problems, this promise
+     *   will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
      *
      *   Keys ending in a forward slash represent *folder nodes*, while all
      *   other keys represent *data nodes*.
@@ -136,10 +205,12 @@
      *
      * Example:
      *   (start code)
-     *   client.getListing('').then(function(listing) {
-     *     listing.forEach(function(item) {
-     *       console.log(item);
-     *     });
+     *   client.getListing('', false).then(function(listing) {
+     *     // listing is for instance:
+     *     // {
+     *     //   'folder/': true,
+     *     //   'document.txt': true
+     *     // }
      *   });
      *   (end code)
      */
@@ -149,12 +220,9 @@
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getListing must be undefined or a number');
-      }
       return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
-          return (status === 404) ? undefined : body;
+          return (status === 404) ? {} : body;
         }
       );
     },
@@ -165,16 +233,24 @@
      * Get all objects directly below a given path.
      *
      * Parameters:
-     *   path   - path to the folder
-     *   maxAge - (optional) Maximum age of cached objects in
-     *            milliseconds
+     *   path   - Path to the folder.
+     *   maxAge - Either false or the maximum age of cached objects in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
-     *   a promise for an object in the form { path : object, ... }
+     *   A promise for an object in the form { path : object, ... }. If the
+     *   maxAge requirement cannot be met because of network problems, this
+     *   promise will be rejected. If the maxAge requirement is set to false,
+     *   the promise will always be fulfilled with data from the local store.
+     *
+     *   For items that are not JSON-stringified objects (e.g. stored using
+     *   `storeFile` instead of `storeObject`), the object's value is filled in
+     *   with `true`.
      *
      * Example:
      *   (start code)
-     *   client.getAll('').then(function(objects) {
+     *   client.getAll('', false).then(function(objects) {
      *     for (var key in objects) {
      *       console.log('- ' + key + ': ', objects[key]);
      *     }
@@ -187,24 +263,29 @@
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getAll must be undefined or a number');
-      }
 
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
-        if (status === 404) { return; }
+        if (status === 404) { return {}; }
         if (typeof(body) === 'object') {
           var promise = promising();
           var count = Object.keys(body).length, i = 0;
           if (count === 0) {
             // treat this like 404. it probably means a folder listing that
             // has changes that haven't been pushed out yet.
-            return;
+            return {};
           }
           for (var key in body) {
             this.storage.get(this.makePath(path + key), maxAge).
               then(function(status, b) {
-                body[this.key] = b;
+                if (typeof(b) === 'string') {
+                  try {
+                    b = JSON.parse(b);
+                  } catch (e) {
+                  }
+                }
+                if (typeof(b) === 'object') {
+                  body[this.key] = b;
+                }
                 i++;
                 if (i === count) { promise.fulfill(body); }
               }.bind({ key: key }));
@@ -226,7 +307,10 @@
      * getObject.
      *
      * Parameters:
-     *   path     - see getObject
+     *   path   - See getObject.
+     *   maxAge - Either false or the maximum age of cached file in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
      *   A promise for an object:
@@ -234,10 +318,14 @@
      *   mimeType - String representing the MIME Type of the document.
      *   data     - Raw data of the document (either a string or an ArrayBuffer)
      *
+     *   If the maxAge requirement cannot be met because of network problems, this
+     *   promise will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
+     *
      * Example:
      *   (start code)
      *   // Display an image:
-     *   client.getFile('path/to/some/image').then(function(file) {
+     *   client.getFile('path/to/some/image', false).then(function(file) {
      *     var blob = new Blob([file.data], { type: file.mimeType });
      *     var targetElement = document.findElementById('my-image-element');
      *     targetElement.src = window.URL.createObjectURL(blob);
@@ -247,9 +335,6 @@
     getFile: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
-      }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getFile must be undefined or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         return {
@@ -305,6 +390,9 @@
       if (typeof(body) !== 'string' && typeof(body) !== 'object') {
         return promising().reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
       }
+      if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
+        console.warn('WARNING: Editing a document to which only read access (\'r\') was claimed');
+      }
 
       var self = this;
       return this.storage.put(this.makePath(path), body, mimeType).then(function(status, _body, _mimeType, revision) {
@@ -324,14 +412,20 @@
      * Get a JSON object from given path.
      *
      * Parameters:
-     *   path     - relative path from the module root (without leading slash)
+     *   path   - Relative path from the module root (without leading slash).
+     *   maxAge - Either false or the maximum age of cached object in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
-     *   A promise for the object.
+     *   A promise for the object. If the maxAge requirement cannot be met
+     *   because of network problems, this promise will be rejected. If the
+     *   maxAge requirement is set to false, the promise will always be
+     *   fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
-     *   client.getObject('/path/to/object').
+     *   client.getObject('/path/to/object', false).
      *     then(function(object) {
      *       // object is either an object or null
      *     });
@@ -341,12 +435,15 @@
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
       }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getObject must be undefined or a number');
-      }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
-        if (typeof(body) === 'object') {
+        if (typeof(body) === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
           return body;
+        } else if (typeof(body) === 'string') {
+          try {
+            return JSON.parse(body);
+          } catch (e) {
+            throw "Not valid JSON: " + this.makePath(path);
+          }
         } else if (typeof(body) !== 'undefined' && status === 200) {
           throw "Not an object: " + this.makePath(path);
         }
@@ -382,7 +479,7 @@
      *   Now that is what the *type* is for.
      *
      *   Within remoteStorage.js, @context values are built using three components:
-     *     http://remotestoragejs.com/spec/modules/ - A prefix to guarantee unqiueness
+     *     http://remotestorage.io/spec/modules/ - A prefix to guarantee uniqueness
      *     the module name     - module names should be unique as well
      *     the type given here - naming this particular kind of object within this module
      *
@@ -413,12 +510,10 @@
           return promising(function(p) { p.reject(validationResult); });
         }
       } catch(exc) {
-        if (! (exc instanceof RS.BaseClient.Types.SchemaNotFound)) {
-          return promising().reject(exc);
-        }
+        return promising().reject(exc);
       }
 
-      return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
+      return this.storage.put(this.makePath(path), JSON.stringify(object), 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
         if (status === 200 || status === 201) {
           return revision;
         } else {
@@ -441,6 +536,10 @@
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.remove must be a string');
       }
+      if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
+        console.warn('WARNING: Removing a document to which only read access (\'r\') was claimed');
+      }
+
       return this.storage.delete(this.makePath(path));
     },
 
@@ -477,7 +576,20 @@
     },
 
     _fireChange: function(event) {
-      this._emit('change', event);
+      if (RemoteStorage.config.changeEvents[event.origin]) {
+        ['new', 'old', 'lastCommon'].forEach(function(fieldNamePrefix) {
+          if ((!event[fieldNamePrefix+'ContentType'])
+              || (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix+'ContentType']))) {
+            if (typeof(event[fieldNamePrefix+'Value']) === 'string') {
+              try {
+                event[fieldNamePrefix+'Value'] = JSON.parse(event[fieldNamePrefix+'Value']);
+              } catch(e) {
+              }
+            }
+          }
+        });
+        this._emit('change', event);
+      }
     },
 
     _cleanPath: RS.WireClient.cleanPath,
@@ -539,6 +651,10 @@
         throw 'Argument \'path\' of baseClient.scope must be a string';
       }
 
+      if (!this.access.checkPathPermission(path, 'r')) {
+        var escapedPath = path.replace(/(['\\])/g, '\\$1');
+        console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
+      }
       return new RS.BaseClient(this, path);
     };
   };
@@ -553,10 +669,6 @@
     };
   });
   */
-
-  maxAgeInvalid = function(maxAge) {
-    return typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number';
-  };
 
   // Defined in baseclient/types.js
   /**

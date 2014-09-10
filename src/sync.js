@@ -1,6 +1,8 @@
 (function(global) {
 
-  var syncInterval = 10000;
+  var syncInterval = 10000,
+      backgroundSyncInterval = 60000,
+      isBackground = false;
 
   function taskFor(action, path, promise) {
     return {
@@ -56,6 +58,36 @@
 
   function isFolder(path) {
     return path.substr(-1) === '/';
+  }
+
+  function handleVisibility() {
+    var hidden,
+        visibilityChange,
+        rs = this;
+
+    function handleVisibilityChange(fg) {
+      var oldValue, newValue;
+      oldValue = rs.getCurrentSyncInterval();
+      isBackground = !fg;
+      newValue = rs.getCurrentSyncInterval();
+      rs._emit('sync-interval-change', {oldValue: oldValue, newValue: newValue});
+    }
+
+    RemoteStorage.Env.on("background", function () {
+      handleVisibilityChange(false);
+    });
+
+    RemoteStorage.Env.on("foreground", function () {
+      handleVisibilityChange(true);
+    });
+  }
+
+  /**
+   * Check if interval is valid: numeric and between 1000ms and 3600000ms
+   *
+   */
+  function isValidInterval(interval) {
+    return (typeof interval === 'number' && interval > 1000 && interval < 3600000);
   }
 
   /**
@@ -306,7 +338,7 @@
     flush: function(nodes) {
       for (var path in nodes) {
         // Strategy is 'FLUSH' and no local changes exist
-        if (this.caching.checkPath(path) === 'FLUSH' && !nodes[path].local) {
+        if (this.caching.checkPath(path) === 'FLUSH' && nodes[path] && !nodes[path].local) {
           RemoteStorage.log('[Sync] Flushing', path);
           nodes[path] = undefined; // Cause node to be flushed from cache
         }
@@ -399,24 +431,48 @@
     },
 
     autoMergeDocument: function(node) {
-      if (node.remote.body !== undefined) {
+      hasNoRemoteChanges = function(node) {
+        if (node.remote && node.remote.revision && node.remote.revision !== node.common.revision) {
+          return false;
+        }
+        return (node.common.body === undefined && node.remote.body === false) ||
+               (node.remote.body === node.common.body &&
+                node.remote.contentType === node.common.contentType);
+      };
+      mergeMutualDeletion = function(node) {
+        if (node.remote && node.remote.body === false
+            && node.local && node.local.body === false) {
+           delete node.local;
+        }
+        return node;
+      };
+
+      if (hasNoRemoteChanges(node)) {
+        node = mergeMutualDeletion(node);
+        delete node.remote;
+      } else if (node.remote.body !== undefined) {
         // keep/revert:
         RemoteStorage.log('[Sync] Emitting keep/revert');
 
-        this.local._emit('change', {
+        this.local._emitChange({
           origin:         'conflict',
           path:           node.path,
           oldValue:       node.local.body,
           newValue:       node.remote.body,
+          lastCommonValue: node.common.body,
           oldContentType: node.local.contentType,
-          newContentType: node.remote.contentType
+          newContentType: node.remote.contentType,
+          lastCommonContentType: node.common.contentType
         });
 
-        node.common = node.remote;
+        if (node.remote.body) {
+          node.common = node.remote;
+        } else {
+          node.common = {};
+        }
         delete node.remote;
         delete node.local;
       }
-      delete node.push;
       return node;
     },
 
@@ -428,7 +484,7 @@
           } else {
             return this.autoMergeDocument(node);
           }
-        } else { // remotely created node
+        } else { // no local changes
           if (isFolder(node.path)) {
             if (node.remote.itemsMap !== undefined) {
               node.common = node.remote;
@@ -436,12 +492,21 @@
             }
           } else {
             if (node.remote.body !== undefined) {
-              this.local._emit('change', {
+              var change = {
                 origin:   'remote',
                 path:     node.path,
                 oldValue: (node.common.body === false ? undefined : node.common.body),
-                newValue: (node.remote.body === false ? undefined : node.remote.body)
-              });
+                newValue: (node.remote.body === false ? undefined : node.remote.body),
+                oldContentType: node.common.contentType,
+                newContentType: node.remote.contentType
+              };
+              if (change.oldValue || change.newValue) {
+                this.local._emitChange(change);
+              }
+
+              if (!node.remote.body) { // no remote, so delete/don't create
+                return;
+              }
 
               node.common = node.remote;
               delete node.remote;
@@ -449,16 +514,29 @@
           }
         }
       } else {
-        this.local._emit('change', {
-          origin:   'remote',
-          path:     node.path,
-          oldValue: (node.common.body === false ? undefined : node.common.body),
-          newValue: undefined
-        });
+        if (node.common.body) {
+          this.local._emitChange({
+            origin:   'remote',
+            path:     node.path,
+            oldValue: node.common.body,
+            newValue: undefined,
+            oldContentType: node.common.contentType,
+            newContentType: undefined
+          });
+        }
 
         return undefined;
       }
       return node;
+    },
+
+    updateCommonTimestamp: function(path, revision) {
+      return this.local.getNodes([path]).then(function(nodes) {
+        if (nodes[path] && nodes[path].common && nodes[path].common.revision === revision) {
+          nodes[path].common.timestamp = this.now();
+        }
+        return this.local.setNodes(this.flush(nodes));
+      }.bind(this));
     },
 
     markChildren: function(path, itemsMap, changedNodes, missingChildren) {
@@ -563,7 +641,7 @@
         return promising().fulfill(changedNodes);
       }
 
-      this.local.getNodes(paths).then(function(nodes) {
+      return this.local.getNodes(paths).then(function(nodes) {
         var subPaths = {};
 
         collectSubPaths = function(folder, path) {
@@ -609,11 +687,11 @@
       var parentPath;
       var pathsFromRoot = this.local._getInternals().pathsFromRoot(path);
 
-      if (!isFolder(path)) {
+      if (isFolder(path)) {
+        paths = [path];
+      } else {
         parentPath = pathsFromRoot[1];
         paths = [path, parentPath];
-      } else {
-        paths = [path];
       }
 
       var promise = this.local.getNodes(paths).then(function(nodes) {
@@ -693,9 +771,10 @@
 
           if (!node.remote || node.remote.revision !== revision) {
             node.remote = {
-              revision:  revision,
+              revision:  revision || 'conflict',
               timestamp: this.now()
             };
+            delete node.push;
           }
 
           nodes[path] = this.autoMerge(node);
@@ -752,7 +831,8 @@
       return {
         successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
         conflict:   (statusCode === 412),
-        unAuth:     (statusCode === 401 || statusCode === 402 ||statusCode === 403),
+        unAuth:     ((statusCode === 401 && this.remote.token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) ||
+                     statusCode === 402 || statusCode === 403),
         notFound:   (statusCode === 404),
         changed:    (statusCode !== 304)
       };
@@ -785,7 +865,9 @@
           }
         }.bind(this));
       } else {
-        return promising().fulfill(true);
+        return this.updateCommonTimestamp(path, revision).then(function() {
+          return true;
+        });
       }
     },
 
@@ -836,6 +918,7 @@
       .then(function(completed) {
         delete this._timeStarted[task.path];
         delete this._running[task.path];
+        this.remote.online = true;
 
         if (completed) {
           if (this._tasks[task.path]) {
@@ -868,7 +951,7 @@
       }.bind(this),
 
       function(err) {
-        RemoteStorage.log('[Sync] Error', err);
+        console.error('[Sync] Error', err);
         this.remote.online = false;
         delete this._timeStarted[task.path];
         delete this._running[task.path];
@@ -951,10 +1034,10 @@
           try {
             this.doTasks();
           } catch(e) {
-            RemoteStorage.log('[Sync] doTasks error', e);
+            console.error('[Sync] doTasks error', e);
           }
         }.bind(this), function(e) {
-          RemoteStorage.log('[Sync] Sync error', e);
+          console.error('[Sync] Sync error', e);
           throw new Error('Local cache unavailable');
         });
       } else {
@@ -985,14 +1068,54 @@
    *
    */
   RemoteStorage.prototype.setSyncInterval = function(interval) {
-    if (typeof(interval) !== 'number') {
+    if (!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
+    var oldValue = syncInterval;
     syncInterval = parseInt(interval, 10);
-    if (this._syncTimer) {
-      this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
+    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+  };
+
+  /**
+   * Method: getBackgroundSyncInterval
+   *
+   * Get the value of the sync interval when application is in the background
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getBackgroundSyncInterval = function() {
+    return backgroundSyncInterval;
+  };
+
+  /**
+   * Method: setBackgroundSyncInterval
+   *
+   * Set the value of the sync interval when the application is in the background
+   *
+   * Parameters:
+   *   interval - sync interval in milliseconds
+   *
+   */
+  RemoteStorage.prototype.setBackgroundSyncInterval = function(interval) {
+    if(!isValidInterval(interval)) {
+      throw interval + " is not a valid sync interval";
     }
+    var oldValue = backgroundSyncInterval;
+    backgroundSyncInterval = parseInt(interval, 10);
+    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+  };
+
+  /**
+   * Method: getCurrentSyncInterval
+   *
+   * Get the value of the current sync interval
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getCurrentSyncInterval = function() {
+    return isBackground ? backgroundSyncInterval : syncInterval;
   };
 
   var SyncError = function(originalError) {
@@ -1016,12 +1139,12 @@
     }
 
     this.sync.on('done', function() {
-      RemoteStorage.log('[Sync] Sync done. Setting timer to', this.getSyncInterval());
+      RemoteStorage.log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
       if (!this.sync.stopped) {
         if (this._syncTimer) {
           clearTimeout(this._syncTimer);
         }
-        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getSyncInterval());
+        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
       }
     }.bind(this));
 
@@ -1050,7 +1173,9 @@
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
     syncCycleCb = function() {
       RemoteStorage.log('[Sync] syncCycleCb calling syncCycle');
-
+      if (RemoteStorage.Env.isBrowser()) {
+        handleVisibility.bind(remoteStorage)();
+      }
       if (!remoteStorage.sync) {
         // Call this now that all other modules are also ready:
         remoteStorage.sync = new RemoteStorage.Sync(

@@ -16,17 +16,29 @@
     }, {});
   }
 
-  RemoteStorage.Authorize = function(authURL, scope, redirectUri, clientId) {
-    RemoteStorage.log('[Authorize] authURL = ', authURL);
+  RemoteStorage.ImpliedAuth = function(storageApi, redirectUri) {
+    RemoteStorage.log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
+    // Set a fixed access token, signalling to not send it as Bearer
+    remoteStorage.remote.configure(undefined, undefined, undefined, RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN);
+    document.location = redirectUri;
+  };
 
-    var url = authURL;
+  RemoteStorage.Authorize = function(authURL, scope, redirectUri, clientId) {
+    RemoteStorage.log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
+
+    var url = authURL, hashPos = redirectUri.indexOf('#');
     url += authURL.indexOf('?') > 0 ? '&' : '?';
     url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
+    if (hashPos !== -1) {
+      url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos+1));
+    }
     url += '&response_type=token';
     RemoteStorage.Authorize.setLocation(url);
   };
+
+  RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN = false;
 
   RemoteStorage.prototype.authorize = function(authURL) {
     this.access.setStorageType(this.remote.storageType);
@@ -48,7 +60,7 @@
   };
 
   /**
-   * Get current document location
+   * Set current document location
    *
    * Override this method if access to document.location is forbidden
    */
@@ -60,6 +72,10 @@
     } else {
       throw "Invalid location " + location;
     }
+  };
+
+  RemoteStorage.prototype.impliedauth = function() {
+    RemoteStorage.ImpliedAuth(this.remote.storageApi, String(document.location));
   };
 
   RemoteStorage.Authorize._rs_supported = function(remoteStorage) {
@@ -82,6 +98,9 @@
         if (params.remotestorage) {
           remoteStorage.connect(params.remotestorage);
           authParamsUsed = true;
+        }
+        if (params.state) {
+          RemoteStorage.Authorize.setLocation('#'+params.state);
         }
       }
       if (!authParamsUsed) {

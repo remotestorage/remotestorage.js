@@ -12,6 +12,9 @@ define(['requirejs'], function(requirejs) {
       require('./lib/promising');
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
+      global.RemoteStorage.config = {
+        changeEvents: { local: true, window: false, remote: true, conflict: true }
+      };
       require('./src/eventhandling');
       if ( global.rs_eventhandling ) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
@@ -100,7 +103,7 @@ define(['requirejs'], function(requirejs) {
             }
           };
 
-          env.rs.local.get('/foo', 100).then(function(status, body, contentType) {
+          env.rs.local.get('/foo', 100, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(status, body, contentType) {
             test.assertAnd(requestQueued, true);
             test.assertAnd(status, 200);
             test.assertAnd(body, 'asdf');
@@ -111,16 +114,53 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "#get gets queued as a sync request if its maxAge param cannot be satisfied because node is too old",
+        desc: "#get removes falsy items from local version itemsMap",
         run: function(env, test) {
           var requestQueued = false;
+          var oldTimestamp = (new Date().getTime()) - 1000;
+
+          env.rs.local._storage['/'] = {
+            path: '/',
+            common: {
+              itemsMap: { foo: true, bar: true },
+              timestamp: oldTimestamp,
+              revision: '123'
+            },
+            local: {
+              itemsMap: { foo: true, bar: false },
+              timestamp: oldTimestamp,
+              revision: '123'
+            }
+          };
+          env.rs.local.get('/', false).then(function(status, itemsMap) {
+            test.assertAnd(status, 200);
+            test.assertAnd(itemsMap, { foo: true });
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "#get gets queued as a sync request if node is older than the maxAge",
+        run: function(env, test) {
+          var requestQueued = false;
+          var oldTimestamp = (new Date().getTime()) - 1000;
+
+          env.rs.local._storage['/'] = {
+            path: '/',
+            common: {
+              itemsMap: { foo: true },
+              timestamp: oldTimestamp,
+              revision: '123'
+            }
+          };
 
           env.rs.local._storage['/foo'] = {
             path: '/foo',
             common: {
-              timestamp: 1234567890123,
-              body: 'asdf',
-              contentType: 'qwer',
+              timestamp: oldTimestamp,
+              body: 'old body',
+              contentType: 'text/old',
               revision: '123'
             }
           };
@@ -129,15 +169,60 @@ define(['requirejs'], function(requirejs) {
             queueGetRequest: function(path, promise) {
               test.assertAnd(path, '/foo');
               requestQueued = true;
-              promise.fulfill(200, 'asdf', 'qwer');
+              promise.fulfill(200, 'new body', 'text/new');
             }
           };
 
-          env.rs.local.get('/foo', 100).then(function(status, body, contentType) {
+          env.rs.local.get('/foo', 100, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(status, body, contentType) {
             test.assertAnd(requestQueued, true);
             test.assertAnd(status, 200);
-            test.assertAnd(body, 'asdf');
-            test.assertAnd(contentType, 'qwer');
+            test.assertAnd(body, 'new body');
+            test.assertAnd(contentType, 'text/new');
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "#get returns local data if it's newer than the maxAge param",
+        run: function(env, test) {
+          env.rs.local._storage['/note'] = {
+            path: '/note',
+            common: {
+              timestamp: new Date().getTime(),
+              body: 'cached note',
+              contentType: 'text/plain',
+              revision: '123'
+            }
+          };
+
+          env.rs.sync = {
+            queueGetRequest: function(path, promise) {
+              test.result(false, 'should have been served from local cache');
+            }
+          };
+
+          env.rs.local.get('/note', 10000).then(function(status, body, contentType) {
+            test.assertAnd(status, 200);
+            test.assertAnd(body, 'cached note');
+            test.assertAnd(contentType, 'text/plain');
+            test.done();
+          });
+        }
+      },
+
+      {
+        desc: "#get rejects the promise when there is an error reading the local data",
+        run: function(env, test) {
+          env.rs.local.getNodes = function(paths) {
+            return promising().reject('Could not read local data');
+          };
+
+          env.rs.local.get('/note').then(function(status, body, contentType) {
+            test.result(false);
+            test.done();
+          }, function(error) {
+            test.assertAnd('Could not read local data', error);
             test.done();
           });
         }
@@ -172,6 +257,7 @@ define(['requirejs'], function(requirejs) {
         desc: "#put fires a 'change' with origin=window for outgoing changes",
         timeout: 250,
         run: function(env, test) {
+          RemoteStorage.config.changeEvents.window = true;
           env.ims.on('change', function(event) {
             test.assert(event, {
               path: '/foo/bla',
@@ -346,6 +432,16 @@ define(['requirejs'], function(requirejs) {
             });
             test.done();
           });
+        }
+      },
+
+      {
+        desc: "fireInitial leads to local-events-done event",
+        run: function(env, test) {
+          env.ims.on('local-events-done', function() {
+            test.done();
+          });
+          env.ims.fireInitial();
         }
       }
     ]

@@ -1,127 +1,119 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
+define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(requirejs, backend, mocks, undefined) {
   var suites = [];
 
-  suites.push({
-    name: "DropbixClient",
-    desc: "Low-level Dropbox client based on XMLHttpRequest",
-    setup: function(env, test) {
-      global.RemoteStorage = function() {
-        RemoteStorage.eventHandling(this, 'error');
-      };
-      RemoteStorage.log = function() {};
-      RemoteStorage.prototype = {
-        setBackend: function(b){
-          this.backend = b;
-        },
-        localStorageAvailable: function() {
-          return false;
-        }
-      };
-      global.RemoteStorage.Unauthorized = function() {};
-
-      require('./lib/promising');
-      require('./src/eventhandling');
-
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      require('./src/wireclient');
-
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-      require('./src/dropbox');
-
-      test.done();
-    },
-
-    beforeEach: function(env, test) {
-      global.XMLHttpRequest = function() {
-        XMLHttpRequest.instances.push(this);
-        this._headers = {};
-        this._responseHeaders = {};
-      };
-      XMLHttpRequest.instances = [];
-      XMLHttpRequest.prototype = {
-        open: function() {
-          this._open = Array.prototype.slice.call(arguments);
-        },
-        send: function() {
-          this._send = Array.prototype.slice.call(arguments);
-        },
-        setRequestHeader: function(key, value) {
-          this._headers[key] = value;
-        },
-        getResponseHeader: function(key) {
-          return this._responseHeaders[key];
-        }
-      };
-      ['load', 'abort', 'error'].forEach(function(cb) {
-        Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
-          configurable: true,
-          set: function(f) {
-            this['_on' + cb] = f;
-          }
-        });
-      });
-      env.rs = new RemoteStorage();
-      env.rs.apiKeys= { dropbox: {api_key: 'testkey'} };
-      env.client = new RemoteStorage.Dropbox(env.rs);
-      env.connectedClient = new RemoteStorage.Dropbox(env.rs);
-      env.baseURI = 'https://example.com/storage/test';
-      env.token = 'foobarbaz';
-      env.connectedClient.configure(
-        'dboxuser', env.baseURI, undefined, env.token
-      );
-      global.Blob = function(input, options) {
-        this.input = input;
-        this.options = options;
-        env.blob = this;
-      };
-      global.FileReader = function() {};
-      FileReader.prototype = {
-        _events: {
-          loadend: []
-        },
-        addEventListener: function(eventName, handler) {
-          this._events[eventName].push(handler);
-        },
-        readAsArrayBuffer: function(blob) {
-          setTimeout(function() {
-            this.result = env.fileReaderResult = Math.random();
-            this._events.loadend[0]();
-          }.bind(this), 0);
-        }
-      };
-
-      test.done();
-    },
-
-    afterEach: function(env, test) {
-      delete global.XMLHttpRequest;
-      delete global.Blob;
-      delete global.FileReader;
-      delete env.client;
-      delete env.blob;
-      delete env.fileReaderResult;
-      test.done();
-    },
-
-    tests: [
-      {
-        desc: "it's initially not connected",
-        run: function(env, test) {
-          test.assert(env.client.connected, false);
-        }
+  function setup(env, test) {
+    global.RemoteStorage = function() {
+      RemoteStorage.eventHandling(this, 'error');
+    };
+    RemoteStorage.log = function() {};
+    RemoteStorage.prototype = {
+      setBackend: function(b){
+        this.backend = b;
       },
+      localStorageAvailable: function() {
+        return false;
+      }
+    };
+    global.RemoteStorage.Unauthorized = function() {};
 
+    require('./lib/promising');
+    require('./src/eventhandling');
+
+    if (global.rs_eventhandling) {
+      RemoteStorage.eventHandling = global.rs_eventhandling;
+    } else {
+      global.rs_eventhandling = RemoteStorage.eventHandling;
+    }
+    require('./src/wireclient');
+
+    if (global.rs_wireclient) {
+      RemoteStorage.WireClient = global.rs_wireclient;
+    } else {
+      global.rs_wireclient = RemoteStorage.WireClient;
+    }
+    require('./src/dropbox');
+
+    if (global.rs_dropbox) {
+      RemoteStorage.Dropbox = global.rs_dropbox;
+    } else {
+      global.rs_dropbox = RemoteStorage.Dropbox;
+    }
+    test.done();
+  }
+
+  function beforeEach(env, test) {
+    global.XMLHttpRequest = function() {
+      XMLHttpRequest.instances.push(this);
+      this._headers = {};
+      this._responseHeaders = {};
+    };
+    XMLHttpRequest.instances = [];
+    XMLHttpRequest.prototype = {
+      open: function() {
+        this._open = Array.prototype.slice.call(arguments);
+      },
+      send: function() {
+        this._send = Array.prototype.slice.call(arguments);
+      },
+      setRequestHeader: function(key, value) {
+        this._headers[key] = value;
+      },
+      getResponseHeader: function(key) {
+        return this._responseHeaders[key];
+      }
+    };
+    ['load', 'abort', 'error'].forEach(function(cb) {
+      Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
+        configurable: true,
+        set: function(f) {
+          this['_on' + cb] = f;
+        }
+      });
+    });
+    env.rs = new RemoteStorage();
+    env.rs.apiKeys= { dropbox: {api_key: 'testkey'} };
+    env.client = new RemoteStorage.Dropbox(env.rs);
+    env.connectedClient = new RemoteStorage.Dropbox(env.rs);
+    env.baseURI = 'https://example.com/storage/test';
+    env.token = 'foobarbaz';
+    env.connectedClient.configure(
+      'dboxuser', env.baseURI, undefined, env.token
+    );
+
+    mocks.defineMocks(env);
+
+    test.done();
+  }
+
+  function afterEach(env, test) {
+    delete global.XMLHttpRequest;
+    delete global.Blob;
+    delete global.FileReader;
+    delete env.client;
+    delete env.blob;
+    delete env.fileReaderResult;
+    test.done();
+  }
+
+  suites.push({
+    name: "DropboxClient",
+    desc: "backend behavior",
+    setup: setup,
+    beforeEach: beforeEach,
+    afterEach: afterEach,
+    tests: backend.behavior
+  });
+
+  suites.push({
+    name: "DropboxClient",
+    desc: "Low-level Dropbox client based on XMLHttpRequest",
+    setup: setup,
+    beforeEach: beforeEach,
+    afterEach: afterEach,
+    tests: [
       {
         desc: "#get / #put / #delete throw an exception if not connected",
         run: function(env, test) {
@@ -290,6 +282,250 @@ define(['requirejs'], function(requirejs, undefined) {
           req.status = 200;
           req.responseText = '{"response":"body"}';
           req._onload();
+        }
+      },
+
+      {
+        desc: "#get responds with status 304 if the file has not changed",
+        run: function(env, test) {
+          env.connectedClient._revCache.set('/foo/bar', 'foo');
+          env.connectedClient.get('/foo/bar', { ifNoneMatch: 'foo' }).
+            then(function(status) {
+              test.assert(status, 304);
+            });
+        }
+      },
+
+      {
+        desc: "#get returns the erroneous status it received from DropBox",
+        run: function(env, test) {
+          env.connectedClient.get('/foo').
+            then(function(status) {
+              test.assert(status, 401);
+            });
+          var req = XMLHttpRequest.instances.shift();
+          req.status = 401;
+          req._onload();
+        }
+      },
+
+      {
+        desc: "#put causes the revision to propagate down in revCache",
+        run: function(env, test) {
+          env.connectedClient._revCache.set('/foo/', 'foo');
+          env.connectedClient._revCache.set('/foo/bar', 'foo');
+          env.connectedClient.put('/foo/bar', 'data', 'text/plain').
+            then(function(status) {
+              test.assertAnd(env.connectedClient._revCache.get('/foo/'), 'bar');
+              test.assert(env.connectedClient._revCache.get('/foo/bar'), 'bar');
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              path: '/foo/bar',
+              rev: 'bar'
+            });
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#put responds with status 412 if ifMatch condition fails",
+        run: function(env, test) {
+          env.connectedClient._revCache.set('/foo/bar', 'bar');
+          env.connectedClient.put('/foo/bar', 'data', 'text/plain', { ifMatch: 'foo' }).
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assertAnd(rev, 'bar');
+            });
+
+          env.connectedClient._revCache.set('/foo/baz', 'foo');
+          env.connectedClient.put('/foo/baz', 'data', 'text/plain', { ifMatch: 'foo' }).
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assert(rev, 'bar');
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              rev: 'bar'
+            });
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#put responds with status 412 if ifNoneMatch condition fails",
+        run: function(env, test) {
+          env.connectedClient._revCache.set('/foo/bar', 'foo');
+          env.connectedClient.put('/foo/bar', 'data', 'text/plain', { ifNoneMatch: '*' }).
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assertAnd(rev, 'foo');
+            });
+
+          env.connectedClient.put('/foo/baz', 'data', 'text/plain', { ifNoneMatch: '*' }).
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assert(rev, 'foo');
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              hash: 'hash123',
+              rev: 'foo'
+            });
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#put responds with status 200 on successful put",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', 'data', 'text/plain').
+            then(function(status) {
+              test.assert(status, 200);
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              path: '/foo/bar'
+            });
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#put correctly handles a conflict after metadata check",
+        run: function(env, test) {
+          var waitlist = [];
+
+          // PUT
+          waitlist.push(function(req) {
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              path: '/foo/bar_2'
+            });
+            setTimeout(function() {
+              req._onload();
+            }, 10);
+          });
+
+          // delete
+          waitlist.push(function(req) {
+            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Ffoo%2Fbar_2', true]);
+          });
+
+          // metadata
+          waitlist.push(function(req) {
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              rev: 'foo'
+            });
+            setTimeout(function() {
+              req._onload();
+            }, 10);
+          });
+
+          env.connectedClient.put('/foo/bazz', 'data', 'text/plain').
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assert(rev, 'foo');
+            });
+
+          (function handleWaitlist() {
+            if (waitlist.length > 0) {
+              if (XMLHttpRequest.instances.length > 0) {
+                waitlist.shift()(XMLHttpRequest.instances.shift());
+              }
+              setTimeout(handleWaitlist, 5);
+            }
+          })();
+        }
+      },
+
+      {
+        desc: "#put returns the erroneous status it received from DropBox",
+        run: function(env, test) {
+          env.connectedClient.put('/foo', 'data', 'text/plain').
+            then(function(status) {
+              test.assert(status, 401);
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 401;
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#delete returns status 412 if ifMatch condition fails",
+        run: function(env, test) {
+          env.connectedClient._revCache.set('/foo/bar', 'bar');
+          env.connectedClient.delete('/foo/bar', { ifMatch: 'foo' }).
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assertAnd(rev, 'bar');
+            });
+
+          env.connectedClient._revCache.set('/foo/baz', 'foo');
+          env.connectedClient.delete('/foo/baz', { ifMatch: 'foo' }).
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 412);
+              test.assert(rev, 'bar');
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              hash: 'hash123',
+              rev: 'bar'
+            });
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#delete properly deletes file, removes it from revCache and responds with 200",
+        run: function(env, test) {
+          env.connectedClient._revCache.set('/foo/bar', 'foo');
+          env.connectedClient.delete('/foo/bar').
+            then(function(status, _, _, rev) {
+              test.assertAnd(status, 200);
+              test.assert(env.connectedClient._revCache.get('/foo/bar'), 'rev');
+            });
+
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Ffoo%2Fbar', true]);
+            req._onload();
+          }, 100);
+        }
+      },
+
+      {
+        desc: "#delete returns the erroneous status it received from DropBox",
+        run: function(env, test) {
+          env.connectedClient.delete('/foo').
+            then(function(status) {
+              test.assert(status, 401);
+            });
+          setTimeout(function() {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 401;
+            req._onload();
+          }, 100);
         }
       },
 

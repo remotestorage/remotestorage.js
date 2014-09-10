@@ -20,11 +20,43 @@
     return path.substr(-1) !== '/';
   }
 
+  /**
+   * Function: fixArrayBuffers
+   *
+   * Takes an object and its copy as produced by the _deepClone function
+   * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
+   * of being cloned to new ArrayBuffers with the same content.
+   *
+   * It recurses into sub-objects, but skips arrays if they occur.
+   *
+   */
+  function fixArrayBuffers(srcObj, dstObj) {
+    var field, srcArr, dstArr;
+    if (typeof(srcObj) != 'object' || Array.isArray(srcObj) || srcObj === null) {
+      return;
+    }
+    for (field in srcObj) {
+      if (typeof(srcObj[field]) === 'object' && srcObj[field] !== null) {
+        if (srcObj[field].toString() === '[object ArrayBuffer]') {
+          dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
+          srcArr = new Int8Array(srcObj[field]);
+          dstArr = new Int8Array(dstObj[field]);
+          dstArr.set(srcArr);
+        } else {
+          fixArrayBuffers(srcObj[field], dstObj[field]);
+        }
+      }
+    }
+  }
+
   function deepClone(obj) {
+    var clone;
     if (obj === undefined) {
       return undefined;
     } else {
-      return JSON.parse(JSON.stringify(obj));
+      clone = JSON.parse(JSON.stringify(obj));
+      fixArrayBuffers(obj, clone);
+      return clone;
     }
   }
 
@@ -63,9 +95,20 @@
     }
   }
 
-  function isOutdated(node, maxAge) {
-    return !node || !node.timestamp ||
-           ((new Date().getTime()) - node.timestamp > maxAge);
+  function isOutdated(nodes, maxAge) {
+    var path, node;
+    for (path in nodes) {
+      if (nodes[path] && nodes[path].remote) {
+        return true;
+      }
+      node = getLatest(nodes[path]);
+      if (node && node.timestamp && (new Date().getTime()) - node.timestamp <= maxAge) {
+        return false;
+      } else if (!node) {
+        return true;
+      }
+    }
+    return true;
   }
 
   function pathsFromRoot(path) {
@@ -111,24 +154,45 @@
 
   var methods = {
 
-    get: function(path, maxAge) {
+    // TODO: improve our code structure so that this function
+    // could call sync.queueGetRequest directly instead of needing
+    // this hacky third parameter as a callback
+    get: function(path, maxAge, queueGetRequest) {
       var promise = promising();
 
-      this.getNodes([path]).then(function(objs) {
-        var node = getLatest(objs[path]);
-        if ((typeof(maxAge) === 'number') && isOutdated(node, maxAge)) {
-          remoteStorage.sync.queueGetRequest(path, promise);
-        }
-
-        if (node) {
-          promise.fulfill(200, node.body || node.itemsMap, node.contentType);
-        } else {
-          promise.fulfill(404);
-        }
-      }.bind(this), function(err) {
-        promise.reject(err);
-      }.bind(this));
-
+      if (typeof(maxAge) === 'number') {
+        this.getNodes(pathsFromRoot(path)).then(function(objs) {
+          var node = getLatest(objs[path]);
+          if (isOutdated(objs, maxAge)) {
+            queueGetRequest(path, promise);
+          } else if (node) {
+            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+          } else {
+            promise.fulfill(404);
+          }
+        }.bind(this), function(err) {
+          promise.reject(err);
+        });
+      } else {
+        this.getNodes([path]).then(function(objs) {
+          var node = getLatest(objs[path]);
+          if (node) {
+            if (isFolder(path)) {
+              for (var i in node.itemsMap) {
+                // the hasOwnProperty check here is only because our jshint settings require it:
+                if (node.itemsMap.hasOwnProperty(i) && node.itemsMap[i] === false) {
+                  delete node.itemsMap[i];
+                }
+              }
+            }
+            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+          } else {
+            promise.fulfill(404);
+          }
+        }.bind(this), function(err) {
+          promise.reject(err);
+        });
+      }
       return promise;
     },
 
@@ -222,7 +286,7 @@
           var node = nodes[path];
 
           if (node && node.common && node.local) {
-            this._emit('change', {
+            this._emitChange({
               path:     node.path,
               origin:   'local',
               oldValue: (node.local.body === false ? undefined : node.local.body),
@@ -235,13 +299,22 @@
       }.bind(this));
     },
 
+    _emitChange: function(obj) {
+      if (RemoteStorage.config.changeEvents[obj.origin]) {
+        this._emit('change', obj);
+      }
+    },
+
     fireInitial: function() {
+      if (!RemoteStorage.config.changeEvents.local) {
+        return;
+      }
       this.forAllNodes(function(node) {
         var latest;
         if (isDocument(node.path)) {
           latest = getLatest(node);
           if (latest) {
-            this._emit('change', {
+            this._emitChange({
               path:           node.path,
               origin:         'local',
               oldValue:       undefined,
@@ -251,6 +324,8 @@
             });
           }
         }
+      }.bind(this)).then(function () {
+        this._emit('local-events-done');
       }.bind(this));
     },
 
@@ -318,7 +393,7 @@
 
     _emitChangeEvents: function(events) {
       for (var i=0; i<events.length; i++) {
-        this._emit('change', events[i]);
+        this._emitChange(events[i]);
         if (this.diffHandler) {
           this.diffHandler(events[i].path);
         }

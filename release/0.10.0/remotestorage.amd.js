@@ -1,4 +1,4 @@
-/** remotestorage.js 0.10.0-beta2, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.10.0, http://remotestorage.io, MIT-licensed **/
 define([], function() {
 
 /** FILE: lib/promising.js **/
@@ -141,7 +141,23 @@ define([], function() {
     get: function(path, maxAge) {
       var self = this;
       if (this.local) {
-        return this.local.get(path, maxAge);
+        if (maxAge === undefined) {
+          if (this.connected) {
+            maxAge = 2*this.getSyncInterval();
+          } else {
+            maxAge = false;
+          }
+        }
+        var maxAgeInvalid = function(maxAge) {
+          return maxAge !== false && typeof(maxAge) !== 'number';
+        };
+
+        if (maxAgeInvalid(maxAge)) {
+          var promise = promising();
+          promise.reject('Argument \'maxAge\' must be false or a number');
+          return promise;
+        }
+        return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
       } else {
         return this.remote.get(path);
       }
@@ -250,7 +266,7 @@ define([], function() {
     RemoteStorage.eventHandling(
       this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
             'error', 'features-loaded', 'connecting', 'authing', 'wire-busy',
-            'wire-done'
+            'wire-done', 'sync-interval-change'
     );
 
     // pending get/put/delete calls.
@@ -290,12 +306,16 @@ define([], function() {
 
     this._init();
 
-    this.on('ready', function() {
+    this.fireInitial = function() {
       if (this.local) {
         setTimeout(this.local.fireInitial.bind(this.local), 0);
       }
-    }.bind(this));
+    }.bind(this);
+
+    this.on('ready', this.fireInitial.bind(this));
   };
+
+  RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
 
   RemoteStorage.DiscoveryError = function(message) {
     Error.apply(this, arguments);
@@ -315,13 +335,35 @@ define([], function() {
    * You can enable logging with <enableLog>.
    */
   RemoteStorage.log = function() {
-    if (RemoteStorage._log) {
+    if (RemoteStorage.config.logging) {
       console.log.apply(console, arguments);
     }
   };
 
+  RemoteStorage.config = {
+    logging: false,
+    changeEvents: {
+      local:    true,
+      window:   false,
+      remote:   true,
+      conflict: true
+    }
+  };
 
   RemoteStorage.prototype = {
+
+    /**
+     * Method: displayWidget
+     *
+     * Displays the widget at the top right of the page. Make sure to call this function
+     * once on every pageload (after the html 'body' tag), unless you use a custom widget.
+     *
+     * Parameters:
+     *
+     *   domID: identifier of the DOM element which should embody the widget (optional)
+     */
+     // (see src/widget.js for implementation)
+
     /**
      * Method: connect
      *
@@ -339,7 +381,7 @@ define([], function() {
     connect: function(userAddress) {
       this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
-        this._emit('error', new RemoteStorage.DiscoveryError("User adress doesn't contain an @."));
+        this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
         return;
       }
       this.remote.configure(userAddress);
@@ -358,7 +400,16 @@ define([], function() {
         this._emit('authing');
         this.remote.configure(userAddress, href, storageApi);
         if (! this.remote.connected) {
-          this.authorize(authURL);
+          if (authURL) {
+            this.authorize(authURL);
+          } else {
+            // In lieu of an excplicit authURL, assume that the browser
+            // and server handle any authorization needs; for instance,
+            // TLS may trigger the browser to use a client certificate,
+            // or a 401 Not Authorized response may make the browser
+            // send a Kerberos ticket using the SPNEGO method.
+            this.impliedauth();
+          }
         }
       }.bind(this));
     },
@@ -443,7 +494,7 @@ define([], function() {
      * Enable remoteStorage logging
      */
     enableLog: function() {
-      RemoteStorage._log = true;
+      RemoteStorage.config.logging = true;
     },
 
     /**
@@ -452,7 +503,7 @@ define([], function() {
      * Disable remoteStorage logging
      */
     disableLog: function() {
-      RemoteStorage._log = false;
+      RemoteStorage.config.logging = false;
     },
 
     /**
@@ -464,6 +515,19 @@ define([], function() {
       RemoteStorage.log.apply(RemoteStorage, arguments);
     },
 
+    /**
+     * Method: setApiKeys (experimental)
+     *
+     * Set API keys for (currently) GoogleDrive and/or Dropbox backend support.
+     * See also the 'backends' example in the starter-kit. Note that support for
+     * both these backends is still experimental.
+     *
+     * Parameters:
+     * type - string, either 'googledrive' or 'dropbox'
+     * keys - object, with one string field; 'client_id' for GoogleDrive, or
+     *          'api_key' for Dropbox.
+     *
+     */
     setApiKeys: function(type, keys) {
       if (keys) {
         this.apiKeys[type] = keys;
@@ -723,8 +787,8 @@ define([], function() {
       for (var path in this._pathHandlers[eventName]) {
         var pl = path.length;
         var self = this;
-        this._pathHandlers[eventName][path].forEach(function(handler) {
-          if (event.path.substr(0, pl) === path) {
+        if (event.path.substr(0, pl) === path) {
+          this._pathHandlers[eventName][path].forEach(function(handler) {
             var ev = {};
             for (var key in event) { ev[key] = event[key]; }
             ev.relativePath = event.path.replace(new RegExp('^' + path), '');
@@ -734,8 +798,8 @@ define([], function() {
               console.error("'change' handler failed: ", e, e.stack);
               self._emit('error', e);
             }
-          }
-        });
+          });
+        }
       }
     }
   };
@@ -994,6 +1058,34 @@ define([], function() {
     reader.readAsArrayBuffer(blob);
   }
 
+  function getTextFromArrayBuffer(arrayBuffer, encoding, callback) {
+    if (typeof Blob === 'undefined') {
+      var buffer = new Buffer(new Uint8Array(arrayBuffer));
+      callback(buffer.toString(encoding));
+    } else {
+      var blob = new Blob([arrayBuffer]);
+      var fileReader = new FileReader();
+      fileReader.addEventListener("loadend", function(evt) {
+        callback(evt.target.result);
+      });
+      fileReader.readAsText(blob, encoding);
+    }
+  }
+
+  function determineCharset(mimeType) {
+    var charset = 'utf-8';
+    var charsetMatch;
+
+    if (mimeType) {
+      charsetMatch = mimeType.match(/charset=(.+)$/);
+      if (charsetMatch) {
+        charset = charsetMatch[1];
+      }
+    }
+
+    return charset;
+  }
+
   function cleanPath(path) {
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
@@ -1034,7 +1126,8 @@ define([], function() {
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     onErrorCb = function(error){
-      if (error instanceof RemoteStorage.Unauthorized) {
+      if (error instanceof RemoteStorage.Unauthorized ||
+          error instanceof RemoteStorage.SyncError) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this);
@@ -1105,7 +1198,9 @@ define([], function() {
       var reqType;
       var self = this;
 
-      headers['Authorization'] = 'Bearer ' + token;
+      if (token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) {
+        headers['Authorization'] = 'Bearer ' + token;
+      }
 
       this._emit('wire-busy', {
         method: method,
@@ -1114,7 +1209,8 @@ define([], function() {
 
       RS.WireClient.request(method, uri, {
         body: body,
-        headers: headers
+        headers: headers,
+        responseType: 'arraybuffer'
       }, function(error, response) {
         if (error) {
           self._emit('wire-done', {
@@ -1153,19 +1249,16 @@ define([], function() {
               revision = response.status === 200 ? fakeRevision : undefined;
             }
 
-            if ((!mimeType) || mimeType.match(/charset=binary/)) {
-              RS.WireClient.readBinaryData(response.response, mimeType, function(result) {
-                RemoteStorage.log('[WireClient] Successful request with unknown or binary mime-type', revision);
-                promise.fulfill(response.status, result, mimeType, revision);
-              });
+            var charset = determineCharset(mimeType);
+
+            if ((!mimeType) || charset === 'binary') {
+              RemoteStorage.log('[WireClient] Successful request with unknown or binary mime-type', revision);
+              promise.fulfill(response.status, response.response, mimeType, revision);
             } else {
-              if (mimeType && mimeType.match(/^application\/json/)) {
-                body = JSON.parse(response.responseText);
-              } else {
-                body = response.responseText;
-              }
-              RemoteStorage.log('[WireClient] Successful request', revision);
-              promise.fulfill(response.status, body, mimeType, revision);
+              getTextFromArrayBuffer(response.response, charset, function(body) {
+                RemoteStorage.log('[WireClient] Successful request', revision);
+                promise.fulfill(response.status, body, mimeType, revision);
+              });
             }
           }
         }
@@ -1235,6 +1328,13 @@ define([], function() {
         return promise.then(function(status, body, contentType, revision) {
           var itemsMap = {};
 
+          if (typeof(body) !== 'undefined') {
+            try {
+              body = JSON.parse(body);
+            } catch (e) {
+              throw 'Folder description at ' + this.href + cleanPath(path) + ' is not JSON';
+            }
+          }
           // New folder listing received
           if (status === 200 && typeof(body) === 'object') {
             // Empty folder listing of any spec
@@ -1357,8 +1457,6 @@ define([], function() {
       }
       else if (body instanceof ArrayBuffer) {
         body = new Uint8Array(body);
-      } else {
-        body = JSON.stringify(body);
       }
     }
     xhr.send(body);
@@ -1534,17 +1632,29 @@ define([], function() {
     }, {});
   }
 
-  RemoteStorage.Authorize = function(authURL, scope, redirectUri, clientId) {
-    RemoteStorage.log('[Authorize] authURL = ', authURL);
+  RemoteStorage.ImpliedAuth = function(storageApi, redirectUri) {
+    RemoteStorage.log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
+    // Set a fixed access token, signalling to not send it as Bearer
+    remoteStorage.remote.configure(undefined, undefined, undefined, RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN);
+    document.location = redirectUri;
+  };
 
-    var url = authURL;
+  RemoteStorage.Authorize = function(authURL, scope, redirectUri, clientId) {
+    RemoteStorage.log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
+
+    var url = authURL, hashPos = redirectUri.indexOf('#');
     url += authURL.indexOf('?') > 0 ? '&' : '?';
     url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
+    if (hashPos !== -1) {
+      url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos+1));
+    }
     url += '&response_type=token';
     RemoteStorage.Authorize.setLocation(url);
   };
+
+  RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN = false;
 
   RemoteStorage.prototype.authorize = function(authURL) {
     this.access.setStorageType(this.remote.storageType);
@@ -1566,7 +1676,7 @@ define([], function() {
   };
 
   /**
-   * Get current document location
+   * Set current document location
    *
    * Override this method if access to document.location is forbidden
    */
@@ -1578,6 +1688,10 @@ define([], function() {
     } else {
       throw "Invalid location " + location;
     }
+  };
+
+  RemoteStorage.prototype.impliedauth = function() {
+    RemoteStorage.ImpliedAuth(this.remote.storageApi, String(document.location));
   };
 
   RemoteStorage.Authorize._rs_supported = function(remoteStorage) {
@@ -1600,6 +1714,9 @@ define([], function() {
         if (params.remotestorage) {
           remoteStorage.connect(params.remotestorage);
           authParamsUsed = true;
+        }
+        if (params.state) {
+          RemoteStorage.Authorize.setLocation('#'+params.state);
         }
       }
       if (!authParamsUsed) {
@@ -1810,6 +1927,14 @@ define([], function() {
   RemoteStorage.Env._rs_init = function(remoteStorage) {
     RemoteStorage.eventHandling(RemoteStorage.Env, "background", "foreground");
 
+    function visibility() {
+      if (document[env.hiddenProperty]) {
+        RemoteStorage.Env.goBackground();
+      } else {
+        RemoteStorage.Env.goForeground();
+      }
+    }
+
     if ( mode === 'browser') {
       if ( typeof(document.hidden) !== "undefined" ) {
         env.hiddenProperty = "hidden";
@@ -1824,13 +1949,8 @@ define([], function() {
         env.hiddenProperty = "webkitHidden";
         env.visibilityChangeEvent = "webkitvisibilitychange";
       }
-      document.addEventListener(env.visibilityChangeEvent, function () {
-        if ( document[env.hiddenProperty] ) {
-          RemoteStorage.Env.goBackground();
-        } else {
-          RemoteStorage.Env.goForeground();
-        }
-      }, false);
+      document.addEventListener(env.visibilityChangeEvent, visibility, false);
+      visibility();
     }
   };
 
@@ -1856,6 +1976,7 @@ define([], function() {
     "view_connecting": "Connecting <strong>%s</strong>",
     "view_offline": "Offline",
     "view_error_occured": "Sorry! An error occured.",
+    "view_invalid_key": "Wrong key!",
     "view_confirm_reset": "Are you sure you want to reset everything? This will clear your local data and reload the page.",
     "view_get_me_out": "Get me out of here!",
     "view_error_plz_report": 'If this problem persists, please <a href="http://remotestorage.io/community/" target="_blank">let us know</a>!',
@@ -1892,16 +2013,19 @@ define([], function() {
 /** THIS FILE WAS GENERATED BY build/compile-assets.js. DO NOT CHANGE IT MANUALLY, BUT INSTEAD CHANGE THE ASSETS IN assets/. **/
 RemoteStorage.Assets = {
 
+  cipherIcon: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMTQiIHdpZHRoPSIyNS4xNzciIHZlcnNpb249IjEuMSIgeG1sbnM6Y2M9Imh0dHA6Ly9jcmVhdGl2ZWNvbW1vbnMub3JnL25zIyIgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIj4KIDxwYXRoIGQ9Im0yNS4xNzcgNS41MzIzYy0wLjA1NjQtMC4xMTI5MS0wLjA1NjQtMC4yMjU4MS0wLjE2OTM2LTAuMzM4NzEtMC4xMTI5LTAuMTEyOS0wLjI4MjI1LTAuMTY5MzYtMC4zOTUxNi0wLjE2OTM2aC0xMS40MDNjLTAuNzMzLTIuODc5LTMuMzg2NC01LjAyNDItNi40OTEzLTUuMDI0Mi0zLjY2OTMgMC02LjcxNzcgMy4wNDg0LTYuNzE3NyA2LjcxNzcgMCAzLjcyNjMgMy4wNDg0IDYuNzE3MyA2LjcxNzcgNi43MTczIDMuMzMwNyAwIDYuMDQwMy0yLjQyNzQgNi42MDQ4LTUuNTg4N2gyLjU0MDN2My42Njk0YzAgMC4yODIyNiAwLjI4MjI2IDAuNTA4MDYgMC41NjQ1MiAwLjUwODA2aDEuNzVjMC4yODIyNiAwIDAuNTY0NTItMC4yMjU4IDAuNTY0NTItMC41MDgwNnYtMy42Njk0aDEuNDY3N3Y1LjY0NTJjMCAwLjI4MjI1IDAuMjI1OCAwLjUwODA2IDAuNTA4MDYgMC41MDgwNmgxLjgwNjRjMC4yODIyNiAwIDAuNTA4MDctMC4yMjU4MSAwLjU2NDUyLTAuNTA4MDZ2LTUuNjQ1MmgxLjUyNDJjMC4xMTI5MSAwIDAuMjgyMjYgMCAwLjM5NTE2LTAuMTEyOSAwLjExMjkxLTAuMTEyOSAwLjE2OTM2LTAuMjgyMjYgMC4xNjkzNi0wLjM5NTE2di0xLjgwNjR6bS0xOC40NTkgNS4wODA3Yy0yLjA4ODcgMC0zLjgzODctMS42OTM2LTMuODM4Ny0zLjgzODcgMC0yLjE0NTIgMS43NS0zLjgzODcgMy44Mzg3LTMuODM4NyAyLjE0NTIgMCAzLjgzODcgMS42OTM2IDMuODM4NyAzLjgzODcgMCAyLjE0NTItMS42OTM2IDMuODM4Ny0zLjgzODcgMy44Mzg3eiIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4K',
   connectIcon: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMTYiIHdpZHRoPSIxNiIgdmVyc2lvbj0iMS4xIiB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iPgogPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCAtMTAzNi40KSI+CiAgPHBhdGggZD0ibTEgMTA0Ny40di02aDd2LTRsNyA3LTcgN3YtNHoiIGZpbGw9IiNmZmYiLz4KIDwvZz4KPC9zdmc+Cg==',
   disconnectIcon: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMTYiIHdpZHRoPSIxNiIgdmVyc2lvbj0iMS4wIiB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIj4KIDxwYXRoIHN0eWxlPSJibG9jay1wcm9ncmVzc2lvbjp0Yjt0ZXh0LWluZGVudDowO2NvbG9yOiMwMDAwMDA7dGV4dC10cmFuc2Zvcm06bm9uZSIgZD0ibTguMDAwMSAwYy0wLjQ3MTQgMC0wLjk2MTAzIDAuNTQxOS0wLjk1IDF2NmMtMC4wMDc0NyAwLjUyODMxIDAuNDIxNjMgMSAwLjk1IDFzMC45NTc0Ny0wLjQ3MTY5IDAuOTUtMXYtNmMwLjAxNDYyMi0wLjYwNTEtMC40Nzg2LTEtMC45NS0xem0tMy4zNDM4IDIuNWMtMC4wODcxODYgMC4wMTkyOTQtMC4xNzE2MyAwLjA1MDk1OS0wLjI1IDAuMDkzNzUtMi45OTk1IDEuNTcxNS0zLjkxODQgNC43OTc5LTMuMTI1IDcuNDY4OCAwLjc5MzQgMi42NyAzLjI3OTkgNC45MzcgNi42ODc1IDQuOTM3IDMuMzU5MiAwIDUuODc3Mi0yLjE0OSA2LjcxOTItNC43ODEgMC44NDEtMi42MzIxLTAuMDU4LTUuODIzNC0zLjEyNS03LjU5NC0wLjQzNC0wLjI1MzYtMS4wNTktMC4wODk5LTEuMzEzIDAuMzQzNy0wLjI1MzYgMC40MzM2LTAuMDkgMS4wNTg5IDAuMzQ0IDEuMzEyNSAyLjM5MDggMS4zNzk4IDIuODgyNSAzLjQ5NDQgMi4yODEyIDUuMzc1LTAuNjAxMiAxLjg4MDYtMi4zNDQgMy40Mzc1LTQuOTA2MiAzLjQzNzUtMi41NzU5IDAtNC4yOTc2LTEuNjUwMi00Ljg3NS0zLjU5MzgtMC41Nzc2LTEuOTQzNS0wLjA0Ny00LjA0OCAyLjE4NzMtNS4yMTg3IDAuMzc4Ny0wLjIwNjMgMC41NzkxLTAuNjkyNSAwLjQ1NTgtMS4xMDU3LTAuMTIzMi0wLjQxMzMtMC41NTcyLTAuNzEwMy0wLjk4Ny0wLjY3NTUtMC4wMzEzLTAuMDAxNS0wLjA2MjYtMC4wMDE1LTAuMDkzOCAweiIgZmlsbD0iI2ZmZiIvPgo8L3N2Zz4K',
   dropbox: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QgPEBAhEOpfuQAABhZJREFUWMPVl31snVUdxz+/5/2577e3b7QbHaOD0nXshW4ZZkpGQmJYZkJUDAaZzCBGAxGd+pdZQsJIjCaKgFu09GWybIggm8yhMCsY92rcOkPHunbdtKOUbX36svX23uc+xz+eDsrWlztiNJzk5D7JPS+fc8739/2dA5+EsqJtyK18ZlCKbX9Lk6fd1uo5xbTVZmtwa4v35Np5Mry4TLYXCzAnyhsry2SwrmnokdnaTruq6i3e0lXl0tqQlkURCxwdDp9Th5p3+p9iS8afqk/VZq9kaZoDN8apdU3B1KFnmLde7AkezH0n3V0UQOJpz2hIsqEhLU+WOeAagmtCxISYBe1nVf4vfWrByYdSpyf3W9ziLapy6JgbAduAiBn2S1rCQBYODAQP7H01/zxby4JpAW5s8mproxypiRKNGIJrQNT8EMA1wTGEU8MBP/q7umPw0dSbAA3N3n3zI2yLG2oScPgbNYWICY4Be86o/le6g0W576bPXQWwcqvXdJ2t1idMsA1hJoCoCRfGYdOhwsa4TUWFrr7pGmDrzAiQCHfD//Xxwk/33Z/6HoA0tnhLXZ3XMoYqsy4PYs4M4Ohg6pB2ddqO+vR6BWL27AARXbBNiBjwh9Oqs+O8ukcT4eaopjLqGsJSCdSX29SX23x/lctXlzgE1zBAANxWIQuGxlWNACxr8WozJp0lljKsGXbA0qGu1GRBxsTUQRAGLgboIuQVvHI8S+f7eeK2TLsDSQd296rhPaeDm09+PdX/gQYqN3uZ+jh7ro+oRusKDdgmVEY1GqstSiOhdegCmoQAIoImIWTPYIHdXVlyBYhaVwLA70+rPz7fllvLi2W5KcPw9q3eS/VJ7kmYgm1A3BIWV5osq7IIlMLUQJOrAXQBXQtr1BR2d2XpOu8TtULR+gq2nQh+vv8rqUdnNaKGZm/9qnJpmp/U+fxCB5lYsaGFdTYAY9L3jmNj9F9S7OgKVh9/KNVelBVf8untv8TYSS8gbsrHyh8C2LqQtGE0z9CJYfVuUblgRZv3WGOJvJG0cF8/lWPNdo+O93xsHYoVuqkL/xzIs/HPHt2DPg0Zko+v0I8vbfHun9aKE5sH9YaobJsf5V4mRLXv33kSlmAYwspqgw23R7A1EJlahKYOSsHTB0cZHQ9IOBA3NSrjGo4hWAY82xH8rH1b/jF2laoPAOb80jPqYtKTMdRcTQNd+xAgbgmuJbiGELfh3lsc7q41KQSTABBcC1qPjLH/XzniNqScsP1kgMsm9nJ34e2mNcmFAMby1qFPZyz1WlxXrprhuEUgUPDbd8Y59n6edbe61KZ1TF14vSfPLw5dYjhXIOMIM6lGAV+u0+tv+ttI/2+6/LsMQVXpUFCAqJkS9MT5anB2NGDjWxf5Yp3DvjN5th/LUhETolaRTqigxMGIWVKtHVyX2tGTJd2X5agUIfi8CmvUFOKGT++gT8wqLlKUgnwATxwq7P32m35Z+32pPQZA54MpH1iSb/XWZmx2VthTD1AATCBlCZ+dpwNg6EJjlUH3hQIKRaCujhZFaOPtfUH+8HvBnQceSP11yjA8vC616+A5FevL8jt/YiCR0HiQcAUVrnDHHO0jHTUNllXrpC0NRXiefjAxM4rhHLzQpZqf+eFFd/LkM17JGlu9p+xC8IgPhGlaqE1rNJZrxOzQok0dnjviY+nhbSntCH3DAWN+QMIWEhYsqTD4wYHChrPfSP9kqnmM6QAMkYtz4xqmDqeGA+rLNObGZVozkglx1ZfqZAvC2ZGAz9RYlEbAlsLoNd+Kx5RqO5/njKXDsnKdhCXFOaFAZUzjznlhyt5xIjiSLbBz2oVO98fRdalOoGZ5m/dUQ4pvJZ3Zr/CXlS5A74gabzlYePztr6U2faxr+eRy/RYvtjgjHauvkxvi9oTDXaGBuAUJWyh1hb3vqsOvfiG5/L/yMAE483BqdNeuXO3LvcGX3vEUhsZVsaYL9IzACz3BXcVOXvQOfKRsupBZv8R4bnW19rmqGPzqHz4BcMGn5U/Hgod5oiT3P3kvVj7rrfnx/pHBu7d7Azc1eY3/l0drzWbPXNjsGXySy38AbtMqneWU7BkAAAAASUVORK5CYII=',
   googledrive: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QgPEA85ztzJcQAABZVJREFUWMPtl1uoXVcVhr8x5tprn7M1NG1i0pQqSG2jLcXipYJXjPogqFgpaHMSFUkpIjU+leKbDxIQSiHgjZgmrfXgQ6SKj5Ji7YVS05aUUqKQlNLQeDnN5Zzk9Jy99xy/D3OttU/StDlV33TBZM3FXmuMf/5jjv+fG/7XL1vti9tnv3Dtnnf+87JY8YmZNxEMM1sZ7tWpjz764mriVqvKvmfb1ONLy3+dGyWu6EWbvQwoydv5BMSqFuereakmfnls1GP25IDaBGYYjplhljDz5tk7YMtPfurAf6UE9Z6tNwDPAPXwtcxL1x9n4zRgDjjm1gCyC6JpCLoW/OX65of1nzCwG6gNo3aYeXF981mTvK2/WWFiMmoj7X+z5JcE0N87c4e7b3EvyTwZT5/r8ezZHu6GuWGpSegJ8/ZeBu6fHv35s1/7t0rQv29mjWF/ATZ1L4bQwohrpkYc/sBpwhJYAVdKYECzYAESIk4Am3sf+sPCW2LAzb9jbpvMDXfD3fEqkRIcGdbsevlt9LylPYG1K6/K3QzK75uAr78lBgb3b7sc2cl2Uaa21sDiGMvB2iQeu/EMm6bKHjD3SUsCEChnpEAKiLisd/PB+UsyMPjZNwzzh1ixcnOfsFCX51NU/PTvA6pkTUdYw4R3zyu1ArMDqyvBQB82+FiJUQJ4C8YgVT1SSvSTs+vEmkcwe7qEsUnt233Aij0BW4ZPbfngKpRQs7hXpYQNvRiuEtATWOW4bLi+z04pJbCnBAkBJggBQlIBIZCUJM0Cm9+QgcED2+/G7BprdMZaAFZExm1FWcz+NLdj32G/6XfPCB5GoJKp7H5FARHRtgRI1y0/+cm7Lwpg+v7t64DvNd5S2mqirKXHy6RoArp1Ykrc2hKtKCtXlNEyoQ6Ydi498fF1F2FAdwEbV9UnZne+8q19Z7o63vTb+TPnRneeWxwxHGdyziii6wApQNEydKUUd5wHYGrftvci7tKKLSME5bvCaruynI9rNL7vdZgiHhiP898Wl8bMnxty+uyIhcURo1FgjSg1DCDph4uPfuR9AFbvvS25p2cxbiyKVuh2o1O44n2lLLacb5v75v5fX6yl5h753IwUD+YcRAQ5B6FMMhj0jboSRhnAE258wvp7Z7aYcbCYCeCGt97ubfICLDP/q4WZ32x7M20fPfb+hxbH9ZdjHOQIIoR74EDywA3coa6MqtJnrP+LmRmcB63ob8dA1wllRm95LVc//22S16TGeKqqpqoHk10ESGJj/zjjgIhAISKCyJmcY6Uu8Pbq7C0V6ABh35dzvYWQG0QAhmSYCaUlNhzdCrlX2jpE6tV4b9DYcGFKEgG8svQucoicC4CsII8zeTxutAEQzx1duPL3vrxjdlnou0SDLdTulxJQmalXNzN98jpEJiSo+qTeoEnsnWC5lVZNRhkOZiq0G8XCmz1gpp3j/ZYdYLhj9qCkn3fJQ4QKeh9OccWxz6O0hGKM9wakeoBEZ1BmqfOMyYFk4gXS+edG4J4ju6/644VK+AOJhSIYpVRBpn/qPVRL65A51dRavJoG2UQkOqf0hgVrGG7u6syoJDObB+55nRANb589Afy40W0UwkY91h39CiLweg1UU+W3ohLNvC2VurJ1htR6A3QaYPCjI7uvOvGGOlfv2XoSuBzEhmNfZXDqBrweUPVqUlWodneSG+6J1NTevThfDpEjmnsmzuuCPPfCvRvfcakT0S2Aeq9tYPr0ZryeBvOOlZBKUIEiCAVZwTgy41x6v6hm0LFZ4o7N7IuXPA+EDx+XjQ+tP/4lUrW2vCI1ydR0iYgmWdtu4yzG7bOiAdn8iYlA0iFJh1Z1JJv+ye2b3n1419XRH2riP0aqqlKClABIjUMW+rtSlw5qmCpgsynnl56/d+M/+P91wfUvQjDgTzx9h9AAAAAASUVORK5CYII=',
+  nocipherIcon: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMTYiIHdpZHRoPSIxNiIgdmVyc2lvbj0iMS4xIiB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iPgogPHBhdGggZD0ibSAxMy4yMDMxMjQsMTEuNzczNDM4IGMgMC4yODEyNSwwLjI4MTI1IDAuNDIxODc1LDAuNjA5Mzc1IDAuNDIxODc1LDEuMDMxMjUgMCwwLjM3NSAtMC4xNDA2MjUsMC43NSAtMC40MjE4NzUsMS4wMzEyNSAtMC4yODEyNSwwLjIzNDM3NSAtMC42MDkzNzUsMC4zNzUgLTEuMDMxMjUsMC4zNzUgLTAuMzc1LDAgLTAuNzUsLTAuMTQwNjI1IC0xLjAzMTI1LC0wLjM3NSAwLDAgLTMuMTg3NDk4MSwtMy42NTYyNSAtMy4xODc0OTgxLC0zLjY1NjI1IDAsMCAtMy4xNDA2MjUsMy42NTYyNSAtMy4xNDA2MjUsMy42NTYyNSAtMC4yODEyNSwwLjIzNDM3NSAtMC42NTYyNSwwLjM3NSAtMS4wMzEyNSwwLjM3NSAtMC40MjE4NzUsMCAtMC43NSwtMC4xNDA2MjUgLTEuMDMxMjUsLTAuMzc1IC0wLjI4MTI1LC0wLjI4MTI1IC0wLjM3NSwtMC42NTYyNSAtMC4zNzUsLTEuMDMxMjUgMCwtMC40MjE4NzUgMC4wOTM3NSwtMC43NSAwLjM3NSwtMS4wMzEyNSAwLDAgMy4zMjgxMjUsLTMuNzUwMDAwNSAzLjMyODEyNSwtMy43NTAwMDA1IDAsMCAtMy4zMjgxMjUsLTMuNzk2ODc1IC0zLjMyODEyNSwtMy43OTY4NzUgLTAuMjgxMjUsLTAuMjgxMjUgLTAuMzc1LC0wLjYwOTM3NSAtMC4zNzUsLTEuMDMxMjUgMCwtMC4zNzUgMC4wOTM3NSwtMC43NSAwLjM3NSwtMS4wMzEyNSAwLjI4MTI1LC0wLjIzNDM3NSAwLjYwOTM3NSwtMC4zNzUgMS4wMzEyNSwtMC4zNzUgMC4zNzUsMCAwLjc1LDAuMTQwNjI1IDEuMDMxMjUsMC4zNzUgMCwwIDMuMTQwNjI1LDMuNjU2MjUgMy4xNDA2MjUsMy42NTYyNSAwLDAgMy4xODc0OTgxLC0zLjY1NjI1IDMuMTg3NDk4MSwtMy42NTYyNSAwLjI4MTI1LC0wLjIzNDM3NSAwLjY1NjI1LC0wLjM3NSAxLjAzMTI1LC0wLjM3NSAwLjQyMTg3NSwwIDAuNzUsMC4xNDA2MjUgMS4wMzEyNSwwLjM3NSAwLjI4MTI1LDAuMjgxMjUgMC40MjE4NzUsMC42NTYyNSAwLjQyMTg3NSwxLjAzMTI1IDAsMC40MjE4NzUgLTAuMTQwNjI1LDAuNzUgLTAuNDIxODc1LDEuMDMxMjUgMCwwIC0zLjMyODEyMzEsMy43OTY4NzUgLTMuMzI4MTIzMSwzLjc5Njg3NSAwLDAgMy4zMjgxMjMxLDMuNzUwMDAwNSAzLjMyODEyMzEsMy43NTAwMDA1IiBmaWxsPSIjZmZmIi8+Cjwvc3ZnPgo=',
   remoteStorageIcon: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMzIiIHdpZHRoPSIzMiIgdmVyc2lvbj0iMS4xIiB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIj4KIDxkZWZzPgogIDxyYWRpYWxHcmFkaWVudCBpZD0iYSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIGN5PSI1NzEuNDIiIGN4PSIxMDQ2LjUiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoLjE0NDMzIDAgMCAuMTY2NjcgMTIwMS41IDg3Ny4xMSkiIHI9Ijk2Ij4KICAgPHN0b3Agc3RvcC1jb2xvcj0iI2ZmNGEwNCIgc3RvcC1vcGFjaXR5PSIuNzYxNTQiIG9mZnNldD0iMCIvPgogICA8c3RvcCBzdG9wLWNvbG9yPSIjZmY0YTA0IiBvZmZzZXQ9IjEiLz4KICA8L3JhZGlhbEdyYWRpZW50PgogPC9kZWZzPgogPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTEzMzYuNiAtOTU2LjM1KSI+CiAgPHBhdGggc3R5bGU9ImNvbG9yOiMwMDAwMDAiIGQ9Im0xMzUyLjYgOTU2LjM1IDAuMjg4NiAxNS4xMzYgMTMuNTY3LTcuMTM1Mi0xMy44NTUtOC4wMDExemwtMTMuODU1IDguMDAxMSAxMy41NjcgNy4xMzUyIDAuMjg4Ny0xNS4xMzZ6bS0xMy44NTUgOC4wMDExdjE1Ljk5OGwxMi45NTgtNy44MTYyLTEyLjk1OC04LjE4MTV6bTAgMTUuOTk4IDEzLjg1NSA4LjAwMTEtMC42MDg5LTE1LjMxNy0xMy4yNDYgNy4zMTU2em0xMy44NTUgOC4wMDExIDEzLjg1NS04LjAwMTEtMTMuMjUxLTcuMzE1Ni0wLjYwNDQgMTUuMzE3em0xMy44NTUtOC4wMDExdi0xNS45OThsLTEyLjk2MiA4LjE4MTUgMTIuOTYyIDcuODE2MnoiIGZpbGw9InVybCgjYSkiLz4KIDwvZz4KPC9zdmc+Cg==',
+  remoteStorageIconCiphered: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMzIiIHdpZHRoPSIzMiIgdmVyc2lvbj0iMS4xIiB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIj4KIDxkZWZzPgogIDxyYWRpYWxHcmFkaWVudCBpZD0iYSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIGN5PSI1NzEuNDIiIGN4PSIxMDQ2LjUiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoLjE0NDMzIDAgMCAuMTY2NjcgMTIwMS41IDg3Ny4xMSkiIHI9Ijk2Ij4KICAgPHN0b3Agc3RvcC1jb2xvcj0iI2ZmNGEwNCIgc3RvcC1vcGFjaXR5PSIuNzYxNTQiIG9mZnNldD0iMCIvPgogICA8c3RvcCBzdG9wLWNvbG9yPSIjZmY0YTA0IiBvZmZzZXQ9IjEiLz4KICA8L3JhZGlhbEdyYWRpZW50PgogPC9kZWZzPgogPHBhdGggc3R5bGU9ImNvbG9yOiMwMDAwMDAiIGQ9Im0xNiAwbDAuMTI1IDYuMzc1YzIuMDk4IDAuMDY3IDMuNzUgMS43NTk1IDMuNzUgMy44NzV2MS45NjloMS45MzcgMC4wMzJsOC00LjIxOS0xMy44NDQtOHpsLTEzLjg0NCA4IDggNC4yMTloMC4wMzIgMS45MDZ2LTEuOTY5YzAtMi4xMTU1IDEuNjgzLTMuODA4IDMuNzgxLTMuODc1bDAuMTI1LTYuMzc1em0tMTMuODQ0IDh2MTZsNy45OTk4LTQuODQ0di02LjA5NGwtNy45OTk4LTUuMDYyem0wIDE2bDEzLjg0NCA4LTAuMzc1LTEwLjA2MmgtNS40Njl2LTIuMzQ0bC03Ljk5OTggNC40MDZ6bTEzLjg0NCA4bDEzLjg0NC04LTgtNC40MDZ2Mi4zNDRoLTUuNDY5bC0wLjM3NSAxMC4wNjJ6bTEzLjg0NC04di0xNmwtOCA1LjA2MnY2LjA5NGw4IDQuODQ0em0tMTMuOTY5LTE3Yy0xLjczNSAwLjA2NjYtMy4xMjUgMS40OTg3LTMuMTI1IDMuMjV2MS45NjloMy4wMzFsMC4wOTQtNS4yMTl6bTAuMjUgMGwwLjA5NCA1LjIxOWgzLjAzMXYtMS45NjljMC0xLjc1MTMtMS4zOS0zLjE4MzQtMy4xMjUtMy4yNXptLTQuNzUgNS44NDRsNC4zNDQgMi4yODEgMC4wMzEtMi4yODFoLTQuMzc1em00Ljg3NSAwbDAuMDMxIDIuMjgxIDQuMzQ0LTIuMjgxaC00LjM3NXptLTUuNDM4IDAuNjI1djUuMzEybDQuMjgyLTIuNTkzLTQuMjgyLTIuNzE5em0xMC4zNzYgMGwtNC4yODIgMi43MTkgNC4yODIgMi41OTN2LTUuMzEyem0tNS43ODIgMy4yMTlsLTQuNTk0IDIuNTMxdjIuMDYyaDQuNzgybC0wLjE4OC00LjU5M3ptMS4xODggMGwtMC4xODggNC41OTNoNC43ODJ2LTIuMDYybC00LjU5NC0yLjUzMXoiIGZpbGw9InVybCgjYSkiLz4KPC9zdmc+Cg==',
   remoteStorageIconError: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMzIiIHdpZHRoPSIzMiIgdmVyc2lvbj0iMS4xIiB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIj4KIDxkZWZzPgogIDxyYWRpYWxHcmFkaWVudCBpZD0iYSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIGN5PSI1NzEuNDIiIGN4PSIxMDQ2LjUiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoLjE0NDMzIDAgMCAuMTY2NjcgMTIwMS41IDg3Ny4xMSkiIHI9Ijk2Ij4KICAgPHN0b3Agc3RvcC1jb2xvcj0iI2U5MDAwMCIgc3RvcC1vcGFjaXR5PSIuNzYwNzgiIG9mZnNldD0iMCIvPgogICA8c3RvcCBzdG9wLWNvbG9yPSIjZTkwMDAwIiBvZmZzZXQ9IjEiLz4KICA8L3JhZGlhbEdyYWRpZW50PgogPC9kZWZzPgogPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTEzMzYuNiAtOTU2LjM1KSI+CiAgPHBhdGggc3R5bGU9ImNvbG9yOiMwMDAwMDAiIGQ9Im0xMzUyLjYgOTU2LjM1IDAuMjg4NiAxNS4xMzYgMTMuNTY3LTcuMTM1Mi0xMy44NTUtOC4wMDExemwtMTMuODU1IDguMDAxMSAxMy41NjcgNy4xMzUyIDAuMjg4Ny0xNS4xMzZ6bS0xMy44NTUgOC4wMDExdjE1Ljk5OGwxMi45NTgtNy44MTYyLTEyLjk1OC04LjE4MTV6bTAgMTUuOTk4IDEzLjg1NSA4LjAwMTEtMC42MDg5LTE1LjMxNy0xMy4yNDYgNy4zMTU2em0xMy44NTUgOC4wMDExIDEzLjg1NS04LjAwMTEtMTMuMjUxLTcuMzE1Ni0wLjYwNDQgMTUuMzE3em0xMy44NTUtOC4wMDExdi0xNS45OThsLTEyLjk2MiA4LjE4MTUgMTIuOTYyIDcuODE2MnoiIGZpbGw9InVybCgjYSkiLz4KIDwvZz4KPC9zdmc+Cg==',
   remoteStorageIconOffline: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMzIiIHdpZHRoPSIzMiIgdmVyc2lvbj0iMS4xIiB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIj4KIDxkZWZzPgogIDxyYWRpYWxHcmFkaWVudCBpZD0iYSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIGN5PSI1NzEuNDIiIGN4PSIxMDQ2LjUiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoLjE0NDMzIDAgMCAuMTY2NjcgMTIwMS41IDg3Ny4xMSkiIHI9Ijk2Ij4KICAgPHN0b3Agc3RvcC1jb2xvcj0iIzY5Njk2OSIgc3RvcC1vcGFjaXR5PSIuNzYxNTQiIG9mZnNldD0iMCIvPgogICA8c3RvcCBzdG9wLWNvbG9yPSIjNjc2NzY3IiBvZmZzZXQ9IjEiLz4KICA8L3JhZGlhbEdyYWRpZW50PgogPC9kZWZzPgogPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTEzMzYuNiAtOTU2LjM1KSI+CiAgPHBhdGggc3R5bGU9ImNvbG9yOiMwMDAwMDAiIGQ9Im0xMzUyLjYgOTU2LjM1IDAuMjg4NiAxNS4xMzYgMTMuNTY3LTcuMTM1Mi0xMy44NTUtOC4wMDExemwtMTMuODU1IDguMDAxMSAxMy41NjcgNy4xMzUyIDAuMjg4Ny0xNS4xMzZ6bS0xMy44NTUgOC4wMDExdjE1Ljk5OGwxMi45NTgtNy44MTYyLTEyLjk1OC04LjE4MTV6bTAgMTUuOTk4IDEzLjg1NSA4LjAwMTEtMC42MDg5LTE1LjMxNy0xMy4yNDYgNy4zMTU2em0xMy44NTUgOC4wMDExIDEzLjg1NS04LjAwMTEtMTMuMjUxLTcuMzE1Ni0wLjYwNDQgMTUuMzE3em0xMy44NTUtOC4wMDExdi0xNS45OThsLTEyLjk2MiA4LjE4MTUgMTIuOTYyIDcuODE2MnoiIGZpbGw9InVybCgjYSkiLz4KIDwvZz4KPC9zdmc+Cg==',
   syncIcon: 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDg3LjUgMTAwIiB4bWw6c3BhY2U9InByZXNlcnZlIiBoZWlnaHQ9IjE2IiB2aWV3Qm94PSIwIDAgMTUuOTk5OTk5IDE2IiB3aWR0aD0iMTYiIHZlcnNpb249IjEuMSIgeT0iMHB4IiB4PSIwcHgiIHhtbG5zOmNjPSJodHRwOi8vY3JlYXRpdmVjb21tb25zLm9yZy9ucyMiIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyI+CjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKC01LjUxMTIgLTc2LjUyNSkiIGRpc3BsYXk9Im5vbmUiPgoJPHBhdGggZGlzcGxheT0iaW5saW5lIiBkPSJtNTEuNDczIDQyLjI1NS0yLjIwNSAyLjIxMmMxLjQ3OCAxLjQ3NyAyLjI5NSAzLjQ0MiAyLjI5NSA1LjUzMyAwIDQuMzA5LTMuNTA0IDcuODEyLTcuODEyIDcuODEydi0xLjU2MmwtMy4xMjUgMy4xMjUgMy4xMjQgMy4xMjV2LTEuNTYyYzYuMDI5IDAgMTAuOTM4LTQuOTA2IDEwLjkzOC0xMC45MzggMC0yLjkyNy0xLjE0MS01LjY3Ni0zLjIxNS03Ljc0NXoiLz4KCTxwYXRoIGRpc3BsYXk9ImlubGluZSIgZD0ibTQ2Ljg3NSA0MC42MjUtMy4xMjUtMy4xMjV2MS41NjJjLTYuMDMgMC0xMC45MzggNC45MDctMTAuOTM4IDEwLjkzOCAwIDIuOTI3IDEuMTQxIDUuNjc2IDMuMjE3IDcuNzQ1bDIuMjAzLTIuMjEyYy0xLjQ3Ny0xLjQ3OS0yLjI5NC0zLjQ0Mi0yLjI5NC01LjUzMyAwLTQuMzA5IDMuNTA0LTcuODEyIDcuODEyLTcuODEydjEuNTYybDMuMTI1LTMuMTI1eiIvPgo8L2c+CjxwYXRoIGZpbGw9IiNmZmYiIGQ9Im0xMCAwbC0wLjc1IDEuOTA2MmMtMS4wMDc4LTAuMjk0Mi0zLjQ1ODYtMC43NzA4LTUuNjU2MiAwLjkzNzYgMC0wLjAwMDItMy45MzAyIDIuNTk0MS0yLjA5MzggNy41OTQybDEuNjU2Mi0wLjcxOTJzLTEuNTM5OS0zLjExMjIgMS42ODc2LTUuNTMxM2MwIDAgMS42OTU3LTEuMTMzOSAzLjY4NzQtMC41OTM3bC0wLjcxODcgMS44MTI0IDMuODEyNS0xLjYyNS0xLjYyNS0zLjc4MTJ6Ii8+PHBhdGggZmlsbD0iI2ZmZiIgZD0ibTE0IDUuNTYyNWwtMS42NTYgMC43MTg3czEuNTQxIDMuMTEzNS0xLjY4OCA1LjUzMDhjMCAwLTEuNzI3MiAxLjEzNS0zLjcxODUgMC41OTRsMC43NS0xLjgxMi0zLjgxMjUgMS41OTQgMS41OTM4IDMuODEyIDAuNzgxMi0xLjkwNmMxLjAxMTMgMC4yOTUgMy40NjE1IDAuNzY2IDUuNjU2LTAuOTM4IDAgMCAzLjkyOC0yLjU5NCAyLjA5NC03LjU5MzV6Ii8+Cjwvc3ZnPgo=',
-  widget: '<div class="rs-bubble rs-hidden">   <div class="rs-bubble-text remotestorage-initial remotestorage-error remotestorage-authing remotestorage-offline">     <span class="rs-status-text">{{view_connect}}</span>   </div>   <div class="rs-bubble-expandable">     <!-- error -->     <div class="remotestorage-error">       <pre class="rs-status-text rs-error-msg">{{ERROR_MSG}}</pre>       <button class="remotestorage-reset">{{view_get_me_out}}</button>       <p class="rs-centered-text rs-error-plz-report">{{view_error_plz_report}}</p>     </div>     <!-- connected -->     <div class="rs-bubble-text remotestorage-connected">       <strong class="userAddress">{{USER_ADDRESS}}</strong>       <p class="remotestorage-unauthorized">{{view_unauthorized}}</p>     </div>     <div class="rs-content remotestorage-connected">       <button class="rs-sync" title="sync"><img></button>       <button class="rs-disconnect" title="disconnect"><img></button>     </div>     <!-- initial -->     <form novalidate class="remotestorage-initial">       <input type="email" placeholder="user@host" name="userAddress" novalidate>       <button class="connect" name="connect" title="connect" disabled="disabled">         <img>       </button>     </form>     <div class="rs-info-msg remotestorage-initial">{{view_info}}</div>   </div> </div> <img class="rs-dropbox rs-backends rs-action" alt="Connect to Dropbox"> <img class="rs-googledrive rs-backends rs-action" alt="Connect to Google Drive"> <img class="rs-cube rs-action"> ',
-  widgetCss: '/** encoding:utf-8 **/ /* RESET */ #remotestorage-widget{text-align:left;}#remotestorage-widget input, #remotestorage-widget button{font-size:11px;}#remotestorage-widget form input[type=email]{margin-bottom:0;/* HTML5 Boilerplate */}#remotestorage-widget form input[type=submit]{margin-top:0;/* HTML5 Boilerplate */}/* /RESET */ #remotestorage-widget, #remotestorage-widget *{-moz-box-sizing:border-box;box-sizing:border-box;}#remotestorage-widget{position:absolute;right:10px;top:10px;font:normal 16px/100% sans-serif !important;user-select:none;-webkit-user-select:none;-moz-user-select:-moz-none;cursor:default;z-index:10000;}#remotestorage-widget .rs-bubble{background:rgba(80, 80, 80, .7);border-radius:5px 15px 5px 5px;color:white;font-size:0.8em;padding:5px;position:absolute;right:3px;top:9px;min-height:24px;white-space:nowrap;text-decoration:none;}.rs-bubble .rs-bubble-text{padding-right:32px;/* make sure the bubble doesn\'t "jump" when initially opening. */ min-width:182px;}#remotestorage-widget .rs-action{cursor:pointer;}/* less obtrusive cube when connected */ #remotestorage-widget.remotestorage-state-connected .rs-cube, #remotestorage-widget.remotestorage-state-busy .rs-cube{opacity:.3;-webkit-transition:opacity .3s ease;-moz-transition:opacity .3s ease;-ms-transition:opacity .3s ease;-o-transition:opacity .3s ease;transition:opacity .3s ease;}#remotestorage-widget.remotestorage-state-connected:hover .rs-cube, #remotestorage-widget.remotestorage-state-busy:hover .rs-cube, #remotestorage-widget.remotestorage-state-connected .rs-bubble:not(.rs-hidden) + .rs-cube{opacity:1 !important;}#remotestorage-widget .rs-backends{position:relative;top:5px;right:0;}#remotestorage-widget .rs-cube{position:relative;top:5px;right:0;}/* pulsing animation for cube when loading */ #remotestorage-widget .rs-cube.remotestorage-loading{-webkit-animation:remotestorage-loading .5s ease-in-out infinite alternate;-moz-animation:remotestorage-loading .5s ease-in-out infinite alternate;-o-animation:remotestorage-loading .5s ease-in-out infinite alternate;-ms-animation:remotestorage-loading .5s ease-in-out infinite alternate;animation:remotestorage-loading .5s ease-in-out infinite alternate;}@-webkit-keyframes remotestorage-loading{to{opacity:.7}}@-moz-keyframes remotestorage-loading{to{opacity:.7}}@-o-keyframes remotestorage-loading{to{opacity:.7}}@-ms-keyframes remotestorage-loading{to{opacity:.7}}@keyframes remotestorage-loading{to{opacity:.7}}#remotestorage-widget a{text-decoration:underline;color:inherit;}#remotestorage-widget form{margin-top:.7em;position:relative;}#remotestorage-widget form input{display:table-cell;vertical-align:top;border:none;border-radius:6px;font-weight:bold;color:white;outline:none;line-height:1.5em;height:2em;}#remotestorage-widget form input:disabled{color:#999;background:#444 !important;cursor:default !important;}#remotestorage-widget form input[type=email]:focus{background:#223;}#remotestorage-widget form input[type=email]{background:#000;width:100%;height:26px;padding:0 30px 0 5px;border-top:1px solid #111;border-bottom:1px solid #999;}#remotestorage-widget form input[type=email]:focus{background:#223;}#remotestorage-widget button:focus, #remotestorage-widget input:focus{box-shadow:0 0 4px #ccc;}#remotestorage-widget form input[type=email]::-webkit-input-placeholder{color:#999;}#remotestorage-widget form input[type=email]:-moz-placeholder{color:#999;}#remotestorage-widget form input[type=email]::-moz-placeholder{color:#999;}#remotestorage-widget form input[type=email]:-ms-input-placeholder{color:#999;}#remotestorage-widget form input[type=submit]{background:#000;cursor:pointer;padding:0 5px;}#remotestorage-widget form input[type=submit]:hover{background:#333;}#remotestorage-widget .rs-info-msg{font-size:10px;color:#eee;margin-top:0.7em;white-space:normal;}#remotestorage-widget .rs-info-msg.last-synced-message{display:inline;white-space:nowrap;margin-bottom:.7em}#remotestorage-widget .rs-info-msg a:hover, #remotestorage-widget .rs-info-msg a:active{color:#fff;}#remotestorage-widget button img{vertical-align:baseline;}#remotestorage-widget button{border:none;border-radius:6px;font-weight:bold;color:white;outline:none;line-height:1.5em;height:26px;width:26px;background:#000;cursor:pointer;margin:0;padding:5px;}#remotestorage-widget button:hover{background:#333;}#remotestorage-widget .rs-bubble button.connect{display:block;background:none;position:absolute;right:0;top:0;opacity:1;/* increase clickable area of connect button */ margin:-5px;padding:10px;width:36px;height:36px;}#remotestorage-widget .rs-bubble button.connect:not([disabled]):hover{background:rgba(150,150,150,.5);}#remotestorage-widget .rs-bubble button.connect[disabled]{opacity:.5;cursor:default !important;}#remotestorage-widget .rs-bubble button.rs-sync{position:relative;left:-5px;bottom:-5px;padding:4px 4px 0 4px;background:#555;}#remotestorage-widget .rs-bubble button.rs-sync:hover{background:#444;}#remotestorage-widget .rs-bubble button.rs-disconnect{background:#721;position:absolute;right:0;bottom:0;padding:4px 4px 0 4px;}#remotestorage-widget .rs-bubble button.rs-disconnect:hover{background:#921;}#remotestorage-widget .remotestorage-error-info{color:#f92;}#remotestorage-widget .remotestorage-reset{width:100%;background:#721;}#remotestorage-widget .remotestorage-reset:hover{background:#921;}#remotestorage-widget .rs-bubble .rs-content{margin-top:7px;}#remotestorage-widget pre{user-select:initial;-webkit-user-select:initial;-moz-user-select:text;max-width:27em;margin-top:1em;overflow:auto;}#remotestorage-widget .rs-centered-text{text-align:center;}#remotestorage-widget .rs-bubble.rs-hidden{padding-bottom:2px;border-radius:5px 15px 15px 5px;}#remotestorage-widget .rs-error-msg{min-height:5em;}.rs-bubble.rs-hidden .rs-bubble-expandable{display:none;}.remotestorage-state-connected .rs-bubble.rs-hidden{display:none;}.remotestorage-connected{display:none;}.remotestorage-state-connected .remotestorage-connected{display:block;}.remotestorage-initial{display:none;}.remotestorage-state-initial .remotestorage-initial{display:block;}.remotestorage-error{display:none;}.remotestorage-state-error .remotestorage-error{display:block;}.remotestorage-state-authing .remotestorage-authing{display:block;}.remotestorage-state-offline .remotestorage-connected, .remotestorage-state-offline .remotestorage-offline{display:block;}.remotestorage-unauthorized{display:none;}.remotestorage-state-unauthorized .rs-bubble.rs-hidden{display:none;}.remotestorage-state-unauthorized .remotestorage-connected, .remotestorage-state-unauthorized .remotestorage-unauthorized{display:block;}.remotestorage-state-unauthorized .rs-sync{display:none;}.remotestorage-state-busy .rs-bubble.rs-hidden{display:none;}.remotestorage-state-busy .rs-bubble{display:block;}.remotestorage-state-busy .remotestorage-connected{display:block;}.remotestorage-state-authing .rs-bubble-expandable{display:none;}'
+  widget: '<div class="rs-bubble rs-hidden">   <div class="rs-bubble-text remotestorage-initial remotestorage-error remotestorage-authing remotestorage-offline">     <span class="rs-status-text">{{view_connect}}</span>   </div>   <div class="rs-bubble-expandable">     <!-- error -->     <div class="remotestorage-error">       <pre class="rs-status-text rs-error-msg">{{ERROR_MSG}}</pre>       <button class="remotestorage-reset">{{view_get_me_out}}</button>       <p class="rs-centered-text rs-error-plz-report">{{view_error_plz_report}}</p>     </div>     <!-- connected -->     <div class="rs-bubble-text remotestorage-connected">       <strong class="userAddress">{{USER_ADDRESS}}</strong>       <p class="remotestorage-unauthorized">{{view_unauthorized}}</p>       <p class="remotestorage-invalid-key">{{view_invalid_key}}</p>       <form novalidate class="remotestorage-cipher-form">         <input placeholder="Secret key" name="userSecretKey" novalidate>         <button class="rs-cipher" name="rs-cipher" title="cipher" disabled="disabled">           <img>         </button>         <button class="rs-nocipher" name="rs-nocipher" title="no cipher">           <img>         </button>       </form>     </div>     <div class="rs-content remotestorage-connected">       <button class="rs-sync" title="sync"><img></button>       <button class="rs-disconnect" title="disconnect"><img></button>     </div>     <!-- initial -->     <form novalidate class="remotestorage-initial">       <input type="email" placeholder="user@provider.com" name="userAddress" novalidate>       <button class="connect" name="connect" title="connect" disabled="disabled">         <img>       </button>     </form>     <div class="rs-info-msg remotestorage-initial">{{view_info}}</div>   </div> </div> <img class="rs-dropbox rs-backends rs-action" alt="Connect to Dropbox"> <img class="rs-googledrive rs-backends rs-action" alt="Connect to Google Drive"> <img class="rs-cube rs-action"> ',
+  widgetCss: '/** encoding:utf-8 **/ /* RESET */ #remotestorage-widget{text-align:left;}#remotestorage-widget input, #remotestorage-widget button{font-size:11px;}#remotestorage-widget form input[type=email]{margin-bottom:0;/* HTML5 Boilerplate */}#remotestorage-widget form input[type=submit]{margin-top:0;/* HTML5 Boilerplate */}/* /RESET */ #remotestorage-widget, #remotestorage-widget *{-moz-box-sizing:border-box;box-sizing:border-box;}#remotestorage-widget{position:absolute;right:10px;top:10px;font:normal 16px/100% sans-serif !important;user-select:none;-webkit-user-select:none;-moz-user-select:-moz-none;cursor:default;z-index:10000;}#remotestorage-widget .rs-bubble{background:rgba(80, 80, 80, .7);border-radius:5px 15px 5px 5px;color:white;font-size:0.8em;padding:5px;position:absolute;right:3px;top:9px;min-height:24px;white-space:nowrap;text-decoration:none;}.rs-bubble .rs-bubble-text{padding-right:32px;/* make sure the bubble doesn\'t "jump" when initially opening. */ min-width:182px;}#remotestorage-widget .rs-action{cursor:pointer;}/* less obtrusive cube when connected */ #remotestorage-widget.remotestorage-state-connected .rs-cube, #remotestorage-widget.remotestorage-state-busy .rs-cube{opacity:.3;-webkit-transition:opacity .3s ease;-moz-transition:opacity .3s ease;-ms-transition:opacity .3s ease;-o-transition:opacity .3s ease;transition:opacity .3s ease;}#remotestorage-widget.remotestorage-state-connected:hover .rs-cube, #remotestorage-widget.remotestorage-state-busy:hover .rs-cube, #remotestorage-widget.remotestorage-state-connected .rs-bubble:not(.rs-hidden) + .rs-cube{opacity:1 !important;}#remotestorage-widget .rs-backends{position:relative;top:5px;right:0;}#remotestorage-widget .rs-cube{position:relative;top:5px;right:0;}/* pulsing animation for cube when loading */ #remotestorage-widget .rs-cube.remotestorage-loading{-webkit-animation:remotestorage-loading .5s ease-in-out infinite alternate;-moz-animation:remotestorage-loading .5s ease-in-out infinite alternate;-o-animation:remotestorage-loading .5s ease-in-out infinite alternate;-ms-animation:remotestorage-loading .5s ease-in-out infinite alternate;animation:remotestorage-loading .5s ease-in-out infinite alternate;}@-webkit-keyframes remotestorage-loading{to{opacity:.7}}@-moz-keyframes remotestorage-loading{to{opacity:.7}}@-o-keyframes remotestorage-loading{to{opacity:.7}}@-ms-keyframes remotestorage-loading{to{opacity:.7}}@keyframes remotestorage-loading{to{opacity:.7}}#remotestorage-widget a{text-decoration:underline;color:inherit;}#remotestorage-widget form{margin-top:.7em;position:relative;}#remotestorage-widget form input{display:table-cell;vertical-align:top;border:none;border-radius:6px;font-weight:bold;color:white;outline:none;line-height:1.5em;height:2em;}#remotestorage-widget form input:disabled{color:#999;background:#444 !important;cursor:default !important;}#remotestorage-widget form input[type=email]:focus, #remotestorage-widget form input[type=password]:focus{background:#223;}#remotestorage-widget form input[type=email], #remotestorage-widget form input[type=password]{background:#000;width:100%;height:26px;padding:0 30px 0 5px;border-top:1px solid #111;border-bottom:1px solid #999;}#remotestorage-widget form input[type=email]:focus, #remotestorage-widget form input[type=password]:focus{background:#223;}#remotestorage-widget button:focus, #remotestorage-widget input:focus{box-shadow:0 0 4px #ccc;}#remotestorage-widget form input[type=email]::-webkit-input-placeholder, #remotestorage-widget form input[type=password]::-webkit-input-placeholder{color:#999;}#remotestorage-widget form input[type=email]:-moz-placeholder, #remotestorage-widget form input[type=password]:-moz-placeholder{color:#999;}#remotestorage-widget form input[type=email]::-moz-placeholder, #remotestorage-widget form input[type=password]::-moz-placeholder{color:#999;}#remotestorage-widget form input[type=email]:-ms-input-placeholder, #remotestorage-widget form input[type=password]:-ms-input-placeholder{color:#999;}#remotestorage-widget form input[type=submit]{background:#000;cursor:pointer;padding:0 5px;}#remotestorage-widget form input[type=submit]:hover{background:#333;}#remotestorage-widget .rs-info-msg{font-size:10px;color:#eee;margin-top:0.7em;white-space:normal;}#remotestorage-widget .rs-info-msg.last-synced-message{display:inline;white-space:nowrap;margin-bottom:.7em}#remotestorage-widget .rs-info-msg a:hover, #remotestorage-widget .rs-info-msg a:active{color:#fff;}#remotestorage-widget button img{vertical-align:baseline;}#remotestorage-widget button{border:none;border-radius:6px;font-weight:bold;color:white;outline:none;line-height:1.5em;height:26px;width:26px;background:#000;cursor:pointer;margin:0;padding:5px;}#remotestorage-widget button:hover{background:#333;}#remotestorage-widget .rs-bubble button.connect, #remotestorage-widget .rs-bubble button.rs-cipher, #remotestorage-widget .rs-bubble button.rs-nocipher{display:block;background:none;position:absolute;right:0;top:0;opacity:1;/* increase clickable area of connect, rs-cipher & rs-nocipher buttons */ margin:-5px;padding:10px;width:36px;height:36px;}#remotestorage-widget .rs-bubble button.rs-cipher{width:46px;}#remotestorage-widget .rs-bubble button.rs-nocipher{height:26px;margin:0;padding:4px 5px 5px;right:-32px;width:26px;}#remotestorage-widget .rs-bubble button.connect:not([disabled]):hover, #remotestorage-widget .rs-bubble button.rs-cipher:not([disabled]):hover, #remotestorage-widget .rs-bubble button.rs-nocipher:not([disabled]):hover{background:rgba(150,150,150,.5);}#remotestorage-widget .rs-bubble button.connect[disabled], #remotestorage-widget .rs-bubble button.rs-cipher[disabled]{opacity:.5;cursor:default !important;}#remotestorage-widget .rs-bubble button.rs-sync{position:relative;left:-5px;bottom:-5px;padding:4px 4px 0 4px;background:#555;}#remotestorage-widget .rs-bubble button.rs-sync:hover{background:#444;}#remotestorage-widget .rs-bubble button.rs-disconnect{background:#721;position:absolute;right:0;bottom:0;padding:4px 4px 0 4px;}#remotestorage-widget .rs-bubble button.rs-disconnect:hover{background:#921;}#remotestorage-widget .remotestorage-error-info{color:#f92;}#remotestorage-widget .remotestorage-reset{width:100%;background:#721;}#remotestorage-widget .remotestorage-reset:hover{background:#921;}#remotestorage-widget .rs-bubble .rs-content{margin-top:7px;}#remotestorage-widget pre{user-select:initial;-webkit-user-select:initial;-moz-user-select:text;max-width:27em;margin-top:1em;overflow:auto;}#remotestorage-widget .rs-centered-text{text-align:center;}#remotestorage-widget .rs-bubble.rs-hidden{padding-bottom:2px;border-radius:5px 15px 15px 5px;}#remotestorage-widget .rs-error-msg{min-height:5em;}.rs-bubble.rs-hidden .rs-bubble-expandable{display:none;}.remotestorage-state-connected .rs-bubble.rs-hidden{display:none;}.remotestorage-connected{display:none;}.remotestorage-state-connected .remotestorage-connected{display:block;}.remotestorage-cipher-form{display:none;}.remotestorage-cipher .remotestorage-cipher-form{display:block;}.remotestorage-invalid-key{display:none;}.remotestorage-invalid-key.remotestorage-cipher-error{display:block;}.remotestorage-initial{display:none;}.remotestorage-state-initial .remotestorage-initial{display:block;}.remotestorage-error{display:none;}.remotestorage-state-error .remotestorage-error{display:block;}.remotestorage-state-authing .remotestorage-authing{display:block;}.remotestorage-state-offline .remotestorage-connected, .remotestorage-state-offline .remotestorage-offline{display:block;}.remotestorage-unauthorized{display:none;}.remotestorage-state-unauthorized .rs-bubble.rs-hidden{display:none;}.remotestorage-state-unauthorized .remotestorage-connected, .remotestorage-state-unauthorized .remotestorage-unauthorized{display:block;}.remotestorage-state-unauthorized .rs-sync{display:none;}.remotestorage-state-busy .rs-bubble.rs-hidden{display:none;}.remotestorage-state-busy .rs-bubble{display:block;}.remotestorage-state-busy .remotestorage-connected{display:block;}.remotestorage-state-authing .rs-bubble-expandable{display:none;}'
 };
 
 
@@ -1910,53 +2034,13 @@ RemoteStorage.Assets = {
 
   var hasLocalStorage;
   var LS_STATE_KEY = "remotestorage:widget:state";
+
   // states allowed to immediately jump into after a reload.
   var VALID_ENTRY_STATES = {
     initial: true,
     connected: true,
     offline: true
   };
-
-  function stateSetter(widget, state) {
-    RemoteStorage.log('[Widget] Producing stateSetter for', state);
-    return function() {
-      RemoteStorage.log('[Widget] Setting state', state, arguments);
-      if (hasLocalStorage) {
-        localStorage[LS_STATE_KEY] = state;
-      }
-      if (widget.view) {
-        if (widget.rs.remote) {
-          widget.view.setUserAddress(widget.rs.remote.userAddress);
-        }
-        widget.view.setState(state, arguments);
-      } else {
-        widget._rememberedState = state;
-      }
-    };
-  }
-
-  function errorsHandler(widget) {
-    return function(error) {
-      if (error instanceof RemoteStorage.DiscoveryError) {
-        console.error('Discovery failed', error, '"' + error.message + '"');
-        widget.view.setState('initial', [error.message]);
-      } else if (error instanceof RemoteStorage.SyncError) {
-        widget.view.setState('offline', []);
-      } else if (error instanceof RemoteStorage.Unauthorized) {
-        widget.view.setState('unauthorized');
-      } else {
-        RemoteStorage.log('[Widget] Unknown error');
-        widget.view.setState('error', [error]);
-      }
-    };
-  }
-
-  function flashFor(evt) {
-    if (evt.method === 'GET' && evt.isFolder) {
-      return false;
-    }
-    return true;
-  }
 
   /**
    * Class: RemoteStorage.Widget
@@ -2023,13 +2107,18 @@ RemoteStorage.Assets = {
     *
     * Parameters:
     *
-    *   domID
+    *   options
     **/
-    display: function(domID) {
+    display: function(options) {
+      if (typeof(options) === 'string') {
+        options = { domID: domID };
+      } else if (typeof(options) === 'undefined') {
+        options = {};
+      }
       if (! this.view) {
         this.setView(new RemoteStorage.Widget.View(this.rs));
       }
-      this.view.display.apply(this.view, arguments);
+      this.view.display(options);
       return this;
     },
 
@@ -2058,7 +2147,18 @@ RemoteStorage.Assets = {
           this.rs[options.special].connect(options);
         }
       }.bind(this));
+
+      this.view.on('secret-entered', function(secretKey) {
+        this.view.setUserSecretKey(secretKey);
+        stateSetter(this, 'ciphered')();
+      }.bind(this));
+
+      this.view.on('secret-cancelled', function() { 
+        stateSetter(this, 'notciphered')();
+      }.bind(this));
+
       this.view.on('disconnect', this.rs.disconnect.bind(this.rs));
+
       this.linkWidgetToSync();
       try {
         this.view.on('reset', function(){
@@ -2086,8 +2186,8 @@ RemoteStorage.Assets = {
    *
    * Same as <display>
    **/
-  RemoteStorage.prototype.displayWidget = function(domID) {
-    return this.widget.display(domID);
+  RemoteStorage.prototype.displayWidget = function(options) {
+    return this.widget.display(options);
   };
 
   RemoteStorage.Widget._rs_init = function(remoteStorage) {
@@ -2101,6 +2201,46 @@ RemoteStorage.Assets = {
     return typeof(document) !== 'undefined';
   };
 
+  function stateSetter(widget, state) {
+    RemoteStorage.log('[Widget] Producing stateSetter for', state);
+    return function() {
+      RemoteStorage.log('[Widget] Setting state', state, arguments);
+      if (hasLocalStorage) {
+        localStorage[LS_STATE_KEY] = state;
+      }
+      if (widget.view) {
+        if (widget.rs.remote) {
+          widget.view.setUserAddress(widget.rs.remote.userAddress);
+        }
+        widget.view.setState(state, arguments);
+      } else {
+        widget._rememberedState = state;
+      }
+    };
+  }
+
+  function errorsHandler(widget) {
+    return function(error) {
+      if (error instanceof RemoteStorage.DiscoveryError) {
+        console.error('Discovery failed', error, '"' + error.message + '"');
+        widget.view.setState('initial', [error.message]);
+      } else if (error instanceof RemoteStorage.SyncError) {
+        widget.view.setState('offline', []);
+      } else if (error instanceof RemoteStorage.Unauthorized) {
+        widget.view.setState('unauthorized');
+      } else {
+        RemoteStorage.log('[Widget] Unknown error');
+        widget.view.setState('error', [error]);
+      }
+    };
+  }
+
+  function flashFor(evt) {
+    if (evt.method === 'GET' && evt.isFolder) {
+      return false;
+    }
+    return true;
+  }
 })(typeof(window) !== 'undefined' ? window : global);
 
 
@@ -2108,44 +2248,6 @@ RemoteStorage.Assets = {
 (function(window){
 
   var t = RemoteStorage.I18n.translate;
-
-  var cEl = function(){
-    return document.createElement.apply(document, arguments);
-  };
-
-  function gCl(parent, className) {
-    return parent.getElementsByClassName(className)[0];
-  }
-
-  function gTl(parent, tagName) {
-    return parent.getElementsByTagName(tagName)[0];
-  }
-
-  function removeClass(el, className) {
-    return el.classList.remove(className);
-  }
-
-  function addClass(el, className) {
-    return el.classList.add(className);
-  }
-
-  function stopPropagation(event) {
-    if (typeof(event.stopPropagation) === 'function') {
-      event.stopPropagation();
-    } else {
-      event.cancelBubble = true;
-    }
-  }
-
-  function setupButton(parent, className, iconName, eventListener) {
-    var element = gCl(parent, className);
-    if (typeof iconName !== 'undefined') {
-      var img = gTl(element, 'img');
-      (img || element).src = RemoteStorage.Assets[iconName];
-    }
-    element.addEventListener('click', eventListener);
-    return element;
-  }
 
   /**
    * Class: RemoteStorage.Widget.View
@@ -2157,6 +2259,8 @@ RemoteStorage.Assets = {
    *   initial      - not connected
    *   authing      - in auth flow
    *   connected    - connected to remote storage, not syncing at the moment
+   *   ciphered     - connected, with cipher
+   *   notciphered  - connected, without cipher
    *   busy         - connected, syncing at the moment
    *   offline      - connected, but no network connectivity
    *   error        - connected, but sync error happened
@@ -2169,6 +2273,8 @@ RemoteStorage.Assets = {
     }
     RemoteStorage.eventHandling(this,
                                 'connect',
+                                'secret-entered',
+                                'secret-cancelled',
                                 'disconnect',
                                 'sync',
                                 'display',
@@ -2219,7 +2325,7 @@ RemoteStorage.Assets = {
     },
 
     /**
-     * Method: setUserAddres
+     * Method: setUserAddress
      *
      * Set user address of the input field
      **/
@@ -2227,9 +2333,18 @@ RemoteStorage.Assets = {
       this.userAddress = addr || '';
 
       var el;
-      if (this.div && (el = gTl(this.div, 'form').userAddress)) {
+      if (this.div && (el = this.div.querySelector('form.remotestorage-initial').userAddress)) {
         el.value = this.userAddress;
       }
+    },
+
+    /**
+     * Method: setUserSecretKey
+     *
+     * Set user secret key
+     **/
+    setUserSecretKey: function(secretKey) {
+      this.userSecretKey = secretKey;
     },
 
     /**
@@ -2266,29 +2381,33 @@ RemoteStorage.Assets = {
         stopPropagation(event);
       }
       document.body.addEventListener('click', this.hideBubbleOnBodyClick);
-      gTl(this.bubble,'form').userAddress.focus();
+      if (this.div.querySelector('.remotestorage-connected').classList.contains('remotestorage-cipher') && !this.userSecretKey) {
+        this.bubble.querySelector('form.remotestorage-cipher-form').userSecretKey.focus();
+      } else {
+        this.bubble.querySelector('form.remotestorage-initial').userAddress.focus();
+      }
     },
 
     /**
      * Method: display
      *
-     * Draw the widget inside of the dom element with the id domID
+     * Draw the widget inside of the dom element with the id options.domID
      *
      * Parameters:
      *
-     *   domID
+     *   options
      *
      * Returns:
      *
      *   The widget div
      **/
-    display: function(domID) {
+    display: function(options) {
       if (typeof this.div !== 'undefined') {
         return this.div;
       }
 
-      var element = cEl('div');
-      var style = cEl('style');
+      var element = document.createElement('div');
+      var style = document.createElement('style');
       style.innerHTML = RemoteStorage.Assets.widgetCss;
 
       element.id = "remotestorage-widget";
@@ -2296,10 +2415,10 @@ RemoteStorage.Assets = {
       element.innerHTML = RemoteStorage.Assets.widget;
 
       element.appendChild(style);
-      if (domID) {
-        var parent = document.getElementById(domID);
+      if (options.domID) {
+        var parent = document.getElementById(options.domID);
         if (! parent) {
-          throw "Failed to find target DOM element with id=\"" + domID + "\"";
+          throw "Failed to find target DOM element with id=\"" + options.domID + "\"";
         }
         parent.appendChild(element);
       } else {
@@ -2316,20 +2435,34 @@ RemoteStorage.Assets = {
       setupButton(element, 'remotestorage-reset', undefined, this.events.reset);
 
       // Connect button
-      var cb = setupButton(element, 'connect', 'connectIcon', this.events.connect);
+      var connectButton = setupButton(element, 'connect', 'connectIcon', this.events.connect);
 
-      // Input
-      this.form = gTl(element, 'form');
+      // Handle connectButton state
+      this.form = element.querySelector('form.remotestorage-initial');
       var el = this.form.userAddress;
-      el.addEventListener('keyup', function(event) {
-        if (event.target.value) {
-          cb.removeAttribute('disabled');
-        } else {
-          cb.setAttribute('disabled','disabled');
-        }
-      });
+      el.addEventListener('load', handleButtonState);
+      el.addEventListener('keyup', handleButtonState);
       if (this.userAddress) {
         el.value = this.userAddress;
+      }
+
+      if (options.encryption) {
+        this.cipher = true;
+
+        var secretKeyInput = element.querySelector('form.remotestorage-cipher-form').userSecretKey;
+
+        // This is to avoid the 'password field on an insecured page' warning, when not used and on http (not https)
+        secretKeyInput.type = 'password';
+
+        // Cipher button
+        var cipherButton = setupButton(element, 'rs-cipher', 'cipherIcon', this.events['secret-entered']);
+
+        // Handle cipherButton state
+        secretKeyInput.addEventListener('load', handleButtonState);
+        secretKeyInput.addEventListener('keyup', handleButtonState);
+
+        // No cipher button
+        setupButton(element, 'rs-nocipher', 'nocipherIcon', this.events['secret-cancelled']);
       }
 
       // The cube
@@ -2356,17 +2489,12 @@ RemoteStorage.Assets = {
       return this.div;
     },
 
-    _renderTranslatedInitialContent: function() {
-      gCl(this.div, 'rs-status-text').innerHTML = t("view_connect");
-      gCl(this.div, 'remotestorage-reset').innerHTML = t("view_get_me_out");
-      gCl(this.div, 'rs-error-plz-report').innerHTML = t("view_error_plz_report");
-      gCl(this.div, 'remotestorage-unauthorized').innerHTML = t("view_unauthorized");
-    },
-
     states:  {
       initial: function(message) {
         var cube = this.cube;
         var info = message || t("view_info");
+
+        cube.src = RemoteStorage.Assets.remoteStorageIcon;
 
         this._renderTranslatedInitialContent();
 
@@ -2378,25 +2506,29 @@ RemoteStorage.Assets = {
           // Show the red error cube for 5 seconds, then show the normal orange one again
           setTimeout(function(){
             cube.src = RemoteStorage.Assets.remoteStorageIcon;
-          },5000);
+          },2000);
         } else {
           this.hideBubble();
         }
         this.div.className = "remotestorage-state-initial";
 
+        if (this.userSecretKey) {
+          delete this.userSecretKey;
+        }
+
         // Google Drive and Dropbox icons
         var backends = 1;
         if (this._activateBackend('dropbox')) { backends += 1; }
         if (this._activateBackend('googledrive')) { backends += 1; }
-        gCl(this.div, 'rs-bubble-text').style.paddingRight = backends*32+8+'px';
+        this.div.querySelector('.rs-bubble-text').style.paddingRight = backends*32+8+'px';
 
         // If address not empty connect button enabled
-        var cb = gCl(this.div, 'connect');
+        var cb = this.div.querySelector('.connect');
         if (this.form.userAddress.value) {
           cb.removeAttribute('disabled');
         }
 
-        var infoEl = gCl(this.div, 'rs-info-msg');
+        var infoEl = this.div.querySelector('.rs-info-msg');
         infoEl.innerHTML = info;
 
         if (message) {
@@ -2409,51 +2541,89 @@ RemoteStorage.Assets = {
       authing: function() {
         this.div.removeEventListener('click', this.events.connect);
         this.div.className = "remotestorage-state-authing";
-        gCl(this.div, 'rs-status-text').innerHTML = t("view_connecting", this.userAddress);
-        addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone, when is that neccesary
+        this.div.querySelector('.rs-status-text').innerHTML = t("view_connecting", this.userAddress);
+        addClass(this.cube, 'remotestorage-loading');
       },
 
       connected: function() {
+        var cube = this.cube;
         this.div.className = "remotestorage-state-connected";
-        gCl(this.div, 'userAddress').innerHTML = this.userAddress;
-        this.cube.src = RemoteStorage.Assets.remoteStorageIcon;
-        removeClass(this.cube, 'remotestorage-loading');
+        this.div.querySelector('.userAddress').innerHTML = this.userAddress;
+        cube.src = RemoteStorage.Assets.remoteStorageIcon;
+        removeClass(cube, 'remotestorage-loading');
+
+        if (this.cipher) {
+          if (this.userSecretKey) {
+            if (this.userSecretKeyError) {
+              cube.src = RemoteStorage.Assets.remoteStorageIconError;
+              addClass(this.div.querySelector('.remotestorage-connected'), 'remotestorage-cipher');
+              addClass(this.div.querySelector('.remotestorage-invalid-key'), 'remotestorage-cipher-error');
+              this.showBubble();
+
+              // Show the red error cube for 5 seconds, then show the normal orange one again
+              setTimeout(function(){
+                cube.src = RemoteStorage.Assets.remoteStorageIcon;
+              },5000);
+            } else {
+              removeClass(this.div.querySelector('.remotestorage-invalid-key'), 'remotestorage-cipher-error');
+              cube.src = RemoteStorage.Assets.remoteStorageIconCiphered;
+            }
+          } else {
+            addClass(this.div.querySelector('.remotestorage-connected'), 'remotestorage-cipher');
+            this.showBubble();
+          }
+        }
+
         var icons = {
-          googledrive: gCl(this.div, 'rs-googledrive'),
-          dropbox: gCl(this.div, 'rs-dropbox')
+          googledrive: this.div.querySelector('.rs-googledrive'),
+          dropbox: this.div.querySelector('.rs-dropbox')
         };
         icons.googledrive.style.display = icons.dropbox.style.display = 'none';
         if (icons[this.rs.backend]) {
           icons[this.rs.backend].style.display = 'inline-block';
-          gCl(this.div, 'rs-bubble-text').style.paddingRight = 2*32+8+'px';
+          this.div.querySelector('.rs-bubble-text').style.paddingRight = 2*32+8+'px';
         } else {
-          gCl(this.div, 'rs-bubble-text').style.paddingRight = 32+8+'px';
+          this.div.querySelector('.rs-bubble-text').style.paddingRight = 32+8+'px';
         }
+      },
+
+      ciphered: function() {
+        this.div.querySelector('form.remotestorage-cipher-form').userSecretKey.value = '';
+        removeClass(this.div.querySelector('.remotestorage-invalid-key'), 'remotestorage-cipher-error');
+        removeClass(this.div.querySelector('.remotestorage-connected'), 'remotestorage-cipher');
+        this.cube.src = RemoteStorage.Assets.remoteStorageIconCiphered;
+        this.hideBubble();
+      },
+
+      notciphered: function() {
+        this.cipher = false;
+        removeClass(this.div.querySelector('.remotestorage-invalid-key'), 'remotestorage-cipher-error');
+        removeClass(this.div.querySelector('.remotestorage-connected'), 'remotestorage-cipher');
+        this.hideBubble();
       },
 
       busy: function() {
         this.div.className = "remotestorage-state-busy";
         addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
-        this.hideBubble();
       },
 
       offline: function() {
         this.div.className = "remotestorage-state-offline";
         this.cube.src = RemoteStorage.Assets.remoteStorageIconOffline;
-        gCl(this.div, 'rs-status-text').innerHTML = t("view_offline");
+        this.div.querySelector('.rs-status-text').innerHTML = t("view_offline");
       },
 
       error: function(err) {
         var errorMsg = err;
         this.div.className = "remotestorage-state-error";
 
-        gCl(this.div, 'rs-bubble-text').innerHTML = '<strong>'+t('view_error_occured')+'</strong>';
+        this.div.querySelector('.rs-bubble-text').innerHTML = '<strong>'+t('view_error_occured')+'</strong>';
         //FIXME I don't know what an DOMError is and my browser doesn't know too(how to handle this?)
         if (err instanceof Error /*|| err instanceof DOMError*/) {
           errorMsg = err.message + '\n\n' +
             err.stack;
         }
-        gCl(this.div, 'rs-error-msg').textContent = errorMsg;
+        this.div.querySelector('.rs-error-msg').textContent = errorMsg;
         this.cube.src = RemoteStorage.Assets.remoteStorageIconError;
         this.showBubble();
       },
@@ -2475,7 +2645,29 @@ RemoteStorage.Assets = {
       connect: function(event) {
         stopPropagation(event);
         event.preventDefault();
-        this._emit('connect', gTl(this.div, 'form').userAddress.value);
+        this._emit('connect', this.div.querySelector('form.remotestorage-initial').userAddress.value);
+      },
+
+    /**
+     * Event: secret-entered
+     *
+     * Emitted when the cipher button is clicked
+     **/
+      'secret-entered': function(event) {
+        stopPropagation(event);
+        event.preventDefault();
+        this._emit('secret-entered', this.div.querySelector('form.remotestorage-cipher-form').userSecretKey.value);
+      },
+
+    /**
+     * Event: secret-cancelled
+     *
+     * Emitted when the nocipher button is clicked
+     **/
+      'secret-cancelled': function(event) {
+        stopPropagation(event);
+        event.preventDefault();
+        this._emit('secret-cancelled');
       },
 
       /**
@@ -2527,17 +2719,59 @@ RemoteStorage.Assets = {
       }
     },
 
+    _renderTranslatedInitialContent: function() {
+      this.div.querySelector('.rs-status-text').innerHTML = t("view_connect");
+      this.div.querySelector('.remotestorage-reset').innerHTML = t("view_get_me_out");
+      this.div.querySelector('.rs-error-plz-report').innerHTML = t("view_error_plz_report");
+      this.div.querySelector('.remotestorage-unauthorized').innerHTML = t("view_unauthorized");
+      this.div.querySelector('.remotestorage-invalid-key').innerHTML = t("view_invalid_key");
+    },
+
     _activateBackend: function activateBackend(backendName) {
       var className = 'rs-' + backendName;
       if (this.rs.apiKeys[backendName]) {
-        gCl(this.div, className).style.display = 'inline-block';
+        this.div.querySelector('.' + className).style.display = 'inline-block';
         return true;
       } else {
-        gCl(this.div, className).style.display = 'none';
+        this.div.querySelector('.' + className).style.display = 'none';
         return false;
       }
     }
   };
+
+  function removeClass(el, className) {
+    return el.classList.remove(className);
+  }
+
+  function addClass(el, className) {
+    return el.classList.add(className);
+  }
+
+  function stopPropagation(event) {
+    if (typeof(event.stopPropagation) === 'function') {
+      event.stopPropagation();
+    } else {
+      event.cancelBubble = true;
+    }
+  }
+
+  function setupButton(parent, className, iconName, eventListener) {
+    var element = parent.querySelector('.' + className);
+    if (typeof iconName !== 'undefined') {
+      var img = element.querySelector('img');
+      (img || element).src = RemoteStorage.Assets[iconName];
+    }
+    element.addEventListener('click', eventListener);
+    return element;
+  }
+
+  function handleButtonState(event) {
+    if (event.target.value) {
+      event.target.nextElementSibling.removeAttribute('disabled');
+    } else {
+      event.target.nextElementSibling.setAttribute('disabled','disabled');
+    }
+  }
 })(typeof(window) !== 'undefined' ? window : global);
 
 
@@ -3401,9 +3635,12 @@ Math.uuid = function (len, radix) {
    *
    * A BaseClient deals with three types of data: folders, objects and files.
    *
-   * <getListing> returns a list of all items within a folder, or undefined
-   * if a 404 is encountered. Items that end with a forward slash ("/") are
-   * child folders.
+   * <getListing> returns a mapping of all items within a folder. Items that
+   * end with a forward slash ("/") are child folders. For instance:
+   * {
+   *   'folder/': true,
+   *   'document.txt': true
+   * }
    *
    * <getObject> / <storeObject> operate on JSON objects. Each object has a type.
    *
@@ -3448,6 +3685,13 @@ Math.uuid = function (len, radix) {
       this.moduleName = 'root';
     }
 
+    // Defined in baseclient/types.js
+    /**
+     * Property: schemas
+     *
+     * Contains schema objects of all types known to the BaseClient instance
+     **/
+
     /**
      * Event: change
      *
@@ -3458,12 +3702,74 @@ Math.uuid = function (len, radix) {
      *
      * (start code)
      * {
-     *    path: path, // Path of the changed node
-     *    origin: 'window', 'local', or 'remote' // emitted by user action within the app, local data store, or remote sync
-     *    oldValue: oldBody, // Old body of the changed node (undefined if creation)
-     *    newValue: newBody  // New body of the changed node (undefined if deletion)
+     *    path: path, // Absolute path of the changed node, from the storage root
+     *    relativePath: relativePath, // Path of the changed node, relative to this baseclient's scope root
+     *    origin: 'window', 'local', 'remote', or 'conflict' // emitted by user action within the app, local data store, remote sync, or versioning conflicts
+     *    oldValue: oldBody, // Old body of the changed node (local version in conflicts; undefined if creation)
+     *    newValue: newBody, // New body of the changed node (remote version in conflicts; undefined if deletion)
+     *    lastCommonValue: lastCommonValue, //most recent known common ancestor body of 'yours' and 'theirs' in case of conflict
+     *    oldContentType: oldContentType, // Old contentType of the changed node ('yours' for conflicts; undefined if creation)
+     *    newContentType: newContentType, // New contentType of the changed node ('theirs' for conflicts; undefined if deletion)
+     *    lastCommonContentType: lastCommonContentType // Most recent known common ancestor contentType of 'yours' and 'theirs' in case of conflict
      *  }
      * (end code)
+     *
+     * Example of an event with origin 'local' (fired on page load):
+     * 
+     * (start code)
+     * {
+     *    path: '/public/design/color.txt',
+     *    relativePath: 'color.txt',
+     *    origin: 'local',
+     *    oldValue: undefined,
+     *    newValue: 'white',
+     *    oldContentType: undefined,
+     *    newContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * Example of a conflict:
+     * Say you changed 'color.txt' from 'white' to 'blue'; if you have set `RemoteStorage.config.changeEvents.window` to `true`,
+     * then you will receive:
+     *
+     * (start code)
+     * {
+     *    path: '/public/design/color.txt',
+     *    relativePath: 'color.txt',
+     *    origin: 'window',
+     *    oldValue: 'white',
+     *    newValue: 'blue',
+     *    oldContentType: 'text/plain',
+     *    newContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * But when this change is pushed out by asynchronous synchronization, this change may rejected by the
+     * server, if the remote version has in the meantime changed from 'white' to  for instance 'red'; this will then lead to a change
+     * event with origin 'conflict' (usually a few seconds after the event with origin 'window', if you had that activated). Note
+     * that since you already changed it from 'white' to 'blue' in the local version a few seconds ago, `oldValue` is now your local
+     * value of 'blue':
+     * 
+     * (start code)
+     * {
+     *    path: '/public/design/color.txt',
+     *    relativePath: 'color.txt',
+     *    origin: 'conflict',
+     *    oldValue: 'blue',
+     *    newValue: 'red',
+     *    lastCommonValue: 'white',
+     *    oldContentType: 'text/plain,
+     *    newContentType: 'text/plain'
+     *    lastCommonContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * In practice, you should always redraw your views to display the content of the `newValue` field when a change event is received,
+     * regardless of its origin. Events with origin 'local' are fired conveniently during the page load, so that you can fill your views
+     * when the page loads. Events with origin 'window' are fired whenever you change a value by calling a method on the baseClient;
+     * these are disabled by default. Events with origin 'remote' are fired when remote changes are discovered during sync (only for caching
+     * startegies 'SEEN' and 'ALL'). Events with origin 'conflict' are fired when a conflict occurs while pushing out your local changes to
+     * the remote store in asynchronous synchronization (see example above). 
      **/
 
     RS.eventHandling(this, 'change');
@@ -3500,12 +3806,16 @@ Math.uuid = function (len, radix) {
      *
      * Parameters:
      *   path   - The path to query. It MUST end with a forward slash.
-     *   maxAge - (optional) Maximum age of cached listing in
-     *            milliseconds
+     *   maxAge - Either false or the maximum age of cached listing in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
      *
-     *   A promise for an object, representing child nodes.
+     *   A promise for an object, representing child nodes. If the maxAge
+     *   requirement cannot be met because of network problems, this promise
+     *   will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
      *
      *   Keys ending in a forward slash represent *folder nodes*, while all
      *   other keys represent *data nodes*.
@@ -3516,10 +3826,12 @@ Math.uuid = function (len, radix) {
      *
      * Example:
      *   (start code)
-     *   client.getListing('').then(function(listing) {
-     *     listing.forEach(function(item) {
-     *       console.log(item);
-     *     });
+     *   client.getListing('', false).then(function(listing) {
+     *     // listing is for instance:
+     *     // {
+     *     //   'folder/': true,
+     *     //   'document.txt': true
+     *     // }
      *   });
      *   (end code)
      */
@@ -3529,12 +3841,9 @@ Math.uuid = function (len, radix) {
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getListing must be undefined or a number');
-      }
       return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
-          return (status === 404) ? undefined : body;
+          return (status === 404) ? {} : body;
         }
       );
     },
@@ -3545,16 +3854,20 @@ Math.uuid = function (len, radix) {
      * Get all objects directly below a given path.
      *
      * Parameters:
-     *   path   - path to the folder
-     *   maxAge - (optional) Maximum age of cached objects in
-     *            milliseconds
+     *   path   - Path to the folder.
+     *   maxAge - Either false or the maximum age of cached objects in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
-     *   a promise for an object in the form { path : object, ... }
+     *   A promise for an object in the form { path : object, ... }. If the
+     *   maxAge requirement cannot be met because of network problems, this
+     *   promise will be rejected. If the maxAge requirement is set to false,
+     *   the promise will always be fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
-     *   client.getAll('').then(function(objects) {
+     *   client.getAll('', false).then(function(objects) {
      *     for (var key in objects) {
      *       console.log('- ' + key + ': ', objects[key]);
      *     }
@@ -3567,24 +3880,29 @@ Math.uuid = function (len, radix) {
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getAll must be undefined or a number');
-      }
 
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
-        if (status === 404) { return; }
+        if (status === 404) { return {}; }
         if (typeof(body) === 'object') {
           var promise = promising();
           var count = Object.keys(body).length, i = 0;
           if (count === 0) {
             // treat this like 404. it probably means a folder listing that
             // has changes that haven't been pushed out yet.
-            return;
+            return {};
           }
           for (var key in body) {
             this.storage.get(this.makePath(path + key), maxAge).
               then(function(status, b) {
-                body[this.key] = b;
+                if (typeof(b) === 'string') {
+                  try {
+                    b = JSON.parse(b);
+                  } catch (e) {
+                  }
+                }
+                if (typeof(b) === 'object') {
+                  body[this.key] = b;
+                }
                 i++;
                 if (i === count) { promise.fulfill(body); }
               }.bind({ key: key }));
@@ -3606,7 +3924,10 @@ Math.uuid = function (len, radix) {
      * getObject.
      *
      * Parameters:
-     *   path     - see getObject
+     *   path   - See getObject.
+     *   maxAge - Either false or the maximum age of cached file in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
      *   A promise for an object:
@@ -3614,10 +3935,14 @@ Math.uuid = function (len, radix) {
      *   mimeType - String representing the MIME Type of the document.
      *   data     - Raw data of the document (either a string or an ArrayBuffer)
      *
+     *   If the maxAge requirement cannot be met because of network problems, this
+     *   promise will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
+     *
      * Example:
      *   (start code)
      *   // Display an image:
-     *   client.getFile('path/to/some/image').then(function(file) {
+     *   client.getFile('path/to/some/image', false).then(function(file) {
      *     var blob = new Blob([file.data], { type: file.mimeType });
      *     var targetElement = document.findElementById('my-image-element');
      *     targetElement.src = window.URL.createObjectURL(blob);
@@ -3627,9 +3952,6 @@ Math.uuid = function (len, radix) {
     getFile: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
-      }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getFile must be undefined or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         return {
@@ -3685,6 +4007,9 @@ Math.uuid = function (len, radix) {
       if (typeof(body) !== 'string' && typeof(body) !== 'object') {
         return promising().reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
       }
+      if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
+        console.warn('WARNING: Editing a document to which only read access (\'r\') was claimed');
+      }
 
       var self = this;
       return this.storage.put(this.makePath(path), body, mimeType).then(function(status, _body, _mimeType, revision) {
@@ -3704,14 +4029,20 @@ Math.uuid = function (len, radix) {
      * Get a JSON object from given path.
      *
      * Parameters:
-     *   path     - relative path from the module root (without leading slash)
+     *   path   - Relative path from the module root (without leading slash).
+     *   maxAge - Either false or the maximum age of cached object in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
-     *   A promise for the object.
+     *   A promise for the object. If the maxAge requirement cannot be met
+     *   because of network problems, this promise will be rejected. If the
+     *   maxAge requirement is set to false, the promise will always be
+     *   fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
-     *   client.getObject('/path/to/object').
+     *   client.getObject('/path/to/object', false).
      *     then(function(object) {
      *       // object is either an object or null
      *     });
@@ -3721,12 +4052,15 @@ Math.uuid = function (len, radix) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
       }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getObject must be undefined or a number');
-      }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
-        if (typeof(body) === 'object') {
+        if (typeof(body) === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
           return body;
+        } else if (typeof(body) === 'string') {
+          try {
+            return JSON.parse(body);
+          } catch (e) {
+            throw "Not valid JSON: " + this.makePath(path);
+          }
         } else if (typeof(body) !== 'undefined' && status === 200) {
           throw "Not an object: " + this.makePath(path);
         }
@@ -3762,7 +4096,7 @@ Math.uuid = function (len, radix) {
      *   Now that is what the *type* is for.
      *
      *   Within remoteStorage.js, @context values are built using three components:
-     *     http://remotestoragejs.com/spec/modules/ - A prefix to guarantee unqiueness
+     *     http://remotestorage.io/spec/modules/ - A prefix to guarantee uniqueness
      *     the module name     - module names should be unique as well
      *     the type given here - naming this particular kind of object within this module
      *
@@ -3784,18 +4118,19 @@ Math.uuid = function (len, radix) {
       if (typeof(object) !== 'object') {
         return promising().reject('Argument \'object\' of baseClient.storeObject must be an object');
       }
+
       this._attachType(object, typeAlias);
+
       try {
         var validationResult = this.validate(object);
         if (! validationResult.valid) {
           return promising(function(p) { p.reject(validationResult); });
         }
       } catch(exc) {
-        if (! (exc instanceof RS.BaseClient.Types.SchemaNotFound)) {
-          return promising().reject(exc);
-        }
+        return promising().reject(exc);
       }
-      return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
+
+      return this.storage.put(this.makePath(path), JSON.stringify(object), 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
         if (status === 200 || status === 201) {
           return revision;
         } else {
@@ -3818,6 +4153,10 @@ Math.uuid = function (len, radix) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.remove must be a string');
       }
+      if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
+        console.warn('WARNING: Removing a document to which only read access (\'r\') was claimed');
+      }
+
       return this.storage.delete(this.makePath(path));
     },
 
@@ -3854,7 +4193,20 @@ Math.uuid = function (len, radix) {
     },
 
     _fireChange: function(event) {
-      this._emit('change', event);
+      if (RemoteStorage.config.changeEvents[event.origin]) {
+        ['new', 'old', 'lastCommon'].forEach(function(fieldNamePrefix) {
+          if ((!event[fieldNamePrefix+'ContentType'])
+              || (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix+'ContentType']))) {
+            if (typeof(event[fieldNamePrefix+'Value']) === 'string') {
+              try {
+                event[fieldNamePrefix+'Value'] = JSON.parse(event[fieldNamePrefix+'Value']);
+              } catch(e) {
+              }
+            }
+          }
+        });
+        this._emit('change', event);
+      }
     },
 
     _cleanPath: RS.WireClient.cleanPath,
@@ -3916,6 +4268,10 @@ Math.uuid = function (len, radix) {
         throw 'Argument \'path\' of baseClient.scope must be a string';
       }
 
+      if (!this.access.checkPathPermission(path, 'r')) {
+        var escapedPath = path.replace(/(['\\])/g, '\\$1');
+        console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
+      }
       return new RS.BaseClient(this, path);
     };
   };
@@ -3931,9 +4287,13 @@ Math.uuid = function (len, radix) {
   });
   */
 
-  maxAgeInvalid = function(maxAge) {
-    return typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number';
-  };
+  // Defined in baseclient/types.js
+  /**
+   * Method: declareType
+   *
+   * Declare a remoteStorage object type using a JSON schema. See
+   * <RemoteStorage.BaseClient.Types>
+   **/
 
 })(typeof(window) !== 'undefined' ? window : global);
 
@@ -3941,6 +4301,13 @@ Math.uuid = function (len, radix) {
 /** FILE: src/baseclient/types.js **/
 (function(global) {
 
+  /**
+   * Class: RemoteStorage.BaseClient.Types
+   *
+   * - Manages and validates types of remoteStorage objects, using JSON-LD and
+   *   JSON Schema
+   * - Adds schema declaration/validation methods to BaseClient instances.
+   **/
   RemoteStorage.BaseClient.Types = {
     // <alias> -> <uri>
     uris: {},
@@ -4002,18 +4369,65 @@ Math.uuid = function (len, radix) {
   SchemaNotFound.prototype = Error.prototype;
 
   RemoteStorage.BaseClient.Types.SchemaNotFound = SchemaNotFound;
+
   /**
    * Class: RemoteStorage.BaseClient
    **/
   RemoteStorage.BaseClient.prototype.extend({
     /**
-     * Method: validate(object)
+     * Method: declareType
      *
-     * validates an Object against the associated schema
-     * the context has to have a @context property
+     * Declare a remoteStorage object type using a JSON schema.
+     *
+     * Parameters:
+     *   alias  - A type alias/shortname
+     *   uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
+     *   schema - A JSON Schema object describing the object type
+     *
+     * Example:
+     *
+     * (start code)
+     * client.declareType('todo-item', {
+     *   "type": "object",
+     *   "properties": {
+     *     "id": {
+     *       "type": "string"
+     *     },
+     *     "title": {
+     *       "type": "string"
+     *     },
+     *     "finished": {
+     *       "type": "boolean"
+     *       "default": false
+     *     },
+     *     "createdAt": {
+     *       "type": "date"
+     *     }
+     *   },
+     *   "required": ["id", "title"]
+     * })
+     * (end code)
+     *
+     * Visit <http://json-schema.org> for details on how to use JSON Schema.
+     **/
+    declareType: function(alias, uri, schema) {
+      if (! schema) {
+        schema = uri;
+        uri = this._defaultTypeURI(alias);
+      }
+      RemoteStorage.BaseClient.Types.declare(this.moduleName, alias, uri, schema);
+    },
+
+    /**
+     * Method: validate
+     *
+     * Validate an object against the associated schema.
+     *
+     * Parameters:
+     *  object - Object to validate. Must have a @context property.
      *
      * Returns:
-     *   A validate object giving you information about errors
+     *   An object containing information about validation errors
      **/
     validate: function(object) {
       var schema = RemoteStorage.BaseClient.Types.getSchema(object['@context']);
@@ -4024,26 +4438,16 @@ Math.uuid = function (len, radix) {
       }
     },
 
-    // client.declareType(alias, schema);
-    //  /* OR */
-    // client.declareType(alias, uri, schema);
-    declareType: function(alias, uri, schema) {
-      if (! schema) {
-        schema = uri;
-        uri = this._defaultTypeURI(alias);
-      }
-      RemoteStorage.BaseClient.Types.declare(this.moduleName, alias, uri, schema);
-    },
-
     _defaultTypeURI: function(alias) {
-      return 'http://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+      return 'http://remotestorage.io/spec/modules/' + encodeURIComponent(this.moduleName) + '/' + encodeURIComponent(alias);
     },
 
     _attachType: function(object, alias) {
-      object['@context'] = RemoteStorage.BaseClient.Types.resolveAlias(alias) || this._defaultTypeURI(alias);
+      object['@context'] = RemoteStorage.BaseClient.Types.resolveAlias(this.moduleName + '/' + alias) || this._defaultTypeURI(alias);
     }
   });
 
+  // Documented in baseclient.js
   Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
     configurable: true,
     get: function() {
@@ -4234,7 +4638,9 @@ Math.uuid = function (len, radix) {
 /** FILE: src/sync.js **/
 (function(global) {
 
-  var syncInterval = 10000;
+  var syncInterval = 10000,
+      backgroundSyncInterval = 60000,
+      isBackground = false;
 
   function taskFor(action, path, promise) {
     return {
@@ -4290,6 +4696,36 @@ Math.uuid = function (len, radix) {
 
   function isFolder(path) {
     return path.substr(-1) === '/';
+  }
+
+  function handleVisibility() {
+    var hidden,
+        visibilityChange,
+        rs = this;
+
+    function handleVisibilityChange(fg) {
+      var oldValue, newValue;
+      oldValue = rs.getCurrentSyncInterval();
+      isBackground = !fg;
+      newValue = rs.getCurrentSyncInterval();
+      rs._emit('sync-interval-change', {oldValue: oldValue, newValue: newValue});
+    }
+
+    RemoteStorage.Env.on("background", function () {
+      handleVisibilityChange(false);
+    });
+
+    RemoteStorage.Env.on("foreground", function () {
+      handleVisibilityChange(true);
+    });
+  }
+
+  /**
+   * Check if interval is valid: numeric and between 1000ms and 3600000ms
+   *
+   */
+  function isValidInterval(interval) {
+    return (typeof interval === 'number' && interval > 1000 && interval < 3600000);
   }
 
   /**
@@ -4540,7 +4976,7 @@ Math.uuid = function (len, radix) {
     flush: function(nodes) {
       for (var path in nodes) {
         // Strategy is 'FLUSH' and no local changes exist
-        if (this.caching.checkPath(path) === 'FLUSH' && !nodes[path].local) {
+        if (this.caching.checkPath(path) === 'FLUSH' && nodes[path] && !nodes[path].local) {
           RemoteStorage.log('[Sync] Flushing', path);
           nodes[path] = undefined; // Cause node to be flushed from cache
         }
@@ -4633,24 +5069,40 @@ Math.uuid = function (len, radix) {
     },
 
     autoMergeDocument: function(node) {
-      if (node.remote.body !== undefined) {
+      hasNoRemoteChanges = function(node) {
+        if (node.remote && node.remote.revision && node.remote.revision !== node.common.revision) {
+          return false;
+        }
+        return (node.common.body === undefined && node.remote.body === false) ||
+               (node.remote.body === node.common.body &&
+                node.remote.contentType === node.common.contentType);
+      };
+
+      if (hasNoRemoteChanges(node)) {
+        delete node.remote;
+      } else if (node.remote.body !== undefined) {
         // keep/revert:
         RemoteStorage.log('[Sync] Emitting keep/revert');
 
-        this.local._emit('change', {
+        this.local._emitChange({
           origin:         'conflict',
           path:           node.path,
           oldValue:       node.local.body,
           newValue:       node.remote.body,
+          lastCommonValue: node.common.body,
           oldContentType: node.local.contentType,
-          newContentType: node.remote.contentType
+          newContentType: node.remote.contentType,
+          lastCommonContentType: node.common.contentType
         });
 
-        node.common = node.remote;
+        if (node.remote.body) {
+          node.common = node.remote;
+        } else {
+          node.common = {};
+        }
         delete node.remote;
         delete node.local;
       }
-      delete node.push;
       return node;
     },
 
@@ -4662,7 +5114,7 @@ Math.uuid = function (len, radix) {
           } else {
             return this.autoMergeDocument(node);
           }
-        } else { // remotely created node
+        } else { // no local changes
           if (isFolder(node.path)) {
             if (node.remote.itemsMap !== undefined) {
               node.common = node.remote;
@@ -4670,12 +5122,21 @@ Math.uuid = function (len, radix) {
             }
           } else {
             if (node.remote.body !== undefined) {
-              this.local._emit('change', {
+              var change = {
                 origin:   'remote',
                 path:     node.path,
                 oldValue: (node.common.body === false ? undefined : node.common.body),
-                newValue: (node.remote.body === false ? undefined : node.remote.body)
-              });
+                newValue: (node.remote.body === false ? undefined : node.remote.body),
+                oldContentType: node.common.contentType,
+                newContentType: node.remote.contentType
+              };
+              if (change.oldValue || change.newValue) {
+                this.local._emitChange(change);
+              }
+
+              if (!node.remote.body) { // no remote, so delete/don't create
+                return;
+              }
 
               node.common = node.remote;
               delete node.remote;
@@ -4683,16 +5144,29 @@ Math.uuid = function (len, radix) {
           }
         }
       } else {
-        this.local._emit('change', {
-          origin:   'remote',
-          path:     node.path,
-          oldValue: (node.common.body === false ? undefined : node.common.body),
-          newValue: undefined
-        });
+        if (node.common.body) {
+          this.local._emitChange({
+            origin:   'remote',
+            path:     node.path,
+            oldValue: node.common.body,
+            newValue: undefined,
+            oldContentType: node.common.contentType,
+            newContentType: undefined
+          });
+        }
 
         return undefined;
       }
       return node;
+    },
+
+    updateCommonTimestamp: function(path, revision) {
+      return this.local.getNodes([path]).then(function(nodes) {
+        if (nodes[path] && nodes[path].common && nodes[path].common.revision === revision) {
+          nodes[path].common.timestamp = this.now();
+        }
+        return this.local.setNodes(this.flush(nodes));
+      }.bind(this));
     },
 
     markChildren: function(path, itemsMap, changedNodes, missingChildren) {
@@ -4797,7 +5271,7 @@ Math.uuid = function (len, radix) {
         return promising().fulfill(changedNodes);
       }
 
-      this.local.getNodes(paths).then(function(nodes) {
+      return this.local.getNodes(paths).then(function(nodes) {
         var subPaths = {};
 
         collectSubPaths = function(folder, path) {
@@ -4843,11 +5317,11 @@ Math.uuid = function (len, radix) {
       var parentPath;
       var pathsFromRoot = this.local._getInternals().pathsFromRoot(path);
 
-      if (!isFolder(path)) {
+      if (isFolder(path)) {
+        paths = [path];
+      } else {
         parentPath = pathsFromRoot[1];
         paths = [path, parentPath];
-      } else {
-        paths = [path];
       }
 
       var promise = this.local.getNodes(paths).then(function(nodes) {
@@ -4927,9 +5401,10 @@ Math.uuid = function (len, radix) {
 
           if (!node.remote || node.remote.revision !== revision) {
             node.remote = {
-              revision:  revision,
+              revision:  revision || 'conflict',
               timestamp: this.now()
             };
+            delete node.push;
           }
 
           nodes[path] = this.autoMerge(node);
@@ -4986,7 +5461,8 @@ Math.uuid = function (len, radix) {
       return {
         successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
         conflict:   (statusCode === 412),
-        unAuth:     (statusCode === 401 || statusCode === 402 ||statusCode === 403),
+        unAuth:     ((statusCode === 401 && this.remote.token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) ||
+                     statusCode === 402 || statusCode === 403),
         notFound:   (statusCode === 404),
         changed:    (statusCode !== 304)
       };
@@ -5019,7 +5495,9 @@ Math.uuid = function (len, radix) {
           }
         }.bind(this));
       } else {
-        return promising().fulfill(true);
+        return this.updateCommonTimestamp(path, revision).then(function() {
+          return true;
+        });
       }
     },
 
@@ -5102,7 +5580,7 @@ Math.uuid = function (len, radix) {
       }.bind(this),
 
       function(err) {
-        RemoteStorage.log('[Sync] Error', err);
+        console.error('[Sync] Error', err);
         this.remote.online = false;
         delete this._timeStarted[task.path];
         delete this._running[task.path];
@@ -5185,10 +5663,10 @@ Math.uuid = function (len, radix) {
           try {
             this.doTasks();
           } catch(e) {
-            RemoteStorage.log('[Sync] doTasks error', e);
+            console.error('[Sync] doTasks error', e);
           }
         }.bind(this), function(e) {
-          RemoteStorage.log('[Sync] Sync error', e);
+          console.error('[Sync] Sync error', e);
           throw new Error('Local cache unavailable');
         });
       } else {
@@ -5219,14 +5697,54 @@ Math.uuid = function (len, radix) {
    *
    */
   RemoteStorage.prototype.setSyncInterval = function(interval) {
-    if (typeof(interval) !== 'number') {
+    if (!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
+    var oldValue = syncInterval;
     syncInterval = parseInt(interval, 10);
-    if (this._syncTimer) {
-      this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
+    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+  };
+
+  /**
+   * Method: getBackgroundSyncInterval
+   *
+   * Get the value of the sync interval when application is in the background
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getBackgroundSyncInterval = function() {
+    return backgroundSyncInterval;
+  };
+
+  /**
+   * Method: setBackgroundSyncInterval
+   *
+   * Set the value of the sync interval when the application is in the background
+   *
+   * Parameters:
+   *   interval - sync interval in milliseconds
+   *
+   */
+  RemoteStorage.prototype.setBackgroundSyncInterval = function(interval) {
+    if(!isValidInterval(interval)) {
+      throw interval + " is not a valid sync interval";
     }
+    var oldValue = backgroundSyncInterval;
+    backgroundSyncInterval = parseInt(interval, 10);
+    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+  };
+
+  /**
+   * Method: getCurrentSyncInterval
+   *
+   * Get the value of the current sync interval
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getCurrentSyncInterval = function() {
+    return isBackground ? backgroundSyncInterval : syncInterval;
   };
 
   var SyncError = function(originalError) {
@@ -5250,12 +5768,12 @@ Math.uuid = function (len, radix) {
     }
 
     this.sync.on('done', function() {
-      RemoteStorage.log('[Sync] Sync done. Setting timer to', this.getSyncInterval());
+      RemoteStorage.log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
       if (!this.sync.stopped) {
         if (this._syncTimer) {
           clearTimeout(this._syncTimer);
         }
-        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getSyncInterval());
+        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
       }
     }.bind(this));
 
@@ -5284,7 +5802,9 @@ Math.uuid = function (len, radix) {
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
     syncCycleCb = function() {
       RemoteStorage.log('[Sync] syncCycleCb calling syncCycle');
-
+      if (RemoteStorage.Env.isBrowser()) {
+        handleVisibility.bind(remoteStorage)();
+      }
       if (!remoteStorage.sync) {
         // Call this now that all other modules are also ready:
         remoteStorage.sync = new RemoteStorage.Sync(
@@ -5336,11 +5856,43 @@ Math.uuid = function (len, radix) {
     return path.substr(-1) !== '/';
   }
 
+  /**
+   * Function: fixArrayBuffers
+   *
+   * Takes an object and its copy as produced by the _deepClone function
+   * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
+   * of being cloned to new ArrayBuffers with the same content.
+   *
+   * It recurses into sub-objects, but skips arrays if they occur.
+   *
+   */
+  function fixArrayBuffers(srcObj, dstObj) {
+    var field, srcArr, dstArr;
+    if (typeof(srcObj) != 'object' || Array.isArray(srcObj) || srcObj === null) {
+      return;
+    }
+    for (field in srcObj) {
+      if (typeof(srcObj[field]) === 'object' && srcObj[field] !== null) {
+        if (srcObj[field].toString() === '[object ArrayBuffer]') {
+          dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
+          srcArr = new Int8Array(srcObj[field]);
+          dstArr = new Int8Array(dstObj[field]);
+          dstArr.set(srcArr);
+        } else {
+          fixArrayBuffers(srcObj[field], dstObj[field]);
+        }
+      }
+    }
+  }
+
   function deepClone(obj) {
+    var clone;
     if (obj === undefined) {
       return undefined;
     } else {
-      return JSON.parse(JSON.stringify(obj));
+      clone = JSON.parse(JSON.stringify(obj));
+      fixArrayBuffers(obj, clone);
+      return clone;
     }
   }
 
@@ -5379,9 +5931,20 @@ Math.uuid = function (len, radix) {
     }
   }
 
-  function isOutdated(node, maxAge) {
-    return !node || !node.timestamp ||
-           ((new Date().getTime()) - node.timestamp > maxAge);
+  function isOutdated(nodes, maxAge) {
+    var path, node;
+    for (path in nodes) {
+      if (nodes[path] && nodes[path].remote) {
+        return true;
+      }
+      node = getLatest(nodes[path]);
+      if (node && node.timestamp && (new Date().getTime()) - node.timestamp <= maxAge) {
+        return false;
+      } else if (!node) {
+        return true;
+      }
+    }
+    return true;
   }
 
   function pathsFromRoot(path) {
@@ -5427,24 +5990,45 @@ Math.uuid = function (len, radix) {
 
   var methods = {
 
-    get: function(path, maxAge) {
+    // TODO: improve our code structure so that this function
+    // could call sync.queueGetRequest directly instead of needing
+    // this hacky third parameter as a callback
+    get: function(path, maxAge, queueGetRequest) {
       var promise = promising();
 
-      this.getNodes([path]).then(function(objs) {
-        var node = getLatest(objs[path]);
-        if ((typeof(maxAge) === 'number') && isOutdated(node, maxAge)) {
-          remoteStorage.sync.queueGetRequest(path, promise);
-        }
-
-        if (node) {
-          promise.fulfill(200, node.body || node.itemsMap, node.contentType);
-        } else {
-          promise.fulfill(404);
-        }
-      }.bind(this), function(err) {
-        promise.reject(err);
-      }.bind(this));
-
+      if (typeof(maxAge) === 'number') {
+        this.getNodes(pathsFromRoot(path)).then(function(objs) {
+          var node = getLatest(objs[path]);
+          if (isOutdated(objs, maxAge)) {
+            queueGetRequest(path, promise);
+          } else if (node) {
+            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+          } else {
+            promise.fulfill(404);
+          }
+        }.bind(this), function(err) {
+          promise.reject(err);
+        });
+      } else {
+        this.getNodes([path]).then(function(objs) {
+          var node = getLatest(objs[path]);
+          if (node) {
+            if (isFolder(path)) {
+              for (var i in node.itemsMap) {
+                // the hasOwnProperty check here is only because our jshint settings require it:
+                if (node.itemsMap.hasOwnProperty(i) && node.itemsMap[i] === false) {
+                  delete node.itemsMap[i];
+                }
+              }
+            }
+            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+          } else {
+            promise.fulfill(404);
+          }
+        }.bind(this), function(err) {
+          promise.reject(err);
+        });
+      }
       return promise;
     },
 
@@ -5538,7 +6122,7 @@ Math.uuid = function (len, radix) {
           var node = nodes[path];
 
           if (node && node.common && node.local) {
-            this._emit('change', {
+            this._emitChange({
               path:     node.path,
               origin:   'local',
               oldValue: (node.local.body === false ? undefined : node.local.body),
@@ -5551,13 +6135,22 @@ Math.uuid = function (len, radix) {
       }.bind(this));
     },
 
+    _emitChange: function(obj) {
+      if (RemoteStorage.config.changeEvents[obj.origin]) {
+        this._emit('change', obj);
+      }
+    },
+
     fireInitial: function() {
+      if (!RemoteStorage.config.changeEvents.local) {
+        return;
+      }
       this.forAllNodes(function(node) {
         var latest;
         if (isDocument(node.path)) {
           latest = getLatest(node);
           if (latest) {
-            this._emit('change', {
+            this._emitChange({
               path:           node.path,
               origin:         'local',
               oldValue:       undefined,
@@ -5567,6 +6160,8 @@ Math.uuid = function (len, radix) {
             });
           }
         }
+      }.bind(this)).then(function () {
+        this._emit('local-events-done');
       }.bind(this));
     },
 
@@ -5634,7 +6229,7 @@ Math.uuid = function (len, radix) {
 
     _emitChangeEvents: function(events) {
       for (var i=0; i<events.length; i++) {
-        this._emit('change', events[i]);
+        this._emitChange(events[i]);
         if (this.diffHandler) {
           this.diffHandler(events[i].path);
         }
@@ -5737,9 +6332,7 @@ Math.uuid = function (len, radix) {
    *       distinguish create/update/delete operations and analyze changes in
    *       change handlers. In addition they carry a "origin" property, which
    *       is either "window", "local", or "remote". "remote" events are fired
-   *       whenever a change comes in from RemoteStorage.Sync. In the future,
-   *       "device" origin events will also be fired for changes happening in
-   *       other windows on the same device.
+   *       whenever a change comes in from RemoteStorage.Sync.
    *
    *   The sync interface (also on RemoteStorage.IndexedDB object):
    *     - #getNodes([paths]) returns the requested nodes in a promise.
@@ -5763,14 +6356,99 @@ Math.uuid = function (len, radix) {
     }
 
     RS.cachingLayer(this);
-    RS.eventHandling(this, 'change');
+    RS.eventHandling(this, 'change', 'local-events-done');
 
     this.getsRunning = 0;
     this.putsRunning = 0;
+
+    /**
+     * Property: changesQueued
+     *
+     * Given a node for which uncommitted changes exist, this cache
+     * stores either the entire uncommitted node, or false for a deletion.
+     * The node's path is used as the key.
+     *
+     * changesQueued stores changes for which no IndexedDB transaction has
+     * been started yet.
+     */
+    this.changesQueued = {};
+
+    /**
+     * Property: changesRunning
+     *
+     * Given a node for which uncommitted changes exist, this cache
+     * stores either the entire uncommitted node, or false for a deletion.
+     * The node's path is used as the key.
+     *
+     * At any time there is at most one IndexedDB transaction running.
+     * changesRunning stores the changes that are included in that currently
+     * running IndexedDB transaction, or if none is running, of the last one
+     * that ran.
+     */
+    this.changesRunning = {};
   };
 
   RS.IndexedDB.prototype = {
     getNodes: function(paths) {
+      var misses = [], fromCache = {};
+      for (var i=0; i<paths.length; i++) {
+        if (this.changesQueued[paths[i]] !== undefined) {
+          fromCache[paths[i]] = this._getInternals().deepClone(this.changesQueued[paths[i]] || undefined);
+        } else if(this.changesRunning[paths[i]] !== undefined) {
+          fromCache[paths[i]] = this._getInternals().deepClone(this.changesRunning[paths[i]] || undefined);
+        } else {
+          misses.push(paths[i]);
+        }
+      }
+      if (misses.length > 0) {
+        return this.getNodesFromDb(misses).then(function(nodes) {
+          for (var i in fromCache) {
+            nodes[i] = fromCache[i];
+          }
+          return nodes;
+        });
+      } else {
+        promise = promising();
+        promise.fulfill(fromCache);
+        return promise;
+      }
+    },
+
+    setNodes: function(nodes) {
+      var promise = promising();
+      for (var i in nodes) {
+        this.changesQueued[i] = nodes[i] || false;
+      }
+      this.maybeFlush();
+      promise.fulfill();
+      return promise;
+    },
+
+    maybeFlush: function() {
+      if (this.putsRunning === 0) {
+        this.flushChangesQueued();
+      } else {
+        if (!this.commitSlownessWarning) {
+          this.commitSlownessWarning = setInterval(function() {
+            console.log('WARNING: waited more than 10 seconds for previous commit to finish');
+          }, 10000);
+        }
+      }
+    },
+
+    flushChangesQueued: function() {
+      if (this.commitSlownessWarning) {
+        clearInterval(this.commitSlownessWarning);
+        this.commitSlownessWarning = null;
+      }
+      if (Object.keys(this.changesQueued).length > 0) {
+        this.changesRunning = this.changesQueued;
+        this.changesQueued = {};
+        this.setNodesInDb(this.changesRunning).then(this.flushChangesQueued.bind(this));
+      }
+    },
+
+    getNodesFromDb: function(paths) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var nodes = transaction.objectStore('nodes');
@@ -5801,7 +6479,7 @@ Math.uuid = function (len, radix) {
       return promise;
     },
 
-    setNodes: function(nodes) {
+    setNodesInDb: function(nodes) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodesStore = transaction.objectStore('nodes');
@@ -6011,7 +6689,7 @@ Math.uuid = function (len, radix) {
   RemoteStorage.LocalStorage = function() {
     RemoteStorage.cachingLayer(this);
     RemoteStorage.log('[LocalStorage] Registering events');
-    RemoteStorage.eventHandling(this, 'change');
+    RemoteStorage.eventHandling(this, 'change', 'local-events-done');
   };
 
   function b64ToUint6(nChr) {
@@ -6148,7 +6826,7 @@ Math.uuid = function (len, radix) {
   RemoteStorage.InMemoryStorage = function() {
     RemoteStorage.cachingLayer(this);
     RemoteStorage.log('[InMemoryStorage] Registering events');
-    RemoteStorage.eventHandling(this, 'change');
+    RemoteStorage.eventHandling(this, 'change', 'local-events-done');
 
     this._storage = {};
   };
@@ -6291,6 +6969,7 @@ Math.uuid = function (len, radix) {
   function loadTable(table, storage, paths) {
     table.setAttribute('border', '1');
     table.style.margin = '8px';
+    table.style.color = 'white';
     table.innerHTML = '';
     var thead = document.createElement('thead');
     table.appendChild(thead);
@@ -6373,13 +7052,13 @@ Math.uuid = function (len, radix) {
     wrapper.appendChild(list);
 
     function updateList() {
-      local.changesBelow('/').then(function(changes) {
-        list.innerHTML = '';
-        changes.forEach(function(change) {
+      list.innerHTML = '';
+      local.forAllNodes(function(node) {
+        if (node.local && node.local.body) {
           var el = document.createElement('li');
-          el.textContent = JSON.stringify(change);
+          el.textContent = JSON.stringify(node.local);
           list.appendChild(el);
-        });
+        }
       });
     }
 
@@ -6426,16 +7105,23 @@ Math.uuid = function (len, radix) {
 
     widget.appendChild(controls);
 
+    var remoteRootPaths = [];
+    for (var path in this.caching._rootPaths) {
+      if (this.caching._rootPaths.hasOwnProperty(path)) {
+        remoteRootPaths.push(path);
+      }
+    }
+
     var remoteTable = document.createElement('table');
     var localTable = document.createElement('table');
-    widget.appendChild(renderWrapper("Remote", remoteTable, this.remote, this.caching.rootPaths));
+    widget.appendChild(renderWrapper("Remote", remoteTable, this.remote, remoteRootPaths));
     if (this.local) {
       widget.appendChild(renderWrapper("Local", localTable, this.local, ['/']));
       widget.appendChild(renderLocalChanges(this.local));
 
       syncButton.onclick = function() {
         this.log('sync clicked');
-        this.sync().then(function() {
+        this.sync.sync().then(function() {
           this.log('SYNC FINISHED');
           loadTable(localTable, this.local, ['/']);
         }.bind(this), function(err) {
@@ -6497,7 +7183,7 @@ Math.uuid = function (len, radix) {
         }
         if (typeof(result) === 'object' && typeof(result.then) === 'function') {
           result.then(function(res) { results[index] = res; oneDone(); },
-                      function(error) { errors[index] = res; oneDone(); });
+                      function(error) { errors[index] = error; oneDone(); });
         } else {
           oneDone();
           results[index] = result;
@@ -6613,19 +7299,17 @@ Math.uuid = function (len, radix) {
 
   RS.GoogleDrive = function(remoteStorage, clientId) {
 
-    RS.eventHandling(this, 'connected');
+    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     this.rs = remoteStorage;
     this.clientId = clientId;
 
     this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
-
-    setTimeout(function() {
-      this.configure(undefined, undefined, undefined, localStorage['remotestorage:googledrive:token']);
-    }.bind(this), 0);
   };
 
   RS.GoogleDrive.prototype = {
+    connected: false,
+    online: true,
 
     configure: function(_x, _y, _z, token) { // parameter list compatible with WireClient
       if (token) {
@@ -6636,8 +7320,6 @@ Math.uuid = function (len, radix) {
       } else {
         this.connected = false;
         delete this.token;
-        // not reseting backend whenever googledrive gets initialized without an token
-//       this.rs.setBackend(undefined);
         delete localStorage['remotestorage:googledrive:token'];
       }
     },
@@ -6645,6 +7327,12 @@ Math.uuid = function (len, radix) {
     connect: function() {
       this.rs.setBackend('googledrive');
       RS.Authorize(AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
+    },
+
+    stopWaitingForToken: function() {
+      if (!this.connected) {
+        this._emit('not-connected');
+      }
     },
 
     get: function(path, options) {
@@ -6662,7 +7350,10 @@ Math.uuid = function (len, radix) {
           promise.reject(error);
         } else if (response.status >= 200 && response.status < 300) {
           var meta = JSON.parse(response.responseText);
-          promise.fulfill(200, undefined, meta.mimeType, meta.etag);
+          var etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+          promise.fulfill(200, undefined, meta.mimeType, etagWithoutQuotes);
+        } else if (response.status === 412) {
+          promise.fulfill(412, undefined, undefined, 'conflict');
         } else {
           promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
         }
@@ -6672,6 +7363,10 @@ Math.uuid = function (len, radix) {
           promise.reject(idError);
           return;
         } else if (id) {
+          if (options && (options.ifNoneMatch === '*')) {
+            putDone(undefined, { status: 412 });
+            return;
+          }
           this._updateFile(id, path, body, contentType, options, putDone);
         } else {
           this._createFile(path, body, contentType, options, putDone);
@@ -6685,7 +7380,27 @@ Math.uuid = function (len, radix) {
       this._getFileId(path, function(idError, id) {
         if (idError) {
           promise.reject(idError);
-        } else if (id) {
+          return;
+        } else if (!id) {
+          // File doesn't exist. Ignore.
+          promise.fulfill(200);
+          return;
+        }
+
+        this._getMeta(id, function(metaError, meta) {
+          var etagWithoutQuotes;
+          if ((typeof meta === 'object') && (typeof meta.etag === 'string')) {
+            etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+          }
+          if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
+            promise.fulfill(412, undefined, undefined, etagWithoutQuotes);
+            return;
+          }
+          if (metaError) {
+            promise.reject(metaError);
+            return;
+          }
+
           this._request('DELETE', BASE_URL + '/drive/v2/files/' + id, {}, function(deleteError, response) {
             if (deleteError) {
               promise.reject(deleteError);
@@ -6695,10 +7410,7 @@ Math.uuid = function (len, radix) {
               promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
             }
           });
-        } else {
-          // file doesn't exist. ignore.
-          promise.fulfill(200);
-        }
+        });
       });
       return promise;
     },
@@ -6708,13 +7420,21 @@ Math.uuid = function (len, radix) {
       var metadata = {
         mimeType: contentType
       };
+      var headers = {
+        'Content-Type': 'application/json; charset=UTF-8'
+      };
+
+      if (options && options.ifMatch) {
+        headers['If-Match'] = '"' + options.ifMatch + '"';
+      }
+
       this._request('PUT', BASE_URL + '/upload/drive/v2/files/' + id + '?uploadType=resumable', {
         body: JSON.stringify(metadata),
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8'
-        }
+        headers: headers
       }, function(metadataError, response) {
-        if (metadataError) {
+        if (response.status === 412) {
+          callback(undefined, response);
+        } else if (metadataError) {
           callback(metadataError);
         } else {
           this._request('PUT', response.getResponseHeader('Location'), {
@@ -6770,12 +7490,29 @@ Math.uuid = function (len, radix) {
             }
             if (metaError) {
               promise.reject(metaError);
-            } else if (meta.downloadUrl) {
-              var options = {};
-              if (meta.mimeType.match(/charset=binary/)) {
-                options.responseType = 'blob';
+            } else {
+              if (options && options.ifNoneMatch && (etagWithoutQuotes == options.ifNoneMatch)) {
+                promise.fulfill(304);
+                return;
               }
-              this._request('GET', meta.downloadUrl, options, function(downloadError, response) {
+
+              var options2 = {};
+              if (!meta.downloadUrl) {
+                if(meta.exportLinks && meta.exportLinks['text/html']) {
+                  // Documents that were generated inside GoogleDocs have no
+                  // downloadUrl, but you can export them to text/html instead:
+                  meta.mimeType += ';export=text/html';
+                  meta.downloadUrl = meta.exportLinks['text/html'];
+                } else {
+                  // empty file
+                  promise.fulfill(200, '', meta.mimeType, etagWithoutQuotes);
+                  return;
+                }
+              }
+              if (meta.mimeType.match(/charset=binary/)) {
+                options2.responseType = 'blob';
+              }
+              this._request('GET', meta.downloadUrl, options2, function(downloadError, response) {
                 if (downloadError) {
                   promise.reject(downloadError);
                 } else {
@@ -6788,9 +7525,6 @@ Math.uuid = function (len, radix) {
                   promise.fulfill(200, body, meta.mimeType, etagWithoutQuotes);
                 }
               });
-            } else {
-              // empty file
-              promise.fulfill(200, '', meta.mimeType, etagWithoutQuotes);
             }
           });
         }
@@ -6911,7 +7645,13 @@ Math.uuid = function (len, radix) {
         this._getFolder(parentPath(path)).then(function() {
           var id = this._fileIdCache.get(path);
           if (!id) {
-            callback('no file or folder found at the path: ' + path, null);
+            if (path.substr(-1) === '/') {
+              this._createFolder(path, function() {
+                this._getFileId(path, callback);
+              }.bind(this));
+            } else {
+              callback(null, null);
+            }
             return;
           }
           callback(null, id);
@@ -7126,12 +7866,13 @@ Math.uuid = function (len, radix) {
       }
     };
 
-    RS.eventHandling(this, 'change', 'connected');
+    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
     rs.on('error', onErrorCb);
 
     this.clientId = rs.apiKeys.dropbox.api_key;
     this._revCache = new LowerCaseCache('rev');
     this._itemRefs = {};
+    this._metadataCache = {};
 
     if (hasLocalStorage){
       var settings;
@@ -7151,6 +7892,8 @@ Math.uuid = function (len, radix) {
   };
 
   RS.Dropbox.prototype = {
+    online: true,
+
     /**
      * Method : connect()
      *   redirects to AUTH_URL(https://www.dropbox.com/1/oauth2/authorize)
@@ -7172,11 +7915,10 @@ Math.uuid = function (len, radix) {
      *   set's the connected flag
      **/
     configure: function(userAddress, href, storageApi, token) {
-      RemoteStorage.log('dropbox configure',arguments);
       if (typeof token !== 'undefined') { this.token = token; }
       if (typeof userAddress !== 'undefined') { this.userAddress = userAddress; }
 
-      if (this.token){
+      if (this.token) {
         this.connected = true;
         if ( !this.userAddress ){
           this.info().then(function(info){
@@ -7193,6 +7935,13 @@ Math.uuid = function (len, radix) {
                                                        userAddress: this.userAddress } );
       }
     },
+    
+    stopWaitingForToken: function() {
+      if (!this.connected) {
+        this._emit('not-connected');
+      }
+    },
+    
     /**
      * Method : _getFolder(path, options)
      **/
@@ -7222,9 +7971,9 @@ Math.uuid = function (len, radix) {
             listing = body.contents.reduce(function(m, item) {
               var itemName = item.path.split('/').slice(-1)[0] + ( item.is_dir ? '/' : '' );
               if (item.is_dir){
-                m[itemName] = revCache.get(path+itemName);
+                m[itemName] = { ETag: revCache.get(path+itemName) };
               } else {
-                m[itemName] = item.rev;
+                m[itemName] = { ETag: item.rev };
               }
               return m;
             }, {});
@@ -7242,7 +7991,6 @@ Math.uuid = function (len, radix) {
      *   calls share(path) afterwards to fill the _hrefCache
      **/
     get: function(path, options){
-      RemoteStorage.log('dropbox.get', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       path = cleanPath(path);
       var url = 'https://api-content.dropbox.com/1/files/auto' + path;
@@ -7251,14 +7999,12 @@ Math.uuid = function (len, radix) {
       var savedRev = this._revCache.get(path);
       if (savedRev === null) {
         //file was deleted server side
-        RemoteStorage.log(path,' deleted 404');
         promise.fulfill(404);
         return promise;
       }
       if (options && options.ifNoneMatch &&
          savedRev && (savedRev === options.ifNoneMatch)) {
         // nothing changed.
-        RemoteStorage.log("nothing changed for",path,savedRev, options.ifNoneMatch);
         promise.fulfill(304);
         return promise;
       }
@@ -7272,9 +8018,7 @@ Math.uuid = function (len, radix) {
         } else {
           var status = resp.status;
           var meta, body, mime, rev;
-          if (status === 404){
-            promise.fulfill(404);
-          } else if (status === 200) {
+          if (status === 200) {
             body = resp.responseText;
             try {
               meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') );
@@ -7298,12 +8042,11 @@ Math.uuid = function (len, radix) {
                   body = JSON.parse(body);
                   mime = 'application/json; charset=UTF-8';
                 } catch(e) {
-                  RS.log("Failed parsing Json, assume it is something else then", mime, path);
+                  //Failed parsing Json, assume it is something else then
                 }
               }
               promise.fulfill(status, body, mime, rev);
             }
-
           } else {
             promise.fulfill(status);
           }
@@ -7318,18 +8061,24 @@ Math.uuid = function (len, radix) {
      *   also shares via share(path)
      **/
     put: function(path, body, contentType, options){
-      RemoteStorage.log('dropbox.put', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
+      var pathTempBeforeClean = path; // Temp variable to store the value beafore cleanPath, to be used later
       path = cleanPath(path);
 
+      var self = this;
       var promise = this._sharePromise(path);
-
       var revCache = this._revCache;
 
       //check if file has changed and return 412
       var savedRev = revCache.get(path);
-      if (options && options.ifMatch &&  savedRev && (savedRev !== options.ifMatch) ) {
-        promise.fulfill(412);
+      if (options && options.ifMatch &&
+          savedRev && (savedRev !== options.ifMatch)) {
+        promise.fulfill(412, undefined, undefined, savedRev);
+        return promise;
+      }
+      if (options && (options.ifNoneMatch === '*') &&
+          savedRev && (savedRev !== 'rev')) {
+        promise.fulfill(412, undefined, undefined, savedRev);
         return promise;
       }
       if (! contentType.match(/charset=/)) {
@@ -7343,22 +8092,50 @@ Math.uuid = function (len, radix) {
         //https://www.dropbox.com/developers/core/docs#chunked-upload
         RemoteStorage.log('files larger than 150MB not supported yet');
       } else {
-        this._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
-          if (err) {
-            promise.reject(err);
-          } else {
-            var response = JSON.parse(resp.responseText);
-            // if dropbox reports an file conflict they just change the name of the file
-            // TODO find out which stays the origianl and how to deal with this
-            if (response.path !== path){
-              promise.fulfill(412);
-              this.rs.log('Dropbox created conflicting File ', response.path);
-            }
-            else {
-              revCache.set(path, response.rev);
+        var promiseMetadata = promising();
+        if (options && (options.ifMatch || (options.ifNoneMatch === '*'))) {
+          this._getMetadata(pathTempBeforeClean).then(function(metadata) {
+            promiseMetadata.fulfill(metadata);
+          });
+        } else {
+          promiseMetadata.fulfill();
+        }
+
+        promiseMetadata.then(function(metadata) {
+          if (options && (options.ifNoneMatch === '*') && metadata) {
+            // if !!metadata === true, the file exists
+            promise.fulfill(412, undefined, undefined, metadata.rev);
+            return;
+          }
+          if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
+            promise.fulfill(412, undefined, undefined, metadata.rev);
+            return;
+          }
+          self._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}, function(err, resp) {
+            if (err) {
+              promise.reject(err);
+            } else if (resp.status === 200) {
+              var response = JSON.parse(resp.responseText);
+              if (response.path === pathTempBeforeClean) {
+                revCache.propagateSet(path, response.rev);
+                promise.fulfill(resp.status);
+              } else {
+                // Conflict happened. Delete the copy created by Dropbox
+                var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
+                self._request('POST', deleteUrl, {}, function() {});
+
+                // If we got into this situation here, then it means that the
+                // file changed between the metadata request and this PUT
+                // request. Because of that the previously requested metadata
+                // cannot be reused here and a new request has to be made:
+                self._getMetadata(path).then(function(metadata) {
+                  promise.fulfill(412, undefined, undefined, metadata.rev);
+                });
+              }
+            } else {
               promise.fulfill(resp.status);
             }
-          }
+          });
         });
       }
       return promise;
@@ -7369,27 +8146,47 @@ Math.uuid = function (len, radix) {
      *   similar to get and set
      **/
     'delete': function(path, options){
-      RemoteStorage.log('dropbox.delete ', arguments);
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
+      var pathTempBeforeClean = path; // Temp variable to store the value before cleanPath, to be used later
       path = cleanPath(path);
 
+      var self = this;
       var promise = promising();
       var revCache = this._revCache;
       //check if file has changed and return 412
       var savedRev = revCache.get(path);
-      if (options.ifMatch && savedRev && (options.ifMatch !== savedRev)) {
-        promise.fulfill(412);
+      if (options && options.ifMatch &&
+          savedRev && (options.ifMatch !== savedRev)) {
+        promise.fulfill(412, undefined, undefined, savedRev);
         return promise;
       }
 
-      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path='+encodeURIComponent(path);
-      this._request('POST', url, {}, function(err, resp){
-        if (err) {
-          promise.reject(error);
-        } else {
-          promise.fulfill(resp.status);
-          revCache.delete(path);
+      var promiseMetadata = promising();
+      if (options && options.ifMatch) {
+        this._getMetadata(pathTempBeforeClean).then(function(metadata) {
+          promiseMetadata.fulfill(metadata);
+        });
+      } else {
+        promiseMetadata.fulfill();
+      }
+
+      promiseMetadata.then(function(metadata) {
+        if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
+          promise.fulfill(412, undefined, undefined, metadata.rev);
+          return;
         }
+
+        var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(pathTempBeforeClean);
+        self._request('POST', url, {}, function(err, resp){
+          if (err) {
+            promise.reject(error);
+          } else {
+            if (resp.status === 200) {
+              revCache.delete(path);
+            }
+            promise.fulfill(resp.status);
+          }
+        });
       });
 
       return promise.then(function(){
@@ -7411,16 +8208,12 @@ Math.uuid = function (len, radix) {
       var promise = promising();
       var self = this;
       if (path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] === 'undefined') {
-        RemoteStorage.log('shareing this one ', path);
         promise.then(function(){
           var args = Array.prototype.slice.call(arguments);
           var p = promising();
-          RemoteStorage.log('calling share now');
           self.share(path).then(function() {
-            RemoteStorage.log('shareing fullfilled promise',arguments);
             p.fulfill.apply(p,args);
           }, function(err) {
-            RemoteStorage.log("shareing failed" , err);
             p.fulfill.apply(p,args);
           });
           return p;
@@ -7450,7 +8243,6 @@ Math.uuid = function (len, radix) {
             var response = JSON.parse(resp.responseText);
             var url = response.url;
             itemRefs[path] = url;
-            RemoteStorage.log("SHAREING URL :::: ",url,' for ',path);
             if (hasLocalStorage) {
               localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
             }
@@ -7529,7 +8321,6 @@ Math.uuid = function (len, radix) {
               this.rs._emit('error', new RemoteStorage.Unauthorized());
               promise.fulfill.apply(promise, args);
             } else {
-              RemoteStorage.log("!!!!dropbox.fetchDelta returned "+response.status+response.responseText);
               promise.reject("dropbox.fetchDelta returned "+response.status+response.responseText);
             }
             return promise;
@@ -7544,7 +8335,6 @@ Math.uuid = function (len, radix) {
           }
           // break if no entries found
           if (!delta.entries) {
-            RemoteStorage.log("!!!!!DropBox.fetchDeltas() NO ENTRIES FOUND!!", delta);
             return promise.reject('dropbox.fetchDeltas failed, no entries found');
           }
 
@@ -7582,6 +8372,35 @@ Math.uuid = function (len, radix) {
           promise.fulfill.apply(promise, args);
         }
       });
+      return promise;
+    },
+
+    _getMetadata: function(path, options) {
+      var promise = promising();
+      var self = this;
+      var cached = this._metadataCache[path];
+      var url = 'https://api.dropbox.com/1/metadata/auto' + cleanPath(path);
+      url += '?list=' + ((options && options.list) ? 'true' : 'false');
+      if (cached && cached.hash) {
+        url += '&hash=' + encodeURIComponent(cached.hash);
+      }
+      this._request('GET', url, {}, function(err, resp) {
+        if (err) {
+          promise.reject(err);
+          return;
+        }
+        if (resp.status === 304) {
+          promise.fulfill(cached);
+        } else if (resp.status === 200) {
+          var response = JSON.parse(resp.responseText);
+          self._metadataCache[path] = response;
+          promise.fulfill(response);
+        } else {
+          // The file doesn't exist
+          promise.fulfill();
+        }
+      });
+
       return promise;
     }
   };

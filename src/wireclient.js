@@ -98,6 +98,33 @@
     reader.readAsArrayBuffer(blob);
   }
 
+  function getTextFromArrayBuffer(arrayBuffer, encoding, callback) {
+    if (typeof Blob === 'undefined') {
+      var buffer = new Buffer(new Uint8Array(arrayBuffer));
+      callback(buffer.toString(encoding));
+    } else {
+      var blob = new Blob([arrayBuffer]);
+      var fileReader = new FileReader();
+      fileReader.addEventListener("loadend", function(evt) {
+        callback(evt.target.result);
+      });
+      fileReader.readAsText(blob, encoding);
+    }
+  }
+
+  function determineCharset(mimeType) {
+    var charset = 'UTF-8';
+    var charsetMatch;
+
+    if (mimeType) {
+      charsetMatch = mimeType.match(/charset=(.+)$/);
+      if (charsetMatch) {
+        charset = charsetMatch[1];
+      }
+    }
+    return charset;
+  }
+
   function cleanPath(path) {
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
@@ -138,7 +165,9 @@
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     onErrorCb = function(error){
-      if (error instanceof RemoteStorage.Unauthorized) {
+      if (error instanceof RemoteStorage.SyncError) {
+        this.online = false;
+      } else if (error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this);
@@ -209,7 +238,9 @@
       var reqType;
       var self = this;
 
-      headers['Authorization'] = 'Bearer ' + token;
+      if (token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) {
+        headers['Authorization'] = 'Bearer ' + token;
+      }
 
       this._emit('wire-busy', {
         method: method,
@@ -218,7 +249,8 @@
 
       RS.WireClient.request(method, uri, {
         body: body,
-        headers: headers
+        headers: headers,
+        responseType: 'arraybuffer'
       }, function(error, response) {
         if (error) {
           self._emit('wire-done', {
@@ -257,19 +289,16 @@
               revision = response.status === 200 ? fakeRevision : undefined;
             }
 
-            if ((!mimeType) || mimeType.match(/charset=binary/)) {
-              RS.WireClient.readBinaryData(response.response, mimeType, function(result) {
-                RemoteStorage.log('[WireClient] Successful request with unknown or binary mime-type', revision);
-                promise.fulfill(response.status, result, mimeType, revision);
-              });
+            var charset = determineCharset(mimeType);
+
+            if ((!mimeType) || charset === 'binary') {
+              RemoteStorage.log('[WireClient] Successful request with unknown or binary mime-type', revision);
+              promise.fulfill(response.status, response.response, mimeType, revision);
             } else {
-              if (mimeType && mimeType.match(/^application\/json/)) {
-                body = JSON.parse(response.responseText);
-              } else {
-                body = response.responseText;
-              }
-              RemoteStorage.log('[WireClient] Successful request', revision);
-              promise.fulfill(response.status, body, mimeType, revision);
+              getTextFromArrayBuffer(response.response, charset, function(body) {
+                RemoteStorage.log('[WireClient] Successful request', revision);
+                promise.fulfill(response.status, body, mimeType, revision);
+              });
             }
           }
         }
@@ -339,6 +368,13 @@
         return promise.then(function(status, body, contentType, revision) {
           var itemsMap = {};
 
+          if (typeof(body) !== 'undefined') {
+            try {
+              body = JSON.parse(body);
+            } catch (e) {
+              throw 'Folder description at ' + this.href + cleanPath(path) + ' is not JSON';
+            }
+          }
           // New folder listing received
           if (status === 200 && typeof(body) === 'object') {
             // Empty folder listing of any spec
@@ -374,8 +410,8 @@
         throw new Error("not connected (path: " + path + ")");
       }
       if (!options) { options = {}; }
-      if (!contentType.match(/charset=/)) {
-        contentType += '; charset=' + ((body instanceof ArrayBuffer || isArrayBufferView(body)) ? 'binary' : 'utf-8');
+      if ((!contentType.match(/charset=/)) && (body instanceof ArrayBuffer || isArrayBufferView(body))) {
+        contentType +=  '; charset=binary';
       }
       var headers = { 'Content-Type': contentType };
       if (this.supportsRevs) {
@@ -461,8 +497,6 @@
       }
       else if (body instanceof ArrayBuffer) {
         body = new Uint8Array(body);
-      } else {
-        body = JSON.stringify(body);
       }
     }
     xhr.send(body);

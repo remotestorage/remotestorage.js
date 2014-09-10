@@ -63,9 +63,14 @@ define([], function() {
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-      require('./src/remotestorage');
-      require('./src/eventhandling');
       require('./lib/promising');
+      require('./src/remotestorage');
+      if (global.rs_rs) {
+        RemoteStorage = global.rs_rs;
+      } else {
+        global.rs_rs = RemoteStorage;
+      }
+      require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
@@ -258,12 +263,59 @@ define([], function() {
       {
         desc: "#connect throws DiscoveryError on timeout of RemoteStorage.Discover",
         run: function(env, test) {
+          RemoteStorage.config.discoveryTimeout = 500;
           env.rs.on('error', function(e) {
             test.assertAnd(e instanceof RemoteStorage.DiscoveryError, true);
             test.assertAnd(e.message, "No storage information found at that user address.", "wrong error message : "+e.message);
             test.done();
           });
           env.rs.connect("someone@timeout");
+        }
+      },
+
+      {
+        desc: "maxAge defaults to false when not connected",
+        run: function(env, test) {
+          var rs = {
+            get: RemoteStorage.SyncedGetPutDelete.get,
+            local: {
+              get: function(path, maxAge) {
+                test.assertAnd(path, 'foo');
+                test.assertAnd(maxAge, false);
+                test.done();
+              }
+            },
+            sync: {
+              queueGetRequest: function() {
+              }
+            },
+            connected: false
+          };
+          rs.get('foo');
+        }
+      },
+      {
+        desc: "maxAge defaults to 2*getSyncInterval when connected",
+        run: function(env, test) {
+          var rs = {
+            get: RemoteStorage.SyncedGetPutDelete.get,
+            local: {
+              get: function(path, maxAge) {
+                test.assertAnd(path, 'foo');
+                test.assertAnd(maxAge, 34222);
+                test.done();
+              }
+            },
+            sync: {
+              queueGetRequest: function() {
+              }
+            },
+            connected: true,
+            getSyncInterval: function() {
+              return 17111;
+            }
+          };
+          rs.get('foo');
         }
       }
     ]
@@ -306,16 +358,16 @@ define([], function() {
       },
 
       {
-        desc: "#log calls console.log, when _log is true",
+        desc: "#log calls console.log, when config.logging is true",
         run: function(env, test) {
           replaceConsoleLog();
           try {
-            RemoteStorage._log = true;
+            RemoteStorage.config.logging = true;
             RemoteStorage.log('foo', 'bar', 'baz');
             assertConsoleLog(test, 'foo', 'bar', 'baz');
           } catch(e) {
             restoreConsoleLog();
-            RemoteStorage._log = false;
+            RemoteStorage.config.logging = false;
             throw e;
           }
           restoreConsoleLog();

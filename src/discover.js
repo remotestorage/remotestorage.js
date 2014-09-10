@@ -10,15 +10,15 @@
   /**
    * Class: RemoteStorage.Discover
    *
-   * This class deals with the webfinger lookup
+   * This class deals with the Webfinger lookup, discovering a connecting
+   * user's storage details.
+   *
+   * The discovery timeout can be configured via
+   * `RemoteStorage.config.discoveryTimeout` (in ms).
    *
    * Arguments:
-   * userAddress - user@host
-   * callback    - gets called with href of the storage, the type and the authURL
-   * Example:
-   * (start code)
-   *
-   * (end code)
+   *   userAddress - user@host
+   *   callback    - gets called with href of the storage, the type and the authURL
    **/
 
   RemoteStorage.Discover = function(userAddress, callback) {
@@ -31,9 +31,7 @@
     var params = '?resource=' + encodeURIComponent('acct:' + userAddress);
     var urls = [
       'https://' + hostname + '/.well-known/webfinger' + params,
-      'https://' + hostname + '/.well-known/host-meta.json' + params,
-      'http://' + hostname + '/.well-known/webfinger' + params,
-      'http://' + hostname + '/.well-known/host-meta.json' + params
+      'http://' + hostname + '/.well-known/webfinger' + params
     ];
 
     function tryOne() {

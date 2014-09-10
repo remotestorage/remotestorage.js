@@ -31,9 +31,7 @@
    *       distinguish create/update/delete operations and analyze changes in
    *       change handlers. In addition they carry a "origin" property, which
    *       is either "window", "local", or "remote". "remote" events are fired
-   *       whenever a change comes in from RemoteStorage.Sync. In the future,
-   *       "device" origin events will also be fired for changes happening in
-   *       other windows on the same device.
+   *       whenever a change comes in from RemoteStorage.Sync.
    *
    *   The sync interface (also on RemoteStorage.IndexedDB object):
    *     - #getNodes([paths]) returns the requested nodes in a promise.
@@ -57,14 +55,99 @@
     }
 
     RS.cachingLayer(this);
-    RS.eventHandling(this, 'change');
+    RS.eventHandling(this, 'change', 'local-events-done');
 
     this.getsRunning = 0;
     this.putsRunning = 0;
+
+    /**
+     * Property: changesQueued
+     *
+     * Given a node for which uncommitted changes exist, this cache
+     * stores either the entire uncommitted node, or false for a deletion.
+     * The node's path is used as the key.
+     *
+     * changesQueued stores changes for which no IndexedDB transaction has
+     * been started yet.
+     */
+    this.changesQueued = {};
+
+    /**
+     * Property: changesRunning
+     *
+     * Given a node for which uncommitted changes exist, this cache
+     * stores either the entire uncommitted node, or false for a deletion.
+     * The node's path is used as the key.
+     *
+     * At any time there is at most one IndexedDB transaction running.
+     * changesRunning stores the changes that are included in that currently
+     * running IndexedDB transaction, or if none is running, of the last one
+     * that ran.
+     */
+    this.changesRunning = {};
   };
 
   RS.IndexedDB.prototype = {
     getNodes: function(paths) {
+      var misses = [], fromCache = {};
+      for (var i=0; i<paths.length; i++) {
+        if (this.changesQueued[paths[i]] !== undefined) {
+          fromCache[paths[i]] = this._getInternals().deepClone(this.changesQueued[paths[i]] || undefined);
+        } else if(this.changesRunning[paths[i]] !== undefined) {
+          fromCache[paths[i]] = this._getInternals().deepClone(this.changesRunning[paths[i]] || undefined);
+        } else {
+          misses.push(paths[i]);
+        }
+      }
+      if (misses.length > 0) {
+        return this.getNodesFromDb(misses).then(function(nodes) {
+          for (var i in fromCache) {
+            nodes[i] = fromCache[i];
+          }
+          return nodes;
+        });
+      } else {
+        promise = promising();
+        promise.fulfill(fromCache);
+        return promise;
+      }
+    },
+
+    setNodes: function(nodes) {
+      var promise = promising();
+      for (var i in nodes) {
+        this.changesQueued[i] = nodes[i] || false;
+      }
+      this.maybeFlush();
+      promise.fulfill();
+      return promise;
+    },
+
+    maybeFlush: function() {
+      if (this.putsRunning === 0) {
+        this.flushChangesQueued();
+      } else {
+        if (!this.commitSlownessWarning) {
+          this.commitSlownessWarning = setInterval(function() {
+            console.log('WARNING: waited more than 10 seconds for previous commit to finish');
+          }, 10000);
+        }
+      }
+    },
+
+    flushChangesQueued: function() {
+      if (this.commitSlownessWarning) {
+        clearInterval(this.commitSlownessWarning);
+        this.commitSlownessWarning = null;
+      }
+      if (Object.keys(this.changesQueued).length > 0) {
+        this.changesRunning = this.changesQueued;
+        this.changesQueued = {};
+        this.setNodesInDb(this.changesRunning).then(this.flushChangesQueued.bind(this));
+      }
+    },
+
+    getNodesFromDb: function(paths) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var nodes = transaction.objectStore('nodes');
@@ -95,7 +178,7 @@
       return promise;
     },
 
-    setNodes: function(nodes) {
+    setNodesInDb: function(nodes) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodesStore = transaction.objectStore('nodes');

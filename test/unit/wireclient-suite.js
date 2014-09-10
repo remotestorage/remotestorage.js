@@ -1,115 +1,117 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
+define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(requirejs, backend, mocks, undefined) {
   var suites = [];
+
+  function setup(env, test) {
+    global.RemoteStorage = function() {};
+    RemoteStorage.log = function() {};
+    global.RemoteStorage.Unauthorized = function() {};
+    global.RemoteStorage.SyncError = function() {};
+    global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
+    require('./lib/promising');
+    require('./src/eventhandling');
+
+    if (global.rs_eventhandling) {
+      RemoteStorage.eventHandling = global.rs_eventhandling;
+    } else {
+      global.rs_eventhandling = RemoteStorage.eventHandling;
+    }
+    require('./src/wireclient');
+    if (global.rs_wireclient) {
+      RemoteStorage.WireClient = global.rs_wireclient;
+    } else {
+      global.rs_wireclient = RemoteStorage.WireClient;
+    }
+
+    RemoteStorage.Authorize = {
+      IMPLIED_FAKE_TOKEN: false
+    };
+    test.done();
+  }
+
+  function beforeEach(env, test) {
+    global.ArrayBufferMock = function(str) {
+      return {
+        iAmA: 'ArrayBufferMock',
+        content: str
+      };
+    };
+    global.XMLHttpRequest = function() {
+      XMLHttpRequest.instances.push(this);
+      this._headers = {};
+      this._responseHeaders = {};
+    };
+    XMLHttpRequest.instances = [];
+    XMLHttpRequest.prototype = {
+      open: function() {
+        this._open = Array.prototype.slice.call(arguments);
+      },
+      send: function() {
+        this._send = Array.prototype.slice.call(arguments);
+      },
+      setRequestHeader: function(key, value) {
+        this._headers[key] = value;
+      },
+      getResponseHeader: function(key) {
+        return this._responseHeaders[key];
+      }
+    };
+    ['load', 'abort', 'error'].forEach(function(cb) {
+      Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
+        configurable: true,
+        set: function(f) {
+          this['_on' + cb] = f;
+        }
+      });
+    });
+    env.rs = new RemoteStorage();
+    RemoteStorage.eventHandling(env.rs, 'error');
+    env.client = new RemoteStorage.WireClient(env.rs);
+    env.connectedClient = new RemoteStorage.WireClient(env.rs);
+    env.baseURI = 'https://example.com/storage/test';
+    env.token = 'foobarbaz';
+    env.connectedClient.configure(
+      undefined, env.baseURI, undefined, env.token
+    );
+
+    mocks.defineMocks(env);
+
+    env.busy = new test.Stub(function(){});
+    env.done = new test.Stub(function(){});
+    env.connectedClient.on('wire-busy', env.busy);
+    env.connectedClient.on('wire-done', env.done);
+
+    test.done();
+  }
+
+  function afterEach(env, test) {
+    delete global.XMLHttpRequest;
+    delete global.Blob;
+    delete global.FileReader;
+    delete env.client;
+    delete env.blob;
+    delete env.fileReaderResult;
+    test.done();
+  }
+
+  suites.push({
+    name: "WireClient",
+    desc: "behaves like a backend",
+    setup: setup,
+    beforeEach: beforeEach,
+    afterEach: afterEach,
+    tests: backend.behavior
+  });
 
   suites.push({
     name: "WireClient",
     desc: "Low-level remotestorage client based on XMLHttpRequest",
-    setup: function(env, test) {
-      global.RemoteStorage = function() {};
-      RemoteStorage.log = function() {};
-      global.RemoteStorage.Unauthorized = function() {};
-      global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
-      require('./lib/promising');
-      require('./src/eventhandling');
-
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-      require('./src/wireclient');
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-
-      test.done();
-    },
-
-    beforeEach: function(env, test) {
-      global.XMLHttpRequest = function() {
-        XMLHttpRequest.instances.push(this);
-        this._headers = {};
-        this._responseHeaders = {};
-      };
-      XMLHttpRequest.instances = [];
-      XMLHttpRequest.prototype = {
-        open: function() {
-          this._open = Array.prototype.slice.call(arguments);
-        },
-        send: function() {
-          this._send = Array.prototype.slice.call(arguments);
-        },
-        setRequestHeader: function(key, value) {
-          this._headers[key] = value;
-        },
-        getResponseHeader: function(key) {
-          return this._responseHeaders[key];
-        }
-      };
-      ['load', 'abort', 'error'].forEach(function(cb) {
-        Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
-          configurable: true,
-          set: function(f) {
-            this['_on' + cb] = f;
-          }
-        });
-      });
-      env.rs = new RemoteStorage();
-      RemoteStorage.eventHandling(env.rs, 'error');
-      env.client = new RemoteStorage.WireClient(env.rs);
-      env.connectedClient = new RemoteStorage.WireClient(env.rs);
-      env.baseURI = 'https://example.com/storage/test';
-      env.token = 'foobarbaz';
-      env.connectedClient.configure(
-        undefined, env.baseURI, undefined, env.token
-      );
-      global.Blob = function(input, options) {
-        this.input = input;
-        this.options = options;
-        env.blob = this;
-      };
-      global.FileReader = function() {};
-      FileReader.prototype = {
-        _events: {
-          loadend: []
-        },
-        addEventListener: function(eventName, handler) {
-          this._events[eventName].push(handler);
-        },
-        readAsArrayBuffer: function(blob) {
-          setTimeout(function() {
-            this.result = env.fileReaderResult = Math.random();
-            this._events.loadend[0]();
-          }.bind(this), 0);
-        }
-      };
-
-      test.done();
-    },
-
-    afterEach: function(env, test) {
-      delete global.XMLHttpRequest;
-      delete global.Blob;
-      delete global.FileReader;
-      delete env.client;
-      delete env.blob;
-      delete env.fileReaderResult;
-      test.done();
-    },
-
+    setup: setup,
+    beforeEach: beforeEach,
+    afterEach: afterEach,
     tests: [
-      {
-        desc: "it's initially not connected",
-        run: function(env, test) {
-          test.assert(env.client.connected, false);
-        }
-      },
-
       {
         desc: "#get / #put / #delete throw an exception if not connected",
         run: function(env, test) {
@@ -137,19 +139,15 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.get() of a document emits wire-busy and wire-done on success",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo').then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
           req.status = 200;
-          req.responseText = 'response-body';
+          req.response = new ArrayBufferMock('response-body');
           req._onload();
         }
       },
@@ -157,14 +155,10 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.get() of a document emits wire-busy and wire-done on failure",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo').then(function(){
           }, function(err) {
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -175,21 +169,17 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.get() of a folder emits wire-busy and wire-done on success, and sets remote.online to true",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
           env.connectedClient.online = false;
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo/').then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.assertAnd(env.connectedClient.online, true);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
           req.status = 200;
-          req.responseText = {'@context':'http://remotestorage.io/spec/folder-description', items: {}};
+          req.response = new ArrayBufferMock(JSON.stringify({'@context':'http://remotestorage.io/spec/folder-description', items: {}}));
           req._onload();
         }
       },
@@ -197,15 +187,11 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.get() of a folder emits wire-busy and wire-done on failure, and sets remote.online to false",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
           env.connectedClient.online = true;
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.get('/foo/').then(function(){
           }, function(err) {
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.assertAnd(env.connectedClient.online, false);
             test.done();
           });
@@ -217,19 +203,15 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.put() emits wire-busy and wire-done on success",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.put('/foo', 'body', 'content-type', {}).then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
           req.status = 200;
-          req.responseText = 'response-body';
+          req.response = new ArrayBufferMock('response-body');
           req._onload();
         }
       },
@@ -237,14 +219,10 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.put() emits wire-busy and wire-done on failure",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.put('/foo', 'body', 'content-type', {}).then(function(){
           }, function(err) {
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -255,19 +233,15 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.delete() emits wire-busy and wire-done on success",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.delete('/foo').then(function(){
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
           req.status = 200;
-          req.responseText = 'response-body';
+          req.response = new ArrayBufferMock('response-body');
           req._onload();
         }
       },
@@ -275,14 +249,10 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "client.delete() emits wire-busy and wire-done on failure",
         run: function(env,test){
-          var busy = new test.Stub(function(){});
-          var done = new test.Stub(function(){});
-          env.connectedClient.on('wire-busy', busy);
-          env.connectedClient.on('wire-done', done);
           env.connectedClient.delete('/foo', 'body', 'content-type', {}).then(function(){
           }, function(err) {
-            test.assertAnd(busy.numCalled, 1);
-            test.assertAnd(done.numCalled, 1);
+            test.assertAnd(env.busy.numCalled, 1);
+            test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
           var req = XMLHttpRequest.instances.shift();
@@ -479,24 +449,24 @@ define(['requirejs'], function(requirejs, undefined) {
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
           req.status = 200;
-          req.responseText = 'response-body';
+          req.response = new ArrayBufferMock('response-body');
           req._onload();
         }
       },
 
       {
-        desc: "#get unpacks JSON responses",
+        desc: "#get does not unpack JSON responses",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
-              test.assertAnd(body, { response: 'body' });
+              test.assertAnd(body, JSON.stringify({ response: 'body' }));
               test.assert(contentType, 'application/json; charset=UTF-8');
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
           req.status = 200;
-          req.responseText = '{"response":"body"}';
+          req.response = new ArrayBufferMock('{"response":"body"}');
           req._onload();
         }
       },
@@ -513,7 +483,7 @@ define(['requirejs'], function(requirejs, undefined) {
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
           req.status = 200;
-          req.responseText = '{"a":"qwer","b/":"asdf"}';
+          req.response = new ArrayBufferMock('{"a":"qwer","b/":"asdf"}');
           req._onload();
         }
       },
@@ -534,7 +504,7 @@ define(['requirejs'], function(requirejs, undefined) {
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
           req.status = 200;
-          req.responseText = JSON.stringify({
+          req.response = new ArrayBufferMock(JSON.stringify({
             "@context": "http://remotestorage.io/spec/folder-description",
             items: {
               a: {
@@ -548,7 +518,7 @@ define(['requirejs'], function(requirejs, undefined) {
                 "Content-Length": 137
               }
             }
-          });
+          }));
           req._onload();
         }
       },
@@ -661,6 +631,17 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
+        desc: "WireClient is marked offline after SyncError",
+        run: function(env, test){
+          env.connectedClient.online = true;
+          env.rs._emit('error', new RemoteStorage.SyncError());
+          setTimeout(function() {
+            test.assert(env.connectedClient.online, false);
+          }, 100);
+        }
+      },
+
+      {
         desc: "requests are aborted if they aren't responded after REQUEST_TIMEOUT milliseconds",
         timeout: 3000,
         run: function(env, test) {
@@ -674,41 +655,90 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "responses with the charset set to 'binary' are read using a FileReader, after constructing a Blob",
+        desc: "responses with the charset set to 'binary' are left as the raw response",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
-              // check Blob
-              test.assertTypeAnd(env.blob, 'object');
-              test.assertAnd(env.blob.input, ['response-body']);
-              test.assertAnd(env.blob.options, {
-                type: 'application/octet-stream; charset=binary'
-              });
-
               test.assertAnd(status, 200);
-              test.assertAnd(body, env.fileReaderResult);
+              test.assertAnd(body, {
+                iAmA: 'ArrayBufferMock',
+                content: 'response-body'
+              });
               test.assert(contentType, 'application/octet-stream; charset=binary');
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
           req.status = 200;
-          req.response = 'response-body';
+          req.response = new ArrayBufferMock('response-body');
           req._onload();
         }
       },
 
       {
-        desc: "responses without a Content-Type header still work",
+        desc: "PUTs of ArrayBuffers get a binary charset added",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', new ArrayBuffer('bla', 'UTF-8'), 'image/jpeg', {});
+          var request = XMLHttpRequest.instances.shift();
+          var contentTypeHeader = request._headers['Content-Type'];
+          test.assert(contentTypeHeader, 'image/jpeg; charset=binary');
+        }
+      },
+
+      {
+        desc: "PUTs of ArrayBuffers get no second binary charset added",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', new ArrayBuffer('bla', 'UTF-8'), 'image/jpeg; charset=custom', {});
+          var request = XMLHttpRequest.instances.shift();
+          var contentTypeHeader = request._headers['Content-Type'];
+          test.assert(contentTypeHeader, 'image/jpeg; charset=custom');
+        }
+      },
+
+      {
+        desc: "PUTs of strings get no charset added",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', 'bla', 'text/html', {});
+          var request = XMLHttpRequest.instances.shift();
+          var contentTypeHeader = request._headers['Content-Type'];
+          test.assert(contentTypeHeader, 'text/html');
+        }
+      },
+
+      {
+        desc: "PUTs of strings have UTF-8 charset preserved",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', 'bla', 'text/html; charset=UTF-8', {});
+          var request = XMLHttpRequest.instances.shift();
+          var contentTypeHeader = request._headers['Content-Type'];
+          test.assert(contentTypeHeader, 'text/html; charset=UTF-8');
+        }
+      },
+
+      {
+        desc: "PUTs of strings have custom charset preserved",
+        run: function(env, test) {
+          env.connectedClient.put('/foo/bar', 'bla', 'text/html; charset=myown', {});
+          var request = XMLHttpRequest.instances.shift();
+          var contentTypeHeader = request._headers['Content-Type'];
+          test.assert(contentTypeHeader, 'text/html; charset=myown');
+        }
+      },
+
+      {
+        desc: "responses without a Content-Type header are left as the raw response",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
             then(function(status, body, contentType) {
               test.assertAnd(status, 200);
-              test.assertAnd(body, env.fileReaderResult);
+              test.assertAnd(body, {
+                iAmA: 'ArrayBufferMock',
+                content: 'response-body'
+              });
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
           req.status = 200;
-          req.response = 'response-body';
+          req.response = new ArrayBufferMock('response-body');
           req._onload();
         }
       },

@@ -11,6 +11,9 @@ define(['requirejs'], function(requirejs) {
       require('./lib/promising');
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
+      global.RemoteStorage.config = {
+        changeEvents: { local: true, window: false, remote: true, conflict: true }
+      };
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
@@ -86,23 +89,77 @@ define(['requirejs'], function(requirejs) {
         desc: "fireInitial fires change event with 'local' origin for initial cache content",
         timeout: 250,
         run: function(env, test) {
+          env.idb.putsRunning = 0;
           env.idb.put('/foo/bla', 'basdf', 'text/plain').then(function() {
             env.idb.on('change', function(event) {
-              test.assert(event.origin, 'local');
+              test.assertAnd(event.origin, 'local');
+              setTimeout(function() {
+                test.done();
+              }, 50);
             });
             //the mock is just an in-memory object; need to explicitly set its .length and its .key() function now:
             env.idb.fireInitial();
           }, function(e) {
             test.result(false, e);
           });
-          setTimeout(function() {
-            env._puts[0].onsuccess();
-            env._transactions[1].oncomplete();
-          }, 100);
           env._gets[0].onsuccess({ target: {}});
           env._transactions[0].oncomplete();
         }
       },
+
+      {
+        desc: "setNodes calls setNodesInDb when putsRunning is 0",
+        run: function(env, test) {
+          var setNodesInDb = env.idb.setNodesInDb,
+            getNodesFromDb = env.idb.getNodesFromDb;
+          env.idb.setNodesInDb = function(nodes) {
+            var promise = promising();
+            test.assertAnd(nodes, {foo: {path: 'foo'}});
+            setTimeout(function() {
+              env.idb.setNodesInDb = setNodesInDb;
+              env.idb.getNodesFromDb = getNodesFromDb;
+              test.done();
+            }, 10);
+            promise.fulfill();
+            return promise;
+          };
+          env.idb.putsRunning = 0;
+          env.idb.setNodes({foo: {path: 'foo'}});
+        }
+      },
+
+      {
+        desc: "setNodes doesn't call setNodesInDb when putsRunning is 1, but will flush later",
+        run: function(env, test) {
+          var setNodesInDb = env.idb.setNodesInDb,
+            getNodesFromDb = env.idb.getNodesFromDb;
+          env.idb.changesQueued = {};
+          env.idb.changesRunning = {};
+          env.idb.setNodesInDb = function(nodes) {
+            test.result(false, 'should not have called this function');
+          };
+          env.idb.putsRunning = 1;
+          env.idb.setNodes({foo: {path: 'foo'}});
+          test.assertAnd(env.idb.changesQueued, {foo: {path: 'foo'}});
+          test.assertAnd(env.idb.changesRunning, {});
+          
+          env.idb.setNodesInDb = function(nodes) {
+            var promise = promising();
+            test.assertAnd(nodes, {foo: {path: 'foo'}});
+            setTimeout(function() {
+              env.idb.setNodesInDb = setNodesInDb;
+              env.idb.getNodesFromDb = getNodesFromDb;
+              test.done();
+            }, 10);
+            promise.fulfill();
+            return promise;
+          };
+          env.idb.putsRunning = 0;
+          env.idb.maybeFlush();
+          test.assertAnd(env.idb.changesQueued, {});
+          test.assertAnd(env.idb.changesRunning, {foo: {path: 'foo'}});
+        }
+      }
 /* TODO: mock indexeddb with some nodejs library
       {
         desc: "getNodes, setNodes",

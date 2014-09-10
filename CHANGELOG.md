@@ -3,26 +3,54 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
-## 0.10.0 (April 2014)
+## 0.10.1 (August 2014)
+
+### Bugfixes
+
+* Remove old webfinger URL and increase discovery timeout (#591)
+* Set the charset for binary, but not for UTF-8 (#668)
+* Fix coming back online (#725)
+* Fix merging of mutual deletions (#737)
+
+## 0.10.0 (June 2014)
 
 This release contains a major rewrite of the tree-based sync and caching
 system. Old cached data will be converted to the new format automatically.
 
 ### Breaking changes
 
+* `getAll` and `getListing` now return an empty object instead of undefined when no items
+    match the query
+* Object meta data has been removed from the `getListing` response, until we have a better
+    implementation (#652, #720, #721)
 * `disconnect` event removed in favor of `disconnected`
 * `remoteStorage.claimAccess` removed in favor of `remoteStorage.access.claim`
 * `BaseClient#use` and `BaseClient#release` removed in favor of `BaseClient#cache`
+* Change events with origin 'window' are now disabled by default
+* The config variable `RemoteStorage._log` was renamed to `RemoteStorage.config.logging`
 
 ### New features
 
+* Major rewrite of the tree-based sync and caching system
+* Performance was improved, especially when storing many small objects
 * A new `maxAge` parameter is available in the various BaseClient get...
-  functions, where you can specify the maximum age of cached results (in ms).
-  This replaces the ready-queue from 0.9.0.
+    functions, where you can specify the maximum age of cached results (in ms).
+    This replaces the ready-queue from 0.9.0.
 * Caching of subtrees can now be configured as 'ALL', 'SEEN', or 'FLUSH'. The second
-  one means documents that were seen once, will stay synced. Check the
-  [caching documentation](http://remotestorage.io/doc/code/files/caching-js.html)
-  for details. `caching.enable(path)` will use 'ALL' by default.
+    one means documents that were seen once, will stay synced. Check the
+    [caching documentation](http://remotestorage.io/doc/code/files/caching-js.html)
+    for details. `caching.enable(path)` will use 'ALL' by default.
+* Add and use background sync interval, based on Page Visibility API (#462)
+* Choose from which origins change events are emitted via `RemoteStorage.config.changeEvents`
+* More unit tests
+* A 'local-events-done' event is emitted by `remoteStorage.local` after all events with origin 'local' have been emitted on page load.
+
+### Experimental features
+
+* Google Drive is now supported as an experimental backend
+* Dropbox is now supported as an experimental backend
+* Support for browser implied authentication
+* With `remoteStorage.displayWidget({encryption: true})`, the user will be invited to enter a secret (password) into the widget, which the app can then use for client-side encryption.
 
 ### Bugfixes
 
@@ -33,6 +61,15 @@ system. Old cached data will be converted to the new format automatically.
 * Widget only pulses when syncing changes (#437)
 * Fire `connected` event on startup if remote already connected
 * Fix error on remoteStorage.local.reset (#630)
+* Support non-ascii filenames in the Dropbox backend (#628)
+* When no widget is present, log undisplayed errors (#639)
+* Restore the document fragment (hash URL) after the OAuth dance (#646)
+* Fix handling of custom JSON-LD contexts for types (#661)
+* Widget bubble closing spontaneously (#683)
+* Fix incorrect handling of 404 responses (#718)
+* Add content-types to remote change events (#655)
+* Fix caching of binary data (#670)
+* The widget placeholder text was restored to 'user@provider.com' (#731)
 
 ## 0.9.0 (December 2013)
 
@@ -49,7 +86,7 @@ in the next release via https://github.com/remotestorage/remotestorage.js/issues
 * Label change events from initial sync as 'local' if they come from local
 * Add JSHint config
 * Add in-memory storage for when neither IndexedDB nor localStorage are
-  available
+    available
 * Move the example server and example apps to gh:remotestorage/starter-kit
 * Add setSyncInterval method
 * Add i18n module, enable translation/customization of all content strings
@@ -67,10 +104,10 @@ in the next release via https://github.com/remotestorage/remotestorage.js/issues
 * Size reduced by almost 25%, to 34K minified, gzipped
 * Fixes issues with non-ASCII characters in item names
 * Fixes unnecessary polling of documents whose entry in the parent directory
-  did not change
+    did not change
 * Widget fixes
 * Compatible with [remotestorage-02](https://github.com/remotestorage/spec/blob/master/draft-dejong-remotestorage-head.txt)
-  (although nothing needed to change for this)
+    (although nothing needed to change for this)
 
 ## 0.8.1 (August 2013)
 
@@ -101,9 +138,9 @@ in the next release via https://github.com/remotestorage/remotestorage.js/issues
 * Made validation schemas global (schemas from other modules can be referred to using: <module-name>/<type-alias>)
 * Added 'inspect' debug widget. If debug support is built in, use remoteStorage.inspect() in your app to try it.
 * Deprectated the "util" part. It contained a lot of utility functions that bloated the library and are also
-  available in the same or similar form from third-party libraries.
-  Until the next major release a subset of the "util" object will still be available (see "src/legacy.js" for
-  a list of methods that are included).
+    available in the same or similar form from third-party libraries.
+    Until the next major release a subset of the "util" object will still be available (see "src/legacy.js" for
+    a list of methods that are included).
 
 ## 0.7.0 (January 2013)
 

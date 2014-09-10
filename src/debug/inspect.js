@@ -2,6 +2,7 @@
   function loadTable(table, storage, paths) {
     table.setAttribute('border', '1');
     table.style.margin = '8px';
+    table.style.color = 'white';
     table.innerHTML = '';
     var thead = document.createElement('thead');
     table.appendChild(thead);
@@ -84,13 +85,13 @@
     wrapper.appendChild(list);
 
     function updateList() {
-      local.changesBelow('/').then(function(changes) {
-        list.innerHTML = '';
-        changes.forEach(function(change) {
+      list.innerHTML = '';
+      local.forAllNodes(function(node) {
+        if (node.local && node.local.body) {
           var el = document.createElement('li');
-          el.textContent = JSON.stringify(change);
+          el.textContent = JSON.stringify(node.local);
           list.appendChild(el);
-        });
+        }
       });
     }
 
@@ -137,16 +138,23 @@
 
     widget.appendChild(controls);
 
+    var remoteRootPaths = [];
+    for (var path in this.caching._rootPaths) {
+      if (this.caching._rootPaths.hasOwnProperty(path)) {
+        remoteRootPaths.push(path);
+      }
+    }
+
     var remoteTable = document.createElement('table');
     var localTable = document.createElement('table');
-    widget.appendChild(renderWrapper("Remote", remoteTable, this.remote, this.caching.rootPaths));
+    widget.appendChild(renderWrapper("Remote", remoteTable, this.remote, remoteRootPaths));
     if (this.local) {
       widget.appendChild(renderWrapper("Local", localTable, this.local, ['/']));
       widget.appendChild(renderLocalChanges(this.local));
 
       syncButton.onclick = function() {
         this.log('sync clicked');
-        this.sync().then(function() {
+        this.sync.sync().then(function() {
           this.log('SYNC FINISHED');
           loadTable(localTable, this.local, ['/']);
         }.bind(this), function(err) {

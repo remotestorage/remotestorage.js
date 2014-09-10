@@ -66,19 +66,17 @@
 
   RS.GoogleDrive = function(remoteStorage, clientId) {
 
-    RS.eventHandling(this, 'connected');
+    RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     this.rs = remoteStorage;
     this.clientId = clientId;
 
     this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
-
-    setTimeout(function() {
-      this.configure(undefined, undefined, undefined, localStorage['remotestorage:googledrive:token']);
-    }.bind(this), 0);
   };
 
   RS.GoogleDrive.prototype = {
+    connected: false,
+    online: true,
 
     configure: function(_x, _y, _z, token) { // parameter list compatible with WireClient
       if (token) {
@@ -89,8 +87,6 @@
       } else {
         this.connected = false;
         delete this.token;
-        // not reseting backend whenever googledrive gets initialized without an token
-//       this.rs.setBackend(undefined);
         delete localStorage['remotestorage:googledrive:token'];
       }
     },
@@ -98,6 +94,12 @@
     connect: function() {
       this.rs.setBackend('googledrive');
       RS.Authorize(AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
+    },
+
+    stopWaitingForToken: function() {
+      if (!this.connected) {
+        this._emit('not-connected');
+      }
     },
 
     get: function(path, options) {
@@ -115,7 +117,10 @@
           promise.reject(error);
         } else if (response.status >= 200 && response.status < 300) {
           var meta = JSON.parse(response.responseText);
-          promise.fulfill(200, undefined, meta.mimeType, meta.etag);
+          var etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+          promise.fulfill(200, undefined, meta.mimeType, etagWithoutQuotes);
+        } else if (response.status === 412) {
+          promise.fulfill(412, undefined, undefined, 'conflict');
         } else {
           promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
         }
@@ -125,6 +130,10 @@
           promise.reject(idError);
           return;
         } else if (id) {
+          if (options && (options.ifNoneMatch === '*')) {
+            putDone(undefined, { status: 412 });
+            return;
+          }
           this._updateFile(id, path, body, contentType, options, putDone);
         } else {
           this._createFile(path, body, contentType, options, putDone);
@@ -138,7 +147,27 @@
       this._getFileId(path, function(idError, id) {
         if (idError) {
           promise.reject(idError);
-        } else if (id) {
+          return;
+        } else if (!id) {
+          // File doesn't exist. Ignore.
+          promise.fulfill(200);
+          return;
+        }
+
+        this._getMeta(id, function(metaError, meta) {
+          var etagWithoutQuotes;
+          if ((typeof meta === 'object') && (typeof meta.etag === 'string')) {
+            etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+          }
+          if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
+            promise.fulfill(412, undefined, undefined, etagWithoutQuotes);
+            return;
+          }
+          if (metaError) {
+            promise.reject(metaError);
+            return;
+          }
+
           this._request('DELETE', BASE_URL + '/drive/v2/files/' + id, {}, function(deleteError, response) {
             if (deleteError) {
               promise.reject(deleteError);
@@ -148,10 +177,7 @@
               promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
             }
           });
-        } else {
-          // file doesn't exist. ignore.
-          promise.fulfill(200);
-        }
+        });
       });
       return promise;
     },
@@ -161,13 +187,21 @@
       var metadata = {
         mimeType: contentType
       };
+      var headers = {
+        'Content-Type': 'application/json; charset=UTF-8'
+      };
+
+      if (options && options.ifMatch) {
+        headers['If-Match'] = '"' + options.ifMatch + '"';
+      }
+
       this._request('PUT', BASE_URL + '/upload/drive/v2/files/' + id + '?uploadType=resumable', {
         body: JSON.stringify(metadata),
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8'
-        }
+        headers: headers
       }, function(metadataError, response) {
-        if (metadataError) {
+        if (response.status === 412) {
+          callback(undefined, response);
+        } else if (metadataError) {
           callback(metadataError);
         } else {
           this._request('PUT', response.getResponseHeader('Location'), {
@@ -223,12 +257,29 @@
             }
             if (metaError) {
               promise.reject(metaError);
-            } else if (meta.downloadUrl) {
-              var options = {};
-              if (meta.mimeType.match(/charset=binary/)) {
-                options.responseType = 'blob';
+            } else {
+              if (options && options.ifNoneMatch && (etagWithoutQuotes == options.ifNoneMatch)) {
+                promise.fulfill(304);
+                return;
               }
-              this._request('GET', meta.downloadUrl, options, function(downloadError, response) {
+
+              var options2 = {};
+              if (!meta.downloadUrl) {
+                if(meta.exportLinks && meta.exportLinks['text/html']) {
+                  // Documents that were generated inside GoogleDocs have no
+                  // downloadUrl, but you can export them to text/html instead:
+                  meta.mimeType += ';export=text/html';
+                  meta.downloadUrl = meta.exportLinks['text/html'];
+                } else {
+                  // empty file
+                  promise.fulfill(200, '', meta.mimeType, etagWithoutQuotes);
+                  return;
+                }
+              }
+              if (meta.mimeType.match(/charset=binary/)) {
+                options2.responseType = 'blob';
+              }
+              this._request('GET', meta.downloadUrl, options2, function(downloadError, response) {
                 if (downloadError) {
                   promise.reject(downloadError);
                 } else {
@@ -241,9 +292,6 @@
                   promise.fulfill(200, body, meta.mimeType, etagWithoutQuotes);
                 }
               });
-            } else {
-              // empty file
-              promise.fulfill(200, '', meta.mimeType, etagWithoutQuotes);
             }
           });
         }
@@ -364,7 +412,13 @@
         this._getFolder(parentPath(path)).then(function() {
           var id = this._fileIdCache.get(path);
           if (!id) {
-            callback('no file or folder found at the path: ' + path, null);
+            if (path.substr(-1) === '/') {
+              this._createFolder(path, function() {
+                this._getFileId(path, callback);
+              }.bind(this));
+            } else {
+              callback(null, null);
+            }
             return;
           }
           callback(null, id);

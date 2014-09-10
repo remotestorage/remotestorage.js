@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs, undefined) {
+define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
   var suites = [];
 
   require('./lib/promising');
@@ -10,10 +10,14 @@ define(['requirejs'], function(requirejs, undefined) {
     name: "BaseClient",
     desc: "High-level client, scoped to a path",
     setup: function(env, test) {
+      mocks.defineMocks(env);
+  
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
-        onChange: function() {},
+        onChange: function(basePath, handler) {
+          this.onChange = handler;
+        },
         caching: {
           _rootPaths: {},
           set: function(path, value) {
@@ -21,7 +25,11 @@ define(['requirejs'], function(requirejs, undefined) {
           }
         }
       };
-
+      RemoteStorage.config = {
+        changeEvents: {
+          remote: true
+        }
+      };
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
@@ -36,24 +44,28 @@ define(['requirejs'], function(requirejs, undefined) {
       }
 
       require('./lib/Math.uuid');
+      require('./lib/tv4');
       require('./src/baseclient');
       require('./src/baseclient/types');
-      if (global.rs_types) {
-        RemoteStorage.BaseClient.Types = global.rs_types;
+      if (global.rs_baseclient_with_types) {
+        RemoteStorage.BaseClient = global.rs_baseclient_with_types;
       } else {
-        global.rs_types = RemoteStorage.BaseClient.Types;
+        global.rs_baseclient_with_types = RemoteStorage.BaseClient;
       }
       test.done();
     },
-
+    beforeEach: function(env, test) {
+      env.storage = new RemoteStorage();
+      env.storage.access = new FakeAccess();
+      env.client = new RemoteStorage.BaseClient(env.storage, '/foo/');
+      test.done();
+    },
     tests: [
       {
         desc: "it takes a storage object and base path",
         run: function(env, test) {
-          var storage = new RemoteStorage();
-          var client = new RemoteStorage.BaseClient(storage, '/foo/');
-          test.assertAnd(client.storage instanceof RemoteStorage, true);
-          test.assertAnd(client.base, '/foo/');
+          test.assertAnd(env.client.storage instanceof RemoteStorage, true);
+          test.assertAnd(env.client.base, '/foo/');
           test.done();
         }
       },
@@ -62,8 +74,7 @@ define(['requirejs'], function(requirejs, undefined) {
         desc: "it doesn't accept non-folder paths",
         run: function(env, test) {
           try {
-            var storage = new RemoteStorage();
-            var client = new RemoteStorage.BaseClient(storage, '/foo');
+            new RemoteStorage.BaseClient(env.storage, '/foo');
             test.result(false);
           } catch(e) {
             test.done();
@@ -74,10 +85,9 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "it detects the module name correctly",
         run: function(env, test) {
-          var storage = new RemoteStorage();
-          var rootClient = new RemoteStorage.BaseClient(storage, '/');
-          var moduleClient = new RemoteStorage.BaseClient(storage, '/contacts/');
-          var nestedClient = new RemoteStorage.BaseClient(storage, '/email/credentials/');
+          var rootClient = new RemoteStorage.BaseClient(env.storage, '/');
+          var moduleClient = new RemoteStorage.BaseClient(env.storage, '/contacts/');
+          var nestedClient = new RemoteStorage.BaseClient(env.storage, '/email/credentials/');
           test.assertAnd(rootClient.moduleName, 'root');
           test.assertAnd(moduleClient.moduleName, 'contacts');
           test.assertAnd(nestedClient.moduleName, 'email');
@@ -88,21 +98,19 @@ define(['requirejs'], function(requirejs, undefined) {
       {
         desc: "it installs a change handler for its base",
         run: function(env, test) {
-          var storage = new RemoteStorage();
-          storage.onChange = function(path, handler) {
+          env.storage.onChange = function(path, handler) {
             test.assertTypeAnd(handler, 'function');
             test.assertAnd(path, '/foo/');
             test.done();
           };
-          var client = new RemoteStorage.BaseClient(storage, '/foo/');
+          var client = new RemoteStorage.BaseClient(env.storage, '/foo/');
         }
       },
 
       {
         desc: "it understands the 'change' events",
         run: function(env, test) {
-          var client = new RemoteStorage.BaseClient(new RemoteStorage(), '/foo/');
-          client.on('change', function() {});
+          env.client.on('change', function() {});
           test.done();
         }
       }
@@ -127,6 +135,7 @@ define(['requirejs'], function(requirejs, undefined) {
 
     beforeEach: function(env, test) {
       env.storage = new RemoteStorage();
+      env.storage.access = new FakeAccess();
       env.client = new RemoteStorage.BaseClient(env.storage, '/foo/');
       test.done();
     },
@@ -144,11 +153,11 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#getListing results in 'undefined' when it sees '404'",
+        desc: "#getListing results in an empty object when it sees '404'",
         run: function(env, test) {
           env.storage.get = function(path) { return promising().fulfill(404); };
           env.client.getListing('bar/').then(function(result) {
-            test.assertType(result, 'undefined');
+            test.assert(result, {});
           });
         }
       },
@@ -206,25 +215,36 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "#getListing results in 'undefined' when it sees a 404",
+        desc: "#getListing treats undefined paths as ''",
         run: function(env, test) {
           env.storage.get = function(path) {
+            test.assert(path, '/foo/');
             return promising().fulfill(404);
           };
-          env.client.getListing('').then(function(result) {
-            test.assertType(result, 'undefined');
-          });
+          env.client.getListing();
         }
       },
 
       {
-        desc: "#getAll results in 'undefined' when it sees a 404",
+        desc: "#getAll returns an empty object when it sees a 404",
         run: function(env, test) {
           env.storage.get = function(path) {
             return promising().fulfill(404);
           };
           env.client.getAll('').then(function(result) {
-            test.assertType(result, 'undefined');
+            test.assert(result, {});
+          });
+        }
+      },
+
+      {
+        desc: "#getAll returns an empty object when there are no objects",
+        run: function(env, test) {
+          env.storage.get = function(path) {
+            return promising().fulfill(200, {});
+          };
+          env.client.getAll('').then(function(result) {
+            test.assert(result, {});
           });
         }
       },
@@ -258,27 +278,16 @@ define(['requirejs'], function(requirejs, undefined) {
             if (path === '/foo/') {
               promise.fulfill(200, { bar: true, baz: true });
             } else {
-              promise.fulfill(200, "content of " + path);
+              promise.fulfill(200, JSON.stringify({ "content of ": path }));
             }
             return promise;
           };
           env.client.getAll('').then(function(result) {
             test.assert(result, {
-              bar: "content of /foo/bar",
-              baz: "content of /foo/baz"
+              bar: { "content of ": "/foo/bar" },
+              baz: { "content of ": "/foo/baz" }
             });
           });
-        }
-      },
-
-      {
-        desc: "#getListing treats undefined paths as ''",
-        run: function(env, test) {
-          env.storage.get = function(path) {
-            test.assert(path, '/foo/');
-            return promising().fulfill(404);
-          };
-          env.client.getListing();
         }
       },
 
@@ -355,17 +364,56 @@ define(['requirejs'], function(requirejs, undefined) {
       },
 
       {
-        desc: "test storeObject",
+        desc: "storeObject rejects promise with tv4 validation result when object invalid",
         run: function(env, test) {
+          env.client.declareType('todo-item', 'http://to.do/spec/item', {
+            type: 'object',
+            properties: {
+              locale: { type: 'string'}
+            },
+            required: ['locale']
+          });
+          env.client.storeObject('todo-item', 'foo/bar', {test: 1}).then(function() {
+            test.result(false, 'should have rejected');
+          }, function(err) {
+            test.assertAnd(err.error.message, "Missing required property: locale");
+            test.assert(err.valid, false);
+          });
+        }
+      },
+
+      {
+        desc: "storeObject adds @context and sets application/json Content-Type",
+        run: function(env, test) {
+          env.client.declareType('test', {});
           env.storage.put = function(path, body, contentType, incoming) {
             test.assertAnd(path, '/foo/foo/bar');
-            test.assertAnd(body.test, 1);
+            test.assertAnd(body, JSON.stringify({
+              test: 1,
+              '@context': 'http://remotestorage.io/spec/modules/foo/test'
+            }));
             test.assertAnd(contentType, 'application/json; charset=UTF-8');
-            test.assertType(incoming, 'undefined');
             test.result(true);
             return promising().fulfill(200);
           };
           env.client.storeObject('test', 'foo/bar', {test: 1});
+        }
+      },
+
+      {
+        desc: "storeObject adds correct @context for types with custom context",
+        run: function(env, test) {
+          env.storage.put = function(path, body, contentType, incoming) {
+            test.assertAnd(path, '/foo/foo/bar');
+            test.assertAnd(body, JSON.stringify({
+              test: 1,
+              '@context': 'http://to.do/spec/item'
+            }));
+            test.result(true);
+            return promising().fulfill(200);
+          };
+          env.client.declareType('todo-item', 'http://to.do/spec/item', {});
+          env.client.storeObject('todo-item', 'foo/bar', {test: 1});
         }
       },
 
@@ -392,6 +440,52 @@ define(['requirejs'], function(requirejs, undefined) {
 
           var itemURL = env.client.getItemURL('A%2FB /C/%bla//D');
           test.assert(itemURL, 'http://example.com/test/foo/A%252FB%20/C/%25bla/D');
+        }
+      },
+
+      {
+        desc: "values in change events are JSON-parsed when possible",
+        run: function(env, test) {
+          var storage = new RemoteStorage();
+          var client = new RemoteStorage.BaseClient(storage, '/foo/');
+          var expected = [{
+            path: '/foo/a',
+            origin: 'remote',
+            relativePath: 'a',
+            newValue: { as: 'df' },
+            oldValue: 'qwer',
+            newContentType: 'application/ld+json',
+            oldContentType: 'text/plain'
+          },
+          {
+            path: '/foo/a',
+            origin: 'remote',
+            relativePath: 'a',
+            newValue: 'asdf',
+            oldValue: 'qwer'
+          }];
+          client.on('change', function(e) {
+            test.assertAnd(expected.pop(), e);
+            if (expected.length === 0) {
+              test.done();
+             }
+          });
+          storage.onChange({
+            path: '/foo/a',
+            origin: 'remote',
+            relativePath: 'a',
+            newValue: 'asdf',
+            oldValue: 'qwer'
+          });
+          storage.onChange({
+            path: '/foo/a',
+            origin: 'remote',
+            relativePath: 'a',
+            newValue: JSON.stringify({ as: 'df'}),
+            oldValue: 'qwer',
+            newContentType: 'application/ld+json',
+            oldContentType: 'text/plain'
+          });
         }
       }
     ]

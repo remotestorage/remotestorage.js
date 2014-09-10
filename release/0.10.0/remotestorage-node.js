@@ -1,4 +1,4 @@
-/** remotestorage.js 0.10.0-beta2, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.10.0, http://remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/promising.js **/
 (function(global) {
@@ -140,7 +140,23 @@
     get: function(path, maxAge) {
       var self = this;
       if (this.local) {
-        return this.local.get(path, maxAge);
+        if (maxAge === undefined) {
+          if (this.connected) {
+            maxAge = 2*this.getSyncInterval();
+          } else {
+            maxAge = false;
+          }
+        }
+        var maxAgeInvalid = function(maxAge) {
+          return maxAge !== false && typeof(maxAge) !== 'number';
+        };
+
+        if (maxAgeInvalid(maxAge)) {
+          var promise = promising();
+          promise.reject('Argument \'maxAge\' must be false or a number');
+          return promise;
+        }
+        return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
       } else {
         return this.remote.get(path);
       }
@@ -249,7 +265,7 @@
     RemoteStorage.eventHandling(
       this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
             'error', 'features-loaded', 'connecting', 'authing', 'wire-busy',
-            'wire-done'
+            'wire-done', 'sync-interval-change'
     );
 
     // pending get/put/delete calls.
@@ -289,12 +305,16 @@
 
     this._init();
 
-    this.on('ready', function() {
+    this.fireInitial = function() {
       if (this.local) {
         setTimeout(this.local.fireInitial.bind(this.local), 0);
       }
-    }.bind(this));
+    }.bind(this);
+
+    this.on('ready', this.fireInitial.bind(this));
   };
+
+  RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
 
   RemoteStorage.DiscoveryError = function(message) {
     Error.apply(this, arguments);
@@ -314,13 +334,35 @@
    * You can enable logging with <enableLog>.
    */
   RemoteStorage.log = function() {
-    if (RemoteStorage._log) {
+    if (RemoteStorage.config.logging) {
       console.log.apply(console, arguments);
     }
   };
 
+  RemoteStorage.config = {
+    logging: false,
+    changeEvents: {
+      local:    true,
+      window:   false,
+      remote:   true,
+      conflict: true
+    }
+  };
 
   RemoteStorage.prototype = {
+
+    /**
+     * Method: displayWidget
+     *
+     * Displays the widget at the top right of the page. Make sure to call this function
+     * once on every pageload (after the html 'body' tag), unless you use a custom widget.
+     *
+     * Parameters:
+     *
+     *   domID: identifier of the DOM element which should embody the widget (optional)
+     */
+     // (see src/widget.js for implementation)
+
     /**
      * Method: connect
      *
@@ -338,7 +380,7 @@
     connect: function(userAddress) {
       this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
-        this._emit('error', new RemoteStorage.DiscoveryError("User adress doesn't contain an @."));
+        this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
         return;
       }
       this.remote.configure(userAddress);
@@ -357,7 +399,16 @@
         this._emit('authing');
         this.remote.configure(userAddress, href, storageApi);
         if (! this.remote.connected) {
-          this.authorize(authURL);
+          if (authURL) {
+            this.authorize(authURL);
+          } else {
+            // In lieu of an excplicit authURL, assume that the browser
+            // and server handle any authorization needs; for instance,
+            // TLS may trigger the browser to use a client certificate,
+            // or a 401 Not Authorized response may make the browser
+            // send a Kerberos ticket using the SPNEGO method.
+            this.impliedauth();
+          }
         }
       }.bind(this));
     },
@@ -442,7 +493,7 @@
      * Enable remoteStorage logging
      */
     enableLog: function() {
-      RemoteStorage._log = true;
+      RemoteStorage.config.logging = true;
     },
 
     /**
@@ -451,7 +502,7 @@
      * Disable remoteStorage logging
      */
     disableLog: function() {
-      RemoteStorage._log = false;
+      RemoteStorage.config.logging = false;
     },
 
     /**
@@ -463,6 +514,19 @@
       RemoteStorage.log.apply(RemoteStorage, arguments);
     },
 
+    /**
+     * Method: setApiKeys (experimental)
+     *
+     * Set API keys for (currently) GoogleDrive and/or Dropbox backend support.
+     * See also the 'backends' example in the starter-kit. Note that support for
+     * both these backends is still experimental.
+     *
+     * Parameters:
+     * type - string, either 'googledrive' or 'dropbox'
+     * keys - object, with one string field; 'client_id' for GoogleDrive, or
+     *          'api_key' for Dropbox.
+     *
+     */
     setApiKeys: function(type, keys) {
       if (keys) {
         this.apiKeys[type] = keys;
@@ -722,8 +786,8 @@
       for (var path in this._pathHandlers[eventName]) {
         var pl = path.length;
         var self = this;
-        this._pathHandlers[eventName][path].forEach(function(handler) {
-          if (event.path.substr(0, pl) === path) {
+        if (event.path.substr(0, pl) === path) {
+          this._pathHandlers[eventName][path].forEach(function(handler) {
             var ev = {};
             for (var key in event) { ev[key] = event[key]; }
             ev.relativePath = event.path.replace(new RegExp('^' + path), '');
@@ -733,8 +797,8 @@
               console.error("'change' handler failed: ", e, e.stack);
               self._emit('error', e);
             }
-          }
-        });
+          });
+        }
       }
     }
   };
@@ -993,6 +1057,34 @@
     reader.readAsArrayBuffer(blob);
   }
 
+  function getTextFromArrayBuffer(arrayBuffer, encoding, callback) {
+    if (typeof Blob === 'undefined') {
+      var buffer = new Buffer(new Uint8Array(arrayBuffer));
+      callback(buffer.toString(encoding));
+    } else {
+      var blob = new Blob([arrayBuffer]);
+      var fileReader = new FileReader();
+      fileReader.addEventListener("loadend", function(evt) {
+        callback(evt.target.result);
+      });
+      fileReader.readAsText(blob, encoding);
+    }
+  }
+
+  function determineCharset(mimeType) {
+    var charset = 'utf-8';
+    var charsetMatch;
+
+    if (mimeType) {
+      charsetMatch = mimeType.match(/charset=(.+)$/);
+      if (charsetMatch) {
+        charset = charsetMatch[1];
+      }
+    }
+
+    return charset;
+  }
+
   function cleanPath(path) {
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
@@ -1033,7 +1125,8 @@
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     onErrorCb = function(error){
-      if (error instanceof RemoteStorage.Unauthorized) {
+      if (error instanceof RemoteStorage.Unauthorized ||
+          error instanceof RemoteStorage.SyncError) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this);
@@ -1104,7 +1197,9 @@
       var reqType;
       var self = this;
 
-      headers['Authorization'] = 'Bearer ' + token;
+      if (token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) {
+        headers['Authorization'] = 'Bearer ' + token;
+      }
 
       this._emit('wire-busy', {
         method: method,
@@ -1113,7 +1208,8 @@
 
       RS.WireClient.request(method, uri, {
         body: body,
-        headers: headers
+        headers: headers,
+        responseType: 'arraybuffer'
       }, function(error, response) {
         if (error) {
           self._emit('wire-done', {
@@ -1152,19 +1248,16 @@
               revision = response.status === 200 ? fakeRevision : undefined;
             }
 
-            if ((!mimeType) || mimeType.match(/charset=binary/)) {
-              RS.WireClient.readBinaryData(response.response, mimeType, function(result) {
-                RemoteStorage.log('[WireClient] Successful request with unknown or binary mime-type', revision);
-                promise.fulfill(response.status, result, mimeType, revision);
-              });
+            var charset = determineCharset(mimeType);
+
+            if ((!mimeType) || charset === 'binary') {
+              RemoteStorage.log('[WireClient] Successful request with unknown or binary mime-type', revision);
+              promise.fulfill(response.status, response.response, mimeType, revision);
             } else {
-              if (mimeType && mimeType.match(/^application\/json/)) {
-                body = JSON.parse(response.responseText);
-              } else {
-                body = response.responseText;
-              }
-              RemoteStorage.log('[WireClient] Successful request', revision);
-              promise.fulfill(response.status, body, mimeType, revision);
+              getTextFromArrayBuffer(response.response, charset, function(body) {
+                RemoteStorage.log('[WireClient] Successful request', revision);
+                promise.fulfill(response.status, body, mimeType, revision);
+              });
             }
           }
         }
@@ -1234,6 +1327,13 @@
         return promise.then(function(status, body, contentType, revision) {
           var itemsMap = {};
 
+          if (typeof(body) !== 'undefined') {
+            try {
+              body = JSON.parse(body);
+            } catch (e) {
+              throw 'Folder description at ' + this.href + cleanPath(path) + ' is not JSON';
+            }
+          }
           // New folder listing received
           if (status === 200 && typeof(body) === 'object') {
             // Empty folder listing of any spec
@@ -1356,8 +1456,6 @@
       }
       else if (body instanceof ArrayBuffer) {
         body = new Uint8Array(body);
-      } else {
-        body = JSON.stringify(body);
       }
     }
     xhr.send(body);
@@ -1533,17 +1631,29 @@
     }, {});
   }
 
-  RemoteStorage.Authorize = function(authURL, scope, redirectUri, clientId) {
-    RemoteStorage.log('[Authorize] authURL = ', authURL);
+  RemoteStorage.ImpliedAuth = function(storageApi, redirectUri) {
+    RemoteStorage.log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
+    // Set a fixed access token, signalling to not send it as Bearer
+    remoteStorage.remote.configure(undefined, undefined, undefined, RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN);
+    document.location = redirectUri;
+  };
 
-    var url = authURL;
+  RemoteStorage.Authorize = function(authURL, scope, redirectUri, clientId) {
+    RemoteStorage.log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
+
+    var url = authURL, hashPos = redirectUri.indexOf('#');
     url += authURL.indexOf('?') > 0 ? '&' : '?';
     url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
+    if (hashPos !== -1) {
+      url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos+1));
+    }
     url += '&response_type=token';
     RemoteStorage.Authorize.setLocation(url);
   };
+
+  RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN = false;
 
   RemoteStorage.prototype.authorize = function(authURL) {
     this.access.setStorageType(this.remote.storageType);
@@ -1565,7 +1675,7 @@
   };
 
   /**
-   * Get current document location
+   * Set current document location
    *
    * Override this method if access to document.location is forbidden
    */
@@ -1577,6 +1687,10 @@
     } else {
       throw "Invalid location " + location;
     }
+  };
+
+  RemoteStorage.prototype.impliedauth = function() {
+    RemoteStorage.ImpliedAuth(this.remote.storageApi, String(document.location));
   };
 
   RemoteStorage.Authorize._rs_supported = function(remoteStorage) {
@@ -1599,6 +1713,9 @@
         if (params.remotestorage) {
           remoteStorage.connect(params.remotestorage);
           authParamsUsed = true;
+        }
+        if (params.state) {
+          RemoteStorage.Authorize.setLocation('#'+params.state);
         }
       }
       if (!authParamsUsed) {
@@ -1809,6 +1926,14 @@
   RemoteStorage.Env._rs_init = function(remoteStorage) {
     RemoteStorage.eventHandling(RemoteStorage.Env, "background", "foreground");
 
+    function visibility() {
+      if (document[env.hiddenProperty]) {
+        RemoteStorage.Env.goBackground();
+      } else {
+        RemoteStorage.Env.goForeground();
+      }
+    }
+
     if ( mode === 'browser') {
       if ( typeof(document.hidden) !== "undefined" ) {
         env.hiddenProperty = "hidden";
@@ -1823,13 +1948,8 @@
         env.hiddenProperty = "webkitHidden";
         env.visibilityChangeEvent = "webkitvisibilitychange";
       }
-      document.addEventListener(env.visibilityChangeEvent, function () {
-        if ( document[env.hiddenProperty] ) {
-          RemoteStorage.Env.goBackground();
-        } else {
-          RemoteStorage.Env.goForeground();
-        }
-      }, false);
+      document.addEventListener(env.visibilityChangeEvent, visibility, false);
+      visibility();
     }
   };
 
@@ -2699,9 +2819,12 @@ Math.uuid = function (len, radix) {
    *
    * A BaseClient deals with three types of data: folders, objects and files.
    *
-   * <getListing> returns a list of all items within a folder, or undefined
-   * if a 404 is encountered. Items that end with a forward slash ("/") are
-   * child folders.
+   * <getListing> returns a mapping of all items within a folder. Items that
+   * end with a forward slash ("/") are child folders. For instance:
+   * {
+   *   'folder/': true,
+   *   'document.txt': true
+   * }
    *
    * <getObject> / <storeObject> operate on JSON objects. Each object has a type.
    *
@@ -2746,6 +2869,13 @@ Math.uuid = function (len, radix) {
       this.moduleName = 'root';
     }
 
+    // Defined in baseclient/types.js
+    /**
+     * Property: schemas
+     *
+     * Contains schema objects of all types known to the BaseClient instance
+     **/
+
     /**
      * Event: change
      *
@@ -2756,12 +2886,74 @@ Math.uuid = function (len, radix) {
      *
      * (start code)
      * {
-     *    path: path, // Path of the changed node
-     *    origin: 'window', 'local', or 'remote' // emitted by user action within the app, local data store, or remote sync
-     *    oldValue: oldBody, // Old body of the changed node (undefined if creation)
-     *    newValue: newBody  // New body of the changed node (undefined if deletion)
+     *    path: path, // Absolute path of the changed node, from the storage root
+     *    relativePath: relativePath, // Path of the changed node, relative to this baseclient's scope root
+     *    origin: 'window', 'local', 'remote', or 'conflict' // emitted by user action within the app, local data store, remote sync, or versioning conflicts
+     *    oldValue: oldBody, // Old body of the changed node (local version in conflicts; undefined if creation)
+     *    newValue: newBody, // New body of the changed node (remote version in conflicts; undefined if deletion)
+     *    lastCommonValue: lastCommonValue, //most recent known common ancestor body of 'yours' and 'theirs' in case of conflict
+     *    oldContentType: oldContentType, // Old contentType of the changed node ('yours' for conflicts; undefined if creation)
+     *    newContentType: newContentType, // New contentType of the changed node ('theirs' for conflicts; undefined if deletion)
+     *    lastCommonContentType: lastCommonContentType // Most recent known common ancestor contentType of 'yours' and 'theirs' in case of conflict
      *  }
      * (end code)
+     *
+     * Example of an event with origin 'local' (fired on page load):
+     * 
+     * (start code)
+     * {
+     *    path: '/public/design/color.txt',
+     *    relativePath: 'color.txt',
+     *    origin: 'local',
+     *    oldValue: undefined,
+     *    newValue: 'white',
+     *    oldContentType: undefined,
+     *    newContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * Example of a conflict:
+     * Say you changed 'color.txt' from 'white' to 'blue'; if you have set `RemoteStorage.config.changeEvents.window` to `true`,
+     * then you will receive:
+     *
+     * (start code)
+     * {
+     *    path: '/public/design/color.txt',
+     *    relativePath: 'color.txt',
+     *    origin: 'window',
+     *    oldValue: 'white',
+     *    newValue: 'blue',
+     *    oldContentType: 'text/plain',
+     *    newContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * But when this change is pushed out by asynchronous synchronization, this change may rejected by the
+     * server, if the remote version has in the meantime changed from 'white' to  for instance 'red'; this will then lead to a change
+     * event with origin 'conflict' (usually a few seconds after the event with origin 'window', if you had that activated). Note
+     * that since you already changed it from 'white' to 'blue' in the local version a few seconds ago, `oldValue` is now your local
+     * value of 'blue':
+     * 
+     * (start code)
+     * {
+     *    path: '/public/design/color.txt',
+     *    relativePath: 'color.txt',
+     *    origin: 'conflict',
+     *    oldValue: 'blue',
+     *    newValue: 'red',
+     *    lastCommonValue: 'white',
+     *    oldContentType: 'text/plain,
+     *    newContentType: 'text/plain'
+     *    lastCommonContentType: 'text/plain'
+     *  }
+     * (end code)
+     *
+     * In practice, you should always redraw your views to display the content of the `newValue` field when a change event is received,
+     * regardless of its origin. Events with origin 'local' are fired conveniently during the page load, so that you can fill your views
+     * when the page loads. Events with origin 'window' are fired whenever you change a value by calling a method on the baseClient;
+     * these are disabled by default. Events with origin 'remote' are fired when remote changes are discovered during sync (only for caching
+     * startegies 'SEEN' and 'ALL'). Events with origin 'conflict' are fired when a conflict occurs while pushing out your local changes to
+     * the remote store in asynchronous synchronization (see example above). 
      **/
 
     RS.eventHandling(this, 'change');
@@ -2798,12 +2990,16 @@ Math.uuid = function (len, radix) {
      *
      * Parameters:
      *   path   - The path to query. It MUST end with a forward slash.
-     *   maxAge - (optional) Maximum age of cached listing in
-     *            milliseconds
+     *   maxAge - Either false or the maximum age of cached listing in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
      *
-     *   A promise for an object, representing child nodes.
+     *   A promise for an object, representing child nodes. If the maxAge
+     *   requirement cannot be met because of network problems, this promise
+     *   will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
      *
      *   Keys ending in a forward slash represent *folder nodes*, while all
      *   other keys represent *data nodes*.
@@ -2814,10 +3010,12 @@ Math.uuid = function (len, radix) {
      *
      * Example:
      *   (start code)
-     *   client.getListing('').then(function(listing) {
-     *     listing.forEach(function(item) {
-     *       console.log(item);
-     *     });
+     *   client.getListing('', false).then(function(listing) {
+     *     // listing is for instance:
+     *     // {
+     *     //   'folder/': true,
+     *     //   'document.txt': true
+     *     // }
      *   });
      *   (end code)
      */
@@ -2827,12 +3025,9 @@ Math.uuid = function (len, radix) {
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getListing must be undefined or a number');
-      }
       return this.storage.get(this.makePath(path), maxAge).then(
         function(status, body) {
-          return (status === 404) ? undefined : body;
+          return (status === 404) ? {} : body;
         }
       );
     },
@@ -2843,16 +3038,20 @@ Math.uuid = function (len, radix) {
      * Get all objects directly below a given path.
      *
      * Parameters:
-     *   path   - path to the folder
-     *   maxAge - (optional) Maximum age of cached objects in
-     *            milliseconds
+     *   path   - Path to the folder.
+     *   maxAge - Either false or the maximum age of cached objects in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
-     *   a promise for an object in the form { path : object, ... }
+     *   A promise for an object in the form { path : object, ... }. If the
+     *   maxAge requirement cannot be met because of network problems, this
+     *   promise will be rejected. If the maxAge requirement is set to false,
+     *   the promise will always be fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
-     *   client.getAll('').then(function(objects) {
+     *   client.getAll('', false).then(function(objects) {
      *     for (var key in objects) {
      *       console.log('- ' + key + ': ', objects[key]);
      *     }
@@ -2865,24 +3064,29 @@ Math.uuid = function (len, radix) {
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
         throw "Not a folder: " + path;
       }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getAll must be undefined or a number');
-      }
 
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
-        if (status === 404) { return; }
+        if (status === 404) { return {}; }
         if (typeof(body) === 'object') {
           var promise = promising();
           var count = Object.keys(body).length, i = 0;
           if (count === 0) {
             // treat this like 404. it probably means a folder listing that
             // has changes that haven't been pushed out yet.
-            return;
+            return {};
           }
           for (var key in body) {
             this.storage.get(this.makePath(path + key), maxAge).
               then(function(status, b) {
-                body[this.key] = b;
+                if (typeof(b) === 'string') {
+                  try {
+                    b = JSON.parse(b);
+                  } catch (e) {
+                  }
+                }
+                if (typeof(b) === 'object') {
+                  body[this.key] = b;
+                }
                 i++;
                 if (i === count) { promise.fulfill(body); }
               }.bind({ key: key }));
@@ -2904,7 +3108,10 @@ Math.uuid = function (len, radix) {
      * getObject.
      *
      * Parameters:
-     *   path     - see getObject
+     *   path   - See getObject.
+     *   maxAge - Either false or the maximum age of cached file in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
      *   A promise for an object:
@@ -2912,10 +3119,14 @@ Math.uuid = function (len, radix) {
      *   mimeType - String representing the MIME Type of the document.
      *   data     - Raw data of the document (either a string or an ArrayBuffer)
      *
+     *   If the maxAge requirement cannot be met because of network problems, this
+     *   promise will be rejected. If the maxAge requirement is set to false, the
+     *   promise will always be fulfilled with data from the local store.
+     *
      * Example:
      *   (start code)
      *   // Display an image:
-     *   client.getFile('path/to/some/image').then(function(file) {
+     *   client.getFile('path/to/some/image', false).then(function(file) {
      *     var blob = new Blob([file.data], { type: file.mimeType });
      *     var targetElement = document.findElementById('my-image-element');
      *     targetElement.src = window.URL.createObjectURL(blob);
@@ -2925,9 +3136,6 @@ Math.uuid = function (len, radix) {
     getFile: function(path, maxAge) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
-      }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getFile must be undefined or a number');
       }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
         return {
@@ -2983,6 +3191,9 @@ Math.uuid = function (len, radix) {
       if (typeof(body) !== 'string' && typeof(body) !== 'object') {
         return promising().reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
       }
+      if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
+        console.warn('WARNING: Editing a document to which only read access (\'r\') was claimed');
+      }
 
       var self = this;
       return this.storage.put(this.makePath(path), body, mimeType).then(function(status, _body, _mimeType, revision) {
@@ -3002,14 +3213,20 @@ Math.uuid = function (len, radix) {
      * Get a JSON object from given path.
      *
      * Parameters:
-     *   path     - relative path from the module root (without leading slash)
+     *   path   - Relative path from the module root (without leading slash).
+     *   maxAge - Either false or the maximum age of cached object in
+     *            milliseconds. Defaults to false in anonymous mode and to
+     *            2*syncInterval in connected mode.
      *
      * Returns:
-     *   A promise for the object.
+     *   A promise for the object. If the maxAge requirement cannot be met
+     *   because of network problems, this promise will be rejected. If the
+     *   maxAge requirement is set to false, the promise will always be
+     *   fulfilled with data from the local store.
      *
      * Example:
      *   (start code)
-     *   client.getObject('/path/to/object').
+     *   client.getObject('/path/to/object', false).
      *     then(function(object) {
      *       // object is either an object or null
      *     });
@@ -3019,12 +3236,15 @@ Math.uuid = function (len, radix) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
       }
-      if (maxAgeInvalid(maxAge)) {
-        return promising().reject('Argument \'maxAge\' of baseClient.getObject must be undefined or a number');
-      }
       return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
-        if (typeof(body) === 'object') {
+        if (typeof(body) === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
           return body;
+        } else if (typeof(body) === 'string') {
+          try {
+            return JSON.parse(body);
+          } catch (e) {
+            throw "Not valid JSON: " + this.makePath(path);
+          }
         } else if (typeof(body) !== 'undefined' && status === 200) {
           throw "Not an object: " + this.makePath(path);
         }
@@ -3060,7 +3280,7 @@ Math.uuid = function (len, radix) {
      *   Now that is what the *type* is for.
      *
      *   Within remoteStorage.js, @context values are built using three components:
-     *     http://remotestoragejs.com/spec/modules/ - A prefix to guarantee unqiueness
+     *     http://remotestorage.io/spec/modules/ - A prefix to guarantee uniqueness
      *     the module name     - module names should be unique as well
      *     the type given here - naming this particular kind of object within this module
      *
@@ -3082,18 +3302,19 @@ Math.uuid = function (len, radix) {
       if (typeof(object) !== 'object') {
         return promising().reject('Argument \'object\' of baseClient.storeObject must be an object');
       }
+
       this._attachType(object, typeAlias);
+
       try {
         var validationResult = this.validate(object);
         if (! validationResult.valid) {
           return promising(function(p) { p.reject(validationResult); });
         }
       } catch(exc) {
-        if (! (exc instanceof RS.BaseClient.Types.SchemaNotFound)) {
-          return promising().reject(exc);
-        }
+        return promising().reject(exc);
       }
-      return this.storage.put(this.makePath(path), object, 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
+
+      return this.storage.put(this.makePath(path), JSON.stringify(object), 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
         if (status === 200 || status === 201) {
           return revision;
         } else {
@@ -3116,6 +3337,10 @@ Math.uuid = function (len, radix) {
       if (typeof(path) !== 'string') {
         return promising().reject('Argument \'path\' of baseClient.remove must be a string');
       }
+      if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
+        console.warn('WARNING: Removing a document to which only read access (\'r\') was claimed');
+      }
+
       return this.storage.delete(this.makePath(path));
     },
 
@@ -3152,7 +3377,20 @@ Math.uuid = function (len, radix) {
     },
 
     _fireChange: function(event) {
-      this._emit('change', event);
+      if (RemoteStorage.config.changeEvents[event.origin]) {
+        ['new', 'old', 'lastCommon'].forEach(function(fieldNamePrefix) {
+          if ((!event[fieldNamePrefix+'ContentType'])
+              || (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix+'ContentType']))) {
+            if (typeof(event[fieldNamePrefix+'Value']) === 'string') {
+              try {
+                event[fieldNamePrefix+'Value'] = JSON.parse(event[fieldNamePrefix+'Value']);
+              } catch(e) {
+              }
+            }
+          }
+        });
+        this._emit('change', event);
+      }
     },
 
     _cleanPath: RS.WireClient.cleanPath,
@@ -3214,6 +3452,10 @@ Math.uuid = function (len, radix) {
         throw 'Argument \'path\' of baseClient.scope must be a string';
       }
 
+      if (!this.access.checkPathPermission(path, 'r')) {
+        var escapedPath = path.replace(/(['\\])/g, '\\$1');
+        console.warn('WARNING: please call remoteStorage.access.claim(\'' + escapedPath + '\', \'r\') (read only) or remoteStorage.access.claim(\'' + escapedPath + '\', \'rw\') (read/write) first');
+      }
       return new RS.BaseClient(this, path);
     };
   };
@@ -3229,9 +3471,13 @@ Math.uuid = function (len, radix) {
   });
   */
 
-  maxAgeInvalid = function(maxAge) {
-    return typeof(maxAge) !== 'undefined' && typeof(maxAge) !== 'number';
-  };
+  // Defined in baseclient/types.js
+  /**
+   * Method: declareType
+   *
+   * Declare a remoteStorage object type using a JSON schema. See
+   * <RemoteStorage.BaseClient.Types>
+   **/
 
 })(typeof(window) !== 'undefined' ? window : global);
 
@@ -3239,6 +3485,13 @@ Math.uuid = function (len, radix) {
 /** FILE: src/baseclient/types.js **/
 (function(global) {
 
+  /**
+   * Class: RemoteStorage.BaseClient.Types
+   *
+   * - Manages and validates types of remoteStorage objects, using JSON-LD and
+   *   JSON Schema
+   * - Adds schema declaration/validation methods to BaseClient instances.
+   **/
   RemoteStorage.BaseClient.Types = {
     // <alias> -> <uri>
     uris: {},
@@ -3300,18 +3553,65 @@ Math.uuid = function (len, radix) {
   SchemaNotFound.prototype = Error.prototype;
 
   RemoteStorage.BaseClient.Types.SchemaNotFound = SchemaNotFound;
+
   /**
    * Class: RemoteStorage.BaseClient
    **/
   RemoteStorage.BaseClient.prototype.extend({
     /**
-     * Method: validate(object)
+     * Method: declareType
      *
-     * validates an Object against the associated schema
-     * the context has to have a @context property
+     * Declare a remoteStorage object type using a JSON schema.
+     *
+     * Parameters:
+     *   alias  - A type alias/shortname
+     *   uri    - (optional) JSON-LD URI of the schema. Automatically generated if none given
+     *   schema - A JSON Schema object describing the object type
+     *
+     * Example:
+     *
+     * (start code)
+     * client.declareType('todo-item', {
+     *   "type": "object",
+     *   "properties": {
+     *     "id": {
+     *       "type": "string"
+     *     },
+     *     "title": {
+     *       "type": "string"
+     *     },
+     *     "finished": {
+     *       "type": "boolean"
+     *       "default": false
+     *     },
+     *     "createdAt": {
+     *       "type": "date"
+     *     }
+     *   },
+     *   "required": ["id", "title"]
+     * })
+     * (end code)
+     *
+     * Visit <http://json-schema.org> for details on how to use JSON Schema.
+     **/
+    declareType: function(alias, uri, schema) {
+      if (! schema) {
+        schema = uri;
+        uri = this._defaultTypeURI(alias);
+      }
+      RemoteStorage.BaseClient.Types.declare(this.moduleName, alias, uri, schema);
+    },
+
+    /**
+     * Method: validate
+     *
+     * Validate an object against the associated schema.
+     *
+     * Parameters:
+     *  object - Object to validate. Must have a @context property.
      *
      * Returns:
-     *   A validate object giving you information about errors
+     *   An object containing information about validation errors
      **/
     validate: function(object) {
       var schema = RemoteStorage.BaseClient.Types.getSchema(object['@context']);
@@ -3322,26 +3622,16 @@ Math.uuid = function (len, radix) {
       }
     },
 
-    // client.declareType(alias, schema);
-    //  /* OR */
-    // client.declareType(alias, uri, schema);
-    declareType: function(alias, uri, schema) {
-      if (! schema) {
-        schema = uri;
-        uri = this._defaultTypeURI(alias);
-      }
-      RemoteStorage.BaseClient.Types.declare(this.moduleName, alias, uri, schema);
-    },
-
     _defaultTypeURI: function(alias) {
-      return 'http://remotestoragejs.com/spec/modules/' + this.moduleName + '/' + alias;
+      return 'http://remotestorage.io/spec/modules/' + encodeURIComponent(this.moduleName) + '/' + encodeURIComponent(alias);
     },
 
     _attachType: function(object, alias) {
-      object['@context'] = RemoteStorage.BaseClient.Types.resolveAlias(alias) || this._defaultTypeURI(alias);
+      object['@context'] = RemoteStorage.BaseClient.Types.resolveAlias(this.moduleName + '/' + alias) || this._defaultTypeURI(alias);
     }
   });
 
+  // Documented in baseclient.js
   Object.defineProperty(RemoteStorage.BaseClient.prototype, 'schemas', {
     configurable: true,
     get: function() {
@@ -3532,7 +3822,9 @@ Math.uuid = function (len, radix) {
 /** FILE: src/sync.js **/
 (function(global) {
 
-  var syncInterval = 10000;
+  var syncInterval = 10000,
+      backgroundSyncInterval = 60000,
+      isBackground = false;
 
   function taskFor(action, path, promise) {
     return {
@@ -3588,6 +3880,36 @@ Math.uuid = function (len, radix) {
 
   function isFolder(path) {
     return path.substr(-1) === '/';
+  }
+
+  function handleVisibility() {
+    var hidden,
+        visibilityChange,
+        rs = this;
+
+    function handleVisibilityChange(fg) {
+      var oldValue, newValue;
+      oldValue = rs.getCurrentSyncInterval();
+      isBackground = !fg;
+      newValue = rs.getCurrentSyncInterval();
+      rs._emit('sync-interval-change', {oldValue: oldValue, newValue: newValue});
+    }
+
+    RemoteStorage.Env.on("background", function () {
+      handleVisibilityChange(false);
+    });
+
+    RemoteStorage.Env.on("foreground", function () {
+      handleVisibilityChange(true);
+    });
+  }
+
+  /**
+   * Check if interval is valid: numeric and between 1000ms and 3600000ms
+   *
+   */
+  function isValidInterval(interval) {
+    return (typeof interval === 'number' && interval > 1000 && interval < 3600000);
   }
 
   /**
@@ -3838,7 +4160,7 @@ Math.uuid = function (len, radix) {
     flush: function(nodes) {
       for (var path in nodes) {
         // Strategy is 'FLUSH' and no local changes exist
-        if (this.caching.checkPath(path) === 'FLUSH' && !nodes[path].local) {
+        if (this.caching.checkPath(path) === 'FLUSH' && nodes[path] && !nodes[path].local) {
           RemoteStorage.log('[Sync] Flushing', path);
           nodes[path] = undefined; // Cause node to be flushed from cache
         }
@@ -3931,24 +4253,40 @@ Math.uuid = function (len, radix) {
     },
 
     autoMergeDocument: function(node) {
-      if (node.remote.body !== undefined) {
+      hasNoRemoteChanges = function(node) {
+        if (node.remote && node.remote.revision && node.remote.revision !== node.common.revision) {
+          return false;
+        }
+        return (node.common.body === undefined && node.remote.body === false) ||
+               (node.remote.body === node.common.body &&
+                node.remote.contentType === node.common.contentType);
+      };
+
+      if (hasNoRemoteChanges(node)) {
+        delete node.remote;
+      } else if (node.remote.body !== undefined) {
         // keep/revert:
         RemoteStorage.log('[Sync] Emitting keep/revert');
 
-        this.local._emit('change', {
+        this.local._emitChange({
           origin:         'conflict',
           path:           node.path,
           oldValue:       node.local.body,
           newValue:       node.remote.body,
+          lastCommonValue: node.common.body,
           oldContentType: node.local.contentType,
-          newContentType: node.remote.contentType
+          newContentType: node.remote.contentType,
+          lastCommonContentType: node.common.contentType
         });
 
-        node.common = node.remote;
+        if (node.remote.body) {
+          node.common = node.remote;
+        } else {
+          node.common = {};
+        }
         delete node.remote;
         delete node.local;
       }
-      delete node.push;
       return node;
     },
 
@@ -3960,7 +4298,7 @@ Math.uuid = function (len, radix) {
           } else {
             return this.autoMergeDocument(node);
           }
-        } else { // remotely created node
+        } else { // no local changes
           if (isFolder(node.path)) {
             if (node.remote.itemsMap !== undefined) {
               node.common = node.remote;
@@ -3968,12 +4306,21 @@ Math.uuid = function (len, radix) {
             }
           } else {
             if (node.remote.body !== undefined) {
-              this.local._emit('change', {
+              var change = {
                 origin:   'remote',
                 path:     node.path,
                 oldValue: (node.common.body === false ? undefined : node.common.body),
-                newValue: (node.remote.body === false ? undefined : node.remote.body)
-              });
+                newValue: (node.remote.body === false ? undefined : node.remote.body),
+                oldContentType: node.common.contentType,
+                newContentType: node.remote.contentType
+              };
+              if (change.oldValue || change.newValue) {
+                this.local._emitChange(change);
+              }
+
+              if (!node.remote.body) { // no remote, so delete/don't create
+                return;
+              }
 
               node.common = node.remote;
               delete node.remote;
@@ -3981,16 +4328,29 @@ Math.uuid = function (len, radix) {
           }
         }
       } else {
-        this.local._emit('change', {
-          origin:   'remote',
-          path:     node.path,
-          oldValue: (node.common.body === false ? undefined : node.common.body),
-          newValue: undefined
-        });
+        if (node.common.body) {
+          this.local._emitChange({
+            origin:   'remote',
+            path:     node.path,
+            oldValue: node.common.body,
+            newValue: undefined,
+            oldContentType: node.common.contentType,
+            newContentType: undefined
+          });
+        }
 
         return undefined;
       }
       return node;
+    },
+
+    updateCommonTimestamp: function(path, revision) {
+      return this.local.getNodes([path]).then(function(nodes) {
+        if (nodes[path] && nodes[path].common && nodes[path].common.revision === revision) {
+          nodes[path].common.timestamp = this.now();
+        }
+        return this.local.setNodes(this.flush(nodes));
+      }.bind(this));
     },
 
     markChildren: function(path, itemsMap, changedNodes, missingChildren) {
@@ -4095,7 +4455,7 @@ Math.uuid = function (len, radix) {
         return promising().fulfill(changedNodes);
       }
 
-      this.local.getNodes(paths).then(function(nodes) {
+      return this.local.getNodes(paths).then(function(nodes) {
         var subPaths = {};
 
         collectSubPaths = function(folder, path) {
@@ -4141,11 +4501,11 @@ Math.uuid = function (len, radix) {
       var parentPath;
       var pathsFromRoot = this.local._getInternals().pathsFromRoot(path);
 
-      if (!isFolder(path)) {
+      if (isFolder(path)) {
+        paths = [path];
+      } else {
         parentPath = pathsFromRoot[1];
         paths = [path, parentPath];
-      } else {
-        paths = [path];
       }
 
       var promise = this.local.getNodes(paths).then(function(nodes) {
@@ -4225,9 +4585,10 @@ Math.uuid = function (len, radix) {
 
           if (!node.remote || node.remote.revision !== revision) {
             node.remote = {
-              revision:  revision,
+              revision:  revision || 'conflict',
               timestamp: this.now()
             };
+            delete node.push;
           }
 
           nodes[path] = this.autoMerge(node);
@@ -4284,7 +4645,8 @@ Math.uuid = function (len, radix) {
       return {
         successful: (series === 2 || statusCode === 304 || statusCode === 412 || statusCode === 404),
         conflict:   (statusCode === 412),
-        unAuth:     (statusCode === 401 || statusCode === 402 ||statusCode === 403),
+        unAuth:     ((statusCode === 401 && this.remote.token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) ||
+                     statusCode === 402 || statusCode === 403),
         notFound:   (statusCode === 404),
         changed:    (statusCode !== 304)
       };
@@ -4317,7 +4679,9 @@ Math.uuid = function (len, radix) {
           }
         }.bind(this));
       } else {
-        return promising().fulfill(true);
+        return this.updateCommonTimestamp(path, revision).then(function() {
+          return true;
+        });
       }
     },
 
@@ -4400,7 +4764,7 @@ Math.uuid = function (len, radix) {
       }.bind(this),
 
       function(err) {
-        RemoteStorage.log('[Sync] Error', err);
+        console.error('[Sync] Error', err);
         this.remote.online = false;
         delete this._timeStarted[task.path];
         delete this._running[task.path];
@@ -4483,10 +4847,10 @@ Math.uuid = function (len, radix) {
           try {
             this.doTasks();
           } catch(e) {
-            RemoteStorage.log('[Sync] doTasks error', e);
+            console.error('[Sync] doTasks error', e);
           }
         }.bind(this), function(e) {
-          RemoteStorage.log('[Sync] Sync error', e);
+          console.error('[Sync] Sync error', e);
           throw new Error('Local cache unavailable');
         });
       } else {
@@ -4517,14 +4881,54 @@ Math.uuid = function (len, radix) {
    *
    */
   RemoteStorage.prototype.setSyncInterval = function(interval) {
-    if (typeof(interval) !== 'number') {
+    if (!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
+    var oldValue = syncInterval;
     syncInterval = parseInt(interval, 10);
-    if (this._syncTimer) {
-      this.stopSync();
-      this._syncTimer = setTimeout(this.syncCycle.bind(this), interval);
+    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+  };
+
+  /**
+   * Method: getBackgroundSyncInterval
+   *
+   * Get the value of the sync interval when application is in the background
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getBackgroundSyncInterval = function() {
+    return backgroundSyncInterval;
+  };
+
+  /**
+   * Method: setBackgroundSyncInterval
+   *
+   * Set the value of the sync interval when the application is in the background
+   *
+   * Parameters:
+   *   interval - sync interval in milliseconds
+   *
+   */
+  RemoteStorage.prototype.setBackgroundSyncInterval = function(interval) {
+    if(!isValidInterval(interval)) {
+      throw interval + " is not a valid sync interval";
     }
+    var oldValue = backgroundSyncInterval;
+    backgroundSyncInterval = parseInt(interval, 10);
+    this._emit('sync-interval-change', {oldValue: oldValue, newValue: interval});
+  };
+
+  /**
+   * Method: getCurrentSyncInterval
+   *
+   * Get the value of the current sync interval
+   *
+   * Returns a number of milliseconds
+   *
+   */
+  RemoteStorage.prototype.getCurrentSyncInterval = function() {
+    return isBackground ? backgroundSyncInterval : syncInterval;
   };
 
   var SyncError = function(originalError) {
@@ -4548,12 +4952,12 @@ Math.uuid = function (len, radix) {
     }
 
     this.sync.on('done', function() {
-      RemoteStorage.log('[Sync] Sync done. Setting timer to', this.getSyncInterval());
+      RemoteStorage.log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
       if (!this.sync.stopped) {
         if (this._syncTimer) {
           clearTimeout(this._syncTimer);
         }
-        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getSyncInterval());
+        this._syncTimer = setTimeout(this.sync.sync.bind(this.sync), this.getCurrentSyncInterval());
       }
     }.bind(this));
 
@@ -4582,7 +4986,9 @@ Math.uuid = function (len, radix) {
   RemoteStorage.Sync._rs_init = function(remoteStorage) {
     syncCycleCb = function() {
       RemoteStorage.log('[Sync] syncCycleCb calling syncCycle');
-
+      if (RemoteStorage.Env.isBrowser()) {
+        handleVisibility.bind(remoteStorage)();
+      }
       if (!remoteStorage.sync) {
         // Call this now that all other modules are also ready:
         remoteStorage.sync = new RemoteStorage.Sync(
@@ -4634,11 +5040,43 @@ Math.uuid = function (len, radix) {
     return path.substr(-1) !== '/';
   }
 
+  /**
+   * Function: fixArrayBuffers
+   *
+   * Takes an object and its copy as produced by the _deepClone function
+   * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
+   * of being cloned to new ArrayBuffers with the same content.
+   *
+   * It recurses into sub-objects, but skips arrays if they occur.
+   *
+   */
+  function fixArrayBuffers(srcObj, dstObj) {
+    var field, srcArr, dstArr;
+    if (typeof(srcObj) != 'object' || Array.isArray(srcObj) || srcObj === null) {
+      return;
+    }
+    for (field in srcObj) {
+      if (typeof(srcObj[field]) === 'object' && srcObj[field] !== null) {
+        if (srcObj[field].toString() === '[object ArrayBuffer]') {
+          dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
+          srcArr = new Int8Array(srcObj[field]);
+          dstArr = new Int8Array(dstObj[field]);
+          dstArr.set(srcArr);
+        } else {
+          fixArrayBuffers(srcObj[field], dstObj[field]);
+        }
+      }
+    }
+  }
+
   function deepClone(obj) {
+    var clone;
     if (obj === undefined) {
       return undefined;
     } else {
-      return JSON.parse(JSON.stringify(obj));
+      clone = JSON.parse(JSON.stringify(obj));
+      fixArrayBuffers(obj, clone);
+      return clone;
     }
   }
 
@@ -4677,9 +5115,20 @@ Math.uuid = function (len, radix) {
     }
   }
 
-  function isOutdated(node, maxAge) {
-    return !node || !node.timestamp ||
-           ((new Date().getTime()) - node.timestamp > maxAge);
+  function isOutdated(nodes, maxAge) {
+    var path, node;
+    for (path in nodes) {
+      if (nodes[path] && nodes[path].remote) {
+        return true;
+      }
+      node = getLatest(nodes[path]);
+      if (node && node.timestamp && (new Date().getTime()) - node.timestamp <= maxAge) {
+        return false;
+      } else if (!node) {
+        return true;
+      }
+    }
+    return true;
   }
 
   function pathsFromRoot(path) {
@@ -4725,24 +5174,45 @@ Math.uuid = function (len, radix) {
 
   var methods = {
 
-    get: function(path, maxAge) {
+    // TODO: improve our code structure so that this function
+    // could call sync.queueGetRequest directly instead of needing
+    // this hacky third parameter as a callback
+    get: function(path, maxAge, queueGetRequest) {
       var promise = promising();
 
-      this.getNodes([path]).then(function(objs) {
-        var node = getLatest(objs[path]);
-        if ((typeof(maxAge) === 'number') && isOutdated(node, maxAge)) {
-          remoteStorage.sync.queueGetRequest(path, promise);
-        }
-
-        if (node) {
-          promise.fulfill(200, node.body || node.itemsMap, node.contentType);
-        } else {
-          promise.fulfill(404);
-        }
-      }.bind(this), function(err) {
-        promise.reject(err);
-      }.bind(this));
-
+      if (typeof(maxAge) === 'number') {
+        this.getNodes(pathsFromRoot(path)).then(function(objs) {
+          var node = getLatest(objs[path]);
+          if (isOutdated(objs, maxAge)) {
+            queueGetRequest(path, promise);
+          } else if (node) {
+            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+          } else {
+            promise.fulfill(404);
+          }
+        }.bind(this), function(err) {
+          promise.reject(err);
+        });
+      } else {
+        this.getNodes([path]).then(function(objs) {
+          var node = getLatest(objs[path]);
+          if (node) {
+            if (isFolder(path)) {
+              for (var i in node.itemsMap) {
+                // the hasOwnProperty check here is only because our jshint settings require it:
+                if (node.itemsMap.hasOwnProperty(i) && node.itemsMap[i] === false) {
+                  delete node.itemsMap[i];
+                }
+              }
+            }
+            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+          } else {
+            promise.fulfill(404);
+          }
+        }.bind(this), function(err) {
+          promise.reject(err);
+        });
+      }
       return promise;
     },
 
@@ -4836,7 +5306,7 @@ Math.uuid = function (len, radix) {
           var node = nodes[path];
 
           if (node && node.common && node.local) {
-            this._emit('change', {
+            this._emitChange({
               path:     node.path,
               origin:   'local',
               oldValue: (node.local.body === false ? undefined : node.local.body),
@@ -4849,13 +5319,22 @@ Math.uuid = function (len, radix) {
       }.bind(this));
     },
 
+    _emitChange: function(obj) {
+      if (RemoteStorage.config.changeEvents[obj.origin]) {
+        this._emit('change', obj);
+      }
+    },
+
     fireInitial: function() {
+      if (!RemoteStorage.config.changeEvents.local) {
+        return;
+      }
       this.forAllNodes(function(node) {
         var latest;
         if (isDocument(node.path)) {
           latest = getLatest(node);
           if (latest) {
-            this._emit('change', {
+            this._emitChange({
               path:           node.path,
               origin:         'local',
               oldValue:       undefined,
@@ -4865,6 +5344,8 @@ Math.uuid = function (len, radix) {
             });
           }
         }
+      }.bind(this)).then(function () {
+        this._emit('local-events-done');
       }.bind(this));
     },
 
@@ -4932,7 +5413,7 @@ Math.uuid = function (len, radix) {
 
     _emitChangeEvents: function(events) {
       for (var i=0; i<events.length; i++) {
-        this._emit('change', events[i]);
+        this._emitChange(events[i]);
         if (this.diffHandler) {
           this.diffHandler(events[i].path);
         }
@@ -5035,9 +5516,7 @@ Math.uuid = function (len, radix) {
    *       distinguish create/update/delete operations and analyze changes in
    *       change handlers. In addition they carry a "origin" property, which
    *       is either "window", "local", or "remote". "remote" events are fired
-   *       whenever a change comes in from RemoteStorage.Sync. In the future,
-   *       "device" origin events will also be fired for changes happening in
-   *       other windows on the same device.
+   *       whenever a change comes in from RemoteStorage.Sync.
    *
    *   The sync interface (also on RemoteStorage.IndexedDB object):
    *     - #getNodes([paths]) returns the requested nodes in a promise.
@@ -5061,14 +5540,99 @@ Math.uuid = function (len, radix) {
     }
 
     RS.cachingLayer(this);
-    RS.eventHandling(this, 'change');
+    RS.eventHandling(this, 'change', 'local-events-done');
 
     this.getsRunning = 0;
     this.putsRunning = 0;
+
+    /**
+     * Property: changesQueued
+     *
+     * Given a node for which uncommitted changes exist, this cache
+     * stores either the entire uncommitted node, or false for a deletion.
+     * The node's path is used as the key.
+     *
+     * changesQueued stores changes for which no IndexedDB transaction has
+     * been started yet.
+     */
+    this.changesQueued = {};
+
+    /**
+     * Property: changesRunning
+     *
+     * Given a node for which uncommitted changes exist, this cache
+     * stores either the entire uncommitted node, or false for a deletion.
+     * The node's path is used as the key.
+     *
+     * At any time there is at most one IndexedDB transaction running.
+     * changesRunning stores the changes that are included in that currently
+     * running IndexedDB transaction, or if none is running, of the last one
+     * that ran.
+     */
+    this.changesRunning = {};
   };
 
   RS.IndexedDB.prototype = {
     getNodes: function(paths) {
+      var misses = [], fromCache = {};
+      for (var i=0; i<paths.length; i++) {
+        if (this.changesQueued[paths[i]] !== undefined) {
+          fromCache[paths[i]] = this._getInternals().deepClone(this.changesQueued[paths[i]] || undefined);
+        } else if(this.changesRunning[paths[i]] !== undefined) {
+          fromCache[paths[i]] = this._getInternals().deepClone(this.changesRunning[paths[i]] || undefined);
+        } else {
+          misses.push(paths[i]);
+        }
+      }
+      if (misses.length > 0) {
+        return this.getNodesFromDb(misses).then(function(nodes) {
+          for (var i in fromCache) {
+            nodes[i] = fromCache[i];
+          }
+          return nodes;
+        });
+      } else {
+        promise = promising();
+        promise.fulfill(fromCache);
+        return promise;
+      }
+    },
+
+    setNodes: function(nodes) {
+      var promise = promising();
+      for (var i in nodes) {
+        this.changesQueued[i] = nodes[i] || false;
+      }
+      this.maybeFlush();
+      promise.fulfill();
+      return promise;
+    },
+
+    maybeFlush: function() {
+      if (this.putsRunning === 0) {
+        this.flushChangesQueued();
+      } else {
+        if (!this.commitSlownessWarning) {
+          this.commitSlownessWarning = setInterval(function() {
+            console.log('WARNING: waited more than 10 seconds for previous commit to finish');
+          }, 10000);
+        }
+      }
+    },
+
+    flushChangesQueued: function() {
+      if (this.commitSlownessWarning) {
+        clearInterval(this.commitSlownessWarning);
+        this.commitSlownessWarning = null;
+      }
+      if (Object.keys(this.changesQueued).length > 0) {
+        this.changesRunning = this.changesQueued;
+        this.changesQueued = {};
+        this.setNodesInDb(this.changesRunning).then(this.flushChangesQueued.bind(this));
+      }
+    },
+
+    getNodesFromDb: function(paths) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var nodes = transaction.objectStore('nodes');
@@ -5099,7 +5663,7 @@ Math.uuid = function (len, radix) {
       return promise;
     },
 
-    setNodes: function(nodes) {
+    setNodesInDb: function(nodes) {
       var promise = promising();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodesStore = transaction.objectStore('nodes');
@@ -5309,7 +5873,7 @@ Math.uuid = function (len, radix) {
   RemoteStorage.LocalStorage = function() {
     RemoteStorage.cachingLayer(this);
     RemoteStorage.log('[LocalStorage] Registering events');
-    RemoteStorage.eventHandling(this, 'change');
+    RemoteStorage.eventHandling(this, 'change', 'local-events-done');
   };
 
   function b64ToUint6(nChr) {
@@ -5446,7 +6010,7 @@ Math.uuid = function (len, radix) {
   RemoteStorage.InMemoryStorage = function() {
     RemoteStorage.cachingLayer(this);
     RemoteStorage.log('[InMemoryStorage] Registering events');
-    RemoteStorage.eventHandling(this, 'change');
+    RemoteStorage.eventHandling(this, 'change', 'local-events-done');
 
     this._storage = {};
   };
@@ -5632,7 +6196,7 @@ Math.uuid = function (len, radix) {
         }
         if (typeof(result) === 'object' && typeof(result.then) === 'function') {
           result.then(function(res) { results[index] = res; oneDone(); },
-                      function(error) { errors[index] = res; oneDone(); });
+                      function(error) { errors[index] = error; oneDone(); });
         } else {
           oneDone();
           results[index] = result;

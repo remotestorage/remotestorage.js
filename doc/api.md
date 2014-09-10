@@ -14,13 +14,13 @@ Start by defining a module (check out the repo to reuse an existing one):
             privClient.remove(path);
           },
           getData: function() {
-            privClient.getListing(path[, maxAge]).then(function(itemsMap) { //*** new behavior in 0.10 ***//
+            privClient.getListing(path, maxAge).then(function(itemsMap) { //*** new parameter maxAge in 0.10 ***//
               //itemsMap === { 'a/': {ETag: '123'}}
             });
-            privClient.getObject(path[, maxAge]).then(function(obj) { //*** new behavior in 0.10 ***//
+            privClient.getObject(path, maxAge).then(function(obj) { //*** new parameter maxAge in 0.10 ***//
               //obj == { '@context': '...', firstName: '...' }
             });
-            privClient.getFile(path[, maxAge]).then(function(obj) { //*** new behavior in 0.10 ***//
+            privClient.getFile(path, maxAge).then(function(obj) { //*** new parameter maxAge in 0.10 ***//
               //obj = { data: arrBuffOrStr, mimeType: 'application/json'}
             });
             var url = pubClient.getItemURL(path)
@@ -37,15 +37,22 @@ Start by defining a module (check out the repo to reuse an existing one):
 # Using a module in your app
 
 ````js
-    remoteStorage.displayWidget()
+    remoteStorage.displayWidget();
     remoteStorage.access.claim('name', 'rw');
     remoteStorage.name.func1()...
     remoteStorage[name].func1()...
 ````
 
-# Custom backends and widgets
+# Customization
 
 ````js
+    RemoteStorage.config.changeEvents = {
+      local: false, // for better page load performance
+      window: false, // for better write performance
+      remote: true,
+      conflict: true
+    };
+    RemoteStorage.config.logging = false;
     remoteStorage.on('ready', ...)
     remoteStorage.setApiKeys(backend, keys);
     remoteStorage.connect('user@host'[, backend]);
