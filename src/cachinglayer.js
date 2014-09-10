@@ -368,12 +368,12 @@
           cb: cb,
           promise: promise
         });
-        return promise;
-     } else {
+        return;
+      } else {
         this._updateNodesRunning = true;
       }
 
-      return this.getNodes(paths).then(function(nodes) {
+      this.getNodes(paths).then(function(nodes) {
         var existingNodes = deepClone(nodes);
         var changeEvents = [];
         var node;
@@ -403,8 +403,8 @@
           self._emitChangeEvents(changeEvents);
           promise.fulfill(200);
         });
-      },
-      function(err) {
+      }).then(function() {
+      }, function(err) {
         promise.reject(err);
       }).then(function() {
         this._updateNodesRunning = false;

@@ -245,43 +245,86 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
           var jobOneCompleted = false;
           var jobTwoCbCalled = false;
           var jobTwoCompleted = false;
+          var jobThreeCbCalled = false;
+
           env.ims._updateNodes(['/foo'], function(currentValue) {
             test.assertAnd(jobOneCbCalled, false);
             test.assertAnd(jobTwoCbCalled, false);
+            test.assertAnd(jobThreeCbCalled, false);
+
             test.assertAnd(jobOneCompleted, false);
             test.assertAnd(jobTwoCompleted, false);
+
+            test.assertAnd(currentValue, {
+              '/foo': undefined
+            });
+            jobOneCbCalled = true;
+            throw new Error('boom!');
+          }).then(function() {
+            test.result(false, 'this promise should have been rejected');
+          },
+          function(err) {
+            test.assertAnd(jobOneCbCalled, true);
+            test.assertAnd(jobTwoCbCalled, false);
+            test.assertAnd(jobThreeCbCalled, false);
+
+            test.assertAnd(jobOneCompleted, false);
+            test.assertAnd(jobTwoCompleted, false);
+
+            test.assertAnd(err.message, 'boom!');
+            jobOneCompleted = true;
+          });
+
+          env.ims._updateNodes(['/foo'], function(currentValue) {
+            test.assertAnd(jobOneCbCalled, true);
+            test.assertAnd(jobTwoCbCalled, false);
+            test.assertAnd(jobThreeCbCalled, false);
+
+            test.assertAnd(jobOneCompleted, true);
+            test.assertAnd(jobTwoCompleted, false);
+
             test.assertAnd(currentValue, {
               '/foo': undefined
             });
             currentValue['/foo'] = {local: {some: 'data'}};
-            jobOneCbCalled = true;
+            jobTwoCbCalled = true;
             return currentValue;
           }).then(function() {
             test.assertAnd(jobOneCbCalled, true);
-            test.assertAnd(jobTwoCbCalled, false);
-            test.assertAnd(jobOneCompleted, false);
+            test.assertAnd(jobTwoCbCalled, true);
+            test.assertAnd(jobThreeCbCalled, false);
+
+            test.assertAnd(jobOneCompleted, true);
             test.assertAnd(jobTwoCompleted, false);
-            jobOneCompleted = true;
+
+            jobTwoCompleted = true;
           });
-	  env.ims._updateNodes(['/foo'], function(currentValue) {
-	    test.assertAnd(jobOneCbCalled, true);
-	    test.assertAnd(jobTwoCbCalled, false);
-	    test.assertAnd(jobOneCompleted, true);
-	    test.assertAnd(jobTwoCompleted, false);
+
+          env.ims._updateNodes(['/foo'], function(currentValue) {
+            test.assertAnd(jobOneCbCalled, true);
+            test.assertAnd(jobTwoCbCalled, true);
+            test.assertAnd(jobThreeCbCalled, false);
+
+            test.assertAnd(jobOneCompleted, true);
+            test.assertAnd(jobTwoCompleted, true);
+
             test.assertAnd(currentValue, {
-	      '/foo': {
-		local: {some: 'data'}
-	      }
-	    });
-	    currentValue['/foo'] = {local: {some: 'other data'}};
-	    jobTwoCbCalled = true;
-	    return currentValue;
-	  }).then(function() {
-	    test.assertAnd(jobOneCbCalled, true);
-	    test.assertAnd(jobTwoCbCalled, true);
-	    test.assertAnd(jobOneCompleted, true);
-	    test.assertAnd(jobTwoCompleted, false);
-	    test.done();
+              '/foo': {
+                local: {some: 'data'}
+              }
+            });
+            currentValue['/foo'] = {local: {some: 'other data'}};
+            jobThreeCbCalled = true;
+            return currentValue;
+          }).then(function() {
+            test.assertAnd(jobOneCbCalled, true);
+            test.assertAnd(jobTwoCbCalled, true);
+            test.assertAnd(jobThreeCbCalled, true);
+
+            test.assertAnd(jobOneCompleted, true);
+            test.assertAnd(jobTwoCompleted, true);
+
+            test.done();
           });
         }
       }
