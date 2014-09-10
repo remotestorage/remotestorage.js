@@ -9,6 +9,7 @@ All releases can also be found and downloaded on the
 
 * Report unhandled HTTP status codes as errors (#594)
 * Pause between sync retries when offline (#740)
+* Fix race condition in caching layer (#752)
 
 ## 0.10.1 (August 2014)
 
