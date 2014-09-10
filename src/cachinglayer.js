@@ -401,22 +401,18 @@
 
         self.setNodes(nodes).then(function() {
           self._emitChangeEvents(changeEvents);
-          this._updateNodesRunning = false;
-          var nextJob = this._updateNodesQueued.shift();
-          if (nextJob) {
-            this._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
-          }
           promise.fulfill(200);
-        }.bind(this));
-      }.bind(this),
+        });
+      },
       function(err) {
+        promise.reject(err);
+      }).then(function() {
         this._updateNodesRunning = false;
         var nextJob = this._updateNodesQueued.shift();
         if (nextJob) {
           this._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
         }
-        promise.reject(err);
-      });
+      }.bind(this));
     },
 
     _emitChangeEvents: function(events) {
