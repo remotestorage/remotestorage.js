@@ -122,8 +122,8 @@
     return paths;
   }
 
-  function makeNode(path, timestamp) {
-    var node = { path: path, common: { timestamp: timestamp } };
+  function makeNode(path) {
+    var node = { path: path, common: { } };
 
     if (isFolder(path)) {
       node.common.itemsMap = {};
@@ -131,10 +131,9 @@
     return node;
   }
 
-  function updateFolderNodeWithItemName(node, itemName, timestamp) {
+  function updateFolderNodeWithItemName(node, itemName) {
     if (!node.common) {
       node.common = {
-        timestamp: timestamp,
         itemsMap: {}
       };
     }
@@ -198,7 +197,6 @@
 
     put: function(path, body, contentType) {
       var paths = pathsFromRoot(path);
-      var now = new Date().getTime();
 
       return this._updateNodes(paths, function(nodes) {
         try {
@@ -208,7 +206,7 @@
             var previous;
 
             if (!node) {
-              nodes[path] = node = makeNode(path, now);
+              nodes[path] = node = makeNode(path);
             }
 
             // Document
@@ -217,7 +215,6 @@
               node.local = {
                 body:                body,
                 contentType:         contentType,
-                timestamp:           now,
                 previousBody:        (previous ? previous.body : undefined),
                 previousContentType: (previous ? previous.contentType : undefined),
               };
@@ -225,7 +222,7 @@
             // Folder
             else {
               var itemName = paths[i-1].substring(path.length);
-              node = updateFolderNodeWithItemName(node, itemName, now);
+              node = updateFolderNodeWithItemName(node, itemName);
             }
           }
           return nodes;
@@ -240,8 +237,6 @@
       var paths = pathsFromRoot(path);
 
       return this._updateNodes(paths, function(nodes) {
-        var now = new Date().getTime();
-
         for (var i=0; i<paths.length; i++) {
           var path = paths[i];
           var node = nodes[path];
@@ -255,7 +250,6 @@
             previous = getLatest(node);
             node.local = {
               body:                false,
-              timestamp:           now,
               previousBody:        (previous ? previous.body : undefined),
               previousContentType: (previous ? previous.contentType : undefined),
             };

@@ -164,13 +164,13 @@ define(['requirejs'], function(requirejs) {
         run: function(env, test) {
           var makeNode = env.ims._getInternals().makeNode;
 
-          test.assertAnd(makeNode('/a/b/', 1234567890123), {
+          test.assertAnd(makeNode('/a/b/'), {
             path: '/a/b/',
-            common: { timestamp: 1234567890123, itemsMap: {} }
+            common: { itemsMap: {} }
           });
-          test.assert(makeNode('/a/b', 1234567890123), {
+          test.assert(makeNode('/a/b'), {
             path: '/a/b',
-            common: { timestamp: 1234567890123 }
+            common: { }
           });
         }
       },
