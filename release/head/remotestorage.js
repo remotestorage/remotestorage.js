@@ -1125,9 +1125,7 @@
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     onErrorCb = function(error){
-      if (error instanceof RemoteStorage.SyncError) {
-        this.online = false;
-      } else if (error instanceof RemoteStorage.Unauthorized) {
+      if (error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this);
@@ -1218,7 +1216,6 @@
             isFolder: isFolder(uri),
             success: false
           });
-          self.online = false;
           promise.reject(error);
         } else {
           self._emit('wire-done', {
@@ -2109,7 +2106,7 @@ RemoteStorage.Assets = {
     **/
     display: function(options) {
       if (typeof(options) === 'string') {
-        options = { domID: domID };
+        options = { domID: options };
       } else if (typeof(options) === 'undefined') {
         options = {};
       }
@@ -5462,7 +5459,8 @@ Math.uuid = function (len, radix) {
       if (statusCode === 'offline' || statusCode === 'timeout') {
         return {
           successful:      false,
-          networkProblems: true
+          networkProblems: true,
+          statusCode: statusCode
         };
       }
 
@@ -5474,7 +5472,8 @@ Math.uuid = function (len, radix) {
         unAuth:     ((statusCode === 401 && this.remote.token !== RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN) ||
                      statusCode === 402 || statusCode === 403),
         notFound:   (statusCode === 404),
-        changed:    (statusCode !== 304)
+        changed:    (statusCode !== 304),
+        statusCode: statusCode
       };
     },
 
@@ -5527,15 +5526,19 @@ Math.uuid = function (len, radix) {
       }
       // Unsuccessful
       else {
+        var error;
         if (status.unAuth) {
-          remoteStorage._emit('error', new RemoteStorage.Unauthorized());
-        }
-        if (status.networkProblems) {
-          remoteStorage._emit('error', new RemoteStorage.SyncError());
+          error = new RemoteStorage.Unauthorized();
+        } else if (status.networkProblems) {
+          error = new RemoteStorage.SyncError('Network request failed.');
+          this.remote.online = false;
+        } else {
+          error = new Error('HTTP response code ' + status.statusCode + ' received.');
         }
 
         return this.dealWithFailure(path, action, status).then(function() {
-          return false;
+          remoteStorage._emit('error', error);
+          throw error;
         });
       }
     },
@@ -5592,14 +5595,12 @@ Math.uuid = function (len, radix) {
 
       function(err) {
         console.error('[Sync] Error', err);
-        this.remote.online = false;
         delete this._timeStarted[task.path];
         delete this._running[task.path];
         this._emit('req-done');
-        if (!this.stopped) {
-          setTimeout(function() {
-            this.doTasks();
-          }.bind(this), 0);
+        if (!this.done) {
+          this.done = true;
+          this._emit('done');
         }
       }.bind(this));
     },
@@ -5766,10 +5767,11 @@ Math.uuid = function (len, radix) {
       msg += originalError;
     }
     this.originalError = originalError;
-    Error.apply(this, [msg]);
+    this.message = msg;
   };
 
-  SyncError.prototype = Object.create(Error.prototype);
+  SyncError.prototype = new Error();
+  SyncError.prototype.constructor = SyncError;
 
   RemoteStorage.SyncError = SyncError;
 

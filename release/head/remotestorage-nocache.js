@@ -1,4 +1,4 @@
-/** remotestorage.js 0.10.0, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.10.1, http://remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/promising.js **/
 (function(global) {
@@ -1125,9 +1125,7 @@
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
     onErrorCb = function(error){
-      if (error instanceof RemoteStorage.SyncError) {
-        this.online = false;
-      } else if (error instanceof RemoteStorage.Unauthorized) {
+      if (error instanceof RemoteStorage.Unauthorized) {
         this.configure(undefined, undefined, undefined, null);
       }
     }.bind(this);
@@ -1218,7 +1216,6 @@
             isFolder: isFolder(uri),
             success: false
           });
-          self.online = false;
           promise.reject(error);
         } else {
           self._emit('wire-done', {
@@ -2109,7 +2106,7 @@ RemoteStorage.Assets = {
     **/
     display: function(options) {
       if (typeof(options) === 'string') {
-        options = { domID: domID };
+        options = { domID: options };
       } else if (typeof(options) === 'undefined') {
         options = {};
       }
