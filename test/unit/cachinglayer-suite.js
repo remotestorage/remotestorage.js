@@ -32,7 +32,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
     },
 
     beforeEach: function(env, test) {
-      env.ims = new FakeStorage(10);
+      env.ims = new FakeStorage(100);
       test.done();
     },
 
@@ -266,9 +266,9 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
 	  env.ims._updateNodes(['/foo'], function(currentValue) {
 	    test.assertAnd(jobOneCbCalled, true);
 	    test.assertAnd(jobTwoCbCalled, false);
-	    test.assertAnd(jobOneCompleted, false);
+	    test.assertAnd(jobOneCompleted, true);
 	    test.assertAnd(jobTwoCompleted, false);
-	    test.assertAnd(currentValue, {
+            test.assertAnd(currentValue, {
 	      '/foo': {
 		local: {some: 'data'}
 	      }

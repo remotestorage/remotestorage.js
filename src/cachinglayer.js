@@ -355,14 +355,21 @@
     _updateNodesRunning: false,
     _updateNodesQueued: [],
     _updateNodes: function(paths, cb) {
+      var promise = promising();
+      this._doUpdateNodes(paths, cb, promise);
+      return promise;
+    },
+    _doUpdateNodes: function(paths, cb, promise) {
       var self = this;
 
       if (this._updateNodesRunning) {
         this._updateNodesQueued.push({
           paths: paths,
-          cb: cb
+          cb: cb,
+          promise: promise
         });
-      } else {
+        return promise;
+     } else {
         this._updateNodesRunning = true;
       }
 
@@ -392,23 +399,23 @@
           }
         }
 
-        return self.setNodes(nodes).then(function() {
+        self.setNodes(nodes).then(function() {
           self._emitChangeEvents(changeEvents);
           this._updateNodesRunning = false;
           var nextJob = this._updateNodesQueued.shift();
           if (nextJob) {
-            this._updateNodes(nextJob.paths, nextJob.cb);
+            this._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
           }
-          return 200;
+          promise.fulfill(200);
         }.bind(this));
       }.bind(this),
       function(err) {
-          this._updateNodesRunning = false;
-          var nextJob = this._updateNodesQueued.shift();
-          if (nextJob) {
-            this._updateNodes(nextJob.paths, nextJob.cb);
-          }
-        throw(err);
+        this._updateNodesRunning = false;
+        var nextJob = this._updateNodesQueued.shift();
+        if (nextJob) {
+          this._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
+        }
+        promise.reject(err);
       });
     },
 

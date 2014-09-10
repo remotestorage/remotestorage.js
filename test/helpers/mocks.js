@@ -114,11 +114,11 @@ define([], function() {
 	  var nodes = {};
 
 	  for(i=0; i<paths.length; i++) {
-				    nodes[paths[i]] = this._storage[paths[i]];
+	    nodes[paths[i]] = this._storage[paths[i]];
 	  }
-          setTimeout(function() {
+	  setTimeout(function() {
 	    promise.fulfill(nodes);
-          }, this.delay);
+	  }, this.delay);
 	  return promise;
 	},
 
@@ -126,11 +126,11 @@ define([], function() {
 	  var promise = promising();
 
 	  for (var path in nodes) {
-				    if (nodes[path] === undefined) {
-					    delete this._storage[path];
-				    } else {
-					    this._storage[path] = nodes[path];
-				    }
+	    if (nodes[path] === undefined) {
+	      delete this._storage[path];
+	    } else {
+	      this._storage[path] = nodes[path];
+	    }
 	  }
 	  promise.fulfill();
 	  return promise;
@@ -138,11 +138,11 @@ define([], function() {
 
 	forAllNodes: function(cb) {
 	  for(var path in this._storage) {
-				    cb(this.migrate(this._storage[path]));
-						    }
-					    return promising().fulfill();
-				    }
-			    };
-	}
+            cb(this.migrate(this._storage[path]));
+          }
+          return promising().fulfill();
+        }
       };
+    }
+  };
 });
