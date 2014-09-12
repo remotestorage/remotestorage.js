@@ -3,7 +3,7 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
-## HEAD
+## 0.10.2 (September 2014)
 
 ### Bugixes
 
