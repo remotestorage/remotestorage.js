@@ -101,10 +101,10 @@
       if (nodes[path] && nodes[path].remote) {
         return true;
       }
-      node = getLatest(nodes[path]);
-      if (node && node.timestamp && (new Date().getTime()) - node.timestamp <= maxAge) {
+      nodeVersion = getLatest(nodes[path]);
+      if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
         return false;
-      } else if (!node) {
+      } else if (!nodeVersion) {
         return true;
       }
     }
@@ -450,7 +450,8 @@
         equal: equal,
         getLatest: getLatest,
         pathsFromRoot: pathsFromRoot,
-        makeNode: makeNode
+        makeNode: makeNode,
+        isOutdated: isOutdated
       };
     }
   };

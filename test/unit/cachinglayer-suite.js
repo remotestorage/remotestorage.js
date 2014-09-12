@@ -176,6 +176,18 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
+        desc: "locally created documents are considered outdated",
+        run: function(env, test) {
+          env.ims.put('/new/document', 'content', 'text/plain').then(function() {
+            var paths = env.ims._getInternals().pathsFromRoot('/new/document');
+            env.ims.getNodes(paths).then(function(nodes) {
+              test.assert(env.ims._getInternals().isOutdated(nodes, 1000), true);
+            });
+          });
+        }
+      },
+
+      {
         desc: "this._getAllDescendentPaths",
         run: function(env, test) {
           env.ims.put('/foo/bar/baz/baf', 'asdf', 'qwer').then(function() {
