@@ -1,4 +1,4 @@
-Format: 1.51
+Format: 1.52
 
 
 # You can add a title and sub-title to your menu like this:
@@ -61,16 +61,16 @@ Group: Internals  {
    Group: Classes  {
 
       File: BaseClient.Types  (no auto-title, baseclient/types.js)
-      File: Discover  (discover.js)
-      File: Dropbox  (dropbox.js)
+      File: Discover  (no auto-title, discover.js)
+      File: Dropbox  (no auto-title, dropbox.js)
       File: GoogleDrive  (googledrive.js)
-      File: IndexedDB  (indexeddb.js)
+      File: IndexedDB  (no auto-title, indexeddb.js)
       File: InMemoryStorage  (inmemorystorage.js)
       File: LocalStorage  (localstorage.js)
-      File: Sync  (sync.js)
-      File: Widget  (widget.js)
-      File: Widget.View  (view.js)
-      File: WireClient  (wireclient.js)
+      File: Sync  (no auto-title, sync.js)
+      File: Widget  (no auto-title, widget.js)
+      File: Widget.View  (no auto-title, view.js)
+      File: WireClient  (no auto-title, wireclient.js)
       }  # Group: Classes
 
    Group: Modules  {

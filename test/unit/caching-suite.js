@@ -85,31 +85,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "#checkPath returns value of tightest fitting rootPath",
         run: function(env, test) {
-<<<<<<< HEAD
-          env.caching.set('/foo/', { data: true });
-          test.assert(env.caching.rootPaths, ['/foo/']);
-        }
-      },
-
-      {
-        desc: "#rootPaths doesn't contain paths that overlap entirely, but only the shortest one",
-        run: function(env, test) {
-          env.caching.set('/foo/', { data: true });
-          env.caching.set('/bar/', { data: true });
-          env.caching.set('/foo/bar/baz/', { data: true });
-          test.assert(env.caching.rootPaths, ['/foo/', '/bar/']);
-        }
-      },
-
-      {
-        desc: "#rootPaths doesn't contain paths that have been removed",
-        run: function(env, test) {
-          env.caching.set('/foo/', { data: true });
-          env.caching.set('/bar/', { data: true });
-          env.caching.set('/foo/bar/baz/', { data: true });
-          env.caching.remove('/foo/');
-          test.assert(env.caching.rootPaths.sort(), ['/foo/bar/baz/', '/bar/'].sort());
-=======
           env.caching.set('/foo/', 'ALL');
           env.caching.set('/foo/bar/baz', 'FLUSH');
           env.caching.set('/foo/baf/', 'SEEN');
@@ -134,7 +109,6 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           test.assertAnd(env.caching.checkPath('/2/3'), 'SEEN');
           test.assertAnd(env.caching.checkPath('/2/3/'), 'SEEN');
           test.done();
->>>>>>> upstream/master
         }
       },
 
