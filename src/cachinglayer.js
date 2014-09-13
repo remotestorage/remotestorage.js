@@ -12,13 +12,8 @@
    * talk to.
    */
 
-  function isFolder(path) {
-    return path.substr(-1) === '/';
-  }
-
-  function isDocument(path) {
-    return path.substr(-1) !== '/';
-  }
+  var isFolder = RemoteStorage.util.isFolder;
+  var isDocument = RemoteStorage.util.isDocument;
 
   /**
    * Function: fixArrayBuffers
@@ -32,7 +27,7 @@
    */
   function fixArrayBuffers(srcObj, dstObj) {
     var field, srcArr, dstArr;
-    if (typeof(srcObj) != 'object' || Array.isArray(srcObj) || srcObj === null) {
+    if (typeof(srcObj) !== 'object' || Array.isArray(srcObj) || srcObj === null) {
       return;
     }
     for (field in srcObj) {
