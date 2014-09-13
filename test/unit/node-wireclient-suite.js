@@ -13,6 +13,7 @@ define(['requirejs'], function(requirejs) {
       RemoteStorage.log = function() {};
       global.RemoteStorage.Unauthorized = function() {};
       require('./lib/promising');
+      require('./src/util');
       require('./src/eventhandling');
 
       if (global.rs_eventhandling) {
@@ -20,7 +21,7 @@ define(['requirejs'], function(requirejs) {
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      require('./src/wireclient');
+      requirejs('./src/wireclient');
       if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
@@ -37,7 +38,9 @@ define(['requirejs'], function(requirejs) {
     },
 
     takedown: function(env, test) {
-      RemoteStorage.WireClient.readBinaryData = oldReadBinaryData;
+      if (typeof RemoteStorage.WireClient !== 'undefined') {
+         RemoteStorage.WireClient.readBinaryData = oldReadBinaryData;
+      }
       test.done();
     },
 

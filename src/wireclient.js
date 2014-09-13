@@ -70,6 +70,8 @@
     };
   }
 
+  var isFolder = RemoteStorage.util.isFolder;
+
   function addQuotes(str) {
     if (typeof(str) !== 'string') {
       return str;
@@ -127,10 +129,6 @@
 
   function cleanPath(path) {
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
-  }
-
-  function isFolder(path) {
-    return (path.substr(-1) === '/');
   }
 
   function isFolderDescription(body) {
