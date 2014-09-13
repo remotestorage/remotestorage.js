@@ -1,5 +1,5 @@
 (function() {
-  var util = {
+  RemoteStorage.util = {
     getEventEmitter: function() {
       var object = {};
       var args = Array.prototype.slice.call(arguments);
@@ -64,9 +64,13 @@
       return path.substr(-1) === '/';
     },
 
+    isDocument: function(path) {
+      return path.substr(-1) !== '/';
+    },
+
     baseName: function(path) {
       var parts = path.split('/');
-      if (util.isFolder(path)) {
+      if (this.isFolder(path)) {
         return parts[parts.length-2]+'/';
       } else {
         return parts[parts.length-1];
@@ -81,12 +85,4 @@
       }
     }
   };
-
-  Object.defineProperty(RemoteStorage.prototype, 'util', {
-    get: function() {
-      console.log("DEPRECATION WARNING: remoteStorage.util is deprecated and will be removed with the next major release.");
-      return util;
-    }
-  });
-
 })();
