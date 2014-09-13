@@ -4,6 +4,10 @@
       backgroundSyncInterval = 60000,
       isBackground = false;
 
+  var isFolder = RemoteStorage.util.isFolder;
+  var equal = RemoteStorage.util.equal;
+  var equalObj = RemoteStorage.util.equalObj;
+
   function taskFor(action, path, promise) {
     return {
       action:  action,
@@ -18,46 +22,6 @@
 
   function hasCommonRevision(node) {
     return node.common && node.common.revision;
-  }
-
-  function equal(obj1, obj2) {
-    return JSON.stringify(obj1) === JSON.stringify(obj2);
-  }
-
-  function equalObj(x, y) {
-    var p;
-    for (p in y) {
-      if (typeof(x[p]) === 'undefined') {return false;}
-    }
-    for (p in y) {
-      if (y[p]) {
-        switch (typeof(y[p])) {
-          case 'object':
-            if (!y[p].equals(x[p])) { return false; }
-            break;
-          case 'function':
-            if (typeof(x[p])==='undefined' ||
-                (p !== 'equals' && y[p].toString() !== x[p].toString())) {
-              return false;
-            }
-            break;
-          default:
-            if (y[p] !== x[p]) { return false; }
-        }
-      } else {
-        if (x[p]) { return false; }
-      }
-    }
-    for (p in x) {
-      if(typeof(y[p]) === 'undefined') {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  function isFolder(path) {
-    return path.substr(-1) === '/';
   }
 
   function handleVisibility() {
