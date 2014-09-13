@@ -2,7 +2,7 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define([], function() {
+define(['requirejs'], function(requirejs) {
   var suites = [];
 
   function FakeCaching(){
@@ -89,7 +89,7 @@ define([], function() {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
-      require('./src/cachinglayer');
+      require('./src/cachinglayer.js');
       if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {

@@ -11,7 +11,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
     desc: "High-level client, scoped to a path",
     setup: function(env, test) {
       mocks.defineMocks(env);
-  
+
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
@@ -30,6 +30,9 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
           remote: true
         }
       };
+
+      require('./src/util');
+
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;

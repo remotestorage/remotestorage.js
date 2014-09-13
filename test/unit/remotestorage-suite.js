@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
-  var define = require('amdefine');
+  var define = require('amdefine.js');
 }
-define([], function() {
+define([requirejs], function(requirejs) {
 
   var suites = [];
 
@@ -70,7 +70,7 @@ define([], function() {
       } else {
         global.rs_rs = RemoteStorage;
       }
-      require('./src/eventhandling');
+      require('./src/eventhandling.js');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
@@ -325,7 +325,7 @@ define([], function() {
     name: "RemoteStorage",
     desc: "The global RemoteStorage namespace",
     setup: function(env, test) {
-      require('./src/remotestorage');
+      require('./src/remotestorage.js');
       test.done();
     },
 
