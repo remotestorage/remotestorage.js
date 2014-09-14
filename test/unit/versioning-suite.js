@@ -2,62 +2,8 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['requirejs'], function(requirejs) {
+define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
   var suites = [];
-
-  function FakeCaching(){
-    this._responses = {};
-    this.checkPath = function(path) {
-      if (typeof(this._responses[path]) === 'undefined') {
-        throw new Error('no FakeCaching response for path ' + path + ' have: ' + JSON.stringify(this._responses));
-      }
-      return this._responses[path];
-    };
-    this.onActivate = function() {};
-  }
-
-  function FakeAccess(){
-    this._data = {};
-    this.set = function(moduleName, value) {
-      this._data[moduleName] = value;
-    };
-    this.get = function(moduleName) {
-      return this._data[moduleName];
-    };
-    this.checkPathPermission = function(path, mode) {
-      if (path.substring(0, '/foo/'.length) === '/foo/') {
-        return true;
-      }
-      if (path.substring(0, '/read/access/'.length) === '/read/access/' && mode === 'r') {
-        return true;
-      }
-      if (path.substring(0, '/write/access/'.length) === '/write/access/') {
-        return true;
-      }
-      return false;
-    };
-  }
-
-  function FakeRemote(){
-    function GPD(target, path, body, contentType, options) {
-      var args = Array.prototype.slice.call(arguments);
-      this['_'+target+'s'].push([path, body, contentType, options]);
-      var p = promising();
-      if (typeof(this._responses[args]) === 'undefined') {
-        throw new Error('no FakeRemote response for args ' + JSON.stringify(args));
-      }
-      var resp = this._responses[args] || [200];
-      return p.fulfill.apply(p, resp);
-    }
-    this.connected = true;
-    this._puts = [];
-    this.put = GPD.bind(this, 'put');
-    this._deletes = [];
-    this.delete = GPD.bind(this, 'delete');
-    this._gets = [];
-    this.get = GPD.bind(this, 'get');
-    this._responses = {};
-  }
 
   function flatten(array){
     var flat = [];
@@ -81,6 +27,13 @@ define(['requirejs'], function(requirejs) {
       global.RemoteStorage.config = {
         changeEvents: { local: true, window: false, remote: true, conflict: true }
       };
+
+      require('./src/util');
+      if (global.rs_util){
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
 
       require('./src/eventhandling');
       if (global.rs_eventhandling){
@@ -109,6 +62,7 @@ define(['requirejs'], function(requirejs) {
       } else {
         global.rs_sync = RemoteStorage.Sync;
       }
+
       env.responses1 = {
         '/foo/': 'ALL',
         '/foo/f-common/': 'ALL',
@@ -430,6 +384,8 @@ define(['requirejs'], function(requirejs) {
           }
         }
       };
+
+      mocks.defineMocks(env);
       test.done();
     },
 

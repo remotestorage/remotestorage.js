@@ -32,7 +32,7 @@ define([], function() {
         this._responses = {};
         this.checkPath = function(path) {
           if (typeof(this._responses[path]) === 'undefined') {
-            throw new Error('no FakeCaching response for path ' + path);
+            throw new Error('no FakeCaching response for path ' + path + ' have: ' + JSON.stringify(this._responses));
           }
           return this._responses[path];
         };
@@ -79,7 +79,7 @@ define([], function() {
           this['_'+target+'s'].push([path, body, contentType, options]);
           var p = promising();
           if (typeof(this._responses[args]) === 'undefined') {
-            throw new Error('no FakeRemote response for args ' + JSON.stringify(args) + ' - have: ' + JSON.stringify(Object.getOwnPropertyNames(this._responses)));
+            throw new Error('no FakeRemote response for args ' + JSON.stringify(args));
           }
           var resp = this._responses[args] || [200];
           if(resp === 'timeout') {
@@ -96,7 +96,7 @@ define([], function() {
         this._gets = [];
         this.get = GPD.bind(this, 'get');
         this._responses = {};
-      }
+      };
 
     }
   };

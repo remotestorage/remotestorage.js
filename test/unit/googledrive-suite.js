@@ -18,6 +18,14 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
     global.RemoteStorage.Unauthorized = function() {};
 
     require('./lib/promising');
+
+    require('./src/util');
+    if (global.rs_util) {
+      RemoteStorage.util = global.rs_util;
+    } else {
+      global.rs_util = RemoteStorage.util;
+    }
+
     require('./src/eventhandling');
     if (global.rs_eventhandling) {
       RemoteStorage.eventHandling = global.rs_eventhandling;
@@ -38,6 +46,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
     } else {
       global.rs_googledrive = RemoteStorage.GoogleDrive;
     }
+
     test.done();
   }
 

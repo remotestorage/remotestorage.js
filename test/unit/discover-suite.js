@@ -12,6 +12,12 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       RemoteStorage.log = function() {};
       global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
       require('./src/discover');
+      if (global.rs_util) {
+        RemoteStorage.discover = global.rs_discover;
+      } else {
+        global.rs_discover = RemoteStorage.discover;
+      }
+
 
       test.done();
     },

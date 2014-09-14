@@ -5,8 +5,11 @@
       isBackground = false;
 
   var isFolder = RemoteStorage.util.isFolder;
+  var isDocument = RemoteStorage.util.isDocument;
   var equal = RemoteStorage.util.equal;
   var equalObj = RemoteStorage.util.equalObj;
+  var deepClone = RemoteStorage.util.deepClone;
+  var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
 
   function taskFor(action, path, promise) {
     return {
@@ -169,14 +172,6 @@
               (node.push && this.corruptRevision(node.push)));
     },
 
-    isFolderNode: function(node) {
-      return (node.path.substr(-1) === '/');
-    },
-
-    isDocumentNode: function(node) {
-      return (!this.isFolderNode(node));
-    },
-
     hasTasks: function() {
       return Object.getOwnPropertyNames(this._tasks).length > 0;
     },
@@ -185,6 +180,7 @@
       var num = 0;
 
       return this.local.forAllNodes(function(node) {
+
         if (num > 100) {
           return;
         }
@@ -198,7 +194,7 @@
         } else if (this.needsFetch(node) && this.access.checkPathPermission(node.path, 'r')) {
           this.addTask(node.path);
           num++;
-        } else if (this.isDocumentNode(node) && this.needsPush(node) &&
+        } else if (isDocument(node.path) && this.needsPush(node) &&
                    this.access.checkPathPermission(node.path, 'rw')) {
           this.addTask(node.path);
           num++;
@@ -267,7 +263,7 @@
 
     deleteChildPathsFromTasks: function() {
       for (var path in this._tasks) {
-        paths = this.local._getInternals().pathsFromRoot(path);
+        paths = pathsFromRoot(path);
 
         for (var i=1; i<paths.length; i++) {
           if (this._tasks[paths[i]]) {
@@ -324,7 +320,7 @@
         }
         // Push PUT:
         else if (this.needsRemotePut(node)) {
-          node.push = this.local._getInternals().deepClone(node.local);
+          node.push = deepClone(node.local);
           node.push.timestamp = this.now();
 
           return this.local.setNodes(this.flush(nodes)).then(function() {
@@ -530,7 +526,7 @@
           if (meta[nodePath]) {
             if (node && node.common) {
               if (nodeChanged(node, meta[nodePath].ETag)) {
-                changedNodes[nodePath] = this.local._getInternals().deepClone(node);
+                changedNodes[nodePath] = deepClone(node);
                 changedNodes[nodePath].remote = {
                   revision:  meta[nodePath].ETag,
                   timestamp: this.now()
@@ -629,7 +625,7 @@
             collectSubPaths(node.local, path);
           } else {
             if (node.common && typeof(node.common.body) !== undefined) {
-              changedNodes[path] = this.local._getInternals().deepClone(node);
+              changedNodes[path] = deepClone(node);
               changedNodes[path].remote = {
                 body:      false,
                 timestamp: this.now()
@@ -649,12 +645,12 @@
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
       var paths;
       var parentPath;
-      var pathsFromRoot = this.local._getInternals().pathsFromRoot(path);
+      var pathsFromRootArr = pathsFromRoot(path);
 
       if (isFolder(path)) {
         paths = [path];
       } else {
-        parentPath = pathsFromRoot[1];
+        parentPath = pathsFromRootArr[1];
         paths = [path, parentPath];
       }
 

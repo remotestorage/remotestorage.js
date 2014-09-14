@@ -11,14 +11,21 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
     global.RemoteStorage.SyncError = function() {};
     global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
     require('./lib/promising');
-    require('./src/util');
-    require('./src/eventhandling');
 
+    require('./src/util');
+    if (global.rs_util) {
+      RemoteStorage.util = global.rs_util;
+    } else {
+      global.rs_util = RemoteStorage.util;
+    }
+
+    require('./src/eventhandling');
     if (global.rs_eventhandling) {
       RemoteStorage.eventHandling = global.rs_eventhandling;
     } else {
       global.rs_eventhandling = RemoteStorage.eventHandling;
     }
+
     require('./src/wireclient');
     if (global.rs_wireclient) {
       RemoteStorage.WireClient = global.rs_wireclient;

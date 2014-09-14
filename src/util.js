@@ -1,4 +1,39 @@
+/**
+ * Class: RemoteStorage.Util
+ *
+ * Provides reusable utility functions at RemoteStorage.util
+ *
+ */
 (function() {
+
+  /**
+   * Function: fixArrayBuffers
+   *
+   * Takes an object and its copy as produced by the _deepClone function
+   * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
+   * of being cloned to new ArrayBuffers with the same content.
+   *
+   * It recurses into sub-objects, but skips arrays if they occur.
+   */
+  function fixArrayBuffers(srcObj, dstObj) {
+    var field, srcArr, dstArr;
+    if (typeof(srcObj) !== 'object' || Array.isArray(srcObj) || srcObj === null) {
+      return;
+    }
+    for (field in srcObj) {
+      if (typeof(srcObj[field]) === 'object' && srcObj[field] !== null) {
+        if (srcObj[field].toString() === '[object ArrayBuffer]') {
+          dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
+          srcArr = new Int8Array(srcObj[field]);
+          dstArr = new Int8Array(dstObj[field]);
+          dstArr.set(srcArr);
+        } else {
+          fixArrayBuffers(srcObj[field], dstObj[field]);
+        }
+      }
+    }
+  }
+
   RemoteStorage.util = {
     getEventEmitter: function() {
       var object = {};
@@ -56,8 +91,14 @@
     },
 
     containingFolder: function(path) {
-      var folder = path.replace(/[^\/]+\/?$/, '');
-      return folder === path ? null : folder;
+      if (path === '') {
+        return '/';
+      }
+      if (! path) {
+        throw "Path not given!";
+      }
+
+      return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
     },
 
     isFolder: function(path) {
@@ -119,7 +160,38 @@
         }
       }
       return true;
+    },
+
+    deepClone: function(obj) {
+      var clone;
+      if (obj === undefined) {
+        return undefined;
+      } else {
+        clone = JSON.parse(JSON.stringify(obj));
+        fixArrayBuffers(obj, clone);
+        return clone;
+      }
+    },
+
+    pathsFromRoot: function(path) {
+      var paths = [path];
+      var parts = path.replace(/\/$/, '').split('/');
+
+      while (parts.length > 1) {
+        parts.pop();
+        paths.push(parts.join('/')+'/');
+      }
+      return paths;
     }
 
   };
+
+  if (!RemoteStorage.prototype.util) {
+    Object.defineProperty(RemoteStorage.prototype, 'util', {
+      get: function() {
+        console.log('DEPRECATION WARNING: remoteStorage.util was moved to RemoteStorage.util');
+        return RemoteStorage.util;
+      }
+    });
+  }
 })();

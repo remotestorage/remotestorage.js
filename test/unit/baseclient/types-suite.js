@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['require'], function(require) {
+define(['requirejs'], function(requirejs) {
   var suites = [];
 
   suites.push({
@@ -20,23 +20,28 @@ define(['require'], function(require) {
         }
       };
 
-      require('./../../../src/util');
+      require('src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
 
-      require('./../../../src/eventhandling');
+      require('src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      require('./../../../src/wireclient');
+      require('src/wireclient');
       if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
         global.rs_wireclient = RemoteStorage.WireClient;
       }
 
-      require('./../../../src/baseclient.js');
-      require('./../../../src/baseclient/types');
+      require('src/baseclient.js');
+      require('src/baseclient/types');
       if (global.rs_baseclient_with_types) {
         RemoteStorage.BaseClient = global.rs_baseclient_with_types;
       } else {

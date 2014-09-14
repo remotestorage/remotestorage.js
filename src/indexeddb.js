@@ -92,9 +92,9 @@
       var misses = [], fromCache = {};
       for (var i=0; i<paths.length; i++) {
         if (this.changesQueued[paths[i]] !== undefined) {
-          fromCache[paths[i]] = this._getInternals().deepClone(this.changesQueued[paths[i]] || undefined);
+          fromCache[paths[i]] = RemoteStorage.util.deepClone(this.changesQueued[paths[i]] || undefined);
         } else if(this.changesRunning[paths[i]] !== undefined) {
-          fromCache[paths[i]] = this._getInternals().deepClone(this.changesRunning[paths[i]] || undefined);
+          fromCache[paths[i]] = RemoteStorage.util.deepClone(this.changesRunning[paths[i]] || undefined);
         } else {
           misses.push(paths[i]);
         }
