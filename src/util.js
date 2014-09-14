@@ -1,3 +1,9 @@
+/**
+ * Class: RemoteStorage.Util
+ *
+ * Provides reusable utility functions at RemoteStorage.util
+ *
+ */
 (function() {
 
   /**

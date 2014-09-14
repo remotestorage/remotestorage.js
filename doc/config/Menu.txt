@@ -68,6 +68,7 @@ Group: Internals  {
       File: InMemoryStorage  (inmemorystorage.js)
       File: LocalStorage  (localstorage.js)
       File: Sync  (sync.js)
+      File: Util  (util.js)
       File: Widget  (widget.js)
       File: Widget.View  (view.js)
       File: WireClient  (wireclient.js)

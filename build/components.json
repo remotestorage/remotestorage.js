@@ -39,6 +39,7 @@
       "files": [
         "lib/promising.js",
         "src/remotestorage.js",
+        "src/util.js",
         "src/eventhandling.js",
         "src/wireclient.js",
         "src/discover.js",
@@ -118,9 +119,6 @@
         "src/debug/inspect.js"
       ],
       "depends": ["core"]
-    },
-    "util": {
-      "files": ["src/util.js"]
     },
     "nodejs": {
       "files": ["src/nodejs_ext.js"],
