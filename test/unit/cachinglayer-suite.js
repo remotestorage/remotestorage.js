@@ -78,23 +78,9 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "deepClone",
-        run: function(env, test) {
-          var deepClone = env.ims._getInternals().deepClone;
-          var obj = { str: 'a', i: 0, b: true };
-          var cloned = deepClone(obj);
-
-          test.assertAnd(cloned, obj);
-          obj.nested = cloned;
-          cloned = deepClone(obj);
-          test.assert(cloned, obj);
-        }
-      },
-
-      {
         desc: "equal",
         run: function(env, test) {
-          var deepClone = env.ims._getInternals().deepClone;
+          var deepClone = RemoteStorage.util.deepClone;
           var equal = env.ims._getInternals().equal;
           var obj = { str: 'a', i: 0, b: true, obj: { str: 'a' } };
           var obj2 = deepClone(obj);
@@ -144,29 +130,6 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "pathsFromRoot",
-        run: function(env, test) {
-          var pathsFromRoot = env.ims._getInternals().pathsFromRoot;
-          var p1 = '/',
-              p2 = '/a/b/c/d/e',
-              p3 = '/a/b/c',
-              p4 = '/a/b//',
-              p5 = '//',
-              p6 = '/a/b/c d/e/',
-              p7 = '/foo';
-
-          test.assertAnd(pathsFromRoot(p1), [p1]);
-          test.assertAnd(pathsFromRoot(p2), [p2, '/a/b/c/d/', '/a/b/c/', '/a/b/', '/a/', '/']);
-          test.assertAnd(pathsFromRoot(p3), [p3, '/a/b/', '/a/', '/']);
-          test.assertAnd(pathsFromRoot(p4), [p4, '/a/b/', '/a/', '/']);
-          test.assertAnd(pathsFromRoot(p5), [p5, '/']);
-          test.assertAnd(pathsFromRoot(p6), [p6, '/a/b/c d/', '/a/b/', '/a/', '/']);
-          test.assertAnd(pathsFromRoot(p7), [p7, '/']);
-          test.done();
-        }
-      },
-
-      {
         desc: "makeNode",
         run: function(env, test) {
           var makeNode = env.ims._getInternals().makeNode;
@@ -186,7 +149,7 @@ define(['requirejs'], function(requirejs) {
         desc: "locally created documents are considered outdated",
         run: function(env, test) {
           env.ims.put('/new/document', 'content', 'text/plain').then(function() {
-            var paths = env.ims._getInternals().pathsFromRoot('/new/document');
+            var paths = RemoteStorage.util.pathsFromRoot('/new/document');
             env.ims.getNodes(paths).then(function(nodes) {
               test.assert(env.ims._getInternals().isOutdated(nodes, 1000), true);
             });

@@ -14,46 +14,7 @@
 
   var isFolder = RemoteStorage.util.isFolder;
   var isDocument = RemoteStorage.util.isDocument;
-
-  /**
-   * Function: fixArrayBuffers
-   *
-   * Takes an object and its copy as produced by the _deepClone function
-   * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
-   * of being cloned to new ArrayBuffers with the same content.
-   *
-   * It recurses into sub-objects, but skips arrays if they occur.
-   *
-   */
-  function fixArrayBuffers(srcObj, dstObj) {
-    var field, srcArr, dstArr;
-    if (typeof(srcObj) !== 'object' || Array.isArray(srcObj) || srcObj === null) {
-      return;
-    }
-    for (field in srcObj) {
-      if (typeof(srcObj[field]) === 'object' && srcObj[field] !== null) {
-        if (srcObj[field].toString() === '[object ArrayBuffer]') {
-          dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
-          srcArr = new Int8Array(srcObj[field]);
-          dstArr = new Int8Array(dstObj[field]);
-          dstArr.set(srcArr);
-        } else {
-          fixArrayBuffers(srcObj[field], dstObj[field]);
-        }
-      }
-    }
-  }
-
-  function deepClone(obj) {
-    var clone;
-    if (obj === undefined) {
-      return undefined;
-    } else {
-      clone = JSON.parse(JSON.stringify(obj));
-      fixArrayBuffers(obj, clone);
-      return clone;
-    }
-  }
+  var deepClone = RemoteStorage.util.deepClone;
 
   function equal(obj1, obj2) {
     return JSON.stringify(obj1) === JSON.stringify(obj2);
@@ -106,16 +67,7 @@
     return true;
   }
 
-  function pathsFromRoot(path) {
-    var paths = [path];
-    var parts = path.replace(/\/$/, '').split('/');
-
-    while (parts.length > 1) {
-      parts.pop();
-      paths.push(parts.join('/')+'/');
-    }
-    return paths;
-  }
+  var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
 
   function makeNode(path) {
     var node = { path: path, common: { } };
@@ -441,10 +393,8 @@
       return {
         isFolder: isFolder,
         isDocument: isDocument,
-        deepClone: deepClone,
         equal: equal,
         getLatest: getLatest,
-        pathsFromRoot: pathsFromRoot,
         makeNode: makeNode,
         isOutdated: isOutdated
       };

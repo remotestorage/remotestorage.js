@@ -267,7 +267,7 @@
 
     deleteChildPathsFromTasks: function() {
       for (var path in this._tasks) {
-        paths = this.local._getInternals().pathsFromRoot(path);
+        paths = RemoteStorage.util.pathsFromRoot(path);
 
         for (var i=1; i<paths.length; i++) {
           if (this._tasks[paths[i]]) {
@@ -324,7 +324,7 @@
         }
         // Push PUT:
         else if (this.needsRemotePut(node)) {
-          node.push = this.local._getInternals().deepClone(node.local);
+          node.push = RemoteStorage.util.deepClone(node.local);
           node.push.timestamp = this.now();
 
           return this.local.setNodes(this.flush(nodes)).then(function() {
@@ -530,7 +530,7 @@
           if (meta[nodePath]) {
             if (node && node.common) {
               if (nodeChanged(node, meta[nodePath].ETag)) {
-                changedNodes[nodePath] = this.local._getInternals().deepClone(node);
+                changedNodes[nodePath] = RemoteStorage.util.deepClone(node);
                 changedNodes[nodePath].remote = {
                   revision:  meta[nodePath].ETag,
                   timestamp: this.now()
@@ -629,7 +629,7 @@
             collectSubPaths(node.local, path);
           } else {
             if (node.common && typeof(node.common.body) !== undefined) {
-              changedNodes[path] = this.local._getInternals().deepClone(node);
+              changedNodes[path] = RemoteStorage.util.deepClone(node);
               changedNodes[path].remote = {
                 body:      false,
                 timestamp: this.now()
@@ -649,7 +649,7 @@
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
       var paths;
       var parentPath;
-      var pathsFromRoot = this.local._getInternals().pathsFromRoot(path);
+      var pathsFromRoot = RemoteStorage.util.pathsFromRoot(path);
 
       if (isFolder(path)) {
         paths = [path];
