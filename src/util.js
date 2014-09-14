@@ -14,7 +14,6 @@
    * of being cloned to new ArrayBuffers with the same content.
    *
    * It recurses into sub-objects, but skips arrays if they occur.
-   *
    */
   function fixArrayBuffers(srcObj, dstObj) {
     var field, srcArr, dstArr;

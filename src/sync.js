@@ -5,8 +5,11 @@
       isBackground = false;
 
   var isFolder = RemoteStorage.util.isFolder;
+  var isDocument = RemoteStorage.util.isDocument;
   var equal = RemoteStorage.util.equal;
   var equalObj = RemoteStorage.util.equalObj;
+  var deepClone = RemoteStorage.util.deepClone;
+  var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
 
   function taskFor(action, path, promise) {
     return {
@@ -177,7 +180,6 @@
       var num = 0;
 
       return this.local.forAllNodes(function(node) {
-        var isDocument = RemoteStorage.util.isDocument;
 
         if (num > 100) {
           return;
@@ -261,7 +263,7 @@
 
     deleteChildPathsFromTasks: function() {
       for (var path in this._tasks) {
-        paths = RemoteStorage.util.pathsFromRoot(path);
+        paths = pathsFromRoot(path);
 
         for (var i=1; i<paths.length; i++) {
           if (this._tasks[paths[i]]) {
@@ -318,7 +320,7 @@
         }
         // Push PUT:
         else if (this.needsRemotePut(node)) {
-          node.push = RemoteStorage.util.deepClone(node.local);
+          node.push = deepClone(node.local);
           node.push.timestamp = this.now();
 
           return this.local.setNodes(this.flush(nodes)).then(function() {
@@ -524,7 +526,7 @@
           if (meta[nodePath]) {
             if (node && node.common) {
               if (nodeChanged(node, meta[nodePath].ETag)) {
-                changedNodes[nodePath] = RemoteStorage.util.deepClone(node);
+                changedNodes[nodePath] = deepClone(node);
                 changedNodes[nodePath].remote = {
                   revision:  meta[nodePath].ETag,
                   timestamp: this.now()
@@ -623,7 +625,7 @@
             collectSubPaths(node.local, path);
           } else {
             if (node.common && typeof(node.common.body) !== undefined) {
-              changedNodes[path] = RemoteStorage.util.deepClone(node);
+              changedNodes[path] = deepClone(node);
               changedNodes[path].remote = {
                 body:      false,
                 timestamp: this.now()
@@ -643,12 +645,12 @@
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
       var paths;
       var parentPath;
-      var pathsFromRoot = RemoteStorage.util.pathsFromRoot(path);
+      var pathsFromRootArr = pathsFromRoot(path);
 
       if (isFolder(path)) {
         paths = [path];
       } else {
-        parentPath = pathsFromRoot[1];
+        parentPath = pathsFromRootArr[1];
         paths = [path, parentPath];
       }
 
