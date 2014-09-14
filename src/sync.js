@@ -177,6 +177,8 @@
       var num = 0;
 
       return this.local.forAllNodes(function(node) {
+        var isDocument = RemoteStorage.util.isDocument;
+
         if (num > 100) {
           return;
         }
@@ -190,7 +192,7 @@
         } else if (this.needsFetch(node) && this.access.checkPathPermission(node.path, 'r')) {
           this.addTask(node.path);
           num++;
-        } else if (this.isDocumentNode(node) && this.needsPush(node) &&
+        } else if (isDocument(node.path) && this.needsPush(node) &&
                    this.access.checkPathPermission(node.path, 'rw')) {
           this.addTask(node.path);
           num++;
