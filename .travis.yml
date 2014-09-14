@@ -4,4 +4,4 @@ node_js:
 branches:
   only:
     - master
-script: npm install && npm test
+script: npm install && npm test && for i in test/unit/*; do ./node_modules/.bin/jaribu $i; done && ./node_modules/.bin/jaribu test/unit/baseclient/types-suite.js
