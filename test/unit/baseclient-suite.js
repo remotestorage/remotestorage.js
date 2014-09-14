@@ -32,6 +32,11 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
       };
 
       require('./src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
 
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
@@ -39,6 +44,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+
       require('./src/wireclient');
       if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;

@@ -56,8 +56,14 @@
     },
 
     containingFolder: function(path) {
-      var folder = path.replace(/[^\/]+\/?$/, '');
-      return folder === path ? null : folder;
+      if (path === '') {
+        return '/';
+      }
+      if (! path) {
+        throw "Path not given!";
+      }
+
+      return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
     },
 
     isFolder: function(path) {

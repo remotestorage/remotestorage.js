@@ -14,19 +14,28 @@ define(['require'], function(require) {
       global.RemoteStorage.config = {
         changeEvents: { local: true, window: false, remote: true, conflict: true }
       };
+
       require('./../../src/eventhandling.js');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+
       require('./../../src/cachinglayer.js');
       if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
+
       require('./../../src/indexeddb.js');
+      if (global.rs_IndexedDB) {
+        RemoteStorage.IndexedDB = global.rs_IndexedDB;
+      } else {
+        global.rs_IndexedDB = RemoteStorage.IndexedDB;
+      }
+
       test.done();
     },
 

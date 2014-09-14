@@ -21,6 +21,11 @@ define(['require'], function(require) {
       };
 
       require('./../../../src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
 
       require('./../../../src/eventhandling');
       if (global.rs_eventhandling) {

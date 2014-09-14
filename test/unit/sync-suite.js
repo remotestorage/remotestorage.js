@@ -33,6 +33,12 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
       RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
       require('./src/util.js');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
+
 
       require('./src/eventhandling.js');
       if (global.rs_eventhandling){
@@ -68,6 +74,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
       } else {
         global.rs_authorize = RemoteStorage.Authorize;
       }
+
       test.done();
     },
 

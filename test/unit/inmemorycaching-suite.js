@@ -15,24 +15,28 @@ define(['require'], function(require) {
       global.RemoteStorage.config = {
         changeEvents: { local: true, window: false, remote: true, conflict: true }
       };
+
       require('./../../src/eventhandling.js');
       if ( global.rs_eventhandling ) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+
       require('./../../src/cachinglayer.js');
       if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
+
       require('./../../src/inmemorystorage.js');
       if (global.rs_ims) {
         RemoteStorage.InMemoryStorage = global.rs_ims;
       } else {
         global.rs_ims = RemoteStorage.InMemoryStorage;
       }
+
       env.rs = new RemoteStorage();
       env.rs.local = new RemoteStorage.InMemoryStorage();
       global.remoteStorage = env.rs;

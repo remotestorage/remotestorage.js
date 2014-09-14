@@ -20,27 +20,28 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
     global.RemoteStorage.Unauthorized = function() {};
 
     require('./lib/promising');
-    require('./src/eventhandling');
 
+    require('./src/eventhandling');
     if (global.rs_eventhandling) {
       RemoteStorage.eventHandling = global.rs_eventhandling;
     } else {
       global.rs_eventhandling = RemoteStorage.eventHandling;
     }
-    require('./src/wireclient');
 
+    require('./src/wireclient');
     if (global.rs_wireclient) {
       RemoteStorage.WireClient = global.rs_wireclient;
     } else {
       global.rs_wireclient = RemoteStorage.WireClient;
     }
-    require('./src/dropbox');
 
+    require('./src/dropbox');
     if (global.rs_dropbox) {
       RemoteStorage.Dropbox = global.rs_dropbox;
     } else {
       global.rs_dropbox = RemoteStorage.Dropbox;
     }
+
     test.done();
   }
 

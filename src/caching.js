@@ -25,16 +25,7 @@
 (function(global) {
   var SETTINGS_KEY = "remotestorage:caching";
 
-  function containingFolder(path) {
-    if (path === '') {
-      return '/';
-    }
-    if (! path) {
-      throw "Path not given!";
-    }
-
-    return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
-  }
+  var containingFolder = RemoteStorage.util.containingFolder;
 
   RemoteStorage.Caching = function() {
     this.reset();

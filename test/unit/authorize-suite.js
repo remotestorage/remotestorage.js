@@ -18,6 +18,12 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       }
 
       require('./src/authorize');
+      if (global.rs_authorize) {
+        RemoteStorage.authorize = global.rs_authorize;
+      } else {
+        global.rs_authorize = RemoteStorage.authorize;
+      }
+
 
       test.done();
     },

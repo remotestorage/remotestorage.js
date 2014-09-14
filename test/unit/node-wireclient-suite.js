@@ -13,20 +13,28 @@ define(['requirejs'], function(requirejs) {
       RemoteStorage.log = function() {};
       global.RemoteStorage.Unauthorized = function() {};
       require('./lib/promising');
-      require('./src/util');
-      require('./src/eventhandling');
 
+      require('./src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
+
+      require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+
       requirejs('./src/wireclient');
       if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
       } else {
         global.rs_wireclient = RemoteStorage.WireClient;
       }
+
       oldReadBinaryData = RemoteStorage.WireClient.readBinaryData;
       require('./src/nodejs_ext');
 

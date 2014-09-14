@@ -15,12 +15,14 @@ define([], function() {
       } else {
         global.rs_rs = RemoteStorage;
       }
+
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+
       RemoteStorage.prototype.remote = {
         connected: false
       };
