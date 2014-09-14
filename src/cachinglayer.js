@@ -15,10 +15,7 @@
   var isFolder = RemoteStorage.util.isFolder;
   var isDocument = RemoteStorage.util.isDocument;
   var deepClone = RemoteStorage.util.deepClone;
-
-  function equal(obj1, obj2) {
-    return JSON.stringify(obj1) === JSON.stringify(obj2);
-  }
+  var equal = RemoteStorage.util.equal;
 
   function getLatest(node) {
     if (typeof(node) !== 'object' || typeof(node.path) !== 'string') {
@@ -393,7 +390,6 @@
       return {
         isFolder: isFolder,
         isDocument: isDocument,
-        equal: equal,
         getLatest: getLatest,
         makeNode: makeNode,
         isOutdated: isOutdated

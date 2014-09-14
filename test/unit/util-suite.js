@@ -27,6 +27,22 @@ define(['requirejs'], function(requirejs) {
 
     tests: [
       {
+        desc: "equal",
+        run: function(env, test) {
+          var deepClone = RemoteStorage.util.deepClone;
+          var equal = RemoteStorage.util.equal;
+          var obj = { str: 'a', i: 0, b: true, obj: { str: 'a' } };
+          var obj2 = deepClone(obj);
+
+          test.assertAnd(equal(obj, obj2), true);
+          obj.nested = obj2;
+          test.assert(equal(obj, obj2), false);
+          ob2 = deepClone(obj);
+          test.assertAnd(equal(obj, obj2), true);
+        }
+      },
+
+      {
         desc: "deepClone",
         run: function(env, test) {
           var deepClone = RemoteStorage.util.deepClone;
