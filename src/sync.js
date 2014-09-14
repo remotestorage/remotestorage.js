@@ -169,14 +169,6 @@
               (node.push && this.corruptRevision(node.push)));
     },
 
-    isFolderNode: function(node) {
-      return (node.path.substr(-1) === '/');
-    },
-
-    isDocumentNode: function(node) {
-      return (!this.isFolderNode(node));
-    },
-
     hasTasks: function() {
       return Object.getOwnPropertyNames(this._tasks).length > 0;
     },

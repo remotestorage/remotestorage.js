@@ -388,8 +388,6 @@
 
     _getInternals: function() {
       return {
-        isFolder: isFolder,
-        isDocument: isDocument,
         getLatest: getLatest,
         makeNode: makeNode,
         isOutdated: isOutdated

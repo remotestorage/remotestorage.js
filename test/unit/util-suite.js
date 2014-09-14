@@ -27,6 +27,34 @@ define(['requirejs'], function(requirejs) {
 
     tests: [
       {
+        desc: "isFolder",
+        run: function(env, test) {
+          test.assertAnd(RemoteStorage.util.isFolder('/'), true);
+          test.assertAnd(RemoteStorage.util.isFolder('/foo/'), true);
+          test.assertAnd(RemoteStorage.util.isFolder('/foo//'), true);
+          test.assertAnd(RemoteStorage.util.isFolder('/foo/b ar/'), true);
+          test.assertAnd(RemoteStorage.util.isFolder('/foo'), false);
+          test.assertAnd(RemoteStorage.util.isFolder('/%2F'), false);
+          test.assertAnd(RemoteStorage.util.isFolder('/foo/%2F'), false);
+          test.assert(RemoteStorage.util.isFolder('/foo/ '), false);
+        }
+      },
+
+      {
+        desc: "isDocument",
+        run: function(env, test) {
+          test.assertAnd(RemoteStorage.util.isDocument('/'), false);
+          test.assertAnd(RemoteStorage.util.isDocument('/foo/'), false);
+          test.assertAnd(RemoteStorage.util.isDocument('/foo//'), false);
+          test.assertAnd(RemoteStorage.util.isDocument('/foo/b ar/'), false);
+          test.assertAnd(RemoteStorage.util.isDocument('/foo'), true);
+          test.assertAnd(RemoteStorage.util.isDocument('/%2F'), true);
+          test.assertAnd(RemoteStorage.util.isDocument('/foo/%2F'), true);
+          test.assert(RemoteStorage.util.isDocument('/foo/ '), true);
+        }
+      },
+
+      {
         desc: "equal",
         run: function(env, test) {
           var deepClone = RemoteStorage.util.deepClone;

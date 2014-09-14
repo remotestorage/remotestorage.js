@@ -50,34 +50,6 @@ define(['requirejs'], function(requirejs) {
 
     tests: [
       {
-        desc: "_isFolder",
-        run: function(env, test) {
-          test.assertAnd(env.ims._getInternals().isFolder('/'), true);
-          test.assertAnd(env.ims._getInternals().isFolder('/foo/'), true);
-          test.assertAnd(env.ims._getInternals().isFolder('/foo//'), true);
-          test.assertAnd(env.ims._getInternals().isFolder('/foo/b ar/'), true);
-          test.assertAnd(env.ims._getInternals().isFolder('/foo'), false);
-          test.assertAnd(env.ims._getInternals().isFolder('/%2F'), false);
-          test.assertAnd(env.ims._getInternals().isFolder('/foo/%2F'), false);
-          test.assert(env.ims._getInternals().isFolder('/foo/ '), false);
-        }
-      },
-
-      {
-        desc: "isDocument",
-        run: function(env, test) {
-          test.assertAnd(env.ims._getInternals().isDocument('/'), false);
-          test.assertAnd(env.ims._getInternals().isDocument('/foo/'), false);
-          test.assertAnd(env.ims._getInternals().isDocument('/foo//'), false);
-          test.assertAnd(env.ims._getInternals().isDocument('/foo/b ar/'), false);
-          test.assertAnd(env.ims._getInternals().isDocument('/foo'), true);
-          test.assertAnd(env.ims._getInternals().isDocument('/%2F'), true);
-          test.assertAnd(env.ims._getInternals().isDocument('/foo/%2F'), true);
-          test.assert(env.ims._getInternals().isDocument('/foo/ '), true);
-        }
-      },
-
-      {
         desc: "getLatest",
         run: function(env, test) {
           var getLatest = env.ims._getInternals().getLatest;
