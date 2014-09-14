@@ -1030,6 +1030,8 @@
     };
   }
 
+  var isFolder = RemoteStorage.util.isFolder;
+
   function addQuotes(str) {
     if (typeof(str) !== 'string') {
       return str;
@@ -1087,10 +1089,6 @@
 
   function cleanPath(path) {
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
-  }
-
-  function isFolder(path) {
-    return (path.substr(-1) === '/');
   }
 
   function isFolderDescription(body) {
@@ -4641,6 +4639,10 @@ Math.uuid = function (len, radix) {
       backgroundSyncInterval = 60000,
       isBackground = false;
 
+  var isFolder = RemoteStorage.util.isFolder;
+  var equal = RemoteStorage.util.equal;
+  var equalObj = RemoteStorage.util.equalObj;
+
   function taskFor(action, path, promise) {
     return {
       action:  action,
@@ -4655,46 +4657,6 @@ Math.uuid = function (len, radix) {
 
   function hasCommonRevision(node) {
     return node.common && node.common.revision;
-  }
-
-  function equal(obj1, obj2) {
-    return JSON.stringify(obj1) === JSON.stringify(obj2);
-  }
-
-  function equalObj(x, y) {
-    var p;
-    for (p in y) {
-      if (typeof(x[p]) === 'undefined') {return false;}
-    }
-    for (p in y) {
-      if (y[p]) {
-        switch (typeof(y[p])) {
-          case 'object':
-            if (!y[p].equals(x[p])) { return false; }
-            break;
-          case 'function':
-            if (typeof(x[p])==='undefined' ||
-                (p !== 'equals' && y[p].toString() !== x[p].toString())) {
-              return false;
-            }
-            break;
-          default:
-            if (y[p] !== x[p]) { return false; }
-        }
-      } else {
-        if (x[p]) { return false; }
-      }
-    }
-    for (p in x) {
-      if(typeof(y[p]) === 'undefined') {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  function isFolder(path) {
-    return path.substr(-1) === '/';
   }
 
   function handleVisibility() {
@@ -5861,13 +5823,8 @@ Math.uuid = function (len, radix) {
    * talk to.
    */
 
-  function isFolder(path) {
-    return path.substr(-1) === '/';
-  }
-
-  function isDocument(path) {
-    return path.substr(-1) !== '/';
-  }
+  var isFolder = RemoteStorage.util.isFolder;
+  var isDocument = RemoteStorage.util.isDocument;
 
   /**
    * Function: fixArrayBuffers
@@ -5881,7 +5838,7 @@ Math.uuid = function (len, radix) {
    */
   function fixArrayBuffers(srcObj, dstObj) {
     var field, srcArr, dstArr;
-    if (typeof(srcObj) != 'object' || Array.isArray(srcObj) || srcObj === null) {
+    if (typeof(srcObj) !== 'object' || Array.isArray(srcObj) || srcObj === null) {
       return;
     }
     for (field in srcObj) {
@@ -5950,10 +5907,10 @@ Math.uuid = function (len, radix) {
       if (nodes[path] && nodes[path].remote) {
         return true;
       }
-      node = getLatest(nodes[path]);
-      if (node && node.timestamp && (new Date().getTime()) - node.timestamp <= maxAge) {
+      nodeVersion = getLatest(nodes[path]);
+      if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
         return false;
-      } else if (!node) {
+      } else if (!nodeVersion) {
         return true;
       }
     }
@@ -5971,8 +5928,8 @@ Math.uuid = function (len, radix) {
     return paths;
   }
 
-  function makeNode(path, timestamp) {
-    var node = { path: path, common: { timestamp: timestamp } };
+  function makeNode(path) {
+    var node = { path: path, common: { } };
 
     if (isFolder(path)) {
       node.common.itemsMap = {};
@@ -5980,10 +5937,9 @@ Math.uuid = function (len, radix) {
     return node;
   }
 
-  function updateFolderNodeWithItemName(node, itemName, timestamp) {
+  function updateFolderNodeWithItemName(node, itemName) {
     if (!node.common) {
       node.common = {
-        timestamp: timestamp,
         itemsMap: {}
       };
     }
@@ -6047,7 +6003,6 @@ Math.uuid = function (len, radix) {
 
     put: function(path, body, contentType) {
       var paths = pathsFromRoot(path);
-      var now = new Date().getTime();
 
       return this._updateNodes(paths, function(nodes) {
         try {
@@ -6057,7 +6012,7 @@ Math.uuid = function (len, radix) {
             var previous;
 
             if (!node) {
-              nodes[path] = node = makeNode(path, now);
+              nodes[path] = node = makeNode(path);
             }
 
             // Document
@@ -6066,7 +6021,6 @@ Math.uuid = function (len, radix) {
               node.local = {
                 body:                body,
                 contentType:         contentType,
-                timestamp:           now,
                 previousBody:        (previous ? previous.body : undefined),
                 previousContentType: (previous ? previous.contentType : undefined),
               };
@@ -6074,7 +6028,7 @@ Math.uuid = function (len, radix) {
             // Folder
             else {
               var itemName = paths[i-1].substring(path.length);
-              node = updateFolderNodeWithItemName(node, itemName, now);
+              node = updateFolderNodeWithItemName(node, itemName);
             }
           }
           return nodes;
@@ -6089,8 +6043,6 @@ Math.uuid = function (len, radix) {
       var paths = pathsFromRoot(path);
 
       return this._updateNodes(paths, function(nodes) {
-        var now = new Date().getTime();
-
         for (var i=0; i<paths.length; i++) {
           var path = paths[i];
           var node = nodes[path];
@@ -6104,7 +6056,6 @@ Math.uuid = function (len, radix) {
             previous = getLatest(node);
             node.local = {
               body:                false,
-              timestamp:           now,
               previousBody:        (previous ? previous.body : undefined),
               previousContentType: (previous ? previous.contentType : undefined),
             };
@@ -6305,7 +6256,8 @@ Math.uuid = function (len, radix) {
         equal: equal,
         getLatest: getLatest,
         pathsFromRoot: pathsFromRoot,
-        makeNode: makeNode
+        makeNode: makeNode,
+        isOutdated: isOutdated
       };
     }
   };
@@ -7169,9 +7121,9 @@ Math.uuid = function (len, radix) {
 })();
 
 
-/** FILE: src/legacy.js **/
+/** FILE: src/util.js **/
 (function() {
-  var util = {
+  RemoteStorage.util = {
     getEventEmitter: function() {
       var object = {};
       var args = Array.prototype.slice.call(arguments);
@@ -7236,9 +7188,13 @@ Math.uuid = function (len, radix) {
       return path.substr(-1) === '/';
     },
 
+    isDocument: function(path) {
+      return path.substr(-1) !== '/';
+    },
+
     baseName: function(path) {
       var parts = path.split('/');
-      if (util.isFolder(path)) {
+      if (this.isFolder(path)) {
         return parts[parts.length-2]+'/';
       } else {
         return parts[parts.length-1];
@@ -7251,16 +7207,45 @@ Math.uuid = function (len, radix) {
           object[key] = object[key].bind(object);
         }
       }
+    },
+
+    equal: function(obj1, obj2) {
+      return JSON.stringify(obj1) === JSON.stringify(obj2);
+    },
+
+    equalObj: function(x, y) {
+      var p;
+      for (p in y) {
+        if (typeof(x[p]) === 'undefined') {return false;}
+      }
+      for (p in y) {
+        if (y[p]) {
+          switch (typeof(y[p])) {
+            case 'object':
+              if (!y[p].equals(x[p])) { return false; }
+              break;
+            case 'function':
+              if (typeof(x[p])==='undefined' ||
+                  (p !== 'equals' && y[p].toString() !== x[p].toString())) {
+                return false;
+              }
+              break;
+            default:
+              if (y[p] !== x[p]) { return false; }
+          }
+        } else {
+          if (x[p]) { return false; }
+        }
+      }
+      for (p in x) {
+        if(typeof(y[p]) === 'undefined') {
+          return false;
+        }
+      }
+      return true;
     }
+
   };
-
-  Object.defineProperty(RemoteStorage.prototype, 'util', {
-    get: function() {
-      console.log("DEPRECATION WARNING: remoteStorage.util is deprecated and will be removed with the next major release.");
-      return util;
-    }
-  });
-
 })();
 
 

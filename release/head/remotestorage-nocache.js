@@ -1030,6 +1030,8 @@
     };
   }
 
+  var isFolder = RemoteStorage.util.isFolder;
+
   function addQuotes(str) {
     if (typeof(str) !== 'string') {
       return str;
@@ -1087,10 +1089,6 @@
 
   function cleanPath(path) {
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
-  }
-
-  function isFolder(path) {
-    return (path.substr(-1) === '/');
   }
 
   function isFolderDescription(body) {
@@ -4712,9 +4710,9 @@ Math.uuid = function (len, radix) {
 })();
 
 
-/** FILE: src/legacy.js **/
+/** FILE: src/util.js **/
 (function() {
-  var util = {
+  RemoteStorage.util = {
     getEventEmitter: function() {
       var object = {};
       var args = Array.prototype.slice.call(arguments);
@@ -4779,9 +4777,13 @@ Math.uuid = function (len, radix) {
       return path.substr(-1) === '/';
     },
 
+    isDocument: function(path) {
+      return path.substr(-1) !== '/';
+    },
+
     baseName: function(path) {
       var parts = path.split('/');
-      if (util.isFolder(path)) {
+      if (this.isFolder(path)) {
         return parts[parts.length-2]+'/';
       } else {
         return parts[parts.length-1];
@@ -4794,16 +4796,45 @@ Math.uuid = function (len, radix) {
           object[key] = object[key].bind(object);
         }
       }
+    },
+
+    equal: function(obj1, obj2) {
+      return JSON.stringify(obj1) === JSON.stringify(obj2);
+    },
+
+    equalObj: function(x, y) {
+      var p;
+      for (p in y) {
+        if (typeof(x[p]) === 'undefined') {return false;}
+      }
+      for (p in y) {
+        if (y[p]) {
+          switch (typeof(y[p])) {
+            case 'object':
+              if (!y[p].equals(x[p])) { return false; }
+              break;
+            case 'function':
+              if (typeof(x[p])==='undefined' ||
+                  (p !== 'equals' && y[p].toString() !== x[p].toString())) {
+                return false;
+              }
+              break;
+            default:
+              if (y[p] !== x[p]) { return false; }
+          }
+        } else {
+          if (x[p]) { return false; }
+        }
+      }
+      for (p in x) {
+        if(typeof(y[p]) === 'undefined') {
+          return false;
+        }
+      }
+      return true;
     }
+
   };
-
-  Object.defineProperty(RemoteStorage.prototype, 'util', {
-    get: function() {
-      console.log("DEPRECATION WARNING: remoteStorage.util is deprecated and will be removed with the next major release.");
-      return util;
-    }
-  });
-
 })();
 
 
