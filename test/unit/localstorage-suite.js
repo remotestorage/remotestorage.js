@@ -1,7 +1,7 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['require'], function(require) {
+define(['requirejs'], function(requirejs) {
   var suites = [];
 
   var NODES_PREFIX = 'remotestorage:cache:nodes:';
@@ -45,28 +45,35 @@ define(['require'], function(require) {
     desc: "localStorage caching layer",
 
     setup: function(env, test) {
-      require('./../../lib/promising.js');
+      require('lib/promising.js');
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
       global.RemoteStorage.config = {
         changeEvents: { local: true, window: false, remote: true, conflict: true }
       };
 
-      require('./../../src/eventhandling.js');
+      require('./src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
+
+      require('src/eventhandling.js');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
-      require('./../../src/cachinglayer.js');
+      require('src/cachinglayer.js');
       if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
 
-      require('./../../src/localstorage.js');
+      require('src/localstorage.js');
       if (global.rs_LocalStorage) {
         RemoteStorage.LocalStorage = global.rs_LocalStorage;
       } else {

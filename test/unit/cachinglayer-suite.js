@@ -1,40 +1,40 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['require'], function(require) {
+define(['requirejs'], function(requirejs) {
   var suites = [];
 
   suites.push({
     name: 'CachingLayer',
     desc: 'CachingLayer that is mixed into all local storage implementations',
     setup: function(env, test) {
-      require('./../../lib/promising');
+      require('lib/promising');
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
       global.RemoteStorage.config = {
         changeEvents: { local: true, window: false, remote: true, conflict: true }
       };
 
-      require('./../../src/util.js');
+      require('src/util.js');
       if (global.rs_util) {
         RemoteStorage.util = global.rs_util;
       } else {
         global.rs_util = RemoteStorage.util;
       }
 
-      require('./../../src/eventhandling');
+      require('src/eventhandling');
       if ( global.rs_eventhandling ) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      require('./../../src/cachinglayer.js');
+      require('src/cachinglayer.js');
       if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
-      require('./../../src/inmemorystorage');
+      require('src/inmemorystorage');
       if (global.rs_ims) {
         RemoteStorage.InMemoryStorage = global.rs_ims;
       } else {
