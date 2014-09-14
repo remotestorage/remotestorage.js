@@ -9,9 +9,9 @@ All releases can also be found and downloaded on the
 
 * Do not set a timestamp in local changes (#756)
 
-### Breaking changes
+### New features
 
-* Remove remoteStorage.utils and reintroduce it as RemoteStorage.utils (#761)
+* Reintroduce remoteStorage.utils as RemoteStorage.utils (#761)
 
 ## 0.10.2 (September 2014)
 

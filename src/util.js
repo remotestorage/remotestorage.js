@@ -180,4 +180,11 @@
     }
 
   };
+
+  Object.defineProperty(RemoteStorage.prototype, 'util', {
+    get: function() {
+      console.log('DEPRECATION WARNING: remoteStorage.util was moved to RemoteStorage.util');
+      return RemoteStorage.util;
+    }
+  });
 })();
