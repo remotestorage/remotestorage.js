@@ -46,7 +46,8 @@ define(['requirejs'], function(requirejs) {
           test.assertAnd(RemoteStorage.util.isFolder('/foo'), false);
           test.assertAnd(RemoteStorage.util.isFolder('/%2F'), false);
           test.assertAnd(RemoteStorage.util.isFolder('/foo/%2F'), false);
-          test.assert(RemoteStorage.util.isFolder('/foo/ '), false);
+          test.assertAnd(RemoteStorage.util.isFolder('/foo/ '), false);
+          test.done();
         }
       },
 
@@ -60,7 +61,8 @@ define(['requirejs'], function(requirejs) {
           test.assertAnd(RemoteStorage.util.isDocument('/foo'), true);
           test.assertAnd(RemoteStorage.util.isDocument('/%2F'), true);
           test.assertAnd(RemoteStorage.util.isDocument('/foo/%2F'), true);
-          test.assert(RemoteStorage.util.isDocument('/foo/ '), true);
+          test.assertAnd(RemoteStorage.util.isDocument('/foo/ '), true);
+          test.done();
         }
       },
 
@@ -77,11 +79,12 @@ define(['requirejs'], function(requirejs) {
 
           test.assertAnd(equal(obj, obj2), true);
           obj.nested = obj2;
-          test.assert(equal(obj, obj2), false);
+          test.assertAnd(equal(obj, obj2), false);
           ob2 = deepClone(obj);
           test.assertAnd(equal(obj, obj2), true);
           test.assertAnd(equal(buf1, buf2), true);
           test.assertAnd(equal(buf1, buf3), false);
+          test.done();
         }
       },
 
@@ -95,7 +98,8 @@ define(['requirejs'], function(requirejs) {
           test.assertAnd(cloned, obj);
           obj.nested = cloned;
           cloned = deepClone(obj);
-          test.assert(cloned, obj);
+          test.assertAnd(cloned, obj);
+          test.done();
         }
       },
 
