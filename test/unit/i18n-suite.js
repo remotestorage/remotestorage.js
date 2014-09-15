@@ -13,6 +13,12 @@ define([], function() {
     setup: function(env, test) {
       global.RemoteStorage = {};
       require('src/i18n.js');
+      if (global.rs_I18n) {
+        RemoteStorage.I18n = global.rs_I18n;
+      } else {
+        global.rs_I18n = RemoteStorage.I18n;
+      }
+
       t = RemoteStorage.I18n.translate;
       test.done();
     },

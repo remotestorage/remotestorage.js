@@ -11,6 +11,12 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       require('./src/access');
+      if (global.rs_access) {
+        RemoteStorage.access = global.rs_access;
+      } else {
+        global.rs_access = RemoteStorage.access;
+      }
+
 
       env.Access = RemoteStorage.Access;
 

@@ -4,4 +4,28 @@ node_js:
 branches:
   only:
     - master
-script: npm install && npm test
+before_script:
+  - npm install
+script:
+  - "node_modules/jaribu/bin/jaribu"
+  - "node_modules/jaribu/bin/jaribu test/unit/access-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/authorize-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/baseclient"
+  - "node_modules/jaribu/bin/jaribu test/unit/baseclient-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/cachinglayer-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/caching-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/discover-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/dropbox-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/googledrive-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/i18n-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/indexeddb-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/inmemorycaching-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/localstorage-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/modules-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/node-wireclient-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/remotestorage-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/sync-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/util-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/versioning-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/wireclient-suite.js"
+  - "node_modules/jaribu/bin/jaribu test/unit/baseclient/types-suite.js"

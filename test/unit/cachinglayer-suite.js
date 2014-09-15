@@ -8,26 +8,33 @@ define(['requirejs'], function(requirejs) {
     name: 'CachingLayer',
     desc: 'CachingLayer that is mixed into all local storage implementations',
     setup: function(env, test) {
-      require('./lib/promising');
+      require('lib/promising');
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
       global.RemoteStorage.config = {
         changeEvents: { local: true, window: false, remote: true, conflict: true }
       };
 
-      require('./src/eventhandling');
+      require('src/util.js');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
+
+      require('src/eventhandling');
       if ( global.rs_eventhandling ) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      require('./src/cachinglayer');
+      require('src/cachinglayer.js');
       if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
-      require('./src/inmemorystorage');
+      require('src/inmemorystorage');
       if (global.rs_ims) {
         RemoteStorage.InMemoryStorage = global.rs_ims;
       } else {
@@ -42,64 +49,6 @@ define(['requirejs'], function(requirejs) {
     },
 
     tests: [
-      {
-        desc: "_isFolder",
-        run: function(env, test) {
-          test.assertAnd(env.ims._getInternals().isFolder('/'), true);
-          test.assertAnd(env.ims._getInternals().isFolder('/foo/'), true);
-          test.assertAnd(env.ims._getInternals().isFolder('/foo//'), true);
-          test.assertAnd(env.ims._getInternals().isFolder('/foo/b ar/'), true);
-          test.assertAnd(env.ims._getInternals().isFolder('/foo'), false);
-          test.assertAnd(env.ims._getInternals().isFolder('/%2F'), false);
-          test.assertAnd(env.ims._getInternals().isFolder('/foo/%2F'), false);
-          test.assert(env.ims._getInternals().isFolder('/foo/ '), false);
-        }
-      },
-
-      {
-        desc: "isDocument",
-        run: function(env, test) {
-          test.assertAnd(env.ims._getInternals().isDocument('/'), false);
-          test.assertAnd(env.ims._getInternals().isDocument('/foo/'), false);
-          test.assertAnd(env.ims._getInternals().isDocument('/foo//'), false);
-          test.assertAnd(env.ims._getInternals().isDocument('/foo/b ar/'), false);
-          test.assertAnd(env.ims._getInternals().isDocument('/foo'), true);
-          test.assertAnd(env.ims._getInternals().isDocument('/%2F'), true);
-          test.assertAnd(env.ims._getInternals().isDocument('/foo/%2F'), true);
-          test.assert(env.ims._getInternals().isDocument('/foo/ '), true);
-        }
-      },
-
-      {
-        desc: "deepClone",
-        run: function(env, test) {
-          var deepClone = env.ims._getInternals().deepClone;
-          var obj = { str: 'a', i: 0, b: true };
-          var cloned = deepClone(obj);
-
-          test.assertAnd(cloned, obj);
-          obj.nested = cloned;
-          cloned = deepClone(obj);
-          test.assert(cloned, obj);
-        }
-      },
-
-      {
-        desc: "equal",
-        run: function(env, test) {
-          var deepClone = env.ims._getInternals().deepClone;
-          var equal = env.ims._getInternals().equal;
-          var obj = { str: 'a', i: 0, b: true, obj: { str: 'a' } };
-          var obj2 = deepClone(obj);
-
-          test.assertAnd(equal(obj, obj2), true);
-          obj.nested = obj2;
-          test.assert(equal(obj, obj2), false);
-          ob2 = deepClone(obj);
-          test.assertAnd(equal(obj, obj2), true);
-        }
-      },
-
       {
         desc: "getLatest",
         run: function(env, test) {
@@ -137,40 +86,29 @@ define(['requirejs'], function(requirejs) {
       },
 
       {
-        desc: "pathsFromRoot",
-        run: function(env, test) {
-          var pathsFromRoot = env.ims._getInternals().pathsFromRoot;
-          var p1 = '/',
-              p2 = '/a/b/c/d/e',
-              p3 = '/a/b/c',
-              p4 = '/a/b//',
-              p5 = '//',
-              p6 = '/a/b/c d/e/',
-              p7 = '/foo';
-
-          test.assertAnd(pathsFromRoot(p1), [p1]);
-          test.assertAnd(pathsFromRoot(p2), [p2, '/a/b/c/d/', '/a/b/c/', '/a/b/', '/a/', '/']);
-          test.assertAnd(pathsFromRoot(p3), [p3, '/a/b/', '/a/', '/']);
-          test.assertAnd(pathsFromRoot(p4), [p4, '/a/b/', '/a/', '/']);
-          test.assertAnd(pathsFromRoot(p5), [p5, '/']);
-          test.assertAnd(pathsFromRoot(p6), [p6, '/a/b/c d/', '/a/b/', '/a/', '/']);
-          test.assertAnd(pathsFromRoot(p7), [p7, '/']);
-          test.done();
-        }
-      },
-
-      {
         desc: "makeNode",
         run: function(env, test) {
           var makeNode = env.ims._getInternals().makeNode;
 
-          test.assertAnd(makeNode('/a/b/', 1234567890123), {
+          test.assertAnd(makeNode('/a/b/'), {
             path: '/a/b/',
-            common: { timestamp: 1234567890123, itemsMap: {} }
+            common: { itemsMap: {} }
           });
-          test.assert(makeNode('/a/b', 1234567890123), {
+          test.assert(makeNode('/a/b'), {
             path: '/a/b',
-            common: { timestamp: 1234567890123 }
+            common: { }
+          });
+        }
+      },
+
+      {
+        desc: "locally created documents are considered outdated",
+        run: function(env, test) {
+          env.ims.put('/new/document', 'content', 'text/plain').then(function() {
+            var paths = RemoteStorage.util.pathsFromRoot('/new/document');
+            env.ims.getNodes(paths).then(function(nodes) {
+              test.assert(env.ims._getInternals().isOutdated(nodes, 1000), true);
+            });
           });
         }
       },

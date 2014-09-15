@@ -8,25 +8,41 @@ define(['requirejs'], function(requirejs) {
     name: "IndexedDB",
     desc: "indexedDB caching layer",
     setup: function(env, test) {
-      require('./lib/promising');
+      require('lib/promising.js');
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
       global.RemoteStorage.config = {
         changeEvents: { local: true, window: false, remote: true, conflict: true }
       };
-      require('./src/eventhandling');
+
+      require('src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
+
+      require('src/eventhandling.js');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      require('./src/cachinglayer');
+
+      require('src/cachinglayer.js');
       if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
         global.rs_cachinglayer = RemoteStorage.cachingLayer;
       }
-      require('./src/indexeddb');
+
+      require('src/indexeddb.js');
+      if (global.rs_IndexedDB) {
+        RemoteStorage.IndexedDB = global.rs_IndexedDB;
+      } else {
+        global.rs_IndexedDB = RemoteStorage.IndexedDB;
+      }
+
       test.done();
     },
 

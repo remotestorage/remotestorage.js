@@ -3,10 +3,21 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## HEAD
+
+### Bugfixes
+
+* Do not set a timestamp in local changes (#756)
+
+### New features
+
+* Reintroduce remoteStorage.utils as RemoteStorage.utils (#761)
+
 ## 0.10.2 (September 2014)
 
-### Bugixes
+### Bugfixes
 
+* Fix bug in displayWidget (#749)
 * Report unhandled HTTP status codes as errors (#594)
 * Pause between sync retries when offline (#740)
 * Fix race condition in caching layer (#752)

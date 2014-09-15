@@ -24,7 +24,7 @@
     "src/baseclient/types.js": "Type / schema handling, validations",
     "src/assets.js": "Icons, CSS and HTML templates for the widget",
     "src/i18n.js": "Internationalization",
-    "src/legacy.js": "...",
+    "src/util.js": "...",
     "src/env.js": "Function specific to each environment (browser, nodejs...)",
 
     "src/googledrive.js": "Backend to talk to googledrive",
@@ -39,6 +39,7 @@
       "files": [
         "lib/promising.js",
         "src/remotestorage.js",
+        "src/util.js",
         "src/eventhandling.js",
         "src/wireclient.js",
         "src/discover.js",
@@ -118,9 +119,6 @@
         "src/debug/inspect.js"
       ],
       "depends": ["core"]
-    },
-    "legacy": {
-      "files": ["src/legacy.js"]
     },
     "nodejs": {
       "files": ["src/nodejs_ext.js"],

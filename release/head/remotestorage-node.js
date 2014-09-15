@@ -846,6 +846,206 @@
 })(typeof(window) !== 'undefined' ? window : global);
 
 
+/** FILE: src/util.js **/
+/**
+ * Class: RemoteStorage.Util
+ *
+ * Provides reusable utility functions at RemoteStorage.util
+ *
+ */
+(function() {
+
+  /**
+   * Function: fixArrayBuffers
+   *
+   * Takes an object and its copy as produced by the _deepClone function
+   * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
+   * of being cloned to new ArrayBuffers with the same content.
+   *
+   * It recurses into sub-objects, but skips arrays if they occur.
+   */
+  function fixArrayBuffers(srcObj, dstObj) {
+    var field, srcArr, dstArr;
+    if (typeof(srcObj) !== 'object' || Array.isArray(srcObj) || srcObj === null) {
+      return;
+    }
+    for (field in srcObj) {
+      if (typeof(srcObj[field]) === 'object' && srcObj[field] !== null) {
+        if (srcObj[field].toString() === '[object ArrayBuffer]') {
+          dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
+          srcArr = new Int8Array(srcObj[field]);
+          dstArr = new Int8Array(dstObj[field]);
+          dstArr.set(srcArr);
+        } else {
+          fixArrayBuffers(srcObj[field], dstObj[field]);
+        }
+      }
+    }
+  }
+
+  RemoteStorage.util = {
+    getEventEmitter: function() {
+      var object = {};
+      var args = Array.prototype.slice.call(arguments);
+      args.unshift(object);
+      RemoteStorage.eventHandling.apply(RemoteStorage, args);
+      object.emit = object._emit;
+      return object;
+    },
+
+    extend: function(target) {
+      var sources = Array.prototype.slice.call(arguments, 1);
+      sources.forEach(function(source) {
+        for (var key in source) {
+          target[key] = source[key];
+        }
+      });
+      return target;
+    },
+
+    asyncEach: function(array, callback) {
+      return this.asyncMap(array, callback).
+        then(function() { return array; });
+    },
+
+    asyncMap: function(array, callback) {
+      var promise = promising();
+      var n = array.length, i = 0;
+      var results = [], errors = [];
+      function oneDone() {
+        i++;
+        if (i === n) {
+          promise.fulfill(results, errors);
+        }
+      }
+
+      array.forEach(function(item, index) {
+        var result;
+        try {
+          result = callback(item);
+        } catch(exc) {
+          oneDone();
+          errors[index] = exc;
+        }
+        if (typeof(result) === 'object' && typeof(result.then) === 'function') {
+          result.then(function(res) { results[index] = res; oneDone(); },
+                      function(error) { errors[index] = error; oneDone(); });
+        } else {
+          oneDone();
+          results[index] = result;
+        }
+      });
+
+      return promise;
+    },
+
+    containingFolder: function(path) {
+      if (path === '') {
+        return '/';
+      }
+      if (! path) {
+        throw "Path not given!";
+      }
+
+      return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
+    },
+
+    isFolder: function(path) {
+      return path.substr(-1) === '/';
+    },
+
+    isDocument: function(path) {
+      return path.substr(-1) !== '/';
+    },
+
+    baseName: function(path) {
+      var parts = path.split('/');
+      if (this.isFolder(path)) {
+        return parts[parts.length-2]+'/';
+      } else {
+        return parts[parts.length-1];
+      }
+    },
+
+    bindAll: function(object) {
+      for (var key in this) {
+        if (typeof(object[key]) === 'function') {
+          object[key] = object[key].bind(object);
+        }
+      }
+    },
+
+    equal: function(obj1, obj2) {
+      return JSON.stringify(obj1) === JSON.stringify(obj2);
+    },
+
+    equalObj: function(x, y) {
+      var p;
+      for (p in y) {
+        if (typeof(x[p]) === 'undefined') {return false;}
+      }
+      for (p in y) {
+        if (y[p]) {
+          switch (typeof(y[p])) {
+            case 'object':
+              if (!y[p].equals(x[p])) { return false; }
+              break;
+            case 'function':
+              if (typeof(x[p])==='undefined' ||
+                  (p !== 'equals' && y[p].toString() !== x[p].toString())) {
+                return false;
+              }
+              break;
+            default:
+              if (y[p] !== x[p]) { return false; }
+          }
+        } else {
+          if (x[p]) { return false; }
+        }
+      }
+      for (p in x) {
+        if(typeof(y[p]) === 'undefined') {
+          return false;
+        }
+      }
+      return true;
+    },
+
+    deepClone: function(obj) {
+      var clone;
+      if (obj === undefined) {
+        return undefined;
+      } else {
+        clone = JSON.parse(JSON.stringify(obj));
+        fixArrayBuffers(obj, clone);
+        return clone;
+      }
+    },
+
+    pathsFromRoot: function(path) {
+      var paths = [path];
+      var parts = path.replace(/\/$/, '').split('/');
+
+      while (parts.length > 1) {
+        parts.pop();
+        paths.push(parts.join('/')+'/');
+      }
+      return paths;
+    }
+
+  };
+
+  if (!RemoteStorage.prototype.util) {
+    Object.defineProperty(RemoteStorage.prototype, 'util', {
+      get: function() {
+        console.log('DEPRECATION WARNING: remoteStorage.util was moved to RemoteStorage.util');
+        return RemoteStorage.util;
+      }
+    });
+  }
+})();
+
+
 /** FILE: src/eventhandling.js **/
 (function(global) {
   /**
@@ -1030,6 +1230,8 @@
     };
   }
 
+  var isFolder = RemoteStorage.util.isFolder;
+
   function addQuotes(str) {
     if (typeof(str) !== 'string') {
       return str;
@@ -1087,10 +1289,6 @@
 
   function cleanPath(path) {
     return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
-  }
-
-  function isFolder(path) {
-    return (path.substr(-1) === '/');
   }
 
   function isFolderDescription(body) {
@@ -3670,16 +3868,7 @@ Math.uuid = function (len, radix) {
 (function(global) {
   var SETTINGS_KEY = "remotestorage:caching";
 
-  function containingFolder(path) {
-    if (path === '') {
-      return '/';
-    }
-    if (! path) {
-      throw "Path not given!";
-    }
-
-    return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
-  }
+  var containingFolder = RemoteStorage.util.containingFolder;
 
   RemoteStorage.Caching = function() {
     this.reset();
@@ -3826,6 +4015,13 @@ Math.uuid = function (len, radix) {
       backgroundSyncInterval = 60000,
       isBackground = false;
 
+  var isFolder = RemoteStorage.util.isFolder;
+  var isDocument = RemoteStorage.util.isDocument;
+  var equal = RemoteStorage.util.equal;
+  var equalObj = RemoteStorage.util.equalObj;
+  var deepClone = RemoteStorage.util.deepClone;
+  var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
+
   function taskFor(action, path, promise) {
     return {
       action:  action,
@@ -3840,46 +4036,6 @@ Math.uuid = function (len, radix) {
 
   function hasCommonRevision(node) {
     return node.common && node.common.revision;
-  }
-
-  function equal(obj1, obj2) {
-    return JSON.stringify(obj1) === JSON.stringify(obj2);
-  }
-
-  function equalObj(x, y) {
-    var p;
-    for (p in y) {
-      if (typeof(x[p]) === 'undefined') {return false;}
-    }
-    for (p in y) {
-      if (y[p]) {
-        switch (typeof(y[p])) {
-          case 'object':
-            if (!y[p].equals(x[p])) { return false; }
-            break;
-          case 'function':
-            if (typeof(x[p])==='undefined' ||
-                (p !== 'equals' && y[p].toString() !== x[p].toString())) {
-              return false;
-            }
-            break;
-          default:
-            if (y[p] !== x[p]) { return false; }
-        }
-      } else {
-        if (x[p]) { return false; }
-      }
-    }
-    for (p in x) {
-      if(typeof(y[p]) === 'undefined') {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  function isFolder(path) {
-    return path.substr(-1) === '/';
   }
 
   function handleVisibility() {
@@ -4027,14 +4183,6 @@ Math.uuid = function (len, radix) {
               (node.push && this.corruptRevision(node.push)));
     },
 
-    isFolderNode: function(node) {
-      return (node.path.substr(-1) === '/');
-    },
-
-    isDocumentNode: function(node) {
-      return (!this.isFolderNode(node));
-    },
-
     hasTasks: function() {
       return Object.getOwnPropertyNames(this._tasks).length > 0;
     },
@@ -4043,6 +4191,7 @@ Math.uuid = function (len, radix) {
       var num = 0;
 
       return this.local.forAllNodes(function(node) {
+
         if (num > 100) {
           return;
         }
@@ -4056,7 +4205,7 @@ Math.uuid = function (len, radix) {
         } else if (this.needsFetch(node) && this.access.checkPathPermission(node.path, 'r')) {
           this.addTask(node.path);
           num++;
-        } else if (this.isDocumentNode(node) && this.needsPush(node) &&
+        } else if (isDocument(node.path) && this.needsPush(node) &&
                    this.access.checkPathPermission(node.path, 'rw')) {
           this.addTask(node.path);
           num++;
@@ -4125,7 +4274,7 @@ Math.uuid = function (len, radix) {
 
     deleteChildPathsFromTasks: function() {
       for (var path in this._tasks) {
-        paths = this.local._getInternals().pathsFromRoot(path);
+        paths = pathsFromRoot(path);
 
         for (var i=1; i<paths.length; i++) {
           if (this._tasks[paths[i]]) {
@@ -4182,7 +4331,7 @@ Math.uuid = function (len, radix) {
         }
         // Push PUT:
         else if (this.needsRemotePut(node)) {
-          node.push = this.local._getInternals().deepClone(node.local);
+          node.push = deepClone(node.local);
           node.push.timestamp = this.now();
 
           return this.local.setNodes(this.flush(nodes)).then(function() {
@@ -4388,7 +4537,7 @@ Math.uuid = function (len, radix) {
           if (meta[nodePath]) {
             if (node && node.common) {
               if (nodeChanged(node, meta[nodePath].ETag)) {
-                changedNodes[nodePath] = this.local._getInternals().deepClone(node);
+                changedNodes[nodePath] = deepClone(node);
                 changedNodes[nodePath].remote = {
                   revision:  meta[nodePath].ETag,
                   timestamp: this.now()
@@ -4487,7 +4636,7 @@ Math.uuid = function (len, radix) {
             collectSubPaths(node.local, path);
           } else {
             if (node.common && typeof(node.common.body) !== undefined) {
-              changedNodes[path] = this.local._getInternals().deepClone(node);
+              changedNodes[path] = deepClone(node);
               changedNodes[path].remote = {
                 body:      false,
                 timestamp: this.now()
@@ -4507,12 +4656,12 @@ Math.uuid = function (len, radix) {
     completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
       var paths;
       var parentPath;
-      var pathsFromRoot = this.local._getInternals().pathsFromRoot(path);
+      var pathsFromRootArr = pathsFromRoot(path);
 
       if (isFolder(path)) {
         paths = [path];
       } else {
-        parentPath = pathsFromRoot[1];
+        parentPath = pathsFromRootArr[1];
         paths = [path, parentPath];
       }
 
@@ -5046,57 +5195,10 @@ Math.uuid = function (len, radix) {
    * talk to.
    */
 
-  function isFolder(path) {
-    return path.substr(-1) === '/';
-  }
-
-  function isDocument(path) {
-    return path.substr(-1) !== '/';
-  }
-
-  /**
-   * Function: fixArrayBuffers
-   *
-   * Takes an object and its copy as produced by the _deepClone function
-   * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
-   * of being cloned to new ArrayBuffers with the same content.
-   *
-   * It recurses into sub-objects, but skips arrays if they occur.
-   *
-   */
-  function fixArrayBuffers(srcObj, dstObj) {
-    var field, srcArr, dstArr;
-    if (typeof(srcObj) != 'object' || Array.isArray(srcObj) || srcObj === null) {
-      return;
-    }
-    for (field in srcObj) {
-      if (typeof(srcObj[field]) === 'object' && srcObj[field] !== null) {
-        if (srcObj[field].toString() === '[object ArrayBuffer]') {
-          dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
-          srcArr = new Int8Array(srcObj[field]);
-          dstArr = new Int8Array(dstObj[field]);
-          dstArr.set(srcArr);
-        } else {
-          fixArrayBuffers(srcObj[field], dstObj[field]);
-        }
-      }
-    }
-  }
-
-  function deepClone(obj) {
-    var clone;
-    if (obj === undefined) {
-      return undefined;
-    } else {
-      clone = JSON.parse(JSON.stringify(obj));
-      fixArrayBuffers(obj, clone);
-      return clone;
-    }
-  }
-
-  function equal(obj1, obj2) {
-    return JSON.stringify(obj1) === JSON.stringify(obj2);
-  }
+  var isFolder = RemoteStorage.util.isFolder;
+  var isDocument = RemoteStorage.util.isDocument;
+  var deepClone = RemoteStorage.util.deepClone;
+  var equal = RemoteStorage.util.equal;
 
   function getLatest(node) {
     if (typeof(node) !== 'object' || typeof(node.path) !== 'string') {
@@ -5135,29 +5237,20 @@ Math.uuid = function (len, radix) {
       if (nodes[path] && nodes[path].remote) {
         return true;
       }
-      node = getLatest(nodes[path]);
-      if (node && node.timestamp && (new Date().getTime()) - node.timestamp <= maxAge) {
+      nodeVersion = getLatest(nodes[path]);
+      if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
         return false;
-      } else if (!node) {
+      } else if (!nodeVersion) {
         return true;
       }
     }
     return true;
   }
 
-  function pathsFromRoot(path) {
-    var paths = [path];
-    var parts = path.replace(/\/$/, '').split('/');
+  var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
 
-    while (parts.length > 1) {
-      parts.pop();
-      paths.push(parts.join('/')+'/');
-    }
-    return paths;
-  }
-
-  function makeNode(path, timestamp) {
-    var node = { path: path, common: { timestamp: timestamp } };
+  function makeNode(path) {
+    var node = { path: path, common: { } };
 
     if (isFolder(path)) {
       node.common.itemsMap = {};
@@ -5165,10 +5258,9 @@ Math.uuid = function (len, radix) {
     return node;
   }
 
-  function updateFolderNodeWithItemName(node, itemName, timestamp) {
+  function updateFolderNodeWithItemName(node, itemName) {
     if (!node.common) {
       node.common = {
-        timestamp: timestamp,
         itemsMap: {}
       };
     }
@@ -5232,7 +5324,6 @@ Math.uuid = function (len, radix) {
 
     put: function(path, body, contentType) {
       var paths = pathsFromRoot(path);
-      var now = new Date().getTime();
 
       return this._updateNodes(paths, function(nodes) {
         try {
@@ -5242,7 +5333,7 @@ Math.uuid = function (len, radix) {
             var previous;
 
             if (!node) {
-              nodes[path] = node = makeNode(path, now);
+              nodes[path] = node = makeNode(path);
             }
 
             // Document
@@ -5251,7 +5342,6 @@ Math.uuid = function (len, radix) {
               node.local = {
                 body:                body,
                 contentType:         contentType,
-                timestamp:           now,
                 previousBody:        (previous ? previous.body : undefined),
                 previousContentType: (previous ? previous.contentType : undefined),
               };
@@ -5259,7 +5349,7 @@ Math.uuid = function (len, radix) {
             // Folder
             else {
               var itemName = paths[i-1].substring(path.length);
-              node = updateFolderNodeWithItemName(node, itemName, now);
+              node = updateFolderNodeWithItemName(node, itemName);
             }
           }
           return nodes;
@@ -5274,8 +5364,6 @@ Math.uuid = function (len, radix) {
       var paths = pathsFromRoot(path);
 
       return this._updateNodes(paths, function(nodes) {
-        var now = new Date().getTime();
-
         for (var i=0; i<paths.length; i++) {
           var path = paths[i];
           var node = nodes[path];
@@ -5289,7 +5377,6 @@ Math.uuid = function (len, radix) {
             previous = getLatest(node);
             node.local = {
               body:                false,
-              timestamp:           now,
               previousBody:        (previous ? previous.body : undefined),
               previousContentType: (previous ? previous.contentType : undefined),
             };
@@ -5484,13 +5571,9 @@ Math.uuid = function (len, radix) {
 
     _getInternals: function() {
       return {
-        isFolder: isFolder,
-        isDocument: isDocument,
-        deepClone: deepClone,
-        equal: equal,
         getLatest: getLatest,
-        pathsFromRoot: pathsFromRoot,
-        makeNode: makeNode
+        makeNode: makeNode,
+        isOutdated: isOutdated
       };
     }
   };
@@ -5612,9 +5695,9 @@ Math.uuid = function (len, radix) {
       var misses = [], fromCache = {};
       for (var i=0; i<paths.length; i++) {
         if (this.changesQueued[paths[i]] !== undefined) {
-          fromCache[paths[i]] = this._getInternals().deepClone(this.changesQueued[paths[i]] || undefined);
+          fromCache[paths[i]] = RemoteStorage.util.deepClone(this.changesQueued[paths[i]] || undefined);
         } else if(this.changesRunning[paths[i]] !== undefined) {
-          fromCache[paths[i]] = this._getInternals().deepClone(this.changesRunning[paths[i]] || undefined);
+          fromCache[paths[i]] = RemoteStorage.util.deepClone(this.changesRunning[paths[i]] || undefined);
         } else {
           misses.push(paths[i]);
         }
@@ -6179,101 +6262,6 @@ Math.uuid = function (len, radix) {
     console.log("remoteStorage.defineModule is deprecated, use RemoteStorage.defineModule instead!");
     RemoteStorage.defineModule.apply(RemoteStorage, arguments);
   };
-
-})();
-
-
-/** FILE: src/legacy.js **/
-(function() {
-  var util = {
-    getEventEmitter: function() {
-      var object = {};
-      var args = Array.prototype.slice.call(arguments);
-      args.unshift(object);
-      RemoteStorage.eventHandling.apply(RemoteStorage, args);
-      object.emit = object._emit;
-      return object;
-    },
-
-    extend: function(target) {
-      var sources = Array.prototype.slice.call(arguments, 1);
-      sources.forEach(function(source) {
-        for (var key in source) {
-          target[key] = source[key];
-        }
-      });
-      return target;
-    },
-
-    asyncEach: function(array, callback) {
-      return this.asyncMap(array, callback).
-        then(function() { return array; });
-    },
-
-    asyncMap: function(array, callback) {
-      var promise = promising();
-      var n = array.length, i = 0;
-      var results = [], errors = [];
-      function oneDone() {
-        i++;
-        if (i === n) {
-          promise.fulfill(results, errors);
-        }
-      }
-
-      array.forEach(function(item, index) {
-        var result;
-        try {
-          result = callback(item);
-        } catch(exc) {
-          oneDone();
-          errors[index] = exc;
-        }
-        if (typeof(result) === 'object' && typeof(result.then) === 'function') {
-          result.then(function(res) { results[index] = res; oneDone(); },
-                      function(error) { errors[index] = error; oneDone(); });
-        } else {
-          oneDone();
-          results[index] = result;
-        }
-      });
-
-      return promise;
-    },
-
-    containingFolder: function(path) {
-      var folder = path.replace(/[^\/]+\/?$/, '');
-      return folder === path ? null : folder;
-    },
-
-    isFolder: function(path) {
-      return path.substr(-1) === '/';
-    },
-
-    baseName: function(path) {
-      var parts = path.split('/');
-      if (util.isFolder(path)) {
-        return parts[parts.length-2]+'/';
-      } else {
-        return parts[parts.length-1];
-      }
-    },
-
-    bindAll: function(object) {
-      for (var key in this) {
-        if (typeof(object[key]) === 'function') {
-          object[key] = object[key].bind(object);
-        }
-      }
-    }
-  };
-
-  Object.defineProperty(RemoteStorage.prototype, 'util', {
-    get: function() {
-      console.log("DEPRECATION WARNING: remoteStorage.util is deprecated and will be removed with the next major release.");
-      return util;
-    }
-  });
 
 })();
 

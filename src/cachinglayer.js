@@ -12,57 +12,10 @@
    * talk to.
    */
 
-  function isFolder(path) {
-    return path.substr(-1) === '/';
-  }
-
-  function isDocument(path) {
-    return path.substr(-1) !== '/';
-  }
-
-  /**
-   * Function: fixArrayBuffers
-   *
-   * Takes an object and its copy as produced by the _deepClone function
-   * below, and finds and fixes any ArrayBuffers that were cast to `{}` instead
-   * of being cloned to new ArrayBuffers with the same content.
-   *
-   * It recurses into sub-objects, but skips arrays if they occur.
-   *
-   */
-  function fixArrayBuffers(srcObj, dstObj) {
-    var field, srcArr, dstArr;
-    if (typeof(srcObj) != 'object' || Array.isArray(srcObj) || srcObj === null) {
-      return;
-    }
-    for (field in srcObj) {
-      if (typeof(srcObj[field]) === 'object' && srcObj[field] !== null) {
-        if (srcObj[field].toString() === '[object ArrayBuffer]') {
-          dstObj[field] = new ArrayBuffer(srcObj[field].byteLength);
-          srcArr = new Int8Array(srcObj[field]);
-          dstArr = new Int8Array(dstObj[field]);
-          dstArr.set(srcArr);
-        } else {
-          fixArrayBuffers(srcObj[field], dstObj[field]);
-        }
-      }
-    }
-  }
-
-  function deepClone(obj) {
-    var clone;
-    if (obj === undefined) {
-      return undefined;
-    } else {
-      clone = JSON.parse(JSON.stringify(obj));
-      fixArrayBuffers(obj, clone);
-      return clone;
-    }
-  }
-
-  function equal(obj1, obj2) {
-    return JSON.stringify(obj1) === JSON.stringify(obj2);
-  }
+  var isFolder = RemoteStorage.util.isFolder;
+  var isDocument = RemoteStorage.util.isDocument;
+  var deepClone = RemoteStorage.util.deepClone;
+  var equal = RemoteStorage.util.equal;
 
   function getLatest(node) {
     if (typeof(node) !== 'object' || typeof(node.path) !== 'string') {
@@ -101,29 +54,20 @@
       if (nodes[path] && nodes[path].remote) {
         return true;
       }
-      node = getLatest(nodes[path]);
-      if (node && node.timestamp && (new Date().getTime()) - node.timestamp <= maxAge) {
+      nodeVersion = getLatest(nodes[path]);
+      if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
         return false;
-      } else if (!node) {
+      } else if (!nodeVersion) {
         return true;
       }
     }
     return true;
   }
 
-  function pathsFromRoot(path) {
-    var paths = [path];
-    var parts = path.replace(/\/$/, '').split('/');
+  var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
 
-    while (parts.length > 1) {
-      parts.pop();
-      paths.push(parts.join('/')+'/');
-    }
-    return paths;
-  }
-
-  function makeNode(path, timestamp) {
-    var node = { path: path, common: { timestamp: timestamp } };
+  function makeNode(path) {
+    var node = { path: path, common: { } };
 
     if (isFolder(path)) {
       node.common.itemsMap = {};
@@ -131,10 +75,9 @@
     return node;
   }
 
-  function updateFolderNodeWithItemName(node, itemName, timestamp) {
+  function updateFolderNodeWithItemName(node, itemName) {
     if (!node.common) {
       node.common = {
-        timestamp: timestamp,
         itemsMap: {}
       };
     }
@@ -198,7 +141,6 @@
 
     put: function(path, body, contentType) {
       var paths = pathsFromRoot(path);
-      var now = new Date().getTime();
 
       return this._updateNodes(paths, function(nodes) {
         try {
@@ -208,7 +150,7 @@
             var previous;
 
             if (!node) {
-              nodes[path] = node = makeNode(path, now);
+              nodes[path] = node = makeNode(path);
             }
 
             // Document
@@ -217,7 +159,6 @@
               node.local = {
                 body:                body,
                 contentType:         contentType,
-                timestamp:           now,
                 previousBody:        (previous ? previous.body : undefined),
                 previousContentType: (previous ? previous.contentType : undefined),
               };
@@ -225,7 +166,7 @@
             // Folder
             else {
               var itemName = paths[i-1].substring(path.length);
-              node = updateFolderNodeWithItemName(node, itemName, now);
+              node = updateFolderNodeWithItemName(node, itemName);
             }
           }
           return nodes;
@@ -240,8 +181,6 @@
       var paths = pathsFromRoot(path);
 
       return this._updateNodes(paths, function(nodes) {
-        var now = new Date().getTime();
-
         for (var i=0; i<paths.length; i++) {
           var path = paths[i];
           var node = nodes[path];
@@ -255,7 +194,6 @@
             previous = getLatest(node);
             node.local = {
               body:                false,
-              timestamp:           now,
               previousBody:        (previous ? previous.body : undefined),
               previousContentType: (previous ? previous.contentType : undefined),
             };
@@ -450,13 +388,9 @@
 
     _getInternals: function() {
       return {
-        isFolder: isFolder,
-        isDocument: isDocument,
-        deepClone: deepClone,
-        equal: equal,
         getLatest: getLatest,
-        pathsFromRoot: pathsFromRoot,
-        makeNode: makeNode
+        makeNode: makeNode,
+        isOutdated: isOutdated
       };
     }
   };

@@ -3,6 +3,8 @@
 * Create changelog since last release
     * Collect and summarize changes using `git log <LAST RELEASE TAG>..HEAD`
     * Add changes to `CHANGELOG.md`
+* If new files were added to `test/unit/`, then add them to `.travis.yml`
+* If new files were added to `src/`, then add them to `build/components.json`: once in `files` and once in `groups`
 * Verify tests are green: `npm test`
 * Bump version in `src/version.js`
 * Bump version in `package.json`

@@ -2,7 +2,7 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['test/helpers/mocks'], function(mocks) {
+define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
   var suites = [];
 
   function flatten(array){
@@ -21,7 +21,7 @@ define(['test/helpers/mocks'], function(mocks) {
     setup: function(env, test){
       mocks.defineMocks(env);
 
-      require('./lib/promising');
+      require('./lib/promising.js');
       global.RemoteStorage = function(){
         RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'sync-interval-change', 'error');
       };
@@ -32,14 +32,22 @@ define(['test/helpers/mocks'], function(mocks) {
       RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
       RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
-      require('./src/eventhandling');
+      require('./src/util.js');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
+
+
+      require('./src/eventhandling.js');
       if (global.rs_eventhandling){
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
-      require('./src/cachinglayer');
+      require('./src/cachinglayer.js');
       if (global.rs_cachinglayer) {
         RemoteStorage.cachingLayer = global.rs_cachinglayer;
       } else {
@@ -53,19 +61,20 @@ define(['test/helpers/mocks'], function(mocks) {
         global.rs_ims = RemoteStorage.InMemoryStorage;
       }
 
-      require('src/sync.js');
+      require('./src/sync.js');
       if (global.rs_sync) {
         RemoteStorage.Sync = global.rs_sync;
       } else {
         global.rs_sync = RemoteStorage.Sync;
       }
 
-      require('src/authorize.js');
+      require('./src/authorize.js');
       if (global.rs_authorize) {
         RemoteStorage.Authorize = global.rs_authorize;
       } else {
         global.rs_authorize = RemoteStorage.Authorize;
       }
+
       test.done();
     },
 
@@ -1150,7 +1159,7 @@ define(['test/helpers/mocks'], function(mocks) {
             }, 0);
           };
           env.rs.sync.now = function() { return 1234567890123; };
-          env.rs.sync.completePush('foo', 'put', true, '123')
+          env.rs.sync.completePush('foo', 'put', true, '123');
         }
       }
     ]

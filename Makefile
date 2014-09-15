@@ -10,9 +10,9 @@ ASSETS_OUT     = $(SOURCE_DIR)/assets.js
 DOC_INPUTS     = -i $(SOURCE_DIR)
 SOURCES        = ${shell find $(SOURCE_DIR) -name "*.js"}
 
-DEFAULT_COMPONENTS = core widget baseclient caching modules debug legacy googledrive dropbox
-NOCACHE_COMPONENTS = core widget baseclient modules debug legacy googledrive dropbox
-NODEJS_COMPONENTS  = core baseclient caching modules legacy nodejs
+DEFAULT_COMPONENTS = core widget baseclient caching modules debug googledrive dropbox
+NOCACHE_COMPONENTS = core widget baseclient modules debug googledrive dropbox
+NODEJS_COMPONENTS  = core baseclient caching modules nodejs
 
 
 default: help

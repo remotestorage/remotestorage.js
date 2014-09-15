@@ -11,7 +11,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
     desc: "High-level client, scoped to a path",
     setup: function(env, test) {
       mocks.defineMocks(env);
-  
+
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       RemoteStorage.prototype = {
@@ -30,12 +30,21 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
           remote: true
         }
       };
+
+      require('./src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
+
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+
       require('./src/wireclient');
       if (global.rs_wireclient) {
         RemoteStorage.WireClient = global.rs_wireclient;
