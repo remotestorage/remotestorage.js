@@ -138,8 +138,8 @@
       seen = seen || [];
 
       if (obj1 instanceof ArrayBuffer && obj2 instanceof ArrayBuffer) {
-        // This is needed, because in browsers the JSON serialization of any
-        // ArrayBuffer is always `{}`.
+        // Without the following conversion the browsers wouldn't be able to
+        // tell the ArrayBuffer instances apart.
         obj1 = new Uint8Array(obj1);
         obj2 = new Uint8Array(obj2);
       }
