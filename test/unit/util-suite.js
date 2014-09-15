@@ -80,7 +80,7 @@ define(['requirejs'], function(requirejs) {
           test.assertAnd(equal(obj, obj2), true);
           obj.nested = obj2;
           test.assertAnd(equal(obj, obj2), false);
-          ob2 = deepClone(obj);
+          obj2 = deepClone(obj);
           test.assertAnd(equal(obj, obj2), true);
           test.assertAnd(equal(buf1, buf2), true);
           test.assertAnd(equal(buf1, buf3), false);
