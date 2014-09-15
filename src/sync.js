@@ -7,7 +7,6 @@
   var isFolder = RemoteStorage.util.isFolder;
   var isDocument = RemoteStorage.util.isDocument;
   var equal = RemoteStorage.util.equal;
-  var equalObj = RemoteStorage.util.equalObj;
   var deepClone = RemoteStorage.util.deepClone;
   var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
 
@@ -381,8 +380,7 @@
             }
           }
 
-          // TODO test
-          if (equalObj(node.local.itemsMap, node.common.itemsMap)) {
+          if (equal(node.local.itemsMap, node.common.itemsMap)) {
             delete node.local;
           }
         }
@@ -581,7 +579,7 @@
                 if (parentNode && parentNode.local) {
                   delete parentNode.local.itemsMap[itemName];
 
-                  if (equalObj(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+                  if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
                     delete parentNode.local;
                   }
                 }
@@ -700,7 +698,7 @@
           if (parentNode && parentNode.local && parentNode.local.itemsMap) {
             itemName = path.substring(parentPath.length);
             parentNode.local.itemsMap[itemName] = true;
-            if (equalObj(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+            if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
               delete parentNode.local;
             }
           }

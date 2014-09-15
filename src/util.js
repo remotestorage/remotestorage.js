@@ -126,40 +126,83 @@
       }
     },
 
-    equal: function(obj1, obj2) {
-      return JSON.stringify(obj1) === JSON.stringify(obj2);
-    },
+    equal: function (a, b, seen) {
+      seen = seen || [];
 
-    equalObj: function(x, y) {
-      var p;
-      for (p in y) {
-        if (typeof(x[p]) === 'undefined') {return false;}
+      if (typeof(a) !== typeof(b)) {
+        return false;
       }
-      for (p in y) {
-        if (y[p]) {
-          switch (typeof(y[p])) {
-            case 'object':
-              if (!y[p].equals(x[p])) { return false; }
-              break;
-            case 'function':
-              if (typeof(x[p])==='undefined' ||
-                  (p !== 'equals' && y[p].toString() !== x[p].toString())) {
-                return false;
-              }
-              break;
-            default:
-              if (y[p] !== x[p]) { return false; }
-          }
-        } else {
-          if (x[p]) { return false; }
-        }
+
+      if (typeof(a) === 'number' || typeof(a) === 'boolean' || typeof(a) === 'string') {
+        return a === b;
       }
-      for (p in x) {
-        if(typeof(y[p]) === 'undefined') {
+
+      if (typeof(a) === 'function') {
+        return a.toString() === b.toString();
+      }
+
+      if (a instanceof ArrayBuffer && b instanceof ArrayBuffer) {
+        // Without the following conversion the browsers wouldn't be able to
+        // tell the ArrayBuffer instances apart.
+        a = new Uint8Array(a);
+        b = new Uint8Array(b);
+      }
+
+      // If this point has been reached, a and b are either arrays or objects.
+
+      if (a instanceof Array) {
+        if (a.length !== b.length) {
           return false;
         }
+
+        for (var i = 0, c = a.length; i < c; i++) {
+          if (!RemoteStorage.util.equal(a[i], b[i], seen)) {
+            return false;
+          }
+        }
+      } else {
+        // Check that keys from a exist in b
+        for (var key in a) {
+          if (a.hasOwnProperty(key) && !(key in b)) {
+            return false;
+          }
+        }
+
+        // Check that keys from b exist in a, and compare the values
+        for (var key in b) {
+          if (!b.hasOwnProperty(key)) {
+            continue;
+          }
+
+          if (!(key in a)) {
+            return false;
+          }
+
+          var seenArg;
+
+          if (typeof(b[key]) === 'object') {
+            if (seen.indexOf(b[key]) >= 0) {
+              // Circular reference, don't attempt to compare this object.
+              // If nothing else returns false, the objects match.
+              continue;
+            }
+
+            seenArg = seen.slice();
+            seenArg.push(b[key]);
+          }
+
+          if (!RemoteStorage.util.equal(a[key], b[key], seenArg)) {
+            return false;
+          }
+        }
       }
+
       return true;
+    },
+
+    equalObj: function(obj1, obj2) {
+      console.warn('DEPRECATION WARNING: RemoteStorage.util.equalObj has been replaced by RemoteStorage.util.equal.');
+      return RemoteStorage.util.equal(obj1, obj2);
     },
 
     deepClone: function(obj) {
