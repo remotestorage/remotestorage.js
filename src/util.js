@@ -126,46 +126,66 @@
       }
     },
 
-    equal: function(obj1, obj2) {
+    equal: function(obj1, obj2, seen) {
+      if (obj1 === obj2) {
+        return true;
+      }
+
+      if (obj1 === undefined || obj2 === undefined) {
+        return false;
+      }
+
+      seen = seen || [];
+
       if (obj1 instanceof ArrayBuffer && obj2 instanceof ArrayBuffer) {
         // This is needed, because in browsers the JSON serialization of any
         // ArrayBuffer is always `{}`.
         obj1 = new Uint8Array(obj1);
         obj2 = new Uint8Array(obj2);
       }
-      return JSON.stringify(obj1) === JSON.stringify(obj2);
-    },
 
-    equalObj: function(x, y) {
-      var p;
-      for (p in y) {
-        if (typeof(x[p]) === 'undefined') {return false;}
-      }
-      for (p in y) {
-        if (y[p]) {
-          switch (typeof(y[p])) {
-            case 'object':
-              if (!y[p].equals(x[p])) { return false; }
-              break;
-            case 'function':
-              if (typeof(x[p])==='undefined' ||
-                  (p !== 'equals' && y[p].toString() !== x[p].toString())) {
-                return false;
-              }
-              break;
-            default:
-              if (y[p] !== x[p]) { return false; }
-          }
-        } else {
-          if (x[p]) { return false; }
-        }
-      }
-      for (p in x) {
-        if(typeof(y[p]) === 'undefined') {
+      for (var k in obj1) {
+        if (obj1.hasOwnProperty(k) && !(k in obj2)) {
           return false;
         }
       }
+
+      for (var k in obj1) {
+        if (!obj1.hasOwnProperty(k)) {
+          continue;
+        }
+
+        switch (typeof(obj1[k])) {
+          case 'object':
+            if (seen.indexOf(obj1[k]) >= 0) {
+              // Circular reference
+              // If nothing else returns false, the objects are equal
+              continue;
+            }
+            if (!RemoteStorage.util.equal(obj1[k], obj2[k], [obj1[k]])) {
+              return false;
+            }
+            break;
+
+          case 'function':
+            if (obj1[k].toString() !== obj2[k].toString()) {
+              return false;
+            }
+            break;
+
+          default:
+            if (obj1[k] !== obj2[k]) {
+              return false;
+            }
+        }
+      }
+
       return true;
+    },
+
+    equalObj: function(obj1, obj2) {
+      console.warn('DEPRECATION WARNING: RemoteStorage.util.equalObj has been replaced by RemoteStorage.util.equal.');
+      return RemoteStorage.util.equal(obj1, obj2);
     },
 
     deepClone: function(obj) {
