@@ -326,14 +326,19 @@
             delete nodes[path];
           }
           else if (isDocument(path)) {
-            changeEvents.push({
-              path:           path,
-              origin:         'window',
-              oldValue:       node.local.previousBody,
-              newValue:       node.local.body === false ? undefined : node.local.body,
-              oldContentType: node.local.previousContentType,
-              newContentType: node.local.contentType
-            });
+            if (
+              node.local.body != node.local.previousBody ||
+              node.local.contentType != node.local.previousContentType
+            ) {
+              changeEvents.push({
+                path:           path,
+                origin:         'window',
+                oldValue:       node.local.previousBody,
+                newValue:       node.local.body === false ? undefined : node.local.body,
+                oldContentType: node.local.previousContentType,
+                newContentType: node.local.contentType
+              });
+            }
             delete node.local.previousBody;
             delete node.local.previousContentType;
           }
