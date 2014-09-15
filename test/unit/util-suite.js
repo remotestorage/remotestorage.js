@@ -4,6 +4,16 @@ if (typeof(define) !== 'function') {
 define(['requirejs'], function(requirejs) {
   var suites = [];
 
+  function stringToArrayBuffer(str) {
+    var buf = new ArrayBuffer(str.length * 2);
+    var view = new Uint16Array(buf);
+    for (var i = 0, c = str.length; i < c; i++)
+    {
+      view[i] = str.charCodeAt(i);
+    }
+    return buf;
+  }
+
   suites.push({
     name: 'util',
     desc: 'RemoteStorage.util utility functions',
@@ -61,12 +71,17 @@ define(['requirejs'], function(requirejs) {
           var equal = RemoteStorage.util.equal;
           var obj = { str: 'a', i: 0, b: true, obj: { str: 'a' } };
           var obj2 = deepClone(obj);
+          var buf1 = stringToArrayBuffer('foo');
+          var buf2 = stringToArrayBuffer('foo');
+          var buf3 = stringToArrayBuffer('bar');
 
           test.assertAnd(equal(obj, obj2), true);
           obj.nested = obj2;
           test.assert(equal(obj, obj2), false);
           ob2 = deepClone(obj);
           test.assertAnd(equal(obj, obj2), true);
+          test.assertAnd(equal(buf1, buf2), true);
+          test.assertAnd(equal(buf1, buf3), false);
         }
       },
 
