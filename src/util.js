@@ -131,13 +131,13 @@
         return true;
       }
 
-      if (obj1 === undefined || obj2 === undefined) {
+      if (typeof(obj1) !== typeof(obj2)) {
         return false;
       }
 
       seen = seen || [];
 
-      if (obj1 instanceof ArrayBuffer && obj2 instanceof ArrayBuffer) {
+      if (obj1 instanceof ArrayBuffer) {
         // Without the following conversion the browsers wouldn't be able to
         // tell the ArrayBuffer instances apart.
         obj1 = new Uint8Array(obj1);
