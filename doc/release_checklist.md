@@ -13,7 +13,7 @@
 * Manually test the special build files (.amd.js, .nocache.js)
 * Copy build files into `/release/head/`
 * Create release dir in `/release` and move build files there
-* Commit changes to Git
+* Commit changes to Git and `git push origin master`
 * Tag version in Git: `git tag x.x.x` and push to GitHub master: `git push origin master --tags`
 * Publish release on GitHub
     * Go to https://github.com/remotestorage/remotestorage.js/tags and click "add release notes"
