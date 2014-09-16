@@ -135,6 +135,10 @@
         return false;
       }
 
+      if (typeof(obj1) === 'string' && obj1 !== obj2) {
+        return false;
+      }
+
       seen = seen || [];
 
       if (obj1 instanceof ArrayBuffer) {
