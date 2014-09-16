@@ -76,7 +76,9 @@ define(['requirejs'], function(requirejs) {
           var obj3 = { a: true };
           var obj4 = deepClone(obj3);
           obj3.cycle = obj3;
+          obj3.arr = [ obj3 ];
           obj4.cycle = obj4;
+          obj4.arr = [ obj4 ];
 
           var arr1 = [ stringToArrayBuffer('foo'), function() { return 1; } ];
           var arr2 = [ stringToArrayBuffer('foo'), function() { return 1; } ];
@@ -97,6 +99,7 @@ define(['requirejs'], function(requirejs) {
           test.assertAnd(equal(arr1, arr2), true);
           test.assertAnd(equal(arr1, arr3), false);
           test.assertAnd(equal(arr1, arr4), false);
+
           test.done();
         }
       },

@@ -126,61 +126,74 @@
       }
     },
 
-    equal: function(obj1, obj2, seen) {
-      if (obj1 === obj2) {
-        return true;
-      }
-
-      if (typeof(obj1) !== typeof(obj2)) {
-        return false;
-      }
-
-      if (typeof(obj1) === 'string' && obj1 !== obj2) {
-        return false;
-      }
-
+    equal: function (a, b, seen) {
       seen = seen || [];
 
-      if (obj1 instanceof ArrayBuffer) {
+      if (typeof(a) !== typeof(b)) {
+        return false;
+      }
+
+      if (typeof(a) === 'number' || typeof(a) === 'boolean' || typeof(a) === 'string') {
+        return a === b;
+      }
+
+      if (typeof(a) === 'function') {
+        return a.toString() === b.toString();
+      }
+
+      if (a instanceof ArrayBuffer && b instanceof ArrayBuffer) {
         // Without the following conversion the browsers wouldn't be able to
         // tell the ArrayBuffer instances apart.
-        obj1 = new Uint8Array(obj1);
-        obj2 = new Uint8Array(obj2);
+        a = new Uint8Array(a);
+        b = new Uint8Array(b);
       }
 
-      for (var k in obj1) {
-        if (obj1.hasOwnProperty(k) && !(k in obj2)) {
+      // If this point has been reached, a and b are either arrays or objects.
+
+      if (a instanceof Array) {
+        if (a.length !== b.length) {
           return false;
         }
-      }
 
-      for (var k in obj1) {
-        if (!obj1.hasOwnProperty(k)) {
-          continue;
+        for (var i = 0, c = a.length; i < c; i++) {
+          if (!RemoteStorage.util.equal(a[i], b[i], seen)) {
+            return false;
+          }
+        }
+      } else {
+        // Check that keys from a exist in b
+        for (var key in a) {
+          if (a.hasOwnProperty(key) && !(key in b)) {
+            return false;
+          }
         }
 
-        switch (typeof(obj1[k])) {
-          case 'object':
-            if (seen.indexOf(obj1[k]) >= 0) {
-              // Circular reference
-              // If nothing else returns false, the objects are equal
+        // Check that keys from b exist in a, and compare the values
+        for (var key in b) {
+          if (!b.hasOwnProperty(key)) {
+            continue;
+          }
+
+          if (!(key in a)) {
+            return false;
+          }
+
+          var seenArg;
+
+          if (typeof(b[key]) === 'object') {
+            if (seen.indexOf(b[key]) >= 0) {
+              // Circular reference, don't attempt to compare this object.
+              // If nothing else returns false, the objects match.
               continue;
             }
-            if (!RemoteStorage.util.equal(obj1[k], obj2[k], [obj1[k]])) {
-              return false;
-            }
-            break;
 
-          case 'function':
-            if (obj1[k].toString() !== obj2[k].toString()) {
-              return false;
-            }
-            break;
+            seenArg = seen.slice();
+            seenArg.push(b[key]);
+          }
 
-          default:
-            if (obj1[k] !== obj2[k]) {
-              return false;
-            }
+          if (!RemoteStorage.util.equal(a[key], b[key], seenArg)) {
+            return false;
+          }
         }
       }
 
