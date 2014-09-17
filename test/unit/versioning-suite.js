@@ -2,7 +2,8 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
+define(['bluebird', 'requirejs', 'test/helpers/mocks'], function (Promise, requirejs, mocks) {
+  global.Promise = Promise;
   var suites = [];
 
   function flatten(array){
@@ -19,7 +20,6 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
     desc: "testing how sync deals with revisions and conflicts",
 
     setup: function(env, test){
-      require('./lib/promising');
       global.RemoteStorage = function(){
         RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'error');
       };
@@ -450,11 +450,11 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
             }
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
-              [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
+              {statusCode: 200, body: {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, contentType: 'application/json', revision: '123'};
             env.rs.remote._responses[['get', '/foo/baz/' ]] =
-              [500, '', '', ''];
+              {statusCode: 500};
             env.rs.remote._responses[['get', '/foo/baf' ]] =
-              [500, '', '', ''];
+              {statusCode: 500};
             env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
@@ -495,11 +495,16 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
             }
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
-              [200, {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }}, 'application/json', '123'];
+              {
+                statusCode: 200,
+                body: {'baz/': {ETag: '129'}, 'baf': {ETag: '459', 'Content-Type': 'image/jpeg', 'Content-Length': 12345678 }},
+                contentType: 'application/json',
+                revision: '123'
+              };
             env.rs.remote._responses[['get', '/foo/baz/' ]] =
-              [500, '', '', ''];
+              {statusCode: 500};
             env.rs.remote._responses[['get', '/foo/baf' ]] =
-              [500, '', '', ''];
+              {statusCode: 500};
             env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
@@ -523,29 +528,29 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
           env.rs.caching._responses = env.responses1;
           env.rs.local.setNodes(env.fixture1).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
-              [200, {}, 'application/json', '123'];
+              {statusCode: 200, body: {}, contentType: 'application/json', revision: '123'};
             env.rs.remote._responses[['get', '/foo/', {ifNoneMatch: '123'} ]] =
-              [200, {}, 'application/json', '123'];
+              {statusCode: 200, body: {}, contentType: 'application/json', revision: '123'};
             env.rs.remote._responses[['get', '/foo/f-created/' ]] =
-              [500, {}, 'application/json', '123'];
+              {statusCode: 500, body: {}, contentType: 'application/json', revision: '123'};
             env.rs.remote._responses[["put","/foo/f-created/a","bloo",null,{"ifNoneMatch":"*"}]] =
-              [500, '', '', ''];
+              {statusCode: 500};
             env.rs.remote._responses[["get","/foo/f-changed/a"]] =
-              [500, '', '', ''];
+              {statusCode: 500};
             env.rs.remote._responses[["get","/foo/f-deleted/a"]] =
-              [500, '', '', ''];
+              {statusCode: 500};
             env.rs.remote._responses[['get', '/foo/f-created-fetching/' ]] =
-              [500, {}, 'application/json', '123'];
+              {statusCode: 500, body: {}, contentType: 'application/json', revision: '123'};
             env.rs.remote._responses[["get","/foo/f-created-fetching/a"]] =
-              [500, '', '', ''];
+              {statusCode: 500};
             env.rs.remote._responses[["get","/foo/f-changed-fetching/a"]] =
-              [500, '', '', ''];
+              {statusCode: 500};
             env.rs.remote._responses[["get","/foo/f-deleted-fetching/a"]] =
-              [500, '', '', ''];
+              {statusCode: 500};
             env.rs.remote._responses[["get","/foo/d-created-fetching"]] =
-              [500, '', '', ''];
+              {statusCode: 500};
             env.rs.remote._responses[["put","/foo/d-created","bloo",null,{"ifNoneMatch":"*"}]] =
-              [500, '', '', ''];
+              {statusCode: 500};
             env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             setTimeout(function() {
@@ -630,7 +635,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
               '/foo/item2': 'body2'
             };
             env.rs.remote._responses[['get', '/foo/', {ifNoneMatch: 'dir-rev1'} ]] =
-              [200, response, 'application/json', 'changedrevision'];
+              {statusCode: 200, body: response, contentType: 'application/json', revision: 'changedrevision'};
 
             env.rs.sync._tasks = {'/foo/': []};
 
@@ -666,7 +671,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
             }
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/' ]] =
-              [200, {a: {ETag: '3'}}, 'application/ld+json', '123'];
+              {statusCode: 200, body: {a: {ETag: '3'}}, contentType: 'application/ld+json', revision: '123'};
             env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/']);
@@ -696,8 +701,8 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
         run: function(env, test) {
           env.rs.caching._responses = env.responses1;
           env.rs.local.setNodes(env.fixture1).then(function() {
-            env.rs.sync.handleResponse('/foo/d-created', 'get', 404);
-            env.rs.sync.handleResponse('/foo/d-changed', 'get', 200, 'bloo', 'text/plain', '123');
+            env.rs.sync.handleResponse('/foo/d-created', 'get', {statusCode: 404});
+            env.rs.sync.handleResponse('/foo/d-changed', 'get', {statusCode: 200, body: 'bloo', contentType: 'text/plain', revision: '123'});
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/d-created', '/foo/d-changed']).then(function(objs) {
 
@@ -716,8 +721,8 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
         run: function(env, test) {
           env.rs.caching._responses = env.responses1;
           env.rs.local.setNodes(env.fixture1).then(function() {
-            env.rs.sync.handleResponse('/foo/d-created', 'get', 200, 'something else', 'text/plain', '123');
-            env.rs.sync.handleResponse('/foo/d-changed', 'get', 200, 'something else', 'text/plain', '123');
+            env.rs.sync.handleResponse('/foo/d-created', 'get', {statusCode: 200, body: 'something else', contentType: 'text/plain', revision: '123'});
+            env.rs.sync.handleResponse('/foo/d-changed', 'get', {statusCode: 200, body: 'something else', contentType: 'text/plain', revision: '123'});
             setTimeout(function() {
               env.rs.local.getNodes(['/foo/d-created', '/foo/d-changed']).then(function(objs) {
 
@@ -745,7 +750,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
             }
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/', { ifNoneMatch: 'fff' } ]] =
-              [304, undefined, undefined, 'fff'];
+              {statusCode: 304, revision: 'fff'};
             env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/']);
@@ -780,7 +785,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
             }
           }).then(function() {
             env.rs.remote._responses[['get', '/foo/', { ifNoneMatch: 'fff' } ]] =
-              [304, undefined, undefined, 'something else'];
+              {statusCode: 304, revision: 'something else'};
             env.rs.sync._tasks = {'/foo/': []};
             env.rs.sync.doTasks();
             return env.rs.local.getNodes(['/foo/']);

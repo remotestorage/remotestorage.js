@@ -4,7 +4,7 @@
  * Provides reusable utility functions at RemoteStorage.util
  *
  */
-(function() {
+(function () {
 
   /**
    * Function: fixArrayBuffers
@@ -35,7 +35,7 @@
   }
 
   RemoteStorage.util = {
-    getEventEmitter: function() {
+    getEventEmitter: function () {
       var object = {};
       var args = Array.prototype.slice.call(arguments);
       args.unshift(object);
@@ -44,9 +44,9 @@
       return object;
     },
 
-    extend: function(target) {
+    extend: function (target) {
       var sources = Array.prototype.slice.call(arguments, 1);
-      sources.forEach(function(source) {
+      sources.forEach(function (source) {
         for (var key in source) {
           target[key] = source[key];
         }
@@ -54,23 +54,24 @@
       return target;
     },
 
-    asyncEach: function(array, callback) {
+    asyncEach: function (array, callback) {
       return this.asyncMap(array, callback).
-        then(function() { return array; });
+        then(function () { return array; });
     },
 
-    asyncMap: function(array, callback) {
-      var promise = promising();
+    asyncMap: function (array, callback) {
+      var pending = Promise.defer();
       var n = array.length, i = 0;
       var results = [], errors = [];
+
       function oneDone() {
         i++;
         if (i === n) {
-          promise.fulfill(results, errors);
+          pending.resolve(results, errors);
         }
       }
 
-      array.forEach(function(item, index) {
+      array.forEach(function (item, index) {
         var result;
         try {
           result = callback(item);
@@ -79,18 +80,18 @@
           errors[index] = exc;
         }
         if (typeof(result) === 'object' && typeof(result.then) === 'function') {
-          result.then(function(res) { results[index] = res; oneDone(); },
-                      function(error) { errors[index] = error; oneDone(); });
+          result.then(function (res) { results[index] = res; oneDone(); },
+                      function (error) { errors[index] = error; oneDone(); });
         } else {
           oneDone();
           results[index] = result;
         }
       });
 
-      return promise;
+      return pending.promise;
     },
 
-    containingFolder: function(path) {
+    containingFolder: function (path) {
       if (path === '') {
         return '/';
       }
@@ -101,15 +102,15 @@
       return path.replace(/\/+/g, '/').replace(/[^\/]+\/?$/, '');
     },
 
-    isFolder: function(path) {
+    isFolder: function (path) {
       return path.substr(-1) === '/';
     },
 
-    isDocument: function(path) {
+    isDocument: function (path) {
       return path.substr(-1) !== '/';
     },
 
-    baseName: function(path) {
+    baseName: function (path) {
       var parts = path.split('/');
       if (this.isFolder(path)) {
         return parts[parts.length-2]+'/';
@@ -118,7 +119,7 @@
       }
     },
 
-    bindAll: function(object) {
+    bindAll: function (object) {
       for (var key in this) {
         if (typeof(object[key]) === 'function') {
           object[key] = object[key].bind(object);
@@ -200,12 +201,12 @@
       return true;
     },
 
-    equalObj: function(obj1, obj2) {
+    equalObj: function (obj1, obj2) {
       console.warn('DEPRECATION WARNING: RemoteStorage.util.equalObj has been replaced by RemoteStorage.util.equal.');
       return RemoteStorage.util.equal(obj1, obj2);
     },
 
-    deepClone: function(obj) {
+    deepClone: function (obj) {
       var clone;
       if (obj === undefined) {
         return undefined;
@@ -216,7 +217,7 @@
       }
     },
 
-    pathsFromRoot: function(path) {
+    pathsFromRoot: function (path) {
       var paths = [path];
       var parts = path.replace(/\/$/, '').split('/');
 
@@ -231,7 +232,7 @@
 
   if (!RemoteStorage.prototype.util) {
     Object.defineProperty(RemoteStorage.prototype, 'util', {
-      get: function() {
+      get: function () {
         console.log('DEPRECATION WARNING: remoteStorage.util was moved to RemoteStorage.util');
         return RemoteStorage.util;
       }

@@ -2,8 +2,6 @@ if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
 
-var promising = require('./lib/promising');
-
 define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
   var suites = [];
 

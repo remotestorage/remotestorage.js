@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
   // feature detection flags
   var haveXMLHttpRequest, hasLocalStorage;
@@ -21,7 +21,7 @@
    *   callback    - gets called with href of the storage, the type and the authURL
    **/
 
-  RemoteStorage.Discover = function(userAddress, callback) {
+  RemoteStorage.Discover = function (userAddress, callback) {
     if (userAddress in cachedInfo) {
       var info = cachedInfo[userAddress];
       callback(info.href, info.type, info.authURL);
@@ -40,11 +40,11 @@
       if (!url) { return callback(); }
       RemoteStorage.log('[Discover] Trying URL', url);
       xhr.open('GET', url, true);
-      xhr.onabort = xhr.onerror = function() {
+      xhr.onabort = xhr.onerror = function () {
         console.error("webfinger error", arguments, '(', url, ')');
         tryOne();
       };
-      xhr.onload = function() {
+      xhr.onload = function () {
         if (xhr.status !== 200) { return tryOne(); }
         var profile;
 
@@ -63,7 +63,7 @@
         }
 
         var link;
-        profile.links.forEach(function(l) {
+        profile.links.forEach(function (l) {
           if (l.rel === 'remotestorage') {
             link = l;
           } else if (l.rel === 'remoteStorage' && !link) {
@@ -90,7 +90,7 @@
     tryOne();
   };
 
-  RemoteStorage.Discover._rs_init = function(remoteStorage) {
+  RemoteStorage.Discover._rs_init = function (remoteStorage) {
     hasLocalStorage = remoteStorage.localStorageAvailable();
     if (hasLocalStorage) {
       var settings;
@@ -101,12 +101,12 @@
     }
   };
 
-  RemoteStorage.Discover._rs_supported = function() {
+  RemoteStorage.Discover._rs_supported = function () {
     haveXMLHttpRequest = !! global.XMLHttpRequest;
     return haveXMLHttpRequest;
   };
 
-  RemoteStorage.Discover._rs_cleanup = function() {
+  RemoteStorage.Discover._rs_cleanup = function () {
     if (hasLocalStorage) {
       delete localStorage[SETTINGS_KEY];
     }

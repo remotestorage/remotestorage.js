@@ -1,14 +1,14 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs) {
+define(['bluebird', 'requirejs'], function (Promise, requirejs) {
+  global.Promise = Promise;
   var suites = [];
 
   suites.push({
     name: 'CachingLayer',
     desc: 'CachingLayer that is mixed into all local storage implementations',
-    setup: function(env, test) {
-      require('lib/promising');
+    setup: function (env, test) {
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
       global.RemoteStorage.config = {
@@ -43,7 +43,7 @@ define(['requirejs'], function(requirejs) {
       test.done();
     },
 
-    beforeEach: function(env, test) {
+    beforeEach: function (env, test) {
       env.ims = new RemoteStorage.InMemoryStorage();
       test.done();
     },
@@ -51,7 +51,7 @@ define(['requirejs'], function(requirejs) {
     tests: [
       {
         desc: "getLatest",
-        run: function(env, test) {
+        run: function (env, test) {
           var getLatest = env.ims._getInternals().getLatest;
           var localNode = {
             path:   '/a/b',
@@ -87,7 +87,7 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "makeNode",
-        run: function(env, test) {
+        run: function (env, test) {
           var makeNode = env.ims._getInternals().makeNode;
 
           test.assertAnd(makeNode('/a/b/'), {
@@ -103,10 +103,10 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "locally created documents are considered outdated",
-        run: function(env, test) {
-          env.ims.put('/new/document', 'content', 'text/plain').then(function() {
+        run: function (env, test) {
+          env.ims.put('/new/document', 'content', 'text/plain').then(function () {
             var paths = RemoteStorage.util.pathsFromRoot('/new/document');
-            env.ims.getNodes(paths).then(function(nodes) {
+            env.ims.getNodes(paths).then(function (nodes) {
               test.assert(env.ims._getInternals().isOutdated(nodes, 1000), true);
             });
           });
@@ -115,9 +115,10 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "this._getAllDescendentPaths",
-        run: function(env, test) {
-          env.ims.put('/foo/bar/baz/baf', 'asdf', 'qwer').then(function() {
-            env.ims._getAllDescendentPaths('/').then(function(paths) {
+        run: function (env, test) {
+          env.ims.put('/foo/bar/baz/baf', 'asdf', 'qwer').then(function () {
+            env.ims._getAllDescendentPaths('/').then(function (paths) {
+              console.log("paths: ",paths);
               test.assertAnd(paths.sort(), ['/', '/foo/', '/foo/bar/', '/foo/bar/baz/', '/foo/bar/baz/baf'].sort());
               test.done();
             });
@@ -132,7 +133,7 @@ define(['requirejs'], function(requirejs) {
             return env.ims.flush('/foo/bar/');
           }).then(function() {
             var count = 0;
-            return env.ims.forAllNodes(function(node) {
+            return env.ims.forAllNodes(function (node) {
               test.assertAnd((node.path === '/' || node.path === '/foo/'), true);
               count++;
             }).then(function() {
@@ -190,7 +191,7 @@ define(['requirejs'], function(requirejs) {
           var jobTwoCompleted = false;
           var jobThreeCbCalled = false;
 
-          env.ims._updateNodes(['/foo'], function(currentValue) {
+          env.ims._updateNodes(['/foo'], function (paths, nodes) {
             test.assertAnd(jobOneCbCalled, false);
             test.assertAnd(jobTwoCbCalled, false);
             test.assertAnd(jobThreeCbCalled, false);
@@ -198,15 +199,14 @@ define(['requirejs'], function(requirejs) {
             test.assertAnd(jobOneCompleted, false);
             test.assertAnd(jobTwoCompleted, false);
 
-            test.assertAnd(currentValue, {
+            test.assertAnd(nodes, {
               '/foo': undefined
-            });
+            }, 'first pass');
             jobOneCbCalled = true;
             throw new Error('boom!');
           }).then(function() {
             test.result(false, 'this promise should have been rejected');
-          },
-          function(err) {
+          }, function (err) {
             test.assertAnd(jobOneCbCalled, true);
             test.assertAnd(jobTwoCbCalled, false);
             test.assertAnd(jobThreeCbCalled, false);
@@ -218,7 +218,7 @@ define(['requirejs'], function(requirejs) {
             jobOneCompleted = true;
           });
 
-          env.ims._updateNodes(['/foo'], function(currentValue) {
+          env.ims._updateNodes(['/foo'], function (paths, nodes) {
             test.assertAnd(jobOneCbCalled, true);
             test.assertAnd(jobTwoCbCalled, false);
             test.assertAnd(jobThreeCbCalled, false);
@@ -226,12 +226,12 @@ define(['requirejs'], function(requirejs) {
             test.assertAnd(jobOneCompleted, true);
             test.assertAnd(jobTwoCompleted, false);
 
-            test.assertAnd(currentValue, {
+            test.assertAnd(nodes, {
               '/foo': undefined
-            });
-            currentValue['/foo'] = {local: {some: 'data'}};
+            }, 'second pass');
+            nodes['/foo'] = {local: {some: 'data'}};
             jobTwoCbCalled = true;
-            return currentValue;
+            return nodes;
           }).then(function() {
             test.assertAnd(jobOneCbCalled, true);
             test.assertAnd(jobTwoCbCalled, true);
@@ -243,7 +243,7 @@ define(['requirejs'], function(requirejs) {
             jobTwoCompleted = true;
           });
 
-          env.ims._updateNodes(['/foo'], function(currentValue) {
+          env.ims._updateNodes(['/foo'], function (paths, nodes) {
             test.assertAnd(jobOneCbCalled, true);
             test.assertAnd(jobTwoCbCalled, true);
             test.assertAnd(jobThreeCbCalled, false);
@@ -251,14 +251,14 @@ define(['requirejs'], function(requirejs) {
             test.assertAnd(jobOneCompleted, true);
             test.assertAnd(jobTwoCompleted, true);
 
-            test.assertAnd(currentValue, {
+            test.assertAnd(nodes, {
               '/foo': {
                 local: {some: 'data'}
               }
-            });
-            currentValue['/foo'] = {local: {some: 'other data'}};
+            }, 'third pass');
+            nodes['/foo'] = {local: {some: 'other data'}};
             jobThreeCbCalled = true;
-            return currentValue;
+            return nodes;
           }).then(function() {
             test.assertAnd(jobOneCbCalled, true);
             test.assertAnd(jobTwoCbCalled, true);

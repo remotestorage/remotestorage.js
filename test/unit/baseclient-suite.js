@@ -1,10 +1,11 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
-  var suites = [];
+define(['bluebird', 'requirejs', 'test/helpers/mocks'], function (Promise, requirejs, mocks) {
 
-  require('./lib/promising');
+  global.Promise = Promise;
+
+  var suites = [];
 
   suites.push({
     name: "BaseClient",
@@ -153,9 +154,9 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
       {
         desc: "#getListing performs a 'get' request",
         run: function(env, test) {
-          env.storage.get = function(path) {
+          env.storage.get = function (path) {
             test.assert(path, '/foo/bar/');
-            return promising().fulfill(404);
+            return Promise.resolve({statusCode: 404});
           };
           env.client.getListing('bar/');
         }
@@ -163,9 +164,11 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
 
       {
         desc: "#getListing results in an empty object when it sees '404'",
-        run: function(env, test) {
-          env.storage.get = function(path) { return promising().fulfill(404); };
-          env.client.getListing('bar/').then(function(result) {
+        run: function (env, test) {
+          env.storage.get = function (path) {
+            return Promise.resolve({statusCode: 404});
+          };
+          env.client.getListing('bar/').then(function (result) {
             test.assert(result, {});
           });
         }
@@ -173,20 +176,18 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
 
       {
         desc: "#getListing fails when it gets a document path",
+        willFail: true,
         run: function(env, test) {
-          try {
-            env.client.getListing('bar');
-            test.result(false);
-          } catch(e) {
-            test.done();
-          }
+          return env.client.getListing('bar');
         }
       },
 
       {
         desc: "#getListing accepts an empty path",
         run: function(env, test) {
-          env.storage.get = function(path) { return promising().fulfill(404); };
+          env.storage.get = function(path) {
+            return Promise.resolve({statusCode: 404});
+          };
           try {
             env.client.getListing('');
             test.done();
@@ -198,11 +199,11 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
 
       {
         desc: "#getListing forwards folder listing object",
-        run: function(env, test) {
-          env.storage.get = function(path) {
-            return promising().fulfill(200, { 'foo': {"ETag":'bar'}, 'baz/': {"ETag":'bla'} });
+        run: function (env, test) {
+          env.storage.get = function (path) {
+            return Promise.resolve({statusCode: 200, body: { 'foo': {"ETag":'bar'}, 'baz/': {"ETag":'bla'} }});
           };
-          env.client.getListing('').then(function(result) {
+          env.client.getListing('').then(function (result) {
             test.assert(result, { 'foo': {"ETag":'bar'}, 'baz/': {"ETag":'bla'} });
           });
         }
@@ -210,13 +211,13 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
 
       {
         desc: "#getListing rejects the promise on error",
-        run: function(env, test) {
-          env.storage.get = function(path) {
-            return promising().reject('Broken');
+        run: function (env, test) {
+          env.storage.get = function (path) {
+            return Promise.reject('Broken');
           };
-          env.client.getListing('').then(function() {
+          env.client.getListing('').then(function () {
             test.result(false);
-          }, function(error) {
+          }, function (error) {
             test.assert(error, 'Broken');
             test.done();
           });
@@ -225,10 +226,10 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
 
       {
         desc: "#getListing treats undefined paths as ''",
-        run: function(env, test) {
-          env.storage.get = function(path) {
+        run: function (env, test) {
+          env.storage.get = function (path) {
             test.assert(path, '/foo/');
-            return promising().fulfill(404);
+            return Promise.resolve({statusCode: 404});
           };
           env.client.getListing();
         }
@@ -236,11 +237,11 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
 
       {
         desc: "#getAll returns an empty object when it sees a 404",
-        run: function(env, test) {
-          env.storage.get = function(path) {
-            return promising().fulfill(404);
+        run: function (env, test) {
+          env.storage.get = function (path) {
+            return Promise.resolve({statusCode: 404});
           };
-          env.client.getAll('').then(function(result) {
+          env.client.getAll('').then(function (result) {
             test.assert(result, {});
           });
         }
@@ -248,9 +249,9 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
 
       {
         desc: "#getAll returns an empty object when there are no objects",
-        run: function(env, test) {
-          env.storage.get = function(path) {
-            return promising().fulfill(200, {});
+        run: function (env, test) {
+          env.storage.get = function (path) {
+            return Promise.resolve({statusCode: 200, body: {}});
           };
           env.client.getAll('').then(function(result) {
             test.assert(result, {});
@@ -260,22 +261,23 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
 
       {
         desc: "#getAll retrieves the listing and then all children",
-        run: function(env, test) {
+        run: function (env, test) {
           var expected = { '/foo/': true, '/foo/bar': true, '/foo/baz': true };
-          env.storage.get = function(path) {
-            var promise = promising();
-            if (path === '/foo/') {
-              promise.fulfill(200, { bar: true, baz: true });
-            } else {
-              promise.fulfill(200, "content of " + path);
-            }
+          env.storage.get = function (path) {
             delete expected[path];
-            if (Object.keys(expected).length === 0) {
-              test.done();
+            if (path === '/foo/') {
+              return Promise.resolve({statusCode: 200, body: { bar: true, baz: true }});
+            } else {
+              return Promise.resolve({statusCode: 200, body: "content of " + path});
             }
-            return promise;
           };
-          env.client.getAll('');
+          env.client.getAll('').then(function () {
+            if (Object.keys(expected).length === 0) {
+              test.result(true);
+            } else {
+              test.result(false);
+            }
+          });
         }
       },
 
@@ -283,13 +285,11 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
         desc: "#getAll results in an object with all children's content",
         run: function(env, test) {
           env.storage.get = function(path) {
-            var promise = promising();
             if (path === '/foo/') {
-              promise.fulfill(200, { bar: true, baz: true });
+              return Promise.resolve({statusCode: 200, body: { bar: true, baz: true }});
             } else {
-              promise.fulfill(200, JSON.stringify({ "content of ": path }));
+              return Promise.resolve({statusCode: 200, body: JSON.stringify({ "content of ": path })});
             }
-            return promise;
           };
           env.client.getAll('').then(function(result) {
             test.assert(result, {
@@ -305,7 +305,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
         run: function(env, test) {
           env.storage.get = function(path) {
             test.assert(path, '/foo/');
-            return promising().fulfill(404);
+            return Promise.resolve({statusCode: 404});
           };
           env.client.getAll();
         }
@@ -366,7 +366,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
             test.assertAnd(body, 'abc');
             test.assertType(incoming, 'undefined');
             test.result(true);
-            return promising().fulfill(200);
+            return Promise.resolve({statusCode: 200});
           };
           env.client.storeFile('def', 'foo/bar', 'abc');
         }
@@ -403,7 +403,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
             }));
             test.assertAnd(contentType, 'application/json; charset=UTF-8');
             test.result(true);
-            return promising().fulfill(200);
+            return Promise.resolve({statusCode: 200});
           };
           env.client.storeObject('test', 'foo/bar', {test: 1});
         }
@@ -419,7 +419,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
               '@context': 'http://to.do/spec/item'
             }));
             test.result(true);
-            return promising().fulfill(200);
+            return Promise.resolve({statusCode: 200});
           };
           env.client.declareType('todo-item', 'http://to.do/spec/item', {});
           env.client.storeObject('todo-item', 'foo/bar', {test: 1});
@@ -435,7 +435,7 @@ define(['requirejs', 'test/helpers/mocks'], function(requirejs, mocks) {
             test.assertAnd(contentType, 'def');
             test.assertType(incoming, 'undefined');
             test.result(true);
-            return promising().fulfill(200);
+            return Promise.resolve({statusCode: 200});
           };
           env.client.storeFile('def', 'A%2FB /C/%bla//', 'abc');
         }

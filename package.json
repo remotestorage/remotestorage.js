@@ -10,11 +10,14 @@
   },
   "homepage": "http://remotestorage.io",
   "devDependencies": {
-    "jaribu": "0.1.x",
-    "uglify-js": "2.4.x",
-    "xhr2": "0.0.7"
+    "jaribu": "0.x.x",
+    "xhr2": "0.0.7",
+    "minifier": "^0.6.0"
   },
   "scripts": {
     "test": "node_modules/jaribu/bin/jaribu"
+  },
+  "dependencies": {
+    "bluebird": "^2.3.2"
   }
 }

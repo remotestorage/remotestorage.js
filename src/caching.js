@@ -22,12 +22,12 @@
    *
    **/
 
-(function(global) {
+(function (global) {
   var SETTINGS_KEY = "remotestorage:caching";
 
   var containingFolder = RemoteStorage.util.containingFolder;
 
-  RemoteStorage.Caching = function() {
+  RemoteStorage.Caching = function () {
     this.reset();
   };
 
@@ -49,7 +49,7 @@
      *   (start code)
      *   remoteStorage.caching.set('/bookmarks/archive')
      */
-    set: function(path, value) {
+    set: function (path, value) {
       if (typeof(path) !== 'string') {
         throw new Error('path should be a string');
       }
@@ -78,7 +78,7 @@
      * Parameters:
      *   path - Path to enable caching for
      */
-    enable: function(path) {
+    enable: function (path) {
       this.set(path, 'ALL');
     },
 
@@ -93,7 +93,7 @@
      * Parameters:
      *   path - Path to disable caching for
      */
-    disable: function(path) {
+    disable: function (path) {
       this.set(path, 'FLUSH');
     },
 
@@ -105,7 +105,7 @@
      * Parameters:
      *   callback - Callback function
      */
-    onActivate: function(cb) {
+    onActivate: function (cb) {
       var i;
       RemoteStorage.log('[Caching] Setting activate handler', cb, this.pendingActivations);
       this.activateHandler = cb;
@@ -124,7 +124,7 @@
      * Parameters:
      *   path - Path to retrieve setting for
      **/
-    checkPath: function(path) {
+    checkPath: function (path) {
       if (this._rootPaths[path] !== undefined) {
         return this._rootPaths[path];
       } else if (path === '/') {
@@ -139,7 +139,7 @@
      *
      * Reset the state of caching by deleting all caching information.
      **/
-    reset: function() {
+    reset: function () {
       this._rootPaths = {};
     }
   };
@@ -151,7 +151,7 @@
   // property on there:
   Object.defineProperty(RemoteStorage.prototype, 'caching', {
     configurable: true,
-    get: function() {
+    get: function () {
       var caching = new RemoteStorage.Caching();
       Object.defineProperty(this, 'caching', {
         value: caching
@@ -160,6 +160,6 @@
     }
   });
 
-  RemoteStorage.Caching._rs_init = function() {};
+  RemoteStorage.Caching._rs_init = function () {};
 
 })(typeof(window) !== 'undefined' ? window : global);
