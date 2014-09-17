@@ -302,7 +302,6 @@
     },
 
     configure: function(userAddress, href, storageApi, token, properties) {
-      console.log('configure', userAddress, href, storageApi, token, properties);
       if (typeof(userAddress) !== 'undefined') {
         this.userAddress = userAddress;
       }
