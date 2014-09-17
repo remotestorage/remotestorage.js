@@ -173,7 +173,7 @@
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
       if (settings) {
         setTimeout(function() {
-          this.configure(settings.userAddress, settings.href, settings.storageApi, settings.token);
+          this.configure(settings.userAddress, settings.href, settings.storageApi, settings.token, settings.properties);
         }.bind(this), 0);
       }
     }
@@ -301,7 +301,8 @@
       return promise;
     },
 
-    configure: function(userAddress, href, storageApi, token) {
+    configure: function(userAddress, href, storageApi, token, properties) {
+      console.log('configure', userAddress, href, storageApi, token, properties);
       if (typeof(userAddress) !== 'undefined') {
         this.userAddress = userAddress;
       }
@@ -313,6 +314,9 @@
       }
       if (typeof(token) !== 'undefined') {
         this.token = token;
+      }
+      if (typeof(properties) !== 'undefined') {
+        this.properties = properties;
       }
       if (typeof(this.storageApi) !== 'undefined') {
         this._storageApi = STORAGE_APIS[this.storageApi] || API_HEAD;
@@ -329,8 +333,9 @@
         localStorage[SETTINGS_KEY] = JSON.stringify({
           userAddress: this.userAddress,
           href: this.href,
+          storageApi: this.storageApi,
           token: this.token,
-          storageApi: this.storageApi
+          properties: this.properties
         });
       }
       RS.WireClient.configureHooks.forEach(function(hook) {

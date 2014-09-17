@@ -250,6 +250,36 @@
      // (see src/widget.js for implementation)
 
     /**
+     * Property: remote
+     *
+     * The remoteStorage.remote object contains, among other things, the following items:
+     * - connected   - boolean, whether or not a remote store is connected
+     * - online      - boolean, whether last sync action was successful or not
+     * - userAddress - string, the user address of the connected user
+     * - properties  - string, the properties of the WebFinger link
+     */
+
+    /**
+     * Method: scope
+     *
+     * Returns a BaseClient with a certain scope (base path). Please use this method
+     * only for debugging, and always use defineModule instead, to get access to a
+     * BaseClient from a module in an app.
+     *
+     * Parameters:
+     *   scope - a string, with a leading and a trailing slash, specifying the basepath
+     *           of the BaseClient that will be returned.
+     *
+     * Code example:
+     *
+     * function d(p) {
+     *   p.then(function(a) { console.log('ok', a); }, function(a) { console.log('fail', a); });
+     * }
+     * d(remoteStorage.scope('/pictures/').getListing(''));
+     * d(remoteStorage.scope('/public/pictures/').getListing(''));
+     */
+
+    /**
      * Method: connect
      *
      * Connect to a remoteStorage server.
@@ -276,14 +306,14 @@
         this._emit('error', new RemoteStorage.DiscoveryError("No storage information found at that user address."));
       }.bind(this), RemoteStorage.config.discoveryTimeout);
 
-      RemoteStorage.Discover(userAddress, function(href, storageApi, authURL) {
+      RemoteStorage.Discover(userAddress, function(href, storageApi, authURL, properties) {
         clearTimeout(discoveryTimeout);
         if (!href) {
           this._emit('error', new RemoteStorage.DiscoveryError("Failed to contact storage server."));
           return;
         }
         this._emit('authing');
-        this.remote.configure(userAddress, href, storageApi);
+        this.remote.configure(userAddress, href, storageApi, undefined, properties);
         if (! this.remote.connected) {
           if (authURL) {
             this.authorize(authURL);
@@ -308,7 +338,7 @@
      */
     disconnect: function() {
       if (this.remote) {
-        this.remote.configure(null, null, null, null);
+        this.remote.configure(null, null, null, null, null);
       }
       this._setGPD({
         get: this._pendingGPD('get'),
