@@ -87,9 +87,11 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
     env.connectedClient = new RemoteStorage.Dropbox(env.rs);
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
-    env.connectedClient.configure(
-      'dboxuser', env.baseURI, undefined, env.token
-    );
+    env.connectedClient.configure({
+      userAddress: 'dboxuser',
+      href: env.baseURI,
+      token: env.token
+    });
 
     mocks.defineMocks(env);
 
@@ -149,7 +151,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#configure sets the userAddress",
         run: function(env, test) {
-          env.client.configure('test@example.com');
+          env.client.configure({ userAddress: 'test@example.com' });
           test.assertAnd(env.client.userAddress, 'test@example.com');
 
           test.done();
@@ -159,12 +161,15 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#configure doesn't overwrite parameters if they are given as 'undefined'",
         run: function(env, test) {
-          env.client.configure('test@example.com');
+          env.client.configure({ userAddress: 'test@example.com' });
           test.assertAnd(env.client.userAddress, 'test@example.com');
-          env.client.configure(undefined, undefined, undefined, 'abcd');
+          env.client.configure({ token: 'abcd' });
           test.assertAnd(env.client.userAddress, 'test@example.com');
           test.assertAnd(env.client.token, 'abcd');
-          env.client.configure(null, undefined, undefined, null);
+          env.client.configure({
+            userAddress: null,
+            token: null
+          });
           test.assertAnd(env.client.token, null);
           test.assertAnd(env.client.userAddress, null);
           test.done();
@@ -174,7 +179,7 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#configure sets 'connected' to true, once token is given",
         run: function(env, test) {
-          env.client.configure(undefined, undefined, undefined, 'foobarbaz');
+          env.client.configure({ token: 'foobarbaz' });
           test.assert(env.client.connected, true);
         }
       },

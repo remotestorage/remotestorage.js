@@ -299,7 +299,9 @@
         this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
         return;
       }
-      this.remote.configure(userAddress);
+      this.remote.configure({
+        userAddress: userAddress
+      });
       this._emit('connecting');
 
       var discoveryTimeout = setTimeout(function() {
@@ -313,7 +315,12 @@
           return;
         }
         this._emit('authing');
-        this.remote.configure(userAddress, href, storageApi, undefined, properties);
+        this.remote.configure({
+          userAddress: userAddress,
+          href: href,
+          storageApi: storageApi,
+          properties: properties
+        });
         if (! this.remote.connected) {
           if (authURL) {
             this.authorize(authURL);
@@ -338,7 +345,13 @@
      */
     disconnect: function() {
       if (this.remote) {
-        this.remote.configure(null, null, null, null, null);
+        this.remote.configure({
+          userAddress: null,
+          href: null,
+          storageApi: null,
+          token: null,
+          properties: null
+        });
       }
       this._setGPD({
         get: this._pendingGPD('get'),

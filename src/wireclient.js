@@ -164,7 +164,7 @@
 
     onErrorCb = function(error){
       if (error instanceof RemoteStorage.Unauthorized) {
-        this.configure(undefined, undefined, undefined, null);
+        this.configure({ token: null });
       }
     }.bind(this);
     rs.on('error', onErrorCb);
@@ -173,7 +173,7 @@
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
       if (settings) {
         setTimeout(function() {
-          this.configure(settings.userAddress, settings.href, settings.storageApi, settings.token, settings.properties);
+          this.configure(settings);
         }.bind(this), 0);
       }
     }
@@ -301,23 +301,43 @@
       return promise;
     },
 
-    configure: function(userAddress, href, storageApi, token, properties) {
-      if (typeof(userAddress) !== 'undefined') {
-        this.userAddress = userAddress;
+    /**
+     *
+     * Method: configure
+     *
+     * Sets the userAddress, href, storageApi, token, and properties
+     * of a remote store. Also sets connected and online to true and
+     * emits the 'connected' event, if both token and href are present.
+     *
+     * Parameters:
+     *   settings - an object that may contain userAddress (string or null),
+     *              href (string or null), storageApi (string or null), token (string
+     *              or null), and/or properties (the JSON-parsed properties object
+     *              from the user's WebFinger record, see section 10 of
+     *              http://tools.ietf.org/html/draft-dejong-remotestorage-03
+     *              or null).
+     */
+    configure: function(settings) {
+      if (typeof settings !== 'object') {
+        throw new Error('WireClient configure settings parameter should be an object');
       }
-      if (typeof(href) !== 'undefined') {
-        this.href = href;
+      if (typeof settings.userAddress !== 'undefined') {
+        this.userAddress = settings.userAddress;
       }
-      if (typeof(storageApi) !== 'undefined') {
-        this.storageApi = storageApi;
+      if (typeof settings.href !== 'undefined') {
+        this.href = settings.href;
       }
-      if (typeof(token) !== 'undefined') {
-        this.token = token;
+      if (typeof settings.storageApi !== 'undefined') {
+        this.storageApi = settings.storageApi;
       }
-      if (typeof(properties) !== 'undefined') {
-        this.properties = properties;
+      if (typeof settings.token !== 'undefined') {
+        this.token = settings.token;
       }
-      if (typeof(this.storageApi) !== 'undefined') {
+      if (typeof settings.properties !== 'undefined') {
+        this.properties = settings.properties;
+      }
+
+      if (typeof this.storageApi !== 'undefined') {
         this._storageApi = STORAGE_APIS[this.storageApi] || API_HEAD;
         this.supportsRevs = this._storageApi >= API_00;
       }
@@ -337,9 +357,6 @@
           properties: this.properties
         });
       }
-      RS.WireClient.configureHooks.forEach(function(hook) {
-        hook.call(this);
-      }.bind(this));
     },
 
     stopWaitingForToken: function() {
@@ -509,8 +526,6 @@
       }
     }
   });
-
-  RS.WireClient.configureHooks = [];
 
   RS.WireClient._rs_init = function(remoteStorage) {
     hasLocalStorage = remoteStorage.localStorageAvailable();

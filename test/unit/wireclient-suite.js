@@ -80,9 +80,10 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
     env.connectedClient = new RemoteStorage.WireClient(env.rs);
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
-    env.connectedClient.configure(
-      undefined, env.baseURI, undefined, env.token
-    );
+    env.connectedClient.configure({
+      href: env.baseURI,
+      token: env.token
+    });
 
     mocks.defineMocks(env);
 
@@ -270,7 +271,10 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#configure sets the given parameters",
         run: function(env, test) {
-          env.client.configure('test@example.com', undefined, 'draft-dejong-remotestorage-00');
+          env.client.configure({
+            userAddress: 'test@example.com',
+            storageApi: 'draft-dejong-remotestorage-00'
+          });
           test.assertAnd(env.client.userAddress, 'test@example.com');
           test.assertAnd(env.client.storageApi, 'draft-dejong-remotestorage-00');
           test.done();
@@ -280,9 +284,11 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#configure doesn't overwrite parameters if they are given as 'undefined'",
         run: function(env, test) {
-          env.client.configure('test@example.com');
+          env.client.configure({
+            userAddress: 'test@example.com'
+          });
           test.assertAnd(env.client.userAddress, 'test@example.com');
-          env.client.configure(undefined, 'http://foo/bar');
+          env.client.configure({ href: 'http://foo/bar' });
           test.assertAnd(env.client.userAddress, 'test@example.com');
           test.assertAnd(env.client.href, 'http://foo/bar');
           test.done();
@@ -292,11 +298,17 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#configure determines if revisions are supported, based on the storageApi",
         run: function(env, test) {
-          env.client.configure(undefined, undefined, 'draft-dejong-remotestorage-00');
+          env.client.configure({
+            storageApi: 'draft-dejong-remotestorage-00'
+          });
           test.assertAnd(env.client.supportsRevs, true);
-          env.client.configure(undefined, undefined, 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple');
+          env.client.configure({
+            storageApi: 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple'
+          });
           test.assertAnd(env.client.supportsRevs, false);
-          env.client.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.client.configure({
+            storageApi: 'draft-dejong-remotestorage-01'
+          });
           test.assertAnd(env.client.supportsRevs, true);
           test.done();
         }
@@ -305,7 +317,10 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#configure sets 'connected' to true, once href and token are given",
         run: function(env, test) {
-          env.client.configure(undefined, 'https://example.com/storage/test', undefined, 'foobarbaz');
+          env.client.configure({
+            href: 'https://example.com/storage/test',
+            token: 'foobarbaz'
+          });
           test.assert(env.client.connected, true);
         }
       },
@@ -364,7 +379,9 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#get doesn't set the 'If-None-Match' when revisions are supported and no rev given",
         run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.configure({
+            storageApi: 'draft-dejong-remotestorage-01'
+          });
           env.connectedClient.get('/foo/bar');
           var request = XMLHttpRequest.instances.shift();
           var hasIfNoneMatchHeader = request._headers.hasOwnProperty('If-None-Match');
@@ -375,7 +392,9 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#get sets the 'If-None-Match' to the given value, when revisions are supported and the ifNoneMatch option is provided",
         run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.configure({
+            storageApi: 'draft-dejong-remotestorage-01'
+          });
           env.connectedClient.get('/foo/bar', { ifNoneMatch: 'something' });
           var request = XMLHttpRequest.instances.shift();
           test.assert(request._headers['If-None-Match'], '"something"');
@@ -385,7 +404,9 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#get doesn't set the 'If-None-Match' header, when revisions are not supported",
         run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple');
+          env.connectedClient.configure({
+            storageApi: 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple'
+          });
           env.connectedClient.get('/foo/bar');
           var request = XMLHttpRequest.instances.shift();
           test.assertType(request._headers['If-None-Match'], 'undefined');
@@ -395,7 +416,9 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#get doesn't set the 'If-None-Match' header even though the option is given, when revisions are not supported",
         run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple');
+          env.connectedClient.configure({
+            storageApi: 'https://www.w3.org/community/rww/wiki/read-write-web-00#simple'
+          });
           env.connectedClient.get('/foo/bar', { ifNoneMatch: 'something' });
           var request = XMLHttpRequest.instances.shift();
           test.assertType(request._headers['If-None-Match'], 'undefined');
@@ -533,7 +556,9 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#put encodes special characters in the path",
         run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.configure({
+            storageApi: 'draft-dejong-remotestorage-01'
+          });
           var request = RemoteStorage.WireClient.request;
 
           RemoteStorage.WireClient.request = function(method, url, options, callback) {
@@ -549,7 +574,9 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#put encodes spaces in the path",
         run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.configure({
+            storageApi: 'draft-dejong-remotestorage-01'
+          });
           var request = RemoteStorage.WireClient.request;
 
           RemoteStorage.WireClient.request = function(method, url, options, callback) {
@@ -565,7 +592,9 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#put leaves slash characters in the path",
         run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.configure({
+            storageApi: 'draft-dejong-remotestorage-01'
+          });
           var request = RemoteStorage.WireClient.request;
 
           RemoteStorage.WireClient.request = function(method, url, options, callback) {
@@ -581,7 +610,9 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#put removes redundant slash characters in the path",
         run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.configure({
+            storageApi: 'draft-dejong-remotestorage-01'
+          });
           var request = RemoteStorage.WireClient.request;
 
           RemoteStorage.WireClient.request = function(method, url, options, callback) {
@@ -597,7 +628,9 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#put doesn't set the 'If-None-Match' when revisions are supported and no rev given",
         run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.configure({
+            storageApi: 'draft-dejong-remotestorage-01'
+          });
           env.connectedClient.put('/foo/bar', 'baz', 'text/plain');
           var request = XMLHttpRequest.instances.shift();
           var hasIfNoneMatchHeader = request._headers.hasOwnProperty('If-None-Match');
@@ -608,7 +641,9 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#put doesn't set the 'If-Match' when revisions are supported and no rev given",
         run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.configure({
+            storageApi: 'draft-dejong-remotestorage-01'
+          });
           env.connectedClient.put('/foo/bar', 'baz', 'text/plain');
           var request = XMLHttpRequest.instances.shift();
           var hasIfMatchHeader = request._headers.hasOwnProperty('If-Match');
@@ -619,7 +654,9 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
       {
         desc: "#delete doesn't set the 'If-Match' when revisions are supported and no rev given",
         run: function(env, test) {
-          env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
+          env.connectedClient.configure({
+            storageApi: 'draft-dejong-remotestorage-01'
+          });
           env.connectedClient.delete('/foo/bar');
           var request = XMLHttpRequest.instances.shift();
           var hasIfMatchHeader = request._headers.hasOwnProperty('If-Match');
