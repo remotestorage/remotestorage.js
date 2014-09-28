@@ -117,8 +117,8 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           document.location.href = 'http://foo/bar#access_token=my-token';
           RemoteStorage.Authorize._rs_init(storage);
           storage.remote = {
-            configure: function(userAddress, href, type, token) {
-              test.assert(token, 'my-token');
+            configure: function(settings) {
+              test.assert(settings.token, 'my-token');
             }
           };
           storage._handlers['features-loaded'][0]();
@@ -132,7 +132,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           document.location.href = 'http://foo/bar#access_token=my-token&state=custom%2Fpath';
           RemoteStorage.Authorize._rs_init(storage);
           storage.remote = {
-            configure: function(userAddress, href, type, token) {}
+            configure: function(settings) {}
           };
           storage._handlers['features-loaded'][0]();
 

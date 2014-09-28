@@ -18,13 +18,14 @@
    *
    * Arguments:
    *   userAddress - user@host
-   *   callback    - gets called with href of the storage, the type and the authURL
+   *   callback    - gets called with href of the storage, the type, the
+   *                     authURL, and the link properties
    **/
 
   RemoteStorage.Discover = function(userAddress, callback) {
     if (userAddress in cachedInfo) {
       var info = cachedInfo[userAddress];
-      callback(info.href, info.type, info.authURL);
+      callback(info.href, info.type, info.authURL, info.properties);
       return;
     }
     var hostname = userAddress.split('@')[1];
@@ -76,11 +77,11 @@
                   || link.properties['auth-endpoint'],
             storageType = link.properties['http://remotestorage.io/spec/version']
                   || link.type;
-          cachedInfo[userAddress] = { href: link.href, type: storageType, authURL: authURL };
+          cachedInfo[userAddress] = { href: link.href, type: storageType, authURL: authURL, properties: link.properties };
           if (hasLocalStorage) {
             localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
           }
-          callback(link.href, storageType, authURL);
+          callback(link.href, storageType, authURL, link.properties);
         } else {
           tryOne();
         }
