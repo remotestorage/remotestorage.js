@@ -1,14 +1,15 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs) {
+define(['bluebird', 'requirejs'], function (Promise, requirejs) {
+  global.Promise = Promise;
+
   var suites = [];
 
   suites.push({
     name: "IndexedDB",
     desc: "indexedDB caching layer",
     setup: function(env, test) {
-      require('lib/promising.js');
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
       global.RemoteStorage.config = {
@@ -129,15 +130,13 @@ define(['requirejs'], function(requirejs) {
           var setNodesInDb = env.idb.setNodesInDb,
             getNodesFromDb = env.idb.getNodesFromDb;
           env.idb.setNodesInDb = function(nodes) {
-            var promise = promising();
             test.assertAnd(nodes, {foo: {path: 'foo'}});
             setTimeout(function() {
               env.idb.setNodesInDb = setNodesInDb;
               env.idb.getNodesFromDb = getNodesFromDb;
               test.done();
             }, 10);
-            promise.fulfill();
-            return promise;
+            return Promise.resolve();
           };
           env.idb.putsRunning = 0;
           env.idb.setNodes({foo: {path: 'foo'}});
@@ -158,17 +157,15 @@ define(['requirejs'], function(requirejs) {
           env.idb.setNodes({foo: {path: 'foo'}});
           test.assertAnd(env.idb.changesQueued, {foo: {path: 'foo'}});
           test.assertAnd(env.idb.changesRunning, {});
-          
+
           env.idb.setNodesInDb = function(nodes) {
-            var promise = promising();
             test.assertAnd(nodes, {foo: {path: 'foo'}});
             setTimeout(function() {
               env.idb.setNodesInDb = setNodesInDb;
               env.idb.getNodesFromDb = getNodesFromDb;
               test.done();
             }, 10);
-            promise.fulfill();
-            return promise;
+            return Promise.resolve();
           };
           env.idb.putsRunning = 0;
           env.idb.maybeFlush();

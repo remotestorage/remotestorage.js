@@ -1,11 +1,11 @@
-(function(pMode) {
+(function (pMode) {
 
   var mode = pMode,
       env = {},
       isBackground = false;
 
 
-  RemoteStorage.Env = function() {
+  RemoteStorage.Env = function () {
     return env;
   };
 
@@ -27,7 +27,7 @@
     RemoteStorage.Env._emit("foreground");
   };
 
-  RemoteStorage.Env._rs_init = function(remoteStorage) {
+  RemoteStorage.Env._rs_init = function (remoteStorage) {
     RemoteStorage.eventHandling(RemoteStorage.Env, "background", "foreground");
 
     function visibility() {
@@ -57,7 +57,7 @@
     }
   };
 
-  RemoteStorage.Env._rs_cleanup = function(remoteStorage) {
+  RemoteStorage.Env._rs_cleanup = function (remoteStorage) {
   };
 
 })(typeof(window) !== 'undefined' ? 'browser' : 'node');

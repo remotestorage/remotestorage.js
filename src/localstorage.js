@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
   /**
    * Class: RemoteStorage.LocalStorage
    *
@@ -8,7 +8,7 @@
   var NODES_PREFIX = "remotestorage:cache:nodes:";
   var CHANGES_PREFIX = "remotestorage:cache:changes:";
 
-  RemoteStorage.LocalStorage = function() {
+  RemoteStorage.LocalStorage = function () {
     RemoteStorage.cachingLayer(this);
     RemoteStorage.log('[LocalStorage] Registering events');
     RemoteStorage.eventHandling(this, 'change', 'local-events-done');
@@ -62,11 +62,10 @@
 
   RemoteStorage.LocalStorage.prototype = {
 
-    getNodes: function(paths) {
-      var promise = promising();
+    getNodes: function (paths) {
       var nodes = {};
 
-      for(i=0; i<paths.length; i++) {
+      for(var i = 0, len = paths.length; i < len; i++) {
         try {
           nodes[paths[i]] = JSON.parse(localStorage[NODES_PREFIX+paths[i]]);
         } catch(e) {
@@ -74,26 +73,22 @@
         }
       }
 
-      promise.fulfill(nodes);
-      return promise;
+      return Promise.resolve(nodes);
     },
 
-    setNodes: function(nodes) {
-      var promise = promising();
-
+    setNodes: function (nodes) {
       for (var path in nodes) {
         // TODO shouldn't we use getItem/setItem?
         localStorage[NODES_PREFIX+path] = JSON.stringify(nodes[path]);
       }
 
-      promise.fulfill();
-      return promise;
+      return Promise.resolve();
     },
 
-    forAllNodes: function(cb) {
+    forAllNodes: function (cb) {
       var node;
 
-      for(var i=0; i<localStorage.length; i++) {
+      for(var i = 0, len = localStorage.length; i < len; i++) {
         if (isNodeKey(localStorage.key(i))) {
           try {
             node = this.migrate(JSON.parse(localStorage[localStorage.key(i)]));
@@ -105,30 +100,29 @@
           }
         }
       }
-
-      return promising().fulfill();
+      return Promise.resolve();
     }
 
   };
 
-  RemoteStorage.LocalStorage._rs_init = function() {};
+  RemoteStorage.LocalStorage._rs_init = function () {};
 
-  RemoteStorage.LocalStorage._rs_supported = function() {
+  RemoteStorage.LocalStorage._rs_supported = function () {
     return 'localStorage' in global;
   };
 
   // TODO tests missing!
-  RemoteStorage.LocalStorage._rs_cleanup = function() {
+  RemoteStorage.LocalStorage._rs_cleanup = function () {
     var keys = [];
 
-    for (var i=0; i<localStorage.length; i++) {
+    for (var i = 0, len = localStorage.length; i < len; i++) {
       var key = localStorage.key(i);
       if (isRemoteStorageKey(key)) {
         keys.push(key);
       }
     }
 
-    keys.forEach(function(key) {
+    keys.forEach(function (key) {
       RemoteStorage.log('[LocalStorage] Removing', key);
       delete localStorage[key];
     });

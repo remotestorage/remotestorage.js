@@ -1,4 +1,4 @@
-(function(window){
+(function (window){
 
   var t = RemoteStorage.I18n.translate;
 
@@ -19,7 +19,7 @@
    *   error        - connected, but sync error happened
    *   unauthorized - connected, but request returned 401
    **/
-  RemoteStorage.Widget.View = function(remoteStorage) {
+  RemoteStorage.Widget.View = function (remoteStorage) {
     this.rs = remoteStorage;
     if (typeof(document) === 'undefined') {
       throw "Widget not supported";
@@ -38,7 +38,7 @@
       this.events[event] = this.events[event].bind(this);
     }
 
-    this.hideBubbleOnBodyClick = function(event) {
+    this.hideBubbleOnBodyClick = function (event) {
       for (var p = event.target; p !== document.body; p = p.parentElement) {
         if (p.id === 'remotestorage-widget') {
           return;
@@ -50,11 +50,11 @@
 
   RemoteStorage.Widget.View.prototype = {
 
-    connectGdrive: function() {
+    connectGdrive: function () {
       this._emit('connect', { special: 'googledrive' });
     },
 
-    connectDropbox: function(){
+    connectDropbox: function (){
       this._emit('connect', { special: 'dropbox'});
     },
 
@@ -68,7 +68,7 @@
      *   state
      *   args
      **/
-    setState: function(state, args) {
+    setState: function (state, args) {
       RemoteStorage.log('[View] widget.view.setState(',state,',',args,');');
       var s = this.states[state];
       if (typeof(s) === 'undefined') {
@@ -82,7 +82,7 @@
      *
      * Set user address of the input field
      **/
-    setUserAddress: function(addr) {
+    setUserAddress: function (addr) {
       this.userAddress = addr || '';
 
       var el;
@@ -96,7 +96,7 @@
      *
      * Set user secret key
      **/
-    setUserSecretKey: function(secretKey) {
+    setUserSecretKey: function (secretKey) {
       this.userSecretKey = secretKey;
     },
 
@@ -105,7 +105,7 @@
     *
     * Show the bubble when hidden and the other way around
     **/
-    toggleBubble: function(event) {
+    toggleBubble: function (event) {
       if (this.bubble.className.search('rs-hidden') < 0) {
         this.hideBubble(event);
       } else {
@@ -118,7 +118,7 @@
      *
      * Hide the bubble
      **/
-    hideBubble: function(){
+    hideBubble: function (){
       addClass(this.bubble, 'rs-hidden');
       document.body.removeEventListener('click', this.hideBubbleOnBodyClick);
     },
@@ -128,7 +128,7 @@
      *
      * Show the bubble
      **/
-    showBubble: function(event){
+    showBubble: function (event){
       removeClass(this.bubble, 'rs-hidden');
       if (typeof(event) !== 'undefined') {
         stopPropagation(event);
@@ -154,7 +154,7 @@
      *
      *   The widget div
      **/
-    display: function(options) {
+    display: function (options) {
       if (typeof this.div !== 'undefined') {
         return this.div;
       }
@@ -226,7 +226,7 @@
       setupButton(element, 'rs-googledrive', 'googledrive', this.connectGdrive.bind(this));
 
       var bubbleDontCatch = { INPUT: true, BUTTON: true, IMG: true };
-      var eventListener = function(event) {
+      var eventListener = function (event) {
         if (! bubbleDontCatch[event.target.tagName] && ! (this.div.classList.contains('remotestorage-state-unauthorized') )) {
           this.showBubble(event);
         }
@@ -243,7 +243,7 @@
     },
 
     states:  {
-      initial: function(message) {
+      initial: function (message) {
         var cube = this.cube;
         var info = message || t("view_info");
 
@@ -257,7 +257,7 @@
           this.showBubble();
 
           // Show the red error cube for 5 seconds, then show the normal orange one again
-          setTimeout(function(){
+          setTimeout(function (){
             cube.src = RemoteStorage.Assets.remoteStorageIcon;
           },2000);
         } else {
@@ -291,14 +291,14 @@
         }
       },
 
-      authing: function() {
+      authing: function () {
         this.div.removeEventListener('click', this.events.connect);
         this.div.className = "remotestorage-state-authing";
         this.div.querySelector('.rs-status-text').innerHTML = t("view_connecting", this.userAddress);
         addClass(this.cube, 'remotestorage-loading');
       },
 
-      connected: function() {
+      connected: function () {
         var cube = this.cube;
         this.div.className = "remotestorage-state-connected";
         this.div.querySelector('.userAddress').innerHTML = this.userAddress;
@@ -314,7 +314,7 @@
               this.showBubble();
 
               // Show the red error cube for 5 seconds, then show the normal orange one again
-              setTimeout(function(){
+              setTimeout(function (){
                 cube.src = RemoteStorage.Assets.remoteStorageIcon;
               },5000);
             } else {
@@ -340,7 +340,7 @@
         }
       },
 
-      ciphered: function() {
+      ciphered: function () {
         this.div.querySelector('form.remotestorage-cipher-form').userSecretKey.value = '';
         removeClass(this.div.querySelector('.remotestorage-invalid-key'), 'remotestorage-cipher-error');
         removeClass(this.div.querySelector('.remotestorage-connected'), 'remotestorage-cipher');
@@ -348,25 +348,25 @@
         this.hideBubble();
       },
 
-      notciphered: function() {
+      notciphered: function () {
         this.cipher = false;
         removeClass(this.div.querySelector('.remotestorage-invalid-key'), 'remotestorage-cipher-error');
         removeClass(this.div.querySelector('.remotestorage-connected'), 'remotestorage-cipher');
         this.hideBubble();
       },
 
-      busy: function() {
+      busy: function () {
         this.div.className = "remotestorage-state-busy";
         addClass(this.cube, 'remotestorage-loading'); //TODO needs to be undone when is that neccesary
       },
 
-      offline: function() {
+      offline: function () {
         this.div.className = "remotestorage-state-offline";
         this.cube.src = RemoteStorage.Assets.remoteStorageIconOffline;
         this.div.querySelector('.rs-status-text').innerHTML = t("view_offline");
       },
 
-      error: function(err) {
+      error: function (err) {
         var errorMsg = err;
         this.div.className = "remotestorage-state-error";
 
@@ -381,7 +381,7 @@
         this.showBubble();
       },
 
-      unauthorized: function() {
+      unauthorized: function () {
         this.div.className = "remotestorage-state-unauthorized";
         this.cube.src = RemoteStorage.Assets.remoteStorageIconError;
         this.showBubble();
@@ -395,7 +395,7 @@
      *
      * Emitted when the connect button is clicked
      **/
-      connect: function(event) {
+      connect: function (event) {
         stopPropagation(event);
         event.preventDefault();
         this._emit('connect', this.div.querySelector('form.remotestorage-initial').userAddress.value);
@@ -406,7 +406,7 @@
      *
      * Emitted when the cipher button is clicked
      **/
-      'secret-entered': function(event) {
+      'secret-entered': function (event) {
         stopPropagation(event);
         event.preventDefault();
         this._emit('secret-entered', this.div.querySelector('form.remotestorage-cipher-form').userSecretKey.value);
@@ -417,7 +417,7 @@
      *
      * Emitted when the nocipher button is clicked
      **/
-      'secret-cancelled': function(event) {
+      'secret-cancelled': function (event) {
         stopPropagation(event);
         event.preventDefault();
         this._emit('secret-cancelled');
@@ -428,7 +428,7 @@
        *
        * Emitted when the sync button is clicked
        **/
-      sync: function(event) {
+      sync: function (event) {
         stopPropagation(event);
         event.preventDefault();
 
@@ -440,7 +440,7 @@
        *
        * Emitted when the disconnect button is clicked
        **/
-      disconnect: function(event) {
+      disconnect: function (event) {
         stopPropagation(event);
         event.preventDefault();
         this._emit('disconnect');
@@ -451,7 +451,7 @@
        *
        * Emitted after crash triggers disconnect
        **/
-      reset: function(event){
+      reset: function (event){
         event.preventDefault();
         var result = window.confirm(t('view_confirm_reset'));
         if (result){
@@ -464,7 +464,7 @@
        *
        * Emitted when finished displaying the widget
        **/
-      display : function(event) {
+      display : function (event) {
         if (event) {
           event.preventDefault();
         }
@@ -472,7 +472,7 @@
       }
     },
 
-    _renderTranslatedInitialContent: function() {
+    _renderTranslatedInitialContent: function () {
       this.div.querySelector('.rs-status-text').innerHTML = t("view_connect");
       this.div.querySelector('.remotestorage-reset').innerHTML = t("view_get_me_out");
       this.div.querySelector('.rs-error-plz-report').innerHTML = t("view_error_plz_report");

@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
   /**
    * Class: RemoteStorage.IndexedDB
@@ -46,7 +46,7 @@
   var DEFAULT_DB_NAME = 'remotestorage';
   var DEFAULT_DB;
 
-  RS.IndexedDB = function(database) {
+  RS.IndexedDB = function (database) {
     this.db = database || DEFAULT_DB;
 
     if (!this.db) {
@@ -88,9 +88,9 @@
   };
 
   RS.IndexedDB.prototype = {
-    getNodes: function(paths) {
+    getNodes: function (paths) {
       var misses = [], fromCache = {};
-      for (var i=0; i<paths.length; i++) {
+      for (var i = 0, len = paths.length; i < len; i++) {
         if (this.changesQueued[paths[i]] !== undefined) {
           fromCache[paths[i]] = RemoteStorage.util.deepClone(this.changesQueued[paths[i]] || undefined);
         } else if(this.changesRunning[paths[i]] !== undefined) {
@@ -100,42 +100,38 @@
         }
       }
       if (misses.length > 0) {
-        return this.getNodesFromDb(misses).then(function(nodes) {
+        return this.getNodesFromDb(misses).then(function (nodes) {
           for (var i in fromCache) {
             nodes[i] = fromCache[i];
           }
           return nodes;
         });
       } else {
-        promise = promising();
-        promise.fulfill(fromCache);
-        return promise;
+        return Promise.resolve(fromCache);
       }
     },
 
-    setNodes: function(nodes) {
-      var promise = promising();
+    setNodes: function (nodes) {
       for (var i in nodes) {
         this.changesQueued[i] = nodes[i] || false;
       }
       this.maybeFlush();
-      promise.fulfill();
-      return promise;
+      return Promise.resolve();
     },
 
-    maybeFlush: function() {
+    maybeFlush: function () {
       if (this.putsRunning === 0) {
         this.flushChangesQueued();
       } else {
         if (!this.commitSlownessWarning) {
-          this.commitSlownessWarning = setInterval(function() {
+          this.commitSlownessWarning = setInterval(function () {
             console.log('WARNING: waited more than 10 seconds for previous commit to finish');
           }, 10000);
         }
       }
     },
 
-    flushChangesQueued: function() {
+    flushChangesQueued: function () {
       if (this.commitSlownessWarning) {
         clearInterval(this.commitSlownessWarning);
         this.commitSlownessWarning = null;
@@ -147,8 +143,8 @@
       }
     },
 
-    getNodesFromDb: function(paths) {
-      var promise = promising();
+    getNodesFromDb: function (paths) {
+      var pending = Promise.defer();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var nodes = transaction.objectStore('nodes');
       var retrievedNodes = {};
@@ -156,30 +152,27 @@
 
       this.getsRunning++;
 
-      for (var i=0; i<paths.length; i++) {
-        (function(index) {
-          var path = paths[index];
-          nodes.get(path).onsuccess = function(evt) {
-            retrievedNodes[path] = evt.target.result;
-          };
-        })(i);
-      }
+      paths.map(function (path, i) {
+        nodes.get(path).onsuccess = function (evt) {
+          retrievedNodes[path] = evt.target.result;
+        };
+      });
 
-      transaction.oncomplete = function() {
-        promise.fulfill(retrievedNodes);
+      transaction.oncomplete = function () {
+        pending.resolve(retrievedNodes);
         this.getsRunning--;
       }.bind(this);
 
-      transaction.onerror = transaction.onabort = function() {
-        promise.reject('get transaction error/abort');
+      transaction.onerror = transaction.onabort = function () {
+        pending.reject('get transaction error/abort');
         this.getsRunning--;
       }.bind(this);
 
-      return promise;
+      return pending.promise;
     },
 
-    setNodesInDb: function(nodes) {
-      var promise = promising();
+    setNodesInDb: function (nodes) {
+      var pending = Promise.defer();
       var transaction = this.db.transaction(['nodes'], 'readwrite');
       var nodesStore = transaction.objectStore('nodes');
       var startTime = new Date().getTime();
@@ -207,33 +200,33 @@
         }
       }
 
-      transaction.oncomplete = function() {
-        promise.fulfill();
+      transaction.oncomplete = function () {
         this.putsRunning--;
         RemoteStorage.log('[IndexedDB] Finished put', nodes, this.putsRunning, (new Date().getTime() - startTime)+'ms');
+        pending.resolve();
       }.bind(this);
 
-      transaction.onerror = function() {
-        promise.reject('transaction error');
+      transaction.onerror = function () {
+        this.putsRunning--;
+        pending.reject('transaction error');
+      }.bind(this);
+
+      transaction.onabort = function () {
+        pending.reject('transaction abort');
         this.putsRunning--;
       }.bind(this);
 
-      transaction.onabort = function() {
-        promise.reject('transaction abort');
-        this.putsRunning--;
-      }.bind(this);
-
-      return promise;
+      return pending.promise;
     },
 
-    reset: function(callback) {
+    reset: function (callback) {
       var dbName = this.db.name;
       var self = this;
 
       this.db.close();
 
       RS.IndexedDB.clean(this.db.name, function() {
-        RS.IndexedDB.open(dbName, function(err, other) {
+        RS.IndexedDB.open(dbName, function (err, other) {
           if (err) {
             RemoteStorage.log('[IndexedDB] Error while resetting local storage', err);
           } else {
@@ -245,46 +238,46 @@
       });
     },
 
-    forAllNodes: function(cb) {
-      var promise = promising();
+    forAllNodes: function (cb) {
+      var pending = Promise.defer();
       var transaction = this.db.transaction(['nodes'], 'readonly');
       var cursorReq = transaction.objectStore('nodes').openCursor();
 
-      cursorReq.onsuccess = function(evt) {
+      cursorReq.onsuccess = function (evt) {
         var cursor = evt.target.result;
 
         if (cursor) {
           cb(this.migrate(cursor.value));
           cursor.continue();
         } else {
-          promise.fulfill();
+          pending.resolve();
         }
       }.bind(this);
 
-      return promise;
+      return pending.promise;
     },
 
-    closeDB: function() {
+    closeDB: function () {
       this.db.close();
     }
 
   };
 
-  RS.IndexedDB.open = function(name, callback) {
-    var timer = setTimeout(function() {
+  RS.IndexedDB.open = function (name, callback) {
+    var timer = setTimeout(function () {
       callback("timeout trying to open db");
     }, 10000);
 
     var req = indexedDB.open(name, DB_VERSION);
 
-    req.onerror = function() {
+    req.onerror = function () {
       RemoteStorage.log('[IndexedDB] Opening DB failed', req);
 
       clearTimeout(timer);
       callback(req.error);
     };
 
-    req.onupgradeneeded = function(event) {
+    req.onupgradeneeded = function (event) {
       var db = req.result;
 
       RemoteStorage.log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
@@ -299,76 +292,76 @@
       db.createObjectStore('changes', { keyPath: 'path' });
     };
 
-    req.onsuccess = function() {
+    req.onsuccess = function () {
       clearTimeout(timer);
       callback(null, req.result);
     };
   };
 
-  RS.IndexedDB.clean = function(databaseName, callback) {
+  RS.IndexedDB.clean = function (databaseName, callback) {
     var req = indexedDB.deleteDatabase(databaseName);
 
-    req.onsuccess = function() {
+    req.onsuccess = function () {
       RemoteStorage.log('[IndexedDB] Done removing DB');
       callback();
     };
 
-    req.onerror = req.onabort = function(evt) {
+    req.onerror = req.onabort = function (evt) {
       console.error('Failed to remove database "' + databaseName + '"', evt);
     };
   };
 
-  RS.IndexedDB._rs_init = function(remoteStorage) {
-    var promise = promising();
+  RS.IndexedDB._rs_init = function (remoteStorage) {
+    var pending = Promise.defer();
 
-    RS.IndexedDB.open(DEFAULT_DB_NAME, function(err, db) {
+    RS.IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
       if (err) {
-        promise.reject(err);
+        pending.reject(err);
       } else {
         DEFAULT_DB = db;
-        db.onerror = function() { remoteStorage._emit('error', err); };
-        promise.fulfill();
+        db.onerror = function () { remoteStorage._emit('error', err); };
+        pending.resolve();
       }
     });
 
-    return promise;
+    return pending.promise;
   };
 
-  RS.IndexedDB._rs_supported = function() {
-    var promise = promising();
+  RS.IndexedDB._rs_supported = function () {
+    var pending = Promise.defer();
 
     if ('indexedDB' in global) {
       try {
         var check = indexedDB.open("rs-check");
-        check.onerror = function(event) {
-          promise.reject();
+        check.onerror = function (event) {
+          pending.reject();
         };
-        check.onsuccess = function(event) {
+        check.onsuccess = function (event) {
           indexedDB.deleteDatabase("rs-check");
-          promise.fulfill();
+          pending.resolve();
         };
       } catch(e) {
-        promise.reject();
+        pending.reject();
       }
     } else {
-      promise.reject();
+      pending.reject();
     }
 
-    return promise;
+    return pending.promise;
   };
 
-  RS.IndexedDB._rs_cleanup = function(remoteStorage) {
-    var promise = promising();
+  RS.IndexedDB._rs_cleanup = function (remoteStorage) {
+    var pending = Promise.defer();
 
     if (remoteStorage.local) {
       remoteStorage.local.closeDB();
     }
 
-    RS.IndexedDB.clean(DEFAULT_DB_NAME, function() {
-      promise.fulfill();
+    RS.IndexedDB.clean(DEFAULT_DB_NAME, function () {
+      pending.resolve();
     });
 
-    return promise;
+    return pending.promise;
   };
 
 })(typeof(window) !== 'undefined' ? window : global);

@@ -1,4 +1,4 @@
-(function() {
+(function () {
   /**
    * Class: RemoteStorage.I18n
    *
@@ -22,7 +22,7 @@
 
   RemoteStorage.I18n = {
 
-    translate: function() {
+    translate: function () {
       var str    = arguments[0],
           params = Array.prototype.splice.call(arguments, 1);
 
@@ -31,14 +31,14 @@
       } else {
         str = dictionary[str];
       }
-      return (str.replace(/%s/g, function(){ return params.shift(); }));
+      return (str.replace(/%s/g, function (){ return params.shift(); }));
     },
 
-    getDictionary: function() {
+    getDictionary: function () {
       return dictionary;
     },
 
-    setDictionary: function(newDictionary) {
+    setDictionary: function (newDictionary) {
       dictionary = newDictionary;
     }
 

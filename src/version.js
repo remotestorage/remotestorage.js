@@ -6,7 +6,7 @@ RemoteStorage.version = RemoteStorage.prototype.version = {
   postfix: 'pre'
 };
 
-RemoteStorage.version.toString = function() {
+RemoteStorage.version.toString = function () {
   return this.productName + ' '
     + [this.product, this.major, this.minor].join('.')
     + (this.postfix ? '-' + this.postfix : '');

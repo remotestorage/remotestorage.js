@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
   /**
    * Class: RemoteStorage.GoogleDrive
    *
@@ -15,7 +15,7 @@
   var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
 
   function buildQueryString(params) {
-    return Object.keys(params).map(function(key) {
+    return Object.keys(params).map(function (key) {
       return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
     }).join('&');
   }
@@ -44,19 +44,19 @@
     }
   }
 
-  var Cache = function(maxAge) {
+  var Cache = function (maxAge) {
     this.maxAge = maxAge;
     this._items = {};
   };
 
   Cache.prototype = {
-    get: function(key) {
+    get: function (key) {
       var item = this._items[key];
       var now = new Date().getTime();
       return (item && item.t >= (now - this.maxAge)) ? item.v : undefined;
     },
 
-    set: function(key, value) {
+    set: function (key, value) {
       this._items[key] = {
         v: value,
         t: new Date().getTime()
@@ -64,7 +64,7 @@
     }
   };
 
-  RS.GoogleDrive = function(remoteStorage, clientId) {
+  RS.GoogleDrive = function (remoteStorage, clientId) {
 
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
@@ -78,7 +78,7 @@
     connected: false,
     online: true,
 
-    configure: function(_x, _y, _z, token) { // parameter list compatible with WireClient
+    configure: function (_x, _y, _z, token) { // parameter list compatible with WireClient
       if (token) {
         localStorage['remotestorage:googledrive:token'] = token;
         this.token = token;
@@ -91,18 +91,18 @@
       }
     },
 
-    connect: function() {
+    connect: function () {
       this.rs.setBackend('googledrive');
       RS.Authorize(AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
     },
 
-    stopWaitingForToken: function() {
+    stopWaitingForToken: function () {
       if (!this.connected) {
         this._emit('not-connected');
       }
     },
 
-    get: function(path, options) {
+    get: function (path, options) {
       if (path.substr(-1) === '/') {
         return this._getFolder(path, options);
       } else {
@@ -110,80 +110,61 @@
       }
     },
 
-    put: function(path, body, contentType, options) {
-      var promise = promising();
-      function putDone(error, response) {
-        if (error) {
-          promise.reject(error);
-        } else if (response.status >= 200 && response.status < 300) {
+    put: function (path, body, contentType, options) {
+      var self = this;
+      function putDone(response) {
+        if (response.status >= 200 && response.status < 300) {
           var meta = JSON.parse(response.responseText);
           var etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
-          promise.fulfill(200, undefined, meta.mimeType, etagWithoutQuotes);
+          return Promise.resolve({statusCode: 200, contentType: meta.mimeType, revision: etagWithoutQuotes});
         } else if (response.status === 412) {
-          promise.fulfill(412, undefined, undefined, 'conflict');
+          return Promise.resolve({statusCode: 412, revision: 'conflict'});
         } else {
-          promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
+          return Promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
         }
       }
-      this._getFileId(path, function(idError, id) {
-        if (idError) {
-          promise.reject(idError);
-          return;
-        } else if (id) {
+      return self._getFileId(path).then(function (id) {
+        if (id) {
           if (options && (options.ifNoneMatch === '*')) {
-            putDone(undefined, { status: 412 });
-            return;
+            return putDone({ status: 412 });
           }
-          this._updateFile(id, path, body, contentType, options, putDone);
+          return self._updateFile(id, path, body, contentType, options).then(putDone);
         } else {
-          this._createFile(path, body, contentType, options, putDone);
+          return self._createFile(path, body, contentType, options).then(putDone);
         }
       });
-      return promise;
     },
 
-    'delete': function(path, options) {
-      var promise = promising();
-      this._getFileId(path, function(idError, id) {
-        if (idError) {
-          promise.reject(idError);
-          return;
-        } else if (!id) {
+    'delete': function (path, options) {
+      var self = this;
+      return self._getFileId(path).then(function (id) {
+        if (!id) {
           // File doesn't exist. Ignore.
-          promise.fulfill(200);
-          return;
+          return Promise.resolve({statusCode: 200});
         }
 
-        this._getMeta(id, function(metaError, meta) {
+        return self._getMeta(id).then(function (meta) {
           var etagWithoutQuotes;
           if ((typeof meta === 'object') && (typeof meta.etag === 'string')) {
             etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
           }
           if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
-            promise.fulfill(412, undefined, undefined, etagWithoutQuotes);
-            return;
-          }
-          if (metaError) {
-            promise.reject(metaError);
-            return;
+            return {statusCode: 412, revision: etagWithoutQuotes};
           }
 
-          this._request('DELETE', BASE_URL + '/drive/v2/files/' + id, {}, function(deleteError, response) {
-            if (deleteError) {
-              promise.reject(deleteError);
-            } else if (response.status === 200 || response.status === 204) {
-              promise.fulfill(200);
+          return self._request('DELETE', BASE_URL + '/drive/v2/files/' + id, {}).then(function (response) {
+            if (response.status === 200 || response.status === 204) {
+              return {statusCode: 200};
             } else {
-              promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
+              return Promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
             }
           });
         });
       });
-      return promise;
     },
 
-    _updateFile: function(id, path, body, contentType, options, callback) {
-      callback = callback.bind(this);
+    _updateFile: function (id, path, body, contentType, options) {
+      var self = this;
       var metadata = {
         mimeType: contentType
       };
@@ -195,29 +176,23 @@
         headers['If-Match'] = '"' + options.ifMatch + '"';
       }
 
-      this._request('PUT', BASE_URL + '/upload/drive/v2/files/' + id + '?uploadType=resumable', {
+      return self._request('PUT', BASE_URL + '/upload/drive/v2/files/' + id + '?uploadType=resumable', {
         body: JSON.stringify(metadata),
         headers: headers
-      }, function(metadataError, response) {
+      }).then(function (response) {
         if (response.status === 412) {
-          callback(undefined, response);
-        } else if (metadataError) {
-          callback(metadataError);
+          return (response);
         } else {
-          this._request('PUT', response.getResponseHeader('Location'), {
+          return self._request('PUT', response.getResponseHeader('Location'), {
             body: contentType.match(/^application\/json/) ? JSON.stringify(body) : body
-          }, callback);
+          });
         }
       });
     },
 
-    _createFile: function(path, body, contentType, options, callback) {
-      callback = callback.bind(this);
-      this._getParentId(path, function(parentIdError, parentId) {
-        if (parentIdError) {
-          callback(parentIdError);
-          return;
-        }
+    _createFile: function (path, body, contentType, options) {
+      var self = this;
+      return self._getParentId(path).then(function (parentId) {
         var fileName = baseName(path);
         var metadata = {
           title: metaTitleFromFileName(fileName),
@@ -227,236 +202,197 @@
             id: parentId
           }]
         };
-        this._request('POST', BASE_URL + '/upload/drive/v2/files?uploadType=resumable', {
+        return self._request('POST', BASE_URL + '/upload/drive/v2/files?uploadType=resumable', {
           body: JSON.stringify(metadata),
           headers: {
             'Content-Type': 'application/json; charset=UTF-8'
           }
-        }, function(metadataError, response) {
-          if (metadataError) {
-            callback(metadataError);
-          } else {
-            this._request('POST', response.getResponseHeader('Location'), {
-              body: contentType.match(/^application\/json/) ? JSON.stringify(body) : body
-            }, callback);
-          }
+        }).then(function (response) {
+          return self._request('POST', response.getResponseHeader('Location'), {
+            body: contentType.match(/^application\/json/) ? JSON.stringify(body) : body
+          });
         });
       });
     },
 
-    _getFile: function(path, options) {
-      var promise = promising();
-      this._getFileId(path, function(idError, id) {
-        if (idError) {
-          promise.reject(idError);
-        } else {
-          this._getMeta(id, function(metaError, meta) {
-            var etagWithoutQuotes;
-            if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
-              etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
-            }
-            if (metaError) {
-              promise.reject(metaError);
-            } else {
-              if (options && options.ifNoneMatch && (etagWithoutQuotes == options.ifNoneMatch)) {
-                promise.fulfill(304);
-                return;
-              }
+    _getFile: function (path, options) {
+      var self = this;
+      return self._getFileId(path).then(function (id) {
+        return self._getMeta(id).then(function (meta) {
+          var etagWithoutQuotes;
+          if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
+            etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
+          }
 
-              var options2 = {};
-              if (!meta.downloadUrl) {
-                if(meta.exportLinks && meta.exportLinks['text/html']) {
-                  // Documents that were generated inside GoogleDocs have no
-                  // downloadUrl, but you can export them to text/html instead:
-                  meta.mimeType += ';export=text/html';
-                  meta.downloadUrl = meta.exportLinks['text/html'];
-                } else {
-                  // empty file
-                  promise.fulfill(200, '', meta.mimeType, etagWithoutQuotes);
-                  return;
-                }
-              }
-              if (meta.mimeType.match(/charset=binary/)) {
-                options2.responseType = 'blob';
-              }
-              this._request('GET', meta.downloadUrl, options2, function(downloadError, response) {
-                if (downloadError) {
-                  promise.reject(downloadError);
-                } else {
-                  var body = response.response;
-                  if (meta.mimeType.match(/^application\/json/)) {
-                    try {
-                      body = JSON.parse(body);
-                    } catch(e) {}
-                  }
-                  promise.fulfill(200, body, meta.mimeType, etagWithoutQuotes);
-                }
-              });
+          if (options && options.ifNoneMatch && (etagWithoutQuotes == options.ifNoneMatch)) {
+            return Promise.resolve({statusCode: 304});
+          }
+
+          var options2 = {};
+          if (!meta.downloadUrl) {
+            if (meta.exportLinks && meta.exportLinks['text/html']) {
+              // Documents that were generated inside GoogleDocs have no
+              // downloadUrl, but you can export them to text/html instead:
+              meta.mimeType += ';export=text/html';
+              meta.downloadUrl = meta.exportLinks['text/html'];
+            } else {
+              // empty file
+              return Promise.resolve({statusCode: 200, body: '', contentType: meta.mimeType, revision: etagWithoutQuotes});
             }
+          }
+
+          if (meta.mimeType.match(/charset=binary/)) {
+            options2.responseType = 'blob';
+          }
+          return self._request('GET', meta.downloadUrl, options2).then(function (response) {
+            var body = response.response;
+            if (meta.mimeType.match(/^application\/json/)) {
+              try {
+                body = JSON.parse(body);
+              } catch(e) {}
+            }
+            return Promise.resolve({statusCode: 200, body: body, contentType: meta.mimeType, revision: etagWithoutQuotes});
           });
-        }
+        });
       });
-      return promise;
     },
 
-    _getFolder: function(path, options) {
-      var promise = promising();
-      this._getFileId(path, function(idError, id) {
+    _getFolder: function (path, options) {
+      var self = this;
+      return self._getFileId(path).then(function (id) {
         var query, fields, data, i, etagWithoutQuotes, itemsMap;
-        if (idError) {
-          promise.reject(idError);
-        } else if (! id) {
-          promise.fulfill(404);
-        } else {
-          query = '\'' + id + '\' in parents';
-          fields = 'items(downloadUrl,etag,fileSize,id,mimeType,title)';
-          this._request('GET', BASE_URL + '/drive/v2/files?'
-              + 'q=' + encodeURIComponent(query)
-              + '&fields=' + encodeURIComponent(fields)
-              + '&maxResults=1000',
-              {}, function(childrenError, response) {
-            if (childrenError) {
-              promise.reject(childrenError);
-            } else {
-              if (response.status === 200) {
-                try {
-                  data = JSON.parse(response.responseText);
-                } catch(e) {
-                  promise.reject('non-JSON response from GoogleDrive');
-                  return;
-                }
-                itemsMap = {};
-                for(i=0; i<data.items.length; i++) {
-                  etagWithoutQuotes = data.items[i].etag.substring(1, data.items[i].etag.length-1);
-                  if (data.items[i].mimeType === GD_DIR_MIME_TYPE) {
-                    this._fileIdCache.set(path + data.items[i].title + '/', data.items[i].id);
-                    itemsMap[data.items[i].title + '/'] = {
-                      ETag: etagWithoutQuotes
-                    };
-                  } else {
-                    this._fileIdCache.set(path + data.items[i].title, data.items[i].id);
-                    itemsMap[data.items[i].title] = {
-                      ETag: etagWithoutQuotes,
-                      'Content-Type': data.items[i].mimeType,
-                      'Content-Length': data.items[i].fileSize
-                    };
-                  }
-                }
-                // FIXME: add revision of folder!
-                promise.fulfill(200, itemsMap, RS_DIR_MIME_TYPE, undefined);
-              } else {
-                promise.reject('request failed or something: ' + response.status);
-              }
-            }
-          });
+        if (! id) {
+          return Promise.resolve({statusCode: 404});
         }
+
+        query = '\'' + id + '\' in parents';
+        fields = 'items(downloadUrl,etag,fileSize,id,mimeType,title)';
+        return self._request('GET', BASE_URL + '/drive/v2/files?'
+            + 'q=' + encodeURIComponent(query)
+            + '&fields=' + encodeURIComponent(fields)
+            + '&maxResults=1000',
+            {})
+        .then(function (response) {
+          if (response.status !== 200) {
+            return Promise.reject('request failed or something: ' + response.status);
+          }
+
+          try {
+            data = JSON.parse(response.responseText);
+          } catch(e) {
+            return Promise.reject('non-JSON response from GoogleDrive');
+          }
+
+          itemsMap = {};
+          for (var i = 0, len = data.items.length; i < len; i++) {
+            etagWithoutQuotes = data.items[i].etag.substring(1, data.items[i].etag.length-1);
+            if (data.items[i].mimeType === GD_DIR_MIME_TYPE) {
+              self._fileIdCache.set(path + data.items[i].title + '/', data.items[i].id);
+              itemsMap[data.items[i].title + '/'] = {
+                ETag: etagWithoutQuotes
+              };
+            } else {
+              self._fileIdCache.set(path + data.items[i].title, data.items[i].id);
+              itemsMap[data.items[i].title] = {
+                ETag: etagWithoutQuotes,
+                'Content-Type': data.items[i].mimeType,
+                'Content-Length': data.items[i].fileSize
+              };
+            }
+          }
+          // FIXME: add revision of folder!
+          return Promise.resolve({statusCode: 200, body: itemsMap, contentType: RS_DIR_MIME_TYPE, revision: undefined});
+        });
       });
-      return promise;
     },
 
-    _getParentId: function(path, callback) {
-      callback = callback.bind(this);
+    _getParentId: function (path) {
       var foldername = parentPath(path);
-      this._getFileId(foldername, function(idError, parentId) {
-        if (idError) {
-          callback(idError);
-        } else if (parentId) {
-          callback(null, parentId);
+      var self = this;
+      return self._getFileId(foldername).then(function (parentId) {
+        if (parentId) {
+          return Promise.resolve(parentId);
         } else {
-          this._createFolder(foldername, callback);
+          return self._createFolder(foldername);
         }
       });
     },
 
-    _createFolder: function(path, callback) {
-      callback = callback.bind(this);
-      this._getParentId(path, function(idError, parentId) {
-        if (idError) {
-          callback(idError);
-        } else {
-          this._request('POST', BASE_URL + '/drive/v2/files', {
-            body: JSON.stringify({
-              title: metaTitleFromFileName(baseName(path)),
-              mimeType: GD_DIR_MIME_TYPE,
-              parents: [{
-                id: parentId
-              }]
-            }),
-            headers: {
-              'Content-Type': 'application/json; charset=UTF-8'
-            }
-          }, function(createError, response) {
-            if (createError) {
-              callback(createError);
-            } else {
-              var meta = JSON.parse(response.responseText);
-              callback(null, meta.id);
-            }
-          });
-        }
+    _createFolder: function (path) {
+      var self = this;
+      return self._getParentId(path).then(function (parentId) {
+        return self._request('POST', BASE_URL + '/drive/v2/files', {
+          body: JSON.stringify({
+            title: metaTitleFromFileName(baseName(path)),
+            mimeType: GD_DIR_MIME_TYPE,
+            parents: [{
+              id: parentId
+            }]
+          }),
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8'
+          }
+        }).then(function (response) {
+          var meta = JSON.parse(response.responseText);
+          return Promise.resolve(meta.id);
+        });
       });
     },
 
-    _getFileId: function(path, callback) {
-      callback = callback.bind(this);
+    _getFileId: function (path) {
+      var self = this;
       var id;
       if (path === '/') {
         // "root" is a special alias for the fileId of the root folder
-        callback(null, 'root');
+        return Promise.resolve('root');
       } else if ((id = this._fileIdCache.get(path))) {
         // id is cached.
-        callback(null, id);
-      } else {
-        // id is not cached (or file doesn't exist).
-        // load parent folder listing to propagate / update id cache.
-        this._getFolder(parentPath(path)).then(function() {
-          var id = this._fileIdCache.get(path);
-          if (!id) {
-            if (path.substr(-1) === '/') {
-              this._createFolder(path, function() {
-                this._getFileId(path, callback);
-              }.bind(this));
-            } else {
-              callback(null, null);
-            }
-            return;
-          }
-          callback(null, id);
-        }.bind(this), callback);
+        return Promise.resolve(id);
       }
+      // id is not cached (or file doesn't exist).
+      // load parent folder listing to propagate / update id cache.
+      return self._getFolder(parentPath(path)).then(function () {
+        id = self._fileIdCache.get(path);
+        if (!id) {
+          if (path.substr(-1) === '/') {
+            return self._createFolder(path).then(function () {
+              return self._getFileId(path);
+            });
+          } else {
+            return Promise.resolve();
+          }
+          return;
+        }
+        return Promise.resolve(id);
+      });
     },
 
-    _getMeta: function(id, callback) {
-      callback = callback.bind(this);
-      this._request('GET', BASE_URL + '/drive/v2/files/' + id, {}, function(err, response) {
-        if (err) {
-          callback(err);
+    _getMeta: function (id) {
+      return this._request('GET', BASE_URL + '/drive/v2/files/' + id, {}).then(function (response) {
+        if (response.status === 200) {
+          return Promise.resolve(JSON.parse(response.responseText));
         } else {
-          if (response.status === 200) {
-            callback(null, JSON.parse(response.responseText));
-          } else {
-            callback("request (getting metadata for " + id + ") failed with status: " + response.status);
-          }
+          return Promise.reject("request (getting metadata for " + id + ") failed with status: " + response.status);
         }
       });
     },
 
-    _request: function(method, url, options, callback) {
-      callback = callback.bind(this);
+    _request: function (method, url, options) {
+      var self = this;
       if (! options.headers) { options.headers = {}; }
-      options.headers['Authorization'] = 'Bearer ' + this.token;
-      RS.WireClient.request.call(this, method, url, options, function(err, xhr) {
+      options.headers['Authorization'] = 'Bearer ' + self.token;
+      return RS.WireClient.request(method, url, options).then(function (xhr) {
         // google tokens expire from time to time...
         if (xhr && xhr.status === 401) {
-          this.connect();
+          self.connect();
           return;
         }
-        callback(err, xhr);
+        return xhr;
       });
     }
   };
 
-  RS.GoogleDrive._rs_init = function(remoteStorage) {
+  RS.GoogleDrive._rs_init = function (remoteStorage) {
     var config = remoteStorage.apiKeys.googledrive;
     if (config) {
       remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.client_id);
@@ -467,11 +403,11 @@
     }
   };
 
-  RS.GoogleDrive._rs_supported = function(rs){
+  RS.GoogleDrive._rs_supported = function (rs) {
     return true;
   };
 
-  RS.GoogleDrive._rs_cleanup = function(remoteStorage) {
+  RS.GoogleDrive._rs_cleanup = function (remoteStorage) {
     remoteStorage.setBackend(undefined);
     if (remoteStorage._origRemote) {
       remoteStorage.remote = remoteStorage._origRemote;

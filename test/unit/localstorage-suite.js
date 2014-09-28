@@ -1,7 +1,9 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs) {
+define(['bluebird', 'requirejs'], function (Promise, requirejs) {
+  global.Promise = Promise;
+
   var suites = [];
 
   var NODES_PREFIX = 'remotestorage:cache:nodes:';
@@ -45,7 +47,6 @@ define(['requirejs'], function(requirejs) {
     desc: "localStorage caching layer",
 
     setup: function(env, test) {
-      require('lib/promising.js');
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
       global.RemoteStorage.config = {
@@ -101,10 +102,10 @@ define(['requirejs'], function(requirejs) {
               revision: "123"
             }
           });
-          env.ls.get('/foo').then(function(status, body, contentType) {
-            test.assertAnd(status, 200);
-            test.assertAnd(body, "bar");
-            test.assertAnd(contentType, "text/plain");
+          env.ls.get('/foo').then(function (r) {
+            test.assertAnd(r.statusCode, 200);
+            test.assertAnd(r.body, "bar");
+            test.assertAnd(r.contentType, "text/plain");
             test.done();
           });
         }
@@ -113,8 +114,8 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#get yields 404 when it doesn't find a node",
         run: function(env, test) {
-          env.ls.get('/bar').then(function(status) {
-            test.assert(status, 404);
+          env.ls.get('/bar').then(function (r) {
+            test.assert(r.statusCode, 404);
           });
         }
       },
@@ -122,8 +123,8 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#put yields 200",
         run: function(env, test) {
-          env.ls.put('/foo', 'bar', 'text/plain').then(function(status) {
-            test.assert(status, 200);
+          env.ls.put('/foo', 'bar', 'text/plain').then(function (r) {
+            test.assert(r.statusCode, 200);
           });
         }
       },
@@ -131,7 +132,7 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#put creates a new node",
         run: function(env, test) {
-          env.ls.put('/foo/bar/baz', 'bar', 'text/plain').then(function() {
+          env.ls.put('/foo/bar/baz', 'bar', 'text/plain').then(function () {
             assertNode(test, '/foo/bar/baz', {
               path: '/foo/bar/baz',
               local: {

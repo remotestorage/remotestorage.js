@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
   function logError(error) {
     if (typeof(error) === 'string') {
       console.error(error);
@@ -7,13 +7,11 @@
     }
   }
 
-  function emitUnauthorized(status) {
-    var args = Array.prototype.slice.call(arguments);
-    if (status === 403  || status === 401) {
+  function emitUnauthorized(r) {
+    if (r.statusCode === 403  || r.statusCode === 401) {
       this._emit('error', new RemoteStorage.Unauthorized());
     }
-    var p = promising();
-    return p.fulfill.apply(p,args);
+    return Promise.resolve(r);
   }
 
   function shareFirst(path) {
@@ -22,7 +20,7 @@
   }
 
   var SyncedGetPutDelete = {
-    get: function(path, maxAge) {
+    get: function (path, maxAge) {
       var self = this;
       if (this.local) {
         if (maxAge === undefined) {
@@ -32,14 +30,12 @@
             maxAge = false;
           }
         }
-        var maxAgeInvalid = function(maxAge) {
+        var maxAgeInvalid = function (maxAge) {
           return maxAge !== false && typeof(maxAge) !== 'number';
         };
 
         if (maxAgeInvalid(maxAge)) {
-          var promise = promising();
-          promise.reject('Argument \'maxAge\' must be false or a number');
-          return promise;
+          return Promise.reject('Argument \'maxAge\' must be false or a number');
         }
         return this.local.get(path, maxAge, this.sync.queueGetRequest.bind(this.sync));
       } else {
@@ -47,7 +43,7 @@
       }
     },
 
-    put: function(path, body, contentType) {
+    put: function (path, body, contentType) {
       if (shareFirst.bind(this)(path)) {
         return SyncedGetPutDelete._wrapBusyDone.call(this, this.remote.put(path, body, contentType));
       }
@@ -58,7 +54,7 @@
       }
     },
 
-    'delete': function(path) {
+    'delete': function (path) {
       if (this.local) {
         return this.local.delete(path);
       } else {
@@ -66,16 +62,15 @@
       }
     },
 
-    _wrapBusyDone: function(result) {
+    _wrapBusyDone: function (result) {
       var self = this;
       this._emit('wire-busy');
-      return result.then(function() {
-        var promise = promising();
+      return result.then(function (r) {
         self._emit('wire-done', { success: true });
-        return promise.fulfill.apply(promise, arguments);
-      }, function(err) {
+        return Promise.resolve(r);
+      }, function (err) {
         self._emit('wire-done', { success: false });
-        throw err;
+        return Promise.reject(err);
       });
     }
   };
@@ -93,7 +88,7 @@
    * functions. See the individual features for more information.
    *
    */
-  var RemoteStorage = function() {
+  var RemoteStorage = function () {
     /**
      * Event: ready
      *
@@ -179,7 +174,7 @@
 
     var origOn = this.on;
 
-    this.on = function(eventName, handler) {
+    this.on = function (eventName, handler) {
       if (eventName === 'ready' && this.remote.connected && this._allLoaded) {
         setTimeout(handler, 0);
       } else if (eventName === 'features-loaded' && this._allLoaded) {
@@ -190,7 +185,7 @@
 
     this._init();
 
-    this.fireInitial = function() {
+    this.fireInitial = function () {
       if (this.local) {
         setTimeout(this.local.fireInitial.bind(this.local), 0);
       }
@@ -201,14 +196,14 @@
 
   RemoteStorage.SyncedGetPutDelete = SyncedGetPutDelete;
 
-  RemoteStorage.DiscoveryError = function(message) {
+  RemoteStorage.DiscoveryError = function (message) {
     Error.apply(this, arguments);
     this.message = message;
   };
 
   RemoteStorage.DiscoveryError.prototype = Object.create(Error.prototype);
 
-  RemoteStorage.Unauthorized = function() { Error.apply(this, arguments); };
+  RemoteStorage.Unauthorized = function () { Error.apply(this, arguments); };
   RemoteStorage.Unauthorized.prototype = Object.create(Error.prototype);
 
   /**
@@ -218,7 +213,7 @@
    *
    * You can enable logging with <enableLog>.
    */
-  RemoteStorage.log = function() {
+  RemoteStorage.log = function () {
     if (RemoteStorage.config.logging) {
       console.log.apply(console, arguments);
     }
@@ -263,7 +258,7 @@
      * This method must be called *after* all required access has been claimed.
      *
      */
-    connect: function(userAddress) {
+    connect: function (userAddress) {
       this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
         this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
@@ -272,11 +267,11 @@
       this.remote.configure(userAddress);
       this._emit('connecting');
 
-      var discoveryTimeout = setTimeout(function() {
+      var discoveryTimeout = setTimeout(function () {
         this._emit('error', new RemoteStorage.DiscoveryError("No storage information found at that user address."));
       }.bind(this), RemoteStorage.config.discoveryTimeout);
 
-      RemoteStorage.Discover(userAddress, function(href, storageApi, authURL) {
+      RemoteStorage.Discover(userAddress, function (href, storageApi, authURL) {
         clearTimeout(discoveryTimeout);
         if (!href) {
           this._emit('error', new RemoteStorage.DiscoveryError("Failed to contact storage server."));
@@ -306,7 +301,7 @@
      * This method clears all stored settings and deletes the entire local
      * cache.
      */
-    disconnect: function() {
+    disconnect: function () {
       if (this.remote) {
         this.remote.configure(null, null, null, null);
       }
@@ -317,7 +312,7 @@
       });
       var n = this._cleanups.length, i = 0;
 
-      var oneDone = function() {
+      var oneDone = function () {
         i++;
         if (i >= n) {
           this._init();
@@ -327,7 +322,7 @@
       }.bind(this);
 
       if (n > 0) {
-        this._cleanups.forEach(function(cleanup) {
+        this._cleanups.forEach(function (cleanup) {
           var cleanupResult = cleanup(this);
           if (typeof(cleanup) === 'object' && typeof(cleanup.then) === 'function') {
             cleanupResult.then(oneDone);
@@ -340,7 +335,7 @@
       }
     },
 
-    setBackend: function(what) {
+    setBackend: function (what) {
       this.backend = what;
       if (this.localStorageAvailable()) {
         if (what) {
@@ -366,7 +361,7 @@
      *   path    - Absolute path to attach handler to.
      *   handler - Handler function.
      */
-    onChange: function(path, handler) {
+    onChange: function (path, handler) {
       if (! this._pathHandlers.change[path]) {
         this._pathHandlers.change[path] = [];
       }
@@ -378,7 +373,7 @@
      *
      * Enable remoteStorage logging
      */
-    enableLog: function() {
+    enableLog: function () {
       RemoteStorage.config.logging = true;
     },
 
@@ -387,7 +382,7 @@
      *
      * Disable remoteStorage logging
      */
-    disableLog: function() {
+    disableLog: function () {
       RemoteStorage.config.logging = false;
     },
 
@@ -396,7 +391,7 @@
      *
      * The same as <RemoteStorage.log>.
      */
-    log: function() {
+    log: function () {
       RemoteStorage.log.apply(RemoteStorage, arguments);
     },
 
@@ -413,7 +408,7 @@
      *          'api_key' for Dropbox.
      *
      */
-    setApiKeys: function(type, keys) {
+    setApiKeys: function (type, keys) {
       if (keys) {
         this.apiKeys[type] = keys;
       } else {
@@ -428,7 +423,7 @@
      ** INITIALIZATION
      **/
 
-    _init: function() {
+    _init: function () {
       var self = this,
           readyFired = false;
 
@@ -444,7 +439,7 @@
         }
       }
 
-      this._loadFeatures(function(features) {
+      this._loadFeatures(function (features) {
         this.log('[RemoteStorage] All features loaded');
         this.local = features.local && new features.local();
         // this.remote set by WireClient._rs_init as lazy property on
@@ -458,11 +453,11 @@
         }
 
         if (this.remote) {
-          this.remote.on('connected', function(){
+          this.remote.on('connected', function (){
             fireReady();
             self._emit('connected');
           });
-          this.remote.on('not-connected', function(){
+          this.remote.on('not-connected', function (){
             fireReady();
             self._emit('not-connected');
           });
@@ -485,7 +480,7 @@
       }.bind(this));
     },
 
-    _collectCleanupFunctions: function() {
+    _collectCleanupFunctions: function () {
       for (var i=0; i < this.features.length; i++) {
         var cleanup = this.features[i].cleanup;
         if (typeof(cleanup) === 'function') {
@@ -497,7 +492,7 @@
     /**
      ** FEATURE DETECTION
      **/
-    _loadFeatures: function(callback) {
+    _loadFeatures: function (callback) {
       var featureList = [
         'WireClient',
         'I18n',
@@ -522,15 +517,15 @@
       function featureDone() {
         featuresDone++;
         if (featuresDone === featureList.length) {
-          setTimeout(function() {
+          setTimeout(function () {
             features.caching = !!RemoteStorage.Caching;
             features.sync = !!RemoteStorage.Sync;
             [
               'IndexedDB',
               'LocalStorage',
               'InMemoryStorage'
-            ].some(function(cachingLayer) {
-              if (features.some(function(feature) { return feature.name === cachingLayer; })) {
+            ].some(function (cachingLayer) {
+              if (features.some(function (feature) { return feature.name === cachingLayer; })) {
                 features.local = RemoteStorage[cachingLayer];
                 return true;
               }
@@ -574,15 +569,15 @@
         }
         if (typeof(initResult) === 'object' && typeof(initResult.then) === 'function') {
           initResult.then(
-            function(){ featureInitialized(name); },
-            function(err){ featureFailed(name, err); }
+            function (){ featureInitialized(name); },
+            function (err){ featureFailed(name, err); }
           );
         } else {
           featureInitialized(name);
         }
       }
 
-      featureList.forEach(function(featureName) {
+      featureList.forEach(function (featureName) {
         self.log("[RemoteStorage] [FEATURE " + featureName + "] initializing...");
         var impl = RemoteStorage[featureName];
         var supported;
@@ -592,11 +587,11 @@
 
           if (typeof supported === 'object') {
             supported.then(
-              function(){
+              function (){
                 featureSupported(featureName, true);
                 initFeature(featureName);
               },
-              function(){
+              function (){
                 featureSupported(featureName, false);
               }
             );
@@ -613,7 +608,7 @@
       });
     },
 
-    localStorageAvailable: function() {
+    localStorageAvailable: function () {
       try {
         return !!global.localStorage;
       } catch(error) {
@@ -625,10 +620,10 @@
      ** GET/PUT/DELETE INTERFACE HELPERS
      **/
 
-    _setGPD: function(impl, context) {
-      function wrap(f) {
-        return function() {
-          return f.apply(context, arguments)
+    _setGPD: function (impl, context) {
+      function wrap(func) {
+        return function () {
+          return func.apply(context, arguments)
             .then(emitUnauthorized.bind(this));
         };
       }
@@ -637,22 +632,22 @@
       this.delete = wrap(impl.delete);
     },
 
-    _pendingGPD: function(methodName) {
-      return function() {
-        var promise = promising();
+    _pendingGPD: function (methodName) {
+      return function () {
+        var pending = Promise.defer();
         this._pending.push({
           method: methodName,
           args: Array.prototype.slice.call(arguments),
-          promise: promise
+          promise: pending
         });
-        return promise;
+        return pending.promise;
       }.bind(this);
     },
 
-    _processPending: function() {
-      this._pending.forEach(function(pending) {
+    _processPending: function () {
+      this._pending.forEach(function (pending) {
         try {
-          this[pending.method].apply(this, pending.args).then(pending.promise.fulfill, pending.promise.reject);
+          this[pending.method].apply(this, pending.args).then(pending.promise.resolve, pending.promise.reject);
         } catch(e) {
           pending.promise.reject(e);
         }
@@ -664,16 +659,16 @@
      ** CHANGE EVENT HANDLING
      **/
 
-    _bindChange: function(object) {
+    _bindChange: function (object) {
       object.on('change', this._dispatchEvent.bind(this, 'change'));
     },
 
-    _dispatchEvent: function(eventName, event) {
+    _dispatchEvent: function (eventName, event) {
       for (var path in this._pathHandlers[eventName]) {
         var pl = path.length;
         var self = this;
         if (event.path.substr(0, pl) === path) {
-          this._pathHandlers[eventName][path].forEach(function(handler) {
+          this._pathHandlers[eventName][path].forEach(function (handler) {
             var ev = {};
             for (var key in event) { ev[key] = event[key]; }
             ev.relativePath = event.path.replace(new RegExp('^' + path), '');
@@ -695,7 +690,7 @@
    * Boolean property indicating if remoteStorage is currently connected.
    */
   Object.defineProperty(RemoteStorage.prototype, 'connected', {
-    get: function() {
+    get: function () {
       return this.remote.connected;
     }
   });

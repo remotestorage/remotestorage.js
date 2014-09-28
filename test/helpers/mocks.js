@@ -77,15 +77,14 @@ define([], function() {
         function GPD(target, path, body, contentType, options) {
           var args = Array.prototype.slice.call(arguments);
           this['_'+target+'s'].push([path, body, contentType, options]);
-          var p = promising();
           if (typeof(this._responses[args]) === 'undefined') {
             throw new Error('no FakeRemote response for args ' + JSON.stringify(args));
           }
           var resp = this._responses[args] || [200];
           if(resp === 'timeout') {
-            return p.reject.apply(p, resp);
+            return Promise.reject(resp);
           } else {
-            return p.fulfill.apply(p, resp);
+            return Promise.resolve(resp);
           }
         }
         this.connected = true;

@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
   function deprecate(thing, replacement) {
     console.log('WARNING: ' + thing + ' is deprecated. Use ' +
@@ -28,14 +28,14 @@
    * <remove> operates on either objects or files (but not folders, folders are
    * created and removed implictly).
    */
-  RS.BaseClient = function(storage, base) {
+  RS.BaseClient = function (storage, base) {
     if (base[base.length - 1] !== '/') {
       throw "Not a folder: " + base;
     }
 
     if (base === '/') {
       // allow absolute and relative paths for the root scope.
-      this.makePath = function(path) {
+      this.makePath = function (path) {
         return (path[0] === '/' ? '' : '/') + path;
       };
     }
@@ -94,7 +94,7 @@
      * (end code)
      *
      * Example of an event with origin 'local' (fired on page load):
-     * 
+     *
      * (start code)
      * {
      *    path: '/public/design/color.txt',
@@ -128,7 +128,7 @@
      * event with origin 'conflict' (usually a few seconds after the event with origin 'window', if you had that activated). Note
      * that since you already changed it from 'white' to 'blue' in the local version a few seconds ago, `oldValue` is now your local
      * value of 'blue':
-     * 
+     *
      * (start code)
      * {
      *    path: '/public/design/color.txt',
@@ -148,7 +148,7 @@
      * when the page loads. Events with origin 'window' are fired whenever you change a value by calling a method on the baseClient;
      * these are disabled by default. Events with origin 'remote' are fired when remote changes are discovered during sync (only for caching
      * startegies 'SEEN' and 'ALL'). Events with origin 'conflict' are fired when a conflict occurs while pushing out your local changes to
-     * the remote store in asynchronous synchronization (see example above). 
+     * the remote store in asynchronous synchronization (see example above).
      **/
 
     RS.eventHandling(this, 'change');
@@ -158,7 +158,7 @@
 
   RS.BaseClient.prototype = {
 
-    extend: function(object) {
+    extend: function (object) {
       for (var key in object) {
         this[key] = object[key];
       }
@@ -170,7 +170,7 @@
      *
      * Returns a new <BaseClient> operating on a subpath of the current <base> path.
      */
-    scope: function(path) {
+    scope: function (path) {
       return new RS.BaseClient(this.storage, this.makePath(path));
     },
 
@@ -205,7 +205,7 @@
      *
      * Example:
      *   (start code)
-     *   client.getListing('', false).then(function(listing) {
+     *   client.getListing('', false).then(function (listing) {
      *     // listing is for instance:
      *     // {
      *     //   'folder/': true,
@@ -214,15 +214,15 @@
      *   });
      *   (end code)
      */
-    getListing: function(path, maxAge) {
+    getListing: function (path, maxAge) {
       if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
-        throw "Not a folder: " + path;
+        Promise.reject("Not a folder: " + path);
       }
       return this.storage.get(this.makePath(path), maxAge).then(
-        function(status, body) {
-          return (status === 404) ? {} : body;
+        function (r) {
+          return (r.statusCode === 404) ? {} : r.body;
         }
       );
     },
@@ -250,47 +250,47 @@
      *
      * Example:
      *   (start code)
-     *   client.getAll('', false).then(function(objects) {
+     *   client.getAll('', false).then(function (objects) {
      *     for (var key in objects) {
      *       console.log('- ' + key + ': ', objects[key]);
      *     }
      *   });
      *   (end code)
      */
-    getAll: function(path, maxAge) {
+    getAll: function (path, maxAge) {
       if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
-        throw "Not a folder: " + path;
+        return Promise.reject("Not a folder: " + path);
       }
 
-      return this.storage.get(this.makePath(path), maxAge).then(function(status, body) {
-        if (status === 404) { return {}; }
-        if (typeof(body) === 'object') {
-          var promise = promising();
-          var count = Object.keys(body).length, i = 0;
-          if (count === 0) {
+      return this.storage.get(this.makePath(path), maxAge).then(function (r) {
+        if (r.statusCode === 404) { return {}; }
+        if (typeof(r.body) === 'object') {
+          var keys = Object.keys(r.body);
+          if (keys.length === 0) {
             // treat this like 404. it probably means a folder listing that
             // has changes that haven't been pushed out yet.
             return {};
           }
-          for (var key in body) {
-            this.storage.get(this.makePath(path + key), maxAge).
-              then(function(status, b) {
-                if (typeof(b) === 'string') {
+
+          var calls = keys.map(function (key) {
+            return this.storage.get(this.makePath(path + key), maxAge)
+              .then(function (o) {
+                if (typeof(o.body) === 'string') {
                   try {
-                    b = JSON.parse(b);
+                    o.body = JSON.parse(o.body);
                   } catch (e) {
                   }
                 }
-                if (typeof(b) === 'object') {
-                  body[this.key] = b;
+                if (typeof(o.body) === 'object') {
+                  r.body[key] = o.body;
                 }
-                i++;
-                if (i === count) { promise.fulfill(body); }
-              }.bind({ key: key }));
-          }
-          return promise;
+              });
+          }.bind(this));
+          return Promise.all(calls).then(function () {
+            return r.body;
+          });
         }
       }.bind(this));
     },
@@ -325,22 +325,22 @@
      * Example:
      *   (start code)
      *   // Display an image:
-     *   client.getFile('path/to/some/image', false).then(function(file) {
+     *   client.getFile('path/to/some/image', false).then(function (file) {
      *     var blob = new Blob([file.data], { type: file.mimeType });
      *     var targetElement = document.findElementById('my-image-element');
      *     targetElement.src = window.URL.createObjectURL(blob);
      *   });
      *   (end code)
      */
-    getFile: function(path, maxAge) {
+    getFile: function (path, maxAge) {
       if (typeof(path) !== 'string') {
-        return promising().reject('Argument \'path\' of baseClient.getFile must be a string');
+        return Promise.reject('Argument \'path\' of baseClient.getFile must be a string');
       }
-      return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
+      return this.storage.get(this.makePath(path), maxAge).then(function (r) {
         return {
-          data: body,
-          mimeType: mimeType,
-          revision: revision // (this is new)
+          data: r.body,
+          contentType: r.contentType,
+          revision: r.revision // (this is new)
         };
       });
     },
@@ -372,7 +372,7 @@
      *   var file = input.files[0];
      *   var fileReader = new FileReader();
      *
-     *   fileReader.onload = function() {
+     *   fileReader.onload = function () {
      *     client.storeFile(file.type, file.name, fileReader.result);
      *   };
      *
@@ -380,28 +380,27 @@
      *   (end code)
      *
      */
-    storeFile: function(mimeType, path, body) {
+    storeFile: function (mimeType, path, body) {
       if (typeof(mimeType) !== 'string') {
-        return promising().reject('Argument \'mimeType\' of baseClient.storeFile must be a string');
+        return Promise.reject('Argument \'mimeType\' of baseClient.storeFile must be a string');
       }
       if (typeof(path) !== 'string') {
-        return promising().reject('Argument \'path\' of baseClient.storeFile must be a string');
+        return Promise.reject('Argument \'path\' of baseClient.storeFile must be a string');
       }
       if (typeof(body) !== 'string' && typeof(body) !== 'object') {
-        return promising().reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
+        return Promise.reject('Argument \'body\' of baseClient.storeFile must be a string, ArrayBuffer, or ArrayBufferView');
       }
       if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
         console.warn('WARNING: Editing a document to which only read access (\'r\') was claimed');
       }
 
-      var self = this;
-      return this.storage.put(this.makePath(path), body, mimeType).then(function(status, _body, _mimeType, revision) {
-        if (status === 200 || status === 201) {
-          return revision;
+      return this.storage.put(this.makePath(path), body, mimeType).then(function (r) {
+        if (r.statusCode === 200 || r.statusCode === 201) {
+          return r.revision;
         } else {
-          throw "Request (PUT " + self.makePath(path) + ") failed with status: " + status;
+          return Promise.reject("Request (PUT " + this.makePath(path) + ") failed with status: " + r.statusCode);
         }
-      });
+      }.bind(this));
     },
 
     // object operations
@@ -426,28 +425,28 @@
      * Example:
      *   (start code)
      *   client.getObject('/path/to/object', false).
-     *     then(function(object) {
+     *     then(function (object) {
      *       // object is either an object or null
      *     });
      *   (end code)
      */
-    getObject: function(path, maxAge) {
+    getObject: function (path, maxAge) {
       if (typeof(path) !== 'string') {
-        return promising().reject('Argument \'path\' of baseClient.getObject must be a string');
+        return Promise.reject('Argument \'path\' of baseClient.getObject must be a string');
       }
-      return this.storage.get(this.makePath(path), maxAge).then(function(status, body, mimeType, revision) {
-        if (typeof(body) === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
-          return body;
-        } else if (typeof(body) === 'string') {
+      return this.storage.get(this.makePath(path), maxAge).then(function (r) {
+        if (typeof(r.body) === 'object') { // will be the case for documents stored with rs.js <= 0.10.0-beta2
+          return r.body;
+        } else if (typeof(r.body) === 'string') {
           try {
-            return JSON.parse(body);
+            return JSON.parse(r.body);
           } catch (e) {
             throw "Not valid JSON: " + this.makePath(path);
           }
-        } else if (typeof(body) !== 'undefined' && status === 200) {
-          throw "Not an object: " + this.makePath(path);
+        } else if (typeof(r.body) !== 'undefined' && r.statusCode === 200) {
+          return Promise.reject("Not an object: " + this.makePath(path));
         }
-      });
+      }.bind(this));
     },
 
     /**
@@ -491,15 +490,15 @@
      *
      *   See <declareType> for examples.
      */
-    storeObject: function(typeAlias, path, object) {
+    storeObject: function (typeAlias, path, object) {
       if (typeof(typeAlias) !== 'string') {
-        return promising().reject('Argument \'typeAlias\' of baseClient.storeObject must be a string');
+        return Promise.reject('Argument \'typeAlias\' of baseClient.storeObject must be a string');
       }
       if (typeof(path) !== 'string') {
-        return promising().reject('Argument \'path\' of baseClient.storeObject must be a string');
+        return Promise.reject('Argument \'path\' of baseClient.storeObject must be a string');
       }
       if (typeof(object) !== 'object') {
-        return promising().reject('Argument \'object\' of baseClient.storeObject must be an object');
+        return Promise.reject('Argument \'object\' of baseClient.storeObject must be an object');
       }
 
       this._attachType(object, typeAlias);
@@ -507,17 +506,17 @@
       try {
         var validationResult = this.validate(object);
         if (! validationResult.valid) {
-          return promising(function(p) { p.reject(validationResult); });
+          return Promise.reject(validationResult);
         }
       } catch(exc) {
-        return promising().reject(exc);
+        return Promise.reject(exc);
       }
 
-      return this.storage.put(this.makePath(path), JSON.stringify(object), 'application/json; charset=UTF-8').then(function(status, _body, _mimeType, revision) {
-        if (status === 200 || status === 201) {
-          return revision;
+      return this.storage.put(this.makePath(path), JSON.stringify(object), 'application/json; charset=UTF-8').then(function (r) {
+        if (r.statusCode === 200 || r.statusCode === 201) {
+          return r.revision;
         } else {
-          throw "Request (PUT " + this.makePath(path) + ") failed with status: " + status;
+          return Promise.reject("Request (PUT " + this.makePath(path) + ") failed with status: " + r.statusCode);
         }
       }.bind(this));
     },
@@ -532,9 +531,9 @@
      * Parameters:
      *   path     - Path relative to the module root.
      */
-    remove: function(path) {
+    remove: function (path) {
       if (typeof(path) !== 'string') {
-        return promising().reject('Argument \'path\' of baseClient.remove must be a string');
+        return Promise.reject('Argument \'path\' of baseClient.remove must be a string');
       }
       if (!this.storage.access.checkPathPermission(this.makePath(path), 'rw')) {
         console.warn('WARNING: Removing a document to which only read access (\'r\') was claimed');
@@ -544,7 +543,7 @@
     },
 
 
-    cache: function(path, strategy) {
+    cache: function (path, strategy) {
       if (typeof(path) !== 'string') {
         throw 'Argument \'path\' of baseClient.cache must be a string';
       }
@@ -567,17 +566,17 @@
       return this;
     },
 
-    flush: function(path) {
+    flush: function (path) {
       return this.storage.local.flush(path);
     },
 
-    makePath: function(path) {
+    makePath: function (path) {
       return this.base + (path || '');
     },
 
-    _fireChange: function(event) {
+    _fireChange: function (event) {
       if (RemoteStorage.config.changeEvents[event.origin]) {
-        ['new', 'old', 'lastCommon'].forEach(function(fieldNamePrefix) {
+        ['new', 'old', 'lastCommon'].forEach(function (fieldNamePrefix) {
           if ((!event[fieldNamePrefix+'ContentType'])
               || (/^application\/(.*)json(.*)/.exec(event[fieldNamePrefix+'ContentType']))) {
             if (typeof(event[fieldNamePrefix+'Value']) === 'string') {
@@ -602,7 +601,7 @@
      * Parameters:
      *   path     - Path relative to the module root.
      */
-    getItemURL: function(path) {
+    getItemURL: function (path) {
       if (typeof(path) !== 'string') {
         throw 'Argument \'path\' of baseClient.getItemURL must be a string';
       }
@@ -614,7 +613,7 @@
       }
     },
 
-    uuid: function() {
+    uuid: function () {
       return Math.uuid();
     }
 
@@ -645,8 +644,8 @@
    *   (end code)
    *
    */
-  RS.BaseClient._rs_init = function() {
-    RS.prototype.scope = function(path) {
+  RS.BaseClient._rs_init = function () {
+    RS.prototype.scope = function (path) {
       if (typeof(path) !== 'string') {
         throw 'Argument \'path\' of baseClient.scope must be a string';
       }
@@ -660,7 +659,7 @@
   };
 
   /* e.g.:
-  remoteStorage.defineModule('locations', function(priv, pub) {
+  remoteStorage.defineModule('locations', function (priv, pub) {
     return {
       exports: {
         features: priv.scope('features/').defaultType('feature'),
