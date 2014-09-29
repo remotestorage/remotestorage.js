@@ -1,7 +1,9 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define([requirejs], function(requirejs) {
+define(['bluebird', 'requirejs'], function (Promise, requirejs) {
+
+  global.Promise = Promise;
 
   var suites = [];
 
@@ -14,14 +16,12 @@ define([requirejs], function(requirejs) {
   }
 
   function fakeRequest(path) {
-    var promise = promising();
     console.log('GET CALLED');
     if (path === '/testing403') {
-      promise.fulfill(403);
+      return Promise.resolve({statusCode: 403});
     } else {
-      promise.fulfill(200);
+      return Promise.resolve({statusCode: 200});
     }
-    return promise;
   }
 
   FakeRemote.prototype = {
@@ -63,7 +63,6 @@ define([requirejs], function(requirejs) {
     name: "remoteStorage",
     desc: "the RemoteStorage instance",
     setup:  function(env, test) {
-      require('./lib/promising');
       require('./src/remotestorage');
       if (global.rs_rs) {
         RemoteStorage = global.rs_rs;
@@ -95,17 +94,16 @@ define([requirejs], function(requirejs) {
     tests: [
       {
         desc: "#get emiting error RemoteStorage.Unauthorized on 403",
-        run: function(env, test) {
+        run: function (env, test) {
           var success = false;
-          env.rs.on('error', function(e) {
+          env.rs.on('error', function (e) {
             if (e instanceof RemoteStorage.Unauthorized) {
               success = true;
             }
           });
-          env.rs.get('/testing403').then(function(status) {
-            test.assertAnd(status, 403);
-            test.assertAnd(success, true);
-            test.done();
+          env.rs.get('/testing403').then(function (r) {
+            test.assertAnd(r.statusCode, 403);
+            test.assert(success, true);
           });
         }
       },
@@ -127,14 +125,14 @@ define([requirejs], function(requirejs) {
 
       {
         desc: "#delete emiting error RemoteStorage.Unauthorized on 403",
-        run: function(env, test) {
+        run: function (env, test) {
           var success = false;
-          env.rs.on('error', function(e) {
+          env.rs.on('error', function (e) {
             if (e instanceof RemoteStorage.Unauthorized) {
               success = true;
             }
           });
-          env.rs.delete('/testing403').then(function(status) {
+          env.rs.delete('/testing403').then(function (status) {
             test.assert(success, true);
           });
         }
@@ -155,16 +153,13 @@ define([requirejs], function(requirejs) {
             success = false;
           });
           env.rs.get('/testing200').then(function() {
-            test.assertAnd(success, true);
-            test_done();
+            test.assert(success, true);
           });
           env.rs.put('/testing200').then(function() {
-            test.assertAnd(success, true);
-            test_done();
+            test.assert(success, true);
           });
           env.rs.delete('/testing200').then(function() {
-            test.assertAnd(success, true);
-            test_done();
+            test.assert(success, true);
           });
         }
       },

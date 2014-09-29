@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
   var syncInterval = 10000,
       backgroundSyncInterval = 60000,
@@ -7,7 +7,6 @@
   var isFolder = RemoteStorage.util.isFolder;
   var isDocument = RemoteStorage.util.isDocument;
   var equal = RemoteStorage.util.equal;
-  var equalObj = RemoteStorage.util.equalObj;
   var deepClone = RemoteStorage.util.deepClone;
   var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
 
@@ -60,9 +59,9 @@
   /**
    * Class: RemoteStorage.Sync
    **/
-  RemoteStorage.Sync = function(setLocal, setRemote, setAccess, setCaching) {
+  RemoteStorage.Sync = function (setLocal, setRemote, setAccess, setCaching) {
     this.local = setLocal;
-    this.local.onDiff(function(path) {
+    this.local.onDiff(function (path) {
       this.addTask(path);
       this.doTasks();
     }.bind(this));
@@ -73,7 +72,7 @@
     this._running = {};
     this._timeStarted = {};
     RemoteStorage.eventHandling(this, 'done', 'req-done');
-    this.caching.onActivate(function(path) {
+    this.caching.onActivate(function (path) {
       this.addTask(path);
       this.doTasks();
     }.bind(this));
@@ -81,27 +80,29 @@
 
   RemoteStorage.Sync.prototype = {
 
-    now: function() {
+    now: function () {
       return new Date().getTime();
     },
 
-    queueGetRequest: function(path, promise) {
+    queueGetRequest: function (path) {
+      var pending = Promise.defer();
       if (!this.remote.connected) {
-        promise.reject('cannot fulfill maxAge requirement - remote is not connected');
+        pending.reject('cannot fulfill maxAge requirement - remote is not connected');
       } else if (!this.remote.online) {
-        promise.reject('cannot fulfill maxAge requirement - remote is not online');
+        pending.reject('cannot fulfill maxAge requirement - remote is not online');
       } else {
-        this.addTask(path, function() {
-          this.local.get(path).then(function(status, bodyOrItemsMap, contentType) {
-            promise.fulfill(status, bodyOrItemsMap, contentType);
+        this.addTask(path, function () {
+          this.local.get(path).then(function (r) {
+            return pending.resolve(r);
           });
         }.bind(this));
 
         this.doTasks();
       }
+      return pending.promise;
     },
 
-    corruptServerItemsMap: function(itemsMap, force02) {
+    corruptServerItemsMap: function (itemsMap, force02) {
       if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
         return true;
       }
@@ -137,7 +138,7 @@
       return false;
     },
 
-    corruptItemsMap: function(itemsMap) {
+    corruptItemsMap: function (itemsMap) {
       if ((typeof(itemsMap) !== 'object') || (Array.isArray(itemsMap))) {
         return true;
       }
@@ -151,7 +152,7 @@
       return false;
     },
 
-    corruptRevision: function(rev) {
+    corruptRevision: function (rev) {
       return ((typeof(rev) !== 'object') ||
               (Array.isArray(rev)) ||
               (rev.revision && typeof(rev.revision) !== 'string') ||
@@ -162,7 +163,7 @@
               (rev.itemsMap && this.corruptItemsMap(rev.itemsMap)));
     },
 
-    isCorrupt: function(node) {
+    isCorrupt: function (node) {
       return ((typeof(node) !== 'object') ||
               (Array.isArray(node)) ||
               (typeof(node.path) !== 'string') ||
@@ -172,14 +173,14 @@
               (node.push && this.corruptRevision(node.push)));
     },
 
-    hasTasks: function() {
+    hasTasks: function () {
       return Object.getOwnPropertyNames(this._tasks).length > 0;
     },
 
-    collectDiffTasks: function() {
+    collectDiffTasks: function () {
       var num = 0;
 
-      return this.local.forAllNodes(function(node) {
+      return this.local.forAllNodes(function (node) {
 
         if (num > 100) {
           return;
@@ -199,19 +200,19 @@
           this.addTask(node.path);
           num++;
         }
-      }.bind(this)).then(function() {
+      }.bind(this)).then(function () {
         return num;
-      }, function(err) {
+      }, function (err) {
         throw err;
       });
     },
 
-    inConflict: function(node) {
+    inConflict: function (node) {
       return (node.local && node.remote &&
               (node.remote.body !== undefined || node.remote.itemsMap));
     },
 
-    needsRefresh: function(node) {
+    needsRefresh: function (node) {
       if (node.common) {
         if (!node.common.timestamp) {
           return true;
@@ -221,7 +222,7 @@
       return false;
     },
 
-    needsFetch: function(node) {
+    needsFetch: function (node) {
       if (this.inConflict(node)) {
         return true;
       }
@@ -234,7 +235,7 @@
       return false;
     },
 
-    needsPush: function(node) {
+    needsPush: function (node) {
       if (this.inConflict(node)) {
         return false;
       }
@@ -243,15 +244,15 @@
       }
     },
 
-    needsRemotePut: function(node) {
+    needsRemotePut: function (node) {
       return node.local && node.local.body;
     },
 
-    needsRemoteDelete: function(node) {
+    needsRemoteDelete: function (node) {
       return node.local && node.local.body === false;
     },
 
-    getParentPath: function(path) {
+    getParentPath: function (path) {
       var parts = path.match(/^(.*\/)([^\/]+\/?)$/);
 
       if (parts) {
@@ -261,7 +262,7 @@
       }
     },
 
-    deleteChildPathsFromTasks: function() {
+    deleteChildPathsFromTasks: function () {
       for (var path in this._tasks) {
         paths = pathsFromRoot(path);
 
@@ -273,8 +274,8 @@
       }
     },
 
-    collectRefreshTasks: function() {
-      return this.local.forAllNodes(function(node) {
+    collectRefreshTasks: function () {
+      return this.local.forAllNodes(function (node) {
         var parentPath;
         if (this.needsRefresh(node)) {
           try {
@@ -288,14 +289,14 @@
             this.addTask(node.path);
           }
         }
-      }.bind(this)).then(function() {
+      }.bind(this)).then(function () {
         this.deleteChildPathsFromTasks();
-      }.bind(this), function(err) {
+      }.bind(this), function (err) {
         throw err;
       });
     },
 
-    flush: function(nodes) {
+    flush: function (nodes) {
       for (var path in nodes) {
         // Strategy is 'FLUSH' and no local changes exist
         if (this.caching.checkPath(path) === 'FLUSH' && nodes[path] && !nodes[path].local) {
@@ -306,10 +307,9 @@
       return nodes;
     },
 
-    doTask: function(path) {
-      var promise = this.local.getNodes([path]).then(function(nodes) {
+    doTask: function (path) {
+      return this.local.getNodes([path]).then(function (nodes) {
         var node = nodes[path];
-
         // First fetch:
         if (typeof(node) === 'undefined') {
           return taskFor('get', path, this.remote.get(path));
@@ -323,7 +323,7 @@
           node.push = deepClone(node.local);
           node.push.timestamp = this.now();
 
-          return this.local.setNodes(this.flush(nodes)).then(function() {
+          return this.local.setNodes(this.flush(nodes)).then(function () {
             var options;
             if (hasCommonRevision(node)) {
               options = { ifMatch: node.common.revision };
@@ -341,7 +341,7 @@
         else if (this.needsRemoteDelete(node)) {
           node.push = { body: false, timestamp: this.now() };
 
-          return this.local.setNodes(this.flush(nodes)).then(function() {
+          return this.local.setNodes(this.flush(nodes)).then(function () {
             if (hasCommonRevision(node)) {
               return taskFor('delete', path,
                 this.remote.delete(path, { ifMatch: node.common.revision })
@@ -361,11 +361,9 @@
           return taskFor('get', path, this.remote.get(path));
         }
       }.bind(this));
-
-      return promise;
     },
 
-    autoMergeFolder: function(node) {
+    autoMergeFolder: function (node) {
       if (node.remote.itemsMap) {
         node.common = node.remote;
         delete node.remote;
@@ -381,8 +379,7 @@
             }
           }
 
-          // TODO test
-          if (equalObj(node.local.itemsMap, node.common.itemsMap)) {
+          if (equal(node.local.itemsMap, node.common.itemsMap)) {
             delete node.local;
           }
         }
@@ -390,8 +387,8 @@
       return node;
     },
 
-    autoMergeDocument: function(node) {
-      hasNoRemoteChanges = function(node) {
+    autoMergeDocument: function (node) {
+      hasNoRemoteChanges = function (node) {
         if (node.remote && node.remote.revision && node.remote.revision !== node.common.revision) {
           return false;
         }
@@ -399,7 +396,7 @@
                (node.remote.body === node.common.body &&
                 node.remote.contentType === node.common.contentType);
       };
-      mergeMutualDeletion = function(node) {
+      mergeMutualDeletion = function (node) {
         if (node.remote && node.remote.body === false
             && node.local && node.local.body === false) {
            delete node.local;
@@ -436,7 +433,7 @@
       return node;
     },
 
-    autoMerge: function(node) {
+    autoMerge: function (node) {
       if (node.remote) {
         if (node.local) {
           if (isFolder(node.path)) {
@@ -490,8 +487,8 @@
       return node;
     },
 
-    updateCommonTimestamp: function(path, revision) {
-      return this.local.getNodes([path]).then(function(nodes) {
+    updateCommonTimestamp: function (path, revision) {
+      return this.local.getNodes([path]).then(function (nodes) {
         if (nodes[path] && nodes[path].common && nodes[path].common.revision === revision) {
           nodes[path].common.timestamp = this.now();
         }
@@ -499,7 +496,7 @@
       }.bind(this));
     },
 
-    markChildren: function(path, itemsMap, changedNodes, missingChildren) {
+    markChildren: function (path, itemsMap, changedNodes, missingChildren) {
       var paths = [];
       var meta = {};
       var recurse = {};
@@ -512,11 +509,11 @@
         paths.push(path+childName);
       }
 
-      return this.local.getNodes(paths).then(function(nodes) {
+      return this.local.getNodes(paths).then(function (nodes) {
         var cachingStrategy;
         var node;
 
-        nodeChanged = function(node, etag) {
+        nodeChanged = function (node, etag) {
           return node.common.revision !== etag && (!node.remote || node.remote.revision !== etag);
         };
 
@@ -581,7 +578,7 @@
                 if (parentNode && parentNode.local) {
                   delete parentNode.local.itemsMap[itemName];
 
-                  if (equalObj(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+                  if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
                     delete parentNode.local;
                   }
                 }
@@ -590,21 +587,21 @@
           }
         }
 
-        return this.deleteRemoteTrees(Object.keys(recurse), changedNodes).then(function(changedObjs2) {
+        return this.deleteRemoteTrees(Object.keys(recurse), changedNodes).then(function (changedObjs2) {
           return this.local.setNodes(this.flush(changedObjs2));
         }.bind(this));
       }.bind(this));
     },
 
-    deleteRemoteTrees: function(paths, changedNodes) {
+    deleteRemoteTrees: function (paths, changedNodes) {
       if (paths.length === 0) {
-        return promising().fulfill(changedNodes);
+        return Promise.resolve(changedNodes);
       }
 
-      return this.local.getNodes(paths).then(function(nodes) {
+      return this.local.getNodes(paths).then(function (nodes) {
         var subPaths = {};
 
-        collectSubPaths = function(folder, path) {
+        collectSubPaths = function (folder, path) {
           if (folder && folder.itemsMap) {
             for (var itemName in folder.itemsMap) {
               subPaths[path+itemName] = true;
@@ -636,13 +633,13 @@
         }
 
         // Recurse whole tree depth levels at once:
-        return this.deleteRemoteTrees(Object.keys(subPaths), changedNodes).then(function(changedNodes2) {
+        return this.deleteRemoteTrees(Object.keys(subPaths), changedNodes).then(function (changedNodes2) {
           return this.local.setNodes(this.flush(changedNodes2));
         }.bind(this));
       }.bind(this));
     },
 
-    completeFetch: function(path, bodyOrItemsMap, contentType, revision) {
+    completeFetch: function (path, bodyOrItemsMap, contentType, revision) {
       var paths;
       var parentPath;
       var pathsFromRootArr = pathsFromRoot(path);
@@ -654,13 +651,13 @@
         paths = [path, parentPath];
       }
 
-      var promise = this.local.getNodes(paths).then(function(nodes) {
+      return this.local.getNodes(paths).then(function (nodes) {
         var itemName;
         var missingChildren = {};
         var node = nodes[path];
         var parentNode;
 
-        collectMissingChildren = function(folder) {
+        collectMissingChildren = function (folder) {
           if (folder && folder.itemsMap) {
             for (var itemName in folder.itemsMap) {
               if (!bodyOrItemsMap[itemName]) {
@@ -700,25 +697,22 @@
           if (parentNode && parentNode.local && parentNode.local.itemsMap) {
             itemName = path.substring(parentPath.length);
             parentNode.local.itemsMap[itemName] = true;
-            if (equalObj(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
+            if (equal(parentNode.local.itemsMap, parentNode.common.itemsMap)) {
               delete parentNode.local;
             }
           }
         }
 
         nodes[path] = this.autoMerge(node);
-
         return {
           toBeSaved:       nodes,
           missingChildren: missingChildren
         };
       }.bind(this));
-
-      return promise;
     },
 
-    completePush: function(path, action, conflict, revision) {
-      var promise = this.local.getNodes([path]).then(function(nodes) {
+    completePush: function (path, action, conflict, revision) {
+      return this.local.getNodes([path]).then(function (nodes) {
         var node = nodes[path];
 
         if (!node.push) {
@@ -765,12 +759,10 @@
 
         return this.local.setNodes(this.flush(nodes));
       }.bind(this));
-
-      return promise;
     },
 
-    dealWithFailure: function(path, action, statusMeaning) {
-      return this.local.getNodes([path]).then(function(nodes) {
+    dealWithFailure: function (path, action, statusMeaning) {
+      return this.local.getNodes([path]).then(function (nodes) {
         if (nodes[path]) {
           delete nodes[path].push;
           return this.local.setNodes(this.flush(nodes));
@@ -778,7 +770,10 @@
       }.bind(this));
     },
 
-    interpretStatus: function(statusCode) {
+    interpretStatus: function (statusCode) {
+      // if (typeof statusCode.length === 'number') {
+      //   statusCode = statusCode[0];
+      // }
       if (statusCode === 'offline' || statusCode === 'timeout') {
         return {
           successful:      false,
@@ -800,7 +795,7 @@
       };
     },
 
-    handleGetResponse: function(path, status, bodyOrItemsMap, contentType, revision) {
+    handleGetResponse: function (path, status, bodyOrItemsMap, contentType, revision) {
       if (status.notFound) {
         if (isFolder(path)) {
           bodyOrItemsMap = {};
@@ -810,45 +805,43 @@
       }
 
       if (status.changed) {
-        return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function(dataFromFetch) {
+        return this.completeFetch(path, bodyOrItemsMap, contentType, revision).then(function (dataFromFetch) {
           if (isFolder(path)) {
             if (this.corruptServerItemsMap(bodyOrItemsMap)) {
               RemoteStorage.log('[Sync] WARNING: Discarding corrupt folder description from server for ' + path);
               return false;
             } else {
-              return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren).then(function() {
+              return this.markChildren(path, bodyOrItemsMap, dataFromFetch.toBeSaved, dataFromFetch.missingChildren).then(function () {
                 return true;
               });
             }
           } else {
-            return this.local.setNodes(this.flush(dataFromFetch.toBeSaved)).then(function() {
+            return this.local.setNodes(this.flush(dataFromFetch.toBeSaved)).then(function () {
               return true;
             });
           }
         }.bind(this));
       } else {
-        return this.updateCommonTimestamp(path, revision).then(function() {
+        return this.updateCommonTimestamp(path, revision).then(function () {
           return true;
         });
       }
     },
 
-    handleResponse: function(path, action, statusCode, bodyOrItemsMap, contentType, revision) {
-      var status = this.interpretStatus(statusCode);
-
+    handleResponse: function (path, action, r) {
+      var status = this.interpretStatus(r.statusCode);
       if (status.successful) {
         if (action === 'get') {
-          return this.handleGetResponse(path, status, bodyOrItemsMap, contentType, revision);
+          return this.handleGetResponse(path, status, r.body, r.contentType, r.revision);
         } else if (action === 'put' || action === 'delete') {
-          return this.completePush(path, action, status.conflict, revision).then(function() {
+          return this.completePush(path, action, status.conflict, r.revision).then(function () {
             return true;
           });
         } else {
           throw new Error('cannot handle response for unknown action', action);
         }
-      }
+      } else {
       // Unsuccessful
-      else {
         var error;
         if (status.unAuth) {
           error = new RemoteStorage.Unauthorized();
@@ -859,7 +852,7 @@
           error = new Error('HTTP response code ' + status.statusCode + ' received.');
         }
 
-        return this.dealWithFailure(path, action, status).then(function() {
+        return this.dealWithFailure(path, action, status).then(function () {
           remoteStorage._emit('error', error);
           throw error;
         });
@@ -868,67 +861,66 @@
 
     numThreads: 10,
 
-    finishTask: function(task) {
+    finishTask: function (task) {
       if (task.action === undefined) {
         delete this._running[task.path];
         return;
       }
+      var self = this;
 
-      task.promise.then(function(status, bodyOrItemsMap, contentType, revision) {
-        return this.handleResponse(task.path, task.action, status, bodyOrItemsMap, contentType, revision);
-      }.bind(this), function(err) {
+      return task.promise.then(function (r) {
+        return self.handleResponse(task.path, task.action, r);
+      }, function (err) {
         RemoteStorage.log('[Sync] wireclient rejects its promise!', task.path, task.action, err);
-        return this.handleResponse(task.path, task.action, 'offline');
-      }.bind(this))
+        return self.handleResponse(task.path, task.action, {statusCode: 'offline'});
+      })
 
-      .then(function(completed) {
-        delete this._timeStarted[task.path];
-        delete this._running[task.path];
-        this.remote.online = true;
+      .then(function (completed) {
+        delete self._timeStarted[task.path];
+        delete self._running[task.path];
+        self.remote.online = true;
 
         if (completed) {
-          if (this._tasks[task.path]) {
-            for (i=0; i<this._tasks[task.path].length; i++) {
-              this._tasks[task.path][i]();
+          if (self._tasks[task.path]) {
+            for (i=0; i<self._tasks[task.path].length; i++) {
+              self._tasks[task.path][i]();
             }
-            delete this._tasks[task.path];
+            delete self._tasks[task.path];
           }
         }
 
-        this._emit('req-done');
+        self._emit('req-done');
 
-        this.collectTasks(false).then(function() {
+        self.collectTasks(false).then(function () {
           // See if there are any more tasks that are not refresh tasks
-          if (!this.hasTasks() || this.stopped) {
-            RemoteStorage.log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(this._tasks).length, this.stopped);
-            if (!this.done) {
-              this.done = true;
-              this._emit('done');
+          if (!self.hasTasks() || self.stopped) {
+            RemoteStorage.log('[Sync] Sync is done! Reschedule?', Object.getOwnPropertyNames(self._tasks).length, self.stopped);
+            if (!self.done) {
+              self.done = true;
+              self._emit('done');
             }
           } else {
             // Use a 10ms timeout to let the JavaScript runtime catch its breath
             // (and hopefully force an IndexedDB auto-commit?), and also to cause
             // the threads to get staggered and get a good spread over time:
-            setTimeout(function() {
-              this.doTasks();
-            }.bind(this), 10);
+            setTimeout(function () {
+              self.doTasks();
+            }, 10);
           }
-        }.bind(this));
-      }.bind(this),
-
-      function(err) {
+        });
+      }, function (err) {
         console.error('[Sync] Error', err);
-        delete this._timeStarted[task.path];
-        delete this._running[task.path];
-        this._emit('req-done');
-        if (!this.done) {
-          this.done = true;
-          this._emit('done');
+        delete self._timeStarted[task.path];
+        delete self._running[task.path];
+        self._emit('req-done');
+        if (!self.done) {
+          self.done = true;
+          self._emit('done');
         }
-      }.bind(this));
+      });
     },
 
-    doTasks: function() {
+    doTasks: function () {
       var numToHave, numAdded = 0, numToAdd, path;
       if (this.remote.connected) {
         if (this.remote.online) {
@@ -957,27 +949,23 @@
       return (numAdded >= numToAdd);
     },
 
-    collectTasks: function(alsoCheckRefresh) {
+    collectTasks: function (alsoCheckRefresh) {
       if (this.hasTasks() || this.stopped) {
-        promise = promising();
-        promise.fulfill();
-        return promise;
+        return Promise.resolve();
       }
 
-      return this.collectDiffTasks().then(function(numDiffs) {
+      return this.collectDiffTasks().then(function (numDiffs) {
         if (numDiffs || alsoCheckRefresh === false) {
-          promise = promising();
-          promise.fulfill();
-          return promise;
+          return Promise.resolve();
         } else {
           return this.collectRefreshTasks();
         }
-      }.bind(this), function(err) {
+      }.bind(this), function (err) {
         throw err;
       });
     },
 
-    addTask: function(path, cb) {
+    addTask: function (path, cb) {
       if (!this._tasks[path]) {
         this._tasks[path] = [];
       }
@@ -989,23 +977,22 @@
     /**
      * Method: sync
      **/
-    sync: function() {
-      var promise = promising();
+    sync: function () {
       this.done = false;
 
       if (!this.doTasks()) {
-        return this.collectTasks().then(function() {
+        return this.collectTasks().then(function () {
           try {
             this.doTasks();
           } catch(e) {
             console.error('[Sync] doTasks error', e);
           }
-        }.bind(this), function(e) {
+        }.bind(this), function (e) {
           console.error('[Sync] Sync error', e);
           throw new Error('Local cache unavailable');
         });
       } else {
-        return promising().fulfill();
+        return Promise.resolve();
       }
     },
   };
@@ -1018,7 +1005,7 @@
    * Returns a number of milliseconds
    *
    */
-  RemoteStorage.prototype.getSyncInterval = function() {
+  RemoteStorage.prototype.getSyncInterval = function () {
     return syncInterval;
   };
 
@@ -1031,7 +1018,7 @@
    *   interval - sync interval in milliseconds
    *
    */
-  RemoteStorage.prototype.setSyncInterval = function(interval) {
+  RemoteStorage.prototype.setSyncInterval = function (interval) {
     if (!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
@@ -1048,7 +1035,7 @@
    * Returns a number of milliseconds
    *
    */
-  RemoteStorage.prototype.getBackgroundSyncInterval = function() {
+  RemoteStorage.prototype.getBackgroundSyncInterval = function () {
     return backgroundSyncInterval;
   };
 
@@ -1061,7 +1048,7 @@
    *   interval - sync interval in milliseconds
    *
    */
-  RemoteStorage.prototype.setBackgroundSyncInterval = function(interval) {
+  RemoteStorage.prototype.setBackgroundSyncInterval = function (interval) {
     if(!isValidInterval(interval)) {
       throw interval + " is not a valid sync interval";
     }
@@ -1078,11 +1065,11 @@
    * Returns a number of milliseconds
    *
    */
-  RemoteStorage.prototype.getCurrentSyncInterval = function() {
+  RemoteStorage.prototype.getCurrentSyncInterval = function () {
     return isBackground ? backgroundSyncInterval : syncInterval;
   };
 
-  var SyncError = function(originalError) {
+  var SyncError = function (originalError) {
     var msg = 'Sync failed: ';
     if (typeof(originalError) === 'object' && 'message' in originalError) {
       msg += originalError.message;
@@ -1098,12 +1085,12 @@
 
   RemoteStorage.SyncError = SyncError;
 
-  RemoteStorage.prototype.syncCycle = function() {
+  RemoteStorage.prototype.syncCycle = function () {
     if (this.sync.stopped) {
       return;
     }
 
-    this.sync.on('done', function() {
+    this.sync.on('done', function () {
       RemoteStorage.log('[Sync] Sync done. Setting timer to', this.getCurrentSyncInterval());
       if (!this.sync.stopped) {
         if (this._syncTimer) {
@@ -1116,7 +1103,7 @@
     this.sync.sync();
   };
 
-  RemoteStorage.prototype.stopSync = function() {
+  RemoteStorage.prototype.stopSync = function () {
     if (this.sync) {
       RemoteStorage.log('[Sync] Stopping sync');
       this.sync.stopped = true;
@@ -1127,7 +1114,7 @@
     }
   };
 
-  RemoteStorage.prototype.startSync = function() {
+  RemoteStorage.prototype.startSync = function () {
     this.sync.stopped = false;
     this.syncStopped = false;
     this.sync.sync();
@@ -1135,8 +1122,8 @@
 
   var syncCycleCb;
 
-  RemoteStorage.Sync._rs_init = function(remoteStorage) {
-    syncCycleCb = function() {
+  RemoteStorage.Sync._rs_init = function (remoteStorage) {
+    syncCycleCb = function () {
       RemoteStorage.log('[Sync] syncCycleCb calling syncCycle');
       if (RemoteStorage.Env.isBrowser()) {
         handleVisibility.bind(remoteStorage)();
@@ -1161,7 +1148,7 @@
     remoteStorage.on('ready', syncCycleCb);
   };
 
-  RemoteStorage.Sync._rs_cleanup = function(remoteStorage) {
+  RemoteStorage.Sync._rs_cleanup = function (remoteStorage) {
     remoteStorage.stopSync();
     remoteStorage.removeEventListener('ready', syncCycleCb);
   };

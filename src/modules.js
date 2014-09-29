@@ -1,4 +1,4 @@
-(function() {
+(function () {
 
   RemoteStorage.MODULES = {};
 
@@ -25,7 +25,7 @@
    *
    * Example:
    *   (start code)
-   *   RemoteStorage.defineModule('locations', function(privateClient, publicClient) {
+   *   RemoteStorage.defineModule('locations', function (privateClient, publicClient) {
    *     return {
    *       exports: {
    *         features: privateClient.scope('features/').defaultType('feature'),
@@ -36,12 +36,12 @@
    * (end code)
   */
 
-  RemoteStorage.defineModule = function(moduleName, builder) {
+  RemoteStorage.defineModule = function (moduleName, builder) {
     RemoteStorage.MODULES[moduleName] = builder;
 
     Object.defineProperty(RemoteStorage.prototype, moduleName, {
       configurable: true,
-      get: function() {
+      get: function () {
         var instance = this._loadModule(moduleName);
         Object.defineProperty(this, moduleName, {
           value: instance
@@ -51,18 +51,18 @@
     });
 
     if (moduleName.indexOf('-') !== -1) {
-      var camelizedName = moduleName.replace(/\-[a-z]/g, function(s) {
+      var camelizedName = moduleName.replace(/\-[a-z]/g, function (s) {
         return s[1].toUpperCase();
       });
       Object.defineProperty(RemoteStorage.prototype, camelizedName, {
-        get: function() {
+        get: function () {
           return this[moduleName];
         }
       });
     }
   };
 
-  RemoteStorage.prototype._loadModule = function(moduleName) {
+  RemoteStorage.prototype._loadModule = function (moduleName) {
     var builder = RemoteStorage.MODULES[moduleName];
     if (builder) {
       var module = builder(new RemoteStorage.BaseClient(this, '/' + moduleName + '/'),
@@ -73,7 +73,7 @@
     }
   };
 
-  RemoteStorage.prototype.defineModule = function(moduleName) {
+  RemoteStorage.prototype.defineModule = function (moduleName) {
     console.log("remoteStorage.defineModule is deprecated, use RemoteStorage.defineModule instead!");
     RemoteStorage.defineModule.apply(RemoteStorage, arguments);
   };

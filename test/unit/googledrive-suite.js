@@ -1,23 +1,24 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(requirejs, backend, mocks, undefined) {
+define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function (Promise, requirejs, backend, mocks, undefined) {
+
+  global.Promise = Promise;
+
   var suites = [];
 
   function setup (env, test) {
     global.localStorage = {};
-    global.RemoteStorage = function() {
+    global.RemoteStorage = function () {
       RemoteStorage.eventHandling(this, 'error');
     };
-    RemoteStorage.log = function() {};
+    RemoteStorage.log = function () {};
     RemoteStorage.prototype = {
-      setBackend: function(b){
+      setBackend: function (b){
         this.backend = b;
       }
     };
-    global.RemoteStorage.Unauthorized = function() {};
-
-    require('./lib/promising');
+    global.RemoteStorage.Unauthorized = function () {};
 
     require('./src/util');
     if (global.rs_util) {
@@ -51,27 +52,27 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
   }
 
   function beforeEach(env, test) {
-    global.XMLHttpRequest = function() {
+    global.XMLHttpRequest = function () {
       XMLHttpRequest.instances.push(this);
       this._headers = {};
       this._responseHeaders = {};
     };
     XMLHttpRequest.instances = [];
     XMLHttpRequest.prototype = {
-      open: function() {
+      open: function () {
         this._open = Array.prototype.slice.call(arguments);
       },
-      send: function() {
+      send: function () {
         this._send = Array.prototype.slice.call(arguments);
       },
-      setRequestHeader: function(key, value) {
+      setRequestHeader: function (key, value) {
         this._headers[key] = value;
       },
-      getResponseHeader: function(key) {
+      getResponseHeader: function (key) {
         return this._responseHeaders[key];
       }
     };
-    ['load', 'abort', 'error'].forEach(function(cb) {
+    ['load', 'abort', 'error'].forEach(function (cb) {
       Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
         configurable: true,
         set: function(f) {
@@ -122,57 +123,90 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
     tests: [
       {
         desc: "#configure sets 'connected' to true, once token is given",
-        run: function(env, test) {
+        run: function (env, test) {
           env.client.configure(undefined, undefined, undefined, 'foobarbaz');
           test.assert(env.client.connected, true);
         }
       },
 
       {
+        desc: "#get returns a promise",
+        run: function (env, test) {
+          env.connectedClient.get('/foo/bar').then(function () {
+            test.result(false, 'get call should not return successful');
+          }, function (err) {
+            test.assert(err, 'request failed or something: undefined');
+          });
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req._onload();
+          }, 10);
+        }
+      },
+
+      {
         desc: "#get sends the request",
-        run: function(env, test) {
-          env.connectedClient.get('/foo/bar');
-          var req = XMLHttpRequest.instances.shift();
-          test.assertType(req._send, 'object');
+        run: function (env, test) {
+          var req;
+          env.connectedClient.get('/foo/bar').then(function () {
+            test.result(false, 'get call should not return successful');
+          }, function (err) {
+            test.assertAnd(err, 'request failed or something: undefined');
+          }).finally(function () {
+            test.assertType(req._send, 'object');
+          });
+          setTimeout(function () {
+            req = XMLHttpRequest.instances.shift();
+            req._onload();
+          }, 10);
         }
       },
 
       {
         desc: "#get sets the 'Authorization' header correctly",
-        run: function(env, test) {
-          env.connectedClient.get('/foo/bar');
-          var request = XMLHttpRequest.instances.shift();
-          test.assert(request._headers['Authorization'], 'Bearer ' + env.token);
-        }
-      },
-
-      {
-        desc: "#get returns a promise",
-        run: function(env, test) {
-          var result = env.connectedClient.get('/foo/bar');
-          test.assertTypeAnd(result, 'object');
-          test.assertType(result.then, 'function');
+        run: function (env, test) {
+          var req;
+          env.connectedClient.get('/foo/bar').then(function () {
+            test.result(false, 'get call should not return successful');
+          }, function (err) {
+            test.assertAnd(err, 'request failed or something: undefined');
+          }).finally(function () {
+            test.assert(req._headers['Authorization'], 'Bearer ' + env.token);
+          });
+          setTimeout(function () {
+            req = XMLHttpRequest.instances.shift();
+            req._onload();
+          }, 10);
         }
       },
 
       {
         desc: "#get installs onload and onerror handlers on the request",
-        run: function(env, test) {
-          env.connectedClient.get('/foo/bar/');
-          var req = XMLHttpRequest.instances.shift();
-          test.assertTypeAnd(req._onload, 'function');
-          test.assertTypeAnd(req._onerror, 'function');
-          test.done();
+        run: function (env, test) {
+          env.connectedClient.get('/foo/bar').then(function () {
+            test.result(false, 'get call should not return successful');
+          }, function (err) {
+            test.assertAnd(err, 'request failed or something: undefined');
+          }).finally(function () {
+            test.done();
+          });
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            test.assertTypeAnd(req._onload, 'function');
+            test.assertTypeAnd(req._onerror, 'function');
+            req._onload();
+          }, 10);
         }
       },
 
       {
         desc: "#get to folder result calls the files.list API function",
-        run: function(env, test) {
+        run: function (env, test) {
           env.connectedClient._fileIdCache.set('/foo/', 'abcd');
-          env.connectedClient.get('/foo/').then(function(status, body, contentType) {
-            test.assertAnd(status, 200);
-            test.assertAnd(body, {
+          env.connectedClient.get('/foo/')
+          .then(function (r) {
+            test.assertAnd(r.statusCode, 200);
+            test.assertAnd(r.body, {
               'bar/': {
                 ETag: '1234'
               },
@@ -182,109 +216,120 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
                 'Content-Length': 25003
               }
             });
-            test.assert(contentType, 'application/json; charset=UTF-8');
-          }, function(err) {
-            test.assert(err, false);
+            test.assert(r.contentType, 'application/json; charset=UTF-8');
+          }, function (err) {
+            test.result(false, errr);
           });
-          var req = XMLHttpRequest.instances.shift();
-          req.status = 200;
-          req.responseText = JSON.stringify({ items: [
-            {
-              etag: '"1234"',
-              mimeType: 'application/vnd.google-apps.folder',
-              title: 'bar'
-            },
-            {
-              etag: '"1234"',
-              mimeType: 'image/png',
-              fileSize: 25003,
-              title: 'baz.png'
-            }
-          ] });
-          req._onload();
-          test.assertAnd(req._open, [
-            'GET',
-            'https://www.googleapis.com/drive/v2/files?'
-              + 'q=' + encodeURIComponent('\'abcd\' in parents')
-              + '&fields=' + encodeURIComponent('items(downloadUrl,etag,fileSize,id,mimeType,title)')
-              + '&maxResults=1000',
-            true
-          ]);
+
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({ items: [
+              {
+                etag: '"1234"',
+                mimeType: 'application/vnd.google-apps.folder',
+                title: 'bar'
+              },
+              {
+                etag: '"1234"',
+                mimeType: 'image/png',
+                fileSize: 25003,
+                title: 'baz.png'
+              }
+            ] });
+            req._onload();
+            test.assertAnd(req._open, [
+              'GET',
+              'https://www.googleapis.com/drive/v2/files?'
+                + 'q=' + encodeURIComponent('\'abcd\' in parents')
+                + '&fields=' + encodeURIComponent('items(downloadUrl,etag,fileSize,id,mimeType,title)')
+                + '&maxResults=1000',
+              true
+            ]);
+          }, 10);
         }
       },
 
       {
         desc: "#get responds with 304 if the file has not changed",
-        run: function(env, test) {
+        run: function (env, test) {
           env.connectedClient._fileIdCache.set('/foo', 'foo_id');
           env.connectedClient.get('/foo', { ifNoneMatch: 'foo' }).
-            then(function(status) {
-              test.assert(status, 304);
+            then(function (r) {
+              test.assert (r.statusCode, 304);
             });
 
-          var reqMeta = XMLHttpRequest.instances.shift();
-          reqMeta.status = 200;
-          reqMeta.responseText = JSON.stringify({
-            etag: '"foo"'
-          });
-          reqMeta._onload();
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 200;
+            req.responseText = JSON.stringify({
+              etag: '"foo"'
+            });
+            req._onload();
+          }, 10);
         }
       },
 
       {
         desc: "#get to 404 document results in error",
-        run: function(env, test) {
-          env.connectedClient.get('/foo').then(function(status, body, contentType) {
-            test.assert('we should not have got here', false);
-          }, function(err) {
+        run: function (env, test) {
+          env.connectedClient.get('/foo').then(function (r) {
+            test.result(false, 'document get should have been a 404');
+          }, function (err) {
             test.assert(err, 'request failed or something: 404');
           });
-          var req = XMLHttpRequest.instances.shift();
-          req.status = 404;
-          req._onload();
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 404;
+            req._onload();
+          }, 10);
         }
       },
 
       {
         desc: "#get to 404 folder results in error",
-        run: function(env, test) {
-          env.connectedClient.get('/foo/').then(function(status, body, contentType) {
-            test.assert('we should not have got here', false);
-          }, function(err) {
+        run: function (env, test) {
+          env.connectedClient.get('/foo/').then(function (r) {
+            test.result(false, 'file get should have been a 404');
+          }, function (err) {
             test.assert(err, 'request failed or something: 404');
           });
-          var req = XMLHttpRequest.instances.shift();
-          req.status = 404;
-          req._onload();
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req.status = 404;
+            req._onload();
+          }, 10);
         }
       },
 
       {
         desc: "#put responds with 412 if ifNoneMatch condition fails",
-        run: function(env, test) {
+        run: function (env, test) {
           env.connectedClient._fileIdCache.set('/foo', 'foo_id');
           env.connectedClient.put('/foo', 'data', 'text/plain', { ifNoneMatch: '*' }).
-            then(function(status) {
-              test.assert(status, 412);
+            then(function (r) {
+              test.assert(r.statusCode, 412);
             });
         }
       },
 
       {
         desc: "#delete responds with 412 if ifMatch condition fails",
-        run: function(env, test) {
+        run: function (env, test) {
           env.connectedClient._fileIdCache.set('/foo', 'foo_id');
           env.connectedClient.delete('/foo', { ifMatch: 'foo_id' }).
-            then(function(status) {
-              test.assert(status, 412);
+            then(function (r) {
+              test.assert(r.statusCode, 412);
             });
 
-          var reqMeta = XMLHttpRequest.instances.shift();
-          reqMeta.status = 200;
-          reqMeta.responseText = JSON.stringify({
-            etag: '"foo"'
-          });
-          reqMeta._onload();
+          setTimeout(function () {
+            var reqMeta = XMLHttpRequest.instances.shift();
+            reqMeta.status = 200;
+            reqMeta.responseText = JSON.stringify({
+              etag: '"foo"'
+            });
+            reqMeta._onload();
+          }, 10);
         }
       }
 

@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
   /**
    * Interface: eventhandling
    */
@@ -8,7 +8,7 @@
      *
      * Install an event handler for the given event name
      */
-    addEventListener: function(eventName, handler) {
+    addEventListener: function (eventName, handler) {
       if (typeof(eventName) !== 'string') {
         throw new Error('Argument eventName should be a string');
       }
@@ -25,7 +25,7 @@
      *
      * Remove a previously installed event handler
      */
-    removeEventListener: function(eventName, handler) {
+    removeEventListener: function (eventName, handler) {
       this._validateEvent(eventName);
       var hl = this._handlers[eventName].length;
       for (var i=0;i<hl;i++) {
@@ -36,27 +36,27 @@
       }
     },
 
-    _emit: function(eventName) {
+    _emit: function (eventName) {
       this._validateEvent(eventName);
       var args = Array.prototype.slice.call(arguments, 1);
-      this._handlers[eventName].forEach(function(handler) {
+      this._handlers[eventName].forEach(function (handler) {
         handler.apply(this, args);
       });
     },
 
-    _validateEvent: function(eventName) {
+    _validateEvent: function (eventName) {
       if (! (eventName in this._handlers)) {
         throw new Error("Unknown event: " + eventName);
       }
     },
 
-    _delegateEvent: function(eventName, target) {
-      target.on(eventName, function(event) {
+    _delegateEvent: function (eventName, target) {
+      target.on(eventName, function (event) {
         this._emit(eventName, event);
       }.bind(this));
     },
 
-    _addEvent: function(eventName) {
+    _addEvent: function (eventName) {
       this._handlers[eventName] = [];
     }
   };
@@ -79,7 +79,7 @@
    *
    * Example:
    *   (start code)
-   *   var MyConstructor = function() {
+   *   var MyConstructor = function () {
    *     eventHandling(this, 'connected', 'disconnected');
    *
    *     this._emit('connected');
@@ -89,19 +89,19 @@
    *   };
    *
    *   var myObject = new MyConstructor();
-   *   myObject.on('connected', function() { console.log('connected'); });
-   *   myObject.on('disconnected', function() { console.log('disconnected'); });
+   *   myObject.on('connected', function () { console.log('connected'); });
+   *   myObject.on('disconnected', function () { console.log('disconnected'); });
    *   // This would throw an exception as well:
-   *   // myObject.on('something-else', function() {});
+   *   // myObject.on('something-else', function () {});
    *   (end code)
    */
-  RemoteStorage.eventHandling = function(object) {
+  RemoteStorage.eventHandling = function (object) {
     var eventNames = Array.prototype.slice.call(arguments, 1);
     for (var key in methods) {
       object[key] = methods[key];
     }
     object._handlers = {};
-    eventNames.forEach(function(eventName) {
+    eventNames.forEach(function (eventName) {
       object._addEvent(eventName);
     });
   };

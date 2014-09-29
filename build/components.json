@@ -1,6 +1,6 @@
 {
   "files": {
-    "lib/promising.js": "A Promises/A+ implementation",
+    "lib/bluebird.js": "A Promises implementation",
     "lib/tv4.js": "Tiny Validator for v4 JSON Schema",
     "lib/Math.uuid.js": "Universally-Unique-ID generator",
 
@@ -37,7 +37,8 @@
       "label": "Core",
       "desc": "Basic requirements to connect to a remotestorage server and send / receive data.",
       "files": [
-        "lib/promising.js",
+        "lib/bluebird.js",
+        "lib/bluebird-defer.js",
         "src/remotestorage.js",
         "src/util.js",
         "src/eventhandling.js",

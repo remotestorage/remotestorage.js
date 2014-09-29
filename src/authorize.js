@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
 
   function extractParams() {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
@@ -9,21 +9,21 @@
     hash = location.href.substring(hashPos+1);
     // if hash is not of the form #key=val&key=val, it's probably not for us
     if (hash.indexOf('=') === -1) { return; }
-    return hash.split('&').reduce(function(m, kvs) {
+    return hash.split('&').reduce(function (m, kvs) {
       var kv = kvs.split('=');
       m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
       return m;
     }, {});
   }
 
-  RemoteStorage.ImpliedAuth = function(storageApi, redirectUri) {
+  RemoteStorage.ImpliedAuth = function (storageApi, redirectUri) {
     RemoteStorage.log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
     // Set a fixed access token, signalling to not send it as Bearer
     remoteStorage.remote.configure(undefined, undefined, undefined, RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN);
     document.location = redirectUri;
   };
 
-  RemoteStorage.Authorize = function(authURL, scope, redirectUri, clientId) {
+  RemoteStorage.Authorize = function (authURL, scope, redirectUri, clientId) {
     RemoteStorage.log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
 
     var url = authURL, hashPos = redirectUri.indexOf('#');
@@ -40,7 +40,7 @@
 
   RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN = false;
 
-  RemoteStorage.prototype.authorize = function(authURL) {
+  RemoteStorage.prototype.authorize = function (authURL) {
     this.access.setStorageType(this.remote.storageType);
     var scope = this.access.scopeParameter;
 
@@ -74,16 +74,16 @@
     }
   };
 
-  RemoteStorage.prototype.impliedauth = function() {
+  RemoteStorage.prototype.impliedauth = function () {
     RemoteStorage.ImpliedAuth(this.remote.storageApi, String(document.location));
   };
 
-  RemoteStorage.Authorize._rs_supported = function(remoteStorage) {
+  RemoteStorage.Authorize._rs_supported = function (remoteStorage) {
     return typeof(document) !== 'undefined';
   };
 
   var onFeaturesLoaded;
-  RemoteStorage.Authorize._rs_init = function(remoteStorage) {
+  RemoteStorage.Authorize._rs_init = function (remoteStorage) {
 
     onFeaturesLoaded = function () {
       var authParamsUsed = false;
@@ -116,7 +116,7 @@
     remoteStorage.on('features-loaded', onFeaturesLoaded);
   };
 
-  RemoteStorage.Authorize._rs_cleanup = function(remoteStorage) {
+  RemoteStorage.Authorize._rs_cleanup = function (remoteStorage) {
     remoteStorage.removeEventListener('features-loaded', onFeaturesLoaded);
   };
 

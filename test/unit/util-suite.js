@@ -1,14 +1,24 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs) {
+define(['bluebird', 'requirejs'], function (Promise, requirejs) {
+  global.Promise = Promise;
   var suites = [];
+
+  function stringToArrayBuffer(str) {
+    var buf = new ArrayBuffer(str.length * 2);
+    var view = new Uint16Array(buf);
+    for (var i = 0, c = str.length; i < c; i++)
+    {
+      view[i] = str.charCodeAt(i);
+    }
+    return buf;
+  }
 
   suites.push({
     name: 'util',
     desc: 'RemoteStorage.util utility functions',
     setup: function(env, test) {
-      require('lib/promising');
       global.RemoteStorage = function() {};
       global.RemoteStorage.log = function() {};
       global.RemoteStorage.config = {
@@ -36,7 +46,8 @@ define(['requirejs'], function(requirejs) {
           test.assertAnd(RemoteStorage.util.isFolder('/foo'), false);
           test.assertAnd(RemoteStorage.util.isFolder('/%2F'), false);
           test.assertAnd(RemoteStorage.util.isFolder('/foo/%2F'), false);
-          test.assert(RemoteStorage.util.isFolder('/foo/ '), false);
+          test.assertAnd(RemoteStorage.util.isFolder('/foo/ '), false);
+          test.done();
         }
       },
 
@@ -50,7 +61,8 @@ define(['requirejs'], function(requirejs) {
           test.assertAnd(RemoteStorage.util.isDocument('/foo'), true);
           test.assertAnd(RemoteStorage.util.isDocument('/%2F'), true);
           test.assertAnd(RemoteStorage.util.isDocument('/foo/%2F'), true);
-          test.assert(RemoteStorage.util.isDocument('/foo/ '), true);
+          test.assertAnd(RemoteStorage.util.isDocument('/foo/ '), true);
+          test.done();
         }
       },
 
@@ -80,7 +92,8 @@ define(['requirejs'], function(requirejs) {
           test.assertAnd(cloned, obj);
           obj.nested = cloned;
           cloned = deepClone(obj);
-          test.assert(cloned, obj);
+          test.assertAnd(cloned, obj);
+          test.done();
         }
       },
 

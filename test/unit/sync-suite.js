@@ -2,7 +2,9 @@ if (typeof(define) !== 'function') {
   var define = require('amdefine');
 }
 
-define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
+define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks, requirejs) {
+  global.Promise = Promise;
+
   var suites = [];
 
   function flatten(array){
@@ -21,7 +23,6 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
     setup: function(env, test){
       mocks.defineMocks(env);
 
-      require('./lib/promising.js');
       global.RemoteStorage = function(){
         RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'sync-interval-change', 'error');
       };
@@ -197,7 +198,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
           };
           env.rs.sync.collectTasks = function() {
             collectTasksCalled++;
-            return promising().fulfill();
+            return Promise.resolve();
           };
           env.rs.sync.addTask = function() {
             addTaskCalled++;
@@ -228,11 +229,11 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
             haveDiffs = 0;
           env.rs.sync.collectDiffTasks = function() {
             collectDiffTasksCalled++;
-            return promising().fulfill(haveDiffs);
+            return Promise.resolve(haveDiffs);
           };
           env.rs.sync.collectRefreshTasks = function() {
             collectRefreshTasksCalled++;
-            return promising().fulfill([]);
+            return Promise.resolve([]);
           };
           env.rs.sync.collectTasks().then(function() {
             test.assertAnd(collectDiffTasksCalled, 1);
@@ -295,7 +296,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
                 timestamp: 1234567890124
               }
             });
-            return promising().fulfill();
+            return Promise.resolve();
           };
 
           env.rs.sync.collectRefreshTasks().then(function() {
@@ -316,9 +317,9 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
           test.assertAnd(env.rs.sync._running, {});
           var tmpDoTask = env.rs.sync.doTask;
           env.rs.sync.doTask = function() {
-            return promising().fulfill({
+            return Promise.resolve({
               action: undefined,
-              promise: promising().fulfill()
+              promise: Promise.resolve()
             });
           };
           env.rs.sync.numThreads = 5;
@@ -367,9 +368,9 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
           test.assertAnd(env.rs.sync._running, {});
           var tmpDoTask = env.rs.sync.doTask;
           env.rs.sync.doTask = function() {
-            return promising().fulfill({
+            return Promise.resolve({
               action: undefined,
-              promise: promising().fulfill()
+              promise: Promise.resolve()
             });
           };
           env.rs.sync.numThreads = 5;
@@ -451,8 +452,8 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
 
           env.rs.caching._responses['/foo1/'] = 'ALL';
           env.rs.caching._responses['/foo2/'] = 'ALL';
-          env.rs.remote._responses[['get', '/foo1/' ]] = ['timeout'];
-          env.rs.remote._responses[['get', '/foo2/' ]] = [200];
+          env.rs.remote._responses[['get', '/foo1/' ]] = {statusCode: 'timeout'};
+          env.rs.remote._responses[['get', '/foo2/' ]] = {statusCode: 200};
 
           env.rs.sync.numThreads = 1;
           env.rs.remote.connected = true;
@@ -568,9 +569,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
         run: function(env, test) {
           var tmp = env.rs.forAllNodes;
           env.rs.local.forAllNodes = function(cb) {
-            var promise = promising();
-            promise.reject('i am broken, deal with it!');
-            return promise;
+            return Promise.reject('i am broken, deal with it!');
           };
           env.rs.sync.sync().then(function() {
             test.result(false, 'sync was supposed to reject its promise');
@@ -597,7 +596,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
         desc: "get with maxAge requirement is rejected if remote is not connected",
         run: function(env, test) {
           env.rs.remote.connected = false;
-          env.rs.local.get('asdf', 2, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function() {
+          return env.rs.local.get('asdf', 2, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function() {
             test.result(false, 'should have been rejected');
           }, function(err) {
             test.done();
@@ -607,28 +606,25 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
 
       {
         desc: "get with maxAge requirement is rejected if remote is not online",
-        run: function(env, test) {
+        willFail: true,
+        run: function (env, test) {
           env.rs.remote.online = false;
-          env.rs.local.get('asdf', 2, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function() {
-            test.result(false, 'should have been rejected');
-          }, function(err) {
-            test.done();
-          });
+          return env.rs.local.get('asdf', 2, env.rs.sync.queueGetRequest.bind(env.rs.sync));
         }
       },
 
       {
         desc: "get with maxAge fetches from remote when no local data exists",
-        run: function(env, test) {
+        run: function (env, test) {
           env.rs.caching._responses['/'] = 'ALL';
           env.rs.caching._responses['/foo'] = 'ALL';
-          env.rs.remote._responses[['get', '/foo' ]] = [200, 'body', 'text/plain', 'revision'];
+          env.rs.remote._responses[['get', '/foo' ]] = {statusCode: 200, body: 'body', contentType: 'text/plain', revision: 'revision'};
           env.rs.remote.connected = true;
 
-          env.rs.local.get('/foo', 5, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(statusCode, body, contentType) {
-            test.assertAnd(statusCode, 200);
-            test.assertAnd(body, 'body');
-            test.assertAnd(contentType, 'text/plain');
+          return env.rs.local.get('/foo', 5, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function (r) {
+            test.assertAnd(r.statusCode, 200);
+            test.assertAnd(r.body, 'body');
+            test.assertAnd(r.contentType, 'text/plain');
             test.done();
           });
         }
@@ -636,13 +632,13 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
 
       {
         desc: "get with maxAge fetches from remote when local data is too old",
-        run: function(env, test) {
+        run: function (env, test) {
           env.rs.caching._responses['/'] = 'ALL';
           env.rs.caching._responses['/foo'] = 'ALL';
-          env.rs.remote._responses[['get', '/foo' ]] = [200, 'body', 'text/plain', 'revision'];
+          env.rs.remote._responses[['get', '/foo' ]] = {statusCode: 200, body: 'body', contentType: 'text/plain', revision: 'revision'};
           env.rs.remote.connected = true;
 
-          env.rs.local.setNodes({
+          return env.rs.local.setNodes({
             '/foo': {
               path: '/foo',
               common: {
@@ -651,11 +647,11 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
                 timestamp: new Date().getTime() - 60000
               }
             }
-          }).then(function() {
-            env.rs.local.get('/foo', 5, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(statusCode, body, contentType) {
-              test.assertAnd(statusCode, 200);
-              test.assertAnd(body, 'body');
-              test.assertAnd(contentType, 'text/plain');
+          }).then(function () {
+            env.rs.local.get('/foo', 5, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function (r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, 'body');
+              test.assertAnd(r.contentType, 'text/plain');
               test.done();
             });
           });
@@ -664,8 +660,8 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
 
       {
         desc: "get with maxAge returns local data when it's not outdated",
-        run: function(env, test) {
-          env.rs.local.setNodes({
+        run: function (env, test) {
+          return env.rs.local.setNodes({
             '/foo': {
               path: '/foo',
               common: {
@@ -674,11 +670,11 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
                 timestamp: new Date().getTime() - 60000
               }
             }
-          }).then(function() {
-            env.rs.local.get('/foo', 120000, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(statusCode, body, contentType) {
-              test.assertAnd(statusCode, 200);
-              test.assertAnd(body, 'old data');
-              test.assertAnd(contentType, 'text/html');
+          }).then(function () {
+            env.rs.local.get('/foo', 120000, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function (r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, 'old data');
+              test.assertAnd(r.contentType, 'text/html');
               test.done();
             });
           });
@@ -723,7 +719,6 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
         run: function(env, test) {
           env.rs.caching._responses['/foo/'] = 'ALL';
           env.rs.caching._responses['/foo/new'] = 'ALL';
-
           env.rs.local.setNodes({
             '/foo/': {
               path: '/foo/',
@@ -754,7 +749,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
               }
             }
           }).then(function() {
-            return env.rs.sync.handleResponse('/foo/new', 'get', 200, { foo: 'new' }, 'application/json', 'newrevision');
+            return env.rs.sync.handleResponse('/foo/new', 'get', {statusCode: 200, body: { foo: 'new' }, contentType: 'application/json', revision: 'newrevision'});
           }).then(function() {
             env.rs.local.getNodes(['/foo/']).then(function(nodes) {
               var parentNode = nodes['/foo/'];
@@ -762,7 +757,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
               test.assertTypeAnd(parentNode.local, 'undefined');
               test.assertType(parentNode.remote, 'undefined');
             });
-          });
+          }, test.fail).catch(test.fail);
         }
       },
 
@@ -804,7 +799,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
               }
             }
           }).then(function() {
-            return env.rs.sync.handleResponse('/foo/new', 'get', 200, { foo: 'new' }, 'application/json', 'newrevision');
+            return env.rs.sync.handleResponse('/foo/new', 'get', {statusCode: 200, body: { foo: 'new' }, contentType: 'application/json', revision: 'newrevision'});
           }).then(function() {
             env.rs.local.getNodes(['/foo/']).then(function(nodes) {
               var parentNode = nodes['/foo/'];
@@ -812,7 +807,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
               test.assertAnd(parentNode.local.itemsMap, { 'bar': true, 'new': true, 'othernew': false });
               test.assertType(parentNode.remote, 'undefined');
             });
-          });
+          }, test.fail).catch(test.fail);
         }
       },
 
@@ -876,7 +871,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
               }
             }
           }).then(function() {
-            return env.rs.sync.handleResponse('/foo/', 'get', 200, newItemsMap, 'application/json', 'newfolderrevision');
+            return env.rs.sync.handleResponse('/foo/', 'get', {statusCode: 200, body: newItemsMap, contentType: 'application/json', revision: 'newfolderrevision'});
           }).then(function() {
             env.rs.local.getNodes(['/foo/', '/foo/old']).then(function(nodes) {
               var parentNode = nodes['/foo/'];
@@ -886,7 +881,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
               test.assertTypeAnd(parentNode.remote, 'undefined');
               test.assertType(nodes['/foo/old'], 'undefined');
             });
-          });
+          }, test.fail).catch(test.fail);
         }
       },
 
@@ -924,7 +919,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
               test.result(false);
             }
           });
-          env.rs.sync.handleResponse(undefined, undefined, 401);
+          return env.rs.sync.handleResponse(undefined, undefined, {statusCode: 401});
         }
       },
 
@@ -945,7 +940,7 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
             }
           });
 
-          env.rs.sync.handleResponse(undefined, undefined, 418).then(function() {
+          return env.rs.sync.handleResponse(undefined, undefined, {statusCode: 418}).then(function() {
             test.result(false);
           }, function(error) {
             test.assertAnd(error.message, 'HTTP response code 418 received.');
@@ -1131,9 +1126,8 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
            setNodes = env.rs.sync.local.setNodes;
           env.rs.caching._responses['foo'] = 'ALL';
           env.rs.sync.local.getNodes = function(paths) {
-            var promise = promising();
             test.assertAnd(paths, ['foo']);
-            promise.fulfill({
+            return Promise.resolve({
               foo: {
                 path: 'foo',
                 common: { body: 'foo', contentType: 'bloo', revision: 'common' },
@@ -1141,7 +1135,6 @@ define(['test/helpers/mocks', 'requirejs'], function(mocks, requirejs) {
                 push: { body: 'floo', contentType: 'blaloo' }
               }
             });
-            return promise;
           };
           env.rs.sync.local.setNodes = function(nodes) {
             test.assert(nodes, {

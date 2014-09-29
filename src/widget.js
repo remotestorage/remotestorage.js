@@ -1,4 +1,4 @@
-(function(window) {
+(function (window) {
 
   var hasLocalStorage;
   var LS_STATE_KEY = "remotestorage:widget:state";
@@ -27,7 +27,7 @@
    * - wire-done    ->  connected
    * - error        ->  one of initial, offline, unauthorized, or error
    **/
-  RemoteStorage.Widget = function(remoteStorage) {
+  RemoteStorage.Widget = function (remoteStorage) {
     var self = this;
     var requestsToFlashFor = 0;
 
@@ -41,14 +41,14 @@
     this.rs.on('error', errorsHandler(this));
 
     if (this.rs.remote) {
-      this.rs.remote.on('wire-busy', function(evt) {
+      this.rs.remote.on('wire-busy', function (evt) {
         if (flashFor(evt)) {
           requestsToFlashFor++;
           stateSetter(self, 'busy')();
         }
       });
 
-      this.rs.remote.on('wire-done', function(evt) {
+      this.rs.remote.on('wire-done', function (evt) {
         if (flashFor(evt)) {
           requestsToFlashFor--;
         }
@@ -77,7 +77,7 @@
     *
     *   options
     **/
-    display: function(options) {
+    display: function (options) {
       if (typeof(options) === 'string') {
         options = { domID: options };
       } else if (typeof(options) === 'undefined') {
@@ -90,7 +90,7 @@
       return this;
     },
 
-    linkWidgetToSync: function() {
+    linkWidgetToSync: function () {
       if (typeof(this.rs.sync) === 'object' && typeof(this.rs.sync.sync) === 'function') {
         this.view.on('sync', this.rs.sync.sync.bind(this.rs.sync));
       } else {
@@ -105,9 +105,9 @@
     *  Sets the view and initializes event listeners to react on
     *  widget (widget.view) events
     **/
-    setView: function(view) {
+    setView: function (view) {
       this.view = view;
-      this.view.on('connect', function(options) {
+      this.view.on('connect', function (options) {
         if (typeof(options) === 'string') {
           // options is simply a useraddress
           this.rs.connect(options);
@@ -116,12 +116,12 @@
         }
       }.bind(this));
 
-      this.view.on('secret-entered', function(secretKey) {
+      this.view.on('secret-entered', function (secretKey) {
         this.view.setUserSecretKey(secretKey);
         stateSetter(this, 'ciphered')();
       }.bind(this));
 
-      this.view.on('secret-cancelled', function() { 
+      this.view.on('secret-cancelled', function () {
         stateSetter(this, 'notciphered')();
       }.bind(this));
 
@@ -129,7 +129,7 @@
 
       this.linkWidgetToSync();
       try {
-        this.view.on('reset', function(){
+        this.view.on('reset', function (){
           var location = RemoteStorage.Authorize.getLocation();
           this.rs.on('disconnected', location.reload.bind(location));
           this.rs.disconnect();
@@ -154,24 +154,24 @@
    *
    * Same as <display>
    **/
-  RemoteStorage.prototype.displayWidget = function(options) {
+  RemoteStorage.prototype.displayWidget = function (options) {
     return this.widget.display(options);
   };
 
-  RemoteStorage.Widget._rs_init = function(remoteStorage) {
+  RemoteStorage.Widget._rs_init = function (remoteStorage) {
     hasLocalStorage = remoteStorage.localStorageAvailable();
     if (! remoteStorage.widget) {
       remoteStorage.widget = new RemoteStorage.Widget(remoteStorage);
     }
   };
 
-  RemoteStorage.Widget._rs_supported = function(remoteStorage) {
+  RemoteStorage.Widget._rs_supported = function (remoteStorage) {
     return typeof(document) !== 'undefined';
   };
 
   function stateSetter(widget, state) {
     RemoteStorage.log('[Widget] Producing stateSetter for', state);
-    return function() {
+    return function () {
       RemoteStorage.log('[Widget] Setting state', state, arguments);
       if (hasLocalStorage) {
         localStorage[LS_STATE_KEY] = state;
@@ -188,7 +188,7 @@
   }
 
   function errorsHandler(widget) {
-    return function(error) {
+    return function (error) {
       if (error instanceof RemoteStorage.DiscoveryError) {
         console.error('Discovery failed', error, '"' + error.message + '"');
         widget.view.setState('initial', [error.message]);

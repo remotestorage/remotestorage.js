@@ -1,17 +1,18 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs) {
+define(['bluebird', 'requirejs'], function (Promise, requirejs) {
+  global.Promise = Promise;
+
   var suites = [];
 
   suites.push({
     name: 'InMemoryStorage',
     desc: 'In-memory caching layer',
 
-    setup: function(env, test) {
-      require('lib/promising.js');
-      global.RemoteStorage = function() {};
-      global.RemoteStorage.log = function() {};
+    setup: function (env, test) {
+      global.RemoteStorage = function () {};
+      global.RemoteStorage.log = function () {};
       global.RemoteStorage.config = {
         changeEvents: { local: true, window: false, remote: true, conflict: true }
       };
@@ -50,7 +51,7 @@ define(['requirejs'], function(requirejs) {
       test.done();
     },
 
-    beforeEach: function(env, test) {
+    beforeEach: function (env, test) {
       env.ims = new RemoteStorage.InMemoryStorage();
       test.done();
     },
@@ -58,17 +59,17 @@ define(['requirejs'], function(requirejs) {
     tests: [
       {
         desc: "#get loads a node from local",
-        run: function(env, test) {
+        run: function (env, test) {
           var node = {
             path: '/foo',
             local: { body: 'bar', contentType: 'text/plain', revision: 'someRev' }
           };
           env.ims._storage['/foo'] = node;
 
-          env.ims.get('/foo').then(function(status, body, contentType) {
-            test.assertAnd(status, 200);
-            test.assertAnd(body, node.local.body);
-            test.assertAnd(contentType, node.local.contentType);
+          env.ims.get('/foo').then(function (r) {
+            test.assertAnd(r.statusCode, 200);
+            test.assertAnd(r.body, node.local.body);
+            test.assertAnd(r.contentType, node.local.contentType);
             test.done();
           });
         }
@@ -76,17 +77,17 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "#get loads a node from common",
-        run: function(env, test) {
+        run: function (env, test) {
           var node = {
             path: '/foo',
             common: { body: 'bar', contentType: 'text/plain', revision: 'someRev' }
           };
           env.ims._storage['/foo'] = node;
 
-          env.ims.get('/foo').then(function(status, body, contentType) {
-            test.assertAnd(status, 200);
-            test.assertAnd(body, node.common.body);
-            test.assertAnd(contentType, node.common.contentType);
+          env.ims.get('/foo').then(function (r) {
+            test.assertAnd(r.statusCode, 200);
+            test.assertAnd(r.body, node.common.body);
+            test.assertAnd(r.contentType, node.common.contentType);
             test.done();
           });
         }
@@ -94,31 +95,31 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "#get yields 404 when it doesn't find a node",
-        run: function(env, test) {
-          env.ims.get('/bar').then(function(status) {
-            test.assert(status,404);
+        run: function (env, test) {
+          env.ims.get('/bar').then(function (r) {
+            test.assert(r.statusCode,404);
           });
         }
       },
 
       {
         desc: "#get gets queued as a sync request if its maxAge param cannot be satisfied because no node exists",
-        run: function(env, test) {
+        run: function (env, test) {
           var requestQueued = false;
 
           env.rs.sync = {
-            queueGetRequest: function(path, promise) {
+            queueGetRequest: function (path) {
               test.assertAnd(path, '/foo');
               requestQueued = true;
-              promise.fulfill(200, 'asdf', 'qwer');
+              return Promise.resolve({statusCode: 200, body: 'asdf', contentType: 'qwer'});
             }
           };
 
-          env.rs.local.get('/foo', 100, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(status, body, contentType) {
+          env.rs.local.get('/foo', 100, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function (r) {
             test.assertAnd(requestQueued, true);
-            test.assertAnd(status, 200);
-            test.assertAnd(body, 'asdf');
-            test.assertAnd(contentType, 'qwer');
+            test.assertAnd(r.statusCode, 200);
+            test.assertAnd(r.body, 'asdf');
+            test.assertAnd(r.contentType, 'qwer');
             test.done();
           });
         }
@@ -126,7 +127,7 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "#get removes falsy items from local version itemsMap",
-        run: function(env, test) {
+        run: function (env, test) {
           var requestQueued = false;
           var oldTimestamp = (new Date().getTime()) - 1000;
 
@@ -143,9 +144,9 @@ define(['requirejs'], function(requirejs) {
               revision: '123'
             }
           };
-          env.rs.local.get('/', false).then(function(status, itemsMap) {
-            test.assertAnd(status, 200);
-            test.assertAnd(itemsMap, { foo: true });
+          env.rs.local.get('/', false).then(function (r) {
+            test.assertAnd(r.statusCode, 200);
+            test.assertAnd(r.body, { foo: true });
             test.done();
           });
         }
@@ -153,7 +154,7 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "#get gets queued as a sync request if node is older than the maxAge",
-        run: function(env, test) {
+        run: function (env, test) {
           var requestQueued = false;
           var oldTimestamp = (new Date().getTime()) - 1000;
 
@@ -177,18 +178,18 @@ define(['requirejs'], function(requirejs) {
           };
 
           env.rs.sync = {
-            queueGetRequest: function(path, promise) {
+            queueGetRequest: function (path) {
               test.assertAnd(path, '/foo');
               requestQueued = true;
-              promise.fulfill(200, 'new body', 'text/new');
+              return Promise.resolve({statusCode: 200, body: 'new body', contentType: 'text/new'});
             }
           };
 
-          env.rs.local.get('/foo', 100, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function(status, body, contentType) {
+          env.rs.local.get('/foo', 100, env.rs.sync.queueGetRequest.bind(env.rs.sync)).then(function (r) {
             test.assertAnd(requestQueued, true);
-            test.assertAnd(status, 200);
-            test.assertAnd(body, 'new body');
-            test.assertAnd(contentType, 'text/new');
+            test.assertAnd(r.statusCode, 200);
+            test.assertAnd(r.body, 'new body');
+            test.assertAnd(r.contentType, 'text/new');
             test.done();
           });
         }
@@ -196,7 +197,7 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "#get returns local data if it's newer than the maxAge param",
-        run: function(env, test) {
+        run: function (env, test) {
           env.rs.local._storage['/note'] = {
             path: '/note',
             common: {
@@ -208,15 +209,15 @@ define(['requirejs'], function(requirejs) {
           };
 
           env.rs.sync = {
-            queueGetRequest: function(path, promise) {
+            queueGetRequest: function (path) {
               test.result(false, 'should have been served from local cache');
             }
           };
 
-          env.rs.local.get('/note', 10000).then(function(status, body, contentType) {
-            test.assertAnd(status, 200);
-            test.assertAnd(body, 'cached note');
-            test.assertAnd(contentType, 'text/plain');
+          env.rs.local.get('/note', 10000).then(function (r) {
+            test.assertAnd(r.statusCode, 200);
+            test.assertAnd(r.body, 'cached note');
+            test.assertAnd(r.contentType, 'text/plain');
             test.done();
           });
         }
@@ -224,26 +225,24 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "#get rejects the promise when there is an error reading the local data",
-        run: function(env, test) {
-          env.rs.local.getNodes = function(paths) {
-            return promising().reject('Could not read local data');
+        run: function (env, test) {
+          env.rs.local.getNodes = function (paths) {
+            return Promise.reject('Could not read local data');
           };
 
-          env.rs.local.get('/note').then(function(status, body, contentType) {
+          env.rs.local.get('/note').then(function (r) {
             test.result(false);
-            test.done();
-          }, function(error) {
-            test.assertAnd('Could not read local data', error);
-            test.done();
+          }, function (error) {
+            test.assert('Could not read local data', error);
           });
         }
       },
 
       {
         desc: "#put yields 200 and stores the node",
-        run: function(env, test) {
-          env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {
-            test.assertAnd(status, 200);
+        run: function (env, test) {
+          env.ims.put('/foo', 'bar', 'text/plain').then(function (r) {
+            test.assertAnd(r.statusCode, 200);
             test.assertAnd(env.ims._storage['/foo'].path, '/foo');
             test.assertAnd(env.ims._storage['/foo'].local.contentType,'text/plain');
             test.assertAnd(env.ims._storage['/foo'].local.body,'bar');
@@ -254,9 +253,9 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "#put adds node to parents",
-        run: function(env, test) {
-          env.ims.put('/foo', 'bar', 'text/plain').then(function(status) {
-            test.assertAnd(status, 200);
+        run: function (env, test) {
+          env.ims.put('/foo', 'bar', 'text/plain').then(function (r) {
+            test.assertAnd(r.statusCode, 200);
             test.assertAnd(env.ims._storage['/'].path, '/');
             test.assertAnd(env.ims._storage['/'].local.itemsMap, {'foo': true});
             test.done();
@@ -267,9 +266,9 @@ define(['requirejs'], function(requirejs) {
       {
         desc: "#put fires a 'change' with origin=window for outgoing changes",
         timeout: 250,
-        run: function(env, test) {
+        run: function (env, test) {
           RemoteStorage.config.changeEvents.window = true;
-          env.ims.on('change', function(event) {
+          env.ims.on('change', function (event) {
             test.assert(event, {
               path: '/foo/bla',
               origin: 'window',
@@ -285,10 +284,10 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "#put attaches the newValue and oldValue correctly for updates",
-        run: function(env, test) {
+        run: function (env, test) {
           var i = 0;
 
-          env.ims.on('change', function(event) {
+          env.ims.on('change', function (event) {
             i++;
             if (i === 1) {
               test.assertAnd(event, {
@@ -308,7 +307,7 @@ define(['requirejs'], function(requirejs) {
                 oldContentType: 'text/plain',
                 newContentType: 'text/plain'
               });
-              setTimeout(function() {
+              setTimeout(function () {
                 test.done();
               }, 0);
             } else {
@@ -317,7 +316,7 @@ define(['requirejs'], function(requirejs) {
             }
           });
 
-          env.ims.put('/foo/bla', 'basdf', 'text/plain').then(function() {
+          env.ims.put('/foo/bla', 'basdf', 'text/plain').then(function () {
             env.ims.put('/foo/bla', 'fdsab', 'text/plain');
           });
         }
@@ -325,17 +324,18 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "#delete removes the node and empty parents",
-        run: function(env, test) {
+        run: function (env, test) {
           var storage = env.ims._storage;
           var getLatest = env.ims._getInternals().getLatest;
 
-          env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function() {
+          return env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function (r) {
+            console.log('response: ', r);
             var storageKeys = ['/foo/bar/baz', '/foo/bar/', '/foo/', '/'];
 
             test.assertAnd(Object.keys(storage), storageKeys);
 
-            env.ims.delete('/foo/bar/baz').then(function(status) {
-              test.assertAnd(status, 200, 'Wrong status code: '+status); //TODO belongs in seperate test
+            return env.ims.delete('/foo/bar/baz').then(function (r) {
+              test.assertAnd(r.statusCode, 200, 'Wrong statusCode: '+r.statusCode); //TODO belongs in seperate test
               test.assertAnd(getLatest(storage['/foo/bar/baz']), undefined);
               test.assertAnd(getLatest(storage['/foo/bar/']).itemsMap, {});
               test.assertAnd(getLatest(storage['/foo/']).itemsMap, {});
@@ -348,10 +348,10 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "#delete emits change event",
-        run: function(env, test) {
-          env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function() {
+        run: function (env, test) {
+          return env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function () {
 
-            env.ims.on('change', function(event) {
+            env.ims.on('change', function (event) {
               test.assert(event, {
                 path: '/foo/bar/baz',
                 origin: 'window',
@@ -362,20 +362,20 @@ define(['requirejs'], function(requirejs) {
               });
             });
 
-            env.ims.delete('/foo/bar/baz');
+            return env.ims.delete('/foo/bar/baz');
           });
         }
       },
 
       {
         desc: "#delete doesn't remove nonempty nodes",
-        run: function(env, test) {
+        run: function (env, test) {
           var storage = env.ims._storage;
           var getLatest = env.ims._getInternals().getLatest;
 
-          env.ims.put('/foo/bar/baz', 'bla', 'text/plain', true, 'a1b2c3').then(function() {
-            env.ims.put('/foo/baz', 'bla', 'text/plain', true, 'a1b2c3').then(function() {
-              env.ims.delete('/foo/bar/baz').then(function(status) {
+          return env.ims.put('/foo/bar/baz', 'bla', 'text/plain', true, 'a1b2c3').then(function () {
+            return env.ims.put('/foo/baz', 'bla', 'text/plain', true, 'a1b2c3').then(function () {
+              return env.ims.delete('/foo/bar/baz').then(function (status) {
                 test.assertAnd(getLatest(storage['/']).itemsMap, { 'foo/': true });
                 test.assertAnd(getLatest(storage['/foo/']).itemsMap, { 'baz': true });
                 test.assertAnd(getLatest(storage['/foo/baz']).body, 'bla');
@@ -389,10 +389,10 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "#delete propagates changes through empty folders",
-        run: function(env, test) {
-          env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function() {
-            env.ims.put('/foo/baz', 'bla', 'text/plain', 'a1b2c3').then(function() {
-              env.ims.delete('/foo/bar/baz').then(function(status) {
+        run: function (env, test) {
+          return env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function () {
+            return env.ims.put('/foo/baz', 'bla', 'text/plain', 'a1b2c3').then(function () {
+              return env.ims.delete('/foo/bar/baz').then(function (status) {
                 test.assert(env.ims._storage['/'].local.itemsMap, {'foo/': true});
               });
             });
@@ -403,19 +403,19 @@ define(['requirejs'], function(requirejs) {
       {
         // TODO belongs in separate examples; missing description
         desc: "getNodes, setNodes",
-        run: function(env, test) {
-          env.ims.getNodes(['/foo/bar/baz']).then(function(objs) {
+        run: function (env, test) {
+          return env.ims.getNodes(['/foo/bar/baz']).then(function (objs) {
             test.assertAnd(objs, {'/foo/bar/baz': undefined});
-          }).then(function() {
+          }).then(function () {
             return env.ims.setNodes({
               '/foo/bar': {
                 path: '/foo/bar',
                 common: { body: 'asdf' }
               }
             });
-          }).then(function() {
+          }).then(function () {
             return env.ims.getNodes(['/foo/bar', '/foo/bar/baz']);
-          }).then(function(objs) {
+          }).then(function (objs) {
             test.assertAnd(objs, {
               '/foo/bar/baz': undefined,
               '/foo/bar': {
@@ -423,7 +423,7 @@ define(['requirejs'], function(requirejs) {
                 common: { body: 'asdf' }
               }
             });
-          }).then(function() {
+          }).then(function () {
             return env.ims.setNodes({
               '/foo/bar/baz': {
                 path: '/foo/bar/baz/',
@@ -431,9 +431,9 @@ define(['requirejs'], function(requirejs) {
               },
               '/foo/bar': undefined
             });
-          }).then(function() {
+          }).then(function () {
             return env.ims.getNodes(['/foo/bar', '/foo/bar/baz']);
-          }).then(function(objs) {
+          }).then(function (objs) {
             test.assertAnd(objs, {
               '/foo/bar': undefined,
               '/foo/bar/baz': {
@@ -448,8 +448,8 @@ define(['requirejs'], function(requirejs) {
 
       {
         desc: "fireInitial leads to local-events-done event",
-        run: function(env, test) {
-          env.ims.on('local-events-done', function() {
+        run: function (env, test) {
+          env.ims.on('local-events-done', function () {
             test.done();
           });
           env.ims.fireInitial();

@@ -1,4 +1,4 @@
-(function() {
+(function () {
   /**
    * Interface: cachinglayer
    *
@@ -100,24 +100,23 @@
     // TODO: improve our code structure so that this function
     // could call sync.queueGetRequest directly instead of needing
     // this hacky third parameter as a callback
-    get: function(path, maxAge, queueGetRequest) {
-      var promise = promising();
-
+    get: function (path, maxAge, queueGetRequest) {
+      var self = this;
       if (typeof(maxAge) === 'number') {
-        this.getNodes(pathsFromRoot(path)).then(function(objs) {
+        return self.getNodes(pathsFromRoot(path))
+        .then(function (objs) {
           var node = getLatest(objs[path]);
           if (isOutdated(objs, maxAge)) {
-            queueGetRequest(path, promise);
+            return queueGetRequest(path);
           } else if (node) {
-            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+            return {statusCode: 200, body: node.body || node.itemsMap, contentType: node.contentType};
           } else {
-            promise.fulfill(404);
+            return {statusCode: 404};
           }
-        }.bind(this), function(err) {
-          promise.reject(err);
         });
       } else {
-        this.getNodes([path]).then(function(objs) {
+        return self.getNodes([path])
+        .then(function (objs) {
           var node = getLatest(objs[path]);
           if (node) {
             if (isFolder(path)) {
@@ -128,23 +127,21 @@
                 }
               }
             }
-            promise.fulfill(200, node.body || node.itemsMap, node.contentType);
+            return {statusCode: 200, body: node.body || node.itemsMap, contentType: node.contentType};
           } else {
-            promise.fulfill(404);
+            return {statusCode: 404};
           }
-        }.bind(this), function(err) {
-          promise.reject(err);
         });
       }
-      return promise;
     },
 
-    put: function(path, body, contentType) {
+    put: function (path, body, contentType) {
       var paths = pathsFromRoot(path);
+      var self = this;
 
-      return this._updateNodes(paths, function(nodes) {
+      function _processNodes(paths, nodes) {
         try {
-          for (var i=0; i<paths.length; i++) {
+          for (var i = 0, len = paths.length; i < len; i++) {
             var path = paths[i];
             var node = nodes[path];
             var previous;
@@ -170,36 +167,35 @@
             }
           }
           return nodes;
-        } catch(e) {
+        } catch (e) {
           RemoteStorage.log('[Cachinglayer] Error during PUT', nodes, i, e);
           throw e;
         }
-      });
+      }
+      return this._updateNodes(paths, _processNodes);
     },
 
-    delete: function(path) {
+    delete: function (path) {
       var paths = pathsFromRoot(path);
 
-      return this._updateNodes(paths, function(nodes) {
-        for (var i=0; i<paths.length; i++) {
+      return this._updateNodes(paths, function (paths, nodes) {
+        for (var i = 0, len = paths.length; i < len; i++) {
           var path = paths[i];
           var node = nodes[path];
-
           if (!node) {
             throw new Error('Cannot delete non-existing node '+path);
           }
 
-          // Document
           if (i === 0) {
+          // Document
             previous = getLatest(node);
             node.local = {
               body:                false,
               previousBody:        (previous ? previous.body : undefined),
               previousContentType: (previous ? previous.contentType : undefined),
             };
-          }
+          } else {
           // Folder
-          else {
             if (!node.local) {
               node.local = deepClone(node.common);
             }
@@ -216,15 +212,16 @@
       });
     },
 
-    flush: function(path) {
-      return this._getAllDescendentPaths(path).then(function(paths) {
-        return this.getNodes(paths);
-      }.bind(this)).then(function(nodes) {
+    flush: function (path) {
+      var self = this;
+      return self._getAllDescendentPaths(path).then(function (paths) {
+        return self.getNodes(paths);
+      }).then(function (nodes) {
         for (var path in nodes) {
           var node = nodes[path];
 
           if (node && node.common && node.local) {
-            this._emitChange({
+            self._emitChange({
               path:     node.path,
               origin:   'local',
               oldValue: (node.local.body === false ? undefined : node.local.body),
@@ -233,26 +230,27 @@
           }
           nodes[path] = undefined;
         }
-        return this.setNodes(nodes);
-      }.bind(this));
+        return self.setNodes(nodes);
+      });
     },
 
-    _emitChange: function(obj) {
+    _emitChange: function (obj) {
       if (RemoteStorage.config.changeEvents[obj.origin]) {
         this._emit('change', obj);
       }
     },
 
-    fireInitial: function() {
+    fireInitial: function () {
       if (!RemoteStorage.config.changeEvents.local) {
         return;
       }
-      this.forAllNodes(function(node) {
+      var self = this;
+      self.forAllNodes(function (node) {
         var latest;
         if (isDocument(node.path)) {
           latest = getLatest(node);
           if (latest) {
-            this._emitChange({
+            self._emitChange({
               path:           node.path,
               origin:         'local',
               oldValue:       undefined,
@@ -262,16 +260,16 @@
             });
           }
         }
-      }.bind(this)).then(function () {
-        this._emit('local-events-done');
-      }.bind(this));
+      }).then(function () {
+        self._emit('local-events-done');
+      });
     },
 
-    onDiff: function(diffHandler) {
+    onDiff: function (diffHandler) {
       this.diffHandler = diffHandler;
     },
 
-    migrate: function(node) {
+    migrate: function (node) {
       if (typeof(node) === 'object' && !node.common) {
         node.common = {};
         if (typeof(node.path) === 'string') {
@@ -290,40 +288,44 @@
       return node;
     },
 
+    // FIXME
+    // this process of updating nodes needs to be heavily documented first, then
+    // refactored. Right now it's almost impossible to refactor as there's no
+    // explanation of why things are implemented certain ways or what the goal(s)
+    // of the behavior are. -slvrbckt
     _updateNodesRunning: false,
     _updateNodesQueued: [],
-    _updateNodes: function(paths, cb) {
-      var promise = promising();
-      this._doUpdateNodes(paths, cb, promise);
-      return promise;
+    _updateNodes: function (paths, _processNodes) {
+      var pending = Promise.defer();
+      this._doUpdateNodes(paths, _processNodes, pending);
+      return pending.promise;
     },
-    _doUpdateNodes: function(paths, cb, promise) {
+    _doUpdateNodes: function (paths, _processNodes, promise) {
       var self = this;
 
-      if (this._updateNodesRunning) {
-        this._updateNodesQueued.push({
+      if (self._updateNodesRunning) {
+        self._updateNodesQueued.push({
           paths: paths,
-          cb: cb,
+          cb: _processNodes,
           promise: promise
         });
         return;
       } else {
-        this._updateNodesRunning = true;
+        self._updateNodesRunning = true;
       }
 
-      this.getNodes(paths).then(function(nodes) {
+      self.getNodes(paths).then(function (nodes) {
         var existingNodes = deepClone(nodes);
         var changeEvents = [];
         var node;
-
-        nodes = cb(nodes);
+        nodes = _processNodes(paths, nodes);
 
         for (var path in nodes) {
           node = nodes[path];
           if (equal(node, existingNodes[path])) {
             delete nodes[path];
           }
-          else if(isDocument(path)) {
+          else if (isDocument(path)) {
             changeEvents.push({
               path:           path,
               origin:         'window',
@@ -337,21 +339,25 @@
           }
         }
 
-        self.setNodes(nodes).then(function() {
+        self.setNodes(nodes).then(function () {
           self._emitChangeEvents(changeEvents);
-          promise.fulfill(200);
+          promise.resolve({statusCode: 200});
         });
-      }).then(undefined, promise.reject).then(function() {
-        this._updateNodesRunning = false;
-        var nextJob = this._updateNodesQueued.shift();
+      }).then(function () {
+        return Promise.resolve();
+      }, function (err) {
+        promise.reject(err);
+      }).then(function () {
+        self._updateNodesRunning = false;
+        var nextJob = self._updateNodesQueued.shift();
         if (nextJob) {
-          this._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
+          self._doUpdateNodes(nextJob.paths, nextJob.cb, nextJob.promise);
         }
-      }.bind(this));
+      });
     },
 
-    _emitChangeEvents: function(events) {
-      for (var i=0; i<events.length; i++) {
+    _emitChangeEvents: function (events) {
+      for (var i = 0, len = events.length; i < len; i++) {
         this._emitChange(events[i]);
         if (this.diffHandler) {
           this.diffHandler(events[i].path);
@@ -359,34 +365,31 @@
       }
     },
 
-    _getAllDescendentPaths: function(path) {
+    _getAllDescendentPaths: function (path) {
+      var self = this;
       if (isFolder(path)) {
-        return this.getNodes([path]).then(function(nodes) {
-          var pending = 0;
+        return self.getNodes([path]).then(function (nodes) {
           var allPaths = [path];
           var latest = getLatest(nodes[path]);
-          var promise = promising();
 
-          for (var itemName in latest.itemsMap) {
-            pending++;
-            this._getAllDescendentPaths(path+itemName).then(function(paths) {
-              pending--;
-              for (var i=0; i<paths.length; i++) {
+          var itemNames = Object.keys(latest.itemsMap);
+          var calls = itemNames.map(function (itemName) {
+            return self._getAllDescendentPaths(path+itemName).then(function (paths) {
+              for (var i = 0, len = paths.length; i < len; i++) {
                 allPaths.push(paths[i]);
               }
-              if (pending === 0) {
-                promise.fulfill(allPaths);
-              }
             });
-          }
-          return promise;
-        }.bind(this));
+          });
+          return Promise.all(calls).then(function () {
+            return allPaths;
+          });
+        });
       } else {
-        return promising().fulfill([path]);
+        return Promise.resolve([path]);
       }
     },
 
-    _getInternals: function() {
+    _getInternals: function () {
       return {
         getLatest: getLatest,
         makeNode: makeNode,
@@ -404,12 +407,12 @@
    *
    * Example:
    *   (start code)
-   *   var MyConstructor = function() {
+   *   var MyConstructor = function () {
    *     cachingLayer(this);
    *   };
    *   (end code)
    */
-  RemoteStorage.cachingLayer = function(object) {
+  RemoteStorage.cachingLayer = function (object) {
     for (var key in methods) {
       object[key] = methods[key];
     }

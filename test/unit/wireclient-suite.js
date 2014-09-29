@@ -1,7 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(requirejs, backend, mocks, undefined) {
+define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(Promise, requirejs, backend, mocks, undefined) {
+  global.Promise = Promise;
   var suites = [];
 
   function setup(env, test) {
@@ -10,7 +11,6 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
     global.RemoteStorage.Unauthorized = function() {};
     global.RemoteStorage.SyncError = function() {};
     global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
-    require('./lib/promising');
 
     require('./src/util');
     if (global.rs_util) {
@@ -121,42 +121,43 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
     afterEach: afterEach,
     tests: [
       {
-        desc: "#get / #put / #delete throw an exception if not connected",
+        desc: "#get fails if not connected",
+        willFail: true,
         run: function(env, test) {
-          try {
-            env.client.get('/foo');
-            test.result(false);
-            return;
-          } catch(e) {}
+          return env.client.get('/foo');
+        }
+      },
+      {
+        desc: "#put fails if not connected",
+        willFail: true,
+        run: function(env, test) {
+          return env.client.put('/foo', 'bla');
+        }
+      },
 
-          try {
-            env.client.put('/foo', 'bla');
-            test.result(false);
-            return;
-          } catch(e) {}
-
-          try {
-            env.client.delete('/foo');
-            test.result(false);
-            return;
-          } catch(e) {}
-          test.done();
+      {
+        desc: "#delete fails if not connected",
+        willFail: true,
+        run: function(env, test) {
+          return env.client.delete('/foo');
         }
       },
 
       {
         desc: "client.get() of a document emits wire-busy and wire-done on success",
         run: function(env,test){
-          env.connectedClient.get('/foo').then(function(){
+          env.connectedClient.get('/foo').then(function (){
             test.assertAnd(env.busy.numCalled, 1);
             test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-          req.status = 200;
-          req.response = new ArrayBufferMock('response-body');
-          req._onload();
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+            req.status = 200;
+            req.response = new ArrayBufferMock('response-body');
+            req._onload();
+          }, 10);
         }
       },
 
@@ -164,13 +165,16 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "client.get() of a document emits wire-busy and wire-done on failure",
         run: function(env,test){
           env.connectedClient.get('/foo').then(function(){
-          }, function(err) {
+          }, function (err) {
             test.assertAnd(env.busy.numCalled, 1);
             test.assertAnd(env.done.numCalled, 1);
             test.done();
           });
-          var req = XMLHttpRequest.instances.shift();
-          req._onerror('something went wrong at the XHR level');
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req._onerror('something went wrong at the XHR level');
+          }, 10);
+
         }
       },
 
@@ -448,16 +452,19 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "#get extracts the Content-Type header, status and responseText and fulfills its promise with those, once onload is called",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
-            then(function(status, body, contentType) {
-              test.assertAnd(status, 200);
-              test.assertAnd(body, 'response-body');
-              test.assert(contentType, 'text/plain; charset=UTF-8');
+            then(function (r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, 'response-body');
+              test.assert(r.contentType, 'text/plain; charset=UTF-8');
             });
-          var req = XMLHttpRequest.instances.shift();
-          req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
-          req.status = 200;
-          req.response = new ArrayBufferMock('response-body');
-          req._onload();
+
+          setTimeout(function () {
+            var req = XMLHttpRequest.instances.shift();
+            req._responseHeaders['Content-Type'] = 'text/plain; charset=UTF-8';
+            req.status = 200;
+            req.response = new ArrayBufferMock('response-body');
+            req._onload();
+          }, 10);
         }
       },
 
@@ -465,11 +472,12 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "#get does not unpack JSON responses",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
-            then(function(status, body, contentType) {
-              test.assertAnd(status, 200);
-              test.assertAnd(body, JSON.stringify({ response: 'body' }));
-              test.assert(contentType, 'application/json; charset=UTF-8');
+            then(function (r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, JSON.stringify({ response: 'body' }));
+              test.assert(r.contentType, 'application/json; charset=UTF-8');
             });
+
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
           req.status = 200;
@@ -482,10 +490,10 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "#get unpacks pre-02 folder listings",
         run: function(env, test) {
           env.connectedClient.get('/foo/01/').
-            then(function(status, body, contentType) {
-              test.assertAnd(status, 200);
-              test.assertAnd(body, {'a': {'ETag': 'qwer'}, 'b/': {'ETag': 'asdf'}});
-              test.assert(contentType, 'application/json; charset=UTF-8');
+            then(function(r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, {'a': {'ETag': 'qwer'}, 'b/': {'ETag': 'asdf'}});
+              test.assert(r.contentType, 'application/json; charset=UTF-8');
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
@@ -500,13 +508,13 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "#get unpacks -02 folder listings",
         run: function(env, test) {
           env.connectedClient.get('/foo/01/').
-            then(function(status, body, contentType) {
-              test.assertAnd(status, 200);
-              test.assertAnd(body, {
+            then(function(r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, {
                 a: { "ETag": "qwer", "Content-Length": 5, "Content-Type": "text/html" },
                 "b/": { "ETag": "asdf", "Content-Type":"application/json", "Content-Length": 137 }
               });
-              test.assert(contentType, 'application/json; charset=UTF-8');
+              test.assert(r.contentType, 'application/json; charset=UTF-8');
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/json; charset=UTF-8';
@@ -536,7 +544,8 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
           var request = RemoteStorage.WireClient.request;
 
-          RemoteStorage.WireClient.request = function(method, url, options, callback) {
+          RemoteStorage.WireClient.request = function(method, url, options) {
+            RemoteStorage.WireClient.request = request;
             test.assert(url, 'https://example.com/storage/test/foo/A%252FB/bar', url);
           };
 
@@ -552,7 +561,8 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
           var request = RemoteStorage.WireClient.request;
 
-          RemoteStorage.WireClient.request = function(method, url, options, callback) {
+          RemoteStorage.WireClient.request = function(method, url, options) {
+            RemoteStorage.WireClient.request = request;
             test.assert(url, 'https://example.com/storage/test/foo/A%20B/bar', url);
           };
 
@@ -568,7 +578,8 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
           var request = RemoteStorage.WireClient.request;
 
-          RemoteStorage.WireClient.request = function(method, url, options, callback) {
+          RemoteStorage.WireClient.request = function(method, url, options) {
+            RemoteStorage.WireClient.request = request;
             test.assert(url, 'https://example.com/storage/test/foo/A/B/C/D/E', url);
           };
 
@@ -584,7 +595,8 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           env.connectedClient.configure(undefined, undefined, 'draft-dejong-remotestorage-01');
           var request = RemoteStorage.WireClient.request;
 
-          RemoteStorage.WireClient.request = function(method, url, options, callback) {
+          RemoteStorage.WireClient.request = function(method, url, options) {
+            RemoteStorage.WireClient.request = request;
             test.assert(url, 'https://example.com/storage/test/foo/A/B/C/D/E', url);
           };
 
@@ -655,7 +667,8 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
           RemoteStorage.WireClient.REQUEST_TIMEOUT = 1000;
           env.connectedClient.get('/foo').then(function() {
             test.result(false);
-          }, function(error) {
+          }, function (error) {
+            console.log('test got errror: ', error);
             test.assert('timeout', error);
           });
         }
@@ -665,13 +678,13 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "responses with the charset set to 'binary' are left as the raw response",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
-            then(function(status, body, contentType) {
-              test.assertAnd(status, 200);
-              test.assertAnd(body, {
+            then(function(r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, {
                 iAmA: 'ArrayBufferMock',
                 content: 'response-body'
               });
-              test.assert(contentType, 'application/octet-stream; charset=binary');
+              test.assert(r.contentType, 'application/octet-stream; charset=binary');
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'application/octet-stream; charset=binary';
@@ -735,9 +748,9 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "responses without a Content-Type header are left as the raw response",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
-            then(function(status, body, contentType) {
-              test.assertAnd(status, 200);
-              test.assertAnd(body, {
+            then(function(r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, {
                 iAmA: 'ArrayBufferMock',
                 content: 'response-body'
               });
@@ -754,10 +767,10 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "404 responses for documents discard the body altogether",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
-            then(function(status, body, contentType) {
-              test.assertAnd(status, 404);
-              test.assertTypeAnd(body, 'undefined');
-              test.assertTypeAnd(contentType, 'undefined');
+            then(function(r) {
+              test.assertAnd(r.statusCode, 404);
+              test.assertTypeAnd(r.body, 'undefined');
+              test.assertTypeAnd(r.contentType, 'undefined');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -771,10 +784,10 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "404 responses for folders discard the body altogether",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar/').
-            then(function(status, body, contentType) {
-              test.assertAnd(status, 404);
-              test.assertTypeAnd(body, 'undefined');
-              test.assertTypeAnd(contentType, 'undefined');
+            then(function(r) {
+              test.assertAnd(r.statusCode, 404);
+              test.assertTypeAnd(r.body, 'undefined');
+              test.assertTypeAnd(r.contentType, 'undefined');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -788,10 +801,10 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "412 responses discard the body altogether",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
-            then(function(status, body, contentType) {
-              test.assertAnd(status, 412);
-              test.assertTypeAnd(body, 'undefined');
-              test.assertTypeAnd(contentType, 'undefined');
+            then(function(r) {
+              test.assertAnd(r.statusCode, 412);
+              test.assertTypeAnd(r.body, 'undefined');
+              test.assertTypeAnd(r.contentType, 'undefined');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -805,11 +818,11 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "304 responses discard body and content-type, but return the revision",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar', { ifNoneMatch: 'foo' }).
-            then(function(status, body, contentType, revision) {
-              test.assertAnd(status, 304);
-              test.assertTypeAnd(body, 'undefined');
-              test.assertTypeAnd(contentType, 'undefined');
-              test.assertAnd(revision, 'foo');
+            then(function(r) {
+              test.assertAnd(r.statusCode, 304);
+              test.assertTypeAnd(r.body, 'undefined');
+              test.assertTypeAnd(r.contentType, 'undefined');
+              test.assertAnd(r.revision, 'foo');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -824,11 +837,11 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "204 responses on delete discard body and content-type, but return the revision",
         run: function(env, test) {
           env.connectedClient.delete('/foo/bar', { ifMatch: 'foo' }).
-            then(function(status, body, contentType, revision) {
-              test.assertAnd(status, 204);
-              test.assertTypeAnd(body, 'undefined');
-              test.assertTypeAnd(contentType, 'undefined');
-              test.assertAnd(revision, 'foo');
+            then(function(r) {
+              test.assertAnd(r.statusCode, 204);
+              test.assertTypeAnd(r.body, 'undefined');
+              test.assertTypeAnd(r.contentType, 'undefined');
+              test.assertAnd(r.revision, 'foo');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -843,11 +856,11 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "200 responses on delete discard body and content-type, but return the revision",
         run: function(env, test) {
           env.connectedClient.delete('/foo/bar', { ifMatch: 'foo' }).
-            then(function(status, body, contentType, revision) {
-              test.assertAnd(status, 200);
-              test.assertTypeAnd(body, 'undefined');
-              test.assertTypeAnd(contentType, 'undefined');
-              test.assertAnd(revision, 'foo');
+            then(function(r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertTypeAnd(r.body, 'undefined');
+              test.assertTypeAnd(r.contentType, 'undefined');
+              test.assertAnd(r.revision, 'foo');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -862,11 +875,11 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "200 responses on delete discard revision when no ETag is sent",
         run: function(env, test) {
           env.connectedClient.delete('/foo/bar', { ifMatch: 'foo' }).
-            then(function(status, body, contentType, revision) {
-              test.assertAnd(status, 200);
-              test.assertTypeAnd(body, 'undefined');
-              test.assertTypeAnd(contentType, 'undefined');
-              test.assertTypeAnd(revision, 'undefined');
+            then(function(r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertTypeAnd(r.body, 'undefined');
+              test.assertTypeAnd(r.contentType, 'undefined');
+              test.assertTypeAnd(r.revision, 'undefined');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();
@@ -880,11 +893,11 @@ define(['requirejs', 'test/behavior/backend', 'test/helpers/mocks'], function(re
         desc: "200 responses on put discard body and content-type, but return the revision",
         run: function(env, test) {
           env.connectedClient.put('/foo/bar', { ifMatch: 'foo' }, 'content body').
-            then(function(status, body, contentType, revision) {
-              test.assertAnd(status, 200);
-              test.assertTypeAnd(body, 'undefined');
-              test.assertTypeAnd(contentType, 'undefined');
-              test.assertAnd(revision, 'foo');
+            then(function(r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertTypeAnd(r.body, 'undefined');
+              test.assertTypeAnd(r.contentType, 'undefined');
+              test.assertAnd(r.revision, 'foo');
               test.done();
             });
           var req = XMLHttpRequest.instances.shift();

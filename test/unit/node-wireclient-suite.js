@@ -1,7 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs'], function(requirejs) {
+define(['bluebird', 'requirejs'], function (Promise, requirejs) {
+  global.Promise = Promise;
   var suites = [];
 	var oldReadBinaryData;
 
@@ -12,7 +13,6 @@ define(['requirejs'], function(requirejs) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       global.RemoteStorage.Unauthorized = function() {};
-      require('./lib/promising');
 
       require('./src/util');
       if (global.rs_util) {
@@ -104,10 +104,12 @@ define(['requirejs'], function(requirejs) {
         desc: "GET requests for binary data respond with the proper content",
         run: function(env, test) {
           env.connectedClient.get('/foo/bar').
-            then(function(status, content, contentType) {
-              test.assertAnd(status, 200);
-              test.assertAnd(content, 'response content');
-              test.assert(contentType, 'image/png; charset=binary');
+            then(function (r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, 'response content');
+              test.assert(r.contentType, 'image/png; charset=binary');
+            }, function (err) {
+              test.result(false, err);
             });
           var req = XMLHttpRequest.instances.shift();
           req._responseHeaders['Content-Type'] = 'image/png; charset=binary';
@@ -130,10 +132,12 @@ define(['requirejs'], function(requirejs) {
           }
 
           env.connectedClient.get('/foo/bar').
-            then(function(status, content, contentType) {
-              test.assertAnd(status, 200);
-              test.assertAnd(content, 'response content');
-              test.assert(contentType, 'text/plain');
+            then(function (r) {
+              test.assertAnd(r.statusCode, 200);
+              test.assertAnd(r.body, 'response content');
+              test.assert(r.contentType, 'text/plain');
+            }, function (err) {
+              test.result(false, err);
             });
 
           var req = XMLHttpRequest.instances.shift();

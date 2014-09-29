@@ -1,4 +1,4 @@
-(function(global) {
+(function (global) {
   /**
    * Class: RemoteStorage.InMemoryStorage
    *
@@ -6,7 +6,7 @@
    * available.
    **/
 
-  RemoteStorage.InMemoryStorage = function() {
+  RemoteStorage.InMemoryStorage = function () {
     RemoteStorage.cachingLayer(this);
     RemoteStorage.log('[InMemoryStorage] Registering events');
     RemoteStorage.eventHandling(this, 'change', 'local-events-done');
@@ -16,21 +16,17 @@
 
   RemoteStorage.InMemoryStorage.prototype = {
 
-    getNodes: function(paths) {
-      var promise = promising();
+    getNodes: function (paths) {
       var nodes = {};
 
-      for(i=0; i<paths.length; i++) {
+      for(var i = 0, len = paths.length; i < len; i++) {
         nodes[paths[i]] = this._storage[paths[i]];
       }
 
-      promise.fulfill(nodes);
-      return promise;
+      return Promise.resolve(nodes);
     },
 
-    setNodes: function(nodes) {
-      var promise = promising();
-
+    setNodes: function (nodes) {
       for (var path in nodes) {
         if (nodes[path] === undefined) {
           delete this._storage[path];
@@ -39,25 +35,24 @@
         }
       }
 
-      promise.fulfill();
-      return promise;
+      return Promise.resolve();
     },
 
-    forAllNodes: function(cb) {
-      for(var path in this._storage) {
+    forAllNodes: function (cb) {
+      for (var path in this._storage) {
         cb(this.migrate(this._storage[path]));
       }
-      return promising().fulfill();
+      return Promise.resolve();
     }
 
   };
 
-  RemoteStorage.InMemoryStorage._rs_init = function() {};
+  RemoteStorage.InMemoryStorage._rs_init = function () {};
 
-  RemoteStorage.InMemoryStorage._rs_supported = function() {
+  RemoteStorage.InMemoryStorage._rs_supported = function () {
     // In-memory storage is always supported
     return true;
   };
 
-  RemoteStorage.InMemoryStorage._rs_cleanup = function() {};
+  RemoteStorage.InMemoryStorage._rs_cleanup = function () {};
 })(typeof(window) !== 'undefined' ? window : global);
