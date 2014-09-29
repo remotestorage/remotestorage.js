@@ -316,6 +316,11 @@
      *              from the user's WebFinger record, see section 10 of
      *              http://tools.ietf.org/html/draft-dejong-remotestorage-03
      *              or null).
+     *              Fields that are not included (i.e. `undefined`), stay at
+     *              their current value. To set a field, include that field
+     *              with a `string` value. To reset a field, for instance when
+     *              the user disconnected their storage, or you found that the
+     *              token you have has expired, simply set that field to `null`.
      */
     configure: function(settings) {
       if (typeof settings !== 'object') {
