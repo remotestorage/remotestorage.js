@@ -3,7 +3,7 @@ DOC_BIN        = naturaldocs
 DOC_DIR        = ./doc/code
 DOC_CONFIG_DIR = ./doc/config
 DOC_CUSTOM_CSS = custom-1
-UGLIFY_BIN     = ./node_modules/.bin/uglifyjs
+MINIFY_BIN     = ./node_modules/.bin/minify
 SOURCE_DIR     = ./src
 ASSETS_DIR     = ./assets
 ASSETS_OUT     = $(SOURCE_DIR)/assets.js
@@ -42,8 +42,8 @@ compile-assets: $(ASSETS_OUT)
 .PHONY: help buildserver build-all compile-assets minify build doc clean
 
 %.min.js: %.js
-#	uglifyjs $< -o $@ --mangle --wrap --export-all
-	$(UGLIFY_BIN) -o $@ $<
+#	minify $< -o $@ --mangle --wrap --export-all
+	$(MINIFY_BIN) -o $@ $<
 	mv $@ $@.tmp
 	head -n1 $< > $@
 	cat $@.tmp >> $@
@@ -59,8 +59,8 @@ remotestorage-node.js: $(SOURCES)
 	$(NODEJS) build/do-build.js remotestorage-node.js --node $(NODEJS_COMPONENTS)
 
 # remotestorage.min.js: remotestorage.js
-# 	uglifyjs remotestorage.js -o remotestorage.min.js --mangle --wrap --export-all
-# ## copy version header from original (uglifyjs strips all comments):
+# 	minify remotestorage.js -o remotestorage.min.js --mangle --wrap --export-all
+# ## copy version header from original (minify strips all comments):
 # 	mv remotestorage.min.js remotestorage.min.js.tmp
 # 	head -n1 remotestorage.js > remotestorage.min.js
 # 	cat remotestorage.min.js.tmp >> remotestorage.min.js
