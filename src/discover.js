@@ -27,67 +27,29 @@
       callback(info.href, info.type, info.authURL);
       return;
     }
-    var hostname = userAddress.split('@')[1];
-    var params = '?resource=' + encodeURIComponent('acct:' + userAddress);
-    var urls = [
-      'https://' + hostname + '/.well-known/webfinger' + params,
-      'http://' + hostname + '/.well-known/webfinger' + params
-    ];
 
-    function tryOne() {
-      var xhr = new XMLHttpRequest();
-      var url = urls.shift();
-      if (!url) { return callback(); }
-      RemoteStorage.log('[Discover] Trying URL', url);
-      xhr.open('GET', url, true);
-      xhr.onabort = xhr.onerror = function () {
-        console.error("webfinger error", arguments, '(', url, ')');
-        tryOne();
-      };
-      xhr.onload = function () {
-        if (xhr.status !== 200) { return tryOne(); }
-        var profile;
+    webfinger(userAddress, { tls_only: false, uri_fallback: true, request_timeout: 5000 }, function (err, response) {
+      if ((typeof response.idx.links.remotestorage !== 'object') ||
+          (typeof response.idx.links.remotestorage.length !== 'number')) {
+        RemoteStorage.log("[Discover] Profile does not have remotestorage defined in the links section ", JSON.stringify(response.json));
+        cb();
+        return;
+      }
 
-        try {
-          profile = JSON.parse(xhr.responseText);
-        } catch(e) {
-          RemoteStorage.log("[Discover] Failed to parse profile ", xhr.responseText, e);
-          tryOne();
-          return;
-        }
+      var rs            = response.idx.links.remotestorage[0];
+      var authURL       = rs.properties['http://tools.ietf.org/html/rfc6749#section-4.2'] ||
+                          rs.properties['auth-endpoint'];
+      var storageType   = rs.properties['http://remotestorage.io/spec/version'] ||
+                          rs.type;
 
-        if (!profile.links) {
-          RemoteStorage.log("[Discover] Profile has no links section ", JSON.stringify(profile));
-          tryOne();
-          return;
-        }
+      // cache fetched data
+      cachedInfo[userAddress] = { href: rs.href, type: storageType, authURL: authURL };
+      if (hasLocalStorage) {
+        localStorage[SETTINGS_KEY]  = JSON.stringify({ cache: cachedInfo });
+      }
 
-        var link;
-        profile.links.forEach(function (l) {
-          if (l.rel === 'remotestorage') {
-            link = l;
-          } else if (l.rel === 'remoteStorage' && !link) {
-            link = l;
-          }
-        });
-        RemoteStorage.log('[Discover] Got profile', profile, 'and link', link);
-        if (link) {
-          var authURL = link.properties['http://tools.ietf.org/html/rfc6749#section-4.2']
-                  || link.properties['auth-endpoint'],
-            storageType = link.properties['http://remotestorage.io/spec/version']
-                  || link.type;
-          cachedInfo[userAddress] = { href: link.href, type: storageType, authURL: authURL };
-          if (hasLocalStorage) {
-            localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
-          }
-          callback(link.href, storageType, authURL);
-        } else {
-          tryOne();
-        }
-      };
-      xhr.send();
-    }
-    tryOne();
+      callback(rs.href, storageType, authURL);
+    });
   };
 
   RemoteStorage.Discover._rs_init = function (remoteStorage) {

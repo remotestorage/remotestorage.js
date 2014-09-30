@@ -39,6 +39,7 @@
       "files": [
         "lib/bluebird.js",
         "lib/bluebird-defer.js",
+        "node_modules/webfinger.js/src/webfinger.js",
         "src/remotestorage.js",
         "src/util.js",
         "src/eventhandling.js",
