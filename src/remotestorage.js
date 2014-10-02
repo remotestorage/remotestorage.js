@@ -465,6 +465,10 @@
             fireReady();
             self._emit('connected');
           }
+
+          if (!this.hasFeature('Authorize')) {
+            this.remote.stopWaitingForToken();
+          }
         }
 
         this._collectCleanupFunctions();
@@ -608,7 +612,31 @@
       });
     },
 
-    localStorageAvailable: function () {
+    /**
+     * Method: hasFeature
+     *
+     * Checks whether a feature is enabled or not within remoteStorage.
+     * Returns a boolean.
+     *
+     * Parameters:
+     * name - Capitalized name of the feature. ie. Authorize, or IndexedDB
+     *
+     * Example:
+     *     if (remoteStorage.hasFeature('LocalStorage')) {
+     *       console.log('LocalStorage is enabled!');
+     *     }
+     *
+     */
+    hasFeature: function (feature) {
+      for (var i = this.features.length - 1; i >= 0; i--) {
+        if (this.features[i].name === feature) {
+          return this.features[i].supported;
+        }
+      }
+      return false;
+    },
+
+    localStorageAvailable: function() {
       try {
         return !!global.localStorage;
       } catch(error) {
