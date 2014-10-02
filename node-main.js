@@ -22,7 +22,6 @@
   require('./src/env.js');
   require('./src/googledrive.js');
   require('./src/dropbox.js');
-  require('./src/nodejs_ext.js');
 
   RemoteStorage.WireClient.readBinaryData = function (content, mimeType, callback) {
     callback(content);
