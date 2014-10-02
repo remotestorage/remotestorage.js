@@ -1,8 +1,9 @@
 (function (global) {
   global.XMLHttpRequest = require('xhr2');
+  global.Promise = require('bluebird');
+  require('./lib/bluebird-defer.js');
 
   global.RemoteStorage = require('./src/remotestorage.js');
-  global.Promise = require('bluebird');
   require('./src/util.js');
   require('./src/eventhandling.js');
   require('./src/wireclient.js');
