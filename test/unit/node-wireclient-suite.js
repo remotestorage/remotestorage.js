@@ -1,8 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs'], function (Promise, requirejs) {
-  global.Promise = Promise;
+define(['require'], function (require) {
   var suites = [];
 	var oldReadBinaryData;
 
@@ -10,39 +9,13 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
     name: "WireClient NodeJS",
     desc: "Low-level remotestorage client used in NodeJS",
     setup: function(env, test) {
-      global.RemoteStorage = function() {};
-      RemoteStorage.log = function() {};
-      global.RemoteStorage.Unauthorized = function() {};
-
-      require('./src/util');
-      if (global.rs_util) {
-        RemoteStorage.util = global.rs_util;
-      } else {
-        global.rs_util = RemoteStorage.util;
-      }
-
-      require('./src/eventhandling');
-      if (global.rs_eventhandling) {
-        RemoteStorage.eventHandling = global.rs_eventhandling;
-      } else {
-        global.rs_eventhandling = RemoteStorage.eventHandling;
-      }
-
-      requirejs('./src/wireclient');
-      if (global.rs_wireclient) {
-        RemoteStorage.WireClient = global.rs_wireclient;
-      } else {
-        global.rs_wireclient = RemoteStorage.WireClient;
-      }
-
-      oldReadBinaryData = RemoteStorage.WireClient.readBinaryData;
-      require('./src/nodejs_ext');
+      env.RemoteStorage = require('./../../node-main');
 
       RemoteStorage.Authorize = {
         IMPLIED_FAKE_TOKEN: false
       };
 
-      test.done();
+      test.assertType(global.RemoteStorage, 'function');
     },
 
     takedown: function(env, test) {
@@ -82,8 +55,6 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
         });
       });
       env.rs = new RemoteStorage();
-      RemoteStorage.eventHandling(env.rs, 'error');
-      env.client = new RemoteStorage.WireClient(env.rs);
       env.connectedClient = new RemoteStorage.WireClient(env.rs);
       env.baseURI = 'https://example.com/storage/test';
       env.token = 'foobarbaz';
@@ -95,7 +66,7 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
 
     afterEach: function(env, test) {
       delete global.XMLHttpRequest;
-      delete env.client;
+      delete env.connectedClient;
       test.done();
     },
 
