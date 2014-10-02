@@ -1,32 +1,42 @@
-(function (global) {
-  global.XMLHttpRequest = require('xhr2');
-  global.Promise = require('bluebird');
-  require('./lib/bluebird-defer.js');
+global.XMLHttpRequest = require('xhr2');
+global.Promise = require('bluebird');
+require('./lib/bluebird-defer.js');
 
-  global.RemoteStorage = require('./src/remotestorage.js');
-  require('./src/util.js');
-  require('./src/eventhandling.js');
-  require('./src/wireclient.js');
-  require('./src/discover.js');
-  require('./src/cachinglayer.js');
-  require('./src/indexeddb.js');
-  require('./src/inmemorystorage.js');
-  require('./src/localstorage.js');
-  require('./src/sync.js');
-  require('./src/access.js');
-  require('./src/caching.js');
-  require('./src/modules.js');
-  require('./src/baseclient.js');
-  require('./src/baseclient/types.js');
-  require('./src/i18n.js');
-  require('./src/env.js');
-  require('./src/googledrive.js');
-  require('./src/dropbox.js');
+global.RemoteStorage = require('./src/remotestorage.js');
 
-  RemoteStorage.WireClient.readBinaryData = function (content, mimeType, callback) {
-    callback(content);
-  };
+var files = [
+  './src/util.js',
+  './src/eventhandling.js',
+  './src/wireclient.js',
+  './src/discover.js',
+  './src/cachinglayer.js',
+  './src/indexeddb.js',
+  './src/inmemorystorage.js',
+  './src/localstorage.js',
+  './src/sync.js',
+  './src/access.js',
+  './src/caching.js',
+  './src/modules.js',
+  './src/baseclient.js',
+  './src/baseclient/types.js',
+  './src/i18n.js',
+  './src/env.js',
+  './src/googledrive.js',
+  './src/dropbox.js'
+];
 
-  module.exports = RemoteStorage;
+for (var i = 0, len = files.length; i < len; i += 1) {
+  try {
+    require(files[i]);
+  } catch (e) {
+    console.log('error loading ' + files[i] + ': ', e, e.stack);
+    throw new Error(e);
+  }
+}
 
-}(global));
+
+RemoteStorage.WireClient.readBinaryData = function (content, mimeType, callback) {
+  callback(content);
+};
+
+module.exports = RemoteStorage;
