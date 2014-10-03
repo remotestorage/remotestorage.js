@@ -4,7 +4,8 @@ Each cache node will represent the versioning state of either one
 document or one folder. The versioning state is represented by one or
 more of the `common`, `local`, `remote`, and `push` revisions. Local
 changes are stored in `local`, and in `push` while an outgoing request
-is active. Remote changes that have either not been fetched yet, or have
+is active. Remote changes that have either not been fetched yet (see
+[caching.md](caching.md)), or have
 not been merged with local changes yet, are stored in `remote`.
 
 # autoMerge
@@ -55,14 +56,12 @@ Each of local, push, remote, and common can have,
 
   * for folders:
     * itemsMap (itemName -> true, or itemName -> false to indicate an
-      unmerged deletion)
+        unmerged deletion)
     * revision
     * timestamp
 
-local.timestamp is the time when this data was written.
-push.timestamp is the time when this push was initiated
-remote.timestamp is the time when this fetch/push was completed
-common.timestamp is the time when agreement was reached
+NB: The meaning of the timestamp was changed in
+https://github.com/remotestorage/remotestorage.js/pull/757#issuecomment-55276241
 
 # Caching strategies
 
