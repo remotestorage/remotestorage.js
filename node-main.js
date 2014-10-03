@@ -9,6 +9,7 @@ var files = [
   './src/eventhandling.js',
   './src/wireclient.js',
   './src/discover.js',
+  './src/authorize.js',
   './src/cachinglayer.js',
   './src/indexeddb.js',
   './src/inmemorystorage.js',
