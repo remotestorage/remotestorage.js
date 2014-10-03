@@ -1,9 +1,7 @@
-TODO: Update to new API
-
 Caching in remotestorage.js
 ===========================
 
-remotestorage.js gives you the option to synchronize some or all of the remote data your app has access to, to a local database. Usually this database is a indexedDB.
+remotestorage.js gives you the option to synchronize some or all of the remote data your app has access to, to a local store. Usually this store is an indexedDB database.
 
 Enabling caching has several benefits and drawbacks:
 * Speed of access: locally cached data is available to the app a lot faster.
@@ -26,15 +24,16 @@ This example shows how to configure caching in a module:
 RemoteStorage.defineModule('beers', function(privateClient, publicClient) {
   var pilsener = privateClient.scope('pilsener/');
 
-  // these two are equivalent operations:
-  privateClient.cache('pilsener/');
+  // to enable always caching all data (not only data that was changed), change
+  // the caching strategy from 'SEEN' (the default) to 'ALL'. These two are equivalent operations:
+  privateClient.cache('pilsener/', 'ALL');
   // OR:
-  pilsener.cache();
+  pilsener.cache('', ALL');
 
-  // to disable caching for a given path, pass 'false' as the second argument:
-  privateClient.cache('pilsener/', false);
+  // to disable caching for a given path, pass 'FLUSH' as the strategy:
+  privateClient.cache('pilsener/', 'FLUSH');
   // OR:
-  pilsener.cache('', false);
+  pilsener.cache('', 'FLUSH');
 
   return {
     exports: {
@@ -52,9 +51,9 @@ If you want to alter caching settings outside of a module's context, you can do 
 This example shows how to do that:
 ```javascript
 
-remoteStorage.caching.enable('/beers/pilsener/');
+remoteStorage.caching.enable('/beers/pilsener/', 'ALL');
 
-remoteStorage.caching.disable('/beers/pilsener/');
+remoteStorage.caching.disable('/beers/pilsener/', 'ALL');
 
 ```
 
@@ -71,3 +70,21 @@ remoteStorage.sync().then(function() {
 });
 
 ```
+
+Internals
+---------
+
+This section is aimed at developers of remotestorage.js. The caching strategies are stored in `remoteStorage.caching._rootPaths`.
+For instance, on https://myfavoritedrinks.5apps.com/, it has value `{ /myfavoritedrinks/: "ALL" }`.
+
+The rootPaths are not stored in localStorage. If you refresh the page, it is up to the app to set all caching strategies again
+during the pageload.
+
+The effect of the caching strategy is basically achieved through three paths:
+
+1. Setting caching strategy 'ALL' for a path, creates an empty node for that path, unless it already exists.
+2. The sync process will then to a 'GET', and create new nodes under any folder with an 'ALL' strategy, when that folder is fetched.
+3. The sync process will create a new task for any node under an 'ALL' strategy during gatherRefreshTasks, unless a task already
+       exists for one of its ancestors.
+
+The result is all paths with an explicit 'ALL' strategy will get fetched, and if they are folders, then in the next round, all its children will also be fetched, etcetera.
