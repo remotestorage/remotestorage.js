@@ -2,7 +2,7 @@ The code of remotestorage.js consists of files in the `src/` folder
 of this repo. It is built by the Makefile, mainly by the node scripts
 in the `build/` folder of this repo. The tests are in the `test/` folder.
 
-The build process contatenates all the files together, and then adds a call:
+The build process concatenates all the files together, and then adds a call:
 
 ````js
   remoteStorage = new RemoteStorage();
