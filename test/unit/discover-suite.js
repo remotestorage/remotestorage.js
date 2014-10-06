@@ -1,8 +1,10 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
+define(['requirejs', 'fs', 'webfinger.js'], function (requirejs, fs, webfinger, undefined) {
   var suites = [];
+
+  global.webfinger = webfinger;
 
   suites.push({
     name: "Discover",
@@ -27,14 +29,18 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         XMLHttpRequest.instances = [];
         XMLHttpRequest.openCalls = [];
         XMLHttpRequest.sendCalls = [];
+        XMLHttpRequest.onOpen = function () {};
+        XMLHttpRequest.onSend = function () {};
         XMLHttpRequest.prototype = {
           open: function() {
             XMLHttpRequest.openCalls.push(Array.prototype.slice.call(arguments));
+            XMLHttpRequest.onOpen();
           },
 
           send: function() {
             XMLHttpRequest.sendCalls.push(Array.prototype.slice.call(arguments));
-          }
+            XMLHttpRequest.onSend();
+          },
         };
         ['load', 'abort', 'error'].forEach(function(cb) {
           Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
@@ -81,12 +87,14 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       {
         desc: "it tries /.well-known/webfinger",
         run: function(env, test) {
-          RemoteStorage.Discover('nil@heahdk.net', function() {} );
-          test.assertAnd(XMLHttpRequest.openCalls.length, 1);
-          test.assertAnd(XMLHttpRequest.openCalls[0][0], 'GET');
-          test.assertAnd(XMLHttpRequest.openCalls[0][1], 'https://heahdk.net/.well-known/webfinger?resource=acct%3Anil%40heahdk.net');
-          test.assertAnd(XMLHttpRequest.openCalls[0][2], true); // cross-origin
-          test.done();
+          XMLHttpRequest.onOpen = function () {
+            test.assertAnd(XMLHttpRequest.openCalls.length, 1);
+            test.assertAnd(XMLHttpRequest.openCalls[0][0], 'GET');
+            test.assertAnd(XMLHttpRequest.openCalls[0][1], 'https://heahdk.net/.well-known/webfinger?resource=acct:nil@heahdk.net');
+            test.assert(XMLHttpRequest.openCalls[0][2], true); // cross-origin
+          };
+          RemoteStorage.Discover('nil@heahdk.net', function () {} );
+
         }
       },
 
