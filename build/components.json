@@ -28,9 +28,7 @@
     "src/env.js": "Function specific to each environment (browser, nodejs...)",
 
     "src/googledrive.js": "Backend to talk to googledrive",
-    "src/dropbox.js": "Backend to talk to dropbox",
-
-    "src/nodejs_ext.js": "NodeJS specific additions"
+    "src/dropbox.js": "Backend to talk to dropbox"
   },
   "groups": {
     "core": {
@@ -119,10 +117,6 @@
       "files": [
         "src/debug/inspect.js"
       ],
-      "depends": ["core"]
-    },
-    "nodejs": {
-      "files": ["src/nodejs_ext.js"],
       "depends": ["core"]
     }
   }

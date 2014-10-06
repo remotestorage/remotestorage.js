@@ -4,6 +4,7 @@
   "version": "0.10.3-pre",
   "private": false,
   "license": "MIT",
+  "main": "./node-main.js",
   "repository": {
     "type": "git",
     "url": "git://github.com/remotestorage/remotestorage.js.git"
@@ -11,13 +12,13 @@
   "homepage": "http://remotestorage.io",
   "devDependencies": {
     "jaribu": "0.x.x",
-    "xhr2": "0.0.7",
     "minifier": "^0.6.0"
   },
   "scripts": {
     "test": "node_modules/jaribu/bin/jaribu"
   },
   "dependencies": {
+    "xhr2": "0.0.7",
     "bluebird": "^2.3.2"
   }
 }
