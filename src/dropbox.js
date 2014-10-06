@@ -228,7 +228,7 @@
      **/
     _getFolder: function (path, options) {
       // FIXME simplify promise handling
-      var url = 'https://api.dropbox.com/1/metadata/auto'+path;
+      var url = 'https://api.dropbox.com/1/metadata/auto/'+cleanPath(path);
       var revCache = this._revCache;
       var self = this;
 
