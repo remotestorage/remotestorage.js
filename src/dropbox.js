@@ -268,37 +268,37 @@
      *   calls share(path) afterwards to fill the _hrefCache
      **/
     get: function (path, options) {
-      // FIXME simplify promise handling
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
       path = cleanPath(path);
       var url = 'https://api-content.dropbox.com/1/files/auto' + path;
-      var pending = this._sharePromise(path);
       var self = this;
 
       var savedRev = this._revCache.get(path);
       if (savedRev === null) {
-        //file was deleted server side
-        pending.resolve({statusCode: 404});
+        // file was deleted server side
+        return Promise.resolve({statusCode: 404});
       }
       if (options && options.ifNoneMatch &&
          savedRev && (savedRev === options.ifNoneMatch)) {
         // nothing changed.
-        pending.resolve({statusCode: 304});
+        return Promise.resolve({statusCode: 304});
       }
 
       //use _getFolder for folders
       if (path.substr(-1) === '/') { return this._getFolder(path, options); }
-      this._request('GET', url, {}).then(function (resp) {
+
+      return this._request('GET', url, {}).then(function (resp) {
         var status = resp.status;
         var meta, body, mime, rev;
         if (status !== 200) {
-          return pending.resolve({statusCode: status});
+          return Promise.resolve({statusCode: status});
         }
+
         body = resp.responseText;
         try {
           meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') );
         } catch(e) {
-          return pending.reject(e);
+          return Promise.reject(e);
         }
 
         mime = meta.mime_type; //resp.getResponseHeader('Content-Type');
@@ -307,10 +307,15 @@
 
         // handling binary
         if ((! resp.getResponseHeader('Content-Type') ) || resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
+          var pending = Promise.defer();
+
           return RS.WireClient.readBinaryData(resp.response, mime, function (result) {
-            return pending.resolve({statusCode: status, body: result, contentType: mime, revision: rev});
+            pending.resolve({statusCode: status, body: result, contentType: mime, revision: rev});
           });
+
+          return pending.promise;
         }
+
         // handling json (always try)
         if (mime && mime.search('application/json') >= 0 || true) {
           try {
@@ -320,11 +325,9 @@
             //Failed parsing Json, assume it is something else then
           }
         }
-        return pending.resolve({statusCode: status, body: body, contentType: mime, revision: rev});
-      }, function (err) {
-        return pending.reject(err);
+
+        return Promise.resolve({statusCode: status, body: body, contentType: mime, revision: rev});
       });
-      return pending.promise;
     },
 
     /**
@@ -334,13 +337,12 @@
      *   also shares via share(path)
      **/
     put: function (path, body, contentType, options){
-      // FIXME simplify promise handling
       if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
       var pathTempBeforeClean = path; // Temp variable to store the value beafore cleanPath, to be used later
       path = cleanPath(path);
 
       var self = this;
-      var pending = this._sharePromise(path);
+      var pending = Promise.defer();
       var revCache = this._revCache;
 
       //check if file has changed and return 412
@@ -384,6 +386,8 @@
             return pending.resolve({statusCode: 412, revision: metadata.rev});
           }
           self._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}).then(function (resp) {
+            self.shareIfNeeded(path);
+
             if (resp.status !== 200) {
               return pending.resolve({statusCode: resp.status});
             }
@@ -465,24 +469,12 @@
 
     /**
      * Method : _sharePromise(path)
-     *   returns a promise which's then block doesn't touch the arguments given
-     *   and calls share for the path
-     *
-     *  also checks for necessity of shareing this url(already in the itemRefs or not '/public/')
+     *   share a file or folder, if needed
      **/
-    _sharePromise: function (path){
-      var pending = Promise.defer();
-      var self = this;
-      if (path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] === 'undefined') {
-        pending.then(function (r) {
-          return self.share(path).then(function () {
-            return Promise.resolve(r);
-          }, function (err) {
-            return Promise.resolve(r);
-          });
-        });
+    shareIfNeeded: function (path) {
+      if (path.match(/^\/public\/.*[^\/]$/) && this._itemRefs[path] === undefined) {
+        this.share(path);
       }
-      return pending;
     },
 
     /**
@@ -490,28 +482,33 @@
      *   get sher_url s from dropbox and pushes those into this._hrefCache
      *   returns promise
      */
-    share: function (path){
-      var url = "https://api.dropbox.com/1/media/auto"+path;
-      var itemRefs = this._itemRefs;
+    share: function (path) {
+      path = cleanPath(path);
 
-      // requesting shareing url
-      return this._request('POST', url, {}).then(function (resp) {
-        try{
-          var response = JSON.parse(resp.responseText);
-          var url = response.url;
-          itemRefs[path] = url;
-          if (hasLocalStorage) {
-            localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
-          }
-          return Promise.resolve(url);
-        } catch(err) {
-          err.message += "share error";
-          return Promise.reject(err);
+      var self = this;
+      var url = 'https://api.dropbox.com/1/media/auto/' + path;
+
+      return this._request('POST', url, {}).then(function (response) {
+        if (response.status !== 200) {
+          return Promise.reject(new Error('Invalid DropBox API response status when sharing "' + path + '":' + response.status));
         }
-      }, function (err) {
-        RemoteStorage.log(err);
-        err.message = 'Shareing Dropbox Thingie("' + path + '") failed.' + err.message;
-        return Promise.reject(err);
+
+        try {
+          response = JSON.parse(response.responseText);
+        } catch (e) {
+          return Promise.reject(new Error('Invalid DropBox API response when sharing "' + path + '": ' + response.responseText));
+        }
+
+        self._itemRefs[path] = response.url;
+
+        if (hasLocalStorage) {
+          localStorage[SETTINGS_KEY + ':shares'] = JSON.stringify(self._itemRefs);
+        }
+
+        return Promise.resolve(url);
+      }, function (error) {
+        err.message = 'Sharing DropBox file or folder ("' + path + '") failed.' + err.message;
+        return Promise.reject(error);
       });
     },
 
