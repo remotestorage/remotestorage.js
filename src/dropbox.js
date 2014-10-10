@@ -304,6 +304,7 @@
         mime = meta.mime_type; //resp.getResponseHeader('Content-Type');
         rev = meta.rev;
         self._revCache.set(path, rev);
+        self._shareIfNeeded(path); // The shared link expires every 4 hours
 
         // handling binary
         if (!resp.getResponseHeader('Content-Type') ||
