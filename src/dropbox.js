@@ -455,7 +455,7 @@
     },
 
     /**
-     * Method : _sharePromise(path)
+     * Method : shareIfNeeded(path)
      *   share a file or folder, if needed
      **/
     shareIfNeeded: function (path) {
