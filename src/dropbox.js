@@ -228,7 +228,7 @@
      **/
     _getFolder: function (path, options) {
       // FIXME simplify promise handling
-      var url = 'https://api.dropbox.com/1/metadata/auto/'+cleanPath(path);
+      var url = 'https://api.dropbox.com/1/metadata/auto' + cleanPath(path);
       var revCache = this._revCache;
       var self = this;
 
@@ -269,8 +269,7 @@
      **/
     get: function (path, options) {
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
-      path = cleanPath(path);
-      var url = 'https://api-content.dropbox.com/1/files/auto' + path;
+      var url = 'https://api-content.dropbox.com/1/files/auto' + cleanPath(path);
       var self = this;
 
       var savedRev = this._revCache.get(path);
@@ -350,8 +349,6 @@
         throw new Error("not connected (path: " + path + ")");
       }
 
-      path = cleanPath(path);
-
       //check if file has changed and return 412
       var savedRev = this._revCache.get(path);
       if (options && options.ifMatch &&
@@ -421,8 +418,6 @@
         throw new Error("not connected (path: " + path + ")");
       }
 
-      path = cleanPath(path);
-
       //check if file has changed and return 412
       var savedRev = this._revCache.get(path);
       if (options && options.ifMatch && savedRev && (options.ifMatch !== savedRev)) {
@@ -457,10 +452,8 @@
      *   returns promise
      */
     share: function (path) {
-      path = cleanPath(path);
-
       var self = this;
-      var url = 'https://api.dropbox.com/1/media/auto/' + path;
+      var url = 'https://api.dropbox.com/1/media/auto/' + cleanPath(path);
 
       return this._request('POST', url, {}).then(function (response) {
         if (response.status !== 200) {
