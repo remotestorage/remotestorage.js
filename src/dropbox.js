@@ -373,6 +373,7 @@
         return Promise.reject(new Error("Cannot upload file larger than 150MB"));
       }
 
+      var result;
       var needsMetadata = options && (options.ifMatch || (options.ifNoneMatch === '*'));
       var uploadParams = {
         body: body,
@@ -381,7 +382,7 @@
       };
 
       if (needsMetadata) {
-        return this._getMetadata(path).then(function (metadata) {
+        result = this._getMetadata(path).then(function (metadata) {
           if (options && (options.ifNoneMatch === '*') && metadata) {
             // if !!metadata === true, the file exists
             return Promise.resolve({
@@ -399,9 +400,14 @@
 
           return self._uploadSimple(uploadParams);
         });
+      } else {
+        result = self._uploadSimple(uploadParams);
       }
 
-      return self._uploadSimple(uploadParams);
+      return result.then(function (ret) {
+        self._shareIfNeeded(path);
+        return ret;
+      });
     },
 
     /**
@@ -439,11 +445,7 @@
       return self._deleteSimple(path);
     },
 
-    /**
-     * Method : shareIfNeeded(path)
-     *   share a file or folder, if needed
-     **/
-    shareIfNeeded: function (path) {
+    _shareIfNeeded: function (path) {
       if (path.match(/^\/public\/.*[^\/]$/) && this._itemRefs[path] === undefined) {
         this.share(path);
       }
