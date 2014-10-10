@@ -407,51 +407,35 @@
      * Method : delete(path, options)
      *   similar to get and set
      **/
-    'delete': function (path, options){
-      // FIXME simplify promise handling
-      if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
-      var pathTempBeforeClean = path; // Temp variable to store the value before cleanPath, to be used later
+    'delete': function (path, options) {
+      var self = this;
+
+      if (!this.connected) {
+        throw new Error("not connected (path: " + path + ")");
+      }
+
       path = cleanPath(path);
 
-      var self = this;
-      var pending = Promise.defer();
-      var revCache = this._revCache;
       //check if file has changed and return 412
-      var savedRev = revCache.get(path);
-      if (options && options.ifMatch &&
-          savedRev && (options.ifMatch !== savedRev)) {
-        return Promise.resolve({statusCode: 412, revision: savedRev});
+      var savedRev = this._revCache.get(path);
+      if (options && options.ifMatch && savedRev && (options.ifMatch !== savedRev)) {
+        return Promise.resolve({ statusCode: 412, revision: savedRev });
       }
 
-      var pendingMetadata = Promise.defer();
       if (options && options.ifMatch) {
-        this._getMetadata(pathTempBeforeClean).then(function (metadata) {
-          pendingMetadata.resolve(metadata);
+        return this._getMetadata(path).then(function (metadata) {
+          if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
+            return Promise.resolve({
+              statusCode: 412,
+              revision: metadata.rev
+            });
+          }
+
+          return self._deleteSimple(path);
         });
-      } else {
-        pendingMetadata.resolve();
       }
 
-      pendingMetadata.promise.then(function (metadata) {
-        if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
-          return pending.resolve({statusCode: 412, revision: metadata.rev});
-        }
-
-        var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(pathTempBeforeClean);
-        self._request('POST', url, {}).then(function (resp){
-          if (resp.status === 200) {
-            revCache.delete(path);
-          }
-          return pending.resolve({statusCode: resp.status});
-        }, function (err) {
-          return pending.reject(error);
-        });
-      });
-
-      return pending.promise.then(function (r) {
-        delete this._itemRefs[path];
-        return r;
-      }.bind(this));
+      return self._deleteSimple(path);
     },
 
     /**
@@ -670,6 +654,27 @@
         }
 
         self._revCache.propagateSet(params.path, response.rev);
+        return Promise.resolve({ statusCode: resp.status });
+      });
+    },
+
+    _deleteSimple: function (path) {
+      var self = this;
+      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(path);
+
+      return self._request('POST', url, {}).then(function (resp) {
+        if (resp.status === 406) {
+          // Too many files would be involved in the operation for it to
+          // complete successfully.
+          // TODO: Handle this somehow
+          return Promise.reject(new Error("Cannot delete '" + path + "': too many files involved"));
+        }
+
+        if (resp.status === 200) {
+          self._revCache.delete(path);
+          delete self._itemRefs[path];
+        }
+
         return Promise.resolve({ statusCode: resp.status });
       });
     }
