@@ -306,11 +306,17 @@
         self._revCache.set(path, rev);
 
         // handling binary
-        if ((! resp.getResponseHeader('Content-Type') ) || resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
+        if (!resp.getResponseHeader('Content-Type') ||
+            resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
           var pending = Promise.defer();
 
-          return RS.WireClient.readBinaryData(resp.response, mime, function (result) {
-            pending.resolve({statusCode: status, body: result, contentType: mime, revision: rev});
+          RS.WireClient.readBinaryData(resp.response, mime, function (result) {
+            pending.resolve({
+              statusCode: status,
+              body: result,
+              contentType: mime,
+              revision: rev
+            });
           });
 
           return pending.promise;
@@ -336,17 +342,17 @@
      *   also uses _revCache to check for version conflicts
      *   also shares via share(path)
      **/
-    put: function (path, body, contentType, options){
-      if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
-      var pathTempBeforeClean = path; // Temp variable to store the value beafore cleanPath, to be used later
+    put: function (path, body, contentType, options) {
+      var self = this;
+
+      if (!this.connected) {
+        throw new Error("not connected (path: " + path + ")");
+      }
+
       path = cleanPath(path);
 
-      var self = this;
-      var pending = Promise.defer();
-      var revCache = this._revCache;
-
       //check if file has changed and return 412
-      var savedRev = revCache.get(path);
+      var savedRev = this._revCache.get(path);
       if (options && options.ifMatch &&
           savedRev && (savedRev !== options.ifMatch)) {
         return Promise.resolve({statusCode: 412, revision: savedRev});
@@ -355,65 +361,46 @@
           savedRev && (savedRev !== 'rev')) {
         return Promise.resolve({statusCode: 412, revision: savedRev});
       }
-      if ((! contentType.match(/charset=/)) && (body instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(body))) {
+
+      if ((!contentType.match(/charset=/)) &&
+          (body instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(body))) {
         contentType += '; charset=binary';
       }
-      var url = 'https://api-content.dropbox.com/1/files_put/auto' + path + '?';
-      if (options && options.ifMatch) {
-        url += "parent_rev="+encodeURIComponent(options.ifMatch);
+
+      if (body.length > 150 * 1024 * 1024) {
+        //https://www.dropbox.com/developers/core/docs#chunked-upload
+        return Promise.reject(new Error("Cannot upload file larger than 150MB"));
       }
 
-      if (body.length > 150 * 1024 * 1024) { //FIXME actual content-length
-        //https://www.dropbox.com/developers/core/docs#chunked-upload
-        RemoteStorage.log('files larger than 150MB not supported yet');
-      } else {
-        // FIXME simplify promise handling
-        var pendingMetadata = Promise.defer();
-        if (options && (options.ifMatch || (options.ifNoneMatch === '*'))) {
-          this._getMetadata(pathTempBeforeClean).then(function (metadata) {
-            pendingMetadata.resolve(metadata);
-          });
-        } else {
-          pendingMetadata.resolve();
-        }
+      var needsMetadata = options && (options.ifMatch || (options.ifNoneMatch === '*'));
+      var uploadParams = {
+        body: body,
+        contentType: contentType,
+        path: path
+      };
 
-        pendingMetadata.promise.then(function (metadata) {
+      if (needsMetadata) {
+        return this._getMetadata(path).then(function (metadata) {
           if (options && (options.ifNoneMatch === '*') && metadata) {
             // if !!metadata === true, the file exists
-            return pending.resolve({statusCode: 412, revision: metadata.rev});
+            return Promise.resolve({
+              statusCode: 412,
+              revision: metadata.rev
+            });
           }
+
           if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
-            return pending.resolve({statusCode: 412, revision: metadata.rev});
+            return Promise.resolve({
+              statusCode: 412,
+              revision: metadata.rev
+            });
           }
-          self._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}).then(function (resp) {
-            self.shareIfNeeded(path);
 
-            if (resp.status !== 200) {
-              return pending.resolve({statusCode: resp.status});
-            }
-            var response = JSON.parse(resp.responseText);
-            if (response.path === pathTempBeforeClean) {
-              revCache.propagateSet(path, response.rev);
-              pending.resolve({statusCode: resp.status});
-            } else {
-              // Conflict happened. Delete the copy created by Dropbox
-              var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
-              self._request('POST', deleteUrl, {});
-
-              // If we got into this situation here, then it means that the
-              // file changed between the metadata request and this PUT
-              // request. Because of that the previously requested metadata
-              // cannot be reused here and a new request has to be made:
-              self._getMetadata(path).then(function (metadata) {
-                pending.resolve({statusCode: 412, revision: metadata.rev});
-              });
-            }
-          }, function (err) {
-            return pending.reject(err);
-          });
+          return self._uploadSimple(uploadParams);
         });
       }
-      return pending.promise;
+
+      return self._uploadSimple(uploadParams);
     },
 
     /**
@@ -640,6 +627,50 @@
           // The file doesn't exist
           return Promise.resolve();
         }
+      });
+    },
+
+    _uploadSimple: function (params) {
+      var self = this;
+      var url = 'https://api-content.dropbox.com/1/files_put/auto' + cleanPath(params.path) + '?';
+
+      if (params && params.ifMatch) {
+        url += "parent_rev=" + encodeURIComponent(params.ifMatch);
+      }
+
+      return self._request('PUT', url, {
+        body: params.body,
+        headers: {
+          'Content-Type': params.contentType
+        }
+      }).then(function (resp) {
+        if (resp.status !== 200) {
+          return Promise.resolve({ statusCode: resp.status });
+        }
+
+        var response;
+
+        try {
+          response = JSON.parse(resp.responseText);
+        } catch (e) {
+          return Promise.reject(e);
+        }
+
+        // Conflict happened. Delete the copy created by DropBox
+        if (response.path != params.path) {
+          var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
+          self._request('POST', deleteUrl, {});
+
+          return self._getMetadata(params.path).then(function (metadata) {
+            return Promise.resolve({
+              statusCode: 412,
+              revision: metadata.rev
+            });
+          });
+        }
+
+        self._revCache.propagateSet(params.path, response.rev);
+        return Promise.resolve({ statusCode: resp.status });
       });
     }
   };
