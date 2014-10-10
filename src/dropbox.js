@@ -204,10 +204,10 @@
         if ( !this.userAddress ){
           this.info().then(function (info){
             this.userAddress = info.display_name;
-            //FIXME propagate this to the view
+            this.rs.widget.view.setUserAddress(this.userAddress);
+            this._emit('connected');
           }.bind(this));
         }
-        this._emit('connected');
       } else {
         this.connected = false;
       }
