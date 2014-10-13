@@ -3273,20 +3273,30 @@ module.exports = ret;
 
 /** FILE: lib/bluebird-defer.js **/
 // wrapper to implement defer() functionality
-(function (global) {
-  global.Promise.defer = function () {
+(function () {
+  function __defer() {
     var resolve, reject;
     var promise = new Promise(function() {
         resolve = arguments[0];
         reject = arguments[1];
     });
     return {
-        resolve: resolve,
-        reject: reject,
-        promise: promise
+      resolve: resolve,
+      reject: reject,
+      promise: promise
     };
-  };
-}(global));
+  }
+
+  if (typeof global !== 'undefined') {
+    global.Promise.defer = __defer;
+  } else if (typeof Promise !== 'undefined') {
+    Promise.defer = __defer;
+  } else {
+    console.log('global: ', typeof global);
+    console.log('Promise: ', typeof Promise);
+    throw new Error("Unable to attach defer method to Promise object.");
+  }
+}());
 
 /** FILE: src/remotestorage.js **/
 (function (global) {
