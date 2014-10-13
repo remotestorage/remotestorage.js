@@ -3274,8 +3274,8 @@ module.exports = ret;
 
 /** FILE: lib/bluebird-defer.js **/
 // wrapper to implement defer() functionality
-(function () {
-  Promise.defer = function () {
+(function (global) {
+  global.Promise.defer = function () {
     var resolve, reject;
     var promise = new Promise(function() {
         resolve = arguments[0];
@@ -3287,7 +3287,7 @@ module.exports = ret;
         promise: promise
     };
   };
-}());
+}(global));
 
 /** FILE: src/remotestorage.js **/
 (function (global) {
@@ -4013,8 +4013,11 @@ module.exports = ret;
    * Not available in no-cache builds.
    */
 
-  global.RemoteStorage = RemoteStorage;
-
+  if ((typeof module === 'object') && (typeof module.exports !== undefined)){
+    module.exports = RemoteStorage;
+  } else {
+    global.RemoteStorage = RemoteStorage;
+  }
 })(typeof(window) !== 'undefined' ? window : global);
 
 
@@ -8097,6 +8100,22 @@ Math.uuid = function (len, radix) {
 
   /**
    * Class: RemoteStorage.Sync
+   *
+   * What this class does is basically six things:
+   * - retrieving the remote version of relevant documents and folders
+   * - add all local and remote documents together into one tree
+   * - push local documents out if they don't exist remotely
+   * - push local changes out to remote documents (conditionally, to
+   *      avoid race conditions where both have changed)
+   * - adopt the local version of a document to its remote version if
+   *      both exist and they differ
+   * - delete the local version of a document if it was deleted remotely
+   * - if any get requests were waiting for remote data, resolve them once
+   *      this data comes in.
+   *
+   * It does this using requests to documents, and to folders. Whenever a
+   * folder GET comes in, it gives information about all the documents it
+   * contains (this is the `markChildren` function).
    **/
   RemoteStorage.Sync = function (setLocal, setRemote, setAccess, setCaching) {
     this.local = setLocal;

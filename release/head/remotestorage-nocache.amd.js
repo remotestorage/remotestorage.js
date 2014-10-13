@@ -3274,8 +3274,8 @@ module.exports = ret;
 
 /** FILE: lib/bluebird-defer.js **/
 // wrapper to implement defer() functionality
-(function () {
-  Promise.defer = function () {
+(function (global) {
+  global.Promise.defer = function () {
     var resolve, reject;
     var promise = new Promise(function() {
         resolve = arguments[0];
@@ -3287,7 +3287,7 @@ module.exports = ret;
         promise: promise
     };
   };
-}());
+}(global));
 
 /** FILE: src/remotestorage.js **/
 (function (global) {
@@ -4013,8 +4013,11 @@ module.exports = ret;
    * Not available in no-cache builds.
    */
 
-  global.RemoteStorage = RemoteStorage;
-
+  if ((typeof module === 'object') && (typeof module.exports !== undefined)){
+    module.exports = RemoteStorage;
+  } else {
+    global.RemoteStorage = RemoteStorage;
+  }
 })(typeof(window) !== 'undefined' ? window : global);
 
 
