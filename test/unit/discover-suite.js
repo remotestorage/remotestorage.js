@@ -162,6 +162,29 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs, undefin
       },
 
       {
+        desc: "when running the previous test a second time, it makes no xhr request, but you get the same answer",
+        run: function (env, test) {
+          //TODO: clear the cache of the discover instance inbetween tests.
+          //for now, we use a different user address in each test to avoid interference
+          //between the previous test and this one when running the entire suite.
+          RemoteStorage.Discover('nil2@heahdk.net').then(function (info) {
+            console.log(info);
+            test.assertAnd(info, {
+              href: 'https://base/url',
+              storageType: 'draft-dejong-remotestorage-02',
+              authURL: 'https://auth/url',
+              properties: {
+                'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-02',
+                'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+              }
+            });
+            test.done();
+          });
+          test.assertAnd(XMLHttpRequest.instances[0], undefined);
+        }
+      },
+
+      {
         desc: "if unsuccesfully tried to discover a storage, promise is rejected",
         run: function (env, test) {
           RemoteStorage.Discover("foo@bar").then(function () {

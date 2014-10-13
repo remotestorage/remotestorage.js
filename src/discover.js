@@ -28,10 +28,6 @@
    **/
 
   RemoteStorage.Discover = function (userAddress) {
-    if (userAddress in cachedInfo) {
-      var info = cachedInfo[userAddress];
-      return Promise.fulfill(info);
-    }
     var pending = Promise.defer();
     var hostname = userAddress.split('@')[1];
     var params = '?resource=' + encodeURIComponent('acct:' + userAddress);
@@ -39,6 +35,12 @@
       'https://' + hostname + '/.well-known/webfinger' + params,
       'http://' + hostname + '/.well-known/webfinger' + params
     ];
+
+    if (userAddress in cachedInfo) {
+      var info = cachedInfo[userAddress];
+      pending.fulfill(info);
+      return pending.promise;
+    }
 
     function tryOne() {
       var xhr = new XMLHttpRequest();
