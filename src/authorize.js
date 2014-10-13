@@ -19,7 +19,9 @@
   RemoteStorage.ImpliedAuth = function (storageApi, redirectUri) {
     RemoteStorage.log('ImpliedAuth proceeding due to absent authURL; storageApi = ' + storageApi + ' redirectUri = ' + redirectUri);
     // Set a fixed access token, signalling to not send it as Bearer
-    remoteStorage.remote.configure(undefined, undefined, undefined, RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN);
+    remoteStorage.remote.configure({
+      token: RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN
+    });
     document.location = redirectUri;
   };
 
@@ -92,7 +94,9 @@
           throw "Authorization server errored: " + params.error;
         }
         if (params.access_token) {
-          remoteStorage.remote.configure(undefined, undefined, undefined, params.access_token);
+          remoteStorage.remote.configure({
+            token: params.access_token
+          });
           authParamsUsed = true;
         }
         if (params.remotestorage) {

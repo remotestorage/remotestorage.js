@@ -118,15 +118,19 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "it finds href, type and authURL, when the remotestorage version is in a link property",
+        desc: "it finds href, type, authURL, and properties when the remotestorage version is in a link property",
         run: function(env, test) {
           //TODO: clear the cache of the discover instance inbetween tests.
           //for now, we use a different user address in each test to avoid interference
           //between the previous test and this one when running the entire suite.
-          RemoteStorage.Discover('nil2@heahdk.net', function(href, type, authURL) {
+          RemoteStorage.Discover('nil2@heahdk.net', function(href, type, authURL, properties) {
             test.assertAnd(href, 'https://base/url');
             test.assertAnd(type, 'draft-dejong-remotestorage-02');
             test.assertAnd(authURL, 'https://auth/url');
+            test.assertAnd(properties, {
+              'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-02',
+              'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+            });
             test.done();
           });
           var instance = XMLHttpRequest.instances[0];
@@ -148,7 +152,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "if unseccesfully tried to discover a storage, callback is called without an href",
+        desc: "if unsuccesfully tried to discover a storage, callback is called without an href",
         run: function(env, test) {
           RemoteStorage.Discover("foo@bar", function(href) {
             test.assertType(href, 'undefined');
