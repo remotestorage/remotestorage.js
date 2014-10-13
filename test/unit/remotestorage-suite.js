@@ -9,9 +9,14 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
 
   var consoleLog, fakeLogs;
 
-  function FakeRemote() {
-    this.connected = true;
+  function FakeRemote(connected) {
+    this.connected = (typeof connected === 'boolean') ? connected : true;
     this.configure = function() {};
+    this.stopWaitingForToken = function() {
+      if (!this.connected) {
+        this._emit('not-connected');
+      }
+    };
     RemoteStorage.eventHandling(this, 'connected', 'disconnected', 'not-connected');
   }
 
@@ -368,6 +373,83 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
           restoreConsoleLog();
         }
       }
+    ]
+  },
+
+  {
+    name: "remoteStorage",
+    desc: "the RemoteStorage instance - without a connected remote",
+    setup: function(env, test) {
+      require('./src/remotestorage');
+      if (global.rs_rs) {
+        RemoteStorage = global.rs_rs;
+      } else {
+        global.rs_rs = RemoteStorage;
+      }
+
+      require('./src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
+
+      require('./src/eventhandling');
+      if (global.rs_eventhandling) {
+        RemoteStorage.eventHandling = global.rs_eventhandling;
+      } else {
+        global.rs_eventhandling = RemoteStorage.eventHandling;
+      }
+
+      require('./src/wireclient');
+      if (global.rs_wireclient) {
+        RemoteStorage.WireClient = global.rs_wireclient;
+      } else {
+        global.rs_wireclient = RemoteStorage.WireClient;
+      }
+
+      require('./lib/Math.uuid');
+      require('./lib/tv4');
+      require('./src/baseclient');
+      require('./src/baseclient/types');
+      if (global.rs_baseclient_with_types) {
+        RemoteStorage.BaseClient = global.rs_baseclient_with_types;
+      } else {
+        global.rs_baseclient_with_types = RemoteStorage.BaseClient;
+      }
+
+      RemoteStorage.prototype.remote = new FakeRemote(false);
+      test.assertType(RemoteStorage, 'function');
+    },
+    tests: [
+      {
+        desc: "ready event fires",
+        run: function(env, test) {
+          env.remoteStorage = new RemoteStorage();
+          env.remoteStorage.on('ready', function(e) {
+            test.done();
+          });
+        }
+      },
+      {
+        desc: "#hasFeature BaseClient [true]",
+        run: function(env, test) {
+          test.assert(env.remoteStorage.hasFeature('BaseClient'), true);
+        }
+      },
+      {
+        desc: "#hasFeature Authorize [false]",
+        run: function(env, test) {
+          test.assert(env.remoteStorage.hasFeature('Authorize'), false);
+        }
+      },
+      {
+        desc: "remote not connected",
+        run: function(env, test) {
+          console.log('env.remoteStorage.remote: ', env.remoteStorage.connected);
+          test.assert(env.remoteStorage.remote.connected, false);
+        }
+      },
     ]
   });
 

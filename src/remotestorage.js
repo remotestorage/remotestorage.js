@@ -87,8 +87,13 @@
    * Depending on which features are built in, it contains different attributes and
    * functions. See the individual features for more information.
    *
+   *  (start code)
+   *  var remoteStorage = new RemoteStorage({
+   *    logging: true  // defaults to false
+   *  });
+   *  (end code)
    */
-  var RemoteStorage = function () {
+  var RemoteStorage = function (cfg) {
     /**
      * Event: ready
      *
@@ -142,6 +147,12 @@
      *
      * Fired when a wire request completes
      **/
+
+    // Initial configuration property settings.
+    if (typeof cfg === 'object') {
+      RemoteStorage.config.logging = (typeof cfg.logging === 'boolean') ? cfg.logging : false;
+    }
+
     RemoteStorage.eventHandling(
       this, 'ready', 'connected', 'disconnected', 'not-connected', 'conflict',
             'error', 'features-loaded', 'connecting', 'authing', 'wire-busy',
@@ -212,6 +223,9 @@
    * Log using console.log, when remoteStorage logging is enabled.
    *
    * You can enable logging with <enableLog>.
+   *
+   * (In node.js you can also enable logging during remoteStorage object
+   * creation. See: <RemoteStorage>).
    */
   RemoteStorage.log = function () {
     if (RemoteStorage.config.logging) {
@@ -371,7 +385,7 @@
     /**
      * Method: enableLog
      *
-     * Enable remoteStorage logging
+     * Enable remoteStorage logging.
      */
     enableLog: function () {
       RemoteStorage.config.logging = true;
@@ -403,8 +417,8 @@
      * both these backends is still experimental.
      *
      * Parameters:
-     * type - string, either 'googledrive' or 'dropbox'
-     * keys - object, with one string field; 'client_id' for GoogleDrive, or
+     *   type - string, either 'googledrive' or 'dropbox'
+     *   keys - object, with one string field; 'client_id' for GoogleDrive, or
      *          'api_key' for Dropbox.
      *
      */
@@ -464,6 +478,10 @@
           if (this.remote.connected) {
             fireReady();
             self._emit('connected');
+          }
+
+          if (!this.hasFeature('Authorize')) {
+            this.remote.stopWaitingForToken();
           }
         }
 
@@ -595,8 +613,7 @@
                 featureSupported(featureName, false);
               }
             );
-          }
-          else if (typeof supported === 'boolean') {
+          } else if (typeof supported === 'boolean') {
             featureSupported(featureName, supported);
             if (supported) {
               initFeature(featureName);
@@ -606,6 +623,32 @@
           featureSupported(featureName, false);
         }
       });
+    },
+
+    /**
+     * Method: hasFeature
+     *
+     * Checks whether a feature is enabled or not within remoteStorage.
+     * Returns a boolean.
+     *
+     * Parameters:
+     * name - Capitalized name of the feature. e.g. Authorize, or IndexedDB
+     *
+     * Example:
+     *   (start code)
+     *   if (remoteStorage.hasFeature('LocalStorage')) {
+     *     console.log('LocalStorage is enabled!');
+     *   }
+     *   (end code)
+     *
+     */
+    hasFeature: function (feature) {
+      for (var i = this.features.length - 1; i >= 0; i--) {
+        if (this.features[i].name === feature) {
+          return this.features[i].supported;
+        }
+      }
+      return false;
     },
 
     localStorageAvailable: function () {
