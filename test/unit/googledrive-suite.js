@@ -86,9 +86,11 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
     env.connectedClient = new RemoteStorage.GoogleDrive(env.rs);
     env.baseURI = 'https://example.com/storage/test';
     env.token = 'foobarbaz';
-    env.connectedClient.configure(
-      'gduser', env.baseURI, undefined, env.token
-    );
+    env.connectedClient.configure({
+      userAddress: 'gduser',
+      href: env.baseURI,
+      token: env.token
+    });
 
     mocks.defineMocks(env);
 
@@ -124,7 +126,9 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       {
         desc: "#configure sets 'connected' to true, once token is given",
         run: function (env, test) {
-          env.client.configure(undefined, undefined, undefined, 'foobarbaz');
+          env.client.configure({
+            token: 'foobarbaz'
+          });
           test.assert(env.client.connected, true);
         }
       },

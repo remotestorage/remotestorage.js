@@ -159,7 +159,14 @@
 
     onErrorCb = function (error){
       if (error instanceof RemoteStorage.Unauthorized) {
-        self.configure(null,null,null,null);
+        // Delete all the settings - see the documentation of wireclient.configure
+        self.configure({
+          userAddress: null,
+          href: null,
+          storageApi: null,
+          token: null,
+          options: null
+        });
       }
     };
 
@@ -177,7 +184,7 @@
         settings = JSON.parse(localStorage[SETTINGS_KEY]);
       } catch(e){}
       if (settings) {
-        this.configure(settings.userAddress, undefined, undefined, settings.token);
+        this.configure(settings);
       }
       try {
         this._itemRefs = JSON.parse(localStorage[ SETTINGS_KEY+':shares' ]);
@@ -208,14 +215,15 @@
     },
 
     /**
-     * Method: configure
-     *
+     * Method : configure(settings)
      * Accepts its parameters according to the <RemoteStorage.WireClient>.
-     * Set's the connected flag.
-     */
-    configure: function (userAddress, href, storageApi, token) {
-      if (typeof token !== 'undefined') { this.token = token; }
-      if (typeof userAddress !== 'undefined') { this.userAddress = userAddress; }
+     * Sets the connected flag
+     **/
+    configure: function (settings) {
+      // We only update this.userAddress if settings.userAddress is set to a string or to null:
+      if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
+      // Same for this.token. If only one of these two is set, we leave the other one at its existing value:
+      if (typeof settings.token !== 'undefined') { this.token = settings.token; }
 
       if (this.token) {
         this.connected = true;
@@ -230,8 +238,10 @@
         this.connected = false;
       }
       if (hasLocalStorage){
-        localStorage[SETTINGS_KEY] = JSON.stringify( { token: this.token,
-                                                       userAddress: this.userAddress } );
+        localStorage[SETTINGS_KEY] = JSON.stringify({
+          userAddress: this.userAddress,
+          token: this.token
+        });
       }
     },
 
