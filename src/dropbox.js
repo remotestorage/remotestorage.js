@@ -143,6 +143,7 @@
 
     onErrorCb = function (error){
       if (error instanceof RemoteStorage.Unauthorized) {
+        //delete all the settings - see the documentation of wireclient.configure
         self.configure({
           userAddress: null,
           href: null,
