@@ -30,7 +30,7 @@
   RemoteStorage.Discover = function (userAddress) {
     if (userAddress in cachedInfo) {
       var info = cachedInfo[userAddress];
-      return Promise.fulfill(info.href, info.type, info.authURL, info.properties);
+      return Promise.fulfill(info);
     }
     var pending = Promise.defer();
     var hostname = userAddress.split('@')[1];
@@ -85,7 +85,7 @@
                   || link.properties['auth-endpoint'],
             storageType = link.properties['http://remotestorage.io/spec/version']
                   || link.type;
-          cachedInfo[userAddress] = { href: link.href, type: storageType, authURL: authURL, properties: link.properties };
+          cachedInfo[userAddress] = { href: link.href, storageType: storageType, authURL: authURL, properties: link.properties };
           if (hasLocalStorage) {
             localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
           }
