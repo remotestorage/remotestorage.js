@@ -148,7 +148,7 @@
      * Fired when a wire request completes
      **/
 
-    // initial configuration
+    // Initial configuration property settings.
     if (typeof cfg === 'object') {
       RemoteStorage.config.logging = (typeof cfg.logging === 'boolean') ? cfg.logging : false;
     }
@@ -222,7 +222,7 @@
    *
    * Log using console.log, when remoteStorage logging is enabled.
    *
-   * You can enable logging with <enableLog> or during remoteStorage object creation <RemoteStorage>.
+   * You can enable logging with <enableLog> or during remoteStorage object creation (see: <RemoteStorage>).
    */
   RemoteStorage.log = function () {
     if (RemoteStorage.config.logging) {
@@ -382,7 +382,9 @@
     /**
      * Method: enableLog
      *
-     * Enable remoteStorage logging. See also: <RemoteStorage>
+     * Enable remoteStorage logging.
+     *
+     * See also: <RemoteStorage>
      */
     enableLog: function () {
       RemoteStorage.config.logging = true;
@@ -414,8 +416,8 @@
      * both these backends is still experimental.
      *
      * Parameters:
-     * type - string, either 'googledrive' or 'dropbox'
-     * keys - object, with one string field; 'client_id' for GoogleDrive, or
+     *   type - string, either 'googledrive' or 'dropbox'
+     *   keys - object, with one string field; 'client_id' for GoogleDrive, or
      *          'api_key' for Dropbox.
      *
      */
@@ -623,22 +625,22 @@
     },
 
     /**
-    * Method: hasFeature
-    *
-    * Checks whether a feature is enabled or not within remoteStorage.
-    * Returns a boolean.
-    *
-    * Parameters:
-    * name - Capitalized name of the feature. ie. Authorize, or IndexedDB
-    *
-    * Example:
-    *   (start code)
-    *   if (remoteStorage.hasFeature('LocalStorage')) {
-    *     console.log('LocalStorage is enabled!');
-    *   }
-    *   (end code)
-    *
-    */
+     * Method: hasFeature
+     *
+     * Checks whether a feature is enabled or not within remoteStorage.
+     * Returns a boolean.
+     *
+     * Parameters:
+     * name - Capitalized name of the feature. e.g. Authorize, or IndexedDB
+     *
+     * Example:
+     *   (start code)
+     *   if (remoteStorage.hasFeature('LocalStorage')) {
+     *     console.log('LocalStorage is enabled!');
+     *   }
+     *   (end code)
+     *
+     */
     hasFeature: function (feature) {
       for (var i = this.features.length - 1; i >= 0; i--) {
         if (this.features[i].name === feature) {
