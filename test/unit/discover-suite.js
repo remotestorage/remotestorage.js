@@ -1,7 +1,8 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
+define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs, undefined) {
+  global.Promise = Promise;
   var suites = [];
 
   suites.push({
@@ -53,7 +54,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
 
       {
         desc: "it isn't supported with no XMLHttpRequest",
-        run: function(env, test) {
+        run: function (env, test) {
           delete global.XMLHttpRequest; // in case it was declared by another test.
           test.assert(RemoteStorage.Discover._rs_supported(), false);
         }
@@ -61,7 +62,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
 
       {
         desc: "it is supported when XMLHttpRequest is defined",
-        run: function(env, test) {
+        run: function (env, test) {
           global.XMLHttpRequest = function() {
             XMLHttpRequest.instances.push(this);
           };
@@ -71,7 +72,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
 
       {
         desc: "initialization works",
-        run: function(env, test) {
+        run: function (env, test) {
           var rs = new RemoteStorage();
           RemoteStorage.Discover._rs_init(rs);
           test.done();
@@ -80,7 +81,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
 
       {
         desc: "it tries /.well-known/webfinger",
-        run: function(env, test) {
+        run: function (env, test) {
           RemoteStorage.Discover('nil@heahdk.net', function() {} );
           test.assertAnd(XMLHttpRequest.openCalls.length, 1);
           test.assertAnd(XMLHttpRequest.openCalls[0][0], 'GET');
@@ -92,11 +93,17 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
 
       {
         desc: "it finds href, type and authURL, when the remotestorage version is in the link type",
-        run: function(env, test) {
-          RemoteStorage.Discover('nil@heahdk.net', function(href, type, authURL) {
-            test.assertAnd(href, 'https://base/url');
-            test.assertAnd(type, 'draft-dejong-remotestorage-01');
-            test.assertAnd(authURL, 'https://auth/url');
+        run: function (env, test) {
+          RemoteStorage.Discover('nil@heahdk.net').then(function(info) {
+           console.log(info);
+            test.assertAnd(info, {
+              href: 'https://base/url',
+              storageType: 'draft-dejong-remotestorage-01',
+              authURL: 'https://auth/url',
+              properties: {
+                'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+              }
+            });
             test.done();
           });
           var instance = XMLHttpRequest.instances[0];
@@ -119,17 +126,20 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
 
       {
         desc: "it finds href, type, authURL, and properties when the remotestorage version is in a link property",
-        run: function(env, test) {
+        run: function (env, test) {
           //TODO: clear the cache of the discover instance inbetween tests.
           //for now, we use a different user address in each test to avoid interference
           //between the previous test and this one when running the entire suite.
-          RemoteStorage.Discover('nil2@heahdk.net', function(href, type, authURL, properties) {
-            test.assertAnd(href, 'https://base/url');
-            test.assertAnd(type, 'draft-dejong-remotestorage-02');
-            test.assertAnd(authURL, 'https://auth/url');
-            test.assertAnd(properties, {
-              'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-02',
-              'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+          RemoteStorage.Discover('nil2@heahdk.net').then(function (info) {
+            console.log(info);
+            test.assertAnd(info, {
+              href: 'https://base/url',
+              storageType: 'draft-dejong-remotestorage-02',
+              authURL: 'https://auth/url',
+              properties: {
+                'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-02',
+                'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+              }
             });
             test.done();
           });
@@ -152,10 +162,12 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "if unsuccesfully tried to discover a storage, callback is called without an href",
-        run: function(env, test) {
-          RemoteStorage.Discover("foo@bar", function(href) {
-            test.assertType(href, 'undefined');
+        desc: "if unsuccesfully tried to discover a storage, promise is rejected",
+        run: function (env, test) {
+          RemoteStorage.Discover("foo@bar").then(function () {
+          },
+          function(err) {
+            test.assertType(err, 'string');
           });
           for (var i = 0; i < 4; i++) {
             var instance = XMLHttpRequest.instances[i];

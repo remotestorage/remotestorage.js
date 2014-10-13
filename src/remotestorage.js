@@ -303,21 +303,15 @@
         this._emit('error', new RemoteStorage.DiscoveryError("No storage information found at that user address."));
       }.bind(this), RemoteStorage.config.discoveryTimeout);
 
-      RemoteStorage.Discover(userAddress, function (href, storageApi, authURL, properties) {
+      RemoteStorage.Discover(userAddress).then(function (info) {
+        //info contains fields: href, storageApi, authURL (optional), properties
+
         clearTimeout(discoveryTimeout);
-        if (!href) {
-          this._emit('error', new RemoteStorage.DiscoveryError("Failed to contact storage server."));
-          return;
-        }
         this._emit('authing');
-        this.remote.configure({
-          userAddress: userAddress,
-          href: href,
-          storageApi: storageApi,
-          properties: properties
-        });
+        info.userAddress = userAddress;
+        this.remote.configure(info);
         if (! this.remote.connected) {
-          if (authURL) {
+          if (info.authURL) {
             this.authorize(authURL);
           } else {
             // In lieu of an excplicit authURL, assume that the browser
@@ -328,6 +322,8 @@
             this.impliedauth();
           }
         }
+      }.bind(this), function(err) {
+        this._emit('error', new RemoteStorage.DiscoveryError("Failed to contact storage server."));
       }.bind(this));
     },
 

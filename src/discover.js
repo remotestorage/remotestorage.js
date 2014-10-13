@@ -18,16 +18,21 @@
    *
    * Arguments:
    *   userAddress - user@host
-   *   callback    - gets called with href of the storage, the type, the
-   *                     authURL, and the link properties
+   *
+   * Returns:
+   *  a promise for an object with fields:
+   *    href - href of the storage,
+   *    storageType - the type,
+   *    authUrl - the authURL,
+   *    properties - the link properties
    **/
 
-  RemoteStorage.Discover = function (userAddress, callback) {
+  RemoteStorage.Discover = function (userAddress) {
     if (userAddress in cachedInfo) {
       var info = cachedInfo[userAddress];
-      callback(info.href, info.type, info.authURL, info.properties);
-      return;
+      return Promise.fulfill(info.href, info.type, info.authURL, info.properties);
     }
+    var pending = Promise.defer();
     var hostname = userAddress.split('@')[1];
     var params = '?resource=' + encodeURIComponent('acct:' + userAddress);
     var urls = [
@@ -38,7 +43,10 @@
     function tryOne() {
       var xhr = new XMLHttpRequest();
       var url = urls.shift();
-      if (!url) { return callback(); }
+      if (!url) {
+        pending.reject('Discovery failed for all URLs');
+        return;
+      }
       RemoteStorage.log('[Discover] Trying URL', url);
       xhr.open('GET', url, true);
       xhr.onabort = xhr.onerror = function () {
@@ -81,7 +89,12 @@
           if (hasLocalStorage) {
             localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
           }
-          callback(link.href, storageType, authURL, link.properties);
+          pending.resolve({
+            href: link.href,
+            storageType: storageType,
+            authURL: authURL,
+            properties: link.properties
+          });
         } else {
           tryOne();
         }
@@ -89,6 +102,7 @@
       xhr.send();
     }
     tryOne();
+    return pending.promise;
   };
 
   RemoteStorage.Discover._rs_init = function (remoteStorage) {
