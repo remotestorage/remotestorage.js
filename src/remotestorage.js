@@ -87,11 +87,11 @@
    * Depending on which features are built in, it contains different attributes and
    * functions. See the individual features for more information.
    *
-   *   (start code)
-   *   var remoteStorage = new RemoteStorage({
-   *     logging: true  // defaults to false
-   *   });
-   *   (end code)
+   *  (start code)
+   *  var remoteStorage = new RemoteStorage({
+   *    logging: true  // defaults to false
+   *  });
+   *  (end code)
    */
   var RemoteStorage = function (cfg) {
     /**
@@ -632,9 +632,11 @@
     * name - Capitalized name of the feature. ie. Authorize, or IndexedDB
     *
     * Example:
-    * if (remoteStorage.hasFeature('LocalStorage')) {
-    * console.log('LocalStorage is enabled!');
-    * }
+    *   (start code)
+    *   if (remoteStorage.hasFeature('LocalStorage')) {
+    *     console.log('LocalStorage is enabled!');
+    *   }
+    *   (end code)
     *
     */
     hasFeature: function (feature) {
