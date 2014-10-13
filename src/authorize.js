@@ -78,7 +78,7 @@
     RemoteStorage.ImpliedAuth(this.remote.storageApi, String(document.location));
   };
 
-  RemoteStorage.Authorize._rs_supported = function (remoteStorage) {
+  RemoteStorage.Authorize._rs_supported = function () {
     return typeof(document) !== 'undefined';
   };
 
