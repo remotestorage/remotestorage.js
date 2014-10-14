@@ -18,7 +18,8 @@
     "test": "node_modules/jaribu/bin/jaribu"
   },
   "dependencies": {
-    "xhr2": "0.0.7",
-    "bluebird": "^2.3.2"
+    "bluebird": "^2.3.2",
+    "tv4": "^1.1.4",
+    "xhr2": "0.0.7"
   }
 }
