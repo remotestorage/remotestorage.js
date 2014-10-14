@@ -3299,6 +3299,8 @@ module.exports = ret;
   }
 }());
 
+
+
 /** FILE: src/remotestorage.js **/
 (function (global) {
   function logError(error) {
@@ -11089,10 +11091,10 @@ Math.uuid = function (len, radix) {
         if ( !this.userAddress ){
           this.info().then(function (info){
             this.userAddress = info.display_name;
-            //FIXME propagate this to the view
+            this.rs.widget.view.setUserAddress(this.userAddress);
+            this._emit('connected');
           }.bind(this));
         }
-        this._emit('connected');
       } else {
         this.connected = false;
       }
@@ -11113,7 +11115,7 @@ Math.uuid = function (len, radix) {
      **/
     _getFolder: function (path, options) {
       // FIXME simplify promise handling
-      var url = 'https://api.dropbox.com/1/metadata/auto'+path;
+      var url = 'https://api.dropbox.com/1/metadata/auto' + cleanPath(path);
       var revCache = this._revCache;
       var self = this;
 
@@ -11153,49 +11155,60 @@ Math.uuid = function (len, radix) {
      *   calls share(path) afterwards to fill the _hrefCache
      **/
     get: function (path, options) {
-      // FIXME simplify promise handling
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
-      path = cleanPath(path);
-      var url = 'https://api-content.dropbox.com/1/files/auto' + path;
-      var pending = this._sharePromise(path);
+      var url = 'https://api-content.dropbox.com/1/files/auto' + cleanPath(path);
       var self = this;
 
       var savedRev = this._revCache.get(path);
       if (savedRev === null) {
-        //file was deleted server side
-        pending.resolve({statusCode: 404});
+        // file was deleted server side
+        return Promise.resolve({statusCode: 404});
       }
       if (options && options.ifNoneMatch &&
          savedRev && (savedRev === options.ifNoneMatch)) {
         // nothing changed.
-        pending.resolve({statusCode: 304});
+        return Promise.resolve({statusCode: 304});
       }
 
       //use _getFolder for folders
       if (path.substr(-1) === '/') { return this._getFolder(path, options); }
-      this._request('GET', url, {}).then(function (resp) {
+
+      return this._request('GET', url, {}).then(function (resp) {
         var status = resp.status;
         var meta, body, mime, rev;
         if (status !== 200) {
-          return pending.resolve({statusCode: status});
+          return Promise.resolve({statusCode: status});
         }
+
         body = resp.responseText;
         try {
           meta = JSON.parse( resp.getResponseHeader('x-dropbox-metadata') );
         } catch(e) {
-          return pending.reject(e);
+          return Promise.reject(e);
         }
 
         mime = meta.mime_type; //resp.getResponseHeader('Content-Type');
         rev = meta.rev;
         self._revCache.set(path, rev);
+        self._shareIfNeeded(path); // The shared link expires every 4 hours
 
         // handling binary
-        if ((! resp.getResponseHeader('Content-Type') ) || resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
-          return RS.WireClient.readBinaryData(resp.response, mime, function (result) {
-            return pending.resolve({statusCode: status, body: result, contentType: mime, revision: rev});
+        if (!resp.getResponseHeader('Content-Type') ||
+            resp.getResponseHeader('Content-Type').match(/charset=binary/)) {
+          var pending = Promise.defer();
+
+          RS.WireClient.readBinaryData(resp.response, mime, function (result) {
+            pending.resolve({
+              statusCode: status,
+              body: result,
+              contentType: mime,
+              revision: rev
+            });
           });
+
+          return pending.promise;
         }
+
         // handling json (always try)
         if (mime && mime.search('application/json') >= 0 || true) {
           try {
@@ -11205,11 +11218,9 @@ Math.uuid = function (len, radix) {
             //Failed parsing Json, assume it is something else then
           }
         }
-        return pending.resolve({statusCode: status, body: body, contentType: mime, revision: rev});
-      }, function (err) {
-        return pending.reject(err);
+
+        return Promise.resolve({statusCode: status, body: body, contentType: mime, revision: rev});
       });
-      return pending.promise;
     },
 
     /**
@@ -11218,18 +11229,15 @@ Math.uuid = function (len, radix) {
      *   also uses _revCache to check for version conflicts
      *   also shares via share(path)
      **/
-    put: function (path, body, contentType, options){
-      // FIXME simplify promise handling
-      if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
-      var pathTempBeforeClean = path; // Temp variable to store the value beafore cleanPath, to be used later
-      path = cleanPath(path);
-
+    put: function (path, body, contentType, options) {
       var self = this;
-      var pending = this._sharePromise(path);
-      var revCache = this._revCache;
+
+      if (!this.connected) {
+        throw new Error("not connected (path: " + path + ")");
+      }
 
       //check if file has changed and return 412
-      var savedRev = revCache.get(path);
+      var savedRev = this._revCache.get(path);
       if (options && options.ifMatch &&
           savedRev && (savedRev !== options.ifMatch)) {
         return Promise.resolve({statusCode: 412, revision: savedRev});
@@ -11238,136 +11246,91 @@ Math.uuid = function (len, radix) {
           savedRev && (savedRev !== 'rev')) {
         return Promise.resolve({statusCode: 412, revision: savedRev});
       }
-      if ((! contentType.match(/charset=/)) && (body instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(body))) {
+
+      if ((!contentType.match(/charset=/)) &&
+          (body instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(body))) {
         contentType += '; charset=binary';
       }
-      var url = 'https://api-content.dropbox.com/1/files_put/auto' + path + '?';
-      if (options && options.ifMatch) {
-        url += "parent_rev="+encodeURIComponent(options.ifMatch);
+
+      if (body.length > 150 * 1024 * 1024) {
+        //https://www.dropbox.com/developers/core/docs#chunked-upload
+        return Promise.reject(new Error("Cannot upload file larger than 150MB"));
       }
 
-      if (body.length > 150 * 1024 * 1024) { //FIXME actual content-length
-        //https://www.dropbox.com/developers/core/docs#chunked-upload
-        RemoteStorage.log('files larger than 150MB not supported yet');
-      } else {
-        // FIXME simplify promise handling
-        var pendingMetadata = Promise.defer();
-        if (options && (options.ifMatch || (options.ifNoneMatch === '*'))) {
-          this._getMetadata(pathTempBeforeClean).then(function (metadata) {
-            pendingMetadata.resolve(metadata);
-          });
-        } else {
-          pendingMetadata.resolve();
-        }
+      var result;
+      var needsMetadata = options && (options.ifMatch || (options.ifNoneMatch === '*'));
+      var uploadParams = {
+        body: body,
+        contentType: contentType,
+        path: path
+      };
 
-        pendingMetadata.promise.then(function (metadata) {
+      if (needsMetadata) {
+        result = this._getMetadata(path).then(function (metadata) {
           if (options && (options.ifNoneMatch === '*') && metadata) {
             // if !!metadata === true, the file exists
-            return pending.resolve({statusCode: 412, revision: metadata.rev});
+            return Promise.resolve({
+              statusCode: 412,
+              revision: metadata.rev
+            });
           }
-          if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
-            return pending.resolve({statusCode: 412, revision: metadata.rev});
-          }
-          self._request('PUT', url, {body:body, headers:{'Content-Type':contentType}}).then(function (resp) {
-            if (resp.status !== 200) {
-              return pending.resolve({statusCode: resp.status});
-            }
-            var response = JSON.parse(resp.responseText);
-            if (response.path === pathTempBeforeClean) {
-              revCache.propagateSet(path, response.rev);
-              pending.resolve({statusCode: resp.status});
-            } else {
-              // Conflict happened. Delete the copy created by Dropbox
-              var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
-              self._request('POST', deleteUrl, {});
 
-              // If we got into this situation here, then it means that the
-              // file changed between the metadata request and this PUT
-              // request. Because of that the previously requested metadata
-              // cannot be reused here and a new request has to be made:
-              self._getMetadata(path).then(function (metadata) {
-                pending.resolve({statusCode: 412, revision: metadata.rev});
-              });
-            }
-          }, function (err) {
-            return pending.reject(err);
-          });
+          if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
+            return Promise.resolve({
+              statusCode: 412,
+              revision: metadata.rev
+            });
+          }
+
+          return self._uploadSimple(uploadParams);
         });
+      } else {
+        result = self._uploadSimple(uploadParams);
       }
-      return pending.promise;
+
+      return result.then(function (ret) {
+        self._shareIfNeeded(path);
+        return ret;
+      });
     },
 
     /**
      * Method : delete(path, options)
      *   similar to get and set
      **/
-    'delete': function (path, options){
-      // FIXME simplify promise handling
-      if (! this.connected) { throw new Error("not connected (path: " + path + ")"); }
-      var pathTempBeforeClean = path; // Temp variable to store the value before cleanPath, to be used later
-      path = cleanPath(path);
-
+    'delete': function (path, options) {
       var self = this;
-      var pending = Promise.defer();
-      var revCache = this._revCache;
+
+      if (!this.connected) {
+        throw new Error("not connected (path: " + path + ")");
+      }
+
       //check if file has changed and return 412
-      var savedRev = revCache.get(path);
-      if (options && options.ifMatch &&
-          savedRev && (options.ifMatch !== savedRev)) {
-        return Promise.resolve({statusCode: 412, revision: savedRev});
+      var savedRev = this._revCache.get(path);
+      if (options && options.ifMatch && savedRev && (options.ifMatch !== savedRev)) {
+        return Promise.resolve({ statusCode: 412, revision: savedRev });
       }
 
-      var pendingMetadata = Promise.defer();
       if (options && options.ifMatch) {
-        this._getMetadata(pathTempBeforeClean).then(function (metadata) {
-          pendingMetadata.resolve(metadata);
+        return this._getMetadata(path).then(function (metadata) {
+          if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
+            return Promise.resolve({
+              statusCode: 412,
+              revision: metadata.rev
+            });
+          }
+
+          return self._deleteSimple(path);
         });
-      } else {
-        pendingMetadata.resolve();
       }
 
-      pendingMetadata.promise.then(function (metadata) {
-        if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
-          return pending.resolve({statusCode: 412, revision: metadata.rev});
-        }
-
-        var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(pathTempBeforeClean);
-        self._request('POST', url, {}).then(function (resp){
-          if (resp.status === 200) {
-            revCache.delete(path);
-          }
-          return pending.resolve({statusCode: resp.status});
-        }, function (err) {
-          return pending.reject(error);
-        });
-      });
-
-      return pending.promise.then(function (r) {
-        delete this._itemRefs[path];
-        return r;
-      }.bind(this));
+      return self._deleteSimple(path);
     },
 
-    /**
-     * Method : _sharePromise(path)
-     *   returns a promise which's then block doesn't touch the arguments given
-     *   and calls share for the path
-     *
-     *  also checks for necessity of shareing this url(already in the itemRefs or not '/public/')
-     **/
-    _sharePromise: function (path){
-      var pending = Promise.defer();
-      var self = this;
-      if (path.match(/^\/public\/.*[^\/]$/) && typeof this._itemRefs[path] === 'undefined') {
-        pending.then(function (r) {
-          return self.share(path).then(function () {
-            return Promise.resolve(r);
-          }, function (err) {
-            return Promise.resolve(r);
-          });
-        });
+    _shareIfNeeded: function (path) {
+      if (path.match(/^\/public\/.*[^\/]$/) && this._itemRefs[path] === undefined) {
+        this.share(path);
       }
-      return pending;
     },
 
     /**
@@ -11375,28 +11338,31 @@ Math.uuid = function (len, radix) {
      *   get sher_url s from dropbox and pushes those into this._hrefCache
      *   returns promise
      */
-    share: function (path){
-      var url = "https://api.dropbox.com/1/media/auto"+path;
-      var itemRefs = this._itemRefs;
+    share: function (path) {
+      var self = this;
+      var url = 'https://api.dropbox.com/1/media/auto/' + cleanPath(path);
 
-      // requesting shareing url
-      return this._request('POST', url, {}).then(function (resp) {
-        try{
-          var response = JSON.parse(resp.responseText);
-          var url = response.url;
-          itemRefs[path] = url;
-          if (hasLocalStorage) {
-            localStorage[SETTINGS_KEY+":shares"] = JSON.stringify(this._itemRefs);
-          }
-          return Promise.resolve(url);
-        } catch(err) {
-          err.message += "share error";
-          return Promise.reject(err);
+      return this._request('POST', url, {}).then(function (response) {
+        if (response.status !== 200) {
+          return Promise.reject(new Error('Invalid DropBox API response status when sharing "' + path + '":' + response.status));
         }
-      }, function (err) {
-        RemoteStorage.log(err);
-        err.message = 'Shareing Dropbox Thingie("' + path + '") failed.' + err.message;
-        return Promise.reject(err);
+
+        try {
+          response = JSON.parse(response.responseText);
+        } catch (e) {
+          return Promise.reject(new Error('Invalid DropBox API response when sharing "' + path + '": ' + response.responseText));
+        }
+
+        self._itemRefs[path] = response.url;
+
+        if (hasLocalStorage) {
+          localStorage[SETTINGS_KEY + ':shares'] = JSON.stringify(self._itemRefs);
+        }
+
+        return Promise.resolve(url);
+      }, function (error) {
+        err.message = 'Sharing DropBox file or folder ("' + path + '") failed.' + err.message;
+        return Promise.reject(error);
       });
     },
 
@@ -11528,6 +11494,71 @@ Math.uuid = function (len, radix) {
           // The file doesn't exist
           return Promise.resolve();
         }
+      });
+    },
+
+    _uploadSimple: function (params) {
+      var self = this;
+      var url = 'https://api-content.dropbox.com/1/files_put/auto' + cleanPath(params.path) + '?';
+
+      if (params && params.ifMatch) {
+        url += "parent_rev=" + encodeURIComponent(params.ifMatch);
+      }
+
+      return self._request('PUT', url, {
+        body: params.body,
+        headers: {
+          'Content-Type': params.contentType
+        }
+      }).then(function (resp) {
+        if (resp.status !== 200) {
+          return Promise.resolve({ statusCode: resp.status });
+        }
+
+        var response;
+
+        try {
+          response = JSON.parse(resp.responseText);
+        } catch (e) {
+          return Promise.reject(e);
+        }
+
+        // Conflict happened. Delete the copy created by DropBox
+        if (response.path != params.path) {
+          var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
+          self._request('POST', deleteUrl, {});
+
+          return self._getMetadata(params.path).then(function (metadata) {
+            return Promise.resolve({
+              statusCode: 412,
+              revision: metadata.rev
+            });
+          });
+        }
+
+        self._revCache.propagateSet(params.path, response.rev);
+        return Promise.resolve({ statusCode: resp.status });
+      });
+    },
+
+    _deleteSimple: function (path) {
+      var self = this;
+      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(path);
+
+      return self._request('POST', url, {}).then(function (resp) {
+        if (resp.status === 406) {
+          // Too many files would be involved in the operation for it to
+          // complete successfully.
+          // TODO: Handle this somehow
+          return Promise.reject(new Error("Cannot delete '" + path + "': too many files involved"));
+        }
+
+        if (resp.status === 200) {
+          self._revCache.delete(path);
+          delete self._itemRefs[path];
+        }
+
+        return Promise.resolve({ statusCode: resp.status });
       });
     }
   };
