@@ -1,7 +1,7 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs, undefined) {
+define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
   global.Promise = Promise;
   var suites = [];
 
@@ -95,7 +95,6 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs, undefin
         desc: "it finds href, type and authURL, when the remotestorage version is in the link type",
         run: function (env, test) {
           RemoteStorage.Discover('nil@heahdk.net').then(function(info) {
-           console.log(info);
             test.assertAnd(info, {
               href: 'https://base/url',
               storageType: 'draft-dejong-remotestorage-01',
@@ -131,7 +130,6 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs, undefin
           //for now, we use a different user address in each test to avoid interference
           //between the previous test and this one when running the entire suite.
           RemoteStorage.Discover('nil2@heahdk.net').then(function (info) {
-            console.log(info);
             test.assertAnd(info, {
               href: 'https://base/url',
               storageType: 'draft-dejong-remotestorage-02',
@@ -168,7 +166,6 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs, undefin
           //for now, we use a different user address in each test to avoid interference
           //between the previous test and this one when running the entire suite.
           RemoteStorage.Discover('nil2@heahdk.net').then(function (info) {
-            console.log(info);
             test.assertAnd(info, {
               href: 'https://base/url',
               storageType: 'draft-dejong-remotestorage-02',
