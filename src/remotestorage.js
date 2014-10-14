@@ -225,7 +225,7 @@
    * You can enable logging with <enableLog>.
    *
    * (In node.js you can also enable logging during remoteStorage object
-   * creation. see: <RemoteStorage>).
+   * creation. See: <RemoteStorage>).
    */
   RemoteStorage.log = function () {
     if (RemoteStorage.config.logging) {
