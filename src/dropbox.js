@@ -203,7 +203,9 @@
      *   sets the connected flag
      **/
     configure: function (settings) {
+      // We only update this.userAddress if settings.userAddress is set to a string or to null:
       if (typeof settings.userAddress !== 'undefined') { this.userAddress = settings.userAddress; }
+      // Same for this.token. If only one of these two is set, we leave the other one at its existing value:
       if (typeof settings.token !== 'undefined') { this.token = settings.token; }
 
       if (this.token) {

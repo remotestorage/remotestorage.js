@@ -78,7 +78,7 @@
     connected: false,
     online: true,
 
-    configure: function (settings) { // settings parameter compatible with WireClient
+    configure: function (settings) { // Settings parameter compatible with WireClient
       if (settings.token) {
         localStorage['remotestorage:googledrive:token'] = settings.token;
         this.token = settings.token;
