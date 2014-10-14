@@ -247,11 +247,12 @@
     /**
      * Property: remote
      *
-     * The remoteStorage.remote object contains, among other things, the following items:
-     * - connected   - boolean, whether or not a remote store is connected
-     * - online      - boolean, whether last sync action was successful or not
-     * - userAddress - string, the user address of the connected user
-     * - properties  - string, the properties of the WebFinger link
+     * Properties:
+     *
+     *   connected   - Boolean, whether or not a remote store is connected
+     *   online      - Boolean, whether last sync action was successful or not
+     *   userAddress - String, the user address of the connected user
+     *   properties  - String, the properties of the WebFinger link
      */
 
     /**
@@ -262,16 +263,15 @@
      * BaseClient from a module in an app.
      *
      * Parameters:
-     *   scope - a string, with a leading and a trailing slash, specifying the basepath
-     *           of the BaseClient that will be returned.
+     *
+     *   scope - A string, with a leading and a trailing slash, specifying the
+     *           base path of the BaseClient that will be returned.
      *
      * Code example:
      *
-     * function d(p) {
-     *   p.then(function(a) { console.log('ok', a); }, function(a) { console.log('fail', a); });
-     * }
-     * d(remoteStorage.scope('/pictures/').getListing(''));
-     * d(remoteStorage.scope('/public/pictures/').getListing(''));
+     * (start code)
+     * remoteStorage.scope('/pictures/').getListing('');
+     * remoteStorage.scope('/public/pictures/').getListing('');
      */
 
     /**
@@ -282,8 +282,8 @@
      * Parameters:
      *   userAddress - The user address (user@host) to connect to.
      *
-     * Discovers the webfinger profile of the given user address and
-     * initiates the OAuth dance.
+     * Discovers the webfinger profile of the given user address and initiates
+     * the OAuth dance.
      *
      * This method must be called *after* all required access has been claimed.
      *
@@ -304,7 +304,7 @@
       }.bind(this), RemoteStorage.config.discoveryTimeout);
 
       RemoteStorage.Discover(userAddress).then(function (info) {
-        //info contains fields: href, storageApi, authURL (optional), properties
+        // Info contains fields: href, storageApi, authURL (optional), properties
 
         clearTimeout(discoveryTimeout);
         this._emit('authing');

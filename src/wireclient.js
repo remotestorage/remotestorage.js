@@ -166,7 +166,7 @@
 
     onErrorCb = function (error){
       if (error instanceof RemoteStorage.Unauthorized) {
-        this.configure({ token: null });
+        this.configure({token: null});
       }
     }.bind(this);
     rs.on('error', onErrorCb);
@@ -303,12 +303,12 @@
      *
      * Method: configure
      *
-     * Sets the userAddress, href, storageApi, token, and properties
-     * of a remote store. Also sets connected and online to true and
-     * emits the 'connected' event, if both token and href are present.
+     * Sets the userAddress, href, storageApi, token, and properties of a
+     * remote store. Also sets connected and online to true and emits the
+     * 'connected' event, if both token and href are present.
      *
      * Parameters:
-     *   settings - an object that may contain userAddress (string or null),
+     *   settings - An object that may contain userAddress (string or null),
      *              href (string or null), storageApi (string or null), token (string
      *              or null), and/or properties (the JSON-parsed properties object
      *              from the user's WebFinger record, see section 10 of

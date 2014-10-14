@@ -10,21 +10,24 @@
   /**
    * Class: RemoteStorage.Discover
    *
-   * This class deals with the Webfinger lookup, discovering a connecting
+   * This function deals with the Webfinger lookup, discovering a connecting
    * user's storage details.
    *
    * The discovery timeout can be configured via
    * `RemoteStorage.config.discoveryTimeout` (in ms).
    *
    * Arguments:
+   *
    *   userAddress - user@host
    *
    * Returns:
-   *  a promise for an object with fields:
-   *    href - href of the storage,
-   *    storageType - the type,
-   *    authUrl - the authURL,
-   *    properties - the link properties
+   *
+   * A promise for an object with the following properties.
+   *
+   *   href - Storage base URL,
+   *   storageType - Storage type,
+   *   authUrl - OAuth URL,
+   *   properties - Webfinger link properties
    **/
 
   RemoteStorage.Discover = function (userAddress) {
