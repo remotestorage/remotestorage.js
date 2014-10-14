@@ -222,7 +222,10 @@
    *
    * Log using console.log, when remoteStorage logging is enabled.
    *
-   * You can enable logging with <enableLog> or during remoteStorage object creation (see: <RemoteStorage>).
+   * You can enable logging with <enableLog>.
+   *
+   * (In node.js you can also enable logging during remoteStorage object
+   * creation. see: <RemoteStorage>).
    */
   RemoteStorage.log = function () {
     if (RemoteStorage.config.logging) {
@@ -383,8 +386,6 @@
      * Method: enableLog
      *
      * Enable remoteStorage logging.
-     *
-     * See also: <RemoteStorage>
      */
     enableLog: function () {
       RemoteStorage.config.logging = true;
