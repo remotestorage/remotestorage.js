@@ -10,23 +10,28 @@
   /**
    * Class: RemoteStorage.Discover
    *
-   * This class deals with the Webfinger lookup, discovering a connecting
+   * This function deals with the Webfinger lookup, discovering a connecting
    * user's storage details.
    *
    * The discovery timeout can be configured via
    * `RemoteStorage.config.discoveryTimeout` (in ms).
    *
    * Arguments:
+   *
    *   userAddress - user@host
-   *   callback    - gets called with href of the storage, the type and the authURL
+   *
+   * Returns:
+   *
+   * A promise for an object with the following properties.
+   *
+   *   href - Storage base URL,
+   *   storageType - Storage type,
+   *   authUrl - OAuth URL,
+   *   properties - Webfinger link properties
    **/
 
-  RemoteStorage.Discover = function (userAddress, callback) {
-    if (userAddress in cachedInfo) {
-      var info = cachedInfo[userAddress];
-      callback(info.href, info.type, info.authURL);
-      return;
-    }
+  RemoteStorage.Discover = function (userAddress) {
+    var pending = Promise.defer();
     var hostname = userAddress.split('@')[1];
     var params = '?resource=' + encodeURIComponent('acct:' + userAddress);
     var urls = [
@@ -34,10 +39,19 @@
       'http://' + hostname + '/.well-known/webfinger' + params
     ];
 
+    if (userAddress in cachedInfo) {
+      var info = cachedInfo[userAddress];
+      pending.fulfill(info);
+      return pending.promise;
+    }
+
     function tryOne() {
       var xhr = new XMLHttpRequest();
       var url = urls.shift();
-      if (!url) { return callback(); }
+      if (!url) {
+        pending.reject('Discovery failed for all URLs');
+        return;
+      }
       RemoteStorage.log('[Discover] Trying URL', url);
       xhr.open('GET', url, true);
       xhr.onabort = xhr.onerror = function () {
@@ -76,11 +90,16 @@
                   || link.properties['auth-endpoint'],
             storageType = link.properties['http://remotestorage.io/spec/version']
                   || link.type;
-          cachedInfo[userAddress] = { href: link.href, type: storageType, authURL: authURL };
+          cachedInfo[userAddress] = { href: link.href, storageType: storageType, authURL: authURL, properties: link.properties };
           if (hasLocalStorage) {
             localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
           }
-          callback(link.href, storageType, authURL);
+          pending.resolve({
+            href: link.href,
+            storageType: storageType,
+            authURL: authURL,
+            properties: link.properties
+          });
         } else {
           tryOne();
         }
@@ -88,6 +107,7 @@
       xhr.send();
     }
     tryOne();
+    return pending.promise;
   };
 
   RemoteStorage.Discover._rs_init = function (remoteStorage) {
