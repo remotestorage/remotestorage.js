@@ -632,7 +632,7 @@
      * Returns a boolean.
      *
      * Parameters:
-     * name - Capitalized name of the feature. e.g. Authorize, or IndexedDB
+     *   name - Capitalized name of the feature. e.g. Authorize, or IndexedDB
      *
      * Example:
      *   (start code)
