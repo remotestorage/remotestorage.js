@@ -150,7 +150,7 @@
 
     // Initial configuration property settings.
     if (typeof cfg === 'object') {
-      RemoteStorage.config.logging = (typeof cfg.logging === 'boolean') ? cfg.logging : false;
+      RemoteStorage.config.logging = !!cfg.logging;
     }
 
     RemoteStorage.eventHandling(
@@ -632,7 +632,7 @@
      * Returns a boolean.
      *
      * Parameters:
-     * name - Capitalized name of the feature. e.g. Authorize, or IndexedDB
+     *   name - Capitalized name of the feature. e.g. Authorize, or IndexedDB
      *
      * Example:
      *   (start code)

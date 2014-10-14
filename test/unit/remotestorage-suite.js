@@ -446,7 +446,6 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       {
         desc: "remote not connected",
         run: function(env, test) {
-          console.log('env.remoteStorage.remote: ', env.remoteStorage.connected);
           test.assert(env.remoteStorage.remote.connected, false);
         }
       },
