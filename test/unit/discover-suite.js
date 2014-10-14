@@ -82,7 +82,7 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
       {
         desc: "it tries /.well-known/webfinger",
         run: function (env, test) {
-          RemoteStorage.Discover('nil@heahdk.net', function() {} );
+          RemoteStorage.Discover('nil@heahdk.net');
           test.assertAnd(XMLHttpRequest.openCalls.length, 1);
           test.assertAnd(XMLHttpRequest.openCalls[0][0], 'GET');
           test.assertAnd(XMLHttpRequest.openCalls[0][1], 'https://heahdk.net/.well-known/webfinger?resource=acct%3Anil%40heahdk.net');
@@ -184,9 +184,7 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
       {
         desc: "if unsuccesfully tried to discover a storage, promise is rejected",
         run: function (env, test) {
-          RemoteStorage.Discover("foo@bar").then(function () {
-          },
-          function(err) {
+          RemoteStorage.Discover("foo@bar").then(undefined, function(err) {
             test.assertType(err, 'string');
           });
           for (var i = 0; i < 4; i++) {
