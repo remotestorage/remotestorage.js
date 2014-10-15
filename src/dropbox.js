@@ -1,16 +1,5 @@
 (function (global) {
   var RS = RemoteStorage;
-  // next steps :
-  //  features:
-  // handle fetchDelta has_more
-  // handle files larger than 150MB
-  //
-  //  testing:
-  // add to remotestorage browser
-  // add to sharedy
-  // maybe write tests for remote
-  //
-
 
   /**
    * Class: RemoteStorage.Dropbox
@@ -18,56 +7,69 @@
    * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
    *
    * Dropbox backend for RemoteStorage.js
-   * this file exposes a get/put/delete interface which is compatible with the wireclient
-   * it requires to get configured with a dropbox token similar to the wireclient.configure
+   * This file exposes a get/put/delete interface which is compatible with
+   * <RemoteStorage.WireClient>.
    *
-   * when the remotestorage.backend was set to 'dropbox' it will initialize and resets
-   * remoteStorage.remote with remoteStorage.dropbox
+   * When remoteStorage.backend is set to 'dropbox', this backend will
+   * initialize and replace remoteStorage.remote with remoteStorage.dropbox.
    *
-   * for compability with the public folder the getItemURL function of the BaseClient gets
-   * highjackt and returns the dropbox share-url
+   * In order to ensure compatibility with the public folder, <BaseClient.getItemURL>
+   * gets hijacked to return the DropBox public share URL.
    *
-   * to connect with dropbox a connect function is provided
+   * To use this backend, you need to specify the DropBox API key like so:
    *
-   * known issues :
-   *   files larger than 150mb are not suported for upload
-   *   folders with more than 10.000 files will cause problems to list
-   *   content-type is guessed by dropbox.com therefore they aren't fully supported
-   *   dropbox preserves cases but not case sensitive
-   *   share_urls and therfeor getItemURL is asynchronius , which means
-   *     getItemURL returns usefull values after the syncCycle
-   **/
+   * (start code)
+   *
+   * remoteStorage.setaApiKeys('dropbox', {
+   *   api_key: 'your-api-key'
+   * });
+   * 
+   * (end code)
+   *
+   * An API key can be obtained by registering your app at https://www.dropbox.com/developers/apps
+   *
+   * Known issues:
+   *
+   *   - Storing files larger than 150MB is not yet supported
+   *   - Listing and deleting folders with more than 10'000 files will cause problems
+   *   - Content-Type is not fully supported due to limitations of the DropBox API
+   *   - DropBox preserves cases but is not case-sensitive
+   *   - getItemURL is asynchronous which means getIetmURL returns useful values
+   *     after the syncCycle
+   */
+
   var hasLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
   var SETTINGS_KEY = 'remotestorage:dropbox';
   var cleanPath = RS.WireClient.cleanPath;
 
-  /*************************
-   * LowerCaseCache
-   * this Cache will lowercase its keys
-   * and can propagate the values to "upper folders"
+  /**
+   * class: LowerCaseCache
    *
-   * intialized with default Value(undefined will be accepted)
+   * A cache which automatically converts all keys to lower case and can
+   * propagate changes up to parent folders.
    *
-   * set and delete will be set to justSet and justDelete on initialization
+   * By default the set and delete methods are aliased to justSet and justDelete.
    *
-   * get : get a value or default Value
-   * set : set a value
-   * justSet : just set a value and don't propagate at all
-   * propagateSet : Set a value and propagate
-   * delete : delete
-   * justDelete : just delete a value and don't propagate at al
-   * propagateDelete : deleta a value and propagate
-   * _activatePropagation : replace set and delete with their propagate versions
-   *************************/
+   * Parameters:
+   *
+   *   defaultValue - the value that is returned for all keys that don't exist
+   *                  in the cache
+   */
   function LowerCaseCache(defaultValue){
-    this.defaultValue = defaultValue; //defaults to undefimned if initialized without arguments
+    this.defaultValue = defaultValue;
     this._storage = { };
     this.set = this.justSet;
     this.delete = this.justDelete;
   }
 
   LowerCaseCache.prototype = {
+    /**
+     * Method: get
+     *
+     * Get a value from the cache or defaultValue, if the key is not in the
+     * cache.
+     */
     get : function (key) {
       key = key.toLowerCase();
       var stored = this._storage[key];
@@ -77,6 +79,12 @@
       }
       return stored;
     },
+
+    /**
+     * Method: propagateSet
+     *
+     * Set a value and also update the parent folders with that value.
+     */
     propagateSet : function (key, value) {
       key = key.toLowerCase();
       if (this._storage[key] === value) {
@@ -85,24 +93,44 @@
       this._propagate(key, value);
       return this._storage[key] = value;
     },
+
+    /**
+     * Method: propagateDelete
+     *
+     * Delete a value and propagate the changes to the parent folders.
+     */
     propagateDelete : function (key) {
       key = key.toLowerCase();
       this._propagate(key, this._storage[key]);
       return delete this._storage[key];
     },
+
     _activatePropagation: function (){
       this.set = this.propagateSet;
       this.delete = this.propagateDelete;
       return true;
     },
+
+    /**
+     * Method: justSet
+     *
+     * Set a value without propagating.
+     */
     justSet : function (key, value) {
       key = key.toLowerCase();
       return this._storage[key] = value;
     },
+
+    /**
+     * Method: justDelete
+     *
+     * Delete a value without propagating.
+     */
     justDelete : function (key, value) {
       key = key.toLowerCase();
       return delete this._storage[key];
     },
+
     _propagate: function (key, rev){
       var folders = key.split('/').slice(0,-1);
       var path = '';
@@ -117,23 +145,11 @@
     }
   };
 
-  /****************************
-   * Dropbox - Backend for remtoeStorage.js
-   * methods :
-   * connect
-   * configure
-   * get
-   * put
-   * delete
-   * share
-   * info
-   * Properties :
-   * connected
-   * rs
-   * token
-   * userAddress
-   *****************************/
   var onErrorCb;
+
+  /**
+   * Class: RemoteStorage.Dropbox
+   */
   RS.Dropbox = function (rs) {
 
     this.rs = rs;
@@ -176,13 +192,13 @@
     online: true,
 
     /**
-     * Method : connect()
-     *   redirects to AUTH_URL(https://www.dropbox.com/1/oauth2/authorize)
-     *   and set's backend to dropbox
-     *   therefor it starts the auth flow and end's up with a token and the dropbox backend in place
-     **/
+     * Method: connect
+     *
+     * Set the backed to 'dropbox' and start the authentication flow in order
+     * to obtain an API token from DropBox.
+     */
     connect: function () {
-      //ToDo handling when token is already present
+      // TODO handling when token is already present
       this.rs.setBackend('dropbox');
       if (this.token){
         hookIt(this.rs);
@@ -190,11 +206,13 @@
         RS.Authorize(AUTH_URL, '', String(RS.Authorize.getLocation()), this.clientId);
       }
     },
+
     /**
-     * Method : configure(userAdress, x, x, token)
-     *   accepts its parameters according to the wireClient
-     *   set's the connected flag
-     **/
+     * Method: configure
+     *
+     * Accepts its parameters according to the <RemoteStorage.WireClient>.
+     * Set's the connected flag.
+     */
     configure: function (userAddress, href, storageApi, token) {
       if (typeof token !== 'undefined') { this.token = token; }
       if (typeof userAddress !== 'undefined') { this.userAddress = userAddress; }
@@ -217,6 +235,11 @@
       }
     },
 
+    /**
+     * Method: stopWaitingForToken
+     *
+     * Stop waiting for the token and emit not-connected
+     */
     stopWaitingForToken: function () {
       if (!this.connected) {
         this._emit('not-connected');
@@ -224,8 +247,22 @@
     },
 
     /**
-     * Method : _getFolder(path, options)
-     **/
+     * Method: _getFolder
+     *
+     * Get all items in a folder.
+     *
+     * Parameters:
+     *
+     *   path - path of the folder to get, with leading slash
+     *   options - not used
+     *
+     * Returns:
+     *
+     *  statusCode - HTTP status code
+     *  body - array of the items found
+     *  contentType - 'application/json; charset=UTF-8'
+     *  revision - revision of the folder
+     */
     _getFolder: function (path, options) {
       // FIXME simplify promise handling
       var url = 'https://api.dropbox.com/1/metadata/auto' + cleanPath(path);
@@ -261,12 +298,15 @@
     },
 
     /**
-     * Method : get(path, options)
-     *   get compatible with wireclient
-     *   checks for path in _revCache and decides based on that if file has changed
-     *   calls _getFolder if file is a folder
-     *   calls share(path) afterwards to fill the _hrefCache
-     **/
+     * Method: get
+     *
+     * Compatible with <RemoteStorage.WireClient.get>
+     *
+     * Checks for the path in _revCache and decides based on that if file has
+     * changed. Calls _getFolder is the path points to a folder.
+     *
+     * Calls <RemoteStorage.Dropbox.share> afterwards to fill _itemRefs.
+     */
     get: function (path, options) {
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
       var url = 'https://api-content.dropbox.com/1/files/auto' + cleanPath(path);
@@ -337,11 +377,15 @@
     },
 
     /**
-     * Method : put(path, body, contentType, options)
-     *   put compatible with wireclient
-     *   also uses _revCache to check for version conflicts
-     *   also shares via share(path)
-     **/
+     * Method: put
+     *
+     * Compatible with <RemoteStorage.WireClient>
+     *
+     * Checks for the path in _revCache and decides based on that if file has
+     * changed.
+     *
+     * Calls <RemoteStorage.Dropbox.share> afterwards to fill _itemRefs.
+     */
     put: function (path, body, contentType, options) {
       var self = this;
 
@@ -408,9 +452,15 @@
     },
 
     /**
-     * Method : delete(path, options)
-     *   similar to get and set
-     **/
+     * Method: delete
+     *
+     * Compatible with <RemoteStorage.WireClient.delete>
+     *
+     * Checks for the path in _revCache and decides based on that if file has
+     * changed.
+     *
+     * Calls <RemoteStorage.Dropbox.share> afterwards to fill _itemRefs.
+     */
     'delete': function (path, options) {
       var self = this;
 
@@ -440,6 +490,11 @@
       return self._deleteSimple(path);
     },
 
+    /**
+     * Method: _shareIfNeeded
+     *
+     * Calls share, if the provided path resides in a public folder.
+     */
     _shareIfNeeded: function (path) {
       if (path.match(/^\/public\/.*[^\/]$/) && this._itemRefs[path] === undefined) {
         this.share(path);
@@ -447,9 +502,14 @@
     },
 
     /**
-     * Method : share(path)
-     *   get sher_url s from dropbox and pushes those into this._hrefCache
-     *   returns promise
+     * Method: share
+     *
+     * Gets a publicly-accessible URL for the path from DropBox and stores it
+     * in _itemRefs.
+     *
+     * Returns:
+     *
+     *   A promise for the URL
      */
     share: function (path) {
       var self = this;
@@ -480,9 +540,14 @@
     },
 
     /**
-     * Method : info()
-     *   fetching user info from Dropbox returns promise
-     **/
+     * Method: info
+     *
+     * Fetches the user's info from DropBox and returns a promise for it.
+     *
+     * Returns:
+     *
+     *   A promise to the user's info
+     */
     info: function () {
       var url = 'https://api.dropbox.com/1/account/info';
       // requesting user info(mainly for userAdress)
@@ -496,6 +561,21 @@
       });
     },
 
+    /**
+     * Method: _request
+     *
+     * Make a HTTP request.
+     *
+     * Options:
+     *
+     *   headers - an object containing the request headers
+     *
+     * Parameters:
+     *
+     *   method - the method to use
+     *   url - the URL to make the request to
+     *   options - see above
+     */
     _request: function (method, url, options) {
       var self = this;
       if (! options.headers) { options.headers = {}; }
@@ -511,13 +591,15 @@
     },
 
     /**
-    * method: fetchDelta
-    *
-    *   this method fetches the deltas from the dropbox api, used to sync the storage
-    *   here we retrive changes and put them into the _revCache, those values will then be used
-    *   to determin if something has changed.
-    **/
+     * Method: fetchDelta
+     *
+     * Fetches the revision of all the files from DropBox API and puts them
+     * into _revCache. These values can then be used to determine if something
+     * has changed.
+     */
     fetchDelta: function () {
+      // TODO: Handle `has_more`
+
       var args = Array.prototype.slice.call(arguments);
       var self = this;
       return self._request('POST', 'https://api.dropbox.com/1/delta', {
@@ -588,6 +670,25 @@
       });
     },
 
+    /**
+     * Method: _getMetadata
+     *
+     * Gets metadata for a path (can point to either a file or a folder).
+     *
+     * Options:
+     *
+     *   list - if path points to a folder, specifies whether to list the
+     *          metadata of the folder's children. False by default.
+     *
+     * Parameters:
+     *
+     *   path - the path to get metadata for
+     *   options - see above
+     *
+     * Returns:
+     *
+     *   A promise for the metadata
+     */
     _getMetadata: function (path, options) {
       var self = this;
       var cached = this._metadataCache[path];
@@ -610,6 +711,23 @@
       });
     },
 
+    /**
+     * Method: _uploadSimple
+     *
+     * Upload a simple file (the size is no more than 150MB).
+     *
+     * Parameters:
+     *
+     *   ifMatch - same as for get
+     *   path - path of the file
+     *   body - contents of the file to upload
+     *   contentType - mime type of the file
+     *
+     * Returns:
+     *
+     *   statusCode - HTTP status code
+     *   revision - revision of the newly-created file, if any
+     */
     _uploadSimple: function (params) {
       var self = this;
       var url = 'https://api-content.dropbox.com/1/files_put/auto' + cleanPath(params.path) + '?';
@@ -654,6 +772,21 @@
       });
     },
 
+    /**
+     * Method: _deleteSimple
+     *
+     * Deletes a file or a folder. If the folder contains more than 10'000 items
+     * (recursively) then the operation may not complete successfully. If that
+     * is the case, an Error gets thrown.
+     *
+     * Parameters:
+     *
+     *   path - the path to delete
+     *
+     * Returns:
+     *
+     *   statusCode - HTTP status code
+     */
     _deleteSimple: function (path) {
       var self = this;
       var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(path);
