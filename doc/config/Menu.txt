@@ -90,5 +90,6 @@ Group: Index  {
    Function Index: Functions
    Property Index: Properties
    Interface Index: Interfaces
+   File Index: Files
    }  # Group: Index
 
