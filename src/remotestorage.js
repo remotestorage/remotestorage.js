@@ -266,6 +266,7 @@
      *   connected   - Boolean, whether or not a remote store is connected
      *   online      - Boolean, whether last sync action was successful or not
      *   userAddress - String, the user address of the connected user
+     *   properties  - String, the properties of the WebFinger link
      */
 
     /**
@@ -317,7 +318,7 @@
       }.bind(this), RemoteStorage.config.discoveryTimeout);
 
       RemoteStorage.Discover(userAddress).then(function (info) {
-        // Info contains fields: href, storageApi, authURL (optional)
+        // Info contains fields: href, storageApi, authURL (optional), properties
 
         clearTimeout(discoveryTimeout);
         this._emit('authing');
@@ -353,7 +354,8 @@
           userAddress: null,
           href: null,
           storageApi: null,
-          token: null
+          token: null,
+          properties: null
         });
       }
       this._setGPD({

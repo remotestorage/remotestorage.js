@@ -303,13 +303,16 @@
      *
      * Method: configure
      *
-     * Sets the userAddress, href, storageApi, and token of a
+     * Sets the userAddress, href, storageApi, token, and properties of a
      * remote store. Also sets connected and online to true and emits the
      * 'connected' event, if both token and href are present.
      *
      * Parameters:
      *   settings - An object that may contain userAddress (string or null),
-     *              href (string or null), storageApi (string or null), and/or token (string
+     *              href (string or null), storageApi (string or null), token (string
+     *              or null), and/or properties (the JSON-parsed properties object
+     *              from the user's WebFinger record, see section 10 of
+     *              http://tools.ietf.org/html/draft-dejong-remotestorage-03
      *              or null).
      *              Fields that are not included (i.e. `undefined`), stay at
      *              their current value. To set a field, include that field
@@ -333,6 +336,9 @@
       if (typeof settings.token !== 'undefined') {
         this.token = settings.token;
       }
+      if (typeof settings.properties !== 'undefined') {
+        this.properties = settings.properties;
+      }
 
       if (typeof this.storageApi !== 'undefined') {
         this._storageApi = STORAGE_APIS[this.storageApi] || API_HEAD;
@@ -350,7 +356,8 @@
           userAddress: this.userAddress,
           href: this.href,
           storageApi: this.storageApi,
-          token: this.token
+          token: this.token,
+          properties: this.properties
         });
       }
     },
