@@ -123,7 +123,15 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks'], function (Promise, requi
           env.client.on('change', function() {});
           test.done();
         }
-      }
+      },
+      {
+        desc: "#BaseClient.uuid()",
+        run: function(env, test) {
+          test.assertType(env.client.uuid, 'function');
+          var string = env.client.uuid();
+          test.assertType(string, 'string');
+        }
+      },
     ]
   });
 
