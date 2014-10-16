@@ -26,7 +26,8 @@
    *
    *   href - Storage base URL,
    *   storageType - Storage type,
-   *   authUrl - OAuth URL
+   *   authUrl - OAuth URL,
+   *   properties - Webfinger link properties
    **/
 
   RemoteStorage.Discover = function (userAddress) {
@@ -89,14 +90,15 @@
                   || link.properties['auth-endpoint'],
             storageType = link.properties['http://remotestorage.io/spec/version']
                   || link.type;
-          cachedInfo[userAddress] = { href: link.href, storageType: storageType, authURL: authURL };
+          cachedInfo[userAddress] = { href: link.href, storageType: storageType, authURL: authURL, properties: link.properties };
           if (hasLocalStorage) {
             localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
           }
           pending.resolve({
             href: link.href,
             storageType: storageType,
-            authURL: authURL
+            authURL: authURL,
+            properties: link.properties
           });
         } else {
           tryOne();

@@ -98,7 +98,10 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
             test.assertAnd(info, {
               href: 'https://base/url',
               storageType: 'draft-dejong-remotestorage-01',
-              authURL: 'https://auth/url'
+              authURL: 'https://auth/url',
+              properties: {
+                'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+              }
             });
             test.done();
           });
@@ -121,7 +124,7 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
       },
 
       {
-        desc: "it finds href, type, and authURL when the remotestorage version is in a link property",
+        desc: "it finds href, type, authURL, and properties when the remotestorage version is in a link property",
         run: function (env, test) {
           //TODO: clear the cache of the discover instance inbetween tests.
           //for now, we use a different user address in each test to avoid interference
@@ -130,7 +133,11 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
             test.assertAnd(info, {
               href: 'https://base/url',
               storageType: 'draft-dejong-remotestorage-02',
-              authURL: 'https://auth/url'
+              authURL: 'https://auth/url',
+              properties: {
+                'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-02',
+                'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+              }
             });
             test.done();
           });
@@ -162,7 +169,11 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
             test.assertAnd(info, {
               href: 'https://base/url',
               storageType: 'draft-dejong-remotestorage-02',
-              authURL: 'https://auth/url'
+              authURL: 'https://auth/url',
+              properties: {
+                'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-02',
+                'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+              }
             });
             test.done();
           });
