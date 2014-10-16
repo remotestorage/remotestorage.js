@@ -78,10 +78,10 @@
     connected: false,
     online: true,
 
-    configure: function (_x, _y, _z, token) { // parameter list compatible with WireClient
-      if (token) {
-        localStorage['remotestorage:googledrive:token'] = token;
-        this.token = token;
+    configure: function (settings) { // Settings parameter compatible with WireClient
+      if (settings.token) {
+        localStorage['remotestorage:googledrive:token'] = settings.token;
+        this.token = settings.token;
         this.connected = true;
         this._emit('connected');
       } else {

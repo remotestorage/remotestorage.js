@@ -80,10 +80,12 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
-      RemoteStorage.Discover = function(userAddress, callback) {
+      RemoteStorage.Discover = function(userAddress) {
+        var pending = Promise.defer();
         if (userAddress === "someone@somewhere") {
-          callback();
+          pending.reject('in this test, discovery fails for that address');
         }
+        return  pending.promise;
       };
       global.localStorage = {};
       RemoteStorage.prototype.remote = new FakeRemote();

@@ -58,9 +58,10 @@ define(['require'], function (require) {
       env.connectedClient = new RemoteStorage.WireClient(env.rs);
       env.baseURI = 'https://example.com/storage/test';
       env.token = 'foobarbaz';
-      env.connectedClient.configure(
-        undefined, env.baseURI, undefined, env.token
-      );
+      env.connectedClient.configure({
+        href: env.baseURI,
+        token: env.token
+      });
       test.done();
     },
 
