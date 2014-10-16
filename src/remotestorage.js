@@ -312,7 +312,7 @@
         this.remote.configure(info);
         if (! this.remote.connected) {
           if (info.authURL) {
-            this.authorize(authURL);
+            this.authorize(info.authURL);
           } else {
             // In lieu of an excplicit authURL, assume that the browser
             // and server handle any authorization needs; for instance,

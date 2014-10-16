@@ -41,7 +41,7 @@
 
     if (userAddress in cachedInfo) {
       var info = cachedInfo[userAddress];
-      pending.fulfill(info);
+      pending.resolve(info);
       return pending.promise;
     }
 
