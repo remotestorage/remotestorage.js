@@ -2,7 +2,7 @@
   var RS = RemoteStorage;
 
   /**
-   * Class: RemoteStorage.Dropbox
+   * File: Dropbox
    *
    * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
    *
