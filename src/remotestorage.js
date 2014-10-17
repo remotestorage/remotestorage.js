@@ -259,6 +259,35 @@
      // (see src/widget.js for implementation)
 
     /**
+     * Property: remote
+     *
+     * Properties:
+     *
+     *   connected   - Boolean, whether or not a remote store is connected
+     *   online      - Boolean, whether last sync action was successful or not
+     *   userAddress - String, the user address of the connected user
+     */
+
+    /**
+     * Method: scope
+     *
+     * Returns a BaseClient with a certain scope (base path). Please use this method
+     * only for debugging, and always use defineModule instead, to get access to a
+     * BaseClient from a module in an app.
+     *
+     * Parameters:
+     *
+     *   scope - A string, with a leading and a trailing slash, specifying the
+     *           base path of the BaseClient that will be returned.
+     *
+     * Code example:
+     *
+     * (start code)
+     * remoteStorage.scope('/pictures/').getListing('');
+     * remoteStorage.scope('/public/pictures/').getListing('');
+     */
+
+    /**
      * Method: connect
      *
      * Connect to a remoteStorage server.
@@ -266,8 +295,8 @@
      * Parameters:
      *   userAddress - The user address (user@host) to connect to.
      *
-     * Discovers the webfinger profile of the given user address and
-     * initiates the OAuth dance.
+     * Discovers the webfinger profile of the given user address and initiates
+     * the OAuth dance.
      *
      * This method must be called *after* all required access has been claimed.
      *
@@ -278,24 +307,25 @@
         this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
         return;
       }
-      this.remote.configure(userAddress);
+      this.remote.configure({
+        userAddress: userAddress
+      });
       this._emit('connecting');
 
       var discoveryTimeout = setTimeout(function () {
         this._emit('error', new RemoteStorage.DiscoveryError("No storage information found at that user address."));
       }.bind(this), RemoteStorage.config.discoveryTimeout);
 
-      RemoteStorage.Discover(userAddress, function (href, storageApi, authURL) {
+      RemoteStorage.Discover(userAddress).then(function (info) {
+        // Info contains fields: href, storageApi, authURL (optional)
+
         clearTimeout(discoveryTimeout);
-        if (!href) {
-          this._emit('error', new RemoteStorage.DiscoveryError("Failed to contact storage server."));
-          return;
-        }
         this._emit('authing');
-        this.remote.configure(userAddress, href, storageApi);
+        info.userAddress = userAddress;
+        this.remote.configure(info);
         if (! this.remote.connected) {
-          if (authURL) {
-            this.authorize(authURL);
+          if (info.authURL) {
+            this.authorize(info.authURL);
           } else {
             // In lieu of an excplicit authURL, assume that the browser
             // and server handle any authorization needs; for instance,
@@ -305,6 +335,8 @@
             this.impliedauth();
           }
         }
+      }.bind(this), function(err) {
+        this._emit('error', new RemoteStorage.DiscoveryError("Failed to contact storage server."));
       }.bind(this));
     },
 
@@ -317,7 +349,12 @@
      */
     disconnect: function () {
       if (this.remote) {
-        this.remote.configure(null, null, null, null);
+        this.remote.configure({
+          userAddress: null,
+          href: null,
+          storageApi: null,
+          token: null
+        });
       }
       this._setGPD({
         get: this._pendingGPD('get'),
