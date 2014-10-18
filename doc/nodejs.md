@@ -34,7 +34,7 @@ The initialization process for creating an instance of RemoteStorage is as follo
 
 #### global
 
-At this time, there are still some browser-specific requirements within the library that require us (for the time-being) to place our newly created remoteStorage object into nodes global scope. This is so that out modules can access the object as they currently expect to do (we hope to address this issue soon).
+At this time, there are still some browser-specific requirements within the library that require us (for the time-being) to place our newly created remoteStorage object into nodes global scope. This is so our modules can access the object as they currently expect to do (we hope to address this issue soon).
 
 ```javascript
     global.remoteStorage = remoteStorage;
@@ -51,8 +51,36 @@ Now we can hook up to the `'ready'` event which will be called once our library 
 
 We will make the function `beginApp()` shortly.
 
+## Configuring a remote
 
-### Module
+In order to use a remote, you will need a webfinger user address and an oauth token for the desired module. You will need to provide these two values on your own outside of the program script, for example in an already authorized web-app which uses the module you'd like to use here. Within the web-app you should be able to inspect the `remoteStorage.remote.token`.
+
+```javascript
+    var userAddress = ''; // fill me in
+    var token = ''; // fill me in
+    
+    RemoteStorage.Discover(userAddress, function (storageURL, storageAPI) {
+        console.log('- configuring remote', userAddress, storageURL, storageAPI);
+        remoteStorage.remote.configure(userAddress, storageURL, storageAPI, token);
+    });
+```
+
+#### on connected
+
+Although you can start using remoteStorage as soon as the ready event files, these events tell us whether/when we've connected to the remote storage target. When we've connected, all changes we make will be automatically synced with our remote.
+
+```javascript
+    remoteStorage.on('connected', function() {
+        console.log('- connected to remote (syncing will take place)');
+    });
+
+    remoteStorage.on('not-connected', function() {
+        console.log('- not connected to remote (changes are local-only)');
+    });
+```    
+
+
+## Module
 
 #### include
 
@@ -122,6 +150,24 @@ var remoteStorage = new RemoteStorage({
 global.remoteStorage = remoteStorage;
 
 remoteStorage.on('ready', beginApp);
+
+// configure remote
+var userAddress = ''; // fill me in
+var token = ''; // fill me in
+    
+RemoteStorage.Discover(userAddress, function (storageURL, storageAPI) {
+    console.log('- configuring remote', userAddress, storageURL, storageAPI);
+    remoteStorage.remote.configure(userAddress, storageURL, storageAPI, token);
+});
+
+remoteStorage.on('connected', function() {
+  console.log('- connected to remote (syncing will take place)');
+  remoteStorage.scope('/myfavoritedrinks/').getAll();
+});
+
+remoteStorage.on('not-connected', function() {
+  console.log('- not connected to remote (changes are local-only)');
+});
 
 // initialize module
 require('./src/remotestorage-feeds.js');
