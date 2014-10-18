@@ -162,7 +162,6 @@ RemoteStorage.Discover(userAddress, function (storageURL, storageAPI) {
 
 remoteStorage.on('connected', function() {
   console.log('- connected to remote (syncing will take place)');
-  remoteStorage.scope('/myfavoritedrinks/').getAll();
 });
 
 remoteStorage.on('not-connected', function() {
