@@ -74,7 +74,7 @@ We'll need to claim access to our module in order to use it:
 
 #### on change
 
-For our modules change event's (which can occur when your remoteStorage object has a remote data endpoint configured), we do the following.
+To become alerted to our modules change event's (which occurs when our module data has been updated either locally or remotely), we do the following.
 
 ```javascript
     remoteStorage.feeds.rssAtom.on('change', function (event) {
