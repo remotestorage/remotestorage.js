@@ -24,7 +24,7 @@ The initialization process for creating an instance of RemoteStorage is as follo
 
 #### create
 
-```javascript:
+```javascript
     var RemoteStorage = require('remotestoragejs');
     var remoteStorage = new RemoteStorage({
         logging: true  // optinally enable debug logs (defaults to false)
@@ -36,7 +36,7 @@ The initialization process for creating an instance of RemoteStorage is as follo
 
 At this time, there are still some browser-specific requirements within the library that require us (for the time-being) to place our newly created remoteStorage object into nodes global scope. This is so that out modules can access the object as they currently expect to do (we hope to address this issue soon).
 
-```javascript:
+```javascript
     global.remoteStorage = remoteStorage;
 ```
 
@@ -45,7 +45,7 @@ At this time, there are still some browser-specific requirements within the libr
 
 Now we can hook up to the `'ready'` event which will be called once our library has initialized.
 
-```javascript: 
+```javascript
     remoteStorage.on('ready', beginApp);
 ```
 
@@ -58,7 +58,7 @@ We will make the function `beginApp()` shortly.
 
 Now let's include our `feeds` module. If the file was placed in our project as `src/remotestorage-feeds.js`, then this is how we'd include it.
 
-```javascript:
+```javascript
     require('./src/remotestorage-feeds.js');
 ```
 
@@ -68,7 +68,7 @@ Currently the modules attach themselves to the global `remotesStorage` object di
 
 We'll need to claim access to our module in order to use it:
 
-```javascript:
+```javascript
     remoteStorage.access.claim('feeds', 'rw');
 ```
 
@@ -76,7 +76,7 @@ We'll need to claim access to our module in order to use it:
 
 For our modules change event's (which can occur when your remoteStorage object has a remote data endpoint configured), we do the following.
 
-```javascript:
+```javascript
     remoteStorage.feeds.rssAtom.on('change', function (event) {
         console.log('received change event: ', event);
     });
@@ -87,7 +87,7 @@ For our modules change event's (which can occur when your remoteStorage object h
 
 Now that all of the initialization is in place, let's create the function which will be called when `remoteStorage` fires the `'ready'` event.
 
-```javascript:
+```javascript
     var beginApp = function () {
         // create a feed record
         remoteStorage.feeds.rssAtom.create({
@@ -113,7 +113,7 @@ Now that all of the initialization is in place, let's create the function which 
 
 Here's our final script.
 
-```javascript:
+```javascript
     // initialize remoteStorage
     var RemoteStorage = require('remotestoragejs');
     var remoteStorage = new RemoteStorage({
