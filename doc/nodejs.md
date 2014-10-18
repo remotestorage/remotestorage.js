@@ -184,7 +184,7 @@ function beginApp() {
     })
     .then(function (feed) {
         console.log('- feed created ', feed);
-            // retrieve all feeds
+        // retrieve all feeds
         remoteStorage.feeds.rssAtom.getAll()
         .then(function (feeds) {
             console.log('- all feeds', feeds);
