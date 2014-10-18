@@ -78,7 +78,7 @@ To become alerted to our modules change event's (which occurs when our module da
 
 ```javascript
     remoteStorage.feeds.rssAtom.on('change', function (event) {
-        console.log('received change event: ', event);
+        console.log('- received change event: ', event);
     });
 ```
 
@@ -102,7 +102,7 @@ Now that all of the initialization is in place, let's create the function which 
             .then(function (feeds) {
                 console.log('- all feeds', feeds);
             }, function (error) {
-                console.log('error fetching all feeds', error);
+                console.log('*** error fetching all feeds', error);
             });
         });
     }
@@ -128,7 +128,7 @@ require('./src/remotestorage-feeds.js');
 remoteStorage.access.claim('feeds', 'rw');
 
 remoteStorage.feeds.rssAtom.on('change', function (event) {
-    console.log('received change event: ', event);
+    console.log('- received change event: ', event);
 });
 
 var beginApp = function () {
@@ -144,7 +144,7 @@ var beginApp = function () {
         .then(function (feeds) {
             console.log('- all feeds', feeds);
         }, function (error) {
-            console.log('error fetching all feeds', error);
+            console.log('*** error fetching all feeds', error);
         });
     });
 }
