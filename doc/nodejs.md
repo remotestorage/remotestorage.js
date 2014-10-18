@@ -131,7 +131,7 @@ remoteStorage.feeds.rssAtom.on('change', function (event) {
     console.log('- received change event: ', event);
 });
 
-var beginApp = function () {
+function beginApp() {
     // create a feed record
     remoteStorage.feeds.rssAtom.create({
         url: 'testurl',
