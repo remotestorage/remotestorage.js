@@ -88,7 +88,7 @@ For our modules change event's (which can occur when your remoteStorage object h
 Now that all of the initialization is in place, let's create the function which will be called when `remoteStorage` fires the `'ready'` event.
 
 ```javascript
-    var beginApp = function () {
+    function beginApp {
         // create a feed record
         remoteStorage.feeds.rssAtom.create({
             url: 'testurl',
@@ -114,39 +114,38 @@ Now that all of the initialization is in place, let's create the function which 
 Here's our final script.
 
 ```javascript
-    // initialize remoteStorage
-    var RemoteStorage = require('remotestoragejs');
-    var remoteStorage = new RemoteStorage({
-        logging: true  // optinally enable debug logs (defaults to false)
-    });
-    global.remoteStorage = remoteStorage;
+// initialize remoteStorage
+var RemoteStorage = require('remotestoragejs');
+var remoteStorage = new RemoteStorage({
+    logging: true  // optinally enable debug logs (defaults to false)
+});
+global.remoteStorage = remoteStorage;
 
-    remoteStorage.on('ready', beginApp);
+remoteStorage.on('ready', beginApp);
 
-    // initialize module
-    require('./src/remotestorage-feeds.js');
-    remoteStorage.access.claim('feeds', 'rw');
+// initialize module
+require('./src/remotestorage-feeds.js');
+remoteStorage.access.claim('feeds', 'rw');
 
-    remoteStorage.feeds.rssAtom.on('change', function (event) {
-        console.log('received change event: ', event);
-    });
+remoteStorage.feeds.rssAtom.on('change', function (event) {
+    console.log('received change event: ', event);
+});
 
-    var beginApp = function () {
-        // create a feed record
-        remoteStorage.feeds.rssAtom.create({
-            url: 'testurl',
-            title: 'this is a test'
-        })
-        .then(function (feed) {
-            console.log('- feed created ', feed);
-
+var beginApp = function () {
+    // create a feed record
+    remoteStorage.feeds.rssAtom.create({
+        url: 'testurl',
+        title: 'this is a test'
+    })
+    .then(function (feed) {
+        console.log('- feed created ', feed);
             // retrieve all feeds
-            remoteStorage.feeds.rssAtom.getAll()
-            .then(function (feeds) {
-                console.log('- all feeds', feeds);
-            }, function (error) {
-                console.log('error fetching all feeds', error);
-            });
+        remoteStorage.feeds.rssAtom.getAll()
+        .then(function (feeds) {
+            console.log('- all feeds', feeds);
+        }, function (error) {
+            console.log('error fetching all feeds', error);
         });
-    }
+    });
+}
 ```
