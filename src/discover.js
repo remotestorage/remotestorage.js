@@ -48,7 +48,8 @@
       if (err) {
         return pending.reject(err.message);
       } else if ((typeof response.idx.links.remotestorage !== 'object') ||
-          (typeof response.idx.links.remotestorage.length !== 'number')) {
+                 (typeof response.idx.links.remotestorage.length !== 'number') ||
+                 (response.idx.links.remotestorage.length <= 0)) {
         RemoteStorage.log("[Discover] WebFinger record for " + userAddress + " does not have remotestorage defined in the links section ", JSON.stringify(response.json));
         return pending.reject("WebFinger record for " + userAddress + " does not have remotestorage defined in the links section.");
       }
