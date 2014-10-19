@@ -28,13 +28,13 @@ help:
 	@echo "clean          - remove all builds and editor swapfiles"
 
 
-all: compile-assets build build-amd minify build-nocache doc
+all: deps compile-assets build build-amd minify build-nocache doc
 
 build-all: all
 minify: remotestorage.min.js
-build: remotestorage.js
-build-amd: remotestorage.amd.js
-build-nocache: remotestorage-nocache.js remotestorage-nocache.min.js remotestorage-nocache.amd.js
+build: deps remotestorage.js
+build-amd: deps remotestorage.amd.js
+build-nocache: deps remotestorage-nocache.js remotestorage-nocache.min.js remotestorage-nocache.amd.js
 compile-assets: $(ASSETS_OUT)
 
 .PHONY: help buildserver build-all compile-assets minify build doc clean
@@ -46,6 +46,9 @@ compile-assets: $(ASSETS_OUT)
 	head -n1 $< > $@
 	cat $@.tmp >> $@
 	rm $@.tmp
+
+deps:
+	npm install
 
 remotestorage.js: $(SOURCES)
 	$(NODEJS) build/do-build.js remotestorage.js $(DEFAULT_COMPONENTS)
