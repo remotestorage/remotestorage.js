@@ -32,8 +32,7 @@
 
   RemoteStorage.Discover = function (userAddress) {
     if (userAddress in cachedInfo) {
-      var info = cachedInfo[userAddress];
-      return Promise.resolve(info);
+      return Promise.resolve(cachedInfo[userAddress]);
     }
 
     var webFinger = new WebFinger({
