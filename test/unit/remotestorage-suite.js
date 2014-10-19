@@ -1,9 +1,10 @@
 if (typeof(define) !== 'function') {
   var define = require('amdefine.js');
 }
-define(['bluebird', 'requirejs'], function (Promise, requirejs) {
+define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
 
   global.Promise = Promise;
+  global.tv4 = tv4;
 
   var suites = [];
 
@@ -411,7 +412,6 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       }
 
       require('./lib/Math.uuid');
-      require('./lib/tv4');
       require('./src/baseclient');
       require('./src/baseclient/types');
       if (global.rs_baseclient_with_types) {
