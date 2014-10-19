@@ -118,6 +118,14 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
           test.assertAnd(pathsFromRoot(p7), [p7, '/']);
           test.done();
         }
+      },
+
+      {
+        desc: "md5sum",
+        run: function (env, test) {
+          var md5sum = RemoteStorage.util.md5sum('this is a very happy string');
+          test.assert(md5sum, '962e9575a9eba5bfedbad85cf125da20');
+        }
       }
     ]
   });
