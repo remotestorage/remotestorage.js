@@ -2,10 +2,9 @@
   "files": {
     "lib/bluebird.js": "A Promises implementation",
     "lib/bluebird-defer.js": "An extended helper method for our use in our codebase",
-    "node_modules/webfinger.js/src/webfinger.js" : "a webfinger request library",
-
-    "lib/tv4.js": "Tiny Validator for v4 JSON Schema",
     "lib/Math.uuid.js": "Universally-Unique-ID generator",
+    "node_modules/webfinger.js/src/webfinger.js" : "A webfinger request library",
+    "node_modules/tv4/tv4.js": "Tiny Validator for v4 JSON Schema",
 
     "src/remotestorage.js": "Glue Code",
     "src/eventhandling.js": "Common event handling procedures",
@@ -68,7 +67,7 @@
       "label": "Base Client",
       "desc": "High-level client",
       "files": [
-        "lib/tv4.js",
+        "node_modules/tv4/tv4.js",
         "lib/Math.uuid.js",
         "src/baseclient.js",
         "src/baseclient/types.js"
