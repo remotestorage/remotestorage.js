@@ -100,7 +100,6 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
           };
 
           RemoteStorage.Discover('nil@heahdk.net').then(function (r) {
-            console.log('result: ', result);
             test.done();
           });
         }
