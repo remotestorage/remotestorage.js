@@ -30,14 +30,13 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
         XMLHttpRequest.instances = [];
         XMLHttpRequest.openCalls = [];
         XMLHttpRequest.sendCalls = [];
-        XMLHttpRequest.onOpen = function () {
-        };
+        XMLHttpRequest.onOpen = function () {};
 
 
         XMLHttpRequest.prototype = {
           open: function () {
             XMLHttpRequest.openCalls.push(Array.prototype.slice.call(arguments));
-            XMLHttpRequest.onOpen();
+            XMLHttpRequest.onOpen(arguments);
           },
 
           send: function (data) {
@@ -46,8 +45,7 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
               XMLHttpRequest.onreadystatechange();
             }
           },
-          setRequestHeader: function (p) {
-          }
+          setRequestHeader: function (p) {}
         };
         ['load', 'abort', 'error'].forEach(function(cb) {
           Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
@@ -140,6 +138,27 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
               ]
             });
             xhr.onreadystatechange();
+          };
+        }
+      },
+
+      {
+        desc: "# localhost:port should work",
+        run: function (env, test) {
+          RemoteStorage.Discover('me@localhost:8001').then(function (info) {
+            test.assertAnd(info, {
+              href: 'https://base/url',
+              storageType: 'draft-dejong-remotestorage-01',
+              authURL: 'https://auth/url',
+              properties: {
+                'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+              }
+            });
+            test.done();
+          });
+
+          XMLHttpRequest.onOpen = function (params) {
+            test.assert(params[1], 'http://localhost:8001/.well-known/webfinger?resource=acct:me@localhost:8001');
           };
         }
       },
