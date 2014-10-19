@@ -1,8 +1,11 @@
 if (typeof define !== 'function') {
   var define = require('amdefine')(module);
 }
-define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
+define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requirejs, fs, WebFinger) {
+
   global.Promise = Promise;
+  global.WebFinger = WebFinger;
+
   var suites = [];
 
   suites.push({
@@ -19,7 +22,6 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
         global.rs_discover = RemoteStorage.discover;
       }
 
-
       test.done();
     },
 
@@ -28,19 +30,32 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
         XMLHttpRequest.instances = [];
         XMLHttpRequest.openCalls = [];
         XMLHttpRequest.sendCalls = [];
+        XMLHttpRequest.onOpen = function () {
+          console.log('-1');
+        };
+
+
         XMLHttpRequest.prototype = {
-          open: function() {
+          open: function () {
             XMLHttpRequest.openCalls.push(Array.prototype.slice.call(arguments));
+            XMLHttpRequest.onOpen();
           },
 
-          send: function() {
+          send: function (data) {
             XMLHttpRequest.sendCalls.push(Array.prototype.slice.call(arguments));
+            if (typeof XMLHttpRequest.onreadystatechange === 'function') {
+              XMLHttpRequest.onreadystatechange();
+            }
+          },
+          setRequestHeader: function (p) {
+            console.log("setting request header: ", p);
           }
         };
         ['load', 'abort', 'error'].forEach(function(cb) {
           Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
             configurable: true,
             set: function(f) {
+              console.log('-5');
               XMLHttpRequest['on' + cb + 'Function'] = f;
             }
           });
@@ -82,19 +97,24 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
       {
         desc: "it tries /.well-known/webfinger",
         run: function (env, test) {
-          RemoteStorage.Discover('nil@heahdk.net');
-          test.assertAnd(XMLHttpRequest.openCalls.length, 1);
-          test.assertAnd(XMLHttpRequest.openCalls[0][0], 'GET');
-          test.assertAnd(XMLHttpRequest.openCalls[0][1], 'https://heahdk.net/.well-known/webfinger?resource=acct%3Anil%40heahdk.net');
-          test.assertAnd(XMLHttpRequest.openCalls[0][2], true); // cross-origin
-          test.done();
+          XMLHttpRequest.onOpen = function () {
+            test.assertAnd(XMLHttpRequest.openCalls.length, 1);
+            test.assertAnd(XMLHttpRequest.openCalls[0][0], 'GET');
+            test.assertAnd(XMLHttpRequest.openCalls[0][1], 'https://heahdk.net/.well-known/webfinger?resource=acct:nil@heahdk.net');
+            test.assert(XMLHttpRequest.openCalls[0][2], true); // cross-origin
+          };
+
+          RemoteStorage.Discover('nil@heahdk.net').then(function (r) {
+            console.log('result: ', result);
+            test.done();
+          });
         }
       },
 
       {
         desc: "it finds href, type and authURL, when the remotestorage version is in the link type",
         run: function (env, test) {
-          RemoteStorage.Discover('nil@heahdk.net').then(function(info) {
+          RemoteStorage.Discover('nil@heahdk.net').then(function (info) {
             test.assertAnd(info, {
               href: 'https://base/url',
               storageType: 'draft-dejong-remotestorage-01',
@@ -105,21 +125,25 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
             });
             test.done();
           });
-          var instance = XMLHttpRequest.instances[0];
-          instance.status = 200;
-          instance.responseText = JSON.stringify({
-            links: [
-              {
-                rel: 'remotestorage',
-                type: 'draft-dejong-remotestorage-01',
-                href: 'https://base/url',
-                properties: {
-                  'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+
+          XMLHttpRequest.onOpen = function () {
+            var xhr = XMLHttpRequest.instances[0];
+            xhr.status = 200;
+            xhr.readyState = 4;
+            xhr.responseText = JSON.stringify({
+              links: [
+                {
+                  rel: 'remotestorage',
+                  type: 'draft-dejong-remotestorage-01',
+                  href: 'https://base/url',
+                  properties: {
+                    'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+                  }
                 }
-              }
-            ]
-          });
-          XMLHttpRequest.onloadFunction();
+              ]
+            });
+            xhr.onreadystatechange();
+          };
         }
       },
 
@@ -141,21 +165,24 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
             });
             test.done();
           });
-          var instance = XMLHttpRequest.instances[0];
-          instance.status = 200;
-          instance.responseText = JSON.stringify({
-            links: [
-              {
-                rel: 'remotestorage',
-                href: 'https://base/url',
-                properties: {
-                  'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-02',
-                  'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+          XMLHttpRequest.onOpen = function () {
+            var xhr = XMLHttpRequest.instances[0];
+            xhr.status = 200;
+            xhr.readyState = 4;
+            xhr.responseText = JSON.stringify({
+              links: [
+                {
+                  rel: 'remotestorage',
+                  href: 'https://base/url',
+                  properties: {
+                    'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-02',
+                    'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+                  }
                 }
-              }
-            ]
-          });
-          XMLHttpRequest.onloadFunction();
+              ]
+            });
+            xhr.onreadystatechange();
+          };
         }
       },
 
@@ -184,14 +211,16 @@ define(['bluebird', 'requirejs', 'fs'], function(Promise, requirejs, fs) {
       {
         desc: "if unsuccesfully tried to discover a storage, promise is rejected",
         run: function (env, test) {
-          RemoteStorage.Discover("foo@bar").then(undefined, function(err) {
+          RemoteStorage.Discover("foo@bar").then(test.fail, function (err) {
             test.assertType(err, 'string');
           });
-          for (var i = 0; i < 4; i++) {
-            var instance = XMLHttpRequest.instances[i];
-            instance.status = 200;
-            XMLHttpRequest.onloadFunction();
-          }
+          XMLHttpRequest.onOpen = function () {
+            var xhr = XMLHttpRequest.instances[0];
+            xhr.status = 200;
+            xhr.readyState = 4;
+            xhr.responseText = '';
+            xhr.onreadystatechange();
+          };
         }
       }
     ]

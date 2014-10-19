@@ -20,6 +20,7 @@
   "dependencies": {
     "bluebird": "^2.3.2",
     "tv4": "^1.1.4",
+    "webfinger.js": "^2.0.1",
     "xhr2": "0.0.7"
   }
 }

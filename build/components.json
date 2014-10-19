@@ -1,6 +1,9 @@
 {
   "files": {
     "lib/bluebird.js": "A Promises implementation",
+    "lib/bluebird-defer.js": "An extended helper method for our use in our codebase",
+    "node_modules/webfinger.js/src/webfinger.js" : "a webfinger request library",
+
     "lib/tv4.js": "Tiny Validator for v4 JSON Schema",
     "lib/Math.uuid.js": "Universally-Unique-ID generator",
 
@@ -42,6 +45,7 @@
         "src/eventhandling.js",
         "src/wireclient.js",
         "src/discover.js",
+        "node_modules/webfinger.js/src/webfinger.js",
         "src/authorize.js",
         "src/access.js",
         "src/env.js"
