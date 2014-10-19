@@ -31,7 +31,6 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
         XMLHttpRequest.openCalls = [];
         XMLHttpRequest.sendCalls = [];
         XMLHttpRequest.onOpen = function () {
-          console.log('-1');
         };
 
 
@@ -48,14 +47,12 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
             }
           },
           setRequestHeader: function (p) {
-            console.log("setting request header: ", p);
           }
         };
         ['load', 'abort', 'error'].forEach(function(cb) {
           Object.defineProperty(XMLHttpRequest.prototype, 'on' + cb, {
             configurable: true,
             set: function(f) {
-              console.log('-5');
               XMLHttpRequest['on' + cb + 'Function'] = f;
             }
           });
