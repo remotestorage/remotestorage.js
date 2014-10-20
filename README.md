@@ -2,7 +2,7 @@
 
 [![Build Status](http://img.shields.io/travis/remotestorage/remotestorage.js.svg?style=flat)](http://travis-ci.org/silverbucket/webfinger.js)
 [![Dependency Status](http://img.shields.io/david/dev/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=dependencies)
-[![devDependency Status](http://img.shields.io/david/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=dependencies)
+[![devDependency Status](http://img.shields.io/david/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=devDependencies)
 [![Code Climate](http://img.shields.io/codeclimate/github/remotestorage/remotestorage.js.svg?style=flat)](https://codeclimate.com/github/silverbucket/webfinger.js)
 [![license](https://img.shields.io/npm/l/remotestoragejs.svg?style=flat)](https://raw.githubusercontent.com/silverbucket/webfinger.js/master/LICENSE)
 
