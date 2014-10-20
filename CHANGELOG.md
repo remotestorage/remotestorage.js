@@ -3,15 +3,24 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
-## HEAD
+## 0.11.0 (October 2014)
 
 ### Bugfixes
 
 * Do not set a timestamp in local changes (#756)
+* Replace custom promise implementation with [Bluebird](https://github.com/petkaantonov/bluebird) (#770)
+* Replace custom WebFinger lookup with [webfinger.js](https://github.com/silverbucket/webfinger.js) (#256)
 
 ### New features
 
 * Reintroduce remoteStorage.utils as RemoteStorage.utils (#761)
+* Add more `remoteStorage.utils` helper methods (`isDocument`, `equal`, `equalObj`, `md5sum`)
+* Complete node support ([documentation](https://github.com/remotestorage/remotestorage.js/blob/master/doc/nodejs.md))
+* Expose WebFinger link properties as remoteStorage.remote.properties (#772)
+
+### Experimental features
+
+* Improvements to the Dropbox backend. (#784)
 
 ## 0.10.2 (September 2014)
 
