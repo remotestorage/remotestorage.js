@@ -19,6 +19,8 @@
     * Go to https://github.com/remotestorage/remotestorage.js/tags and click "add release notes"
     * Use version string as title and changelog items as description
     * For RCs and betas, tick the "This is a pre-release" option on the bottom
+* Publish to npm (https://www.npmjs.org/package/remotestoragejs):
+  * `npm publish`
 * Publish release on remotestorage.io
     * `git up`
     * While in the gh-pages branch:
@@ -31,14 +33,12 @@
         * Commit changes to Git
         * Run `./deploy`
         * `git push origin master`
-* Update shim repo with new release (components-remotestorage)
+* Update shim repo (for bower) with new release (components-remotestorage)
     * Add release files
     * Update version in config files (bower.json & package.json)
     * Commit
     * Tag new version
     * `git push origin master --tags`
-    * Update https://www.npmjs.org/package/remotestoragejs:
-        * `npm publish ./`
 * Update https://github.com/remotestorage/myfavoritedrinks to use new release
     * Replace `remotestorage.js` with new release build
     * Check if everything is still working
