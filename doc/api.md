@@ -55,7 +55,8 @@ Start by defining a module (check out the repo to reuse an existing one):
     RemoteStorage.config.logging = false;
     remoteStorage.on('ready', ...)
     remoteStorage.setApiKeys(backend, keys);
-    remoteStorage.connect('user@host'[, backend]);
+    remoteStorage.connect('user@host'[, backend]); // triggers WebFinger+OAuth
+    remoteStorage.remote.configure({token: 'foo'}); // directly, no OAuth
     remoteStorage.disconnect();
     remoteStorage.connected
 ````
