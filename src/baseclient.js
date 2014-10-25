@@ -591,7 +591,7 @@
       }
     },
 
-    _cleanPath: RS.WireClient.cleanPath,
+    _cleanPath: RemoteStorage.util.cleanPath,
 
     /**
      * Method: getItemURL

@@ -119,6 +119,12 @@
       }
     },
 
+    cleanPath: function (path) {
+      return path.replace(/\/+/g, '/')
+                 .split('/').map(encodeURIComponent).join('/')
+                 .replace(/'/g, '%27');
+    },
+
     bindAll: function (object) {
       for (var key in this) {
         if (typeof(object[key]) === 'function') {

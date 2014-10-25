@@ -71,6 +71,7 @@
   }
 
   var isFolder = RemoteStorage.util.isFolder;
+  var cleanPath = RemoteStorage.util.cleanPath;
 
   function addQuotes(str) {
     if (typeof(str) !== 'string') {
@@ -127,10 +128,6 @@
       }
     }
     return charset;
-  }
-
-  function cleanPath(path) {
-    return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
 
   function isFolderDescription(body) {
