@@ -461,6 +461,20 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
       },
 
       {
+        desc: "#getItemURL encodes quote characters",
+        run: function(env, test) {
+          env.storage.connected = true;
+          env.storage.remote = {href: 'http://example.com/test'};
+
+          var itemURL = env.client.getItemURL("Capture d'écran");
+          test.assert(itemURL, 'http://example.com/test/foo/Capture%20d%27%C3%A9cran');
+
+          var itemURL = env.client.getItemURL('So they said "hey"');
+          test.assert(itemURL, 'http://example.com/test/foo/So%20they%20said%20%22hey%22');
+        }
+      },
+
+      {
         desc: "values in change events are JSON-parsed when possible",
         run: function(env, test) {
           var storage = new RemoteStorage();
