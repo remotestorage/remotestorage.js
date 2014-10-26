@@ -120,7 +120,9 @@
     },
 
     cleanPath: function (path) {
-      return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
+      return path.replace(/\/+/g, '/')
+                 .split('/').map(encodeURIComponent).join('/')
+                 .replace(/'/g, '%27');
     },
 
     bindAll: function (object) {
