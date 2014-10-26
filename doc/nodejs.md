@@ -59,9 +59,15 @@ In order to use a remote, you will need a webfinger user address and an oauth to
     var userAddress = ''; // fill me in
     var token = ''; // fill me in
     
-    RemoteStorage.Discover(userAddress, function (storageURL, storageAPI) {
-        console.log('- configuring remote', userAddress, storageURL, storageAPI);
-        remoteStorage.remote.configure(userAddress, storageURL, storageAPI, token);
+    RemoteStorage.Discover(userAddress).then(function (obj) {
+        console.log('- configuring remote', userAddress, obj.href, obj.storageType);
+        remoteStorage.remote.configure({
+            userAddress: userAddress,
+            href: obj.href,
+            storageAPI: obj.storageType,
+            properties: properties,
+            token: token
+        });
     });
 ```
 
@@ -155,9 +161,15 @@ remoteStorage.on('ready', beginApp);
 var userAddress = ''; // fill me in
 var token = ''; // fill me in
     
-RemoteStorage.Discover(userAddress, function (storageURL, storageAPI) {
-    console.log('- configuring remote', userAddress, storageURL, storageAPI);
-    remoteStorage.remote.configure(userAddress, storageURL, storageAPI, token);
+RemoteStorage.Discover(userAddress).then(function (obj) {
+    console.log('- configuring remote', userAddress, obj.href, obj.storageType);
+    remoteStorage.remote.configure({
+        userAddress: userAddress,
+        href: obj.href,
+        storageAPI: obj.storageType,
+        properties: properties,
+        token: token
+    });
 });
 
 remoteStorage.on('connected', function() {
