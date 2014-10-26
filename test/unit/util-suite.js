@@ -67,6 +67,15 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       },
 
       {
+        desc: "cleanPath encodes quotes",
+        run: function(env, test) {
+          test.assertAnd(RemoteStorage.util.cleanPath("Capture d'écran"), 'Capture%20d%27%C3%A9cran');
+          test.assertAnd(RemoteStorage.util.cleanPath('So they said "hey"'), 'So%20they%20said%20%22hey%22');
+          test.done();
+        }
+      },
+
+      {
         desc: "equal",
         run: function(env, test) {
           var deepClone = RemoteStorage.util.deepClone;
