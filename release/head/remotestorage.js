@@ -1,4 +1,4 @@
-/** remotestorage.js 0.11.0, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.11.1-pre, http://remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/bluebird.js **/
 /**
@@ -4224,6 +4224,12 @@ module.exports = ret;
       }
     },
 
+    cleanPath: function (path) {
+      return path.replace(/\/+/g, '/')
+                 .split('/').map(encodeURIComponent).join('/')
+                 .replace(/'/g, '%27');
+    },
+
     bindAll: function (object) {
       for (var key in this) {
         if (typeof(object[key]) === 'function') {
@@ -4697,6 +4703,7 @@ module.exports = ret;
   }
 
   var isFolder = RemoteStorage.util.isFolder;
+  var cleanPath = RemoteStorage.util.cleanPath;
 
   function addQuotes(str) {
     if (typeof(str) !== 'string') {
@@ -4753,10 +4760,6 @@ module.exports = ret;
       }
     }
     return charset;
-  }
-
-  function cleanPath(path) {
-    return path.replace(/\/+/g, '/').split('/').map(encodeURIComponent).join('/');
   }
 
   function isFolderDescription(body) {
@@ -5279,10 +5282,9 @@ module.exports = ret;
 
 
 /** FILE: node_modules/webfinger.js/src/webfinger.js **/
-// -*- mode:js; js-indent-level:2 -*-
 /*!
  * webfinger.js
- *   version 2.0.5
+ *   version 2.1.1
  *   http://github.com/silverbucket/webfinger.js
  *
  * Developed and Maintained by:
@@ -5302,11 +5304,7 @@ if (typeof XMLHttpRequest === 'undefined') {
   XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 }
 
-if (typeof window === 'undefined') {
-  var window = {};
-}
-
-(function (window, undefined) {
+(function (undefined) {
 
   // URI to property name map
   var LINK_URI_MAPS = {
@@ -5323,6 +5321,7 @@ if (typeof window === 'undefined') {
     'http://schemas.google.com/g/2010#updates-from': 'updates',
     'https://camlistore.org/rel/server': 'camilstore'
   };
+
   var LINK_PROPERTIES = {
     'avatar': [],
     'remotestorage': [],
@@ -5337,10 +5336,6 @@ if (typeof window === 'undefined') {
 
   // list of endpoints to try, fallback from beginning to end.
   var URIS = ['webfinger', 'host-meta', 'host-meta.json'];
-  var LOGABLE = false;
-  if ((typeof console === 'object') && (typeof console.log === 'function')) {
-    LOGABLE = true;
-  }
 
   function _err(obj) {
     obj.toString = function () {
@@ -5364,7 +5359,6 @@ if (typeof window === 'undefined') {
     }
 
     this.config = {
-      debug:            (typeof config.debug !== 'undefined') ? config.debug : false,
       tls_only:         (typeof config.tls_only !== 'undefined') ? config.tls_only : true,
       webfist_fallback: (typeof config.webfist_fallback !== 'undefined') ? config.webfist_fallback : false,
       uri_fallback:     (typeof config.uri_fallback !== 'undefined') ? config.uri_fallback : false,
@@ -5372,12 +5366,10 @@ if (typeof window === 'undefined') {
     };
   }
 
-
   // make an http request and look for JRD response, fails if request fails
   // or response not json.
   WebFinger.prototype._fetchJRD = function (url, cb) {
     var self = this;
-    self._log('Request URL: ' + url);
     var xhr = new XMLHttpRequest();
 
     xhr.onreadystatechange = function () {
@@ -5394,7 +5386,7 @@ if (typeof window === 'undefined') {
           }
         } else if (xhr.status === 404) {
           cb(_err({
-            message: 'webfinger endpoint unreachable',
+            message: 'endpoint unreachable',
             url: url,
             status: xhr.status
           }));
@@ -5428,13 +5420,6 @@ if (typeof window === 'undefined') {
     return local.test(host);
   };
 
-  WebFinger.prototype._log = function () {
-    var args = Array.prototype.splice.call(arguments, 0);
-    if ((this.config.debug) && (LOGABLE)) {
-      console.log.apply(window.console, args);
-    }
-  };
-
   // processes JRD object as if it's a webfinger response object
   // looks for known properties and adds them to profile datat struct.
   WebFinger.prototype._processJRD = function (JRD, cb) {
@@ -5445,7 +5430,7 @@ if (typeof window === 'undefined') {
       if (typeof parsedJRD.error !== 'undefined') {
         cb(_err({ message: parsedJRD.error }));
       } else {
-        cb(_err({ message: 'received unknown response from server' }));
+        cb(_err({ message: 'unknown response from server' }));
       }
       return false;
     }
@@ -5471,8 +5456,6 @@ if (typeof window === 'undefined') {
             entry[item] = link[item];
           });
           result.idx.links[LINK_URI_MAPS[link.rel]].push(entry);
-        } else {
-          self._log('URI ' + links[i].rel + ' has no corresponding link property ' + LINK_URI_MAPS[link.rel]);
         }
       }
     });
@@ -5493,7 +5476,7 @@ if (typeof window === 'undefined') {
     if (typeof address !== 'string') {
       throw new Error('first parameter must be a user address');
     } else if (typeof cb !== 'function') {
-      throw new Error('second parameter must be a callback function');
+      throw new Error('second parameter must be a callback');
     }
 
     var self = this;
@@ -5503,7 +5486,7 @@ if (typeof window === 'undefined') {
     var protocol = 'https'; // we use https by default
 
     if (parts.length !== 2) {
-      cb(_err({ message: 'invalid user address ( should be in the format of: user@host.com )' }));
+      cb(_err({ message: 'invalid user address ' + address + ' ( expected format: user@host.com )' }));
       return false;
     } else if (self._isLocalhost(host)) {
       protocol = 'http';
@@ -5571,17 +5554,17 @@ if (typeof window === 'undefined') {
     setTimeout(_call, 0);
   };
 
-  window.WebFinger = WebFinger;
+  if (typeof window === 'object') {
+    window.WebFinger = WebFinger;
+  } else if (typeof (define) === 'function' && define.amd) {
+    define([], function () { return WebFinger; });
+  } else {
+    try {
+      module.exports = WebFinger;
+    } catch (e) {}
+  }
+})();
 
-})(window);
-
-if (typeof (define) === 'function' && define.amd) {
-  define([], function () { return window.WebFinger; });
-} else {
-  try {
-    module.exports = window.WebFinger;
-  } catch (e) {}
-}
 
 
 /** FILE: src/authorize.js **/
@@ -9037,7 +9020,7 @@ Math.uuid = function (len, radix) {
       }
     },
 
-    _cleanPath: RS.WireClient.cleanPath,
+    _cleanPath: RemoteStorage.util.cleanPath,
 
     /**
      * Method: getItemURL
