@@ -3,6 +3,12 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 0.11.1-pre (November 2014)
+
+### Bugfixes
+
+* Fix single quotes in filenames not working correctly (#812)
+
 ## 0.11.0 (October 2014)
 
 ### Bugfixes
