@@ -1,10 +1,10 @@
 # remoteStorage.js
 
-[![Build Status](http://img.shields.io/travis/remotestorage/remotestorage.js.svg?style=flat)](http://travis-ci.org/silverbucket/webfinger.js)
+[![Build Status](http://img.shields.io/travis/remotestorage/remotestorage.js.svg?style=flat)](http://travis-ci.org/remotestorage/remotestorage.js)
 [![Dependency Status](http://img.shields.io/david/dev/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=dependencies)
 [![devDependency Status](http://img.shields.io/david/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=devDependencies)
-[![Code Climate](http://img.shields.io/codeclimate/github/remotestorage/remotestorage.js.svg?style=flat)](https://codeclimate.com/github/silverbucket/webfinger.js)
-[![license](https://img.shields.io/npm/l/remotestoragejs.svg?style=flat)](https://raw.githubusercontent.com/silverbucket/webfinger.js/master/LICENSE)
+[![Code Climate](http://img.shields.io/codeclimate/github/remotestorage/remotestorage.js.svg?style=flat)](https://codeclimate.com/github/remotestorage/remotestorage.js)
+[![License](https://img.shields.io/npm/l/remotestoragejs.svg?style=flat)](https://raw.githubusercontent.com/remotestorage/remotestorage.js/master/LICENSE)
 
 remoteStorage.js is a JavaScript library for storing user data locally in the
 browser, as well as connecting to [remoteStorage](http://remotestorage.io)
