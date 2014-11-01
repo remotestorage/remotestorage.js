@@ -15,7 +15,7 @@ servers and syncing data across devices and applications.
 * See [remotestorage.io](http://remotestorage.io/) for documentation, community
   forums, and links
 * Get instant support via IRC in
-  [#remotestorage](irc://irc.freenode.net:7000/remotestorage) on Freenode
+  [#remotestorage on Freenode](irc://irc.freenode.net:7000/remotestorage)
 
 ### Running a local test server
 
@@ -49,21 +49,24 @@ There are a number of different builds available:
 * <kbd>remotestorage.amd.js</kbd> - The same as remotestorage.js, but wrapped
   for use with
   [AMD](https://en.wikipedia.org/wiki/Asynchronous_module_definition) loaders
-  such as [RequireJS](http://requirejs.org/).
-  WARNING: When using AMD, be aware of
-  issues [#709](https://github.com/remotestorage/remotestorage.js/issues/709).
+  such as [RequireJS](http://requirejs.org/). When using AMD, be aware of issues
+  [#709](https://github.com/remotestorage/remotestorage.js/issues/709).
 * <kbd>remotestorage.min.js</kbd> - Minified version of remotestorage.js
-* <kbd>remotestorage-nocache.js</kbd> - Contains a version of remotestorage.js
-  without any caching features included. Use this if you want your app to write
-  directly to the remote server **without caching** any data in the browser's
-  storage (localStorage or indexedDB).
+* <kbd>remotestorage-nocache.js</kbd> - A version without any caching features
+  included. Use this if you want your app to write directly to the remote
+  server without caching any data in the browser's storage (localStorage or
+  IndexedDB).
 * <kbd>remotestorage-nocache.amd.js</kbd>,
-  <kbd>remotestorage-nocache.min.js</kbd> - same as the other .amd / .min
+  <kbd>remotestorage-nocache.min.js</kbd> - same as the other .amd/.min
   build, but based on remotestorage-nocache.js.
 
-To use remoteStorage.js in a `node.js` environment:
+#### Bower
 
-`npm install remotestoragejs`
+    $ bower install -S remotestorage
+
+#### Node.js / NPM
+
+    $ npm install remotestoragejs
 
 See our [node.js documentation](https://github.com/remotestorage/remotestorage.js/blob/master/doc/nodejs.md) for more details.
 
@@ -72,15 +75,15 @@ See our [node.js documentation](https://github.com/remotestorage/remotestorage.j
 Install development dependencies including the
 [testing framework](https://github.com/silverbucket/jaribu):
 
-    npm install
+    $ npm install
 
 Run all suites:
 
-    npm test
+    $ npm test
 
 Use the `jaribu` executable in order to test single files, like so e.g.:
 
-    node_modules/.bin/jaribu test/unit/baseclient-suite.js
+    $ node_modules/.bin/jaribu test/unit/baseclient-suite.js
 
 ### How to build
 
@@ -89,8 +92,8 @@ your system (e.g. via `sudo apt-get install naturaldocs`).
 
 Display the available build tasks:
 
-    make
+    $ make
 
 Build everything:
 
-    make all
+    $ make all
