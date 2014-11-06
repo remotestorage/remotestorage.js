@@ -64,8 +64,8 @@ In order to use a remote, you will need a webfinger user address and an oauth to
         remoteStorage.remote.configure({
             userAddress: userAddress,
             href: obj.href,
-            storageAPI: obj.storageType,
-            properties: properties,
+            storageApi: obj.storageType,
+            properties: obj.properties,
             token: token
         });
     });
