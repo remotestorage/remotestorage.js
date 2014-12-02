@@ -135,9 +135,7 @@
           this.rs.disconnect();
         }.bind(this));
       } catch(e) {
-        if (e.message && e.message.match(/Unknown event/)) {
-          // ignored. (the 0.7 widget-view interface didn't have a 'reset' event)
-        } else {
+        if (!(e.message && e.message.match(/Unknown event/))) { // ignored. (the 0.7 widget-view interface didn't have a 'reset' event)
           throw e;
         }
       }
