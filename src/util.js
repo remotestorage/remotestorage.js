@@ -134,6 +134,7 @@
     },
 
     equal: function (a, b, seen) {
+      var key;
       seen = seen || [];
 
       if (typeof(a) !== typeof(b)) {
@@ -169,14 +170,14 @@
         }
       } else {
         // Check that keys from a exist in b
-        for (var key in a) {
+        for (key in a) {
           if (a.hasOwnProperty(key) && !(key in b)) {
             return false;
           }
         }
 
         // Check that keys from b exist in a, and compare the values
-        for (var key in b) {
+        for (key in b) {
           if (!b.hasOwnProperty(key)) {
             continue;
           }
@@ -387,16 +388,16 @@
         return hex(md51(s));
       }
 
-      function add32(a, b) {
+      var add32 = function (a, b) {
         return (a + b) & 0xFFFFFFFF;
-      }
+      };
 
       if (md5('hello') !== '5d41402abc4b2a76b9719d911017c592') {
-        function add32(x, y) {
+        add32 = function (x, y) {
           var lsw = (x & 0xFFFF) + (y & 0xFFFF),
               msw = (x >> 16) + (y >> 16) + (lsw >> 16);
           return (msw << 16) | (lsw & 0xFFFF);
-        }
+        };
       }
 
       return md5(str);
