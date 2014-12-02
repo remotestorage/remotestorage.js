@@ -507,13 +507,8 @@
 
     var body = options.body;
 
-    if (typeof(body) === 'object') {
-      if (isArrayBufferView(body)) {
-        /* alright. */
-        //FIXME empty block
-      } else if (body instanceof ArrayBuffer) {
-        body = new Uint8Array(body);
-      }
+    if (typeof(body) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
+      body = new Uint8Array(body);
     }
     xhr.send(body);
     return pending.promise;
