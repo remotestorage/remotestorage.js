@@ -234,6 +234,7 @@
       return paths;
     },
 
+    /* jshint ignore:start */
     md5sum: function(str) {
       //
       // http://www.myersdaily.org/joseph/javascript/md5.js
@@ -400,6 +401,7 @@
 
       return md5(str);
     }
+    /* jshint ignore:end */
   };
 
   if (!RemoteStorage.prototype.util) {
