@@ -224,7 +224,7 @@
             etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
           }
 
-          if (options && options.ifNoneMatch && (etagWithoutQuotes == options.ifNoneMatch)) {
+          if (options && options.ifNoneMatch && (etagWithoutQuotes === options.ifNoneMatch)) {
             return Promise.resolve({statusCode: 304});
           }
 

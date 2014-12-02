@@ -746,7 +746,7 @@
     },
 
     _dispatchEvent: function (eventName, event) {
-      for (var path in this._pathHandlers[eventName]) {
+      this._pathHandlers[eventName].forEach(function (path) {
         var pl = path.length;
         var self = this;
         if (event.path.substr(0, pl) === path) {
@@ -762,7 +762,7 @@
             }
           });
         }
-      }
+      });
     }
   };
 

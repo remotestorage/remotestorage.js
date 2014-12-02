@@ -91,7 +91,8 @@
         return value;
       }
       this._propagate(key, value);
-      return this._storage[key] = value;
+      this._storage[key] = value;
+      return value;
     },
 
     /**
@@ -118,7 +119,8 @@
      */
     justSet : function (key, value) {
       key = key.toLowerCase();
-      return this._storage[key] = value;
+      this._storage[key] = value;
+      return value;
     },
 
     /**
@@ -765,7 +767,7 @@
         }
 
         // Conflict happened. Delete the copy created by DropBox
-        if (response.path != params.path) {
+        if (response.path !== params.path) {
           var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
           self._request('POST', deleteUrl, {});
 
