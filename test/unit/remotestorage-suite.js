@@ -71,7 +71,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
     setup:  function(env, test) {
       require('./src/remotestorage');
       if (global.rs_rs) {
-        RemoteStorage = global.rs_rs;
+        global.RemoteStorage = global.rs_rs;
       } else {
         global.rs_rs = RemoteStorage;
       }
@@ -185,7 +185,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
       {
         desc: "#connect sets the backend to remotestorage",
         run: function(env, test) {
-          localStorage = {};
+          global.localStorage = {};
           env.rs.connect('user@ho.st');
           test.assert(localStorage, {'remotestorage:backend': 'remotestorage'});
         }
@@ -385,7 +385,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
     setup: function(env, test) {
       require('./src/remotestorage');
       if (global.rs_rs) {
-        RemoteStorage = global.rs_rs;
+        global.RemoteStorage = global.rs_rs;
       } else {
         global.rs_rs = RemoteStorage;
       }

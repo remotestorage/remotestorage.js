@@ -11,7 +11,7 @@ define([], function() {
     setup: function(env, test) {
       require('./src/remotestorage');
       if (global.rs_rs) {
-        RemoteStorage = global.rs_rs;
+        global.RemoteStorage = global.rs_rs;
       } else {
         global.rs_rs = RemoteStorage;
       }
