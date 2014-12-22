@@ -12,7 +12,9 @@ exports.build = function(components, selectedGroups, options) {
 
   console.error("Building version " + version.toString());
 
+  var exclude = [];
   if(options.amd) {
+    exclude = components["amd-exclude"];
     console.error("AMD build: starting define() block.");
     output += 'define([], function() {\n';
   }
@@ -23,6 +25,14 @@ exports.build = function(components, selectedGroups, options) {
       files = files.concat(components.groups[group].files);
     }
   });
+
+  exclude.forEach(function(file) {
+    var i = files.indexOf(file);
+    if (i > -1) {
+      files.splice(i, 1);
+    }
+  });
+
   files.forEach(function(file) {
     console.error("Adding file: " + file);
     output += '\n/** FILE: ' + file + ' **/\n'

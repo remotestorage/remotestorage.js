@@ -32,6 +32,10 @@
     "src/googledrive.js": "Backend to talk to googledrive",
     "src/dropbox.js": "Backend to talk to dropbox"
   },
+  "amd-exclude": [
+    "lib/bluebird.js",
+    "lib/bluebird-defer.js"
+  ],
   "groups": {
     "core": {
       "label": "Core",
