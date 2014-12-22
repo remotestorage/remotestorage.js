@@ -1,4 +1,19 @@
 (function (global) {
+
+  // wrapper to implement defer() functionality
+  Promise.defer = function () {
+    var resolve, reject;
+    var promise = new Promise(function() {
+      resolve = arguments[0];
+      reject = arguments[1];
+    });
+    return {
+        resolve: resolve,
+      reject: reject,
+      promise: promise
+    };
+  };
+
   function logError(error) {
     if (typeof(error) === 'string') {
       console.error(error);
