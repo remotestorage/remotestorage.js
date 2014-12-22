@@ -16,7 +16,7 @@ exports.build = function(components, selectedGroups, options) {
   if(options.amd) {
     exclude = components["amd-exclude"];
     console.error("AMD build: starting define() block.");
-    output += 'define([], function() {\n';
+    output += "define(['bluebird'], function(Promise) {\n";
   }
 
   var files = [];
