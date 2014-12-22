@@ -40,7 +40,6 @@
       "desc": "Basic requirements to connect to a remotestorage server and send / receive data.",
       "files": [
         "lib/bluebird.js",
-        "lib/bluebird-defer.js",
         "src/remotestorage.js",
         "src/util.js",
         "src/eventhandling.js",
