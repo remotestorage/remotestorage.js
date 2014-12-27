@@ -19,13 +19,22 @@
      * Claim access on a given scope with given mode.
      *
      * Parameters:
-     *   scope - An access scope, such as "contacts" or "calendar".
-     *   mode  - Access mode to use. Either "r" or "rw".
+     *   scope - An access scope, such as "contacts" or "calendar"
+     *   mode  - Access mode. Either "r" for read-only or "rw" for read/write
      *
      * Example:
      *   (start code)
      *   remoteStorage.access.claim('contacts', 'r');
      *   remoteStorage.access.claim('pictures', 'rw');
+     *   (end code)
+     *
+     * Root access:
+     *   Claiming root access, meaning complete access to all files and folders
+     *   of a storage, can be done using an asterisk:
+     *
+     *   (start code)
+     *   remoteStorage.access.claim('*', 'rw');
+     *   (end code)
      */
     claim: function(scope, mode) {
       if (typeof(scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {

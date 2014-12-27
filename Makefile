@@ -23,6 +23,7 @@ help:
 	@echo "build          - build remotestorage.js"
 	@echo "build-amd      - build remotestorage.js with AMD wrapper"
 	@echo "build-nocache  - build remotestorage.js without caching (plus AMD and .min versions of that)"
+	@echo "doc            - generate documentation via NaturalDocs"
 	@echo "minify         - minify remotestorage.js -> remotestorage.min.js"
 	@echo "compile-assets - compile $(ASSETS_DIR)/* into $(ASSETS_OUT)"
 	@echo "clean          - remove all builds and editor swapfiles"
