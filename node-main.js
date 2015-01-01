@@ -2,7 +2,6 @@ global.XMLHttpRequest = require('xhr2');
 global.tv4 = require('tv4');
 global.Promise = require('bluebird');
 global.WebFinger = require('webfinger.js');
-require('./lib/bluebird-defer.js');
 require('./lib/Math.uuid.js');
 
 global.RemoteStorage = require('./src/remotestorage.js');
