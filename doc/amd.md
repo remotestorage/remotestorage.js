@@ -17,7 +17,7 @@ The `nocache` build does not include any of the syncing functionality. When a do
 
 # Dependencies
 
-The AMD build of remotestorage.js depends on Bluebird for Promise functionality, so you must include a reference to `bluebird` in your AMD init script.
+The AMD build of remotestorage.js depends on [Bluebird](https://github.com/petkaantonov/bluebird) for Promise functionality, so you must include a reference to `bluebird` in your AMD init script.
 
 **NOTE** For an up-to-date list of external dependencies, check the `define` statement in the top of the remotestorage AMD file.
 
