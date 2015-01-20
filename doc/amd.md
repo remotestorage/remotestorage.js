@@ -4,7 +4,7 @@ We provide a build of remotestorage.js that works with AMD. External dependencie
 
 # Release
 
-For every release we provide an AMD build, this file is location in:
+For every release we provide an AMD build, this file is located in:
 
 ```
 releases/<version>/remotestorage.amd.js
