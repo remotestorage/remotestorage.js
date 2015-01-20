@@ -60,6 +60,9 @@ There are a number of different builds available:
   <kbd>remotestorage-nocache.min.js</kbd> - same as the other .amd/.min
   build, but based on remotestorage-nocache.js.
 
+
+For more information on using the AMD build(s) and it's dependencies, see the [AMD documentation](https://github.com/remotestorage/remotestorage.js/blob/master/doc/amd.md).
+
 #### Bower
 
     $ bower install -S remotestorage
