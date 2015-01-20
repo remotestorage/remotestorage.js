@@ -1,7 +1,6 @@
 {
   "files": {
     "lib/bluebird.js": "A Promises implementation",
-    "lib/bluebird-defer.js": "An extended helper method for our use in our codebase",
     "lib/Math.uuid.js": "Universally-Unique-ID generator",
     "node_modules/webfinger.js/src/webfinger.js" : "A webfinger request library",
     "node_modules/tv4/tv4.js": "Tiny Validator for v4 JSON Schema",
@@ -32,13 +31,15 @@
     "src/googledrive.js": "Backend to talk to googledrive",
     "src/dropbox.js": "Backend to talk to dropbox"
   },
+  "amd-exclude": [
+    "lib/bluebird.js"
+  ],
   "groups": {
     "core": {
       "label": "Core",
       "desc": "Basic requirements to connect to a remotestorage server and send / receive data.",
       "files": [
         "lib/bluebird.js",
-        "lib/bluebird-defer.js",
         "src/remotestorage.js",
         "src/util.js",
         "src/eventhandling.js",

@@ -9,6 +9,7 @@ define([], function() {
     name: "modules",
     desc: "RemoteStorage modules",
     setup: function(env, test) {
+      global.Promise = require('./lib/bluebird.js');
       require('./src/remotestorage');
       if (global.rs_rs) {
         global.RemoteStorage = global.rs_rs;
