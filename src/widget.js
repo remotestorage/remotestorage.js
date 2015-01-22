@@ -189,14 +189,14 @@
     return function (error) {
       if (error instanceof RemoteStorage.DiscoveryError) {
         console.error('Discovery failed', error, '"' + error.message + '"');
-        widget.view.setState('initial', [error.message]);
+        stateSetter('initial', [error.message]);
       } else if (error instanceof RemoteStorage.SyncError) {
-        widget.view.setState('offline', []);
+        stateSetter('offline', []);
       } else if (error instanceof RemoteStorage.Unauthorized) {
-        widget.view.setState('unauthorized');
+        stateSetter('unauthorized');
       } else {
         RemoteStorage.log('[Widget] Unknown error');
-        widget.view.setState('error', [error]);
+        stateSetter('error', [error]);
       }
     };
   }
