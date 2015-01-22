@@ -42,7 +42,7 @@ compile-assets: $(ASSETS_OUT)
 
 %.min.js: %.js
 #	minify $< -o $@ --mangle --wrap --export-all
-	$(MINIFY_BIN) -o $@ $<
+	$(MINIFY_BIN) $< > $@
 	mv $@ $@.tmp
 	head -n1 $< > $@
 	cat $@.tmp >> $@
