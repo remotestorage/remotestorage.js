@@ -8,6 +8,8 @@ All releases can also be found and downloaded on the
 ### Bugfixes
 
 * Fix single quotes in filenames not working correctly (#812)
+* Fix broken AMD build (#816)
+* Fix console errors when using lib without widget (#829)
 
 ## 0.11.0 (October 2014)
 
