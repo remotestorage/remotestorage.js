@@ -12,7 +12,7 @@
   "homepage": "http://remotestorage.io",
   "devDependencies": {
     "jaribu": "0.x.x",
-    "minifier": "^0.6.0"
+    "uglify-js": "^2.4.16"
   },
   "scripts": {
     "test": "node_modules/jaribu/bin/jaribu"
