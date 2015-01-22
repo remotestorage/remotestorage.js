@@ -761,7 +761,7 @@
     },
 
     _dispatchEvent: function (eventName, event) {
-      this._pathHandlers[eventName].forEach(function (path) {
+      Object.keys(this._pathHandlers[eventName]).forEach(function (path) {
         var pl = path.length;
         var self = this;
         if (event.path.substr(0, pl) === path) {
