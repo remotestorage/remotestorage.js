@@ -3,11 +3,13 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
-## 0.11.1-pre (November 2014)
+## 0.11.1-pre (January 2015, Hacker Beach Edition)
 
 ### Bugfixes
 
 * Fix single quotes in filenames not working correctly (#812)
+* Fix broken AMD build (#816)
+* Fix console errors when using lib without widget (#829)
 
 ## 0.11.0 (October 2014)
 
