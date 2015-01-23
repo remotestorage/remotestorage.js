@@ -761,11 +761,11 @@
     },
 
     _dispatchEvent: function (eventName, event) {
+      var self = this;
       Object.keys(this._pathHandlers[eventName]).forEach(function (path) {
         var pl = path.length;
-        var self = this;
         if (event.path.substr(0, pl) === path) {
-          this._pathHandlers[eventName][path].forEach(function (handler) {
+          self._pathHandlers[eventName][path].forEach(function (handler) {
             var ev = {};
             for (var key in event) { ev[key] = event[key]; }
             ev.relativePath = event.path.replace(new RegExp('^' + path), '');
