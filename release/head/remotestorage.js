@@ -1,4 +1,4 @@
-/** remotestorage.js 0.11.1-pre, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.11.2-pre, http://remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/bluebird.js **/
 /**
@@ -3271,25 +3271,23 @@ module.exports = ret;
 (2)
 });            ;if (typeof window !== 'undefined' && window !== null) {                           window.P = window.Promise;                                                 } else if (typeof self !== 'undefined' && self !== null) {                         self.P = self.Promise;                                                     }
 
-/** FILE: lib/bluebird-defer.js **/
-// wrapper to implement defer() functionality
-(function () {
+/** FILE: src/remotestorage.js **/
+(function (global) {
+
+  // wrapper to implement defer() functionality
   Promise.defer = function () {
     var resolve, reject;
     var promise = new Promise(function() {
-        resolve = arguments[0];
-        reject = arguments[1];
+      resolve = arguments[0];
+      reject = arguments[1];
     });
     return {
         resolve: resolve,
-        reject: reject,
-        promise: promise
+      reject: reject,
+      promise: promise
     };
   };
-}());
 
-/** FILE: src/remotestorage.js **/
-(function (global) {
   function logError(error) {
     if (typeof(error) === 'string') {
       console.error(error);
@@ -4037,11 +4035,11 @@ module.exports = ret;
     },
 
     _dispatchEvent: function (eventName, event) {
-      for (var path in this._pathHandlers[eventName]) {
+      var self = this;
+      Object.keys(this._pathHandlers[eventName]).forEach(function (path) {
         var pl = path.length;
-        var self = this;
         if (event.path.substr(0, pl) === path) {
-          this._pathHandlers[eventName][path].forEach(function (handler) {
+          self._pathHandlers[eventName][path].forEach(function (handler) {
             var ev = {};
             for (var key in event) { ev[key] = event[key]; }
             ev.relativePath = event.path.replace(new RegExp('^' + path), '');
@@ -4053,7 +4051,7 @@ module.exports = ret;
             }
           });
         }
-      }
+      });
     }
   };
 
@@ -4239,6 +4237,7 @@ module.exports = ret;
     },
 
     equal: function (a, b, seen) {
+      var key;
       seen = seen || [];
 
       if (typeof(a) !== typeof(b)) {
@@ -4274,14 +4273,14 @@ module.exports = ret;
         }
       } else {
         // Check that keys from a exist in b
-        for (var key in a) {
+        for (key in a) {
           if (a.hasOwnProperty(key) && !(key in b)) {
             return false;
           }
         }
 
         // Check that keys from b exist in a, and compare the values
-        for (var key in b) {
+        for (key in b) {
           if (!b.hasOwnProperty(key)) {
             continue;
           }
@@ -4339,6 +4338,7 @@ module.exports = ret;
       return paths;
     },
 
+    /* jshint ignore:start */
     md5sum: function(str) {
       //
       // http://www.myersdaily.org/joseph/javascript/md5.js
@@ -4491,20 +4491,21 @@ module.exports = ret;
         return hex(md51(s));
       }
 
-      function add32(a, b) {
+      var add32 = function (a, b) {
         return (a + b) & 0xFFFFFFFF;
-      }
+      };
 
       if (md5('hello') !== '5d41402abc4b2a76b9719d911017c592') {
-        function add32(x, y) {
+        add32 = function (x, y) {
           var lsw = (x & 0xFFFF) + (y & 0xFFFF),
               msw = (x >> 16) + (y >> 16) + (lsw >> 16);
           return (msw << 16) | (lsw & 0xFFFF);
-        }
+        };
       }
 
       return md5(str);
     }
+    /* jshint ignore:end */
   };
 
   if (!RemoteStorage.prototype.util) {
@@ -4727,9 +4728,15 @@ module.exports = ret;
   function readBinaryData(content, mimeType, callback) {
     var blob = new Blob([content], { type: mimeType });
     var reader = new FileReader();
-    reader.addEventListener("loadend", function () {
-      callback(reader.result); // reader.result contains the contents of blob as a typed array
-    });
+    if (typeof reader.addEventListener === 'function') {
+      reader.addEventListener("loadend", function () {
+        callback(reader.result); // reader.result contains the contents of blob as a typed array
+      });
+    } else {
+      reader.onloadend = function() {
+        callback(reader.result); // reader.result contains the contents of blob as a typed array
+      }
+    }
     reader.readAsArrayBuffer(blob);
   }
 
@@ -4741,9 +4748,15 @@ module.exports = ret;
     } else {
       var blob = new Blob([arrayBuffer]);
       var fileReader = new FileReader();
-      fileReader.addEventListener("loadend", function (evt) {
-        pending.resolve(evt.target.result);
-      });
+      if (typeof fileReader.addEventListener === 'function') {
+        fileReader.addEventListener("loadend", function (evt) {
+          pending.resolve(evt.target.result);
+        });
+      } else {
+        fileReader.onloadend = function(evt) {
+          pending.resolve(evt.target.result);
+        }
+      }
       fileReader.readAsText(blob, encoding);
     }
     return pending.promise;
@@ -5139,13 +5152,8 @@ module.exports = ret;
 
     var body = options.body;
 
-    if (typeof(body) === 'object') {
-      if (isArrayBufferView(body)) {
-        /* alright. */
-        //FIXME empty block
-      } else if (body instanceof ArrayBuffer) {
-        body = new Uint8Array(body);
-      }
+    if (typeof(body) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
+      body = new Uint8Array(body);
     }
     xhr.send(body);
     return pending.promise;
@@ -5284,7 +5292,7 @@ module.exports = ret;
 /** FILE: node_modules/webfinger.js/src/webfinger.js **/
 /*!
  * webfinger.js
- *   version 2.1.1
+ *   version 2.1.4
  *   http://github.com/silverbucket/webfinger.js
  *
  * Developed and Maintained by:
@@ -5415,7 +5423,6 @@ if (typeof XMLHttpRequest === 'undefined') {
   };
 
   WebFinger.prototype._isLocalhost = function (host) {
-    console.log('checking: ', host);
     var local = /^localhost(\.localdomain)?(\:[0-9]+)?$/;
     return local.test(host);
   };
@@ -5719,13 +5726,22 @@ if (typeof XMLHttpRequest === 'undefined') {
      * Claim access on a given scope with given mode.
      *
      * Parameters:
-     *   scope - An access scope, such as "contacts" or "calendar".
-     *   mode  - Access mode to use. Either "r" or "rw".
+     *   scope - An access scope, such as "contacts" or "calendar"
+     *   mode  - Access mode. Either "r" for read-only or "rw" for read/write
      *
      * Example:
      *   (start code)
      *   remoteStorage.access.claim('contacts', 'r');
      *   remoteStorage.access.claim('pictures', 'rw');
+     *   (end code)
+     *
+     * Root access:
+     *   Claiming root access, meaning complete access to all files and folders
+     *   of a storage, can be done using an asterisk:
+     *
+     *   (start code)
+     *   remoteStorage.access.claim('*', 'rw');
+     *   (end code)
      */
     claim: function(scope, mode) {
       if (typeof(scope) !== 'string' || scope.indexOf('/') !== -1 || scope.length === 0) {
@@ -6125,9 +6141,7 @@ RemoteStorage.Assets = {
           this.rs.disconnect();
         }.bind(this));
       } catch(e) {
-        if (e.message && e.message.match(/Unknown event/)) {
-          // ignored. (the 0.7 widget-view interface didn't have a 'reset' event)
-        } else {
+        if (!(e.message && e.message.match(/Unknown event/))) { // ignored. (the 0.7 widget-view interface didn't have a 'reset' event)
           throw e;
         }
       }
@@ -6181,14 +6195,14 @@ RemoteStorage.Assets = {
     return function (error) {
       if (error instanceof RemoteStorage.DiscoveryError) {
         console.error('Discovery failed', error, '"' + error.message + '"');
-        widget.view.setState('initial', [error.message]);
+        stateSetter('initial', [error.message]);
       } else if (error instanceof RemoteStorage.SyncError) {
-        widget.view.setState('offline', []);
+        stateSetter('offline', []);
       } else if (error instanceof RemoteStorage.Unauthorized) {
-        widget.view.setState('unauthorized');
+        stateSetter('unauthorized');
       } else {
         RemoteStorage.log('[Widget] Unknown error');
-        widget.view.setState('error', [error]);
+        stateSetter('error', [error]);
       }
     };
   }
@@ -7186,7 +7200,11 @@ ValidatorContext.prototype.getSchema = function (url, urlHistory) {
 	}
 };
 ValidatorContext.prototype.searchSchemas = function (schema, url) {
-	if (schema && typeof schema === "object") {
+	if (Array.isArray(schema)) {
+		for (var i = 0; i < schema.length; i++) {
+			this.searchSchemas(schema[i], url);
+		}
+	} else if (schema && typeof schema === "object") {
 		if (typeof schema.id === "string") {
 			if (isTrustedUrl(url, schema.id)) {
 				if (this.schemas[schema.id] === undefined) {
@@ -7505,13 +7523,16 @@ ValidatorContext.prototype.validateNumeric = function validateNumeric(data, sche
 		|| null;
 };
 
+var CLOSE_ENOUGH_LOW = Math.pow(2, -51);
+var CLOSE_ENOUGH_HIGH = 1 - CLOSE_ENOUGH_LOW;
 ValidatorContext.prototype.validateMultipleOf = function validateMultipleOf(data, schema) {
 	var multipleOf = schema.multipleOf || schema.divisibleBy;
 	if (multipleOf === undefined) {
 		return null;
 	}
 	if (typeof data === "number") {
-		if (data % multipleOf !== 0) {
+		var remainder = (data/multipleOf)%1;
+		if (remainder >= CLOSE_ENOUGH_LOW && remainder < CLOSE_ENOUGH_HIGH) {
 			return this.createError(ErrorCodes.NUMBER_MULTIPLE_OF, {value: data, multipleOf: multipleOf});
 		}
 	}
@@ -11436,24 +11457,6 @@ Math.uuid = function (len, radix) {
       0;
   }
 
-  function base64DecToArr(sBase64, nBlocksSize) {
-    var
-    sB64Enc = sBase64.replace(/[^A-Za-z0-9\+\/]/g, ""), nInLen = sB64Enc.length,
-    nOutLen = nBlocksSize ? Math.ceil((nInLen * 3 + 1 >> 2) / nBlocksSize) * nBlocksSize : nInLen * 3 + 1 >> 2, taBytes = new Uint8Array(nOutLen);
-
-    for (var nMod3, nMod4, nUint24 = 0, nOutIdx = 0, nInIdx = 0; nInIdx < nInLen; nInIdx++) {
-      nMod4 = nInIdx & 3;
-      nUint24 |= b64ToUint6(sB64Enc.charCodeAt(nInIdx)) << 18 - 6 * nMod4;
-      if (nMod4 === 3 || nInLen - nInIdx === 1) {
-        for (nMod3 = 0; nMod3 < 3 && nOutIdx < nOutLen; nMod3++, nOutIdx++) {
-          taBytes[nOutIdx] = nUint24 >>> (16 >>> nMod3 & 24) & 255;
-        }
-        nUint24 = 0;
-      }
-    }
-    return taBytes;
-  }
-
   function isBinary(node) {
     return node.match(/charset=binary/);
   }
@@ -12078,7 +12081,7 @@ Math.uuid = function (len, radix) {
             etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
           }
 
-          if (options && options.ifNoneMatch && (etagWithoutQuotes == options.ifNoneMatch)) {
+          if (options && options.ifNoneMatch && (etagWithoutQuotes === options.ifNoneMatch)) {
             return Promise.resolve({statusCode: 304});
           }
 
@@ -12366,7 +12369,8 @@ Math.uuid = function (len, radix) {
         return value;
       }
       this._propagate(key, value);
-      return this._storage[key] = value;
+      this._storage[key] = value;
+      return value;
     },
 
     /**
@@ -12393,7 +12397,8 @@ Math.uuid = function (len, radix) {
      */
     justSet : function (key, value) {
       key = key.toLowerCase();
-      return this._storage[key] = value;
+      this._storage[key] = value;
+      return value;
     },
 
     /**
@@ -13040,7 +13045,7 @@ Math.uuid = function (len, radix) {
         }
 
         // Conflict happened. Delete the copy created by DropBox
-        if (response.path != params.path) {
+        if (response.path !== params.path) {
           var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
           self._request('POST', deleteUrl, {});
 
