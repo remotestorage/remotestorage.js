@@ -3,6 +3,12 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 0.11.2-pre (February 2015)
+
+### Bugfixes
+
+* Fix usage of FileReader that doesn't support `addEventListener` (#836)
+
 ## 0.11.1 (January 2015, Hacker Beach Edition)
 
 ### Bugfixes
