@@ -95,9 +95,15 @@
   function readBinaryData(content, mimeType, callback) {
     var blob = new Blob([content], { type: mimeType });
     var reader = new FileReader();
-    reader.addEventListener("loadend", function () {
-      callback(reader.result); // reader.result contains the contents of blob as a typed array
-    });
+    if (typeof reader.addEventListener === 'undefined') {
+      reader.onloadend = function() {
+        callback(reader.result); // reader.result contains the contents of blob as a typed array
+      }
+    } else {
+      reader.addEventListener("loadend", function () {
+        callback(reader.result); // reader.result contains the contents of blob as a typed array
+      });
+    }
     reader.readAsArrayBuffer(blob);
   }
 
@@ -109,9 +115,15 @@
     } else {
       var blob = new Blob([arrayBuffer]);
       var fileReader = new FileReader();
-      fileReader.addEventListener("loadend", function (evt) {
-        pending.resolve(evt.target.result);
-      });
+      if (typeof fileReader.addEventListener === 'undefined') {
+        fileReader.onloadend = function(evt) {
+          pending.resolve(evt.target.result);
+        }
+      } else {
+        fileReader.addEventListener("loadend", function (evt) {
+          pending.resolve(evt.target.result);
+        });
+      }
       fileReader.readAsText(blob, encoding);
     }
     return pending.promise;
