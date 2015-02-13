@@ -189,15 +189,16 @@
     return function (error) {
       if (error instanceof RemoteStorage.DiscoveryError) {
         console.error('Discovery failed', error, '"' + error.message + '"');
-        stateSetter('initial', [error.message]);
+        s = stateSetter(widget, 'initial', [error.message]);
       } else if (error instanceof RemoteStorage.SyncError) {
-        stateSetter('offline', []);
+        s = stateSetter(widget, 'offline', []);
       } else if (error instanceof RemoteStorage.Unauthorized) {
-        stateSetter('unauthorized');
+        s = stateSetter(widget, 'unauthorized');
       } else {
         RemoteStorage.log('[Widget] Unknown error');
-        stateSetter('error', [error]);
+        s = stateSetter(widget, 'error', [error]);
       }
+      s.apply();
     };
   }
 
