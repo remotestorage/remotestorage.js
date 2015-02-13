@@ -1,7 +1,7 @@
 (function (window) {
 
   var hasLocalStorage;
-  var LS_STATE_KEY = "remotestorage:widget:state";
+  var LS_STATE_KEY = 'remotestorage:widget:state';
 
   // states allowed to immediately jump into after a reload.
   var VALID_ENTRY_STATES = {
@@ -187,6 +187,7 @@
 
   function errorsHandler(widget) {
     return function (error) {
+      var s;
       if (error instanceof RemoteStorage.DiscoveryError) {
         console.error('Discovery failed', error, '"' + error.message + '"');
         s = stateSetter(widget, 'initial', [error.message]);
