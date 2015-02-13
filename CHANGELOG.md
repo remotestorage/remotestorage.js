@@ -8,6 +8,7 @@ All releases can also be found and downloaded on the
 ### Bugfixes
 
 * Fix usage of FileReader that doesn't support `addEventListener` (#836)
+* Fix widget not being set to correct mode in some cases (e.g. offline) (#740)
 
 ## 0.11.1 (January 2015, Hacker Beach Edition)
 
