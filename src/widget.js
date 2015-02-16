@@ -1,7 +1,7 @@
 (function (window) {
 
   var hasLocalStorage;
-  var LS_STATE_KEY = "remotestorage:widget:state";
+  var LS_STATE_KEY = 'remotestorage:widget:state';
 
   // states allowed to immediately jump into after a reload.
   var VALID_ENTRY_STATES = {
@@ -187,17 +187,19 @@
 
   function errorsHandler(widget) {
     return function (error) {
+      var s;
       if (error instanceof RemoteStorage.DiscoveryError) {
         console.error('Discovery failed', error, '"' + error.message + '"');
-        stateSetter('initial', [error.message]);
+        s = stateSetter(widget, 'initial', [error.message]);
       } else if (error instanceof RemoteStorage.SyncError) {
-        stateSetter('offline', []);
+        s = stateSetter(widget, 'offline', []);
       } else if (error instanceof RemoteStorage.Unauthorized) {
-        stateSetter('unauthorized');
+        s = stateSetter(widget, 'unauthorized');
       } else {
         RemoteStorage.log('[Widget] Unknown error');
-        stateSetter('error', [error]);
+        s = stateSetter(widget, 'error', [error]);
       }
+      s.apply();
     };
   }
 
