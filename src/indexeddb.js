@@ -330,7 +330,21 @@
   RS.IndexedDB._rs_supported = function () {
     var pending = Promise.defer();
 
-    if ('indexedDB' in global) {
+    global.indexedDB = global.indexedDB    || global.webkitIndexedDB ||
+                       global.mozIndexedDB || global.oIndexedDB      ||
+                       global.msIndexedDB;
+
+    // Detect browsers with known IndexedDb issues (e.g. Android pre-4.4)
+    var poorIndexedDbSupport = false;
+    if (typeof global.navigator !== 'undefined' &&
+        global.navigator.userAgent.match(/Android (2|3|4\.[0-3])/)) {
+      // Chrome and Firefox support IndexedDB
+      if (!navigator.userAgent.match(/Chrome|Firefox/)) {
+        poorIndexedDbSupport = true;
+      }
+    }
+
+    if ('indexedDB' in global && !poorIndexedDbSupport) {
       try {
         var check = indexedDB.open("rs-check");
         check.onerror = function (event) {
