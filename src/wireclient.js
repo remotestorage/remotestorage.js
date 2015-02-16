@@ -93,10 +93,19 @@
   }
 
   function readBinaryData(content, mimeType, callback) {
-    var blob = new Blob([content], { type: mimeType });
+    var blob;
+    global.BlobBuilder = global.BlobBuilder || global.WebKitBlobBuilder;
+    if (typeof global.BlobBuilder !== 'undefined') {
+      var bb = new global.BlobBuilder();
+      bb.append(content);
+      blob = bb.getBlob(mimeType);
+    } else {
+      blob = new Blob([content], { type: mimeType });
+    }
+
     var reader = new FileReader();
     if (typeof reader.addEventListener === 'function') {
-      reader.addEventListener("loadend", function () {
+      reader.addEventListener('loadend', function () {
         callback(reader.result); // reader.result contains the contents of blob as a typed array
       });
     } else {
@@ -113,10 +122,19 @@
       var buffer = new Buffer(new Uint8Array(arrayBuffer));
       pending.resolve(buffer.toString(encoding));
     } else {
-      var blob = new Blob([arrayBuffer]);
+      var blob;
+      global.BlobBuilder = global.BlobBuilder || global.WebKitBlobBuilder;
+      if (typeof global.BlobBuilder !== 'undefined') {
+        var bb = new global.BlobBuilder();
+        bb.append(arrayBuffer);
+        blob = bb.getBlob();
+      } else {
+        blob = new Blob([arrayBuffer]);
+      }
+
       var fileReader = new FileReader();
       if (typeof fileReader.addEventListener === 'function') {
-        fileReader.addEventListener("loadend", function (evt) {
+        fileReader.addEventListener('loadend', function (evt) {
           pending.resolve(evt.target.result);
         });
       } else {
