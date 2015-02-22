@@ -40,7 +40,7 @@
    */
 
   var hasLocalStorage;
-  var SETTINGS_KEY = "remotestorage:wireclient";
+  var SETTINGS_KEY = 'remotestorage:wireclient';
 
   var API_2012 = 1, API_00 = 2, API_01 = 3, API_02 = 4, API_HEAD = 5;
 
@@ -93,10 +93,19 @@
   }
 
   function readBinaryData(content, mimeType, callback) {
-    var blob = new Blob([content], { type: mimeType });
+    var blob;
+    global.BlobBuilder = global.BlobBuilder || global.WebKitBlobBuilder;
+    if (typeof global.BlobBuilder !== 'undefined') {
+      var bb = new global.BlobBuilder();
+      bb.append(content);
+      blob = bb.getBlob(mimeType);
+    } else {
+      blob = new Blob([content], { type: mimeType });
+    }
+
     var reader = new FileReader();
     if (typeof reader.addEventListener === 'function') {
-      reader.addEventListener("loadend", function () {
+      reader.addEventListener('loadend', function () {
         callback(reader.result); // reader.result contains the contents of blob as a typed array
       });
     } else {
@@ -113,10 +122,19 @@
       var buffer = new Buffer(new Uint8Array(arrayBuffer));
       pending.resolve(buffer.toString(encoding));
     } else {
-      var blob = new Blob([arrayBuffer]);
+      var blob;
+      global.BlobBuilder = global.BlobBuilder || global.WebKitBlobBuilder;
+      if (typeof global.BlobBuilder !== 'undefined') {
+        var bb = new global.BlobBuilder();
+        bb.append(arrayBuffer);
+        blob = bb.getBlob();
+      } else {
+        blob = new Blob([arrayBuffer]);
+      }
+
       var fileReader = new FileReader();
       if (typeof fileReader.addEventListener === 'function') {
-        fileReader.addEventListener("loadend", function (evt) {
+        fileReader.addEventListener('loadend', function (evt) {
           pending.resolve(evt.target.result);
         });
       } else {
@@ -237,7 +255,7 @@
 
     _request: function (method, uri, token, headers, body, getEtag, fakeRevision) {
       if ((method === 'PUT' || method === 'DELETE') && uri[uri.length - 1] === '/') {
-        return Promise.reject("Don't " + method + " on directories!");
+        return Promise.reject('Don\'t ' + method + ' on directories!');
       }
 
       var revision;
@@ -380,7 +398,7 @@
     get: function (path, options) {
       var self = this;
       if (!this.connected) {
-        return Promise.reject("not connected (path: " + path + ")");
+        return Promise.reject('not connected (path: ' + path + ')');
       }
       if (!options) { options = {}; }
       var headers = {};
@@ -423,7 +441,7 @@
           // < 02 spec
             Object.keys(r.body).forEach(function (key){
               self._revisionCache[path + key] = r.body[key];
-              itemsMap[key] = {"ETag": r.body[key]};
+              itemsMap[key] = {'ETag': r.body[key]};
             });
           }
           r.body = itemsMap;
@@ -436,7 +454,7 @@
 
     put: function (path, body, contentType, options) {
       if (!this.connected) {
-        return Promise.reject("not connected (path: " + path + ")");
+        return Promise.reject('not connected (path: ' + path + ')');
       }
       if (!options) { options = {}; }
       if ((!contentType.match(/charset=/)) && (body instanceof ArrayBuffer || isArrayBufferView(body))) {
@@ -457,7 +475,7 @@
 
     'delete': function (path, options) {
       if (!this.connected) {
-        throw new Error("not connected (path: " + path + ")");
+        throw new Error('not connected (path: ' + path + ')');
       }
       if (!options) { options = {}; }
       var headers = {};
