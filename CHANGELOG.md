@@ -3,7 +3,7 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
-## 0.11.2-pre (February 2015)
+## 0.11.2 (February 2015)
 
 ### Bugfixes
 
