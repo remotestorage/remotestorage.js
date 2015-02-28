@@ -852,9 +852,9 @@
   }
 
   function unHookGetItemURL(rs){
-    if (! rs._origBaseClieNtGetItemURL) { return; }
-    RS.BaseClient.prototype.getItemURL = rs._origBaseClietGetItemURL;
-    delete rs._origBaseClietGetItemURL;
+    if (! rs._origBaseClientGetItemURL) { return; }
+    RS.BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
+    delete rs._origBaseClientGetItemURL;
   }
 
   function hookRemote(rs){
