@@ -472,8 +472,8 @@
      *
      * Parameters:
      *   type - string, either 'googledrive' or 'dropbox'
-     *   keys - object, with one string field; 'client_id' for GoogleDrive, or
-     *          'api_key' for Dropbox.
+     *   keys - object, with one string field; 'clientId' for GoogleDrive, or
+     *          'appKey' for Dropbox.
      *
      */
     setApiKeys: function (type, keys) {

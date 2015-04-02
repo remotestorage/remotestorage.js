@@ -21,7 +21,7 @@
    * (start code)
    *
    * remoteStorage.setApiKeys('dropbox', {
-   *   api_key: 'your-app-key'
+   *   appKey: 'your-app-key'
    * });
    *
    * (end code)
@@ -175,7 +175,7 @@
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
     rs.on('error', onErrorCb);
 
-    this.clientId = rs.apiKeys.dropbox.api_key;
+    this.clientId = rs.apiKeys.dropbox.appKey;
     this._revCache = new LowerCaseCache('rev');
     this._itemRefs = {};
     this._metadataCache = {};

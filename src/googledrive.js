@@ -395,7 +395,7 @@
   RS.GoogleDrive._rs_init = function (remoteStorage) {
     var config = remoteStorage.apiKeys.googledrive;
     if (config) {
-      remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.client_id);
+      remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.clientId);
       if (remoteStorage.backend === 'googledrive') {
         remoteStorage._origRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.googledrive;
