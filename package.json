@@ -11,16 +11,16 @@
   },
   "homepage": "http://remotestorage.io",
   "devDependencies": {
-    "jaribu": "0.x.x",
-    "uglify-js": "^2.4.16"
+    "jaribu": "^2.0.0",
+    "uglify-js": "^2.4.20"
   },
   "scripts": {
     "test": "node_modules/jaribu/bin/jaribu"
   },
   "dependencies": {
-    "bluebird": "^2.3.2",
-    "tv4": "^1.1.4",
-    "webfinger.js": "^2.0.5",
-    "xhr2": "0.0.7"
+    "bluebird": "^2.9.25",
+    "tv4": "^1.1.9",
+    "webfinger.js": "^2.1.4",
+    "xhr2": "^0.1.2"
   }
 }
