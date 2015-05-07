@@ -373,7 +373,7 @@
       }
       if (this.href && this.token) {
         this.connected = true;
-        this.online = true;
+        this.online = false;
         this._emit('connected');
       } else {
         this.connected = false;
