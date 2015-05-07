@@ -39,9 +39,10 @@
       var self = this;
       if (this.local) {
         if (maxAge === undefined) {
-          if (this.connected) {
+          if (this.remote.connected && this.remote.online) {
             maxAge = 2*this.getSyncInterval();
           } else {
+            RemoteStorage.log('Ignoring maxAge requirement, because remote is not connected or offline');
             maxAge = false;
           }
         }

@@ -102,19 +102,15 @@
 
     queueGetRequest: function (path) {
       var pending = Promise.defer();
-      if (!this.remote.connected) {
-        pending.reject('cannot fulfill maxAge requirement - remote is not connected');
-      } else if (!this.remote.online) {
-        pending.reject('cannot fulfill maxAge requirement - remote is not online');
-      } else {
-        this.addTask(path, function () {
-          this.local.get(path).then(function (r) {
-            return pending.resolve(r);
-          });
-        }.bind(this));
 
-        this.doTasks();
-      }
+      this.addTask(path, function () {
+        this.local.get(path).then(function (r) {
+          return pending.resolve(r);
+        });
+      }.bind(this));
+
+      this.doTasks();
+
       return pending.promise;
     },
 
