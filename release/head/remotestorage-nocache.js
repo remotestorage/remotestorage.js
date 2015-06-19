@@ -1,4 +1,4 @@
-/** remotestorage.js 0.11.2, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.12.0-pre, http://remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/bluebird.js **/
 /**
@@ -3746,8 +3746,8 @@ module.exports = ret;
      *
      * Parameters:
      *   type - string, either 'googledrive' or 'dropbox'
-     *   keys - object, with one string field; 'client_id' for GoogleDrive, or
-     *          'api_key' for Dropbox.
+     *   keys - object, with one string field; 'clientId' for GoogleDrive, or
+     *          'appKey' for Dropbox.
      *
      */
     setApiKeys: function (type, keys) {
@@ -7421,7 +7421,7 @@ ValidatorContext.prototype.validateFormat = function (data, schema) {
 	}
 	return null;
 };
-ValidatorContext.prototype.validateDefinedKeywords = function (data, schema) {
+ValidatorContext.prototype.validateDefinedKeywords = function (data, schema, dataPointerPath) {
 	for (var key in this.definedKeywords) {
 		if (typeof schema[key] === 'undefined') {
 			continue;
@@ -7429,16 +7429,18 @@ ValidatorContext.prototype.validateDefinedKeywords = function (data, schema) {
 		var validationFunctions = this.definedKeywords[key];
 		for (var i = 0; i < validationFunctions.length; i++) {
 			var func = validationFunctions[i];
-			var result = func(data, schema[key], schema);
+			var result = func(data, schema[key], schema, dataPointerPath);
 			if (typeof result === 'string' || typeof result === 'number') {
 				return this.createError(ErrorCodes.KEYWORD_CUSTOM, {key: key, message: result}).prefixWith(null, "format");
 			} else if (result && typeof result === 'object') {
-				var code = result.code || ErrorCodes.KEYWORD_CUSTOM;
+				var code = result.code;
 				if (typeof code === 'string') {
 					if (!ErrorCodes[code]) {
 						throw new Error('Undefined error code (use defineError): ' + code);
 					}
 					code = ErrorCodes[code];
+				} else if (typeof code !== 'number') {
+					code = ErrorCodes.KEYWORD_CUSTOM;
 				}
 				var messageParams = (typeof result.message === 'object') ? result.message : {key: key, message: result.message || "?"};
 				var schemaPath = result.schemaPath ||( "/" + key.replace(/~/g, '~0').replace(/\//g, '~1'));
@@ -7453,7 +7455,7 @@ function recursiveCompare(A, B) {
 	if (A === B) {
 		return true;
 	}
-	if (typeof A === "object" && typeof B === "object") {
+	if (A && B && typeof A === "object" && typeof B === "object") {
 		if (Array.isArray(A) !== Array.isArray(B)) {
 			return false;
 		} else if (Array.isArray(A)) {
@@ -9571,6 +9573,21 @@ Math.uuid = function (len, radix) {
    * Class: RemoteStorage.GoogleDrive
    *
    * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
+   *
+   * To use this backend, you need to specify the app's client ID like so:
+   *
+   * (start code)
+   *
+   * remoteStorage.setApiKeys('googledrive', {
+   *   clientId: 'your-client-id'
+   * });
+   *
+   * (end code)
+   *
+   * An client ID can be obtained by registering your app in the Google
+   * Developers Console: https://developers.google.com/drive/web/auth/web-client
+   *
+   * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
    **/
 
   var RS = RemoteStorage;
@@ -9963,7 +9980,7 @@ Math.uuid = function (len, radix) {
   RS.GoogleDrive._rs_init = function (remoteStorage) {
     var config = remoteStorage.apiKeys.googledrive;
     if (config) {
-      remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.client_id);
+      remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.clientId);
       if (remoteStorage.backend === 'googledrive') {
         remoteStorage._origRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.googledrive;
@@ -10003,26 +10020,26 @@ Math.uuid = function (len, radix) {
    * initialize and replace remoteStorage.remote with remoteStorage.dropbox.
    *
    * In order to ensure compatibility with the public folder, <BaseClient.getItemURL>
-   * gets hijacked to return the DropBox public share URL.
+   * gets hijacked to return the Dropbox public share URL.
    *
-   * To use this backend, you need to specify the DropBox API key like so:
+   * To use this backend, you need to specify the Dropbox app key like so:
    *
    * (start code)
    *
-   * remoteStorage.setaApiKeys('dropbox', {
-   *   api_key: 'your-api-key'
+   * remoteStorage.setApiKeys('dropbox', {
+   *   appKey: 'your-app-key'
    * });
-   * 
+   *
    * (end code)
    *
-   * An API key can be obtained by registering your app at https://www.dropbox.com/developers/apps
+   * An app key can be obtained by registering your app at https://www.dropbox.com/developers/apps
    *
    * Known issues:
    *
    *   - Storing files larger than 150MB is not yet supported
    *   - Listing and deleting folders with more than 10'000 files will cause problems
-   *   - Content-Type is not fully supported due to limitations of the DropBox API
-   *   - DropBox preserves cases but is not case-sensitive
+   *   - Content-Type is not fully supported due to limitations of the Dropbox API
+   *   - Dropbox preserves cases but is not case-sensitive
    *   - getItemURL is asynchronous which means getIetmURL returns useful values
    *     after the syncCycle
    */
@@ -10164,7 +10181,7 @@ Math.uuid = function (len, radix) {
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
     rs.on('error', onErrorCb);
 
-    this.clientId = rs.apiKeys.dropbox.api_key;
+    this.clientId = rs.apiKeys.dropbox.appKey;
     this._revCache = new LowerCaseCache('rev');
     this._itemRefs = {};
     this._metadataCache = {};
@@ -10193,7 +10210,7 @@ Math.uuid = function (len, radix) {
      * Method: connect
      *
      * Set the backed to 'dropbox' and start the authentication flow in order
-     * to obtain an API token from DropBox.
+     * to obtain an API token from Dropbox.
      */
     connect: function () {
       // TODO handling when token is already present
@@ -10505,7 +10522,7 @@ Math.uuid = function (len, radix) {
     /**
      * Method: share
      *
-     * Gets a publicly-accessible URL for the path from DropBox and stores it
+     * Gets a publicly-accessible URL for the path from Dropbox and stores it
      * in _itemRefs.
      *
      * Returns:
@@ -10518,13 +10535,13 @@ Math.uuid = function (len, radix) {
 
       return this._request('POST', url, {}).then(function (response) {
         if (response.status !== 200) {
-          return Promise.reject(new Error('Invalid DropBox API response status when sharing "' + path + '":' + response.status));
+          return Promise.reject(new Error('Invalid Dropbox API response status when sharing "' + path + '":' + response.status));
         }
 
         try {
           response = JSON.parse(response.responseText);
         } catch (e) {
-          return Promise.reject(new Error('Invalid DropBox API response when sharing "' + path + '": ' + response.responseText));
+          return Promise.reject(new Error('Invalid Dropbox API response when sharing "' + path + '": ' + response.responseText));
         }
 
         self._itemRefs[path] = response.url;
@@ -10535,7 +10552,7 @@ Math.uuid = function (len, radix) {
 
         return Promise.resolve(url);
       }, function (error) {
-        err.message = 'Sharing DropBox file or folder ("' + path + '") failed.' + err.message;
+        err.message = 'Sharing dropbox file or folder ("' + path + '") failed.' + err.message;
         return Promise.reject(error);
       });
     },
@@ -10543,7 +10560,7 @@ Math.uuid = function (len, radix) {
     /**
      * Method: info
      *
-     * Fetches the user's info from DropBox and returns a promise for it.
+     * Fetches the user's info from dropbox and returns a promise for it.
      *
      * Returns:
      *
@@ -10594,7 +10611,7 @@ Math.uuid = function (len, radix) {
     /**
      * Method: fetchDelta
      *
-     * Fetches the revision of all the files from DropBox API and puts them
+     * Fetches the revision of all the files from dropbox API and puts them
      * into _revCache. These values can then be used to determine if something
      * has changed.
      */
@@ -10755,7 +10772,7 @@ Math.uuid = function (len, radix) {
           return Promise.reject(e);
         }
 
-        // Conflict happened. Delete the copy created by DropBox
+        // Conflict happened. Delete the copy created by dropbox
         if (response.path !== params.path) {
           var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
           self._request('POST', deleteUrl, {});
@@ -10841,9 +10858,9 @@ Math.uuid = function (len, radix) {
   }
 
   function unHookGetItemURL(rs){
-    if (! rs._origBaseClieNtGetItemURL) { return; }
-    RS.BaseClient.prototype.getItemURL = rs._origBaseClietGetItemURL;
-    delete rs._origBaseClietGetItemURL;
+    if (! rs._origBaseClientGetItemURL) { return; }
+    RS.BaseClient.prototype.getItemURL = rs._origBaseClientGetItemURL;
+    delete rs._origBaseClientGetItemURL;
   }
 
   function hookRemote(rs){
