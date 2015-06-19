@@ -81,7 +81,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       });
     });
     env.rs = new RemoteStorage();
-    env.rs.apiKeys= { googledrive: {api_key: 'testkey'} };
+    env.rs.apiKeys= { googledrive: {clientId: 'testkey'} };
     env.client = new RemoteStorage.GoogleDrive(env.rs);
     env.connectedClient = new RemoteStorage.GoogleDrive(env.rs);
     env.baseURI = 'https://example.com/storage/test';

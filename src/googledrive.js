@@ -3,6 +3,21 @@
    * Class: RemoteStorage.GoogleDrive
    *
    * WORK IN PROGRESS, NOT RECOMMENDED FOR PRODUCTION USE
+   *
+   * To use this backend, you need to specify the app's client ID like so:
+   *
+   * (start code)
+   *
+   * remoteStorage.setApiKeys('googledrive', {
+   *   clientId: 'your-client-id'
+   * });
+   *
+   * (end code)
+   *
+   * An client ID can be obtained by registering your app in the Google
+   * Developers Console: https://developers.google.com/drive/web/auth/web-client
+   *
+   * Docs: https://developers.google.com/drive/web/auth/web-client#create_a_client_id_and_client_secret
    **/
 
   var RS = RemoteStorage;
@@ -395,7 +410,7 @@
   RS.GoogleDrive._rs_init = function (remoteStorage) {
     var config = remoteStorage.apiKeys.googledrive;
     if (config) {
-      remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.client_id);
+      remoteStorage.googledrive = new RS.GoogleDrive(remoteStorage, config.clientId);
       if (remoteStorage.backend === 'googledrive') {
         remoteStorage._origRemote = remoteStorage.remote;
         remoteStorage.remote = remoteStorage.googledrive;

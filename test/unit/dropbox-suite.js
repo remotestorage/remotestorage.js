@@ -83,7 +83,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       });
     });
     env.rs = new RemoteStorage();
-    env.rs.apiKeys = { dropbox: {api_key: 'testkey'} };
+    env.rs.apiKeys = { dropbox: {appKey: 'testkey'} };
     env.client = new RemoteStorage.Dropbox(env.rs);
     env.connectedClient = new RemoteStorage.Dropbox(env.rs);
     env.baseURI = 'https://example.com/storage/test';
@@ -687,7 +687,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             return l;
           }
           var rs = new RemoteStorage();
-          rs.apiKeys= { dropbox: {api_key: 'testkey'} };
+          rs.apiKeys= { dropbox: {appKey: 'testkey'} };
 
           test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers") ;
 

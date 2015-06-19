@@ -14,26 +14,26 @@
    * initialize and replace remoteStorage.remote with remoteStorage.dropbox.
    *
    * In order to ensure compatibility with the public folder, <BaseClient.getItemURL>
-   * gets hijacked to return the DropBox public share URL.
+   * gets hijacked to return the Dropbox public share URL.
    *
-   * To use this backend, you need to specify the DropBox API key like so:
+   * To use this backend, you need to specify the Dropbox app key like so:
    *
    * (start code)
    *
-   * remoteStorage.setaApiKeys('dropbox', {
-   *   api_key: 'your-api-key'
+   * remoteStorage.setApiKeys('dropbox', {
+   *   appKey: 'your-app-key'
    * });
-   * 
+   *
    * (end code)
    *
-   * An API key can be obtained by registering your app at https://www.dropbox.com/developers/apps
+   * An app key can be obtained by registering your app at https://www.dropbox.com/developers/apps
    *
    * Known issues:
    *
    *   - Storing files larger than 150MB is not yet supported
    *   - Listing and deleting folders with more than 10'000 files will cause problems
-   *   - Content-Type is not fully supported due to limitations of the DropBox API
-   *   - DropBox preserves cases but is not case-sensitive
+   *   - Content-Type is not fully supported due to limitations of the Dropbox API
+   *   - Dropbox preserves cases but is not case-sensitive
    *   - getItemURL is asynchronous which means getIetmURL returns useful values
    *     after the syncCycle
    */
@@ -175,7 +175,7 @@
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
     rs.on('error', onErrorCb);
 
-    this.clientId = rs.apiKeys.dropbox.api_key;
+    this.clientId = rs.apiKeys.dropbox.appKey;
     this._revCache = new LowerCaseCache('rev');
     this._itemRefs = {};
     this._metadataCache = {};
@@ -204,7 +204,7 @@
      * Method: connect
      *
      * Set the backed to 'dropbox' and start the authentication flow in order
-     * to obtain an API token from DropBox.
+     * to obtain an API token from Dropbox.
      */
     connect: function () {
       // TODO handling when token is already present
@@ -516,7 +516,7 @@
     /**
      * Method: share
      *
-     * Gets a publicly-accessible URL for the path from DropBox and stores it
+     * Gets a publicly-accessible URL for the path from Dropbox and stores it
      * in _itemRefs.
      *
      * Returns:
@@ -529,13 +529,13 @@
 
       return this._request('POST', url, {}).then(function (response) {
         if (response.status !== 200) {
-          return Promise.reject(new Error('Invalid DropBox API response status when sharing "' + path + '":' + response.status));
+          return Promise.reject(new Error('Invalid Dropbox API response status when sharing "' + path + '":' + response.status));
         }
 
         try {
           response = JSON.parse(response.responseText);
         } catch (e) {
-          return Promise.reject(new Error('Invalid DropBox API response when sharing "' + path + '": ' + response.responseText));
+          return Promise.reject(new Error('Invalid Dropbox API response when sharing "' + path + '": ' + response.responseText));
         }
 
         self._itemRefs[path] = response.url;
@@ -546,7 +546,7 @@
 
         return Promise.resolve(url);
       }, function (error) {
-        err.message = 'Sharing DropBox file or folder ("' + path + '") failed.' + err.message;
+        err.message = 'Sharing dropbox file or folder ("' + path + '") failed.' + err.message;
         return Promise.reject(error);
       });
     },
@@ -554,7 +554,7 @@
     /**
      * Method: info
      *
-     * Fetches the user's info from DropBox and returns a promise for it.
+     * Fetches the user's info from dropbox and returns a promise for it.
      *
      * Returns:
      *
@@ -605,7 +605,7 @@
     /**
      * Method: fetchDelta
      *
-     * Fetches the revision of all the files from DropBox API and puts them
+     * Fetches the revision of all the files from dropbox API and puts them
      * into _revCache. These values can then be used to determine if something
      * has changed.
      */
@@ -766,7 +766,7 @@
           return Promise.reject(e);
         }
 
-        // Conflict happened. Delete the copy created by DropBox
+        // Conflict happened. Delete the copy created by dropbox
         if (response.path !== params.path) {
           var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
           self._request('POST', deleteUrl, {});

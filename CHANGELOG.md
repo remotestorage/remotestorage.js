@@ -3,6 +3,12 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 0.12.0 (April 2015)
+
+### Experimental features
+
+* Change config keys for Dropbox and Google Drive
+
 ## 0.11.2 (February 2015)
 
 ### Bugfixes
