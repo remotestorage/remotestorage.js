@@ -705,7 +705,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           env.connectedClient.get('/foo').then(function() {
             test.result(false);
           }, function (error) {
-            console.log('test got errror: ', error);
+            console.log('test got error: ', error);
             test.assert('timeout', error);
           });
         }
