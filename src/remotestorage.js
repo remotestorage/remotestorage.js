@@ -350,8 +350,7 @@
               });
             }
           } else {
-            // In lieu of an excplicit authURL or when connecting with a token
-            // as argument (e.g. from node.js), assume that the browser and
+            // In lieu of an excplicit authURL, assume that the browser and
             // server handle any authorization needs; for instance, TLS may
             // trigger the browser to use a client certificate, or a 401 Not
             // Authorized response may make the browser send a Kerberos ticket
