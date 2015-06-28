@@ -311,13 +311,13 @@
      * Parameters:
      *   userAddress - The user address (user@host) to connect to.
      *
-     * Discovers the webfinger profile of the given user address and initiates
+     * Discovers the WebFinger profile of the given user address and initiates
      * the OAuth dance.
      *
      * This method must be called *after* all required access has been claimed.
      *
      */
-    connect: function (userAddress) {
+    connect: function (userAddress, token) {
       this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
         this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
@@ -341,13 +341,21 @@
         this.remote.configure(info);
         if (! this.remote.connected) {
           if (info.authURL) {
-            this.authorize(info.authURL);
+            if (typeof token === 'undefined') {
+              this.authorize(info.authURL);
+            } else {
+              RemoteStorage.log('Skipping authorization sequence and connecting with known token');
+              this.remote.configure({
+                token: token
+              });
+            }
           } else {
-            // In lieu of an excplicit authURL, assume that the browser
-            // and server handle any authorization needs; for instance,
-            // TLS may trigger the browser to use a client certificate,
-            // or a 401 Not Authorized response may make the browser
-            // send a Kerberos ticket using the SPNEGO method.
+            // In lieu of an excplicit authURL or when connecting with a token
+            // as argument (e.g. from node.js), assume that the browser and
+            // server handle any authorization needs; for instance, TLS may
+            // trigger the browser to use a client certificate, or a 401 Not
+            // Authorized response may make the browser send a Kerberos ticket
+            // using the SPNEGO method.
             this.impliedauth();
           }
         }
