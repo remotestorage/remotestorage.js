@@ -342,12 +342,14 @@
         if (! this.remote.connected) {
           if (info.authURL) {
             if (typeof token === 'undefined') {
+              // Normal authorization step; the default way to connect
               this.authorize(info.authURL);
-            } else {
+            } else if (typeof token === 'string') {
+              // Token supplied directly by app/developer/user
               RemoteStorage.log('Skipping authorization sequence and connecting with known token');
-              this.remote.configure({
-                token: token
-              });
+              this.remote.configure({ token: token });
+            } else {
+              throw new Error("Supplied bearer token must be a string");
             }
           } else {
             // In lieu of an excplicit authURL, assume that the browser and
