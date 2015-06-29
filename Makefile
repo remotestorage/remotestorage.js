@@ -12,14 +12,12 @@ SOURCES        = ${shell find $(SOURCE_DIR) -name "*.js"}
 
 DEFAULT_COMPONENTS = core widget baseclient caching modules debug googledrive dropbox
 NOCACHE_COMPONENTS = core widget baseclient modules debug googledrive dropbox
-NODEJS_COMPONENTS  = core baseclient caching modules nodejs
-
 
 default: help
 
 help:
 	@echo "help           - display this text"
-	@echo "all            - build regular, minified AMD and nodejs targets, plus all -nocache targets"
+	@echo "all            - build regular, minified and AMD targets, plus all -nocache targets"
 	@echo "build          - build remotestorage.js"
 	@echo "build-amd      - build remotestorage.js with AMD wrapper"
 	@echo "build-nocache  - build remotestorage.js without caching (plus AMD and .min versions of that)"
