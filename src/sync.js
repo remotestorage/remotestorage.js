@@ -280,7 +280,7 @@
 
     deleteChildPathsFromTasks: function () {
       for (var path in this._tasks) {
-        paths = pathsFromRoot(path);
+        var paths = pathsFromRoot(path);
 
         for (var i=1; i<paths.length; i++) {
           if (this._tasks[paths[i]]) {
