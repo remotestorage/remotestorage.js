@@ -54,7 +54,7 @@
       if (nodes[path] && nodes[path].remote) {
         return true;
       }
-      nodeVersion = getLatest(nodes[path]);
+      var nodeVersion = getLatest(nodes[path]);
       if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
         return false;
       } else if (!nodeVersion) {
