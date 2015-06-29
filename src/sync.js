@@ -529,7 +529,7 @@
         var cachingStrategy;
         var node;
 
-        nodeChanged = function (node, etag) {
+        var nodeChanged = function (node, etag) {
           return node.common.revision !== etag && (!node.remote || node.remote.revision !== etag);
         };
 
@@ -673,7 +673,7 @@
         var node = nodes[path];
         var parentNode;
 
-        collectMissingChildren = function (folder) {
+        var collectMissingChildren = function (folder) {
           if (folder && folder.itemsMap) {
             for (var itemName in folder.itemsMap) {
               if (!bodyOrItemsMap[itemName]) {
@@ -898,7 +898,7 @@
 
         if (completed) {
           if (self._tasks[task.path]) {
-            for (i=0; i<self._tasks[task.path].length; i++) {
+            for (var i=0; i<self._tasks[task.path].length; i++) {
               self._tasks[task.path][i]();
             }
             delete self._tasks[task.path];
