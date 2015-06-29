@@ -3,15 +3,20 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
-## 0.12.0 (June 2015)
+## 0.12.0 (July 2015)
 
-## Enhancements
+### Enhancements
 
 * Update dependencies (notable: new output format for test suites)
 
+### Bugfixes
+
+* Fix syntax errors in ES6 strict mode (#872)
+
 ### Experimental features
 
-* Change config keys for Dropbox and Google Drive
+* Change configuration keys for Dropbox and Google Drive
+* Documentation updates for Dropbox and Google Drive
 
 ## 0.11.2 (February 2015)
 
