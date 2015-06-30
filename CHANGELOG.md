@@ -5,6 +5,11 @@ All releases can also be found and downloaded on the
 
 ## 0.12.0 (July 2015)
 
+### New features
+
+* Make it possible to directly connect a remote storage from a program by
+  calling connect() with an extra token parameter
+
 ### Enhancements
 
 * Update dependencies (notable: new output format for test suites)
