@@ -310,11 +310,26 @@
      *
      * Parameters:
      *   userAddress - The user address (user@host) to connect to.
+     *   token       - (optional) A bearer token acquired beforehand
      *
      * Discovers the WebFinger profile of the given user address and initiates
      * the OAuth dance.
      *
      * This method must be called *after* all required access has been claimed.
+     * When using the connect widget, it will call this method itself.
+     *
+     * Special cases:
+     *
+     * 1. If a bearer token is supplied as second argument, the OAuth dance
+     *    will be skipped and the supplied token be used instead. This is
+     *    useful outside of browser environments, where the token has been
+     *    acquired in a different way.
+     *
+     * 2. If the Webfinger profile for the given user address doesn't contain
+     *    an auth URL, the library will assume that client and server have
+     *    established authorization among themselves, which will omit bearer
+     *    tokens in all requests later on. This is useful for example when using
+     *    Kerberos and similar protocols.
      *
      */
     connect: function (userAddress, token) {
