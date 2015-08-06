@@ -46,7 +46,7 @@
         )
         .then(function (authResult) {
           remoteStorage.remote.configure({
-            token: authResult.access_token
+            token: authResult['access_token']
           });
 
           // sync doesnt start until after reload
@@ -131,7 +131,7 @@
       return pending.promise;
     }
 
-    var handleExit = function (event) {
+    var handleExit = function () {
       pending.reject('Authorization was canceled');
     };
 
