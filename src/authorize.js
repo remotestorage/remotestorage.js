@@ -46,7 +46,7 @@
         )
         .then(function (authResult) {
           remoteStorage.remote.configure({
-            token: authResult['access_token']
+            token: authResult.access_token
           });
 
           // sync doesnt start until after reload
@@ -71,24 +71,9 @@
       'http://localhost/callback' :
       String(RemoteStorage.Authorize.getLocation());
 
-    // not sure what to use as the id here
-    // don't see any good candidates in window.location on cordova android
-    // {
-    //  "ancestorOrigins": {
-    //   "length": 0
-    //  },
-    //  "origin": "file://",
-    //  "hash": "#/app/public/signup",
-    //  "search": "",
-    //  "pathname": "/android_asset/www/index.html",
-    //  "port": "",
-    //  "hostname": "",
-    //  "host": "",
-    //  "protocol": "file:",
-    //  "href": "file:///android_asset/www/index.html#/app/public/signup"
-    // }
-    // might need to request an clientId as input
     var clientId = global.cordova ?
+      // not guaranteed to be unique on cordova
+      // replace with a custom per-app clientId
       String(RemoteStorage.Authorize.getLocation()) :
       redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
