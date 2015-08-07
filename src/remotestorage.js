@@ -309,8 +309,8 @@
      * Connect to a remoteStorage server.
      *
      * Parameters:
-     *   userAddress - The user address (user@host) to connect to.
-     *   token       - (optional) A bearer token acquired beforehand
+     *   userAddress        - The user address (user@host) to connect to.
+     *   token              - (optional) A bearer token acquired beforehand
      *   cordovaRedirectUri - (optional) An HTTPS redirect URI for Cordova apps
      *
      * Discovers the WebFinger profile of the given user address and initiates
