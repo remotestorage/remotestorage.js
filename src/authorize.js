@@ -63,19 +63,15 @@
 
   RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN = false;
 
-  RemoteStorage.prototype.authorize = function (authURL) {
+  RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
     this.access.setStorageType(this.remote.storageType);
     var scope = this.access.scopeParameter;
 
     var redirectUri = global.cordova ?
-      'http://localhost/callback' :
+      cordovaRedirectUri :
       String(RemoteStorage.Authorize.getLocation());
 
-    var clientId = global.cordova ?
-      // not guaranteed to be unique on cordova
-      // replace with a custom per-app clientId
-      String(RemoteStorage.Authorize.getLocation()) :
-      redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
+    var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
     RemoteStorage.Authorize(authURL, scope, redirectUri, clientId);
   };

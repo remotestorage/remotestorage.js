@@ -311,6 +311,7 @@
      * Parameters:
      *   userAddress - The user address (user@host) to connect to.
      *   token       - (optional) A bearer token acquired beforehand
+     *   cordovaRedirectUri - (optional) An HTTPS redirect URI for Cordova apps
      *
      * Discovers the WebFinger profile of the given user address and initiates
      * the OAuth dance.
@@ -331,13 +332,24 @@
      *    tokens in all requests later on. This is useful for example when using
      *    Kerberos and similar protocols.
      *
+     * 3. If using remoteStorage in a Cordova app, you must supply a custom
+     *    HTTPS redirect URI. This is necessary because Cordova serves on
+     *    file:// addresses that cannot be used for redirection due to browser
+     *    security policies. This redirect URI will also be used to uniquely
+     *    identify your app.
+     *
      */
-    connect: function (userAddress, token) {
+    connect: function (userAddress, token, cordovaRedirectUri) {
       this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
         this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
         return;
       }
+
+      if (global.cordova && !cordovaRedirectUri) {
+        this._emit('error', new RemoteStorage.DiscoveryError("Please supply a custom HTTPS redirect URI for your Cordova app"));
+      }
+
       this.remote.configure({
         userAddress: userAddress
       });
@@ -358,7 +370,7 @@
           if (info.authURL) {
             if (typeof token === 'undefined') {
               // Normal authorization step; the default way to connect
-              this.authorize(info.authURL);
+              this.authorize(info.authURL, cordovaRedirectUri);
             } else if (typeof token === 'string') {
               // Token supplied directly by app/developer/user
               RemoteStorage.log('Skipping authorization sequence and connecting with known token');
