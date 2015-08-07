@@ -1,12 +1,12 @@
 (function (global) {
 
-  function extractParams() {
+  function extractParams(url) {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
-    var location = RemoteStorage.Authorize.getLocation(),
-        hashPos  = location.href.indexOf('#'),
+    var location = url || RemoteStorage.Authorize.getLocation().href,
+        hashPos  = location.indexOf('#'),
         hash;
     if (hashPos === -1) { return; }
-    hash = location.href.substring(hashPos+1);
+    hash = location.substring(hashPos+1);
     // if hash is not of the form #key=val&key=val, it's probably not for us
     if (hash.indexOf('=') === -1) { return; }
     return hash.split('&').reduce(function (m, kvs) {
@@ -37,16 +37,40 @@
       url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos+1));
     }
     url += '&response_type=token';
+
+    if (global.cordova) {
+      return RemoteStorage.Authorize.openWindow(
+          url,
+          redirectUri,
+          'location=no,clearsessioncache=yes,clearcache=yes'
+        )
+        .then(function (authResult) {
+          remoteStorage.remote.configure({
+            token: authResult.access_token
+          });
+
+          // sync doesnt start until after reload
+          // possibly missing some initialization step?
+          global.location.reload();
+        })
+        .then(null, function (error) {
+          console.error(error);
+        });
+    }
+
     RemoteStorage.Authorize.setLocation(url);
   };
 
   RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN = false;
 
-  RemoteStorage.prototype.authorize = function (authURL) {
+  RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
     this.access.setStorageType(this.remote.storageType);
     var scope = this.access.scopeParameter;
 
-    var redirectUri = String(RemoteStorage.Authorize.getLocation());
+    var redirectUri = global.cordova ?
+      cordovaRedirectUri :
+      String(RemoteStorage.Authorize.getLocation());
+
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
     RemoteStorage.Authorize(authURL, scope, redirectUri, clientId);
@@ -74,6 +98,45 @@
     } else {
       throw "Invalid location " + location;
     }
+  };
+
+  /**
+   * Open new InAppBrowser window for Oauth on cordova
+   */
+  RemoteStorage.Authorize.openWindow = function (url, redirectUri, options) {
+    var pending = Promise.defer();
+    var newWindow = global.open(url, '_blank', options);
+
+    if (!newWindow || newWindow.closed) {
+      pending.reject('Authorization popup was blocked');
+      return pending.promise;
+    }
+
+    var handleExit = function () {
+      pending.reject('Authorization was canceled');
+    };
+
+    var handleLoadstart = function (event) {
+      if (event.url.indexOf(redirectUri) !== 0) {
+        return;
+      }
+
+      newWindow.removeEventListener('exit', handleExit);
+      newWindow.close();
+
+      var authResult = extractParams(event.url);
+
+      if (!authResult) {
+        return pending.reject('Authorization error');
+      }
+
+      return pending.resolve(authResult);
+    };
+
+    newWindow.addEventListener('loadstart', handleLoadstart);
+    newWindow.addEventListener('exit', handleExit);
+
+    return pending.promise;
   };
 
   RemoteStorage.prototype.impliedauth = function () {
