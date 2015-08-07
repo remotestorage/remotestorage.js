@@ -348,6 +348,7 @@
 
       if (global.cordova && !cordovaRedirectUri) {
         this._emit('error', new RemoteStorage.DiscoveryError("Please supply a custom HTTPS redirect URI for your Cordova app"));
+        return;
       }
 
       this.remote.configure({
