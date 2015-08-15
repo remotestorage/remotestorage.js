@@ -331,15 +331,8 @@
      *    established authorization among themselves, which will omit bearer
      *    tokens in all requests later on. This is useful for example when using
      *    Kerberos and similar protocols.
-     *
-     * 3. If using remoteStorage in a Cordova app, you must supply a custom
-     *    HTTPS redirect URI. This is necessary because Cordova serves on
-     *    file:// addresses that cannot be used for redirection due to browser
-     *    security policies. This redirect URI will also be used to uniquely
-     *    identify your app.
-     *
      */
-    connect: function (userAddress, token, cordovaRedirectUri) {
+    connect: function (userAddress, token) {
       this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
         this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
@@ -347,7 +340,7 @@
       }
 
       if (global.cordova) {
-        if (!cordovaRedirectUri) {
+        if (!this.cordovaRedirectUri) {
           this._emit('error', new RemoteStorage.DiscoveryError("Please supply a custom HTTPS redirect URI for your Cordova app"));
           return;
         }
@@ -378,7 +371,7 @@
           if (info.authURL) {
             if (typeof token === 'undefined') {
               // Normal authorization step; the default way to connect
-              this.authorize(info.authURL, cordovaRedirectUri);
+              this.authorize(info.authURL, this.cordovaRedirectUri);
             } else if (typeof token === 'string') {
               // Token supplied directly by app/developer/user
               RemoteStorage.log('Skipping authorization sequence and connecting with known token');

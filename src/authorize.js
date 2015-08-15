@@ -42,7 +42,7 @@
       return RemoteStorage.Authorize.openWindow(
           url,
           redirectUri,
-          'location=no,clearsessioncache=yes,clearcache=yes'
+          'location=yes,clearsessioncache=yes,clearcache=yes'
         )
         .then(function (authResult) {
           remoteStorage.remote.configure({
