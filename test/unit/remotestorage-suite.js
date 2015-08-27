@@ -337,7 +337,6 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
           try {
             env.rs.setCordovaRedirectUri('yolo');
           } catch(e) {
-            console.log(RemoteStorage.config.cordovaRedirectUri);
             test.assert(typeof RemoteStorage.config.cordovaRedirectUri, 'undefined');
             test.done();
             throw(e);
