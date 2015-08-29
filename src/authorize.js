@@ -44,17 +44,19 @@
           redirectUri,
           'location=yes,clearsessioncache=yes,clearcache=yes'
         )
-        .then(function (authResult) {
+        .then(function(authResult) {
           remoteStorage.remote.configure({
             token: authResult.access_token
           });
 
-          // sync doesnt start until after reload
+          // TODO
+          // sync doesn't start until after reload
           // possibly missing some initialization step?
           global.location.reload();
         })
-        .then(null, function (error) {
+        .then(null, function(error) {
           console.error(error);
+          remoteStorage.widget.view.setState('initial');
         });
     }
 
@@ -101,7 +103,7 @@
   };
 
   /**
-   * Open new InAppBrowser window for Oauth on cordova
+   * Open new InAppBrowser window for OAuth in Cordova
    */
   RemoteStorage.Authorize.openWindow = function (url, redirectUri, options) {
     var pending = Promise.defer();
