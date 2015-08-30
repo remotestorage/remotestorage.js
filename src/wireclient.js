@@ -111,7 +111,7 @@
     } else {
       reader.onloadend = function() {
         callback(reader.result); // reader.result contains the contents of blob as a typed array
-      }
+      };
     }
     reader.readAsArrayBuffer(blob);
   }
@@ -140,7 +140,7 @@
       } else {
         fileReader.onloadend = function(evt) {
           pending.resolve(evt.target.result);
-        }
+        };
       }
       fileReader.readAsText(blob, encoding);
     }
@@ -183,11 +183,12 @@
 
     /**
      * Event: change
-     *   never fired for some reason
+     *   Never fired for some reason
+     *   # TODO create issue and fix or remove
      *
      * Event: connected
-     *   fired when the wireclient connect method realizes that it is
-     *   in posession of a token and a href
+     *   Fired when the wireclient connect method realizes that it is in
+     *   possession of a token and href
      **/
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
