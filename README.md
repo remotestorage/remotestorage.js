@@ -100,3 +100,13 @@ Display the available build tasks:
 Build everything:
 
     $ make all
+
+### Credits
+
+Original authors: Niklas Cathor, Michiel de Jong
+
+See [list of all contributors](https://github.com/remotestorage/remotestorage.js/graphs/contributors)
+
+Sponsored by [NLnet](https://nlnet.nl)
+
+[![NLnet Logo](http://sockethub.org/res/img/nlnet-logo.svg)](https://nlnet.nl)
