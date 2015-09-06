@@ -314,14 +314,29 @@ define(['bluebird'], function(Promise) {
      *
      * Parameters:
      *   userAddress - The user address (user@host) to connect to.
+     *   token       - (optional) A bearer token acquired beforehand
      *
-     * Discovers the webfinger profile of the given user address and initiates
+     * Discovers the WebFinger profile of the given user address and initiates
      * the OAuth dance.
      *
      * This method must be called *after* all required access has been claimed.
+     * When using the connect widget, it will call this method itself.
+     *
+     * Special cases:
+     *
+     * 1. If a bearer token is supplied as second argument, the OAuth dance
+     *    will be skipped and the supplied token be used instead. This is
+     *    useful outside of browser environments, where the token has been
+     *    acquired in a different way.
+     *
+     * 2. If the Webfinger profile for the given user address doesn't contain
+     *    an auth URL, the library will assume that client and server have
+     *    established authorization among themselves, which will omit bearer
+     *    tokens in all requests later on. This is useful for example when using
+     *    Kerberos and similar protocols.
      *
      */
-    connect: function (userAddress) {
+    connect: function (userAddress, token) {
       this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
         this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
@@ -345,13 +360,22 @@ define(['bluebird'], function(Promise) {
         this.remote.configure(info);
         if (! this.remote.connected) {
           if (info.authURL) {
-            this.authorize(info.authURL);
+            if (typeof token === 'undefined') {
+              // Normal authorization step; the default way to connect
+              this.authorize(info.authURL);
+            } else if (typeof token === 'string') {
+              // Token supplied directly by app/developer/user
+              RemoteStorage.log('Skipping authorization sequence and connecting with known token');
+              this.remote.configure({ token: token });
+            } else {
+              throw new Error("Supplied bearer token must be a string");
+            }
           } else {
-            // In lieu of an excplicit authURL, assume that the browser
-            // and server handle any authorization needs; for instance,
-            // TLS may trigger the browser to use a client certificate,
-            // or a 401 Not Authorized response may make the browser
-            // send a Kerberos ticket using the SPNEGO method.
+            // In lieu of an excplicit authURL, assume that the browser and
+            // server handle any authorization needs; for instance, TLS may
+            // trigger the browser to use a client certificate, or a 401 Not
+            // Authorized response may make the browser send a Kerberos ticket
+            // using the SPNEGO method.
             this.impliedauth();
           }
         }
@@ -6493,7 +6517,7 @@ Math.uuid = function (len, radix) {
 
     deleteChildPathsFromTasks: function () {
       for (var path in this._tasks) {
-        paths = pathsFromRoot(path);
+        var paths = pathsFromRoot(path);
 
         for (var i=1; i<paths.length; i++) {
           if (this._tasks[paths[i]]) {
@@ -6742,7 +6766,7 @@ Math.uuid = function (len, radix) {
         var cachingStrategy;
         var node;
 
-        nodeChanged = function (node, etag) {
+        var nodeChanged = function (node, etag) {
           return node.common.revision !== etag && (!node.remote || node.remote.revision !== etag);
         };
 
@@ -6886,7 +6910,7 @@ Math.uuid = function (len, radix) {
         var node = nodes[path];
         var parentNode;
 
-        collectMissingChildren = function (folder) {
+        var collectMissingChildren = function (folder) {
           if (folder && folder.itemsMap) {
             for (var itemName in folder.itemsMap) {
               if (!bodyOrItemsMap[itemName]) {
@@ -7111,7 +7135,7 @@ Math.uuid = function (len, radix) {
 
         if (completed) {
           if (self._tasks[task.path]) {
-            for (i=0; i<self._tasks[task.path].length; i++) {
+            for (var i=0; i<self._tasks[task.path].length; i++) {
               self._tasks[task.path][i]();
             }
             delete self._tasks[task.path];
@@ -7442,7 +7466,7 @@ Math.uuid = function (len, radix) {
       if (nodes[path] && nodes[path].remote) {
         return true;
       }
-      nodeVersion = getLatest(nodes[path]);
+      var nodeVersion = getLatest(nodes[path]);
       if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
         return false;
       } else if (!nodeVersion) {

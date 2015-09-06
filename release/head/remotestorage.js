@@ -3378,7 +3378,8 @@ module.exports = ret;
    *
    *  (start code)
    *  var remoteStorage = new RemoteStorage({
-   *    logging: true  // defaults to false
+   *    logging: true,  // defaults to false
+   *    cordovaRedirectUri: 'https://app.mygreatapp.com' // defaults to undefined
    *  });
    *  (end code)
    */
@@ -3440,6 +3441,7 @@ module.exports = ret;
     // Initial configuration property settings.
     if (typeof cfg === 'object') {
       RemoteStorage.config.logging = !!cfg.logging;
+      RemoteStorage.config.cordovaRedirectUri = cfg.cordovaRedirectUri;
     }
 
     RemoteStorage.eventHandling(
@@ -3530,7 +3532,8 @@ module.exports = ret;
       remote:   true,
       conflict: true
     },
-    discoveryTimeout: 10000
+    discoveryTimeout: 10000,
+    cordovaRedirectUri: undefined
   };
 
   RemoteStorage.prototype = {
@@ -3583,20 +3586,46 @@ module.exports = ret;
      * Connect to a remoteStorage server.
      *
      * Parameters:
-     *   userAddress - The user address (user@host) to connect to.
+     *   userAddress        - The user address (user@host) to connect to.
+     *   token              - (optional) A bearer token acquired beforehand
      *
-     * Discovers the webfinger profile of the given user address and initiates
+     * Discovers the WebFinger profile of the given user address and initiates
      * the OAuth dance.
      *
      * This method must be called *after* all required access has been claimed.
+     * When using the connect widget, it will call this method itself.
      *
+     * Special cases:
+     *
+     * 1. If a bearer token is supplied as second argument, the OAuth dance
+     *    will be skipped and the supplied token be used instead. This is
+     *    useful outside of browser environments, where the token has been
+     *    acquired in a different way.
+     *
+     * 2. If the Webfinger profile for the given user address doesn't contain
+     *    an auth URL, the library will assume that client and server have
+     *    established authorization among themselves, which will omit bearer
+     *    tokens in all requests later on. This is useful for example when using
+     *    Kerberos and similar protocols.
      */
-    connect: function (userAddress) {
+    connect: function (userAddress, token) {
       this.setBackend('remotestorage');
       if (userAddress.indexOf('@') < 0) {
         this._emit('error', new RemoteStorage.DiscoveryError("User address doesn't contain an @."));
         return;
       }
+
+      if (global.cordova) {
+        if (typeof RemoteStorage.config.cordovaRedirectUri !== 'string') {
+          this._emit('error', new RemoteStorage.DiscoveryError("Please supply a custom HTTPS redirect URI for your Cordova app"));
+          return;
+        }
+        if (!global.cordova.InAppBrowser) {
+          this._emit('error', new RemoteStorage.DiscoveryError("Please include the InAppBrowser Cordova plugin to enable OAuth"));
+          return;
+        }
+      }
+
       this.remote.configure({
         userAddress: userAddress
       });
@@ -3615,13 +3644,22 @@ module.exports = ret;
         this.remote.configure(info);
         if (! this.remote.connected) {
           if (info.authURL) {
-            this.authorize(info.authURL);
+            if (typeof token === 'undefined') {
+              // Normal authorization step; the default way to connect
+              this.authorize(info.authURL, RemoteStorage.config.cordovaRedirectUri);
+            } else if (typeof token === 'string') {
+              // Token supplied directly by app/developer/user
+              RemoteStorage.log('Skipping authorization sequence and connecting with known token');
+              this.remote.configure({ token: token });
+            } else {
+              throw new Error("Supplied bearer token must be a string");
+            }
           } else {
-            // In lieu of an excplicit authURL, assume that the browser
-            // and server handle any authorization needs; for instance,
-            // TLS may trigger the browser to use a client certificate,
-            // or a 401 Not Authorized response may make the browser
-            // send a Kerberos ticket using the SPNEGO method.
+            // In lieu of an excplicit authURL, assume that the browser and
+            // server handle any authorization needs; for instance, TLS may
+            // trigger the browser to use a client certificate, or a 401 Not
+            // Authorized response may make the browser send a Kerberos ticket
+            // using the SPNEGO method.
             this.impliedauth();
           }
         }
@@ -3759,6 +3797,22 @@ module.exports = ret;
       if (this.localStorageAvailable()) {
         localStorage['remotestorage:api-keys'] = JSON.stringify(this.apiKeys);
       }
+    },
+
+    /**
+     * Method: setCordovaRedirectUri
+     *
+     * Set redirect URI to be used for the OAuth redirect within the
+     * in-app-browser window in Cordova apps.
+     *
+     * Parameters:
+     *   uri - string, valid HTTP(S) URI
+     */
+    setCordovaRedirectUri: function (uri) {
+      if (typeof uri !== 'string' || !uri.match(/http(s)?\:\/\//)) {
+        throw new Error("Cordova redirect URI must be a URI string");
+      }
+      RemoteStorage.config.cordovaRedirectUri = uri;
     },
 
     /**
@@ -4744,7 +4798,7 @@ module.exports = ret;
     } else {
       reader.onloadend = function() {
         callback(reader.result); // reader.result contains the contents of blob as a typed array
-      }
+      };
     }
     reader.readAsArrayBuffer(blob);
   }
@@ -4773,7 +4827,7 @@ module.exports = ret;
       } else {
         fileReader.onloadend = function(evt) {
           pending.resolve(evt.target.result);
-        }
+        };
       }
       fileReader.readAsText(blob, encoding);
     }
@@ -4816,11 +4870,12 @@ module.exports = ret;
 
     /**
      * Event: change
-     *   never fired for some reason
+     *   Never fired for some reason
+     *   # TODO create issue and fix or remove
      *
      * Event: connected
-     *   fired when the wireclient connect method realizes that it is
-     *   in posession of a token and a href
+     *   Fired when the wireclient connect method realizes that it is in
+     *   possession of a token and href
      **/
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
 
@@ -5595,13 +5650,13 @@ if (typeof XMLHttpRequest === 'undefined') {
 /** FILE: src/authorize.js **/
 (function (global) {
 
-  function extractParams() {
+  function extractParams(url) {
     //FF already decodes the URL fragment in document.location.hash, so use this instead:
-    var location = RemoteStorage.Authorize.getLocation(),
-        hashPos  = location.href.indexOf('#'),
+    var location = url || RemoteStorage.Authorize.getLocation().href,
+        hashPos  = location.indexOf('#'),
         hash;
     if (hashPos === -1) { return; }
-    hash = location.href.substring(hashPos+1);
+    hash = location.substring(hashPos+1);
     // if hash is not of the form #key=val&key=val, it's probably not for us
     if (hash.indexOf('=') === -1) { return; }
     return hash.split('&').reduce(function (m, kvs) {
@@ -5632,16 +5687,42 @@ if (typeof XMLHttpRequest === 'undefined') {
       url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos+1));
     }
     url += '&response_type=token';
+
+    if (global.cordova) {
+      return RemoteStorage.Authorize.openWindow(
+          url,
+          redirectUri,
+          'location=yes,clearsessioncache=yes,clearcache=yes'
+        )
+        .then(function(authResult) {
+          remoteStorage.remote.configure({
+            token: authResult.access_token
+          });
+
+          // TODO
+          // sync doesn't start until after reload
+          // possibly missing some initialization step?
+          global.location.reload();
+        })
+        .then(null, function(error) {
+          console.error(error);
+          remoteStorage.widget.view.setState('initial');
+        });
+    }
+
     RemoteStorage.Authorize.setLocation(url);
   };
 
   RemoteStorage.Authorize.IMPLIED_FAKE_TOKEN = false;
 
-  RemoteStorage.prototype.authorize = function (authURL) {
+  RemoteStorage.prototype.authorize = function (authURL, cordovaRedirectUri) {
     this.access.setStorageType(this.remote.storageType);
     var scope = this.access.scopeParameter;
 
-    var redirectUri = String(RemoteStorage.Authorize.getLocation());
+    var redirectUri = global.cordova ?
+      cordovaRedirectUri :
+      String(RemoteStorage.Authorize.getLocation());
+
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
     RemoteStorage.Authorize(authURL, scope, redirectUri, clientId);
@@ -5669,6 +5750,45 @@ if (typeof XMLHttpRequest === 'undefined') {
     } else {
       throw "Invalid location " + location;
     }
+  };
+
+  /**
+   * Open new InAppBrowser window for OAuth in Cordova
+   */
+  RemoteStorage.Authorize.openWindow = function (url, redirectUri, options) {
+    var pending = Promise.defer();
+    var newWindow = global.open(url, '_blank', options);
+
+    if (!newWindow || newWindow.closed) {
+      pending.reject('Authorization popup was blocked');
+      return pending.promise;
+    }
+
+    var handleExit = function () {
+      pending.reject('Authorization was canceled');
+    };
+
+    var handleLoadstart = function (event) {
+      if (event.url.indexOf(redirectUri) !== 0) {
+        return;
+      }
+
+      newWindow.removeEventListener('exit', handleExit);
+      newWindow.close();
+
+      var authResult = extractParams(event.url);
+
+      if (!authResult) {
+        return pending.reject('Authorization error');
+      }
+
+      return pending.resolve(authResult);
+    };
+
+    newWindow.addEventListener('loadstart', handleLoadstart);
+    newWindow.addEventListener('exit', handleExit);
+
+    return pending.promise;
   };
 
   RemoteStorage.prototype.impliedauth = function () {
@@ -9763,7 +9883,7 @@ Math.uuid = function (len, radix) {
 
     deleteChildPathsFromTasks: function () {
       for (var path in this._tasks) {
-        paths = pathsFromRoot(path);
+        var paths = pathsFromRoot(path);
 
         for (var i=1; i<paths.length; i++) {
           if (this._tasks[paths[i]]) {
@@ -10012,7 +10132,7 @@ Math.uuid = function (len, radix) {
         var cachingStrategy;
         var node;
 
-        nodeChanged = function (node, etag) {
+        var nodeChanged = function (node, etag) {
           return node.common.revision !== etag && (!node.remote || node.remote.revision !== etag);
         };
 
@@ -10156,7 +10276,7 @@ Math.uuid = function (len, radix) {
         var node = nodes[path];
         var parentNode;
 
-        collectMissingChildren = function (folder) {
+        var collectMissingChildren = function (folder) {
           if (folder && folder.itemsMap) {
             for (var itemName in folder.itemsMap) {
               if (!bodyOrItemsMap[itemName]) {
@@ -10381,7 +10501,7 @@ Math.uuid = function (len, radix) {
 
         if (completed) {
           if (self._tasks[task.path]) {
-            for (i=0; i<self._tasks[task.path].length; i++) {
+            for (var i=0; i<self._tasks[task.path].length; i++) {
               self._tasks[task.path][i]();
             }
             delete self._tasks[task.path];
@@ -10712,7 +10832,7 @@ Math.uuid = function (len, radix) {
       if (nodes[path] && nodes[path].remote) {
         return true;
       }
-      nodeVersion = getLatest(nodes[path]);
+      var nodeVersion = getLatest(nodes[path]);
       if (nodeVersion && nodeVersion.timestamp && (new Date().getTime()) - nodeVersion.timestamp <= maxAge) {
         return false;
       } else if (!nodeVersion) {
