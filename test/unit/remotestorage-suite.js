@@ -96,6 +96,7 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
     beforeEach: function(env, test) {
       var remoteStorage = new RemoteStorage();
       env.rs = remoteStorage;
+      RemoteStorage.config.cordovaRedirectUri = undefined;
       test.done();
     },
 
@@ -320,7 +321,28 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
           };
           rs.get('foo');
         }
-      }
+      },
+
+      {
+        desc: "Set Cordova redirect URI config with valid URI",
+        run: function(env, test) {
+          env.rs.setCordovaRedirectUri('https://hyperchannel.kosmos.org');
+          test.assert(RemoteStorage.config.cordovaRedirectUri, 'https://hyperchannel.kosmos.org');
+        }
+      },
+
+      {
+        desc: "Set Cordova redirect URI config with invalid argument",
+        run: function(env, test) {
+          try {
+            env.rs.setCordovaRedirectUri('yolo');
+          } catch(e) {
+            test.assert(typeof RemoteStorage.config.cordovaRedirectUri, 'undefined');
+            test.done();
+            throw(e);
+          }
+        }
+      },
     ]
   });
 

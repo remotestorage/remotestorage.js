@@ -3,12 +3,14 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
-## 0.12.0 (July 2015)
+## 0.12.0-pre (September 2015)
 
 ### New features
 
 * Make it possible to directly connect a remote storage from a program by
   calling connect() with an extra token parameter
+* Add support for remoteStorage authorization from within Cordova apps, using
+  the in-app-browser Cordova plugin (contributed by Lewis Liu)
 
 ### Enhancements
 
