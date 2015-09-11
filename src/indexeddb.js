@@ -268,33 +268,55 @@
       callback("timeout trying to open db");
     }, 10000);
 
-    var req = indexedDB.open(name, DB_VERSION);
+    try {
+      var req = indexedDB.open(name, DB_VERSION);
 
-    req.onerror = function () {
-      RemoteStorage.log('[IndexedDB] Opening DB failed', req);
+      req.onerror = function () {
+        RemoteStorage.log('[IndexedDB] Opening DB failed', req);
+
+        clearTimeout(timer);
+        callback(req.error);
+      };
+
+      req.onupgradeneeded = function (event) {
+        var db = req.result;
+
+        RemoteStorage.log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
+
+        if (event.oldVersion !== 1) {
+          RemoteStorage.log("[IndexedDB] Creating object store: nodes");
+          db.createObjectStore('nodes', { keyPath: 'path' });
+        }
+
+        RemoteStorage.log("[IndexedDB] Creating object store: changes");
+
+        db.createObjectStore('changes', { keyPath: 'path' });
+      };
+
+      req.onsuccess = function () {
+        clearTimeout(timer);
+
+        // check if all object stores exist
+        var db = req.result;
+        if(!db.objectStoreNames.contains('nodes') || !db.objectStoreNames.contains('changes')) {
+          RemoteStorage.log("[IndexedDB] Missing object store. Resetting the database.");
+          RS.IndexedDB.clean(name, function() {
+            RS.IndexedDB.open(name, callback);
+          });
+          return;
+        }
+
+        callback(null, req.result);
+      };
+    } catch(error) {
+      RemoteStorage.log("[IndexedDB] Failed to open database: " + error);
+      RemoteStorage.log("[IndexedDB] Resetting database and trying again.");
 
       clearTimeout(timer);
-      callback(req.error);
-    };
 
-    req.onupgradeneeded = function (event) {
-      var db = req.result;
-
-      RemoteStorage.log("[IndexedDB] Upgrade: from ", event.oldVersion, " to ", event.newVersion);
-
-      if (event.oldVersion !== 1) {
-        RemoteStorage.log("[IndexedDB] Creating object store: nodes");
-        db.createObjectStore('nodes', { keyPath: 'path' });
-      }
-
-      RemoteStorage.log("[IndexedDB] Creating object store: changes");
-
-      db.createObjectStore('changes', { keyPath: 'path' });
-    };
-
-    req.onsuccess = function () {
-      clearTimeout(timer);
-      callback(null, req.result);
+      RS.IndexedDB.clean(name, function() {
+        RS.IndexedDB.open(name, callback);
+      });
     };
   };
 
