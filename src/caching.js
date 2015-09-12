@@ -53,7 +53,16 @@
       if (typeof(path) !== 'string') {
         throw new Error('path should be a string');
       }
-      if (typeof(value) === 'undefined') {
+      if (!RemoteStorage.util.isFolder(path)) {
+        throw new Error('path should be a folder');
+      }
+      if (
+        this._remoteStorage &&
+        this._remoteStorage.access &&
+        !this._remoteStorage.access.checkPathPermission(path, 'r')) {
+        throw new Error('no access to this path. You first have to claim access to it.')
+      }
+      if (!(value === 'FLUSH' || value == 'SEEN' || value == 'ALL')) {
         throw new Error("value should be 'FLUSH', 'SEEN', or 'ALL'");
       }
 
@@ -141,6 +150,7 @@
      **/
     reset: function () {
       this._rootPaths = {};
+      this._remoteStorage = null;
     }
   };
 
@@ -160,6 +170,8 @@
     }
   });
 
-  RemoteStorage.Caching._rs_init = function () {};
+  RemoteStorage.Caching._rs_init = function (remoteStorage) {
+    this._remoteStorage = remoteStorage;
+  };
 
 })(typeof(window) !== 'undefined' ? window : global);

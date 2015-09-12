@@ -57,6 +57,30 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
+        desc: "#set() with empty string given throws an error",
+        run: function(env, test) {
+          try {
+            env.caching.set("");
+            test.result(false, "set() didn't fail");
+          } catch(e) {
+            test.result(true);
+          }
+        }
+      },
+
+      {
+        desc: "#set() with invalid path (no backslash) given throws an error",
+        run: function(env, test) {
+          try {
+            env.caching.set("asdf");
+            test.result(false, "set() didn't fail");
+          } catch(e) {
+            test.result(true);
+          }
+        }
+      },
+
+      {
         desc: "#set() with undefined settings given throws an error",
         run: function(env, test) {
           try {
