@@ -15,7 +15,7 @@
     "uglify-js": "^2.4.24"
   },
   "scripts": {
-    "test": "node_modules/jaribu/bin/jaribu"
+    "test": "make test"
   },
   "dependencies": {
     "bluebird": "^2.10.0",
