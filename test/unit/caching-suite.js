@@ -121,7 +121,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         desc: "#checkPath returns value of tightest fitting rootPath",
         run: function(env, test) {
           env.caching.set('/foo/', 'ALL');
-          env.caching.set('/foo/bar/baz', 'FLUSH');
+          env.caching.set('/foo/bar/baz/', 'FLUSH');
           env.caching.set('/foo/baf/', 'SEEN');
           env.caching.set('/bar/', 'FLUSH');
           test.assertAnd(env.caching.checkPath('/foo/'), 'ALL');
@@ -129,19 +129,19 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           test.assertAnd(env.caching.checkPath('/foo/2/'), 'ALL');
           test.assertAnd(env.caching.checkPath('/foo/2/3'), 'ALL');
           test.assertAnd(env.caching.checkPath('/foo/bar/'), 'ALL');
-          test.assertAnd(env.caching.checkPath('/foo/bar/baz'), 'FLUSH');
+          test.assertAnd(env.caching.checkPath('/foo/bar/baz/'), 'FLUSH');
           test.assertAnd(env.caching.checkPath('/foo/baf/'), 'SEEN');
           test.assertAnd(env.caching.checkPath('/foo/baf/1'), 'SEEN');
           test.assertAnd(env.caching.checkPath('/foo/baf/2/'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/foo/baf/2/1'), 'SEEN');
+          test.assertAnd(env.caching.checkPath('/foo/baf/2/1/'), 'SEEN');
           test.assertAnd(env.caching.checkPath('/bar/'), 'FLUSH');
           test.assertAnd(env.caching.checkPath('/bar/1'), 'FLUSH');
           test.assertAnd(env.caching.checkPath('/bar/2/'), 'FLUSH');
-          test.assertAnd(env.caching.checkPath('/bar/2/3'), 'FLUSH');
+          test.assertAnd(env.caching.checkPath('/bar/2/3/'), 'FLUSH');
           test.assertAnd(env.caching.checkPath('/'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/1'), 'SEEN');
+          test.assertAnd(env.caching.checkPath('/1/'), 'SEEN');
           test.assertAnd(env.caching.checkPath('/2/'), 'SEEN');
-          test.assertAnd(env.caching.checkPath('/2/3'), 'SEEN');
+          test.assertAnd(env.caching.checkPath('/2/3/'), 'SEEN');
           test.assertAnd(env.caching.checkPath('/2/3/'), 'SEEN');
           test.done();
         }
