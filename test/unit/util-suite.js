@@ -86,10 +86,25 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
           test.assertAnd(equal(obj, obj2), true);
           obj.nested = obj2;
           test.assertAnd(equal(obj, obj2), false);
-          ob2 = deepClone(obj);
+          obj2 = deepClone(obj);
+
+          var buf1 = stringToArrayBuffer('foo');
+          var buf2 = stringToArrayBuffer('foo');
+          var buf3 = stringToArrayBuffer('bar');
+
           test.assertAnd(equal(obj, obj2), true);
           test.assertAnd(equal(buf1, buf2), true);
           test.assertAnd(equal(buf1, buf3), false);
+
+          var arr1 = [ stringToArrayBuffer('foo'), function() { return 1; } ];
+          var arr2 = [ stringToArrayBuffer('foo'), function() { return 1; } ];
+          var arr3 = [ stringToArrayBuffer('bar'), function() { return 1; } ];
+          var arr4 = [ stringToArrayBuffer('foo'), function() { return 0; } ];
+
+          test.assertAnd(equal(arr1, arr2), true);
+          test.assertAnd(equal(arr1, arr3), false);
+          test.assertAnd(equal(arr1, arr4), false);
+
           test.done();
         }
       },
