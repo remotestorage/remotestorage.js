@@ -15,6 +15,7 @@ All releases can also be found and downloaded on the
 ### Enhancements
 
 * Update dependencies (notable: new output format for test suites)
+* When offline, ignore maxAge (with log) instead of failing (#868)
 
 ### Bugfixes
 
