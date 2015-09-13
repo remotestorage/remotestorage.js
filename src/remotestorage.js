@@ -43,7 +43,7 @@
                this.remote.connected && this.remote.online) {
             maxAge = 2*this.getSyncInterval();
           } else {
-            RemoteStorage.log('Not setting default maxAge, because remote is not connected or offline');
+            RemoteStorage.log('Not setting default maxAge, because remote is offline or not connected');
             maxAge = false;
           }
         }
