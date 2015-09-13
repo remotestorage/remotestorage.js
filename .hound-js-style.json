@@ -2,7 +2,7 @@
   "asi": false,
   "bitwise": true,
   "browser": true,
-  "camelcase": true,
+  "camelcase": false,
   "curly": true,
   "forin": true,
   "immed": true,
@@ -13,7 +13,7 @@
   "noempty": true,
   "nonew": true,
   "predef": [],
-  "quotmark": true,
+  "quotmark": false,
   "trailing": true,
   "undef": false,
   "unused": true

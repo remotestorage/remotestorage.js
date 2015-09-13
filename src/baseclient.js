@@ -193,8 +193,9 @@
      *
      *   A promise for an object, representing child nodes. If the maxAge
      *   requirement cannot be met because of network problems, this promise
-     *   will be rejected. If the maxAge requirement is set to false, the
-     *   promise will always be fulfilled with data from the local store.
+     *   will be rejected. If the maxAge requirement is set to false or the
+     *   library is in offline state, the promise will always be fulfilled with
+     *   data from the local store.
      *
      *   Keys ending in a forward slash represent *folder nodes*, while all
      *   other keys represent *data nodes*.

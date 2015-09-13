@@ -298,6 +298,32 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
           rs.get('foo');
         }
       },
+
+      {
+        desc: "maxAge defaults to false when not online",
+        run: function(env, test) {
+          var rs = {
+            get: RemoteStorage.SyncedGetPutDelete.get,
+            local: {
+              get: function(path, maxAge) {
+                test.assertAnd(path, 'foo');
+                test.assertAnd(maxAge, false);
+                test.done();
+              }
+            },
+            sync: {
+              queueGetRequest: function() {
+              }
+            },
+            remote: {
+              connected: true,
+              online: false
+            }
+          };
+          rs.get('foo');
+        }
+      },
+
       {
         desc: "maxAge defaults to 2*getSyncInterval when connected",
         run: function(env, test) {
@@ -315,6 +341,10 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
               }
             },
             connected: true,
+            remote: {
+              connected: true,
+              online: true
+            },
             getSyncInterval: function() {
               return 17111;
             }
