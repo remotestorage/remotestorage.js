@@ -16,7 +16,8 @@ All releases can also be found and downloaded on the
 
 * Update dependencies (notable: new output format for test suites)
 * When offline, ignore maxAge (with log) instead of failing (#868)
-* Refactor test invocation in Makefile, package.json and .travis.yml
+* Refactor test invocation in Makefile, package.json and .travis.yml (#892)
+* Improved validation of `Caching#set` function arguments (#889)
 
 ### Bugfixes
 
