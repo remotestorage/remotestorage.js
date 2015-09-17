@@ -36,7 +36,7 @@ build-amd: deps remotestorage.amd.js
 build-nocache: deps remotestorage-nocache.js remotestorage-nocache.min.js remotestorage-nocache.amd.js
 compile-assets: $(ASSETS_OUT)
 
-.PHONY: help buildserver build-all compile-assets minify build doc clean
+.PHONY: help buildserver build-all compile-assets minify build doc clean test
 
 %.min.js: %.js
 	$(UGLIFY_BIN) -c -o $@ $<
@@ -47,6 +47,12 @@ compile-assets: $(ASSETS_OUT)
 
 deps:
 	npm install
+
+test:
+	node_modules/jaribu/bin/jaribu
+	set -xe && find test/ -type f | grep 'suite\.js' | while read f; do \
+		node_modules/jaribu/bin/jaribu "$$f"; \
+	done
 
 remotestorage.js: $(SOURCES)
 	$(NODEJS) build/do-build.js remotestorage.js $(DEFAULT_COMPONENTS)
