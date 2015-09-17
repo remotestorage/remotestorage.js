@@ -37,38 +37,36 @@
     /**
      * Method: set
      *
-     * Set the caching strategy for a given path explicitly.
+     * Configure caching for a given path explicitly.
      *
      * Not needed when using <enable>/<disable>.
      *
      * Parameters:
-     *   path  - Path to cache
-     *   value - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
+     *   path     - Path to cache
+     *   strategy - Caching strategy. One of 'ALL', 'SEEN', or 'FLUSH'.
      *
      * Example:
      *   (start code)
      *   remoteStorage.caching.set('/bookmarks/archive')
      */
-    set: function (path, value) {
-      if (typeof(path) !== 'string') {
+    set: function (path, strategy) {
+      if (typeof path !== 'string') {
         throw new Error('path should be a string');
       }
       if (!RemoteStorage.util.isFolder(path)) {
         throw new Error('path should be a folder');
       }
-      if (
-        this._remoteStorage &&
-        this._remoteStorage.access &&
-        !this._remoteStorage.access.checkPathPermission(path, 'r')) {
-        throw new Error('no access to this path. You first have to claim access to it.')
+      if (this._remoteStorage && this._remoteStorage.access &&
+          !this._remoteStorage.access.checkPathPermission(path, 'r')) {
+        throw new Error('No access to path "'+path+'". You have to claim access to it first.');
       }
-      if (!(value === 'FLUSH' || value == 'SEEN' || value == 'ALL')) {
-        throw new Error("value should be 'FLUSH', 'SEEN', or 'ALL'");
+      if (!strategy.match(/^(FLUSH|SEEN|ALL)$/)) {
+        throw new Error("strategy should be 'FLUSH', 'SEEN', or 'ALL'");
       }
 
-      this._rootPaths[path] = value;
+      this._rootPaths[path] = strategy;
 
-      if (value === 'ALL') {
+      if (strategy === 'ALL') {
         if (this.activateHandler) {
           this.activateHandler(path);
         } else {

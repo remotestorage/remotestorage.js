@@ -49,7 +49,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         run: function(env, test) {
           try {
             env.caching.set();
-            test.result(false, "set() didn't fail");
+            test.result(false, "set() didn't fail on undefined path/arguments");
           } catch(e) {
             test.result(true);
           }
@@ -61,7 +61,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         run: function(env, test) {
           try {
             env.caching.set("");
-            test.result(false, "set() didn't fail");
+            test.result(false, "set() didn't fail on empty string");
           } catch(e) {
             test.result(true);
           }
@@ -73,7 +73,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
         run: function(env, test) {
           try {
             env.caching.set("asdf");
-            test.result(false, "set() didn't fail");
+            test.result(false, "set() didn't fail on invalid path");
           } catch(e) {
             test.result(true);
           }
@@ -81,11 +81,23 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
-        desc: "#set() with undefined settings given throws an error",
+        desc: "#set() with undefined strategy given throws an error",
         run: function(env, test) {
           try {
             env.caching.set('/foo/');
-            test.result(false, "set() didn't fail");
+            test.result(false, "set() didn't fail on undefined strategy");
+          } catch(e) {
+            test.result(true);
+          }
+        }
+      },
+
+      {
+        desc: "#set() with invalid strategy given throws an error",
+        run: function(env, test) {
+          try {
+            env.caching.set('/foo/', 'YOLO');
+            test.result(false, "set() didn't fail on invalid strategy");
           } catch(e) {
             test.result(true);
           }
