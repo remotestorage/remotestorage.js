@@ -22,6 +22,7 @@ All releases can also be found and downloaded on the
 ### Bugfixes
 
 * Fix syntax errors in ES6 strict mode (#872)
+* Reset IndexedDB database when opening fails (#882)
 
 ### Experimental features
 
