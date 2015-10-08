@@ -35,7 +35,7 @@
         * `git push origin master`
 * Update shim repo (for bower) with new release (components-remotestorage)
     * Add release files
-    * Update version in config files (bower.json & package.json)
+    * Update version in config file bower.json
     * Commit
     * Tag new version
     * `git push origin master --tags`
