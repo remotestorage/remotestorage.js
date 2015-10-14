@@ -6,4 +6,6 @@ branches:
     - master
 sudo: false
 before_script: make deps
-script: make test
+script:
+    - make test
+    - scripts/validate-greenkeeper-pr.sh
