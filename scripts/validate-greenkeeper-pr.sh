@@ -1,5 +1,5 @@
 #!/bin/bash
-set -ex
+set -e
 
 pr_branch="$(git symbolic-ref HEAD 2>/dev/null | cut -d"/" -f 3-)"
 
@@ -19,10 +19,5 @@ git checkout master
 build-scripts before
 git checkout "$pr_branch"
 
-difference="$(diff before after)"
-rm before after
-
-if [ -n "$difference" ]; then
-    echo "$difference"
-    exit 1
-fi
+# Exits with 1 if differences
+diff before after
