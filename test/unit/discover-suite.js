@@ -163,6 +163,45 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
       },
 
       {
+        desc: "it finds href, type, authURL, and properties for draft-05-style link rels",
+        run: function (env, test) {
+          //TODO: clear the cache of the discover instance inbetween tests.
+          //for now, we use a different user address in each test to avoid interference
+          //between the previous test and this one when running the entire suite.
+          RemoteStorage.Discover('nil1@heahdk.net').then(function (info) {
+            test.assertAnd(info, {
+              href: 'https://base/url',
+              storageType: 'draft-dejong-remotestorage-05',
+              authURL: 'https://auth/url',
+              properties: {
+                'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-05',
+                'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+              }
+            });
+            test.done();
+          });
+          XMLHttpRequest.onOpen = function () {
+            var xhr = XMLHttpRequest.instances[0];
+            xhr.status = 200;
+            xhr.readyState = 4;
+            xhr.responseText = JSON.stringify({
+              links: [
+                {
+                  rel: 'http://tools.ietf.org/id/draft-dejong-remotestorage',
+                  href: 'https://base/url',
+                  properties: {
+                    'http://remotestorage.io/spec/version': 'draft-dejong-remotestorage-05',
+                    'http://tools.ietf.org/html/rfc6749#section-4.2': 'https://auth/url'
+                  }
+                }
+              ]
+            });
+            xhr.onreadystatechange();
+          };
+        }
+      },
+
+      {
         desc: "it finds href, type, authURL, and properties when the remotestorage version is in a link property",
         run: function (env, test) {
           //TODO: clear the cache of the discover instance inbetween tests.
