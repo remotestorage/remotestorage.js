@@ -968,12 +968,12 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
       {
         desc: "autoMergeDocument leaves a remote version in place even if it has only a revision",
         run: function(env, test) {
-          var node = {
+          var node = rs_util.Node.fromJSON({
             path: 'foo',
             common: { body: 'foo', contentType: 'bloo', revision: 'common' },
             local: { body: 'floo', contentType: 'blaloo' },
             remote: { revision: 'conflict' }
-          };
+          });
           var result = env.rs.sync.autoMergeDocument(node);
           test.assertAnd(result, node);
           test.done();
@@ -983,15 +983,15 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
       {
         desc: "autoMergeDocument on an empty node removes a remote version if it has a null revision",
         run: function(env, test) {
-          var node = {
+          var node = rs_util.Node.fromJSON({
             path: 'foo',
             common: {},
             remote: { revision: null }
-          };
-          var remoteRemoved = {
+          });
+          var remoteRemoved = rs_util.Node.fromJSON({
             path: 'foo',
             common: {}
-          };
+          });
           var result = env.rs.sync.autoMergeDocument(node);
           test.assertAnd(result, remoteRemoved);
           test.done();
@@ -1001,7 +1001,7 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
       {
         desc: "autoMergeDocument merges mutual deletions (#737)",
         run: function(env, test) {
-          var node = {
+          var node = rs_util.Node.fromJSON({
             "path": "/myfavoritedrinks/b",
             "common": {
               "timestamp": 1405488508303
@@ -1014,13 +1014,13 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
               "body": false,
               "timestamp": 1405488740722
             }
-          };
-          var localAndRemoteRemoved = {
+          });
+          var localAndRemoteRemoved = rs_util.Node.fromJSON({
             "path": "/myfavoritedrinks/b",
             "common": {
               "timestamp": 1405488508303
             }
-          };
+          });
           var result = env.rs.sync.autoMergeDocument(node);
           test.assertAnd(result, localAndRemoteRemoved);
           test.done();
@@ -1030,15 +1030,15 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
       {
         desc: "autoMerge auto-merges and sends out a change event if a node changed",
         run: function(env, test) {
-          var node = {
+          var node = rs_util.Node.fromJSON({
             path: 'foo',
             common: { body: 'old value', contentType: 'old content-type', revision: 'common' },
             remote: { body: 'new value', contentType: 'new content-type', revision: 'remote' }
-          };
-          var merged = {
+          });
+          var merged = rs_util.Node.fromJSON({
             path: 'foo',
             common: { body: 'new value', contentType: 'new content-type', revision: 'remote' }
-          };
+          });
           var otherDone = false;
 
           env.rs.sync.local._emitChange = function(changeEvent) {
@@ -1069,11 +1069,11 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
       {
         desc: "autoMerge removes the whole node on 404 and sends out a change event if a node existed before",
         run: function(env, test) {
-          var node = {
+          var node = rs_util.Node.fromJSON({
             path: 'foo',
             common: { body: 'foo', contentType: 'bloo', revision: 'common' },
             remote: { body: false, revision: 'null' }
-          };
+          });
           var otherDone = false;
           env.rs.sync.local._emitChange = function(obj) {
             test.assertAnd(obj, {
@@ -1103,11 +1103,11 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
       {
         desc: "autoMerge doesn't send out a change event on 404 if a node didn't exist before",
         run: function(env, test) {
-          var node = {
+          var node = rs_util.Node.fromJSON({
             path: 'foo',
             common: {},
             remote: { body: false, revision: 'null' }
-          };
+          });
           env.rs.sync.local._emitChange = function(obj) {
             test.result(false, 'should not have emitted '+JSON.stringify(obj));
           };

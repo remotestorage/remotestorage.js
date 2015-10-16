@@ -10,7 +10,8 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
   var CHANGES_PREFIX = 'remotestorage:cache:changes:';
 
   function assertNode(test, path, expected) {
-    var node = JSON.parse(localStorage[NODES_PREFIX + path]);
+    var node = rs_util.Node.fromJSON(localStorage[NODES_PREFIX + path]);
+    var expected = rs_util.Node.fromJSON(expected);
 
     if (node && node.local && node.local.timestamp) {
       delete node.local.timestamp;
@@ -247,17 +248,17 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
           }).then(function(objs) {
             test.assertAnd(objs, {
               '/foo/bar/baz': undefined,
-              '/foo/bar': {
+              '/foo/bar': rs_util.Node.fromJSON({
                 path: '/foo/bar',
                 common: { body: 'asdf' }
-              }
+              })
             });
           }).then(function() {
             return env.ls.setNodes({
-              '/foo/bar/baz': {
+              '/foo/bar/baz': rs_util.Node.fromJSON({
                 path: '/foo/bar/baz/',
                 common: { body: 'qwer' }
-              },
+              }),
               '/foo/bar': undefined
             });
           }).then(function() {
@@ -265,10 +266,10 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
           }).then(function(objs) {
             test.assertAnd(objs, {
               '/foo/bar': undefined,
-              '/foo/bar/baz': {
+              '/foo/bar/baz': rs_util.Node.fromJSON({
                 path: '/foo/bar/baz/',
                 common: { body: 'qwer' }
-              }
+              })
             });
             test.done();
           });

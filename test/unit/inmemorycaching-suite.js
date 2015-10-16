@@ -60,10 +60,10 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       {
         desc: "#get loads a node from local",
         run: function (env, test) {
-          var node = {
+          var node = rs_util.Node.fromJSON({
             path: '/foo',
             local: { body: 'bar', contentType: 'text/plain', revision: 'someRev' }
-          };
+          });
           env.ims._storage['/foo'] = node;
 
           env.ims.get('/foo').then(function (r) {
@@ -78,10 +78,10 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
       {
         desc: "#get loads a node from common",
         run: function (env, test) {
-          var node = {
+          var node = rs_util.Node.fromJSON({
             path: '/foo',
             common: { body: 'bar', contentType: 'text/plain', revision: 'someRev' }
-          };
+          });
           env.ims._storage['/foo'] = node;
 
           env.ims.get('/foo').then(function (r) {

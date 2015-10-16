@@ -12,15 +12,17 @@
    * talk to.
    */
 
+  var Node = RemoteStorage.util.Node;
   var isFolder = RemoteStorage.util.isFolder;
   var isDocument = RemoteStorage.util.isDocument;
   var deepClone = RemoteStorage.util.deepClone;
   var equal = RemoteStorage.util.equal;
 
   function getLatest(node) {
-    if (typeof(node) !== 'object' || typeof(node.path) !== 'string') {
+    if (!(node instanceof Node)) {
       return;
     }
+
     if (isFolder(node.path)) {
       if (node.local && node.local.itemsMap) {
         return node.local;
@@ -29,10 +31,10 @@
         return node.common;
       }
     } else {
-      if (node.local && node.local.body && node.local.contentType) {
+      if (node.local && node.local.exists) {
         return node.local;
       }
-      if (node.common && node.common.body && node.common.contentType) {
+      if (node.common && node.common.exists) {
         return node.common;
       }
       // Migration code! Once all apps use at least this version of the lib, we
@@ -67,12 +69,7 @@
   var pathsFromRoot = RemoteStorage.util.pathsFromRoot;
 
   function makeNode(path) {
-    var node = { path: path, common: { } };
-
-    if (isFolder(path)) {
-      node.common.itemsMap = {};
-    }
-    return node;
+    return new Node(path);
   }
 
   function updateFolderNodeWithItemName(node, itemName) {
@@ -127,7 +124,11 @@
                 }
               }
             }
-            return {statusCode: 200, body: node.body || node.itemsMap, contentType: node.contentType};
+            return {
+              statusCode: 200,
+              body: node.exists ? node.body : node.itemsMap,
+              contentType: node.contentType
+            };
           } else {
             return {statusCode: 404};
           }
@@ -224,8 +225,8 @@
             self._emitChange({
               path:     node.path,
               origin:   'local',
-              oldValue: (node.local.body === false ? undefined : node.local.body),
-              newValue: (node.common.body === false ? undefined : node.common.body)
+              oldValue: (!node.local.exists ? undefined : node.local.body),
+              newValue: (!node.common.exists ? undefined : node.common.body)
             });
           }
           nodes[path] = undefined;
@@ -330,7 +331,7 @@
               path:           path,
               origin:         'window',
               oldValue:       node.local.previousBody,
-              newValue:       node.local.body === false ? undefined : node.local.body,
+              newValue:       !node.local.exists ? undefined : node.local.body,
               oldContentType: node.local.previousContentType,
               newContentType: node.local.contentType
             });
