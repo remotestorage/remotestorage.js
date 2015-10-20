@@ -3,6 +3,12 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 0.12.1 (October 2015)
+
+* Use main repo for Bower (add bower.json, re-organize release dir, #901)
+* Make sure to support draft-05 style WebFinger responses (#899)
+* Update dependencies
+
 ## 0.12.0 (October 2015)
 
 ### New features
