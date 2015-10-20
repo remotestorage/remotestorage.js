@@ -1,4 +1,4 @@
-/** remotestorage.js 0.12.0, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.12.1, http://remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/bluebird.js **/
 /**
@@ -5367,7 +5367,7 @@ module.exports = ret;
 /** FILE: node_modules/webfinger.js/src/webfinger.js **/
 /*!
  * webfinger.js
- *   version 2.1.4
+ *   version 2.2.1
  *   http://github.com/silverbucket/webfinger.js
  *
  * Developed and Maintained by:
@@ -5394,6 +5394,7 @@ if (typeof XMLHttpRequest === 'undefined') {
     'http://webfist.org/spec/rel': 'webfist',
     'http://webfinger.net/rel/avatar': 'avatar',
     'remotestorage': 'remotestorage',
+    'http://tools.ietf.org/id/draft-dejong-remotestorage': 'remotestorage',
     'remoteStorage': 'remotestorage',
     'http://www.packetizer.com/rel/share': 'share',
     'http://webfinger.net/rel/profile-page': 'profile',
@@ -5414,7 +5415,7 @@ if (typeof XMLHttpRequest === 'undefined') {
     'share': [],
     'profile': [],
     'webfist': [],
-    'camilstore': []
+    'camlistore': []
   };
 
   // list of endpoints to try, fallback from beginning to end.
@@ -5634,6 +5635,23 @@ if (typeof XMLHttpRequest === 'undefined') {
     }
 
     setTimeout(_call, 0);
+  };
+
+  WebFinger.prototype.lookupLink = function (address, rel, cb) {
+    if (LINK_PROPERTIES.hasOwnProperty(rel)) {
+      this.lookup(address, function (err, p) {
+        var links  = p.idx.links[rel];
+        if (err) {
+          cb (err);
+        } else if (links.length === 0) {
+          cb ('no links found with rel="' + rel + '"');
+        } else {
+          cb (null, links[0]);
+        }
+      });
+    } else {
+      cb ('unsupported rel ' + rel);
+    }
   };
 
   if (typeof window === 'object') {
