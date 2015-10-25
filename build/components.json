@@ -17,14 +17,10 @@
     "src/sync.js": "Synchronizes remotestorage and local cache",
     "src/access.js": "Access configuration",
     "src/caching.js": "Caching configuration",
-    "src/widget.js": "Widget controller / view implementation",
-    "src/view.js": "Default View of the Widget",
     "src/debug/inspect.js": "Debugging widget that displays local and remote data",
     "src/modules.js": "The module definition API",
     "src/baseclient.js": "A high-level client, scoped to a path",
     "src/baseclient/types.js": "Type / schema handling, validations",
-    "src/assets.js": "Icons, CSS and HTML templates for the widget",
-    "src/i18n.js": "Internationalization",
     "src/util.js": "...",
     "src/env.js": "Function specific to each environment (browser, nodejs...)",
 
@@ -51,18 +47,6 @@
         "src/env.js"
       ],
       "required": true
-    },
-    "widget": {
-      "label": "Connect Widget",
-      "desc": "Provides UI to connect to a user's remotestorage.",
-      "files": [
-        "src/i18n.js",
-        "src/assets.js",
-        "src/widget.js",
-        "src/view.js"
-      ],
-      "default": true,
-      "depends": ["core"]
     },
     "baseclient": {
       "label": "Base Client",
