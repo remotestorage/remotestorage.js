@@ -78,6 +78,21 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
+        desc: "Authorize redirects to the provider's OAuth location with empty fragment",
+        run: function(env, test) {
+          var authUrl = 'http://storage.provider.com/oauth';
+          var scope = 'contacts:r';
+          var redirectUri = 'http://awesome.app.com/#';
+          var clientId = 'http://awesome.app.com/';
+
+          RemoteStorage.Authorize(authUrl, scope, redirectUri, clientId);
+
+          var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&response_type=token';
+          test.assert(document.location.href, expectedUrl);
+        }
+      },
+    
+      {
         desc: "document.location getter",
         run: function(env, test) {
           test.assert(RemoteStorage.Authorize.getLocation().href, "http://foo/bar");
