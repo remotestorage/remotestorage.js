@@ -33,7 +33,7 @@
     url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
-    if (hashPos !== -1) {
+    if (hashPos !== - 1 && hashPos+1 !== redirectUri.length) {
       url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos+1));
     }
     url += '&response_type=token';
