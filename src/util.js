@@ -107,7 +107,7 @@
     },
 
     isDocument: function (path) {
-      return path.substr(-1) !== '/';
+      return !isFolder(path);
     },
 
     baseName: function (path) {
