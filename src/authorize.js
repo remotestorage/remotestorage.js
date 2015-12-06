@@ -25,7 +25,7 @@
     document.location = redirectUri;
   };
 
-  RemoteStorage.Authorize = function (authURL, scope, redirectUri, clientId) {
+  RemoteStorage.Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) {
     RemoteStorage.log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
 
     var url = authURL, hashPos = redirectUri.indexOf('#');
@@ -75,7 +75,7 @@
 
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
-    RemoteStorage.Authorize(authURL, scope, redirectUri, clientId);
+    RemoteStorage.Authorize(this, authURL, scope, redirectUri, clientId);
   };
 
   /**
