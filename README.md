@@ -4,6 +4,7 @@
 [![Dependency Status](http://img.shields.io/david/dev/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=dependencies)
 [![devDependency Status](http://img.shields.io/david/remotestorage/remotestorage.js.svg?style=flat)](https://david-dm.org/remotestorage/remotestorage.js#info=devDependencies)
 [![Code Climate](http://img.shields.io/codeclimate/github/remotestorage/remotestorage.js.svg?style=flat)](https://codeclimate.com/github/remotestorage/remotestorage.js)
+![IRC](https://img.shields.io/badge/irc%20channel-%23remotestorage%20on%20freenode-blue.svg)
 
 remoteStorage.js is a JavaScript library for storing user data locally in the
 browser, as well as connecting to [remoteStorage](http://remotestorage.io)
