@@ -1,0 +1,27 @@
+1.52
+JavaScript
+/home/basti/src/remotestorage/remotestorage.js/src/baseclient.js	1459891509	1	RemoteStorage.BaseClient
+/home/basti/src/remotestorage/remotestorage.js/src/access.js	1459891509	1	RemoteStorage.Access
+/home/basti/src/remotestorage/remotestorage.js/src/baseclient/types.js	1459891509	1	RemoteStorage.BaseClient.Types
+/home/basti/src/remotestorage/remotestorage.js/src/i18n.js	1459891509	1	RemoteStorage.I18n
+/home/basti/src/remotestorage/remotestorage.js/src/version.js	1459891509	0	/home/basti/src/remotestorage/remotestorage.js/src/version.js
+/home/basti/src/remotestorage/remotestorage.js/src/sync.js	1459891509	1	RemoteStorage.Sync
+/home/basti/src/remotestorage/remotestorage.js/src/modules.js	1459891509	1	RemoteStorage.defineModule
+/home/basti/src/remotestorage/remotestorage.js/src/env.js	1459891509	0	/home/basti/src/remotestorage/remotestorage.js/src/env.js
+/home/basti/src/remotestorage/remotestorage.js/src/view.js	1459891509	1	RemoteStorage.Widget.View
+/home/basti/src/remotestorage/remotestorage.js/src/discover.js	1459891509	1	RemoteStorage.Discover
+/home/basti/src/remotestorage/remotestorage.js/src/widget.js	1459891509	1	RemoteStorage.Widget
+/home/basti/src/remotestorage/remotestorage.js/src/googledrive.js	1459891509	1	RemoteStorage.GoogleDrive
+/home/basti/src/remotestorage/remotestorage.js/src/cachinglayer.js	1459891509	1	cachinglayer
+/home/basti/src/remotestorage/remotestorage.js/src/eventhandling.js	1459891509	1	eventhandling
+/home/basti/src/remotestorage/remotestorage.js/src/remotestorage.js	1459891509	1	RemoteStorage
+/home/basti/src/remotestorage/remotestorage.js/src/wireclient.js	1459891509	1	RemoteStorage.WireClient
+/home/basti/src/remotestorage/remotestorage.js/src/util.js	1459891509	1	RemoteStorage.Util
+/home/basti/src/remotestorage/remotestorage.js/src/assets.js	1459891509	0	/home/basti/src/remotestorage/remotestorage.js/src/assets.js
+/home/basti/src/remotestorage/remotestorage.js/src/inmemorystorage.js	1459891509	1	RemoteStorage.InMemoryStorage
+/home/basti/src/remotestorage/remotestorage.js/src/debug/inspect.js	1459891509	0	/home/basti/src/remotestorage/remotestorage.js/src/debug/inspect.js
+/home/basti/src/remotestorage/remotestorage.js/src/indexeddb.js	1459891509	1	RemoteStorage.IndexedDB
+/home/basti/src/remotestorage/remotestorage.js/src/authorize.js	1459891509	0	/home/basti/src/remotestorage/remotestorage.js/src/authorize.js
+/home/basti/src/remotestorage/remotestorage.js/src/caching.js	1459891509	1	RemoteStorage.Caching
+/home/basti/src/remotestorage/remotestorage.js/src/dropbox.js	1459891509	1	Dropbox
+/home/basti/src/remotestorage/remotestorage.js/src/localstorage.js	1459891509	1	RemoteStorage.LocalStorage
