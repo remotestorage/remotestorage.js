@@ -22,12 +22,13 @@ servers and syncing data across devices and applications.
 
 To develop remoteStorage-enabled apps, you need to have a
 remoteStorage-compatible storage account. We recommend
-[reStore](https://github.com/jcoglan/restore) for running a local test server.
-(Use the latest version from GitHub, not npm!)
+[php-remote-storage](https://github.com/fkooman/php-remote-storage) (PHP) or
+[mysteryshack](https://github.com/untitaker/mysteryshack) (Rust)
+for running a local test server.
 
 You can also get an account with a hoster, or use one of the various other
 remoteStorage server implementations:
-[get storage](http://remotestorage.io/get/).
+[Servers](https://wiki.remotestorage.io/Servers).
 
 ### Which version to choose?
 
