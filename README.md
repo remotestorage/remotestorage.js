@@ -12,7 +12,7 @@ servers and syncing data across devices and applications.
 
 ### Where to get help?
 
-* Use the [remoteStorage.js API docs](http://remotestorage.io/doc/code/)
+* Use the [remoteStorage.js API docs](https://remotestorage.github.io/remotestorage.js)
 * See [remotestorage.io](http://remotestorage.io/) for documentation, community
   forums, and links
 * Get instant support via IRC in
