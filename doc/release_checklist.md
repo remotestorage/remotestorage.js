@@ -19,20 +19,10 @@
     * Go to https://github.com/remotestorage/remotestorage.js/tags and click "add release notes"
     * Use version string as title and changelog items as description
     * For RCs and betas, tick the "This is a pre-release" option on the bottom
+* Publish docs on GitHub Pages
+    * `./script/publish-docs`
 * Publish to npm (https://www.npmjs.org/package/remotestoragejs):
   * `npm publish`
-* Publish release on remotestorage.io
-    * `git up`
-    * While in the gh-pages branch:
-        * Copy the release from the remotestorage.js repo into `release/` dir
-        * `rm -rf doc/*`
-        * Copy `/doc/code` from remoteStorage.js repo to `doc/code`
-        * Commit changes to Git
-    * While back in master branch:
-        * Update version number, links, file size in `views/integrate/_hero.jade`
-        * Commit changes to Git
-        * Run `./deploy`
-        * `git push origin master`
 * Update https://github.com/remotestorage/myfavoritedrinks to use new release
     * Replace `remotestorage.js` with new release build
     * Check if everything is still working
