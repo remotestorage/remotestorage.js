@@ -192,7 +192,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           test.assertTypeAnd(request, 'object');
           console.log("REQUEST OPEN",request._open);
           test.assert(request._open,
-                      ['GET', 'https://api-content.dropbox.com/1/files/auto/foo/bar', true]);
+                      ['GET', 'https://api-content.dropbox.com/1/files/auto/remotestorage/foo/bar', true]);
         }
       },
 
@@ -210,7 +210,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
         run: function (env, test) {
           env.connectedClient.get('/foo//baz');
           var request = XMLHttpRequest.instances.shift();
-          test.assert(request._open[1], 'https://api-content.dropbox.com/1/files/auto/foo/baz');
+          test.assert(request._open[1], 'https://api-content.dropbox.com/1/files/auto/remotestorage/foo/baz');
         }
       },
 
@@ -450,7 +450,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
           // delete
           waitlist.push(function (req) {
-            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Ffoo%2Fbar_2', true]);
+            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Fremotestorage%2Ffoo%2Fbar_2', true]);
           });
 
           // metadata
@@ -537,7 +537,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           setTimeout(function () {
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
-            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Ffoo%2Fbar', true]);
+            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Fremotestorage%2Ffoo%2Fbar', true]);
             req._onload();
           }, 100);
         }
