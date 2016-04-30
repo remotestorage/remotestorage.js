@@ -203,6 +203,32 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
       },
 
       {
+        desc: "#disconnect waits for cleanup promises to resolve before marking them as done",
+        run: function(env, test) {
+          var promiseResolved = false;
+
+          var promiseMock = {
+            then: function(callback) {
+              promiseResolved = true;
+              callback();
+            }
+          };
+
+          env.rs._cleanups = [function() { return promiseMock; }];
+
+          env.rs.on('disconnected', function() {
+            if (promiseResolved) {
+              test.done();
+            } else {
+              test.fail('Cleanup promise was not resolved.');
+            }
+          });
+
+          env.rs.disconnect();
+        }
+      },
+
+      {
         desc: "remote connected fires connected",
         run: function(env, test) {
           env.rs.on('connected', function() {
