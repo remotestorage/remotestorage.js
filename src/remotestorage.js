@@ -609,6 +609,7 @@
     },
 
     _collectCleanupFunctions: function () {
+      this._cleanups = [];
       for (var i=0; i < this.features.length; i++) {
         var cleanup = this.features[i].cleanup;
         if (typeof(cleanup) === 'function') {
