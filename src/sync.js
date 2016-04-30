@@ -1169,6 +1169,7 @@
   RemoteStorage.Sync._rs_cleanup = function (remoteStorage) {
     remoteStorage.stopSync();
     remoteStorage.removeEventListener('ready', syncCycleCb);
+    delete remoteStorage.sync;
   };
 
 })(typeof(window) !== 'undefined' ? window : global);

@@ -151,6 +151,19 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
       },
 
       {
+        desc : "Sync adapter removes itself from remoteStorage instance after cleanup",
+        run : function(env, test) {
+          test.assertAnd(typeof env.rs.sync, "object", "sync is not defined");
+
+          RemoteStorage.Sync._rs_cleanup(env.rs);
+
+          test.assertAnd(typeof env.rs.sync, "undefined", "sync is still defined after cleanup");
+
+          test.done();
+        }
+      },
+
+      {
         desc: "Default sync interval",
         run: function(env, test) {
           test.assert(env.rs.getSyncInterval(), 10000);
