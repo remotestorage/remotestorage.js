@@ -373,6 +373,7 @@
           pending.reject();
         };
         check.onsuccess = function (event) {
+          check.result.close();
           indexedDB.deleteDatabase("rs-check");
           pending.resolve();
         };
