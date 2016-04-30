@@ -40,7 +40,9 @@
 
     setDictionary: function (newDictionary) {
       dictionary = newDictionary;
-    }
+    },
 
+    _rs_init: function() {
+    }
   };
 })();
