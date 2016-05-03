@@ -82,10 +82,13 @@ Install development dependencies including the
 
     $ npm install
 
-Run all suites:
+Run all tests:
 
+Note: deliberate exceptions may look like errors, but if it says "all tests passed" under the test output all is well for that test.
+    
     $ npm test
-
+	
+	
 Use the `jaribu` executable in order to test single files, like so e.g.:
 
     $ node_modules/.bin/jaribu test/unit/baseclient-suite.js
