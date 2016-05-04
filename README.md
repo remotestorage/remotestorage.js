@@ -82,9 +82,12 @@ Install development dependencies including the
 
     $ npm install
 
-Run all suites:
+Run all tests:
 
     $ npm test
+
+Note: deliberate exceptions may look like errors, but if it says "all
+tests passed" under the test output all is well for that test.
 
 Use the `jaribu` executable in order to test single files, like so e.g.:
 
