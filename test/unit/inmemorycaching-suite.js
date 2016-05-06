@@ -329,7 +329,6 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
           var getLatest = env.ims._getInternals().getLatest;
 
           return env.ims.put('/foo/bar/baz', 'bla', 'text/plain', 'a1b2c3').then(function (r) {
-            console.log('response: ', r);
             var storageKeys = ['/foo/bar/baz', '/foo/bar/', '/foo/', '/'];
 
             test.assertAnd(Object.keys(storage), storageKeys);

@@ -219,7 +219,7 @@
       if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
-        Promise.reject("Not a folder: " + path);
+        return Promise.reject("Not a folder: " + path);
       }
       return this.storage.get(this.makePath(path), maxAge).then(
         function (r) {

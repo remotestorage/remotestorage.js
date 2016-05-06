@@ -190,7 +190,6 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           env.connectedClient.get('/foo/bar');
           var request = XMLHttpRequest.instances.shift();
           test.assertTypeAnd(request, 'object');
-          console.log("REQUEST OPEN",request._open);
           test.assert(request._open,
                       ['GET', 'https://api-content.dropbox.com/1/files/auto/foo/bar', true]);
         }
