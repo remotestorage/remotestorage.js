@@ -24,7 +24,7 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
       mocks.defineMocks(env);
 
       global.RemoteStorage = function(){
-        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'sync-interval-change', 'error');
+        RemoteStorage.eventHandling(this, 'sync-busy', 'sync-done', 'ready', 'connected', 'sync-interval-change', 'error');
       };
       global.RemoteStorage.log = function() {};
       global.RemoteStorage.config = {
@@ -141,12 +141,38 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
           test.assertAnd(allHandlers(), 0, "before init found "+allHandlers()+" handlers");
 
           RemoteStorage.Sync._rs_init(env.rs);
-          test.assertAnd(allHandlers(), 1, "after init found "+allHandlers()+" handlers");
+          test.assertAnd(allHandlers(), 2, "after init found "+allHandlers()+" handlers");
 
           RemoteStorage.Sync._rs_cleanup(env.rs);
           test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers");
 
           test.done();
+        }
+      },
+
+      {
+        desc : "Sync adapter starts syncing on connect",
+        run : function(env, test) {
+          env.rs.startSync = function() {
+            test.done();
+          }
+
+          RemoteStorage.Sync._rs_init(env.rs);
+
+          env.rs._emit('connected');
+        }
+      },
+
+      {
+        desc : "Sync adapter connect handler removes itself after the first call",
+        run : function(env, test) {
+          env.rs.startSync = function() {
+            test.assert(env.rs._handlers['connected'].length, 0, "connect handler still exists");
+          }
+
+          RemoteStorage.Sync._rs_init(env.rs);
+
+          env.rs._emit('connected');
         }
       },
 
@@ -157,9 +183,7 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
 
           RemoteStorage.Sync._rs_cleanup(env.rs);
 
-          test.assertAnd(typeof env.rs.sync, "undefined", "sync is still defined after cleanup");
-
-          test.done();
+          test.assert(typeof env.rs.sync, "undefined", "sync is still defined after cleanup");
         }
       },
 

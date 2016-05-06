@@ -48,11 +48,6 @@
           remoteStorage.remote.configure({
             token: authResult.access_token
           });
-
-          // TODO
-          // sync doesn't start until after reload
-          // possibly missing some initialization step?
-          global.location.reload();
         })
         .then(null, function(error) {
           console.error(error);
