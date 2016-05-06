@@ -184,9 +184,12 @@ define(['bluebird', 'requirejs', 'test/helpers/mocks', 'tv4'], function (Promise
 
       {
         desc: "#getListing fails when it gets a document path",
-        willFail: true,
         run: function(env, test) {
-          return env.client.getListing('bar');
+          env.client.getListing('bar').then(function() {
+            test.result(false);
+          }, function(error) {
+            test.assert(error, 'Not a folder: bar');
+          });
         }
       },
 
