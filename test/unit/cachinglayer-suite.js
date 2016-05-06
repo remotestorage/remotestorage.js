@@ -118,7 +118,6 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
         run: function (env, test) {
           env.ims.put('/foo/bar/baz/baf', 'asdf', 'qwer').then(function () {
             env.ims._getAllDescendentPaths('/').then(function (paths) {
-              console.log("paths: ",paths);
               test.assertAnd(paths.sort(), ['/', '/foo/', '/foo/bar/', '/foo/bar/baz/', '/foo/bar/baz/baf'].sort());
               test.done();
             });
