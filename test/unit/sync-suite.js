@@ -177,6 +177,19 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
       },
 
       {
+        desc : "Custom connected event handlers get called after Sync adapter removed its own handler",
+        run : function(env, test) {
+          RemoteStorage.Sync._rs_init(env.rs);
+
+          env.rs.on('connected', function() {
+            test.done();
+          });
+
+          env.rs._emit('connected');
+        }
+      },
+
+      {
         desc : "Sync adapter removes itself from remoteStorage instance after cleanup",
         run : function(env, test) {
           test.assertAnd(typeof env.rs.sync, "object", "sync is not defined");
