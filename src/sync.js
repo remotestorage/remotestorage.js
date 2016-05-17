@@ -286,6 +286,12 @@
 
         for (var i=1; i<paths.length; i++) {
           if (this._tasks[paths[i]]) {
+            if (this._tasks[path]) {
+              Array.prototype.push.apply(
+                this._tasks[paths[i]],
+                this._tasks[path]
+              );
+            }
             delete this._tasks[path];
           }
         }
