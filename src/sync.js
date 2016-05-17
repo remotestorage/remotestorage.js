@@ -962,7 +962,7 @@
       }
       for (path in this._tasks) {
         if (!this._running[path]) {
-          this._timeStarted = this.now();
+          this._timeStarted[path] = this.now();
           this._running[path] = this.doTask(path);
           this._running[path].then(this.finishTask.bind(this));
           numAdded++;
