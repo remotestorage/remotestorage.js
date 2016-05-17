@@ -432,7 +432,7 @@
       if (n > 0) {
         this._cleanups.forEach(function (cleanup) {
           var cleanupResult = cleanup(this);
-          if (typeof(cleanup) === 'object' && typeof(cleanup.then) === 'function') {
+          if (typeof(cleanupResult) === 'object' && typeof(cleanupResult.then) === 'function') {
             cleanupResult.then(oneDone);
           } else {
             oneDone();
@@ -609,6 +609,7 @@
     },
 
     _collectCleanupFunctions: function () {
+      this._cleanups = [];
       for (var i=0; i < this.features.length; i++) {
         var cleanup = this.features[i].cleanup;
         if (typeof(cleanup) === 'function') {

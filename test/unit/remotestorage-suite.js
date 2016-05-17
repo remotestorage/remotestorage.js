@@ -22,7 +22,6 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
   }
 
   function fakeRequest(path) {
-    console.log('GET CALLED');
     if (path === '/testing403') {
       return Promise.resolve({statusCode: 403});
     } else {
@@ -199,6 +198,66 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
             test.done();
           });
           env.rs.disconnect();
+        }
+      },
+
+      {
+        desc: "#disconnect waits for cleanup promises to resolve before marking them as done",
+        run: function(env, test) {
+          var promiseResolved = false;
+
+          var promiseMock = {
+            then: function(callback) {
+              promiseResolved = true;
+              callback();
+            }
+          };
+
+          env.rs._cleanups = [function() { return promiseMock; }];
+
+          env.rs.on('disconnected', function() {
+            if (promiseResolved) {
+              test.done();
+            } else {
+              test.fail('Cleanup promise was not resolved.');
+            }
+          });
+
+          env.rs.disconnect();
+        }
+      },
+
+      {
+        desc: "cleanup functions don't bloat up on repeated initialization",
+        run: function(env, test) {
+          var initsCalled = 0;
+
+          // Mock feature to be loaded on initialization
+          RemoteStorage.Sync = {
+            _rs_init: function() {},
+            _rs_cleanup: function() {}
+          };
+
+          var loadedHandler = function() {
+            initsCalled++;
+
+            if (initsCalled === 1) { // ignore first init, as that's from original initialization
+              test.assertAnd(env.rs._cleanups.length, 0);
+            } else {
+              test.assertAnd(env.rs._cleanups.length, 1);
+            }
+
+            if (initsCalled === 2) {
+              env.rs._init();
+            } else if (initsCalled === 3) {
+              env.rs.removeEventListener('features-loaded', loadedHandler);
+              delete RemoteStorage.Sync;
+              test.done();
+            }
+          }
+
+          env.rs.on('features-loaded', loadedHandler);
+          env.rs._init();
         }
       },
 
