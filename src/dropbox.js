@@ -827,7 +827,7 @@
      */
     _deleteSimple: function (path) {
       var self = this;
-      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + getDropboxPath(path);
+      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(getDropboxPath(path));
 
       return self._request('POST', url, {}).then(function (resp) {
         if (resp.status === 406) {
