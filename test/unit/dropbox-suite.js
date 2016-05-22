@@ -441,7 +441,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           waitlist.push(function (req) {
             req.status = 200;
             req.responseText = JSON.stringify({
-              path: '/foo/bar_2'
+              path: '/remotestorage/foo/bar_2'
             });
             setTimeout(function () {
               req._onload();
