@@ -249,16 +249,20 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
           });
         }
       },
-
       {
         desc: "collectRefreshTasks gives preference to caching parent",
         run: function(env, test) {
           var tmpForAllNodes = env.rs.local.forAllNodes;
           var tmpNow = env.rs.sync.now;
+          var fakeCallback = function() {};
 
           test.assertAnd(env.rs.sync._tasks, {});
           test.assertAnd(env.rs.sync._running, {});
 
+          env.rs.sync.addTask(
+            '/foo/ba/and/then/some/sub/path',
+            fakeCallback // should be passed to the ancestor when overruled
+          );
           env.rs.sync.now = function() {
             return 1234568654321;
           };
@@ -301,7 +305,7 @@ define(['bluebird', 'test/helpers/mocks', 'requirejs'], function(Promise, mocks,
 
           env.rs.sync.collectRefreshTasks().then(function() {
             test.assertAnd(env.rs.sync._tasks, {
-              '/foo/': [],
+              '/foo/': [fakeCallback], // inherited from task '/foo/ba/and/then/some/sub/path'
               '/read/access/': []
             });
             env.rs.local.forAllNodes = tmpForAllNodes;

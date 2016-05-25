@@ -286,7 +286,8 @@
 
         for (var i=1; i<paths.length; i++) {
           if (this._tasks[paths[i]]) {
-            if (this._tasks[path].length) {
+            // move pending promises to parent task
+            if (Array.isArray(this._tasks[path]) && this._tasks[path].length) {
               Array.prototype.push.apply(
                 this._tasks[paths[i]],
                 this._tasks[path]
