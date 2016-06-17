@@ -44,7 +44,7 @@
   var PATH_PREFIX = '/remotestorage';
 
   /**
-   * Function: mapPath(path)
+   * Function: getDropboxPath(path)
    *
    * Map a local path to a path in DropBox.
    */
