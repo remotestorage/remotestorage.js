@@ -352,7 +352,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
             req.responseText = JSON.stringify({
-              path: '/foo/bar',
+              path: '/remotestorage/foo/bar',
               rev: 'bar'
             });
             req._onload();
@@ -425,7 +425,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
             req.responseText = JSON.stringify({
-              path: '/foo/bar'
+              path: '/remotestorage/foo/bar'
             });
             req._onload();
           }, 100);
