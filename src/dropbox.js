@@ -793,7 +793,7 @@
         }
 
         // Conflict happened. Delete the copy created by dropbox
-        if (response.path !== params.path) {
+        if (response.path !== getDropboxPath(params.path)) {
           var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
           self._request('POST', deleteUrl, {});
 
