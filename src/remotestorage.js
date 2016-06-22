@@ -195,11 +195,11 @@
 
     if (this.localStorageAvailable()) {
       try {
-        this.apiKeys = JSON.parse(localStorage['remotestorage:api-keys']);
+        this.apiKeys = JSON.parse(localStorage.getItem('remotestorage:api-keys'));
       } catch(exc) {
         // ignored
       }
-      this.setBackend(localStorage['remotestorage:backend'] || 'remotestorage');
+      this.setBackend(localStorage.getItem('remotestorage:backend') || 'remotestorage');
     }
 
     var origOn = this.on;
@@ -447,9 +447,9 @@
       this.backend = what;
       if (this.localStorageAvailable()) {
         if (what) {
-          localStorage['remotestorage:backend'] = what;
+          localStorage.setItem('remotestorage:backend', what);
         } else {
-          delete localStorage['remotestorage:backend'];
+          localStorage.removeItem('remotestorage:backend');
         }
       }
     },
@@ -523,7 +523,7 @@
         delete this.apiKeys[type];
       }
       if (this.localStorageAvailable()) {
-        localStorage['remotestorage:api-keys'] = JSON.stringify(this.apiKeys);
+        localStorage.setItem('remotestorage:api-keys', JSON.stringify(this.apiKeys));
       }
     },
 
@@ -763,8 +763,12 @@
     },
 
     localStorageAvailable: function () {
+      if (!('localStorage' in global)) { return false }
+
       try {
-        return !!global.localStorage;
+        global.localStorage.setItem('rs-check', 1);
+        global.localStorage.removeItem('rs-check');
+        return true;
       } catch(error) {
         return false;
       }

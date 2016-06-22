@@ -90,7 +90,15 @@
   RemoteStorage.LocalStorage._rs_init = function () {};
 
   RemoteStorage.LocalStorage._rs_supported = function () {
-    return 'localStorage' in global;
+    if (!('localStorage' in global)) { return false }
+
+    try {
+      global.localStorage.setItem('rs-check', 1);
+      global.localStorage.removeItem('rs-check');
+      return true;
+    } catch(error) {
+      return false;
+    }
   };
 
   // TODO tests missing!
