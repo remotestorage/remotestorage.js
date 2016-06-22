@@ -229,6 +229,23 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
         }
       },
 
+      {
+        desc: "#_rs_supported is false when writing to localStorage throws an error",
+        run: function(env, test) {
+          var QuotaExceededError = function(message) {
+            this.name = 'QuotaExceededError';
+            this.message = message;
+          };
+          QuotaExceededError.prototype = new Error();
+
+          localStorage.setItem = function(key, value) {
+            throw new QuotaExceededError('DOM exception 22');
+          }
+
+          test.assert(RemoteStorage.LocalStorage._rs_supported(), false);
+        }
+      },
+
       // TODO belongs in separate examples; missing description
       {
         desc: "getNodes, setNodes",

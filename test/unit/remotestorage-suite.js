@@ -233,9 +233,21 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
       {
         desc: "#connect sets the backend to remotestorage",
         run: function(env, test) {
-          global.localStorage = {};
+          global.localStorage = {
+            storage: {},
+            setItem: function(key, value) {
+              this.storage[key] = value;
+            },
+            getItem: function(key) {
+              return this.storage[key];
+            },
+            removeItem: function(key) {
+              delete this.storage[key];
+            }
+          };
+
           env.rs.connect('user@ho.st');
-          test.assert(localStorage, {'remotestorage:backend': 'remotestorage'});
+          test.assert(localStorage.getItem('remotestorage:backend'), 'remotestorage');
         }
       },
 
@@ -272,6 +284,23 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
           });
 
           env.rs.disconnect();
+        }
+      },
+
+      {
+        desc: "#localStorageAvailable is false when saving items throws an error",
+        run: function(env, test) {
+          var QuotaExceededError = function(message) {
+            this.name = 'QuotaExceededError';
+            this.message = message;
+          };
+          QuotaExceededError.prototype = new Error();
+
+          localStorage.setItem = function(key, value) {
+            throw new QuotaExceededError('DOM exception 22');
+          }
+
+          test.assert(env.rs.localStorageAvailable(), false);
         }
       },
 
