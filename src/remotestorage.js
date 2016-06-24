@@ -195,7 +195,7 @@
 
     if (this.localStorageAvailable()) {
       try {
-        this.apiKeys = JSON.parse(localStorage.getItem('remotestorage:api-keys'));
+        this.apiKeys = JSON.parse(localStorage.getItem('remotestorage:api-keys')) || {};
       } catch(exc) {
         // ignored
       }
