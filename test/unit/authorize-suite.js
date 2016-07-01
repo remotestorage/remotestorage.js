@@ -70,6 +70,8 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           var redirectUri = 'http://awesome.app.com/#custom/path';
           var clientId = 'http://awesome.app.com/';
 
+          this.localStorageAvailable = function() { return true; };
+
           RemoteStorage.Authorize(this, authUrl, scope, redirectUri, clientId);
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&state=custom%2Fpath&response_type=token';
@@ -85,13 +87,15 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           var redirectUri = 'http://awesome.app.com/#';
           var clientId = 'http://awesome.app.com/';
 
+          this.localStorageAvailable = function() { return true; };
+
           RemoteStorage.Authorize(this, authUrl, scope, redirectUri, clientId);
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&response_type=token';
           test.assert(document.location.href, expectedUrl);
         }
       },
-    
+
       {
         desc: "document.location getter",
         run: function(env, test) {
@@ -126,6 +130,44 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
+        desc: "_rs_init extracts rsDiscovery data param for configuring the WireClient",
+        run: function(env, test) {
+          var storage = new RemoteStorage();
+
+          // mock the atob function, as it's not available in node
+          global.atob = function(param) {
+            return JSON.stringify({
+              userAddress: 'user@host.com',
+              href: 'https://storage.host.com',
+              storageApi: 'storage-api',
+              properties: {}
+            });
+          };
+
+          storage.remote = {
+            configure: function(settings) {
+              if (settings.token) {
+                test.assertAnd(settings.token, 'my-token');
+              } else {
+                test.assertAnd(settings.userAddress, 'user@host.com');
+                test.assertAnd(settings.href, 'https://storage.host.com');
+                test.assertAnd(settings.storageApi, 'storage-api');
+                test.assertAnd(settings.properties, {});
+              }
+            }
+          };
+
+          document.location.href = 'http://foo/bar#access_token=my-token&state=foo%3Dbar%26rsDiscovery%3Dencodeddata';
+          RemoteStorage.Authorize._rs_init(storage);
+
+          storage._handlers['features-loaded'][0]();
+
+          test.assertAnd(RemoteStorage.Authorize.getLocation().href, 'http://foo/bar#foo=bar');
+          test.done();
+        }
+      },
+
+      {
         desc: "the 'features-loaded' handler configures the WireClient if it sees an access token",
         run: function(env, test) {
           var storage = new RemoteStorage();
@@ -151,7 +193,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           };
           storage._handlers['features-loaded'][0]();
 
-          test.assert(document.location.href, '#custom/path');
+          test.assert(document.location.href, 'http://foo/bar#custom/path');
         }
       },
 
