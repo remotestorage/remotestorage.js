@@ -11,7 +11,27 @@
     if (hash.indexOf('=') === -1) { return; }
     return hash.split('&').reduce(function (m, kvs) {
       var kv = kvs.split('=');
-      m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+
+      if (kv[0] === 'state' && kv[1].match(/userAddress/)) {
+        // extract userAddress from the state param
+        var stateValue = decodeURIComponent(kv[1]);
+        var userAddress = stateValue.substr(stateValue.indexOf('userAddress='))
+                                    .split('&')[0]
+                                    .split('=')[1];
+
+        m['userAddress'] = userAddress;
+
+        // remove userAddress param
+        stateValue = stateValue.slice(stateValue.indexOf('userAddress='),
+                                      userAddress.lenth + 12);
+
+        if (stateValue.length > 0) {
+          m['state'] = state;
+        }
+      } else {
+        m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+      }
+
       return m;
     }, {});
   }
@@ -27,6 +47,12 @@
 
   RemoteStorage.Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) {
     RemoteStorage.log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
+
+    // keep track of the userAddress during redirect if we can't save it in localStorage
+    if (!remoteStorage.localStorageAvailable()) {
+      redirectUri += redirectUri.indexOf('#') > 0 ? '&' : '#';
+      redirectUri += 'userAddress=' + remoteStorage.remote.userAddress;
+    }
 
     var url = authURL, hashPos = redirectUri.indexOf('#');
     url += authURL.indexOf('?') > 0 ? '&' : '?';
@@ -153,6 +179,13 @@
         if (params.error) {
           throw "Authorization server errored: " + params.error;
         }
+
+        // userAddress came with the redirect, because it couldn't be
+        // saved in localStorage
+        if (params.userAddress && params.access_token) {
+          remoteStorage.connect(params.userAddress, params.access_token);
+        }
+
         if (params.access_token) {
           remoteStorage.remote.configure({
             token: params.access_token

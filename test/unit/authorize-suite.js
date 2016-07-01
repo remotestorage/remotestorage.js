@@ -70,6 +70,8 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           var redirectUri = 'http://awesome.app.com/#custom/path';
           var clientId = 'http://awesome.app.com/';
 
+          this.localStorageAvailable = function() { return true; };
+
           RemoteStorage.Authorize(this, authUrl, scope, redirectUri, clientId);
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&state=custom%2Fpath&response_type=token';
@@ -85,13 +87,15 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           var redirectUri = 'http://awesome.app.com/#';
           var clientId = 'http://awesome.app.com/';
 
+          this.localStorageAvailable = function() { return true; };
+
           RemoteStorage.Authorize(this, authUrl, scope, redirectUri, clientId);
 
           var expectedUrl = 'http://storage.provider.com/oauth?redirect_uri=http%3A%2F%2Fawesome.app.com%2F&scope=contacts%3Ar&client_id=http%3A%2F%2Fawesome.app.com%2F&response_type=token';
           test.assert(document.location.href, expectedUrl);
         }
       },
-    
+
       {
         desc: "document.location getter",
         run: function(env, test) {
