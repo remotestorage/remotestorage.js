@@ -49,7 +49,7 @@
     RemoteStorage.log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
 
     // keep track of the discovery data during redirect if we can't save it in localStorage
-    if (!remoteStorage.localStorageAvailable()) {
+    if (!remoteStorage.localStorageAvailable() && remoteStorage.backend === 'remotestorage') {
       redirectUri += redirectUri.indexOf('#') > 0 ? '&' : '#';
 
       var discoveryData = {
