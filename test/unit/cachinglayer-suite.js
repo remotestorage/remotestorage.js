@@ -269,6 +269,24 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
             test.done();
           });
         }
+      },
+
+      {
+        desc: "updating a node doesn't emit change event when nothing changed",
+        run: function (env, test) {
+          RemoteStorage.config.changeEvents.window = true;
+
+          env.ims.put('/some/test/document', 'same content', 'same/type').then(function () {
+            env.ims.on('change', function(event) {
+              test.result(false, 'change event should not have been fired');
+            });
+
+            env.ims.put('/some/test/document', 'same content', 'same/type').then(function() {
+              RemoteStorage.config.changeEvents.window = true;
+              test.done();
+            });
+          });
+        }
       }
     ]
   });

@@ -327,8 +327,8 @@
           }
           else if (isDocument(path)) {
             if (
-              node.local.body != node.local.previousBody ||
-              node.local.contentType != node.local.previousContentType
+              node.local.body !== node.local.previousBody ||
+              node.local.contentType !== node.local.previousContentType
             ) {
               changeEvents.push({
                 path:           path,
