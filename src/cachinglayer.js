@@ -318,6 +318,8 @@
         var existingNodes = deepClone(nodes);
         var changeEvents = [];
         var node;
+        var equal = RemoteStorage.util.equal;
+
         nodes = _processNodes(paths, nodes);
 
         for (var path in nodes) {
@@ -327,7 +329,7 @@
           }
           else if (isDocument(path)) {
             if (
-              node.local.body !== node.local.previousBody ||
+              !equal(node.local.body, node.local.previousBody) ||
               node.local.contentType !== node.local.previousContentType
             ) {
               changeEvents.push({

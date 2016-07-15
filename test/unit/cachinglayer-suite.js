@@ -5,6 +5,16 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
   global.Promise = Promise;
   var suites = [];
 
+  function stringToArrayBuffer(str) {
+    var buf = new ArrayBuffer(str.length * 2);
+    var view = new Uint16Array(buf);
+    for (var i = 0, c = str.length; i < c; i++)
+    {
+      view[i] = str.charCodeAt(i);
+    }
+    return buf;
+  }
+
   suites.push({
     name: 'CachingLayer',
     desc: 'CachingLayer that is mixed into all local storage implementations',
@@ -282,6 +292,24 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
             });
 
             env.ims.put('/some/test/document', 'same content', 'same/type').then(function() {
+              RemoteStorage.config.changeEvents.window = true;
+              test.done();
+            });
+          });
+        }
+      },
+
+      {
+        desc: "updating a binary node doesn't emit change event when nothing changed",
+        run: function (env, test) {
+          RemoteStorage.config.changeEvents.window = true;
+
+          env.ims.put('/some/test/binary', stringToArrayBuffer('some test data'), 'same/type; charset=binary').then(function () {
+            env.ims.on('change', function(event) {
+              test.result(false, 'change event should not have been fired');
+            });
+
+            env.ims.put('/some/test/binary', stringToArrayBuffer('some test data'), 'same/type; charset=binary').then(function() {
               RemoteStorage.config.changeEvents.window = true;
               test.done();
             });
