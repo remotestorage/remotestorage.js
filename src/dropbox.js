@@ -851,18 +851,18 @@
 
   function hookSync(rs) {
     if (rs._dropboxOrigSync) { return; } // already hooked
-    rs._dropboxOrigSync = rs.sync.bind(rs);
-    rs.sync = function () {
+    rs._dropboxOrigSync = rs.sync.sync.bind(rs.sync);
+    rs.sync.sync = function () {
       return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
         then(rs._dropboxOrigSync, function (err) {
-          rs._emit('error', new rs.SyncError(err));
+          rs._emit('error', new RemoteStorage.SyncError(err));
         });
-    };
+    }.bind(rs);
   }
 
   function unHookSync(rs) {
     if (! rs._dropboxOrigSync) { return; } // not hooked
-    rs.sync = rs._dropboxOrigSync;
+    rs.sync.sync = rs._dropboxOrigSync;
     delete rs._dropboxOrigSync;
   }
 
@@ -900,6 +900,14 @@
     hookRemote(rs);
     if (rs.sync) {
       hookSync(rs);
+    } else {
+      // when sync is not available yet, we wait for the remote to be connected,
+      // at which point sync should be available as well
+      rs.on('connected', function() {
+        if (rs.sync) {
+          hookSync(rs);
+        }
+      });
     }
     hookGetItemURL(rs);
   }
