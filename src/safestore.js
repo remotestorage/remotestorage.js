@@ -1,26 +1,16 @@
 // mrhTODO NEXT: create safestore.js anew (branch feature/safestore-backend-gd)
-// mrhTODO       DONE: first pass but lots of ??? to go through
-// mrhTODO       DONE: review and do getFileId() changes
-// mrhTODO       SKIPPED: temp disable _revCache stuff
-// mrhTODO       DONE: add in missing encryption bits
-// mrhTODO       NEXT: get working with old encrypted API - commit!
-// mrhTODO          DONE: get auth working 
-// mrhTODO          DONE: trace why it is repeatedly trying to create /remotestorage (maybe listing doesn't get into fileIdCache?) 
-// mrhTODO          >NEXT: look into implementing _getMeta(). Prob causing Sync warning "discarding corrupt folder description"
+// mrhTODO       DONE: get working with old encrypted API - commit! tag as safestore-gb-working-00
+// mrhTODO       >NEXT: test!!!! (may be some bug not always deleting the file when delete the screen object)
+// mrhTODO       merge/rebase and check still works with latest remotestorage/src
+
 // mrhTODO       NEXT: beware breaking go-safe linux cmds by cretz: strip out encryption and base64 encoding
 // mrhTODO       NEXT: get working with new unencrypted API - commit!
 // mrhTODO       NEXT: when working:
-// mrhTODO           NEXT: retrofit revCache
-// mrhTODO           NEXT: retrofit sync
 // mrhTODO           NEXT: retrofit localstorage settings
 
 // mrhTODO      [ ] Review/implement features noted at top of safestore-db.js (local file) up to "create safestore.js anew"
 // mrhTODO      (| Promises recursion: http://stackoverflow.com/questions/29020722/recursive-promise-in-javascript/29020886?noredirect=1#comment62855125_29020886)
 
-// mrhTODO NEXT: consider- try to sort out the issues from console output (including with widget?)
-// mrhTODO NEXT: consider- simulate versioning using file metadata 
-// mrhTODO NEXT:              until SAFE implements this in API
-// mrhTODO - MAYBE: fixup the connect/disconnect so they work and reflect in the widget
 // mrhTODO - look at how Dropbox overrides BaseClient getItemURL and consider for safestore.js
 // mrhTODO   (see https://github.com/remotestorage/remotestorage.js/blob/master/src/dropbox.js#L16-L17)
 // mrhTODO
@@ -37,6 +27,12 @@
 // mrhTODO npm install libsodium-wrappers request
 // mrhTODO switch from 'request' to XMLHtmlRequest and remove 'request' from build/components.json
 
+// mrhTODO Implement eTag headers when SAFE Launcher API supports them (versioning)
+// mrhTODO  (For spec search "Versioning" in https://tools.ietf.org/html/draft-dejong-remotestorage-07)
+
+// mrhTODO Implement CORS headers (RS spec says *all* responses must return CORS headers)
+
+// mrhTODO Review RS spec and check compliance
 // mrhTODO RS plan to move all to https://github.com/stefanpenner/es6-promise
 // mrhTODO so I need to co-ordinate with that.
 
@@ -56,7 +52,7 @@
 */
 
 var binary = require('bops');
-var httpRequest = require('request');   // mrhTODO - can remove this (now uses XMLHttpRequest)
+//var httpRequest = require('request');   // mrhTODO - can remove this (now uses XMLHttpRequest)
 
 LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher: provides localhost REST API
 
@@ -96,8 +92,6 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
   // mrhTODO: everything below this!
   // mrhTODO: add regression tests in test/unit/safestore-suite.js
   var RS = RemoteStorage;
-  var disableCache = true;  // mrhTODO - hack to cause revCache to be ignored - all requests go through
-
   
   // mrhTODO: this...
   var hasLocalStorage;//???
@@ -105,34 +99,13 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
   var cleanPath = RS.WireClient.cleanPath;
   var PATH_PREFIX = '/remotestorage/';
   
-//  var BASE_URL = 'https://www.googleapis.com';
-//  var AUTH_URL = 'https://accounts.google.com/o/oauth2/auth';
-//  var AUTH_SCOPE = 'https://www.googleapis.com/auth/drive';
-
-//  var GD_DIR_MIME_TYPE = 'application/vnd.google-apps.folder';
   var RS_DIR_MIME_TYPE = 'application/json; charset=UTF-8';
-
-  function buildQueryString(params) {
-    return Object.keys(params).map(function (key) {
-      return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
-    }).join('&');
-  }
-
-  function fileNameFromMeta(meta) {
-    return encodeURIComponent(meta.title) + (meta.mimeType === GD_DIR_MIME_TYPE ? '/' : '');
-  }
-
-  function metaTitleFromFileName(filename) {
-    if (filename.substr(-1) === '/') {
-      filename = filename.substr(0, filename.length - 1);
-    }
-    return decodeURIComponent(filename);
-  }
 
   function parentPath(path) {
     return path.replace(/[^\/]+\/?$/, '');
   }
 
+  // mrhTODO: is this in use?
   function baseName(path) {
     var parts = path.split('/');
     if (path.substr(-1) === '/') {
@@ -142,6 +115,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
     }
   }
 
+  // mrhTODO: is this in use?
   var Cache = function (maxAge) {
     this.maxAge = maxAge;
     this._items = {};
@@ -168,7 +142,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
 
     this.rs = remoteStorage;
     this.clientId = clientId;
-    this._fileIdCache = new Cache(60 * 5); // ids expire after 5 minutes (is this a good idea?)
+    this._fileInfoCache = new Cache(60 * 5); // mrhTODO: info expires after 5 minutes (is this a good idea?)
 
     this.connected = false;
     this.nacl = sodium;
@@ -200,7 +174,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
     };
 
     RS.eventHandling(this, 'change', 'connected', 'wire-busy', 'wire-done', 'not-connected');
-    this.rs.on('error', onErrorCb);
+//mrhTODO (was from dropbox version - stops connect doing anything)    this.rs.on('error', onErrorCb);
 
     // mrhTODO port dropbox style load/save settings from localStorage
 };
@@ -233,6 +207,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
         }
 
         this._emit('connected');
+        RS.log('Safestore.configure() [CONNECTED]');
       } else {
         this.connected = false;
         delete this.token;
@@ -242,6 +217,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
         this.symmetricKeyBase64 = null;
         this.symmetricNonceBase64 = null;
         delete localStorage['remotestorage:safestore:token'];
+        RS.log('Safestore.configure() [DISCONNECTED]');
       }
     },
 
@@ -250,6 +226,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
 
       // mrhTODO: note dropbox connect calls hookIt() if it has a token - for sync?
       // mrhTODO: note dropbox connect skips auth if it has a token - enables it to remember connection across sessions
+      // mrhTODO: if storing Authorization consider security risk - e.g. another app could steal to access SAFE Drive?
       this.rs.setBackend('safestore');
       this.safestoreAuthorize(this.rs.apiKeys['safestore']);
     },
@@ -260,15 +237,6 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       }
     },
 
-    ////////// mrhTODO PORTING TO Wireclient.lrequrest / XMLHttpResponse
-    //
-    // mrhTODO code in progress: Promise based REST auth and request handling
-
-    //mrhTODO current status:
-    //- authorize seems to work, but once it has stored a token I end up in a mess
-    //  with various things failing so I think I to console: localStorage.clear()
-    //- I do also sometimes get an exception ??? about options.special?
-    //- Maybe also temporarily disable saving the token (so it always goes to auth?)
     safestoreAuthorize: function (appApiKeys) {
       var self = this;
 
@@ -297,10 +265,11 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       // POST
       return RS.WireClient.request.call(this, 'POST', options.url, options).then(function (xhr) {    
         // Launcher responses
-        // 401 - Unauthorized
+        // 401 - Unauthorised
         // 400 - Fields are missing
         if (xhr && (xhr.status === 400 || xhr.status == 401) ) {
-          return Promise.resolve({statusCode: xhr.status});
+          RS.log('Safestore Authorisation Failed');
+//mrhTODO causes error:          return Promise.reject({statusCode: xhr.status});
         } else {
           var response = JSON.parse(xhr.responseText);
           // The encrypted symmetric key received as base64 string is converted to Uint8Array
@@ -325,11 +294,12 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
               symmetricNonceBase64: binary.to(symmetricNonce,'base64'),
             });
           
-          return Promise.resolve(xhr);
+//mrhTODO:          return Promise.resolve(xhr);
         }
       });
     },
     
+    // For reference see WireClient#get (wireclient.js)
     get: function (path, options) {
       RS.log('Safestore.get(' + path + ',...)' );
       var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
@@ -341,34 +311,61 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       }
     },
 
+    // put - create and/or update a file
+    //
+    // "The response MUST contain a strong etag header, with the document's
+    // new version (for instance a hash of its contents) as its value."
+    //  Spec: https://github.com/remotestorage/spec/blob/master/release/draft-dejong-remotestorage-07.txt#L295-L296
+    //  See WireClient#put and _request for details of what is returned
+    //
+    //
+    // mrhTODO bug: if the file exists (ie put is doing an update), contentType is not updated 
+    // mrhTODO      because it can only be set by _createFile (SAFE NFS API: POST)
+    // mrhTODO      FIX: when API stable, best may be to store contentType in the file not as metadata
+    // mrhTODO           when API stable, best may be to store contentType in the file not as metadata
+    
     put: function (path, body, contentType, options) {
       RS.log('Safestore.put(' + path + ',...)' );
       var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
 
+      // putDone - handle PUT response codes, optionally decodes metadata from JSON format response
       var self = this;
       function putDone(response) {
+        RS.log('Safestore.put putDone(' + response.responseText + ') for path: ' + path );
+
         if (response.status >= 200 && response.status < 300) {
-          var meta = JSON.parse(response.responseText);
-          var etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
-          return Promise.resolve({statusCode: 200, contentType: meta.mimeType, revision: etagWithoutQuotes});
-        } else if (response.status === 412) {
+          return self._getFileInfo(fullPath).then( function (fileInfo){
+
+            var etagWithoutQuotes;
+            if ( fileInfo.ETag === 'string') {
+              etagWithoutQuotes = fileInfo.ETag.substring(1, fileInfo.ETag.length-1);
+            }
+            
+            return Promise.resolve({statusCode: 200, 'contentType': contentType, revision: etagWithoutQuotes});
+          });
+        } else if (response.status === 412) {   // Precondition failed
           return Promise.resolve({statusCode: 412, revision: 'conflict'});
         } else {
-          return Promise.reject("PUT failed with status " + response.status + " (" + response.responseText + ")");
+          return Promise.reject(new Error("PUT failed with status " + response.status + " (" + response.responseText + ")"));
         }
       }
-      return self._getFileId(fullPath).then(function (id) {
-        if (id) {
+      return self._getFileInfo(fullPath).then(function (fileInfo) {
+        if (fileInfo) {
           if (options && (options.ifNoneMatch === '*')) {
-            return putDone({ status: 412 });
+            return putDone({ status: 412 });    // Precondition failed
           }
-          return self._updateFile(id, fullPath, body, contentType, options).then(putDone);
+          return self._updateFile(fullPath, body, contentType, options).then(putDone);
         } else {
           return self._createFile(fullPath, body, contentType, options).then(putDone);
         }
       });
     },
 
+    // mrhTODO: delete bug - when the last file or folder in a folder is deleted that folder 
+    // mrhTODO:       must no longer appear in listings of the parent folder, and so should
+    // mrhTODO:       be deleted from the SAFE NFS drive, and so on for its parent folder as 
+    // mrhTODO:       needed. This is not done currently.
+    //
     'delete': function (path, options) {
       RS.log('Safestore.delete(' + path + ',...)' );
       var fullPath = RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
@@ -377,66 +374,64 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       var self = this;
       
       
-      return self._getFileId(fullPath).then(function (id) {
-        if (!id) {
+      return self._getFileInfo(fullPath).then(function (fileInfo) {
+        if (!fileInfo) {
           // File doesn't exist. Ignore.
           return Promise.resolve({statusCode: 200});
         }
 
- 
-        return self._getMeta(id).then(function (meta) {
-          var etagWithoutQuotes;
-          if ((typeof meta === 'object') && (typeof meta.etag === 'string')) {
-            etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
-          }
-          if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
-            return {statusCode: 412, revision: etagWithoutQuotes};
-          }
+        var etagWithoutQuotes;
+        if (fileInfo.ETag === 'string') {
+          etagWithoutQuotes = fileInfo.ETag.substring(1, fileInfo.ETag.length-1);
+        }
+        if (options && options.ifMatch && (options.ifMatch !== etagWithoutQuotes)) {
+          return {statusCode: 412, revision: etagWithoutQuotes};
+        }
 
-          // BEGIN SAFE CODE //
-          var fullUrl = self.launcherUrl + '/nfs/file/' + encodeURIComponent(fullPath) + '/' + self.isPathShared;
-          // mrhTODO I'm not sure what header/content-type needed for encrypted data
-          // mrhTODO Should CT denote the type that is encrypted, or say it's encrypted?
-          var options = {
-            url: fullUrl,
-            headers: {
-              'Content-Type': contentType
-            },
-            body: encryptedData
-          };
+        var NFStype = ( fullPath.substr(-1)==='/' ? '/nfs/directory/' : '/nfs/file/' );
+          
+        var fullUrl = self.launcherUrl + NFStype + encodeURIComponent(fullPath) + '/' + self.isPathShared;
 
-          RS.log('Safestore.delete calling _request( POST, ' + options.url + ', ...)' );
-          return _request('DELETE', options.url, options).then(function (response) {
-            if (response.status === 200 || response.status === 204) {
-              return {statusCode: 200};
-            } else {
-              return Promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
-            }
-          });
-          // END SAFE CODE //
+        var options = {
+          url: fullUrl,
+          headers: {
+          },
+        };
+
+        RS.log('Safestore.delete calling _request( POST, ' + options.url + ', ...)' );
+        return self._request('DELETE', options.url, options).then(function (response) {
+          if (response.status === 200 || response.status === 204) {
+            return Promise.resolve({statusCode: 200});
+          } else {
+            return Promise.reject("Delete failed: " + response.status + " (" + response.responseText + ")");
+          }
         });
+
       });
     },
 
-    _updateFile: function (id, path, body, contentType, options) {
+    // mrhTODO contentType is ignored on update (to change it would require file delete and create before update)
+    _updateFile: function (path, body, contentType, options) {
       RS.log('Safestore._updateFile(' + path + ',...)' );
       var self = this;
 
       // Encrypt the file content using the symmetricKey and symmetricNonce
       var encryptedData = self.nacl.crypto_secretbox_easy(body, self.symmetricNonce, self.symmetricKey);
       encryptedData = binary.to(encryptedData,'base64');
-      
+
+      /* mrhTODO GoogleDrive only I think...
       if ((!contentType.match(/charset=/)) &&
           (encryptedData instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(encryptedData))) {
         contentType += '; charset=binary';
       }
-
+*/
+      
       // STORE/UPDATE FILE CONTENT (PUT) (https://maidsafe.readme.io/docs/nfs-update-file-content)
       var queryParams = 'offset=0';
       var queryParams = self.nacl.crypto_secretbox_easy(queryParams, self.symmetricNonce, self.symmetricKey);
       queryParams = binary.to(queryParams,'base64');
       
-      var urlPUT = self.launcherUrl + '/nfs/file/' + encodeURIComponent(path) + '/' + self.isPathShared + '?' + queryParams;
+      var urlPUT = self.launcherUrl + '/nfs/file/' + encodeURIComponent(path) + '/' + self.isPathShared;//mrhTODO + '?' + queryParams;
 
       // mrhTODO I'm not sure what header/content-type needed for encrypted data
       // mrhTODO Should CT denote the type that is encrypted, or say it's encrypted?
@@ -450,7 +445,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
 
       // mrhTODO googledrive does two PUTs, one initiates resumable tx, the second sends data - review when streaming API avail
       return self._request('PUT', optionsPUT.url, optionsPUT).then(function (response) {
-        // self._shareIfNeeded(path);  // mrhTODO what's this?
+        // self._shareIfNeeded(path);  // mrhTODO what's this? (was part of dropbox.js)
         return response;
       });
     },
@@ -460,41 +455,37 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       var self = this;
       
       // Ensure path exists by recursively calling create on parent folder
-      return self._getParentId(path).then(function (parentId) {
-        var fileName = baseName(path);
-        /*var metadata = {
-          title: metaTitleFromFileName(fileName),
-          mimeType: contentType,
-          parents: [{
-            kind: "drive#fileLink",
-            id: parentId
-          }]
-        };*/
+      return self._makeParentPath(path).then(function (parentPath) {
         
         // Encrypt the file content using the symmetricKey and symmetricNonce
         var encryptedData = self.nacl.crypto_secretbox_easy(body, self.symmetricNonce, self.symmetricKey);
         encryptedData = binary.to(encryptedData,'base64');
         
-        if ((!contentType.match(/charset=/)) &&
+/* mrhTODO GoogleDrive only I think...
+         if ((!contentType.match(/charset=/)) &&
             (encryptedData instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(encryptedData))) {
           contentType += '; charset=binary';
         }
-
+*/
+        var fileMetadata = {
+            mimetype:   contentType,    // WireClient.put provides a mime type which we store as metadata for get
+        };
+        
         // CREATE FILE (POST) (https://maidsafe.readme.io/docs/nfsfile)
         var urlPOST = self.launcherUrl + '/nfs/file/';
 
         var payloadPOST = {
-            filePath:             path,
-//          isPrivate:            this.isPrivate, // mrhTODO is this needed
-            metadata:             "",
-            isVersioned:          false,
-            isPathShared:         self.isPathShared,
+            filePath:       path,
+//          isPrivate:      this.isPrivate, // mrhTODO usage to be clarified
+            //metadata:       JSON.stringify(fileMetadata), mrhTODO: bug - with POST causes 400 from SAFE API
+            isVersioned:    false,
+            isPathShared:   self.isPathShared,
         };
 
         var optionsPOST = {
             url: urlPOST,
             headers: {
-              'Content-Type': 'text/plain',
+              'Content-Type': 'text/plain', // For POST - not related to contentType (file)
             },
             body: binary.to(self.nacl.crypto_secretbox_easy(JSON.stringify(payloadPOST), self.symmetricNonce, self.symmetricKey),'base64'),
           };
@@ -504,7 +495,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
         var queryParams = self.nacl.crypto_secretbox_easy(queryParams, self.symmetricNonce, self.symmetricKey);
         queryParams = binary.to(queryParams,'base64');
         
-        var urlPUT = self.launcherUrl + '/nfs/file/' + encodeURIComponent(path) + '/' + self.isPathShared + '?' + queryParams;
+        var urlPUT = self.launcherUrl + '/nfs/file/' + encodeURIComponent(path) + '/' + self.isPathShared;//mrhTODO + '?' + queryParams;
 
         // mrhTODO I'm not sure what header/content-type needed for encrypted data
         // mrhTODO Should CT denote the type that is encrypted, or say it's encrypted?
@@ -518,19 +509,21 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
         
         return self._request('POST', optionsPOST.url, optionsPOST).then(function (response) {
           // self._shareIfNeeded(path);  // mrhTODO what's this?
-          if (response.status !== 200){ //xyz
-            return response;
+
+          if (response.status !== 200){
+            return Promise.reject( {statusCode: reponse.status} );
           }
           else {
-            return self._request('PUT', optionsPUT.url, optionsPUT).then(function (response) {
-              // self._shareIfNeeded(path);  // mrhTODO what's this?
-              return response;
+            return self._request('PUT', optionsPUT.url, optionsPUT).then(function(response){
+              RS.log("DEBUG _createFile() response.responseText: ", response.responseText);
+              return Promise.resolve(response);
             });
           }
         });
       });
     },
 
+    // For reference see WireClient#get (wireclient.js)
     _getFile: function (path, options) {
       RS.log('Safestore._getFile(' + path + ', ...)' );
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
@@ -541,57 +534,84 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       var queryParams = self.nacl.crypto_secretbox_easy(queryParams, self.symmetricNonce, self.symmetricKey);
       queryParams = binary.to(queryParams,'base64');
 
-      var url = self.launcherUrl + '/nfs/file/' + encodeURIComponent(path) + '/' + self.isPathShared + '?' + queryParams;
+      var url = self.launcherUrl + '/nfs/file/' + encodeURIComponent(path) + '/' + self.isPathShared;//mrhTODO + '?' + queryParams;
 
-      // Check if file exists. Creates parent directory if that doesn't exist.
-      return self._getFileId(path).then(function (id) {
-        return self._getMeta(id).then(function (meta) {
-          var etagWithoutQuotes;
-          if (typeof(meta) === 'object' && typeof(meta.etag) === 'string') {
-            etagWithoutQuotes = meta.etag.substring(1, meta.etag.length-1);
-          }
+      // Check if file exists. Creates parent folder if that doesn't exist.
+      return self._getFileInfo(path).then(function (fileInfo) {
+        var etagWithoutQuotes;
+        if (fileInfo && typeof(fileInfo.ETag) === 'string') {
+          etagWithoutQuotes = fileInfo.ETag.substring(1, fileInfo.ETag.length-1);
+        }
 
-          if (options && options.ifNoneMatch && (etagWithoutQuotes === options.ifNoneMatch)) {
-            return Promise.resolve({statusCode: 304});
-          }
+        // Request is only for changed file, so if eTag matches return "304 Not Modified"
+        if (options && options.ifNoneMatch && (etagWithoutQuotes === options.ifNoneMatch)) {
+          return Promise.resolve({statusCode: 304});
+        }
           
-          return self._request('GET', url, {}).then(function (response) {
-            var status = response.statusCode;
-            var meta, body, mime, rev;
-            if (status !== 200) {
-              return Promise.resolve({statusCode: status});
-            }
+        return self._request('GET', url, {}).then(function (response) {
+          var body;
+          var status = response.status;
 
-            // Decrypt the file content
-            body = new binary.from(response.responseText, 'base64');
-            body = self.nacl.crypto_secretbox_open_easy(new Uint8Array(body), self.symmetricNonce, self.symmetricKey);
-            body = binary.to(body,'utf8');
+          if (status === 400 || status === 401) {
+            return Promise.resolve({statusCode: status});
+          }
+
+          // Decrypt the file content
+          body = new binary.from(response.responseText, 'base64');
+          body = self.nacl.crypto_secretbox_open_easy(new Uint8Array(body), self.symmetricNonce, self.symmetricKey);
+          body = binary.to(body,'utf8');
+          
+          /* SAFE NFS API file-metadata - disabled for now:
+          var fileMetadata = response.getResponseHeader('file-metadata');
+          if (fileMetadata && fileMetadata.length() > 0){
+            fileMetadata = JSON.parse(fileMetadata);
+          }
+          RS.log('..file-metadata: ' + fileMetadata);
+          */
             
-            if (meta.mimeType.match(/^application\/json/)) {
+          var retResponse = {
+            statusCode: status, 
+            body: body, 
+            revision: etagWithoutQuotes,
+          };
+
+          if (fileInfo){
+            retResponse.contentType = fileInfo.mimetype;
+          
+            // mrhTODO: This is intended to parse remotestorage JSON format objects, so when saving those
+            // mrhTODO: it may be necessary to set memeType in the saved file-metadata
+            if (retResponse.contentType.match(/^application\/json/)) {
               try {
-                body = JSON.parse(body);
+                retResponse.body = JSON.parse(body);
               } catch(e) {}
-            }
-            // mrhTODO dropbox version has statusCode: status
-            return Promise.resolve({statusCode: 200, body: body, contentType: meta.mimeType, revision: etagWithoutQuotes});
-          });
+            }            
+          }
+         
+          return Promise.resolve( retResponse );
         });
       });
     },
     
-    // Obtain directory listing. Creates parent directory if it doesn't exist
+    // _getFolder - obtain folder listing and create parent folder(s) if absent
+    //
+    // For reference see WireClient#get (wireclient.js) summarised as follows:
+    // - parse JSON (spec example: https://github.com/remotestorage/spec/blob/master/release/draft-dejong-remotestorage-07.txt#L223-L235)
+    // - return a map of item names to item object mapping values for "Etag:", "Content-Type:" and "Content-Length:"
+    // - NOTE: dropbox.js only provides etag, safestore.js provides etag and Content-Length but not Content-Type
+    // - NOTE: safestore.js etag values are faked (ie not provided by launcher) but functionally adequate
+      
     _getFolder: function (path, options) {
       RS.log('Safestore._getFolder(' + path + ', ...)' );
       var self = this;
 
-      // Check if directory exists. Create parent directory if it doesn't exist
-      return self._getFileId(path).then(function (id) {
+      // Check if folder exists. Create parent folder if parent doesn't exist
+      return self._getFileInfo(path).then(function (fileInfo) {
         var query, fields, data, i, etagWithoutQuotes, itemsMap;
-        if (! id) {
+        if (!fileInfo) {
           return Promise.resolve({statusCode: 404});
         }
 
-        // Directory exists so obtain listing
+        // folder exists so obtain listing
         var url = self.launcherUrl + '/nfs/directory/' + encodeURIComponent(path) + '/' + self.isPathShared;
         var revCache = self._revCache;
 
@@ -604,14 +624,6 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
           if (sCode === 401) { // Unuathorized
             return Promise.resolve({statusCode: sCode});
           }
-          // Handle directory doesn't exist as if it is empty:
-          /* if (sCode === 400) { // Fields are missing
-            // mrhTODO Pretend response until:
-            // mrhTODO 1) I fudge access to a directory that doesn't exist yet (here)
-            // mrhTODO 2) I have code that can creates directories/files (POST)
-            sCode = 200; // Pretend ok
-            resp.responseText ='{ "info": { "name": "myfavoritedrinks", "isPrivate": true, "isVersioned": true, "createdOn": 0, "modifiedOn": 0, "metadata": "" }, "files": [],            "subDirectories": [] }';
-          }*/
 
           var listing, listingFiles, listingSubdirectories, body, mime, rev;
           try{
@@ -623,35 +635,64 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
             return Promise.reject(e);
           }
           
-          // ??? review dropbox revCache and maybe retrofit in this safestore.js
-          // mrhTODO: rev = self._revCache.get(path);
-
           if (body.info) {
+            var folderETagWithoutQuotes = path + '-' + body.info.createdOn + '-' + body.info.modifiedOn;
+            RS.log('..folder eTag: ' + folderETagWithoutQuotes);
+            
+            var folderMetadata;
+            if ( body.info.metadata ){ 
+              folderMetadata = body.info.metadata; 
+              RS.log('..folder metadata: ' + folderMetadata);
+            }
+            
             listingFiles = body.files.reduce(function (m, item) {
               var itemPath = path + item.name;
+              
+              
+              var metadata; // mrhTODO compact next few lines
+              if ( item.metadata.length > 0 ) {
+                metadata = JSON.parse(metadata);
+              }
+              else {
+                metadata = { mimetype: 'application/json' };  // mrhTODO should never be used
+              }
 
-              // Add file Id to cache
-              self._fileIdCache.set(itemPath , itemPath );
-              RS.log('_fileIdCache.set(' + itemPath  + ', ' + itemPath + ')' );
+              // mrhTODO: Until SAFE API supports eTags make them manually:
+              // mrhTODO: any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3
+              var eTagWithQuotes = '"' + itemPath + '-' + item.createdOn + '-' + item.modifiedOn + '-' + item.size + '"';
+                
+              // Add file info to cache
+              var fileInfo = {      // Structure members must pass sync.js#corruptServerItemsMap()
+                path: itemPath,
+                ETag: eTagWithQuotes,
+                'Content-Length': item.size,
+                mimetype: metadata.mimetype,
+                // mimetype: ??? // mrhTODO: "Content-Type" not yet supported
+                //                  mrhTODO: (would need to be stored alongside file content and set/updated by _createFile/_updateFile)
+              };
 
-              // mrhTODO versioning not supported in Launcher (API v0.5)
-              // mrhTODO so we'll let the cache create an ETag for both files and directories
-//            m[item.name] = { ETag: revCache.get(path+item.name) }; //mrhTODO was item.rev but SAFE API doesn't have this (at least not yet)
-              m[item.name] =  { ETag: itemPath}//mrhTODO dummy value to create element while above disabled
+              self._fileInfoCache.set(itemPath, fileInfo);
+              RS.log('_fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
+              m[item.name] =  fileInfo;              
               return m;
             }, {});
 
             listingSubdirectories = body.subDirectories.reduce(function (m, item) {
               var itemPath = path + item.name + '/';
               
-              // Add file Id to cache
-              self._fileIdCache.set(itemPath , itemPath );
-              RS.log('_fileIdCache.set(' + itemPath  + ', ' + itemPath + ')' );
-
-              // mrhTODO versioning not supported in Launcher (API v0.5)
-              // mrhTODO so we'll let the cache create an ETag for both files and directories
-//              m[itemName] = { ETag: revCache.get(path+itemName) };
-              m[item.name + '/'] = { ETag: itemPath};    //mrhTODO dummy value to create element while above disabled
+              // mrhTODO until SAFE API supports eTags make them manually:
+              // Create eTag manually (any ASCII char except double quote: https://tools.ietf.org/html/rfc7232#section-2.3)
+              var eTagWithQuotes =  '"' + itemPath + '-' + item.createdOn + '-' + item.modifiedOn + '"';
+                
+              // Add file info to cache
+              var fileInfo = { 
+                path: itemPath,
+                etag: eTagWithQuotes,
+              };
+              
+              self._fileInfoCache.set(itemPath, fileInfo);
+              RS.log('_fileInfoCache.set(' + itemPath  + ', ' + fileInfo + ')' );
+              m[item.name + '/'] = fileInfo;
               return m;
             }, {});
 
@@ -660,58 +701,44 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
             for (var attrname in listingFiles) {            listing[attrname] = listingFiles[attrname]; }
             for (var attrname in listingSubdirectories) {   listing[attrname] = listingSubdirectories[attrname]; }          
           }
-/* mrhTODO: googledrive.js returns itemsMap rather than listing, and includes additional information which I might
- * mrhTODO: revisit (e.g. eTag when SAFE API includes versioning. Also review Content-Type / -Length. 
-          itemsMap = {};
-          if ( isDirectory ) {
-            self._fileIdCache.set(path + data.items[i].title + '/', data.items[i].id);
-            itemsMap[data.items[i].title + '/'] = {
-              ETag: etagWithoutQuotes
-            };
-          }
-          else {
-            self._fileIdCache.set(path + data.items[i].title, data.items[i].id);
-            itemsMap[data.items[i].title] = {
-              ETag: etagWithoutQuotes,
-              'Content-Type': data.items[i].mimeType,
-              'Content-Length': data.items[i].fileSize
-            };
-          }
-*/
+
           RS.log('Safestore._getFolder(' + path + ', ...) RESULT: lising contains ' + JSON.stringify( listing ) );
-          return Promise.resolve({statusCode: sCode, body: listing, contentType: RS_DIR_MIME_TYPE, revision: undefined /*rev (mrhTODO above)*/});
+          return Promise.resolve({statusCode: sCode, body: listing, meta: folderMetadata, contentType: RS_DIR_MIME_TYPE, revision: folderETagWithoutQuotes });
         });
       });
     },
 
-    _getParentId: function (path) {
-      RS.log('Safestore._getParentId(' + path + ')' );
-      var foldername = parentPath(path);
+    // Ensure path exists by recursively calling _createFolder if the parent doesn't exist
+    _makeParentPath: function (path) {
+      RS.log('Safestore._makeParentPath(' + path + ')' );
+      var parentFolder = parentPath(path);
       var self = this;
-      return self._getFileId(foldername).then(function (parentId) {
-        if (parentId) {
-          return Promise.resolve(parentId);
+      return self._getFileInfo(parentFolder).then(function (parentInfo) {
+        if (parentInfo) {
+          return Promise.resolve(parentInfo);
         } else {
-          return self._createFolder(foldername);
+          return self._createFolder(parentFolder);
         }
       });
     },
 
-    _createFolder: function (path) {
-      RS.log('Safestore._createFolder(' + path + ')' );
+    _createFolder: function (folderPath) {
+      RS.log('Safestore._createFolder(' + folderPath + ')' );
       var self = this;
-      return self._getParentId(path).then(function (parentPath) {
+
+      // Recursively create parent folders
+      return self._makeParentPath(folderPath).then(function (parentInfo) {
+        // Parent exists so create 'folderPath'
         
-        var result;
-//        var needsMetadata = options && (options.ifMatch || (options.ifNoneMatch === '*'));
-        var needsMetadata = false;//mrhTODO the above line is not in the googledrive.js version (must be from my port of dropbox.js)
+//mrhTODO var needsMetadata = options && (options.ifMatch || (options.ifNoneMatch === '*'));
+//mrhTODO the above line is not in the googledrive.js version (must be from my port of dropbox.js)
 
         
-        // CREATE DIRECTORY (POST) (https://maidsafe.readme.io/docs/nfsdirectory)
+        // CREATE folder (POST) (https://maidsafe.readme.io/docs/nfsfolder)
         var urlPOST = self.launcherUrl + '/nfs/directory/';
 
         var payloadPOST = {
-            dirPath:             path,
+            dirPath:             folderPath,
 //            isPrivate:            this.isPrivate, // mrhTODO is this needed
             metadata:             "",
             isVersioned:          false,
@@ -725,105 +752,64 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
             },
             body: binary.to(self.nacl.crypto_secretbox_easy(JSON.stringify(payloadPOST), self.symmetricNonce, self.symmetricKey),'base64'),
           };
-
-// mrhTODO: ??? I might just add in the dropbox cache stuff so from here on I'm leaving 
-// mrhTODO: it in, but above this line I probably left it out, so will need to retrofit from 
-// mrhTODO: dropbox version
-        
-        // mrhTODO disableCache - SAFE NFS lacks match support (lobbying for it to be added)
-        if (!disableCache){
-          if (needsMetadata) {// see above (needsMetadata set to false)
-            result = this._getMetadata(path).then(function (metadata) {
-              if (options && (options.ifNoneMatch === '*') && metadata) {
-                // if !!metadata === true, the file exists
-                return Promise.resolve({
-                  statusCode: 412,
-                  revision: metadata.rev
-                });
-              }
-    
-              if (options && options.ifMatch && metadata && (metadata.rev !== options.ifMatch)) {
-                return Promise.resolve({
-                  statusCode: 412,
-                  revision: metadata.rev
-                });
-              }
-    
-              return self._uploadSimple(uploadParams);
-            });
-          } else {
-            result = self._uploadSimple(uploadParams);
-          }
-        }
             
         return self._request('POST', optionsPOST.url, optionsPOST).then(function (response) {
-//          self._shareIfNeeded(path);  // mrhTODO what's this? (was part of dropbox.js)
-          return Promise.resolve(path);
+//          self._shareIfNeeded(folderPath);  // mrhTODO what's this? (was part of dropbox.js)
+          return Promise.resolve(response);
         });
       });
     },
 
 
-    // _getFileId() - check if file exists and create parent directory if necessary
+    // _getFileInfo() - check if file exists and create parent folder if necessary
     //
-    // Checks if the id (full path) is in the _fileIdCache(), and if not found
-    // obtains a directory listing to check if it exists, and if it does inserts the
-    // the id into _fileIdCache. If the parent directory does not exist it will
-    // be created as a side effect, so this function can be used to check if a file
-    // exists before creating or updating its content.
+    // Checks if the file/folder (fullPath) is in the _fileInfoCache(), and if not found
+    // obtains a parent folder listing to check if it exists. Causes update of _fileInfoCache
+    // with contents of its parent folder. 
+    //
+    // If the parent folder does not exist it will be created as a side effect, so this
+    // function can be used to check if a file exists before creating or updating its content.
     //
     // RETURNS
     //  Promise() with
-    //      file id (full path) if the file exists
-    //      empty id, if the file doesn't exist
+    //      if a file    { path: string, ETag: string, 'Content-Length': number }
+    //      if a folder  { path: string, ETag: string }
+    //      if root '/'  { path: '/' ETag }
+    //      or {} if file/folder doesn't exist
+    //  See _getFolder() to confirm the above content values (as it creates fileInfo objects)
+    // 
     // Note:
-    //      if the parent directory doesn't exist it will be created
+    //      if the parent folder doesn't exist it will be created
     //
-    _getFileId: function (path) {
-      RS.log('Safestore._getFileId(' + path + ')' );
+    _getFileInfo: function (fullPath) {
+      RS.log('Safestore._getFileInfo(' + fullPath + ')' );
 
       var self = this;
-      var id;
-      if (path === '/') {
-        // "root" is a special alias for the fileId of the root folder
-        return Promise.resolve('root');
-      } else if ((id = this._fileIdCache.get(path))) {
-        // If cached we believe it exists
-        return Promise.resolve(id);
+      var info;
+
+      if (fullPath === '/' ) {
+        return Promise.resolve({ path: fullPath, ETag: 'root' }); // Dummy fileInfo to stop at "root"
+      } else if ((info = this._fileInfoCache.get(fullPath))) {
+        return Promise.resolve(info);               // If cached we believe it exists
       }
+      
       // Not yet cached or doesn't exist
-      // Load parent directory listing to propagate / update cache.
-      return self._getFolder(parentPath(path)).then(function () {
+      // Load parent folder listing update _fileInfoCache.
+      return self._getFolder(parentPath(fullPath)).then(function () {
         
-        id = self._fileIdCache.get(path);
-        if (!id) {
+        info = self._fileInfoCache.get(fullPath);
+        if (!info) {
           // Doesn't exist yet so...
-          if (path.substr(-1) === '/') {    // Directory, so create it
-            return self._createFolder(path).then(function () {
-              return self._getFileId(path);
+          if (fullPath.substr(-1) === '/') {    // folder, so create it
+            return self._createFolder(fullPath).then(function () {
+              return self._getFileInfo(fullPath);
             });
-        } else {                            // File, so we flag doesn't exist (no id)
-            return Promise.resolve();
           }
-          return;
         }
-        return Promise.resolve(id);         // File exists, so pass back id
+        
+        return Promise.resolve(info);         // Pass back info (null if doesn't exist)
       });
-    },
-
-    // mrhTODO check launcher API and usefulness here
-    _getMeta: function (id) {
-      // mrhTODO implement this?
-      //return Promise.resolve({ETag: id}); // mrhTODO: Dummy metadata - since test app doesn't use this yet
-      return Promise.reject('Safestore._getMeta('+id+') mrhTODO: _Safestore._getMeta() NOT IMPMEMENTED');
-
-      return this._request('GET', BASE_URL + '/drive/v2/files/' + id, {}).then(function (response) {
-        if (response.status === 200) {
-          return Promise.resolve(JSON.parse(response.responseText));
-        } else {
-          return Promise.reject("request (getting metadata for " + id + ") failed with status: " + response.status);
-        }
-      });
+      
     },
 
     _request: function (method, url, options) {
@@ -832,11 +818,12 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       if (! options.headers) { options.headers = {}; }
       options.headers['Authorization'] = 'Bearer ' + this.token;
       return RS.WireClient.request.call(this, method, url, options).then(function (xhr) {
+        RS.log('Safestore._request() response: xhr.status is ' + xhr.status );
         // Launcher responses
         // 401 - Unauthorized
         // 400 - Fields are missing
         if (xhr && (xhr.status === 400 || xhr.status == 401) ) {
-          return Promise.resolve({statusCode: xhr.status});
+          return Promise.reject({statusCode: xhr.status});
         } else {
           return Promise.resolve(xhr);
         }

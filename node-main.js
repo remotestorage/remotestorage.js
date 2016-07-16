@@ -2,6 +2,8 @@ global.XMLHttpRequest = require('xhr2');
 global.tv4 = require('tv4');
 global.Promise = require('bluebird');
 global.WebFinger = require('webfinger.js');
+//mrhTODO add in dependencies for safestore
+global.nacl = require('tweetnacl');
 require('./lib/Math.uuid.js');
 
 global.RemoteStorage = require('./src/remotestorage.js');
