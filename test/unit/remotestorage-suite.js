@@ -173,6 +173,54 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
       },
 
       {
+        desc: "#setApiKeys initializes the configured backend when it's not initialized yet",
+        run: function(env, test) {
+          RemoteStorage.Dropbox = {
+            _rs_init: function(remoteStorage) {
+              test.done();
+            }
+          }
+
+          env.rs.setApiKeys('dropbox', { appKey: 'testkey' });
+        }
+      },
+
+      {
+        desc: "#setApiKeys reinitializes the configured backend when the key changed",
+        run: function(env, test) {
+          env.rs.dropbox = {
+            clientId: 'old key'
+          };
+
+          RemoteStorage.Dropbox = {
+            _rs_init: function(remoteStorage) {
+              test.done();
+            }
+          }
+
+          env.rs.setApiKeys('dropbox', { appKey: 'new key' });
+        }
+      },
+
+      {
+        desc: "#setApiKeys does not reinitialize the configured backend when key didn't change",
+        run: function(env, test) {
+          env.rs.dropbox = {
+            clientId: 'old key'
+          };
+
+          RemoteStorage.Dropbox = {
+            _rs_init: function(remoteStorage) {
+              test.fail('Backend got reinitialized again although the key did not change.');
+            }
+          }
+
+          env.rs.setApiKeys('dropbox', { appKey: 'old key' });
+          test.done();
+        }
+      },
+
+      {
         desc: "#connect throws unauthorized when userAddress doesn't contain an @",
         run: function(env, test) {
           env.rs.on('error', function(e) {

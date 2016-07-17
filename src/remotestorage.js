@@ -519,6 +519,13 @@
     setApiKeys: function (type, keys) {
       if (keys) {
         this.apiKeys[type] = keys;
+        if (type === 'dropbox' && (typeof this.dropbox === 'undefined' ||
+                                   this.dropbox.clientId !== keys.appKey)) {
+          RemoteStorage.Dropbox._rs_init(this);
+        } else if (type === 'googledrive' && (typeof this.googledrive === 'undefined' ||
+                                              this.googledrive.clientId !== keys.clientId)) {
+          RemoteStorage.GoogleDrive._rs_init(this);
+        }
       } else {
         delete this.apiKeys[type];
       }
