@@ -164,9 +164,11 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
           };
           QuotaExceededError.prototype = new Error();
 
-          localStorage.setItem = function(key, value) {
-            throw new QuotaExceededError('DOM exception 22');
-          }
+          global.localStorage = {
+            setItem: function(key, value) {
+              throw new QuotaExceededError('DOM exception 22');
+            }
+          };
 
           test.assert(RemoteStorage.util.localStorageAvailable(), false);
         }
