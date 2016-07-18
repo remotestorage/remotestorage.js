@@ -1,5 +1,7 @@
 (function (global) {
 
+  var hasLocalStorage;
+
   // wrapper to implement defer() functionality
   Promise.defer = function () {
     var resolve, reject;
@@ -193,7 +195,9 @@
 
     this.apiKeys = {};
 
-    if (this.localStorageAvailable()) {
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
+
+    if (hasLocalStorage) {
       try {
         this.apiKeys = JSON.parse(localStorage.getItem('remotestorage:api-keys')) || {};
       } catch(exc) {
@@ -445,7 +449,7 @@
 
     setBackend: function (what) {
       this.backend = what;
-      if (this.localStorageAvailable()) {
+      if (hasLocalStorage) {
         if (what) {
           localStorage.setItem('remotestorage:backend', what);
         } else {
@@ -529,7 +533,7 @@
       } else {
         delete this.apiKeys[type];
       }
-      if (this.localStorageAvailable()) {
+      if (hasLocalStorage) {
         localStorage.setItem('remotestorage:api-keys', JSON.stringify(this.apiKeys));
       }
     },
@@ -767,18 +771,6 @@
         }
       }
       return false;
-    },
-
-    localStorageAvailable: function () {
-      if (!('localStorage' in global)) { return false }
-
-      try {
-        global.localStorage.setItem('rs-check', 1);
-        global.localStorage.removeItem('rs-check');
-        return true;
-      } catch(error) {
-        return false;
-      }
     },
 
     /**

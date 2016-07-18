@@ -24,6 +24,13 @@ define([], function() {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
 
+      require('src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
+
       RemoteStorage.prototype.remote = {
         connected: false
       };

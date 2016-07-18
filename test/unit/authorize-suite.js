@@ -10,11 +10,19 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
     setup: function(env, test) {
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
+
       require('./src/eventhandling');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
+      }
+
+      require('src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
       }
 
       require('./src/authorize');

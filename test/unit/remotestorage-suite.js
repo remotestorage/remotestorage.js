@@ -74,12 +74,21 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
       } else {
         global.rs_rs = RemoteStorage;
       }
+
       require('./src/eventhandling.js');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+
+      require('src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
+
       RemoteStorage.Discover = function(userAddress) {
         var pending = Promise.defer();
         if (userAddress === "someone@somewhere") {
@@ -246,6 +255,8 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
             }
           };
 
+          env.rs = new RemoteStorage();
+
           env.rs.connect('user@ho.st');
           test.assert(localStorage.getItem('remotestorage:backend'), 'remotestorage');
         }
@@ -284,23 +295,6 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
           });
 
           env.rs.disconnect();
-        }
-      },
-
-      {
-        desc: "#localStorageAvailable is false when saving items throws an error",
-        run: function(env, test) {
-          var QuotaExceededError = function(message) {
-            this.name = 'QuotaExceededError';
-            this.message = message;
-          };
-          QuotaExceededError.prototype = new Error();
-
-          localStorage.setItem = function(key, value) {
-            throw new QuotaExceededError('DOM exception 22');
-          }
-
-          test.assert(env.rs.localStorageAvailable(), false);
         }
       },
 

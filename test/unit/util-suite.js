@@ -153,7 +153,27 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
           var md5sum = RemoteStorage.util.md5sum('this is a very happy string');
           test.assert(md5sum, '962e9575a9eba5bfedbad85cf125da20');
         }
+      },
+
+      {
+        desc: "localStorageAvailable is false when saving items throws an error",
+        run: function(env, test) {
+          var QuotaExceededError = function(message) {
+            this.name = 'QuotaExceededError';
+            this.message = message;
+          };
+          QuotaExceededError.prototype = new Error();
+
+          global.localStorage = {
+            setItem: function(key, value) {
+              throw new QuotaExceededError('DOM exception 22');
+            }
+          };
+
+          test.assert(RemoteStorage.util.localStorageAvailable(), false);
+        }
       }
+
     ]
   });
 

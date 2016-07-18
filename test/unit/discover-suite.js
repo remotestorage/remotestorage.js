@@ -15,6 +15,14 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
       global.RemoteStorage = function() {};
       RemoteStorage.log = function() {};
       global.RemoteStorage.prototype.localStorageAvailable = function() { return false; };
+
+      require('src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
+
       require('./src/discover');
       if (global.rs_util) {
         RemoteStorage.discover = global.rs_discover;
