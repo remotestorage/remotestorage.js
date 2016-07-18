@@ -157,7 +157,7 @@
   };
 
   RemoteStorage.Widget._rs_init = function (remoteStorage) {
-    hasLocalStorage = remoteStorage.localStorageAvailable();
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
     if (! remoteStorage.widget) {
       remoteStorage.widget = new RemoteStorage.Widget(remoteStorage);
     }

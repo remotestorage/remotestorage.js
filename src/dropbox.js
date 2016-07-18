@@ -885,7 +885,7 @@
   }
 
   RS.Dropbox._rs_init = function (rs) {
-    hasLocalStorage = rs.localStorageAvailable();
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
     if ( rs.apiKeys.dropbox ) {
       rs.dropbox = new RS.Dropbox(rs);
     }

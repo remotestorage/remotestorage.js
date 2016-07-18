@@ -73,7 +73,7 @@
   };
 
   RemoteStorage.Discover._rs_init = function (remoteStorage) {
-    hasLocalStorage = remoteStorage.localStorageAvailable();
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
     if (hasLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}

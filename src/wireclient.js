@@ -556,7 +556,7 @@
 
 
   RS.WireClient._rs_init = function (remoteStorage) {
-    hasLocalStorage = remoteStorage.localStorageAvailable();
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
     remoteStorage.remote = new RS.WireClient(remoteStorage);
     this.online = true;
   };
