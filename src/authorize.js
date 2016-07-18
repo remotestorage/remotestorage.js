@@ -9,7 +9,7 @@
     hash = location.substring(hashPos+1);
     // if hash is not of the form #key=val&key=val, it's probably not for us
     if (hash.indexOf('=') === -1) { return; }
-    return hash.split('&').reduce(function (m, kvs) {
+    return hash.split('&').reduce(function (params, kvs) {
       var kv = kvs.split('=');
 
       if (kv[0] === 'state' && kv[1].match(/rsDiscovery/)) {
@@ -19,20 +19,20 @@
                                     .split('&')[0]
                                     .split('=')[1];
 
-        m['rsDiscovery'] = JSON.parse(atob(encodedData));
+        params['rsDiscovery'] = JSON.parse(atob(encodedData));
 
         // remove rsDiscovery param
         stateValue = stateValue.slice(stateValue.indexOf('rsDiscovery='),
                                       encodedData.length + 12);
 
         if (stateValue.length > 0) {
-          m['state'] = state;
+          params['state'] = state;
         }
       } else {
-        m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+        params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
       }
 
-      return m;
+      return params;
     }, {});
   }
 
