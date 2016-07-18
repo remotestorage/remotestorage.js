@@ -53,25 +53,25 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
         desc: "getLatest",
         run: function (env, test) {
           var getLatest = env.ims._getInternals().getLatest;
-          var localNode = {
+          var localNode = rs_util.Node.fromJSON({
             path:   '/a/b',
             local:  { body: 'b', contentType: 'c' },
             common: { foo: 'bar' },
             push:   { foo: 'bar' },
             remote: { foo: 'bar' }
-          },
-          commonNode = {
+          }),
+          commonNode = rs_util.Node.fromJSON({
             path:   '/a/b',
             common: { body: 'b', contentType: 'c' },
             local:  { foo: 'bar' },
             push:   { foo: 'bar' },
             remote: { foo: 'bar' }
-          },
-          legacyNode = {
+          }),
+          legacyNode = rs_util.Node.fromJSON({
             path:        '/foo',
             body:        'asdf',
             contentType: 'text/plain'
-          };
+          });
 
           test.assertAnd(getLatest(undefined), undefined);
           test.assertAnd(getLatest({local: { revision: 1, timestamp: 1 }}), undefined);
@@ -90,14 +90,14 @@ define(['bluebird', 'requirejs'], function (Promise, requirejs) {
         run: function (env, test) {
           var makeNode = env.ims._getInternals().makeNode;
 
-          test.assertAnd(makeNode('/a/b/'), {
+          test.assertAnd(makeNode('/a/b/'), rs_util.Node.fromJSON({
             path: '/a/b/',
             common: { itemsMap: {} }
-          });
-          test.assert(makeNode('/a/b'), {
+          }));
+          test.assert(makeNode('/a/b'), rs_util.Node.fromJSON({
             path: '/a/b',
             common: { }
-          });
+          }));
         }
       },
 

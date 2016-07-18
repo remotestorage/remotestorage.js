@@ -5,6 +5,8 @@
    * localStorage caching adapter. Used when no IndexedDB available.
    **/
 
+  var Node = RemoteStorage.util.Node;
+
   var NODES_PREFIX = "remotestorage:cache:nodes:";
   var CHANGES_PREFIX = "remotestorage:cache:changes:";
 
@@ -42,17 +44,21 @@
     return key.substr(0, NODES_PREFIX.length) === NODES_PREFIX;
   }
 
+  function parseNode(json) {
+    try {
+      return Node.fromJSON(json);
+    } catch(e) {
+      return undefined;
+    }
+  }
+
   RemoteStorage.LocalStorage.prototype = {
 
     getNodes: function (paths) {
       var nodes = {};
 
       for(var i = 0, len = paths.length; i < len; i++) {
-        try {
-          nodes[paths[i]] = JSON.parse(localStorage[NODES_PREFIX+paths[i]]);
-        } catch(e) {
-          nodes[paths[i]] = undefined;
-        }
+        nodes[paths[i]] = parseNode(localStorage[NODES_PREFIX+paths[i]]);
       }
 
       return Promise.resolve(nodes);
@@ -72,11 +78,7 @@
 
       for(var i = 0, len = localStorage.length; i < len; i++) {
         if (isNodeKey(localStorage.key(i))) {
-          try {
-            node = this.migrate(JSON.parse(localStorage[localStorage.key(i)]));
-          } catch(e) {
-            node = undefined;
-          }
+          node = this.migrate(parseNode(localStorage[localStorage.key(i)]));
           if (node) {
             cb(node);
           }

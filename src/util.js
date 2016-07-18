@@ -34,7 +34,96 @@
     }
   }
 
+  function NodeVersion(path) {
+    if (RemoteStorage.util.isFolder(path)) {
+      this.itemsMap = {};
+    }
+    this._body = undefined;
+  }
+
+  Object.defineProperty(NodeVersion.prototype, "body", {
+    get: function() {
+      if (typeof(this._body) !== "string") {
+        throw new Error("Tried to access nonexistent body.");
+      }
+      return this._body;
+    },
+    set: function(val) {
+      this._body = val;
+    }
+  });
+
+  Object.defineProperty(NodeVersion.prototype, "exists", {
+    get: function() {
+      return (typeof(this._body) === "string");
+    },
+    set: function(val) {
+      if (typeof(val) !== "bool") {
+        throw new Error("Tried to set node.exists to non-bool value.");
+      }
+
+      if (val) {
+        this._body = "";
+      } else {
+        this._body = false;
+      }
+    }
+  });
+
+  function Node(path) {
+    if (typeof(path) !== "string") {
+      throw new Error("Path must be string: ", path);
+    }
+
+    this.path = path;
+    this._versions = {};
+    this.common = {};
+  }
+
+  Node.fromJSON = function(json) {
+    if (typeof(json) === "string") {
+      json = JSON.parse(json);
+    }
+
+    var rv = new Node(json.path);
+    for (var key in json) {
+      rv[key] = json[key];
+    }
+    return rv;
+  };
+
+  function nodeVersionProperty(name) {
+    Object.defineProperty(Node.prototype, name, {
+        get: function() {
+          var rv = this._versions[name];
+          this[name] = rv;
+          return this._versions[name];
+        },
+        set: function(val) {
+          if (typeof(val) === "object") {
+            this._versions[name] = new NodeVersion(this.path);
+            for (key in val) {
+              this._versions[name][key] = val[key];
+            }
+          } else if (typeof(val) === "undefined") {
+            delete this._versions[name];
+          } else if (val instanceof NodeVersion) {
+            this._versions[name] = val;
+          } else {
+            throw new Error("Unknown value: ", val);
+          }
+        }
+    });
+  }
+
+  nodeVersionProperty("common");
+  nodeVersionProperty("local");
+  nodeVersionProperty("push");
+  nodeVersionProperty("remote");
+
+
   RemoteStorage.util = {
+    Node: Node,
     getEventEmitter: function () {
       var object = {};
       var args = Array.prototype.slice.call(arguments);

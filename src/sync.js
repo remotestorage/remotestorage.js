@@ -4,6 +4,7 @@
       backgroundSyncInterval = 60000,
       isBackground = false;
 
+  var Node = RemoteStorage.util.Node;
   var isFolder = RemoteStorage.util.isFolder;
   var isDocument = RemoteStorage.util.isDocument;
   var equal = RemoteStorage.util.equal;
@@ -174,7 +175,7 @@
       return ((typeof(rev) !== 'object') ||
               (Array.isArray(rev)) ||
               (rev.revision && typeof(rev.revision) !== 'string') ||
-              (rev.body && typeof(rev.body) !== 'string' && typeof(rev.body) !== 'object') ||
+              (rev.exists && typeof(rev.body) !== 'string' && typeof(rev.body) !== 'object') ||
               (rev.contentType && typeof(rev.contentType) !== 'string') ||
               (rev.contentLength && typeof(rev.contentLength) !== 'number') ||
               (rev.timestamp && typeof(rev.timestamp) !== 'number') ||
@@ -244,10 +245,10 @@
       if (this.inConflict(node)) {
         return true;
       }
-      if (node.common && node.common.itemsMap === undefined && node.common.body === undefined) {
+      if (node.common && node.common.itemsMap === undefined && !node.common.exists) {
         return true;
       }
-      if (node.remote && node.remote.itemsMap === undefined && node.remote.body === undefined) {
+      if (node.remote && node.remote.itemsMap === undefined && !node.remote.exists) {
         return true;
       }
       return false;
@@ -473,12 +474,12 @@
               delete node.remote;
             }
           } else {
-            if (node.remote.body !== undefined) {
+            if (!node.remote.exists) {
               var change = {
                 origin:   'remote',
                 path:     node.path,
-                oldValue: (node.common.body === false ? undefined : node.common.body),
-                newValue: (node.remote.body === false ? undefined : node.remote.body),
+                oldValue: (!node.common.exists ? undefined : node.common.body),
+                newValue: (!node.remote.exists ? undefined : node.remote.body),
                 oldContentType: node.common.contentType,
                 newContentType: node.remote.contentType
               };
@@ -486,7 +487,7 @@
                 this.local._emitChange(change);
               }
 
-              if (!node.remote.body) { // no remote, so delete/don't create
+              if (!node.remote.exists) { // no remote, so delete/don't create
                 return;
               }
 
@@ -496,7 +497,7 @@
           }
         }
       } else {
-        if (node.common.body) {
+        if (node.common.exists) {
           this.local._emitChange({
             origin:   'remote',
             path:     node.path,
@@ -558,16 +559,13 @@
             } else {
               cachingStrategy = this.caching.checkPath(nodePath);
               if (cachingStrategy === 'ALL') {
-                changedNodes[nodePath] = {
-                  path: nodePath,
-                  common: {
-                    timestamp: this.now()
-                  },
-                  remote: {
-                    revision: meta[nodePath].ETag,
-                    timestamp: this.now()
-                  }
+                var changedNode = new Node(nodePath);
+                changedNode.common = { timestamp: this.now() };
+                changedNode.remote = {
+                  revision: meta[nodePath].ETag,
+                  timestamp: this.now()
                 };
+                changedNodes[nodePath] = changedNode;
               }
             }
 
@@ -694,10 +692,7 @@
 
         if (typeof(node) !== 'object'  || node.path !== path ||
             typeof(node.common) !== 'object') {
-          node = {
-            path: path,
-            common: {}
-          };
+          node = new Node(path);
           nodes[path] = node;
         }
 
