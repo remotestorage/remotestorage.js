@@ -23,7 +23,7 @@
 
         // remove rsDiscovery param
         stateValue = stateValue.slice(stateValue.indexOf('rsDiscovery='),
-                                      encodedData.lenth + 12);
+                                      encodedData.length + 12);
 
         if (stateValue.length > 0) {
           m['state'] = state;
