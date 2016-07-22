@@ -9,7 +9,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
   function setup(env, test) {
     global.RemoteStorage = function () {
-      RemoteStorage.eventHandling(this, 'error');
+      RemoteStorage.eventHandling(this, 'error', 'connected');
     };
     RemoteStorage.log = function () {};
     RemoteStorage.prototype = {
@@ -27,6 +27,14 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       RemoteStorage.util = global.rs_util;
     } else {
       global.rs_util = RemoteStorage.util;
+    }
+
+    require('./src/baseclient');
+    require('./src/baseclient/types');
+    if (global.rs_baseclient_with_types) {
+      RemoteStorage.BaseClient = global.rs_baseclient_with_types;
+    } else {
+      global.rs_baseclient_with_types = RemoteStorage.BaseClient;
     }
 
     require('./src/eventhandling');
@@ -191,7 +199,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           var request = XMLHttpRequest.instances.shift();
           test.assertTypeAnd(request, 'object');
           test.assert(request._open,
-                      ['GET', 'https://api-content.dropbox.com/1/files/auto/foo/bar', true]);
+                      ['GET', 'https://api-content.dropbox.com/1/files/auto/remotestorage/foo/bar', true]);
         }
       },
 
@@ -209,7 +217,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
         run: function (env, test) {
           env.connectedClient.get('/foo//baz');
           var request = XMLHttpRequest.instances.shift();
-          test.assert(request._open[1], 'https://api-content.dropbox.com/1/files/auto/foo/baz');
+          test.assert(request._open[1], 'https://api-content.dropbox.com/1/files/auto/remotestorage/foo/baz');
         }
       },
 
@@ -351,7 +359,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
             req.responseText = JSON.stringify({
-              path: '/foo/bar',
+              path: '/remotestorage/foo/bar',
               rev: 'bar'
             });
             req._onload();
@@ -424,7 +432,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
             req.responseText = JSON.stringify({
-              path: '/foo/bar'
+              path: '/remotestorage/foo/bar'
             });
             req._onload();
           }, 100);
@@ -440,7 +448,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           waitlist.push(function (req) {
             req.status = 200;
             req.responseText = JSON.stringify({
-              path: '/foo/bar_2'
+              path: '/remotestorage/foo/bar_2'
             });
             setTimeout(function () {
               req._onload();
@@ -449,7 +457,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
 
           // delete
           waitlist.push(function (req) {
-            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Ffoo%2Fbar_2', true]);
+            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Fremotestorage%2Ffoo%2Fbar_2', true]);
           });
 
           // metadata
@@ -536,7 +544,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           setTimeout(function () {
             var req = XMLHttpRequest.instances.shift();
             req.status = 200;
-            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Ffoo%2Fbar', true]);
+            test.assertAnd(req._open, ['POST', 'https://api.dropbox.com/1/fileops/delete?root=auto&path=%2Fremotestorage%2Ffoo%2Fbar', true]);
             req._onload();
           }, 100);
         }
@@ -675,7 +683,7 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
       },
 */
       {
-        desc: "dropbox Adapter sets and removes EventHandlers",
+        desc: "Dropbox adapter sets and removes EventHandlers",
         run: function (env, test){
           function allHandlers() {
             var handlers = rs._handlers;
@@ -697,6 +705,33 @@ define(['bluebird', 'requirejs', 'test/behavior/backend', 'test/helpers/mocks'],
           test.assertAnd(allHandlers(), 0, "after cleanup found "+allHandlers()+" handlers") ;
 
           test.done();
+        }
+      },
+
+      {
+        desc: "Dropbox adapter hooks itself into sync cycle when activated",
+        run: function (env, test){
+          var fetchDeltaCalled = false;
+
+          env.rs.apiKeys= { dropbox: {appKey: 'testkey'} };
+          env.rs.backend = 'dropbox';
+
+          env.rs.sync = {
+            sync: function() {
+              test.assert(fetchDeltaCalled, true);
+            }
+          }
+
+          RemoteStorage.Dropbox._rs_init(env.rs);
+
+          env.rs.dropbox.fetchDelta = function() {
+            fetchDeltaCalled = true;
+            return Promise.resolve();
+          };
+
+          env.rs._emit('connected');
+
+          env.rs.sync.sync();
         }
       }
     ]

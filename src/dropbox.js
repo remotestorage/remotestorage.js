@@ -41,7 +41,28 @@
   var hasLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
   var SETTINGS_KEY = 'remotestorage:dropbox';
-  var cleanPath = RS.WireClient.cleanPath;
+  var PATH_PREFIX = '/remotestorage';
+
+  /**
+   * Function: getDropboxPath(path)
+   *
+   * Map a local path to a path in DropBox.
+   */
+  var getDropboxPath = function (path) {
+    return RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
+  };
+
+  var encodeQuery = function (obj) {
+    var pairs = [];
+
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]));
+      }
+    }
+
+    return pairs.join('&');
+  };
 
   /**
    * class: LowerCaseCache
@@ -277,7 +298,7 @@
      */
     _getFolder: function (path, options) {
       // FIXME simplify promise handling
-      var url = 'https://api.dropbox.com/1/metadata/auto' + cleanPath(path);
+      var url = 'https://api.dropbox.com/1/metadata/auto' + getDropboxPath(path);
       var revCache = this._revCache;
       var self = this;
 
@@ -321,7 +342,7 @@
      */
     get: function (path, options) {
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
-      var url = 'https://api-content.dropbox.com/1/files/auto' + cleanPath(path);
+      var url = 'https://api-content.dropbox.com/1/files/auto' + getDropboxPath(path);
       var self = this;
 
       var savedRev = this._revCache.get(path);
@@ -525,7 +546,7 @@
      */
     share: function (path) {
       var self = this;
-      var url = 'https://api.dropbox.com/1/media/auto/' + cleanPath(path);
+      var url = 'https://api.dropbox.com/1/media/auto' + getDropboxPath(path);
 
       return this._request('POST', url, {}).then(function (response) {
         if (response.status !== 200) {
@@ -614,8 +635,14 @@
 
       var args = Array.prototype.slice.call(arguments);
       var self = this;
+      var body = { path_prefix: PATH_PREFIX };
+
+      if (self._deltaCursor) {
+        body.cursor = self._deltaCursor;
+      }
+
       return self._request('POST', 'https://api.dropbox.com/1/delta', {
-        body: self._deltaCursor ? ('cursor=' + encodeURIComponent(self._deltaCursor)) : '',
+        body: encodeQuery(body),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -654,9 +681,8 @@
         }
 
         //updating revCache
-        RemoteStorage.log("Delta : ", delta.entries);
         delta.entries.forEach(function (entry) {
-          var path = entry[0];
+          var path = entry[0].substr(PATH_PREFIX.length);
           var rev;
           if (!entry[1]){
             rev = null;
@@ -704,7 +730,7 @@
     _getMetadata: function (path, options) {
       var self = this;
       var cached = this._metadataCache[path];
-      var url = 'https://api.dropbox.com/1/metadata/auto' + cleanPath(path);
+      var url = 'https://api.dropbox.com/1/metadata/auto' + getDropboxPath(path);
       url += '?list=' + ((options && options.list) ? 'true' : 'false');
       if (cached && cached.hash) {
         url += '&hash=' + encodeURIComponent(cached.hash);
@@ -742,7 +768,7 @@
      */
     _uploadSimple: function (params) {
       var self = this;
-      var url = 'https://api-content.dropbox.com/1/files_put/auto' + cleanPath(params.path) + '?';
+      var url = 'https://api-content.dropbox.com/1/files_put/auto' + getDropboxPath(params.path) + '?';
 
       if (params && params.ifMatch) {
         url += "parent_rev=" + encodeURIComponent(params.ifMatch);
@@ -767,7 +793,7 @@
         }
 
         // Conflict happened. Delete the copy created by dropbox
-        if (response.path !== params.path) {
+        if (response.path !== getDropboxPath(params.path)) {
           var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
           self._request('POST', deleteUrl, {});
 
@@ -801,7 +827,7 @@
      */
     _deleteSimple: function (path) {
       var self = this;
-      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(path);
+      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(getDropboxPath(path));
 
       return self._request('POST', url, {}).then(function (resp) {
         if (resp.status === 406) {
@@ -811,7 +837,7 @@
           return Promise.reject(new Error("Cannot delete '" + path + "': too many files involved"));
         }
 
-        if (resp.status === 200) {
+        if (resp.status === 200 || resp.status === 404) {
           self._revCache.delete(path);
           delete self._itemRefs[path];
         }
@@ -825,18 +851,18 @@
 
   function hookSync(rs) {
     if (rs._dropboxOrigSync) { return; } // already hooked
-    rs._dropboxOrigSync = rs.sync.bind(rs);
-    rs.sync = function () {
+    rs._dropboxOrigSync = rs.sync.sync.bind(rs.sync);
+    rs.sync.sync = function () {
       return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
         then(rs._dropboxOrigSync, function (err) {
-          rs._emit('error', new rs.SyncError(err));
+          rs._emit('error', new RemoteStorage.SyncError(err));
         });
-    };
+    }.bind(rs);
   }
 
   function unHookSync(rs) {
     if (! rs._dropboxOrigSync) { return; } // not hooked
-    rs.sync = rs._dropboxOrigSync;
+    rs.sync.sync = rs._dropboxOrigSync;
     delete rs._dropboxOrigSync;
   }
 
@@ -874,6 +900,14 @@
     hookRemote(rs);
     if (rs.sync) {
       hookSync(rs);
+    } else {
+      // when sync is not available yet, we wait for the remote to be connected,
+      // at which point sync should be available as well
+      rs.on('connected', function() {
+        if (rs.sync) {
+          hookSync(rs);
+        }
+      });
     }
     hookGetItemURL(rs);
   }
