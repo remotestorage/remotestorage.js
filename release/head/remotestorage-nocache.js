@@ -1,4 +1,4 @@
-/** remotestorage.js 0.12.1, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.12.2-pre, http://remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/bluebird.js **/
 /**
@@ -3706,7 +3706,7 @@ module.exports = ret;
       if (n > 0) {
         this._cleanups.forEach(function (cleanup) {
           var cleanupResult = cleanup(this);
-          if (typeof(cleanup) === 'object' && typeof(cleanup.then) === 'function') {
+          if (typeof(cleanupResult) === 'object' && typeof(cleanupResult.then) === 'function') {
             cleanupResult.then(oneDone);
           } else {
             oneDone();
@@ -3793,6 +3793,13 @@ module.exports = ret;
     setApiKeys: function (type, keys) {
       if (keys) {
         this.apiKeys[type] = keys;
+        if (type === 'dropbox' && (typeof this.dropbox === 'undefined' ||
+                                   this.dropbox.clientId !== keys.appKey)) {
+          RemoteStorage.Dropbox._rs_init(this);
+        } else if (type === 'googledrive' && (typeof this.googledrive === 'undefined' ||
+                                              this.googledrive.clientId !== keys.clientId)) {
+          RemoteStorage.GoogleDrive._rs_init(this);
+        }
       } else {
         delete this.apiKeys[type];
       }
@@ -3883,6 +3890,7 @@ module.exports = ret;
     },
 
     _collectCleanupFunctions: function () {
+      this._cleanups = [];
       for (var i=0; i < this.features.length; i++) {
         var cleanup = this.features[i].cleanup;
         if (typeof(cleanup) === 'function') {
@@ -4266,7 +4274,7 @@ module.exports = ret;
     },
 
     isDocument: function (path) {
-      return path.substr(-1) !== '/';
+      return !RemoteStorage.util.isFolder(path);
     },
 
     baseName: function (path) {
@@ -4617,7 +4625,7 @@ module.exports = ret;
     _emit: function (eventName) {
       this._validateEvent(eventName);
       var args = Array.prototype.slice.call(arguments, 1);
-      this._handlers[eventName].forEach(function (handler) {
+      this._handlers[eventName].slice().forEach(function (handler) {
         handler.apply(this, args);
       });
     },
@@ -5695,7 +5703,7 @@ if (typeof XMLHttpRequest === 'undefined') {
     document.location = redirectUri;
   };
 
-  RemoteStorage.Authorize = function (authURL, scope, redirectUri, clientId) {
+  RemoteStorage.Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) {
     RemoteStorage.log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
 
     var url = authURL, hashPos = redirectUri.indexOf('#');
@@ -5703,7 +5711,7 @@ if (typeof XMLHttpRequest === 'undefined') {
     url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
-    if (hashPos !== -1) {
+    if (hashPos !== - 1 && hashPos+1 !== redirectUri.length) {
       url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos+1));
     }
     url += '&response_type=token';
@@ -5718,11 +5726,6 @@ if (typeof XMLHttpRequest === 'undefined') {
           remoteStorage.remote.configure({
             token: authResult.access_token
           });
-
-          // TODO
-          // sync doesn't start until after reload
-          // possibly missing some initialization step?
-          global.location.reload();
         })
         .then(null, function(error) {
           console.error(error);
@@ -5745,7 +5748,7 @@ if (typeof XMLHttpRequest === 'undefined') {
 
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
-    RemoteStorage.Authorize(authURL, scope, redirectUri, clientId);
+    RemoteStorage.Authorize(this, authURL, scope, redirectUri, clientId);
   };
 
   /**
@@ -6135,8 +6138,10 @@ if (typeof XMLHttpRequest === 'undefined') {
 
     setDictionary: function (newDictionary) {
       dictionary = newDictionary;
-    }
+    },
 
+    _rs_init: function() {
+    }
   };
 })();
 
@@ -8881,7 +8886,7 @@ Math.uuid = function (len, radix) {
       if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
-        Promise.reject("Not a folder: " + path);
+        return Promise.reject("Not a folder: " + path);
       }
       return this.storage.get(this.makePath(path), maxAge).then(
         function (r) {
@@ -9869,7 +9874,7 @@ Math.uuid = function (len, radix) {
 
     connect: function () {
       this.rs.setBackend('googledrive');
-      RS.Authorize(AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
+      RS.Authorize(this.rs, AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
     },
 
     stopWaitingForToken: function () {
@@ -10238,7 +10243,28 @@ Math.uuid = function (len, radix) {
   var hasLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
   var SETTINGS_KEY = 'remotestorage:dropbox';
-  var cleanPath = RS.WireClient.cleanPath;
+  var PATH_PREFIX = '/remotestorage';
+
+  /**
+   * Function: getDropboxPath(path)
+   *
+   * Map a local path to a path in DropBox.
+   */
+  var getDropboxPath = function (path) {
+    return RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
+  };
+
+  var encodeQuery = function (obj) {
+    var pairs = [];
+
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]));
+      }
+    }
+
+    return pairs.join('&');
+  };
 
   /**
    * class: LowerCaseCache
@@ -10409,7 +10435,7 @@ Math.uuid = function (len, radix) {
       if (this.token){
         hookIt(this.rs);
       } else {
-        RS.Authorize(AUTH_URL, '', String(RS.Authorize.getLocation()), this.clientId);
+        RS.Authorize(this.rs, AUTH_URL, '', String(RS.Authorize.getLocation()), this.clientId);
       }
     },
 
@@ -10474,7 +10500,7 @@ Math.uuid = function (len, radix) {
      */
     _getFolder: function (path, options) {
       // FIXME simplify promise handling
-      var url = 'https://api.dropbox.com/1/metadata/auto' + cleanPath(path);
+      var url = 'https://api.dropbox.com/1/metadata/auto' + getDropboxPath(path);
       var revCache = this._revCache;
       var self = this;
 
@@ -10518,7 +10544,7 @@ Math.uuid = function (len, radix) {
      */
     get: function (path, options) {
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
-      var url = 'https://api-content.dropbox.com/1/files/auto' + cleanPath(path);
+      var url = 'https://api-content.dropbox.com/1/files/auto' + getDropboxPath(path);
       var self = this;
 
       var savedRev = this._revCache.get(path);
@@ -10722,7 +10748,7 @@ Math.uuid = function (len, radix) {
      */
     share: function (path) {
       var self = this;
-      var url = 'https://api.dropbox.com/1/media/auto/' + cleanPath(path);
+      var url = 'https://api.dropbox.com/1/media/auto' + getDropboxPath(path);
 
       return this._request('POST', url, {}).then(function (response) {
         if (response.status !== 200) {
@@ -10811,8 +10837,14 @@ Math.uuid = function (len, radix) {
 
       var args = Array.prototype.slice.call(arguments);
       var self = this;
+      var body = { path_prefix: PATH_PREFIX };
+
+      if (self._deltaCursor) {
+        body.cursor = self._deltaCursor;
+      }
+
       return self._request('POST', 'https://api.dropbox.com/1/delta', {
-        body: self._deltaCursor ? ('cursor=' + encodeURIComponent(self._deltaCursor)) : '',
+        body: encodeQuery(body),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -10851,9 +10883,8 @@ Math.uuid = function (len, radix) {
         }
 
         //updating revCache
-        RemoteStorage.log("Delta : ", delta.entries);
         delta.entries.forEach(function (entry) {
-          var path = entry[0];
+          var path = entry[0].substr(PATH_PREFIX.length);
           var rev;
           if (!entry[1]){
             rev = null;
@@ -10901,7 +10932,7 @@ Math.uuid = function (len, radix) {
     _getMetadata: function (path, options) {
       var self = this;
       var cached = this._metadataCache[path];
-      var url = 'https://api.dropbox.com/1/metadata/auto' + cleanPath(path);
+      var url = 'https://api.dropbox.com/1/metadata/auto' + getDropboxPath(path);
       url += '?list=' + ((options && options.list) ? 'true' : 'false');
       if (cached && cached.hash) {
         url += '&hash=' + encodeURIComponent(cached.hash);
@@ -10939,7 +10970,7 @@ Math.uuid = function (len, radix) {
      */
     _uploadSimple: function (params) {
       var self = this;
-      var url = 'https://api-content.dropbox.com/1/files_put/auto' + cleanPath(params.path) + '?';
+      var url = 'https://api-content.dropbox.com/1/files_put/auto' + getDropboxPath(params.path) + '?';
 
       if (params && params.ifMatch) {
         url += "parent_rev=" + encodeURIComponent(params.ifMatch);
@@ -10964,7 +10995,7 @@ Math.uuid = function (len, radix) {
         }
 
         // Conflict happened. Delete the copy created by dropbox
-        if (response.path !== params.path) {
+        if (response.path !== getDropboxPath(params.path)) {
           var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
           self._request('POST', deleteUrl, {});
 
@@ -10998,7 +11029,7 @@ Math.uuid = function (len, radix) {
      */
     _deleteSimple: function (path) {
       var self = this;
-      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(path);
+      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(getDropboxPath(path));
 
       return self._request('POST', url, {}).then(function (resp) {
         if (resp.status === 406) {
@@ -11008,7 +11039,7 @@ Math.uuid = function (len, radix) {
           return Promise.reject(new Error("Cannot delete '" + path + "': too many files involved"));
         }
 
-        if (resp.status === 200) {
+        if (resp.status === 200 || resp.status === 404) {
           self._revCache.delete(path);
           delete self._itemRefs[path];
         }
@@ -11022,18 +11053,18 @@ Math.uuid = function (len, radix) {
 
   function hookSync(rs) {
     if (rs._dropboxOrigSync) { return; } // already hooked
-    rs._dropboxOrigSync = rs.sync.bind(rs);
-    rs.sync = function () {
+    rs._dropboxOrigSync = rs.sync.sync.bind(rs.sync);
+    rs.sync.sync = function () {
       return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
         then(rs._dropboxOrigSync, function (err) {
-          rs._emit('error', new rs.SyncError(err));
+          rs._emit('error', new RemoteStorage.SyncError(err));
         });
-    };
+    }.bind(rs);
   }
 
   function unHookSync(rs) {
     if (! rs._dropboxOrigSync) { return; } // not hooked
-    rs.sync = rs._dropboxOrigSync;
+    rs.sync.sync = rs._dropboxOrigSync;
     delete rs._dropboxOrigSync;
   }
 
@@ -11071,6 +11102,14 @@ Math.uuid = function (len, radix) {
     hookRemote(rs);
     if (rs.sync) {
       hookSync(rs);
+    } else {
+      // when sync is not available yet, we wait for the remote to be connected,
+      // at which point sync should be available as well
+      rs.on('connected', function() {
+        if (rs.sync) {
+          hookSync(rs);
+        }
+      });
     }
     hookGetItemURL(rs);
   }
