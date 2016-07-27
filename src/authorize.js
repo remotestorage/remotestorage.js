@@ -26,7 +26,7 @@
                                       encodedData.length + 12);
 
         if (stateValue.length > 0) {
-          params['state'] = state;
+          params['state'] = stateValue;
         }
       } else {
         params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
