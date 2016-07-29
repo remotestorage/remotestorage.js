@@ -205,7 +205,8 @@
           authParamsUsed = true;
         }
         if (params.state) {
-          RemoteStorage.Authorize.setLocation('#'+params.state);
+          location = RemoteStorage.Authorize.getLocation();
+          RemoteStorage.Authorize.setLocation(location.href.split('#')[0]+'#'+params.state);
         }
       }
       if (!authParamsUsed) {

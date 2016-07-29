@@ -163,7 +163,7 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
           };
           storage._handlers['features-loaded'][0]();
 
-          test.assert(document.location.href, '#custom/path');
+          test.assert(document.location.href, 'http://foo/bar#custom/path');
         }
       },
 
