@@ -138,6 +138,44 @@ define(['requirejs', 'fs'], function(requirejs, fs, undefined) {
       },
 
       {
+        desc: "_rs_init extracts rsDiscovery data param for configuring the WireClient",
+        run: function(env, test) {
+          var storage = new RemoteStorage();
+
+          // mock the atob function, as it's not available in node
+          global.atob = function(param) {
+            return JSON.stringify({
+              userAddress: 'user@host.com',
+              href: 'https://storage.host.com',
+              storageApi: 'storage-api',
+              properties: {}
+            });
+          };
+
+          storage.remote = {
+            configure: function(settings) {
+              if (settings.token) {
+                test.assertAnd(settings.token, 'my-token');
+              } else {
+                test.assertAnd(settings.userAddress, 'user@host.com');
+                test.assertAnd(settings.href, 'https://storage.host.com');
+                test.assertAnd(settings.storageApi, 'storage-api');
+                test.assertAnd(settings.properties, {});
+              }
+            }
+          };
+
+          document.location.href = 'http://foo/bar#access_token=my-token&state=foo%3Dbar%26rsDiscovery%3Dencodeddata';
+          RemoteStorage.Authorize._rs_init(storage);
+
+          storage._handlers['features-loaded'][0]();
+
+          test.assertAnd(RemoteStorage.Authorize.getLocation().href, 'http://foo/bar#foo=bar');
+          test.done();
+        }
+      },
+
+      {
         desc: "the 'features-loaded' handler configures the WireClient if it sees an access token",
         run: function(env, test) {
           var storage = new RemoteStorage();
