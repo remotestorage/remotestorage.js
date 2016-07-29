@@ -22,8 +22,7 @@
         params['rsDiscovery'] = JSON.parse(atob(encodedData));
 
         // remove rsDiscovery param
-        stateValue = stateValue.slice(stateValue.indexOf('rsDiscovery='),
-                                      encodedData.length + 12);
+        stateValue = stateValue.replace(new RegExp('\&?rsDiscovery=' + encodedData), '');
 
         if (stateValue.length > 0) {
           params['state'] = stateValue;
