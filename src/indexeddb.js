@@ -144,79 +144,77 @@
     },
 
     getNodesFromDb: function (paths) {
-      var pending = Promise.defer();
-      var transaction = this.db.transaction(['nodes'], 'readonly');
-      var nodes = transaction.objectStore('nodes');
-      var retrievedNodes = {};
-      var startTime = new Date().getTime();
+      return new Promise(function(resolve, reject) {
+        var transaction = this.db.transaction(['nodes'], 'readonly');
+        var nodes = transaction.objectStore('nodes');
+        var retrievedNodes = {};
+        var startTime = new Date().getTime();
 
-      this.getsRunning++;
+        this.getsRunning++;
 
-      paths.map(function (path, i) {
-        nodes.get(path).onsuccess = function (evt) {
-          retrievedNodes[path] = evt.target.result;
-        };
-      });
+        paths.map(function (path, i) {
+          nodes.get(path).onsuccess = function (evt) {
+            retrievedNodes[path] = evt.target.result;
+          };
+        });
 
-      transaction.oncomplete = function () {
-        pending.resolve(retrievedNodes);
-        this.getsRunning--;
-      }.bind(this);
+        transaction.oncomplete = function () {
+          resolve(retrievedNodes);
+          this.getsRunning--;
+        }.bind(this);
 
-      transaction.onerror = transaction.onabort = function () {
-        pending.reject('get transaction error/abort');
-        this.getsRunning--;
-      }.bind(this);
-
-      return pending.promise;
+        transaction.onerror = transaction.onabort = function () {
+          reject('get transaction error/abort');
+          this.getsRunning--;
+        }.bind(this);
+      }.bind(this));
     },
 
     setNodesInDb: function (nodes) {
-      var pending = Promise.defer();
-      var transaction = this.db.transaction(['nodes'], 'readwrite');
-      var nodesStore = transaction.objectStore('nodes');
-      var startTime = new Date().getTime();
+      return new Promise(function(resolve, reject) {
+        var transaction = this.db.transaction(['nodes'], 'readwrite');
+        var nodesStore = transaction.objectStore('nodes');
+        var startTime = new Date().getTime();
 
-      this.putsRunning++;
+        this.putsRunning++;
 
-      RemoteStorage.log('[IndexedDB] Starting put', nodes, this.putsRunning);
+        RemoteStorage.log('[IndexedDB] Starting put', nodes, this.putsRunning);
 
-      for (var path in nodes) {
-        var node = nodes[path];
-        if(typeof(node) === 'object') {
-          try {
-            nodesStore.put(node);
-          } catch(e) {
-            RemoteStorage.log('[IndexedDB] Error while putting', node, e);
-            throw e;
-          }
-        } else {
-          try {
-            nodesStore.delete(path);
-          } catch(e) {
-            RemoteStorage.log('[IndexedDB] Error while removing', nodesStore, node, e);
-            throw e;
+        for (var path in nodes) {
+          var node = nodes[path];
+          if(typeof(node) === 'object') {
+            try {
+              nodesStore.put(node);
+            } catch(e) {
+              RemoteStorage.log('[IndexedDB] Error while putting', node, e);
+              throw e;
+            }
+          } else {
+            try {
+              nodesStore.delete(path);
+            } catch(e) {
+              RemoteStorage.log('[IndexedDB] Error while removing', nodesStore, node, e);
+              throw e;
+            }
           }
         }
-      }
 
-      transaction.oncomplete = function () {
-        this.putsRunning--;
-        RemoteStorage.log('[IndexedDB] Finished put', nodes, this.putsRunning, (new Date().getTime() - startTime)+'ms');
-        pending.resolve();
-      }.bind(this);
+        transaction.oncomplete = function () {
+          this.putsRunning--;
+          RemoteStorage.log('[IndexedDB] Finished put', nodes, this.putsRunning, (new Date().getTime() - startTime)+'ms');
+          resolve();
+        }.bind(this);
 
-      transaction.onerror = function () {
-        this.putsRunning--;
-        pending.reject('transaction error');
-      }.bind(this);
+        transaction.onerror = function () {
+          this.putsRunning--;
+          reject('transaction error');
+        }.bind(this);
 
-      transaction.onabort = function () {
-        pending.reject('transaction abort');
-        this.putsRunning--;
-      }.bind(this);
-
-      return pending.promise;
+        transaction.onabort = function () {
+          reject('transaction abort');
+          this.putsRunning--;
+        }.bind(this);
+      }.bind(this));
     },
 
     reset: function (callback) {
@@ -239,22 +237,21 @@
     },
 
     forAllNodes: function (cb) {
-      var pending = Promise.defer();
-      var transaction = this.db.transaction(['nodes'], 'readonly');
-      var cursorReq = transaction.objectStore('nodes').openCursor();
+      return new Promise(function(resolve) {
+        var transaction = this.db.transaction(['nodes'], 'readonly');
+        var cursorReq = transaction.objectStore('nodes').openCursor();
 
-      cursorReq.onsuccess = function (evt) {
-        var cursor = evt.target.result;
+        cursorReq.onsuccess = function (evt) {
+          var cursor = evt.target.result;
 
-        if (cursor) {
-          cb(this.migrate(cursor.value));
-          cursor.continue();
-        } else {
-          pending.resolve();
-        }
-      }.bind(this);
-
-      return pending.promise;
+          if (cursor) {
+            cb(this.migrate(cursor.value));
+            cursor.continue();
+          } else {
+            resolve();
+          }
+        }.bind(this);
+      }.bind(this));
     },
 
     closeDB: function () {
@@ -334,24 +331,20 @@
   };
 
   RS.IndexedDB._rs_init = function (remoteStorage) {
-    var pending = Promise.defer();
-
-    RS.IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
-      if (err) {
-        pending.reject(err);
-      } else {
-        DEFAULT_DB = db;
-        db.onerror = function () { remoteStorage._emit('error', err); };
-        pending.resolve();
-      }
+    return new Promise(function(resolve, reject) {
+      RS.IndexedDB.open(DEFAULT_DB_NAME, function (err, db) {
+        if (err) {
+          reject(err);
+        } else {
+          DEFAULT_DB = db;
+          db.onerror = function () { remoteStorage._emit('error', err); };
+          resolve();
+        }
+      });
     });
-
-    return pending.promise;
   };
 
   RS.IndexedDB._rs_supported = function () {
-    var pending = Promise.defer();
-
     global.indexedDB = global.indexedDB    || global.webkitIndexedDB ||
                        global.mozIndexedDB || global.oIndexedDB      ||
                        global.msIndexedDB;
@@ -366,39 +359,37 @@
       }
     }
 
-    if ('indexedDB' in global && !poorIndexedDbSupport) {
-      try {
-        var check = indexedDB.open("rs-check");
-        check.onerror = function (event) {
-          pending.reject();
-        };
-        check.onsuccess = function (event) {
-          check.result.close();
-          indexedDB.deleteDatabase("rs-check");
-          pending.resolve();
-        };
-      } catch(e) {
-        pending.reject();
+    return new Promise(function(resolve, reject) {
+      if ('indexedDB' in global && !poorIndexedDbSupport) {
+        try {
+          var check = indexedDB.open("rs-check");
+          check.onerror = function (event) {
+            reject();
+          };
+          check.onsuccess = function (event) {
+            check.result.close();
+            indexedDB.deleteDatabase("rs-check");
+            resolve();
+          };
+        } catch(e) {
+          reject();
+        }
+      } else {
+        reject();
       }
-    } else {
-      pending.reject();
-    }
-
-    return pending.promise;
+    });
   };
 
   RS.IndexedDB._rs_cleanup = function (remoteStorage) {
-    var pending = Promise.defer();
+    return new Promise(function(resolve) {
+      if (remoteStorage.local) {
+        remoteStorage.local.closeDB();
+      }
 
-    if (remoteStorage.local) {
-      remoteStorage.local.closeDB();
-    }
-
-    RS.IndexedDB.clean(DEFAULT_DB_NAME, function () {
-      pending.resolve();
+      RS.IndexedDB.clean(DEFAULT_DB_NAME, function () {
+        resolve();
+      });
     });
-
-    return pending.promise;
   };
 
 })(typeof(window) !== 'undefined' ? window : global);

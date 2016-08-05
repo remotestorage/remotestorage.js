@@ -41,35 +41,33 @@
       request_timeout: 5000
     });
 
-    var pending = Promise.defer();
+    return new Promise(function(resolve, reject) {
+      webFinger.lookup(userAddress, function (err, response) {
+        if (err) {
+          return reject(err.message);
+        } else if ((typeof response.idx.links.remotestorage !== 'object') ||
+                   (typeof response.idx.links.remotestorage.length !== 'number') ||
+                   (response.idx.links.remotestorage.length <= 0)) {
+          RemoteStorage.log("[Discover] WebFinger record for " + userAddress + " does not have remotestorage defined in the links section ", JSON.stringify(response.json));
+          return reject("WebFinger record for " + userAddress + " does not have remotestorage defined in the links section.");
+        }
 
-    webFinger.lookup(userAddress, function (err, response) {
-      if (err) {
-        return pending.reject(err.message);
-      } else if ((typeof response.idx.links.remotestorage !== 'object') ||
-                 (typeof response.idx.links.remotestorage.length !== 'number') ||
-                 (response.idx.links.remotestorage.length <= 0)) {
-        RemoteStorage.log("[Discover] WebFinger record for " + userAddress + " does not have remotestorage defined in the links section ", JSON.stringify(response.json));
-        return pending.reject("WebFinger record for " + userAddress + " does not have remotestorage defined in the links section.");
-      }
+        var rs = response.idx.links.remotestorage[0];
+        var authURL = rs.properties['http://tools.ietf.org/html/rfc6749#section-4.2'] ||
+                      rs.properties['auth-endpoint'];
+        var storageType = rs.properties['http://remotestorage.io/spec/version'] ||
+                          rs.type;
 
-      var rs = response.idx.links.remotestorage[0];
-      var authURL = rs.properties['http://tools.ietf.org/html/rfc6749#section-4.2'] ||
-                    rs.properties['auth-endpoint'];
-      var storageType = rs.properties['http://remotestorage.io/spec/version'] ||
-                        rs.type;
+        // cache fetched data
+        cachedInfo[userAddress] = { href: rs.href, storageType: storageType, authURL: authURL, properties: rs.properties };
 
-      // cache fetched data
-      cachedInfo[userAddress] = { href: rs.href, storageType: storageType, authURL: authURL, properties: rs.properties };
+        if (hasLocalStorage) {
+          localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
+        }
 
-      if (hasLocalStorage) {
-        localStorage[SETTINGS_KEY] = JSON.stringify({ cache: cachedInfo });
-      }
-
-      return pending.resolve(cachedInfo[userAddress]);
+        return resolve(cachedInfo[userAddress]);
+      });
     });
-
-    return pending.promise;
   };
 
   RemoteStorage.Discover._rs_init = function (remoteStorage) {
