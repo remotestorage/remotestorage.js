@@ -60,35 +60,34 @@
     },
 
     asyncMap: function (array, callback) {
-      var pending = Promise.defer();
-      var n = array.length, i = 0;
-      var results = [], errors = [];
+      return new Promise(function(resolve) {
+        var n = array.length, i = 0;
+        var results = [], errors = [];
 
-      function oneDone() {
-        i++;
-        if (i === n) {
-          pending.resolve(results, errors);
+        function oneDone() {
+          i++;
+          if (i === n) {
+            resolve(results, errors);
+          }
         }
-      }
 
-      array.forEach(function (item, index) {
-        var result;
-        try {
-          result = callback(item);
-        } catch(exc) {
-          oneDone();
-          errors[index] = exc;
-        }
-        if (typeof(result) === 'object' && typeof(result.then) === 'function') {
-          result.then(function (res) { results[index] = res; oneDone(); },
-                      function (error) { errors[index] = error; oneDone(); });
-        } else {
-          oneDone();
-          results[index] = result;
-        }
+        array.forEach(function (item, index) {
+          var result;
+          try {
+            result = callback(item);
+          } catch(exc) {
+            oneDone();
+            errors[index] = exc;
+          }
+          if (typeof(result) === 'object' && typeof(result.then) === 'function') {
+            result.then(function (res) { results[index] = res; oneDone(); },
+                        function (error) { errors[index] = error; oneDone(); });
+          } else {
+            oneDone();
+            results[index] = result;
+          }
+        });
       });
-
-      return pending.promise;
     },
 
     containingFolder: function (path) {

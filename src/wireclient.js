@@ -117,34 +117,34 @@
   }
 
   function getTextFromArrayBuffer(arrayBuffer, encoding) {
-    var pending = Promise.defer();
-    if (typeof Blob === 'undefined') {
-      var buffer = new Buffer(new Uint8Array(arrayBuffer));
-      pending.resolve(buffer.toString(encoding));
-    } else {
-      var blob;
-      global.BlobBuilder = global.BlobBuilder || global.WebKitBlobBuilder;
-      if (typeof global.BlobBuilder !== 'undefined') {
-        var bb = new global.BlobBuilder();
-        bb.append(arrayBuffer);
-        blob = bb.getBlob();
+    return new Promise(function(resolve) {
+      if (typeof Blob === 'undefined') {
+        var buffer = new Buffer(new Uint8Array(arrayBuffer));
+        resolve(buffer.toString(encoding));
       } else {
-        blob = new Blob([arrayBuffer]);
-      }
+        var blob;
+        global.BlobBuilder = global.BlobBuilder || global.WebKitBlobBuilder;
+        if (typeof global.BlobBuilder !== 'undefined') {
+          var bb = new global.BlobBuilder();
+          bb.append(arrayBuffer);
+          blob = bb.getBlob();
+        } else {
+          blob = new Blob([arrayBuffer]);
+        }
 
-      var fileReader = new FileReader();
-      if (typeof fileReader.addEventListener === 'function') {
-        fileReader.addEventListener('loadend', function (evt) {
-          pending.resolve(evt.target.result);
-        });
-      } else {
-        fileReader.onloadend = function(evt) {
-          pending.resolve(evt.target.result);
-        };
+        var fileReader = new FileReader();
+        if (typeof fileReader.addEventListener === 'function') {
+          fileReader.addEventListener('loadend', function (evt) {
+            resolve(evt.target.result);
+          });
+        } else {
+          fileReader.onloadend = function(evt) {
+            resolve(evt.target.result);
+          };
+        }
+        fileReader.readAsText(blob, encoding);
       }
-      fileReader.readAsText(blob, encoding);
-    }
-    return pending.promise;
+    });
   }
 
   function determineCharset(mimeType) {
@@ -501,48 +501,48 @@
 
   // Shared request function used by WireClient, GoogleDrive and Dropbox.
   RS.WireClient.request = function (method, url, options) {
-    var pending = Promise.defer();
-    RemoteStorage.log('[WireClient]', method, url);
+    return new Promise(function(resolve, reject) {
+      RemoteStorage.log('[WireClient]', method, url);
 
-    var timedOut = false;
+      var timedOut = false;
 
-    var timer = setTimeout(function () {
-      timedOut = true;
-      pending.reject('timeout');
-    }, RS.WireClient.REQUEST_TIMEOUT);
+      var timer = setTimeout(function () {
+        timedOut = true;
+        reject('timeout');
+      }, RS.WireClient.REQUEST_TIMEOUT);
 
-    var xhr = new XMLHttpRequest();
-    xhr.open(method, url, true);
+      var xhr = new XMLHttpRequest();
+      xhr.open(method, url, true);
 
-    if (options.responseType) {
-      xhr.responseType = options.responseType;
-    }
-
-    if (options.headers) {
-      for (var key in options.headers) {
-        xhr.setRequestHeader(key, options.headers[key]);
+      if (options.responseType) {
+        xhr.responseType = options.responseType;
       }
-    }
 
-    xhr.onload = function () {
-      if (timedOut) { return; }
-      clearTimeout(timer);
-      pending.resolve(xhr);
-    };
+      if (options.headers) {
+        for (var key in options.headers) {
+          xhr.setRequestHeader(key, options.headers[key]);
+        }
+      }
 
-    xhr.onerror = function (error) {
-      if (timedOut) { return; }
-      clearTimeout(timer);
-      pending.reject(error);
-    };
+      xhr.onload = function () {
+        if (timedOut) { return; }
+        clearTimeout(timer);
+        resolve(xhr);
+      };
 
-    var body = options.body;
+      xhr.onerror = function (error) {
+        if (timedOut) { return; }
+        clearTimeout(timer);
+        reject(error);
+      };
 
-    if (typeof(body) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
-      body = new Uint8Array(body);
-    }
-    xhr.send(body);
-    return pending.promise;
+      var body = options.body;
+
+      if (typeof(body) === 'object' && !isArrayBufferView(body) && body instanceof ArrayBuffer) {
+        body = new Uint8Array(body);
+      }
+      xhr.send(body);
+    });
   };
 
   Object.defineProperty(RemoteStorage.WireClient.prototype, 'storageType', {

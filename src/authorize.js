@@ -101,39 +101,37 @@
    * Open new InAppBrowser window for OAuth in Cordova
    */
   RemoteStorage.Authorize.openWindow = function (url, redirectUri, options) {
-    var pending = Promise.defer();
-    var newWindow = global.open(url, '_blank', options);
+    return new Promise(function(resolve, reject) {
+      var newWindow = global.open(url, '_blank', options);
 
-    if (!newWindow || newWindow.closed) {
-      pending.reject('Authorization popup was blocked');
-      return pending.promise;
-    }
-
-    var handleExit = function () {
-      pending.reject('Authorization was canceled');
-    };
-
-    var handleLoadstart = function (event) {
-      if (event.url.indexOf(redirectUri) !== 0) {
-        return;
+      if (!newWindow || newWindow.closed) {
+        return reject('Authorization popup was blocked');
       }
 
-      newWindow.removeEventListener('exit', handleExit);
-      newWindow.close();
+      var handleExit = function () {
+        reject('Authorization was canceled');
+      };
 
-      var authResult = extractParams(event.url);
+      var handleLoadstart = function (event) {
+        if (event.url.indexOf(redirectUri) !== 0) {
+          return;
+        }
 
-      if (!authResult) {
-        return pending.reject('Authorization error');
-      }
+        newWindow.removeEventListener('exit', handleExit);
+        newWindow.close();
 
-      return pending.resolve(authResult);
-    };
+        var authResult = extractParams(event.url);
 
-    newWindow.addEventListener('loadstart', handleLoadstart);
-    newWindow.addEventListener('exit', handleExit);
+        if (!authResult) {
+          return reject('Authorization error');
+        }
 
-    return pending.promise;
+        resolve(authResult);
+      };
+
+      newWindow.addEventListener('loadstart', handleLoadstart);
+      newWindow.addEventListener('exit', handleExit);
+    });
   };
 
   RemoteStorage.prototype.impliedauth = function () {

@@ -1,19 +1,4 @@
 (function (global) {
-
-  // wrapper to implement defer() functionality
-  Promise.defer = function () {
-    var resolve, reject;
-    var promise = new Promise(function() {
-      resolve = arguments[0];
-      reject = arguments[1];
-    });
-    return {
-        resolve: resolve,
-      reject: reject,
-      promise: promise
-    };
-  };
-
   function logError(error) {
     if (typeof(error) === 'string') {
       console.error(error);
@@ -795,13 +780,17 @@
 
     _pendingGPD: function (methodName) {
       return function () {
-        var pending = Promise.defer();
-        this._pending.push({
-          method: methodName,
-          args: Array.prototype.slice.call(arguments),
-          promise: pending
-        });
-        return pending.promise;
+        var methodArguments = Array.prototype.slice.call(arguments);
+        return new Promise(function(resolve, reject) {
+          this._pending.push({
+            method: methodName,
+            args: methodArguments,
+            promise: {
+              resolve: resolve,
+              reject: reject
+            }
+          });
+        }.bind(this));
       }.bind(this);
     },
 
