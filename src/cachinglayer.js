@@ -299,9 +299,12 @@
     _updateNodesRunning: false,
     _updateNodesQueued: [],
     _updateNodes: function (paths, _processNodes) {
-      var pending = Promise.defer();
-      this._doUpdateNodes(paths, _processNodes, pending);
-      return pending.promise;
+      return new Promise(function(resolve, reject) {
+        this._doUpdateNodes(paths, _processNodes, {
+          resolve: resolve,
+          reject: reject
+        });
+      }.bind(this));
     },
     _doUpdateNodes: function (paths, _processNodes, promise) {
       var self = this;

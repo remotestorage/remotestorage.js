@@ -529,13 +529,17 @@
 
     _pendingGPD: function (methodName) {
       return function () {
-        var pending = Promise.defer();
-        this._pending.push({
-          method: methodName,
-          args: Array.prototype.slice.call(arguments),
-          promise: pending
-        });
-        return pending.promise;
+        var methodArguments = Array.prototype.slice.call(arguments);
+        return new Promise(function(resolve, reject) {
+          this._pending.push({
+            method: methodName,
+            args: methodArguments,
+            promise: {
+              resolve: resolve,
+              reject: reject
+            }
+          });
+        }.bind(this));
       }.bind(this);
     },
 
