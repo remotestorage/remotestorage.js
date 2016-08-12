@@ -1,5 +1,7 @@
 (function (global) {
 
+  var hasLocalStorage;
+
   // wrapper to implement defer() functionality
   Promise.defer = function () {
     var resolve, reject;
@@ -193,13 +195,15 @@
 
     this.apiKeys = {};
 
-    if (this.localStorageAvailable()) {
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
+
+    if (hasLocalStorage) {
       try {
-        this.apiKeys = JSON.parse(localStorage['remotestorage:api-keys']);
+        this.apiKeys = JSON.parse(localStorage.getItem('remotestorage:api-keys')) || {};
       } catch(exc) {
         // ignored
       }
-      this.setBackend(localStorage['remotestorage:backend'] || 'remotestorage');
+      this.setBackend(localStorage.getItem('remotestorage:backend') || 'remotestorage');
     }
 
     var origOn = this.on;
@@ -445,11 +449,11 @@
 
     setBackend: function (what) {
       this.backend = what;
-      if (this.localStorageAvailable()) {
+      if (hasLocalStorage) {
         if (what) {
-          localStorage['remotestorage:backend'] = what;
+          localStorage.setItem('remotestorage:backend', what);
         } else {
-          delete localStorage['remotestorage:backend'];
+          localStorage.removeItem('remotestorage:backend');
         }
       }
     },
@@ -529,8 +533,8 @@
       } else {
         delete this.apiKeys[type];
       }
-      if (this.localStorageAvailable()) {
-        localStorage['remotestorage:api-keys'] = JSON.stringify(this.apiKeys);
+      if (hasLocalStorage) {
+        localStorage.setItem('remotestorage:api-keys', JSON.stringify(this.apiKeys));
       }
     },
 
@@ -767,14 +771,6 @@
         }
       }
       return false;
-    },
-
-    localStorageAvailable: function () {
-      try {
-        return !!global.localStorage;
-      } catch(error) {
-        return false;
-      }
     },
 
     /**

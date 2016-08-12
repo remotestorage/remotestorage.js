@@ -9,10 +9,29 @@
     hash = location.substring(hashPos+1);
     // if hash is not of the form #key=val&key=val, it's probably not for us
     if (hash.indexOf('=') === -1) { return; }
-    return hash.split('&').reduce(function (m, kvs) {
+    return hash.split('&').reduce(function (params, kvs) {
       var kv = kvs.split('=');
-      m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
-      return m;
+
+      if (kv[0] === 'state' && kv[1].match(/rsDiscovery/)) {
+        // extract rsDiscovery data from the state param
+        var stateValue = decodeURIComponent(kv[1]);
+        var encodedData = stateValue.substr(stateValue.indexOf('rsDiscovery='))
+                                    .split('&')[0]
+                                    .split('=')[1];
+
+        params['rsDiscovery'] = JSON.parse(atob(encodedData));
+
+        // remove rsDiscovery param
+        stateValue = stateValue.replace(new RegExp('\&?rsDiscovery=' + encodedData), '');
+
+        if (stateValue.length > 0) {
+          params['state'] = stateValue;
+        }
+      } else {
+        params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+      }
+
+      return params;
     }, {});
   }
 
@@ -27,6 +46,21 @@
 
   RemoteStorage.Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) {
     RemoteStorage.log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
+
+    // keep track of the discovery data during redirect if we can't save it in localStorage
+    if (!RemoteStorage.util.localStorageAvailable() &&
+        remoteStorage.backend === 'remotestorage') {
+      redirectUri += redirectUri.indexOf('#') > 0 ? '&' : '#';
+
+      var discoveryData = {
+        userAddress: remoteStorage.remote.userAddress,
+        href: remoteStorage.remote.href,
+        storageApi: remoteStorage.remote.storageApi,
+        properties: remoteStorage.remote.properties
+      };
+
+      redirectUri += 'rsDiscovery=' + btoa(JSON.stringify(discoveryData));
+    }
 
     var url = authURL, hashPos = redirectUri.indexOf('#');
     url += authURL.indexOf('?') > 0 ? '&' : '?';
@@ -153,6 +187,13 @@
         if (params.error) {
           throw "Authorization server errored: " + params.error;
         }
+
+        // rsDiscovery came with the redirect, because it couldn't be
+        // saved in localStorage
+        if (params.rsDiscovery) {
+          remoteStorage.remote.configure(params.rsDiscovery);
+        }
+
         if (params.access_token) {
           remoteStorage.remote.configure({
             token: params.access_token
@@ -164,7 +205,8 @@
           authParamsUsed = true;
         }
         if (params.state) {
-          RemoteStorage.Authorize.setLocation('#'+params.state);
+          location = RemoteStorage.Authorize.getLocation();
+          RemoteStorage.Authorize.setLocation(location.href.split('#')[0]+'#'+params.state);
         }
       }
       if (!authParamsUsed) {

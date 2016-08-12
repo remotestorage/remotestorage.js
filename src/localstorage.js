@@ -90,7 +90,7 @@
   RemoteStorage.LocalStorage._rs_init = function () {};
 
   RemoteStorage.LocalStorage._rs_supported = function () {
-    return 'localStorage' in global;
+    return RemoteStorage.util.localStorageAvailable();
   };
 
   // TODO tests missing!

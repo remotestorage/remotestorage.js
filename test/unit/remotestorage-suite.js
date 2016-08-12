@@ -74,12 +74,21 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
       } else {
         global.rs_rs = RemoteStorage;
       }
+
       require('./src/eventhandling.js');
       if (global.rs_eventhandling) {
         RemoteStorage.eventHandling = global.rs_eventhandling;
       } else {
         global.rs_eventhandling = RemoteStorage.eventHandling;
       }
+
+      require('src/util');
+      if (global.rs_util) {
+        RemoteStorage.util = global.rs_util;
+      } else {
+        global.rs_util = RemoteStorage.util;
+      }
+
       RemoteStorage.Discover = function(userAddress) {
         var pending = Promise.defer();
         if (userAddress === "someone@somewhere") {
@@ -233,9 +242,23 @@ define(['bluebird', 'requirejs', 'tv4'], function (Promise, requirejs, tv4) {
       {
         desc: "#connect sets the backend to remotestorage",
         run: function(env, test) {
-          global.localStorage = {};
+          global.localStorage = {
+            storage: {},
+            setItem: function(key, value) {
+              this.storage[key] = value;
+            },
+            getItem: function(key) {
+              return this.storage[key];
+            },
+            removeItem: function(key) {
+              delete this.storage[key];
+            }
+          };
+
+          env.rs = new RemoteStorage();
+
           env.rs.connect('user@ho.st');
-          test.assert(localStorage, {'remotestorage:backend': 'remotestorage'});
+          test.assert(localStorage.getItem('remotestorage:backend'), 'remotestorage');
         }
       },
 

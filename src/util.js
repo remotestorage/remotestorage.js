@@ -4,7 +4,7 @@
  * Provides reusable utility functions at RemoteStorage.util
  *
  */
-(function () {
+(function (global) {
 
   /**
    * Function: fixArrayBuffers
@@ -401,8 +401,22 @@
       }
 
       return md5(str);
-    }
+    },
     /* jshint ignore:end */
+
+
+    localStorageAvailable: function() {
+      if (!('localStorage' in global)) { return false }
+
+      try {
+        global.localStorage.setItem('rs-check', 1);
+        global.localStorage.removeItem('rs-check');
+        return true;
+      } catch(error) {
+        return false;
+      }
+    }
+
   };
 
   if (!RemoteStorage.prototype.util) {
@@ -413,4 +427,4 @@
       }
     });
   }
-})();
+})(typeof(window) !== 'undefined' ? window : global);
