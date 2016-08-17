@@ -4,7 +4,6 @@
     "lib/Math.uuid.js": "Universally-Unique-ID generator",
     "node_modules/webfinger.js/src/webfinger.js" : "A webfinger request library",
     "node_modules/tv4/tv4.js": "Tiny Validator for v4 JSON Schema",
-    
     "src/remotestorage.js": "Glue Code",
     "src/eventhandling.js": "Common event handling procedures",
     "src/wireclient.js": "Basic GET/PUT/DELETE client",

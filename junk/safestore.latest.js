@@ -1,3 +1,10 @@
+look for changes to googledrive.js
+stash THIS BEFORE resuming HEAD with 
+  git checkout src/safestore.js 
+then 
+  git diff src/safestore.js)
+
+
 // mrhTODO NEXT: create safestore.js anew (branch feature/safestore-backend-gd)
 // mrhTODO       DONE: get working with old encrypted API - commit! tag as safestore-gb-working-00
 // mrhTODO       DONE: merge/rebase and check still works with latest remotestorage/src
