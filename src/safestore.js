@@ -53,8 +53,6 @@
         }
 */
 
-var binary = require('bops');// mrhTODO remove?
-
 LAUNCHER_URL = 'http://localhost:8100'; // Client device must be running SAFE Launcher which provides REST API
 
 (function (global) {
@@ -146,7 +144,6 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must be running SAFE La
     this._fileInfoCache = new Cache(60 * 5); // mrhTODO: info expires after 5 minutes (is this a good idea?)
 
     this.connected = false;
-    this.nacl = sodium;
 
     var self = this;
 
@@ -231,9 +228,6 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must be running SAFE La
       if ( typeof appApiKeys.launcherURL !== 'undefined' ) { this.launcherUrl = appApiKeys.launcherURL;  }
       // JSON string ("payload") for POST
       this.payload = appApiKeys;     // App calls setApiKeys() to configure persistent part of "payload"
-      // For this session only
-//      this.payload.publicKey = binary.to(RS.Safestore.assymetricKeys.publicKey,'base64');
-//      this.payload.nonce = binary.to(RS.Safestore.nonce,'base64');
 
       // The request...
       var options = {
