@@ -4,8 +4,6 @@
     "lib/Math.uuid.js": "Universally-Unique-ID generator",
     "node_modules/webfinger.js/src/webfinger.js" : "A webfinger request library",
     "node_modules/tv4/tv4.js": "Tiny Validator for v4 JSON Schema",
-    "bower_components/libsodium.js/dist/browsers/combined/sodium.min.js": "Encryption for Safestore backend",
-    "lib/bops.js": "Browser compatible version of node.js Buffer API",
     
     "src/remotestorage.js": "Glue Code",
     "src/eventhandling.js": "Common event handling procedures",
@@ -51,9 +49,7 @@
         "node_modules/webfinger.js/src/webfinger.js",
         "src/authorize.js",
         "src/access.js",
-        "src/env.js",
-        "bower_components/libsodium.js/dist/browsers/combined/sodium.min.js",
-        "lib/bops.js"
+        "src/env.js"
         ],
       "required": true
     },
