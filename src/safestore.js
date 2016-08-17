@@ -4,11 +4,14 @@
 // mrhTODO       DONE (no changes): integrate diff of upstream/master googledrive.js and start of branch feature/safestore-backend-gd
 // mrhTODO       DONE: integrate galfert's connect/setAPI change
 
-// mrhTODO       >NEXT: test!!!! (may be some bug not always deleting the file when delete the screen object)
+// mrhTODO       DONE: test!!!! (may be some bug not always deleting the file when delete the screen object - NOT SEEN, delete works ok)
 
-// mrhTODO       NEXT: beware breaking go-safe linux cmds by cretz: strip out encryption and base64 encoding
+// mrhTODO       IGNORED: beware breaking go-safe linux cmds by cretz: strip out encryption and base64 encoding
 // mrhTODO       NEXT: get working with new unencrypted API - commit!
 // mrhTODO       NEXT: when working:
+// mrhTODO           NEXT: encryption: remove libsodium from build
+// mrhTODO           NEXT: encryption: remove bops from build
+// mrhTODO             -> Update compoonents.json, package.json, clean up lib/, remove bower_components/
 // mrhTODO           NEXT: retrofit localstorage settings
 
 // mrhTODO      [ ] Review/implement features noted at top of safestore-db.js (local file) up to "create safestore.js anew"
@@ -18,12 +21,8 @@
 // mrhTODO   (see https://github.com/remotestorage/remotestorage.js/blob/master/src/dropbox.js#L16-L17)
 // mrhTODO
 // mrhTODO - review isPrivate / isPathShared values, maybe make App configurable (part of setApiKeys (rename?)
+// mrh TODO  Note: when file has own folder can ditch remoteStorage/appname prefix - only use when store is public
 // mrhTODO 
-// mrhTODO encryption: wait until Launcher drops this then remove libsodium from build
-// mrhTODO             -> Update compoonents.json, package.json, clean up lib/, remove bower_components/
-  
-// mrhTODO check if these are stricly needed and..
-// mrhTODO if so add to RS npm install tweetnacl base64-js
 
 // mrhTODO ensure build/components.json includes the required dependencies:
 // mrhTODO as per MaidSafe example for now...
@@ -54,10 +53,9 @@
         }
 */
 
-var binary = require('bops');
-//var httpRequest = require('request');   // mrhTODO - can remove this (now uses XMLHttpRequest)
+var binary = require('bops');// mrhTODO remove?
 
-LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher: provides localhost REST API
+LAUNCHER_URL = 'http://localhost:8100'; // Client device must be running SAFE Launcher which provides REST API
 
 (function (global) {
   /**
@@ -187,8 +185,6 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
     online: true,
     isPathShared: true,         // App private storage mrhTODO shared or private? app able to control?
     launcherUrl: LAUNCHER_URL,  // Can be overridden by App
-    assymetricKeys: null,       // For encrypted communications
-    nonce: null,                // with SAFE Launcher
 
     configure: function (settings) { // Settings parameter compatible with WireClient
       // mrhTODO: review dropbox approach later
@@ -198,16 +194,6 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
         this.token = settings.token;
         this.connected = true;
         this.permissions = settings.permissions;    // List of permissions approved by the user
-        
-        if ( settings.symmetricKeyBase64 !== 'undefined' ) {    
-          this.symmetricKeyBase64 = settings.symmetricKeyBase64; 
-          this.symmetricKey = binary.from(settings.symmetricKeyBase64,'base64'); 
-        }
-        
-        if ( settings.symmetricNonce !== 'undefined' ) {        
-          this.symmetricNonceBase64 = settings.symmetricNonceBase64; 
-          this.symmetricNonce = binary.from(settings.symmetricNonceBase64,'base64'); 
-        }
 
         this._emit('connected');
         RS.log('Safestore.configure() [CONNECTED]');
@@ -215,10 +201,6 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
         this.connected = false;
         delete this.token;
         this.permissions = null;
-        this.symmetricKey = null;   
-        this.symmetricNonce = null;
-        this.symmetricKeyBase64 = null;
-        this.symmetricNonceBase64 = null;
         delete localStorage['remotestorage:safestore:token'];
         RS.log('Safestore.configure() [DISCONNECTED]');
       }
@@ -244,17 +226,14 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       var self = this;
 
       // Session data
-      var nacl = RS.Safestore.nacl = sodium;
-      RS.Safestore.assymetricKeys = nacl.crypto_box_keypair();                // Generate Assymetric Key pairs
-      RS.Safestore.nonce = nacl.randombytes_buf(nacl.crypto_box_NONCEBYTES);  // Generate random Nonce
       this.launcherUrl = LAUNCHER_URL;
       // App can override url by setting appApiKeys.laucherURL
       if ( typeof appApiKeys.launcherURL !== 'undefined' ) { this.launcherUrl = appApiKeys.launcherURL;  }
       // JSON string ("payload") for POST
       this.payload = appApiKeys;     // App calls setApiKeys() to configure persistent part of "payload"
       // For this session only
-      this.payload.publicKey = binary.to(RS.Safestore.assymetricKeys.publicKey,'base64');
-      this.payload.nonce = binary.to(RS.Safestore.nonce,'base64');
+//      this.payload.publicKey = binary.to(RS.Safestore.assymetricKeys.publicKey,'base64');
+//      this.payload.nonce = binary.to(RS.Safestore.nonce,'base64');
 
       // The request...
       var options = {
@@ -275,26 +254,11 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
 //mrhTODO causes error:          return Promise.reject({statusCode: xhr.status});
         } else {
           var response = JSON.parse(xhr.responseText);
-          // The encrypted symmetric key received as base64 string is converted to Uint8Array
-          var cipherText = binary.from(response.encryptedKey, 'base64');
-          var replayCipherText = binary.to(cipherText, 'base64');
-          // The asymmetric public key of launcher received as base64 string is converted to Uint8Array
-          var publicKey = binary.from(response.publicKey, 'base64');
-          var replaypublicKey = binary.to(publicKey, 'base64');
-          // the cipher message is decrypted using the asymmetric private key of application and the public key of launcher
-          var data = RS.Safestore.nacl.crypto_box_open_easy(cipherText, RS.Safestore.nonce, publicKey, RS.Safestore.assymetricKeys.privateKey);
-
-          // The first segment of the data will have the symmetric key
-          var symmetricKey = data.slice(0, RS.Safestore.nacl.crypto_secretbox_KEYBYTES);
-          // The second segment of the data will have the nonce to be used
-          var symmetricNonce = data.slice(RS.Safestore.nacl.crypto_secretbox_KEYBYTES);
     
           // Save session info
           self.configure({ 
               token:                response.token,        // Auth token
               permissions:          response.permissions,  // List of permissions approved by the user
-              symmetricKeyBase64:   binary.to(symmetricKey,'base64'),   
-              symmetricNonceBase64: binary.to(symmetricNonce,'base64'),
             });
           
 //mrhTODO:          return Promise.resolve(xhr);
@@ -392,8 +356,9 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
         }
 
         var NFStype = ( fullPath.substr(-1)==='/' ? '/nfs/directory/' : '/nfs/file/' );
+        var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
           
-        var fullUrl = self.launcherUrl + NFStype + encodeURIComponent(fullPath) + '/' + self.isPathShared;
+        var fullUrl = self.launcherUrl + NFStype + rootPath + encodeURIComponent(fullPath);
 
         var options = {
           url: fullUrl,
@@ -413,14 +378,11 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       });
     },
 
+    // mrhTODO - replace _updateFile / _createFile with single _putFile (as POST /nfs/file now does both)
     // mrhTODO contentType is ignored on update (to change it would require file delete and create before update)
     _updateFile: function (path, body, contentType, options) {
       RS.log('Safestore._updateFile(' + path + ',...)' );
       var self = this;
-
-      // Encrypt the file content using the symmetricKey and symmetricNonce
-      var encryptedData = self.nacl.crypto_secretbox_easy(body, self.symmetricNonce, self.symmetricKey);
-      encryptedData = binary.to(encryptedData,'base64');
 
       /* mrhTODO GoogleDrive only I think...
       if ((!contentType.match(/charset=/)) &&
@@ -431,10 +393,8 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       
       // STORE/UPDATE FILE CONTENT (PUT) (https://maidsafe.readme.io/docs/nfs-update-file-content)
       var queryParams = 'offset=0';
-      var queryParams = self.nacl.crypto_secretbox_easy(queryParams, self.symmetricNonce, self.symmetricKey);
-      queryParams = binary.to(queryParams,'base64');
-      
-      var urlPUT = self.launcherUrl + '/nfs/file/' + encodeURIComponent(path) + '/' + self.isPathShared;//mrhTODO + '?' + queryParams;
+      var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
+      var urlPUT = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(path);//mrhTODO + '?' + queryParams;
 
       // mrhTODO I'm not sure what header/content-type needed for encrypted data
       // mrhTODO Should CT denote the type that is encrypted, or say it's encrypted?
@@ -443,7 +403,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
         headers: {
           'Content-Type': contentType
         },
-        body: binary.to(self.nacl.crypto_secretbox_easy(body, self.symmetricNonce, self.symmetricKey),'base64'),
+        body: body,
       };
 
       // mrhTODO googledrive does two PUTs, one initiates resumable tx, the second sends data - review when streaming API avail
@@ -459,11 +419,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       
       // Ensure path exists by recursively calling create on parent folder
       return self._makeParentPath(path).then(function (parentPath) {
-        
-        // Encrypt the file content using the symmetricKey and symmetricNonce
-        var encryptedData = self.nacl.crypto_secretbox_easy(body, self.symmetricNonce, self.symmetricKey);
-        encryptedData = binary.to(encryptedData,'base64');
-        
+                
 /* mrhTODO GoogleDrive only I think...
          if ((!contentType.match(/charset=/)) &&
             (encryptedData instanceof ArrayBuffer || RS.WireClient.isArrayBufferView(encryptedData))) {
@@ -474,41 +430,25 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
             mimetype:   contentType,    // WireClient.put provides a mime type which we store as metadata for get
         };
         
-        // CREATE FILE (POST) (https://maidsafe.readme.io/docs/nfsfile)
-        var urlPOST = self.launcherUrl + '/nfs/file/';
+        // CREATE/UPDATE FILE (POST) (https://maidsafe.readme.io/docs/nfsfile)
+        var queryParams = 'offset=0'; //mrhTODO???
+        var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
+        var urlPOST = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(path);//mrhTODO + '?' + queryParams;
 
-        var payloadPOST = {
-            filePath:       path,
-//          isPrivate:      this.isPrivate, // mrhTODO usage to be clarified
-            //metadata:       JSON.stringify(fileMetadata), mrhTODO: bug - with POST causes 400 from SAFE API
-            isVersioned:    false,
-            isPathShared:   self.isPathShared,
-        };
+//        var payloadPOST = {
+            //metadata:       JSON.stringify(fileMetadata), mrhTODO: test this, with v0.4 API POST causes 400 from SAFE API
+//        };
 
         var optionsPOST = {
             url: urlPOST,
             headers: {
               'Content-Type': 'text/plain', // For POST - not related to contentType (file)
+              'Content-Length': body.length,// ???
+              //'Metadata:        JSON.stringify(fileMetadata), mrhTODO: test this, with v0.4 API POST causes 400 from SAFE API
+
             },
-            body: binary.to(self.nacl.crypto_secretbox_easy(JSON.stringify(payloadPOST), self.symmetricNonce, self.symmetricKey),'base64'),
+            body: body,
           };
-
-        // STORE/UPDATE FILE CONTENT (PUT) (https://maidsafe.readme.io/docs/nfs-update-file-content)
-        var queryParams = 'offset=0';
-        var queryParams = self.nacl.crypto_secretbox_easy(queryParams, self.symmetricNonce, self.symmetricKey);
-        queryParams = binary.to(queryParams,'base64');
-        
-        var urlPUT = self.launcherUrl + '/nfs/file/' + encodeURIComponent(path) + '/' + self.isPathShared;//mrhTODO + '?' + queryParams;
-
-        // mrhTODO I'm not sure what header/content-type needed for encrypted data
-        // mrhTODO Should CT denote the type that is encrypted, or say it's encrypted?
-        var optionsPUT = {
-            url: urlPUT,
-          headers: {
-            'Content-Type': contentType
-          },
-          body: binary.to(self.nacl.crypto_secretbox_easy(body, self.symmetricNonce, self.symmetricKey),'base64'),
-        };
         
         return self._request('POST', optionsPOST.url, optionsPOST).then(function (response) {
           // self._shareIfNeeded(path);  // mrhTODO what's this?
@@ -517,11 +457,10 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
             return Promise.reject( {statusCode: reponse.status} );
           }
           else {
-            return self._request('PUT', optionsPUT.url, optionsPUT).then(function(response){
-              RS.log("DEBUG _createFile() response.responseText: ", response.responseText);
-              return Promise.resolve(response);
-            });
-          }
+            RS.log("DEBUG _createFile() response.responseText: ", response.responseText);
+            return Promise.resolve(response);
+
+         }
         });
       });
     },
@@ -533,11 +472,8 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       var revCache = this._revCache;
       var self = this;
 
-      var queryParams = 'offset=0';
-      var queryParams = self.nacl.crypto_secretbox_easy(queryParams, self.symmetricNonce, self.symmetricKey);
-      queryParams = binary.to(queryParams,'base64');
-
-      var url = self.launcherUrl + '/nfs/file/' + encodeURIComponent(path) + '/' + self.isPathShared;//mrhTODO + '?' + queryParams;
+      var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
+      var url = self.launcherUrl + '/nfs/file/' + rootPath + encodeURIComponent(path);//mrhTODO + '?' + queryParams;
 
       // Check if file exists. Creates parent folder if that doesn't exist.
       return self._getFileInfo(path).then(function (fileInfo) {
@@ -559,10 +495,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
             return Promise.resolve({statusCode: status});
           }
 
-          // Decrypt the file content
-          body = new binary.from(response.responseText, 'base64');
-          body = self.nacl.crypto_secretbox_open_easy(new Uint8Array(body), self.symmetricNonce, self.symmetricKey);
-          body = binary.to(body,'utf8');
+          body = response.responseText;
           
           /* SAFE NFS API file-metadata - disabled for now:
           var fileMetadata = response.getResponseHeader('file-metadata');
@@ -615,7 +548,8 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
         }
 
         // folder exists so obtain listing
-        var url = self.launcherUrl + '/nfs/directory/' + encodeURIComponent(path) + '/' + self.isPathShared;
+        var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
+        var url = self.launcherUrl + '/nfs/directory/' + rootPath + encodeURIComponent(path);
         var revCache = self._revCache;
 
         return self._request('GET', url, {}).then(function (resp) {
@@ -630,10 +564,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
 
           var listing, listingFiles, listingSubdirectories, body, mime, rev;
           try{
-            body = new binary.from(resp.responseText, 'base64');
-            body = self.nacl.crypto_secretbox_open_easy(new Uint8Array(body), self.symmetricNonce, self.symmetricKey);
-            body = binary.to(body,'utf8');
-            body = JSON.parse(body);
+            body = JSON.parse(resp.responseText);
           } catch (e) {
             return Promise.reject(e);
           }
@@ -738,14 +669,12 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
 
         
         // CREATE folder (POST) (https://maidsafe.readme.io/docs/nfsfolder)
-        var urlPOST = self.launcherUrl + '/nfs/directory/';
+        var rootPath = ( self.isPathShared ? 'drive/' : 'app/' );
+        var urlPOST = self.launcherUrl + '/nfs/directory/' + rootPath + encodeURIComponent(folderPath);
 
         var payloadPOST = {
-            dirPath:             folderPath,
 //            isPrivate:            self.isPrivate, // mrhTODO is this needed
             metadata:             "",
-            isVersioned:          false,
-            isPathShared:         self.isPathShared,
         };
 
         var optionsPOST = {
@@ -753,7 +682,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
             headers: {
               'Content-Type': 'text/plain',
             },
-            body: binary.to(self.nacl.crypto_secretbox_easy(JSON.stringify(payloadPOST), self.symmetricNonce, self.symmetricKey),'base64'),
+            body: JSON.stringify(payloadPOST),
           };
             
         return self._request('POST', optionsPOST.url, optionsPOST).then(function (response) {
