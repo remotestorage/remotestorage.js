@@ -1,0 +1,47 @@
+{
+  "name": "libsodium.js",
+  "version": "0.3.0",
+  "homepage": "https://github.com/jedisct1/libsodium.js",
+  "authors": [
+    "Ahmad Ben Mrad (@BatikhSouri)",
+    "Frank Denis (@jedisct1)"
+  ],
+  "description": "The Sodium cryptographic library compiled to JavaScript",
+  "main": "dist/browsers/combined/sodium.min.js",
+  "moduleType": [
+    "amd",
+    "es6",
+    "globals",
+    "node"
+  ],
+  "keywords": [
+    "crypto",
+    "sodium",
+    "libsodium",
+    "nacl",
+    "chacha20",
+    "poly1305",
+    "curve25519",
+    "ed25519",
+    "blake2",
+    "siphash"
+  ],
+  "license": "ISC",
+  "ignore": [
+    "**/#*#",
+    "**/*~",
+    "**/.*",
+    "API.md",
+    "Gruntfile.js",
+    "Makefile",
+    "README.md",
+    "bower_components",
+    "dist/browsers/combined/sodium.js",
+    "libsodium",
+    "node_modules",
+    "package-libsodium.json",
+    "package.json",
+    "test",
+    "wrapper"
+  ]
+}

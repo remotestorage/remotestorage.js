@@ -4,7 +4,9 @@
     "lib/Math.uuid.js": "Universally-Unique-ID generator",
     "node_modules/webfinger.js/src/webfinger.js" : "A webfinger request library",
     "node_modules/tv4/tv4.js": "Tiny Validator for v4 JSON Schema",
-
+    "bower_components/libsodium.js/dist/browsers/combined/sodium.min.js": "Encryption for Safestore backend",
+    "lib/bops.js": "Browser compatible version of node.js Buffer API",
+    
     "src/remotestorage.js": "Glue Code",
     "src/eventhandling.js": "Common event handling procedures",
     "src/wireclient.js": "Basic GET/PUT/DELETE client",
@@ -29,7 +31,8 @@
     "src/env.js": "Function specific to each environment (browser, nodejs...)",
 
     "src/googledrive.js": "Backend to talk to googledrive",
-    "src/dropbox.js": "Backend to talk to dropbox"
+    "src/dropbox.js": "Backend to talk to dropbox",
+    "src/safestore.js": "Backend to talk to safestore"
   },
   "amd-exclude": [
     "lib/bluebird.js"
@@ -48,8 +51,10 @@
         "node_modules/webfinger.js/src/webfinger.js",
         "src/authorize.js",
         "src/access.js",
-        "src/env.js"
-      ],
+        "src/env.js",
+        "bower_components/libsodium.js/dist/browsers/combined/sodium.min.js",
+        "lib/bops.js"
+        ],
       "required": true
     },
     "widget": {
@@ -112,6 +117,14 @@
       "desc": "Dropbox synchronization",
       "files": [
         "src/dropbox.js"
+      ],
+      "depends": ["core"]
+    },
+    "safestore": {
+      "label": "Safestore",
+      "desc": "Safestore synchronization",
+      "files": [
+        "src/safestore.js"
       ],
       "depends": ["core"]
     },

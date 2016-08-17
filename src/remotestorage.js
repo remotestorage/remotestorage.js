@@ -1,3 +1,6 @@
+// mrhTODO: create a proper SAFE Network icon: src/rs.js/assets/safestore.png
+// mrhTODO: extend these changes to include Safestore init: https://github.com/remotestorage/remotestorage.js/pull/942
+
 (function (global) {
 
   var hasLocalStorage;
@@ -270,7 +273,7 @@
   };
 
   RemoteStorage.config = {
-    logging: false,
+    logging: true,//mrhTODO disable logging
     changeEvents: {
       local:    true,
       window:   false,
@@ -538,14 +541,31 @@
     /**
      * Method: setApiKeys (experimental)
      *
-     * Set API keys for (currently) GoogleDrive and/or Dropbox backend support.
-     * See also the 'backends' example in the starter-kit. Note that support for
-     * both these backends is still experimental.
+     * Set API keys for (currently) GoogleDrive, Dropbox and SAFE Network backend 
+     * support.
+     * 
+     * Note that Safestore (SAFE Network) backend does not require an API key from
+     * an authority as in the case of most cloud services, so setApiKeys() is
+     * used to define the application related information that is passed to 
+     * an authorisation gateway app (SAFE Launcher). The gateway app then asks the
+     * user directly, whether to "Allow" or "Deny" the access privileges being
+     * requested by the particular app.
+     * 
+     * See also the 'backends' example in the starter-kit (deprecated). Note that 
+     * support for both these backends is still experimental.
      *
      * Parameters:
-     *   type - string, either 'googledrive' or 'dropbox'
-     *   keys - object, with one string field; 'clientId' for GoogleDrive, or
-     *          'appKey' for Dropbox.
+     *   type - backend name: 'googledrive', 'dropbox' or 'safestore'
+     *   keys - object, with string fields according to the backend:
+     *   
+     *    GoogleDrive:
+     *      'clientId'
+     *    
+     *    Dropbox:
+     *      'appKey'
+     *    
+     *    Safestore:
+     *      mrhTODO - check this!
      *
      */
     setApiKeys: function (type, keys) {
@@ -558,6 +578,9 @@
                                               this.googledrive.clientId !== keys.clientId)) {
           RemoteStorage.GoogleDrive._rs_init(this);
         }
+      } else if (type === 'safestore' && (typeof this.safestore === 'undefined' ||
+          this.safestore.clientId !== keys.clientId)) {
+        RemoteStorage.Safestore._rs_init(this);
       } else {
         delete this.apiKeys[type];
       }
@@ -662,10 +685,12 @@
      **/
     _loadFeatures: function (callback) {
       var featureList = [
+        // These names must match name of implementation object
         'WireClient',
         'I18n',
         'Dropbox',
         'GoogleDrive',
+        'Safestore',
         'Access',
         'Caching',
         'Discover',
@@ -721,7 +746,7 @@
       }
 
       function featureSupported(name, success) {
-        self.log("[RemoteStorage] [FEATURE "+name+"]" + success ? "":" not"+" supported");
+        self.log("[RemoteStorage] [FEATURE "+name+"]" + (success ? "" : " not") + " supported");
         if (!success) {
           featureDone();
         }

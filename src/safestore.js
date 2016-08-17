@@ -1,7 +1,10 @@
 // mrhTODO NEXT: create safestore.js anew (branch feature/safestore-backend-gd)
 // mrhTODO       DONE: get working with old encrypted API - commit! tag as safestore-gb-working-00
+// mrhTODO       DONE: merge/rebase and check still works with latest remotestorage/src
+// mrhTODO       DONE (no changes): integrate diff of upstream/master googledrive.js and start of branch feature/safestore-backend-gd
+// mrhTODO       DONE: integrate galfert's connect/setAPI change
+
 // mrhTODO       >NEXT: test!!!! (may be some bug not always deleting the file when delete the screen object)
-// mrhTODO       merge/rebase and check still works with latest remotestorage/src
 
 // mrhTODO       NEXT: beware breaking go-safe linux cmds by cretz: strip out encryption and base64 encoding
 // mrhTODO       NEXT: get working with new unencrypted API - commit!
@@ -739,7 +742,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
 
         var payloadPOST = {
             dirPath:             folderPath,
-//            isPrivate:            this.isPrivate, // mrhTODO is this needed
+//            isPrivate:            self.isPrivate, // mrhTODO is this needed
             metadata:             "",
             isVersioned:          false,
             isPathShared:         self.isPathShared,
@@ -789,7 +792,7 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
 
       if (fullPath === '/' ) {
         return Promise.resolve({ path: fullPath, ETag: 'root' }); // Dummy fileInfo to stop at "root"
-      } else if ((info = this._fileInfoCache.get(fullPath))) {
+      } else if ((info = self._fileInfoCache.get(fullPath))) {
         return Promise.resolve(info);               // If cached we believe it exists
       }
       
@@ -816,8 +819,8 @@ LAUNCHER_URL = 'http://localhost:8100'; // Client device must run SAFE Launcher:
       RS.log('Safestore._request(' + method + ', ' + url + ', ...)' );
       var self = this;
       if (! options.headers) { options.headers = {}; }
-      options.headers['Authorization'] = 'Bearer ' + this.token;
-      return RS.WireClient.request.call(this, method, url, options).then(function (xhr) {
+      options.headers['Authorization'] = 'Bearer ' + self.token;
+      return RS.WireClient.request.call(self, method, url, options).then(function (xhr) {
         RS.log('Safestore._request() response: xhr.status is ' + xhr.status );
         // Launcher responses
         // 401 - Unauthorized

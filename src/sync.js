@@ -1,7 +1,7 @@
 (function (global) {
 
-  var syncInterval = 10000,
-      backgroundSyncInterval = 60000,
+  var syncInterval = 10000, // mrhTODO re-instate: 10000,
+      backgroundSyncInterval = 60000, // mrhTODO re-instate: 60000,
       isBackground = false;
 
   var isFolder = RemoteStorage.util.isFolder;
