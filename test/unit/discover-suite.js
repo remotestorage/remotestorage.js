@@ -284,6 +284,22 @@ define(['bluebird', 'requirejs', 'fs', 'webfinger.js'], function (Promise, requi
             xhr.onreadystatechange();
           };
         }
+      },
+
+      {
+        desc: "if Webfinger request returns a 404 (not found), promise is rejected",
+        run: function (env, test) {
+          RemoteStorage.Discover("foo@bar").then(test.fail, function (err) {
+            test.assertType(err, 'string');
+          });
+          XMLHttpRequest.onOpen = function () {
+            var xhr = XMLHttpRequest.instances[0];
+            xhr.status = 404;
+            xhr.readyState = 4;
+            xhr.responseText = '';
+            xhr.onreadystatechange();
+          };
+        }
       }
     ]
   });
