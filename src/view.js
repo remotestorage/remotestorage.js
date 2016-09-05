@@ -68,13 +68,13 @@
      *   state
      *   args
      **/
-    setState: function (state, args) {
-      RemoteStorage.log('[View] widget.view.setState(',state,',',args,');');
+    setState: function (state, message) {
+      RemoteStorage.log('[View] widget.view.setState(',state,',',message,');');
       var s = this.states[state];
       if (typeof(s) === 'undefined') {
         throw new Error("Bad State assigned to view: " + state);
       }
-      s.apply(this, args);
+      s.apply(this, [message]);
     },
 
     /**
