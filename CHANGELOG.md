@@ -3,6 +3,33 @@
 All releases can also be found and downloaded on the
 [releases page](https://github.com/remotestorage/remotestorage.js/releases) at GitHub.
 
+## 0.13.0 (September 2016)
+
+### Enhancements
+
+* Support Safari private browsing mode (#921)
+* Remove Bluebird dependency from AMD build (#917)
+
+### Bugfixes
+
+* Don't send empty state parameter in authorize URI (#908)
+* Fix authorization error when using remoteStorage in Cordova (#919)
+* Fix disconnect / initialization issues (#930)
+* Start sync automatically after calling `configure` (#885, #820)
+* Fix IndexedDB error on disconnect (#874)
+* Fix IndexedDB getting into inconsistent state (#882)
+* Fix `getListing` behaviour when called with invalid path (#932)
+* Fix unresolved promise when trying to retrieve non-existing file (#934)
+* Fix 3rd party backend initilization on first app load (#941)
+* Fix Dropbox adapter not hooking itself into sync on connect (#851)
+* Don't send change event if neither body nor content-type changed (#764)
+* Fix connecting account when localStorage is not available
+* Fix AMD build (#945)
+
+### Breaking Changes
+
+* Use common base directory for all remoteStorage data in Dropbox (#796)
+
 ## 0.12.1 (October 2015)
 
 * Use main repo for Bower (add bower.json, re-organize release dir, #901)

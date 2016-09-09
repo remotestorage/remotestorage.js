@@ -1,9 +1,9 @@
 RemoteStorage.version = RemoteStorage.prototype.version = {
   productName: 'remotestorage.js',
   product: 0,
-  major: 12,
-  minor: 2,
-  postfix: 'pre'
+  major: 13,
+  minor: 0,
+  postfix: ''
 };
 
 RemoteStorage.version.toString = function () {

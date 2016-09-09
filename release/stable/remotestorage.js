@@ -1,4 +1,4 @@
-/** remotestorage.js 0.12.1, http://remotestorage.io, MIT-licensed **/
+/** remotestorage.js 0.13.0, http://remotestorage.io, MIT-licensed **/
 
 /** FILE: lib/bluebird.js **/
 /**
@@ -3274,6 +3274,8 @@ module.exports = ret;
 /** FILE: src/remotestorage.js **/
 (function (global) {
 
+  var hasLocalStorage;
+
   // wrapper to implement defer() functionality
   Promise.defer = function () {
     var resolve, reject;
@@ -3467,13 +3469,15 @@ module.exports = ret;
 
     this.apiKeys = {};
 
-    if (this.localStorageAvailable()) {
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
+
+    if (hasLocalStorage) {
       try {
-        this.apiKeys = JSON.parse(localStorage['remotestorage:api-keys']);
+        this.apiKeys = JSON.parse(localStorage.getItem('remotestorage:api-keys')) || {};
       } catch(exc) {
         // ignored
       }
-      this.setBackend(localStorage['remotestorage:backend'] || 'remotestorage');
+      this.setBackend(localStorage.getItem('remotestorage:backend') || 'remotestorage');
     }
 
     var origOn = this.on;
@@ -3706,7 +3710,7 @@ module.exports = ret;
       if (n > 0) {
         this._cleanups.forEach(function (cleanup) {
           var cleanupResult = cleanup(this);
-          if (typeof(cleanup) === 'object' && typeof(cleanup.then) === 'function') {
+          if (typeof(cleanupResult) === 'object' && typeof(cleanupResult.then) === 'function') {
             cleanupResult.then(oneDone);
           } else {
             oneDone();
@@ -3719,11 +3723,11 @@ module.exports = ret;
 
     setBackend: function (what) {
       this.backend = what;
-      if (this.localStorageAvailable()) {
+      if (hasLocalStorage) {
         if (what) {
-          localStorage['remotestorage:backend'] = what;
+          localStorage.setItem('remotestorage:backend', what);
         } else {
-          delete localStorage['remotestorage:backend'];
+          localStorage.removeItem('remotestorage:backend');
         }
       }
     },
@@ -3793,11 +3797,18 @@ module.exports = ret;
     setApiKeys: function (type, keys) {
       if (keys) {
         this.apiKeys[type] = keys;
+        if (type === 'dropbox' && (typeof this.dropbox === 'undefined' ||
+                                   this.dropbox.clientId !== keys.appKey)) {
+          RemoteStorage.Dropbox._rs_init(this);
+        } else if (type === 'googledrive' && (typeof this.googledrive === 'undefined' ||
+                                              this.googledrive.clientId !== keys.clientId)) {
+          RemoteStorage.GoogleDrive._rs_init(this);
+        }
       } else {
         delete this.apiKeys[type];
       }
-      if (this.localStorageAvailable()) {
-        localStorage['remotestorage:api-keys'] = JSON.stringify(this.apiKeys);
+      if (hasLocalStorage) {
+        localStorage.setItem('remotestorage:api-keys', JSON.stringify(this.apiKeys));
       }
     },
 
@@ -3883,6 +3894,7 @@ module.exports = ret;
     },
 
     _collectCleanupFunctions: function () {
+      this._cleanups = [];
       for (var i=0; i < this.features.length; i++) {
         var cleanup = this.features[i].cleanup;
         if (typeof(cleanup) === 'function') {
@@ -4035,14 +4047,6 @@ module.exports = ret;
       return false;
     },
 
-    localStorageAvailable: function () {
-      try {
-        return !!global.localStorage;
-      } catch(error) {
-        return false;
-      }
-    },
-
     /**
      ** GET/PUT/DELETE INTERFACE HELPERS
      **/
@@ -4148,10 +4152,10 @@ module.exports = ret;
    * Not available in no-cache builds.
    */
 
-  if ((typeof module === 'object') && (typeof module.exports !== undefined)){
+  global.RemoteStorage = RemoteStorage;
+
+  if ((typeof module === 'object') && (typeof module.exports !== 'undefined')){
     module.exports = RemoteStorage;
-  } else {
-    global.RemoteStorage = RemoteStorage;
   }
 })(typeof(window) !== 'undefined' ? window : global);
 
@@ -4163,7 +4167,7 @@ module.exports = ret;
  * Provides reusable utility functions at RemoteStorage.util
  *
  */
-(function () {
+(function (global) {
 
   /**
    * Function: fixArrayBuffers
@@ -4266,7 +4270,7 @@ module.exports = ret;
     },
 
     isDocument: function (path) {
-      return path.substr(-1) !== '/';
+      return !RemoteStorage.util.isFolder(path);
     },
 
     baseName: function (path) {
@@ -4560,8 +4564,22 @@ module.exports = ret;
       }
 
       return md5(str);
-    }
+    },
     /* jshint ignore:end */
+
+
+    localStorageAvailable: function() {
+      if (!('localStorage' in global)) { return false }
+
+      try {
+        global.localStorage.setItem('rs-check', 1);
+        global.localStorage.removeItem('rs-check');
+        return true;
+      } catch(error) {
+        return false;
+      }
+    }
+
   };
 
   if (!RemoteStorage.prototype.util) {
@@ -4572,7 +4590,7 @@ module.exports = ret;
       }
     });
   }
-})();
+})(typeof(window) !== 'undefined' ? window : global);
 
 
 /** FILE: src/eventhandling.js **/
@@ -4617,7 +4635,7 @@ module.exports = ret;
     _emit: function (eventName) {
       this._validateEvent(eventName);
       var args = Array.prototype.slice.call(arguments, 1);
-      this._handlers[eventName].forEach(function (handler) {
+      this._handlers[eventName].slice().forEach(function (handler) {
         handler.apply(this, args);
       });
     },
@@ -5245,7 +5263,7 @@ module.exports = ret;
 
 
   RS.WireClient._rs_init = function (remoteStorage) {
-    hasLocalStorage = remoteStorage.localStorageAvailable();
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
     remoteStorage.remote = new RS.WireClient(remoteStorage);
     this.online = true;
   };
@@ -5340,7 +5358,7 @@ module.exports = ret;
   };
 
   RemoteStorage.Discover._rs_init = function (remoteStorage) {
-    hasLocalStorage = remoteStorage.localStorageAvailable();
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
     if (hasLocalStorage) {
       var settings;
       try { settings = JSON.parse(localStorage[SETTINGS_KEY]); } catch(e) {}
@@ -5365,9 +5383,10 @@ module.exports = ret;
 
 
 /** FILE: node_modules/webfinger.js/src/webfinger.js **/
+/* global define */
 /*!
  * webfinger.js
- *   version 2.2.1
+ *   version 2.3.2
  *   http://github.com/silverbucket/webfinger.js
  *
  * Developed and Maintained by:
@@ -5421,11 +5440,24 @@ if (typeof XMLHttpRequest === 'undefined') {
   // list of endpoints to try, fallback from beginning to end.
   var URIS = ['webfinger', 'host-meta', 'host-meta.json'];
 
-  function _err(obj) {
+  function generateErrorObject(obj) {
     obj.toString = function () {
       return this.message;
     };
     return obj;
+  }
+
+  // given a URL ensures it's HTTPS. 
+  // returns false for null string or non-HTTPS URL.
+  function isSecure(url) {
+    if (typeof url !== 'string') {
+      return false;
+    }
+    var parts = url.split('://');
+    if (parts[0] === 'https') {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -5452,44 +5484,59 @@ if (typeof XMLHttpRequest === 'undefined') {
 
   // make an http request and look for JRD response, fails if request fails
   // or response not json.
-  WebFinger.prototype._fetchJRD = function (url, cb) {
+  WebFinger.prototype.__fetchJRD = function (_url, errorHandler, sucessHandler) {
     var self = this;
-    var xhr = new XMLHttpRequest();
-
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState === 4) {
-        if (xhr.status === 200) {
-          if (self._isValidJSON(xhr.responseText)) {
-            cb(null, xhr.responseText);
+    function __makeRequest(url) {
+      var xhr = new XMLHttpRequest();
+  
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            if (self.__isValidJSON(xhr.responseText)) {
+              return sucessHandler(xhr.responseText);
+            } else {
+              return errorHandler(generateErrorObject({
+                message: 'invalid json',
+                url: url,
+                status: xhr.status
+              }));
+            }
+          } else if (xhr.status === 404) {
+            return errorHandler(generateErrorObject({
+              message: 'endpoint unreachable',
+              url: url,
+              status: xhr.status
+            }));
+          } else if ((xhr.status >= 301) && (xhr.status <= 302)) {
+            var location = xhr.getResponseHeader('Location');
+            if (isSecure(location)) {
+              return __makeRequest(location); // follow redirect
+            } else {
+              return errorHandler(generateErrorObject({
+                message: 'no redirect URL found',
+                url: url,
+                status: xhr.status
+              }));
+            }
           } else {
-            cb(_err({
-              message: 'invalid json',
+            return errorHandler(generateErrorObject({
+              message: 'error during request',
               url: url,
               status: xhr.status
             }));
           }
-        } else if (xhr.status === 404) {
-          cb(_err({
-            message: 'endpoint unreachable',
-            url: url,
-            status: xhr.status
-          }));
-        } else {
-          cb(_err({
-            message: 'error during request',
-            url: url,
-            status: xhr.status
-          }));
         }
-      }
-    };
-
-    xhr.open('GET', url, true);
-    xhr.setRequestHeader('Accept', 'application/jrd+json, application/json');
-    xhr.send();
+      };
+  
+      xhr.open('GET', url, true);
+      xhr.setRequestHeader('Accept', 'application/jrd+json, application/json');
+      xhr.send();
+    }
+    
+    return __makeRequest(_url);
   };
 
-  WebFinger.prototype._isValidJSON = function (str) {
+  WebFinger.prototype.__isValidJSON = function (str) {
     try {
       JSON.parse(str);
     } catch (e) {
@@ -5498,22 +5545,21 @@ if (typeof XMLHttpRequest === 'undefined') {
     return true;
   };
 
-  WebFinger.prototype._isLocalhost = function (host) {
+  WebFinger.prototype.__isLocalhost = function (host) {
     var local = /^localhost(\.localdomain)?(\:[0-9]+)?$/;
     return local.test(host);
   };
 
   // processes JRD object as if it's a webfinger response object
   // looks for known properties and adds them to profile datat struct.
-  WebFinger.prototype._processJRD = function (JRD, cb) {
-    var self = this;
+  WebFinger.prototype.__processJRD = function (JRD, errorHandler, successHandler) {
     var parsedJRD = JSON.parse(JRD);
     if ((typeof parsedJRD !== 'object') ||
         (typeof parsedJRD.links !== 'object')) {
       if (typeof parsedJRD.error !== 'undefined') {
-        cb(_err({ message: parsedJRD.error }));
+        return errorHandler(generateErrorObject({ message: parsedJRD.error }));
       } else {
-        cb(_err({ message: 'unknown response from server' }));
+        return errorHandler(generateErrorObject({ message: 'unknown response from server' }));
       }
       return false;
     }
@@ -5552,7 +5598,7 @@ if (typeof XMLHttpRequest === 'undefined') {
         }
       }
     }
-    cb(null, result);
+    return successHandler(result);
   };
 
   WebFinger.prototype.lookup = function (address, cb) {
@@ -5569,26 +5615,25 @@ if (typeof XMLHttpRequest === 'undefined') {
     var protocol = 'https'; // we use https by default
 
     if (parts.length !== 2) {
-      cb(_err({ message: 'invalid user address ' + address + ' ( expected format: user@host.com )' }));
-      return false;
-    } else if (self._isLocalhost(host)) {
+      return cb(generateErrorObject({ message: 'invalid user address ' + address + ' ( expected format: user@host.com )' }));
+    } else if (self.__isLocalhost(host)) {
       protocol = 'http';
     }
 
-    function _buildURL() {
+    function __buildURL() {
       return protocol + '://' + host + '/.well-known/' +
              URIS[uri_index] + '?resource=acct:' + address;
     }
 
     // control flow for failures, what to do in various cases, etc.
-    function _fallbackChecks(err) {
+    function __fallbackChecks(err) {
       if ((self.config.uri_fallback) && (host !== 'webfist.org') && (uri_index !== URIS.length - 1)) { // we have uris left to try
         uri_index = uri_index + 1;
-        _call();
+        return __call();
       } else if ((!self.config.tls_only) && (protocol === 'https')) { // try normal http
         uri_index = 0;
         protocol = 'http';
-        _call();
+        return __call();
       } else if ((self.config.webfist_fallback) && (host !== 'webfist.org')) { // webfist attempt
         uri_index = 0;
         protocol = 'http';
@@ -5599,42 +5644,31 @@ if (typeof XMLHttpRequest === 'undefined') {
         //    (stored somewhere in control of the user)
         // 3. make a request to that url and get the json
         // 4. process it like a normal webfinger response
-        self._fetchJRD(_buildURL(), function (err, data) { // get link to users JRD
-          if (err) {
-            cb(err);
-            return false;
-          }
-          self._processJRD(data, function (err, result) {
+        self.__fetchJRD(__buildURL(), cb, function (data) { // get link to users JRD
+          self.__processJRD(data, cb, function (result) {
             if ((typeof result.idx.links.webfist === 'object') &&
                 (typeof result.idx.links.webfist[0].href === 'string')) {
-              self._fetchJRD(result.idx.links.webfist[0].href, function (err, JRD) {
-                if (err) {
-                  cb(err);
-                } else {
-                  self._processJRD(JRD, cb);
-                }
+              self.__fetchJRD(result.idx.links.webfist[0].href, cb, function (JRD) {
+                self.__processJRD(JRD, cb, function (result) {
+                  return cb(null, cb);
+                });
               });
             }
           });
         });
       } else {
-        cb(err);
-        return false;
+        return cb(err);
       }
     }
 
-    function _call() {
+    function __call() {
       // make request
-      self._fetchJRD(_buildURL(), function (err, JRD) {
-        if (err) {
-          _fallbackChecks(err);
-        } else {
-          self._processJRD(JRD, cb);
-        }
+      self.__fetchJRD(__buildURL(), __fallbackChecks, function (JRD) {
+        self.__processJRD(JRD, cb, function (result) { cb(null, result); });
       });
     }
 
-    setTimeout(_call, 0);
+    return setTimeout(__call, 0);
   };
 
   WebFinger.prototype.lookupLink = function (address, rel, cb) {
@@ -5642,15 +5676,15 @@ if (typeof XMLHttpRequest === 'undefined') {
       this.lookup(address, function (err, p) {
         var links  = p.idx.links[rel];
         if (err) {
-          cb (err);
+          return cb(err);
         } else if (links.length === 0) {
-          cb ('no links found with rel="' + rel + '"');
+          return cb('no links found with rel="' + rel + '"');
         } else {
-          cb (null, links[0]);
+          return cb(null, links[0]);
         }
       });
     } else {
-      cb ('unsupported rel ' + rel);
+      return cb('unsupported rel ' + rel);
     }
   };
 
@@ -5679,10 +5713,29 @@ if (typeof XMLHttpRequest === 'undefined') {
     hash = location.substring(hashPos+1);
     // if hash is not of the form #key=val&key=val, it's probably not for us
     if (hash.indexOf('=') === -1) { return; }
-    return hash.split('&').reduce(function (m, kvs) {
+    return hash.split('&').reduce(function (params, kvs) {
       var kv = kvs.split('=');
-      m[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
-      return m;
+
+      if (kv[0] === 'state' && kv[1].match(/rsDiscovery/)) {
+        // extract rsDiscovery data from the state param
+        var stateValue = decodeURIComponent(kv[1]);
+        var encodedData = stateValue.substr(stateValue.indexOf('rsDiscovery='))
+                                    .split('&')[0]
+                                    .split('=')[1];
+
+        params['rsDiscovery'] = JSON.parse(atob(encodedData));
+
+        // remove rsDiscovery param
+        stateValue = stateValue.replace(new RegExp('\&?rsDiscovery=' + encodedData), '');
+
+        if (stateValue.length > 0) {
+          params['state'] = stateValue;
+        }
+      } else {
+        params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1]);
+      }
+
+      return params;
     }, {});
   }
 
@@ -5695,15 +5748,30 @@ if (typeof XMLHttpRequest === 'undefined') {
     document.location = redirectUri;
   };
 
-  RemoteStorage.Authorize = function (authURL, scope, redirectUri, clientId) {
+  RemoteStorage.Authorize = function (remoteStorage, authURL, scope, redirectUri, clientId) {
     RemoteStorage.log('[Authorize] authURL = ', authURL, 'scope = ', scope, 'redirectUri = ', redirectUri, 'clientId = ', clientId);
+
+    // keep track of the discovery data during redirect if we can't save it in localStorage
+    if (!RemoteStorage.util.localStorageAvailable() &&
+        remoteStorage.backend === 'remotestorage') {
+      redirectUri += redirectUri.indexOf('#') > 0 ? '&' : '#';
+
+      var discoveryData = {
+        userAddress: remoteStorage.remote.userAddress,
+        href: remoteStorage.remote.href,
+        storageApi: remoteStorage.remote.storageApi,
+        properties: remoteStorage.remote.properties
+      };
+
+      redirectUri += 'rsDiscovery=' + btoa(JSON.stringify(discoveryData));
+    }
 
     var url = authURL, hashPos = redirectUri.indexOf('#');
     url += authURL.indexOf('?') > 0 ? '&' : '?';
     url += 'redirect_uri=' + encodeURIComponent(redirectUri.replace(/#.*$/, ''));
     url += '&scope=' + encodeURIComponent(scope);
     url += '&client_id=' + encodeURIComponent(clientId);
-    if (hashPos !== -1) {
+    if (hashPos !== - 1 && hashPos+1 !== redirectUri.length) {
       url += '&state=' + encodeURIComponent(redirectUri.substring(hashPos+1));
     }
     url += '&response_type=token';
@@ -5718,11 +5786,6 @@ if (typeof XMLHttpRequest === 'undefined') {
           remoteStorage.remote.configure({
             token: authResult.access_token
           });
-
-          // TODO
-          // sync doesn't start until after reload
-          // possibly missing some initialization step?
-          global.location.reload();
         })
         .then(null, function(error) {
           console.error(error);
@@ -5745,7 +5808,7 @@ if (typeof XMLHttpRequest === 'undefined') {
 
     var clientId = redirectUri.match(/^(https?:\/\/[^\/]+)/)[0];
 
-    RemoteStorage.Authorize(authURL, scope, redirectUri, clientId);
+    RemoteStorage.Authorize(this, authURL, scope, redirectUri, clientId);
   };
 
   /**
@@ -5828,6 +5891,13 @@ if (typeof XMLHttpRequest === 'undefined') {
         if (params.error) {
           throw "Authorization server errored: " + params.error;
         }
+
+        // rsDiscovery came with the redirect, because it couldn't be
+        // saved in localStorage
+        if (params.rsDiscovery) {
+          remoteStorage.remote.configure(params.rsDiscovery);
+        }
+
         if (params.access_token) {
           remoteStorage.remote.configure({
             token: params.access_token
@@ -5839,7 +5909,8 @@ if (typeof XMLHttpRequest === 'undefined') {
           authParamsUsed = true;
         }
         if (params.state) {
-          RemoteStorage.Authorize.setLocation('#'+params.state);
+          location = RemoteStorage.Authorize.getLocation();
+          RemoteStorage.Authorize.setLocation(location.href.split('#')[0]+'#'+params.state);
         }
       }
       if (!authParamsUsed) {
@@ -6135,8 +6206,10 @@ if (typeof XMLHttpRequest === 'undefined') {
 
     setDictionary: function (newDictionary) {
       dictionary = newDictionary;
-    }
+    },
 
+    _rs_init: function() {
+    }
   };
 })();
 
@@ -6321,7 +6394,7 @@ RemoteStorage.Assets = {
   };
 
   RemoteStorage.Widget._rs_init = function (remoteStorage) {
-    hasLocalStorage = remoteStorage.localStorageAvailable();
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
     if (! remoteStorage.widget) {
       remoteStorage.widget = new RemoteStorage.Widget(remoteStorage);
     }
@@ -8881,7 +8954,7 @@ Math.uuid = function (len, radix) {
       if (typeof(path) !== 'string') {
         path = '';
       } else if (path.length > 0 && path[path.length - 1] !== '/') {
-        Promise.reject("Not a folder: " + path);
+        return Promise.reject("Not a folder: " + path);
       }
       return this.storage.get(this.makePath(path), maxAge).then(
         function (r) {
@@ -9970,6 +10043,13 @@ Math.uuid = function (len, radix) {
 
         for (var i=1; i<paths.length; i++) {
           if (this._tasks[paths[i]]) {
+            // move pending promises to parent task
+            if (Array.isArray(this._tasks[path]) && this._tasks[path].length) {
+              Array.prototype.push.apply(
+                this._tasks[paths[i]],
+                this._tasks[path]
+              );
+            }
             delete this._tasks[path];
           }
         }
@@ -10639,7 +10719,7 @@ Math.uuid = function (len, radix) {
       }
       for (path in this._tasks) {
         if (!this._running[path]) {
-          this._timeStarted = this.now();
+          this._timeStarted[path] = this.now();
           this._running[path] = this.doTask(path);
           this._running[path].then(this.finishTask.bind(this));
           numAdded++;
@@ -10847,12 +10927,20 @@ Math.uuid = function (len, radix) {
       remoteStorage.syncCycle();
     };
 
+    syncOnConnect = function() {
+      remoteStorage.removeEventListener('connected', syncOnConnect);
+      remoteStorage.startSync();
+    };
+
     remoteStorage.on('ready', syncCycleCb);
+    remoteStorage.on('connected', syncOnConnect);
   };
 
   RemoteStorage.Sync._rs_cleanup = function (remoteStorage) {
     remoteStorage.stopSync();
     remoteStorage.removeEventListener('ready', syncCycleCb);
+    remoteStorage.removeEventListener('connected', syncOnConnect);
+    delete remoteStorage.sync;
   };
 
 })(typeof(window) !== 'undefined' ? window : global);
@@ -11179,6 +11267,8 @@ Math.uuid = function (len, radix) {
         var existingNodes = deepClone(nodes);
         var changeEvents = [];
         var node;
+        var equal = RemoteStorage.util.equal;
+
         nodes = _processNodes(paths, nodes);
 
         for (var path in nodes) {
@@ -11187,14 +11277,19 @@ Math.uuid = function (len, radix) {
             delete nodes[path];
           }
           else if (isDocument(path)) {
-            changeEvents.push({
-              path:           path,
-              origin:         'window',
-              oldValue:       node.local.previousBody,
-              newValue:       node.local.body === false ? undefined : node.local.body,
-              oldContentType: node.local.previousContentType,
-              newContentType: node.local.contentType
-            });
+            if (
+              !equal(node.local.body, node.local.previousBody) ||
+              node.local.contentType !== node.local.previousContentType
+            ) {
+              changeEvents.push({
+                path:           path,
+                origin:         'window',
+                oldValue:       node.local.previousBody,
+                newValue:       node.local.body === false ? undefined : node.local.body,
+                oldContentType: node.local.previousContentType,
+                newContentType: node.local.contentType
+              });
+            }
             delete node.local.previousBody;
             delete node.local.previousContentType;
           }
@@ -11657,6 +11752,7 @@ Math.uuid = function (len, radix) {
           pending.reject();
         };
         check.onsuccess = function (event) {
+          check.result.close();
           indexedDB.deleteDatabase("rs-check");
           pending.resolve();
         };
@@ -11780,7 +11876,7 @@ Math.uuid = function (len, radix) {
   RemoteStorage.LocalStorage._rs_init = function () {};
 
   RemoteStorage.LocalStorage._rs_supported = function () {
-    return 'localStorage' in global;
+    return RemoteStorage.util.localStorageAvailable();
   };
 
   // TODO tests missing!
@@ -11800,6 +11896,7 @@ Math.uuid = function (len, radix) {
     });
   };
 })(typeof(window) !== 'undefined' ? window : global);
+
 
 /** FILE: src/inmemorystorage.js **/
 (function (global) {
@@ -12227,7 +12324,7 @@ Math.uuid = function (len, radix) {
 
     connect: function () {
       this.rs.setBackend('googledrive');
-      RS.Authorize(AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
+      RS.Authorize(this.rs, AUTH_URL, AUTH_SCOPE, String(RS.Authorize.getLocation()), this.clientId);
     },
 
     stopWaitingForToken: function () {
@@ -12596,7 +12693,28 @@ Math.uuid = function (len, radix) {
   var hasLocalStorage;
   var AUTH_URL = 'https://www.dropbox.com/1/oauth2/authorize';
   var SETTINGS_KEY = 'remotestorage:dropbox';
-  var cleanPath = RS.WireClient.cleanPath;
+  var PATH_PREFIX = '/remotestorage';
+
+  /**
+   * Function: getDropboxPath(path)
+   *
+   * Map a local path to a path in DropBox.
+   */
+  var getDropboxPath = function (path) {
+    return RS.WireClient.cleanPath(PATH_PREFIX + '/' + path);
+  };
+
+  var encodeQuery = function (obj) {
+    var pairs = [];
+
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(obj[key]));
+      }
+    }
+
+    return pairs.join('&');
+  };
 
   /**
    * class: LowerCaseCache
@@ -12767,7 +12885,7 @@ Math.uuid = function (len, radix) {
       if (this.token){
         hookIt(this.rs);
       } else {
-        RS.Authorize(AUTH_URL, '', String(RS.Authorize.getLocation()), this.clientId);
+        RS.Authorize(this.rs, AUTH_URL, '', String(RS.Authorize.getLocation()), this.clientId);
       }
     },
 
@@ -12832,7 +12950,7 @@ Math.uuid = function (len, radix) {
      */
     _getFolder: function (path, options) {
       // FIXME simplify promise handling
-      var url = 'https://api.dropbox.com/1/metadata/auto' + cleanPath(path);
+      var url = 'https://api.dropbox.com/1/metadata/auto' + getDropboxPath(path);
       var revCache = this._revCache;
       var self = this;
 
@@ -12876,7 +12994,7 @@ Math.uuid = function (len, radix) {
      */
     get: function (path, options) {
       if (! this.connected) { return Promise.reject("not connected (path: " + path + ")"); }
-      var url = 'https://api-content.dropbox.com/1/files/auto' + cleanPath(path);
+      var url = 'https://api-content.dropbox.com/1/files/auto' + getDropboxPath(path);
       var self = this;
 
       var savedRev = this._revCache.get(path);
@@ -13080,7 +13198,7 @@ Math.uuid = function (len, radix) {
      */
     share: function (path) {
       var self = this;
-      var url = 'https://api.dropbox.com/1/media/auto/' + cleanPath(path);
+      var url = 'https://api.dropbox.com/1/media/auto' + getDropboxPath(path);
 
       return this._request('POST', url, {}).then(function (response) {
         if (response.status !== 200) {
@@ -13169,8 +13287,14 @@ Math.uuid = function (len, radix) {
 
       var args = Array.prototype.slice.call(arguments);
       var self = this;
+      var body = { path_prefix: PATH_PREFIX };
+
+      if (self._deltaCursor) {
+        body.cursor = self._deltaCursor;
+      }
+
       return self._request('POST', 'https://api.dropbox.com/1/delta', {
-        body: self._deltaCursor ? ('cursor=' + encodeURIComponent(self._deltaCursor)) : '',
+        body: encodeQuery(body),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -13209,9 +13333,8 @@ Math.uuid = function (len, radix) {
         }
 
         //updating revCache
-        RemoteStorage.log("Delta : ", delta.entries);
         delta.entries.forEach(function (entry) {
-          var path = entry[0];
+          var path = entry[0].substr(PATH_PREFIX.length);
           var rev;
           if (!entry[1]){
             rev = null;
@@ -13259,7 +13382,7 @@ Math.uuid = function (len, radix) {
     _getMetadata: function (path, options) {
       var self = this;
       var cached = this._metadataCache[path];
-      var url = 'https://api.dropbox.com/1/metadata/auto' + cleanPath(path);
+      var url = 'https://api.dropbox.com/1/metadata/auto' + getDropboxPath(path);
       url += '?list=' + ((options && options.list) ? 'true' : 'false');
       if (cached && cached.hash) {
         url += '&hash=' + encodeURIComponent(cached.hash);
@@ -13297,7 +13420,7 @@ Math.uuid = function (len, radix) {
      */
     _uploadSimple: function (params) {
       var self = this;
-      var url = 'https://api-content.dropbox.com/1/files_put/auto' + cleanPath(params.path) + '?';
+      var url = 'https://api-content.dropbox.com/1/files_put/auto' + getDropboxPath(params.path) + '?';
 
       if (params && params.ifMatch) {
         url += "parent_rev=" + encodeURIComponent(params.ifMatch);
@@ -13322,7 +13445,7 @@ Math.uuid = function (len, radix) {
         }
 
         // Conflict happened. Delete the copy created by dropbox
-        if (response.path !== params.path) {
+        if (response.path !== getDropboxPath(params.path)) {
           var deleteUrl = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(response.path);
           self._request('POST', deleteUrl, {});
 
@@ -13356,7 +13479,7 @@ Math.uuid = function (len, radix) {
      */
     _deleteSimple: function (path) {
       var self = this;
-      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(path);
+      var url = 'https://api.dropbox.com/1/fileops/delete?root=auto&path=' + encodeURIComponent(getDropboxPath(path));
 
       return self._request('POST', url, {}).then(function (resp) {
         if (resp.status === 406) {
@@ -13366,7 +13489,7 @@ Math.uuid = function (len, radix) {
           return Promise.reject(new Error("Cannot delete '" + path + "': too many files involved"));
         }
 
-        if (resp.status === 200) {
+        if (resp.status === 200 || resp.status === 404) {
           self._revCache.delete(path);
           delete self._itemRefs[path];
         }
@@ -13380,18 +13503,18 @@ Math.uuid = function (len, radix) {
 
   function hookSync(rs) {
     if (rs._dropboxOrigSync) { return; } // already hooked
-    rs._dropboxOrigSync = rs.sync.bind(rs);
-    rs.sync = function () {
+    rs._dropboxOrigSync = rs.sync.sync.bind(rs.sync);
+    rs.sync.sync = function () {
       return this.dropbox.fetchDelta.apply(this.dropbox, arguments).
         then(rs._dropboxOrigSync, function (err) {
-          rs._emit('error', new rs.SyncError(err));
+          rs._emit('error', new RemoteStorage.SyncError(err));
         });
-    };
+    }.bind(rs);
   }
 
   function unHookSync(rs) {
     if (! rs._dropboxOrigSync) { return; } // not hooked
-    rs.sync = rs._dropboxOrigSync;
+    rs.sync.sync = rs._dropboxOrigSync;
     delete rs._dropboxOrigSync;
   }
 
@@ -13429,6 +13552,14 @@ Math.uuid = function (len, radix) {
     hookRemote(rs);
     if (rs.sync) {
       hookSync(rs);
+    } else {
+      // when sync is not available yet, we wait for the remote to be connected,
+      // at which point sync should be available as well
+      rs.on('connected', function() {
+        if (rs.sync) {
+          hookSync(rs);
+        }
+      });
     }
     hookGetItemURL(rs);
   }
@@ -13440,7 +13571,7 @@ Math.uuid = function (len, radix) {
   }
 
   RS.Dropbox._rs_init = function (rs) {
-    hasLocalStorage = rs.localStorageAvailable();
+    hasLocalStorage = RemoteStorage.util.localStorageAvailable();
     if ( rs.apiKeys.dropbox ) {
       rs.dropbox = new RS.Dropbox(rs);
     }
