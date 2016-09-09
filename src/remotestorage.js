@@ -878,9 +878,9 @@
    * Not available in no-cache builds.
    */
 
-  if ((typeof module === 'object') && (typeof module.exports !== undefined)){
+  global.RemoteStorage = RemoteStorage;
+
+  if ((typeof module === 'object') && (typeof module.exports !== 'undefined')){
     module.exports = RemoteStorage;
-  } else {
-    global.RemoteStorage = RemoteStorage;
   }
 })(typeof(window) !== 'undefined' ? window : global);
