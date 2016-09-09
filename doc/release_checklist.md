@@ -8,11 +8,12 @@
 * Verify tests are green: `npm test`
 * Bump version in `src/version.js`
 * Bump version in `package.json`
+* Bump version in `bower.json`
 * Build everything: `make all`
 * Manually test all browsers you have access to, including mobile devices and private browsing mode
 * Manually test the special build files (.amd.js, .nocache.js)
 * Copy build files into `/release/head/`
-* Create release dir in `/release` and move build files there
+* Copy build files into `/release/stable/`
 * Commit changes to Git and `git push origin master`
 * Tag version in Git: `git tag x.x.x` and push to GitHub master: `git push origin master --tags`
 * Publish release on GitHub
