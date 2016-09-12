@@ -7,11 +7,68 @@
 // mrhTODO       DONE: test!!!! (may be some bug not always deleting the file when delete the screen object - NOT SEEN, delete works ok)
 
 // mrhTODO       IGNORED: beware breaking go-safe linux cmds by cretz: strip out encryption and base64 encoding
-// mrhTODO       NEXT: get working with new unencrypted API - commit!
+// mrhTODO       DONE: get working with new unencrypted API - commit!
 // mrhTODO       NEXT: when working:
-// mrhTODO           NEXT: encryption: remove libsodium from build
-// mrhTODO           NEXT: encryption: remove bops from build
+// mrhTODO           DONE: encryption: remove libsodium from build
+// mrhTODO           DONE: encryption: remove bops from build
 // mrhTODO             -> Update compoonents.json, package.json, clean up lib/, remove bower_components/
+// mrhTODO			 NEXT: pending new widget, try removing inline CSS in order to publish apps on SAFE alpha1
+// mrhTODO           NEXT: upload myfd to http://myfd.safenet
+// mrhTODO               BUG: CORS errors: widget fails to load properly - see console output below
+// mrhTODO               [ ] research CORS - forum & references
+// mrhTODO               [ ] search for "Content Security Policy: The page's settings blocked the loading of a resource at self"
+// mrhTODO               note:
+// mrhTODO               - no icons
+// mrhTODO               - all form elements visible in default HTML (no CSS?)
+// mrhTODO               - regardless of "CORS everywhere" plugin state (note there's a browser setting to disable CORS)
+// mrhTODO
+// mrhTODO NEXT: change Safestore to SafeNetwork everywhere
+// mrhTODO
+// mrhTODO NEXT: work out suitable default and app settings for directories (public/private, app/data)
+// mrhTODO       First thoughts: 
+// mrhTODO              - all RS.js files live under PATH_PREFIX
+// mrhTODO              - default NFS settings: drive / private
+// mrhTODO              - getItemURL() returns either canonical URL (not yet supported) or something in /shares (drive / public)
+// mrhTODO              - app can override use of drive and choose app (in which case other apps cannot access its file)
+// mrhTODO       
+// mrhTODO       References: - RS.js public/private client and category directory usage in RS wiki:
+// mrhTODO                     https://wiki.remotestorage.io/RemoteStorage.js:Beginners%27_Guide#Define_a_module
+// mrhTODO                   - Summary of SAFE NFS directory settings app/data, and public/private
+// mrhTODO                     https://forum.safedev.org/t/safe-nfs-api-notes-on-where-and-how-files-are-stored/108
+
+/* 
+CORS ERROR 1 - before logging starts
+------------
+Content Security Policy: The page's settings blocked the loading of a resource at self ("default-src http://myfd.safenet http://*.safenet").
+    
+
+(function () {
+
+    var event_id = docum...
+
+CORS ERROR 2 - midst of early logging:
+------------
+[Eventhandling] Adding event listener ready function()
+Content Security Policy: The page's settings blocked the loading of a resource at self ("default-src http://myfd.safenet http://*.safenet").
+    
+
+/ ** encoding:utf-8 ** / / * RESET * / #remo...
+
+myfd.safenet (line 1)
+Content Security Policy: The page's settings blocked the loading of a resource at data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDg3LjUgMTAwIiB4bWw6c3BhY2U9InByZXNlcnZlIiBoZWlnaHQ9IjE2IiB2aWV3Qm94PSIwIDAgMTUuOTk5OTk5IDE2IiB3aWR0aD0iMTYiIHZlcnNpb249IjEuMSIgeT0iMHB4IiB4PSIwcHgiIHhtbG5zOmNjPSJodHRwOi8vY3JlYXRpdmVjb21tb25zLm9yZy9ucyMiIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyI+CjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKC01LjUxMTIgLTc2LjUyNSkiIGRpc3BsYXk9Im5vbmUiPgoJPHBhdGggZGlzcGxheT0iaW5saW5lIiBkPSJtNTEuNDczIDQyLjI1NS0yLjIwNSAyLjIxMmMxLjQ3OCAxLjQ3NyAyLjI5NSAzLjQ0MiAyLjI5NSA1LjUzMyAwIDQuMzA5LTMuNTA0IDcuODEyLTcuODEyIDcuODEydi0xLjU2MmwtMy4xMjUgMy4xMjUgMy4xMjQgMy4xMjV2LTEuNTYyYzYuMDI5IDAgMTAuOTM4LTQuOTA2IDEwLjkzOC0xMC45MzggMC0yLjkyNy0xLjE0MS01LjY3Ni0zLjIxNS03Ljc0NXoiLz4KCTxwYXRoIGRpc3BsYXk9ImlubGluZSIgZD0ibTQ2Ljg3NSA0MC42MjUtMy4xMjUtMy4xMjV2MS41NjJjLTYuMDMgMC0xMC45MzggNC45MDctMTAuOTM4IDEwLjkzOCAwIDIuOTI3IDEuMTQxIDUuNjc2IDMuMjE3IDcuNzQ1bDIuMjAzLTIuMjEyYy0xLjQ3Ny0xLjQ3OS0yLjI5NC0zLjQ0Mi0yLjI5NC01LjUzMyAwLTQuMzA5IDMuNTA0LTcuODEyIDcuODEyLTcuODEydjEuNTYybDMuMTI1LTMuMTI1eiIvPgo8L2c+CjxwYXRoIGZpbGw9IiNmZmYiIGQ9Im0xMCAwbC0wLjc1IDEuOTA2MmMtMS4wMDc4LTAuMjk0Mi0zLjQ1ODYtMC43NzA4LTUuNjU2MiAwLjkzNzYgMC0wLjAwMDItMy45MzAyIDIuNTk0MS0yLjA5MzggNy41OTQybDEuNjU2Mi0wLjcxOTJzLTEuNTM5OS0zLjExMjIgMS42ODc2LTUuNTMxM2MwIDAgMS42OTU3LTEuMTMzOSAzLjY4NzQtMC41OTM3bC0wLjcxODcgMS44MTI0IDMuODEyNS0xLjYyNS0xLjYyNS0zLjc4MTJ6Ii8+PHBhdGggZmlsbD0iI2ZmZiIgZD0ibTE0IDUuNTYyNWwtMS42NTYgMC43MTg3czEuNTQxIDMuMTEzNS0xLjY4OCA1LjUzMDhjMCAwLTEuNzI3MiAxLjEzNS0zLjcxODUgMC41OTRsMC43NS0xLjgxMi0zLjgxMjUgMS41OTQgMS41OTM4IDMuODEyIDAuNzgxMi0xLjkwNmMxLjAxMTMgMC4yOTUgMy40NjE1IDAuNzY2IDUuNjU2LTAuOTM4IDAgMCAzLjkyOC0yLjU5NCAyLjA5NC03LjU5MzV6Ii8+Cjwvc3ZnPgo= ("default-src http://myfd.safenet http://*.safenet").
+[RemoteStorage] [FEATURE IndexedDB] supported
+
+CORS ERROR 3 - NOT REPEATABLE midst of early logging:
+------------
+[Eventhandling] Adding event listener sync bound ()
+remotestorage.js (line 3532)
+Content Security Policy: The page's settings blocked the loading of a resource at self ("default-src http://myfd.safenet http://*.safenet").
+    
+
+/ * See license.txt for terms of usage * /...
+*/
+
+// mrhTODO           NEXT: strip node_modules from myfd prototype
 // mrhTODO           NEXT: retrofit localstorage settings
 
 // mrhTODO      [ ] Review/implement features noted at top of safestore-db.js (local file) up to "create safestore.js anew"
@@ -53,7 +110,25 @@
         }
 */
 
-LAUNCHER_URL = 'http://localhost:8100'; // Client device must be running SAFE Launcher which provides REST API
+LAUNCHER_URL = 'http://localhost:8100'; // For local tests - but use http://api.safenet when live on SAFEnetwork
+//LAUNCHER_URL = 'http://api.safenet'; // Client device must be running SAFE Launcher which provides REST API
+//LAUNCHER_URL = 'safe://api.safenet'; // For SAFE Beaker Browser
+
+/* SAFE BEAKER DEBUGGING: 
+ 
+  with safe://api.safenet and Beaker, I get this error on RS.Safestore::safestoreAuthorize():
+
+    remotestorage.js:5276 XMLHttpRequest cannot load safe://api.safenet/auth. 
+    Cross origin requests are only supported for protocol schemes: http, data, chrome, https.
+
+  with http://localhost:8100 and Beaker, I get this error on RS.Safestore::safestoreAuthorize():
+
+    XMLHttpRequest cannot load http://localhost:8100/auth. 
+    Response to preflight request doesn't pass access control check: 
+    No 'Access-Control-Allow-Origin' header is present on the requested resource. 
+    Origin 'safe://myfd' is therefore not allowed access.
+
+*/
 
 (function (global) {
   /**
