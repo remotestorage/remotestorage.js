@@ -1,6 +1,3 @@
-// mrhTODO: create a proper SAFE Network icon: src/rs.js/assets/safestore.png
-// mrhTODO: extend these changes to include Safestore init: https://github.com/remotestorage/remotestorage.js/pull/942
-
 (function (global) {
 
   var hasLocalStorage;
